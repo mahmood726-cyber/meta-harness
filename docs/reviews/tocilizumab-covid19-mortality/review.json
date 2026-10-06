@@ -4173,6 +4173,421 @@
             "level": "not assessed"
           }
         ]
+      },
+      "NCT04320615": {
+        "nct": "NCT04320615",
+        "registry_in_aact": true,
+        "assessed_from": "registry+abstract",
+        "overall": "low (on assessed domains; some domains require human judgement)",
+        "domains": {
+          "D1_randomisation": {
+            "level": "low",
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": false
+            },
+            "derived_at_build": true
+          },
+          "D2_deviations": {
+            "level": "low",
+            "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "DOUBLE",
+              "AACT.designs.subject_masked": "t",
+              "AACT.designs.caregiver_masked": "f",
+              "trial_text.blinded_by_text": false
+            },
+            "derived_at_build": true
+          },
+          "D3_missing_outcome_data": {
+            "level": "not assessed",
+            "basis": "not assessed - AACT flow shows between-arm differential attrition 2.0% (overall 34.7%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": {
+                "overall_pct": 34.7,
+                "differential_pct": 2.0,
+                "groups": [
+                  [
+                    144,
+                    96
+                  ],
+                  [
+                    294,
+                    190
+                  ]
+                ]
+              }
+            },
+            "derived_at_build": true
+          },
+          "D4_outcome_measurement": {
+            "level": "low",
+            "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "DOUBLE",
+              "AACT.designs.outcomes_assessor_masked": "f",
+              "trial_text.blinded_by_text": false
+            },
+            "derived_at_build": true
+          },
+          "D5_selective_reporting": {
+            "level": "low",
+            "basis": "prespecified secondary outcome, registered 'Ventilator-Free Days to Day 28'",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "28-day all-cause mortality",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Clinical Status Assessed Using a 7-Category Ordinal Scale at Day 28 (Week 4)",
+                  "title": "",
+                  "description": "\"Clinical status was assessed using a 7-category ordinal scale:~1. \\- Discharged (or ready for discharge)~2. \\- Non- intensive care unit (ICU) hospital ward (or ready for hospital ward) not requiring supplemental oxygen~3. \\- Non-ICU hospital ward (or ready for hospital ward) requiring supplemental oxygen~4. \\- ICU or non-ICU hospital ward, requiring non-invasive ventilation or high-flow oxygen~5. \\- ICU, requiring intubation and mechanical ventilation~6. \\- ICU, requiring extracorporeal membrane oxygenation (ECMO) or mechanical ventilation and additional organ support~7. \\- Death\""
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "Time to Clinical Improvement (TTCI), Defined as a National Early Warning Score 2 (NEWS2) of </= 2 Maintained for 24 Hours",
+                  "title": "",
+                  "description": "Defined as time from first dose of study drug to at least two NEWS2 assessments with a score of \\<=2 covering a span of at least 21.5 hours, with a maximum of 26.5 hours between the first and last of these assessments and no assessments with a score \\>2 in between. If one of the components of the NEWS2 score was missing at a particular time point, then the NEWS2 score was not calculated. Participants who died were censored at Day 28."
+                },
+                {
+                  "measure": "Time to Improvement of at Least 2 Categories Relative to Baseline on a 7-Category Ordinal Scale of Clinical Status",
+                  "title": "",
+                  "description": "Time to improvement for this outcome measure was defined as the days from the first dose of study drug to when at least a 2-category improvement in clinical status (based on a 7-category ordinal scale) is observed. Participants who died were censored at Day 28."
+                },
+                {
+                  "measure": "\"Time to Hospital Discharge or Ready for Discharge\"",
+                  "title": "",
+                  "description": "\"Time to Hospital Discharge was defined as the time from the first dose of study drug to hospital discharge or ready for discharge (normal body temperature and respiratory rate, and stable oxygen saturation on ambient air or \\</=2L supplemental oxygen) Participants who died were censored at Day 28.\""
+                },
+                {
+                  "measure": "Incidence of Mechanical Ventilation by Day 28",
+                  "title": "",
+                  "description": "Participants who died by Day 28 were assumed to have required mechanical ventilation."
+                },
+                {
+                  "measure": "Ventilator-Free Days to Day 28",
+                  "title": "",
+                  "description": "Participants who died by Day 28 were assigned 0 ventilator-free days."
+                },
+                {
+                  "measure": "Incidence of Intensive Care Unit (ICU) Stay by Day 28 (Week 4)",
+                  "title": "",
+                  "description": "Participants who died by Day 28 were assumed to have required an ICU stay."
+                },
+                {
+                  "measure": "Duration of ICU Stay to Day 28 (Week 4)",
+                  "title": "",
+                  "description": "Participants who died by Day 28 were assigned a duration from the first dose of study drug to Day 28 at hour 23:59:59."
+                },
+                {
+                  "measure": "Clinical Status Assessed Using a 7-Category Ordinal Scale at Day 14",
+                  "title": "",
+                  "description": "\"Clinical status was assessed using a 7-category ordinal scale:~1. \\- Discharged (or ready for discharge)~2. \\- Non- intensive care unit (ICU) hospital ward (or ready for hospital ward) not requiring supplemental oxygen~3. \\- Non-ICU hospital ward (or ready for hospital ward) requiring supplemental oxygen~4. \\- ICU or non-ICU hospital ward, requiring non-invasive ventilation or high-flow oxygen~5. \\- ICU, requiring intubation and mechanical ventilation~6. \\- ICU, requiring extracorporeal membrane oxygenation (ECMO) or mechanical ventilation and additional organ support~7. \\- Death\""
+                },
+                {
+                  "measure": "Time to Clinical Failure to Day 28 (Week 4)",
+                  "title": "",
+                  "description": "Time to clinical failure was defined as the number of days from the first dose of study drug to the first occurrence on study of death, mechanical ventilation, ICU admission, or study withdrawal prior to discharge, whichever occurs first."
+                },
+                {
+                  "measure": "Mortality Rate at Day 28 (Week 4)",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Time to Recovery to Day 28 (Week 4)",
+                  "title": "",
+                  "description": "\"Time to recovery was defined as the number of days from the first dose of study drug to hospital discharge or ready for discharge (normal body temperature and respiratory rate, and stable oxygen saturation on ambient air or \\</= 2L supplemental oxygen) or non-ICU hospital ward or ready for hospital ward not requiring supplemental oxygen. Participants who died were censored at Day 28.\""
+                },
+                {
+                  "measure": "Duration of Supplemental Oxygen to Day 28 (Week 4)",
+                  "title": "",
+                  "description": "Participants who died by Day 28 were assigned a duration of 28 days of supplemental oxygen."
+                }
+              ],
+              "comparison": {
+                "registered_type": "secondary",
+                "registered_label": "Ventilator-Free Days to Day 28",
+                "matched": true,
+                "method": "text_identity",
+                "pooled_components": [
+                  "ALL_CAUSE_MORTALITY"
+                ],
+                "registered_components": [],
+                "registered_text": "Ventilator-Free Days to Day 28 Participants who died by Day 28 were assigned 0 ventilator-free days."
+              }
+            },
+            "derived_at_build": true
+          }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            }
+          ]
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "NCT04403685": {
+        "nct": "NCT04403685",
+        "registry_in_aact": true,
+        "assessed_from": "registry+abstract",
+        "overall": "low (on assessed domains; some domains require human judgement)",
+        "domains": {
+          "D1_randomisation": {
+            "level": "low",
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": false
+            },
+            "derived_at_build": true
+          },
+          "D2_deviations": {
+            "level": "not assessed",
+            "basis": "blinding: subject_masked=None, caregiver_masked=None",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "NONE",
+              "AACT.designs.subject_masked": "",
+              "AACT.designs.caregiver_masked": "",
+              "trial_text.blinded_by_text": false
+            },
+            "derived_at_build": true
+          },
+          "D3_missing_outcome_data": {
+            "level": "not assessed",
+            "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": null
+            },
+            "derived_at_build": true
+          },
+          "D4_outcome_measurement": {
+            "level": "not assessed",
+            "basis": "outcome-assessor blinded = None",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "NONE",
+              "AACT.designs.outcomes_assessor_masked": "",
+              "trial_text.blinded_by_text": false
+            },
+            "derived_at_build": true
+          },
+          "D5_selective_reporting": {
+            "level": "low",
+            "basis": "prespecified secondary outcome, registered 'All-cause mortality'",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "28-day all-cause mortality",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Evaluation of clinical status",
+                  "title": "",
+                  "description": "Evaluation of clinical status of patients on day 15 after randomization, defined by the Ordinal Scale of 7 points (score ranges from 1 to 7, with 7 being the worst score)"
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "All-cause mortality",
+                  "title": "",
+                  "description": "All-cause mortality from randomization to day 28"
+                },
+                {
+                  "measure": "Hospital Mortality",
+                  "title": "",
+                  "description": "Deaths that occur during hospital admission."
+                },
+                {
+                  "measure": "Improvement of Sequential Sepsis-related Organ Failure Assessment (SOFA) scale",
+                  "title": "",
+                  "description": "Improvement of SOFA scale of patients at day 8, 15 and 29 after randomization"
+                },
+                {
+                  "measure": "Evaluation of clinical status",
+                  "title": "",
+                  "description": "Evaluation of clinical status of patients on the day 8, 22 and 29 after randomization, defined by the Ordinal Scale of 7 points (score ranges from 1 to 7, with 7 being the worst score)"
+                },
+                {
+                  "measure": "Ventilator free days",
+                  "title": "",
+                  "description": "Days alive and free from mechanical ventilation since randomization"
+                },
+                {
+                  "measure": "Time until oxygen support independence",
+                  "title": "",
+                  "description": "Days from randomization to independence of oxygen support"
+                },
+                {
+                  "measure": "Need of mechanical ventilation support",
+                  "title": "",
+                  "description": "Number of patients that were not at mechanical ventilation at randomization and that required that support."
+                },
+                {
+                  "measure": "Days to mechanical ventilation support.",
+                  "title": "",
+                  "description": "\"Number of days to mechanical ventilation for patients that were not receiving it at randomization.~For patients that were not in mechanical ventilation at randomization: number of days until that support was required.\""
+                },
+                {
+                  "measure": "Duration of hospitalization",
+                  "title": "",
+                  "description": "Lenght of hospitalization stay in survivors (in days)"
+                },
+                {
+                  "measure": "Other infections",
+                  "title": "",
+                  "description": "Incidence of other infections (aside from SARS-CoV 2)"
+                },
+                {
+                  "measure": "Incidence of thromboembolic events",
+                  "title": "",
+                  "description": "Incidence of thromboembolic events in patients with COVID-19"
+                },
+                {
+                  "measure": "Incidence of adverse events",
+                  "title": "",
+                  "description": "Evaluation of adverse events, as well as serious and unexpected adverse events"
+                }
+              ],
+              "comparison": {
+                "registered_type": "secondary",
+                "registered_label": "All-cause mortality",
+                "matched": true,
+                "method": "component_set",
+                "pooled_components": [
+                  "ALL_CAUSE_MORTALITY"
+                ],
+                "registered_components": [
+                  "ALL_CAUSE_MORTALITY"
+                ],
+                "registered_text": "All-cause mortality All-cause mortality from randomization to day 28"
+              }
+            },
+            "derived_at_build": true
+          }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "not assessed"
+            },
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "not assessed"
+            }
+          ]
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "canonical": {
@@ -4212,6 +4627,82 @@
             "D5_selective_reporting": {
               "signal": "low",
               "signal_basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (ALL_CAUSE_MORTALITY); registered 'Community-acquired pneumonia: All-cause mortality (with subsidiary analyses of cause of death and of death at various timepoints following discharge)'",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            }
+          }
+        },
+        "NCT04320615": {
+          "verdict": "NOT_ASSESSED",
+          "verdict_basis": "formal RoB 2 not assessed: the registry machine-signal family carries no judgement (B-prime withdrew RoB 2 judgements)",
+          "signal_overall": "consistent with low risk on the assessed domains",
+          "signal_overall_raw": "low (on assessed domains; some domains require human judgement)",
+          "domains": {
+            "D1_randomisation": {
+              "signal": "low",
+              "signal_basis": "AACT allocation = RANDOMIZED",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D2_deviations": {
+              "signal": "low",
+              "signal_basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D3_missing_outcome_data": {
+              "signal": "not assessed",
+              "signal_basis": "not assessed - AACT flow shows between-arm differential attrition 2.0% (overall 34.7%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D4_outcome_measurement": {
+              "signal": "low",
+              "signal_basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D5_selective_reporting": {
+              "signal": "low",
+              "signal_basis": "prespecified secondary outcome, registered 'Ventilator-Free Days to Day 28'",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            }
+          }
+        },
+        "NCT04403685": {
+          "verdict": "NOT_ASSESSED",
+          "verdict_basis": "formal RoB 2 not assessed: the registry machine-signal family carries no judgement (B-prime withdrew RoB 2 judgements)",
+          "signal_overall": "consistent with low risk on the assessed domains",
+          "signal_overall_raw": "low (on assessed domains; some domains require human judgement)",
+          "domains": {
+            "D1_randomisation": {
+              "signal": "low",
+              "signal_basis": "AACT allocation = RANDOMIZED",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D2_deviations": {
+              "signal": "not assessed",
+              "signal_basis": "blinding: subject_masked=None, caregiver_masked=None",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D3_missing_outcome_data": {
+              "signal": "not assessed",
+              "signal_basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D4_outcome_measurement": {
+              "signal": "not assessed",
+              "signal_basis": "outcome-assessor blinded = None",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D5_selective_reporting": {
+              "signal": "low",
+              "signal_basis": "prespecified secondary outcome, registered 'All-cause mortality'",
               "signal_source": "registry+abstract",
               "verdict": "NOT_ASSESSED"
             }
@@ -5517,24 +6008,24 @@
   },
   "rob_sensitivity": {
     "outcome": "28-day all-cause mortality",
-    "estimand": "OR",
+    "estimand": "RR",
     "levels": {
       "33933206": "low",
-      "NCT04320615": null,
-      "NCT04403685": null
+      "NCT04320615": "low",
+      "NCT04403685": "low"
     },
     "input_set_version": "bdeccfe3cf7bb46ad261ec155f66448e7a0ab91c3df6043f05433e10ed040182",
     "n_trials": 3,
-    "n_rob_rated": 1,
-    "rob_covered": false,
+    "n_rob_rated": 3,
+    "rob_covered": true,
     "any_high": false,
     "full": {
       "k": 3,
-      "estimate": 1.128,
-      "scale": "OR",
-      "ci_low": 0.3082,
-      "ci_high": 4.1283,
-      "tau2": 0.19537,
+      "estimate": 1.0958,
+      "scale": "RR",
+      "ci_low": 0.3563,
+      "ci_high": 3.3703,
+      "tau2": 0.14827,
       "input_set_version": "8c9fe1c7c3b659fcfaa437f7429b2419e233bb6b501a5da5f6988e8382322d7e",
       "claim_id": "193969011e431ad7",
       "depends_on": {
@@ -5544,11 +6035,11 @@
     },
     "drop_high": {
       "k": 3,
-      "estimate": 1.128,
-      "scale": "OR",
-      "ci_low": 0.3082,
-      "ci_high": 4.1283,
-      "tau2": 0.19537,
+      "estimate": 1.0958,
+      "scale": "RR",
+      "ci_low": 0.3563,
+      "ci_high": 3.3703,
+      "tau2": 0.14827,
       "input_set_version": "8c9fe1c7c3b659fcfaa437f7429b2419e233bb6b501a5da5f6988e8382322d7e",
       "claim_id": "6c095fb7d032bc61",
       "depends_on": {
@@ -5557,12 +6048,12 @@
       "claim_kind": "rob_sensitivity.drop_high"
     },
     "low_only": {
-      "k": 1,
-      "estimate": 0.85,
+      "k": 3,
+      "estimate": 1.0958,
       "scale": "RR",
-      "ci_low": 0.7643,
-      "ci_high": 0.9453,
-      "tau2": 0.0,
+      "ci_low": 0.3563,
+      "ci_high": 3.3703,
+      "tau2": 0.14827,
       "input_set_version": "8c9fe1c7c3b659fcfaa437f7429b2419e233bb6b501a5da5f6988e8382322d7e",
       "claim_id": "b04b18f28e863893",
       "depends_on": {
@@ -5571,24 +6062,24 @@
       "claim_kind": "rob_sensitivity.low_only"
     },
     "drop_high_informative": false,
-    "low_only_relation": "fewer_trials",
-    "low_only_kind": "information_availability_sensitivity",
+    "low_only_relation": "identical_to_full",
+    "low_only_kind": "bias_sensitivity",
     "low_only_excluded_adverse": 0,
-    "low_only_excluded_unassessed": 2,
-    "low_only_informative": true,
-    "low_only_predicate": "fewer_trials",
+    "low_only_excluded_unassessed": 0,
+    "low_only_informative": false,
+    "low_only_predicate": "same_trial_set",
     "formally_assessed": false,
-    "suppression_reason": "RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed"
+    "suppression_reason": "RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=3 of 3)"
   },
   "grade": {
     "start": "high",
     "domains": {
       "risk_of_bias": {
         "downgrade": 0,
-        "coverage_incomplete": true,
+        "coverage_incomplete": false,
         "assessed": false,
         "n_trials": 3,
-        "n_rated": 1,
+        "n_rated": 3,
         "n_high": 0,
         "n_some": 0,
         "basis": "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below",
@@ -79680,8 +80171,8 @@
         "/rob_sensitivity/drop_high",
         "/rob_sensitivity/low_only"
       ],
-      "rendered_text": "<div class='absent'>RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed</div>",
-      "text_sha256": "4750f80048d58a5a2cabab02fde417f0ee9b3d33e76f85c791979ce075e42d77",
+      "rendered_text": "<div class='absent'>RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=3 of 3)</div>",
+      "text_sha256": "ba8cd062dfb14b47bd68f6180052ff97cce3d4812982044b69f6931b01ea25ca",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -79850,7 +80341,7 @@
         "kind": "rated_count",
         "surface": "riskofbias/manuscript",
         "source_path": "/rob_sensitivity",
-        "rated": 1,
+        "rated": 3,
         "total": 3,
         "claim_id": "f3cfb5ce652671d4"
       },
@@ -79900,7 +80391,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
-    "review_sha256": "ace4b9a7b62d5221313054d1c55d4daa537b6865b96423e8d4b4425eaeedba75",
+    "review_sha256": "b5c2bdcd5ab83c3bc3d2da2798fa7cb84006a0da197eb0bd630aa93c369b609d",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -80060,7 +80551,7 @@
       "screening_ledger_sha256": "ab9707132999371fcf9a720c7b7874dd6cdb97ca1e09b672c76219687b2b6be5",
       "extraction_objects_sha256": "bb5d11c7c601f14463430a8e33884193d759f8984f794f77e6d2ae1e268635e3",
       "trial_family_map_sha256": "171b36ddbda55ab923e83a03fb9c8bb4e751e30954dad63250c931738b56c8fb",
-      "rob_object_sha256": "1635047e4279c60e4308d2f01aaa8745a29b364f67f1edd7d3985ef0f1b776b3",
+      "rob_object_sha256": "48bf322b7929cb35cbca3f30540c6537f5232820d5ae6b81fed0396c4c44e0f1",
       "held_documents": [
         {
           "ref": "cache/tocilizumab-covid19-mortality/aact_inputs.json",
@@ -80108,7 +80599,7 @@
         }
       ],
       "config_sha256": "b8daa4c210c0934b2bcc3245046f52ff2c29be1e547bd9165c2b6641860992b8",
-      "analysis_code_sha256": "ea0c7f8db67e1cc749f2e8611ef98ab6a052253a62a19a508b03b2de43a055be",
+      "analysis_code_sha256": "e9d8652150a94e7cc1eb8a19d69ea582a1dd48c13dbbea7e2259ac503a48b362",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -80165,7 +80656,7 @@
         "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "37cd5be992d01fa77edeec701b7d843e6c301c97",
+        "harness/page.py": "5886c0f14fe82350c370b400f2f1af2f947929e6",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
         "harness/pipeline.py": "14297456f99eec8638a9e19791fa4e14664e4316",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
@@ -80178,7 +80669,7 @@
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
         "harness/result_changes.py": "3e649a68f6aa1464292930ffc4550d97cfe9a6de",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
-        "harness/rob_sensitivity.py": "3b21cbf6015618431d855a7b358dde4097c87358",
+        "harness/rob_sensitivity.py": "9fb571fc055f4d2ae559c7ee34efc7cf7ee22724",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "87fb6fdbdd1263c4457e5397aad4c3f13a7df6b0",
@@ -80244,8 +80735,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "027dba9b754afb617d786ce824a7bbde6dbe042cfa592f6f6d1e750147bd948a",
-      "review_sha256": "ace4b9a7b62d5221313054d1c55d4daa537b6865b96423e8d4b4425eaeedba75",
+      "manuscript_sha256": "7dba8187d6b71eddf805347f96b099a3a495682be37850568eb6579431556f17",
+      "review_sha256": "b5c2bdcd5ab83c3bc3d2da2798fa7cb84006a0da197eb0bd630aa93c369b609d",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/tocilizumab-covid19-mortality.md UTF-8 text, universal newlines",
@@ -80265,7 +80756,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "18630957195ab8bbf20ba84b25e0ac9cb4d736fec87317944dda88d24fbc9f84"
+      "release_sha256": "c2a31ec4015fbca2363f405f39670fdb432b4ac068815eb8b0566fcfae64ff9f"
     }
   }
 }
