@@ -36,3 +36,12 @@ def test_a_count_difference_a_missing_row_and_a_pooled_difference_are_findings()
 def test_rounding_within_printed_precision_is_agreement():
     rows = [dict(ACC[0], effect="0.8"), dict(ACC[1])]
     assert gfr.audit_compare(ACC, POOL, _reading(rows, dict(POOL)))["state"] == "AUDIT_AGREES"
+
+
+def test_a_zero_count_agrees_with_zero_whatever_its_json_type():
+    # 'str(x or "")' turned the NUMBER 0 into '' (zero is falsy): every zero-event row read as a disagreement
+    assert gfr.agree_count(0, "0") == (True, 0)
+    assert gfr.agree_count(0, 0) == (True, 0)
+    assert gfr.agree_count("0", 0) == (True, 0)
+    assert gfr.agree_count(None, None) == (True, None)
+    assert gfr.agree_count(0, None)[0] is False
