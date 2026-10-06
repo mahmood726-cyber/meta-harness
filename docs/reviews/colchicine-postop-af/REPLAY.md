@@ -20,12 +20,12 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 | This topic's identity | Recorded value |
 |---|---|
 | review_sha256 (canonical review core) | `507a7fd9867264e2e26d97e71d2c7a82f03e6a6dcfbc61ef00487aa26af01254` |
-| html_sha256 (served page bytes) | `ffe7c79e08f8b708c69ce013549abe59a90b464acbd09287135a5d508ffdc40c` |
-| release_sha256 (certificate) | `683ecf2fd50eace0c45bb25c63a1fef5622b7db51384a3e457be86a06013394b` |
+| html_sha256 (served page bytes) | `75c78d15cda25c395ae766abe7121c77ef2729673d572b642707c1c7ec853c4b` |
+| release_sha256 (certificate) | `b75194958a6ec06bfe1d2994560c19134e7889b782ce0f125a0b9f1db38e6a53` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
-| analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `a3b5e0bd915385835fd9e962d3141c535f68a804` |
+| analysis code | 86 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
+| recorded generating commit | `644424d3d10001bcb19bec002a244a19d3565d86` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,6 +38,7 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/colchicine-postop-af/aact_inputs.json` | `91929e9ed7324ee3b6be148cdb6aec6b11d86a5b4e4554fb6db603db9c92d805` |
 | `cache/colchicine-postop-af/comparator_fulltext.txt` | `6a7760af7cd873c1bd1a54cc15172c9987dfcd6b0a6bd847acfcf831ee914e9c` |
+| `cache/colchicine-postop-af/ft_27223641.txt` | `25981c8eb7aec5684034785a60fbe922976c47e1c2192b4e9a5a74906543f51a` |
 | `cache/colchicine-postop-af/ft_42132185.txt` | `5f97fbf19df841fe3fff946895473f971f399f2772293fd384b50ea8e0ba6975` |
 
 Recorded judgments live under `cache/colchicine-postop-af/`; their object digest is
