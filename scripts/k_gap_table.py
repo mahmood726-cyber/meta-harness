@@ -1562,8 +1562,21 @@ def pubmed_author_year(author, year, agents, offline):
     return (ids[0] if isinstance(ids, list) and len(ids) == 1 else None), q, ids
 
 
+def require_aact_snapshot():
+    """The identity routes (acronym -> AACT studies / interventions) read the snapshot through harness.aact, which
+    returns NOTHING when it finds no snapshot: every trial resolved that way then silently becomes UNRESOLVED (6 Oct
+    worker run: AACT_DIR unset -> EXSCEL, EMPEROR-Preserved lost their identities). Fail closed instead."""
+    from harness import aact as _aact
+    d = _aact.snapshot_dir()
+    if not d or not os.path.exists(os.path.join(d, "studies.txt")):
+        raise SystemExit("K_GAP_TABLE REFUSED: no AACT snapshot found by harness.aact (set AACT_DIR to the <date> "
+                         "snapshot folder); identity routes would silently resolve nothing")
+    return d
+
+
 def main(argv=None):
     argv = argv or sys.argv[1:]
+    require_aact_snapshot()
     offline = "--offline" in argv
     global _OFFLINE
     _OFFLINE = offline
