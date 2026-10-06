@@ -180,8 +180,10 @@ def pmc_fulltext_cached(pmid, offline=False):
     new = idx[pmid]
     idx = _j(idx_p) if os.path.exists(idx_p) else {}
     idx[pmid] = {**{k: v for k, v in (idx.get(pmid) or {}).items() if k.startswith("copy_")}, **new}
-    with open(idx_p, "w", encoding="utf-8") as fh:
+    tmp = f"{idx_p}.{os.getpid()}.tmp"          # ATOMIC: a concurrent reader never sees a half-written index
+    with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(idx, fh, indent=1, sort_keys=True)
+    os.replace(tmp, idx_p)
     return txt
 
 
