@@ -45,3 +45,11 @@ def test_a_zero_count_agrees_with_zero_whatever_its_json_type():
     assert gfr.agree_count("0", 0) == (True, 0)
     assert gfr.agree_count(None, None) == (True, None)
     assert gfr.agree_count(0, None)[0] is False
+
+
+def test_audit_scope_selects_accepted_figures_of_that_section_only():
+    o = {"results": {"s1": {"state": "ACCEPTED"}, "s2": {"state": "REFUSED"}},
+         "meta_results": {"s1::11": {"state": "ACCEPTED"}, "s1::12::F2": {"state": gfr.SECOND_SOURCE_ONLY},
+                          "s1::13": {"state": "REFUSED"}}}
+    assert sorted(gfr.audit_targets(o, "comparator")) == ["s1"]
+    assert sorted(gfr.audit_targets(o, "meta")) == ["s1::11", "s1::12::F2"]
