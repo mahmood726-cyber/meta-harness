@@ -73,7 +73,10 @@ def main(argv):
                               "verdicts": eligible(rule, c)[1]} for c in cands],
            "result_under_preregistered_rule": "PICKED" if pick0 else rule["if_none_pass"].split(":")[0],
            "ratified_exception": exc,
-           "result": ("PICKED" if pick0 else "PICKED_BY_RATIFIED_EXCEPTION" if pick else rule["if_none_pass"].split(":")[0])}
+           # the final winner's label says whether IT needed the exception (codex review merge-08315be6e:g1#6): an
+           # exception that changes the winner is PICKED_BY_RATIFIED_EXCEPTION even when another candidate passes
+           "result": ("PICKED" if pick and pick0 and str(pick.get("pmid")) == str(pick0.get("pmid"))
+                      else "PICKED_BY_RATIFIED_EXCEPTION" if pick else rule["if_none_pass"].split(":")[0])}
     p = os.path.join(SEL, f"{slug}.selection.json")
     with open(p, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False)

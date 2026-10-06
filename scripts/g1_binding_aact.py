@@ -105,13 +105,20 @@ def combine_arms(arms):
 
 CONTROL = re.compile(r"\bplacebo\b", re.I)
 IMPUTED = re.compile(r"\bLOCF\b|last observation|\bendpoint\b", re.I)
+# a POPULATION / analysis-set field that states imputation (codex review merge-08315be6e:g1#3): the title alone missed
+# 'missing values imputed using last observation carried forward (LOCF)' written in the population field
+IMPUTED_POP = re.compile(r"\bLOCF\b|last observation carried|imputed|imputation|multiple imputation", re.I)
+# 'placebo for / to match / matching <agent>' names the drug the placebo MIMICS: it is the control (review g1#4)
+PLACEBO_FOR = re.compile(r"\bplacebo\s+(?:for|to\s+match|matching|matched\s+to|of)\s+[\w\-]+(?:\s+[\w\-]+)?|"
+                         r"\bmatching\s+placebo\s+(?:for|to)\s+[\w\-]+", re.I)
 
 
 def arm_role(title, agents):
     ag = re.compile("|".join(re.escape(a) for a in agents), re.I) if agents else None
-    if CONTROL.search(title) and not (ag and ag.search(title)):
+    rest = PLACEBO_FOR.sub(" ", title or "")          # the agent named only as what the placebo mimics is not an arm
+    if CONTROL.search(title or "") and not (ag and ag.search(rest)):
         return "control"
-    return "intervention" if ag and ag.search(title) else None
+    return "intervention" if ag and ag.search(rest) else None
 
 
 def arm_candidates(meas, counts, titles, outcomes, topic, agents):
@@ -130,9 +137,24 @@ def arm_candidates(meas, counts, titles, outcomes, topic, agents):
             why = ("C2_TIMEPOINT", f"title does not name Day {day.group(1)}")
         elif observed and IMPUTED.search(title):
             why = ("C3_OBSERVED", f"imputed analysis ({IMPUTED.search(title).group(0)}) for an observed-case estimand")
+        elif observed and IMPUTED_POP.search(o.get("population") or ""):
+            why = ("C3_OBSERVED", f"imputed analysis stated in the population field "
+                                  f"({IMPUTED_POP.search(o.get('population') or '').group(0)}) for an observed-case estimand")
         elif NOT_ITT.search(title) or NOT_ITT.search(o.get("population") or ""):
             why = ("C4_POPULATION", "per-protocol / on-treatment")
         arms = []
+        if not why:
+            # one measurement row per posted group, and every posted group measured (review g1#1, g1#2): a group posted
+            # twice (category / classification rows: subgroups) or a group with a count but no measurement refuses the
+            # outcome -- an arm is never counted twice, and none silently disappears from the combination
+            gids = [r["result_group_id"] for r in meas[oid]]
+            split = sorted({g for g in gids if gids.count(g) > 1} |
+                           {r["result_group_id"] for r in meas[oid] if (r.get("category") or r.get("classification"))})
+            unmeasured = sorted(set((counts.get(oid) or {})) - set(gids))
+            if split:
+                why = ("C5_ARMS", f"group(s) {split} posted as several category/classification rows (subgroups, not arms)")
+            elif unmeasured:
+                why = ("C5_ARMS", f"group(s) {unmeasured} posted with a count but no mean/SD: the arms cannot all be combined")
         if not why:
             for r in meas[oid]:
                 g = r["result_group_id"]

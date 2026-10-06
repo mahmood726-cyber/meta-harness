@@ -530,8 +530,16 @@ class AactStore:
             self.d.setdefault(k, {})
 
     def save(self):
-        with open(self.path, "w", encoding="utf-8") as fh:
-            json.dump(self.d, fh)
+        # written WHOLE or not at all (temp file + os.replace, as kgap.aact_adapter's index): an in-place write tore the
+        # 20 MB store when two runs saved it at once (6 Oct), and a failed write must leave the previous store intact
+        tmp = f"{self.path}.{os.getpid()}.tmp"
+        try:
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump(self.d, fh)
+            os.replace(tmp, self.path)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
 
     def _t(self, name):
         return os.path.join(self.snap, name + ".txt")
