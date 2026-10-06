@@ -683,6 +683,24 @@ def _withdrawal_block(r):
             + f"<ul>{rows}</ul><p>Withdrawn {_e(w.get('date', ''))}. {_e(w.get('status', ''))}</p></div>")
 
 
+def _withdrawal_corrected_block(r):
+    """A withdrawal that a signed correction superseded stays stated where the withdrawn result was read: what was
+    published and withdrawn, and that the served result is now the corrected selection under a signed notice. Without
+    this the page goes quiet the moment it is corrected -- the reader would see a number with no trace that a
+    different number was served and withdrawn for being the wrong endpoint."""
+    w = r.get("withdrawal_superseded")
+    if not w:
+        return ""
+    sb = w.get("superseded_by") or {}
+    rows = "".join(f"<li>{_e(x)}</li>" for x in w.get("statements", []))
+    return ("<div class='absent' id='result-corrected'><strong>RESULT CORRECTED -- the result this page withdrew on "
+            f"{_e(w.get('date', ''))} is replaced by a corrected selection, served under a signed result-change notice "
+            f"(rendered sha256 {_e(str(sb.get('rendered_sha256', ''))[:16])}, {_e(sb.get('notice_when_utc', ''))}).</strong> "
+            f"The withdrawal notice of {_e(w.get('date', ''))}, kept on the record as it stood (where it says the corrected "
+            "estimate is not yet published, the signed notice now answers it): " + _e(w.get("summary", ""))
+            + f"<ul>{rows}</ul></div>")
+
+
 def _prerelease_overview(r):
     rs = r.get("release_status") or {}
     if rs.get("status") != "PRE-RELEASE":
@@ -714,7 +732,7 @@ def _overview(r, neutral):
     # INVALIDATION PROPAGATION: a single STALE verdict poisons the headline. If any dependent output
     # is known incomplete/superseded/unproven, say so at the top rather than let the result read as
     # current. Each reason is named; the corpus index publishes the count as it falls.
-    withdrawn = _withdrawal_block(r)
+    withdrawn = _withdrawal_block(r) or _withdrawal_corrected_block(r)
     if withdrawn:
         parts.append(withdrawn)
     stale = _stale_topic_overview(r)
