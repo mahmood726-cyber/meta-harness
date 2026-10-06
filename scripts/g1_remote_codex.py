@@ -24,7 +24,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-PEER = os.environ.get("G1_WORKER", "mahmo@100.80.183.43")
+PEER = os.environ.get("G1_WORKER_PEER", "mahmo@100.80.183.43")
 GIT_BIN = r"C:\Program Files\Git\usr\bin"
 WT = r"C:\mh-worker\binding-wt"
 PY = r"C:\mh-worker\venv\Scripts\python.exe"

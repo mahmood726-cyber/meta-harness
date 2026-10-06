@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import base64
 import concurrent.futures as cf
+import shutil
 import csv
 import hashlib
 import io
@@ -159,7 +160,8 @@ def counted_rows(slug, T):
         gt.as_row, gt.our_value_from_row = orig, orig_v
     out = []
     for x in o["trials"]:
-        if gt.is_matched(x) and x.get("route") == "PRIMARY" and (x.get("our_value") or seen.get(x["label"])):
+        if gt.is_matched(x) and x.get("route") in ("PRIMARY", "SECONDARY_SINGLE") and \
+                (x.get("our_value") or seen.get(x["label"])):
             v = dict(by_id.get(str(x.get("family") or "").replace("PMID ", "")) or seen.get(x["label"]) or {})
             v.update({k: val for k, val in (x.get("our_value") or {}).items() if val is not None})
             out.append((x, v))
@@ -226,25 +228,42 @@ def evidence_unit(cfg, x, pmid):
 
 
 def item(slug, cfg, x, ours):
+    import g1_licence as _lic
     pmid, texts = held_material(slug, x)
+    texts, dropped = _lic.gate(pmid, texts, offline=os.environ.get("G1_LICENCE_OFFLINE") == "1")
     po = cfg["primary_outcome"]
-    body = "\n\n".join(f"=== {ref} ===\n{t}" for ref, t in texts)[:MAX_CHARS]
+    # full text (copyright material, licence-gated) inside the recorder guard's <<<TEXT block, declared in its form;
+    # public-domain material (PubMed abstract, CT.gov posted results, FDA text) outside it under explicit headers
+    full = [(r, t) for r, t in texts if r not in _lic.ALWAYS]
+    pub = [(r, t) for r, t in texts if r in _lic.ALWAYS]
+    body = ("\n\n".join(f"=== {ref} (public domain / abstract) ===\n{t}" for ref, t in pub)
+            + ("\n\n<<<TEXT\n" + "\n\n".join(f"=== {ref} ===\n{t}" for ref, t in full) + "\nTEXT>>>" if full else ""))[:MAX_CHARS]
     p = (INSTR + f"\n\nOUTCOME: {po['name']}\nWORDS FOR IT: {', '.join(po.get('keywords') or [])}\n"
          f"TIMEPOINT: {po.get('timepoint') or 'as reported'}\nEVIDENCE UNIT: {evidence_unit(cfg, x, pmid)}\nESTIMAND: {po.get('estimand') or 'as reported'}\nINTERVENTION: {', '.join(cfg.get('intervention_terms') or [])}\n"
          f"CONTROL: {', '.join(cfg.get('comparator_terms') or [])}\n<<<MATERIAL\n{body}\nMATERIAL>>>\n").encode("utf-8")
     kinds = sorted({ref for ref, _ in texts})
     return {"slug": slug, "label": x["label"], "pmid": pmid, "ours": ours, "prompt": p, "text": body, "kinds": kinds,
-            "public": set(kinds) <= PUBLIC_SOURCES, "key": f"audit::{slug}::{x['label']}",
-            "agents": ba.topic_agents(cfg)}
+            "public": True, "key": f"audit::{slug}::{x['label']}", "agents": ba.topic_agents(cfg),
+            "licence_dropped": dropped, "full_kinds": sorted({r for r, _ in full})}
+
+
+def digests(it):
+    return [{"ref": f"held open text PMID {it['pmid']} ({'+'.join(it['full_kinds'] or ['NONE'])})",
+             "sha256": hashlib.sha256(it["text"].encode("utf-8")).hexdigest(),
+             "what": f"held material shown, first {MAX_CHARS} chars; outside the TEXT block: "
+                     f"{'+'.join(k for k in it['kinds'] if k not in it['full_kinds'])} "
+                     f"(PubMed abstract / ClinicalTrials.gov posted results / US FDA text)"}]
 
 
 def call(it, model):
     rec = mcl.call(it["prompt"], schema=json.loads(json.dumps(SCHEMA)), model=model, effort=fp.EFFORT,
                    caller={"file": "scripts/g1_audit_primary.py", "line": "call",
                            "purpose": f"G1 audit: independent re-read of the counted PRIMARY row {it['slug']} / {it['label']}"},
-                   input_digests=[{"ref": f"held material for {it['label']} ({'+'.join(it['kinds'])})",
+                   input_digests=[{"ref": f"held open text PMID {it['pmid']} ({'+'.join(it['full_kinds'] or ['NONE'])})",
                                    "sha256": hashlib.sha256(it["text"].encode("utf-8")).hexdigest(),
-                                   "what": f"held material shown, first {MAX_CHARS} chars"}],
+                                   "what": f"held material shown, first {MAX_CHARS} chars; outside the TEXT block: "
+                                           f"{'+'.join(k for k in it['kinds'] if k not in it['full_kinds'])} "
+                                           f"(PubMed abstract / ClinicalTrials.gov posted results / US FDA text)"}],
                    timeout_s=1500)
     d = REC_DIR if it["public"] else PRIVATE
     ms.write_record(rec, d)
@@ -347,10 +366,35 @@ def main(argv):
                                                          != hashlib.sha256(it["prompt"]).hexdigest()
                                                          or (runs.get(it["key"]) or {}).get("state") != "RAN_OK")]
     if run and todo:
-        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "3"))) as ex:
-            for key, r in ex.map(lambda it: call(it, model), todo):
+        remote = todo[1::2] if os.environ.get("G1_REMOTE_SHARE") == "1" else []
+        local = [it for it in todo if it not in remote]
+
+        def run_remote():
+            import g1_remote_codex as rc
+            jobs = [{"key": it["key"], "prompt": it["prompt"], "schema": SCHEMA, "model": model, "effort": fp.EFFORT,
+                     "caller": {"file": "scripts/g1_audit_primary.py", "line": "call", "purpose":
+                                f"G1 audit: independent re-read of the bound row {it['slug']} / {it['label']}"},
+                     "input_digests": digests(it), "timeout_s": 1500} for it in remote]
+            res = rc.submit(jobs, "audit", concurrency=int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))) if jobs else {}
+            out = {}
+            for it in remote:
+                v = res.get(it["key"]) or {}
+                if v.get("record_path"):
+                    shutil.copy(v["record_path"], os.path.join(REC_DIR, v["record_id"] + ".json"))
+                    out[it["key"]] = {"record_id": v["record_id"], "state": v["state"], "dir": "public", "host": "worker",
+                                      "prompt_sha256": hashlib.sha256(it["prompt"]).hexdigest()}
+                else:
+                    print(it["key"], "WORKER", v.get("error"), flush=True)
+            return out
+        with cf.ThreadPoolExecutor(max_workers=1) as rex:
+            fut = rex.submit(run_remote)
+            with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "3"))) as ex:
+                for key, r in ex.map(lambda it: call(it, model), local):
+                    runs[key] = r
+                    print(key, r["state"], r["record_id"], r["dir"], flush=True)
+            for key, r in fut.result().items():
                 runs[key] = r
-                print(key, r["state"], r["record_id"], r["dir"], flush=True)
+                print(key, r["state"], r["record_id"], "worker", flush=True)
     runs_store.save(runs, slugs=set(slugs))
     rows, tally = [], Counter()
     for it in items:

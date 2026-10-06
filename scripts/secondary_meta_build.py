@@ -45,7 +45,12 @@ REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "secondary")   # the tie
 DATE = "2026-09-30"
 N_CANDIDATES = 8
 CAPTION = re.compile(r"forest|pooled|hazard ratio|risk ratio|odds ratio|relative risk|meta-analys[ie]s of", re.I)
-NAMED = {"tocilizumab-covid19-mortality": ["34228774"]}      # WHO REACT (JAMA 2021), named by Mahmood
+NAMED = {"tocilizumab-covid19-mortality": ["34228774"],     # WHO REACT (JAMA 2021), named by Mahmood
+         # g1/binding lane (Mahmood 6 Oct: old metas allowed, "use hard"): CC BY open metas citing >= 4 of the topic's
+         # OPEN comparator trials (Europe PMC citations), the comparator itself excluded; CC BY only (lane licence rule)
+         "colchicine-secondary-cv-prevention": ["37600022", "34957237", "37608812", "38505729", "41458740", "41517355",
+                                                "41214504", "35949770"],
+         "corticosteroids-cap-mortality": ["26641253", "39660004"]}
 QUERY = {
     "glp1-ra-mace-t2d": '(TITLE:"GLP-1" OR TITLE:"glucagon-like peptide") AND (TITLE:"cardiovascular" OR TITLE:"MACE")',
     "semaglutide-obesity-weight": 'TITLE:"semaglutide" AND (TITLE:"weight" OR TITLE:"obesity")',
