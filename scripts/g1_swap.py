@@ -199,7 +199,10 @@ def held_jats(pmid, pmcid):
     have = sorted(f for f in (os.listdir(d) if os.path.isdir(d) else []) if f.endswith("_kgap_jats.xml"))
     if have:
         return os.path.relpath(os.path.join(d, have[-1]), ROOT).replace("\\", "/")
-    st, b = http.get_raw(f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", tries=2, timeout=120)
+    try:
+        st, b = http.get_raw(f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", tries=2, timeout=120)
+    except Exception:  # noqa: BLE001 - an unfetchable text is 'not held' (C2-C6 stay UNCLEAR), never a crash or a pass
+        return None
     if st != 200 or b"<article" not in b[:4000]:
         return None
     os.makedirs(d, exist_ok=True)
