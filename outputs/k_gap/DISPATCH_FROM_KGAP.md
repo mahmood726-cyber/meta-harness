@@ -567,3 +567,25 @@ Per topic: tocilizumab-covid19-mortality NOT_YET indep 5/19 matched 5/19; balanc
 - Timepoint-silent metas (cortico-CAP) are refused.
 - 2 scope candidates have verbatim spans but no consumer yet: Zarpelon [20] in colchicine-postop-af ("prospective, randomized, open"; the protocol requires double-blind), and esketamine Trial B.
 - Four topics have every eligible trial matched and fail only RESULT_AGREES: colchicine-recurrent-pericarditis 1/1, sglt2-ckd 3/3, tranexamic 1/1, dpp4 3/4. That is a result-agreement question, not acquisition.
+
+### 6 Oct, evening: rebase, worker slots, second readers — acq/k-gap 2b5b344bc … 47762a20
+
+- **Rebase.** `git fetch` showed that origin/acq/k-gap had **not** been rewritten (it equalled the local HEAD c9a757e0b).
+  - Uncommitted lane files were committed and pushed first (2b5b344bc); the tracker outputs were saved as a local patch.
+  - Then I ran `reset --hard origin/acq/k-gap`. A local backup ref exists: `backup/acq-k-gap-pre-reset-2026-10-06`.
+- **Worker.** Codex is now installed and authenticated on the worker, and `reproducible_ai/model_call_remote.RemoteCodexRunner` runs calls there.
+  - The call itself is identical and sandboxed.
+  - Prompts, the licence guard, the gates and the records all stay on this box.
+  - Each record names `codex@worker`, the worker's codex version and the worker's AGENTS.md digest.
+  - Runs used 5 local slots and 5 worker slots.
+- **Second independent reader.** gpt-5.5 reads every row that would bind.
+  - A row binds only when both readers pass the gate with the same tuple. A split gets one retry from reader 1.
+  - Readers ran on every sourced run: 52 reads, 23 of them on the worker.
+  - **There were 0 splits.** Reader 2 never found a bindable tuple that reader 1 had missed.
+  - HEART-FID binds with two agreeing readers.
+  - AFFIRM-AHF is refused by reader 2. It was already named as an estimand difference.
+- **Defect fixed (with a plant).** At 10 workers, `fulltext_index.json` was being read while only half written, and concurrent writers were losing each other's updates. Index writes are now locked, atomic and per key; evidence building is serialised.
+- **Recount.** G1_MATCHED 9, INDEPENDENT 92/346, COVERAGE 164/346, eligible 224. Unchanged.
+- **Spend.** Codex use is limited by evidence, not by capacity.
+  - This round made 58 calls; tonight's total is about 150.
+  - The no-source trials (107) and the measure- and timepoint-gated rows can't move without a decision from the captain or Mahmood. The decisions are listed in the earlier sections.
