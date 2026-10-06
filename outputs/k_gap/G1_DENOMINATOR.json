@@ -5,11 +5,11 @@
   "fixture": "docs/evidence/g1-denominator/baseline-6efd9c00.json"
  },
  "current": {
-  "N": 327
+  "N": 322
  },
- "removed_n": 66,
- "relabelled_n": 0,
- "added_n": 26,
+ "removed_n": 64,
+ "relabelled_n": 1,
+ "added_n": 19,
  "removed": [
   {
    "slug": "balanced-crystalloids-vs-saline-mortality",
@@ -99,21 +99,22 @@
    "label": "EMPEROR-Preserved",
    "comparator_pmid": "36914068",
    "kind": "OTHER_AGENT",
-   "rule_id": "K-GAP:OTHER_AGENT:IDENTITY_CHAIN",
+   "rule_id": "K-GAP:OTHER_AGENT:REGISTRY_INTERVENTIONS",
    "identity": {
-    "ncts": [
-     "NCT03057951",
-     "NCT03057977",
-     "NCT04435626"
+    "pmids": [
+     "31081589",
+     "34449189",
+     "34693515"
     ],
-    "chain": "AMBIGUOUS:ACRONYM"
+    "ncts": [
+     "NCT03057951"
+    ]
    },
-   "detail": "k-gap's identity chain scopes the trial OTHER_AGENT:empagliflozin (its own reports name empagliflozin, not the topic's agent); the span is a held PubMed title of one of those reports (PMID 34459213)",
+   "detail": "the trial's registered arms (AACT) name another agent than the topic's",
    "span": {
-    "text": "Effect of Empagliflozin on Worsening Heart Failure Events in Patients With Heart Failure and Preserved Ejection Fraction: EMPEROR-Preserved Trial.",
-    "source": "outputs/k_gap/pubmed_titles.json",
-    "source_sha256": "048113e564db6846d11263904441f0ffac15cc69d751a85beb1f97085ec7b7ff",
-    "pmid": "34459213"
+    "text": "388799214|NCT03057951|DRUG|Empagliflozin|once daily\n388799215|NCT03057951|DRUG|Placebo|once daily",
+    "source": "docs/evidence/g1-denominator/aact_interventions_NCT03057951.txt",
+    "source_sha256": "85aaf852fe775d1acda60f3e1a2be8797c380d3ebcb01baef9ca09377a1aecd9"
    }
   },
   {
@@ -255,45 +256,17 @@
    "slug": "empagliflozin-hfpef-hosp",
    "label": "Empagliflozin in Heart Failure with a Preserved Ejection Fra",
    "comparator_pmid": "37773799",
-   "kind": "NOT_IN_COMPARATOR_TABLE",
-   "rule_id": "K-GAP:ENUMERATION:COMPARATOR_TABLE",
+   "kind": "RELABELLED",
+   "rule_id": "K-GAP:ENUMERATION:COMPARATOR_TABLE_LABEL",
+   "now_label": "EMPEROR Preserved, 2020",
    "identity": {
     "family": "PMID 34449189"
    },
-   "detail": "an older reference-title unit; the comparator's own included-studies table (Table 1) lists the 6 rows quoted here, and this trial is not one of them",
+   "detail": "the same trial (same family), now labelled as the comparator's own trial table labels it",
    "span": {
-    "rows": [
-     {
-      "text": "EMPEROR Preserved, 2020",
-      "source": "cache/comparators/37773799/2026-09-28_kgap_jats.xml",
-      "source_sha256": "2987af15f439df6fbb9aca43a4fd0d358c9761eefc19b8c313a7ef04b66d32f9"
-     },
-     {
-      "text": "VERTIS CV, 2020",
-      "source": "cache/comparators/37773799/2026-09-28_kgap_jats.xml",
-      "source_sha256": "2987af15f439df6fbb9aca43a4fd0d358c9761eefc19b8c313a7ef04b66d32f9"
-     },
-     {
-      "text": "DECLARE-TIMI 58, 2019",
-      "source": "cache/comparators/37773799/2026-09-28_kgap_jats.xml",
-      "source_sha256": "2987af15f439df6fbb9aca43a4fd0d358c9761eefc19b8c313a7ef04b66d32f9"
-     },
-     {
-      "text": "SCORED, 2021",
-      "source": "cache/comparators/37773799/2026-09-28_kgap_jats.xml",
-      "source_sha256": "2987af15f439df6fbb9aca43a4fd0d358c9761eefc19b8c313a7ef04b66d32f9"
-     },
-     {
-      "text": "SOLOIST-WHF, 2021",
-      "source": "cache/comparators/37773799/2026-09-28_kgap_jats.xml",
-      "source_sha256": "2987af15f439df6fbb9aca43a4fd0d358c9761eefc19b8c313a7ef04b66d32f9"
-     },
-     {
-      "text": "DELIVER Trial, 2022",
-      "source": "cache/comparators/37773799/2026-09-28_kgap_jats.xml",
-      "source_sha256": "2987af15f439df6fbb9aca43a4fd0d358c9761eefc19b8c313a7ef04b66d32f9"
-     }
-    ]
+    "text": "EMPEROR Preserved, 2020",
+    "source": "cache/comparators/37773799/2026-09-28_kgap_jats.xml",
+    "source_sha256": "2987af15f439df6fbb9aca43a4fd0d358c9761eefc19b8c313a7ef04b66d32f9"
    }
   },
   {
@@ -795,66 +768,6 @@
     ],
     "source": "cache/melatonin-primary-insomnia-sol/comparator_fulltext.txt",
     "source_sha256": "1a0b83a7aa25c0dfcd2935033c36a6e73d6985fcc9b9a8b127f7fd4e852e3fad"
-   }
-  },
-  {
-   "slug": "spironolactone-hfref-mortality",
-   "label": "ARTS-HF2013",
-   "comparator_pmid": "40959489",
-   "kind": "NOT_IN_COMPARATOR_TABLE",
-   "rule_id": "K-GAP:ENUMERATION:COMPARATOR_TABLE",
-   "identity": {
-    "family": "PMID 25678098"
-   },
-   "detail": "an older reference-title unit; the comparator's own included-studies table (Table 1) lists the 9 rows quoted here, and this trial is not one of them",
-   "span": {
-    "rows": [
-     {
-      "text": "RALES 1999",
-      "source": "cache/comparators/40959489/2026-09-15_legacy_comparator_fulltext.txt",
-      "source_sha256": "c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c"
-     },
-     {
-      "text": "EPHESUS 2003",
-      "source": "cache/comparators/40959489/2026-09-15_PMC12434096_europepmc_fulltext.xml",
-      "source_sha256": "fed4122ee98856fd353e5c70db7762fe9d40da81c308f09509e60add83b4291c"
-     },
-     {
-      "text": "EMPHASIS-HF 2011",
-      "source": "cache/comparators/40959489/2026-09-15_PMC12434096_europepmc_fulltext.xml",
-      "source_sha256": "fed4122ee98856fd353e5c70db7762fe9d40da81c308f09509e60add83b4291c"
-     },
-     {
-      "text": "Aldo-DHF 2013",
-      "source": "cache/comparators/40959489/2026-09-15_legacy_comparator_fulltext.txt",
-      "source_sha256": "c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c"
-     },
-     {
-      "text": "TOPCAT 2014",
-      "source": "cache/comparators/40959489/2026-09-15_legacy_comparator_fulltext.txt",
-      "source_sha256": "c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c"
-     },
-     {
-      "text": "FIGARO-DKD 2022",
-      "source": "cache/comparators/40959489/2026-09-15_legacy_comparator_fulltext.txt",
-      "source_sha256": "c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c"
-     },
-     {
-      "text": "FIDELIO-DKD 2020",
-      "source": "cache/comparators/40959489/2026-09-15_legacy_comparator_fulltext.txt",
-      "source_sha256": "c2d689abca270f7300eff0ce8d9ea96bad1b55f05dae50d9cc3941bf4192d54c"
-     },
-     {
-      "text": "FINEARTS-HF2024",
-      "source": "cache/comparators/40959489/2026-09-15_PMC12434096_europepmc_fulltext.xml",
-      "source_sha256": "fed4122ee98856fd353e5c70db7762fe9d40da81c308f09509e60add83b4291c"
-     },
-     {
-      "text": "ARTS-HF2013",
-      "source": "cache/comparators/40959489/2026-09-15_PMC12434096_europepmc_fulltext.xml",
-      "source_sha256": "fed4122ee98856fd353e5c70db7762fe9d40da81c308f09509e60add83b4291c"
-     }
-    ]
    }
   },
   {
@@ -1452,28 +1365,6 @@
   },
   {
    "slug": "empagliflozin-hfpef-hosp",
-   "label": "EMPEROR Preserved, 2020",
-   "comparator_pmid": "37773799",
-   "basis": "a row of the comparator's own trial table",
-   "span": {
-    "text": "EMPEROR Preserved, 2020",
-    "source": "cache/comparators/37773799/2026-09-28_kgap_jats.xml",
-    "source_sha256": "2987af15f439df6fbb9aca43a4fd0d358c9761eefc19b8c313a7ef04b66d32f9"
-   }
-  },
-  {
-   "slug": "empagliflozin-hfpef-hosp",
-   "label": "SCORED, 2021",
-   "comparator_pmid": "37773799",
-   "basis": "a row of the comparator's own trial table",
-   "span": {
-    "text": "SCORED, 2021",
-    "source": "cache/comparators/37773799/2026-09-28_kgap_jats.xml",
-    "source_sha256": "2987af15f439df6fbb9aca43a4fd0d358c9761eefc19b8c313a7ef04b66d32f9"
-   }
-  },
-  {
-   "slug": "empagliflozin-hfpef-hosp",
    "label": "SOLOIST-WHF, 2021",
    "comparator_pmid": "37773799",
    "basis": "a row of the comparator's own trial table",
@@ -1547,49 +1438,6 @@
     "source": "cache/comparators/35691474/2026-10-05_repository_mmc1.txt",
     "source_sha256": "dc37c6f89ec03f7ec488266b4fe1254f0c7f35f2ece78c24d7ba11604d1baaa7"
    }
-  },
-  {
-   "slug": "probiotics-aad-prevention",
-   "label": "Selinger et al67",
-   "comparator_pmid": "34385227",
-   "basis": "a row of the comparator's own trial table",
-   "span": {
-    "text": "Selinger et al 67",
-    "source": "cache/comparators/34385227/2026-09-15_legacy_comparator_fulltext.txt",
-    "source_sha256": "58ffaef583553f34f0e6aa525b65418d22deb031395287d642ab9cd82805d957"
-   }
-  },
-  {
-   "slug": "sacubitril-valsartan-hfref",
-   "label": "Massie, 2008",
-   "comparator_pmid": "36722326",
-   "basis": "a row of the comparator's own trial table",
-   "span": {
-    "text": "Massie, 2008",
-    "source": "cache/comparators/36722326/2026-09-28_kgap_jats.xml",
-    "source_sha256": "3910bf6345dc11674ced1a804af6585509200dd0c75c9d7e3434fbcd88b62d16"
-   }
-  },
-  {
-   "slug": "semaglutide-obesity-mace",
-   "label": "SURMOUNT-1 39",
-   "comparator_pmid": "39345822",
-   "basis": "a row of the comparator's own trial table",
-   "span": null
-  },
-  {
-   "slug": "semaglutide-obesity-mace",
-   "label": "SURMOUNT-3 17",
-   "comparator_pmid": "39345822",
-   "basis": "a row of the comparator's own trial table",
-   "span": null
-  },
-  {
-   "slug": "semaglutide-obesity-mace",
-   "label": "SURMOUNT-4 16",
-   "comparator_pmid": "39345822",
-   "basis": "a row of the comparator's own trial table",
-   "span": null
   },
   {
    "slug": "statins-primary-prevention-elderly",

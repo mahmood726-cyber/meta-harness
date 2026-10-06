@@ -5,8 +5,33 @@
  "N_comparator_trials": 12,
  "k_matched": 2,
  "k_in_our_pool": 2,
- "N_eligible": 12,
- "named_differences": [],
+ "N_eligible": 11,
+ "named_differences": [
+  {
+   "trial": "OSLER-1 NCT01439880",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X3",
+   "screen_reason": "no eligible comparator (none of ['placebo']).",
+   "span": {
+    "field": "abstract",
+    "text": "Regardless of study-group assignments in the parent trials, eligible patients were randomly assigned in a 2:1 ratio to receive either evolocumab (140 mg every 2 weeks or 420 mg monthly) plus standard therapy or standard therapy alone.",
+    "match": "standard therapy"
+   },
+   "span_source": "PMID 25773607 record abstract (held: cache/pcsk9-mace/records.json or outputs/k_gap/member_records.json)",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "NON_PROTOCOL_COMPARATOR_STATED (protocol requires placebo)"
+   },
+   "protocol_rule": "include.comparator_any = ['placebo'] (none met)",
+   "protocol_span": {
+    "file": "protocols/pcsk9-mace.md",
+    "rule_id": "X3",
+    "text": "wrong intervention/comparison (no evolocumab/alirocumab-vs-placebo contrast);"
+   },
+   "registered_eligibility": null,
+   "pmid": "25773607"
+  }
+ ],
  "open_gaps": [
   "ODYSSEY COMBO I NCT01644175",
   "ODYSSEY LONG TERM NCT01507831",
@@ -16,7 +41,6 @@
   "ODYSSEY JAPAN NCT02017898",
   "PACMAN - AMI NCT03067844",
   "DESCARTES NCT01516879",
-  "OSLER-1 NCT01439880",
   "GLAGOV NCT01813422"
  ],
  "k_matched_of_comparator_N": "2 of 12",
@@ -31,17 +55,20 @@
    {
     "source": "MODEL_PROPOSAL_GATED",
     "units": 12,
-    "drug_specific_resolved": 6
+    "drug_specific_resolved": 10
    }
   ]
  },
  "blockers": {
-  "IDENTIFICATION": 7,
+  "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 3,
   "EXTRACTION:outcome_post_hoc_not_pooled": 1,
+  "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 1,
   "IDENTIFICATION:COMPARATOR_NCT_NOT_IN_REGISTRY": 1,
-  "EXTRACTION:outcome_not_reported": 1
+  "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 1,
+  "NO_RECORD_HELD": 1,
+  "EXTRACTION:outcome_not_reported:VIA_OTHER_REPORT:DECLARED_WITHOUT_FULL_TEXT": 1
  },
- "top_blocker": "IDENTIFICATION",
+ "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
  "other_agent_units": [],
  "comparator_findings": [
   {
@@ -53,20 +80,20 @@
  ],
  "k_ours_total": 2,
  "routes": {
-  "NO_ROW": 8,
-  "UNVERIFIED": 2,
+  "UNVERIFIED": 9,
+  "NO_ROW": 1,
   "PRIMARY": 2
  },
  "trials": [
   {
    "label": "ODYSSEY COMBO I NCT01644175",
-   "family": null,
+   "family": "PMID 26027630",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "IDENTIFICATION",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
    "gap_class": "IDENTIFICATION",
-   "absent_code": null,
+   "absent_code": "OUTCOME_NOT_IN_SOURCE",
    "comparator_row": {
     "effect": "1.21",
     "lower": "0.32",
@@ -145,12 +172,13 @@
     "proposal": null
    },
    "screen_eligibility": {
-    "state": "NOT_ASSESSED",
-    "why": "NO_RECORD_HELD",
-    "pmid": null
+    "state": "ELIGIBLE",
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "26027630",
+    "rule_id": "INCLUDE"
    },
    "scope_difference": null,
-   "blocker": "IDENTIFICATION",
+   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -295,11 +323,11 @@
   },
   {
    "label": "ODYSSEY FH I NCT01623115",
-   "family": null,
+   "family": "PMID 26330422",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "IDENTIFICATION",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "SEEDED PMID 26330422: DECLARED_ABSENT OUTCOME_NOT_IN_SOURCE",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -365,6 +393,11 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "seeded_funnel": {
+    "stage": "DECLARED_ABSENT",
+    "reason_code": "OUTCOME_NOT_IN_SOURCE",
+    "pmid": "26330422"
+   },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
     "source_meta": "36531722",
@@ -380,12 +413,12 @@
     "proposal": null
    },
    "screen_eligibility": {
-    "state": "NOT_ASSESSED",
-    "why": "NO_RECORD_HELD",
-    "pmid": null
+    "state": "ELIGIBLE",
+    "basis": "SEEDED_SCREEN_INCLUDE:DECLARED_ABSENT",
+    "pmid": "26330422"
    },
    "scope_difference": null,
-   "blocker": "IDENTIFICATION",
+   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -414,11 +447,11 @@
   },
   {
    "label": "ODYSSEY FH II NCT01709500",
-   "family": null,
+   "family": "PMID 26330422",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "IDENTIFICATION",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "SEEDED PMID 26330422: DECLARED_ABSENT OUTCOME_NOT_IN_SOURCE",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -484,6 +517,11 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "seeded_funnel": {
+    "stage": "DECLARED_ABSENT",
+    "reason_code": "OUTCOME_NOT_IN_SOURCE",
+    "pmid": "26330422"
+   },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
     "source_meta": "36531722",
@@ -499,12 +537,12 @@
     "proposal": null
    },
    "screen_eligibility": {
-    "state": "NOT_ASSESSED",
-    "why": "NO_RECORD_HELD",
-    "pmid": null
+    "state": "ELIGIBLE",
+    "basis": "SEEDED_SCREEN_INCLUDE:DECLARED_ABSENT",
+    "pmid": "26330422"
    },
    "scope_difference": null,
-   "blocker": "IDENTIFICATION",
+   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -533,11 +571,11 @@
   },
   {
    "label": "ODYSSEY HIGH FH NCT01617655",
-   "family": null,
+   "family": "PMID 27618825",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "IDENTIFICATION",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "IN SCREEN PMID 27618825: SCREENED_OUT X2: population not on-topic: title/conditions/abstract do not mention any of ['cardiovascular disease', 'atherosclerotic cardiovascular disease'",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -603,6 +641,13 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "seeded_funnel": {
+    "stage": "SCREENED_OUT",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions/abstract do not mention any of ['cardiovascular disease', 'atherosclerotic cardiovascular disease'",
+    "pmid": "27618825",
+    "already_in_screen": true
+   },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
     "source_meta": "36531722",
@@ -618,12 +663,56 @@
     "proposal": null
    },
    "screen_eligibility": {
-    "state": "NOT_ASSESSED",
-    "why": "NO_RECORD_HELD",
-    "pmid": null
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "population not on-topic: title/conditions/abstract do not mention any of ['cardiovascular disease', 'atherosclerotic cardiovascular disease'",
+    "readings": [
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['design', 'popul",
+      "record_id": "mc-6df41fac787631980fed2641009f305f"
+     },
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-6df41fac787631980fed2641009f305f"
+     },
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-6df41fac787631980fed2641009f305f"
+     },
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-6df41fac787631980fed2641009f305f"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['design', 'popul",
+      "record_id": "mc-29d8a24f61ebaeef1fddf57f9ba9f386"
+     },
+     {
+      "task": "k_gap_screen_rrl",
+      "reader": "READER_2",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['design', 'popul",
+      "record_id": "mc-92b83c0f4dbc8794348ebbb61033798b"
+     }
+    ]
    },
    "scope_difference": null,
-   "blocker": "IDENTIFICATION",
+   "blocker": "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -805,11 +894,11 @@
   },
   {
    "label": "PACMAN - AMI NCT03067844",
-   "family": null,
+   "family": "PMID 22421222",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "IDENTIFICATION",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "IN SCREEN PMID 22421222: SCREENED_OUT X1: not a randomized controlled trial (record: 22421222).",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -846,6 +935,13 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "seeded_funnel": {
+    "stage": "SCREENED_OUT",
+    "rule_id": "X1",
+    "reason": "not a randomized controlled trial (record: 22421222).",
+    "pmid": "22421222",
+    "already_in_screen": true
+   },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
     "source_meta": "36531722",
@@ -861,12 +957,13 @@
     "proposal": null
    },
    "screen_eligibility": {
-    "state": "NOT_ASSESSED",
-    "why": "NO_RECORD_HELD",
-    "pmid": null
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X1",
+    "reason": "not a randomized controlled trial (record: 22421222).",
+    "readings": []
    },
    "scope_difference": null,
-   "blocker": "IDENTIFICATION",
+   "blocker": "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -895,11 +992,11 @@
   },
   {
    "label": "DESCARTES NCT01516879",
-   "family": null,
+   "family": "PMID 24678979",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "IDENTIFICATION",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "NO_RECORD_HELD",
    "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
@@ -981,11 +1078,11 @@
    },
    "screen_eligibility": {
     "state": "NOT_ASSESSED",
-    "why": "NO_RECORD_HELD",
-    "pmid": null
+    "why": "NOT_IN_SCREEN",
+    "pmid": "24678979"
    },
    "scope_difference": null,
-   "blocker": "IDENTIFICATION",
+   "blocker": "NO_RECORD_HELD",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1014,12 +1111,12 @@
   },
   {
    "label": "OSLER-1 NCT01439880",
-   "family": null,
+   "family": "PMID 25773607",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "IDENTIFICATION",
-   "gap_class": "IDENTIFICATION",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "SEEDED PMID 25773607: SCREENED_OUT X3: no eligible comparator (none of ['placebo']).",
+   "gap_class": "SCOPE_MISMATCH",
    "absent_code": null,
    "comparator_row": {
     "effect": "0.93",
@@ -1072,6 +1169,12 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "seeded_funnel": {
+    "stage": "SCREENED_OUT",
+    "rule_id": "X3",
+    "reason": "no eligible comparator (none of ['placebo']).",
+    "pmid": "25773607"
+   },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
     "source_meta": "36531722",
@@ -1087,47 +1190,46 @@
     "proposal": null
    },
    "screen_eligibility": {
-    "state": "NOT_ASSESSED",
-    "why": "NO_RECORD_HELD",
-    "pmid": null
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X3",
+    "reason": "no eligible comparator (none of ['placebo']).",
+    "readings": []
    },
-   "scope_difference": null,
-   "blocker": "IDENTIFICATION",
-   "coverage": "COMPARATOR_SOURCED",
-   "comparator_sourced": {
-    "value": {
-     "measure": "RR",
-     "effect": "0.93",
-     "lower": "0.37",
-     "upper": "2.31",
-     "events_t": 13,
-     "n_t": 736,
-     "events_c": 7,
-     "n_c": 368
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X3",
+    "screen_reason": "no eligible comparator (none of ['placebo']).",
+    "span": {
+     "field": "abstract",
+     "text": "Regardless of study-group assignments in the parent trials, eligible patients were randomly assigned in a 2:1 ratio to receive either evolocumab (140 mg every 2 weeks or 420 mg monthly) plus standard therapy or standard therapy alone.",
+     "match": "standard therapy"
     },
-    "provenance": {
-     "meta_pmid": "36531722",
-     "location": {
-      "id": "Data_Sheet_1.PDF#p7",
-      "kind": "figure",
-      "panel": "A",
-      "row_label": "OSLER–1"
-     },
-     "digest": "03ad22b4e0061036857e0fc42b460be8ec5bb7da088d70c8e98ebf8f568dd9ba",
-     "read": "MODEL_PROPOSAL_DUAL:mc-4e7122ac883674aac295d930d2aee697+mc-78935c0f993db11c3350814f1216c735",
-     "row_label": "OSLER–1"
-    }
-   }
+    "span_source": "PMID 25773607 record abstract (held: cache/pcsk9-mace/records.json or outputs/k_gap/member_records.json)",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "NON_PROTOCOL_COMPARATOR_STATED (protocol requires placebo)"
+    },
+    "protocol_rule": "include.comparator_any = ['placebo'] (none met)",
+    "protocol_span": {
+     "file": "protocols/pcsk9-mace.md",
+     "rule_id": "X3",
+     "text": "wrong intervention/comparison (no evolocumab/alirocumab-vs-placebo contrast);"
+    },
+    "registered_eligibility": null,
+    "pmid": "25773607"
+   },
+   "blocker": null,
+   "coverage": null
   },
   {
    "label": "GLAGOV NCT01813422",
-   "family": "PMID 27846344",
+   "family": "PMID 27264224",
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "GLAGOV primary efficacy measure is percent atheroma volume by IVUS; the abstract reports no MACE effect.",
+   "our_refusal": "SEEDED PMID 27264224: SCREENED_VIA_OTHER_REPORT",
    "gap_class": "GENUINELY_UNAVAILABLE_OPEN",
-   "absent_code": "outcome_not_reported",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.75",
     "lower": "0.55",
@@ -1191,17 +1293,41 @@
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "seeded_funnel": {
+    "stage": "SCREENED_VIA_OTHER_REPORT",
+    "via": "27846344",
+    "nct": "NCT01813422",
+    "via_decision": "include",
+    "via_rule_id": "INCLUDE",
+    "pmid": "27264224"
+   },
+   "via_report_absent": {
+    "id": "PMID 27846344",
+    "code": "outcome_not_reported",
+    "reason": "GLAGOV primary efficacy measure is percent atheroma volume by IVUS; the abstract reports no MACE effect.",
+    "full_text_held": false
+   },
    "identification": {
-    "route": "OUR_SEARCH"
+    "route": "REVIEW_REFERENCE_LIST",
+    "source_meta": "36531722",
+    "location": {
+     "unit_source": "JATS_TABLE",
+     "table": "TABLE 1",
+     "layout": "row",
+     "label": "GLAGOV NCT01813422",
+     "context": "GLAGOV NCT01813422 | 2016 | 968 | 20 | 100 | Evolocumab | Placebo | 98.6 | 2.1 | 59.8 | 72.2 | 1.5 | 83 | 29.5 | Evolocumab: 92.6"
+    },
+    "held_ref": "cache/comparators/36531722/2026-09-28_kgap_jats.xml",
+    "digest": "0603f6e10d2cd7636e272cef1638c56d0662f56f7e1aad2f07383873f2eae09c",
+    "proposal": null
    },
    "screen_eligibility": {
     "state": "ELIGIBLE",
-    "basis": "OUR_SCREEN_INCLUDE",
-    "pmid": "27846344",
-    "rule_id": "INCLUDE"
+    "basis": "SCREEN_INCLUDE_VIA_OTHER_REPORT",
+    "via": "27846344"
    },
    "scope_difference": null,
-   "blocker": "EXTRACTION:outcome_not_reported",
+   "blocker": "EXTRACTION:outcome_not_reported:VIA_OTHER_REPORT:DECLARED_WITHOUT_FULL_TEXT",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -1388,7 +1514,7 @@
    },
    "sha256": "94a43a8c73169c152a3a2f01357312399333ef216a8d6873b4f88a0420569441",
    "rows": 12,
-   "joined": 2
+   "joined": 10
   }
  ],
  "ours_not_in_comparator": [],
@@ -1422,7 +1548,7 @@
  },
  "pool_basis": {
   "build": "k_gap_counterfactual.build_with_held_sources",
-  "held_records": 0,
+  "held_records": 11,
   "held_fulltext": 0,
   "held_unpaywall": 0,
   "held_registry": 0
@@ -1449,8 +1575,8 @@
   "why": "2 shared trial(s) on the same side of the null (ODYSSEY OUTCOME NCT01663402, FOURIER NCT01764633)"
  },
  "k_independent": 2,
- "k_comparator_sourced": 10,
- "k_covered": 12,
+ "k_comparator_sourced": 9,
+ "k_covered": 11,
  "coverage_complete": true,
  "discrepancy_findings": [],
  "g1_status": {
@@ -1466,10 +1592,14 @@
    "RESULT_AGREES"
   ],
   "excluded_by_scope": {
-   "n": 0,
+   "n": 1,
    "of_comparator_N": 12,
-   "by_kind": {},
-   "trials": []
+   "by_kind": {
+    "PROTOCOL_SCOPE_DIFFERENCE": 1
+   },
+   "trials": [
+    "OSLER-1 NCT01439880 [X3]"
+   ]
   },
   "result_blocker": {
    "code": "MEASURE_DIFFERENCE:MEASURE_DIFFERENCE_SAME_CONCLUSION",

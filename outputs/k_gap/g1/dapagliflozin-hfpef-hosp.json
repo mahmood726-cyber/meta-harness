@@ -4,12 +4,35 @@
  "comparator_pmid": "36914068",
  "N_comparator_trials": 2,
  "k_matched": 1,
- "k_in_our_pool": 0,
- "N_eligible": 2,
- "named_differences": [],
- "open_gaps": [
-  "DECLARE-TIMI 58"
+ "k_in_our_pool": 1,
+ "N_eligible": 1,
+ "named_differences": [
+  {
+   "trial": "DECLARE-TIMI 58",
+   "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+   "rule_id": "X2",
+   "screen_reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+   "span": {
+    "field": "title",
+    "text": "Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes.",
+    "match": "Type 2 Diabetes"
+   },
+   "span_source": "PMID 30415602 record title (held: cache/dapagliflozin-hfpef-hosp/records.json or outputs/k_gap/member_records.json)",
+   "audit": {
+    "class": "TRUE_SCOPE_DIFFERENCE",
+    "subclass": "PROTOCOL_EXCLUDES_POPULATION:'type 2 diabetes'"
+   },
+   "protocol_rule": "include.population_none[5] = 'type 2 diabetes'",
+   "protocol_span": {
+    "file": "protocols/dapagliflozin-hfpef-hosp.md",
+    "rule_id": "X2",
+    "text": "wrong population, including HFrEF/LVEF <=40%, diabetes-only, CKD-only, myocardial-infarction, or other non-HFmrEF/HFpEF populations."
+   },
+   "registered_eligibility": null,
+   "pmid": "30415602"
+  }
  ],
+ "open_gaps": [],
  "k_matched_of_comparator_N": "1 of 2",
  "comparator_set": {
   "state": "PROPOSAL_ENUMERATED_GATED",
@@ -22,14 +45,12 @@
    {
     "source": "MODEL_PROPOSAL_GATED",
     "units": 6,
-    "drug_specific_resolved": 1
+    "drug_specific_resolved": 2
    }
   ]
  },
- "blockers": {
-  "IDENTITY_UNRESOLVED": 1
- },
- "top_blocker": "IDENTITY_UNRESOLVED",
+ "blockers": {},
+ "top_blocker": null,
  "other_agent_units": [
   "SOLOIST-WHF",
   "SCORED",
@@ -37,20 +58,20 @@
   "EMPEROR-Preserved"
  ],
  "comparator_findings": [],
- "k_ours_total": null,
+ "k_ours_total": 1,
  "routes": {
-  "NO_ROW": 1,
-  "SWEEP_AACT_PRIMARY": 1
+  "UNVERIFIED": 1,
+  "PRIMARY": 1
  },
  "trials": [
   {
    "label": "DECLARE-TIMI 58",
-   "family": null,
+   "family": "PMID 30415602",
    "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "UNRESOLVED_IDENTITY",
-   "our_refusal": "UNRESOLVED_IDENTITY",
-   "gap_class": "UNRESOLVED_IDENTITY",
+   "route": "UNVERIFIED",
+   "basis": "only the comparator's own row (never counts: anti-circularity)",
+   "our_refusal": "IN SCREEN PMID 30415602: SCREENED_OUT X2: wrong population: title/conditions mention 'type 2 diabetes'.",
+   "gap_class": "IDENTIFICATION",
    "absent_code": null,
    "comparator_row": {
     "effect": "0.88",
@@ -77,12 +98,86 @@
    },
    "disagreement_side": null,
    "our_value": null,
-   "registry_binding": null,
+   "registry_binding": {
+    "state": "BINDABLE",
+    "candidates": [
+     {
+      "nct": "NCT01730534",
+      "outcome_id": "258491181",
+      "title": "Subjects Included in the Composite Endpoint of CV Death, MI or Ischemic Stroke",
+      "time_frame": "up to 5.2 years",
+      "arms": [],
+      "analysis": {
+       "outcome_id": "258491181",
+       "param_type": "Hazard Ratio (HR)",
+       "param_value": "0.93",
+       "ci_lower": "0.84",
+       "ci_upper": "1.03",
+       "analysis_id": "128903114",
+       "groups": [
+        "838033800",
+        "838033801"
+       ],
+       "groups_description": ""
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
+      },
+      "gate": "OUTCOME_NOT_NAMED",
+      "verdict": "REFUSED",
+      "reason": "registry title names none of the topic's outcome keywords (it is the trial's PRIMARY outcome)"
+     },
+     {
+      "nct": "NCT01730534",
+      "outcome_id": "258491182",
+      "title": "Subjects Included in the Composite Endpoint of CV Death or Hospitalization Due to Heart Failure.",
+      "time_frame": "up to 5.2 years",
+      "arms": [],
+      "analysis": {
+       "outcome_id": "258491182",
+       "param_type": "Hazard Ratio (HR)",
+       "param_value": "0.83",
+       "ci_lower": "0.73",
+       "ci_upper": "0.95",
+       "analysis_id": "128903115",
+       "groups": [
+        "838033802",
+        "838033803"
+       ],
+       "groups_description": ""
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
+      },
+      "gate": null,
+      "verdict": "BINDABLE",
+      "reason": null,
+      "named_by": [
+       "cardiovascular death or hospitalization for heart failure",
+       "cardiovascular death or hospitalisation for heart failure"
+      ],
+      "basis": "POSTED_EFFECT_ON_PROTOCOL_ESTIMAND"
+     }
+    ]
+   },
    "g1_countable": false,
-   "secondary_single": null,
+   "secondary_single": {
+    "why": "NO_ADMITTED_ROW_FROM_A_SELF_REPRODUCING_META"
+   },
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "seeded_funnel": {
+    "stage": "SCREENED_OUT",
+    "rule_id": "X2",
+    "reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+    "pmid": "30415602",
+    "already_in_screen": true
+   },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
     "source_meta": "36914068",
@@ -98,47 +193,75 @@
     "proposal": "proposal:mc-c630a88998995b6f1719c14b12a56c91"
    },
    "screen_eligibility": {
-    "state": "NOT_ASSESSED",
-    "why": "NO_RECORD_HELD",
-    "pmid": null
-   },
-   "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED",
-   "coverage": "COMPARATOR_SOURCED",
-   "comparator_sourced": {
-    "value": {
-     "measure": "HR",
-     "effect": "0.88",
-     "lower": "0.66",
-     "upper": "1.17",
-     "events_t": null,
-     "n_t": 662,
-     "events_c": null,
-     "n_c": 654
-    },
-    "provenance": {
-     "meta_pmid": "36914068",
-     "location": {
-      "id": "fig1",
-      "kind": "figure",
-      "panel": null,
-      "row_label": "DECLARE-TIMI 58 Kato et al (2019) HF EF ≥45%"
+    "state": "NOT_ELIGIBLE",
+    "rule_id": "X2",
+    "reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+    "readings": [
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-93d2e8e670e079620d113a74483f1c9a"
      },
-     "digest": "e28da3a286d6bba079abc356da18d78bfa33cc0ae4fd2adc7cecb519e521aa07",
-     "read": "MODEL_PROPOSAL_DUAL:mc-aa18a5928a8e8b9f229a37d0bf5de59d+mc-a033714416be83e39731e98c04256bd5",
-     "row_label": "DECLARE-TIMI 58 Kato et al (2019) HF EF ≥45%"
-    }
-   }
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "CANNOT_TELL",
+      "agreement": "MODEL_CANNOT_TELL(rule=exclude, not_stated=['design', 'popul",
+      "record_id": "mc-93d2e8e670e079620d113a74483f1c9a"
+     },
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-93d2e8e670e079620d113a74483f1c9a"
+     },
+     {
+      "task": "k_gap_screen_recheck",
+      "reader": "READER_1",
+      "model_decision": "INELIGIBLE",
+      "agreement": "RULE_MODEL_AGREE",
+      "record_id": "mc-93d2e8e670e079620d113a74483f1c9a"
+     }
+    ]
+   },
+   "scope_difference": {
+    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+    "rule_id": "X2",
+    "screen_reason": "wrong population: title/conditions mention 'type 2 diabetes'.",
+    "span": {
+     "field": "title",
+     "text": "Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes.",
+     "match": "Type 2 Diabetes"
+    },
+    "span_source": "PMID 30415602 record title (held: cache/dapagliflozin-hfpef-hosp/records.json or outputs/k_gap/member_records.json)",
+    "audit": {
+     "class": "TRUE_SCOPE_DIFFERENCE",
+     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'type 2 diabetes'"
+    },
+    "protocol_rule": "include.population_none[5] = 'type 2 diabetes'",
+    "protocol_span": {
+     "file": "protocols/dapagliflozin-hfpef-hosp.md",
+     "rule_id": "X2",
+     "text": "wrong population, including HFrEF/LVEF <=40%, diabetes-only, CKD-only, myocardial-infarction, or other non-HFmrEF/HFpEF populations."
+    },
+    "registered_eligibility": null,
+    "pmid": "30415602"
+   },
+   "blocker": null,
+   "coverage": null
   },
   {
    "label": "DELIVER",
    "family": "PMID 36027570",
-   "in_our_pool": false,
-   "route": "SWEEP_AACT_PRIMARY",
-   "basis": "two-source sweep: SWEEP_AACT_PRIMARY",
-   "our_refusal": "The result previously published on this page for its primary outcome was a cardiovascular-death-only registry measure served as the composite outcome. It is withdrawn.",
-   "gap_class": "EXTRACTION_FROM_TABLE",
-   "absent_code": "EXTRACTION_NOT_PERFORMED",
+   "in_our_pool": true,
+   "route": "PRIMARY",
+   "basis": "our held-source pool PMID 36027570 (served_pool_signed_notice)",
+   "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.82",
     "lower": "0.73",
@@ -168,174 +291,12 @@
     "effect": "0.82",
     "lower": "0.73",
     "upper": "0.92",
-    "events_t": 512,
-    "n_t": 3131,
-    "events_c": 610,
-    "n_c": 3132
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null
    },
-   "registry_binding": {
-    "state": "BINDABLE",
-    "candidates": [
-     {
-      "nct": "NCT03619213",
-      "outcome_id": "258295476",
-      "title": "Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Heart Failure.",
-      "time_frame": "Up to 42.1 months",
-      "arms": [
-       {
-        "group": "837386173",
-        "count": 610,
-        "n": 3132,
-        "title": "Placebo"
-       },
-       {
-        "group": "837386172",
-        "count": 512,
-        "n": 3131,
-        "title": "Dapa 10 mg"
-       }
-      ],
-      "analysis": {
-       "outcome_id": "258295476",
-       "param_type": "Hazard Ratio (HR)",
-       "param_value": "0.82",
-       "ci_lower": "0.73",
-       "ci_upper": "0.92",
-       "analysis_id": "128806776",
-       "groups": [
-        "837386172",
-        "837386173"
-       ],
-       "groups_description": "Comparison Group: Placebo"
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": null,
-      "verdict": "BINDABLE",
-      "reason": null,
-      "named_by": [
-       "cardiovascular death or hospitalization for heart failure",
-       "cardiovascular death or hospitalisation for heart failure",
-       "hospitalization for heart failure or an urgent visit for heart failure"
-      ]
-     },
-     {
-      "nct": "NCT03619213",
-      "outcome_id": "258295477",
-      "title": "Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Heart Failure for LVEF <60% Subpopulation",
-      "time_frame": "Up to 42.1 months",
-      "arms": [
-       {
-        "group": "837386174",
-        "count": 381,
-        "n": 2200,
-        "title": "Dapa 10 mg"
-       },
-       {
-        "group": "837386175",
-        "count": 440,
-        "n": 2172,
-        "title": "Placebo"
-       }
-      ],
-      "analysis": {
-       "outcome_id": "258295477",
-       "param_type": "Hazard Ratio (HR)",
-       "param_value": "0.83",
-       "ci_lower": "0.73",
-       "ci_upper": "0.95",
-       "analysis_id": "128806777",
-       "groups": [
-        "837386174",
-        "837386175"
-       ],
-       "groups_description": "Comparison Group: Placebo"
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": null,
-      "verdict": "BINDABLE",
-      "reason": null,
-      "named_by": [
-       "cardiovascular death or hospitalization for heart failure",
-       "cardiovascular death or hospitalisation for heart failure",
-       "hospitalization for heart failure or an urgent visit for heart failure"
-      ]
-     },
-     {
-      "nct": "NCT03619213",
-      "outcome_id": "258295478",
-      "title": "Events Included in the Composite Endpoint of CV Death or Recurrent Heart Failure Event (Hospitalization Due to Heart Failure or Urgent Heart Failure Visit)",
-      "time_frame": "Up to 42.1 months",
-      "arms": [],
-      "analysis": {
-       "outcome_id": "258295478",
-       "param_type": "Rate Ratio (RR)",
-       "param_value": "0.77",
-       "ci_lower": "0.67",
-       "ci_upper": "0.89",
-       "analysis_id": "128806778",
-       "groups": [
-        "837386176",
-        "837386177"
-       ],
-       "groups_description": "Comparison Group: Placebo"
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": "ESTIMAND",
-      "verdict": "REFUSED",
-      "reason": "recurrent-event analysis: the registry outcome 'Events Included in the Composite Endpoint of CV Death or Recurrent Heart Failure Event (Hospitalization Due to Heart Failure or Urgent Heart Failure Visit)' counts recurrent events; the protocol's is first event",
-      "named_by": [
-       "cardiovascular death or hospitalization for heart failure",
-       "cardiovascular death or hospitalisation for heart failure",
-       "hospitalization for heart failure or an urgent visit for heart failure"
-      ]
-     },
-     {
-      "nct": "NCT03619213",
-      "outcome_id": "258295479",
-      "title": "Events Included in the Composite Endpoint of CV Death or Recurrent Heart Failure Event (Hospitalization Due to Heart Failure or Urgent Heart Failure Visit) for LVEF <60% Subpopulation",
-      "time_frame": "Up to 42.1 months",
-      "arms": [],
-      "analysis": {
-       "outcome_id": "258295479",
-       "param_type": "Rate Ratio (RR)",
-       "param_value": "0.77",
-       "ci_lower": "0.65",
-       "ci_upper": "0.9",
-       "analysis_id": "128806779",
-       "groups": [
-        "837386178",
-        "837386179"
-       ],
-       "groups_description": "Comparison Group: Placebo"
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": "ESTIMAND",
-      "verdict": "REFUSED",
-      "reason": "recurrent-event analysis: the registry outcome 'Events Included in the Composite Endpoint of CV Death or Recurrent Heart Failure Event (Hospitalization Due to Heart Failure or Urgent Heart Failure Visit) for LVEF <60% Subpopulation' counts recurrent events; the protocol's is first event",
-      "named_by": [
-       "cardiovascular death or hospitalization for heart failure",
-       "cardiovascular death or hospitalisation for heart failure",
-       "hospitalization for heart failure or an urgent visit for heart failure"
-      ]
-     }
-    ]
-   },
+   "registry_binding": null,
    "g1_countable": true,
    "secondary_single": null,
    "agreement_with_comparator_row": "AGREE",
@@ -346,50 +307,10 @@
    },
    "screen_eligibility": {
     "state": "ELIGIBLE",
-    "basis": "OUR_SCREEN_INCLUDE",
-    "pmid": "36027570",
-    "rule_id": "INCLUDE"
+    "basis": "POOLED"
    },
    "scope_difference": null,
    "blocker": null,
-   "matched_by": "SWEEP",
-   "sweep": {
-    "value": {
-     "measure": "HR",
-     "effect": "0.82",
-     "lower": "0.73",
-     "upper": "0.92",
-     "events_t": 512,
-     "n_t": 3131,
-     "events_c": 610,
-     "n_c": 3132
-    },
-    "basis": {
-     "nct": "NCT03619213",
-     "outcome": "Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Heart Failure.",
-     "snapshot": {
-      "id": "AACT 2026-08-30",
-      "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-      "rules": 3
-     },
-     "analysis": {
-      "outcome_id": "258295476",
-      "param_type": "Hazard Ratio (HR)",
-      "param_value": "0.82",
-      "ci_lower": "0.73",
-      "ci_upper": "0.92",
-      "analysis_id": "128806776",
-      "groups": [
-       "837386172",
-       "837386173"
-      ],
-      "groups_description": "Comparison Group: Placebo"
-     },
-     "guard": "POSTED_N_EQUALS_RANDOMISED_N (6263); NCT03619213 'Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Hea' (AACT 2026-08-30)",
-     "report_pmid": "36027570"
-    },
-    "agreement_with_comparator_row": "AGREE"
-   },
    "coverage": "INDEPENDENT"
   }
  ],
@@ -400,7 +321,7 @@
   "state": "ONE_SHARED_TRIAL",
   "k": 1,
   "measure": "HR",
-  "trial": "DELIVER",
+  "trial": "DELIVER Solomon et al (2022) HFmr/pEF",
   "ours": {
    "estimate": 0.82,
    "ci_low": 0.73,
@@ -420,11 +341,11 @@
   "excluded_named_scope_differences": []
  },
  "ours": {
-  "k": null,
-  "estimate": null,
-  "ci_low": null,
-  "ci_high": null,
-  "scale": null
+  "k": 1,
+  "estimate": 0.82,
+  "ci_low": 0.73,
+  "ci_high": 0.92,
+  "scale": "HR"
  },
  "comparator": {
   "outcome": "Composite cardiovascular death or urgent visit/hospitalization for heart failure in HFmrEF/HFpEF",
@@ -455,7 +376,7 @@
    },
    "sha256": "94a43a8c73169c152a3a2f01357312399333ef216a8d6873b4f88a0420569441",
    "rows": 6,
-   "joined": 1
+   "joined": 2
   }
  ],
  "ours_not_in_comparator": [],
@@ -487,7 +408,7 @@
  },
  "pool_basis": {
   "build": "k_gap_counterfactual.build_with_held_sources",
-  "held_records": 0,
+  "held_records": 26,
   "held_fulltext": 0,
   "held_unpaywall": 0,
   "held_registry": 0
@@ -512,26 +433,28 @@
   "why": "1 shared trial(s) AGREE"
  },
  "k_independent": 1,
- "k_comparator_sourced": 1,
- "k_covered": 2,
+ "k_comparator_sourced": 0,
+ "k_covered": 1,
  "coverage_complete": true,
  "discrepancy_findings": [],
  "g1_status": {
-  "state": "NOT_YET",
+  "state": "G1_MATCHED",
   "criteria": {
-   "ALL_ELIGIBLE_MATCHED": false,
+   "ALL_ELIGIBLE_MATCHED": true,
    "MATCHED_ARE_VERIFIED": true,
    "RESULT_AGREES": true,
    "DIVERGENCES_NAMED": true
   },
-  "unmet": [
-   "ALL_ELIGIBLE_MATCHED"
-  ],
+  "unmet": [],
   "excluded_by_scope": {
-   "n": 0,
+   "n": 1,
    "of_comparator_N": 2,
-   "by_kind": {},
-   "trials": []
+   "by_kind": {
+    "PROTOCOL_SCOPE_DIFFERENCE": 1
+   },
+   "trials": [
+    "DECLARE-TIMI 58 [X2]"
+   ]
   },
   "result_blocker": null
  },
@@ -599,21 +522,22 @@
    "label": "EMPEROR-Preserved",
    "comparator_pmid": "36914068",
    "kind": "OTHER_AGENT",
-   "rule_id": "K-GAP:OTHER_AGENT:IDENTITY_CHAIN",
+   "rule_id": "K-GAP:OTHER_AGENT:REGISTRY_INTERVENTIONS",
    "identity": {
-    "ncts": [
-     "NCT03057951",
-     "NCT03057977",
-     "NCT04435626"
+    "pmids": [
+     "31081589",
+     "34449189",
+     "34693515"
     ],
-    "chain": "AMBIGUOUS:ACRONYM"
+    "ncts": [
+     "NCT03057951"
+    ]
    },
-   "detail": "k-gap's identity chain scopes the trial OTHER_AGENT:empagliflozin (its own reports name empagliflozin, not the topic's agent); the span is a held PubMed title of one of those reports (PMID 34459213)",
+   "detail": "the trial's registered arms (AACT) name another agent than the topic's",
    "span": {
-    "text": "Effect of Empagliflozin on Worsening Heart Failure Events in Patients With Heart Failure and Preserved Ejection Fraction: EMPEROR-Preserved Trial.",
-    "source": "outputs/k_gap/pubmed_titles.json",
-    "source_sha256": "048113e564db6846d11263904441f0ffac15cc69d751a85beb1f97085ec7b7ff",
-    "pmid": "34459213"
+    "text": "388799214|NCT03057951|DRUG|Empagliflozin|once daily\n388799215|NCT03057951|DRUG|Placebo|once daily",
+    "source": "docs/evidence/g1-denominator/aact_interventions_NCT03057951.txt",
+    "source_sha256": "85aaf852fe775d1acda60f3e1a2be8797c380d3ebcb01baef9ca09377a1aecd9"
    }
   }
  ],

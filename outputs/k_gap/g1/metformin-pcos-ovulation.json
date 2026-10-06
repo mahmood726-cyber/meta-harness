@@ -249,12 +249,12 @@
   ]
  },
  "blockers": {
-  "NO_RECORD_HELD": 5,
+  "NO_RECORD_HELD": 4,
   "IDENTIFIED_NOT_INDEXED": 7,
   "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 1,
   "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD": 5,
   "INSUFFICIENT_RECORD:BLINDING_NOT_STATED": 2,
-  "SCREENER_ERROR:COMPARATOR_WORDING": 4,
+  "SCREENER_ERROR:COMPARATOR_WORDING": 5,
   "INSUFFICIENT_RECORD:OTHER_INTERVENTION_OR_FORM_RANDOMISED_NO_SPAN": 2,
   "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 2,
   "SCREENED_OUT_UNAUDITED:X-CONTRAST": 1,
@@ -1365,9 +1365,9 @@
    "family": "PMID 21606131",
    "in_our_pool": false,
    "route": "NO_ROW",
-   "basis": "IDENTIFICATION",
-   "our_refusal": "IN SCREEN PMID 21606131: SCREENED_OUT X2: wrong population: title/conditions mention 'assisted reproductive'.",
-   "gap_class": "IDENTIFICATION",
+   "basis": "SCOPE_MISMATCH",
+   "our_refusal": "SEEDED PMID 21606131: SCREENED_OUT X2: wrong population: title/conditions mention 'assisted reproductive'.",
+   "gap_class": "SCOPE_MISMATCH",
    "absent_code": null,
    "comparator_row": null,
    "comparator_row_findings": [],
@@ -1387,8 +1387,7 @@
     "stage": "SCREENED_OUT",
     "rule_id": "X2",
     "reason": "wrong population: title/conditions mention 'assisted reproductive'.",
-    "pmid": "21606131",
-    "already_in_screen": true
+    "pmid": "21606131"
    },
    "identification": {
     "route": "REVIEW_REFERENCE_LIST",
@@ -2636,12 +2635,12 @@
   },
   {
    "label": "PCOSMIC 2010",
-   "family": "PMID 21631446",
+   "family": "PMID 20435692",
    "in_our_pool": false,
    "route": "UNVERIFIED",
    "basis": "only the comparator's own row (never counts: anti-circularity)",
-   "our_refusal": "NO_RECORD_HELD",
-   "gap_class": "SCREEN_OR_ELIGIBILITY",
+   "our_refusal": "IN SCREEN PMID 20435692: SCREENED_OUT X3: no eligible comparator (none of ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']).",
+   "gap_class": "SCOPE_MISMATCH",
    "absent_code": null,
    "comparator_row": {
     "effect": "1.91",
@@ -2668,33 +2667,48 @@
    },
    "disagreement_side": null,
    "our_value": null,
-   "registry_binding": null,
+   "registry_binding": {
+    "state": "NO_POSTED_RESULTS",
+    "nct": "NCT00795808"
+   },
    "g1_countable": false,
    "secondary_single": null,
    "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "seeded_funnel": {
+    "stage": "SCREENED_OUT",
+    "rule_id": "X3",
+    "reason": "no eligible comparator (none of ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']).",
+    "pmid": "20435692",
+    "already_in_screen": true
+   },
    "identification": {
-    "route": "REVIEW_REFERENCE_LIST",
-    "source_meta": "31845767",
-    "location": {
-     "unit_source": "MODEL_PROPOSAL_GATED",
-     "table": "proposal:mc-a8f745c14409f53ea70f2fcf8a454e5e",
-     "layout": "text",
-     "label": "PCOSMIC 2010",
-     "context": "When we compared metformin to placebo, only a limited number of studies reported live birth rate ( Morin‐Papunen 2012 ; Ng 2001 ; PCOSMIC 2010 ; Yarali 2002 )."
-    },
-    "held_ref": "cache/metformin-pcos-ovulation/comparator_fulltext.txt",
-    "digest": "e09bc23f48f9f4d7fbc7475473049b9971aa2e39af5a2eddb6967b437fa58614",
-    "proposal": "proposal:mc-a8f745c14409f53ea70f2fcf8a454e5e"
+    "route": "OUR_SEARCH"
    },
    "screen_eligibility": {
-    "state": "NOT_ASSESSED",
-    "why": "NOT_IN_SCREEN",
-    "pmid": "21631446"
+    "state": "ELIGIBLE",
+    "basis": "TWO_READERS_JUDGE_ELIGIBLE",
+    "screen_rule": "X3",
+    "readings": [
+     {
+      "task": "screening_excluded",
+      "reader": "READER_1",
+      "model_decision": "ELIGIBLE",
+      "agreement": "RULE_MODEL_DISAGREE(rule=exclude, model=ELIGIBLE, axes_not_m",
+      "record_id": "mc-a64ba92c3718fa9b6fceaa1980bc5939"
+     },
+     {
+      "task": "screening_excluded_reader2",
+      "reader": "READER_2",
+      "model_decision": "ELIGIBLE",
+      "agreement": "RULE_MODEL_DISAGREE(rule=exclude, model=ELIGIBLE, axes_not_m",
+      "record_id": "mc-20e0861452bceb86cd8583f02fcb33ea"
+     }
+    ]
    },
    "scope_difference": null,
-   "blocker": "NO_RECORD_HELD",
+   "blocker": "SCREENER_ERROR:COMPARATOR_WORDING",
    "coverage": "COMPARATOR_SOURCED",
    "comparator_sourced": {
     "value": {
@@ -3471,7 +3485,7 @@
  },
  "pool_basis": {
   "build": "k_gap_counterfactual.build_with_held_sources",
-  "held_records": 18,
+  "held_records": 17,
   "held_fulltext": 1,
   "held_unpaywall": 0,
   "held_registry": 0

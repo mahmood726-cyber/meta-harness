@@ -4,12 +4,66 @@
  "comparator_pmid": "34526024",
  "N_comparator_trials": 8,
  "k_matched": 7,
- "k_in_our_pool": 6,
- "N_eligible": 8,
- "named_differences": [],
- "open_gaps": [
-  "EXSCEL"
+ "k_in_our_pool": 7,
+ "N_eligible": 7,
+ "named_differences": [
+  {
+   "trial": "ELIXA",
+   "kind": "ESTIMAND_DIFFERENCE",
+   "gate": "harness.extract.composite_component_mismatch",
+   "rule_id": "GATE:composite_component_mismatch",
+   "span": {
+    "field": "outcome title",
+    "text": "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina"
+   },
+   "span_source": "AACT snapshot AACT 2026-08-30 outcome 258588414",
+   "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+   "registry_outcome": "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina",
+   "registry_arms": [
+    {
+     "group": "838357515",
+     "count": 399,
+     "n": 3034,
+     "title": "Placebo"
+    },
+    {
+     "group": "838357516",
+     "count": 406,
+     "n": 3034,
+     "title": "Lixisenatide"
+    }
+   ],
+   "registry_analysis": {
+    "outcome_id": "258588414",
+    "param_type": "Hazard Ratio (HR)",
+    "param_value": "1.017",
+    "ci_lower": "0.886",
+    "ci_upper": "1.168",
+    "analysis_id": "128950839",
+    "groups": [
+     "838357515",
+     "838357516"
+    ],
+    "groups_description": "Analysis was performed using Cox proportional hazards model with treatment groups, and region (North America, South and Central America, Western Europe, Eastern Europe, Africa/Near East, and Asia/Paci"
+   },
+   "snapshot": {
+    "id": "AACT 2026-08-30",
+    "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+    "rules": 3
+   },
+   "comparator_pooled_it_as": {
+    "effect": "1.02",
+    "lower": "0.89",
+    "upper": "1.17",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null,
+    "measure": "HR"
+   }
+  }
  ],
+ "open_gaps": [],
  "k_matched_of_comparator_N": "7 of 8",
  "comparator_set": {
   "state": "TABLE_ENUMERATED",
@@ -17,21 +71,55 @@
    {
     "source": "JATS_TABLE",
     "units": 8,
-    "drug_specific_resolved": 7
+    "drug_specific_resolved": 8
    },
    {
     "source": "MODEL_PROPOSAL_GATED",
     "units": 8,
-    "drug_specific_resolved": 7
+    "drug_specific_resolved": 8
    }
   ]
  },
- "blockers": {
-  "IDENTITY_UNRESOLVED": 1
- },
- "top_blocker": "IDENTITY_UNRESOLVED",
+ "blockers": {},
+ "top_blocker": null,
  "other_agent_units": [],
  "comparator_findings": [
+  {
+   "finding": "COMPARATOR_POOLED_A_DIFFERENT_ESTIMAND",
+   "trial": "ELIXA",
+   "comparator": "34526024",
+   "comparator_row": {
+    "effect": "1.02",
+    "lower": "0.89",
+    "upper": "1.17",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null,
+    "measure": "HR"
+   },
+   "registry_outcome": "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina",
+   "registry_analysis": {
+    "outcome_id": "258588414",
+    "param_type": "Hazard Ratio (HR)",
+    "param_value": "1.017",
+    "ci_lower": "0.886",
+    "ci_upper": "1.168",
+    "analysis_id": "128950839",
+    "groups": [
+     "838357515",
+     "838357516"
+    ],
+    "groups_description": "Analysis was performed using Cox proportional hazards model with treatment groups, and region (North America, South and Central America, Western Europe, Eastern Europe, Africa/Near East, and Asia/Paci"
+   },
+   "snapshot": {
+    "id": "AACT 2026-08-30",
+    "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+    "rules": 3
+   },
+   "gate_reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+   "basis": "the comparator's printed row equals, at its printed precision, the registry result of the composite our gate refuses for this topic"
+  },
   {
    "finding": "COMPARATOR_ROW_DIFFERS_FROM_TRIAL_REPORT",
    "trial": "PIONEER 6",
@@ -62,18 +150,18 @@
  "k_ours_total": 8,
  "routes": {
   "PRIMARY": 7,
-  "NO_ROW": 1
+  "UNVERIFIED": 1
  },
  "trials": [
   {
    "label": "ELIXA",
-   "family": "PMID 30292589",
+   "family": "PMID 26630143",
    "in_our_pool": false,
-   "route": "PRIMARY",
-   "basis": "meta 42529614 PRIMARY_VERIFIED PRIMARY_REGISTRY",
-   "our_refusal": "SEEDED PMID 30292589: SCREENED_VIA_OTHER_REPORT",
-   "gap_class": "GENUINELY_UNAVAILABLE_OPEN",
-   "absent_code": null,
+   "route": "UNVERIFIED",
+   "basis": "named out of scope (ESTIMAND_DIFFERENCE): a verified value is held (meta 42529614 PRIMARY_VERIFIED PRIMARY_TEXT) but never gives an out-of-scope trial a counted route",
+   "our_refusal": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+   "gap_class": "ACQUISITION",
+   "absent_code": "OUTCOME_NOT_IN_SOURCE",
    "comparator_row": {
     "effect": "1.02",
     "lower": "0.89",
@@ -108,48 +196,192 @@
     "events_c": null,
     "n_c": null
    },
-   "registry_binding": null,
-   "g1_countable": true,
+   "registry_binding": {
+    "state": "REFUSED",
+    "candidates": [
+     {
+      "nct": "NCT01147250",
+      "outcome_id": "258588414",
+      "title": "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina",
+      "time_frame": "From randomization up to the end of study (median follow-up of 25 months)",
+      "arms": [
+       {
+        "group": "838357515",
+        "count": 399,
+        "n": 3034,
+        "title": "Placebo"
+       },
+       {
+        "group": "838357516",
+        "count": 406,
+        "n": 3034,
+        "title": "Lixisenatide"
+       }
+      ],
+      "analysis": {
+       "outcome_id": "258588414",
+       "param_type": "Hazard Ratio (HR)",
+       "param_value": "1.017",
+       "ci_lower": "0.886",
+       "ci_upper": "1.168",
+       "analysis_id": "128950839",
+       "groups": [
+        "838357515",
+        "838357516"
+       ],
+       "groups_description": "Analysis was performed using Cox proportional hazards model with treatment groups, and region (North America, South and Central America, Western Europe, Eastern Europe, Africa/Near East, and Asia/Paci"
+      },
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
+      },
+      "gate": "ESTIMAND",
+      "verdict": "REFUSED",
+      "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+      "named_by": [
+       "cardiovascular death",
+       "non-fatal stroke"
+      ]
+     },
+     {
+      "nct": "NCT01147250",
+      "outcome_id": "258588415",
+      "title": "Time to First Occurence of CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke, Hospitalization for Unstable Angina or Hospitalization For Heart Failure",
+      "time_frame": "From randomization up to the end of study (median follow-up of 25 months)",
+      "arms": [
+       {
+        "group": "838357517",
+        "count": 469,
+        "n": 3034,
+        "title": "Placebo"
+       },
+       {
+        "group": "838357518",
+        "count": 456,
+        "n": 3034,
+        "title": "Lixisenatide"
+       }
+      ],
+      "analysis": null,
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
+      },
+      "gate": "ESTIMAND",
+      "verdict": "REFUSED",
+      "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+      "named_by": [
+       "cardiovascular death",
+       "non-fatal stroke"
+      ]
+     },
+     {
+      "nct": "NCT01147250",
+      "outcome_id": "258588416",
+      "title": "Time to First Occurence of CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke, Hospitalization for Unstable Angina, Hospitalization For Heart Failure or Coronary Revascularization Procedure",
+      "time_frame": "From randomization up to the end of study (median follow-up of 25 months)",
+      "arms": [
+       {
+        "group": "838357519",
+        "count": 659,
+        "n": 3034,
+        "title": "Placebo"
+       },
+       {
+        "group": "838357520",
+        "count": 661,
+        "n": 3034,
+        "title": "Lixisenatide"
+       }
+      ],
+      "analysis": null,
+      "snapshot": {
+       "id": "AACT 2026-08-30",
+       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+       "rules": 3
+      },
+      "gate": "ESTIMAND",
+      "verdict": "REFUSED",
+      "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+      "named_by": [
+       "cardiovascular death",
+       "non-fatal stroke"
+      ]
+     }
+    ]
+   },
+   "g1_countable": false,
    "secondary_single": null,
    "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
    "comparator_row_reasons": [],
-   "seeded_funnel": {
-    "stage": "SCREENED_VIA_OTHER_REPORT",
-    "via": "26630143",
-    "nct": "NCT01147250",
-    "via_decision": "include",
-    "via_rule_id": "INCLUDE",
-    "pmid": "30292589"
-   },
-   "via_report_absent": {
-    "id": "PMID 26630143",
-    "code": "OUTCOME_NOT_IN_SOURCE",
-    "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-    "full_text_held": false
-   },
    "identification": {
-    "route": "REVIEW_REFERENCE_LIST",
-    "source_meta": "34526024",
-    "location": {
-     "unit_source": "JATS_TABLE",
-     "table": "Table 1",
-     "layout": "row",
-     "label": "ELIXA",
-     "context": "ELIXA | Lixisenatide | 6068 | 60.3 | 3174 (69.3%) | 6068 (100%) | 1922 (20.3%) | 1407 (23.2%)"
-    },
-    "held_ref": "cache/comparators/34526024/2026-09-28_kgap_jats.xml",
-    "digest": "1f7240451b8dd9cfcc8f8df9463294703d18147e7476cdcd7ac14e52b980926b",
-    "proposal": null
+    "route": "OUR_SEARCH"
    },
    "screen_eligibility": {
     "state": "ELIGIBLE",
-    "basis": "SCREEN_INCLUDE_VIA_OTHER_REPORT",
-    "via": "26630143"
+    "basis": "OUR_SCREEN_INCLUDE",
+    "pmid": "26630143",
+    "rule_id": "INCLUDE"
    },
-   "scope_difference": null,
-   "blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE:VIA_OTHER_REPORT:DECLARED_WITHOUT_FULL_TEXT",
-   "coverage": "INDEPENDENT"
+   "scope_difference": {
+    "kind": "ESTIMAND_DIFFERENCE",
+    "gate": "harness.extract.composite_component_mismatch",
+    "rule_id": "GATE:composite_component_mismatch",
+    "span": {
+     "field": "outcome title",
+     "text": "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina"
+    },
+    "span_source": "AACT snapshot AACT 2026-08-30 outcome 258588414",
+    "reason": "3-point MACE outcome but the source composite adds a 4th component (unstable angina) -- a 4-point estimate; refuse rather than pool a different composite under a 3-point label",
+    "registry_outcome": "Time to First Occurence of Primary CV Event: CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization for Unstable Angina",
+    "registry_arms": [
+     {
+      "group": "838357515",
+      "count": 399,
+      "n": 3034,
+      "title": "Placebo"
+     },
+     {
+      "group": "838357516",
+      "count": 406,
+      "n": 3034,
+      "title": "Lixisenatide"
+     }
+    ],
+    "registry_analysis": {
+     "outcome_id": "258588414",
+     "param_type": "Hazard Ratio (HR)",
+     "param_value": "1.017",
+     "ci_lower": "0.886",
+     "ci_upper": "1.168",
+     "analysis_id": "128950839",
+     "groups": [
+      "838357515",
+      "838357516"
+     ],
+     "groups_description": "Analysis was performed using Cox proportional hazards model with treatment groups, and region (North America, South and Central America, Western Europe, Eastern Europe, Africa/Near East, and Asia/Paci"
+    },
+    "snapshot": {
+     "id": "AACT 2026-08-30",
+     "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
+     "rules": 3
+    },
+    "comparator_pooled_it_as": {
+     "effect": "1.02",
+     "lower": "0.89",
+     "upper": "1.17",
+     "events_t": null,
+     "n_t": null,
+     "events_c": null,
+     "n_c": null,
+     "measure": "HR"
+    }
+   },
+   "blocker": null,
+   "coverage": null
   },
   {
    "label": "LEADER",
@@ -273,12 +505,12 @@
   },
   {
    "label": "EXSCEL",
-   "family": null,
-   "in_our_pool": false,
-   "route": "NO_ROW",
-   "basis": "UNRESOLVED_IDENTITY",
-   "our_refusal": "UNRESOLVED_IDENTITY",
-   "gap_class": "UNRESOLVED_IDENTITY",
+   "family": "PMID 28910237",
+   "in_our_pool": true,
+   "route": "PRIMARY",
+   "basis": "our held-source pool PMID 28910237 (abstract)",
+   "our_refusal": null,
+   "gap_class": "POOLED",
    "absent_code": null,
    "comparator_row": {
     "effect": "0.91",
@@ -304,59 +536,32 @@
     "row_label": "EXSCEL"
    },
    "disagreement_side": null,
-   "our_value": null,
+   "our_value": {
+    "measure": "HR",
+    "effect": "0.91",
+    "lower": "0.83",
+    "upper": "1.0",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null
+   },
    "registry_binding": null,
-   "g1_countable": false,
+   "g1_countable": true,
    "secondary_single": null,
-   "agreement_with_comparator_row": "NOT_IN_OUR_POOL",
+   "agreement_with_comparator_row": "AGREE",
    "comparator_row_state": "PRIMARY_VERIFIED",
    "comparator_row_reasons": [],
    "identification": {
-    "route": "REVIEW_REFERENCE_LIST",
-    "source_meta": "34526024",
-    "location": {
-     "unit_source": "JATS_TABLE",
-     "table": "Table 1",
-     "layout": "row",
-     "label": "EXSCEL",
-     "context": "EXSCEL | Eenatide OW | 14,752 | 62.0 | 9149 (62%) | 10,792 (73.1%) | 2389 (16.2%) | 3191 (21.6%)"
-    },
-    "held_ref": "cache/comparators/34526024/2026-09-28_kgap_jats.xml",
-    "digest": "1f7240451b8dd9cfcc8f8df9463294703d18147e7476cdcd7ac14e52b980926b",
-    "proposal": null
+    "route": "OUR_SEARCH"
    },
    "screen_eligibility": {
-    "state": "NOT_ASSESSED",
-    "why": "NO_RECORD_HELD",
-    "pmid": null
+    "state": "ELIGIBLE",
+    "basis": "POOLED"
    },
    "scope_difference": null,
-   "blocker": "IDENTITY_UNRESOLVED",
-   "coverage": "COMPARATOR_SOURCED",
-   "comparator_sourced": {
-    "value": {
-     "measure": "HR",
-     "effect": "0.91",
-     "lower": "0.83",
-     "upper": "1.00",
-     "events_t": null,
-     "n_t": null,
-     "events_c": null,
-     "n_c": null
-    },
-    "provenance": {
-     "meta_pmid": "34526024",
-     "location": {
-      "kind": "figure",
-      "id": "Fig3",
-      "panel": null,
-      "row_label": "EXSCEL"
-     },
-     "digest": "64a06fd145ef57c060ffce5ebf19eb53c341e4dd2c0e10a1bdb4c467a677fe85",
-     "read": "MODEL_PROPOSAL:mc-f43a949e79998f6220fd204c7924c546",
-     "row_label": "EXSCEL"
-    }
-   }
+   "blocker": null,
+   "coverage": "INDEPENDENT"
   },
   {
    "label": "HARMONY",
@@ -617,14 +822,14 @@
   "measure": "HR",
   "method": "DL",
   "ours": {
-   "estimate": 0.8488,
-   "ci_low": 0.7795,
-   "ci_high": 0.9244
+   "estimate": 0.8501,
+   "ci_low": 0.8018,
+   "ci_high": 0.9013
   },
   "theirs": {
-   "estimate": 0.8488,
-   "ci_low": 0.7795,
-   "ci_high": 0.9244
+   "estimate": 0.8501,
+   "ci_low": 0.8018,
+   "ci_high": 0.9013
   },
   "verdict": {
    "verdict": "AGREE",
@@ -632,7 +837,9 @@
    "estimate_gap_over_ci_halfwidth": 0.0
   },
   "method_basis": "comparator positive control reproduced DL",
-  "excluded_named_scope_differences": []
+  "excluded_named_scope_differences": [
+   "ELIXA"
+  ]
  },
  "ours": {
   "k": 8,
@@ -651,16 +858,9 @@
  "comparator_basis": "served review comparator.reported",
  "comparator_rows_source": null,
  "ours_not_in_comparator": [
-  "PMID 28910237",
   "PMID 40162642"
  ],
  "ours_not_in_comparator_detail": [
-  {
-   "id": "PMID 28910237",
-   "year": 2017,
-   "comparator_year": 2021,
-   "why_not_in_comparator": "NOT_EXPLAINED_BY_DATE"
-  },
   {
    "id": "PMID 40162642",
    "year": 2025,
@@ -719,8 +919,8 @@
   "why": "6 shared trial(s) AGREE"
  },
  "k_independent": 7,
- "k_comparator_sourced": 1,
- "k_covered": 8,
+ "k_comparator_sourced": 0,
+ "k_covered": 7,
  "coverage_complete": true,
  "discrepancy_findings": [
   {
@@ -767,21 +967,23 @@
   }
  ],
  "g1_status": {
-  "state": "NOT_YET",
+  "state": "G1_MATCHED",
   "criteria": {
-   "ALL_ELIGIBLE_MATCHED": false,
+   "ALL_ELIGIBLE_MATCHED": true,
    "MATCHED_ARE_VERIFIED": true,
    "RESULT_AGREES": true,
    "DIVERGENCES_NAMED": true
   },
-  "unmet": [
-   "ALL_ELIGIBLE_MATCHED"
-  ],
+  "unmet": [],
   "excluded_by_scope": {
-   "n": 0,
+   "n": 1,
    "of_comparator_N": 8,
-   "by_kind": {},
-   "trials": []
+   "by_kind": {
+    "ESTIMAND_DIFFERENCE": 1
+   },
+   "trials": [
+    "ELIXA [GATE:composite_component_mismatch]"
+   ]
   },
   "result_blocker": null
  },
