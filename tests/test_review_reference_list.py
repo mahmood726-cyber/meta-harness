@@ -100,6 +100,10 @@ def test_lane_rows_come_only_from_accepted_non_comparator_metas_and_never_at_99_
         f"{SLUG}::33333333": {"pmid": "33333333", "role": "meta", "acceptance": {"state": "REFUSED"},
                               "secondary_rows": [dict(row, meta_pmid="33333333")]}}}
     monkeypatch.setattr(smb, "forest_lane_results", lambda fmt="forest_reader_v1": (d, {"commit": "c" * 40}))
+    # the intervention gate (forest 'INTERVENTION_NOT_THE_TOPICS', planted in its own tests) reads the topic's registered
+    # intervention terms; the control slug has no topic file, so this test -- about WHICH metas' rows enter -- sets it aside
+    monkeypatch.setattr(smb, "topic_intervention_terms", lambda slug: [])
+    monkeypatch.setattr(smb, "lane_intervention_refusal", lambda *a, **k: None)
     rows, metas = smb.forest_lane_metas(SLUG, COMP, have=set())
     assert set(metas) == {OTHER}                              # comparator and the refused meta never enter
     assert metas[OTHER]["positive_control"]["reproduced"] and metas[OTHER]["usable"]

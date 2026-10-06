@@ -14,7 +14,7 @@ from __future__ import annotations
 import math
 
 from .synth import pool
-from .rob_sensitivity import _studies_and_scale
+from .rob_sensitivity import _studies_and_scale, served_estimand
 
 try:
     from scipy.stats import norm as _norm
@@ -59,7 +59,7 @@ def spec_curve(review):
                                   "state is emitted for the specification curve",
                 "pooled_ci_refused": True,
                 "scale": (prim.get("result") or {}).get("scale")}
-    studies, scale = _studies_and_scale(prim["trials"], prim.get("estimand", "RR"))
+    studies, scale = _studies_and_scale(prim["trials"], served_estimand(prim))
     try:
         pr = pool(studies, scale=scale)
     except ValueError:

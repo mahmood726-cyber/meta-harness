@@ -2586,7 +2586,8 @@ def _uoa_sensitivity(r, uoa_ids):
     prim = next((o for o in r.get("outcomes", []) if o.get("primary")), None)
     if not prim or not prim.get("trials"):
         return None
-    studies, scale = _ss(prim["trials"], prim.get("estimand", "RR"))
+    from .rob_sensitivity import served_estimand as _se
+    studies, scale = _ss(prim["trials"], _se(prim))
     try:
         pr = _pool(studies, scale=scale)
     except ValueError:

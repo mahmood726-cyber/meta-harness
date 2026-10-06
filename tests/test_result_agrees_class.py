@@ -73,12 +73,17 @@ def test_printed_k_and_the_whole_pool_measure_difference():
     assert gt.whole_pool_comparison(o) is None                              # no printed k: unchanged behaviour
 
 
-def test_result_agrees_accepts_a_named_measure_difference_only_on_the_same_conclusion():
+def test_result_agrees_never_accepts_a_measure_difference_strict_needs_agree():
+    # restated 6 Oct to the dispatcher's decision 1 (made under Mahmood's delegation, "fully matched k and data wise"):
+    # a same-conclusion MEASURE_DIFFERENCE is reported beside the status but never passes strict RESULT_AGREES -- the
+    # page's own recount already required AGREE; the lane status now does too
     base = {"trials": [], "named_differences": [], "N_comparator_trials": 1, "N_eligible": 1, "k_matched": 1, "open_gaps": []}
-    ok = dict(base, same_trials={"state": "MEASURE_DIFFERENCE", "verdict": {"verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION"}})
-    no = dict(base, same_trials={"state": "MEASURE_DIFFERENCE", "verdict": {"verdict": "DIFFERENT_CONCLUSION"}})
-    assert gt.g1_status(ok)["criteria"]["RESULT_AGREES"] is True
-    assert gt.g1_status(no)["criteria"]["RESULT_AGREES"] is False
+    same = dict(base, same_trials={"state": "MEASURE_DIFFERENCE", "verdict": {"verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION"}})
+    diff = dict(base, same_trials={"state": "MEASURE_DIFFERENCE", "verdict": {"verdict": "DIFFERENT_CONCLUSION"}})
+    agree = dict(base, same_trials={"state": "POOLED", "verdict": {"verdict": "AGREE"}})
+    assert gt.g1_status(same)["criteria"]["RESULT_AGREES"] is False
+    assert gt.g1_status(diff)["criteria"]["RESULT_AGREES"] is False
+    assert gt.g1_status(agree)["criteria"]["RESULT_AGREES"] is True
 
 
 def test_our_arm_means_reach_the_same_trials_comparison_as_a_mean_difference():
