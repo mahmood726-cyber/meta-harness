@@ -2013,9 +2013,26 @@ def reported_not_pooled(spec, included, rec_by_id, pooled):
         if _bare_id(d.get("id")) in in_pool:
             continue
         ab = ((rec_by_id.get(d["id"], {}) or {}).get("abstract", "") or "").lower()
-        if ab and any(k in ab for k in kws):
+        if ab and any(_mentioned_unnegated(ab, k) for k in kws):
             out.append(d["id"])
     return out
+
+
+# "X was not measured / not reported / not assessed", "no data on X": a mention that says the outcome is NOT reported is
+# not a report (codex captain-pr13-final g1#1). Checked per occurrence, in the clause around it; one plain mention counts.
+_NEGATED = re.compile(r"\b(?:not|never|no data|no information|neither|nor)\b[^.;]{0,40}?\b(?:measured|reported|assessed|"
+                      r"collected|recorded|available|evaluated|captured)\b|\bno data (?:on|for)\b|\bnot (?:measured|"
+                      r"reported|assessed|collected|recorded|available)\b")
+
+
+def _mentioned_unnegated(text, kw):
+    for m in re.finditer(re.escape(kw), text):
+        lo = max(text.rfind(".", 0, m.start()), text.rfind(";", 0, m.start())) + 1
+        hi_c = [i for i in (text.find(".", m.end()), text.find(";", m.end())) if i != -1]
+        clause = text[lo:min(hi_c) if hi_c else len(text)]
+        if not _NEGATED.search(clause):
+            return True
+    return False
 
 
 def _outcome_specs(config):

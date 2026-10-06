@@ -50,3 +50,14 @@ def test_odds_ratio_table_still_reads_as_or():
     res, why = clr.read_league(_jats("Results are the odds ratios (95% confidence interval)",
                                      "GLP-1 RA OR 0.87, 95% CI 0.82-0.93"), "DPP-4 inhibitor", "Placebo", "MACE")
     assert why is None and res["scale"] == "OR" and res["estimate"] == 1.00
+
+
+def test_an_unrelated_table_without_a_measure_does_not_stop_the_search():
+    # codex captain-pr13-final g1#2: the measure check ran before the outcome block was found
+    other = ("<table-wrap><caption><p>Quality of life</p></caption><table><tr><td>Quality of life</td></tr>"
+             "<tr><td>A</td><td>1</td></tr></table><table-wrap-foot><p>" + ORIENT.format(measure="Values")
+             + "</p></table-wrap-foot></table-wrap>")
+    j = _jats("Results are the odds ratios (95% CI)", "GLP-1 RA OR 0.87, 95% CI 0.82-0.93").replace(
+        "<table-wrap>", other + "<table-wrap>", 1)
+    res, why = clr.read_league(j, "DPP-4 inhibitor", "Placebo", "MACE")
+    assert why is None and res["scale"] == "OR"

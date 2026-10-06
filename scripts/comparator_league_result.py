@@ -48,14 +48,6 @@ def read_league(jats, intervention, control, outcome):
         foot = _text((re.search(r"<table-wrap-foot>(.*?)</table-wrap-foot>", tw, re.S) or re.match("", "")).group(0))
         if not _COL_VS_ROW.search(foot):
             continue
-        # The MEASURE comes from the table's own words, never assumed (codex P0, merge-ede33d9b2:g1#1: a table
-        # printing risk ratios was returned as odds ratios). Exactly one measure named, or no result.
-        cap = _text((re.search(r"<caption>(.*?)</caption>", tw, re.S) or re.match("", "")).group(0))
-        named = {code for code, rx in _MEASURES if rx.search(foot + " " + cap)}
-        if len(named) != 1:
-            return None, ("MEASURE_NOT_STATED_BY_THE_TABLE" if not named
-                          else "MEASURE_AMBIGUOUS_IN_THE_TABLE:" + ",".join(sorted(named)))
-        scale = named.pop()
         rows = [[_text(c) for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, re.S)] for tr in re.findall(r"<tr.*?</tr>", tw, re.S)]
         # blocks: a single-cell row names the outcome; the following rows form its league square
         blocks, cur = {}, None
@@ -75,6 +67,15 @@ def read_league(jats, intervention, control, outcome):
         m = _CELL.match(sq[ri][ci] if ci < len(sq[ri]) else "")
         if not m:
             return None, f"CELL_NOT_A_RATIO:{sq[ri][ci] if ci < len(sq[ri]) else None}"
+        # The MEASURE comes from the table's own words, never assumed (codex P0, merge-ede33d9b2:g1#1: a table printing
+        # risk ratios was returned as odds ratios). Exactly one measure named, or no result. Checked only once this is
+        # the table asked for, so an unrelated earlier table cannot stop the search (codex captain-pr13-final g1#2).
+        cap = _text((re.search(r"<caption>(.*?)</caption>", tw, re.S) or re.match("", "")).group(0))
+        named = {code for code, rx in _MEASURES if rx.search(foot + " " + cap)}
+        if len(named) != 1:
+            return None, ("MEASURE_NOT_STATED_BY_THE_TABLE" if not named
+                          else "MEASURE_AMBIGUOUS_IN_THE_TABLE:" + ",".join(sorted(named)))
+        scale = named.pop()
         # orientation check against the abstract: another cell in the control's row, read the same way
         check = None
         for cj, nm in enumerate(names):

@@ -27,3 +27,12 @@ def test_invalidation_fires_when_primary_is_pooled():
                                                       "reported_by": ["34711976", "37534453"]}}]}
     out = invalidation.assess(core, {})
     assert "primary_reported_not_extracted" in repr(out)
+
+
+def test_a_negated_mention_is_not_a_report():
+    # codex captain-pr13-final g1#1: keyword presence is not reporting when the abstract says it was not measured
+    recs = {"pooled": {"abstract": "mortality HR 0.8"},
+            "unpooled": {"abstract": "Mortality was not measured or reported in this trial."},
+            "both": {"abstract": "Mortality was not reported at 30 days; 90-day mortality was 12% vs 15%."}}
+    inc = [{"id": "pooled"}, {"id": "unpooled"}, {"id": "both"}]
+    assert reported_not_pooled({"keywords": ["mortality"]}, inc, recs, [{"id": "pooled"}]) == ["both"]
