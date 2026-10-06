@@ -613,6 +613,10 @@ def _classify(rec, cfg, decide_rec=None):
         if pv == "NOT_MET":
             # the reader's quote, re-found VERBATIM in this record (never taken on the reader's word)
             sp = span_of(rec, re.compile(re.escape(pq.strip())), ("title", "conditions", "abstract")) if pq and pq.strip() else None
+            if sp is None:
+                # the reader's quote is not in this record: no span, so no named difference (classify() demoted this; the
+                # inner path did not, and a reader table loaded by an earlier caller made it reachable)
+                return "INSUFFICIENT_RECORD", "POPULATION_NOT_STATED_IN_RECORD", base
             return "TRUE_SCOPE_DIFFERENCE", "POPULATION_OUTSIDE_PROTOCOL (recorded reader: NOT_MET, quoted)", _with_span(base, sp)
         return "INSUFFICIENT_RECORD", "POPULATION_NOT_STATED_IN_RECORD", base
     return "INSUFFICIENT_RECORD", f"RULE:{rule}_NOT_AUDITABLE", base

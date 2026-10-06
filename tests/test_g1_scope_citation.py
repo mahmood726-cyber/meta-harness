@@ -197,13 +197,14 @@ def test_outcome_set_names_only_when_the_comparators_analysis_is_complete_and_co
     assert gt.outcome_set_differences(trials(), meta, "C", [_crow("A"), _crow("B"), _crow("Z")]) == []
 
 
-def test_a_study_aim_inside_the_background_section_states_the_excluded_population():
+def test_a_study_aim_inside_the_background_section_states_the_excluded_population(monkeypatch):
     # tranexamic-acid-pph 5 Oct: WOMAN-2's structured abstract states its aim INSIDE 'BACKGROUND:' -- 'We examined
     # whether giving tranexamic acid shortly after birth can prevent postpartum haemorrhage in women with ... anaemia'.
     # The protocol (treatment of diagnosed PPH) excludes 'prevent'; the background filter skipped the sentence and the
     # trial stayed INSUFFICIENT_RECORD with no span.
     import json
     import k_gap_exclusion_audit as xa
+    monkeypatch.setattr(xa, "READER", {})   # a module-level reader table loaded by an earlier test must not decide this
     cfg = json.load(open(os.path.join(ROOT, "topics", "tranexamic-acid-pph.json"), encoding="utf-8"))
     rec = {"id": "39461792", "title": "The effect of tranexamic acid on postpartum bleeding in women with moderate and "
                                        "severe anaemia (WOMAN-2): an international, randomised, double-blind, "
@@ -239,3 +240,17 @@ def test_a_negated_excluded_term_in_the_aim_is_not_a_scope_difference():
                 "obesity, with or without type 2 diabetes."):
         rec = dict(base, abstract="BACKGROUND: " + aim + " METHODS: We randomly assigned adults to semaglutide or placebo.")
         assert xa._classify(rec, cfg)[1].find("this study's stated aim") < 0
+
+
+def test_a_reader_verdict_whose_quote_is_not_in_the_record_names_no_difference(monkeypatch):
+    # plant (6 Oct): _classify returned TRUE_SCOPE_DIFFERENCE on a recorded NOT_MET reading even when the reader's quote
+    # was not in this record -- a named difference with span None; classify() demoted it, _classify did not
+    import json
+    import k_gap_exclusion_audit as xa
+    cfg = json.load(open(os.path.join(ROOT, "topics", "tranexamic-acid-pph.json"), encoding="utf-8"))
+    rec = {"id": "99999991", "title": "A randomised trial of tranexamic acid.", "abstract": "Women were randomised.",
+           "conditions": [], "id_type": "pmid", "doi": "", "journal": "", "year": "2024", "nct": "",
+           "pubtypes": ["Randomized Controlled Trial"]}
+    monkeypatch.setattr(xa, "READER", {"99999991": ("NOT_MET", "women with anaemia before delivery")})
+    cls, sub, base = xa._classify(rec, cfg)
+    assert not (cls == "TRUE_SCOPE_DIFFERENCE" and not (base or {}).get("span")), (cls, sub)

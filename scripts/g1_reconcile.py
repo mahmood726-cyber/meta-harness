@@ -182,7 +182,8 @@ def reconcile(slug):
                     row["back_calculated_rr"] = [round(v, 4) for v in rr]
                     row["comparator_row_reproduced_from_counts"] = all(
                         analysis_set._same_at_printed(v, cr[k]) for v, k in zip(rr, ("effect", "lower", "upper")))
-        elif x.get("blocker") in ("IDENTITY_UNRESOLVED", "IDENTIFIED_NOT_INDEXED"):
+        elif x.get("blocker") in ("IDENTITY_UNRESOLVED", "IDENTIFIED_NOT_INDEXED") or x.get("gap_class") == "IDENTIFIED_NOT_INDEXED":
+            # (a sweep match clears `blocker` while the trial stays an open gap; its gap_class still says why -- Sarzaeem)
             # IDENTIFIED_NOT_INDEXED is integrate/g1-identity's name for the same fact (identified by a reference, not
             # indexed); both lanes reach Sarzaeem [23] this way (consolidation 2026-10-04)
             cited = CITED_OUTSIDE_SOURCES.get((slug, x["label"]))

@@ -2661,6 +2661,11 @@ def blocker_class(x, slug):
       ESTIMAND_REGISTRY_ONLY                               only a different-estimand registry result exists
       IDENTITY_UNRESOLVED / <k-gap class>                  the comparator's label is not yet a trial identity"""
     f = x.get("seeded_funnel") or {}
+    se = x.get("screen_eligibility") or {}
+    if f.get("stage") == "SCREENED_OUT" and str(se.get("basis", "")).startswith("SCREENER_ERROR:"):
+        # the trial is ELIGIBLE on a registry span (8e473adc); its blocker is that screener error, not a stale
+        # record-only audit class (PARALLEL-HF read ELIGIBLE beside 'INSUFFICIENT_RECORD:BLINDING_NOT_STATED')
+        return se["basis"]
     if f.get("stage") == "SCREENED_OUT":
         cls, sub = exclusion_audit_class(slug, f.get("pmid"))
         if cls in ("SCREENER_ERROR", "INSUFFICIENT_RECORD"):
