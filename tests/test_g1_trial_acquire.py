@@ -238,3 +238,46 @@ def test_the_runner_pool_hands_out_local_and_worker_slots(monkeypatch):
     for _ in range(3):
         pool.call(b"p")
     assert set(map(id, seen)) <= {id(ga.mcl.codex_runner), id(fake_remote)}
+
+
+def test_a_shared_index_survives_concurrent_writers_without_a_lost_update_or_a_torn_read(tmp_path):
+    # 6 Oct, 10-wide: a reader parsed fulltext_index.json half-written, and whole-index writes lost each other's keys
+    import json as _j
+    import threading
+    import k_gap_counterfactual as cfm
+    p = str(tmp_path / "idx.json")
+    cfm.update_index(p, "seed", {"copy_licence": "CC"})
+    errs = []
+
+    def w(i):
+        try:
+            cfm.update_index(p, f"k{i}", {"n": i})
+            _j.load(open(p, encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            errs.append(exc)
+    ts = [threading.Thread(target=w, args=(i,)) for i in range(40)]
+    [t.start() for t in ts]
+    [t.join() for t in ts]
+    d = _j.load(open(p, encoding="utf-8"))
+    assert not errs and len(d) == 41
+    cfm.update_index(p, "seed", {"_merge": True, "state": "HELD"})
+    assert _j.load(open(p, encoding="utf-8"))["seed"] == {"copy_licence": "CC", "state": "HELD"}
+
+
+def test_a_split_binds_only_when_reader_1s_retry_agrees_with_reader_2(monkeypatch):
+    import json as _j
+    answers = {}
+    monkeypatch.setattr(ga.ms, "load_record", lambda path: path)
+    monkeypatch.setattr(ga.ms, "replay", lambda rid: _j.dumps(answers[os.path.basename(rid)[:-5]]).encode())
+    r = {"slug": "iv-iron-hfref-hosp", "prompt_sha256": "p1",
+         "reader2": {"record_id": "mc-2", "state": "RAN_OK", "prompt_sha256": "p1", "model": ga.MODEL_2}}
+    answers["mc-2"] = _resp()                                                  # reader 2 would bind
+    assert ga.split_check(r, _held(reg=REG), CFG, )[0] == "READERS_SPLIT"      # reader 1 said absent: no bind yet
+    r["reader1b"] = {"record_id": "mc-1b", "state": "RAN_OK", "prompt_sha256": "p1"}
+    answers["mc-1b"] = _resp(events_t=290)                                     # a different tuple: refused
+    assert ga.split_check(r, _held(reg=REG), CFG)[0] == "REFUSED:READERS_DISAGREE"
+    answers["mc-1b"] = _resp()
+    v, adm, s = ga.split_check(r, _held(reg=REG), CFG)
+    assert v == "ADMITTED" and s["state"] == "AGREE_AFTER_SPLIT"
+    answers["mc-2"] = _resp(source="NONE", verdict="SOURCE_ABSENT")            # reader 2 would not bind: no split
+    assert ga.split_check(r, _held(reg=REG), CFG) == (None, None, None)

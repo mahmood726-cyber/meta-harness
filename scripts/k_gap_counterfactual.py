@@ -28,6 +28,35 @@ def _j(p):
         return json.load(fh)
 
 
+import threading  # noqa: E402
+
+INDEX_LOCK = threading.RLock()
+
+
+def update_index(path, key, value):
+    """ONE key of a shared JSON index, safely under concurrency: a process-wide lock, the CURRENT file re-read, one key
+    set, an atomic replace (retried while Windows reports the file held open). 6 Oct, 10-wide acquisition: a reader
+    parsed fulltext_index.json half-written ('Expecting , delimiter') because writers rewrote it in place, and each
+    writer wrote back the whole index it had loaded earlier (a lost update)."""
+    import time
+    with INDEX_LOCK:
+        cur = _j(path) if os.path.exists(path) else {}
+        if isinstance(value, dict) and isinstance(cur.get(key), dict) and value.get("_merge"):
+            value = dict(cur[key], **{k: v for k, v in value.items() if k != "_merge"})
+        cur[key] = value
+        tmp = f"{path}.{os.getpid()}.{threading.get_ident()}.tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(cur, fh, indent=1, sort_keys=True)
+        for i in range(8):
+            try:
+                os.replace(tmp, path)
+                return cur
+            except PermissionError:
+                if i == 7:
+                    raise
+                time.sleep(0.5 * (i + 1))
+
+
 _VALS = ("effect", "ci_low", "ci_high", "scale", "ai", "n1i", "ci", "n2i", "mean1", "sd1", "mean2", "sd2")
 
 
@@ -148,8 +177,8 @@ def pmc_fulltext_cached(pmid, offline=False):
                          "note": "PMCID exists but harness.fetch._pmc_fulltext returned '' (it swallows errors); not cached"}
     if os.path.exists(fp) and os.path.getsize(fp) == 0:
         os.remove(fp)
-    with open(idx_p, "w", encoding="utf-8") as fh:
-        json.dump(idx, fh, indent=1, sort_keys=True)
+    if pmid in idx:
+        update_index(idx_p, pmid, dict(idx[pmid], _merge=True))      # keeps a recorded copy_licence
     return txt
 
 
@@ -171,12 +200,9 @@ def ctgov_results_cached(nct, offline=False):
     body = json.dumps(oms, sort_keys=True).encode("utf-8")
     with open(fp, "wb") as fh:
         fh.write(body)
-    idx_p = os.path.join(OUT, "ctgov_index.json")
-    idx = _j(idx_p) if os.path.exists(idx_p) else {}
-    idx[nct] = {"bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(), "posted": oms is not None,
-                "source": "harness.fetch._ctgov_results (CT.gov API v2 resultsSection.outcomeMeasuresModule)"}
-    with open(idx_p, "w", encoding="utf-8") as fh:
-        json.dump(idx, fh, indent=1, sort_keys=True)
+    update_index(os.path.join(OUT, "ctgov_index.json"), nct,
+                 {"bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(), "posted": oms is not None,
+                  "source": "harness.fetch._ctgov_results (CT.gov API v2 resultsSection.outcomeMeasuresModule)"})
     return oms
 
 

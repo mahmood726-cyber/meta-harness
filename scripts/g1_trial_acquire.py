@@ -46,6 +46,8 @@ PROP = os.path.join(ROOT, "registry", "model_proposals", "g1_trial_acquire.json"
 ACQ_DIR = os.path.join(ROOT, "registry", "g1_acquired")
 REC_DIR = os.path.join(ROOT, ms.RECORD_DIR)
 MODEL, EFFORT = "gpt-6-astra", "high"
+import threading as _threading  # noqa: E402
+EVIDENCE_LOCK = _threading.RLock()  # evidence() fetches and writes shared caches (Unpaywall / PubMed / PMC indexes)
 MODEL_2 = "gpt-5.5"                                  # the SECOND independent reader (READER_2)
 FT_CAP = 60000
 SOURCES = ["AACT", "PMC_TEXT", "REGULATORY", "META", "NONE"]
@@ -307,10 +309,8 @@ def pmc_copy(pmid):
     else:
         lic = "NOT_OPEN"
     if xml:
-        idx = json.load(open(ip, encoding="utf-8")) if os.path.exists(ip) else {}
-        idx.setdefault(pmid, {}).update(copy_licence=lic, copy_statement=stmt)
-        with open(ip, "w", encoding="utf-8") as fh:
-            json.dump(idx, fh, indent=1, sort_keys=True)
+        import k_gap_counterfactual as cfm
+        cfm.update_index(ip, pmid, {"_merge": True, "copy_licence": lic, "copy_statement": stmt})
     return {"pmcid": pmcid, "url": url, "licence": lic, "statement": stmt}
 
 
@@ -810,7 +810,8 @@ def run(slugs, ref, redo=(), workers=5, remote_workers=0):
         prev = data["runs"].get(key) or {}
         base = {"slug": slug, "label": t["label"], "pmid": t["pmid"], "ncts": t["ncts"]}
         try:
-            ev, _held = evidence(t, cfg, comp)
+            with EVIDENCE_LOCK:                           # evidence writes shared caches: one builder at a time
+                ev, _held = evidence(t, cfg, comp)
         except Exception as exc:  # noqa: BLE001 - one trial's failure is recorded, never fatal
             return key, dict(base, record_id=None, state="EVIDENCE_ERROR", why=f"{type(exc).__name__}: {str(exc)[:200]}")
         v, _adm = typed_first(t, cfg, _held)
@@ -893,6 +894,28 @@ def _tuple(row):
     return tuple(norm(getattr(row, k)) for k in _TUPLE)
 
 
+def split_check(r, held, cfg):
+    """Reader 1 did not bind; if reader 2 (same evidence) WOULD, the row is a SPLIT: it binds only when reader 1's retry
+    on the same evidence (reader1b) also passes the gate with reader 2's tuple. (None, None, None) when reader 2 would
+    not bind either."""
+    r2 = r.get("reader2") or {}
+    if r2.get("prompt_sha256") != r.get("prompt_sha256") or r2.get("state") != "RAN_OK":
+        return None, None, None
+    resp2 = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r2["record_id"] + ".json"))).decode("utf-8"))
+    v2, adm2 = gate(resp2, held, cfg, r["slug"])
+    if v2 != "ADMITTED":
+        return None, None, None
+    summ = {"record_id": r2["record_id"], "model": r2.get("model"), "runner": r2.get("runner")}
+    r1b = r.get("reader1b") or {}
+    if r1b.get("prompt_sha256") != r.get("prompt_sha256") or r1b.get("state") != "RAN_OK":
+        return "READERS_SPLIT", None, dict(summ, state="READER2_ONLY")
+    resp1b = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r1b["record_id"] + ".json"))).decode("utf-8"))
+    v1b, adm1b = gate(resp1b, held, cfg, r["slug"])
+    if v1b != "ADMITTED" or _tuple(adm1b["row"]) != _tuple(adm2["row"]):
+        return "REFUSED:READERS_DISAGREE", None, dict(summ, state="SPLIT_UNRESOLVED", reader1b=r1b["record_id"])
+    return "ADMITTED", dict(adm1b, second_reader=dict(summ, state="AGREE_AFTER_SPLIT", reader1b=r1b["record_id"])),         dict(summ, state="AGREE_AFTER_SPLIT", reader1b=r1b["record_id"])
+
+
 def second_reader_check(r, held, cfg, adm):
     """A row reader 1 would bind binds only when the SECOND independent reader (MODEL_2, same evidence, its own record)
     also passes the gate with the SAME tuple (Mahmood 6 Oct). Returns (verdict, admitted, second-reader summary)."""
@@ -910,6 +933,86 @@ def second_reader_check(r, held, cfg, adm):
         return "REFUSED:READERS_DISAGREE", None, dict(summ, state="DISAGREE", reader1=_tuple(adm["row"]),
                                                       reader2=_tuple(adm2["row"]))
     return "ADMITTED", dict(adm, second_reader=dict(summ, state="AGREE")), dict(summ, state="AGREE")
+
+
+def second_readers(slugs, ref, workers=5, remote_workers=0, all_runs=False):
+    """Reader 2 for EVERY recorded run whose reader-1 answer the gate admits and that has no reader 2 for the same
+    evidence -- including trials no longer targets because they are already matched (HEART-FID, AFFIRM-AHF: bound
+    before the second-reader rule; the target loop never revisits them)."""
+    data = json.load(open(PROP, encoding="utf-8")) if os.path.exists(PROP) else {"runs": {}}
+    pool = RunnerPool(workers, remote_workers)
+    todo = []
+    for k, r in data["runs"].items():
+        if (slugs and r["slug"] not in slugs) or r.get("state") != "RAN_OK":
+            continue
+        if (r.get("reader2") or {}).get("prompt_sha256") == r.get("prompt_sha256") and not all_runs:
+            continue
+        todo.append(k)
+
+    def one(k):
+        r = data["runs"][k]
+        cfg = json.load(open(os.path.join(ROOT, "topics", f"{r['slug']}.json"), encoding="utf-8"))
+        o = tracker_file(r["slug"], ref)
+        t = {"slug": r["slug"], "label": r["label"], "pmid": r["pmid"], "ncts": r["ncts"]}
+        with EVIDENCE_LOCK:
+            ev, held = evidence(t, cfg, comparator_pmid(r["slug"], o))
+        p = (INSTR + "\n\n=== EVIDENCE ===\n" + json.dumps(ev, ensure_ascii=False, indent=0, default=str)).encode("utf-8")
+        psha = hashlib.sha256(p).hexdigest()
+        new1 = None
+        if psha != r.get("prompt_sha256"):
+            # the evidence changed since reader 1 (new regulator windows) and the trial is no longer a target: reader 1
+            # is re-asked on the CURRENT evidence first, so both readers read the same bytes
+            if not disk_ok():
+                return k, None
+            rec1 = pool.call(p, schema=SCHEMA, model=MODEL, effort=EFFORT,
+                             caller={"file": "scripts/g1_trial_acquire.py", "line": "second_readers:reader1",
+                                     "purpose": f"G1 missing-trial acquisition {r['slug']} / {r['label'][:50]} (reader 1 "
+                                                f"on changed evidence; acq/k-gap lane)"},
+                             input_digests=[{"ref": "evidence", "sha256": psha, "what": "inline evidence"}],
+                             timeout_s=1800)
+            ms.write_record(rec1, REC_DIR)
+            new1 = {"record_id": rec1["record_id"], "state": rec1["state"], "prompt_sha256": psha}
+            if rec1["state"] != "RAN_OK":
+                return k, {"reader1": new1}
+            r = dict(r, **new1)
+        resp1 = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8"))
+        v1 = gate(resp1, held, cfg, r["slug"])[0]
+        out = {"reader1": new1} if new1 else {}
+        have2 = (r.get("reader2") or {}).get("prompt_sha256") == psha
+        if not disk_ok() or (v1 != "ADMITTED" and not all_runs):
+            return k, (out or None)
+
+        def read(model, line, what):
+            rec = pool.call(p, schema=SCHEMA, model=model, effort=EFFORT,
+                            caller={"file": "scripts/g1_trial_acquire.py", "line": line,
+                                    "purpose": f"G1 missing-trial acquisition {r['slug']} / {r['label'][:50]} ({what}; "
+                                               f"acq/k-gap lane)"},
+                            input_digests=[{"ref": "evidence", "sha256": psha, "what": "inline evidence (as reader 1)"}],
+                            timeout_s=1800)
+            ms.write_record(rec, REC_DIR)
+            return {"record_id": rec["record_id"], "state": rec["state"], "model": model, "prompt_sha256": psha,
+                    "runner": rec["client"].get("argv", ["?"])[0]}
+        r2 = r.get("reader2") if have2 else read(MODEL_2, "second_readers", "reader 2")
+        if not have2:
+            out["reader2"] = r2
+        # a SPLIT -- reader 2's answer would bind, reader 1's would not: reader 1 is asked ONCE more on the same evidence
+        # (reader1b); replay binds only if that read and reader 2 pass the gate with the same tuple
+        if v1 != "ADMITTED" and r2.get("state") == "RAN_OK" and (r.get("reader1b") or {}).get("prompt_sha256") != psha:
+            resp2 = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r2["record_id"] + ".json"))).decode("utf-8"))
+            if gate(resp2, held, cfg, r["slug"])[0] == "ADMITTED":
+                out["reader1b"] = read(MODEL, "second_readers:reader1b", "reader 1 retry on a split")
+        return k, (out or None)
+    with cf.ThreadPoolExecutor(max_workers=pool.size) as ex:
+        for k, upd in ex.map(one, todo):
+            if upd:
+                if upd.get("reader1"):
+                    data["runs"][k].update(upd["reader1"])           # reader 1 re-asked on the current evidence
+                if upd.get("reader2"):
+                    data["runs"][k]["reader2"] = upd["reader2"]
+                if upd.get("reader1b"):
+                    data["runs"][k]["reader1b"] = upd["reader1b"]
+                print("READERS", {x: (upd[x]["state"], upd[x]["record_id"]) for x in upd}, k, flush=True)
+                json.dump(data, open(PROP, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
 
 
 def merged_rows(path, rows):
@@ -954,6 +1057,10 @@ def replay(slugs, ref):
             verdict, adm = gate(resp, held, cfg, r["slug"])
             if verdict == "ADMITTED":
                 verdict, adm, second = second_reader_check(r, held, cfg, adm)
+            else:
+                v_split, adm_split, s_split = split_check(r, held, cfg)
+                if v_split:
+                    verdict, adm, second = v_split, adm_split, s_split
         else:
             resp, verdict, adm = {}, "WITHHELD_NOT_OPEN_TEXT", None
         row_extra = {"second_reader": second} if second else {}
@@ -1017,6 +1124,10 @@ if __name__ == "__main__":
     # default: the LOCAL tracker outputs (this lane does not commit them; the captain regenerates the served union)
     ref = next((a.split("=", 1)[1] for a in argv if a.startswith("--ref=")), "")
     slugs = [a for a in argv if not a.startswith("--")]
+    if "--second-readers" in argv:
+        second_readers(slugs, ref, next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--workers=")), 5),
+                       next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--remote-workers=")), 0),
+                       all_runs="--all" in argv)
     if "--run" in argv:
         run(slugs, ref, [a.split("=", 1)[1] for a in argv if a.startswith("--redo=")],
             workers=next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--workers=")), 5),
