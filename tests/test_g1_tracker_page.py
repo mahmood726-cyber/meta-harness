@@ -193,3 +193,19 @@ def test_PLANT_a_trial_named_out_of_scope_is_neither_covered_nor_confirmed():
     r = g1.recompute(_rec([_t("B"), t], named=("A",)))
     assert (r["g1_count"], r["covered"]) == (1, 1)
     assert "named out of scope" in r["rows"][1]["why"]
+
+
+def test_rendering_records_the_tracker_blob_it_reads(tmp_path):
+    # plant (6 Oct): tracker_blob was set by hand, so a regenerated G1_TRACKER.md left the page declaring a stale blob
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("rgt_plant", ROOT / "scripts" / "render_g1_tracker.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    d = tmp_path / "outputs" / "k_gap"
+    d.mkdir(parents=True)
+    (d / "G1_TRACKER.md").write_bytes(b"# tracker\r\nrow\r\n")
+    (d / "G1_SOURCE.json").write_text(json.dumps({"tracker_blob": "0" * 40}), encoding="utf-8")
+    data = b"# tracker\nrow\n"
+    want = hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
+    assert m.record_tracker_blob(tmp_path) == want
+    assert json.loads((d / "G1_SOURCE.json").read_text(encoding="utf-8"))["tracker_blob"] == want

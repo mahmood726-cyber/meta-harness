@@ -119,8 +119,10 @@ def test_lane_named_exclusions_are_read_from_the_lanes_pinned_file():
     # reproduces the committed row (it vanished when read from the local copy)
     o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "sglt2-hfref-hosp-cvdeath.json"), encoding="utf-8"))
     # a control pinned to an IMMUTABLE lane version (g1/tocilizumab b1c971d1, which named SOLOIST-WHF), not the live
-    # pin: whatever the local copy says (here emptied, as a demotion leaves it), the naming comes from the pinned file
-    pinned = dict(o["lane_source"], commit="b1c971d17a10245f234096372f2df97005b0ec89",
+    # pin: whatever the local copy says (here emptied, as a demotion leaves it), the naming comes from the pinned file.
+    # Read at e7a19967 -- the SAME bytes (blob 23f58b3b, sha256 deca8615) in this branch's own history, so a clone that
+    # never fetched the lane branch (CI) holds it too; b1c971d1 is not reachable from the PR
+    pinned = dict(o["lane_source"], commit="e7a19967b3bffc70509a641b4d39a5ca4b875166",
                   sha256="deca8615fab93ee8c0846c22a80f7fc51a65ddd264368a0f45834fdc7c96dd7f")
     o = dict(o, lane_source=pinned, named_differences=[])
     assert any(d.get("pmid") == "33200892" for d in audit.lane_named_differences(o))
