@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `5f48ddefdf7ac9f384ab3a6a558a8d00d80970795f6ec73fb78d4b4410775b21` |
-| html_sha256 (served page bytes) | `560c2cf1a93a11190c3f47ec7716c06e72c8f423e4d246a73b419923de5b90aa` |
-| release_sha256 (certificate) | `bf62ae30788f9879cfeabee9c44efcb6551811aada4035ea3f555ac7cd487cab` |
+| review_sha256 (canonical review core) | `0114532130e28fc0ed2d7dec3e727fbe49aae0cb635eba7af2c7fac1063a9ff3` |
+| html_sha256 (served page bytes) | `98f46f4c85660633ffc8f53e90c60b47a0fdb1df8f615a80d059b0357b203c09` |
+| release_sha256 (certificate) | `6016afd7b1e46a83165c3ac58402c22c5a7edb4a74f22bbcb333e3ff5323477a` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `4fc26adec9aa19de6e0b2d51b368f26015fab2c8` |
 | analysis code | 87 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `172fe8cd90504f746d88aafa6c23f8d552a93661` |
+| recorded generating commit | `dde2f880140f3d4eccd3a11f17b408575d129ba3` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -40,6 +40,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `outputs/handover/in3/aact/reported_event_totals.txt` | `50429a380c137b78871fbee01cb2641ab0676f2fb9e194fd53455bbfc483ee73` |
 
 Recorded judgments live under `cache/doac-vte-recurrence/`; their object digest is
-`0bfa1132e91f3f845670581acf7b6504fe8e3333ceb63c29e11e978b3bcdbc4f`. Acquisitions live under `docs/acquisitions/doac-vte-recurrence/`.
+`7e0df351fc066a8bdb09b25b83ab56817b8f5ef4bd9b9fabea3fa275e7324ae0`. Acquisitions live under `docs/acquisitions/doac-vte-recurrence/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.
