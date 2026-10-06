@@ -135,10 +135,23 @@ def served_outcome_changes(root: Path, slug: str, base_ref: str = "origin/main")
     sys.path.insert(0, str(root))
     from harness import result_changes as rc
     p = Path(root) / "docs" / "reviews" / slug / "review.json"
-    cand = json.load(open(p, encoding="utf-8")) if p.exists() else {"outcomes": []}
-    raw = subprocess.run(["git", "show", f"{base_ref}:docs/reviews/{slug}/review.json"], cwd=root, capture_output=True,
-                         stdin=subprocess.DEVNULL).stdout
-    base = json.loads(raw) if raw else {"outcomes": []}
+    if not p.exists():
+        raise FileNotFoundError(f"served_outcome_changes: no candidate review for {slug} ({p})")
+    cand = json.load(open(p, encoding="utf-8"))
+    # the comparison must be PERFORMED: an unresolvable base ref refuses (codex captain-v8-groundwork g1#2: a failed
+    # git show became an empty base and reported 'no change'); only a path absent AT a valid base is an empty base
+    if subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{base_ref}^{{commit}}"], cwd=root, capture_output=True,
+                      stdin=subprocess.DEVNULL).returncode:
+        raise ValueError(f"served_outcome_changes: base ref {base_ref!r} does not resolve to a commit")
+    shown = subprocess.run(["git", "show", f"{base_ref}:docs/reviews/{slug}/review.json"], cwd=root, capture_output=True,
+                           stdin=subprocess.DEVNULL)
+    if shown.returncode:
+        err = shown.stderr.decode("utf-8", "replace")
+        if "does not exist" not in err and "exists on disk, but not in" not in err:
+            raise RuntimeError(f"served_outcome_changes: cannot read the base page of {slug} at {base_ref}: {err.strip()}")
+        base = {"outcomes": []}                     # a topic with no served page at the base: every outcome is new
+    else:
+        base = json.loads(shown.stdout)
     out = []
     names = [o.get("name") for o in base.get("outcomes") or []] + [o.get("name") for o in cand.get("outcomes") or []]
     for name in dict.fromkeys(names):

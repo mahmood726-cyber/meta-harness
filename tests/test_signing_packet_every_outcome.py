@@ -53,3 +53,17 @@ def test_a_packet_listing_only_the_headline_outcome_is_refused(tmp_path):
 def test_an_unchanged_outcome_needs_no_entry(tmp_path):
     root = _repo(tmp_path, _review((3, 1.0), (1, 1.0)), _review((4, 0.9), (1, 1.0)))
     assert sp.completeness_problems(root, [("t", "MACE")], "basebr") == []
+
+
+def test_an_unresolvable_base_refuses_instead_of_reporting_no_change(tmp_path):
+    # codex captain-v8-groundwork g1#2: a failed git show became an empty base, so 'no change' was reported
+    import subprocess
+    import pytest
+    from pathlib import Path
+    import signing_packet as sp
+    root = Path(__file__).resolve().parents[1]
+    slug = sorted(p.name for p in (root / "docs" / "reviews").iterdir() if (p / "review.json").exists())[0]
+    with pytest.raises(ValueError):
+        sp.served_outcome_changes(root, slug, "__no_such_ref__")
+    with pytest.raises(FileNotFoundError):
+        sp.served_outcome_changes(root, "__no_such_topic__", "HEAD")

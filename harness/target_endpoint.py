@@ -210,8 +210,14 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
             or (re.search(r"\bhf\b", s) and re.search(r"hospitali[sz]", s))
             # the VERB form of the same endpoint: SAVOR-TIMI 53 'were hospitalized for heart failure (3.5% vs. 2.8%;
             # hazard ratio, 1.27 ...)' was ENDPOINT_UNBOUND while TECOS's noun form bound (6 Oct). 'hospitalized WITH
-            # heart failure' is how a POPULATION is described ('patients hospitalized with heart failure'), so not here
-            or re.search(r"\bhospitali[sz]ed\s+(?:for|because of|due to)\s+(?:acute\s+|worsening\s+)?(?:heart failure|hf)\b", s)):
+            # heart failure' is how a POPULATION is described ('patients hospitalized with heart failure'), so not here.
+            # An EVENT, not a description of who enrolled: predicative ('were/was hospitalized for HF') or stated with a
+            # result (HR/RR/OR, %, vs) -- and never in an eligibility / enrolment sentence ('Patients hospitalized for heart
+            # failure were eligible' describes who entered: codex captain-v8-groundwork g1#1)
+            or (re.search(r"\bhospitali[sz]ed\s+(?:for|because of|due to)\s+(?:acute\s+|worsening\s+)?(?:heart failure|hf)\b", s)
+                and (re.search(r"\b(?:were|was|been|being|be)\s+(?:re)?hospitali[sz]ed\b", s)
+                     or re.search(r"hazard ratio|odds ratio|risk ratio|\b(?:hr|rr|or)\b|%|\bvs\b|versus", s))
+                and not re.search(r"\b(?:eligib|enrol|inclusion|recruit)", s))):
         comps.add("heart failure hospitalization")
     # 'fatal or hospitalized HF' / 'death from heart failure' is a heart-failure death component, not HHF alone
     if re.search(r"(?<!non-)(?<!non)\bfatal\b.{0,25}\b(?:hf|heart failure)\b|death from heart failure|heart failure death", s):

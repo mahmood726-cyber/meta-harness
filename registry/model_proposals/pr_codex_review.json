@@ -1166,5 +1166,52 @@
     "status": "proposal, not yet reproduced"
    }
   ]
+ },
+ "captain-v8-groundwork": {
+  "base": "origin/main",
+  "head": "45d699bbf26d7d098979338a7368c9f633e8539b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c132c6451c2e1fb33c42c3a755317401",
+    "state": "RAN_OK",
+    "files": [
+     "harness/target_endpoint.py",
+     "scripts/derive_outcome_notices.py",
+     "scripts/signing_packet.py"
+    ],
+    "prompt_sha256": "bf3cb8917c751aa65679ab99f3584602c33a2bcf52fee2ab9f6a81de707f0e4c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/target_endpoint.py",
+    "function": "_components_from_text",
+    "severity": "P1",
+    "claim": "The new verb pattern classifies an enrollment population as a heart-failure hospitalization endpoint. Using 'for' instead of 'with' does not distinguish an endpoint from a population description.",
+    "failing_input": "_components_from_text('Patients hospitalized for heart failure were eligible for enrollment.')",
+    "expected": "No 'heart failure hospitalization' endpoint component: the sentence describes eligibility, not an outcome.",
+    "actual": "The added regex matches 'hospitalized for heart failure' and adds 'heart failure hospitalization' to comps.",
+    "id": "captain-v8-groundwork:g1#1",
+    "record_id": "mc-c132c6451c2e1fb33c42c3a755317401",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_in": "next commit on v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/signing_packet.py",
+    "function": "served_outcome_changes",
+    "severity": "P2",
+    "claim": "A failed Git baseline lookup silently becomes an empty baseline because the subprocess return code and stderr are ignored. This can report no changes when comparison could not be performed.",
+    "failing_input": "From the project root, with neither the named ref nor review present: served_outcome_changes(Path('.'), '__missing_review__', '__missing_ref__')",
+    "expected": "An explicit failure identifying the unreadable baseline; completeness must not pass without a successful baseline lookup.",
+    "actual": "Git returns a nonzero status with empty stdout. Both baseline and candidate become {'outcomes': []}, and the function returns [].",
+    "id": "captain-v8-groundwork:g1#2",
+    "record_id": "mc-c132c6451c2e1fb33c42c3a755317401",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_in": "next commit on v8/comparator-switches-2026-10-06"
+   }
+  ]
  }
 }
