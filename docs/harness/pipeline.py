@@ -1965,12 +1965,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # denominator — omega3 bleeding "2.7% vs 2.1%", pcsk9 injection-site reactions), the outcome is NOT
         # absent; saying "no trial reported this" is a false absence (most dangerous for harms). Disclose the
         # reporting trials and flag for full-text acquisition, which would recover the countable form.
-        _kws = [str(k).lower() for k in (spec.get("keywords") or [spec.get("name", "")]) if k]
-        _reported_by = []
-        for d in included:
-            _ab = ((rec_by_id.get(d["id"], {}) or {}).get("abstract", "") or "").lower()
-            if _ab and any(k in _ab for k in _kws):
-                _reported_by.append(d["id"])
+        _reported_by = reported_not_pooled(spec, included, rec_by_id, [])
         if _reported_by:
             out["result"] = {
                 "present": False, "reported_not_extracted": True, "reported_by": _reported_by[:10],
@@ -1984,10 +1979,42 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"] = {"present": False,
                              "reason": "no included trial reported this outcome with a percentage-corroborated "
                                        "count or an effect+CI in its abstract"}
+    if isinstance(out.get("result"), dict) and out["result"].get("present", True) is not False             and out["result"].get("k"):
+        # The same false-absence guard when SOME trials pool: an included trial that names the outcome in
+        # its committed abstract but is not in the pool keeps its disclosure. Pooling one trial must not
+        # silence the others (dapagliflozin: DELIVER pooled, 34711976 / 37534453 still report it unpooled).
+        _unpooled = reported_not_pooled(spec, included, rec_by_id, trials)
+        if _unpooled:
+            out["result"]["reported_not_extracted"] = True
+            out["result"]["reported_by"] = _unpooled[:10]
     if out.get("design_refusals"):
         out["design_consumption"] = design_variance.consumption_summary(out)
         if isinstance(out.get("result"), dict):
             out["result"]["design_consumption"] = out["design_consumption"]
+    return out
+
+
+def _bare_id(x):
+    x = str(x or "").strip()
+    return x[5:].strip() if x.upper().startswith("PMID ") else x
+
+
+def reported_not_pooled(spec, included, rec_by_id, pooled):
+    """Included records whose committed abstract names the outcome (a keyword of the outcome spec) but
+    which are not among the pooled trials. The pooled set is matched on every id a trial row carries."""
+    kws = [str(k).lower() for k in (spec.get("keywords") or [spec.get("name", "")]) if k]
+    in_pool = set()
+    for t in pooled or []:
+        for key in ("id", "family_report_id", "report_id", "trial_id"):
+            if t.get(key):
+                in_pool.add(_bare_id(t[key]))
+    out = []
+    for d in included:
+        if _bare_id(d.get("id")) in in_pool:
+            continue
+        ab = ((rec_by_id.get(d["id"], {}) or {}).get("abstract", "") or "").lower()
+        if ab and any(k in ab for k in kws):
+            out.append(d["id"])
     return out
 
 
