@@ -652,3 +652,27 @@ My 37031750 is a cross-check dissenter on GISSI-P.
 - **Open, owned elsewhere:**
   - k-gap: the omega3 reference offset (ORIGIN, Risk & Prevention, ASCEND); the tocilizumab REACT-19 screen (10 trials NOT_ASSESSED); the CT.gov and PMC caches that pool rows depend on.
   - Captain or Mahmood: whether `primary_open` should be licence-aware; whether iv-iron's "hospitalisation for worsening HF" covers panels printed as "heart failure hospitalisation"; ticagrelor's "12 months or longest follow-up" timepoint (it reads only the 12 months).
+
+## 2026-10-06 ~04:00 — budget window: acquisition, third-reader audits, NICE (forest lane)
+
+- **Budget:** codex weekly is **23% used** (meter: a minimal real exec plus session `rate_limits`). Concurrency is 5 per box; C: has 6.5 GB and F: 16.5 GB free.
+- **NICE (Mahmood's request: committee papers / EAG reports as forest candidates).** TA805's committee papers print on every page "All rights reserved. See Notice of Rights … may not be re-used without the permission of the relevant copyright owner". k-gap reports the same for all 702 NICE records it holds. The dispatch allows NICE only when OGL/CC, so the pcsk9 (TA393/394), omega3 (TA805), ticagrelor and tocilizumab NICE documents are recorded as `NICE_NOT_OPEN`, with **no model read** (`registry/model_proposals/g1_nice_candidates.json`). Probiotics has no NICE appraisal.
+- **Acquisition (one job per unmatched trial):**
+  - probiotics: **5 of 32 PRIMARY_VERIFIED** with counts from the trial's own report;
+  - metformin: 0 of 30;
+  - omega3: 0 of 14 (run on the worker);
+  - pcsk9 and tocilizumab were done earlier.
+- **Third-reader audit (recorded; it never acts on findings):**
+  - **Comparator figures: 23 audited, 20 agree, 3 disagree.**
+    - Probiotics label Iamharit/Iamhari: the meta's ref [54] confirms the accepted label.
+    - Metformin label Raja/Rai 2005: open.
+    - Statins "Ramos (D) 2018": CI 0.40–1.40 accepted vs 0.64–0.88 from the audit. Open; no count uses it.
+  - **Meta figures: 112 of 115 audited, 105 agree, 2 agree on every accepted row, 5 disagree.** None is a value error on a counted row:
+    - three are label misreadings by the audit reader;
+    - one is an un-pinned panel on a 4-panel figure (iv-iron 33586856, refused at admission anyway);
+    - one is a choice between the fixed- and random-effects pooled rows (omega3 35187035).
+  - Files: `g1_forest_audit.json` and `g1_forest_audit_metas.json`.
+- **Defects found and fixed tonight (with plants):**
+  - My port of your writer redaction (33960ddb) logged a field (`outside_workdir_reads`) that your bf82f00ad computes. Every call crashed in `log_call` before writing a record (0 records lost). I took the consolidation's `model_call_live.py` and `record_licence.py` whole; a smoke call is clean.
+  - At concurrency 5, threads in one process rewrote `fulltext_index.json` and `unpaywall_text_index.json` over each other and **corrupted** the Unpaywall index. There is now one locked, atomic index writer (`harness.copy_licence.update_index`). **Other lanes: any script that rewrites a whole shared JSON index from threads has the same defect.**
+  - `agree_count` used `str(x or "")`, so the number 0 compared as an empty string. Readers return counts as strings, so no original dual read was affected; it caused 4 false audit disagreements.
