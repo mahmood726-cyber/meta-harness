@@ -117,3 +117,24 @@ def test_PLANT_a_chain_other_agent_removal_needs_a_held_title_naming_the_agent(m
     assert dl.chain_other_agent_span("dapagliflozin-hfpef-hosp", "VERTIS-CV", [])[0] is None
     monkeypatch.setattr(dl, "_j", fake)
     assert dl.chain_other_agent_span("dapagliflozin-hfpef-hosp", "VERTIS-CV", ["VERTIS-CV"])[0] is None
+
+
+def test_PLANT_an_identity_chain_registry_removal_needs_the_committed_aact_extract_naming_the_agent(tmp_path, monkeypatch):
+    # dapagliflozin SOLOIST-WHF / SCORED: k-gap's chain scopes them OTHER_AGENT:sotagliflozin from their REGISTERED
+    # interventions; the ledger accepts it only with the committed AACT interventions extract naming that agent
+    import json as _json
+    import g1_denominator_ledger as L
+    chain = tmp_path / "chain.json"
+    chain.write_text(_json.dumps({"results": {"s::U": {"scope": "OTHER_AGENT:sotagliflozin", "nct": "NCT00000009",
+                                                        "basis": "AACT_STUDIES_ACRONYM+REGISTERED_INTERVENTIONS", "state": "RESOLVED"}}}),
+                     encoding="utf-8")
+    monkeypatch.setattr(L, "CHAIN", str(chain))
+    monkeypatch.setattr(L, "EVID", str(tmp_path))
+    assert L.chain_registry_span("s", "U", ["U"]) == (None, None)                 # no extract -> refused
+    (tmp_path / "aact_interventions_NCT00000009.txt").write_text("1|NCT00000009|DRUG|Placebo|x\n", encoding="utf-8")
+    assert L.chain_registry_span("s", "U", ["U"]) == (None, None)                 # extract does not name the agent
+    (tmp_path / "aact_interventions_NCT00000009.txt").write_text("1|NCT00000009|DRUG|Sotagliflozin|x\n2|NCT00000009|DRUG|Placebo|x\n",
+                                                                 encoding="utf-8")
+    sp, ev = L.chain_registry_span("s", "U", ["U"])
+    assert "Sotagliflozin" in sp["text"] and ev["nct"] == "NCT00000009"
+    assert L.chain_registry_span("s", "U", []) == (None, None)                    # not listed among the other-agent units

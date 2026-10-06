@@ -112,6 +112,29 @@ def chain_other_agent_span(slug, label, other_agent_units):
     return None, None
 
 
+def chain_registry_span(slug, label, other_agent_units):
+    """An OTHER_AGENT removal decided by k-gap's identity chain from the trial's REGISTERED interventions (chain basis
+    ...REGISTERED_INTERVENTIONS; dapagliflozin SOLOIST-WHF NCT03521934, SCORED NCT03315143): the tracker lists the
+    unit among its other-agent units, the chain scopes it OTHER_AGENT:<agent> on one NCT, and the committed AACT
+    interventions extract for that NCT (docs/evidence/g1-denominator/aact_interventions_<nct>.txt, snapshot digest in its
+    header) names that agent. None when any link is missing (fail-closed)."""
+    if label not in (other_agent_units or []) or not os.path.exists(CHAIN):
+        return None, None
+    r = ((_j(CHAIN).get("results") or {}).get(f"{slug}::{label}") or {})
+    scope, nct = str(r.get("scope") or ""), str(r.get("nct") or "")
+    if not scope.startswith("OTHER_AGENT:") or not nct.startswith("NCT") or "REGISTERED_INTERVENTIONS" not in str(r.get("basis")):
+        return None, None
+    agent = scope.split(":", 1)[1].strip().lower()
+    ev = os.path.join(EVID, f"aact_interventions_{nct}.txt")
+    if not os.path.exists(ev):
+        return None, None
+    lines = [l for l in open(ev, encoding="utf-8").read().splitlines() if f"|{nct}|" in l]
+    if not agent or not any(agent in l.lower() for l in lines):
+        return None, None
+    return ({"text": "\n".join(lines), "source": os.path.relpath(ev, ROOT).replace(os.sep, "/"), "source_sha256": _sha(ev)},
+            {"agent": agent, "nct": nct, "chain_state": r.get("state"), "chain_basis": r.get("basis")})
+
+
 ADOPT = os.path.join(ROOT, "registry", "comparator_selection", "{slug}.adoption.json")
 ENUM = os.path.join(ROOT, "registry", "comparator_enumerations", "{slug}.json")
 
@@ -227,6 +250,13 @@ def build():
                            detail=(f"k-gap's identity chain scopes the trial OTHER_AGENT:{ev['agent']} (its own reports "
                                    f"name {ev['agent']}, not the topic's agent); the span is a held PubMed title of one of "
                                    f"those reports (PMID {sp['pmid']})"), span=sp)
+            elif chain_registry_span(slug, lab, d.get("other_agent_units"))[0]:
+                sp, ev = chain_registry_span(slug, lab, d.get("other_agent_units"))
+                rec.update(kind="OTHER_AGENT", rule_id="K-GAP:OTHER_AGENT:IDENTITY_CHAIN_REGISTRY",
+                           identity={"ncts": [ev["nct"]], "chain": f"{ev.get('chain_state')}:{ev.get('chain_basis')}"},
+                           detail=(f"k-gap's identity chain scopes the trial OTHER_AGENT:{ev['agent']} from its REGISTERED "
+                                   f"interventions; the span is the committed AACT interventions extract for {ev['nct']}"),
+                           span=sp)
             else:
                 fam = (b.get("families") or {}).get(lab)
                 match = next((nl for nl in new if fam and (now[nl].get("family") == fam)), None)
