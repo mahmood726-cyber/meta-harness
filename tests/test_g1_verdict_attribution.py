@@ -34,27 +34,25 @@ def test_the_single_trial_that_flips_the_conclusion_is_the_driver():
 def test_colchicine_is_closed_per_trial_and_never_compares_a_named_trial():
     o = json.load(open(os.path.join(gt.G1_DIR, "colchicine-postop-af.json"), encoding="utf-8"))
     st = o["same_trials"]
-    assert st["verdict"]["verdict"] == "DIFFERENT_CONCLUSION" and st["k"] == 2
     # the requirement: every trial withheld from the comparison is a NAMED scope difference, and no named trial is
-    # compared. WHICH named trials had a verified row to withhold depends on the evidence held (the consolidated forest
-    # reads verify Deftereos [16] and Tabbalat [22]; Zarpelon [20] is named only where its full text is held), so the
-    # exact list is not the requirement (consolidation 2026-10-04)
+    # compared (Zarpelon [20] is named where its CC full text is held -- it is, cache/colchicine-postop-af/ft_27223641.txt)
     named = {d["trial"] for d in o.get("named_differences") or []}
-    assert set(st["excluded_named_scope_differences"]) <= named
+    assert set(st["excluded_named_scope_differences"]) <= named and "Zarpelon [20]" in st["excluded_named_scope_differences"]
     compared = {p.get("trial") for p in (st.get("attribution") or {}).get("per_trial") or []}
     assert not (compared & named), compared & named
-    a = st["attribution"]
-    assert a["drivers"] == ["Imazio [18]"] and a["closed"] is True
-    d = next(r for r in a["per_trial"] if r["trial"] == "Imazio [18]")
-    assert d["comparator_row_nearest_set"] == "on-treatment" and d["analysis_set"] == "NOT_REPRODUCED"
-    assert d["theirs_with_our_row"] == "AGREE"
+    # 5 Oct decision 5 (0d7e6649, the captain's decisions under Mahmood's delegation): a verified comparator-row MISMATCH
+    # pointing at the comparator is compared on the trial's OWN values, finding kept -- so the same-trials verdict is
+    # AGREE, and Imazio [18]'s printed 0.66 stays on its row as the comparator's error, never silently dropped
+    assert st["verdict"]["verdict"] == "AGREE"
+    imazio = next(t for t in o["trials"] if t["label"] == "Imazio [18]")
+    assert imazio["comparator_row_state"] == "MISMATCH" and imazio["agreement_with_comparator_row"].startswith("DISAGREE")
+    assert imazio["disagreement_side"].startswith("SECONDARY_WRONG")
 
 
 def test_colchicine_disagreement_is_resolved_against_the_comparators_copps2_row():
+    # with decision 5 the verdict AGREEs, so no disagreement is left to resolve; the row-level finding (above) carries it
     o = json.load(open(os.path.join(gt.G1_DIR, "colchicine-postop-af.json"), encoding="utf-8"))
-    r = o["g1_status"]["result_disagreement"]
-    assert r["state"] == "RESOLVED_AGAINST_COMPARATOR_ROW" and r["rows"] == ["Imazio [18]"]
-    assert "RESULT_AGREES" in o["g1_status"]["unmet"]                    # beside RESULT_AGREES, never instead of it
+    assert "result_disagreement" not in o["g1_status"] and "RESULT_AGREES" not in o["g1_status"]["unmet"]
 
 
 def test_an_undetermined_side_never_resolves():

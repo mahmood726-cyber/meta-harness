@@ -473,11 +473,29 @@ def render(root: Path = ROOT) -> str:
     return "".join(parts)
 
 
+def record_tracker_blob(root: Path = ROOT) -> str | None:
+    """G1_SOURCE.json names the G1_TRACKER.md the page is rendered from (its git blob, LF bytes). It was set by hand, so a
+    regenerated tracker left the page declaring a blob that no longer exists (PR #13 CI). Recorded at render time now."""
+    md, src = root / "outputs" / "k_gap" / "G1_TRACKER.md", root / SOURCE
+    if not (md.is_file() and src.is_file()):
+        return None
+    import hashlib
+    data = md.read_bytes().replace(b"\r\n", b"\n")
+    blob = hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
+    source = json.loads(src.read_text(encoding="utf-8"))
+    if source.get("tracker_blob") != blob:
+        source["tracker_blob"] = blob
+        src.write_text(json.dumps(source, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    return blob
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--check", action="store_true")
     a = ap.parse_args(argv)
     out = ROOT / OUT
+    if not a.check:
+        record_tracker_blob(ROOT)
     want = render().encode("utf-8")
     if a.check:
         if not out.is_file() or out.read_bytes() != want:
