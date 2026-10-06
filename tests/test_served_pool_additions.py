@@ -169,3 +169,15 @@ def test_committed_rows_are_carried_forward_when_the_tracker_shows_them_in_our_p
     monkeypatch.setattr(b.sp, "candidates", lambda o: ([], []))       # the tracker now offers no row outside the pool
     adds, exc = b.build()
     assert sorted(a["slug"] for a in adds) == sorted(a["slug"] for a in reg)
+
+
+def test_a_held_signed_notice_is_shown_not_applied_and_never_admitted():
+    # V6-01 (TECOS) is held: applying it would also withdraw the served HHF estimate (HARMS_INCOMPLETE), a second served
+    # change the signer has not seen. The census marks it held; the page shows NOT APPLIED outside the signed block.
+    from harness import census, page
+    items = census._result_change_notices(ROOT, "dpp4-mace-t2d")
+    held = [n for n in items if n.get("entered_pool") == ["PMID 26052984"]]
+    assert held and held[0]["held"]["code"] == "SIGNED_CHANGE_HAS_AN_UNSHOWN_CONSEQUENCE"
+    assert page.result_changes_status(held[0])["state"] == "HELD"
+    reg = json.load(open(spa.REGISTER, encoding="utf-8"))
+    assert not any(a["slug"] == "dpp4-mace-t2d" for a in reg["additions"])
