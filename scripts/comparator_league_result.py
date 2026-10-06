@@ -29,6 +29,13 @@ _CELL = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*\(\s*(\d+(?:\.\d+)?)\s*[–—\-–�
 _COL_VS_ROW = re.compile(r"in the column-defining (?:therapy|treatment)\s+compared with\s+(?:the\s+[a-z ]{1,40}?\s+in\s+)?"
                          r"the row-defining (?:therapy|treatment)", re.I)
 
+# A measure is NAMED only in words (odds ratio / risk ratio / relative risk / hazard ratio); the abbreviations alone
+# are too common in glossary footnotes ("HR: hazard ratio") of tables that print something else. A glossary entry
+# 'HR: hazard ratio' does name it -- so a footnote with a glossary of several measures refuses as ambiguous.
+_MEASURES = (("OR", re.compile(r"\bodds ratios?\b", re.I)),
+             ("RR", re.compile(r"\b(?:risk ratios?|relative risks?)\b", re.I)),
+             ("HR", re.compile(r"\bhazard ratios?\b", re.I)))
+
 
 def _text(x):
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", x))).strip()
@@ -41,6 +48,14 @@ def read_league(jats, intervention, control, outcome):
         foot = _text((re.search(r"<table-wrap-foot>(.*?)</table-wrap-foot>", tw, re.S) or re.match("", "")).group(0))
         if not _COL_VS_ROW.search(foot):
             continue
+        # The MEASURE comes from the table's own words, never assumed (codex P0, merge-ede33d9b2:g1#1: a table
+        # printing risk ratios was returned as odds ratios). Exactly one measure named, or no result.
+        cap = _text((re.search(r"<caption>(.*?)</caption>", tw, re.S) or re.match("", "")).group(0))
+        named = {code for code, rx in _MEASURES if rx.search(foot + " " + cap)}
+        if len(named) != 1:
+            return None, ("MEASURE_NOT_STATED_BY_THE_TABLE" if not named
+                          else "MEASURE_AMBIGUOUS_IN_THE_TABLE:" + ",".join(sorted(named)))
+        scale = named.pop()
         rows = [[_text(c) for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, re.S)] for tr in re.findall(r"<tr.*?</tr>", tw, re.S)]
         # blocks: a single-cell row names the outcome; the following rows form its league square
         blocks, cur = {}, None
@@ -69,7 +84,7 @@ def read_league(jats, intervention, control, outcome):
             if not mm:
                 continue
             e, lo, hi = mm.groups()
-            pat = re.compile(r"OR\s*" + re.escape(e) + r",?\s*95%\s*CI\s*" + re.escape(lo) + r"\s*[–—\-–—]\s*" + re.escape(hi))
+            pat = re.compile(re.escape(scale) + r"\s*" + re.escape(e) + r",?\s*95%\s*CI\s*" + re.escape(lo) + r"\s*[–—\-–—]\s*" + re.escape(hi))
             hit = pat.search(abstract)
             if hit:
                 check = {"pair": f"{nm} vs {control}", "cell": sq[ri][cj], "abstract_quote": hit.group(0)}
@@ -77,7 +92,7 @@ def read_league(jats, intervention, control, outcome):
         if not check:
             return None, "ORIENTATION_NOT_CONFIRMED_BY_THE_ABSTRACT"
         e, lo, hi = m.groups()
-        return {"outcome": outcome, "contrast": f"{intervention} vs {control}", "scale": "OR", "estimate": float(e),
+        return {"outcome": outcome, "contrast": f"{intervention} vs {control}", "scale": scale, "estimate": float(e),
                 "ci_low": float(lo), "ci_high": float(hi), "printed": sq[ri][ci],
                 "location": {"table": _text((re.search(r"<label>(.*?)</label>", tw, re.S) or re.match("", "")).group(0)),
                              "block": outcome, "row": control, "column": intervention},
