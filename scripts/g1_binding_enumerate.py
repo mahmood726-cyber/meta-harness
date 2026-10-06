@@ -75,7 +75,7 @@ def ref_fields(body):
 
 
 UNKNOWN_ARM = re.compile(r"^\s*(?:nr|n/?a|not reported|not stated|unspecified|unclear|unknown|control|usual care|"
-                         r"standard care|standard of care|-|—|)\s*$", re.I)
+                         r"standard care|standard of care|treatment as usual|tau|best supportive care|-|—|)\s*$", re.I)
 
 
 def arm_scope(arms, agents, comps):
@@ -86,7 +86,10 @@ def arm_scope(arms, agents, comps):
     if any(any(c in d.lower() for c in comps) for d in drugs):
         return "IN_SCOPE"
     others = [d for d in drugs if not any(ag in d.lower() for ag in agents)]
-    if others and all(not UNKNOWN_ARM.match(d) and re.search(r"[A-Za-z]{4,}", d) for d in others):
+    # a conventional abbreviation in brackets does not make a generic control an active drug: 'Usual care (TAU)' is
+    # still usual care (codex binding-v8-fe3ed2a7:g1#2)
+    bare = lambda d: re.sub(r"\s*\([^)]*\)", "", d).strip()  # noqa: E731
+    if others and all(not UNKNOWN_ARM.match(bare(d)) and re.search(r"[A-Za-z]{4,}", bare(d)) for d in others):
         return "OUT_OF_SCOPE:COMPARATOR_NOT_PLACEBO"
     return "UNRESOLVED"
 

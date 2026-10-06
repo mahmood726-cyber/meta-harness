@@ -109,8 +109,10 @@ IMPUTED = re.compile(r"\bLOCF\b|last observation|\bendpoint\b", re.I)
 # 'missing values imputed using last observation carried forward (LOCF)' written in the population field
 IMPUTED_POP = re.compile(r"\bLOCF\b|last observation carried|imputed|imputation|multiple imputation", re.I)
 # 'placebo for / to match / matching <agent>' names the drug the placebo MIMICS: it is the control (review g1#4)
-PLACEBO_FOR = re.compile(r"\bplacebo\s+(?:for|to\s+match|matching|matched\s+to|of)\s+[\w\-]+(?:\s+[\w\-]+)?|"
-                         r"\bmatching\s+placebo\s+(?:for|to)\s+[\w\-]+", re.I)
+# the WHOLE clause naming what the placebo mimics, up to a separator: 'Placebo to match 56 mg esketamine' names no arm
+# drug (codex binding-v8-fe3ed2a7:g1#1: two words consumed left 'esketamine' and the placebo arm read as intervention)
+PLACEBO_FOR = re.compile(r"\bplacebo\s+(?:for|to\s+match|matching|matched\s+to|of)\s+[^,;+/()]*|"
+                         r"\bmatching\s+placebo\s+(?:for|to)\s+[^,;+/()]*", re.I)
 
 
 def arm_role(title, agents):

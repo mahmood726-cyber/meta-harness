@@ -203,10 +203,53 @@ def _num_tokens(q):
     """Whole numeric tokens of a quote, signed; a dash right after a digit is a range dash ('0.70-1.03'), not a minus."""
     text = (q or "").replace(",", "")
     out = []
-    for m in re.finditer(r"([-−–]?)(\d+(?:\.\d+)?)", text):
-        prev = text[m.start() - 1] if m.start() > 0 else " "
+    for m in re.finditer(r"([-−–]?)(\d*\.\d+|\d+(?:\.\d+)?)", text):
+        before = text[:m.start()].rstrip()
+        prev = before[-1] if before else " "
+        # a dash after a digit -- spaced or not: '0.80-1.01', '0.80 - 1.01' -- is a RANGE dash, never a minus; any other
+        # leading dash is the number's sign. A leading decimal ('.85') is read as 0.85, never as 85 (codex v8-p0-fixes)
         neg = bool(m.group(1)) and not (prev.isdigit() or prev == ".")
         out.append(float(m.group(2)) * (-1 if neg else 1))
+    return out
+
+
+def enumeration_state(units, refused, pooled):
+    """ENUMERATED only when every accepted unit stands, none was refused, AND the units account for the trial count the
+    source prints for the pooled analysis (the gated k). One accepted unit used to make a two-trial analysis 'complete'
+    (codex binding-v8-fe3ed2a7:g2#7); without a printed k completeness cannot be shown, so cmd_apply never adopts it."""
+    if not units:
+        return "NOT_ENUMERATED"
+    if refused:
+        return "ENUMERATION_INCOMPLETE"
+    k = (pooled or {}).get("k")
+    if k is None:
+        return "ENUMERATION_K_NOT_STATED"
+    if len({u.get("pmid") for u in units}) != int(k):
+        return "ENUMERATION_INCOMPLETE" if len(units) < int(k) else "ENUMERATION_EXCEEDS_STATED_K"
+    return "ENUMERATED"
+
+
+def label_cites(lab, xml, refs):
+    """The reference numbers the text CITES right after a label: an <xref rid=...> mapped through the meta's own
+    reference list, or a literal '[n]' / '[n,m]' / '[n-m]'. Empty when the label is never followed by a citation."""
+    rid2num = {r.get("rid"): n for n, r in refs.items() if r.get("rid")}
+    x = re.sub(r'<xref\b[^>]*\brid="([^"]+)"[^>]*>.*?</xref>',
+               lambda m: " [" + ",".join(rid2num.get(r, "?") for r in m.group(1).split()) + "] ", xml, flags=re.S)
+    t = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", x))
+    out = set()
+    if not (lab or "").strip():
+        return out
+    for m in re.finditer(re.escape(lab.strip()), t, re.I):
+        # only the citation DIRECTLY after the label (an 'et al.' / year may sit between) -- never one further on, which
+        # belongs to the next named study ('Alpha [1]. Excluded: Beta [2]')
+        c = re.match(r"\s*(?:et\s+al\.?,?\s*)?(?:\(?\d{4}[a-z]?\)?,?\s*)?\[([\d,\s\-–]+)\]", t[m.end():])
+        for grp in ([c.group(1)] if c else []):
+            for part in re.split(r"[,\s]+", grp.strip()):
+                rng = re.split(r"[\-–]", part)
+                if len(rng) == 2 and rng[0].isdigit() and rng[1].isdigit():
+                    out.update(str(i) for i in range(int(rng[0]), int(rng[1]) + 1))
+                elif part.isdigit():
+                    out.add(part)
     return out
 
 
@@ -233,11 +276,15 @@ def pooled_gate(pl, nt):
         printed = {int(x) for pair in re.findall(r"\bk\s*=\s*(\d+)|\b(\d+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?"
                                                   r"(?:clinical\s+)?(?:trials|studies|rcts)\b", q, re.I)
                    for x in pair if x}
+        # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
+        # value handed downstream is the validated integer
         try:
-            if int(k) not in printed:
-                return None, None
+            kf = float(str(k).strip())
         except (TypeError, ValueError):
             return None, None
+        if kf != int(kf) or int(kf) not in printed:
+            return None, None
+        k = int(kf)
     return pl, k
 
 
@@ -641,6 +688,12 @@ def gate_enum(claim, it):
         r = refs.get(ref) if ref else None
         if not why and not r:
             why = "REFERENCE_NUMBER_NOT_IN_THE_METAS_REFERENCE_LIST"
+        if not why:
+            # the label and the reference number are one claim: a label the text cites with OTHER reference numbers, and
+            # never with this one, is bound to the wrong reference (codex binding-v8-fe3ed2a7:g2#6)
+            cited = label_cites(lab, it["xml"], refs)
+            if cited and ref not in cited:
+                why = "LABEL_CITES_ANOTHER_REFERENCE:" + ",".join(sorted(cited, key=int))
         if why:
             refused.append({"label": lab, "ref": ref, "why": why})
             continue
@@ -690,7 +743,7 @@ def cmd_enumerate(slugs, run=False):
         r = runs[it["key"]]
         claim = json.loads(ms.replay(ms.load_record(os.path.join(rec_dir, r["record_id"] + ".json"))).decode("utf-8"))
         units, refused, pooled, sq = gate_enum(claim, it)
-        state = "ENUMERATED" if units and not refused else ("ENUMERATION_INCOMPLETE" if units else "NOT_ENUMERATED")
+        state = enumeration_state(units, refused, pooled)
         enum = {"slug": it["slug"], "comparator_pmid": it["pmid"], "status": state,
                 "enumerated_from": (f"the comparator's own text (PMID {it['pmid']}; held {it['held']}), recorded read "
                                     f"{r['record_id']} gated by scripts/g1_swap.py gate_enum"),

@@ -1877,15 +1877,16 @@ def numbers_in_span(obj, span, keys):
     at the printed precision, with its sign. A row whose numbers do not come from its own span is refused."""
     text = (span or "").replace(",", "")
     signed, counts = [], []
-    for m in re.finditer(r"([-−–]?)(\d+(?:\.\d+)?)", text):
-        prev = text[m.start() - 1] if m.start() > 0 else " "
-        # a dash right after a digit is a RANGE dash ('0.80-1.01'), never a minus: the number is positive. Any other
-        # leading dash is the number's sign, so a printed -1.7 never confirms 1.7 (codex binding-v8-fe3ed2a7:g2#1)
+    for m in re.finditer(r"([-−–]?)(\d*\.\d+|\d+(?:\.\d+)?)", text):
+        before = text[:m.start()].rstrip()
+        prev = before[-1] if before else " "
+        # a dash after a digit -- spaced or not: '0.80-1.01', '0.80 - 1.01' -- is a RANGE dash, never a minus; any other
+        # leading dash is the number's sign. A leading decimal ('.85') is read as 0.85, never as 85 (codex v8-p0-fixes)
         neg = bool(m.group(1)) and not (prev.isdigit() or prev == ".")
         y = float(m.group(2)) * (-1 if neg else 1)
         signed.append(y)
-        # a token followed by '%' is a PERCENTAGE, never a count (g2#2: 'deaths 10%' does not print 10 deaths)
-        if not re.match(r"\s*%", text[m.end():]):
+        # a token followed by '%' / 'percent' / 'per cent' / 'pct' is a PERCENTAGE, never a count (g2#2; v8-p0-fixes g1#1)
+        if not re.match(r"\s*(?:%|percent\b|per\s+cent\b|pct\b)", text[m.end():], re.I):
             counts.append(y)
     for k in keys:
         v = obj.get(k)

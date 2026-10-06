@@ -27,3 +27,16 @@ def test_percentages_are_not_counts():
 
 def test_a_percent_effect_still_matches_a_non_count_field():
     assert gt.numbers_in_span({"effect": "-12.4"}, "weight change -12.4% vs placebo", ("effect",))
+
+
+def test_codex_re_review_v8_p0_fixes():
+    # g1#1: 'percent' / 'per cent' is a percentage too, never a count
+    row = {"events_t": 10, "n_t": 200, "events_c": 20, "n_c": 200}
+    assert not gt.numbers_in_span(row, "N=200, 10 percent died; N=200, 20 per cent died", ("events_t", "n_t", "events_c", "n_c"))
+    # g1#4: a spaced range dash is not a minus; a dash after ':' is a sign
+    assert gt.numbers_in_span({"effect": "0.85", "lower": "0.80", "upper": "1.01"}, "RR 0.85 (0.80 - 1.01)",
+                              ("effect", "lower", "upper"))
+    assert not gt.numbers_in_span({"effect": "1.7"}, "difference: -1.7", ("effect",))
+    # a leading decimal is 0.85, never 85
+    assert gt.numbers_in_span({"effect": "0.85"}, "RR .85", ("effect",))
+    assert not gt.numbers_in_span({"effect": "85"}, "RR .85", ("effect",))

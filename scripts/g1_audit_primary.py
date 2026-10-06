@@ -299,15 +299,39 @@ def _eq(a, b):
     return sm._eq_printed(str(a), str(b)) if a is not None and b is not None else False
 
 
+def _count(v):
+    """A count as PRINTED: an integer, thousands separators allowed. A decimal ('100.0') is not a count -- stripping its
+    non-digits made '100.0' read 1000 and confirm a denominator ten times too large (codex binding-v8-fe3ed2a7:g1#4)."""
+    t = str(v).strip().replace(",", "").replace("\u2009", "").replace(" ", "")
+    if not re.fullmatch(r"\d+", t):
+        raise ValueError(f"not a count: {v!r}")
+    return int(t)
+
+
+_MEASURE = {"HR": "HR", "HAZARD RATIO": "HR", "RR": "RR", "RISK RATIO": "RR", "RELATIVE RISK": "RR", "OR": "OR",
+            "ODDS RATIO": "OR", "MD": "MD", "MEAN DIFFERENCE": "MD", "SMD": "SMD", "IRR": "IRR", "RATE RATIO": "IRR"}
+
+
+def _measure(m):
+    return _MEASURE.get(re.sub(r"\s+", " ", str(m or "")).strip().upper())
+
+
 def compare(claim, ours, agents):
     """Deterministic comparison of a GATED reading with our counted value."""
     c = {k: claim.get(k) for k in ("events_t", "n_t", "events_c", "n_c")}
     if all(c.values()) and ours.get("events_t") is not None:
-        same = [int(re.sub(r"[^\d]", "", c[k])) for k in ("events_t", "n_t", "events_c", "n_c")] == \
-               [int(ours[k]) for k in ("events_t", "n_t", "events_c", "n_c")]
+        try:
+            got = [_count(c[k]) for k in ("events_t", "n_t", "events_c", "n_c")]
+        except ValueError:
+            return "NOT_COMPARABLE", "COUNTS_NOT_INTEGERS"
+        same = got == [int(ours[k]) for k in ("events_t", "n_t", "events_c", "n_c")]
         return ("CONFIRMED" if same else "DISAGREE"), "COUNTS"
     if claim.get("events_t") and claim.get("events_c") and ours.get("events_t") is not None:
-        same = [int(re.sub(r"[^\d]", "", claim[k])) for k in ("events_t", "events_c")] == [int(ours["events_t"]), int(ours["events_c"])]
+        try:
+            got = [_count(claim[k]) for k in ("events_t", "events_c")]
+        except ValueError:
+            return "NOT_COMPARABLE", "COUNTS_NOT_INTEGERS"
+        same = got == [int(ours["events_t"]), int(ours["events_c"])]
         return ("CONFIRMED_EVENTS_ONLY" if same else "DISAGREE"), "EVENTS"
     arms = [a for a in claim.get("arms") or [] if a.get("mean") and a.get("sd") and a.get("n")]
     if len(arms) >= 2 and ours.get("mean_t") is not None:
@@ -322,12 +346,18 @@ def compare(claim, ours, agents):
                 return "NOT_COMPARABLE", "ARMS_UNPARSEABLE"
             same = (abs(float(v["mean_t"]) - float(ours["mean_t"])) < 1e-3 and abs(float(v["sd_t"]) - float(ours["sd_t"])) < 1e-3
                     and int(v["n_t"]) == int(ours["n_t"]) and abs(float(v["mean_c"]) - float(ours["mean_c"])) < 1e-3
+                    # the control arm's SD too (g1#3: a wrong sd_c was CONFIRMED)
+                    and abs(float(v["sd_c"]) - float(ours["sd_c"])) < 1e-3
                     and int(v["n_c"]) == int(ours["n_c"]))
             return ("CONFIRMED" if same else "DISAGREE"), "ARMS"
         return "NOT_COMPARABLE", "ARMS_ROLES_NOT_RESOLVED"
     printed = ours.get("ci_printed") or {}
     lo, hi = printed.get("lower", ours.get("lower")), printed.get("upper", ours.get("upper"))
     if claim.get("point") and claim.get("lower") and claim.get("upper") and ours.get("effect") is not None:
+        # the same numbers under different measures are different results (g1#5: an HR 'confirmed' an RR)
+        mc, mo = _measure(claim.get("measure")), _measure(ours.get("measure") or ours.get("scale"))
+        if mc and mo and mc != mo:                     # stated and different; an unstated measure is not a contradiction
+            return "NOT_COMPARABLE", f"MEASURE_DIFFERS:{claim.get('measure')}/{ours.get('measure') or ours.get('scale')}"
         same = _eq(claim["point"], ours["effect"]) and _eq(claim["lower"], lo) and _eq(claim["upper"], hi)
         return ("CONFIRMED" if same else "DISAGREE"), "EFFECT_CI"
     return "NOT_COMPARABLE", "NO_OVERLAPPING_FIELDS"
