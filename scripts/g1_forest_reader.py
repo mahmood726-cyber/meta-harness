@@ -314,6 +314,13 @@ TARGETS: dict = {
         "instruction": "Transcribe ONLY panel (A) (mortality): every study row with events and totals per arm, and "
                        "panel (A)'s Total (95% CI) row as pooled. Ignore panels B, C and D."},
     "omega3-cardiovascular-events::39238993": {"fig_id": "F1", "caption_has": "Primary outcome"},
+    # RECOVERY tocilizumab (Lancet 2021, PMC8084355, CC BY): fig4 is its meta-analysis of the randomised tocilizumab
+    # trials, reproduced as Figure 27 of EMA's RoActemra II-0101 variation report (6 Oct EPAR pass) -- read from PMC
+    "tocilizumab-covid19-mortality::33933206": {
+        "fig_id": "fig4", "caption_has": "Meta-analysis of mortality in randomised, controlled trials of tocilizumab",
+        "instruction": "Transcribe every trial row, once each, with its deaths/patients per arm and its rate ratio with "
+                       "95% CI exactly as printed, and the overall total row (all trials) as pooled. Never give a "
+                       "subtotal row as a trial row or as the pooled row."},
     "probiotics-aad-prevention::30078376": {
         "fig_id": "Fig3", "caption_has": "subgroup meta-analysis of probiotics for AAD",
         "instruction": "Rows: every row of the 'Study' column, once each, with its label exactly as printed (a row may "
@@ -768,7 +775,8 @@ SS_READ = {
 
 # admission-first reads (5 Oct): candidate figures that pass g1_admission_check.prefilter -- caption names the
 # topic's outcome, the protocol's timepoint is stated, the protocol's measure is stated -- before any read is spent
-ADMISSION_READ = {"tocilizumab-covid19-mortality::34050796", "omega3-cardiovascular-events::39238993"}
+ADMISSION_READ = {"tocilizumab-covid19-mortality::34050796", "omega3-cardiovascular-events::39238993",
+                  "tocilizumab-covid19-mortality::33933206"}
 
 
 def topic_note(key):

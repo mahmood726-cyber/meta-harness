@@ -480,9 +480,16 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
                          "client_log_bytes": len(lg), "model_labels_in_log": sorted(set(names)),
                          "lane_log": f"registry/model_calls/lane_log/{lane_log_name(lane_of(caller))}"})
     if runner is agy_runner:                    # a real call is logged; a test's fake runner is not
-        log_call(rec, {"tokens_used": (out.get("usage") or {}).get("total_tokens"), "tool_calls_n": len(denied),
-                       "tool_calls_rejected_n": len(denied),
-                       "tool_calls": [{"command": a.get("display_name"), "outcome": "DENIED: " + str(a.get("action"))}
-                                      for a in denied if isinstance(a, dict)],
-                       "files_read": [], "transcript_redacted": lg_red})
+        log_call(rec, agy_log_facts(out, denied, lg_red))
     return rec
+
+
+def agy_log_facts(out: dict, denied: list, lg_red: str) -> dict:
+    """The lane-log facts of one agy call -- every key log_call reads. agy reads no file (each tool call is denied),
+    so files_read is empty and outside_workdir_reads 0 (6 Oct: the key was missing and every agy call crashed after
+    the model had answered)."""
+    return {"tokens_used": (out.get("usage") or {}).get("total_tokens"), "tool_calls_n": len(denied),
+            "tool_calls_rejected_n": len(denied),
+            "tool_calls": [{"command": a.get("display_name"), "outcome": "DENIED: " + str(a.get("action"))}
+                           for a in denied if isinstance(a, dict)],
+            "files_read": [], "transcript_redacted": lg_red, "outside_workdir_reads": 0}
