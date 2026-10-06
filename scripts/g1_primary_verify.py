@@ -27,6 +27,8 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# codex calls in flight per box: the captain sets it per budget window (5 Oct night: 5, 3 when C: or F: < 5 GB)
+CONCURRENCY = max(1, int(os.environ.get("G1_CONCURRENCY", "3")))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 import g1_forest_reader as gfr  # noqa: E402
 import secondary_meta_build as smb  # noqa: E402
@@ -243,7 +245,7 @@ def main(argv):
         for (pm, b), t in zip(chosen, ts):
             for p in ([pm] if pm else (t.get("_cands") or [])[:MAX_CANDIDATES] if b.startswith("REPORT_AMBIGUOUS") else []):
                 smb._trial_text(slug, p, run)
-        with cf.ThreadPoolExecutor(max_workers=3) as ex:          # codex concurrency 3 (only the locator rung calls it)
+        with cf.ThreadPoolExecutor(max_workers=CONCURRENCY) as ex:  # codex concurrency (only the locator rung calls it)
             res = list(ex.map(lambda tc: verify_many(slug, tc[0], run, runs, titles, spec, tc[1]), zip(ts, chosen)))
         gfr._save(RUNS, runs)
     from collections import Counter
