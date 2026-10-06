@@ -420,7 +420,7 @@ def main(argv):
             return out
         with cf.ThreadPoolExecutor(max_workers=1) as rex:
             fut = rex.submit(run_remote)
-            with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "3"))) as ex:
+            with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))) as ex:
                 for key, r in ex.map(lambda it: call(it, model), local):
                     runs[key] = r
                     print(key, r["state"], r["record_id"], r["dir"], flush=True)

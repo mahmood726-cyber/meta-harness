@@ -96,7 +96,7 @@ def main(argv):
     todo = [it for it in items if (runs.get(it["key"]) or {}).get("prompt_sha256") != hashlib.sha256(it["prompt"]).hexdigest()
             or (runs.get(it["key"]) or {}).get("state") != "RAN_OK" or not _rec_ok(it)]
     if run and todo:
-        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "3"))) as ex:
+        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))) as ex:
             for key, r in ex.map(lambda it: call(it, model), todo):
                 runs[key] = r
                 print(key, r["state"], r["record_id"], flush=True)

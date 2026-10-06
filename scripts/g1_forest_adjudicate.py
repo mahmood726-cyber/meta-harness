@@ -208,7 +208,7 @@ def main(argv):
         todo = [(c, r) for c in CASES for r in ("codex", "agy")
                 if (runs.get(_key(c, r)) or {}).get("state") != "RAN_OK"
                 or runs[_key(c, r)]["prompt_sha256"] != hashlib.sha256(prompt_bytes(c, r)).hexdigest()]
-        with cf.ThreadPoolExecutor(max_workers=3) as ex:
+        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))) as ex:
             futs = {ex.submit(run_one, c, r): (c, r) for c, r in todo}
             for f in cf.as_completed(futs):
                 c, r = futs[f]
