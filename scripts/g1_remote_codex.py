@@ -39,11 +39,16 @@ def _ssh(cmd, timeout=None):
                           stdin=subprocess.DEVNULL, timeout=timeout)
 
 
-def _scp(src, dst, timeout=None):
-    r = subprocess.run([os.path.join(GIT_BIN, "scp.exe"), *SSH_OPTS, "-r", src, dst], capture_output=True, text=True,
-                       stdin=subprocess.DEVNULL, timeout=timeout)
-    if r.returncode:
-        raise RuntimeError(f"scp failed: {r.stderr[-300:]}")
+def _scp(src, dst, timeout=None, tries=3):
+    """scp with bounded retries: a transient 'Connection reset by peer' (6 Oct) is retried, a persistent failure raised."""
+    import time
+    for k in range(tries):
+        r = subprocess.run([os.path.join(GIT_BIN, "scp.exe"), *SSH_OPTS, "-r", src, dst], capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL, timeout=timeout)
+        if not r.returncode:
+            return
+        time.sleep(10 * (k + 1))
+    raise RuntimeError(f"scp failed after {tries} tries: {r.stderr[-300:]}")
 
 
 def _remote(path):                       # a Windows path on the worker as an scp target ('C:/mh-worker/...')

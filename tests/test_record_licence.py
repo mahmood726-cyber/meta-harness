@@ -83,3 +83,20 @@ def test_plant_a_refused_prompt_is_never_sent():
     except mcl.LicenceRefused:
         pass
     assert not sent
+
+
+def test_jats_licence_reads_a_creative_commons_licence_named_in_words(tmp_path):
+    """False-positive class (6 Oct, 19 refused swap screens): a JATS <permissions> naming the licence in WORDS ('the
+    Creative Commons Attribution License (CC BY)') with no creativecommons.org URL is CC; a permissions block with no
+    Creative Commons licence stays NOT_OPEN."""
+    from reproducible_ai import record_licence as rl
+    words = tmp_path / "a.xml"
+    words.write_text("<article><permissions><license><license-p>This is an open-access article distributed under the terms "
+                     "of the Creative Commons Attribution License (CC BY).</license-p></license></permissions></article>",
+                     encoding="utf-8")
+    closed = tmp_path / "b.xml"
+    closed.write_text("<article><permissions><copyright-statement>All rights reserved.</copyright-statement>"
+                      "<license><license-p>For personal use only.</license-p></license></permissions>"
+                      "<body>Creative Commons Attribution License (CC BY)</body></article>", encoding="utf-8")
+    assert rl.jats_licence(str(words)) == "CC"
+    assert rl.jats_licence(str(closed)) == "NOT_OPEN"          # words OUTSIDE <permissions> never count
