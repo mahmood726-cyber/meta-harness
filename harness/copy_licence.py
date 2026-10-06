@@ -69,8 +69,11 @@ def pmc_licence(pmid, run=True, index_path=INDEX):
         lic, stmt = classify_permissions(xml)
     idx = json.load(open(index_path, encoding="utf-8")) if os.path.exists(index_path) else {}
     idx.setdefault(pmid, {}).update(copy_licence=lic, copy_statement=stmt, **({"copy_pmcid": pmcid} if pmcid else {}))
-    with open(index_path, "w", encoding="utf-8", newline="\n") as fh:
+    # ATOMIC: concurrent readers (the licence guard, other jobs) must never see a half-written index
+    tmp = f"{index_path}.{os.getpid()}.tmp"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(idx, fh, indent=1, sort_keys=True)
+    os.replace(tmp, index_path)
     return lic
 
 
