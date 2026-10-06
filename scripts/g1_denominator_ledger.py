@@ -314,6 +314,9 @@ def problems(led):
                 bad.append(f"{r['slug']}::{r['label']}: span source changed {s['source']}")
             elif not all(_squash(t) in _squash(_source_text(p)) for t in (s.get("parts") or [s["text"]])):
                 bad.append(f"{r['slug']}::{r['label']}: span not in its source")
+            elif s.get("parts") and _squash(s["text"]) != _squash(" | ".join(s["parts"])):
+                # the displayed text must BE its verified parts: checking only the parts let an edited text pass
+                bad.append(f"{r['slug']}::{r['label']}: span not in its source (text is not its verified parts)")
     b = led.get("baseline", {}).get("N")
     if isinstance(b, int) and b - led.get("removed_n", 0) + led.get("added_n", 0) != led.get("current", {}).get("N"):
         bad.append(f"arithmetic: {b} - {led.get('removed_n')} + {led.get('added_n')} != {led.get('current', {}).get('N')}")
