@@ -160,6 +160,8 @@ def build(notices=None, holds=None):
         sig = n.get("reviewer_countersignature") or {}
         if not str(n.get("reason") or "").startswith(PREFIX) or sig.get("state") not in rc.SIGNED_STATES:
             continue
+        if rc.not_applied(n):
+            continue                     # withdrawn by its signer / superseded: never admitted (and never listed)
         slug, ent = n["slug"], [str(i) for i in n.get("entered_pool") or []]
         tag = f"{slug} / {n['outcome'][:40]} ({n['when_utc']})"
         hit = [held[(slug, i)] for i in ent if (slug, i) in held]

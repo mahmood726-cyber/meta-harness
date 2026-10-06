@@ -84,12 +84,19 @@ def conclusion_changed(before: dict[str, Any], after: dict[str, Any], scale: str
     return None
 
 
+def not_applied(n: dict[str, Any]) -> bool:
+    """A notice kept on the record but never applied: withdrawn by its signer, or superseded by a later notice."""
+    return (n.get("withdrawal") or {}).get("state") == "WITHDRAWN_BY_SIGNER" or bool((n.get("superseded_by") or {}).get("notice"))
+
+
 def notice_for(notices: list[dict[str, Any]], slug: str, outcome: str, before: dict[str, Any] | None,
                after: dict[str, Any] | None, left: list[str], entered: list[str]) -> dict[str, Any] | None:
     """The one notice that names this change EXACTLY (both results, every row that moved), or None."""
     for n in notices:
         if any(k not in n for k in REQUIRED):
             continue
+        if not_applied(n):
+            continue        # withdrawn by its signer, or superseded: on the record, never admits a change
         if not all(isinstance(n[k], str) and n[k].strip() for k in ("slug", "outcome", "reason", "by", "when_utc")):
             continue
         if n["slug"] != slug or n["outcome"] != outcome:

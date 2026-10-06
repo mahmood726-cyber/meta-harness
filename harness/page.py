@@ -2207,6 +2207,19 @@ def _suppressed_block(res):
             f"{_e(res.get('k'))} trials, shown individually below, not pooled.</em>" + _cf_line + "</div>")
 
 
+def result_changes_status(n: dict) -> dict | None:
+    """{state, text} for a notice that is on the record but NOT applied: withdrawn by its signer, or superseded."""
+    w = n.get("withdrawal") or {}
+    if w.get("state") == "WITHDRAWN_BY_SIGNER":
+        return {"state": "WITHDRAWN_BY_SIGNER", "text": f"withdrawn by {w.get('by')} on {str(w.get('when_utc'))[:10]} "
+                f"('{w.get('quote')}'): {w.get('reason_code')}."}
+    sb = n.get("superseded_by") or {}
+    if sb.get("notice"):
+        return {"state": "SUPERSEDED", "text": f"superseded by signed notice {sb.get('notice')} "
+                f"(rendered_sha256 {str(sb.get('rendered_sha256'))[:12]}...): {sb.get('why')}"}
+    return None
+
+
 def result_change_block(n: dict) -> str:
     """The rendered notice for one changed result. Rendered by the page AND standalone for the reviewer; the
     reviewer's countersignature names sha256 of this block (result_changes.rendered_sha256), so a signature is an
@@ -2300,6 +2313,14 @@ def _reproduction(r, neutral):
     # number, the new one, the rows that left or entered, and why; a reversal of significance is a withdrawal of
     # the previous conclusion and is named as such. A page never re-renders a changed number quietly.
     for _n in rep.get("result_changes") or []:
+        # a notice the signer WITHDREW, or one SUPERSEDED by a later signed notice, stays on the record with its
+        # signature -- marked NOT APPLIED by a banner OUTSIDE the signed block (the block's bytes, which the signature
+        # hashes, never change)
+        _st = result_changes_status(_n)
+        if _st:
+            body += ("<p class='absent' data-result-change-status='" + _e(_st["state"]) + "'><strong>NOT APPLIED -- "
+                     + _e(_st["text"]) + "</strong> The notice below is kept as signed, for the record; the served "
+                     "result does not include it.</p>")
         body += result_change_block(_n)
     # PARITY vs the published comparator (measurement snapshot, outside the core hash): our pooled k
     # vs the COMPARABLE same-scope comparator k, with a named reason for any difference — including

@@ -133,3 +133,28 @@ def test_build_register_refuses_counts_in_the_wrong_arm_order():
     span = "Treatment: 20 deaths among 100 randomised. Control: 10 deaths among 100 randomised."
     assert b._arm_order_ok(span, 20, 10) and not b._arm_order_ok(span, 10, 20)
     assert b._arm_order_ok("Tocilizumab (N=294) ... Death at day 28 ... 58 (19.7) 28 (19.4)", 58, 28)
+
+
+def test_a_notice_withdrawn_by_its_signer_or_superseded_never_applies_and_stays_on_the_record():
+    from harness import result_changes as rc, page
+    n = dict(NOTICE, before={"k": 1, "estimate": 1.0, "ci_low": 0.5, "ci_high": 2.0},
+             after={"k": 2, "estimate": 0.9, "ci_low": 0.5, "ci_high": 1.5}, left_pool=[], by="b", outcome="o")
+    assert rc.notice_for([n], "s", "o", n["before"], n["after"], [], ["NCT00000001"]) is n
+    w = dict(n, withdrawal={"state": "WITHDRAWN_BY_SIGNER", "by": "Mahmood", "when_utc": "2026-10-06T00:00:00Z",
+                            "quote": "withdraw v6-02", "reason_code": "PER_PROTOCOL_COUNTS_NOT_RANDOMISED"})
+    assert rc.notice_for([w], "s", "o", n["before"], n["after"], [], ["NCT00000001"]) is None
+    assert spa.admitted_rows("s", "o", register=REG, notices=[w]) == []
+    assert page.result_changes_status(w)["state"] == "WITHDRAWN_BY_SIGNER"
+    s = dict(n, superseded_by={"notice": "V7-01", "rendered_sha256": "e" * 64, "why": "x"})
+    assert rc.notice_for([s], "s", "o", n["before"], n["after"], [], ["NCT00000001"]) is None
+    assert page.result_changes_status(s)["state"] == "SUPERSEDED" and page.result_changes_status(n) is None
+    # the signed block's bytes (what the signature hashes) are the same with or without the status
+    assert page.result_change_block(w) == page.result_change_block(n)
+
+
+def test_v6_02_is_withdrawn_by_its_signer_and_its_signature_is_kept():
+    import json as _j
+    d = _j.load(open(os.path.join(ROOT, "docs", "result_changes.json"), encoding="utf-8"))["notices"]
+    v = [n for n in d if n["slug"] == "probiotics-aad-prevention" and n.get("entered_pool") == ["PMID 17356555"]]
+    assert len(v) == 1 and v[0]["withdrawal"]["quote"] == "withdraw v6-02"
+    assert v[0]["reviewer_countersignature"]["state"] == "BATCH_SEEN_AND_SIGNED"

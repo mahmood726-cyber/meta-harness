@@ -46,7 +46,7 @@ def admitted_rows(slug: str | None, outcome: str | None, *, register: list[dict[
         n = next((n for n in ns if n.get("slug") == slug and n.get("outcome") == outcome
                   and n.get("when_utc") == e.get("notice_when_utc")), None)
         sig = (n or {}).get("reviewer_countersignature") or {}
-        if not n or sig.get("state") not in rc.SIGNED_STATES or rc._delegation_problem(sig, n):
+        if not n or sig.get("state") not in rc.SIGNED_STATES or rc._delegation_problem(sig, n) or rc.not_applied(n):
             continue
         if not e.get("rendered_sha256") or sig.get("rendered_sha256") != e["rendered_sha256"]:
             continue
