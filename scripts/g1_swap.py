@@ -284,8 +284,11 @@ def gate_screen(claim, text):
     for cid, v in (claim.get("criteria") or {}).items():
         q = v.get("quote")
         ok = bool(q) and _norm(q) in nt
-        out[cid] = ({"verdict": v.get("verdict"), "evidence": q} if ok and v.get("verdict") in ("PASS", "FAIL")
-                    else {"verdict": "UNCLEAR", "evidence": (f"QUOTE_NOT_IN_TEXT: {q[:120]}" if q else "no quote")})
+        if v.get("verdict") in ("PASS", "FAIL"):
+            out[cid] = ({"verdict": v["verdict"], "evidence": q} if ok else
+                        {"verdict": "UNCLEAR", "evidence": (f"QUOTE_NOT_IN_TEXT: {q[:120]}" if q else "no quote")})
+        else:                                   # the reader itself said UNCLEAR: labelled as such, never as a gate refusal
+            out[cid] = {"verdict": "UNCLEAR", "evidence": f"READER_UNCLEAR: {q[:120]}" if q else "READER_UNCLEAR"}
     pl = claim.get("pooled") or {}
     pooled_ok = bool(pl.get("quote")) and _norm(pl["quote"]) in nt and all(
         str(pl.get(k)) in pl["quote"] for k in ("estimate", "lower", "upper") if pl.get(k))

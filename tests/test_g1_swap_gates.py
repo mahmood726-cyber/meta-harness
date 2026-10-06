@@ -61,3 +61,9 @@ def test_apply_never_touches_a_kept_or_incomplete_topic(tmp_path, capsys):
         sw.cmd_apply(["x", "y"])
     out = capsys.readouterr().out
     assert "x not applied: NO_SWAP_CURRENT_COMPARATOR_PASSES" in out and "y not applied: enumeration ENUMERATION_INCOMPLETE" in out
+
+
+def test_a_reader_unclear_is_labelled_as_the_readers_not_as_a_gate_refusal():
+    crit, _, _ = sw.gate_screen({"criteria": {"C3_POPULATION": {"verdict": "UNCLEAR", "quote": "Patients hospitalised"}},
+                                 "pooled": {}}, TEXT)
+    assert crit["C3_POPULATION"] == {"verdict": "UNCLEAR", "evidence": "READER_UNCLEAR: Patients hospitalised"}
