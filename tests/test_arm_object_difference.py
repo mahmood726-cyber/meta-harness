@@ -41,10 +41,17 @@ def test_a_pooled_trial_is_never_named():
                                     "semaglutide-obesity-weight") is None
 
 
-def test_an_x_dose_screen_out_is_named_from_the_record_not_the_audit():
-    # main 3733b80a: O'Neil SCREENED_OUT by the arm-object stage's X-DOSE read SCREENED_OUT_UNAUDITED:X-DOSE
+def test_an_x_dose_screen_out_is_named_from_the_record_not_the_audit(monkeypatch):
+    # main 3733b80a: O'Neil SCREENED_OUT by the arm-object stage's X-DOSE read SCREENED_OUT_UNAUDITED:X-DOSE.
+    # Since 0d7e6649 (5 Oct decision 2/3) a protocol-text adjudication names O'Neil FIRST; with it the difference is still
+    # a PROTOCOL_SCOPE_DIFFERENCE with a span, under the decision's rule label. The X-DOSE branch is exercised without it.
+    _adj = gt.scope_adjudication
+    monkeypatch.setattr(gt, "scope_adjudication", lambda *a, **k: None)
     x = {"in_our_pool": False, "family": "PMID 30122305", "label": "O'Neil, 2018",
          "seeded_funnel": {"stage": "SCREENED_OUT", "rule_id": "X-DOSE", "pmid": "30122305",
                            "reason": "X-DOSE: randomised semaglutide dose is 0.4 mg, but the protocol requires 2.4 mg."}}
     d = gt.scope_difference(x, CFG, "semaglutide-obesity-weight")
     assert d and d["rule_id"] == "X-DOSE" and d["kind"] == "PROTOCOL_SCOPE_DIFFERENCE" and d["span"]["text"]
+    monkeypatch.setattr(gt, "scope_adjudication", _adj)
+    d2 = gt.scope_difference(x, CFG, "semaglutide-obesity-weight")
+    assert d2 and d2["kind"] == "PROTOCOL_SCOPE_DIFFERENCE" and d2.get("decided") == "5 Oct decision 2" and d2.get("span")
