@@ -43,8 +43,9 @@ def _git(*a):
 
 
 def lane_artefact(spec):
-    """(bytes, lane_source) of a lane's committed artefact at the CURRENT tip of its remote branch."""
-    commit = _git("rev-parse", f"origin/{spec['branch']}").decode().strip()
+    """(bytes, lane_source) of a lane's committed artefact at its PINNED commit (outputs/k_gap/lane_pins.json)."""
+    import lane_pins
+    commit = lane_pins.commit_for(spec["branch"])               # a PINNED commit, never the lane's moving tip
     b = _git("show", f"{commit}:{spec['path']}")
     return b, {"lane": spec.get("lane"), "branch": spec["branch"], "commit": commit, "path": spec["path"],
                "sha256": hashlib.sha256(b).hexdigest(), "format": spec["format"]}

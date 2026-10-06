@@ -2879,8 +2879,8 @@ def lane_comparator_rows(slug, comp, ours):
         if src.get("slugs") and slug not in src["slugs"]:
             continue                       # a source scoped to named topics (g1/forest-reader-binding) speaks for no other
         try:
-            commit = subprocess.run(["git", "rev-parse", f"origin/{src['branch']}"], cwd=ROOT, capture_output=True,
-                                    text=True, stdin=subprocess.DEVNULL, check=True).stdout.strip()
+            import lane_pins
+            commit = lane_pins.commit_for(src["branch"])        # a PINNED commit, never the lane's moving tip
             b = subprocess.run(["git", "show", f"{commit}:{src['path']}"], cwd=ROOT, capture_output=True,
                                stdin=subprocess.DEVNULL, check=True).stdout
         except subprocess.CalledProcessError:
