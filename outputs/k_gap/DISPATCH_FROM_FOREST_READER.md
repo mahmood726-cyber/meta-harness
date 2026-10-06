@@ -676,3 +676,45 @@ My 37031750 is a cross-check dissenter on GISSI-P.
   - My port of your writer redaction (33960ddb) logged a field (`outside_workdir_reads`) that your bf82f00ad computes. Every call crashed in `log_call` before writing a record (0 records lost). I took the consolidation's `model_call_live.py` and `record_licence.py` whole; a smoke call is clean.
   - At concurrency 5, threads in one process rewrote `fulltext_index.json` and `unpaywall_text_index.json` over each other and **corrupted** the Unpaywall index. There is now one locked, atomic index writer (`harness.copy_licence.update_index`). **Other lanes: any script that rewrites a whole shared JSON index from threads has the same defect.**
   - `agree_count` used `str(x or "")`, so the number 0 compared as an empty string. Readers return counts as strings, so no original dual read was affected; it caused 4 false audit disagreements.
+
+## 2026-10-06 evening — v2 rebase, EPAR/FDA/NICE pass, audit complete (forest lane, g1/forest-reader-v2)
+
+- **Branch.** The lane works on **g1/forest-reader-v2** = rewritten consolidation 6b6aad81 + this lane's 19 commits (git cherry by patch content), with **main e2b927c3 (PR #13) merged in** (clean, e801c401). 0 of the 45 removed records are in its history.
+  - **CORRECTION:** my earlier "branch clean" was wrong. A CRLF path list matched nothing. 44 non-open records were at old g1/forest-reader's tip; they were removed there at the tip (78e474d45). **That branch's history still carries them: captain, purge or delete it** (not force-pushed by me).
+  - **Captain: v2 needs a pin** in `outputs/k_gap/lane_pins.json`; `g1_comparator_rows.json` on v2 names `g1/forest-reader-v2` and fails closed without one. Proposed: `db121c6eb11138b81c29d4c993ecec1c49ff61a9` or later.
+- **Captain's question (102 → 88 rows):** ae9a3075 erased ACCEPTED tocilizumab 33161150 (5 rows) and 34019122 (9 rows) when a later figure re-selection skipped them. The reader now never erases an accepted recorded result on a re-selection failure (plant), and both are restored. **Correction to that restore:** it also kept two figures whose later skip is a gate verdict (INTERVENTION_NOT_THE_TOPICS): corticosteroids::35343397 (an IL-6 antagonist meta) and tocilizumab::35197981 (convalescent plasma). A gate verdict now wins (plant), and both are refused again. No count used either.
+- **Third-reader audit (codex_audit, recorded, never acts):**
+  - **Meta figures: 117 of 117 accepted now audited.** 110 agree, 2 agree on every accepted row, 5 disagree; none is a value error on a counted row.
+  - Five accepted figures had been silently absent because the current selection no longer rebuilds them. They are now audited from their own record: same image (sha256) and the original codex prompt (sha256) plus the audit line. All 5 agree, including the 14 restored tocilizumab rows.
+  - Comparators: 20 of 23 agree (unchanged).
+- **NICE committee papers / EAG reports:** every page carries a notice of rights, not OGL/CC, so there are **no model reads** (`g1_nice_candidates.json`). Probiotics and metformin have no relevant NICE appraisal.
+- **EMA EPARs + FDA reviews (held texts, 6 topics):**
+  - EMA discovery now includes the variation / extension reports EMA's documents index lists per product. The tocilizumab COVID-19 indication lives only in RoActemra II-0101, which had never been held.
+  - Held: pcsk9 88, ticagrelor 60, omega3 84, tocilizumab 100 documents (FDA + EMA; NICE typed-only).
+  - **Only cross-trial forest plots found:** RoActemra II-0101 Figure 27 (meta-analysis of mortality, randomised tocilizumab trials) and Figures 38/39 (Roche fixed-effect meta of log death rate ratios: HR, not the topic's OR, not read). Every other EPAR/FDA forest plot is single-trial (subgroup / sensitivity).
+  - **Figure 27 = RECOVERY (Lancet 2021, PMC8084355, CC BY) fig4**, read from PMC by the normal dual reader. It is **REFUSED** for two reasons:
+    - ROWS_DISAGREE:5: the figure prints 2:1 trials' control arm as "(28/144) ×2†", and one reader kept the notation.
+    - STATED_MODEL_NOT_STATED: O−E/V pooling is not a model the rule names.
+    - Gates unchanged. If O−E/V (fixed-effect IV on ln rate ratio) should become a named model, that is the captain's/Mahmood's call.
+- **Regulatory-aware acquisition** (one recorded codex call per unmatched trial, FDA + EMA windows, whole-document gate; 5 here + 5 on the worker): **no new admission.**
+  - pcsk9 0 of 9: AACT is lipid/IVUS only, and no regulatory window reports MACE per trial.
+  - ticagrelor 0: 13 trials are NO_OPEN_SOURCE (numeric labels, no identity); 1 is a scope candidate (prasugrel comparator).
+  - omega3: ASCEND 2018 ADMITTED via AACT (689/7740 v 712/7740) and counts as PRIMARY in the local recount.
+  - tocilizumab 0 of 19, including:
+    - CORIMUNO-TOCI-ICU REFUSED AACT_OUTCOME_NOT_NAMED (OS HR, not the protocol OR);
+    - EMPACTA's FDA mortality covers 377 of 389, so SOURCE_ABSENT.
+  - probiotics 0, metformin 0 (worker).
+- **Local recount** (lane rows at db121c6e via a temporary, uncommitted pin; outputs reverted, nothing committed):
+  - corticosteroids **3 of 5** (main 2: CoDEX and Metcovid TWO_SOURCE);
+  - omega3 **8 of 28** (main 7: +ASCEND PRIMARY);
+  - probiotics 18 of 41 (main 19: Evans SECONDARY_SINGLE → UNVERIFIED here, because this clone lacks the held text);
+  - tocilizumab is lane-owned, so its file is not recountable by the tracker's rebuild here.
+- **Defects fixed (plants fail first):**
+  - **agy_call crashed in log_call after the model answered** (KeyError outside_workdir_reads: required since the writer redaction 07cbbc6c, and only the codex path supplied it). **Up to 3 agy calls were made and not recorded** (first RECOVERY run); the rerun is recorded. Other lanes using agy on the consolidation's writer hit the same crash.
+  - Licence: 2 worker records read CC copies whose licence lived only in the worker's index; copy_* fields merged, guard green.
+  - Ledger: a later run supersedes an earlier one but keeps it under `superseded`, so every recorded call stays referenced.
+- **Reported, not patched:** the `--citing` and `--admission-read` paths share run keys but build different prompts, so running one after the other re-reads a figure as a new attempt (omega3 39238993, probiotics 29868585 F4 tonight; outcomes unchanged).
+- **Worker full suite at e801c401: 5785 passed, 3 failed.**
+  - test_served_comparator ×2: dpp4 served comparator 34754403 vs origin/main's 31462224. The test compares against the moving origin/main; captain/binding.
+  - test_claim_object: passes locally; worker-environment.
+- **Budget:** meter primary window 36% used (weekly not reported by the meter; Mahmood: 77% left). Disk C: 19.9 GB, F: 38.9 GB.
