@@ -42,6 +42,9 @@ INTERVENTION = {"tocilizumab-covid19-mortality": r"tocilizumab|interleukin[- ]6 
                                                 r"fatty acid",
                 "corticosteroids-covid19-mortality": r"dexamethasone|hydrocortisone|methylprednisolone|corticosteroid|"
                                                      r"glucocorticoid|steroid",
+                "probiotics-aad-prevention": r"probiotic|lactobacill|lacticaseibacill|saccharomyces|bifidobacter|"
+                                             r"bacillus clausii|streptococcus thermophilus|fermented milk|kefir|yog(?:h)?urt",
+                "metformin-pcos-ovulation": r"metformin",
                 "iv-iron-hfref-hosp": r"ferric carboxymaltose|ferric derisomaltose|iron isomaltoside|iron sucrose|"
                                       r"intravenous iron|\biron\b|ferinject"}
 
