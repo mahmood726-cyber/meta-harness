@@ -43,6 +43,8 @@ def _protocol_sha(slug):
 def replay_core(slug, protocol_sha=None):
     """Re-run the pipeline from the committed cache + protocol SHA (no network)."""
     config = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
+    from harness import served_comparator as _sc
+    config = _sc.served_config(slug, config)    # the same served comparator as build_topic (V8 unsigned switches)
     records = fetch.ensure(config, "")  # committed cache is present -> no network
     return build_review_core(slug, config, records, protocol_sha or _protocol_sha(slug))
 
