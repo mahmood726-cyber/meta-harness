@@ -68,3 +68,13 @@ def test_the_audit_compares_only_the_same_figure_and_panel():
     assert gfr.audit_same_figure({"figure": {"fig_id": "F2", "panel": "A"}, "image_sha256": "x"}, acc)
     assert not gfr.audit_same_figure({"figure": {"fig_id": "F2", "panel": "B"}, "image_sha256": "x"}, acc)
     assert not gfr.audit_same_figure({"figure": {"fig_id": "F2", "panel": "A"}, "image_sha256": "y"}, acc)
+
+
+def test_a_later_skip_never_erases_an_accepted_recorded_result():
+    # ae9a3075 (5 Oct): a later run whose figure re-selection failed moved ACCEPTED tocilizumab reads 33161150 and
+    # 34019122 into meta_skipped, silently dropping 14 secondary rows; the accepted result rests on records and stays
+    sec = {"results": {}, "skipped": {}, "meta_results": {"t::1": {"state": "ACCEPTED", "rows": 9}}, "meta_skipped": {}}
+    gfr.merge_skips(sec, {"t::1": {"why": "NO_OUTCOME_FOREST_FIGURE"}, "t::2": {"why": "NO_JATS"}})
+    assert sec["meta_results"]["t::1"]["state"] == "ACCEPTED"
+    assert sec["meta_results"]["t::1"]["later_skip"] == {"why": "NO_OUTCOME_FOREST_FIGURE"}
+    assert "t::1" not in sec["meta_skipped"] and sec["meta_skipped"]["t::2"] == {"why": "NO_JATS"}

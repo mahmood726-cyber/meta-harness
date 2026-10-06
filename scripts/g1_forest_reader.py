@@ -2164,6 +2164,21 @@ def intervention_skip(its, skipped, run):
     return kept
 
 
+def merge_skips(sec, skipped):
+    """A key this run skipped goes to (meta_)skipped -- UNLESS an earlier run ACCEPTED it: an accepted result rests on
+    its recorded readings and is never erased by a later failure to re-select its figure (ae9a3075 dropped tocilizumab
+    33161150 / 34019122 that way); the later skip is kept beside it. Admission gates still decide its rows."""
+    for k, v in skipped.items():
+        r, s = ("results", "skipped") if "::" not in k else ("meta_results", "meta_skipped")
+        prev = sec[r].get(k)
+        if prev and prev.get("state") in ("ACCEPTED", SECOND_SOURCE_ONLY):
+            prev["later_skip"] = v
+            sec[s].pop(k, None)
+            continue
+        sec[s][k] = v
+        sec[r].pop(k, None)
+
+
 def main(argv):
     """SLUG ... reads each topic's comparator; --metas reads instead the OTHER metas the two-source sweep selects for
     those topics (--all: every topic in the tracker)."""
@@ -2238,10 +2253,7 @@ def main(argv):
         r, s = ("results", "skipped") if "::" not in k else ("meta_results", "meta_skipped")
         sec[r][k] = v
         sec[s].pop(k, None)
-    for k, v in skipped.items():
-        r, s = ("results", "skipped") if "::" not in k else ("meta_results", "meta_skipped")
-        sec[s][k] = v
-        sec[r].pop(k, None)
+    merge_skips(sec, skipped)
     results = sec["results"]
     from collections import Counter
 
