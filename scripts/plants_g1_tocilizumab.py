@@ -236,10 +236,19 @@ def run() -> dict:
     # Q8: a SAFETY-population death count established as the efficacy 28-day row (BACC-Bay: REACT's 9/161 vs 4/82 is the
     # paper's 'Adverse Events in the Safety Population' table; the mITT efficacy count is 9/161 vs 3/81)
     bacc = next(t for t in r["trials"] if t["label"] == "BACC-Bay")
+    # The guard is exercised on a SYNTHETIC second-meta row: the second source used to be the live 34019122 row 'Stone
+    # (BACC)' OR 1.15 (0.34-3.87), which the forest lane's ae9a3075 dropped (5 Oct) -- a plant anchored to live data stops
+    # being able to fire when the data moves. With that row, the safety reading has two independent sources, and only
+    # the SAFETY filter keeps it out of the efficacy row.
+    metas = dict(g.second_meta_rows())
+    metas["BACC-Bay"] = {"trial_label": "Stone (BACC)", "measure": "OR", "effect": "1.15", "lower": "0.34",
+                         "upper": "3.87", "provenance": "PLANT (synthetic; the 34019122 row as printed before ae9a3075)"}
+    planted = g.assess("BACC-Bay", json.load(open(g.AACT_FILE, encoding="utf-8")), metas)
     out["Q8_safety_count_established_as_efficacy_row"] = {
-        "fired_as_built": bacc["state"] == g.ESTABLISHED and bacc["row"].get("denominator_kind") == g.SAFETY,
+        "fired_as_built": (bacc["state"] == g.ESTABLISHED and bacc["row"].get("denominator_kind") == g.SAFETY) or
+                          (planted["state"] == g.ESTABLISHED and (planted.get("row") or {}).get("denominator_kind") == g.SAFETY),
         "fires_with_guard_removed": any(x["denominator_kind"] == g.SAFETY and len(x["independent_sources"]) >= 2
-                                        and set(x["independent_sources"]) & {"AACT", "TEXT"} for x in bacc["readings"])}
+                                        and set(x["independent_sources"]) & {"AACT", "TEXT"} for x in planted["readings"])}
     out["C1_COVACTA_established_and_agrees"] = {
         "fired_as_built": not any(t["label"] == "COVACTA" and t["state"] == g.ESTABLISHED and t["vs_react"]["verdict"] == "AGREE"
                                   for t in r["trials"])}
