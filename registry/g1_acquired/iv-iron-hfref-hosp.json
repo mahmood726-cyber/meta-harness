@@ -9,7 +9,7 @@
    "ncts": [
     "NCT03037931"
    ],
-   "record_id": "mc-5c30734d1521236b81658b947dbd452e",
+   "record_id": "mc-1b2dd00575373afb2877db66d6e4f0a8",
    "verdict": "ADMITTED",
    "model": {
     "verdict": "FOUND",
@@ -28,14 +28,26 @@
     "population_as_stated": "Intent-to-treat Population",
     "scope_rule_key": null,
     "scope_span": null,
-    "why": "Posted ITT counts represent participants hospitalized for HF. Results are at 1 year; the supplied sources do not establish this as longest follow-up or explicitly specify worsening HF. No RR is printed."
+    "why": "Posted counts are participants hospitalized for heart failure, ferric carboxymaltose versus placebo. Timepoint is 1 year; the supplied evidence does not establish this as trial end or longest follow-up. RR is not reported."
+   },
+   "second_reader": {
+    "record_id": "mc-2b13b41bafd5097a3d9390976495d3d8",
+    "model": "gpt-5.5",
+    "runner": "codex",
+    "state": "AGREE"
    },
    "admitted": {
     "kind": "AACT",
     "source": "AACT AACT 2026-08-30 NCT03037931 outcome 258896723",
     "span": "Number of Hospitalizations for Heart Failure: groups [(297, 1532), (332, 1533)]",
-    "quote": "\"groups\": [\n{\n\"group\": \"839384428\",\n\"title\": \"Ferric Carboxymaltose\",\n\"count\": 297,\n\"n\": 1532\n},\n{\n\"group\": \"839384429\",\n\"title\": \"Placebo\",\n\"count\": 332,\n\"n\": 1533\n}\n]",
+    "quote": "\"count\": 297,\n\"n\": 1532\n},\n{\n\"group\": \"839384429\",\n\"title\": \"Placebo\",\n\"count\": 332,\n\"n\": 1533",
     "time_frame": "1 year",
+    "second_reader": {
+     "record_id": "mc-2b13b41bafd5097a3d9390976495d3d8",
+     "model": "gpt-5.5",
+     "runner": "codex",
+     "state": "AGREE"
+    },
     "comparator_counts_check": null,
     "value": {
      "measure": "RR",
@@ -55,8 +67,8 @@
    "ncts": [
     "NCT02937454"
    ],
-   "record_id": "mc-7da72a1f84e4ceaa1be1122eb6f96297",
-   "verdict": "ADMITTED",
+   "record_id": "mc-c75d9c4787fa401d447048324110e615",
+   "verdict": "REFUSED:SECOND_READER_NOT_ADMITTED",
    "model": {
     "verdict": "FOUND",
     "source": "AACT",
@@ -69,42 +81,18 @@
     "effect": null,
     "lower": null,
     "upper": null,
-    "outcome_as_stated": "Number of participants with at least one HF Hospitalisation",
+    "outcome_as_stated": "Number of participants with at least one HF Hospitalisation up to 52 weeks after randomisation",
     "timepoint_as_stated": "up to 52 weeks after randomisation",
     "population_as_stated": "Full Analysis Set (FAS): All randomised participants for whom administration of study treatment was started and who had at least one post-baseline visit (including calls), death or hospitalisation or who withdrew from the study after but not on the randomisation date.",
     "scope_rule_key": null,
     "scope_span": null,
-    "why": "Participant counts support the requested hospitalization risk outcome. FAS excludes some randomised participants and therefore differs from strict intention-to-treat. No open full text or randomised total is supplied to check denominator coverage."
+    "why": "Participant counts match the outcome and final follow-up. Population differs: FAS has post-randomisation exclusions, so strict ITT is not established. No randomised total or open full text is supplied to verify complete randomised-population coverage."
    },
-   "admitted": {
-    "kind": "AACT",
-    "source": "AACT AACT 2026-08-30 NCT02937454 outcome 258897606",
-    "span": "HF Hospitalisations: groups [(142, 558), (178, 550)]",
-    "quote": "\"groups\": [\n{\n\"group\": \"839386967\",\n\"title\": \"FCM (Ferric Carboxymaltose)\",\n\"count\": 142,\n\"n\": 558\n},\n{\n\"group\": \"839386968\",\n\"title\": \"Placebo (Normal Saline (NaCl 0.9%))\",\n\"count\": 178,\n\"n\": 550\n}\n]",
-    "time_frame": "up to 52 weeks after randomisation",
-    "comparator_counts_check": {
-     "finding": "COMPARATOR_COUNTS_ARE_POSTED_EVENTS",
-     "nct": "NCT02937454",
-     "outcome_id": "258897602",
-     "title": "HF Hospitalisations",
-     "units": [
-      "Events"
-     ],
-     "comparator_counts": [
-      "217",
-      "294"
-     ]
-    },
-    "value": {
-     "measure": "RR",
-     "effect": null,
-     "lower": null,
-     "upper": null,
-     "events_t": 142,
-     "n_t": 558,
-     "events_c": 178,
-     "n_c": 550
-    }
+   "second_reader": {
+    "record_id": "mc-d3c430297c356822cca4c0656678c2f2",
+    "model": "gpt-5.5",
+    "runner": "codex@worker",
+    "state": "REFUSED:AACT_ARMS"
    }
   },
   {
@@ -113,7 +101,7 @@
    "ncts": [
     "NCT00520780"
    ],
-   "record_id": "mc-685aa4ea9293956f5f36f0c9494ee81c",
+   "record_id": "mc-14c37dba723f9b437436ff10c6388ff8",
    "verdict": "SOURCE_ABSENT",
    "model": {
     "verdict": "SOURCE_ABSENT",
@@ -132,7 +120,7 @@
     "population_as_stated": "",
     "scope_rule_key": null,
     "scope_span": null,
-    "why": "AACT has no posted results; full text is withheld; no regulatory source is supplied. Both meta rows are marked REFUSED. No available source states an eligible heart-failure hospitalization result for the whole randomized population at longest follow-up."
+    "why": "AACT has no posted results; full text is withheld as not openly licensed; no regulatory source is supplied. Both meta rows are REFUSED. No available source states whole-population ITT heart-failure hospitalization counts or an RR with two-sided 95% CI at longest follow-up."
    }
   },
   {
