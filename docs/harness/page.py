@@ -2208,11 +2208,14 @@ def _suppressed_block(res):
 
 
 def result_changes_status(n: dict) -> dict | None:
-    """{state, text} for a notice that is on the record but NOT applied: withdrawn by its signer, or superseded."""
+    """{state, text} for a notice that is on the record but NOT applied: withdrawn by its signer, held, or superseded."""
     w = n.get("withdrawal") or {}
     if w.get("state") == "WITHDRAWN_BY_SIGNER":
         return {"state": "WITHDRAWN_BY_SIGNER", "text": f"withdrawn by {w.get('by')} on {str(w.get('when_utc'))[:10]} "
                 f"('{w.get('quote')}'): {w.get('reason_code')}."}
+    hd = n.get("held") or {}
+    if hd.get("code"):
+        return {"state": "HELD", "text": f"held ({hd.get('code')}): {hd.get('why')}"}
     sb = n.get("superseded_by") or {}
     if sb.get("notice"):
         return {"state": "SUPERSEDED", "text": f"superseded by signed notice {sb.get('notice')} "
