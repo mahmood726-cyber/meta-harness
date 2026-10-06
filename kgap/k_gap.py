@@ -881,9 +881,11 @@ def unpaywall_text(doi: str, cache_dir: str, index_path: str, offline: bool = Fa
                                                                           "n_tried": len(out["tried"]),
                                                                           "tried": out["tried"],
                                                                           "n_oa_locations": len(locs)}
-    with open(index_path, "w", encoding="utf-8") as fh:
-        json.dump(idx, fh, indent=1, sort_keys=True)
-    return {"text": text, **idx[doi.lower()]}
+    # only THIS doi's entry, through the locked atomic index writer: the verifier's threads (concurrency 5) rewrote the
+    # whole stale index over each other and left it unparseable (6 Oct)
+    from harness import copy_licence as _cl
+    entry = _cl.update_index(index_path, doi.lower(), idx[doi.lower()], replace=True)
+    return {"text": text, **entry}
 
 
 _GENERIC_LABEL_WORDS = {"trial", "trials", "study", "studies", "cohort", "group", "arm", "patients", "participants",
