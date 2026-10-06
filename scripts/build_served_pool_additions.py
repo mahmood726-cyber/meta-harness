@@ -151,6 +151,13 @@ def pipeline_row(slug, x, scale):
     return None, f"not fillable on the served scale {scale}"
 
 
+def _committed():
+    """The register as committed (the carry-forward source); [] when absent."""
+    if not os.path.exists(REG):
+        return []
+    return list((json.load(open(REG, encoding="utf-8")) or {}).get("additions") or [])
+
+
 def build(notices=None, holds=None):
     notices = rc.load() if notices is None else notices
     holds = json.load(open(HOLDS, encoding="utf-8"))["holds"] if holds is None else holds
@@ -180,10 +187,17 @@ def build(notices=None, holds=None):
         if not rc._same(n["before"], rc.result_tuple(before)):
             excluded.append({"notice": tag, "why": f"served pool without the entered trials is {before}, notice before {n['before']}"})
             continue
+        # CARRY FORWARD: once a signed notice's rows are in the committed register, those exact rows are kept (and
+        # re-checked below against the signed after). Re-reading them from the tracker would read back the register's
+        # own effect -- the rows are then IN our pool -- and silently drop a signed notice (6 Oct worker run 2: TECOS,
+        # COVACTA/TOCIBRAS 'in_our_pool' after the pipeline admitted them). The tracker is read for a FIRST admission only.
+        prev = next((e for e in _committed() if e.get("slug") == slug and e.get("outcome") == n["outcome"]
+                     and e.get("notice_when_utc") == n["when_utc"]
+                     and sorted(r.get("id") for r in e.get("rows") or []) == sorted(ent)), None)
         o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", f"{slug}.json"), encoding="utf-8"))
         inc, _exc = sp.candidates(o)
-        rows, why = [], None
-        for i in ent:
+        rows, why = ([dict(r) for r in prev["rows"]], None) if prev else ([], None)
+        for i in ([] if prev else ent):
             xs = [x for x in inc if str(x.get("family") or "").replace("PMID ", "").strip() == i.replace("PMID ", "").strip()]
             if len(xs) != 1:
                 why = f"{i}: {len(xs)} tracker-verified rows outside the served pool (need exactly 1)"

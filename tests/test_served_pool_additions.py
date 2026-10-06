@@ -158,3 +158,14 @@ def test_v6_02_is_withdrawn_by_its_signer_and_its_signature_is_kept():
     v = [n for n in d if n["slug"] == "probiotics-aad-prevention" and n.get("entered_pool") == ["PMID 17356555"]]
     assert len(v) == 1 and v[0]["withdrawal"]["quote"] == "withdraw v6-02"
     assert v[0]["reviewer_countersignature"]["state"] == "BATCH_SEEN_AND_SIGNED"
+
+
+def test_committed_rows_are_carried_forward_when_the_tracker_shows_them_in_our_pool(monkeypatch):
+    # 6 Oct worker run 2: once the pipeline admitted the signed rows, the tracker saw them IN our pool, and a builder that
+    # re-read them from the tracker dropped three signed notices. The committed rows are kept and re-checked instead.
+    import build_served_pool_additions as b
+    reg = json.load(open(spa.REGISTER, encoding="utf-8"))["additions"]
+    assert reg, "the committed register must hold the signed additions"
+    monkeypatch.setattr(b.sp, "candidates", lambda o: ([], []))       # the tracker now offers no row outside the pool
+    adds, exc = b.build()
+    assert sorted(a["slug"] for a in adds) == sorted(a["slug"] for a in reg)
