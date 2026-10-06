@@ -503,9 +503,229 @@ def cmd_screen(slugs, run=False):
         print(s, "candidates", len(cands), "all-PASS", npass, flush=True)
 
 
+# ----------------------------------------------------------------------------------------------------------- enumerate
+ENUM_SCHEMA = {"type": "object", "additionalProperties": False, "required": ["set_quote", "pooled", "trials"],
+               "properties": {
+                   "set_quote": {"type": ["string", "null"]},
+                   "pooled": SCREEN_SCHEMA["properties"]["pooled"],
+                   "trials": {"type": "array", "items": {"type": "object", "additionalProperties": False,
+                                                         "required": ["label", "ref", "row_quote"],
+                                                         "properties": {"label": {"type": "string"},
+                                                                        "ref": {"type": ["string", "null"]},
+                                                                        "row_quote": {"type": ["string", "null"]}}}}}}
+ENUM_INSTR = """You ENUMERATE the trial set of ONE published meta-analysis for ONE outcome. From its full text list EVERY
+randomised trial included in its pooled analysis of the stated outcome (the analysis matching the protocol): the trial's
+label exactly as the meta prints it, the meta's reference number for it exactly as printed (e.g. "23"), and, if the meta
+prints that trial's row for this outcome in its text or tables, the row quoted character for character (else null).
+Quote the sentence, table caption or figure caption that states which / how many trials the pooled analysis includes
+(set_quote), and copy the pooled result as printed (measure, estimate, both 95% CI bounds, k, quote). List only what the
+text shows; never add a trial from your own knowledge."""
+
+
+def jats_refs(xml):
+    """{ref label number: {pmid, title, rid}} from the meta's own JATS reference list."""
+    out = {}
+    for r in re.findall(r"<ref\b[^>]*>.*?</ref>", xml, re.S):
+        lab = re.search(r"<label>\s*\[?(\d+)\]?\.?\s*</label>", r)
+        rid = re.search(r'<ref\b[^>]*\bid="([^"]+)"', r)
+        num = lab.group(1) if lab else (re.search(r"(\d+)$", rid.group(1)).group(1) if rid and re.search(r"(\d+)$", rid.group(1)) else None)
+        if not num:
+            continue
+        pm = re.search(r'<pub-id pub-id-type="pmid">\s*(\d+)\s*</pub-id>', r)
+        ti = re.search(r"<article-title\b[^>]*>(.*?)</article-title>", r, re.S)
+        au = re.search(r"<surname>([^<]+)</surname>", r)
+        yr = re.search(r"<year>(\d{4})</year>", r)
+        out[num] = {"pmid": pm.group(1) if pm else None, "title": jats_text(ti.group(1)) if ti else None,
+                    "first_author": au.group(1) if au else None, "year": yr.group(1) if yr else None,
+                    "rid": rid.group(1) if rid else None}
+    return out
+
+
+def enum_item(s, pmid, rel):
+    p = protocol(s)
+    xml = open(os.path.join(ROOT, rel), encoding="utf-8", errors="replace").read()
+    text = jats_text(xml)
+    prompt = (ENUM_INSTR + f"\n\nPROTOCOL: {p['question']}\nOUTCOME: {p['primary_outcome']} (estimand {p['estimand']}, "
+              f"timepoint {p['timepoint']})\n<<<TEXT\n{text[:180000]}\nTEXT>>>\n").encode("utf-8")
+    return {"key": f"swapenum::{s}::{pmid}", "slug": s, "pmid": pmid, "prompt": prompt, "text": text, "xml": xml,
+            "held": rel, "schema": ENUM_SCHEMA, "stage": "ENUM",
+            "digests": [{"ref": rel, "sha256": hashlib.sha256(open(os.path.join(ROOT, rel), "rb").read()).hexdigest(),
+                         "what": "the picked comparator's open JATS (CC BY / CC0), rendered to text, first 180000 chars"}]}
+
+
+def gate_enum(claim, it):
+    """Units the text supports: label printed in the text; row quote (if any) verbatim; identity from the meta's own
+    reference list (printed PMID) or an exact title lookup. Returns (units, refused, pooled, set_quote)."""
+    import ref_title_pmid_lookup as rl
+    nt = _norm(it["text"])
+    refs = jats_refs(it["xml"])
+    units, refused = [], []
+    for t in claim.get("trials") or []:
+        lab, ref, rq = t.get("label") or "", str(t.get("ref") or "").strip(), t.get("row_quote")
+        why = None
+        if _norm(lab) not in nt:
+            why = "LABEL_NOT_IN_TEXT"
+        elif rq and _norm(rq) not in nt:
+            why = "ROW_QUOTE_NOT_IN_TEXT"
+        r = refs.get(ref) if ref else None
+        if not why and not r:
+            why = "REFERENCE_NUMBER_NOT_IN_THE_METAS_REFERENCE_LIST"
+        if why:
+            refused.append({"label": lab, "ref": ref, "why": why})
+            continue
+        pmid, ident = r["pmid"], "COMPARATOR_REFERENCE_LIST_PMID" if r["pmid"] else None
+        if not pmid and r.get("title"):
+            hit = rl.lookup({"key": f"{it['pmid']}:REF:{ref}", "title": r["title"], "first_author": r.get("first_author") or "",
+                             "year": r.get("year") or ""})
+            if hit.get("state") == "CONFIRMED":
+                pmid, ident = hit.get("pmid"), "CONFIRMED"
+        if not pmid:
+            refused.append({"label": lab, "ref": ref, "why": "IDENTITY_UNRESOLVED", "reference_title": r.get("title")})
+            continue
+        span = rq if rq else (r.get("title") or lab)
+        units.append({"label": lab, "ref": ref, "pmid": pmid, "identity": ident, "span": span, "scope": "IN_SCOPE",
+                      "rule_id": None})
+    pl = claim.get("pooled") or {}
+    pooled_ok = bool(pl.get("quote")) and _norm(pl["quote"]) in nt and all(
+        str(pl.get(k)) in pl["quote"] for k in ("estimate", "lower", "upper") if pl.get(k))
+    sq = claim.get("set_quote")
+    return units, refused, (pl if pooled_ok else None), (sq if sq and _norm(sq) in nt else None)
+
+
+def cmd_enumerate(slugs, run=False):
+    """For each topic whose selection picked a NEW comparator: one recorded enumeration call, gated; writes
+    registry/comparator_enumerations/<slug>.json in k_gap_table's enumeration schema (+ the pooled result)."""
+    from kgap import runs_store
+    from reproducible_ai import model_call_live as mcl
+    from reproducible_ai import model_source as ms
+    import k_gap_forest_plot as fp
+    rec_dir = os.path.join(ROOT, "evidence", "model_calls", "swap_enum")
+    runs = runs_store.load()
+    items = []
+    for s in slugs:
+        sel = _j(os.path.join(SEL, f"{s}.selection.json"))
+        pk = (sel.get("pick") or {}).get("pmid")
+        if sel.get("result") not in ("PICKED", "PICKED_BY_RATIFIED_EXCEPTION") or not pk:
+            print(s, "no new comparator:", sel.get("result"))
+            continue
+        c = next(x for x in _j(os.path.join(SEL, f"{s}.candidates.json"))["candidates"] if x["pmid"] == pk)
+        items.append(enum_item(s, pk, c["held"]))
+    done = lambda it: (runs.get(it["key"]) or {}).get("prompt_sha256") == hashlib.sha256(it["prompt"]).hexdigest() and \
+        os.path.exists(os.path.join(rec_dir, str((runs.get(it["key"]) or {}).get("record_id")) + ".json"))
+    if run:
+        _run_calls([it for it in items if not done(it)], runs, rec_dir, mcl, ms, fp, slugs)
+    for it in items:
+        if not done(it):
+            print(it["slug"], "NOT_RUN")
+            continue
+        r = runs[it["key"]]
+        claim = json.loads(ms.replay(ms.load_record(os.path.join(rec_dir, r["record_id"] + ".json"))).decode("utf-8"))
+        units, refused, pooled, sq = gate_enum(claim, it)
+        state = "ENUMERATED" if units and not refused else ("ENUMERATION_INCOMPLETE" if units else "NOT_ENUMERATED")
+        enum = {"slug": it["slug"], "comparator_pmid": it["pmid"], "status": state,
+                "enumerated_from": (f"the comparator's own text (PMID {it['pmid']}; held {it['held']}), recorded read "
+                                    f"{r['record_id']} gated by scripts/g1_swap.py gate_enum"),
+                "set_span": sq, "pooled": pooled, "refused": refused,
+                "source": {"path": it["held"], "sha256": hashlib.sha256(open(os.path.join(ROOT, it["held"]), "rb").read()).hexdigest(),
+                           "span_match": "markup-aware, whitespace-normalised"},
+                "units": units}
+        outp = os.path.join(ROOT, "registry", "comparator_enumerations", it["slug"] + ".swap.json")
+        with open(outp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(enum, fh, indent=1, ensure_ascii=False)
+        print(it["slug"], it["pmid"], state, "units", len(units), "refused", len(refused), "pooled", bool(pooled), flush=True)
+
+
+# --------------------------------------------------------------------------------------------------------------- apply
+def _held_old(slug, old_pmid):
+    """The retired comparator's held text, if any (for its retirement spans)."""
+    d = os.path.join(ROOT, "cache", "comparators", str(old_pmid))
+    j = sorted(f for f in (os.listdir(d) if os.path.isdir(d) else []) if f.endswith("_kgap_jats.xml"))
+    if j:
+        return os.path.relpath(os.path.join(d, j[-1]), ROOT).replace("\\", "/")
+    t = os.path.join(ROOT, "cache", slug, "comparator_fulltext.txt")
+    return os.path.relpath(t, ROOT).replace("\\", "/") if os.path.exists(t) else None
+
+
+def cmd_apply(slugs):
+    """The swap through the normal path, only for a topic whose selection PICKED a new comparator AND whose enumeration
+    is complete (status ENUMERATED): enumeration file, adoption record, comparators.json entry (old one kept under
+    'replaces' with its retirement), topic comparator_pmid. A KEEP / NO_ACHIEVABLE topic is never touched."""
+    import shutil
+    for s in slugs:
+        sel = _j(os.path.join(SEL, f"{s}.selection.json"))
+        ep = os.path.join(ROOT, "registry", "comparator_enumerations", f"{s}.swap.json")
+        if sel.get("result") not in ("PICKED", "PICKED_BY_RATIFIED_EXCEPTION"):
+            print(s, "not applied:", sel.get("result"))
+            continue
+        if not os.path.exists(ep) or _j(ep).get("status") != "ENUMERATED" or not _j(ep).get("pooled"):
+            print(s, "not applied: enumeration", (_j(ep).get("status") if os.path.exists(ep) else "MISSING"),
+                  "pooled", bool(os.path.exists(ep) and _j(ep).get("pooled")))
+            continue
+        en = _j(ep)
+        new, old = str(sel["pick"]["pmid"]), str((sel.get("R0") or {}).get("comparator_pmid"))
+        cand = next(c for c in _j(os.path.join(SEL, f"{s}.candidates.json"))["candidates"] if c["pmid"] == new)
+        src = en["source"]["path"]
+        # 1. enumeration: the old comparator's file (if any) is retired beside, never deleted
+        cur = os.path.join(ROOT, "registry", "comparator_enumerations", f"{s}.json")
+        if os.path.exists(cur) and str(_j(cur).get("comparator_pmid")) != new:
+            os.makedirs(os.path.join(ROOT, "registry", "comparator_enumerations", "retired"), exist_ok=True)
+            shutil.move(cur, os.path.join(ROOT, "registry", "comparator_enumerations", "retired",
+                                          f"{s}.{_j(cur).get('comparator_pmid')}.json"))
+        enum = {k: en[k] for k in ("slug", "comparator_pmid", "status", "enumerated_from", "set_span", "source", "units")}
+        with open(cur, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(enum, fh, indent=1, ensure_ascii=False)
+        # 2. retirement: R0's failing criteria; spans only where the evidence is verbatim in the old comparator's held text
+        held = _held_old(s, old)
+        ht = _norm(jats_text(open(os.path.join(ROOT, held), encoding="utf-8", errors="replace").read())) if held else ""
+        fails = (sel.get("R0") or {}).get("failing") or []
+        spans = [f["evidence"] for f in fails if f.get("evidence") and ht and _norm(f["evidence"]) in ht]
+        retired = {"comparator_pmid": old, "reason_code": "R0:" + "+".join(f["criterion"] for f in fails),
+                   "why": "; ".join(f"{f['criterion']} {f['verdict']}: {str(f.get('evidence'))[:200]}" for f in fails),
+                   "spans": spans, "source": ({"path": held, "sha256": hashlib.sha256(open(os.path.join(ROOT, held), "rb").read()).hexdigest()}
+                                              if held else None),
+                   "retired_on": DATE, "record": "kept: cache/<slug>/comparators.json 'replaces', and the G1 denominator ledger"}
+        pl = en["pooled"]
+        adoption = {"slug": s, "comparator_pmid": new, "comparator_pmcid": cand.get("pmcid"),
+                    "comparator_type": "COMPARATOR_WITH_PER_TRIAL_ROWS",
+                    "selection": {"rule_commit": sel["rule_commit"], "selection_file": f"registry/comparator_selection/{s}.selection.json",
+                                  "result": sel["result"], "R0": sel.get("R0"),
+                                  "decided_by": "Mahmood 2026-10-06: 'solve it through comparator swaps' (pre-registered rule)"},
+                    "terms": {"per_trial_comparison": "from the comparator's own per-trial rows (read through the existing secondary-meta path)"},
+                    "pooled_result": {"measure": pl.get("measure"), "estimate": pl.get("estimate"), "ci_low": pl.get("lower"),
+                                      "ci_high": pl.get("upper"), "k": pl.get("k"), "spans": {"result": pl.get("quote")},
+                                      "source": {"path": src, "sha256": en["source"]["sha256"]}},
+                    "trial_set": [{"label": u["label"], "pmid": u["pmid"]} for u in en["units"]], "retired": retired}
+        with open(os.path.join(SEL, f"{s}.adoption.json"), "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(adoption, fh, indent=1, ensure_ascii=False)
+        # 3. comparators.json + topic
+        cp = os.path.join(ROOT, "cache", s, "comparators.json")
+        oldc = _j(cp)
+        if oldc and str(oldc[0].get("id")) == new:
+            oldc = [{k: v for k, v in e.items() if k != "retired"} for e in oldc[0].get("replaces") or []]
+        entry = {"id": new, "citation": f"{cand.get('title')} PMID {new}", "year": (cand.get("pubdate") or "")[:4],
+                 "comparator_type": "COMPARATOR_WITH_PER_TRIAL_ROWS",
+                 "scope_note": (f"Registered comparator identity (adopted {DATE}, pre-registered selection rule "
+                                f"{str(sel['rule_commit'])[:9]}). Its trial set and pooled result are typed, with spans "
+                                f"verified in held sources, in registry/comparator_selection/{s}.adoption.json and "
+                                f"registry/comparator_enumerations/{s}.json."),
+                 "held": True, "document_ref": src, "document_sha256": en["source"]["sha256"],
+                 "trial_set": [], "k": None, "effect": None, "ci": None, "i2": None, "pi": None, "method": None,
+                 "replaces": [dict(e, retired={"reason_code": retired["reason_code"],
+                                               "span": (spans[0] if spans else retired["why"][:300]), "date": DATE}) for e in oldc]}
+        with open(cp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump([entry], fh, indent=2, ensure_ascii=False)
+        tp = os.path.join(ROOT, "topics", s + ".json")
+        t = _j(tp)
+        t["comparator_pmid"] = new
+        with open(tp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(t, fh, indent=2, ensure_ascii=False)
+        print(s, "SWAPPED", old, "->", new, "units", len(en["units"]), "retired", retired["reason_code"], flush=True)
+
+
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     cmd, *args = sys.argv[1:]
     run = "--run" in args
     args = [a for a in args if not a.startswith("--")]
-    {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run)}[cmd](args)
+    {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run),
+     "enumerate": lambda a: cmd_enumerate(a, run=run), "apply": cmd_apply}[cmd](args)
