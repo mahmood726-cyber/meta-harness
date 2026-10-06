@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -67,14 +68,33 @@ def pmc_licence(pmid, run=True, index_path=INDEX):
         if not xml:
             return "NOT_OPEN"
         lic, stmt = classify_permissions(xml)
-    idx = json.load(open(index_path, encoding="utf-8")) if os.path.exists(index_path) else {}
-    idx.setdefault(pmid, {}).update(copy_licence=lic, copy_statement=stmt, **({"copy_pmcid": pmcid} if pmcid else {}))
-    # ATOMIC: concurrent readers (the licence guard, other jobs) must never see a half-written index
-    tmp = f"{index_path}.{os.getpid()}.tmp"
-    with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
-        json.dump(idx, fh, indent=1, sort_keys=True)
-    os.replace(tmp, index_path)
+    update_index(index_path, pmid, dict(copy_licence=lic, copy_statement=stmt, **({"copy_pmcid": pmcid} if pmcid else {})))
     return lic
+
+
+INDEX_LOCK = threading.RLock()
+
+
+def update_index(index_path, pmid, fields, replace=False):
+    """The ONE writer of fulltext_index.json (copy_licence.pmc_licence, k_gap_counterfactual.pmc_fulltext_cached):
+    read-modify-write under a process-wide lock (the per-trial verifier runs 5 threads; unlocked they truncated each
+    other's writes, 6 Oct), written to a temp file unique per thread and moved into place atomically, so a reader never
+    sees half an index. replace=True replaces the entry but always keeps its copy_* licence fields."""
+    with INDEX_LOCK:
+        idx = {}
+        if os.path.exists(index_path):
+            with open(index_path, encoding="utf-8") as fh:
+                idx = json.load(fh)
+        old = idx.get(str(pmid)) or {}
+        if replace:
+            idx[str(pmid)] = {**{k: v for k, v in old.items() if k.startswith("copy_")}, **fields}
+        else:
+            idx[str(pmid)] = {**old, **fields}
+        tmp = f"{index_path}.{os.getpid()}.{threading.get_ident()}.tmp"
+        with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(idx, fh, indent=1, sort_keys=True)
+        os.replace(tmp, index_path)
+        return idx[str(pmid)]
 
 
 def upw_open(u: dict) -> bool:
