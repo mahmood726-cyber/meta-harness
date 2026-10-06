@@ -697,6 +697,9 @@ def acquire_image(pmid, pmcid, href):
 
 # ------------------------------------------------------------------ the two recorded readings
 
+AUDIT_LINE = "\nINDEPENDENT AUDIT READ: transcribe the figure afresh, as if no other reading of it existed.\n"
+
+
 def prompt_bytes(fig, reader):
     extra = ""
     if fig.get("instruction"):
@@ -705,7 +708,7 @@ def prompt_bytes(fig, reader):
         extra = (f"\nThis figure has several panels. Transcribe ONLY panel ({fig['panel']}), which the caption titles "
                  f"'{fig['panel_title']}'. Ignore every other panel; its rows and pooled row are not wanted.\n")
     if reader == "codex_audit":
-        extra += ("\nINDEPENDENT AUDIT READ: transcribe the figure afresh, as if no other reading of it existed.\n")
+        extra += AUDIT_LINE
     where = ("The figure is the attached image." if reader in ("codex", "codex_audit") else
              "The figure is the image file image_0" + os.path.splitext(fig.get("image_name") or ".jpg")[1].lower() +
              " in the current directory: read that file and nothing else.")
@@ -775,8 +778,8 @@ def topic_note(key):
 
 def run_reader(item, reader):
     from reproducible_ai import model_call_live as mcl
-    p = prompt_bytes(item["figure"], reader)
-    caller = {"file": "scripts/g1_forest_reader.py", "line": f"run_reader:{reader}", "lane": LANE,
+    p = item.get("prompt_override") or prompt_bytes(item["figure"], reader)
+    caller ={"file": "scripts/g1_forest_reader.py", "line": f"run_reader:{reader}", "lane": LANE,
               "purpose": f"G1 dual forest read ({reader}) {item['slug']} meta {item['pmid']} fig {item['figure']['fig_id']}"}
     dig = [{"ref": item["image_ref"], "sha256": item["image_sha256"], "what": "comparator forest-plot figure image",
             "source_url": item.get("image_url")}]
@@ -1984,8 +1987,36 @@ def audit_items(acc, scope, run):
     ext = sorted({tuple(k.split("::")[:2]) for k in named_keys if tuple(k.split("::")[:2]) in META_EXTRA})
     cit = [x for x in citing_named(sorted({k.split("::")[0] for k in named_keys}))
            if extra_key(*x) in named_keys]
-    its = items([], run, pairs=pairs, meta_extras=ext, named=cit)[0]
-    return [it for it in its if it.get("key") in acc]
+    its = [it for it in items([], run, pairs=pairs, meta_extras=ext, named=cit)[0] if it.get("key") in acc]
+    got = {it["key"] for it in its}
+    return its + [si for k in sorted(acc) if k not in got for si in [stored_item(k, acc[k])] if si]
+
+
+def stored_item(key, v):
+    """An ACCEPTED meta figure the current figure selection no longer rebuilds (a later run skipped it, or its named
+    figure moved) is audited from its OWN record: the image it was read from (sha256 must still match) and the original
+    codex reading's prompt bytes (sha256-checked) with the audit line appended. None if either cannot be confirmed."""
+    import base64
+    img, fig = v.get("image") or {}, v.get("figure") or {}
+    rid = ((v.get("readings") or {}).get("codex") or {}).get("record_id")
+    ip = os.path.join(ROOT, img.get("ref") or "")
+    if not (rid and img.get("ref") and os.path.isfile(ip) and fig.get("fig_id")):
+        return None
+    with open(ip, "rb") as fh:
+        if hashlib.sha256(fh.read()).hexdigest() != img.get("sha256"):
+            return None
+    rp = os.path.join(REC_DIR, rid + ".json")
+    if not os.path.isfile(rp):
+        return None
+    with open(rp, encoding="utf-8") as fh:
+        pr = json.load(fh).get("prompt") or {}
+    p = base64.b64decode(pr.get("b64") or "")
+    if not p or hashlib.sha256(p).hexdigest() != pr.get("sha256"):
+        return None
+    slug, pmid = key.split("::")[:2]
+    return {"slug": slug, "pmid": pmid, "key": key, "role": "meta", "figure": fig, "image_path": ip,
+            "image_ref": img["ref"], "image_sha256": img["sha256"], "image_url": img.get("url"),
+            "prompt_override": p + AUDIT_LINE.encode("utf-8"), "built_from": f"accepted record {rid}"}
 
 
 def audit_third(run, scope="comparator", slugs=None):

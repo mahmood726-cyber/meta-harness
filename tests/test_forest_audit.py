@@ -88,3 +88,32 @@ def test_a_wrong_intervention_verdict_still_refuses_an_accepted_figure():
     gfr.merge_skips(sec, {"t::1": "INTERVENTION_NOT_THE_TOPICS"})
     assert "t::1" not in sec["meta_results"]
     assert sec["meta_skipped"]["t::1"] == "INTERVENTION_NOT_THE_TOPICS"
+
+
+def _stored(tmp_path, monkeypatch, img=b"IMG", prompt=b"ORIGINAL PROMPT\n"):
+    import base64, hashlib, json
+    monkeypatch.setattr(gfr, "ROOT", str(tmp_path))
+    monkeypatch.setattr(gfr, "REC_DIR", str(tmp_path / "rec"))
+    (tmp_path / "rec").mkdir()
+    (tmp_path / "img.jpg").write_bytes(img)
+    rec = {"record_id": "mc-x", "prompt": {"b64": base64.b64encode(prompt).decode(), "bytes": str(len(prompt)),
+                                           "sha256": hashlib.sha256(prompt).hexdigest()}}
+    (tmp_path / "rec" / "mc-x.json").write_text(json.dumps(rec), encoding="utf-8")
+    return {"state": "ACCEPTED", "slug": "t", "pmid": "1", "figure": {"fig_id": "F2", "panel": None, "caption": "c"},
+            "image": {"ref": "img.jpg", "sha256": hashlib.sha256(b"IMG").hexdigest()},
+            "readings": {"codex": {"record_id": "mc-x"}}}
+
+
+def test_an_accepted_figure_the_selection_cannot_rebuild_is_audited_from_its_own_record(tmp_path, monkeypatch):
+    # 6 Oct: 5 accepted figures (tocilizumab 33161150 / 34019122, colchicine 36176989 F11, probiotics 29868585,
+    # spironolactone 40959489 F2D) were silently absent from the audit: the current figure selection no longer
+    # rebuilds them. The audit reads the SAME image (sha-checked) with the original codex prompt + the audit line
+    v = _stored(tmp_path, monkeypatch)
+    it = gfr.stored_item("t::1", v)
+    assert it["prompt_override"] == b"ORIGINAL PROMPT\n" + gfr.AUDIT_LINE.encode()
+    assert it["image_sha256"] == v["image"]["sha256"] and gfr.audit_same_figure(it, v)
+
+
+def test_a_stored_item_whose_image_changed_is_not_audited(tmp_path, monkeypatch):
+    v = _stored(tmp_path, monkeypatch, img=b"OTHER BYTES")
+    assert gfr.stored_item("t::1", v) is None
