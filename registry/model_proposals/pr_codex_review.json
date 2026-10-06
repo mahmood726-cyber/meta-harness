@@ -1,0 +1,886 @@
+{
+ "merge-08315be6e": {
+  "base": "119dd5bf3e5f4c4957333c6a6a8e6b1a265ee999",
+  "head": "08315be6e40b5eecfc74ef65dfee817a3c0c6fa1",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ab269e0f4f2bbfbfb54924beaa7b4333",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_binding_aact.py",
+     "scripts/g1_binding_enumerate.py",
+     "scripts/g1_binding_regulatory.py",
+     "scripts/g1_comparator_select.py",
+     "scripts/g1_denominator_ledger.py"
+    ],
+    "prompt_sha256": "24998288e59c6b9e2ba8c5ff70aeed708eb72223330c2d0d7070ceae738e265f"
+   },
+   "g2": {
+    "record_id": "mc-a5d5191666c7aea89686abde8c9083eb",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/k_gap_table.py"
+    ],
+    "prompt_sha256": "a8bd55a83ee5132cde4d2be2f1a1381b28f220c8d6f045ae32bf8c6bdb04bbb5"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_binding_aact.py",
+    "function": "arm_candidates / arms_values",
+    "severity": "P0",
+    "claim": "Multiple measurement rows for one intervention group are treated as independent arms. The group's full denominator is counted repeatedly and the rows are pooled without checking their category or uniqueness.",
+    "failing_input": "from scripts.g1_binding_aact import arm_candidates, arms_values\nr = lambda g, v: {'result_group_id': g, 'param_type': 'MEAN', 'dispersion_type': 'Standard Deviation', 'param_value': v, 'dispersion_value': '1'}\nok, refused = arm_candidates({'o': [dict(r('t', '1'), category='Male'), dict(r('t', '1'), category='Female'), r('c', '0')]}, {'o': {'t': '10', 'c': '10'}}, {'t': 'DrugX', 'c': 'Placebo'}, {'o': {'title': 'Score Day 28'}}, {'primary_outcome': {'keywords': ['Score'], 'timepoint': 'Day 28'}}, ['DrugX'])\nprint(arms_values(ok[0]['arms']))",
+    "expected": "Refuse the outcome: subgroup measurements cannot each receive the full group's denominator or be combined as independent treatment arms.",
+    "actual": "Accepts the outcome with no refusal and returns {'measure': 'MD', 'mean_t': '1.0000', 'sd_t': '0.9733', 'n_t': 20, 'mean_c': '0', 'sd_c': '1', 'n_c': 10, 'k_intervention_arms': 2, 'combination': 'Cochrane Handbook 6.5.2.10'}.",
+    "id": "merge-08315be6e:g1#1",
+    "record_id": "mc-ab269e0f4f2bbfbfb54924beaa7b4333",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_binding_aact.py",
+    "function": "arm_candidates",
+    "severity": "P0",
+    "claim": "C5 checks only groups with measurement rows. A posted intervention group with a denominator but no measurement silently disappears, allowing a partial treatment-arm result.",
+    "failing_input": "from scripts.g1_binding_aact import arm_candidates, arms_values\nr = lambda g, v: {'result_group_id': g, 'param_type': 'MEAN', 'dispersion_type': 'Standard Deviation', 'param_value': v, 'dispersion_value': '1'}\nok, refused = arm_candidates({'o': [r('t1', '1'), r('c', '0')]}, {'o': {'t1': '10', 't2': '20', 'c': '10'}}, {'t1': 'DrugX 10 mg', 't2': 'DrugX 20 mg', 'c': 'Placebo'}, {'o': {'title': 'Score Day 28'}}, {'primary_outcome': {'keywords': ['Score'], 'timepoint': 'Day 28'}}, ['DrugX'])\nprint(len(ok), refused, arms_values(ok[0]['arms'])['n_t'])",
+    "expected": "Refuse the outcome because t2 lacks the mean and SD needed to combine every intervention arm.",
+    "actual": "Prints 1 [] 10. The outcome is accepted and the 20 participants in t2 disappear from the intervention result.",
+    "id": "merge-08315be6e:g1#2",
+    "record_id": "mc-ab269e0f4f2bbfbfb54924beaa7b4333",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_binding_aact.py",
+    "function": "arm_candidates",
+    "severity": "P0",
+    "claim": "The observed-case gate searches only the outcome title. An explicitly imputed analysis described in the population field is accepted for an observed-case estimand.",
+    "failing_input": "from scripts.g1_binding_aact import arm_candidates\nr = lambda g, v: {'result_group_id': g, 'param_type': 'MEAN', 'dispersion_type': 'Standard Deviation', 'param_value': v, 'dispersion_value': '1'}\nok, refused = arm_candidates({'o': [r('t', '2'), r('c', '0')]}, {'o': {'t': '10', 'c': '10'}}, {'t': 'DrugX', 'c': 'Placebo'}, {'o': {'title': 'Score Day 28', 'population': 'Intention-to-treat population; missing values imputed using last observation carried forward (LOCF).'}}, {'primary_outcome': {'name': 'Score, observed-case', 'keywords': ['Score'], 'timepoint': 'Day 28'}}, ['DrugX'])\nprint(len(ok), refused)",
+    "expected": "No candidate; a C3_OBSERVED refusal because the held population text explicitly identifies LOCF imputation.",
+    "actual": "Prints 1 []. The imputed means are eligible for emission as the observed-case result.",
+    "id": "merge-08315be6e:g1#3",
+    "record_id": "mc-ab269e0f4f2bbfbfb54924beaa7b4333",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_binding_aact.py",
+    "function": "arm_role",
+    "severity": "P1",
+    "claim": "Mentioning an agent as the substance being mimicked by placebo classifies the placebo arm as an intervention.",
+    "failing_input": "from scripts.g1_binding_aact import arm_role\nprint(arm_role('Placebo for alogliptin', ['alogliptin']))",
+    "expected": "'control': the title explicitly identifies placebo for the named drug.",
+    "actual": "'intervention'. An ordinary two-arm trial using this control title subsequently fails C5 with zero control arms.",
+    "id": "merge-08315be6e:g1#4",
+    "record_id": "mc-ab269e0f4f2bbfbfb54924beaa7b4333",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_binding_enumerate.py",
+    "function": "write_input",
+    "severity": "P1",
+    "claim": "Every scope value other than IN_SCOPE becomes an affirmative OUT_OF_SCOPE exclusion with the invented reason COMPARATOR_NOT_PLACEBO, including an explicitly unresolved scope.",
+    "failing_input": "Call write_input({'slug': 'scope-test', 'comparator_pmid': '100', 'source': 'held.txt', 'open_question': 'Comparator arm unresolved', 'trials': [{'label': 'Trial A', 'ref': '1', 'pmid': '200', 'identity': 'CONFIRMED', 'span': 'Trial A: DrugX versus unspecified control', 'arms': [], 'scope': 'UNCLEAR', 'reference': 'Trial A report'}]}), with ROOT/held.txt containing exactly 'Trial A: DrugX versus unspecified control' and ENUM_DIR writable.",
+    "expected": "Refuse to write an exclusion or preserve UNCLEAR without asserting that the comparator is non-placebo.",
+    "actual": "Writes the unit with 'scope': 'OUT_OF_SCOPE' and 'rule_id': 'E2:COMPARATOR_NOT_PLACEBO'.",
+    "id": "merge-08315be6e:g1#5",
+    "record_id": "mc-ab269e0f4f2bbfbfb54924beaa7b4333",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_select.py",
+    "function": "main",
+    "severity": "P1",
+    "claim": "When an exception changes the winning comparator, the result is still labelled PICKED under the ordinary rule whenever any candidate passed without the exception.",
+    "failing_input": "Run main(['x']) with x.rule.json = {'criteria': [{'id': 'q'}], 'tie_breaks': [{'id': 'year'}], 'if_none_pass': 'STOP:no eligible candidate'}; x.candidates.json = {'candidates': [{'pmid': '101', 'criteria': {'q': {'verdict': 'PASS'}}, 'tie_breaks': {'year': 2020}}, {'pmid': '202', 'criteria': {'q': {'verdict': 'FAIL'}}, 'tie_breaks': {'year': 2021}}]}; x.ratification.json = {'ratified_exception': {'candidate_pmid': '202', 'waived_criterion': 'q', 'decided_by': 'Reviewer', 'quote': 'Waive q for candidate 202', 'date': '2026-10-05'}} in SEL.",
+    "expected": "The final pick is 202 and its result is PICKED_BY_RATIFIED_EXCEPTION; the ordinary rule selects 101.",
+    "actual": "The final pick is 202 but result is PICKED, because the expression tests whether pick0 exists rather than whether the final winner required the exception.",
+    "id": "merge-08315be6e:g1#6",
+    "record_id": "mc-ab269e0f4f2bbfbfb54924beaa7b4333",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "typed_comparator_rows",
+    "severity": "P0",
+    "claim": "The verifier checks the source digest and span membership but never checks that the typed numbers come from that span. apply_typed_comparator_rows then uses those unchecked numbers for agreement and pooling.",
+    "failing_input": "Run with scripts on PYTHONPATH:\nimport hashlib, json, tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nimport g1_tracker as g\nwith tempfile.TemporaryDirectory() as td:\n    p = Path(td)\n    raw = b'Trial A: HR 0.90 (95% CI 0.80-1.01).'\n    (p / 'held.txt').write_bytes(raw)\n    row = {'label': 'Trial A', 'measure': 'HR', 'effect': '9.0', 'lower': '8.0', 'upper': '10.1', 'span': raw.decode()}\n    d = {'comparator_pmid': '123', 'source': {'path': 'held.txt', 'sha256': hashlib.sha256(raw).hexdigest()}, 'rows': [row]}\n    (p / 'demo.json').write_text(json.dumps(d), encoding='utf-8')\n    with patch.object(g, 'ROOT', td), patch.object(g, 'TYPED_COMPARATOR_ROWS', str(p / '{slug}.json')):\n        print(g.typed_comparator_rows('demo', '123')['rows'])",
+    "expected": "Reject the row because the held estimate and bounds are 0.90, 0.80 and 1.01, not 9.0, 8.0 and 10.1.",
+    "actual": "Returns the row with effect='9.0', lower='8.0', upper='10.1', making those unsupported numbers available to the result comparison.",
+    "id": "merge-08315be6e:g2#1",
+    "record_id": "mc-a5d5191666c7aea89686abde8c9083eb",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "no_rows_adoption",
+    "severity": "P0",
+    "claim": "The pooled-result adoption verifies that a quotation exists but does not bind estimate, bounds, measure or model to that quotation. apply_no_rows_comparator copies the unchecked estimate and bounds directly into the result verdict.",
+    "failing_input": "Run with scripts on PYTHONPATH:\nimport hashlib, json, tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nimport g1_tracker as g\nwith tempfile.TemporaryDirectory() as td:\n    p = Path(td)\n    raw = b'Two trials: pooled RR 0.90 (95% CI 0.80-1.01), random-effects DL model.'\n    (p / 'held.txt').write_bytes(raw)\n    a = {'comparator_type': 'COMPARATOR_NO_PER_TRIAL_ROWS', 'comparator_pmid': '123', 'pooled_result': {'measure': 'RR', 'estimate': 9.0, 'ci_low': 8.0, 'ci_high': 10.1, 'k': 2, 'method_for_ours': 'DL', 'source': {'path': 'held.txt', 'sha256': hashlib.sha256(raw).hexdigest()}, 'spans': {'result': raw.decode()}}}\n    (p / 'demo.json').write_text(json.dumps(a), encoding='utf-8')\n    with patch.object(g, 'ROOT', td), patch.object(g, 'NO_ROWS_ADOPTION', str(p / '{slug}.json')):\n        print(g.no_rows_adoption('demo', '123')['pooled_result']['estimate'])",
+    "expected": "Reject the adoption because the supplied pooled estimate and bounds contradict the held result.",
+    "actual": "Returns the adoption and prints 9.0; the downstream comparison uses 9.0, 8.0 and 10.1.",
+    "id": "merge-08315be6e:g2#2",
+    "record_id": "mc-a5d5191666c7aea89686abde8c9083eb",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "enumeration_scope",
+    "severity": "P1",
+    "claim": "Absence of a comparator term is treated as positive evidence of an active control. A row explicitly saying the comparator was not reported is therefore accepted as a cited placebo-scope exclusion.",
+    "failing_input": "Run with scripts on PYTHONPATH:\nimport hashlib, tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nimport g1_tracker as g\nwith tempfile.TemporaryDirectory() as td:\n    raw = b'Trial A: empagliflozin; comparator not reported.'\n    (Path(td) / 'held.txt').write_bytes(raw)\n    x = {'enumeration': {'scope': 'OUT_OF_SCOPE', 'rule_id': 'E2:COMPARATOR_NOT_PLACEBO', 'span': raw.decode(), 'source': 'held.txt', 'sha256': hashlib.sha256(raw).hexdigest(), 'ref': '1'}}\n    with patch.object(g, 'ROOT', td):\n        print(g.enumeration_scope(x, {'comparator_terms': ['placebo']}))",
+    "expected": "None: comparator identity is unknown, so the trial remains an open gap.",
+    "actual": "Returns PROTOCOL_SCOPE_DIFFERENCE with rule E2:COMPARATOR_NOT_PLACEBO and screen_reason='the comparator\\'s own row holds no placebo arm (active control only)'.",
+    "id": "merge-08315be6e:g2#3",
+    "record_id": "mc-a5d5191666c7aea89686abde8c9083eb",
+    "verdict": null
+   },
+   {
+    "file": "scripts/k_gap_table.py",
+    "function": "enumeration_units",
+    "severity": "P1",
+    "claim": "The new enumeration route verifies arm text but trusts the supplied PMID and identity verdict without checking the cited reference. An incorrect PMID becomes a cited trial identity even when the held reference explicitly names another PMID.",
+    "failing_input": "Run with scripts on PYTHONPATH:\nimport hashlib, json, tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nimport k_gap_table as k\nwith tempfile.TemporaryDirectory() as td:\n    p = Path(td)\n    span = 'Smith 2020: empagliflozin versus placebo.'\n    raw = (span + '\\nReference 1: Smith 2020. PMID 11111111.').encode()\n    (p / 'held.txt').write_bytes(raw)\n    e = {'comparator_pmid': '123', 'source': {'path': 'held.txt', 'sha256': hashlib.sha256(raw).hexdigest()}, 'units': [{'label': 'Smith 2020', 'span': span, 'ref': '1', 'pmid': '22222222', 'identity': 'CONFIRMED', 'scope': 'IN_SCOPE'}]}\n    (p / 'demo.json').write_text(json.dumps(e), encoding='utf-8')\n    with patch.object(k, 'ROOT', td), patch.object(k, 'ENUM_DIR', td):\n        print(k.enumeration_units('demo', ['empagliflozin'], '123')[0]['cited'])",
+    "expected": "Reject the conflicting identity; PMID 22222222 is unsupported by the held reference.",
+    "actual": "Returns [{'pmid': '22222222', 'basis': 'comparator_supplement_ref_1_CONFIRMED'}].",
+    "id": "merge-08315be6e:g2#4",
+    "record_id": "mc-a5d5191666c7aea89686abde8c9083eb",
+    "verdict": null
+   }
+  ]
+ },
+ "merge-ede33d9b2": {
+  "base": "08315be6e40b5eecfc74ef65dfee817a3c0c6fa1",
+  "head": "ede33d9b236bcf955b924285c209fb4f48e3b40c",
+  "runs": {
+   "g1": {
+    "record_id": "mc-10c7b8234c54c924da4c8f213ea2b27a",
+    "state": "RAN_OK",
+    "files": [
+     "kgap/k_gap.py",
+     "reproducible_ai/record_licence.py",
+     "scripts/aact_arm_percentages.py",
+     "scripts/aact_designs.py",
+     "scripts/comparator_league_result.py",
+     "scripts/g1_identity_chain.py",
+     "scripts/g1_import_lanes.py",
+     "scripts/g1_regulatory_source.py"
+    ],
+    "prompt_sha256": "d29cd405324dd936733b4eded531fa9642de27fa9ba4c0cbcf365d035cdcc480"
+   },
+   "g2": {
+    "record_id": "mc-4cff7cb2987e149c53c728c7d1265952",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/g1_trial_acquire.py",
+     "scripts/k_gap_exclusion_fulltext.py",
+     "scripts/k_gap_table.py"
+    ],
+    "prompt_sha256": "5294ea33879be53fc49060873f976d710fac1e88ef19bdea25f66162bfdce6b1"
+   },
+   "g3": {
+    "record_id": "mc-5207cc0a21f7e2ef1c942db23964ca0a",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/secondary_meta_build.py"
+    ],
+    "prompt_sha256": "ba2b121e2aba0ec27fe6d47093c72d973697a89a62bd6f269a563a3942558df9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/comparator_league_result.py",
+    "function": "read_league",
+    "severity": "P0",
+    "claim": "The table's effect measure is never checked. A table explicitly reporting risk ratios is returned as odds ratios.",
+    "failing_input": "from scripts.comparator_league_result import read_league\njats = '<article><abstract>B versus Placebo also yielded OR 0.87, 95% CI 0.82-0.93.</abstract><table-wrap><caption>Risk ratios for MACE</caption><table><tr><td>MACE</td></tr><tr><td>A</td><td>-</td><td>-</td></tr><tr><td>-</td><td>B</td><td>-</td></tr><tr><td>0.50 (0.40-0.60)</td><td>0.87 (0.82-0.93)</td><td>Placebo</td></tr></table><table-wrap-foot>in the column-defining therapy compared with the row-defining therapy</table-wrap-foot></table-wrap></article>'\nr, why = read_league(jats, 'A', 'Placebo', 'MACE')\nprint(r['scale'], r['estimate'], why)",
+    "expected": "Reject the unsupported measure, or return scale='RR' with estimate=0.5.",
+    "actual": "OR 0.5 None",
+    "id": "merge-ede33d9b2:g1#1",
+    "record_id": "mc-10c7b8234c54c924da4c8f213ea2b27a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/comparator_league_result.py",
+    "function": "read_league",
+    "severity": "P1",
+    "claim": "The orientation check matches only numbers. It accepts an abstract result for different therapies and a different outcome, then falsely attributes that quote to the table's check pair.",
+    "failing_input": "from scripts.comparator_league_result import read_league\njats = '<article><abstract>For stroke, X versus Y: OR 0.87, 95% CI 0.82-0.93.</abstract><table-wrap><table><tr><td>MACE</td></tr><tr><td>A</td><td>-</td><td>-</td></tr><tr><td>-</td><td>B</td><td>-</td></tr><tr><td>0.50 (0.40-0.60)</td><td>0.87 (0.82-0.93)</td><td>Placebo</td></tr></table><table-wrap-foot>in the column-defining therapy compared with the row-defining therapy</table-wrap-foot></table-wrap></article>'\nr, why = read_league(jats, 'A', 'Placebo', 'MACE')\nprint(r['orientation_check'], why)",
+    "expected": "(None, 'ORIENTATION_NOT_CONFIRMED_BY_THE_ABSTRACT'): the abstract contains no MACE comparison of B versus Placebo.",
+    "actual": "{'pair': 'B vs Placebo', 'cell': '0.87 (0.82-0.93)', 'abstract_quote': 'OR 0.87, 95% CI 0.82-0.93'} None",
+    "id": "merge-ede33d9b2:g1#2",
+    "record_id": "mc-10c7b8234c54c924da4c8f213ea2b27a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "quote_named_and_located",
+    "severity": "P1",
+    "claim": "Proximity to a trial name admits a quote explicitly belonging to another trial. This does not establish trial-specific evidence in a document covering multiple trials.",
+    "failing_input": "from scripts.g1_regulatory_source import quote_named_and_located\ndoc = 'Trial ALPHA: mortality was not reported.\\nTrial BETA: 12 deaths among 100 treated; 20 deaths among 100 controls.'\nquote = 'Trial BETA: 12 deaths among 100 treated; 20 deaths among 100 controls.'\nprint(quote_named_and_located(doc, quote, ['ALPHA']))",
+    "expected": "None: the death counts explicitly belong to BETA, not ALPHA.",
+    "actual": "41",
+    "id": "merge-ede33d9b2:g1#3",
+    "record_id": "mc-10c7b8234c54c924da4c8f213ea2b27a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/aact_designs.py",
+    "function": "main",
+    "severity": "P1",
+    "claim": "Any uppercase title token can establish a trial binding. A disease abbreviation uniquely matching a registry acronym binds an otherwise unlinked paper to that registration.",
+    "failing_input": "import io, json\nfrom unittest.mock import patch\nfrom scripts import aact_designs as m\nimport sys\nsys.path.append(m.os.path.join(m.ROOT, 'scripts'))\nimport g1_tracker as gt\naudit = {'rows': [{'pmid': '12345678', 'slug': 'test', 'class': 'INSUFFICIENT_RECORD', 'subclass': 'BLINDING_NOT_STATED'}]}\ntables = {'studies.txt': [{'nct_id': 'NCT00000001', 'acronym': 'COPD', 'official_title': 'A different COPD trial', 'brief_title': 'A different COPD trial'}], 'designs.txt': [{'nct_id': 'NCT00000001', 'allocation': 'RANDOMIZED', 'masking': 'DOUBLE'}]}\nwith patch.object(m, 'open', side_effect=lambda *a, **k: io.StringIO(json.dumps(audit)), create=True), patch.object(m.json, 'dump') as written, patch.object(m.aact_adapter, 'snapshot_dir', return_value='snapshot'), patch.object(m.aact_adapter, 'snapshot', return_value={'id': 'fixture'}), patch.object(m.ic, 'pmid_to_ncts', return_value={}), patch.object(gt, 'held_record', return_value={'title': 'A randomized trial of inhaled treatment in COPD'}), patch.object(m, '_rows', side_effect=lambda snap, name: iter(tables[name])):\n    m.main([])\n    print(written.call_args.args[0]['12345678'])",
+    "expected": "state='NO_UNIQUE_REGISTRATION', ncts=[]: COPD names the disease; the paper provides no evidence identifying the registry trial.",
+    "actual": "state='RECORDED', nct='NCT00000001', allocation='RANDOMIZED', masking='DOUBLE', link='TITLE_ACRONYM_UNIQUE_IN_AACT (copd)' (with the acronym formatted according to ic._fold).",
+    "id": "merge-ede33d9b2:g1#4",
+    "record_id": "mc-10c7b8234c54c924da4c8f213ea2b27a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_chain.py",
+    "function": "drug_vs_placebo",
+    "severity": "P1",
+    "claim": "The placebo test treats standard care as placebo. registry_acronym_identity uses this result to resolve otherwise ambiguous registrations as the sole drug-versus-placebo trial.",
+    "failing_input": "from scripts.g1_identity_chain import drug_vs_placebo\nprint(drug_vs_placebo([('DRUG', 'atorvastatin'), ('OTHER', 'usual care')]))",
+    "expected": "False: usual care is not a placebo intervention.",
+    "actual": "True",
+    "id": "merge-ede33d9b2:g1#5",
+    "record_id": "mc-10c7b8234c54c924da4c8f213ea2b27a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "fda_review_urls",
+    "severity": "P2",
+    "claim": "Every discovery exception is silently converted into an empty document list, making an unavailable FDA service indistinguishable from a successful search finding no reviews.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.g1_regulatory_source import fda_review_urls\nfrom harness import http\nwith patch.object(http, 'get_json', side_effect=TimeoutError('FDA request timed out')):\n    print(fda_review_urls('tocilizumab'))",
+    "expected": "Propagate or explicitly return a discovery failure.",
+    "actual": "[]",
+    "id": "merge-ede33d9b2:g1#6",
+    "record_id": "mc-10c7b8234c54c924da4c8f213ea2b27a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "study_codes",
+    "severity": "P2",
+    "claim": "An unavailable AACT snapshot is cached as an authoritative empty set of study codes. Subsequent calls never retry that NCT, even after the snapshot becomes available.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_regulatory_source as m\nfrom harness import aact\ncache = {}\nwith patch.object(m, '_load', side_effect=lambda p: dict(cache)), patch.object(m, '_dump', side_effect=lambda p, d: cache.update(d)), patch.object(aact, 'snapshot_dir', return_value=None) as snapshot:\n    first = m.study_codes(['NCT00000001'])\n    snapshot.return_value = 'restored-snapshot'\n    second = m.study_codes(['NCT00000001'])\n    print(first, second, snapshot.call_count, cache)",
+    "expected": "The first call reports source unavailability without caching absence; the second attempts to read the restored snapshot.",
+    "actual": "{'NCT00000001': []} {'NCT00000001': []} 1 {'NCT00000001': []}",
+    "id": "merge-ede33d9b2:g1#7",
+    "record_id": "mc-10c7b8234c54c924da4c8f213ea2b27a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_chain.py",
+    "function": "pubmed_acronym_open",
+    "severity": "P2",
+    "claim": "A cached request failure is returned as zero matching papers and suppresses retries even when offline=False.",
+    "failing_input": "import io, json\nfrom unittest.mock import patch\nfrom scripts import g1_identity_chain as m\ncached = json.dumps({'\"ALPHA\"[tiab]': {'error': 'request timed out'}})\nwith patch.object(m.os.path, 'exists', return_value=True), patch('builtins.open', return_value=io.StringIO(cached)):\n    print(m.pubmed_acronym_open('ALPHA', offline=False))",
+    "expected": "Retry the failed online request or expose its failure; do not report a successful empty search.",
+    "actual": "[]; no request is attempted because the query key already exists.",
+    "id": "merge-ede33d9b2:g1#8",
+    "record_id": "mc-10c7b8234c54c924da4c8f213ea2b27a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "acquired_merge",
+    "severity": "P0",
+    "claim": "A shared-PMID alias takes precedence over the target's own NCT, allowing another trial's counts to become its PRIMARY result.",
+    "failing_input": "import g1_tracker as g\nfrom unittest.mock import patch\nva = dict(events_t=1, n_t=100, events_c=2, n_c=100)\nvb = dict(events_t=30, n_t=200, events_c=40, n_c=200)\na = dict(label='Trial A', admitted=dict(kind='TEXT', source='shared report, trial A', value=va))\nb = dict(label='Trial B', admitted=dict(kind='TEXT', source='shared report, trial B', value=vb))\n# This alias map is produced by acquired_rows when A and B share a PMID and A occurs first.\nacq = {'PMID 123': a, 'NCT00000001': a, 'NCT00000002': b}\nx = dict(label='Renamed Trial B', family='PMID 123', route='SECONDARY_SINGLE', g1_countable=True, in_our_pool=False, registry_binding={'candidates': [{'nct': 'NCT00000002'}]})\nwith patch.object(g, 'acquired_rows', return_value=acq):\n    g.acquired_merge('test', [x])\nprint(x['route'], x['our_value'])",
+    "expected": "PRIMARY with Trial B's counts: events_t=30, n_t=200, events_c=40, n_c=200; alternatively refuse an ambiguous shared-report binding.",
+    "actual": "PRIMARY with Trial A's counts: {'events_t': 1, 'n_t': 100, 'events_c': 2, 'n_c': 100}.",
+    "id": "merge-ede33d9b2:g2#1",
+    "record_id": "mc-4cff7cb2987e149c53c728c7d1265952",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "same_comparator_surname_join",
+    "severity": "P1",
+    "claim": "Surname uniqueness overrides explicit conflicting trial identities in the labels.",
+    "failing_input": "from types import SimpleNamespace\nimport g1_tracker as g\nr = SimpleNamespace(trial_label='Smith 2016 (NCT00000002)', findings=[])\ng.same_comparator_surname_join([r], [{'id': 'trial-A', 'label': 'Smith 2015 (NCT00000001)'}], {})",
+    "expected": "{}: different explicit registrations must remain unjoined.",
+    "actual": "{'trial-A': r}; r also receives JOINED_BY_UNIQUE_SURNAME_WITHIN_COMPARATOR.",
+    "id": "merge-ede33d9b2:g2#2",
+    "record_id": "mc-4cff7cb2987e149c53c728c7d1265952",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "analysis_set_or_extension_differs / _spec_components",
+    "severity": "P1",
+    "claim": "Identical named composites are classified as different because declared component counts are recognized only on the registry side.",
+    "failing_input": "import g1_tracker as g\ng.analysis_set_or_extension_differs('Triple Composite Endpoint', 'Triple Composite Endpoint', 'randomised')",
+    "expected": "None: the identical outcome names do not establish an extended composite.",
+    "actual": "\"extended composite: the registry outcome 'Triple Composite Endpoint' declares 3 components; the protocol's 'Triple Composite Endpoint' has 1\"",
+    "id": "merge-ede33d9b2:g2#3",
+    "record_id": "mc-4cff7cb2987e149c53c728c7d1265952",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "registered_blinding",
+    "severity": "P1",
+    "claim": "Missing allocation is converted into a definite negative design verdict. screen_eligibility then treats that verdict as evidence that the trial is not double-blind.",
+    "failing_input": "import g1_tracker as g\nfrom unittest.mock import patch\nwith patch.object(g, '_DESIGNS', {'123': {'state': 'RECORDED', 'masking': 'DOUBLE', 'allocation': None, 'nct': 'NCT00000001'}}):\n    print(g.registered_blinding('123')['blinded'])",
+    "expected": "An unverifiable result, such as None, because randomisation is unknown; no definite negative eligibility verdict.",
+    "actual": "False. In the added screen_eligibility branch, this nonempty registry result produces NOT_ELIGIBLE with the reason 'registry states the trial is not double-blind'.",
+    "id": "merge-ede33d9b2:g2#4",
+    "record_id": "mc-4cff7cb2987e149c53c728c7d1265952",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_trial_acquire.py",
+    "function": "regulatory_evidence / run.one",
+    "severity": "P1",
+    "claim": "A regulatory-source read failure is converted into empty evidence; the acquisition runner ignores the recorded error and can classify the trial as NO_OPEN_SOURCE.",
+    "failing_input": "import g1_trial_acquire as a\nfrom unittest.mock import patch\nwith patch('g1_regulatory_source.regulatory_evidence', side_effect=OSError('snapshot unreadable')):\n    print(a.regulatory_evidence({'slug': 'test'}, ['death']))\n# In run.one, use this returned evidence with ev['aact']={}, held['text']='', and ev['meta_rows']=[].",
+    "expected": "Propagate the read failure or return a distinct acquisition-error state; source absence has not been established.",
+    "actual": "The wrapper returns ([], {'_error': 'snapshot unreadable'}). With the other sources empty, run.one returns state NO_OPEN_SOURCE because it checks only ev.get('regulatory'), not held['reg']['_error'].",
+    "id": "merge-ede33d9b2:g2#5",
+    "record_id": "mc-4cff7cb2987e149c53c728c7d1265952",
+    "verdict": null
+   }
+  ]
+ },
+ "merge-d27c008a1": {
+  "base": "ede33d9b236bcf955b924285c209fb4f48e3b40c",
+  "head": "d27c008a1b790701f5e7d94909a4f1dbfca06ffa",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6c4128e373567017f2ef7e5f28b400aa",
+    "state": "RAN_OK",
+    "files": [
+     "harness/copy_licence.py",
+     "scripts/g1_forest_reader.py",
+     "scripts/g1_lane_meta_titles.py",
+     "scripts/g1_primary_verify.py",
+     "scripts/k_gap_counterfactual.py",
+     "scripts/secondary_meta_build.py"
+    ],
+    "prompt_sha256": "aa52e1ad22c86516744c0114f1fcdaf83168d85471d5769f1792817904f90e25"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_primary_verify.py",
+    "function": "choose_report",
+    "severity": "P1",
+    "claim": "A sole candidate bypasses publication-type and report-title exclusions, so an explicitly identified systematic review is selected as the trial's report.",
+    "failing_input": "from scripts import g1_primary_verify as m\nm.choose_report('tocilizumab-covid19-mortality', {'label': 'A', 'pmids': ['1']}, False, {'1': 'Tocilizumab for COVID-19: a systematic review'}, {'1': ['Review']})",
+    "expected": "No report selected: this candidate is explicitly a review.",
+    "actual": "('1', 'TRIAL_PMIDS_TITLE_NAMES_INTERVENTION')",
+    "id": "merge-d27c008a1:g1#1",
+    "record_id": "mc-6c4128e373567017f2ef7e5f28b400aa",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_primary_verify.py",
+    "function": "choose_report",
+    "severity": "P1",
+    "claim": "An NCT search hit is bound to the requested trial solely because its title names the intervention. The function does not require the paper's own evidence to establish that registration, even when its title names a different registration.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_primary_verify as m\nwith patch.object(m, 'nct_hits', return_value=[('2', 'Tocilizumab for COVID-19: results of trial NCT00000002')]):\n    result = m.choose_report('tocilizumab-covid19-mortality', {'label': 'A', 'ncts': ['NCT00000001'], 'pmids': []}, True, {}, {})\nprint(result)\n# Synthetic identifiers; the search hit can arise from a citation to the queried trial.",
+    "expected": "Do not bind PMID '2' to NCT00000001 without evidence from that paper establishing the association.",
+    "actual": "('2', 'EPMC_NCT_HITS_TITLE_NAMES_INTERVENTION')",
+    "id": "merge-d27c008a1:g1#2",
+    "record_id": "mc-6c4128e373567017f2ef7e5f28b400aa",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_primary_verify.py",
+    "function": "verify",
+    "severity": "P0",
+    "claim": "The timepoint gate accepts any matching time expression anywhere in the span, allowing explicitly 90-day death counts to become PRIMARY_VERIFIED for a 28-day outcome.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_primary_verify as m\nprim = {'events_t': 20, 'n_t': 100, 'events_c': 30, 'n_c': 100, 'span': 'At 90 days, deaths were 20 of 100 in the tocilizumab arm and 30 of 100 in the control arm. An interim visit occurred at 28 days.'}\nwith patch.object(m.smb, 'primary_value', return_value=(prim, 'TYPED_FULLTEXT')):\n    result = m.verify('tocilizumab-covid19-mortality', {'label': 'A'}, False, {}, {'1': 'Tocilizumab trial'}, {'timepoint': '28 days'}, ('1', 'CANDIDATE'))\nprint(result['state'], result['value'])",
+    "expected": "TIMEPOINT_NOT_IN_SPAN, or another refusal: the counts explicitly describe 90-day mortality, not 28-day mortality.",
+    "actual": "PRIMARY_VERIFIED, retaining events_t=20, n_t=100, events_c=30, n_c=100.",
+    "id": "merge-d27c008a1:g1#3",
+    "record_id": "mc-6c4128e373567017f2ef7e5f28b400aa",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_primary_verify.py",
+    "function": "nct_hits / choose_report",
+    "severity": "P1",
+    "claim": "A failed registry-paper search silently becomes an empty result and is classified as REPORT_NOT_FOUND.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_primary_verify as m\nwith patch('harness.http.get_raw', side_effect=TimeoutError('search unavailable')):\n    result = m.choose_report('tocilizumab-covid19-mortality', {'label': 'A', 'pmids': [], 'ncts': ['NCT00000001'], 'acronyms': []}, True, {}, {})\nprint(result)",
+    "expected": "Propagate or record a search failure, keeping it distinguishable from a successful search with no eligible report.",
+    "actual": "(None, 'REPORT_NOT_FOUND')",
+    "id": "merge-d27c008a1:g1#4",
+    "record_id": "mc-6c4128e373567017f2ef7e5f28b400aa",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_primary_verify.py",
+    "function": "main / verify_many",
+    "severity": "P1",
+    "claim": "The shared-report refusal runs before ambiguous candidates are settled. Two trials can subsequently settle on the same PMID and both remain PRIMARY_VERIFIED; main never reapplies the refusal.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_primary_verify as m\nimport g1_two_source_sweep as sw\nslug = 'tocilizumab-covid19-mortality'\nts = [{'label': 'A', 'ncts': ['NCT00000001'], 'pmids': []}, {'label': 'B', 'ncts': ['NCT00000002'], 'pmids': []}]\ndef choose(slug, t, run, titles, pubtypes):\n    t['_cands'] = ['11', '12']\n    return None, \"REPORT_AMBIGUOUS:['11', '12']\"\ndef verify(slug, t, run, runs, titles, spec, chosen):\n    p, basis = chosen\n    r = {'label': t['label'], 'ncts': t['ncts'], 'report_pmid': p, 'report_basis': basis, 'state': 'PRIMARY_VERIFIED' if p == '11' else 'NO_PRIMARY_VALUE:NOT_REPORTED'}\n    if p == '11':\n        r['value'] = {'events_t': 2, 'n_t': 100, 'events_c': 3, 'n_c': 100}\n    return r\nwith patch.object(sw, 'targets', return_value={slug: ts}), patch.object(m, 'choose_report', side_effect=choose), patch.object(m, 'verify', side_effect=verify), patch.object(m.smb, 'spec_of', return_value={}), patch.object(m.smb, '_trial_text', return_value={}), patch.object(m.gfr, '_j', return_value={}), patch.object(m.gfr, '_save') as save:\n    m.main([slug])\n    print([(r['label'], r['report_pmid'], r['state']) for r in save.call_args.args[1]['trials']])",
+    "expected": "Both trials refused as REPORT_CLAIMED_BY_2_TRIALS:11 after settlement, with their accepted values removed.",
+    "actual": "[('A', '11', 'PRIMARY_VERIFIED'), ('B', '11', 'PRIMARY_VERIFIED')]",
+    "id": "merge-d27c008a1:g1#5",
+    "record_id": "mc-6c4128e373567017f2ef7e5f28b400aa",
+    "verdict": null
+   }
+  ]
+ },
+ "merge-bdfb19729": {
+  "base": "33960ddb417d881a9cb4559775cac4bcebc85fb4",
+  "head": "bdfb1972984d24bfb9d18986fb8c20d47dd9e3ed",
+  "runs": {
+   "g1": {
+    "record_id": "mc-526940f5b163ca9571e23e56b79b6dc1",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "c1d16a3e12ec14b2e2fc63b596780434acfce25386f778014ecb665e8ea152f0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "_neg",
+    "severity": "P2",
+    "claim": "Negating a printed number with an explicit positive sign produces an invalid numeric string. The orientation conversion can therefore corrupt effects or confidence bounds containing leading '+'.",
+    "failing_input": "_neg('+1.7')",
+    "expected": "'-1.7'",
+    "actual": "'-+1.7'; converting this result with float() raises ValueError.",
+    "id": "merge-bdfb19729:g1#1",
+    "record_id": "mc-526940f5b163ca9571e23e56b79b6dc1",
+    "verdict": null
+   }
+  ]
+ },
+ "merge-2114f268c": {
+  "base": "bdfb1972984d24bfb9d18986fb8c20d47dd9e3ed",
+  "head": "2114f268c4d7fabdadac1f5bc08f896265e9e4c3",
+  "runs": {
+   "g1": {
+    "record_id": "mc-57e6c40415f98be8dcb08ef4df2eb5d6",
+    "state": "RAN_OK",
+    "files": [
+     "reproducible_ai/model_call_live.py",
+     "reproducible_ai/record_licence.py",
+     "scripts/g1_regulatory_source.py",
+     "scripts/g1_tracker.py",
+     "scripts/g1_trial_acquire.py"
+    ],
+    "prompt_sha256": "6cf97a2388cc79e897308b94cfbf2679e38fc60368a641c976212b97e7718004"
+   },
+   "g2": {
+    "record_id": "mc-4e836f0b65a47287b0e667c6a55f42a2",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_two_source_sweep.py"
+    ],
+    "prompt_sha256": "1f7c18f2ff46e38ffbcfdc793a3d9205a10f3672a11350131f825cadf00f4ab7"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "typed_counts",
+    "severity": "P0",
+    "claim": "Arm ordering uses the first comparator-term occurrence, even when it belongs to the intervention regimen. This reverses the extracted treatment and control counts.",
+    "failing_input": "typed_counts('Standard care + dexamethasone | Standard care\\nMortality 10/100 (10%) 20/100 (20%)', ['mortality'], ['dexamethasone'], ['standard care'])",
+    "expected": "({'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100}, 'Mortality 10/100 (10%) 20/100 (20%)'), or None if column boundaries cannot be established.",
+    "actual": "({'events_t': 20, 'n_t': 100, 'events_c': 10, 'n_c': 100}, 'Mortality 10/100 (10%) 20/100 (20%)')",
+    "id": "merge-2114f268c:g1#1",
+    "record_id": "mc-57e6c40415f98be8dcb08ef4df2eb5d6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "typed_counts",
+    "severity": "P0",
+    "claim": "Arithmetic corroboration does not establish that numerators are observed counts. Explicit Kaplan–Meier estimates are accepted as death counts.",
+    "failing_input": "typed_counts('Drug | Placebo\\nMortality (Kaplan-Meier estimates per 100, not observed counts): 10/100 (10%) 20/100 (20%)', ['mortality'], ['drug'], ['placebo'])",
+    "expected": "None: the row explicitly contains estimates rather than observed event counts.",
+    "actual": "({'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100}, 'Mortality (Kaplan-Meier estimates per 100, not observed counts): 10/100 (10%) 20/100 (20%)')",
+    "id": "merge-2114f268c:g1#2",
+    "record_id": "mc-57e6c40415f98be8dcb08ef4df2eb5d6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "typed_counts",
+    "severity": "P0",
+    "claim": "Substring outcome matching accepts a composite endpoint as death counts. No subsequent endpoint validation occurs in the regulatory branch of typed_first.",
+    "failing_input": "typed_counts('Drug | Placebo\\nDeath or hospitalisation 10/100 (10%) 20/100 (20%)', ['death'], ['drug'], ['placebo'])",
+    "expected": "None: counts for death or hospitalisation do not establish death counts.",
+    "actual": "({'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100}, 'Death or hospitalisation 10/100 (10%) 20/100 (20%)')",
+    "id": "merge-2114f268c:g1#3",
+    "record_id": "mc-57e6c40415f98be8dcb08ef4df2eb5d6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "typed_counts",
+    "severity": "P0",
+    "claim": "The extractor ignores explicitly different denominator kinds. Equal population sizes also prevent the downstream total-N check from detecting this mismatch.",
+    "failing_input": "typed_counts('Drug (randomised population) | Placebo (safety population, grouped by treatment received)\\nMortality 10/100 (10%) 20/100 (20%)', ['mortality'], ['drug'], ['placebo'])",
+    "expected": "None: randomised and safety populations cannot be combined into the requested randomised-population result.",
+    "actual": "({'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100}, 'Mortality 10/100 (10%) 20/100 (20%)')",
+    "id": "merge-2114f268c:g1#4",
+    "record_id": "mc-57e6c40415f98be8dcb08ef4df2eb5d6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "_pairs / typed_counts",
+    "severity": "P0",
+    "claim": "Discarding cells that fail percentage validation loses their column positions. If two other cells survive, typed_counts assigns them to the intervention and comparator, including an overall column.",
+    "failing_input": "typed_counts('Drug | Placebo | Overall\\nMortality 10/100 (9%) 20/100 (20%) 30/200 (15%)', ['mortality'], ['drug'], ['placebo'])",
+    "expected": "None: the intervention cell fails corroboration, and the overall cell is not a comparator arm.",
+    "actual": "({'events_t': 20, 'n_t': 100, 'events_c': 30, 'n_c': 200}, 'Mortality 10/100 (9%) 20/100 (20%) 30/200 (15%)')",
+    "id": "merge-2114f268c:g1#5",
+    "record_id": "mc-57e6c40415f98be8dcb08ef4df2eb5d6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_trial_acquire.py",
+    "function": "unpaywall_evidence",
+    "severity": "P2",
+    "claim": "Acquisition exceptions, including corrupt-cache errors, silently become an absent-text result. The surrounding evidence-error handler never receives the failure.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.g1_trial_acquire import unpaywall_evidence\nwith patch('reproducible_ai.record_licence.pmid_doi', return_value='10.1234/example'), patch('kgap.k_gap.unpaywall_text', side_effect=ValueError('corrupt cache')):\n    result = unpaywall_evidence('123', ['mortality'])",
+    "expected": "An explicit acquisition-error result or propagated ValueError, distinguishable from unavailable full text.",
+    "actual": "result == ('', '', None, '10.1234/example', None)",
+    "id": "merge-2114f268c:g1#6",
+    "record_id": "mc-57e6c40415f98be8dcb08ef4df2eb5d6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "_nice_html / nice_guidance",
+    "severity": "P2",
+    "claim": "A failed NICE search is classified identically to a successful search with no guidance. The exception is swallowed and discovery returns an empty list.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.g1_regulatory_source import nice_guidance\nwith patch('harness.http.get_raw', side_effect=TimeoutError('offline')):\n    result = nice_guidance('dexamethasone')",
+    "expected": "An explicit discovery failure or propagated TimeoutError, distinguishable from zero search results.",
+    "actual": "result == []",
+    "id": "merge-2114f268c:g1#7",
+    "record_id": "mc-57e6c40415f98be8dcb08ef4df2eb5d6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_two_source_sweep.py",
+    "function": "main — caption-selected counts scheduling",
+    "severity": "P2",
+    "claim": "A stale RAN_OK counts read prevents scheduling its replacement. The scheduling guard checks only state, whereas apply_counts rejects that same read because its image digest differs.",
+    "failing_input": "Execute the added caption-selected loop with s='topic', fig={'topic': {'meta': {'image_sha256': 'a'*64}}}, runs={'topic::meta': {'state': 'RAN_OK', 'image_sha256': 'a'*64}, 'topic::meta::counts': {'state': 'RAN_OK', 'image_sha256': 'b'*64}}, comp={'topic': []}, spec_s={'estimand': 'RR'}, and todo=[]. Have smb.figure_rows return ([SimpleNamespace(measure='OR')], {}) if called.",
+    "expected": "Schedule a replacement counts read for topic::meta because the held counts belong to a different image.",
+    "actual": "The loop continues without calling figure_rows; todo remains []. apply_counts with this counts record and the current image digest returns None, so the stale record both supplies no counts and blocks replacement.",
+    "id": "merge-2114f268c:g2#1",
+    "record_id": "mc-4e836f0b65a47287b0e667c6a55f42a2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_two_source_sweep.py",
+    "function": "main — caption-selected figure_rows exception handler",
+    "severity": "P2",
+    "claim": "The broad exception handler silently converts a failed figure read into an empty row list, making failure indistinguishable from having no rows requiring counts.",
+    "failing_input": "Execute the added caption-selected loop with s='topic', fig={'topic': {'meta': {'image_sha256': 'a'*64}}}, runs={'topic::meta': {'state': 'RAN_OK', 'image_sha256': 'a'*64}}, comp={'topic': []}, spec_s={'estimand': 'RR'}, and todo=[]. Set smb.comparator_pmid=lambda _: None and smb.figure_rows=Mock(side_effect=FileNotFoundError('held-record.json')).",
+    "expected": "Propagate the error or explicitly record a failed read so the missing evidence is visible.",
+    "actual": "FileNotFoundError is swallowed, fr becomes [], wants_counts returns False, and todo remains [] without an error or failure record from this handler.",
+    "id": "merge-2114f268c:g2#2",
+    "record_id": "mc-4e836f0b65a47287b0e667c6a55f42a2",
+    "verdict": null
+   }
+  ]
+ },
+ "merge-c78ad4d29": {
+  "base": "2114f268c4d7fabdadac1f5bc08f896265e9e4c3",
+  "head": "c78ad4d29bae77c17004efdc1581b1985a0c3239",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b740413d3e918a6662193423df514596",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_citing_targets.py",
+     "scripts/g1_forest_reader.py",
+     "scripts/g1_import_lanes.py",
+     "scripts/g1_lane_meta_titles.py",
+     "scripts/secondary_meta_build.py"
+    ],
+    "prompt_sha256": "844984cd641466c1e4a437398bd4145e98087796c5aa1694e9759365f09d7e21"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/secondary_meta_build.py",
+    "function": "meta_timepoint",
+    "severity": "P1",
+    "claim": "The new variable-timepoint guard scans unrelated outcomes and reporting statements, rejecting an explicitly stated, unambiguous mortality timepoint.",
+    "failing_input": "meta_timepoint('The primary outcome was 28-day mortality. Adverse events were reported by each trial.')",
+    "expected": "'28 days'",
+    "actual": "None: _VARIABLE_TP matches 'reported by each trial', so the function returns before examining the mortality timepoint.",
+    "id": "merge-c78ad4d29:g1#1",
+    "record_id": "mc-b740413d3e918a6662193423df514596",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_citing_targets.py",
+    "function": "citing",
+    "severity": "P2",
+    "claim": "A JSON error response without search results is cached as an empty search. Subsequent calls return that cached failure without retrying, and discover does not classify the report as NOT_SEARCHED.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.g1_citing_targets import citing\nrec = {}\nwith patch('harness.http.get_raw', return_value=(200, b'{\"error\":\"backend unavailable\"}')) as get, patch('scripts.g1_citing_targets.time.sleep'):\n    citing('123', True, rec)\n    citing('123', True, rec)\n    print(rec['123']['hitCount'], rec['123']['metas'], get.call_count)",
+    "expected": "Reject the invalid search response; leave '123' uncached and return None (or raise an explicit error). A subsequent call should retry.",
+    "actual": "Prints: None [] 1. The malformed response becomes a cached, truthy search record with no metas.",
+    "id": "merge-c78ad4d29:g1#2",
+    "record_id": "mc-b740413d3e918a6662193423df514596",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_lane_meta_titles.py",
+    "function": "title_of",
+    "severity": "P2",
+    "claim": "A JSON error response is persisted as an absent title. Because the saved entry is truthy even when its title is None, future run=True calls never retry retrieval.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_lane_meta_titles as m\nheld = {'titles': {}}\nwith patch.object(m.os.path, 'exists', return_value=True), patch.object(m.gfr, '_j', return_value=held), patch.object(m.gfr, '_save'), patch('harness.http.get_raw', return_value=(200, b'{\"error\":\"backend unavailable\"}')) as get:\n    print(m.title_of('123', True))\n    print(m.title_of('123', True))\n    print(get.call_count, held['titles']['123']['title'])",
+    "expected": "Treat the malformed response as a retrieval failure without persisting an absent-title entry; subsequent run=True calls should retry.",
+    "actual": "Prints None, None, then '1 None'. The first call invokes _save with title=None; the second returns the cached None without contacting the service.",
+    "id": "merge-c78ad4d29:g1#3",
+    "record_id": "mc-b740413d3e918a6662193423df514596",
+    "verdict": null
+   }
+  ]
+ },
+ "merge-5824d5844": {
+  "base": "4ca5401e8cee5a05f5703763fc82bd0e7de423d4",
+  "head": "5824d58440e2a8aa392f5ee69a7565af52391e1e",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fac3f01b036f007424c983508e9dadf0",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_served_pool_notices.py",
+     "scripts/signing_packet.py"
+    ],
+    "prompt_sha256": "704bf30b4fd63b0e7187c725f867d82920f99f4c2e4fd60f84ef5f3eca365c12"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_served_pool_notices.py",
+    "function": "topic_notice",
+    "severity": "P0",
+    "claim": "The served-pool control never compares confidence intervals. A reconstruction with the correct k and estimate but materially different uncertainty passes and supplies the studies used for the new result, contrary to the stated control contract.",
+    "failing_input": "Run from the repository root:\nfrom types import SimpleNamespace as NS\nfrom unittest.mock import patch\nfrom scripts import g1_served_pool_notices as m\nfrom harness import pipeline\nbefore = dict(k=1, estimate=1.0, ci_low=0.8, ci_high=1.2)\nx = dict(label='new', family='new', route='PRIMARY')\nwith patch.object(m, 'candidates', return_value=([x], [])), patch.object(m.fn, 'served', return_value={'result': before}), patch.object(m.rc, 'result_tuple', side_effect=lambda r: r), patch.object(m.fn, 'served_studies', return_value=[NS()]), patch.object(m.synth, 'pool', return_value=NS(k=1, estimate=1.0, ci_low=0.1, ci_high=10.0)), patch.object(m, 'served_identity', return_value=(set(), set())), patch.object(m.fn, 'fill_study', return_value=(NS(), None)), patch.object(pipeline, '_pool_result', return_value=dict(k=2, estimate=1.0, ci_low=0.1, ci_high=10.0)):\n    notice, excluded = m.topic_notice({'slug': 'test'})\n    print(notice is not None, excluded)",
+    "expected": "Reject the topic with a control-failed exclusion because both CI endpoints differ by more than 1e-3.",
+    "actual": "By inspection, prints True [] and returns a notice. The comparison iterates only over ('estimate',). Reproduction was not executed because shell execution was blocked.",
+    "id": "merge-5824d5844:g1#1",
+    "record_id": "mc-fac3f01b036f007424c983508e9dadf0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_served_pool_notices.py",
+    "function": "topic_notice",
+    "severity": "P0",
+    "claim": "An empty reconstruction of a nonempty served pool bypasses the control entirely. The resulting 'after' pool contains only entering trials, silently dropping the served trials while reporting left_pool=[].",
+    "failing_input": "Run from the repository root:\nfrom types import SimpleNamespace as NS\nfrom unittest.mock import patch\nfrom scripts import g1_served_pool_notices as m\nfrom harness import pipeline\nbefore = dict(k=2, estimate=1.0, ci_low=0.8, ci_high=1.2)\nx = dict(label='new', family='new', route='PRIMARY')\nwith patch.object(m, 'candidates', return_value=([x], [])), patch.object(m.fn, 'served', return_value={'result': before}), patch.object(m.rc, 'result_tuple', side_effect=lambda r: r), patch.object(m.fn, 'served_studies', return_value=[]), patch.object(m.synth, 'pool') as control, patch.object(m, 'served_identity', return_value=(set(), set())), patch.object(m.fn, 'fill_study', return_value=(NS(), None)), patch.object(pipeline, '_pool_result', side_effect=lambda studies, **kw: dict(k=len(studies), estimate=0.5, ci_low=0.3, ci_high=0.9)):\n    notice, excluded = m.topic_notice({'slug': 'test'})\n    print(control.called, notice['before']['k'], notice['after']['k'], notice['left_pool'], excluded)",
+    "expected": "Refuse the topic because zero reconstructed studies cannot reproduce a served result with k=2.",
+    "actual": "By inspection, prints False 2 1 [] []. A notice is generated after dropping both served studies. Reproduction was not executed because shell execution was blocked.",
+    "id": "merge-5824d5844:g1#2",
+    "record_id": "mc-fac3f01b036f007424c983508e9dadf0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_served_pool_notices.py",
+    "function": "served_identity",
+    "severity": "P1",
+    "claim": "Served trial IDs that are already NCT identifiers are treated as PMIDs and never added directly to the served NCT set. A candidate PMID linked to that same NCT consequently passes the already-served identity check.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_served_pool_notices as m\nwith patch.object(m, '_STORE', {'33933206': [('NCT04381936', 'result')]}), patch.object(m, '_PN', {}):\n    pmids, ncts = m.served_identity({'trials': [{'id': 'NCT04381936'}]})\n    x = {'family': 'PMID 33933206'}\n    fam = str(x['family']).replace('PMID ', '').strip()\n    print(pmids, ncts, (fam in pmids) or bool(m.identity_ncts(x) & ncts))",
+    "expected": "The served NCT set contains NCT04381936 and the identity check returns True, excluding the already-served trial.",
+    "actual": "By inspection, prints {'NCT04381936'} set() False. The candidate is classified as outside the served pool. Reproduction was not executed because shell execution was blocked.",
+    "id": "merge-5824d5844:g1#3",
+    "record_id": "mc-fac3f01b036f007424c983508e9dadf0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_served_pool_notices.py",
+    "function": "_ncts_of_pmid",
+    "severity": "P2",
+    "claim": "Missing identity-cache files silently become empty mappings. This conflates unavailable identity evidence with a verified absence of links, allowing topic_notice to continue its duplicate check without the required evidence.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_served_pool_notices as m\nwith patch.object(m, '_STORE', None), patch.object(m, '_PN', None), patch.object(m.os.path, 'exists', return_value=False):\n    print(m._ncts_of_pmid('33933206'))",
+    "expected": "An explicit unavailable-cache error or blocking status; the caller must not treat missing evidence as proof of no identity link.",
+    "actual": "By inspection, returns and prints set(), with both caches initialized to empty dictionaries and no warning or blocker. Reproduction was not executed because shell execution was blocked.",
+    "id": "merge-5824d5844:g1#4",
+    "record_id": "mc-fac3f01b036f007424c983508e9dadf0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/signing_packet.py",
+    "function": "presented_in",
+    "severity": "P2",
+    "claim": "An explicitly requested exclusion packet that does not exist silently contributes no hashes. A typo or unavailable packet therefore disables its exclusions and permits notices to be presented again.",
+    "failing_input": "from pathlib import Path\nfrom unittest.mock import patch\nfrom scripts.signing_packet import presented_in\nwith patch.object(Path, 'exists', return_value=False):\n    print(presented_in(Path('pending-packet.md')))",
+    "expected": "Raise an explicit missing-packet error so build cannot proceed with an unfulfilled --exclude-packet constraint.",
+    "actual": "By inspection, prints set(). build merges that empty set and continues without excluding any notices from the missing packet. Reproduction was not executed because shell execution was blocked.",
+    "id": "merge-5824d5844:g1#5",
+    "record_id": "mc-fac3f01b036f007424c983508e9dadf0",
+    "verdict": null
+   }
+  ]
+ },
+ "captain-62d4018f7": {
+  "base": "5824d58440e2a8aa392f5ee69a7565af52391e1e",
+  "head": "62d4018f7e6d2e1836b55053a67967cdc0b3e686",
+  "runs": {
+   "g1": {
+    "record_id": "mc-81599f6d185b46abea649f560441471a",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "harness/trial_family.py",
+     "scripts/build_served_pool_additions.py"
+    ],
+    "prompt_sha256": "383bc5c3f906bb80f813e7b973c05e6893253e45fc2469354bc2df3c48ccb5dc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "pipeline_row",
+    "severity": "P0",
+    "claim": "The count gate checks numeric presence without binding numbers to treatment and control. Reversed arm counts pass and become pooling inputs.",
+    "failing_input": "from unittest.mock import patch\nimport scripts.build_served_pool_additions as m\nx = {'family': 'PMID 1', 'label': 'Trial', 'route': 'PRIMARY', 'span': 'Treatment: 20 deaths among 100 randomised participants. Control: 10 deaths among 100 randomised participants.'}\nv = {'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100}\nwith patch.object(m.sp, 'value_of', return_value=v), patch.object(m, '_acquired_spans', return_value=[]):\n    row, why = m.pipeline_row('test', x, 'RR')",
+    "expected": "Reject the tracker values because they contradict the arm assignments in the quotation. The source supports treatment 20/100 and control 10/100, RR=2.",
+    "actual": "Returns a row with ai=10, n1i=100, ci=20, n2i=100 and why=None: the reversed counts imply RR=0.5. Both _has calls succeed on the same unordered set of numbers.",
+    "id": "captain-62d4018f7:g1#1",
+    "record_id": "mc-81599f6d185b46abea649f560441471a",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_pool_additions.py",
+    "function": "_code / reconcile",
+    "severity": "P1",
+    "claim": "Any uncoded machine absence whose reason starts with 'no ' becomes a supersedable missing-value absence, even when the reason explicitly refuses the required timepoint.",
+    "failing_input": "from harness.served_pool_additions import reconcile\nt = {'id': 'PMID 1', 'provenance': 'served_pool_signed_notice'}\na = {'id': 'PMID 1', 'absent_kind': 'machine_absent', 'reason': 'no compatible timepoint: only 30-day mortality reported; 1-year mortality required'}\nreconcile([t], [a])",
+    "expected": "([], [a]): preserve the timepoint refusal and drop the added trial, as the reconciliation contract requires.",
+    "actual": "Keeps t and returns an empty absence list. Its supersedes_absence entry classifies the refusal as MACHINE_ABSENT_VALUE_NOT_FOUND.",
+    "id": "captain-62d4018f7:g1#2",
+    "record_id": "mc-81599f6d185b46abea649f560441471a",
+    "verdict": null
+   },
+   {
+    "file": "harness/trial_family.py",
+    "function": "_row_report",
+    "severity": "P1",
+    "claim": "family_report_id overrides a row's own report identity for every provenance, although the documented exception is restricted to registry-keyed signed additions. The changed callers consequently allow ordinary paper rows to attach to another paper's family.",
+    "failing_input": "from harness.trial_family import _row_report\n_row_report({'id': 'PMID 1', 'family_report_id': '2', 'provenance': 'abstract'})",
+    "expected": "Return '1', or reject the conflicting identity. This ordinary PMID row has no evidence authorizing report 2 as its identity.",
+    "actual": "Returns '2'. The changed family-attachment lookups therefore select report 2's family instead of report 1's.",
+    "id": "captain-62d4018f7:g1#3",
+    "record_id": "mc-81599f6d185b46abea649f560441471a",
+    "verdict": null
+   }
+  ]
+ },
+ "captain-7bf198c12": {
+  "base": "de7149eef70ac0d887c880125401b69462151624",
+  "head": "7bf198c12404cf1e6a144e6b555995c719d89c79",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7dec0035be0352bbc7d45fdd7ab2435a",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/secondary_meta_build.py"
+    ],
+    "prompt_sha256": "519b701aa56e46c4bf7b253a45065aa8d0ccff46a92b266ad39b23046c3a8c3a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "name_letter_units_by_comment_on",
+    "severity": "P1",
+    "claim": "Failed revalidation preserves a scope exclusion whenever its existing scope_difference has a truthy via_comment_on. An ambiguous CommentOn relationship therefore remains classified as a resolved scope difference, despite failing the single-edge requirement.",
+    "failing_input": "import sys\nsys.path.insert(0, 'scripts')\nimport g1_tracker as g\nfrom kgap import comment_on as co\nfrom unittest.mock import patch\nx = {'label': 'Example', 'family': 'PMID 200', 'cited_as': {'pmid': '100', 'comment_on': '200'}, 'scope_difference': {'kind': 'PROTOCOL_SCOPE_DIFFERENCE', 'via_comment_on': {'letter': '100', 'article': '200'}}}\nwith patch.object(g, 'is_matched', return_value=False), patch.object(g, 'held_record', return_value={'pubtypes': ['Letter']}), patch.object(co, 'record', return_value={'comment_on': ['200', '201']}):\n    g.name_letter_units_by_comment_on('example', {}, [x], {}, [])\nprint(x['scope_difference'])",
+    "expected": "scope_difference becomes None because there are two CommentOn targets; the unit remains an open gap with an ambiguity explanation.",
+    "actual": "scope_difference remains {'kind': 'PROTOCOL_SCOPE_DIFFERENCE', 'via_comment_on': {'letter': '100', 'article': '200'}}. unnamed() does nothing because via_comment_on is truthy.",
+    "id": "captain-7bf198c12:g1#1",
+    "record_id": "mc-7dec0035be0352bbc7d45fdd7ab2435a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "name_letter_units_by_comment_on",
+    "severity": "P1",
+    "claim": "Any cited_as.pmid is now treated as a CommentOn letter, even without a comment_on relationship or identity chain. This withdraws an existing ordinary article scope exclusion merely because the cited article is not a letter.",
+    "failing_input": "import sys\nsys.path.insert(0, 'scripts')\nimport g1_tracker as g\nfrom unittest.mock import patch\nx = {'label': 'Example', 'family': 'PMID 200', 'cited_as': {'pmid': '200'}, 'scope_difference': {'kind': 'PROTOCOL_SCOPE_DIFFERENCE', 'rule_id': 'POPULATION'}}\nwith patch.object(g, 'is_matched', return_value=False), patch.object(g, 'held_record', return_value={'pubtypes': ['Randomized Controlled Trial']}):\n    g.name_letter_units_by_comment_on('example', {}, [x], {}, [])\nprint(x)",
+    "expected": "Preserve the existing scope_difference: this unit has no CommentOn re-point, so letter-specific revalidation does not apply.",
+    "actual": "scope_difference becomes None, blocker becomes \"IDENTIFICATION:COMMENT_ON_NOT_ROW_BOUND (the unit's record is not a letter/comment)\", and comment_on_unnamed becomes {'letter': '200', 'why': \"the unit's record is not a letter/comment\"}.",
+    "id": "captain-7bf198c12:g1#2",
+    "record_id": "mc-7dec0035be0352bbc7d45fdd7ab2435a",
+    "verdict": null
+   }
+  ]
+ },
+ "captain-33960ddb4": {
+  "base": "7bf198c12404cf1e6a144e6b555995c719d89c79",
+  "head": "33960ddb417d881a9cb4559775cac4bcebc85fb4",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0d500af4b5b2f1ffbad103554e9a3a94",
+    "state": "RAN_OK",
+    "files": [
+     "reproducible_ai/model_call_live.py",
+     "reproducible_ai/model_source.py"
+    ],
+    "prompt_sha256": "ce52c4db8d97a10206edf2a04f3082f159efc6ba7aaba9e6e3f6f55eac7d7a7a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/model_source.py",
+    "function": "redact_private",
+    "severity": "P2",
+    "claim": "Any path containing 'mcall-' bypasses redaction, without checking whether it belongs to the call's work directory. Unrelated private paths survive unchanged.",
+    "failing_input": "redact_private(r'C:\\private\\mcall-notes\\secret.txt', owner_lines=[])",
+    "expected": "('<outside-workdir>/secret.txt', 1)",
+    "actual": "('C:\\\\private\\\\mcall-notes\\\\secret.txt', 0)",
+    "id": "captain-33960ddb4:g1#1",
+    "record_id": "mc-0d500af4b5b2f1ffbad103554e9a3a94",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/model_source.py",
+    "function": "redact_private",
+    "severity": "P2",
+    "claim": "The path regex stops at spaces, exposing the remaining private directory hierarchy while reporting successful redaction.",
+    "failing_input": "redact_private(r'<outside-workdir>/Jane Doe\\private\\secret.txt', owner_lines=[])",
+    "expected": "('<outside-workdir>/secret.txt', 1)",
+    "actual": "('<outside-workdir>/Jane Doe\\\\private\\\\secret.txt', 1)",
+    "id": "captain-33960ddb4:g1#2",
+    "record_id": "mc-0d500af4b5b2f1ffbad103554e9a3a94",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/model_source.py",
+    "function": "owner_instruction_lines",
+    "severity": "P2",
+    "claim": "Permission errors reading instruction files silently become an empty instruction list. That failure is cached, allowing subsequent records to publish instruction text without attempting another read.",
+    "failing_input": "from unittest.mock import patch\nfrom reproducible_ai import model_source as m\nm._OWNER_LINES = None\nwith patch.object(m.Path, 'read_text', side_effect=PermissionError('denied')):\n    print(m.owner_instruction_lines())\nprint(m._OWNER_LINES)",
+    "expected": "An explicit read failure that prevents publication with incomplete redaction; the cache remains uninitialized.",
+    "actual": "Prints [] twice: access failure is represented and cached as absence.",
+    "id": "captain-33960ddb4:g1#3",
+    "record_id": "mc-0d500af4b5b2f1ffbad103554e9a3a94",
+    "verdict": null
+   }
+  ]
+ }
+}
