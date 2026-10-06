@@ -78,3 +78,13 @@ def test_a_later_skip_never_erases_an_accepted_recorded_result():
     assert sec["meta_results"]["t::1"]["state"] == "ACCEPTED"
     assert sec["meta_results"]["t::1"]["later_skip"] == {"why": "NO_OUTCOME_FOREST_FIGURE"}
     assert "t::1" not in sec["meta_skipped"] and sec["meta_skipped"]["t::2"] == {"why": "NO_JATS"}
+
+
+def test_a_wrong_intervention_verdict_still_refuses_an_accepted_figure():
+    # 6 Oct: the restore above also kept corticosteroids 35343397 (an IL-6 antagonist meta) and tocilizumab 35197981
+    # (convalescent plasma) ACCEPTED. Failing to re-select a figure is not a verdict; INTERVENTION_NOT_THE_TOPICS is a
+    # gate's verdict about the figure itself and must win
+    sec = {"results": {}, "skipped": {}, "meta_results": {"t::1": {"state": "ACCEPTED", "rows": 9}}, "meta_skipped": {}}
+    gfr.merge_skips(sec, {"t::1": "INTERVENTION_NOT_THE_TOPICS"})
+    assert "t::1" not in sec["meta_results"]
+    assert sec["meta_skipped"]["t::1"] == "INTERVENTION_NOT_THE_TOPICS"

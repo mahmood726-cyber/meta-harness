@@ -2164,14 +2164,19 @@ def intervention_skip(its, skipped, run):
     return kept
 
 
+GATE_VERDICT_SKIPS = ("INTERVENTION_NOT_THE_TOPICS",)
+
+
 def merge_skips(sec, skipped):
     """A key this run skipped goes to (meta_)skipped -- UNLESS an earlier run ACCEPTED it: an accepted result rests on
     its recorded readings and is never erased by a later failure to re-select its figure (ae9a3075 dropped tocilizumab
-    33161150 / 34019122 that way); the later skip is kept beside it. Admission gates still decide its rows."""
+    33161150 / 34019122 that way); the later skip is kept beside it. Admission gates still decide its rows.
+    A skip that is a GATE VERDICT about the figure itself (INTERVENTION_NOT_THE_TOPICS) is not a failure to re-select:
+    it refuses the figure even when an earlier run accepted it."""
     for k, v in skipped.items():
         r, s = ("results", "skipped") if "::" not in k else ("meta_results", "meta_skipped")
         prev = sec[r].get(k)
-        if prev and prev.get("state") in ("ACCEPTED", SECOND_SOURCE_ONLY):
+        if prev and prev.get("state") in ("ACCEPTED", SECOND_SOURCE_ONLY) and v not in GATE_VERDICT_SKIPS:
             prev["later_skip"] = v
             sec[s].pop(k, None)
             continue
