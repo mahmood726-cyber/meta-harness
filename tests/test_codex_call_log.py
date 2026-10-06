@@ -27,14 +27,15 @@ def test_a_successful_read_is_logged_with_the_file_and_the_prompt_is_replaced_by
     # the read is OUTSIDE the work directory (a user's global AGENTS.md): its path keeps only the file name and the
     # transcript, which may echo what was read ('# AGENTS'), is withheld with its digest (4 Oct: a private INDEX.md
     # head landed in a committed lane log this way)
-    assert f["files_read"] == ["<outside-workdir>/AGENTS.md"] and f["outside_workdir_reads"] == 1
-    assert f["transcript_redacted"].startswith("<withheld:") and "# AGENTS" not in f["transcript_redacted"]
+    assert f["files_read"] == ["<local-path>/AGENTS.md"] and f["outside_workdir_reads"] == 1   # folders dropped
+    # the header is kept; the body (tool output that may echo what was read) is replaced by its digest
+    assert "<client transcript body sha256 " in f["transcript_redacted"] and "# AGENTS" not in f["transcript_redacted"]
     assert "Label these sentences." not in f["transcript_redacted"] and "mcall-abc123" not in f["transcript_redacted"]
     assert "mahmo" not in json.dumps(f)
 
 
 def test_an_in_workdir_read_keeps_the_transcript_with_the_prompt_replaced_by_its_digest():
-    ok = OK_EXEC.replace("C:\\Users\\mahmo\\.claude\\AGENTS.md", "LANE_CONTEXT.md")
+    ok = OK_EXEC.replace("X:\\client\\AGENTS.md", "LANE_CONTEXT.md")   # the fixture's path (scrubbed from a private one)
     f = live.transcript_facts(ok, PROMPT)
     assert f["outside_workdir_reads"] == 0 and f["files_read"] == ["LANE_CONTEXT.md"]
     assert "Label these sentences." not in f["transcript_redacted"] and "<prompt sha256" in f["transcript_redacted"]
