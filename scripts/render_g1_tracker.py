@@ -175,8 +175,31 @@ def _named(rec: dict) -> set[str]:
     return {str(d["trial"]).strip().lower() for d in rows if d.get("trial")}
 
 
-def recompute(rec: dict) -> dict:
-    """The four criteria and the per-trial counting, recomputed from the tracker file."""
+SWITCH_SIGNATURES = Path("registry") / "comparator_switch_signatures.json"
+
+
+def comparator_switch(rec: dict, root: Path = ROOT) -> dict | None:
+    """None when the topic is matched against its SERVED comparator (docs/reviews/<slug>/review.json comparator.pmid).
+    Otherwise {from, to, signed}: a replaced comparator counts only once Mahmood has signed that switch
+    (registry/comparator_switch_signatures.json, packet V8). A topic with no served page is not on the page at all
+    (table() refuses a served topic with no tracker row), so it carries no switch."""
+    slug = rec.get("slug")
+    rp = root / "docs" / "reviews" / str(slug) / "review.json"
+    served = None
+    if rp.is_file():
+        served = str((json.loads(rp.read_text(encoding="utf-8")).get("comparator") or {}).get("pmid") or "") or None
+    cur = str(rec.get("comparator_pmid") or "")
+    if not rp.is_file() or (served and served == cur):
+        return None
+    sp = root / SWITCH_SIGNATURES
+    sigs = (json.loads(sp.read_text(encoding="utf-8")).get("switches") or {}) if sp.is_file() else {}
+    sig = sigs.get(str(slug)) or {}
+    ok = (sig.get("to") == cur and sig.get("from") == served and sig.get("state") in ("SEEN_AND_SIGNED",))
+    return {"from": served, "to": cur, "signed": ok, "signature": sig or None}
+
+
+def recompute(rec: dict, root: Path = ROOT) -> dict:
+    """The criteria and the per-trial counting, recomputed from the tracker file."""
     comparator_ids = _ids([rec.get("comparator_pmid"), rec.get("comparator_doi")])
     rows = []
     for t in rec.get("trials") or []:
@@ -199,6 +222,8 @@ def recompute(rec: dict) -> dict:
         "MATCHED_ARE_VERIFIED": bool(pooled) and all(r["counted"] for r in pooled),
         "RESULT_AGREES": _verdict(rec.get("same_trials") or {}) == "AGREE",
         "DIVERGENCES_NAMED": not unnamed,
+        # matched against a comparator the topic does not SERVE counts only after Mahmood signs that switch (V8)
+        "COMPARATOR_SIGNED": (lambda sw: sw is None or sw["signed"])(comparator_switch(rec, root)),
     }
     return {"rows": rows, "criteria": crit, "matched": all(crit.values()), "unnamed": unnamed,
             "g1_count": sum(r["counted"] for r in rows), "covered": sum(r["covered"] for r in rows),
@@ -254,8 +279,8 @@ def k_matched(rec: dict) -> dict | None:
     stays the first line. Recomputed from the tracker file, fail-closed like every other count on this page."""
     r = recompute(rec)
     elig = [x for x in r["rows"] if not x["trial"].get("scope_difference")]
-    if not elig:
-        return None
+    if not elig or not r["criteria"]["COMPARATOR_SIGNED"]:
+        return None                     # k-wise against an unsigned comparator switch is not claimed either
     return {"matched": all(x["covered"] for x in elig), "eligible": len(elig),
             "comparator_sourced": sum(1 for x in elig if x["covered"] and not x["counted"]),
             "uncovered": [x["trial"].get("label") for x in elig if not x["covered"]]}
@@ -375,6 +400,16 @@ def render(root: Path = ROOT) -> str:
             parts.append(f"<li><a href='#{_e(s)}'>{_e(s)}</a>: the comparator pools no randomised trials -- "
                          f"&ldquo;{_e(sp.get('text'))}&rdquo; ({_e(sp.get('source'))}, {_e(sp.get('field'))}). "
                          f"{_e(g.get('flag'))} [{_e(g.get('decision'))}]</li>")
+        parts.append("</ul>")
+    pend = [(s, comparator_switch(rec, root)) for s, rec in recs.items()]
+    pend = [(s, sw) for s, sw in pend if sw and not sw["signed"]]
+    if pend:
+        parts.append(f"<h2 id='comparator-switch-pending'>Comparator switch pending signature ({len(pend)} of {len(recs)} "
+                     f"topics; not counted in G1 MATCHED or K MATCHED until signed)</h2><ul>")
+        for s, sw in pend:
+            parts.append(f"<li><a href='#{_e(s)}'>{_e(s)}</a>: served comparator PMID {_e(sw['from'])}; the tracker is "
+                         f"matched against PMID {_e(sw['to'])} (pre-registered replacement), which counts once Mahmood "
+                         f"signs the switch (packet V8)</li>")
         parts.append("</ul>")
     dec_p = root / "registry" / "g1_decisions.json"
     decs = (json.loads(dec_p.read_text(encoding="utf-8")).get("decisions") or []) if dec_p.is_file() else []
