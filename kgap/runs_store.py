@@ -26,7 +26,7 @@ _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 def topic_of(key: str) -> str:
     parts = str(key).split("::")
-    slug = parts[1] if parts[0] in ("locate", "audit") and len(parts) > 2 else parts[0]
+    slug = parts[1] if parts[0] in ("locate", "audit", "swapscreen", "swapscreenA") and len(parts) > 2 else parts[0]
     return slug if (_SLUG.match(slug) and len(parts) > 1) else "_other"
 
 
