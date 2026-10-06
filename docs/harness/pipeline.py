@@ -1567,17 +1567,29 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                              spec.get("keywords"))
             if _q:
                 _t["analysis_qualifiers"] = _q
-    trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
-    absent.extend(_inadmissible)
+    # SIGNED SERVED-POOL ADDITIONS (Mahmood 5 Oct, 'yes can sign' / packet V6): a trial verified by the G1 tracker enters
+    # this pool ONLY when a signed result-change notice names it (harness/served_pool_additions.py re-checks the
+    # signature and the rendered hash). It joins BEFORE the admissibility gate, so it meets admit_rows like every other
+    # route (a signature covers the number the reviewer saw; it is not a bypass of the gate). A WITHDRAWN outcome waits
+    # "until the corrected selection lands": a signed notice for it IS that selection (packet V7, 'yes v7'), so there the
+    # signed rows stand beside the withdrawn ones, which the block below moves out of the pool.
     from . import served_pool_additions as _spa
     _signed_rows = _spa.admitted_rows(slug, spec.get("name"))
+    if _signed_rows:
+        _have = {str(t.get("id")) for t in trials}
+        trials = trials + [r for r in _signed_rows if spec.get("withdrawn") or str(r.get("id")) not in _have]
+    trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
+    absent.extend(_inadmissible)
     if spec.get("withdrawn"):
         # RESULT WITHDRAWN (Mahmood, 2026-09-19): the outcome's declared `withdrawn` notice states that the
         # served result was wrong and why; until the corrected selection lands, NO pooled estimate is
         # published for this outcome. Every admitted row is moved out of the pool with the withdrawal as
         # its state -- displayed, never deleted, never silently replaced by a corrected number.
         w = spec["withdrawn"]
+        _signed_kept = [t for t in trials if t.get("provenance") == "served_pool_signed_notice"]
         for t in trials:
+            if t.get("provenance") == "served_pool_signed_notice":
+                continue
             absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "result_withdrawn",
                            "state": "RESULT_WITHDRAWN", "reason_code": "RESULT_WITHDRAWN",
                            "withdrawn_effect": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale") if t.get(k) is not None},
@@ -1586,7 +1598,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "endpoint_result_span": t.get("endpoint_result_span"),
                            "target_endpoint_class": t.get("target_endpoint_class"),
                            "target_endpoint_components": t.get("target_endpoint_components")})
-        trials = []
+        trials = _signed_kept
     if eligibility_contract:
         kept = []
         for trial in trials:
@@ -1609,15 +1621,6 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                f"{dim}={admission[dim]['trial_value']} (requires {admission[dim]['contract_value']})"
                                for dim in failed)})
         trials = kept
-    if _signed_rows:
-        # SIGNED SERVED-POOL ADDITIONS (Mahmood 5 Oct, 'yes can sign' / packet V6): a trial verified by the G1
-        # tracker enters this pool ONLY when a signed result-change notice names it (harness/served_pool_additions.py
-        # re-checks the signature and the rendered hash). It then meets every gate below like any other row.
-        # A WITHDRAWN outcome waits "until the corrected selection lands": a signed served-pool notice for it IS that
-        # corrected selection (packet V7, 'yes v7'), so its pool is exactly the signed rows -- the withdrawn rows stay
-        # declared absent above, and a signed row that replaces one of them discloses what it superseded.
-        _have = {str(t.get("id")) for t in trials}
-        trials.extend(r for r in _signed_rows if str(r.get("id")) not in _have)
     # ESTIMAND-CONSISTENCY GUARD (continuous topics): a mean-difference topic must pool ONLY continuous
     # per-arm mean/SD data. If the source hierarchy fell through to a COUNT/proportion or a ratio effect
     # for a trial (e.g. a multi-arm trial whose continuous MADRS was refused, then a "% with >=50% response"
@@ -2013,9 +2016,26 @@ def reported_not_pooled(spec, included, rec_by_id, pooled):
         if _bare_id(d.get("id")) in in_pool:
             continue
         ab = ((rec_by_id.get(d["id"], {}) or {}).get("abstract", "") or "").lower()
-        if ab and any(k in ab for k in kws):
+        if ab and any(_mentioned_unnegated(ab, k) for k in kws):
             out.append(d["id"])
     return out
+
+
+# "X was not measured / not reported / not assessed", "no data on X": a mention that says the outcome is NOT reported is
+# not a report (codex captain-pr13-final g1#1). Checked per occurrence, in the clause around it; one plain mention counts.
+_NEGATED = re.compile(r"\b(?:not|never|no data|no information|neither|nor)\b[^.;]{0,40}?\b(?:measured|reported|assessed|"
+                      r"collected|recorded|available|evaluated|captured)\b|\bno data (?:on|for)\b|\bnot (?:measured|"
+                      r"reported|assessed|collected|recorded|available)\b")
+
+
+def _mentioned_unnegated(text, kw):
+    for m in re.finditer(re.escape(kw), text):
+        lo = max(text.rfind(".", 0, m.start()), text.rfind(";", 0, m.start())) + 1
+        hi_c = [i for i in (text.find(".", m.end()), text.find(";", m.end())) if i != -1]
+        clause = text[lo:min(hi_c) if hi_c else len(text)]
+        if not _NEGATED.search(clause):
+            return True
+    return False
 
 
 def _outcome_specs(config):
