@@ -82,9 +82,27 @@ Screen-named exclusions re-checked (83): dual review v2 final {'INELIGIBLE': 83}
 - **E, economic evaluation title marker**: a health-economic evaluation alongside a trial is a secondary report.
 - Recorded radius review of every non-comparator flip: {'A_ENROLLED_POPULATION:ENDORSED': 3, 'A_ENROLLED_POPULATION:RULE_CHANGE_ONLY': 14, 'A_ENROLLED_POPULATION:UNRESOLVED': 3, 'D_CONDITION_IS_OUTCOME:RULE_CHANGE_ONLY': 2}.
 
+## Dual Codex screen review of every comparator row (6 Oct)
+
+Every one of the 348 comparator rows, kinds enumerated: {'SERVED': 211, 'NO_HELD_RECORD': 39, 'COUNTERFACTUAL': 98} (COUNTERFACTUAL = a trial our search missed, screened in memory by this branch's screener on its held record). 309 items read by BOTH independent recorded readers (gpt-6-astra, gpt-5.5); 86 adjudicated (gpt-6-astra (effort high)) where they disagreed or could not decide.
+
+- **Cohen's kappa, reader A vs reader B: 0.914**; rule screener vs A 0.7659, vs B 0.8011, vs the adjudicated final 0.7715.
+- Readers agree on 264 of 309. Final: {'ELIGIBLE': 120, 'INELIGIBLE': 116, 'UNRESOLVED': 73}.
+- Against the rule screener: {'FALSE_EXCLUSION': 20, 'FALSE_INCLUSION': 7} (the served rows use the SERVED decision; the probiotics X2 class among them is fixed on this branch).
+
+## Blind query audits, all rounds
+
+| Round | Topics | Accepted | Over cap | No gain |
+|---|---|---|---|---|
+| round 1 (gpt-6-astra) | 32 | 7 | 6 | 19 |
+| round 2 (gpt-5.5) | 32 | 2 | 4 | 26 |
+| precise (over-cap topics, gpt-6-astra) | 6 | 2 | 2 | 2 |
+
+Rounds 2 and precise are validated against the queries registered after the round-1 amendment, so a gain there is new. Accepted and added by the dated 2026-10-06 amendment (A4): corticosteroids-cap-mortality, dpp4-mace-t2d, sglt2-ckd-progression.
+
 ## Decisions for Mahmood (not taken by this lane)
 
-1. **Volume cap**: the 6 topics whose blind concept query gains recall above 5,000 records (table above).
+1. **Volume cap**: topics where a blind query gains recall only above 5,000 records, after every round: omega3-cardiovascular-events (smallest over-cap proposal 5251); probiotics-aad-prevention (smallest over-cap proposal 7058); semaglutide-obesity-mace (smallest over-cap proposal 5005); sglt2-primary-prevention-hf (smallest over-cap proposal 5237).
 2. **Secondary-report family routing** (COPPS POAF, the substudy class): Codex NR-C28 showed the narrow 'admit a PubMed-RCT substudy' rule is unsafe; a family-routing stage is needed (notice COLCHICINE_POSTOP_AF_GAPS).
 3. **Probiotics eligibility vocabulary**: the registered population 'patients receiving antibiotics' has no screening term; H. pylori-eradication and C. difficile trials stay X2 (Cindoruk, Plomer, Plummer, Shimbo). Adding population terms is an eligibility amendment.
 4. **Served pages**: the amendments and screen fixes change what a rebuild serves; no page was regenerated here.

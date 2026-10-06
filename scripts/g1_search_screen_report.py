@@ -132,9 +132,48 @@ def main():
           "the population inclusion check reads sentences about THIS study (never background). A whole-abstract draft was "
           "rejected by the recorded radius review (4 of 12 contradicted).",
           "- **E, economic evaluation title marker**: a health-economic evaluation alongside a trial is a secondary report.",
-          f"- Recorded radius review of every non-comparator flip: {rr.get('tally')}.", "",
-          "## Decisions for Mahmood (not taken by this lane)", "",
-          f"1. **Volume cap**: the {len(cap)} topics whose blind concept query gains recall above 5,000 records (table above).",
+          f"- Recorded radius review of every non-comparator flip: {rr.get('tally')}.", ""]
+    dc = _j("screen_dual_codex.json")
+    if dc:
+        k = dc["kappa"]
+        L += ["## Dual Codex screen review of every comparator row (6 Oct)", "",
+              f"Every one of the {dc['n_rows']} comparator rows, kinds enumerated: {dc['coverage']} (COUNTERFACTUAL = a trial "
+              f"our search missed, screened in memory by this branch's screener on its held record). {dc['n_read_by_both']} "
+              f"items read by BOTH independent recorded readers ({dc['models']['reader_A']}, {dc['models']['reader_B']}); "
+              f"{dc['adjudicated']} adjudicated ({dc['models']['adjudicator']}) where they disagreed or could not decide.", "",
+              f"- **Cohen's kappa, reader A vs reader B: {k['reader_A_vs_reader_B']}**; rule screener vs A {k['rule_vs_reader_A']}, "
+              f"vs B {k['rule_vs_reader_B']}, vs the adjudicated final {k['rule_vs_final']}.",
+              f"- Readers agree on {dc['readers_agree']} of {dc['n_read_by_both']}. Final: {dc['final']}.",
+              f"- Against the rule screener: {dc['screen_errors']} (the served rows use the SERVED decision; the "
+              f"probiotics X2 class among them is fixed on this branch).", ""]
+    rounds = []
+    for name, label in (("query_audit.json", "round 1 (gpt-6-astra)"), ("query_audit_r2.json", "round 2 (gpt-5.5)"),
+                        ("query_audit_precise.json", "precise (over-cap topics, gpt-6-astra)")):
+        t = _j(name).get("topics", {})
+        if t:
+            verd = collections.Counter("ACCEPT" if str((q.get("validation") or {}).get("verdict", "")).startswith("ACCEPT")
+                                       else "OVER_CAP" if "volume" in str((q.get("validation") or {}).get("verdict", ""))
+                                       else "NO_GAIN" for q in t.values())
+            rounds.append((label, t, verd))
+    if rounds:
+        L += ["## Blind query audits, all rounds", "",
+              "| Round | Topics | Accepted | Over cap | No gain |", "|---|---|---|---|---|"]
+        for label, t, verd in rounds:
+            L.append(f"| {label} | {len(t)} | {verd['ACCEPT']} | {verd['OVER_CAP']} | {verd['NO_GAIN']} |")
+        acc2 = sorted({s for label, t, _ in rounds[1:] for s, q in t.items()
+                       if str((q.get("validation") or {}).get("verdict", "")).startswith("ACCEPT")})
+        L += ["", f"Rounds 2 and precise are validated against the queries registered after the round-1 amendment, so a "
+              f"gain there is new. Accepted and added by the dated 2026-10-06 amendment (A4): {', '.join(acc2) or 'none'}.", ""]
+    still = []
+    for s in sorted({s for _, t, _ in rounds for s in t}):
+        accepted = any(str(((t.get(s) or {}).get("validation") or {}).get("verdict", "")).startswith("ACCEPT") for _, t, _ in rounds)
+        over = [((t.get(s) or {}).get("validation") or {}).get("proposed_pubmed_count") for _, t, _ in rounds
+                if "volume" in str(((t.get(s) or {}).get("validation") or {}).get("verdict", ""))]
+        if over and not accepted:
+            still.append(f"{s} (smallest over-cap proposal {min(over)})")
+    L += ["## Decisions for Mahmood (not taken by this lane)", "",
+          f"1. **Volume cap**: topics where a blind query gains recall only above 5,000 records, after every round: "
+          f"{'; '.join(still) or 'none'}.",
           "2. **Secondary-report family routing** (COPPS POAF, the substudy class): Codex NR-C28 showed the narrow 'admit a "
           "PubMed-RCT substudy' rule is unsafe; a family-routing stage is needed (notice COLCHICINE_POSTOP_AF_GAPS).",
           "3. **Probiotics eligibility vocabulary**: the registered population 'patients receiving antibiotics' has no "

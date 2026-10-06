@@ -115,5 +115,63 @@ def main(argv):
     print(tally)
 
 
-if __name__ == "__main__":
-    main(sys.argv[1:])
+if __name__ == "__main__" and "--round2" not in sys.argv:
+    main(sys.argv[1:])        # never re-run for --round2: it would overwrite amendments.json with ALREADY_AMENDED
+
+
+HEAD2 = "## Amendment 2026-10-06 -- identification sources, query audit round 2 (search+screen audit)"
+
+
+def round2(dry=False):
+    """A4: blind concept queries ACCEPTED by round r2 (independent proposer, gpt-5.5) or by the precise variant (the
+    over-cap topics, with a volume target): validated against the queries registered NOW (after the 2026-10-05
+    amendment), so only a genuine further recall gain is admitted. ADDED, never replacing."""
+    out = {}
+    srcs = []
+    for name, label in (("query_audit_r2.json", "round 2 (independent blind proposer)"),
+                        ("query_audit_precise.json", "precision variant (over-cap topic, volume target, still blind)")):
+        p = os.path.join(SA, name)
+        if os.path.exists(p):
+            srcs.append((label, _j(p)["topics"]))
+    slugs = sorted({s for _, t in srcs for s in t})
+    for slug in slugs:
+        acc = [(label, t[slug]) for label, t in srcs if slug in t and
+               str((t[slug].get("validation") or {}).get("verdict", "")).startswith("ACCEPT")]
+        if not acc:
+            continue
+        tp, pp = os.path.join(ROOT, "topics", f"{slug}.json"), os.path.join(ROOT, "protocols", f"{slug}.md")
+        md = open(pp, encoding="utf-8").read()
+        if HEAD2 in md:
+            out[slug] = {"state": "ALREADY_AMENDED"}
+            continue
+        cfg = _j(tp)
+        lines, added = ["", HEAD2, ""], []
+        for label, q in acc:
+            v, pq = q["validation"], q["proposal"]["pubmed_query"]
+            if pq in (cfg.get("pubmed_queries") or []) or pq in added:
+                continue
+            added.append(pq)
+            lines.append(f"- **A4 Concept query added, {label}** (union; none removed): `{pq}`. Proposed blind (recorded call "
+                         f"{q.get('record')}, model {q.get('model')}); returns {v.get('proposed_pubmed_count')} records "
+                         f"today; on the comparator's eligible trials the queries registered after the 2026-10-05 "
+                         f"amendment match {v['recall_current']['n']} of {v['recall_current']['N']} and with this query "
+                         f"{v['recall_union']['n']} of {v['recall_union']['N']}. Limitation: the proposer may know "
+                         f"well-known trials from training.")
+        if not added:
+            continue
+        out[slug] = {"state": "DRY_RUN" if dry else "AMENDED", "added": added}
+        if dry:
+            continue
+        cfg["pubmed_queries"] = list(cfg.get("pubmed_queries") or []) + added
+        with open(tp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(cfg, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        with open(pp, "a", encoding="utf-8", newline="\n") as fh:
+            fh.write("\n".join(lines) + "\n")
+    json.dump(out, open(os.path.join(SA, "amendments_round2.json"), "w", encoding="utf-8", newline="\n"), indent=1,
+              ensure_ascii=False)
+    print(out)
+
+
+if __name__ == "__main__" and "--round2" in sys.argv:
+    round2("--dry-run" in sys.argv)
