@@ -115,7 +115,7 @@ def main(argv):
     print(tally)
 
 
-if __name__ == "__main__" and "--round2" not in sys.argv:
+if __name__ == "__main__" and "--round2" not in sys.argv and "--cap" not in sys.argv:
     main(sys.argv[1:])        # never re-run for --round2: it would overwrite amendments.json with ALREADY_AMENDED
 
 
@@ -175,3 +175,54 @@ def round2(dry=False):
 
 if __name__ == "__main__" and "--round2" in sys.argv:
     round2("--dry-run" in sys.argv)
+
+
+HEAD3 = "## Amendment 2026-10-06 -- search volume cap raised to 10,000 (decision under Mahmood's delegation)"
+
+
+def cap_decision(dry=False):
+    """A5: the 4 topics whose blind concept query gained recall only above the original 5,000-record cap. Decision
+    (captain, under Mahmood's delegation, 6 Oct): cap raised to 10,000 for these topics. The query added is the one
+    scripts/g1_expanded_search.py chose by its fixed rule (smallest volume with the maximal measured recall gain);
+    its run and rule screen are recorded in outputs/search_audit/expanded/<slug>.json."""
+    out = {}
+    for slug in ("omega3-cardiovascular-events", "probiotics-aad-prevention", "semaglutide-obesity-mace",
+                 "sglt2-primary-prevention-hf"):
+        e = _j(os.path.join(SA, "expanded", f"{slug}.json"))
+        ch, rec = e["chosen"], e["recall"]
+        tp, pp = os.path.join(ROOT, "topics", f"{slug}.json"), os.path.join(ROOT, "protocols", f"{slug}.md")
+        md = open(pp, encoding="utf-8").read()
+        if HEAD3 in md:
+            out[slug] = {"state": "ALREADY_AMENDED"}
+            continue
+        cfg = _j(tp)
+        text = (f"\n{HEAD3}\n\n- **A5 Volume cap 10,000 (was 5,000) for this topic; concept query added** (union; none "
+                f"removed): `{ch['query']}`. Decided 2026-10-06 by the captain under Mahmood's delegation. Reason: the "
+                f"blind query audit ({ch['source']}, recorded call {ch['record']}) measured a recall gain on the "
+                f"comparator's eligible trials -- registered queries {ch['recall_current_at_audit']['n']} of "
+                f"{ch['recall_current_at_audit']['N']}, with this query {ch['recall_union_at_audit']['n']} of "
+                f"{ch['recall_union_at_audit']['N']} -- at {ch['volume_at_audit']} records, above the old 5,000 cap. Run "
+                f"in full on 2026-10-06: {e['esearch']['count']} records, {e['new_records']} not already held; rule "
+                f"screen of the new records: {e['rule_screen']}. Eligible comparator trials identified: "
+                f"{rec['identified_before']} -> {rec['identified_after']} of {rec['eligible']} "
+                f"({rec['newly_identified_and_screen_included']} of the {rec['newly_identified']} newly identified pass "
+                f"the screen). Recorded: outputs/search_audit/expanded/{slug}.json.\n")
+        out[slug] = {"state": "DRY_RUN" if dry else "AMENDED", "query": ch["query"]}
+        if dry:
+            print(text)
+            continue
+        if ch["query"] not in (cfg.get("pubmed_queries") or []):
+            cfg["pubmed_queries"] = list(cfg.get("pubmed_queries") or []) + [ch["query"]]
+        cfg["search_volume_cap"] = {"n": 10000, "decided": "2026-10-06", "by": "captain under Mahmood's delegation"}
+        with open(tp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(cfg, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        with open(pp, "a", encoding="utf-8", newline="\n") as fh:
+            fh.write(text)
+    json.dump(out, open(os.path.join(SA, "amendments_cap.json"), "w", encoding="utf-8", newline="\n"), indent=1,
+              ensure_ascii=False)
+    print({k: v["state"] for k, v in out.items()})
+
+
+if __name__ == "__main__" and "--cap" in sys.argv:
+    cap_decision("--dry-run" in sys.argv)
