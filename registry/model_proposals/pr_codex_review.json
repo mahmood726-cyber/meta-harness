@@ -882,5 +882,54 @@
     "verdict": null
    }
   ]
+ },
+ "captain-pr13-final": {
+  "base": "a181b65ee",
+  "head": "febf3f907",
+  "runs": {
+   "g1": {
+    "record_id": "mc-25cdae8bc88129ad113b21a552135392",
+    "state": "RAN_OK",
+    "files": [
+     "harness/index.py",
+     "harness/limitations.py",
+     "harness/page.py",
+     "harness/pipeline.py",
+     "scripts/comparator_league_result.py"
+    ],
+    "prompt_sha256": "4a113fa8163e67a32117d5c33fe7adfb9155e85f2ae106b5581952f90a21b457"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/pipeline.py",
+    "function": "reported_not_pooled / _build_outcome",
+    "severity": "P1",
+    "claim": "The new partial-pool disclosure classifies an explicit statement that an outcome was not measured as an outcome reported but not extracted. Keyword presence does not establish reporting.",
+    "failing_input": "reported_not_pooled({'keywords': ['mortality']}, [{'id': 'pooled'}, {'id': 'unpooled'}], {'unpooled': {'abstract': 'Mortality was not measured or reported in this trial.'}}, [{'id': 'pooled'}])",
+    "expected": "[]; the unpooled record explicitly says it did not measure or report mortality.",
+    "actual": "['unpooled']. When used by the new partial-pool branch, this sets reported_not_extracted=True and reported_by=['unpooled'].",
+    "id": "captain-pr13-final:g1#1",
+    "record_id": "mc-25cdae8bc88129ad113b21a552135392",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_in": "1c51787d"
+   },
+   {
+    "file": "scripts/comparator_league_result.py",
+    "function": "read_league",
+    "severity": "P2",
+    "claim": "The new measure check returns before checking whether the table contains the requested outcome or treatments. An unrelated earlier table without a spelled-out measure therefore prevents extraction from a subsequent qualifying table.",
+    "failing_input": "read_league('''<article><abstract><p>Drug A versus Placebo: OR 0.50, 95% CI 0.30-0.80.</p></abstract><table-wrap><caption>Quality of life</caption><table><tr><td>Quality of life</td></tr></table><table-wrap-foot>Values describe the treatment in the column-defining treatment compared with the row-defining treatment.</table-wrap-foot></table-wrap><table-wrap><label>Table 2</label><caption>Mortality odds ratios</caption><table><tr><td>Mortality</td></tr><tr><td>Placebo</td><td>0.50 (0.30-0.80)</td></tr><tr><td>2.00 (1.25-3.33)</td><td>Drug A</td></tr></table><table-wrap-foot>Odds ratios for the treatment in the column-defining treatment compared with the row-defining treatment.</table-wrap-foot></table-wrap></article>''', 'Drug A', 'Placebo', 'Mortality')",
+    "expected": "Skip the unrelated quality-of-life table and extract the mortality contrast from Table 2: OR 0.50, CI 0.30–0.80.",
+    "actual": "(None, 'MEASURE_NOT_STATED_BY_THE_TABLE'), returned while examining the first table; Table 2 is never examined.",
+    "id": "captain-pr13-final:g1#2",
+    "record_id": "mc-25cdae8bc88129ad113b21a552135392",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_in": "1c51787d"
+   }
+  ]
  }
 }
