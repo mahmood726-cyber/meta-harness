@@ -1,0 +1,25 @@
+{
+ "rule_id": "G1-ABANDON-v1",
+ "decision": {
+  "by": "Mahmood",
+  "words": "abandon the ten most unworkable topics",
+  "with": "solve it through comparator swaps",
+  "relayed": "dispatcher, 6 Oct 2026"
+ },
+ "registered_by": "captain lane 3, 6 Oct 2026 -- committed BEFORE the ranking was computed (scripts/g1_abandon_rank.py reads this file at its commit and records the rule's sha256 and that commit)",
+ "disclosure": "Before writing this rule the captain had seen each topic's G1 state, N eligible and open-gap count (outputs/k_gap/g1/*.json), but not any score. The weights below were not tuned afterwards; a change to this rule is a new rule ID.",
+ "population": "the 32 served topics (docs/reviews/<slug>/review.json with a tracker file outputs/k_gap/g1/<slug>.json)",
+ "excluded_from_abandonment": [
+  "every topic whose tracker g1_status.state is G1_MATCHED at the ranking commit -- the live strict matches AND the topics matched locally against an adopted comparator pending the V8 signature (dpp4-mace-t2d, esketamine-trd-madrs)"
+ ],
+ "inputs_committed_artefacts_only": {
+  "N_eligible": "tracker N_eligible (comparator trials eligible under our registered protocol)",
+  "open": "tracker open_gaps (eligible comparator trials not matched)",
+  "closed": "open gaps whose blocker class (text before the first ':') is in CLOSED -- the open routes are exhausted or the trial cannot be reached through open sources",
+  "CLOSED": ["NO_OPEN_SOURCE", "NO_RECORD_HELD", "IDENTIFIED_NOT_INDEXED", "UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE"],
+  "swap_adopted": "1 if registry/comparator_selection/<slug>.adoption.json exists (a pre-registered replacement comparator is adopted, pending signature), else 0"
+ },
+ "score": "U = closed/N_eligible + 0.5*open/N_eligible - 0.5*swap_adopted   (higher = less workable; N_eligible = 0 scores 0)",
+ "selection": "rank the non-excluded topics by U descending; ties broken by larger closed count, then by slug ascending; ABANDON the first 10",
+ "status_of_abandoned": "ABANDONED_BY_DECISION: nothing is deleted; pages, rows and findings stay served and linked; an abandoned topic can never count as matched; the 32-topic line stays on /g1/ beside the active-topic line"
+}
