@@ -100,9 +100,24 @@ Every one of the 348 comparator rows, kinds enumerated: {'SERVED': 211, 'NO_HELD
 
 Rounds 2 and precise are validated against the queries registered after the round-1 amendment, so a gain there is new. Accepted and added by the dated 2026-10-06 amendment (A4): corticosteroids-cap-mortality, dpp4-mace-t2d, sglt2-ckd-progression.
 
+## Volume cap raised to 10,000 for 4 topics (decision 6 Oct, under Mahmood's delegation; amendment A5)
+
+Query per topic by a fixed rule: the smallest-volume blind proposal with the maximal measured recall gain. Run in full; records not already held were rule-screened; a dual Codex review then read every new rule include, every newly identified comparator trial and a seeded random sample of 100 rule excludes per topic (seed recorded).
+
+| Topic | Records (new) | Rule include / exclude / dedup | Eligible comparator trials identified | Newly identified passing the screen | Rule includes: Codex final E/I/U | False-exclusion rate (95% CI), extrapolated |
+|---|---|---|---|---|---|---|
+| omega3-cardiovascular-events | 5251 (5213) | 308 / 4693 / 180 | 9 -> **18** of 18 | 4 of 9 | 84 / 53 / 171 | 0.0349 ([0.0119, 0.0976]), ~163.7 of 4693 |
+| probiotics-aad-prevention | 7058 (6752) | 9 / 6716 / 19 | 36 -> **36** of 41 | 0 of 0 | 9 / 0 / 0 | 0.0206 ([0.0057, 0.0721]), ~138.5 of 6716 |
+| semaglutide-obesity-mace | 5006 (4962) | 1 / 4836 / 119 | 1 -> **2** of 2 | 0 of 1 | 0 / 0 / 1 | 0.0 ([0, 0.0393]), ~0.0 of 4836 |
+| sglt2-primary-prevention-hf | 5237 (5153) | 40 / 4629 / 471 | 4 -> **5** of 5 | 1 of 1 | 14 / 24 / 1 | 0.0108 ([0.0019, 0.0584]), ~49.8 of 4629 |
+
+Newly identified comparator trials screened as new records, rule decision -> dual Codex final: Alfaddagh 2017 [46] (omega3-cardiovascular-events) X3 -> UNRESOLVED; Pahor 2019 [48] (omega3-cardiovascular-events) X2 -> UNRESOLVED; O‘Neil et al. 28 NCT02453711 (semaglutide-obesity-mace) X2 -> UNRESOLVED; Kosiborod (18) (sglt2-primary-prevention-hf) INCLUDE -> INELIGIBLE.
+
+Reading: identification gains are real (omega3 doubles); but the rule screen's precision on the new includes is modest where many abstracts cannot be decided (UNRESOLVED), and the exclude samples estimate dozens to ~160 eligible-by-reader records per topic excluded by the rule screen -- the next screen work, before these searches feed a served pool.
+
 ## Decisions for Mahmood (not taken by this lane)
 
-1. **Volume cap**: topics where a blind query gains recall only above 5,000 records, after every round: omega3-cardiovascular-events (smallest over-cap proposal 5251); probiotics-aad-prevention (smallest over-cap proposal 7058); semaglutide-obesity-mace (smallest over-cap proposal 5005); sglt2-primary-prevention-hf (smallest over-cap proposal 5237).
+1. **Volume cap**: topics where a blind query gains recall only above 5,000 records, after every round: none (the 4 over-cap topics were decided 6 Oct: cap 10,000, amendment A5).
 2. **Secondary-report family routing** (COPPS POAF, the substudy class): Codex NR-C28 showed the narrow 'admit a PubMed-RCT substudy' rule is unsafe; a family-routing stage is needed (notice COLCHICINE_POSTOP_AF_GAPS).
 3. **Probiotics eligibility vocabulary**: the registered population 'patients receiving antibiotics' has no screening term; H. pylori-eradication and C. difficile trials stay X2 (Cindoruk, Plomer, Plummer, Shimbo). Adding population terms is an eligibility amendment.
 4. **Served pages**: the amendments and screen fixes change what a rebuild serves; no page was regenerated here.

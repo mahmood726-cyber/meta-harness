@@ -164,16 +164,46 @@ def main():
                        if str((q.get("validation") or {}).get("verdict", "")).startswith("ACCEPT")})
         L += ["", f"Rounds 2 and precise are validated against the queries registered after the round-1 amendment, so a "
               f"gain there is new. Accepted and added by the dated 2026-10-06 amendment (A4): {', '.join(acc2) or 'none'}.", ""]
+    exp_topics = ("omega3-cardiovascular-events", "probiotics-aad-prevention", "semaglutide-obesity-mace",
+                  "sglt2-primary-prevention-hf")
+    exps = {s: _j(os.path.join("expanded", f"{s}.json")) for s in exp_topics}
+    edc = _j("expanded_dual_codex.json")
+    if all(exps.values()):
+        L += ["## Volume cap raised to 10,000 for 4 topics (decision 6 Oct, under Mahmood's delegation; amendment A5)", "",
+              "Query per topic by a fixed rule: the smallest-volume blind proposal with the maximal measured recall gain. "
+              "Run in full; records not already held were rule-screened; a dual Codex review then read every new rule "
+              f"include, every newly identified comparator trial and a seeded random sample of {edc.get('sample_n')} "
+              "rule excludes per topic (seed recorded).", "",
+              "| Topic | Records (new) | Rule include / exclude / dedup | Eligible comparator trials identified | "
+              "Newly identified passing the screen | Rule includes: Codex final E/I/U | False-exclusion rate (95% CI), "
+              "extrapolated |", "|---|---|---|---|---|---|---|"]
+        for s in exp_topics:
+            e, t = exps[s], (edc.get("topics") or {}).get(s) or {}
+            rs, rc, ex = e["rule_screen"], e["recall"], t.get("exclude_sample") or {}
+            fi = t.get("rule_includes_final") or {}
+            L.append(f"| {s} | {e['esearch']['count']} ({e['new_records']}) | {rs['include']} / {rs['exclude']} / "
+                     f"{rs['dedup_collapsed']} | {rc['identified_before']} -> **{rc['identified_after']}** of {rc['eligible']} | "
+                     f"{rc['newly_identified_and_screen_included']} of {rc['newly_identified']} | {fi.get('ELIGIBLE')} / "
+                     f"{fi.get('INELIGIBLE')} / {fi.get('UNRESOLVED')} | {ex.get('rate')} ({ex.get('wilson95')}), "
+                     f"~{ex.get('extrapolated_false_exclusions')} of {ex.get('excludes_total')} |")
+        comp = [(s, c) for s in exp_topics for c in ((edc.get("topics") or {}).get(s) or {}).get("comparator_trials") or []]
+        L += ["", "Newly identified comparator trials screened as new records, rule decision -> dual Codex final: "
+              + "; ".join(f"{c['label']} ({s}) {c['rule']} -> {c['final']}" for s, c in comp) + ".", "",
+              "Reading: identification gains are real (omega3 doubles); but the rule screen's precision on the new includes "
+              "is modest where many abstracts cannot be decided (UNRESOLVED), and the exclude samples estimate dozens to "
+              "~160 eligible-by-reader records per topic excluded by the rule screen -- the next screen work, before these "
+              "searches feed a served pool.", ""]
     still = []
     for s in sorted({s for _, t, _ in rounds for s in t}):
         accepted = any(str(((t.get(s) or {}).get("validation") or {}).get("verdict", "")).startswith("ACCEPT") for _, t, _ in rounds)
         over = [((t.get(s) or {}).get("validation") or {}).get("proposed_pubmed_count") for _, t, _ in rounds
                 if "volume" in str(((t.get(s) or {}).get("validation") or {}).get("verdict", ""))]
-        if over and not accepted:
+        decided = (json.load(open(os.path.join(ROOT, "topics", f"{s}.json"), encoding="utf-8")).get("search_volume_cap") or {})
+        if over and not accepted and not decided:
             still.append(f"{s} (smallest over-cap proposal {min(over)})")
     L += ["## Decisions for Mahmood (not taken by this lane)", "",
           f"1. **Volume cap**: topics where a blind query gains recall only above 5,000 records, after every round: "
-          f"{'; '.join(still) or 'none'}.",
+          f"{'; '.join(still) or 'none (the 4 over-cap topics were decided 6 Oct: cap 10,000, amendment A5)'}.",
           "2. **Secondary-report family routing** (COPPS POAF, the substudy class): Codex NR-C28 showed the narrow 'admit a "
           "PubMed-RCT substudy' rule is unsafe; a family-routing stage is needed (notice COLCHICINE_POSTOP_AF_GAPS).",
           "3. **Probiotics eligibility vocabulary**: the registered population 'patients receiving antibiotics' has no "
