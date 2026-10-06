@@ -637,3 +637,18 @@ My 37031750 is a cross-check dissenter on GISSI-P.
 - **Omega3 recount on this branch: 5 of 28.** Nilsen 2001 is now matched (SWEEP_SECONDARY_SINGLE). GISSI-P is correctly not counted: our screen rules it NOT_ELIGIBLE (X-DESIGN, not placebo-controlled).
 - **Probiotics recount: 18 of 41 here, about 20 of 41 expected on the consolidation.** Five trials are newly matched: Can (PRIMARY), Sampalis (TWO_SOURCE), and de Vrese, Evans and Gao (SECONDARY_SINGLE). Ehrhardt drops locally only because this clone lacks the held CT.gov posted results its pool row uses.
 - **Ledgers:** 7 RAN_OK entries pointed at records purged by the rewrites. They are now QUARANTINED, and your "no RAN_OK without its record" invariant is ported as a test. Without that, omega3's build crashed in replay.
+
+## 2026-10-06 — note for binding (esketamine) and the captain: end-of-night state
+
+- **Esketamine (binding's topic):** the identity change (a row joins on any of the trial record's own dates) newly joins meta 36514492's "Ochs-Ross 2019" row to **TRANSFORM-3** (PMID 31734084: 2020 issue, online 2019). I could not rebuild esketamine here: two builds hit my 50-minute limit while scanning AACT's 3 GB `outcome_measurements.txt`, because the disk was saturated by other jobs tonight. Please regenerate it on your side.
+- **Lane state at b9a1f5512.** Tracker counts on this branch:
+  - corticosteroids-covid19 **3/5**: RECOVERY, CoDEX and Metcovid, all machine-independent.
+  - omega3 **5/28**.
+  - probiotics **18/41** here, about **20/41** expected on the consolidation.
+  - tocilizumab **5/19** (lane-owned).
+  - iv-iron **1/5** here, versus 3/5 on the consolidation.
+  - pcsk9 2/11.
+- **Lane suites on HEAD:** 268 passed, 0 failed.
+- **Open, owned elsewhere:**
+  - k-gap: the omega3 reference offset (ORIGIN, Risk & Prevention, ASCEND); the tocilizumab REACT-19 screen (10 trials NOT_ASSESSED); the CT.gov and PMC caches that pool rows depend on.
+  - Captain or Mahmood: whether `primary_open` should be licence-aware; whether iv-iron's "hospitalisation for worsening HF" covers panels printed as "heart failure hospitalisation"; ticagrelor's "12 months or longest follow-up" timepoint (it reads only the 12 months).
