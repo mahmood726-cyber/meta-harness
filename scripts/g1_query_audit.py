@@ -226,7 +226,7 @@ def main(argv):
         v = entry["validation"] or {}
         print(t["slug"], "|", v.get("verdict"), "| current", v.get("recall_current"), "union", v.get("recall_union"),
               "| volume", v.get("proposed_pubmed_count"), flush=True)
-    json.dump(prev, open(OUT, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
+    json.dump(prev, open(out_p, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
 
 
 if __name__ == "__main__":
