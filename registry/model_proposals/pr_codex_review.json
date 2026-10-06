@@ -1441,5 +1441,217 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "kgap-1006": {
+  "base": "8a62b7ffe",
+  "head": "e82d99dcf",
+  "runs": {
+   "g1": {
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "state": "RAN_OK",
+    "files": [
+     "reproducible_ai/model_call_live.py",
+     "reproducible_ai/model_call_remote.py",
+     "scripts/g1_trial_acquire.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "321110e4ed3f208de5b3cfc068eeac47b26d02c081777910478aa2d7f6ee93c1"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_trial_acquire.py",
+    "function": "second_readers",
+    "severity": "P2",
+    "claim": "A failed second-reader call permanently suppresses ordinary retries when its prompt digest matches. Selection checks the digest without checking whether reader 2 succeeded; even --all reuses the failed record through have2.",
+    "failing_input": "Set PROP to a JSON file containing {\"runs\":{\"s|trial\":{\"slug\":\"s\",\"label\":\"trial\",\"pmid\":\"\",\"ncts\":[],\"state\":\"RAN_OK\",\"record_id\":\"r1\",\"prompt_sha256\":\"abc\",\"reader2\":{\"record_id\":\"r2\",\"state\":\"FAILED\",\"prompt_sha256\":\"abc\"}}}}. Call second_readers(['s'], '', workers=1).",
+    "expected": "The failed second-reader entry is eligible for a retry.",
+    "actual": "The entry is skipped before evidence loading; todo is empty and no retry occurs. second_reader_check continues returning PENDING_SECOND_READER.",
+    "id": "kgap-1006:g1#1",
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/model_call_remote.py",
+    "function": "RemoteCodexRunner.agents_digest",
+    "severity": "P2",
+    "claim": "A transport failure is silently converted into absent instruction provenance and cached for the runner's lifetime.",
+    "failing_input": "from reproducible_ai.model_call_remote import RemoteCodexRunner\ncalls = []\ndef execute(argv, timeout):\n    calls.append(argv)\n    return (255, b'', b'Connection timed out')\nr = RemoteCodexRunner(execute=execute)\nprint(r.agents_digest, r.agents_digest, len(calls))",
+    "expected": "Expose the transport failure instead of treating the worker's instruction digest as absent; a transient failure should not be cached as successful absence.",
+    "actual": "Prints: None None 1. The SSH error is discarded, and model_call_live.call omits the worker instruction digest.",
+    "id": "kgap-1006:g1#2",
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/model_call_remote.py",
+    "function": "RemoteCodexRunner.__call__",
+    "severity": "P2",
+    "claim": "Failure to retrieve last.txt discards the transport error and returns the successful execution status, contrary to the runner's failed-transport contract.",
+    "failing_input": "from unittest.mock import patch\nfrom reproducible_ai import model_call_remote as mr\ndef execute(argv, timeout):\n    if argv[0] == 'scp' and argv[-2].endswith('/last.txt'):\n        return 255, b'', b'Connection reset'\n    return 0, b'ok', b''\nwith patch.object(mr.mcl, 'prepare_workdir', return_value=None):\n    result = mr.RemoteCodexRunner(execute=execute)(b'prompt', {}, 'gpt-6-astra', 'high', 1)\nprint({k: result[k] for k in ('rc', 'stderr', 'last_message')})",
+    "expected": "A nonzero result retaining the last-message transfer error.",
+    "actual": "Prints {'rc': 0, 'stderr': b'', 'last_message': b''}. The transfer failure becomes an unexplained missing response.",
+    "id": "kgap-1006:g1#3",
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/model_call_remote.py",
+    "function": "_run",
+    "severity": "P2",
+    "claim": "Process-launch failures escape as exceptions instead of becoming failed-call data. Missing ssh/scp therefore bypasses the transport failure handling.",
+    "failing_input": "from unittest.mock import patch\nfrom reproducible_ai.model_call_remote import _run\nwith patch('reproducible_ai.model_call_remote.subprocess.run', side_effect=FileNotFoundError('ssh unavailable')):\n    _run(['ssh', 'worker', 'codex --version'], 120)",
+    "expected": "Return a nonzero return code, stdout bytes, and diagnostic stderr bytes, as specified by the module's transport contract.",
+    "actual": "Raises FileNotFoundError('ssh unavailable'); only TimeoutExpired is caught.",
+    "id": "kgap-1006:g1#4",
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "verdict": null
+   }
+  ]
+ },
+ "forest-1006": {
+  "base": "597d0d27a",
+  "head": "78e474d45",
+  "runs": {
+   "g1": {
+    "record_id": "mc-dfcf62e7c1baf44bfd34e220dafa9fa3",
+    "state": "RAN_OK",
+    "files": [
+     "harness/copy_licence.py",
+     "kgap/k_gap.py",
+     "reproducible_ai/model_call_live.py",
+     "reproducible_ai/model_source.py",
+     "reproducible_ai/record_licence.py",
+     "scripts/g1_forest_reader.py",
+     "scripts/g1_primary_verify.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "f3dd73078714d8cb4b7aaedee24d7d6c59c0c57df11f16c9479273b535f53cf3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "text_block_problems",
+    "severity": "P1",
+    "claim": "The full-text licence guard silently skips blocks with Windows CRLF line endings because _TEXT_BLOCK requires literal LF delimiters.",
+    "failing_input": "import base64\nfrom reproducible_ai import record_licence as rl\nbody = 'Restricted report text. ' * (rl.DECLARED_MIN + 1)\np = '<<<TEXT\\r\\n' + body + '\\r\\nTEXT>>>'\nr = {'record_id': 'test', 'prompt': {'b64': base64.b64encode(p.encode()).decode()}, 'input_digests': [{'ref': 'DOI 10.1234/restricted'}]}\nrl.text_block_problems(r, dlic={'10.1234/restricted': 'all-rights-reserved'}, lic={})",
+    "expected": "A nonempty problems list rejecting the restricted full-text block, just as with LF delimiters.",
+    "actual": "[]; the block is treated as absent.",
+    "id": "forest-1006:g1#1",
+    "record_id": "mc-dfcf62e7c1baf44bfd34e220dafa9fa3",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "regulatory_sources",
+    "severity": "P1",
+    "claim": "Evidence JSON parsing failures become an empty source list. Appending an instruction after the evidence makes restricted regulatory text disappear from the licence check.",
+    "failing_input": "import base64\nfrom reproducible_ai import record_licence as rl\np = '=== EVIDENCE ===\\n{\"agency\":\"OTHER\",\"url\":\"https://publisher.example/restricted\",\"windows\":[{\"text\":\"Restricted document text.\"}]}\\nReturn JSON only.'\nr = {'record_id': 'test', 'prompt': {'b64': base64.b64encode(p.encode()).decode()}, 'input_digests': []}\nrl.regulatory_sources(r, with_obj=True)",
+    "expected": "Either extract the evidence and reject the unapproved host, or report an evidence-parsing failure that blocks the call.",
+    "actual": "[]; the ValueError is swallowed, so no regulatory-window licence check runs.",
+    "id": "forest-1006:g1#2",
+    "record_id": "mc-dfcf62e7c1baf44bfd34e220dafa9fa3",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "jats_licence",
+    "severity": "P1",
+    "claim": "Valid attributes on the JATS permissions element prevent recognition of its Creative Commons licence. The regex matches only the exact opening tag <permissions>.",
+    "failing_input": "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nfrom reproducible_ai.record_licence import jats_licence\nwith TemporaryDirectory() as <outside-workdir>/n    p = Path(d) / 'article.xml'\n    p.write_text('<article xmlns:xlink=\"http://www.w3.org/1999/xlink\"><front><article-meta><permissions id=\"p1\"><license xlink:href=\"https://creativecommons.org/licenses/by/4.0/\"><license-p>Creative Commons Attribution 4.0</license-p></license></permissions></article-meta></front></article>', encoding='utf-8')\n    print(jats_licence(p))",
+    "expected": "CC",
+    "actual": "NOT_OPEN",
+    "id": "forest-1006:g1#3",
+    "record_id": "mc-dfcf62e7c1baf44bfd34e220dafa9fa3",
+    "verdict": null
+   }
+  ]
+ },
+ "search-1006": {
+  "base": "207166d6c",
+  "head": "9c72f26bb",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "state": "RAN_OK",
+    "files": [
+     "reproducible_ai/model_call_live.py",
+     "scripts/g1_expanded_dual_codex.py",
+     "scripts/g1_expanded_search.py",
+     "scripts/g1_lane_log_repair.py",
+     "scripts/g1_query_audit.py",
+     "scripts/g1_screen_dual_codex.py",
+     "scripts/g1_search_amend.py",
+     "scripts/g1_search_screen_report.py"
+    ],
+    "prompt_sha256": "0aaf38e02ec05fdaea6b29f79b5563250107aa115f6adebdc049400f6dc46f75"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_expanded_search.py",
+    "function": "run",
+    "severity": "P1",
+    "claim": "A newly fetched record removed by deduplication inherits the trial's old served decision. The records table can classify it as X-DEDUP while the trial summary counts that same record as included.",
+    "failing_input": "Call run('fixture') with chosen()={'query':'Q'}; esearch_all()={'ids':['102','103'],'count':2}; existing cache records=[{'id':'101'}]; fetched records=[{'id':'102'},{'id':'103'}]; pipeline._dedup()=[{'id':'102'}]; screen.run()={'decisions':[{'id':'102','decision':'exclude','rule_id':'X1'}]}; audit topics=[{'slug':'fixture','trials':[{'kind':'ELIGIBLE','label':'T','pmids':['101','103'],'search':'MISSED','screen':'INCLUDED','screen_include':{'record':'101'}}]}]. Use an empty topic configuration and no expanded-text cache. These are exact mocked dependency returns.",
+    "expected": "Record 103 remains classified as dedup-collapsed, with no new include decision; newly_identified_and_screen_included is 0.",
+    "actual": "records contains PMID 103 as exclude/X-DEDUP, but trials[0].screen_decisions labels it 'served screen (record already held)' with decision='include'. newly_identified_and_screen_included is 1.",
+    "id": "search-1006:g1#1",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_expanded_dual_codex.py",
+    "function": "items / main",
+    "severity": "P0",
+    "claim": "The extrapolation includes comparator exclusions in its population size even though they are excluded from the random sampling frame and their separately determined outcomes are ignored.",
+    "failing_input": "Use one topic with exactly two non-dedup rule exclusions, PMIDs '1' and '2', both with held records. Make '2' a newly identified comparator through trials=[{'label':'T','newly_identified':true,'screen_decisions':[{'pmid':'2','source':'rule screen (new record)'}]}]. Have both verified readers return ELIGIBLE for '1' and INELIGIBLE for '2'. Run main([]) with these cached reader results. SAMPLE_N=100 means the entire non-comparator exclusion population is reviewed.",
+    "expected": "There is exactly 1 false exclusion among the 2 exclusions: the non-comparator census contributes 1 and the comparator contributes 0. Report 1 overall, or report the non-comparator estimate over its population of 1 separately.",
+    "actual": "The sample contains only PMID '1', giving rate=1.0, but n_excludes_total=2. The output reports extrapolated_false_exclusions=2.0.",
+    "id": "search-1006:g1#2",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_expanded_dual_codex.py",
+    "function": "items",
+    "severity": "P2",
+    "claim": "Missing held records silently disappear from the review inventory, including records that the script promises to review exhaustively.",
+    "failing_input": "Set TOPICS=('fixture',). Set EXP/fixture.json to {\"records\":[{\"pmid\":\"1\",\"decision\":\"include\"}],\"trials\":[]}, and TEXTS/fixture.records.json to []. Call items().",
+    "expected": "An explicit missing-held-record error or an inventory entry identifying PMID '1' as unreviewable, preserving the required review coverage.",
+    "actual": "Returns []. The `if rec is None: continue` branch removes the required include without recording any failure or missing coverage.",
+    "id": "search-1006:g1#3",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_screen_dual_codex.py",
+    "function": "main",
+    "severity": "P1",
+    "claim": "Pending adjudications are reported as completed adjudications. The same defect appears in g1_expanded_dual_codex.main.",
+    "failing_input": "Run main([]) with one held item whose rule_decision is 'exclude'. Supply cached reader A and B records whose verify_screening results are respectively {'model_decision':'ELIGIBLE'} and {'model_decision':'INELIGIBLE'}, and no cached record for adj_prompt().",
+    "expected": "The row is UNRESOLVED, with 0 completed adjudications and 1 pending adjudication.",
+    "actual": "The row is UNRESOLVED and has no adjudicator entry, but the output reports adjudicated=1 because it counts len(need). The report generator describes that count as items adjudicated.",
+    "id": "search-1006:g1#4",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_search_screen_report.py",
+    "function": "main",
+    "severity": "P0",
+    "claim": "The expanded-search interpretation contains unconditional quantitative findings instead of deriving them from the loaded results.",
+    "failing_input": "Supply all four expanded-topic JSON files as nonempty objects with esearch.count=10, new_records=0, rule_screen={'include':0,'exclude':0,'dedup_collapsed':0}, and recall={'identified_before':1,'identified_after':1,'eligible':1,'newly_identified':0,'newly_identified_and_screen_included':0}. Supply expanded_dual_codex.json with sample_n=100 and, for each topic, exclude_sample={'rate':0.0,'wilson95':[0.0,0.0369935],'extrapolated_false_exclusions':0.0,'excludes_total':100}, rule_includes_final={'ELIGIBLE':0,'INELIGIBLE':0,'UNRESOLVED':0}, comparator_trials=[]. Run main() with its other report inputs valid.",
+    "expected": "The interpretation states that comparator identification did not increase and the estimated false-exclusion counts are zero.",
+    "actual": "The generated report still states 'identification gains are real (omega3 doubles)' and that the samples estimate 'dozens to ~160 eligible-by-reader records per topic excluded', contradicting the supplied results and its own table.",
+    "id": "search-1006:g1#5",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   }
+  ]
  }
 }
