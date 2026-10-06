@@ -63,7 +63,7 @@ def test_the_committed_audit_names_woman2_and_never_select():
 
 
 def test_pre_fix_woman2_was_an_open_gap_without_a_span():
-    base = json.loads(subprocess.check_output(["git", "show", "17fb03ab:outputs/k_gap/g1/tranexamic-acid-pph.json"], cwd=ROOT))
+    base = json.loads(subprocess.check_output(["git", "show", "f5f1a1bef155:outputs/k_gap/g1/tranexamic-acid-pph.json"], cwd=ROOT))
     assert "WOMAN-210" in base["open_gaps"]
 
 

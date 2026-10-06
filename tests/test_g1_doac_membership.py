@@ -62,6 +62,6 @@ def test_the_tracker_names_majeed_with_both_spans_and_keeps_the_denominator_hone
 
 
 def test_pre_fix_majeed_was_an_unaudited_seventh_trial():
-    base = json.loads(subprocess.check_output(["git", "show", f"f2fde38cd51e60b338ce33e8a9dddef89602f224:outputs/k_gap/g1/{SLUG}.json"],
+    base = json.loads(subprocess.check_output(["git", "show", f"752dc57bf7df13efc4f2acf5434893d313112c6c:outputs/k_gap/g1/{SLUG}.json"],
                                               cwd=ROOT))
     assert base["N_eligible"] == 7 and base["top_blocker"] == "SCREENED_OUT_UNAUDITED:X1"

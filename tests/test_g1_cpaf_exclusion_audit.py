@@ -45,7 +45,7 @@ def test_every_colchicine_exclusion_is_audited_with_its_class():
 def test_pre_fix_audit_missed_the_substudy_screener_error():
     # pre-fix firing: the base audit (acq/k-gap, which since audits in-screen exclusions too) left the COPPS POAF
     # substudy a thin record -- the screener error it is went unseen
-    raw = subprocess.check_output(["git", "show", "8de695346c3d63bb8da41446ce61c20b26e7166a:outputs/k_gap/exclusion_audit.json"], cwd=ROOT)
+    raw = subprocess.check_output(["git", "show", "43ebe9654a06878342b72a6074ed6dd8ae336a0e:outputs/k_gap/exclusion_audit.json"], cwd=ROOT)
     base = {r["pmid"]: r for r in json.loads(raw)["rows"] if r["slug"] == CPAF}
     assert (base["22090167"]["class"], base["22090167"]["subclass"]) == ("INSUFFICIENT_RECORD", "DESIGN_NOT_ESTABLISHED_BY_RECORD")
 
@@ -110,7 +110,7 @@ def test_a_full_text_span_names_zarpelon_only_when_verified_against_the_held_bod
 
 
 def test_pre_merge_base_left_zarpelon_an_open_gap():
-    base = json.loads(subprocess.check_output(["git", "show", f"8de695346c3d63bb8da41446ce61c20b26e7166a:outputs/k_gap/g1/{CPAF}.json"], cwd=ROOT))
+    base = json.loads(subprocess.check_output(["git", "show", f"43ebe9654a06878342b72a6074ed6dd8ae336a0e:outputs/k_gap/g1/{CPAF}.json"], cwd=ROOT))
     assert "Zarpelon [20]" in base["open_gaps"]
 
 

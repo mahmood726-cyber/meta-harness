@@ -58,7 +58,7 @@ def test_a_letter_whose_article_is_not_excluded_with_a_span_stays_eligible(monke
 
 
 def test_pre_fix_isreb_was_an_open_gap():
-    base = json.loads(subprocess.check_output(["git", "show", f"17fb03ab:outputs/k_gap/g1/{SLUG}.json"], cwd=ROOT))
+    base = json.loads(subprocess.check_output(["git", "show", f"f5f1a1bef155:outputs/k_gap/g1/{SLUG}.json"], cwd=ROOT))
     assert "Isreb (19)" in base["open_gaps"] and base["N_eligible"] == 6
 
 

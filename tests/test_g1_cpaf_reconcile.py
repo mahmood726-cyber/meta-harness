@@ -77,7 +77,7 @@ def test_the_comparators_conclusion_does_not_survive_on_the_shared_trials():
 def test_pre_fix_tracker_left_zarpelon_and_the_substudy_unresolved():
     # the base (acq/k-gap 8de6953) names the 4 record-spanned exclusions; Zarpelon (full text only) stays an open gap and
     # the COPPS substudy reads as a thin record, not the screener error it is
-    base = json.loads(subprocess.check_output(["git", "show", f"8de695346c3d63bb8da41446ce61c20b26e7166a:outputs/k_gap/g1/{SLUG}.json"], cwd=ROOT))
+    base = json.loads(subprocess.check_output(["git", "show", f"43ebe9654a06878342b72a6074ed6dd8ae336a0e:outputs/k_gap/g1/{SLUG}.json"], cwd=ROOT))
     assert base["N_eligible"] == 5 and "Zarpelon [20]" in base["open_gaps"]
     assert base["top_blocker"] == "INSUFFICIENT_RECORD:DESIGN_NOT_ESTABLISHED_BY_RECORD"
 
