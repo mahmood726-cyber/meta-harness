@@ -536,3 +536,34 @@ The guard missed a prompt shape: whole-text `<<<TEXT … TEXT>>>` blocks.
 - the all-topic two-source sweep (5-wide, up to 200 forest reads);
 - regulatory holding for every topic;
 - then round 2, which re-asks every trial whose evidence changed.
+
+### Full-cascade burn, rounds 2–3 (6 Oct, night) — acq/k-gap 7909cd618 … a5776a029
+
+**Denominator fix.** statins-elderly had 15 QRISK strata rows from one cohort study, each parsed as a trial unit.
+- Corpus N goes from 361 to **346**, and eligible from 239 to **224**.
+- A plant guards it.
+- statins-elderly now has 12 units, all named scope differences. Its state still reads ALL_ELIGIBLE_MATCHED unmet with 0 eligible. That's the tracker's state rule, which I haven't changed; it's yours to decide.
+
+**Regulatory holding.** All 32 topics: 1,250+ typed source records (FDA reviews and labels, EMA EPARs, NICE). Every NICE document states notice-of-rights.
+
+**Codex calls.**
+- Totals: round 1 had 50 calls, round 2 had 13, round 3 had 9, and the all-topic sweep made 6 forest reads (the open-meta pool is exhausted).
+- Unchanged evidence was never re-asked.
+- No call was made for a trial with no open source.
+
+**The regulator route reaches the trials; the gates hold.**
+- EMPACTA and REMDACTA: FDA gives mortality for the treated mITT subset only, so it is refused.
+- EXAMINE: FDA gives a 98% CI, not a two-sided 95%, so it is refused.
+- ASCEND: the EMA window gives no number.
+- No typed (no-model) regulator admission anywhere in the corpus.
+
+**Recount.** G1_MATCHED 9, INDEPENDENT 92/346, COVERAGE 164/346, eligible 224.
+
+Per topic: tocilizumab-covid19-mortality NOT_YET indep 5/19 matched 5/19; balanced-crystalloids-vs-saline-mortality NOT_YET indep 0/6 matched 0/5; colchicine-postop-af NOT_YET indep 2/9 matched 2/5; colchicine-recurrent-pericarditis NOT_YET indep 1/5 matched 1/1; colchicine-secondary-cv-prevention NOT_YET indep 2/15 matched 2/10; corticosteroids-cap-mortality NOT_YET indep 3/11 matched 3/10; corticosteroids-covid19-mortality NOT_YET indep 2/5 matched 2/5; denosumab-vertebral-fracture COMPARATOR_NOT_ENUMERATED indep 0/0 matched 0/0; dpp4-mace-t2d NOT_YET indep 3/4 matched 3/4; empagliflozin-hfpef-hosp NOT_YET indep 0/3 matched 0/2; esketamine-trd-madrs NOT_YET indep 3/6 matched 3/5; iv-iron-hfref-hosp NOT_YET indep 2/5 matched 2/4; melatonin-primary-insomnia-sol NOT_YET indep 1/19 matched 1/9; metformin-pcos-ovulation NOT_YET indep 3/41 matched 3/33; omega3-cardiovascular-events NOT_YET indep 6/28 matched 6/18; pcsk9-mace NOT_YET indep 2/12 matched 2/11; probiotics-aad-prevention NOT_YET indep 19/41 matched 19/41; sacubitril-valsartan-hfref NOT_YET indep 1/9 matched 1/2; semaglutide-obesity-mace NOT_YET indep 1/10 matched 1/2; sglt2-ckd-progression NOT_YET indep 3/12 matched 3/3; statins-primary-prevention-elderly NOT_YET indep 0/12 matched 0/0; ticagrelor-vs-clopidogrel-acs NOT_YET indep 1/22 matched 1/3; tranexamic-acid-pph NOT_YET indep 1/5 matched 1/1
+
+**Where codex can't help without your call:**
+- 107 trials have no open primary source: 62 are paywalled with a PMID, the rest have no PMID.
+- 26 of 31 sweep candidate rows are refused because the meta's measure differs from ours.
+- Timepoint-silent metas (cortico-CAP) are refused.
+- 2 scope candidates have verbatim spans but no consumer yet: Zarpelon [20] in colchicine-postop-af ("prospective, randomized, open"; the protocol requires double-blind), and esketamine Trial B.
+- Four topics have every eligible trial matched and fail only RESULT_AGREES: colchicine-recurrent-pericarditis 1/1, sglt2-ckd 3/3, tranexamic 1/1, dpp4 3/4. That is a result-agreement question, not acquisition.
