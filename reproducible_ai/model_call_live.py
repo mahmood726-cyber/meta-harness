@@ -138,8 +138,53 @@ def log_call(record: dict, facts: dict, path: Path | None = None) -> None:
             **{k: facts[k] for k in ("tokens_used", "tool_calls_n", "tool_calls_rejected_n", "tool_calls", "files_read",
                                      "transcript_redacted")}}
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8", newline="\n") as f:
-        f.write(json.dumps(line, sort_keys=True, ensure_ascii=True) + "\n")
+    # ONE whole line per write, serialised: concurrent callers (threads, or two processes on one box) appending
+    # multi-kilobyte lines through buffered text writes interleaved and split a line (search-screen-audit.jsonl line 675,
+    # 6 Oct; plant tests/test_search_audit_lane_log_concurrency.py)
+    data = (json.dumps(line, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii")
+    with _LOG_LOCK, _file_lock(path):
+        with open(path, "ab") as f:
+            f.write(data)
+            f.flush()
+
+
+import threading as _threading  # noqa: E402
+from contextlib import contextmanager as _contextmanager  # noqa: E402
+
+_LOG_LOCK = _threading.Lock()
+
+
+@_contextmanager
+def _file_lock(path: Path):
+    """Exclusive inter-process lock on '<log>.lock' (msvcrt on Windows, fcntl elsewhere) for the duration of one append."""
+    fh = open(Path(str(path) + ".lock"), "a+b")
+    try:
+        try:
+            import msvcrt
+        except ImportError:
+            msvcrt = None
+        if msvcrt is not None:
+            fh.seek(0)
+            while True:
+                try:
+                    msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
+                    break
+                except OSError:
+                    continue
+            try:
+                yield
+            finally:
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+    finally:
+        fh.close()
 
 
 HEADER_KEYS = ("model", "provider", "approval", "sandbox", "reasoning effort", "reasoning summaries", "session id")
