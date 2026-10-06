@@ -29,6 +29,7 @@ Writes registry/model_proposals/g1_forest_reader.json (+ _runs.json ledger).
 """
 from __future__ import annotations
 
+import collections
 import concurrent.futures as cf
 import hashlib
 import io
@@ -40,6 +41,8 @@ import sys
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# codex calls in flight per box: the captain sets it per budget window (5 Oct night: 5, 3 when C: or F: < 5 GB)
+CONCURRENCY = max(1, int(os.environ.get("G1_CONCURRENCY", "3")))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 import k_gap_forest_plot as fp  # noqa: E402
 # bound HERE, with the repo root first on sys.path: scripts/kgap.py (a CLI) shadows the kgap PACKAGE whenever another
@@ -701,7 +704,9 @@ def prompt_bytes(fig, reader):
     elif fig.get("panel"):
         extra = (f"\nThis figure has several panels. Transcribe ONLY panel ({fig['panel']}), which the caption titles "
                  f"'{fig['panel_title']}'. Ignore every other panel; its rows and pooled row are not wanted.\n")
-    where = ("The figure is the attached image." if reader == "codex" else
+    if reader == "codex_audit":
+        extra += ("\nINDEPENDENT AUDIT READ: transcribe the figure afresh, as if no other reading of it existed.\n")
+    where = ("The figure is the attached image." if reader in ("codex", "codex_audit") else
              "The figure is the image file image_0" + os.path.splitext(fig.get("image_name") or ".jpg")[1].lower() +
              " in the current directory: read that file and nothing else.")
     if fig.get("retry_note"):
@@ -775,7 +780,7 @@ def run_reader(item, reader):
               "purpose": f"G1 dual forest read ({reader}) {item['slug']} meta {item['pmid']} fig {item['figure']['fig_id']}"}
     dig = [{"ref": item["image_ref"], "sha256": item["image_sha256"], "what": "comparator forest-plot figure image",
             "source_url": item.get("image_url")}]
-    if reader == "codex":
+    if reader in ("codex", "codex_audit"):
         rec = mcl.call(p, schema=SCHEMA, model=CODEX_MODEL, effort=CODEX_EFFORT, caller=caller, input_digests=dig,
                        timeout_s=900, images=(item["image_path"],))
     else:
@@ -1928,6 +1933,74 @@ def evaluate(its, runs):
 
 SECOND_SOURCE_ONLY = "ACCEPTED_SECOND_SOURCE_ONLY"     # rows agreed, pool unprinted: see judge (decision 5 Oct)
 
+AUDIT = os.path.join(ROOT, "registry", "model_proposals", "g1_forest_audit.json")
+
+
+def audit_compare(acc_rows, acc_pooled, reading):
+    """An independent third reading vs the ACCEPTED agreed rows + pooled row, by the reader's own rule (agree): printed
+    rounding for numbers, counts exact, rows matched by normalised label. A finding is reported, never acted on."""
+    ra = {"legible": True, "row_kind": "study", "measure": reading.get("measure"),
+          "rows": [{k: r.get(k) for k in ("label", "effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")}
+                   for r in acc_rows], "pooled": acc_pooled or {}}
+    proposed, refused, pooled, probs, ne = agree(ra, reading)
+    rename = {"ONLY_IN_READING_A": "ONLY_IN_ACCEPTED", "ONLY_IN_READING_B": "ONLY_IN_AUDIT"}
+    dis = [{"label": x["label"], "why": rename.get(x["why"], x["why"]), "accepted": x.get("a"), "audit": x.get("b")}
+           for x in refused]
+    pa = acc_pooled or {}
+    pool_state = ("NO_ACCEPTED_POOLED_ROW" if not any(str(pa.get(k) or "").strip() for k in ("effect", "lower", "upper"))
+                  else "POOLED_AGREES" if pooled else "POOLED_DISAGREES")
+    other = [p for p in probs if not p.startswith(("ROWS_DISAGREE", "POOLED_ROW_DISAGREES", "NO_POOLED_ROW_PRINTED"))]
+    state = "AUDIT_AGREES" if not dis and pool_state != "POOLED_DISAGREES" and not other else "AUDIT_DISAGREES"
+    return {"state": state, "rows_accepted": len(acc_rows), "rows_agreeing": len(proposed) + len(ne),
+            "disagreements": dis, "pooled": {"state": pool_state, "accepted": pa, "audit": reading.get("pooled")},
+            "other_problems": other}
+
+
+def audit_third(run):
+    """THIRD-READER AUDIT (6 Oct): every ACCEPTED comparator figure is re-read by an independent recorded codex call
+    (reader 'codex_audit') and compared with its accepted rows. Writes registry/model_proposals/g1_forest_audit.json;
+    acceptance is never changed by it."""
+    o = _j(OUT)
+    acc = {k: v for k, v in (o.get("results") or {}).items() if v.get("state") in ("ACCEPTED", SECOND_SOURCE_ONLY)}
+    its = [it for it in items(sorted(acc), run)[0] if it["slug"] in acc]
+    runs = _j(RUNS) if os.path.exists(RUNS) else {}
+    out = {"what": "third independent codex reading of every ACCEPTED comparator figure vs its accepted rows; findings "
+                   "are reported, never acted on", "figures": {}}
+    todo = [it for it in its if it["image_sha256"] == (acc[it["slug"]].get("image") or {}).get("sha256")
+            and (runs.get(_key(it, "codex_audit")) or {}).get("state") != "RAN_OK"]
+    if run and todo:
+        print(f"audit: {len(its)} accepted comparator figures, {len(todo)} calls to run", flush=True)
+        with RunLock(), cf.ThreadPoolExecutor(max_workers=CONCURRENCY) as ex:
+            futs = {ex.submit(run_reader, it, "codex_audit"): it for it in todo}
+            for f in cf.as_completed(futs):
+                it = futs[f]
+                runs[_key(it, "codex_audit")] = r = f.result()
+                _save(RUNS, runs)
+                print(_key(it, "codex_audit"), r["state"], r["record_id"], r.get("error") or "", flush=True)
+    for it in its:
+        v = acc[it["slug"]]
+        if it["image_sha256"] != (v.get("image") or {}).get("sha256"):
+            out["figures"][it["slug"]] = {"state": "AUDIT_SKIPPED:FIGURE_NOT_THE_ACCEPTED_ONE"}
+            continue
+        r = runs.get(_key(it, "codex_audit"))
+        if not r or r.get("state") != "RAN_OK":
+            out["figures"][it["slug"]] = {"state": "AUDIT_NOT_RUN", "run": r and {k: r.get(k) for k in ("state", "error")}}
+            continue
+        _, (d, why) = replay_reading(r)
+        if d is None:
+            out["figures"][it["slug"]] = {"state": "AUDIT_READING_UNPARSEABLE", "why": why, "record_id": r["record_id"]}
+            continue
+        rows = v.get("proposed_rows") or v.get("secondary_rows") or []
+        rows = [{"label": x.get("label") or x.get("trial_label"), **{k: x.get(k) for k in
+                 ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")}} for x in rows]
+        out["figures"][it["slug"]] = dict(audit_compare(rows, v.get("pooled_agreed"), d), pmid=it["pmid"],
+                                          fig_id=it["figure"]["fig_id"], record_id=r["record_id"],
+                                          accepted_readings=v.get("readings") and {k: (v["readings"].get(k) or {}).get("record_id")
+                                                                                    for k in ("codex", "agy")})
+    out["tally"] = dict(collections.Counter(x["state"] for x in out["figures"].values()))
+    _save(AUDIT, out)
+    return out
+
 
 def accepted_rows(slug):
     """The ACCEPTED secondary rows of a topic -- its comparator's and every other meta's (replay output, no model): for
@@ -2069,6 +2142,10 @@ def main(argv):
         its, skipped = items([], run, extras=sorted(COMPARATOR_EXTRA))
     elif "--topic-retry" in argv:                # exactly the frozen TOPIC_RETRY figures (from either sweep)
         its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(TOPIC_RETRY)])
+    elif "--audit-third" in argv:                # recorded third-reader audit of every ACCEPTED comparator figure
+        a = audit_third(run)
+        print(json.dumps(a["tally"]))
+        return 0
     elif "--citing" in argv:                     # figures of OA metas citing an unmatched trial (g1_citing_targets)
         its, skipped = items([], run, named=citing_named(slugs))
     elif "--kgap-sweep" in argv:
@@ -2097,7 +2174,7 @@ def main(argv):
                 or runs[_key(it, rd)]["image_sha256"] != it["image_sha256"]
                 or runs[_key(it, rd)]["prompt_sha256"] != hashlib.sha256(prompt_bytes(it["figure"], rd)).hexdigest()]
         print(f"figures {len(its)}, calls to run {len(todo)}, skipped {len(skipped)}", flush=True)
-        with RunLock(), cf.ThreadPoolExecutor(max_workers=3) as cx, cf.ThreadPoolExecutor(max_workers=3) as ag:
+        with RunLock(), cf.ThreadPoolExecutor(max_workers=CONCURRENCY) as cx, cf.ThreadPoolExecutor(max_workers=CONCURRENCY) as ag:
             futs = {(cx if rd == "codex" else ag).submit(run_reader, it, rd): (it, rd) for it, rd in todo}
             for f in cf.as_completed(futs):
                 it, rd = futs[f]
