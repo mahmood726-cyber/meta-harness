@@ -293,6 +293,25 @@ def gate_screen(claim, text):
     return out, (pl if pooled_ok else None), (pl.get("k") if k_ok else None)
 
 
+def recover(items, runs, rec_dir):
+    """Ledger entries rebuilt from the RECORDS by prompt sha256 (a run interrupted before its ledger save must never be
+    paid for twice). Returns how many were recovered."""
+    import base64
+    want = {hashlib.sha256(it["prompt"]).hexdigest(): it for it in items}
+    n = 0
+    for f in (sorted(os.listdir(rec_dir)) if os.path.isdir(rec_dir) else []):
+        if not f.endswith(".json"):
+            continue
+        rec = _j(os.path.join(rec_dir, f))
+        sha = hashlib.sha256(base64.b64decode((rec.get("prompt") or {}).get("b64") or "")).hexdigest()
+        it = want.get(sha)
+        if it and rec.get("state") == "RAN_OK" and (runs.get(it["key"]) or {}).get("prompt_sha256") != sha:
+            runs[it["key"]] = {"record_id": rec["record_id"], "state": "RAN_OK", "prompt_sha256": sha,
+                               "recovered_from_record": True}
+            n += 1
+    return n
+
+
 def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs):
     """Recorded calls, local at G1_CODEX_CONCURRENCY and (G1_REMOTE_SHARE=1) every other one on the worker."""
     import concurrent.futures as cf
@@ -338,6 +357,8 @@ def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs):
                     k, r = f.result()
                     runs[k] = r
                     print(k, r["state"], r["record_id"], flush=True)
+                    if sum(1 for v in runs.values() if v is r) and len(runs) % 20 == 0:
+                        runs_store.save(runs, slugs=set(slugs))      # periodic: an interruption loses <= 20 entries
                 except Exception as exc:  # noqa: BLE001 - a refused call is named, never dropped
                     print("LOCAL CALL FAILED", type(exc).__name__, str(exc)[:200], flush=True)
         try:
@@ -396,6 +417,7 @@ def cmd_screen(slugs, run=False):
         a_items.append(dict(it, key=it["key"].replace("swapscreen::", "swapscreenA::"), prompt=prompt, text=ab,
                             schema=A_SCHEMA, stage="A"))
     excluded = {}
+    print("recovered from records:", recover(a_items + items, runs, rec_dir), flush=True)
     if run:
         _run_calls([a for a in a_items if not done(a)], runs, rec_dir, mcl, ms, fp, slugs)
     for a in a_items:

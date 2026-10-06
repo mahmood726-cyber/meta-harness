@@ -56,7 +56,7 @@ def head_sha():
 
 def sync_worker(sha):
     """The worker worktree at exactly `sha` (which must be pushed); refuses otherwise."""
-    r = _ssh(f'cd /d {WT} && git fetch --quiet origin && git checkout --quiet --detach {sha} && git rev-parse HEAD', 600)
+    r = _ssh(f'cd /d {WT} && git reset --quiet --hard && git fetch --quiet origin && git checkout --quiet --detach {sha} && git rev-parse HEAD', 600)  # my own worktree: only copied indexes to drop
     got = (r.stdout.strip().splitlines() or [""])[-1]
     if got != sha:
         raise RuntimeError(f"REFUSED: worker worktree HEAD {got!r} != {sha} ({r.stderr[-200:]})")
