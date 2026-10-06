@@ -192,6 +192,55 @@ def _norm(t):
     return re.sub(r"\s+", " ", (t or "")).strip().lower()
 
 
+def _quoted(q, nt):
+    """A quote supports a claim only if it is non-empty after folding AND verbatim in the folded text (an all-whitespace
+    quote folds to '' -- contained in every text: codex binding-v8-fe3ed2a7:g2#5)."""
+    nq = _norm(q)
+    return bool(nq) and nq in nt
+
+
+def _num_tokens(q):
+    """Whole numeric tokens of a quote, signed; a dash right after a digit is a range dash ('0.70-1.03'), not a minus."""
+    text = (q or "").replace(",", "")
+    out = []
+    for m in re.finditer(r"([-−–]?)(\d+(?:\.\d+)?)", text):
+        prev = text[m.start() - 1] if m.start() > 0 else " "
+        neg = bool(m.group(1)) and not (prev.isdigit() or prev == ".")
+        out.append(float(m.group(2)) * (-1 if neg else 1))
+    return out
+
+
+def pooled_gate(pl, nt):
+    """The pooled claim stands only if its quote is verbatim in the held text, every stated estimate / bound EQUALS a whole
+    numeric token of that quote (never a substring: '0.8' inside '0.85' -- g2#3), and a stated k is PRINTED in the quote
+    as 'k = n' or 'n trials / studies / RCTs' (g2#4: an invented k reached the T3 largest-k tie-break). Returns
+    (pooled or None, k or None)."""
+    q = pl.get("quote")
+    if not _quoted(q, nt):
+        return None, None
+    toks = _num_tokens(q)
+    for key in ("estimate", "lower", "upper"):
+        if pl.get(key) in (None, ""):
+            continue
+        try:
+            v = float(str(pl[key]).replace("−", "-").replace("–", "-"))
+        except ValueError:
+            return None, None
+        if not any(abs(v - t) < 1e-9 for t in toks):
+            return None, None
+    k = pl.get("k")
+    if k is not None:
+        printed = {int(x) for pair in re.findall(r"\bk\s*=\s*(\d+)|\b(\d+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?"
+                                                  r"(?:clinical\s+)?(?:trials|studies|rcts)\b", q, re.I)
+                   for x in pair if x}
+        try:
+            if int(k) not in printed:
+                return None, None
+        except (TypeError, ValueError):
+            return None, None
+    return pl, k
+
+
 def held_jats(pmid, pmcid):
     """The candidate's open JATS (Europe PMC fullTextXML), held at cache/comparators/<pmid>/<date>_kgap_jats.xml."""
     from harness import http
@@ -283,17 +332,14 @@ def gate_screen(claim, text):
     out = {}
     for cid, v in (claim.get("criteria") or {}).items():
         q = v.get("quote")
-        ok = bool(q) and _norm(q) in nt
+        ok = _quoted(q, nt)
         if v.get("verdict") in ("PASS", "FAIL"):
             out[cid] = ({"verdict": v["verdict"], "evidence": q} if ok else
                         {"verdict": "UNCLEAR", "evidence": (f"QUOTE_NOT_IN_TEXT: {q[:120]}" if q else "no quote")})
         else:                                   # the reader itself said UNCLEAR: labelled as such, never as a gate refusal
             out[cid] = {"verdict": "UNCLEAR", "evidence": f"READER_UNCLEAR: {q[:120]}" if q else "READER_UNCLEAR"}
-    pl = claim.get("pooled") or {}
-    pooled_ok = bool(pl.get("quote")) and _norm(pl["quote"]) in nt and all(
-        str(pl.get(k)) in pl["quote"] for k in ("estimate", "lower", "upper") if pl.get(k))
-    k_ok = pooled_ok and pl.get("k") is not None
-    return out, (pl if pooled_ok else None), (pl.get("k") if k_ok else None)
+    pooled, k = pooled_gate(claim.get("pooled") or {}, nt)
+    return out, pooled, k
 
 
 def recover(items, runs, rec_dir):
@@ -588,9 +634,9 @@ def gate_enum(claim, it):
     for t in claim.get("trials") or []:
         lab, ref, rq = t.get("label") or "", str(t.get("ref") or "").strip(), t.get("row_quote")
         why = None
-        if _norm(lab) not in nt:
+        if not _quoted(lab, nt):
             why = "LABEL_NOT_IN_TEXT"
-        elif rq and _norm(rq) not in nt:
+        elif rq and not _quoted(rq, nt):
             why = "ROW_QUOTE_NOT_IN_TEXT"
         r = refs.get(ref) if ref else None
         if not why and not r:
@@ -610,11 +656,9 @@ def gate_enum(claim, it):
         span = rq if rq else (r.get("title") or lab)
         units.append({"label": lab, "ref": ref, "pmid": pmid, "identity": ident, "span": span, "scope": "IN_SCOPE",
                       "rule_id": None})
-    pl = claim.get("pooled") or {}
-    pooled_ok = bool(pl.get("quote")) and _norm(pl["quote"]) in nt and all(
-        str(pl.get(k)) in pl["quote"] for k in ("estimate", "lower", "upper") if pl.get(k))
+    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt)
     sq = claim.get("set_quote")
-    return units, refused, (pl if pooled_ok else None), (sq if sq and _norm(sq) in nt else None)
+    return units, refused, pooled, (sq if _quoted(sq, nt) else None)
 
 
 def cmd_enumerate(slugs, run=False):

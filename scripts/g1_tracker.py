@@ -1875,19 +1875,28 @@ def _held_norm(path, text=None):
 def numbers_in_span(obj, span, keys):
     """Every typed number in obj[keys] is PRINTED in the span (codex review merge-08315be6e:g2#1/#2): a token equal to it
     at the printed precision, with its sign. A row whose numbers do not come from its own span is refused."""
-    toks = [m.group(0) for m in re.finditer(r"[-−–]?\d+(?:[.,]\d+)?", (span or "").replace(",", ""))]
-    vals = [float(t.replace("−", "-").replace("–", "-")) for t in toks]
+    text = (span or "").replace(",", "")
+    signed, counts = [], []
+    for m in re.finditer(r"([-−–]?)(\d+(?:\.\d+)?)", text):
+        prev = text[m.start() - 1] if m.start() > 0 else " "
+        # a dash right after a digit is a RANGE dash ('0.80-1.01'), never a minus: the number is positive. Any other
+        # leading dash is the number's sign, so a printed -1.7 never confirms 1.7 (codex binding-v8-fe3ed2a7:g2#1)
+        neg = bool(m.group(1)) and not (prev.isdigit() or prev == ".")
+        y = float(m.group(2)) * (-1 if neg else 1)
+        signed.append(y)
+        # a token followed by '%' is a PERCENTAGE, never a count (g2#2: 'deaths 10%' does not print 10 deaths)
+        if not re.match(r"\s*%", text[m.end():]):
+            counts.append(y)
     for k in keys:
         v = obj.get(k)
         if v is None or v == "":
             continue
         try:
-            x = float(str(v).replace("−", "-"))
+            x = float(str(v).replace("−", "-").replace("–", "-"))
         except ValueError:
             return False
-        # a positive value matches a token's magnitude (a range dash '0.80-1.01' is not a minus); a negative value
-        # must be printed with its sign
-        if not any((abs(x - y) < 1e-9) or (x >= 0 and abs(x - abs(y)) < 1e-9) for y in vals):
+        pool = counts if (k.startswith("events") or k.startswith("n_") or k == "n") else signed
+        if not any(abs(x - y) < 1e-9 for y in pool):
             return False
     return True
 
