@@ -11,7 +11,8 @@ identifies, and how the rule screen decides them.
 
 Committed: outputs/search_audit/expanded/<slug>.json -- query + record id of the proposal, count, every new PMID with its
 held-text sha256 and rule decision (rule_id, reason, span), and the per-trial gain. The record TEXTS are kept out of the
-repo (C:/mh-tmp/search/expanded, re-fetchable by PMID; each verified by its sha256).
+repo (a temp directory outside the tree, env MH_EXPANDED_TEXTS; re-fetchable by PMID; each verified by its
+sha256).
 
   python scripts/g1_expanded_search.py [SLUG ...]   (online)
 """
