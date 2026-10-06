@@ -1956,17 +1956,40 @@ def audit_compare(acc_rows, acc_pooled, reading):
             "other_problems": other}
 
 
-def audit_third(run):
-    """THIRD-READER AUDIT (6 Oct): every ACCEPTED comparator figure is re-read by an independent recorded codex call
-    (reader 'codex_audit') and compared with its accepted rows. Writes registry/model_proposals/g1_forest_audit.json;
-    acceptance is never changed by it."""
+def audit_targets(o, scope):
+    """The ACCEPTED figures of one section: 'comparator' (results, keyed by slug) or 'meta' (meta_results)."""
+    sec = o.get("results" if scope == "comparator" else "meta_results") or {}
+    return {k: v for k, v in sec.items() if v.get("state") in ("ACCEPTED", SECOND_SOURCE_ONLY)}
+
+
+def audit_items(acc, scope, run):
+    """The items behind the accepted figures, rebuilt exactly as they were read (same figure choice / named figure)."""
+    if scope == "comparator":
+        return [it for it in items(sorted(acc), run)[0] if it["slug"] in acc]
+    pairs = sorted({tuple(k.split("::")[:2]) for k in acc if len(k.split("::")) == 2})
+    named_keys = {k for k in acc if len(k.split("::")) == 3}
+    ext = sorted({tuple(k.split("::")[:2]) for k in named_keys if tuple(k.split("::")[:2]) in META_EXTRA})
+    cit = [x for x in citing_named(sorted({k.split("::")[0] for k in named_keys}))
+           if extra_key(*x) in named_keys]
+    its = items([], run, pairs=pairs, meta_extras=ext, named=cit)[0]
+    return [it for it in its if it.get("key") in acc]
+
+
+def audit_third(run, scope="comparator", slugs=None):
+    """THIRD-READER AUDIT (6 Oct): every ACCEPTED figure of the scope is re-read by an independent recorded codex call
+    (reader 'codex_audit') and compared with its accepted rows. Writes registry/model_proposals/g1_forest_audit.json
+    (comparators) or g1_forest_audit_metas.json; acceptance is never changed by it."""
     o = _j(OUT)
-    acc = {k: v for k, v in (o.get("results") or {}).items() if v.get("state") in ("ACCEPTED", SECOND_SOURCE_ONLY)}
-    its = [it for it in items(sorted(acc), run)[0] if it["slug"] in acc]
+    acc = audit_targets(o, scope)
+    if slugs:                                   # a box's share of the audit (topics), the rest runs elsewhere
+        acc = {k: v for k, v in acc.items() if k.split("::")[0] in slugs}
+    its = audit_items(acc, scope, run)
+    for it in its:
+        it.setdefault("key", it["slug"])
     runs = _j(RUNS) if os.path.exists(RUNS) else {}
     out = {"what": "third independent codex reading of every ACCEPTED comparator figure vs its accepted rows; findings "
                    "are reported, never acted on", "figures": {}}
-    todo = [it for it in its if it["image_sha256"] == (acc[it["slug"]].get("image") or {}).get("sha256")
+    todo = [it for it in its if it["image_sha256"] == (acc[it["key"]].get("image") or {}).get("sha256")
             and (runs.get(_key(it, "codex_audit")) or {}).get("state") != "RAN_OK"]
     if run and todo:
         print(f"audit: {len(its)} accepted comparator figures, {len(todo)} calls to run", flush=True)
@@ -1978,27 +2001,30 @@ def audit_third(run):
                 _save(RUNS, runs)
                 print(_key(it, "codex_audit"), r["state"], r["record_id"], r.get("error") or "", flush=True)
     for it in its:
-        v = acc[it["slug"]]
+        v = acc[it["key"]]
         if it["image_sha256"] != (v.get("image") or {}).get("sha256"):
-            out["figures"][it["slug"]] = {"state": "AUDIT_SKIPPED:FIGURE_NOT_THE_ACCEPTED_ONE"}
+            out["figures"][it["key"]] = {"state": "AUDIT_SKIPPED:FIGURE_NOT_THE_ACCEPTED_ONE"}
             continue
         r = runs.get(_key(it, "codex_audit"))
         if not r or r.get("state") != "RAN_OK":
-            out["figures"][it["slug"]] = {"state": "AUDIT_NOT_RUN", "run": r and {k: r.get(k) for k in ("state", "error")}}
+            out["figures"][it["key"]] = {"state": "AUDIT_NOT_RUN", "run": r and {k: r.get(k) for k in ("state", "error")}}
             continue
         _, (d, why) = replay_reading(r)
         if d is None:
-            out["figures"][it["slug"]] = {"state": "AUDIT_READING_UNPARSEABLE", "why": why, "record_id": r["record_id"]}
+            out["figures"][it["key"]] = {"state": "AUDIT_READING_UNPARSEABLE", "why": why, "record_id": r["record_id"]}
             continue
         rows = v.get("proposed_rows") or v.get("secondary_rows") or []
         rows = [{"label": x.get("label") or x.get("trial_label"), **{k: x.get(k) for k in
                  ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")}} for x in rows]
-        out["figures"][it["slug"]] = dict(audit_compare(rows, v.get("pooled_agreed"), d), pmid=it["pmid"],
+        out["figures"][it["key"]] = dict(audit_compare(rows, v.get("pooled_agreed"), d), pmid=it["pmid"],
                                           fig_id=it["figure"]["fig_id"], record_id=r["record_id"],
                                           accepted_readings=v.get("readings") and {k: (v["readings"].get(k) or {}).get("record_id")
                                                                                     for k in ("codex", "agy")})
     out["tally"] = dict(collections.Counter(x["state"] for x in out["figures"].values()))
-    _save(AUDIT, out)
+    name = AUDIT if scope == "comparator" else AUDIT.replace(".json", "_metas.json")
+    if slugs:
+        name = name.replace(".json", f".part-{hashlib.sha256(','.join(sorted(slugs)).encode()).hexdigest()[:8]}.json")
+    _save(name, out)
     return out
 
 
@@ -2142,8 +2168,8 @@ def main(argv):
         its, skipped = items([], run, extras=sorted(COMPARATOR_EXTRA))
     elif "--topic-retry" in argv:                # exactly the frozen TOPIC_RETRY figures (from either sweep)
         its, skipped = items([], run, pairs=[tuple(k.split("::")) for k in sorted(TOPIC_RETRY)])
-    elif "--audit-third" in argv:                # recorded third-reader audit of every ACCEPTED comparator figure
-        a = audit_third(run)
+    elif "--audit-third" in argv:                # recorded third-reader audit of every ACCEPTED figure (--metas: metas)
+        a = audit_third(run, "meta" if "--metas" in argv else "comparator", slugs=set(slugs) or None)
         print(json.dumps(a["tally"]))
         return 0
     elif "--citing" in argv:                     # figures of OA metas citing an unmatched trial (g1_citing_targets)
