@@ -14,28 +14,51 @@ ROOT = Path(__file__).resolve().parents[1]
 SLUGS = ("dapagliflozin-hfpef-hosp", "empagliflozin-hfpef-hosp")
 
 
+# Packet V7 ('yes v7', 5/6 Oct 2026) is the corrected selection the withdrawal waited for: dapagliflozin -> DELIVER's
+# posted composite HR 0.82 (0.73-0.92); empagliflozin -> EMPEROR-Preserved's HR 0.79 (0.69-0.90). The served page now
+# pools exactly that signed row; the withdrawal stays on the record (withdrawal_superseded, naming the signature) and
+# the withdrawn value stays disclosed on the row that replaced it. The withdrawn-state gate rules below are unchanged.
+CORRECTED = {"dapagliflozin-hfpef-hosp": ("PMID 36027570", 0.82, "ea2d55e3759211f2de812f18d4d5644c76e97de716565dcc4c4e5a53f84a347c"),
+             "empagliflozin-hfpef-hosp": ("PMID 34449189", 0.79, "9aa0336c4b75225dcc61539026f1d4bce9fa9de405bd30cf4f76c93259c26db3")}
+
+
 @pytest.mark.parametrize("slug", SLUGS)
-def test_withdrawn_page_pools_nothing_states_everything_and_passes_the_gate(slug):
+def test_a_signed_corrected_selection_ends_the_withdrawal_and_keeps_it_on_the_record(slug):
+    rid, est, sha = CORRECTED[slug]
     review = json.loads((ROOT / "docs/reviews" / slug / "review.json").read_text(encoding="utf-8"))
     prim = review["outcomes"][0]
-    assert prim["trials"] == [] and not (prim.get("result") or {}).get("k")
-    withdrawn_rows = [t for t in prim["declared_absent_trials"] if t.get("absent_kind") == "result_withdrawn"]
-    assert len(withdrawn_rows) == 1 and withdrawn_rows[0]["withdrawn_effect"]["effect"] in (0.88, 0.91)
-    w = review["withdrawn"]
-    joined = " ".join(w["statements"]).lower()
-    for needle in ("what was published", "what the held evidence holds", "why", "not yet published", "clinicaltrials.gov"):
+    assert [t["id"] for t in prim["trials"]] == [rid] and prim["result"]["k"] == 1 and prim["result"]["estimate"] == est
+    sup = prim["trials"][0]["served_pool_admission"]["supersedes_absence"]
+    assert any(x["state"] == "RESULT_WITHDRAWN" and (x.get("withdrawn_effect") or {}).get("effect") in (0.88, 0.91) for x in sup)
+    assert "withdrawn" not in review and review["withdrawal_superseded"]["superseded_by"]["rendered_sha256"] == sha
+    joined = " ".join(review["withdrawal_superseded"]["statements"]).lower()
+    for needle in ("what was published", "what the held evidence holds", "why", "clinicaltrials.gov"):
         assert needle in joined, needle
-    assert "grade" not in review, "a withdrawn result carries no certainty rating"
-    page = (ROOT / "docs/reviews" / slug / "index.html").read_text(encoding="utf-8")
-    assert "RESULT WITHDRAWN" in page
     ok, reasons = gate.gate_page(str(ROOT / "docs/reviews" / slug))
     assert ok, reasons
 
 
 def _copy(tmp_path, slug):
+    """A copy of the served page put back in the WITHDRAWN state (the corrected page carries the withdrawal as
+    withdrawal_superseded): pools nothing, declares the withdrawal, and the page states RESULT WITHDRAWN."""
     d = tmp_path / slug
     shutil.copytree(ROOT / "docs/reviews" / slug, d)
+    review = json.loads((d / "review.json").read_text(encoding="utf-8"))
+    if "withdrawal_superseded" in review:
+        w = dict(review.pop("withdrawal_superseded"))
+        w.pop("superseded_by", None)
+        review["withdrawn"] = w
+        review["outcomes"][0]["trials"] = []
+        review["outcomes"][0]["result"] = {"present": False}
+        (d / "review.json").write_text(json.dumps(review), encoding="utf-8")
+        page = (d / "index.html").read_text(encoding="utf-8")
+        (d / "index.html").write_text(page + "<div id='result-withdrawn'>RESULT WITHDRAWN</div>", encoding="utf-8")
     return d
+
+
+def test_the_withdrawn_state_itself_still_passes_its_gate_rule(tmp_path):
+    for slug in SLUGS:
+        assert gate.check_primary_result(str(_copy(tmp_path, slug))) == []
 
 
 def test_withdrawn_declared_with_a_number_still_pooled_is_refused(tmp_path):

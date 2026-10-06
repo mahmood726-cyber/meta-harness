@@ -52,11 +52,20 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_population: an entry age range ('aged 12 to 17 years')",
         "plants": {"accept": [("aged 12 to 17 years", ("12", "17")), ("aged 18-75 years", ("18", "75"))],
                    "refuse": ["aged 65 years or older", "18 to 75 years"]}},
-    "arm_object.py:search:1543b331b8": {
-        "kind": "search", "what": "_generic_contrasts: the semaglutide dose of the contrast",
-        "plants": {"accept": [("semaglutide 2.4 mg once weekly", ("2.4",)),
-                              ("once-weekly semaglutide (0.5 mg", None)],
-                   "refuse": ["semaglutide versus placebo", "liraglutide 3.0 mg"]}},
+    # NR-C23 (g1 lanes, consolidated 2026-10-04) replaced the inline semaglutide dose search with these named patterns
+    "arm_object.py:_REF_DOSE": {
+        "kind": "search", "what": "_generic_contrasts: a reference semaglutide dose in a semaglutide clause (whole number)",
+        "plants": {"accept": [(" 2.4 mg once weekly", ("2.4",)),
+                              (" (0.5 mg", None)],
+                   "refuse": [" 12.4 mg", " 2.4 mg/kg", "semaglutide versus placebo"]}},
+    "arm_object.py:_SEMA_DOSE_LIST": {
+        "kind": "search", "what": "_generic_contrasts: the dose LIST immediately after 'semaglutide' (O'Neil 2018)",
+        "plants": {"accept": [("semaglutide [0.05 mg, 0.1 mg, 0.2 mg, 0.3 mg, or 0.4 mg", None)],
+                   "refuse": ["semaglutide 2.4 mg/kg", "semaglutide versus placebo"]}},
+    "arm_object.py:_RUNIN_OR_TARGET": {
+        "kind": "search", "what": "_generic_contrasts: a run-in or a titration TO a target dose (never the randomised dose)",
+        "plants": {"accept": [("after a 4-week run-in", None), ("0.25 mg escalated to 2.4 mg", None)],
+                   "refuse": ["randomised to semaglutide 2.4 mg", "dose increases were not allowed"]}},
     # ---- harness/claimgraph.py ---------------------------------------------------------------------------------------
     "claimgraph.py:_PMID_RE": {
         "kind": "search", "what": "a PMID (optionally labelled)",

@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `23c91a4d1d60301c262076b4fa0f13b9150b09b3d2a234ba8a04cd4a9fdb3d4d` |
-| html_sha256 (served page bytes) | `65b99c49f329c8d6ae3eb4bd47e226520faebaca2bcd82a1d6b6ee50fe52a0a2` |
-| release_sha256 (certificate) | `f993ebc3a0c04a64953a5c69eaa638afc596ce3b1964e67837b7e744e48de2df` |
+| review_sha256 (canonical review core) | `1846a816ec6c7ad2ad387261dc279ce88c7759239c27c950321852dfab89ebfa` |
+| html_sha256 (served page bytes) | `c1572d8314652c23d398e513e5298ec35345eac5d8850e8c796c32e6cc4c9ce9` |
+| release_sha256 (certificate) | `df59efd80daff7227dab6c1d47e1a02fd8794f3ed25a95505a40aa0b58bd98c7` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
-| analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `39a8c7830f924555fe7e1350b22fae13d0487a4a` |
+| analysis code | 87 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
+| recorded generating commit | `6b6aad816138b8a1b022cc60793dbb9ed18232e3` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,9 +38,10 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/colchicine-postop-af/aact_inputs.json` | `91929e9ed7324ee3b6be148cdb6aec6b11d86a5b4e4554fb6db603db9c92d805` |
 | `cache/colchicine-postop-af/comparator_fulltext.txt` | `6a7760af7cd873c1bd1a54cc15172c9987dfcd6b0a6bd847acfcf831ee914e9c` |
+| `cache/colchicine-postop-af/ft_27223641.txt` | `25981c8eb7aec5684034785a60fbe922976c47e1c2192b4e9a5a74906543f51a` |
 | `cache/colchicine-postop-af/ft_42132185.txt` | `5f97fbf19df841fe3fff946895473f971f399f2772293fd384b50ea8e0ba6975` |
 
 Recorded judgments live under `cache/colchicine-postop-af/`; their object digest is
-`7cf42cf56e01b5a00d105f5e34c400ba2316f633ee3cc0ee1809e7dbd2a444ab`. Acquisitions live under `docs/acquisitions/colchicine-postop-af/`.
+`64cff16b17c01b76e9c702e942d985fe6b8b04885de05530f7f658520eeca204`. Acquisitions live under `docs/acquisitions/colchicine-postop-af/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

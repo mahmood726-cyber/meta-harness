@@ -1,0 +1,163 @@
+# acq/k-gap — STEP 2 report: adapters, measured by counterfactual (2026-09-29)
+
+**Method.** Each adapter is measured before any corpus-moving pin. `scripts/k_gap_counterfactual.py` rebuilds a
+topic's review core **in memory** from its pinned cache, adds what the adapter would acquire (records, full text,
+registry results), and runs the unchanged screen -> extract -> admission gate. Nothing is written to `cache/` or
+`docs/`.
+
+- **Comparability.** The baseline build (no additions) reproduces the served page on **32/32** topics, at VALUE
+  level: every pooled estimate/CI and every trial's effect or arm counts. 81 of 87 served trials carry a
+  populated value, so the comparison has something to compare.
+- **Valid k only.** A gain counts only if the pool it lands in stays valid. `k_valid` is 0 when the pool is
+  suppressed (e.g. INCOMPATIBLE estimands). Plant: `tests/test_k_gap.py::test_a_larger_k_in_a_suppressed_pool_is_not_a_gain`.
+
+## Adapter 1 — comparator-member seeding (identification): **+1 valid k of 70** (71 before the identity correction)
+
+The report each comparator cited, for its 70 never-identified members (corrected identity table), was put through
+our screener. Per member trial: **54 screened out**, 7 declared absent (outcome not in abstract), **1 pooled**
+(sglt2-primary-prevention-hf PMID 28284707, k 4->5), 8 not fetched. Screen rules: X2 population 23, X1 design 17,
+X3 comparator 13, X-DESIGN 1. (First run, before the identity correction: 71 members, 61 / 7 / 1 / 2.)
+
+**Second reader on the 75 excluded records** (18 recorded Codex calls; pilot screening instrument +
+`verify_screening`; 75/75 gate-pass): agree with the exclusion **48**, cannot tell from the abstract **23**,
+disagree **4**. The 4 are:
+
+- metformin 11238496 and 11821265: X3 comparator wording (`placebo (n = 16) groups`);
+- metformin 15302293: X-DESIGN context;
+- melatonin 19225268: X2 population ("sleep disorder complaints").
+
+Measured, in memory only: adding bare "placebo" to metformin's comparator wording screens both X3 members in, but
+both are then OUTCOME_NOT_IN_SOURCE. It also admits **PMID 18681789 from our existing corpus**, a genotype CC-vs-GG
+odds ratio, not metformin vs placebo. The narrow registered wording is load-bearing.
+
+**Reading.** The identification gap is mostly a SCOPE difference: the comparators are broader than our registered
+PICO (children, delayed sleep phase, active or add-on comparators, T2D populations). It is not a search miss.
+
+## Adapter 2 — PMC OA full text for declared-absent trials: **+2 valid k**
+
+- 126 declared-absent trials (PMID), 34 with PMC OA full text (via `harness.fetch._pmc_fulltext`, with supplements).
+- **On the served extractor** the full-text rung admitted 7, and **3 were wrong**:
+  - PMID 32295417: a baseline-characteristics table read as 202/206 vs 193/194 outcome events;
+  - PMID 39497860: a baseline age table read as the AAD mean difference;
+  - PMID 34541475: a PPI-subgroup RR 0.53 taken as the trial result.
+- **Root causes (fixed in the flagged extractor commit, each with a real-text plant that fails pre-fix):**
+  1. the TABLES section had no sentence breaks, so it was read as one "sentence";
+  2. `<body>` itertext carries every table inline in the "prose";
+  3. reported-effect candidates had no subgroup guard, and the source-hierarchy selector preferred the subgroup
+     candidate over the refused ITT extraction.
+- **After the fix:**
+  - valid gains 2: probiotics 39529939 (RR 0.36, 26/282 vs 69/273, primary outcome); omega-3 DO-HEALTH 38199870
+    (HR 1.00, factorial main effect — flag for review);
+  - right number, wrong measure 2: COCS 36286314 OR, CAP 35723686 OR. Either admission suppresses its RR pool.
+    An RR from their counts is an extraction-core decision;
+  - wrong: 0.
+- **Served values unchanged by the fix: 32/32.** The fix does change the code blobs that each page's
+  CERTIFICATE binds, so landing it requires re-certification (the captain's landing step).
+
+## Adapter 3 — CT.gov posted results for declared-absent trials: **+1 valid k**
+
+- 94 declared-absent NCTs not already in our `ctgov_results` cache. 22 have posted results (via
+  `harness.fetch._ctgov_results`). No silent loss: every NCT that AACT shows with posted results was returned.
+- **On the served rung**, 3 were admitted and **2 were wrong**:
+  - EXAMINE 23992602: MACE posted as a PERCENTAGE (11.3 vs 11.8) was read as 11 events of 2701. The measure type
+    was computed and never gated on;
+  - COLCHICINE-PCI 32295417: "Peri-procedural Myocardial Infarction" was admitted as the major cardiovascular
+    COMPOSITE (a component matched a composite keyword).
+- **Fix (flagged extractor commit, real-registry plants):** the rung takes a 2x2 only for COUNT_OF_PARTICIPANTS,
+  and for a declared composite only from a registry title that is itself a composite (one pattern per clinical
+  component, so "Myocardial Infarction (MI)" and "Hospitalization for heart failure (HHF)" each count once).
+  A refused rung falls through to the lower rungs.
+- After the fix: +1 valid — probiotics Ehrhardt 26973849, 21/246 vs 19/231. Its abstract says "21 and 19 AADs" with
+  HR 1.02; the counts give RR 1.03, consistent.
+
+## Adapter 4 — Unpaywall OA copies (HTML/PDF) for declared-absent trials without PMC OA: **+1 valid k**
+
+- 86 DOIs tried, 28 OA texts found (via `kgap.k_gap.unpaywall_text`, harness contact address, text only kept).
+- **On the full-text rung as it stood, it admitted 3 and 2 were wrong:**
+  - PMID 34138478: "1/16 vs 0/14" read from an HTML outcome table flattened into prose;
+  - PMID 24044687: RR 0.64 from an INTRODUCTION sentence citing a meta-analysis. After that guard, the same paper
+    gave OR 5.04 for "reduced appetite", a covariate in a risk-factor logistic regression.
+- **Three guards (flagged extractor commit; real-excerpt plants):**
+  1. an Unpaywall copy is typed UNSTRUCTURED, and only a reported effect+CI in a prose sentence is admissible
+     from it;
+  2. full-text prose drops sentences attributing results to other work (meta-analysis, systematic review,
+     previous/prior studies, citation markers);
+  3. full-text prose drops predictor / risk-factor / logistic-regression sentences. "Adjusted hazard ratio" is
+     kept deliberately.
+- After the guards: +1 valid — CoDEX 32876695, 28-day mortality HR 0.97 (0.72-1.31), a control plant in the tests.
+  Wrong: 0. Served values: 32/32 unchanged.
+- An escaping hazard in this lane's own patch tooling wrote literal BACKSPACE bytes where the covariate regex needed
+  word boundaries, so the guard was a silent no-op. The plant caught it. The file was rewritten with backslashes
+  built by `chr(92)`, and every touched file was scanned for control bytes (0 remain).
+
+## All adapters together (`counterfactual_all.json`, measured, not summed)
+
+**Summed valid k 81 -> 81** with all four adapters (members, PMC full text, CT.gov, Unpaywall) on the corrected
+identity table.
+
+- **+5 valid:** probiotics +2 (11->13: 39529939 full text, 26973849 CT.gov), corticosteroids-covid19 +1 (CoDEX,
+  Unpaywall), omega-3 +1 (DO-HEALTH, full text; factorial — review), sglt2-primary-prevention-hf +1 (member seeding).
+- **-5:** the two OR admissions suppress two RR pools (colchicine-postop-af 3->0 valid, CAP 2->0 valid).
+
+**Landable with the two OR admissions held out: +5 valid trials across 5 topics.** The OR pair needs an
+extraction-core decision (derive RR from the reported counts, or keep refusing).
+
+(Before the identity correction the same run read 81 -> 80: +4 / -5. The Unpaywall adapter adds CoDEX.)
+
+## What would adjudicating our screener's disputed exclusions be worth?
+
+`scripts/k_gap_screen_join.py` joins the **49** comparator trials our screener excludes from corpora we already hold
+(SCREEN_OR_ELIGIBILITY) to the model readings the repo already recorded for those exclusions
+(`registry/model_proposals/screening_excluded*.json`, two readers, `verify_screening`-gated). No new calls.
+
+- Reader agrees with the exclusion: **27**; cannot tell: 8.
+- **Both readers judge the record ELIGIBLE: 14** (11 in probiotics; adjudication marked OWED in the repo).
+
+Counterfactual, flipping only those 14 to include in memory (`--screen-hypothesis`, hypothetical rule id):
+
+- **alone: +1 valid** (probiotics Hickson 17604300, 7/57 vs 19/56 from its abstract — correct); the other 13 stop
+  at OUTCOME_NOT_IN_SOURCE;
+- **with all four adapters** (`--all-hyp`, acquisition targets taken from the hypothesis core): summed valid k
+  **81 -> 82** = +6 valid (probiotics +3, covid19-corticosteroids +1, omega-3 +1, sglt2-pp +1) and -5 from the two
+  OR suppressions. The 10 other flipped probiotics records stay declared absent even with their full text.
+
+**Reading: adjudicating the 14 disputed exclusions is worth +1 trial.** Worth doing for correctness; not a k lever.
+
+## Bottom line for "how long before we match comparator k?"
+
+Measured, not estimated: with every open source probed (PMC OA, CT.gov/AACT results, Unpaywall OA copies, the
+comparators' own member lists) and the extractor as fixed on this branch, the reachable gain is **+5 valid trials
+across 5 topics** (+6 with the 14 adjudications; +2 more if an OR-from-counts -> RR route is approved). Against 179
+missing confirmed-set trials, most of the gap is **scope** — the comparators pool populations, comparators and
+designs our registered protocols exclude — plus trials whose outcome is in no open source. It is not a matter of
+acquisition time. Matching comparator k would mean changing registered protocols, which is a scientific decision,
+not an engineering one.
+
+## Tests
+
+- Repo tests over every file that imports the changed modules (42 files + the new ones): **2413 passed, 4 failed,
+  68 xfailed.**
+- 3 of the 4 are certificate / bundle code-closure bindings (`test_bundle_is_current`,
+  `test_pinned_blob_identities_are_what_git_stores`, `test_stdlib_audit_reproduces_every_served_certificate`).
+  The certified extractor blobs changed, so these clear at re-certification. **Served values are identical
+  32/32.**
+- The 4th (`test_certificate_scope_names_its_limits`) was caused by this lane putting `k_gap.py` in `harness/`.
+  Fixed by moving it to `kgap/`: measurement tooling stays out of the certified scope.
+- The full suite was not completed: two full runs (branch and a `main` worktree) were stopped when C: reached
+  0 bytes free. See the disk note below.
+
+## Disk note
+
+C: reached **0 bytes free** at ~02:40. It crashed two counterfactual runs mid-way and blocked a file edit (the
+file was checked: intact, all modules parse). This lane freed 2.0 GB by removing its own `main` reference worktree
+and stopped its own four pytest processes. Other lanes' processes were not touched. C: stood at 5.8 GB free after.
+
+## Leads recorded, not acted on (outside this lane or needing a decision)
+
+- The abstract extractor accepted a genotype-contrast OR (PMID 18681789) as an effect when screening let it
+  through. Screening is currently the only guard.
+- Cross-sentence arm counts are not extracted (39497860's real outcome: "31 out of 170 ... developed AAD. In
+  contrast, the placebo group had 53 out of 170"). The trial stays declared absent.
+- `harness/fetch.py` fetches full text only for `config["fulltext"]` topics, and then for the FIRST 40 records in
+  fetch order, not the included trials. Only 3 of 32 topics hold any full text.
+- 2 of 32 held comparator texts are a different article (step 1).

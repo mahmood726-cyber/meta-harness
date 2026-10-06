@@ -11,8 +11,8 @@ FIX = Path(__file__).resolve().parent / "fixtures" / "codex_stderr_rejected_exec
 PROMPT = b"Label these sentences."
 OK_EXEC = ("OpenAI Codex v0.153.4\n--------\nworkdir: <workdir>\nmodel: gpt-6-astra\nprovider: openai\napproval: never\n"
            "sandbox: read-only\nreasoning effort: medium\nreasoning summaries: none\nsession id: x\n--------\nuser\n"
-           "Label these sentences.\ncodex\nreading\nexec\npowershell -Command Get-Content C:\\Users\\mahmo\\.claude\\AGENTS.md in "
-           "C:\\mh-lanes\\mcall\\mcall-abc123\n succeeded in 21ms:\n# AGENTS\ncodex\n{\"items\": []}\ntokens used\n12,345\n")
+           "Label these sentences.\ncodex\nreading\nexec\npowershell -Command Get-Content X:\\client\\AGENTS.md in "
+           "X:\\lane\\mcall\\mcall-abc123\n succeeded in 21ms:\n# AGENTS\ncodex\n{\"items\": []}\ntokens used\n12,345\n")
 
 
 def test_a_real_rejected_tool_call_is_counted_with_its_tokens():
@@ -24,6 +24,20 @@ def test_a_successful_read_is_logged_with_the_file_and_the_prompt_is_replaced_by
     f = live.transcript_facts(OK_EXEC, PROMPT)
     assert f["tokens_used"] == 12345 and f["tool_calls_n"] == 1 and f["tool_calls_rejected_n"] == 0
     assert any(p.endswith("AGENTS.md") for p in f["files_read"])
+    # the read is OUTSIDE the work directory (a user's global AGENTS.md): its path keeps only the file name and the
+    # transcript, which may echo what was read ('# AGENTS'), is withheld with its digest (4 Oct: a private INDEX.md
+    # head landed in a committed lane log this way)
+    assert f["files_read"] == ["<local-path>/AGENTS.md"] and f["outside_workdir_reads"] == 1   # folders dropped
+    # the header is kept; the body (tool output that may echo what was read) is replaced by its digest
+    assert "<client transcript body sha256 " in f["transcript_redacted"] and "# AGENTS" not in f["transcript_redacted"]
+    assert "Label these sentences." not in f["transcript_redacted"] and "mcall-abc123" not in f["transcript_redacted"]
+    assert "mahmo" not in json.dumps(f)
+
+
+def test_an_in_workdir_read_keeps_the_transcript_with_the_prompt_replaced_by_its_digest():
+    ok = OK_EXEC.replace("X:\\client\\AGENTS.md", "LANE_CONTEXT.md")   # the fixture's path (scrubbed from a private one)
+    f = live.transcript_facts(ok, PROMPT)
+    assert f["outside_workdir_reads"] == 0 and f["files_read"] == ["LANE_CONTEXT.md"]
     assert "Label these sentences." not in f["transcript_redacted"] and "<prompt sha256" in f["transcript_redacted"]
     assert "mcall-abc123" not in f["transcript_redacted"]
 
@@ -57,3 +71,32 @@ def test_a_test_runner_does_not_write_the_lane_log(tmp_path, monkeypatch):
               caller={"file": "t", "line": "1", "purpose": "test"}, input_digests=[], runner=_fake(),
               client_version="0.153.4")
     assert not log.exists()
+
+
+def test_no_local_path_survives_into_the_committed_lane_log():
+    # 5 Oct: the client's own AGENTS.md steered a forest read (mc-28562764) into commands naming private local files;
+    # the workdir was redacted but those paths reached registry/model_calls/lane_log (caught by the leak scan)
+    from reproducible_ai import model_call_live as mcl
+    err = ("exec\n\"C:\\WINDOWS\\System32\\powershell.exe\" -Command \"Get-Content F:\\Private\\INDEX.md -TotalCount 5\"\n"
+           " exited 1 in 10ms\n"
+           "exec_command failed: Rejected(\"Get-Item -LiteralPath 'F:\\claude-temp\\mcall-abc1\\image_0.jpg'\") blocked\n"
+           "tokens used\n1,234\n")
+    f = mcl.transcript_facts(err, b"PROMPT")
+    blob = json.dumps(f)
+    assert "Private" not in blob and "WINDOWS" not in blob and "F:" not in blob and "C:" not in blob
+    assert f["tool_calls_n"] == 2 and f["tool_calls_rejected_n"] == 1 and f["tokens_used"] == 1234
+
+
+def test_a_private_file_name_is_reduced_to_a_digest_and_a_client_instruction_file_keeps_its_name():
+    f = live.transcript_facts("exec\npowershell -Command Get-Content X:\\proj\\private-notes.txt; Get-Content "
+                              "X:\\home\\.codex\\AGENTS.md\n exited 1 in 5ms\ntokens used\n10\n", b"")
+    blob = json.dumps(f)
+    assert "private-notes" not in blob and "<local-file " in blob and "<local-path>/AGENTS.md" in blob
+
+
+def test_a_tools_output_never_enters_the_committed_log():
+    # 5 Oct: a read-only sandbox still let the client READ a private local file, and its contents reached the transcript
+    err = OK_EXEC.replace("# AGENTS\n", "# AGENTS\nSECRET WORKBOOK LINE 1\nSECRET WORKBOOK LINE 2\n")
+    f = live.transcript_facts(err, PROMPT)
+    assert "SECRET WORKBOOK" not in json.dumps(f)
+    assert "<client transcript body sha256 " in f["transcript_redacted"] and "model: gpt-6-astra" in f["transcript_redacted"]

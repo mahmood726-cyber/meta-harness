@@ -1,0 +1,138 @@
+"""G1 exclusion audit over the TRACKER population (scripts/g1_exclusion_audit_tracker.py) and the two screener classes it
+found and fixed in harness/screen.py. Each plant fires with its guard removed and not as built; controls stay put.
+Plant items are built from the HELD records directly, not from the current population: the shared audit
+(k_gap_exclusion_audit) now covers most exclusions, and this lane audits only what it leaves."""
+import json
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
+import g1_exclusion_audit_tracker as t  # noqa: E402
+import k_gap_exclusion_audit as xa  # noqa: E402
+from harness import screen as s  # noqa: E402
+
+A = json.load(open(t.OUT, encoding="utf-8"))
+SHARED = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "exclusion_audit.json"), encoding="utf-8"))
+t.load_axes()
+_OLD_BODY_RCT = re.compile(s._BODY_RCT.pattern.replace("|controlled study", ""), re.I)
+_MREC = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "member_records.json"), encoding="utf-8"))
+
+
+def _item(slug, pmid, rule):
+    rec = t._records(slug).get(pmid) or _MREC.get(pmid) or t.lane_record(slug, pmid)
+    assert rec, (slug, pmid)
+    return {"slug": slug, "label": pmid, "pmid": pmid, "found_as": pmid, "blocker": f"SCREENED_OUT_UNAUDITED:{rule}",
+            "recorded_rule": rule, "rec": rec, "via_decision": None}
+
+
+def _refine(slug, pmid, rule, shared=None):
+    """shared=(class, subclass): the SHARED classifier's output the lane guard is tested against, given SYNTHETICALLY.
+    The shared classifier keeps improving (k-gap 2bf32a50 / f2fde38c now decide WOMAN-2, SOLOIST-WHF and 24081972
+    themselves), and a plant anchored to its live output retires itself the day it is fixed."""
+    it = _item(slug, pmid, rule)
+    cls, sc, base = xa.classify(it["rec"], xa._cfg(slug))
+    if shared:
+        cls, sc, base = shared[0], shared[1], {"rule_id": rule}
+    return (cls, sc), t.refine(it, cls, sc, base)
+
+
+def test_every_tracker_exclusion_is_audited_by_one_of_the_two_audits():
+    """Every comparator trial the tracker shows as screened out has a row in the shared audit or in this lane's; none is
+    left SCREENED_OUT_UNAUDITED. This lane's rows are n of n classified."""
+    classes = {"TRUE_SCOPE_DIFFERENCE", "SCREENER_ERROR", "INSUFFICIENT_RECORD", "INCONSISTENT", "NOT_AN_EXCLUSION"}
+    assert A["n"] == len(A["rows"]) == sum(A["by_class"].values()) and all(r["class"] in classes for r in A["rows"])
+    covered = {(r["slug"], str(r["pmid"])) for r in SHARED["rows"]} | {(r["slug"], str(r["pmid"])) for r in A["rows"]}
+    missing = []
+    for f in os.listdir(t.G1):
+        d = json.load(open(os.path.join(t.G1, f), encoding="utf-8"))
+        for x in d.get("trials") or []:
+            if x.get("in_our_pool"):
+                # a POOLED trial is not shown as screened out, whatever funnel record one of its reports carries (esketamine
+                # Trial D: TRANSFORM-3's publication, X-DEDUP of the pooled NCT02422186 row); the audit's population skips
+                # pooled trials (k_gap_exclusion_audit.population_in_screen), so this check does too (consolidation 2026-10-04)
+                continue
+            sf = x.get("seeded_funnel") or {}
+            m = t.PMID_IN.search(x.get("our_refusal") or "")
+            pm = m.group(1) if m else sf.get("pmid")
+            if sf.get("stage") == "SCREENED_OUT" or str(x.get("blocker") or "").startswith("SCREENED_OUT_UNAUDITED"):
+                if (d["slug"], str(pm)) not in covered:
+                    missing.append(f"{d['slug']}::{x['label']}::{pm}")
+    assert not missing, missing
+
+
+def test_plant_substudy_title_veto_on_a_typed_rct_is_fixed():
+    rec = _item("colchicine-postop-af", "22090167", "X1")["rec"]           # COPPS-POAF
+    assert s._TITLE_RCT_NOT.search(rec["title"])                           # the old veto fired on it (guard removed)
+    assert s._is_rct(rec)                                                  # as built: a randomised trial report
+    assert s.screen_record(rec, xa._cfg("colchicine-postop-af")["include"], set()).decision == "include"
+
+
+def test_control_a_substudy_that_does_not_describe_its_randomisation_stays_out():
+    rec = {"id": "c1", "id_type": "pmid", "title": "Diarrhea in Mechanically Ventilated Patients: A Nested Multicenter "
+           "Substudy.", "abstract": "We describe diarrhoea incidence in a cohort nested in a larger trial.",
+           "pubtypes": ["Journal Article", "Randomized Controlled Trial"]}
+    assert not s._is_rct(rec)
+
+
+def test_plant_randomized_controlled_study_is_a_self_described_rct():
+    rec = _item("probiotics-aad-prevention", "32944084", "X1")["rec"]       # Wu 2020: 'a prospective, randomized,
+    assert not _OLD_BODY_RCT.search(rec["abstract"])                         # controlled study' -- old pattern missed it
+    assert s._body_says_rct(rec)
+    assert not s._BODY_RCT.search("A systematic review of randomized controlled studies of probiotics.")   # control
+
+
+def test_plant_a_repair_flip_never_overrides_a_stated_protocol_exclusion():
+    shared, refined = _refine("tranexamic-acid-pph", "39461792", "X2",      # WOMAN-2: 'prevent postpartum haemorrhage'
+                              ("SCREENER_ERROR", "CONDITION_AS_OUTCOME (population term shared with the outcome)"))
+    assert shared[0] == "SCREENER_ERROR"                                    # fires with the lane guard removed
+    assert refined[0] == "TRUE_SCOPE_DIFFERENCE" and "'prevent'" in refined[1]
+
+
+def test_plant_a_repair_flip_with_an_unstated_axis_is_insufficient_not_an_error():
+    shared, refined = _refine("sglt2-hfref-hosp-cvdeath", "33200892", "X3",  # SOLOIST-WHF as the OLD shared audit read it
+                              ("SCREENER_ERROR", "INTERVENTION_ONLY_IN_ABSTRACT"))
+    assert shared[0] == "SCREENER_ERROR" and refined[0] == "INSUFFICIENT_RECORD" and "POPULATION_NOT_STATED" in refined[1]
+
+
+def test_the_design_axis_never_answers_a_context_rule():
+    shared, refined = _refine("metformin-pcos-ovulation", "16827766", "X-DESIGN")   # 'required design/context absent'
+    assert shared[0] == "INSUFFICIENT_RECORD" and refined[0] == "INSUFFICIENT_RECORD"
+
+
+def test_every_true_scope_row_of_this_audit_carries_a_span_or_is_not_named():
+    """The shared contract: a TRUE_SCOPE_DIFFERENCE names a trial only with the record's own words (span). A row of this
+    audit without a span is never used to name (scripts/g1_sglt2_tracker.py requires au['span'])."""
+    for r in A["rows"]:
+        if r["class"] == "TRUE_SCOPE_DIFFERENCE":
+            assert ((r.get("span") or {}).get("text") or "").strip(), (r["slug"], r["pmid"])
+
+
+def test_plant_a_single_reader_never_decides_where_two_disagree():
+    """24081972 (doac-vte, a pooled bleeding analysis): gpt-6-astra reads design NOT_MET, gpt-5.5 MET. With the second
+    reader removed it would be a TRUE_SCOPE_DIFFERENCE on one model's word; as built it stays INSUFFICIENT_RECORD."""
+    t.load_axes2()
+    old = ("INSUFFICIENT_RECORD", "DESIGN_NOT_ESTABLISHED_BY_RECORD")
+    built = _refine("doac-vte-recurrence", "24081972", "X1", old)[1]
+    saved = dict(t.AXES2)
+    t.AXES2.clear()                                   # guard removed: no second reader
+    try:
+        removed = _refine("doac-vte-recurrence", "24081972", "X1", old)[1]
+    finally:
+        t.AXES2.update(saved)
+    assert built[0] == "INSUFFICIENT_RECORD" and "readers disagree on design" in built[1]
+    assert removed[0] == "TRUE_SCOPE_DIFFERENCE"
+
+
+def test_no_exclusion_is_left_inconsistent_and_non_record_rules_are_resolved_by_what_they_are():
+    assert not [r for r in A["rows"] if r["class"] == "INCONSISTENT"]
+    # the non-record rules (X-DEDUP, X-CONTRAST) are resolved by what they are, whichever audit now holds the row: the
+    # shared audit's population grew (k-gap 2bf32a50) and these two left this lane's
+    for slug, pmid, rule in (("esketamine-trd-madrs", "31734084", "X-DEDUP"), ("metformin-pcos-ovulation", "15472166", "X-CONTRAST")):
+        it = _item(slug, pmid, rule)
+        cls, sc, base = t.resolve_inconsistent(it, xa.classify(it["rec"], xa._cfg(slug)))
+        if rule == "X-DEDUP":
+            assert cls == "NOT_AN_EXCLUSION"                                               # pooled elsewhere
+        else:
+            assert cls == "TRUE_SCOPE_DIFFERENCE" and "versus laparoscopic ovarian diathermy" in base["span"]["text"]

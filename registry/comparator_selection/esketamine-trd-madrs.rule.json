@@ -1,0 +1,61 @@
+{
+ "slug": "esketamine-trd-madrs",
+ "purpose": "PRE-REGISTERED selection rule for a replacement comparator meta (Mahmood 5 Oct: 'replace comparators'). Committed BEFORE any candidate search; candidates are judged per criterion from their own text, and the pick follows from the criteria and tie-breaks alone. How our pool compares with any candidate is NOT an input.",
+ "replaces": {
+  "comparator_pmid": "42490943",
+  "excluded_from_candidates": true
+ },
+ "protocol_reference": {
+  "file": "topics/esketamine-trd-madrs.json",
+  "population": "adults with treatment-resistant depression",
+  "intervention_comparator": "intranasal esketamine + oral antidepressant vs placebo + oral antidepressant",
+  "primary_outcome": "MADRS total score change at the ~4-week (Day 28) induction endpoint",
+  "estimand": "MD (MADRS points)"
+ },
+ "criteria": [
+  {
+   "id": "C1_OPEN_ACCESS",
+   "pass_if": "the meta's full text is openly available under an open licence (PMC open-access subset, or the publisher/repository with a licence); free-to-read without a licence fails"
+  },
+  {
+   "id": "C2_RCT_ONLY",
+   "pass_if": "the analysis used pools randomised controlled trials only (its own eligibility / methods statement)"
+  },
+  {
+   "id": "C3_POPULATION",
+   "pass_if": "the pooled analysis is in adults with treatment-resistant depression (the registered protocol's population)"
+  },
+  {
+   "id": "C4_INTERVENTION_VS_COMPARATOR",
+   "pass_if": "the pooled comparison is intranasal esketamine + oral antidepressant vs placebo + oral antidepressant"
+  },
+  {
+   "id": "C5_OUTCOME_AND_ESTIMAND",
+   "pass_if": "it pools MADRS total score change at the ~4-week (Day 28) induction endpoint on the estimand family mean difference in MADRS points (an SMD fails)"
+  },
+  {
+   "id": "C6_ROWS_AND_POOLED",
+   "pass_if": "it prints per-trial rows for that outcome (a table, or a forest plot with counts or effects) AND a pooled result for it"
+  }
+ ],
+ "tie_breaks": [
+  {
+   "id": "T1_ESTIMAND_MATCH",
+   "order": "descending",
+   "score": "1 = MD of the Day-28 change; 0 = MD at another timepoint / LS-mean-only"
+  },
+  {
+   "id": "T2_MOST_RECENT",
+   "order": "descending",
+   "score": "publication year, then month"
+  },
+  {
+   "id": "T3_LARGEST_K",
+   "order": "descending",
+   "score": "number of trials in the pooled analysis of the protocol outcome"
+  }
+ ],
+ "if_none_pass": "NO_ACHIEVABLE_COMPARATOR: record the closest candidate and its single failing criterion; the topic keeps its current comparator; no criterion is relaxed after the search",
+ "selector": "scripts/g1_comparator_select.py (deterministic; reads this rule and the typed candidates file)",
+ "candidates_file": "registry/comparator_selection/esketamine-trd-madrs.candidates.json"
+}

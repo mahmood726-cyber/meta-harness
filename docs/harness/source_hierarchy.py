@@ -156,7 +156,12 @@ def candidate_scope_refusal(candidate: dict[str, Any]) -> str | None:
     when held full texts were enabled. The sentence the number came from is checked, falling back to the snippet.
     """
     text = candidate.get("sentence") or candidate.get("source") or ""
-    return (extract.subgroup_refusal(text) or extract.table_role_refusal(text)) or None
+    # An effect from a risk-factor / multivariable MODEL is not the randomised contrast (McFarland 1995, PMID 7872284:
+    # the adjusted RR 0.29 was ranked above the randomised counts 7/97 vs 14/96 -- acq/k-gap). Refused HERE, with its
+    # reason recorded, not skipped silently inside the harvester (where it also hid the recorded subgroup refusal).
+    covariate = ("an effect from a risk-factor / multivariable model is not the randomised contrast"
+                 if extract._covariate_model_sentence(text) else "")
+    return (extract.subgroup_refusal(text) or extract.table_role_refusal(text) or covariate) or None
 
 
 def effect_candidates_for_outcome(spec: dict[str, Any], text: str,
@@ -200,8 +205,13 @@ def source_effect_candidates(
     for eff in effect_candidates_for_outcome(spec, abstract or "", record):
         _append_unique(candidates, reported_effect_candidate(eff, "abstract", "abstract"))
     if fulltext:
-        for eff in effect_candidates_for_outcome(spec, fulltext, record):
-            _append_unique(candidates, reported_effect_candidate(eff, "pmc_fulltext_effect", "cached full text"))
+        # the same units the full-text rung reads: prose, then each verbatim non-baseline table row on its own
+        # (acq/k-gap), each read by effect_candidates_for_outcome (table-role guard, record-aware)
+        from . import fulltext as _ft_mod
+        seg = _ft_mod.extraction_segments(fulltext)
+        for unit in [_ft_mod.own_result_prose(seg["prose"])["prose"]] + [r["row"] for r in seg["rows"]]:
+            for eff in effect_candidates_for_outcome(spec, unit, record):
+                _append_unique(candidates, reported_effect_candidate(eff, "pmc_fulltext_effect", "cached full text"))
     if ctgov_outcomes:
         text = json.dumps(ctgov_outcomes, ensure_ascii=False)
         for eff in effect_candidates_for_outcome(spec, text, record):

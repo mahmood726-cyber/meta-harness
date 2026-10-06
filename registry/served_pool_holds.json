@@ -1,0 +1,33 @@
+{
+ "_doc": "Trials a SIGNED served-pool notice names that the register must still NOT admit, each with a typed code and the verbatim span that shows why. A notice that names a held trial is excluded WHOLE (its signed 'after' includes the held trial, so no partial application can match it): it is rebuilt without the trial and re-presented. Read by scripts/build_served_pool_additions.py.",
+ "holds": [
+  {
+   "slug": "probiotics-aad-prevention",
+   "id": "PMID 17356555",
+   "trial": "Wenus 2008",
+   "notice": "V6-02",
+   "code": "PER_PROTOCOL_COUNTS_NOT_RANDOMISED",
+   "span": "the stored RR 0.21 is a PER-PROTOCOL analysis of the 63 patients who 'completed the study according to the protocol', not the 87 randomized (46 vs 41)",
+   "span_source": "outputs/k_gap/g1/probiotics-aad-prevention.json -> Wenus et al72 -> our_refusal (cross-family definition audit)",
+   "why": "V6-02 enters Wenus with 2/34 vs 8/29 = 63 completers, the per-protocol set; the randomised arms are 46 vs 41. Pooling completers beside randomised denominators is a population mismatch the served pipeline refuses. Found by the captain while building the admission route, after V6 was signed: the derivation's exclusion list checked served-pipeline refusals but not this recorded audit finding.",
+   "final": {
+    "state": "WITHDRAWN_BY_SIGNER",
+    "by": "Mahmood",
+    "quote": "withdraw v6-02",
+    "when_utc": "2026-10-06T00:05:12Z",
+    "note": "the hold is final: notice V6-02 is withdrawn (docs/result_changes.json withdrawal); probiotics stays at V5-01 (k 13)"
+   }
+  },
+  {
+   "slug": "dpp4-mace-t2d",
+   "id": "PMID 26052984",
+   "trial": "TECOS",
+   "notice": "V6-01",
+   "code": "SIGNED_CHANGE_HAS_AN_UNSHOWN_CONSEQUENCE",
+   "span": "dpp4-mace-t2d 'Hospitalization for heart failure': served k 1, HR 1.00 (0.83 to 1.20) -> no pooled estimate (HARMS_INCOMPLETE: 2 primary-pool trials report it, 1 pooled)",
+   "span_source": "harness/compat_check._apply_harms_incomplete on the re-certified build (worker, 6 Oct)",
+   "why": "V6-01 puts TECOS in the PRIMARY pool. The harms gate then counts TECOS and SAVOR-TIMI 53 as primary-pool trials reporting heart-failure hospitalisation with only TECOS pooled, and suppresses the served HHF estimate. The signed V6-01 notice showed the MACE change only; the HHF withdrawal is a second served change the signer has not seen. Held until both are presented together (next packet).",
+   "held_utc": "2026-10-06T04:54:24Z"
+  }
+ ]
+}

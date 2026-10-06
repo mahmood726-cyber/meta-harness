@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `548a9b7ee4174d258d15489319bfaec49fa9421f7e731bab68de755f77164bed` |
-| html_sha256 (served page bytes) | `61b2524d38fb00a540f44c36eaeb727b92edddda611c51194b00f0f7c4651ba0` |
-| release_sha256 (certificate) | `55b5161181a855ee527180b7890720295adc2d811031f9b9f7e77a2dcfc67e67` |
+| review_sha256 (canonical review core) | `2a769227fac68c50cc6b656b9affb2c667a0c4e550b571b74307dc48519e802d` |
+| html_sha256 (served page bytes) | `1492d7add75f274e428ec2ce0e01d19be5e925801e65cab5ca320e47b0e8d1a4` |
+| release_sha256 (certificate) | `d1fb038c94f989b3b1186e2216d12a1f163b92fb904a9973f6d37af7cc90b7c1` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
-| analysis code | 85 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `39a8c7830f924555fe7e1350b22fae13d0487a4a` |
+| analysis code | 87 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
+| recorded generating commit | `6b6aad816138b8a1b022cc60793dbb9ed18232e3` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -60,6 +60,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/probiotics-aad-prevention/ft_42608299.txt` | `04cbd0e368d900f66ce54748eaa47697b43b019bb121f0d16abc5800b8539086` |
 
 Recorded judgments live under `cache/probiotics-aad-prevention/`; their object digest is
-`2caa8cb18208a6571525a9deafbad697f0daa47d0dfaa8e5f71e4116e4eeb451`. Acquisitions live under `docs/acquisitions/probiotics-aad-prevention/`.
+`cc01d7d82478a1a7d6b9b49984fb905839c9eeee4ca0371dfc684145620e2751`. Acquisitions live under `docs/acquisitions/probiotics-aad-prevention/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

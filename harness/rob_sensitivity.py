@@ -70,6 +70,14 @@ def _rob_entry(rob, trial):
     return {}
 
 
+def served_estimand(prim):
+    """The estimand the SERVED pipeline pooled this outcome on (harness.pipeline selector_estimand: the estimand
+    decision's target scale, else the protocol's). Re-pools that mirror the pipeline must use it: with the protocol's
+    DECLARED estimand a mixed pool (tocilizumab: RECOVERY's reported RR + two 2x2 rows) was re-pooled as OR, 1.128 vs the
+    served and signed RR 1.0958 (6 Oct)."""
+    return prim.get("served_estimand") or prim.get("estimand") or "RR"
+
+
 def _studies_and_scale(trials, declared_estimand):
     """Identical to harness.pipeline: Study build + pooled_scale selection."""
     meas = declared_estimand if declared_estimand in ("RR", "OR") else "RR"
@@ -77,7 +85,7 @@ def _studies_and_scale(trials, declared_estimand):
     def _meas(t):
         if t.get("e1i") is not None:
             return "IRR"
-        if t.get("mean1") is not None:
+        if t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None):
             return "MD"
         return meas
 
@@ -92,7 +100,7 @@ def _studies_and_scale(trials, declared_estimand):
                      study_effect=t.get("study_effect")) for t in trials]
     if trials and all(t.get("e1i") is not None for t in trials):
         scale = "IRR"
-    elif trials and all(t.get("mean1") is not None for t in trials):
+    elif trials and all(t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None) for t in trials):
         scale = "MD"
     elif trials and all(t.get("scale") for t in trials) and len({t["scale"] for t in trials}) == 1:
         scale = trials[0]["scale"]
@@ -243,7 +251,7 @@ def sensitivity(review):
     if not prim or not prim.get("trials"):
         return None
     trials = prim["trials"]
-    estimand = prim.get("estimand", "RR")
+    estimand = served_estimand(prim)
     rob = (review.get("rob2") or {}).get("trials") or {}
     membership = outcome_membership(prim, review)
     pooled_keys = membership.get("pooled") or [str(t.get("id")) for t in trials]

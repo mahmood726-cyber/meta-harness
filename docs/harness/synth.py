@@ -156,7 +156,17 @@ class Study:
                 y = math.log((a / n1) / (c / n2))
                 v = 1.0 / a - 1.0 / n1 + 1.0 / c - 1.0 / n2
             return y, v
+        if self.effect is not None and (self.measure or "").upper() in ("MD", "SMD") \
+                and self.ci_low is not None and self.ci_high is not None:
+            # a REPORTED mean difference + 95% CI: raw scale, SE = (hi - lo) / (2 z) -- the generic inverse-variance
+            # input (metafor/RevMan). The ratio branch below takes log(effect), which is wrong (and fails) for an MD.
+            z = _norm.ppf(0.975)
+            return self.effect, ((self.ci_high - self.ci_low) / (2 * z)) ** 2
         if self.effect is not None and self.ci_low and self.ci_high:
+            if self.effect <= 0 or self.ci_low <= 0:
+                raise ValueError(
+                    f"study {self.label!r}: effect {self.effect} (CI {self.ci_low}, {self.ci_high}) on ratio measure "
+                    f"{self.measure!r} is not positive -- a mean difference passed without measure='MD'?")
             z = _norm.ppf(0.975)
             y = math.log(self.effect)
             se = (math.log(self.ci_high) - math.log(self.ci_low)) / (2 * z)

@@ -14,6 +14,7 @@ import os
 import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
+from . import fulltext as _ft_mod
 from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
@@ -323,6 +324,109 @@ def _primacy(r):
     if any(x in p for p in pts for x in _NONPRIMARY):
         return 0
     return 2  # an ordinary journal article
+
+
+def _fulltext_extract(ft, spec, interv, comp, dc):
+    """Full-text rung: the abstract extractor on the PROSE, else on each non-baseline TABLE ROW as its own unit
+    (fulltext.extraction_segments). One admissible row value -> taken; several different row values ->
+    refused as ambiguous (R4), never the first. Baseline/demographic tables are not read (dropped and listed)."""
+    seg = _ft_mod.extraction_segments(ft)
+    if _fulltext_prose_guard(seg):
+        return {"absent": True, "reason": ("full text holds a baseline-characteristics table whose inline copy in the "
+                                           "prose could not be located and removed; refused rather than risk reading "
+                                           "baseline values as outcomes")}
+    kw = dict(declared_composite=dc, estimand=spec.get("estimand"))
+    own = _ft_mod.own_result_prose(seg["prose"])
+    fx = extract.extract_trial(own["prose"], spec["keywords"], interv, comp, **kw)
+    if seg.get("unstructured"):
+        # HTML/PDF copy: only an effect+CI REPORTED in a prose sentence is typed evidence here. Arm counts, means and
+        # rates may come from a flattened table (PMID 34138478: '1/16 vs 0/14' read out of an HTML outcome table).
+        if not fx.get("absent") and fx.get("effect") is not None and fx.get("ci_low") is not None:
+            return fx
+        return {"absent": True, "reason": ("unstructured OA copy (no table delimiters): only a reported effect+CI in a "
+                                           "prose sentence is admissible from it, and none was found")}
+    if not fx.get("absent"):
+        return fx
+    hits = []
+    for r in seg["rows"]:
+        rx = extract.extract_trial(r["row"], spec["keywords"], interv, comp, **kw)
+        if not rx.get("absent"):
+            hits.append(rx)
+    vals = {tuple(sorted((k, v) for k, v in h.items() if k != "source")) for h in hits}
+    if len(vals) == 1:
+        return hits[0]
+    if len(vals) > 1:
+        return {"absent": True, "reason": ("ambiguous: full-text table rows state different values for this "
+                                           "outcome; refused rather than take the first (R4)")}
+    why = fx.get("reason") or "no extractable value in the full-text prose or table rows"
+    if seg["dropped_tables"]:
+        why += f" (baseline tables not read: {len(seg['dropped_tables'])})"
+    return {"absent": True, "reason": why}
+
+
+def _fulltext_prose_guard(seg):
+    """A baseline table whose inline copy could not be removed from the prose is still readable there; the
+    full-text rung then refuses rather than risk reading WHO was randomised as WHAT happened."""
+    return bool(seg.get("baseline_inline_not_located"))
+
+
+# ONE pattern per clinical component, however it is written: 'Myocardial Infarction (MI)' is one component and
+# 'Hospitalization for heart failure (HHF)' is one component -- counting WORDS called both composites.
+_COMPOSITE_COMPONENTS = tuple(re.compile(p, re.I) for p in (
+    r"\b(?:death|deaths|mortality|died)\b",
+    r"\bmyocardial infarctions?\b|\bMI\b",
+    r"\bstrokes?\b",
+    r"\b(?:heart failure|HF)\b[^,;.]{0,30}\bhospitali[sz]|\bhospitali[sz]\w*\s+(?:for|due to)\s+(?:heart failure|HF)\b|\bHHF\b",
+    r"\brevasculari[sz]ation\b",
+    r"\bunstable angina\b",
+))
+
+
+def _registry_title_is_composite(title: str) -> bool:
+    """A registry outcome title names a composite when the prose detector says so OR it names >=2 distinct
+    components ('Time to First Occurrence of CV Death, MI, or Stroke' is a composite that _names_composite
+    alone does not see)."""
+    t = title or ""
+    return bool(extract._names_composite(t)) or sum(1 for p in _COMPOSITE_COMPONENTS if p.search(t)) >= 2
+
+
+def _other_agent_terms(slug):
+    """The protocol's arm-name terms for OTHER agents (topics/<slug>.json population_none classified ARM_NAME by
+    harness/data/population_term_classes.json), minus our own intervention and its misfiled form terms."""
+    if not slug:
+        return []
+    p = os.path.join(ROOT, "topics", slug + ".json")
+    if not os.path.exists(p):
+        return []
+    with open(p, encoding="utf-8") as f:
+        inc = (json.load(f).get("include") or {})
+    arms = screen_entry.arm_name_terms()
+    ours = {str(t).strip().lower() for t in inc.get("intervention_any") or []}
+    form = {str(t).strip().lower() for t in screen_entry.misfiled_form_terms(inc)}
+    return [t for t in inc.get("population_none") or []
+            if str(t).strip().lower() in arms and str(t).strip().lower() not in ours | form]
+
+
+def _ctgov_rung_admissible(cg, spec):
+    """The CT.gov structured-results rung takes a 2x2 only when (1) the registry types the measure as a PARTICIPANT
+    COUNT -- EXAMINE (PMID 23992602) posts MACE as a PERCENTAGE, 11.3 vs 11.8, and the rung read 11.3 as 11 events of
+    2701 -- and (2) for a declared COMPOSITE outcome, the registry measure is itself a composite: COLCHICINE-PCI
+    (PMID 32295417) was admitted on 'Peri-procedural Myocardial Infarction' because 'myocardial infarction' is one
+    of the composite's keywords. A refused rung falls through to the lower rungs; nothing is reconstructed from it.
+    Continuous (MEAN/SD) results carry no measure type and are unaffected."""
+    if not cg or "ai" not in cg:
+        return cg
+    if cg.get("registry_measure_type") != "COUNT_OF_PARTICIPANTS":
+        return None
+    if extract.declared_is_composite(spec.get("name", "")) and not _registry_title_is_composite(cg.get("registry_title", "")):
+        return None
+    # (3) THE composite, not just A composite: ELIXA posts 'CV Death, Non-Fatal MI, Non-Fatal Stroke or Hospitalization
+    # for Unstable Angina' as a participant count -- a 4-point estimate under a 3-point MACE label. A registry title IS
+    # the outcome's definition, so the component gate reads it as a definition clause.
+    if extract.composite_component_mismatch(spec.get("name", ""),
+                                            "composite outcome definition: " + (cg.get("registry_title") or "")):
+        return None
+    return cg
 
 
 def _dedup(records, pivotal=None):
@@ -1127,6 +1231,21 @@ def _apply_trial_annotations(spec, trials):
                 t[k] = ann[k]
 
 
+def _withdrawal_state(slug, config):
+    """{"withdrawn": ...} while the primary outcome's withdrawal stands; once a SIGNED served-pool notice supplies its
+    corrected selection (harness/served_pool_additions.py), {"withdrawal_superseded": the withdrawal + the signature
+    that ended it} -- the withdrawal stays on the record, never deleted, and the page pools the signed rows."""
+    po = config.get("primary_outcome") or {}
+    w = po.get("withdrawn")
+    if not w:
+        return {}
+    from . import served_pool_additions as _spa
+    sig = _spa.signed_entry(slug, po.get("name"))
+    if not sig:
+        return {"withdrawn": w}
+    return {"withdrawal_superseded": dict(w, superseded_by=sig)}
+
+
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
@@ -1321,6 +1440,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                             min_total=_enrollment_floor(rec.get("abstract", "")),
                             judgments=outcome_judgments)
               if nct and nct in ctgov_results else None)
+        cg = _ctgov_rung_admissible(cg, spec)
         if cg:
             cg["provenance"] = "ctgov_results"
             t = {"label": label, "id": idstr, **cg}
@@ -1333,8 +1453,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # often live in the PMC OA full text (Albert's azithromycin IRR 0.73). Same extractors,
         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
         # own sentences, not the whole document.
-        fx = extract.extract_trial(ft, spec["keywords"], interv, comp, declared_composite=dc,
-                                   estimand=spec.get("estimand")) if ft else None
+        fx = _fulltext_extract(ft, spec, interv, comp, dc) if ft else None
         if fx and not fx.get("absent"):
             # THE SAME ESTIMAND-HOMOGENEITY GUARDS AS THE ABSTRACT ROUTE.
             #
@@ -1448,6 +1567,17 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                              spec.get("keywords"))
             if _q:
                 _t["analysis_qualifiers"] = _q
+    # SIGNED SERVED-POOL ADDITIONS (Mahmood 5 Oct, 'yes can sign' / packet V6): a trial verified by the G1 tracker enters
+    # this pool ONLY when a signed result-change notice names it (harness/served_pool_additions.py re-checks the
+    # signature and the rendered hash). It joins BEFORE the admissibility gate, so it meets admit_rows like every other
+    # route (a signature covers the number the reviewer saw; it is not a bypass of the gate). A WITHDRAWN outcome waits
+    # "until the corrected selection lands": a signed notice for it IS that selection (packet V7, 'yes v7'), so there the
+    # signed rows stand beside the withdrawn ones, which the block below moves out of the pool.
+    from . import served_pool_additions as _spa
+    _signed_rows = _spa.admitted_rows(slug, spec.get("name"))
+    if _signed_rows:
+        _have = {str(t.get("id")) for t in trials}
+        trials = trials + [r for r in _signed_rows if spec.get("withdrawn") or str(r.get("id")) not in _have]
     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
     absent.extend(_inadmissible)
     if spec.get("withdrawn"):
@@ -1456,7 +1586,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # published for this outcome. Every admitted row is moved out of the pool with the withdrawal as
         # its state -- displayed, never deleted, never silently replaced by a corrected number.
         w = spec["withdrawn"]
+        _signed_kept = [t for t in trials if t.get("provenance") == "served_pool_signed_notice"]
         for t in trials:
+            if t.get("provenance") == "served_pool_signed_notice":
+                continue
             absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "result_withdrawn",
                            "state": "RESULT_WITHDRAWN", "reason_code": "RESULT_WITHDRAWN",
                            "withdrawn_effect": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale") if t.get(k) is not None},
@@ -1465,7 +1598,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "endpoint_result_span": t.get("endpoint_result_span"),
                            "target_endpoint_class": t.get("target_endpoint_class"),
                            "target_endpoint_components": t.get("target_endpoint_components")})
-        trials = []
+        trials = _signed_kept
     if eligibility_contract:
         kept = []
         for trial in trials:
@@ -1496,7 +1629,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     if (spec.get("estimand") or "").upper() == "MD":
         kept = []
         for t in trials:
-            if t.get("mean1") is not None:
+            # a REPORTED between-group mean difference + CI is the continuous estimand itself (generic inverse
+            # variance); only counts / proportions / ratios are the mismatch this guard exists to refuse
+            if t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None):
                 kept.append(t)
             else:
                 absent.append({"label": t["label"], "id": t["id"], "absent_kind": "refused_on_evidence",
@@ -1525,6 +1660,26 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                           f"Week {tp}, but this trial's source reports the outcome at "
                                           f"Week {tw:g} ({t.get('timeframe','')}) — declared absent rather "
                                           f"than pooled across follow-up durations")})
+            else:
+                kept.append(t)
+        trials = kept
+    # CONTRAST GUARD (arm names left the population rule, 3 Oct): a multi-arm trial now passes the screen when its
+    # population is in scope (O'Neil 2018: semaglutide / liraglutide / placebo). The pooled row must then be OUR
+    # contrast: a row whose source span names ANOTHER active agent the protocol lists (population_none arm names --
+    # 'cagrilintide-semaglutide as compared with placebo', '[Semaglutide 2.4 mg] vs [Liraglutide 3.0 mg]') is refused
+    # on evidence, never pooled as intervention-vs-comparator. Refuse on evidence only: a span naming no other agent
+    # passes.
+    others = _other_agent_terms(slug)
+    if others:
+        kept = []
+        for t in trials:
+            hit = next((o for o in others if re.search(rf"(?<![A-Za-z]){re.escape(o)}(?![A-Za-z])", str(t.get("source") or ""), re.I)), None)
+            if hit:
+                absent.append({"label": t["label"], "id": t["id"], "absent_kind": "refused_on_evidence",
+                               "reason_code": "WRONG_CONTRAST_OTHER_AGENT",
+                               "reason": (f"contrast mismatch: the pooled row's source names another active agent "
+                                          f"'{hit}' (a protocol arm-name term) -- not the registered "
+                                          f"intervention-vs-comparator contrast; declared absent, never pooled")})
             else:
                 kept.append(t)
         trials = kept
@@ -1582,6 +1737,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         meta = included_meta.get(key)
         if meta:
             row.update(meta)
+    if any(t.get("provenance") == "served_pool_signed_notice" for t in trials):
+        from . import served_pool_additions as _spa
+        trials, absent = _spa.reconcile(trials, absent, corrected_withdrawal=bool(spec.get("withdrawn")))
     _apply_trial_annotations(spec, trials)
     for t in trials:
         if t.get("cross_source"):
@@ -1612,14 +1770,14 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         def _meas(t):
             if t.get("e1i") is not None:
                 return "IRR"
-            if t.get("mean1") is not None:
+            if t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None):
                 return "MD"
             return meas
         # The pooled scale reflects the data actually pooled: IRR if all rate-based, MD if all
         # continuous, else the topic's ratio estimand.
         if all(t.get("e1i") is not None for t in trials):
             pooled_scale = "IRR"
-        elif all(t.get("mean1") is not None for t in trials):
+        elif all(t.get("mean1") is not None or (str(t.get("scale") or "").upper() == "MD" and t.get("effect") is not None and t.get("ci_low") is not None) for t in trials):
             pooled_scale = "MD"
         elif all(t.get("scale") for t in trials) and len({t["scale"] for t in trials}) == 1:
             # Every pooled trial reported an explicit effect on the SAME scale -> display that scale,
@@ -1810,12 +1968,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # denominator — omega3 bleeding "2.7% vs 2.1%", pcsk9 injection-site reactions), the outcome is NOT
         # absent; saying "no trial reported this" is a false absence (most dangerous for harms). Disclose the
         # reporting trials and flag for full-text acquisition, which would recover the countable form.
-        _kws = [str(k).lower() for k in (spec.get("keywords") or [spec.get("name", "")]) if k]
-        _reported_by = []
-        for d in included:
-            _ab = ((rec_by_id.get(d["id"], {}) or {}).get("abstract", "") or "").lower()
-            if _ab and any(k in _ab for k in _kws):
-                _reported_by.append(d["id"])
+        _reported_by = reported_not_pooled(spec, included, rec_by_id, [])
         if _reported_by:
             out["result"] = {
                 "present": False, "reported_not_extracted": True, "reported_by": _reported_by[:10],
@@ -1829,11 +1982,60 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"] = {"present": False,
                              "reason": "no included trial reported this outcome with a percentage-corroborated "
                                        "count or an effect+CI in its abstract"}
+    if isinstance(out.get("result"), dict) and out["result"].get("present", True) is not False             and out["result"].get("k"):
+        # The same false-absence guard when SOME trials pool: an included trial that names the outcome in
+        # its committed abstract but is not in the pool keeps its disclosure. Pooling one trial must not
+        # silence the others (dapagliflozin: DELIVER pooled, 34711976 / 37534453 still report it unpooled).
+        _unpooled = reported_not_pooled(spec, included, rec_by_id, trials)
+        if _unpooled:
+            out["result"]["reported_not_extracted"] = True
+            out["result"]["reported_by"] = _unpooled[:10]
     if out.get("design_refusals"):
         out["design_consumption"] = design_variance.consumption_summary(out)
         if isinstance(out.get("result"), dict):
             out["result"]["design_consumption"] = out["design_consumption"]
     return out
+
+
+def _bare_id(x):
+    x = str(x or "").strip()
+    return x[5:].strip() if x.upper().startswith("PMID ") else x
+
+
+def reported_not_pooled(spec, included, rec_by_id, pooled):
+    """Included records whose committed abstract names the outcome (a keyword of the outcome spec) but
+    which are not among the pooled trials. The pooled set is matched on every id a trial row carries."""
+    kws = [str(k).lower() for k in (spec.get("keywords") or [spec.get("name", "")]) if k]
+    in_pool = set()
+    for t in pooled or []:
+        for key in ("id", "family_report_id", "report_id", "trial_id"):
+            if t.get(key):
+                in_pool.add(_bare_id(t[key]))
+    out = []
+    for d in included:
+        if _bare_id(d.get("id")) in in_pool:
+            continue
+        ab = ((rec_by_id.get(d["id"], {}) or {}).get("abstract", "") or "").lower()
+        if ab and any(_mentioned_unnegated(ab, k) for k in kws):
+            out.append(d["id"])
+    return out
+
+
+# "X was not measured / not reported / not assessed", "no data on X": a mention that says the outcome is NOT reported is
+# not a report (codex captain-pr13-final g1#1). Checked per occurrence, in the clause around it; one plain mention counts.
+_NEGATED = re.compile(r"\b(?:not|never|no data|no information|neither|nor)\b[^.;]{0,40}?\b(?:measured|reported|assessed|"
+                      r"collected|recorded|available|evaluated|captured)\b|\bno data (?:on|for)\b|\bnot (?:measured|"
+                      r"reported|assessed|collected|recorded|available)\b")
+
+
+def _mentioned_unnegated(text, kw):
+    for m in re.finditer(re.escape(kw), text):
+        lo = max(text.rfind(".", 0, m.start()), text.rfind(";", 0, m.start())) + 1
+        hi_c = [i for i in (text.find(".", m.end()), text.find(";", m.end())) if i != -1]
+        clause = text[lo:min(hi_c) if hi_c else len(text)]
+        if not _NEGATED.search(clause):
+            return True
+    return False
 
 
 def _outcome_specs(config):
@@ -2190,7 +2392,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "estimand_exclusions": config.get("estimand_exclusions", []),
         # A withdrawal notice is part of the review core: it travels under review_sha256 and is rendered
         # where the result was read, with what was published, what the held evidence holds, and why.
-        **({"withdrawn": config["primary_outcome"]["withdrawn"]} if config.get("primary_outcome", {}).get("withdrawn") else {}),
+        **(_withdrawal_state(slug, config)),
         **({"comparator_scope_note": comparator_scope_note} if comparator_scope_note else {}),
         **({"evidence_base_caveat": config["evidence_base_caveat"]} if config.get("evidence_base_caveat") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),

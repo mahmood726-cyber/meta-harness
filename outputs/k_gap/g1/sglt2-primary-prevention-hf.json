@@ -23,6 +23,11 @@
     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'heart failure and reduced ejection fraction'"
    },
    "protocol_rule": "include.population_none[1] = 'heart failure and reduced ejection fraction'",
+   "protocol_span": {
+    "file": "protocols/sglt2-primary-prevention-hf.md",
+    "rule_id": "X2",
+    "text": "wrong population, including heart failure with reduced or preserved ejection fraction as an entry criterion, chronic kidney disease / diabetic nephropathy as an entry criterion, type 1 diabetes, or no diabetes/CV-risk population;"
+   },
    "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
    "pmid": "31535829"
   },
@@ -31,19 +36,32 @@
    "kind": "PROTOCOL_SCOPE_DIFFERENCE",
    "rule_id": "X2",
    "screen_reason": "wrong population: title/conditions mention 'nephropathy'.",
-   "span": {
-    "field": "title",
-    "text": "Canagliflozin and Renal Outcomes in Type 2 Diabetes and Nephropathy.",
-    "match": "Nephropathy"
-   },
-   "span_source": "PMID 30990260 record title (held: cache/sglt2-primary-prevention-hf/records.json or outputs/k_gap/member_records.json)",
    "audit": {
     "class": "TRUE_SCOPE_DIFFERENCE",
     "subclass": "PROTOCOL_EXCLUDES_POPULATION:'nephropathy'"
    },
    "protocol_rule": "include.population_none[9] = 'nephropathy'",
    "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
-   "pmid": "30990260"
+   "pmid": "30990260",
+   "span": {
+    "field": "title",
+    "text": "Canagliflozin and Renal Outcomes in Type 2 Diabetes and Nephropathy.",
+    "match": "Nephropathy"
+   },
+   "span_source": "PMID 30990260 record title (held: cache/sglt2-primary-prevention-hf/records.json or outputs/k_gap/member_records.json)",
+   "via_comment_on": {
+    "unit_pmid": "31509682",
+    "comment_on": "30990260",
+    "source": "PubMed efetch db=pubmed id=31509682 retmode=xml",
+    "xml_sha256": "c812cc5e41919de3c4a3682b10486fcd2d291606a0de134000c8fdd01a7e94cf",
+    "record": "outputs/k_gap/comment_on.json"
+   },
+   "row_binding": {
+    "total": 4401,
+    "article_field": "abstract",
+    "article_states": "4401",
+    "basis": "comparator row n_t + n_c equals a patient count stated in the article's held record"
+   }
   },
   {
    "trial": "Packer (20)",
@@ -61,6 +79,11 @@
     "subclass": "POPULATION_OUTSIDE_PROTOCOL (recorded reader: NOT_MET, quoted)"
    },
    "protocol_rule": "include.population_any = ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiovascular risk', 'cardiovascular disease', 'atherosclerotic cardiovascular disease'] (none met)",
+   "protocol_span": {
+    "file": "protocols/sglt2-primary-prevention-hf.md",
+    "rule_id": "X2",
+    "text": "wrong population, including heart failure with reduced or preserved ejection fraction as an entry criterion, chronic kidney disease / diabetic nephropathy as an entry criterion, type 1 diabetes, or no diabetes/CV-risk population;"
+   },
    "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
    "pmid": "32865377"
   }
@@ -85,7 +108,56 @@
  "blockers": {},
  "top_blocker": null,
  "other_agent_units": [],
- "comparator_findings": [],
+ "comparator_findings": [
+  {
+   "finding": "COMPARATOR_ROW_ARMS_SWAPPED",
+   "trial": "Zinman (8)",
+   "comparator": "33519713",
+   "comparator_row": {
+    "effect": "0.38",
+    "lower": "0.29",
+    "upper": "0.49",
+    "events_t": 95,
+    "n_t": 4687,
+    "events_c": 126,
+    "n_c": 2333,
+    "measure": "RR"
+   },
+   "registry": {
+    "source": "NCT01131676:258266632",
+    "snapshot": "AACT 2026-08-30",
+    "outcome": "Percentage of Participants With Heart Failure Requiring Hospitalisation (Adjudicated)",
+    "treatment": {
+     "group": "All Empagliflozin",
+     "n": 4687,
+     "percent": "2.7"
+    },
+    "control": {
+     "group": "Placebo",
+     "n": 2333,
+     "percent": "4.1"
+    }
+   },
+   "basis": "printed 95/4687 vs 126/2333; the registered 2.7% of 4687 and 4.1% of 2333 are reproduced only with the events exchanged",
+   "side": "COMPARATOR"
+  },
+  {
+   "finding": "JOINED_BY_UNIQUE_SURNAME_WITHIN_COMPARATOR",
+   "trial": "Zinman (8)",
+   "comparator": "33519713",
+   "comparator_row": {
+    "effect": "0.38",
+    "lower": "0.29",
+    "upper": "0.49",
+    "events_t": 95,
+    "n_t": 4687,
+    "events_c": 126,
+    "n_c": 2333,
+    "measure": "RR"
+   },
+   "detail": "row 'Zinman 2016' <-> unit 'Zinman (8)'"
+  }
+ ],
  "k_ours_total": 5,
  "routes": {
   "PRIMARY": 5,
@@ -111,7 +183,12 @@
     "n_c": 2333,
     "measure": "RR"
    },
-   "comparator_row_findings": [],
+   "comparator_row_findings": [
+    {
+     "finding": "JOINED_BY_UNIQUE_SURNAME_WITHIN_COMPARATOR",
+     "detail": "row 'Zinman 2016' <-> unit 'Zinman (8)'"
+    }
+   ],
    "comparator_row_provenance": {
     "meta_pmid": "33519713",
     "location": {
@@ -141,6 +218,25 @@
    "agreement_with_comparator_row": "NOT_COMPARABLE:HR_VS_RR",
    "comparator_row_state": "SECONDARY_UNVERIFIED",
    "comparator_row_reasons": [],
+   "comparator_row_arm_check": {
+    "state": "ARMS_SWAPPED",
+    "registry": {
+     "source": "NCT01131676:258266632",
+     "snapshot": "AACT 2026-08-30",
+     "outcome": "Percentage of Participants With Heart Failure Requiring Hospitalisation (Adjudicated)",
+     "treatment": {
+      "group": "All Empagliflozin",
+      "n": 4687,
+      "percent": "2.7"
+     },
+     "control": {
+      "group": "Placebo",
+      "n": 2333,
+      "percent": "4.1"
+     }
+    },
+    "basis": "printed 95/4687 vs 126/2333; the registered 2.7% of 4687 and 4.1% of 2333 are reproduced only with the events exchanged"
+   },
    "identification": {
     "route": "OUR_SEARCH"
    },
@@ -429,6 +525,11 @@
      "subclass": "PROTOCOL_EXCLUDES_POPULATION:'heart failure and reduced ejection fraction'"
     },
     "protocol_rule": "include.population_none[1] = 'heart failure and reduced ejection fraction'",
+    "protocol_span": {
+     "file": "protocols/sglt2-primary-prevention-hf.md",
+     "rule_id": "X2",
+     "text": "wrong population, including heart failure with reduced or preserved ejection fraction as an entry criterion, chronic kidney disease / diabetic nephropathy as an entry criterion, type 1 diabetes, or no diabetes/CV-risk population;"
+    },
     "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
     "pmid": "31535829"
    },
@@ -683,19 +784,32 @@
     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
     "rule_id": "X2",
     "screen_reason": "wrong population: title/conditions mention 'nephropathy'.",
-    "span": {
-     "field": "title",
-     "text": "Canagliflozin and Renal Outcomes in Type 2 Diabetes and Nephropathy.",
-     "match": "Nephropathy"
-    },
-    "span_source": "PMID 30990260 record title (held: cache/sglt2-primary-prevention-hf/records.json or outputs/k_gap/member_records.json)",
     "audit": {
      "class": "TRUE_SCOPE_DIFFERENCE",
      "subclass": "PROTOCOL_EXCLUDES_POPULATION:'nephropathy'"
     },
     "protocol_rule": "include.population_none[9] = 'nephropathy'",
     "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
-    "pmid": "30990260"
+    "pmid": "30990260",
+    "span": {
+     "field": "title",
+     "text": "Canagliflozin and Renal Outcomes in Type 2 Diabetes and Nephropathy.",
+     "match": "Nephropathy"
+    },
+    "span_source": "PMID 30990260 record title (held: cache/sglt2-primary-prevention-hf/records.json or outputs/k_gap/member_records.json) -- the comparator unit is PMID 31509682 (Letter, Comment), which comments on PMID 30990260",
+    "via_comment_on": {
+     "unit_pmid": "31509682",
+     "comment_on": "30990260",
+     "source": "PubMed efetch db=pubmed id=31509682 retmode=xml",
+     "xml_sha256": "c812cc5e41919de3c4a3682b10486fcd2d291606a0de134000c8fdd01a7e94cf",
+     "record": "outputs/k_gap/comment_on.json"
+    },
+    "row_binding": {
+     "total": 4401,
+     "article_field": "abstract",
+     "article_states": "4401",
+     "basis": "comparator row n_t + n_c equals a patient count stated in the article's held record"
+    }
    },
    "blocker": null,
    "coverage": null
@@ -937,6 +1051,11 @@
      "subclass": "POPULATION_OUTSIDE_PROTOCOL (recorded reader: NOT_MET, quoted)"
     },
     "protocol_rule": "include.population_any = ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiovascular risk', 'cardiovascular disease', 'atherosclerotic cardiovascular disease'] (none met)",
+    "protocol_span": {
+     "file": "protocols/sglt2-primary-prevention-hf.md",
+     "rule_id": "X2",
+     "text": "wrong population, including heart failure with reduced or preserved ejection fraction as an entry criterion, chronic kidney disease / diabetic nephropathy as an entry criterion, type 1 diabetes, or no diabetes/CV-risk population;"
+    },
     "registered_eligibility": "RCT; adults with type 2 diabetes or cardiovascular risk by title/registry conditions; SGLT2 inhibitor vs placebo; double-blind placebo-controlled cardiovascular outcome trial; not a heart-failure-entry or kidney-outcome-entry trial. P/I/C/design only.",
     "pmid": "32865377"
    },
@@ -1102,7 +1221,7 @@
  "comparator_rows_source": [
   {
    "branch": "g1/forest-reader",
-   "commit": "c0bff4dff4e1c27c238eda60c01f5ed44bf75cc3",
+   "commit": "de51fef34d70bb6e8d6376a43e5d1bb55dd36e7a",
    "path": "registry/model_proposals/g1_forest_reader.json",
    "acceptance": {
     "state": "ACCEPTED",
@@ -1118,7 +1237,7 @@
     "lower": "0.53",
     "upper": "0.74"
    },
-   "sha256": "ed57a0103821bb305489145a8693f6b84bfa8a21764839198b5c980be86fce16",
+   "sha256": "94a43a8c73169c152a3a2f01357312399333ef216a8d6873b4f88a0420569441",
    "rows": 8,
    "joined": 7
   }
@@ -1171,7 +1290,7 @@
   "methods": [
    "MH-RE"
   ],
-  "where": "figure f2 (g1/forest-reader c0bff4dff, dual-model)",
+  "where": "figure f2 (g1/forest-reader de51fef34, dual-model)",
   "control_basis": "FOREST_READER_ACCEPTANCE (PRINTED_IN_META_TEXT: ients with type 2 diabetes compared with control group (RR, 0.63; 95% CI, 0.53 to 0.74; P < 0.00001) ( Fig)",
   "pooled": {
    "effect": "0.63",

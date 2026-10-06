@@ -180,6 +180,421 @@
           "level": "not assessed"
         }
       ]
+    },
+    "NCT04320615": {
+      "nct": "NCT04320615",
+      "registry_in_aact": true,
+      "assessed_from": "registry+abstract",
+      "overall": "low (on assessed domains; some domains require human judgement)",
+      "domains": {
+        "D1_randomisation": {
+          "level": "low",
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D2_deviations": {
+          "level": "low",
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D3_missing_outcome_data": {
+          "level": "not assessed",
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 2.0% (overall 34.7%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 34.7,
+              "differential_pct": 2.0,
+              "groups": [
+                [
+                  144,
+                  96
+                ],
+                [
+                  294,
+                  190
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
+        },
+        "D4_outcome_measurement": {
+          "level": "low",
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D5_selective_reporting": {
+          "level": "low",
+          "basis": "prespecified secondary outcome, registered 'Ventilator-Free Days to Day 28'",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "28-day all-cause mortality",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Clinical Status Assessed Using a 7-Category Ordinal Scale at Day 28 (Week 4)",
+                "title": "",
+                "description": "\"Clinical status was assessed using a 7-category ordinal scale:~1. \\- Discharged (or ready for discharge)~2. \\- Non- intensive care unit (ICU) hospital ward (or ready for hospital ward) not requiring supplemental oxygen~3. \\- Non-ICU hospital ward (or ready for hospital ward) requiring supplemental oxygen~4. \\- ICU or non-ICU hospital ward, requiring non-invasive ventilation or high-flow oxygen~5. \\- ICU, requiring intubation and mechanical ventilation~6. \\- ICU, requiring extracorporeal membrane oxygenation (ECMO) or mechanical ventilation and additional organ support~7. \\- Death\""
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Time to Clinical Improvement (TTCI), Defined as a National Early Warning Score 2 (NEWS2) of </= 2 Maintained for 24 Hours",
+                "title": "",
+                "description": "Defined as time from first dose of study drug to at least two NEWS2 assessments with a score of \\<=2 covering a span of at least 21.5 hours, with a maximum of 26.5 hours between the first and last of these assessments and no assessments with a score \\>2 in between. If one of the components of the NEWS2 score was missing at a particular time point, then the NEWS2 score was not calculated. Participants who died were censored at Day 28."
+              },
+              {
+                "measure": "Time to Improvement of at Least 2 Categories Relative to Baseline on a 7-Category Ordinal Scale of Clinical Status",
+                "title": "",
+                "description": "Time to improvement for this outcome measure was defined as the days from the first dose of study drug to when at least a 2-category improvement in clinical status (based on a 7-category ordinal scale) is observed. Participants who died were censored at Day 28."
+              },
+              {
+                "measure": "\"Time to Hospital Discharge or Ready for Discharge\"",
+                "title": "",
+                "description": "\"Time to Hospital Discharge was defined as the time from the first dose of study drug to hospital discharge or ready for discharge (normal body temperature and respiratory rate, and stable oxygen saturation on ambient air or \\</=2L supplemental oxygen) Participants who died were censored at Day 28.\""
+              },
+              {
+                "measure": "Incidence of Mechanical Ventilation by Day 28",
+                "title": "",
+                "description": "Participants who died by Day 28 were assumed to have required mechanical ventilation."
+              },
+              {
+                "measure": "Ventilator-Free Days to Day 28",
+                "title": "",
+                "description": "Participants who died by Day 28 were assigned 0 ventilator-free days."
+              },
+              {
+                "measure": "Incidence of Intensive Care Unit (ICU) Stay by Day 28 (Week 4)",
+                "title": "",
+                "description": "Participants who died by Day 28 were assumed to have required an ICU stay."
+              },
+              {
+                "measure": "Duration of ICU Stay to Day 28 (Week 4)",
+                "title": "",
+                "description": "Participants who died by Day 28 were assigned a duration from the first dose of study drug to Day 28 at hour 23:59:59."
+              },
+              {
+                "measure": "Clinical Status Assessed Using a 7-Category Ordinal Scale at Day 14",
+                "title": "",
+                "description": "\"Clinical status was assessed using a 7-category ordinal scale:~1. \\- Discharged (or ready for discharge)~2. \\- Non- intensive care unit (ICU) hospital ward (or ready for hospital ward) not requiring supplemental oxygen~3. \\- Non-ICU hospital ward (or ready for hospital ward) requiring supplemental oxygen~4. \\- ICU or non-ICU hospital ward, requiring non-invasive ventilation or high-flow oxygen~5. \\- ICU, requiring intubation and mechanical ventilation~6. \\- ICU, requiring extracorporeal membrane oxygenation (ECMO) or mechanical ventilation and additional organ support~7. \\- Death\""
+              },
+              {
+                "measure": "Time to Clinical Failure to Day 28 (Week 4)",
+                "title": "",
+                "description": "Time to clinical failure was defined as the number of days from the first dose of study drug to the first occurrence on study of death, mechanical ventilation, ICU admission, or study withdrawal prior to discharge, whichever occurs first."
+              },
+              {
+                "measure": "Mortality Rate at Day 28 (Week 4)",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Time to Recovery to Day 28 (Week 4)",
+                "title": "",
+                "description": "\"Time to recovery was defined as the number of days from the first dose of study drug to hospital discharge or ready for discharge (normal body temperature and respiratory rate, and stable oxygen saturation on ambient air or \\</= 2L supplemental oxygen) or non-ICU hospital ward or ready for hospital ward not requiring supplemental oxygen. Participants who died were censored at Day 28.\""
+              },
+              {
+                "measure": "Duration of Supplemental Oxygen to Day 28 (Week 4)",
+                "title": "",
+                "description": "Participants who died by Day 28 were assigned a duration of 28 days of supplemental oxygen."
+              }
+            ],
+            "comparison": {
+              "registered_type": "secondary",
+              "registered_label": "Ventilator-Free Days to Day 28",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [
+                "ALL_CAUSE_MORTALITY"
+              ],
+              "registered_components": [],
+              "registered_text": "Ventilator-Free Days to Day 28 Participants who died by Day 28 were assigned 0 ventilator-free days."
+            }
+          },
+          "derived_at_build": true
+        }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "low"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        }
+      ]
+    },
+    "NCT04403685": {
+      "nct": "NCT04403685",
+      "registry_in_aact": true,
+      "assessed_from": "registry+abstract",
+      "overall": "low (on assessed domains; some domains require human judgement)",
+      "domains": {
+        "D1_randomisation": {
+          "level": "low",
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D2_deviations": {
+          "level": "not assessed",
+          "basis": "blinding: subject_masked=None, caregiver_masked=None",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.subject_masked": "",
+            "AACT.designs.caregiver_masked": "",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D3_missing_outcome_data": {
+          "level": "not assessed",
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
+        },
+        "D4_outcome_measurement": {
+          "level": "not assessed",
+          "basis": "outcome-assessor blinded = None",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.outcomes_assessor_masked": "",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D5_selective_reporting": {
+          "level": "low",
+          "basis": "prespecified secondary outcome, registered 'All-cause mortality'",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "28-day all-cause mortality",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Evaluation of clinical status",
+                "title": "",
+                "description": "Evaluation of clinical status of patients on day 15 after randomization, defined by the Ordinal Scale of 7 points (score ranges from 1 to 7, with 7 being the worst score)"
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "All-cause mortality",
+                "title": "",
+                "description": "All-cause mortality from randomization to day 28"
+              },
+              {
+                "measure": "Hospital Mortality",
+                "title": "",
+                "description": "Deaths that occur during hospital admission."
+              },
+              {
+                "measure": "Improvement of Sequential Sepsis-related Organ Failure Assessment (SOFA) scale",
+                "title": "",
+                "description": "Improvement of SOFA scale of patients at day 8, 15 and 29 after randomization"
+              },
+              {
+                "measure": "Evaluation of clinical status",
+                "title": "",
+                "description": "Evaluation of clinical status of patients on the day 8, 22 and 29 after randomization, defined by the Ordinal Scale of 7 points (score ranges from 1 to 7, with 7 being the worst score)"
+              },
+              {
+                "measure": "Ventilator free days",
+                "title": "",
+                "description": "Days alive and free from mechanical ventilation since randomization"
+              },
+              {
+                "measure": "Time until oxygen support independence",
+                "title": "",
+                "description": "Days from randomization to independence of oxygen support"
+              },
+              {
+                "measure": "Need of mechanical ventilation support",
+                "title": "",
+                "description": "Number of patients that were not at mechanical ventilation at randomization and that required that support."
+              },
+              {
+                "measure": "Days to mechanical ventilation support.",
+                "title": "",
+                "description": "\"Number of days to mechanical ventilation for patients that were not receiving it at randomization.~For patients that were not in mechanical ventilation at randomization: number of days until that support was required.\""
+              },
+              {
+                "measure": "Duration of hospitalization",
+                "title": "",
+                "description": "Lenght of hospitalization stay in survivors (in days)"
+              },
+              {
+                "measure": "Other infections",
+                "title": "",
+                "description": "Incidence of other infections (aside from SARS-CoV 2)"
+              },
+              {
+                "measure": "Incidence of thromboembolic events",
+                "title": "",
+                "description": "Incidence of thromboembolic events in patients with COVID-19"
+              },
+              {
+                "measure": "Incidence of adverse events",
+                "title": "",
+                "description": "Evaluation of adverse events, as well as serious and unexpected adverse events"
+              }
+            ],
+            "comparison": {
+              "registered_type": "secondary",
+              "registered_label": "All-cause mortality",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "ALL_CAUSE_MORTALITY"
+              ],
+              "registered_components": [
+                "ALL_CAUSE_MORTALITY"
+              ],
+              "registered_text": "All-cause mortality All-cause mortality from randomization to day 28"
+            }
+          },
+          "derived_at_build": true
+        }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "not assessed"
+        }
+      ]
     }
   }
 }

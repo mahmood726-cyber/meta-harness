@@ -142,6 +142,8 @@ def attach(slug, review, root=ROOT):
             raise ValueError("COMPARATOR_PANEL: registered topic source panel missing")
         return []  # Legacy test fixtures need not have a registered panel.
     panel = json.loads(path.read_text(encoding="utf-8"))
+    from . import served_comparator as _sc
+    panel = _sc.served_panel(slug, panel, str(root))     # the retired comparator while its switch is unsigned (V8)
     for c in panel:
         validate(c, root)
         live = overlaps(c, review) if c.get("trial_set") else []

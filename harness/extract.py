@@ -281,6 +281,40 @@ def _effect_from_match(m, context=""):
     return Effect(scale, pt, lo, hi)
 
 
+# A REPORTED between-group MEAN DIFFERENCE with its CI ("difference, -10.3 percentage points [95% CI, -12.0 to -8.6]";
+# "estimated treatment difference of -12.4 percentage points (95% CI, -13.4 to -11.5)"). extract_effect reads ratios only,
+# so for an MD outcome the ladder fell through to reconstructing a difference from arm means -- for STEP 1 / STEP 3 that
+# was CT.gov's OBSERVED means, a different quantity from the trial's primary estimated treatment difference, which is
+# exactly what the comparator meta pools (found by the acq/k-gap G1 result-agreement check, 2026-09-29).
+_MD_EFFECT = re.compile(
+    r"\b(?:(?:mean|estimated|adjusted|treatment|between[- ]group|placebo[- ]adjusted)\s+)*difference"
+    r"[^0-9+\-]{0,45}?([-+]?\d+(?:\.\d+)?)"
+    r"[^0-9+\-]{0,45}?(?:95\s*%\s*)?(?:confidence intervals?|\bCI\b)[^0-9+\-]{0,15}?"
+    r"([-+]?\d+(?:\.\d+)?)\s*(?:to|,|;|\s-\s)\s*([-+]?\d+(?:\.\d+)?)", re.I)
+
+
+def extract_md_effect(sentence, require_unit=None):
+    """(\"MD\", point, lo, hi) from a reported between-group difference with its CI, else None. Signed; U+2212 folded."""
+    t = (sentence or "").replace("\u2212", "-").replace("\u2013", "-").replace("\u2014", "-")
+    m = _MD_EFFECT.search(t)
+    if not m:
+        return None
+    if require_unit:
+        # the UNIT is what follows the point estimate, up to the CI marker -- not the whole match, whose "95% CI"
+        # contains a "%" (STEP 1's '-12.7 kg; 95% CI' passed a percent test on the whole match)
+        after = t[m.end(1):m.start(2)]
+        cut = re.search(r"95|\bCI\b|confidence", after, re.I)
+        unit_text = after[:cut.start()] if cut else after
+        if not re.search(require_unit, unit_text, re.I):
+            return None                  # e.g. '-12.7 kg' when the outcome is PERCENT change (STEP 1 states both)
+    pt, lo, hi = float(m.group(1)), float(m.group(2)), float(m.group(3))
+    if lo > hi:
+        lo, hi = hi, lo
+    if not (lo <= pt <= hi) or lo == hi:
+        return None
+    return Effect("MD", pt, lo, hi)
+
+
 def extract_effect(sentence):
     """Return (scale, point, lo, hi) from the FIRST effect+CI phrase, else None."""
     m = _EFFECT.search(sentence)
@@ -442,7 +476,10 @@ def _is_factorial(abstract):
 # plural 'subgroups' / 'sensitivity analyses' / 'exploratory analyses' are subgroup language.
 _SUBGROUP = re.compile(
     r"\bper[-\s]?protocol\b|\bpost[-\s]?hoc\b|\bsubgroups?\b|\bsensitivity analys[ie]s\b|\bas[-\s]?treated\b|\blowest in\b|"
-    r"\bhighest in\b|\bamong those (?:with|who)\b|\brestricted to\b|\bexploratory analys[ie]s\b", re.I)
+    r"\bhighest in\b|\bamong those (?:with|who)\b|\brestricted to\b|\bexploratory analys[ie]s\b"
+    # 'in the group of patients who were on regular PPI' (PMID 34541475): a subgroup named by a baseline
+    # attribute. Narrow on purpose: 'who received X' describes an ARM and must not be refused.
+    r"|\bin the (?:group|subset|subpopulation) of (?:patients|participants|subjects) (?:who were|with|on)\b", re.I)
 
 
 def _is_subgroup_sentence(sentence):
@@ -496,7 +533,10 @@ _COMPOSITE_ENDPOINT = re.compile(
     r"\bcomposite\b|\bmajor adverse cardiovascular\b|\bMACE\b|"
     r"\bdeath or\b|\bor death\b|\bor first (?:heart failure |hf )?hospitali|"
     r"\bor (?:heart failure|hf) hospitali|\bor worsening (?:heart failure|hf)\b|"
-    r"\bor hospitali[sz]ation for (?:heart failure|hf)\b", re.I)
+    r"\bor hospitali[sz]ation for (?:heart failure|hf)\b|"
+    # VERB FORM of a death composite: 'had been intubated or had died' (BACC Bay), 'died or required mechanical
+    # ventilation'. 'died or were lost to follow-up' is a disposition, not an endpoint, and stays unmatched.
+    r"\bor (?:who )?(?:had )?died\b|\bdied or (?:required|needed|received|were intubated|was intubated)\b", re.I)
 
 
 def _names_composite(sentence):
@@ -775,6 +815,16 @@ def extract_rate(sentence, interv_terms, comp_terms):
     return RateArms(e1, t1, e2, t2) if i_pos <= c_pos else RateArms(e2, t2, e1, t1)
 
 
+def _covariate_model_sentence(s):
+    """An effect from a risk-factor / multivariable MODEL is not the randomised contrast: McFarland 1995's only abstract
+    effect was 'Using a multivariate model to adjust for two independent risk factors ... adjusted relative risk
+    (RR = 0.29...)' where the randomised comparison is the crude one. One definition, shared with the full-text rung
+    (fulltext.COVARIATE_ANALYSIS), which already dropped such sentences; a plain 'adjusted hazard ratio' is NOT
+    matched there, so a trial's own stratified result still stands."""
+    from .fulltext import COVARIATE_ANALYSIS
+    return bool(COVARIATE_ANALYSIS.search(s or ""))
+
+
 def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True, estimand=None):
     """Best conservative extraction for one trial's outcome. Returns dict or a reason.
 
@@ -825,7 +875,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                     or (_skip_composite and _names_composite(s))
                     or _kw_only_in_null_result(s, outcome_kws)):
                 continue
-            eff = extract_effect(s)
+            eff = None if _covariate_model_sentence(s) else extract_effect(s)
             if eff and eff[0] == "HR":
                 return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": "HR",
                         "source": f"abstract source-reported HR (registered estimand): " + s.strip()[:200]}
@@ -868,7 +918,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                 or (_skip_composite and _names_composite(s))
                 or _kw_only_in_null_result(s, outcome_kws)):
             continue
-        eff = extract_effect(s)
+        eff = None if _covariate_model_sentence(s) else extract_effect(s)
         if eff:
             return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": eff[0],
                     "source": f"abstract effect+CI ({eff[0]}): " + s.strip()[:200]}
@@ -891,6 +941,26 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
         return {"e1i": rate[0], "t1i": rate[1], "e2i": rate[2], "t2i": rate[3],
                 "measure": "IRR",
                 "source": "abstract events + person-time (incidence-rate ratio): " + s.strip()[:200]}
+    # Reported between-group MEAN DIFFERENCE + CI, for an MD outcome: a REPORTED effect outranks one reconstructed from
+    # arm means (the same precedence the ratio path keeps). Same sentence guards as every other path.
+    if estimand and str(estimand).upper() in ("MD", "MEAN DIFFERENCE"):
+        _mds = []
+        for s in sents:
+            if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
+                    or (_skip_composite and _names_composite(s))
+                    or _kw_only_in_null_result(s, outcome_kws)):
+                continue
+            _pct = any(("percent" in k.lower() or "%" in k) for k in (outcome_kws or []))
+            e = extract_md_effect(s, require_unit=(r"percentage points?|%|percent" if _pct else None))
+            if e:
+                _mds.append((e, s))
+        if len({(e.point, e.lo, e.hi) for e, _ in _mds}) > 1:
+            return {"absent": True, "reason": ("ambiguous: admissible sentences state different reported mean "
+                    "differences for this outcome; refused rather than take the first (R4)")}
+        if _mds:
+            e, s = _mds[0]
+            return {"effect": e.point, "ci_low": e.lo, "ci_high": e.hi, "scale": "MD",
+                    "source": "abstract reported mean difference + CI: " + s.strip()[:200]}
     # Continuous fallback: mean-difference from per-arm mean+/-SD (+ per-arm n from the abstract).
     ns = _arm_ns(abstract, interv_terms, comp_terms)
     _conts = []

@@ -48,6 +48,8 @@ def _write(path, text):
 
 def main(slug, now, argv=None):
     config = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
+    from harness import served_comparator as _sc
+    config = _sc.served_config(slug, config)    # a served page names its comparator until a switch is signed (V8)
     protocol_sha = _protocol_sha(slug)
     records = fetch.ensure(config, now)  # network only if cache absent
 

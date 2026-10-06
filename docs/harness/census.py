@@ -112,10 +112,19 @@ def _result_change_notices(root: str, slug: str, review_core_obj: Optional[dict]
     out = []
     scales = {o.get("name"): ((o.get("result") or {}).get("scale") or o.get("estimand"))
               for o in (review_core_obj or {}).get("outcomes") or []}
+    hp = os.path.join(root, "registry", "served_pool_holds.json")
+    try:
+        holds = (json.load(open(hp, encoding="utf-8")).get("holds") or []) if os.path.exists(hp) else []
+    except (OSError, ValueError):
+        holds = []
     for n in _rc_mod.load(root):
         if n.get("slug") != slug:
             continue
         item = dict(n)
+        # a SIGNED notice a hold keeps from applying (registry/served_pool_holds.json) is shown as such on the page
+        h = next((h for h in holds if h.get("slug") == slug and str(h.get("id")) in map(str, n.get("entered_pool") or [])), None)
+        if h and not n.get("withdrawal"):
+            item["held"] = {"id": h.get("id"), "code": h.get("code"), "why": h.get("why")}
         item["conclusion_changed"] = _rc_mod.conclusion_changed(n.get("before") or {}, n.get("after") or {},
                                                                 scales.get(n.get("outcome")))
         out.append(item)

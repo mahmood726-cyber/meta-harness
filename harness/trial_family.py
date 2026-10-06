@@ -128,6 +128,34 @@ def randomised_contrasts(arms, agents, randomized=False, comparators=()):
                         'background_therapy':sorted(av-aa), 'span':[a['span'], b['span']]})
     return out
 
+_PARENT_IN_TITLE = re.compile(r'\b(?:sub-?study|secondary analysis|subanalysis)\s+(?:of|from)\s+(?:the\s+)?'
+                              r'([A-Z][A-Za-z0-9]*(?:[- ][A-Z0-9][A-Za-z0-9]*)*)'
+                              r'|\b([A-Z][A-Z0-9]{2,}(?:[- ][A-Z0-9]+)*)\s+(?:sub-?study|subanalysis)\b')
+
+
+def _collate_substudies(records):
+    """Decision 5 Oct (Handbook): a substudy reporting a prespecified outcome of a trial's randomised comparison is a
+    report of THAT RCT -- collated with its parent as ONE study, never counted twice. A SUBGROUP / SECONDARY_ANALYSIS
+    report that carries no registry id of its own joins the family of the trial its OWN TITLE names ('a substudy of
+    GISSI-HF trial'), when exactly one NCT is carried by the other held reports that name that trial in their title.
+    Ambiguity, or no such report, leaves it unlinked (flagged PARENT_UNRESOLVED as before) -- never a guess. A report with
+    its own NCT is collated by the registry id already (Imazio [19] 22090167: NCT00128427, COPPS)."""
+    held = [(r, [n for n in r['registry_ids'] if n.upper().startswith('NCT')]) for r in records]
+    for r in records:
+        if r['registry_ids'] or report_role(r)[0] not in {'SUBGROUP', 'SECONDARY_ANALYSIS'}:
+            continue
+        m = _PARENT_IN_TITLE.search(r.get('title') or '')
+        name = (m.group(1) or m.group(2)) if m else None
+        if not name or len(name) < 4:
+            continue
+        rx = re.compile(r'(?<![A-Za-z0-9])' + re.escape(name) + r'(?![A-Za-z0-9])')
+        parents = sorted({n[0] for o, n in held if o is not r and len(n) == 1 and rx.search(o.get('title') or '')})
+        if len(parents) == 1:
+            r['family_parent_evidence'] = {'nct_id': parents[0], 'basis': 'SUBSTUDY_TITLE_NAMES_PARENT',
+                                           'quote': m.group(0)}
+            r['registry_ids'] = [parents[0]]
+
+
 def families(records, *, companion_reports=None, config=None, registry=None, ledger=None):
     config, registry, ledger = config or {}, registry or {}, ledger or {}
     records = [dict(r, id=_rid(r), registry_ids=registry_ids(r)) for r in records]
@@ -135,6 +163,7 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
         raise ValueError('Every report requires a held identifier')
     # Meta-analyses describe multiple trials and are retained separately by the consumer.
     records = [r for r in records if report_role(r)[0] not in {'HTA','POOLED_ANALYSIS'}]
+    _collate_substudies(records)
     by_id = {r['id']:r for r in records}
     for r in records:
         ncts = [n for n in r['registry_ids'] if n.upper().startswith('NCT')]
@@ -293,6 +322,12 @@ def refresh_registered_outcomes(nodes, config):
             else:
                 status['prospectively_specified'] = cell(code='NO_EXACT_REGISTERED_OUTCOME_MATCH')
 
+def _row_report(row):
+    """The report a pooled/absent row belongs to: its id, or -- for a row keyed by registry id that entered through a
+    signed served-pool notice (harness/served_pool_additions.py) -- the held report the register named for it."""
+    return identity._norm(row.get('family_report_id') or row.get('id'))
+
+
 def _attach_legacy(review, nodes):
     """Attach family IDs without altering existing pooling membership or estimates."""
     by_report = {r['report_id']:f for f in nodes for r in f['reports']}
@@ -301,7 +336,7 @@ def _attach_legacy(review, nodes):
     for outcome in review.get('outcomes') or []:
         for key in ('trials','declared_absent_trials'):
             for row in outcome.get(key) or []:
-                f = by_report.get(identity._norm(row.get('id')))
+                f = by_report.get(_row_report(row))
                 if not f:
                     continue
                 row['family_id'] = f['family_id']
@@ -310,7 +345,7 @@ def _attach_legacy(review, nodes):
                     for status in f['outcome_status']:
                         if status['outcome'] == outcome.get('name'):
                             if outcome.get('primary'):
-                                status['in_primary_pool'] = cell('YES', {'source':'review.outcomes.trials','report_id':identity._norm(row.get('id'))})
+                                status['in_primary_pool'] = cell('YES', {'source':'review.outcomes.trials','report_id':_row_report(row)})
                             span = row.get('span') or row.get('source_span') or row.get('quote')
                             if not span:
                                 source = (row.get('study_effect') or {}).get('source_provenance') or {}
@@ -319,7 +354,7 @@ def _attach_legacy(review, nodes):
                                     # Legacy source strings prefix the literal quotation with a label.
                                     candidate = candidate.split(': ',1)[-1]
                                     if any(candidate in str(r.get('abstract','')) for r in f['source_records']):
-                                        span = {'quote':candidate,'source':'held abstract','report_id':identity._norm(row.get('id'))}
+                                        span = {'quote':candidate,'source':'held abstract','report_id':_row_report(row)}
                             if span:
                                 for k in ('reported','measured','extractable'):
                                     status[k] = cell('YES', span)
@@ -566,7 +601,7 @@ def attach_review(review, nodes):
     for outcome in review.get('outcomes', []):
         seen = set()
         for row in outcome.get('trials', []):
-            f = by_report.get(identity._norm(row.get('id')))
+            f = by_report.get(_row_report(row))
             if f is None:
                 raise ValueError('FAMILY_LINK_UNRESOLVED: '+str(row.get('id')))
             fid = f['family_id']
@@ -602,7 +637,7 @@ def attach_review(review, nodes):
             members = strand.get('members') or []
             seen = set()
             for row in members:
-                parent = by_report.get(identity._norm(row.get('id')))
+                parent = by_report.get(_row_report(row))
                 if parent:
                     row['family_id'] = parent['family_id']
                     if row['family_id'] in seen:
@@ -648,7 +683,7 @@ def attach_review(review, nodes):
     for outcome in review.get('outcomes', []):
         for key in ('declared_absent_trials','design_refusals'):
             for row in outcome.get(key, []):
-                f = by_report.get(identity._norm(row.get('id')))
+                f = by_report.get(_row_report(row))
                 if f:
                     row['family_id'] = f['family_id']
                     row['family_identity_state'] = 'REGISTRY_ANCHORED' if f['is_trial_family'] else 'UNRESOLVED_REPORT_CANDIDATE'

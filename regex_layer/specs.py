@@ -1,4 +1,4 @@
-"""Specifications for the 23 compiled patterns in harness/extract.py.
+"""Specifications for the 30 compiled patterns in harness/extract.py.
 
 Each spec says, in plain words, what the pattern is FOR -- the thing a human labeller (or a recorded model call, as a
 PROPOSAL) marks in a sentence without ever seeing the regex. `kind`:
@@ -49,6 +49,17 @@ SPECS = {
                 "trigger": r"\bCI\b|confidence interval", "plants": {
                     "accept": [("hazard ratio, 0.80; 95% CI, 0.70 to 0.91", ("hazard ratio", "0.80", "0.70", "0.91"))],
                     "refuse": ["death or HF hospitalisation (95% CI 0.70-0.90)", "hazard ratio was similar"]}},
+    "_MD_EFFECT": {"kind": "extractor", "fields": ["point", "lower", "upper"],
+                   "spec": "a REPORTED between-group mean difference with its confidence interval: the word difference "
+                           "(optionally mean / estimated / adjusted / treatment / between-group), the signed POINT "
+                           "estimate, and the LOWER and UPPER bounds of its CI",
+                   "trigger": r"difference", "plants": {
+                       "accept": [("(difference, -10.3 percentage points [95% CI, -12.0 to -8.6]; P < .001)",
+                                   ("-10.3", "-12.0", "-8.6")),
+                                  ("an estimated treatment difference of -12.4 percentage points (95% confidence "
+                                   "interval [CI], -13.4 to -11.5; P<0.001)", ("-12.4", "-13.4", "-11.5"))],
+                       "refuse": ["There was no difference between groups (P=0.4).",
+                                  "the difference was 3.1 points in favour of treatment"]}},
     "_K": {"kind": "extractor", "fields": ["k"],
            "spec": "the NUMBER of randomised (controlled) trials a review or analysis included, in digits or words",
            "trigger": r"trials?\b|RCTs?\b", "plants": {"accept": [("12 randomized controlled trials", ("12",))],
@@ -107,8 +118,15 @@ SPECS = {
                             "spec": "the outcome named is a COMPOSITE of several events (e.g. MACE, 'death or "
                                     "hospitalisation for heart failure')",
                             "trigger": r"composite|MACE|\bor\b", "plants": {
-                                "accept": ["death or hospitalization for heart failure"],
-                                "refuse": ["all-cause death"]}},
+                                "accept": ["death or hospitalization for heart failure",
+                                           # VERB FORM (BACC Bay, PMID 33085857): the composite 'intubated or had
+                                           # died' was read as 28-day mortality when the noun-only pattern missed it
+                                           "17 patients in the tocilizumab group had been intubated or had died",
+                                           "patients who died or required mechanical ventilation",
+                                           # EMPACTA (PMID 33332779) states its composite this way
+                                           "patients who had received mechanical ventilation or who had died"],
+                                "refuse": ["all-cause death", "7 patients had died in the TCZ group",
+                                           "patients died or were lost to follow-up"]}},
     "_UNCAPTIONED_BASELINE_HEADER": {"kind": "classifier",
                                      "spec": "an inline table's content opens with a 'Characteristic(s)' header column",
                                      "trigger": r"characteristic", "plants": {
@@ -166,6 +184,11 @@ INLINE_SPECS = {
         "plants": {"accept": [("Mortality fell. The HR was 0.8.", ["Mortality fell.", "The HR was 0.8."]),
                               ("Death 10%. (95% CI 1-2)", ["Death 10%.", "(95% CI 1-2)"])],
                    "refuse": ["HR 0.80 (95% CI 0.70-0.90) was seen", "rate was 1.5 per 100"]}},
+    "extract.py:search:b494c39a77": {
+        "kind": "search", "what": "extract_md_effect: where the CI marker starts after the point estimate (the unit is "
+                                  "read BEFORE it: STEP 1's '-12.7 kg; 95% CI' must not pass a percent-unit test)",
+        "plants": {"accept": [(" kg; 95% CI", None), (" percentage points (confidence", None), (" % [CI", None)],
+                   "refuse": [" kg; difference", " percentage points"]}},
     "extract.py:search:159a89219d": {
         "kind": "search", "what": "_kw_only_in_null_result: a digit follows the keyword",
         "plants": {"accept": [(" 12 events", None)], "refuse": [" no events were seen"]}},
@@ -281,3 +304,8 @@ INLINE_SPECS.update(_OTHER_LANES_5)
 from regex_layer.specs_whole_numbers import SITE_SPECS as _WHOLE_NUMBERS  # noqa: E402
 
 INLINE_SPECS.update(_WHOLE_NUMBERS)
+
+# harness/analysis_set.py -- lane G1 (colchicine-postop-af)
+from regex_layer.specs_g1_analysis_set import SITE_SPECS as _G1_ANALYSIS_SET  # noqa: E402
+
+INLINE_SPECS.update(_G1_ANALYSIS_SET)

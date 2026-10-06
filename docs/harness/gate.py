@@ -650,7 +650,11 @@ def check_reproduction(review_dir, manifest):
         from . import fetch
         from .canonical import review_sha256
         from .pipeline import build_review_core
+        from . import served_comparator as _sc
         cfg = _json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
+        # replay what was SERVED: the same served comparator build_topic and reproduce_review apply (an unsigned
+        # comparator switch keeps the retired comparator on the page until it is signed)
+        cfg = _sc.served_config(slug, cfg)
         sha = _registration_sha(slug)
         if not sha:
             return [f"L1: no registration SHA for {slug!r}"]

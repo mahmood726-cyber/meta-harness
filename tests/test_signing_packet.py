@@ -114,3 +114,18 @@ def test_countersign_acts_on_the_open_notice_when_a_signed_one_shares_the_outcom
     p.write_text(json.dumps({"notices": [signed]}), encoding="utf-8")
     with pytest.raises(SystemExit):
         cs._notice("t", "O")                       # nothing open: refuse rather than re-sign a signed notice
+
+
+def test_PLANT_a_later_packet_is_labelled_with_its_own_version(tmp_path):
+    """Packet v4 (2026-10-03) was first built labelled 'V3-01 ... BATCH: v3-A' because the id prefix was hard-coded:
+    a signature line would have named the wrong packet."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("sp", ROOT / "scripts" / "signing_packet.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    out = tmp_path / "P.md"
+    m.build(ROOT, "t", out, "", version="V4")
+    text = out.read_text(encoding="utf-8")
+    assert "V3-" not in text and "v3-A" not in text
+    if "### " in text:
+        assert "### V4-01" in text

@@ -53,15 +53,31 @@ def _negated_at(text_lower: str, start: int) -> bool:
     return bool(_NEGATION.search(text_lower[max(0, start - 26):start]))
 
 
-def _has(text: str, terms) -> str | None:
+def _plural_re(term: str):
+    """Whole token, its plural allowed ('no probiotic' -> 'no probiotics'); a trailing '*' stays a stem."""
+    if term.endswith("*"):
+        return _boundary_re(term)
+    r = _PLURAL_CACHE.get(term)
+    if r is None:
+        r = _PLURAL_CACHE[term] = _re.compile(r"(?<![a-z0-9])" + _re.escape(term) + r"(?:e?s)?(?![a-z0-9])")
+    return r
+
+
+_PLURAL_CACHE: dict = {}
+
+
+def _has(text: str, terms, plural: bool = False) -> str | None:
     """Return the first exclusion term with a NON-negated occurrence in text (else None). A term that
-    appears only in negated form ('no withdrawal', 'without diabetes') does not count as a match."""
+    appears only in negated form ('no withdrawal', 'without diabetes') does not count as a match.
+    plural=True lets a POSITIVE (comparator) term match its plural: 'vitamin K antagonist' missed 'vitamin K
+    antagonists' and 'no probiotic' misses 'no probiotics' (found while auditing Imase 2008, 18402597, a probiotic RCT
+    X3-excluded; that record also needs topic vocabulary -- its organism and 'without probiotic' -- see the G1 dispatch)."""
     t = lexicon.fold(text)  # shared fold: British<->American spelling normalised on the haystack
     for term in terms or []:
         tl = lexicon.fold(term or "").strip()
         if not tl:
             continue
-        for m in _boundary_re(tl).finditer(t):
+        for m in (_plural_re(tl) if plural else _boundary_re(tl)).finditer(t):
             if not _negated_at(t, m.start()):
                 return term
     return None
@@ -87,21 +103,26 @@ def _all_occurrences_qualified(text: str, term: str, qualifiers) -> bool:
     return found
 
 
+_INTERVENTION_CACHE: dict = {}
+
+
 def _has_intervention(text: str, terms) -> str | None:
     """Like _has, but a mention that is only 'X-resistant/resistance/refractory/intolerant'
     is a POPULATION descriptor, not the randomised intervention, and does not count."""
     t = lexicon.fold(text)
     for term in terms or []:
-        tl = lexicon.fold(term)
-        start = 0
-        while True:
-            i = t.find(tl, start)
-            if i < 0:
-                break
-            after = t[i + len(tl): i + len(tl) + 12]
+        tl = lexicon.fold(term or "").strip()
+        if not tl:
+            continue
+        # a whole token: an unbounded substring let 'chloroquine' match 'hydroxychloroquine' (codex review
+        # exclusion_audit_and_screen#4). Its plural still matches ('probiotics', 'n-3 polyunsaturated fatty acids':
+        # the first whole-token cut lost 19 inclusions to plurals, 0 to the defect class); a trailing '*' is a stem
+        rx = _boundary_re(tl) if tl.endswith("*") else _INTERVENTION_CACHE.get(tl) or _INTERVENTION_CACHE.setdefault(
+            tl, _re.compile(r"(?<![a-z0-9])" + _re.escape(tl) + r"(?:e?s)?(?![a-z0-9])"))
+        for m in rx.finditer(t):
+            after = t[m.end(): m.end() + 12]
             if not any(w in after for w in ("resist", "refractory", "intoler", "-depend", " depend")):
                 return term
-            start = i + len(tl)
     return None
 
 
@@ -148,14 +169,40 @@ import re as _re
 # Trial", "A Randomised Controlled Trial of ..."). PubMed sometimes omits the "Randomized Controlled
 # Trial" PublicationType even for definitive RCTs (BaSICS 34375394 was tagged only "Journal Article"
 # and wrongly excluded X1). Guarded: NOT a protocol / secondary analysis / substudy / design paper.
-_TITLE_RCT = _re.compile(r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
+# Every self-description below starts at a WORD: 'nonrandomized', 'non-randomised' and 'not randomized' contain
+# 'randomized' and describe the opposite design (codex review exclusion_audit_and_screen#2)
+_NOT_NON = r"(?<![a-z])(?<!non-)(?<!non )(?<!not )"
+_TITLE_RCT = _re.compile(_NOT_NON + r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
 _TITLE_RCT_NOT = _re.compile(r"\bprotocol\b|\bsecondary analysis\b|\bpost[-\s]?hoc\b|\bsubstudy\b|"
                              r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b", _re.I)
+# Decision 5 Oct (Handbook, Mahmood's delegation): a 'substudy' / 'secondary analysis' that reports a prespecified outcome
+# of the trial's RANDOMISED comparison is a report of that RCT -- the title word alone never excludes. X1 excludes such a
+# record only when the record itself says the analysis is non-randomised, post hoc or observational. colchicine-postop
+# Imazio [19] (22090167, 'results of the COPPS atrial fibrillation substudy'; 'the COPPS trial, a multicenter,
+# double-blind, randomized trial') was excluded X1 by the title word.
+_TITLE_NOT_RESULTS = _re.compile(r"\bprotocol\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b",
+                                 _re.I)                         # not a results report at all
+_TITLE_POST_HOC = _re.compile(r"\bpost[-\s]?hoc\b", _re.I)
+_TITLE_SUBSTUDY = _re.compile(r"\bsubstudy\b|\bsub-study\b|\bsecondary analysis\b", _re.I)
+_NONRANDOMISED_ANALYSIS = _re.compile(r"\bpost[-\s]?hoc\b|\bnon-?randomi[sz]ed\b|\bnot randomi[sz]ed\b|"
+                                      r"\bobservational\b|\bcohort (?:study|analysis)\b", _re.I)
+
+
+def _title_not_an_rct_report(rec) -> bool:
+    """True when the TITLE marks the record as not a report of the randomised comparison: a protocol / design / SAP
+    paper, a post hoc analysis -- or a substudy / secondary analysis that the record itself says is non-randomised, post
+    hoc or observational. A substudy of a prespecified randomised outcome is a report of the RCT."""
+    t = rec.get("title", "") or ""
+    if _TITLE_NOT_RESULTS.search(t) or _TITLE_POST_HOC.search(t):
+        return True
+    if _TITLE_SUBSTUDY.search(t):
+        return bool(_NONRANDOMISED_ANALYSIS.search(t + " " + (rec.get("abstract", "") or "")))
+    return False
 
 
 def _title_says_rct(rec) -> bool:
     t = rec.get("title", "") or ""
-    return bool(_TITLE_RCT.search(t)) and not _TITLE_RCT_NOT.search(t)
+    return bool(_TITLE_RCT.search(t)) and not _title_not_an_rct_report(rec)
 
 
 # QUASI-randomisation: alternate/pseudo allocation is NOT a true RCT even when PubMed tags it
@@ -167,9 +214,9 @@ _QUASI = _re.compile(r"quasi[-\s]?random|pseudo[-\s]?random|alternat(?:e|ely|ing
 # The ABSTRACT BODY describing the paper itself as a randomised trial (a self-description, not a review
 # citing trials): 'randomized, double-blind', 'randomly assigned to', '1:1 randomisation', etc.
 _BODY_RCT = _re.compile(
-    r"random(?:i[sz]ed|ly)\b[^.]{0,40}?(?:double[-\s]?blind|placebo|1:1|parallel|to receive|"
-    r"controlled trial|clinical trial|assigned|allocated|two groups|three groups)"
-    r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?random(?:i[sz]ed|ly)", _re.I)
+    _NOT_NON + r"random(?:i[sz]ed|ly)\b[^.]{0,40}?(?:double[-\s]?blind|placebo|1:1|parallel|to receive|"
+    r"controlled trial|clinical trial|controlled study|assigned|allocated|two groups|three groups)"
+    r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?" + _NOT_NON + r"random(?:i[sz]ed|ly)", _re.I)
 
 
 def _body_says_rct(rec) -> bool:
@@ -187,7 +234,10 @@ def _body_says_rct(rec) -> bool:
 # Protocol (31712614) and an Editorial (39529940) into probiotics.)
 _NONPRIMARY_PT = ("comment", "editorial", "letter", "news", "erratum", "review", "meta-analysis",
                   "meta analysis", "protocol", "guideline", "biography", "retracted publication",
-                  "retraction of publication", "systematic review")
+                  "retraction of publication", "systematic review",
+                  # Consensus Statement / Consensus Development Conference: the ESPGHAN position paper 36219218 was
+                  # screened INCLUDE as an RCT via its eligibility sentence (2026-10-03; 1 of 227 included PMID records)
+                  "consensus")
 
 
 def _quasi_or_nonprimary(rec, pts) -> bool:
@@ -212,22 +262,39 @@ def _is_rct(rec) -> bool:
         # not a true RCT, even if the pubtype says "Randomized Controlled Trial".
         if _QUASI.search((rec.get("abstract", "") or "") + " " + (rec.get("title", "") or "")):
             return False
-        # A design/protocol/rationale paper by TITLE is not a completed RCT (even with RCT language).
-        if _TITLE_RCT_NOT.search(rec.get("title", "") or ""):
+        # A design/protocol/rationale paper by TITLE is not a completed RCT (even with RCT language). A SUBSTUDY title
+        # is the exception when the record is typed 'Randomized Controlled Trial' AND its abstract describes this
+        # study's randomised comparison: COPPS-POAF (22090167) is the COPPS trial's only report of postoperative AF,
+        # and the veto excluded it (G1 tracker exclusion audit, 2026-10-02; plant tests/test_g1_exclusion_audit.py).
+        # EVERY veto term in the title, not the first: 'Substudy design and protocol of a randomized trial' is a protocol
+        # paper -- the first match ('Substudy') opened the exception and the 'protocol' veto was never seen (consolidation
+        # 2026-10-04; plant tests/test_g1_cpaf_exclusion_audit.py::test_c21_a_protocol_paper_titled_substudy...)
+        vetoes = {m.group(0).lower() for m in _TITLE_RCT_NOT.finditer(rec.get("title", "") or "")}
+        if vetoes and not (vetoes <= {"substudy", "sub-study"}
+                           and any("randomized controlled trial" in p for p in pts) and _body_says_rct(rec)):
             return False
         if any("randomized controlled trial" in p for p in pts):
             return True
         # A missing RCT pubtype is UNKNOWN, not NOT-AN-RCT: accept an explicit self-declaration in the
         # TITLE or in the ABSTRACT BODY (full text/abstract overrules incomplete metadata).
         return _title_says_rct(rec) or _body_says_rct(rec)
-    return (rec.get("allocation", "") or "").upper() == "RANDOMIZED" or rec.get("study_type", "") == "INTERVENTIONAL"
+    # A registry record states its allocation: RANDOMIZED is an RCT; NON_RANDOMIZED and NA (single group) are not,
+    # whatever the study type. Only an UNSTATED allocation falls back to the study type (codex review
+    # exclusion_audit_and_screen#1: 'INTERVENTIONAL' alone admitted 66 non-randomised / single-group registrations)
+    alloc = (rec.get("allocation", "") or "").upper()
+    return alloc == "RANDOMIZED" or (not alloc and rec.get("study_type", "") == "INTERVENTIONAL")
+
+
+_MASKED = _re.compile(r"(?<![a-z])(?<!un-)(?<!non-)(?<!not )masked\b", _re.I)
 
 
 def _double_blind(rec, text) -> bool:
     m = (rec.get("masking", "") or "").upper()
     if any(w in m for w in ("DOUBLE", "TRIPLE", "QUADRUPLE")):
         return True
-    if ("double-blind" in text) or ("double blind" in text) or ("masked" in text):
+    # whole words, never inside a negation: 'unmasked' contains 'masked' and states the opposite (codex review
+    # exclusion_audit_and_screen#3)
+    if ("double-blind" in text) or ("double blind" in text) or _MASKED.search(text):
         return True
     # A placebo-controlled RCT is inherently blinded (open-label trials do not use a placebo);
     # abstracts frequently omit the literal "double-blind". Accept placebo-controlled as evidence.
@@ -259,6 +326,20 @@ def _poptext(rec) -> str:
 def _arm_object_screening_enabled(config) -> bool:
     """Only topics with an executable arm-object declaration enforce the contract."""
     return bool((config or {}).get("arm_object"))
+
+
+# A sentence describing PRIOR work, not this trial: "has previously exerted positive effects in people with
+# antibiotic-associated diarrhoea" (probiotics 41707673, an IBS-D trial, was included for AAD prevention on it).
+# Only a CLAIM ABOUT EARLIER FINDINGS counts: a bare 'previously' also describes this trial's own participants
+# ("adults who had not previously taken probiotics" -- codex review 2026-10-03), so it is not a cue.
+_PRIOR_WORK = _re.compile(r"\bha(?:s|ve) previously\b|\bpreviously (?:shown|reported|demonstrated|exerted)\b|"
+                          r"\bha(?:s|ve) been (?:shown|reported|demonstrated)\b|"
+                          r"\b(?:prior|previous|earlier) (?:studies|research|trials|work)\b", _re.I)
+
+
+def _own_sentences(abstract: str) -> list[str]:
+    """The abstract's sentences, minus those that describe prior work (each kept sentence is verbatim)."""
+    return [x for x in _re.split(r"(?<=[.!?])\s+", abstract or "") if x and not _PRIOR_WORK.search(x)]
 
 
 def _span(raw: str, term: str, width: int = 48) -> str:
@@ -419,12 +500,20 @@ def screen_record(rec, inc, neg_pmids):
     # `prevention` a positive population signal in the STRUCTURED conditions or ABSTRACT overrides a
     # negative title signal. The intervention-in-title anchor below still applies, so an incidental
     # abstract mention in a trial that is not actually OF the intervention cannot slip in.
-    pop_haystack = _text(rec) if inc.get("prevention") else poptext
-    pop_haystack_raw = _text_raw(rec) if inc.get("prevention") else raw_pop
-    bad = screen_entry.population_exclusion(pop_haystack, inc, _has, _all_occurrences_qualified)
+    # The widened signal reads the trial's OWN sentences: a population named only in a prior-work sentence is not
+    # this trial's population (2026-10-03; corpus: 1 of 19 abstract-admitted inclusions, probiotics 41707673).
+    own = _own_sentences(rec.get("abstract", "")) if inc.get("prevention") else []
+    rec_own = dict(rec, abstract=" ".join(own))
+    pop_haystack = _text(rec_own) if inc.get("prevention") else poptext
+    pop_haystack_raw = _text_raw(rec_own) if inc.get("prevention") else raw_pop
+    # ...but only the POSITIVE population signal widens to the abstract. The exclusion terms stay on title/conditions,
+    # as the reason text says: read over the abstract they fired on incidental words -- 'a multivariate model' (the term
+    # means animal models), 'Subgroup analysis of subjects' (it means secondary reports), 'interest in probiotics for the
+    # treatment of AAD' (a background sentence) -- and excluded 4 pooled probiotics trials once prevention was derived.
+    bad = screen_entry.population_exclusion(poptext, inc, _has, _all_occurrences_qualified)
     if bad:
         return ScreenDecision("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
-                _span(pop_haystack_raw, bad))
+                _span(raw_pop, bad))
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     popok = _has(pop_haystack, population_any)
     if population_any and not popok:
@@ -453,13 +542,15 @@ def screen_record(rec, inc, neg_pmids):
     # zinc), or a trial that only MEASURES our drug while randomising another (doxepin, with melatonin
     # as a biomarker). intervention_none lists those excluded forms; a match here excludes even though
     # intervention_any matched. Negation-aware (via _has), so "not a receptor agonist" would not fire.
-    bad_int = _has(itext, inc.get("intervention_none"))
+    # + form terms of OUR intervention that a protocol filed under population_none ('oral semaglutide'): applied here,
+    # as an intervention-form rule, never as a population rule (screen_entry.misfiled_form_terms)
+    bad_int = _has(itext, list(inc.get("intervention_none") or []) + screen_entry.misfiled_form_terms(inc))
     if bad_int:
         return ScreenDecision("exclude", "X3", f"intervention is the wrong form: matches excluded '{bad_int}' "
                 f"(receptor agonist/analogue, combination, or measured-not-randomised).",
                 _span(itext_raw, bad_int))
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
-    comp = _has(text, comparator_any)
+    comp = _has(text, comparator_any, plural=True)
     comp_override = screen_entry.comparator_override(rec, inc)
     if comparator_any and not comp and not comp_override:
         return ScreenDecision("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
@@ -481,6 +572,9 @@ def screen_record(rec, inc, neg_pmids):
                 f"examined: â€œ{_quote(raw_all)}â€")
     # include: quote the actual matched population and comparator words
     pop_span = _span(pop_haystack_raw, popok) if popok else ""
+    if pop_span and pop_span.strip("…") not in raw_all:
+        # a window that crossed the join between two kept sentences is not verbatim: quote the one kept part instead
+        pop_span = next((sp for part in [raw_pop] + own if (sp := _span(part, popok))), "")
     comp_span = _span(raw_all, comp_term) if comp_term else ""
     ev = "; ".join(s for s in (f"population “{pop_span}”" if pop_span else "",
                                f"comparator “{comp_span}”" if comp_span else "") if s)
@@ -497,7 +591,7 @@ def screen_record(rec, inc, neg_pmids):
             ev or _quote(raw_pop))
 
 
-_RANDOM_TEXT = _re.compile(r"randomi[sz]ed|randomly (?:assigned|allocated)", _re.I)
+_RANDOM_TEXT = _re.compile(_NOT_NON + r"(?:randomi[sz]ed|randomly (?:assigned|allocated))", _re.I)
 
 
 def screen_record_2(rec, inc):
@@ -514,7 +608,7 @@ def screen_record_2(rec, inc):
     _pts = [p.lower() for p in rec.get("pubtypes", [])]
     if rec["id_type"] == "pmid" and (
             _quasi_or_nonprimary(rec, _pts)
-            or _TITLE_RCT_NOT.search(rec.get("title", "") or "")):
+            or _title_not_an_rct_report(rec)):
         return "exclude"  # quasi/alternate allocation, non-primary pubtype, or protocol/design paper
     is_rct = (rec["id_type"] != "pmid"
               or any("randomized controlled trial" in p for p in _pts)
@@ -529,7 +623,7 @@ def screen_record_2(rec, inc):
     if inc.get("intervention_any") and not _has_intervention(text, inc["intervention_any"]):
         return "exclude"
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
-    if (comparator_any and not _has(text, comparator_any)
+    if (comparator_any and not _has(text, comparator_any, plural=True)
             and not screen_entry.comparator_override(rec, inc)):
         return "exclude"
     if inc.get("design_double_blind") and not _double_blind(rec, text):
@@ -546,11 +640,45 @@ def _is_unresolved(rec) -> bool:
                     rec.get("conditions"), rec.get("interventions")))
 
 
+def prevention_terms(config: dict) -> list[str]:
+    """Derive condition-as-outcome eligibility from the declared event endpoint.
+
+    Keyword overlap alone is unsafe: mortality keywords can include the enrolled
+    disease, and continuous outcomes can include body weight or sleep latency.
+    Require the population term to denote the entire event outcome, allowing the
+    configured trailing stem and an occurrence prefix. No topic names are used.
+    """
+    outcome = config.get("primary_outcome") or {}
+    if outcome.get("estimand") not in {"RR", "OR", "HR", "RD"}:
+        return []
+    name = lexicon.fold(outcome.get("name") or "").strip()
+    name = _re.sub(r"^(?:at least one|one or more|new|incident|recurrent)\s+", "", name)
+    keywords = [lexicon.fold(k).strip() for k in outcome.get("keywords") or []]
+    matches = []
+    for term in (config.get("include") or {}).get("population_any") or []:
+        folded = lexicon.fold(term).strip()
+        stem = folded.rstrip("*")
+        denotes_outcome = (bool(_re.fullmatch(_re.escape(stem) + r"\w*", name))
+                           if folded.endswith("*") else name == stem)
+        if stem and denotes_outcome and any(
+                k == stem or _has(k, [term]) for k in keywords):
+            matches.append(term)
+    return matches
+
+
+def effective_include(config: dict) -> dict:
+    """Resolve prevention in the harness without mutating registered topic data."""
+    inc = dict(config.get("include") or {})
+    if prevention_terms(config):
+        inc["prevention"] = True
+    return inc
+
+
 def run_dual(all_recs: list, config: dict) -> dict:
     """Run both rule screeners and report the disagreement rate (PRISMA item 8) over RESOLVED records
     only. Deterministic, replay-safe. Adjudicator = screener 1. Records with no retrievable text are
     'unresolved' (UNKNOWN != excluded) and counted separately, not as screening disagreements."""
-    inc = config.get("include", {})
+    inc = effective_include(config)
     neg = set(config.get("negative_control_pmids", []))
     dis = []
     agree = 0
@@ -598,7 +726,7 @@ def _source_case_basis(basis: str, rec: dict) -> str:
 
 
 def run(all_recs: list, config: dict) -> dict:
-    inc = config.get("include", {})
+    inc = effective_include(config)
     neg = set(config.get("negative_control_pmids", []))
     # Companion/duplicate/design reports are NOT independent trials (unit-of-analysis / duplicate-
     # publication defect the external audit named: a "design and rationale" paper or a secondary report

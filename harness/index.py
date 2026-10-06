@@ -413,12 +413,21 @@ def _verification_section(docs_dir: str) -> str:
                 n += 1
                 if t.get("verified") in ("verified", "verified_handchecked"):
                     ok += 1
-            if rev.get("withdrawn"):
-                for t in o.get("declared_absent_trials", []) or []:
-                    if t.get("absent_kind") == "result_withdrawn":
-                        e = t.get("withdrawn_effect") or {}
-                        withdrawn.append((rev.get("slug", ""), rev["withdrawn"].get("date", ""), t.get("label", ""),
-                                          f"{e.get('scale', '')} {e.get('effect', '')} ({e.get('ci_low', '')}-{e.get('ci_high', '')})"))
+            # A withdrawal a signed correction later superseded is still history: the number was located digit
+            # for digit and was still wrong. Dropping it from the count would make the caveat vanish the moment
+            # the page was corrected, which is exactly when the reader should still be told.
+            wd = rev.get("withdrawn") or rev.get("withdrawal_superseded")
+            if wd:
+                hits = [(t.get("label", ""), t.get("withdrawn_effect") or {})
+                        for t in o.get("declared_absent_trials", []) or [] if t.get("absent_kind") == "result_withdrawn"]
+                for t in o.get("trials", []) or []:
+                    for a in ((t.get("served_pool_admission") or {}).get("supersedes_absence") or []):
+                        if a.get("state") == "RESULT_WITHDRAWN" and a.get("withdrawn_effect"):
+                            tid = str(a.get("id") or t.get("id") or "")
+                            hits.append((tid[5:] if tid.upper().startswith("PMID ") else tid, a["withdrawn_effect"]))
+                for label, e in hits:
+                    withdrawn.append((rev.get("slug", ""), wd.get("date", ""), label,
+                                      f"{e.get('scale', '')} {e.get('effect', '')} ({e.get('ci_low', '')}-{e.get('ci_high', '')})"))
     if not n:
         return ""
     # What this banner never established, stated beside the count: digit location says where a number came from,

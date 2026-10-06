@@ -36,6 +36,7 @@ class LimitationKind(str, Enum):
     DECLARED_STRANDS = "DECLARED_STRANDS"
     STALE_TOPIC = "STALE_TOPIC"
     RESULT_WITHDRAWN = "RESULT_WITHDRAWN"
+    RESULT_CORRECTED = "RESULT_CORRECTED"
     PRE_RELEASE = "PRE_RELEASE"
     AUDITABILITY_SCOPE = "AUDITABILITY_SCOPE"
     SUPPRESSED_POOL = "SUPPRESSED_POOL"
@@ -805,6 +806,20 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
             EvidenceState.REFUSED_ON_EVIDENCE,
             ["/withdrawn"],
             _page._withdrawal_block(review),
+        )
+
+    # RESULT CORRECTED: a withdrawal a signed correction superseded is a record, not a threat to the served claim (the
+    # signed notice is its consumer, checked by gate.check_result_change_countersigned) -- informational, but still an
+    # object, so the overview block it renders is never a page block with nothing behind it.
+    elif review.get("withdrawal_superseded"):
+        add(
+            "overview:result-corrected",
+            LimitationKind.RESULT_CORRECTED,
+            Severity.NOTE,
+            "the review's primary pooled result, as previously served and withdrawn",
+            EvidenceState.RECORDED,
+            ["/withdrawal_superseded"],
+            _page._withdrawal_corrected_block(review),
         )
 
     # PRE-RELEASE (Mahmood, 2026-09-20) is a limitation OBJECT with the page block as its rendered_text: the release label
