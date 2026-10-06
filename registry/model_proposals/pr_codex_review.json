@@ -1376,5 +1376,52 @@
     "fixed_on": "v8/comparator-switches-2026-10-06"
    }
   ]
+ },
+ "v8-round3": {
+  "base": "99fba0526",
+  "head": "fcbe058388235567a62e31d16276bf3391312726",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c0c51a29dfbe59ee4a20178dcf7cdea3",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_audit_primary.py",
+     "scripts/g1_swap.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "de008c416ea1b21795b34d5c10ac4cd7c842a683c6069d4cbb63857c4b6baf72"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_num_tokens",
+    "severity": "P0",
+    "claim": "A spaced range produces an additional, unprinted negative value. The new branch admits both signs instead of preserving the positive range endpoint, allowing incorrect numeric evidence.",
+    "failing_input": "_num_tokens('0.80 - 1.01')",
+    "expected": "[0.8, 1.01]",
+    "actual": "[0.8, 1.01, -1.01]",
+    "id": "v8-round3:g1#1",
+    "record_id": "mc-c0c51a29dfbe59ee4a20178dcf7cdea3",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "_count",
+    "severity": "P2",
+    "claim": "The change rejects ordinary spaces used as thousands separators, although the function accepts thousands-grouped printed integers and previously supported this representation.",
+    "failing_input": "_count('1 000')",
+    "expected": "1000",
+    "actual": "ValueError: not a count: '1 000'",
+    "id": "v8-round3:g1#2",
+    "record_id": "mc-c0c51a29dfbe59ee4a20178dcf7cdea3",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   }
+  ]
  }
 }

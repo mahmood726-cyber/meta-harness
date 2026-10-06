@@ -86,8 +86,9 @@ def test_one_unit_of_a_two_trial_analysis_is_not_complete():
 
 
 def test_codex_v8_p1_fixes_round():
-    # g1#1: '1.2 -3.4' is ambiguous: a claimed -3.4 is not refused
-    assert any(abs(t + 3.4) < 1e-9 for t in sw._num_tokens("change 1.2 -3.4"))
+    # g1#1 / v8-round3 g1#1: '1.2 -3.4' is ambiguous (two values or a range): the token supports NEITHER sign
+    assert sw._num_tokens("change 1.2 -3.4") == [1.2]
+    assert sw._num_tokens("RR 0.85 (0.80-1.01)") == [0.85, 0.80, 1.01]          # glued dash: a range, unambiguous
     assert sw._num_tokens("difference: -1.7") == [-1.7]
     # g1#2: a label never matches inside another name
     xml = _xml("Kleen [2] and Lee [1].")

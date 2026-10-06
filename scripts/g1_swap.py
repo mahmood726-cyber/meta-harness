@@ -211,9 +211,11 @@ def _num_tokens(q):
         glued = m.start() > 0 and (text[m.start() - 1].isdigit() or text[m.start() - 1] == ".")
         spaced_after_digit = bool(m.group(1)) and not glued and (prev.isdigit() or prev == ".")
         neg = bool(m.group(1)) and not glued and not spaced_after_digit
+        if spaced_after_digit:
+            # '1.2 -3.4': two values or a range -- AMBIGUOUS, the token supports neither sign (refuse, never guess:
+            # v8-p1-fixes g1#1 / v8-round3 g1#1)
+            continue
         out.append(float(m.group(2)) * (-1 if neg else 1))
-        if spaced_after_digit:          # '1.2 -3.4': two values or a range -- ambiguous, both readings (v8-p1-fixes g1#1)
-            out.append(-out[-1])
     return out
 
 

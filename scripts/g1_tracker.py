@@ -1886,11 +1886,12 @@ def numbers_in_span(obj, span, keys):
         spaced_after_digit = bool(m.group(1)) and not glued and (prev.isdigit() or prev == ".")
         neg = bool(m.group(1)) and not glued and not spaced_after_digit
         y = float(m.group(2)) * (-1 if neg else 1)
-        signed.append(y)
         if spaced_after_digit:
-            # '1.2 -3.4' is either two values or a range: AMBIGUOUS, so both readings stand (codex v8-p1-fixes g1#1: a
-            # table row of consecutive negatives was read as positive range ends); unambiguous signs are kept exact
-            signed.append(-y)
+            # '1.2 -3.4' is two values OR a range '1.2 to 3.4': AMBIGUOUS, so the token supports NEITHER sign -- a row
+            # resting on it is refused, never guessed (codex v8-p1-fixes g1#1 and v8-round3 g1#1 pull opposite ways;
+            # refusing costs coverage, never correctness). Table cells are unambiguous: jats_text puts '|' between them.
+            continue
+        signed.append(y)
         # a token followed by '%' / 'percent' / 'per cent' / 'pct' is a PERCENTAGE, never a count (g2#2; v8-p0-fixes g1#1)
         if not re.match(r"\s*(?:%|percent\b|per\s+cent\b|pct\b)", text[m.end():], re.I):
             counts.append(y)

@@ -37,3 +37,9 @@ def test_a_decimal_comma_is_not_a_count():
     got = compare({"events_t": "100,5", "n_t": "2000", "events_c": "20", "n_c": "2000"},
                   {"events_t": 1005, "n_t": 2000, "events_c": 20, "n_c": 2000}, [])
     assert got[0] != "CONFIRMED"
+
+
+def test_space_grouped_thousands_are_a_count():
+    # v8-round3 g1#2
+    assert compare({"events_t": "10", "n_t": "1 000", "events_c": "20", "n_c": "1 000"},
+                   {"events_t": 10, "n_t": 1000, "events_c": 20, "n_c": 1000}, []) == ("CONFIRMED", "COUNTS")
