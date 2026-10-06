@@ -186,7 +186,12 @@ def hold_topic(slug, cfg, fetch=True):
         urls += nice_urls(a) if fetch else []
     try:
         ema = rp._j_ema() if fetch else []
-        urls += [u for p in rp.ema_products(agents, ema) for u in rp.ema_docs(p)]
+        prods = rp.ema_products(agents, ema)
+        urls += [u for p in prods for u in rp.ema_docs(p)]
+        # + every assessment / VARIATION / extension report EMA's documents index lists for those products (a new
+        # indication -- tocilizumab COVID-19, RoActemra-H-C-955-II-0101 -- is only in a variation report)
+        idx, _sha = rp.ema_doc_index() if fetch else ([], None)
+        urls += rp.ema_index_docs(prods, idx)
     except Exception:  # noqa: BLE001 - EMA index unavailable is recorded as nothing held, never guessed
         pass
     for u in [u for u in cur if "'" in u or " " in u]:           # a TOC template's unexpanded href is no document

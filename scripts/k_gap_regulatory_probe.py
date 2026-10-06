@@ -93,6 +93,29 @@ def ema_docs(name):
             base + f"scientific-discussion/{slug}-epar-scientific-discussion_en.pdf"]
 
 
+EMA_DOC_INDEX = "https://www.ema.europa.eu/en/documents/report/documents-output-json-report_en.json"
+EMA_REPORT_TYPES = ("assessment-report", "variation-report", "scientific-discussion")
+
+
+def ema_index_docs(names, index):
+    """Every assessment / variation / extension report EMA's own documents index lists for these medicines (exact
+    medicine name, case-folded): a new indication lives in a VARIATION report, not the initial EPAR."""
+    want = {str(n).strip().lower() for n in names if n}
+    return sorted({x["document_url"] for x in index or []
+                   if x.get("type") in EMA_REPORT_TYPES and str(x.get("medicine_name") or "").strip().lower() in want
+                   and str(x.get("document_url") or "").endswith(".pdf")})
+
+
+def ema_doc_index():
+    """EMA's documents index (JSON, ~37 MB), fetched once per run; its sha256 is returned with it. [] when unreachable."""
+    import hashlib
+    try:
+        st, b = http.get_raw(EMA_DOC_INDEX, None, tries=2)
+        return (json.loads(b.decode("utf-8")).get("data") or []), hashlib.sha256(b).hexdigest()
+    except Exception:  # noqa: BLE001 - index unavailable: only the initial EPAR urls, never a guess
+        return [], None
+
+
 def fda_docs(agent):
     try:
         d = http.get_json("https://api.fda.gov/drug/drugsfda.json",
