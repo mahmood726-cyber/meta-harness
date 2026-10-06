@@ -53,3 +53,18 @@ def test_audit_scope_selects_accepted_figures_of_that_section_only():
                           "s1::13": {"state": "REFUSED"}}}
     assert sorted(gfr.audit_targets(o, "comparator")) == ["s1"]
     assert sorted(gfr.audit_targets(o, "meta")) == ["s1::11", "s1::12::F2"]
+
+
+def test_extra_audit_rows_with_every_accepted_row_agreeing_is_not_a_disagreement():
+    rows = [dict(r) for r in ACC] + [{"label": "TRIAL C", "effect": "1.0", "lower": "0.5", "upper": "2.0",
+                                       "events_t": "1", "n_t": "10", "events_c": "1", "n_c": "10"}]
+    a = gfr.audit_compare(ACC, POOL, _reading(rows, dict(POOL)))
+    assert a["state"] == "AUDIT_AGREES_ACCEPTED_ROWS" and a["extra_audit_rows"] == ["TRIAL C"]
+    assert a["disagreements"] == []
+
+
+def test_the_audit_compares_only_the_same_figure_and_panel():
+    acc = {"figure": {"fig_id": "F2", "panel": "A"}, "image": {"sha256": "x"}}
+    assert gfr.audit_same_figure({"figure": {"fig_id": "F2", "panel": "A"}, "image_sha256": "x"}, acc)
+    assert not gfr.audit_same_figure({"figure": {"fig_id": "F2", "panel": "B"}, "image_sha256": "x"}, acc)
+    assert not gfr.audit_same_figure({"figure": {"fig_id": "F2", "panel": "A"}, "image_sha256": "y"}, acc)

@@ -1950,10 +1950,23 @@ def audit_compare(acc_rows, acc_pooled, reading):
     pool_state = ("NO_ACCEPTED_POOLED_ROW" if not any(str(pa.get(k) or "").strip() for k in ("effect", "lower", "upper"))
                   else "POOLED_AGREES" if pooled else "POOLED_DISAGREES")
     other = [p for p in probs if not p.startswith(("ROWS_DISAGREE", "POOLED_ROW_DISAGREES", "NO_POOLED_ROW_PRINTED"))]
-    state = "AUDIT_AGREES" if not dis and pool_state != "POOLED_DISAGREES" and not other else "AUDIT_DISAGREES"
+    # rows only the audit read (another panel, or rows the dual read itself refused) say nothing about the ACCEPTED
+    # rows: listed, not counted as a disagreement with them
+    extra = [d["label"] for d in dis if d["why"] == "ONLY_IN_AUDIT"]
+    dis = [d for d in dis if d["why"] != "ONLY_IN_AUDIT"]
+    ok = not dis and pool_state != "POOLED_DISAGREES" and not other
+    state = ("AUDIT_AGREES" if ok and not extra else "AUDIT_AGREES_ACCEPTED_ROWS" if ok else "AUDIT_DISAGREES")
     return {"state": state, "rows_accepted": len(acc_rows), "rows_agreeing": len(proposed) + len(ne),
-            "disagreements": dis, "pooled": {"state": pool_state, "accepted": pa, "audit": reading.get("pooled")},
-            "other_problems": other}
+            "disagreements": dis, "extra_audit_rows": extra,
+            "pooled": {"state": pool_state, "accepted": pa, "audit": reading.get("pooled")}, "other_problems": other}
+
+
+def audit_same_figure(it, acc):
+    """The audit re-reads the SAME figure the dual read accepted: same image bytes, figure and panel (a figure whose
+    selection changed since -- 33586856 panel A then, panel B now -- is not compared)."""
+    f, g = it.get("figure") or {}, acc.get("figure") or {}
+    return (it.get("image_sha256") == (acc.get("image") or {}).get("sha256") and f.get("fig_id") == g.get("fig_id")
+            and (f.get("panel") or None) == (g.get("panel") or None))
 
 
 def audit_targets(o, scope):
@@ -2002,8 +2015,9 @@ def audit_third(run, scope="comparator", slugs=None):
                 print(_key(it, "codex_audit"), r["state"], r["record_id"], r.get("error") or "", flush=True)
     for it in its:
         v = acc[it["key"]]
-        if it["image_sha256"] != (v.get("image") or {}).get("sha256"):
-            out["figures"][it["key"]] = {"state": "AUDIT_SKIPPED:FIGURE_NOT_THE_ACCEPTED_ONE"}
+        if not audit_same_figure(it, v):
+            out["figures"][it["key"]] = {"state": "AUDIT_SKIPPED:FIGURE_NOT_THE_ACCEPTED_ONE",
+                                         "accepted_figure": v.get("figure"), "rebuilt_figure": it.get("figure")}
             continue
         r = runs.get(_key(it, "codex_audit"))
         if not r or r.get("state") != "RAN_OK":
