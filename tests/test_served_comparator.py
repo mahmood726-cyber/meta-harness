@@ -14,8 +14,15 @@ SLUGS = ["dpp4-mace-t2d", "esketamine-trd-madrs", "melatonin-primary-insomnia-so
          "statins-primary-prevention-elderly"]
 
 
+# What was served BEFORE the switches: main as it stood before PR #13 merged them (469a97eb). Pinned to that commit, never
+# to origin/main -- a moving ref made this control retire itself the moment PR #13 merged (main's CI, e2b927c3), because
+# from then on 'origin/main' IS the tree under test. The commit is in main's history, so every clone of main holds it.
+SERVED_BEFORE = "469a97eb6a783eab92dcc117699abc2c0a9836c8"
+
+
 def _main(path):
-    return json.loads(subprocess.run(["git", "show", f"origin/main:{path}"], cwd=ROOT, capture_output=True).stdout)
+    return json.loads(subprocess.run(["git", "show", f"{SERVED_BEFORE}:{path}"], cwd=ROOT, capture_output=True,
+                                     check=True).stdout)
 
 
 def test_unsigned_switches_serve_the_previous_comparator_exactly():
