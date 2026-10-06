@@ -21,12 +21,23 @@ def _cfg(s):
 
 
 def test_dpp4_comparator_pools_no_primary_result():
-    o = json.load(open(os.path.join(gt.G1_DIR, "dpp4-mace-t2d.json"), encoding="utf-8"))
-    g = o["g1_status"]
-    assert g["state"] == "COMPARATOR_NO_PRIMARY_RESULT" and g["unmet"] == ["COMPARATOR_PRIMARY_RESULT"]
-    assert g["comparator_stated_trials"] == 6 and g["comparator_trials_listed"] == 5
-    assert any("myocardial infarction" in p["sentence"] for p in g["comparator_pools"])
-    assert not any("MACE" in p["sentence"] or "major adverse" in p["sentence"].lower() for p in g["comparator_pools"])
+    # Until 5 Oct dpp4's comparator (34754403) pooled no MACE result and the topic read COMPARATOR_NO_PRIMARY_RESULT. The
+    # binding lane retired it under the pre-registered rule (85de6a23: NOT_ENUMERABLE_OPEN) and adopted 31462224, whose
+    # league table states MACE (registry/comparator_results.json, read with the table's own measure). Restated: the
+    # retirement carries that fact with a span verified in the held source, and the adopted comparator's result is what
+    # the topic is judged on.
+    import hashlib
+    a = json.load(open(os.path.join(ROOT, "registry", "comparator_selection", "dpp4-mace-t2d.adoption.json"), encoding="utf-8"))
+    r = a["retired"]
+    assert a["comparator_pmid"] == "31462224" and r["comparator_pmid"] == "34754403" and r["reason_code"] == "NOT_ENUMERABLE_OPEN"
+    src = os.path.join(ROOT, r["source"]["path"])
+    assert hashlib.sha256(open(src, "rb").read()).hexdigest() == r["source"]["sha256"]
+    held = open(src, encoding="utf-8").read()
+    assert r["spans"] and all(sp in held for sp in r["spans"])
+    res = json.load(open(os.path.join(ROOT, "registry", "comparator_results.json"), encoding="utf-8"))["dpp4-mace-t2d"]
+    assert res["scale"] == "OR" and res["outcome"] == "MACE" and res["orientation_check"]["abstract_quote"]
+    g = json.load(open(os.path.join(gt.G1_DIR, "dpp4-mace-t2d.json"), encoding="utf-8"))["g1_status"]
+    assert g["state"] != "COMPARATOR_NO_PRIMARY_RESULT" and g["criteria"]["RESULT_AGREES"] is True
 
 
 def test_an_extraction_miss_is_never_read_as_an_absence():

@@ -66,11 +66,17 @@ def test_D3_a_comparator_pooling_no_rct_is_named_with_its_own_words_and_stays_co
     for slug, t in D3["topics"].items():
         d = json.load(open(os.path.join(G1, f"{slug}.json"), encoding="utf-8"))
         g = d["g1_status"]
-        assert g["state"] == "COMPARATOR_POOLS_NO_RCT" and g["decision"] == D3["id"]
         src = open(os.path.join(ROOT, t["span"]["source"]), encoding="utf-8", errors="replace").read()
         norm = lambda x: re.sub(r"\s+", " ", x)  # noqa: E731
         assert norm(t["span"]["text"]) in norm(src)
-        assert "id='not-attainable'" in page and slug in page.split("id='not-attainable'")[1].split("</ul>")[0]
+        if str(d.get("comparator_pmid")) == str(t.get("comparator_pmid")):
+            assert g["state"] == "COMPARATOR_POOLS_NO_RCT" and g["decision"] == D3["id"]
+            assert "id='not-attainable'" in page and slug in page.split("id='not-attainable'")[1].split("</ul>")[0]
+        else:
+            # the D3 comparator was RETIRED (statins, Mahmood 'go with a', 5 Oct): the retirement carries the same reason
+            a = json.load(open(os.path.join(ROOT, "registry", "comparator_selection", f"{slug}.adoption.json"), encoding="utf-8"))
+            assert str(a["retired"]["comparator_pmid"]) == str(t["comparator_pmid"])
+            assert a["retired"]["reason_code"] == "COMPARATOR_POOLS_NO_RCT" and g["state"] != "COMPARATOR_POOLS_NO_RCT"
     assert "of 32 topics" in page                                   # the denominator is not shrunk
 
 

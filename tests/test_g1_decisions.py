@@ -91,10 +91,15 @@ STATINS = "statins-primary-prevention-elderly"
 
 
 def test_D3_statins_is_not_attainable_with_the_comparators_own_words():
+    # D3 named 39076238 (12 observational studies). Mahmood's 'go with a' (5 Oct, 09c90901) retired it with the same
+    # reason and spans and adopted 32529863; D3 still decides the RETIRED comparator, and the retirement carries it.
+    assert gt.comparator_pools_no_rct(STATINS, "39076238")
+    a = json.load(open(os.path.join(ROOT, "registry", "comparator_selection", f"{STATINS}.adoption.json"), encoding="utf-8"))
+    assert a["comparator_pmid"] == "32529863" and a["retired"]["comparator_pmid"] == "39076238"
+    assert a["retired"]["reason_code"] == "COMPARATOR_POOLS_NO_RCT"
+    assert any("observational studies" in sp for sp in a["retired"]["spans"])
     d = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", f"{STATINS}.json"), encoding="utf-8"))
-    g = gt.g1_status(d)
-    assert g["state"] == "COMPARATOR_POOLS_NO_RCT" and g["decision"] == "D3-COMPARATOR-POOLS-NO-RCT"
-    assert "observational studies" in g["span"]["text"] and g["flag"].startswith("FOR MAHMOOD")
+    assert gt.g1_status(d)["state"] != "COMPARATOR_POOLS_NO_RCT"     # the adopted comparator is judged on its own words
 
 
 def test_D3_PLANT_a_span_not_in_its_source_decides_nothing(monkeypatch):
