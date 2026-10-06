@@ -46,6 +46,7 @@ PROP = os.path.join(ROOT, "registry", "model_proposals", "g1_trial_acquire.json"
 ACQ_DIR = os.path.join(ROOT, "registry", "g1_acquired")
 REC_DIR = os.path.join(ROOT, ms.RECORD_DIR)
 MODEL, EFFORT = "gpt-6-astra", "high"
+MODEL_2 = "gpt-5.5"                                  # the SECOND independent reader (READER_2)
 FT_CAP = 60000
 SOURCES = ["AACT", "PMC_TEXT", "REGULATORY", "META", "NONE"]
 MEASURES = ["RR", "OR", "HR", "MD", "COUNTS", "NONE"]
@@ -757,7 +758,33 @@ def disk_ok(drives=("C:\\", "F:\\")):
     return True
 
 
-def run(slugs, ref, redo=(), workers=5):
+class RunnerPool:
+    """Codex slots: `local` on this machine (model_call_live.codex_runner) and `remote` on the Tailscale worker
+    (reproducible_ai/model_call_remote.RemoteCodexRunner). A call takes whichever slot is free; the record names the
+    client that ran it."""
+
+    def __init__(self, local=5, remote=0, remote_runner=None):
+        import queue
+        self.q = queue.Queue()
+        for _ in range(local):
+            self.q.put(mcl.codex_runner)
+        if remote:
+            if remote_runner is None:
+                from reproducible_ai import model_call_remote as mr
+                remote_runner = mr.RemoteCodexRunner()
+            for _ in range(remote):
+                self.q.put(remote_runner)
+        self.size = max(1, local + remote)
+
+    def call(self, *a, **kw):
+        runner = self.q.get()
+        try:
+            return mcl.call(*a, runner=runner, **kw)
+        finally:
+            self.q.put(runner)
+
+
+def run(slugs, ref, redo=(), workers=5, remote_workers=0):
     """A trial already answered is asked again only when its evidence CHANGED (a new prompt digest: a new source in the
     cascade) or its label matches a --redo=<substring>. Deterministic sources first (typed_first: no model call). Calls
     stop on a disk below MIN_FREE_GB or a quota error (budget stop), recorded per trial, never silently."""
@@ -775,6 +802,7 @@ def run(slugs, ref, redo=(), workers=5):
 
     import threading
     stop = threading.Event()
+    pool = RunnerPool(workers, remote_workers)
 
     def one(job):
         slug, cfg, comp, t = job
@@ -800,34 +828,88 @@ def run(slugs, ref, redo=(), workers=5):
                                                         encoding="utf-8")).get(t["pmid"] or "") or {}).get("state")}}
         p = (INSTR + "\n\n=== EVIDENCE ===\n" + json.dumps(ev, ensure_ascii=False, indent=0, default=str)).encode("utf-8")
         psha = hashlib.sha256(p).hexdigest()
+
+        def ask(model, line):
+            """One recorded call through the pool (a local or a worker slot); None when the run must not call."""
+            if stop.is_set() or not disk_ok():
+                return None
+            rec = pool.call(p, schema=SCHEMA, model=model, effort=EFFORT,
+                            caller={"file": "scripts/g1_trial_acquire.py", "line": line,
+                                    "purpose": f"G1 missing-trial acquisition {slug} / {t['label'][:50]} "
+                                               f"({'reader 2' if model == MODEL_2 else 'reader 1'}; acq/k-gap lane)"},
+                            input_digests=[{"ref": "evidence", "sha256": psha,
+                                            "what": "inline evidence: AACT snapshot rows, PMC OA / CC Unpaywall text, "
+                                                    "FDA / EMA / NICE windows, meta rows"}],
+                            timeout_s=1800)
+            if rec["state"] != "RAN_OK" and _QUOTA.search(json.dumps(rec.get("error") or rec.get("response") or "")):
+                stop.set()                                    # the budget floor: no further calls this run
+            ms.write_record(rec, REC_DIR)
+            return rec
+
         if prev.get("state") == "RAN_OK" and prev.get("prompt_sha256") == psha and not any(r in t["label"] for r in redo):
-            return key, prev                                  # same evidence, already answered: no second call
-        if stop.is_set():
-            return key, dict(base, record_id=None, state="SKIPPED_BUDGET", prompt_sha256=psha)
-        if not disk_ok():
-            return key, dict(base, record_id=None, state="SKIPPED_DISK", prompt_sha256=psha)
-        try:
-            rec = mcl.call(p, schema=SCHEMA, model=MODEL, effort=EFFORT,
-                       caller={"file": "scripts/g1_trial_acquire.py", "line": "run",
-                               "purpose": f"G1 missing-trial acquisition {slug} / {t['label'][:50]} (g1/finish-line lane)"},
-                       input_digests=[{"ref": "evidence", "sha256": psha,
-                                       "what": "inline evidence: AACT snapshot rows, PMC OA / CC Unpaywall text, FDA / EMA "
-                                               "/ NICE windows, meta rows"}],
-                       timeout_s=1800)
-        except mcl.LicenceRefused as exc:
-            return key, dict(base, record_id=None, state="REFUSED_LICENCE", why=str(exc)[:300], prompt_sha256=psha)
-        if rec["state"] != "RAN_OK" and _QUOTA.search(json.dumps(rec.get("error") or rec.get("response") or "")):
-            stop.set()                                        # the budget floor: no further calls this run
-        ms.write_record(rec, REC_DIR)
-        return f"{slug}|{t['label']}", {"record_id": rec["record_id"], "state": rec["state"], "slug": slug,
-                                        "label": t["label"], "pmid": t["pmid"], "ncts": t["ncts"],
-                                        "prompt_sha256": hashlib.sha256(p).hexdigest()}
-    with cf.ThreadPoolExecutor(max_workers=workers) as ex:
+            out = dict(prev)                                  # same evidence, already answered: no second reader-1 call
+        else:
+            if stop.is_set():
+                return key, dict(base, record_id=None, state="SKIPPED_BUDGET", prompt_sha256=psha)
+            if not disk_ok():
+                return key, dict(base, record_id=None, state="SKIPPED_DISK", prompt_sha256=psha)
+            try:
+                rec = ask(MODEL, "run")
+            except mcl.LicenceRefused as exc:
+                return key, dict(base, record_id=None, state="REFUSED_LICENCE", why=str(exc)[:300], prompt_sha256=psha)
+            if rec is None:
+                return key, dict(base, record_id=None, state="SKIPPED_BUDGET", prompt_sha256=psha)
+            out = dict(base, record_id=rec["record_id"], state=rec["state"], prompt_sha256=psha, runner=rec["client"]
+                       .get("argv", ["?"])[0])
+        # SECOND INDEPENDENT READER on every row reader 1's answer would BIND (Mahmood 6 Oct): the same evidence, another
+        # model; replay binds only when both readers pass the gate with the same tuple
+        if out.get("state") == "RAN_OK" and not (out.get("reader2") or {}).get("prompt_sha256") == psha:
+            resp1 = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, out["record_id"] + ".json"))).decode("utf-8"))
+            if gate(resp1, _held, cfg, slug)[0] == "ADMITTED":
+                rec2 = ask(MODEL_2, "run:reader2")
+                if rec2 is not None:
+                    out["reader2"] = {"record_id": rec2["record_id"], "state": rec2["state"], "model": MODEL_2,
+                                      "prompt_sha256": psha, "runner": rec2["client"].get("argv", ["?"])[0]}
+        return key, out
+    with cf.ThreadPoolExecutor(max_workers=pool.size) as ex:
         for k, r in ex.map(one, jobs):
             data["runs"][k] = r
             print(r["state"], r["record_id"], k, flush=True)
             json.dump(data, open(PROP, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
     return data
+
+
+_TUPLE = ("events_t", "n_t", "events_c", "n_c", "effect", "lower", "upper")
+
+
+def _tuple(row):
+    def norm(v):
+        if v is None:
+            return None
+        try:
+            return round(float(str(v).replace(",", "")), 6)
+        except ValueError:
+            return str(v).strip()
+    return tuple(norm(getattr(row, k)) for k in _TUPLE)
+
+
+def second_reader_check(r, held, cfg, adm):
+    """A row reader 1 would bind binds only when the SECOND independent reader (MODEL_2, same evidence, its own record)
+    also passes the gate with the SAME tuple (Mahmood 6 Oct). Returns (verdict, admitted, second-reader summary)."""
+    r2 = r.get("reader2") or {}
+    if r2.get("prompt_sha256") != r.get("prompt_sha256") or not r2.get("record_id"):
+        return "PENDING_SECOND_READER", None, {"state": "NOT_RUN"}
+    summ = {"record_id": r2["record_id"], "model": r2.get("model"), "runner": r2.get("runner")}
+    if r2.get("state") != "RAN_OK":
+        return "PENDING_SECOND_READER", None, dict(summ, state=f"CALL_{r2.get('state')}")
+    resp2 = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r2["record_id"] + ".json"))).decode("utf-8"))
+    v2, adm2 = gate(resp2, held, cfg, r["slug"])
+    if v2 != "ADMITTED":
+        return "REFUSED:SECOND_READER_NOT_ADMITTED", None, dict(summ, state=v2)
+    if _tuple(adm["row"]) != _tuple(adm2["row"]):
+        return "REFUSED:READERS_DISAGREE", None, dict(summ, state="DISAGREE", reader1=_tuple(adm["row"]),
+                                                      reader2=_tuple(adm2["row"]))
+    return "ADMITTED", dict(adm, second_reader=dict(summ, state="AGREE")), dict(summ, state="AGREE")
 
 
 def merged_rows(path, rows):
@@ -866,12 +948,15 @@ def replay(slugs, ref):
                                                        "record_id": r["record_id"], "why": r.get("why")})
             continue
         _ev, held = evidence(t, cfg, comparator_pmid(r["slug"], o))
+        second = None
         if r["state"] == "RAN_OK":
             resp = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8"))
             verdict, adm = gate(resp, held, cfg, r["slug"])
+            if verdict == "ADMITTED":
+                verdict, adm, second = second_reader_check(r, held, cfg, adm)
         else:
             resp, verdict, adm = {}, "WITHHELD_NOT_OPEN_TEXT", None
-        row_extra = {}
+        row_extra = {"second_reader": second} if second else {}
         if verdict != "ADMITTED" and held["text"]:
             # the trial's OWN held text, read DETERMINISTICALLY (no model): its outcome table row under the arm Ns. The
             # route for a text that may not be shown to a model (SMART: an NIH author manuscript, not CC-licensed)
@@ -934,5 +1019,6 @@ if __name__ == "__main__":
     slugs = [a for a in argv if not a.startswith("--")]
     if "--run" in argv:
         run(slugs, ref, [a.split("=", 1)[1] for a in argv if a.startswith("--redo=")],
-            workers=next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--workers=")), 5))
+            workers=next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--workers=")), 5),
+            remote_workers=next((int(a.split("=", 1)[1]) for a in argv if a.startswith("--remote-workers=")), 0))
     replay(slugs, ref)

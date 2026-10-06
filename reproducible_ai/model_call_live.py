@@ -254,7 +254,8 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
     if probs:
         raise LicenceRefused("; ".join(probs)[:600])
     digests = list(input_digests)
-    g = global_agents_digest() if runner is codex_runner else None
+    # a REMOTE runner (reproducible_ai/model_call_remote.py) reports the worker's own AGENTS.md digest
+    g = global_agents_digest() if runner is codex_runner else getattr(runner, "agents_digest", None)
     if g:
         digests.append(g)
     digests.append({"ref": "output-schema (inline in params)", "sha256": hashlib.sha256(model_source.canonical(schema)).hexdigest(),
@@ -296,7 +297,8 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
                                   **{f"image_{n}": h for n, h in enumerate(image_digests)}},
                 **({"attached_images_sha256": image_digests} if image_digests else {})},
         not_controllable=list(NOT_CONTROLLABLE),
-        client={"name": "codex exec", "version": client_version or _codex_version(), "argv": r.get("argv")},
+        client={"name": "codex exec", "version": client_version or (runner.version() if hasattr(runner, "version")
+                                                                     else _codex_version()), "argv": r.get("argv")},
         request_utc=t0, response_utc=t1, caller=caller, input_digests=digests, state=state, error=err,
         client_evidence={"header": header, "stdout_sha256": hashlib.sha256(so).hexdigest(), "stdout_bytes": len(so),
                          "stderr_sha256": hashlib.sha256(se).hexdigest(), "stderr_bytes": len(se),
@@ -306,6 +308,6 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
                          "lane_log": f"registry/model_calls/lane_log/{lane_log_name(lane_of(caller))}",
                          "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work "
                                  "dir -> <workdir>) is in the lane log with every tool call and file read"})
-    if runner is codex_runner:                  # a real call is logged; a test's fake runner is not
+    if runner is codex_runner or getattr(runner, "real", False):   # a real call is logged; a test's fake is not
         log_call(rec, facts)
     return rec

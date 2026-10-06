@@ -204,3 +204,37 @@ def test_a_replay_merges_into_the_acquired_file_and_never_drops_a_row_it_did_not
     got = ga.merged_rows(str(p), [{"label": "EXAMINE", "verdict": "SOURCE_ABSENT"}])
     assert got == [{"label": "TECOS", "verdict": "ADMITTED"}, {"label": "EXAMINE", "verdict": "SOURCE_ABSENT"}]
     assert ga.merged_rows(str(tmp_path / "none.json"), [{"label": "X"}]) == [{"label": "X"}]
+
+
+def test_a_bound_row_needs_a_second_independent_reader_with_the_same_tuple(monkeypatch):
+    # Mahmood 6 Oct: every newly bound row gets a second independent reader; it binds only when both readers pass the
+    # gate with the same tuple
+    import json as _j
+    resp1 = _resp()
+    v1, adm1 = ga.gate(resp1, _held(reg=REG), CFG, "iv-iron-hfref-hosp")
+    assert v1 == "ADMITTED"
+    answers = {}
+    monkeypatch.setattr(ga.ms, "load_record", lambda path: path)
+    monkeypatch.setattr(ga.ms, "replay", lambda rid: _j.dumps(answers[os.path.basename(rid)[:-5]]).encode())
+    r = {"slug": "iv-iron-hfref-hosp", "prompt_sha256": "p1"}
+    assert ga.second_reader_check(r, _held(reg=REG), CFG, adm1)[0] == "PENDING_SECOND_READER"
+    r["reader2"] = {"record_id": "mc-2", "state": "RAN_OK", "prompt_sha256": "p1", "model": ga.MODEL_2}
+    answers["mc-2"] = _resp()
+    v, adm, s = ga.second_reader_check(r, _held(reg=REG), CFG, adm1)
+    assert v == "ADMITTED" and s["state"] == "AGREE" and adm["second_reader"]["model"] == ga.MODEL_2
+    answers["mc-2"] = _resp(source="NONE", verdict="SOURCE_ABSENT")
+    assert ga.second_reader_check(r, _held(reg=REG), CFG, adm1)[0].startswith("REFUSED:SECOND_READER_NOT_ADMITTED") or \
+        ga.second_reader_check(r, _held(reg=REG), CFG, adm1)[0] == "REFUSED:SECOND_READER_NOT_ADMITTED"
+    r["reader2"]["prompt_sha256"] = "older-evidence"                       # a reader 2 of OTHER evidence never counts
+    assert ga.second_reader_check(r, _held(reg=REG), CFG, adm1)[0] == "PENDING_SECOND_READER"
+
+
+def test_the_runner_pool_hands_out_local_and_worker_slots(monkeypatch):
+    seen = []
+    monkeypatch.setattr(ga.mcl, "call", lambda *a, runner=None, **k: seen.append(runner) or {"ok": 1})
+    fake_remote = object()
+    pool = ga.RunnerPool(local=1, remote=2, remote_runner=fake_remote)
+    assert pool.size == 3
+    for _ in range(3):
+        pool.call(b"p")
+    assert set(map(id, seen)) <= {id(ga.mcl.codex_runner), id(fake_remote)}
