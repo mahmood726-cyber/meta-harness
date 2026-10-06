@@ -322,6 +322,12 @@ def refresh_registered_outcomes(nodes, config):
             else:
                 status['prospectively_specified'] = cell(code='NO_EXACT_REGISTERED_OUTCOME_MATCH')
 
+def _row_report(row):
+    """The report a pooled/absent row belongs to: its id, or -- for a row keyed by registry id that entered through a
+    signed served-pool notice (harness/served_pool_additions.py) -- the held report the register named for it."""
+    return identity._norm(row.get('family_report_id') or row.get('id'))
+
+
 def _attach_legacy(review, nodes):
     """Attach family IDs without altering existing pooling membership or estimates."""
     by_report = {r['report_id']:f for f in nodes for r in f['reports']}
@@ -330,7 +336,7 @@ def _attach_legacy(review, nodes):
     for outcome in review.get('outcomes') or []:
         for key in ('trials','declared_absent_trials'):
             for row in outcome.get(key) or []:
-                f = by_report.get(identity._norm(row.get('id')))
+                f = by_report.get(_row_report(row))
                 if not f:
                     continue
                 row['family_id'] = f['family_id']
@@ -339,7 +345,7 @@ def _attach_legacy(review, nodes):
                     for status in f['outcome_status']:
                         if status['outcome'] == outcome.get('name'):
                             if outcome.get('primary'):
-                                status['in_primary_pool'] = cell('YES', {'source':'review.outcomes.trials','report_id':identity._norm(row.get('id'))})
+                                status['in_primary_pool'] = cell('YES', {'source':'review.outcomes.trials','report_id':_row_report(row)})
                             span = row.get('span') or row.get('source_span') or row.get('quote')
                             if not span:
                                 source = (row.get('study_effect') or {}).get('source_provenance') or {}
@@ -348,7 +354,7 @@ def _attach_legacy(review, nodes):
                                     # Legacy source strings prefix the literal quotation with a label.
                                     candidate = candidate.split(': ',1)[-1]
                                     if any(candidate in str(r.get('abstract','')) for r in f['source_records']):
-                                        span = {'quote':candidate,'source':'held abstract','report_id':identity._norm(row.get('id'))}
+                                        span = {'quote':candidate,'source':'held abstract','report_id':_row_report(row)}
                             if span:
                                 for k in ('reported','measured','extractable'):
                                     status[k] = cell('YES', span)
@@ -595,7 +601,7 @@ def attach_review(review, nodes):
     for outcome in review.get('outcomes', []):
         seen = set()
         for row in outcome.get('trials', []):
-            f = by_report.get(identity._norm(row.get('id')))
+            f = by_report.get(_row_report(row))
             if f is None:
                 raise ValueError('FAMILY_LINK_UNRESOLVED: '+str(row.get('id')))
             fid = f['family_id']
@@ -631,7 +637,7 @@ def attach_review(review, nodes):
             members = strand.get('members') or []
             seen = set()
             for row in members:
-                parent = by_report.get(identity._norm(row.get('id')))
+                parent = by_report.get(_row_report(row))
                 if parent:
                     row['family_id'] = parent['family_id']
                     if row['family_id'] in seen:
@@ -677,7 +683,7 @@ def attach_review(review, nodes):
     for outcome in review.get('outcomes', []):
         for key in ('declared_absent_trials','design_refusals'):
             for row in outcome.get(key, []):
-                f = by_report.get(identity._norm(row.get('id')))
+                f = by_report.get(_row_report(row))
                 if f:
                     row['family_id'] = f['family_id']
                     row['family_identity_state'] = 'REGISTRY_ANCHORED' if f['is_trial_family'] else 'UNRESOLVED_REPORT_CANDIDATE'
