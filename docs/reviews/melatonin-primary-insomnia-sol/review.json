@@ -2457,6 +2457,13 @@
         "leave_one_out": {
           "note": "not assessable at k=1 (leave-one-out needs k>=3)"
         },
+        "reported_not_extracted": true,
+        "reported_by": [
+          "33157425",
+          "22346363",
+          "19584739",
+          "17875243"
+        ],
         "claim": {
           "present": true,
           "significant": true,
@@ -3070,6 +3077,13 @@
         "leave_one_out": {
           "note": "not assessable at k=1 (leave-one-out needs k>=3)"
         },
+        "reported_not_extracted": true,
+        "reported_by": [
+          "33157425",
+          "22346363",
+          "18036082",
+          "12790159"
+        ],
         "claim": {
           "present": false,
           "pooled_claim": false,
@@ -3753,6 +3767,10 @@
       {
         "code": "search_not_executed",
         "detail": "no genuine executed concept search (RAN_ERROR_rendered_as_run): Registry-first (AACT) = RAN_ERROR; the source_status table shows it, but the search narrative still presents the topic as registry-first. RAN_ERROR must never be rendered as a completed search (extends the audit-22 NOT_RUN gate limb to RAN_ERROR)."
+      },
+      {
+        "code": "primary_reported_not_extracted",
+        "detail": "the primary outcome is reported by trials that could not be pooled (33157425, 22346363, 19584739, 17875243) — the pooled k is known-incomplete"
       },
       {
         "code": "eligible_declared_absent",
@@ -50696,8 +50714,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (RAN_ERROR_rendered_as_run): Registry-first (AACT) = RAN_ERROR; the source_status table shows it, but the search narrative still presents the topic as registry-first. RAN_ERROR must never be rendered as a completed search (extends the audit-22 NOT_RUN gate limb to RAN_ERROR).</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: PMID:33157425, PMID:22346363, PMID:27559258, PMID:19584739, PMID:18036082, PMID:17875243, and 1 more; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "a0c0c67628e8fd4751c3b595bca73b3c507431c29b3819267eb29ec8e755872f",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (RAN_ERROR_rendered_as_run): Registry-first (AACT) = RAN_ERROR; the source_status table shows it, but the search narrative still presents the topic as registry-first. RAN_ERROR must never be rendered as a completed search (extends the audit-22 NOT_RUN gate limb to RAN_ERROR).</li><li>the primary outcome is reported by trials that could not be pooled (33157425, 22346363, 19584739, 17875243) — the pooled k is known-incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: PMID:33157425, PMID:22346363, PMID:27559258, PMID:19584739, PMID:18036082, PMID:17875243, and 1 more; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "472956d2818a01c90127510d2aed1fed96d363aa9c270b0cbaa71c6aadf7af15",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -50706,7 +50724,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/invalidation/stale",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, primary_reported_not_extracted, eligible_declared_absent"
       }
     },
     {
@@ -50730,7 +50748,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, primary_reported_not_extracted, eligible_declared_absent"
       }
     },
     {
@@ -50811,7 +50829,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, primary_reported_not_extracted, eligible_declared_absent"
       }
     },
     {
@@ -50834,7 +50852,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/search_provenance",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, primary_reported_not_extracted, eligible_declared_absent"
       }
     },
     {
@@ -51201,7 +51219,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "146edbf724354bd40134ccaeae7719aebdf9f5f8",
-    "review_sha256": "245e194b58bcf83a310361b8f601f24c0b14a41fb2120f3994298155e0862828",
+    "review_sha256": "e3321ff0f791e555f83b460056c8c3440ba71df898e8ea04c9a431f862292fb1",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -51348,7 +51366,7 @@
         }
       ],
       "config_sha256": "1d2a0b9dfcd198b54808243c9b3b3f3e25ff07f37a2adc71ac8b6f4960c70f3b",
-      "analysis_code_sha256": "e9d8652150a94e7cc1eb8a19d69ea582a1dd48c13dbbea7e2259ac503a48b362",
+      "analysis_code_sha256": "39584f7f5f903d1e737da9a5638ab1958eb7f9b91f7369736941ecba393788f3",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -51395,7 +51413,7 @@
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
-        "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
+        "harness/index.py": "6ee03f69de1debbe5d828962b1f8d95cc6c20507",
         "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
@@ -51407,7 +51425,7 @@
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/page.py": "5886c0f14fe82350c370b400f2f1af2f947929e6",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "14297456f99eec8638a9e19791fa4e14664e4316",
+        "harness/pipeline.py": "8d3389bba5eaa41bb9ece7b980e7a11dc0e33fa7",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -51485,7 +51503,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "9cef22de650eee7e3864589aa1e2b6e89424aba7ed822d15611da32f65668074",
-      "review_sha256": "245e194b58bcf83a310361b8f601f24c0b14a41fb2120f3994298155e0862828",
+      "review_sha256": "e3321ff0f791e555f83b460056c8c3440ba71df898e8ea04c9a431f862292fb1",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/melatonin-primary-insomnia-sol.md UTF-8 text, universal newlines",
@@ -51505,7 +51523,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "e31e1a154a821e484a3d6f5fdc1c2c3aecbd30acb248f91df5b4aacc33bbab19"
+      "release_sha256": "88d4dcc7acd796cb0b5f7e792782fa62ff1f149fbfab7431d00141ce0d64b8bb"
     }
   }
 }

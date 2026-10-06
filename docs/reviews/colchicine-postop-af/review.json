@@ -2087,6 +2087,11 @@
           ],
           "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
         },
+        "reported_not_extracted": true,
+        "reported_by": [
+          "36286314",
+          "22090167"
+        ],
         "claim": {
           "present": true,
           "significant": false,
@@ -2512,6 +2517,7 @@
             "codes": [
               "search_not_executed",
               "known_eligible_missing",
+              "primary_reported_not_extracted",
               "eligible_declared_absent"
             ]
           },
@@ -5452,6 +5458,10 @@
       {
         "code": "known_eligible_missing",
         "detail": "a trial identified as eligible under the registered PICO is not pooled (five audit-named trials) — the pooled result and completeness claim cannot be current"
+      },
+      {
+        "code": "primary_reported_not_extracted",
+        "detail": "the primary outcome is reported by trials that could not be pooled (36286314, 22090167) — the pooled k is known-incomplete"
       },
       {
         "code": "eligible_declared_absent",
@@ -41095,8 +41105,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  Named, in-source missing evidence changes the CI null-crossing conclusion; the served conclusion is invalidated by that evidence. See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (HAND_WRITTEN_KEYWORD_SEARCH): We retract any claim of a registry-first or systematic search for this topic.</li><li>a trial identified as eligible under the registered PICO is not pooled (five audit-named trials) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT04224545, NCT07611019, NCT07287345; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "5d5d40c64c15cd49d806fc924594ce1684e7aa00eddaadf4dc09b11e8abd93a8",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  Named, in-source missing evidence changes the CI null-crossing conclusion; the served conclusion is invalidated by that evidence. See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (HAND_WRITTEN_KEYWORD_SEARCH): We retract any claim of a registry-first or systematic search for this topic.</li><li>a trial identified as eligible under the registered PICO is not pooled (five audit-named trials) — the pooled result and completeness claim cannot be current</li><li>the primary outcome is reported by trials that could not be pooled (36286314, 22090167) — the pooled k is known-incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT04224545, NCT07611019, NCT07287345; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "b62f9fc6399fdee995c2dc0c8a08d58dc24d0b4ec85ffd40151a96c6446b10dc",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -41105,7 +41115,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/invalidation/stale",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent"
       }
     },
     {
@@ -41129,7 +41139,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent"
       }
     },
     {
@@ -41210,7 +41220,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent"
       }
     },
     {
@@ -41233,7 +41243,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/search_provenance",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent"
       }
     },
     {
@@ -41624,7 +41634,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "507a7fd9867264e2e26d97e71d2c7a82f03e6a6dcfbc61ef00487aa26af01254",
+    "review_sha256": "c89d977323061398ace22c71e5b97cd9628355a3a9d83b38bc27968dca729a76",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -41823,7 +41833,7 @@
         }
       ],
       "config_sha256": "f3200c4fc3dfd889b09f5033c4a8893ed23128fdcaada860f6241d0363eea15f",
-      "analysis_code_sha256": "e9d8652150a94e7cc1eb8a19d69ea582a1dd48c13dbbea7e2259ac503a48b362",
+      "analysis_code_sha256": "39584f7f5f903d1e737da9a5638ab1958eb7f9b91f7369736941ecba393788f3",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -41870,7 +41880,7 @@
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
-        "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
+        "harness/index.py": "6ee03f69de1debbe5d828962b1f8d95cc6c20507",
         "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
@@ -41882,7 +41892,7 @@
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/page.py": "5886c0f14fe82350c370b400f2f1af2f947929e6",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "14297456f99eec8638a9e19791fa4e14664e4316",
+        "harness/pipeline.py": "8d3389bba5eaa41bb9ece7b980e7a11dc0e33fa7",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -41960,7 +41970,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "037bf39d7351627fa0532e6e2f63aff742ef417cd71adc8fba5e9c008678e410",
-      "review_sha256": "507a7fd9867264e2e26d97e71d2c7a82f03e6a6dcfbc61ef00487aa26af01254",
+      "review_sha256": "c89d977323061398ace22c71e5b97cd9628355a3a9d83b38bc27968dca729a76",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/colchicine-postop-af.md UTF-8 text, universal newlines",
@@ -41980,7 +41990,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "0618f55cca2b9798205aa8e6e4bb08ee3c218369ac2d318ffb7f02f5a5214a1b"
+      "release_sha256": "4292082ac7e3d79e3575c543d5cb2cde7d01d4c6d77e5880a3c0aa5b958a7915"
     }
   }
 }

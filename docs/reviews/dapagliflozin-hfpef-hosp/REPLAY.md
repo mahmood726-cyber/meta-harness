@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `25acb50163f35dac557692a6f2cf07126b625a6e813bcd4f94771c39c3ff940c` |
-| html_sha256 (served page bytes) | `567067aac18c4eaf81eed95998bc1f92b54fac02b41689fc0905bc7e7f4068ef` |
-| release_sha256 (certificate) | `eaeccc76a18992a0a998051b5cd98dae4371403c2f7c3b686520737275704a8f` |
+| review_sha256 (canonical review core) | `207b0f4884a6b1e8b4d6d67e62261724904d6334611aaf097721834a0614e640` |
+| html_sha256 (served page bytes) | `7dfe7bf88e9a250979b13a200aa3d7bf6638bef31713473629710efa0c416aa2` |
+| release_sha256 (certificate) | `dc2be47e6aeba608426085ba3c0a6d497574201b89e5d17a105b79fd72b727c7` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `a6788cc518027a2b1b2aa9e94ac45b393a13efca` |
 | analysis code | 87 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `cfd1907f89627bcf581839b9684cd20f6bc886cb` |
+| recorded generating commit | `d4bfe1a82b94587ad5e09787932fde3fbaea2381` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
