@@ -91,7 +91,11 @@ def limb_unit_tests():
     if err:
         return NOEXEC, target_line
     rc, out = _run([sys.executable, "-m", "pytest", "tests/", "-q"])
-    tail = "\n".join(out.strip().splitlines()[-15:])
+    lines = out.strip().splitlines()
+    # name EVERY failing test (a long assertion message wraps over many lines, so a fixed tail named only the last of
+    # 34 failures on PR #13's CI), each cut to one line, then the summary line
+    named = [ln[:300] for ln in lines if ln.startswith(("FAILED ", "ERROR "))]
+    tail = "\n".join(named + lines[-1:]) if named else "\n".join(lines[-15:])
     return (PASS if rc == 0 else REFUSED), _append_target(target_line, tail)
 
 
