@@ -970,5 +970,201 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "binding-v8-fe3ed2a7": {
+  "base": "73a231a3ef7f1dd5abe41e694badd505d3ecd7c4",
+  "head": "fe3ed2a77882508f6af911a75dc2dadf03ab995d",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "state": "RAN_OK",
+    "files": [
+     "kgap/k_gap.py",
+     "kgap/runs_store.py",
+     "scripts/g1_audit_primary.py",
+     "scripts/g1_binding_aact.py",
+     "scripts/g1_binding_enumerate.py",
+     "scripts/g1_binding_locate.py",
+     "scripts/g1_comparator_select.py",
+     "scripts/g1_licence.py",
+     "scripts/g1_remote_codex.py"
+    ],
+    "prompt_sha256": "6636317742679a1c6d7f57589785f578ea43ec167249b784b418626ee98d3c8d"
+   },
+   "g2": {
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py",
+     "scripts/g1_tracker.py",
+     "scripts/k_gap_table.py",
+     "scripts/secondary_meta_build.py"
+    ],
+    "prompt_sha256": "67389e7d25054eb036735ab70351ba72fe794e1427101241107acbfd6ebc1fc4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_binding_aact.py",
+    "function": "arm_role",
+    "severity": "P1",
+    "claim": "The placebo-matching regex consumes at most two words after 'to match'. A dose before the drug name leaves the drug in the remaining text and misclassifies its placebo as intervention.",
+    "failing_input": "from scripts.g1_binding_aact import arm_role\narm_role('Placebo to match 56 mg esketamine', ['esketamine'])",
+    "expected": "'control'",
+    "actual": "'intervention'",
+    "id": "binding-v8-fe3ed2a7:g1#1",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "proposal, not yet reproduced"
+   },
+   {
+    "file": "scripts/g1_binding_enumerate.py",
+    "function": "arm_scope",
+    "severity": "P1",
+    "claim": "An alphabetic control description is treated as an identifiable active drug unless it exactly matches UNKNOWN_ARM. Adding a conventional abbreviation to 'usual care' therefore creates an unsupported exclusion.",
+    "failing_input": "from scripts.g1_binding_enumerate import arm_scope\narm_scope([{'drug': 'esketamine'}, {'drug': 'Usual care (TAU)'}], ['esketamine'], ['placebo'])",
+    "expected": "'UNRESOLVED'",
+    "actual": "'OUT_OF_SCOPE:COMPARATOR_NOT_PLACEBO'",
+    "id": "binding-v8-fe3ed2a7:g1#2",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "proposal, not yet reproduced"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "compare",
+    "severity": "P1",
+    "claim": "The continuous-arm comparison never compares sd_c, so an incorrect control-arm standard deviation receives CONFIRMED.",
+    "failing_input": "from scripts.g1_audit_primary import compare\ncompare({'arms': [{'label': 'esketamine', 'mean': '1', 'sd': '2', 'n': '100'}, {'label': 'placebo', 'mean': '0', 'sd': '3', 'n': '100'}]}, {'mean_t': 1, 'sd_t': 2, 'n_t': 100, 'mean_c': 0, 'sd_c': 999, 'n_c': 100}, ['esketamine'])",
+    "expected": "('DISAGREE', 'ARMS'): the reader's control SD is 3, whereas ours is 999.",
+    "actual": "('CONFIRMED', 'ARMS')",
+    "id": "binding-v8-fe3ed2a7:g1#3",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "proposal, not yet reproduced"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "compare",
+    "severity": "P1",
+    "claim": "Count comparison removes decimal points instead of parsing numeric values. Integer-valued decimal strings can falsely confirm counts and denominators ten times larger than those printed.",
+    "failing_input": "from scripts.g1_audit_primary import compare\ncompare({'events_t': '1.0', 'n_t': '100.0', 'events_c': '2.0', 'n_c': '100.0'}, {'events_t': 10, 'n_t': 1000, 'events_c': 20, 'n_c': 1000}, [])",
+    "expected": "('DISAGREE', 'COUNTS'), or explicit rejection of decimal count syntax.",
+    "actual": "('CONFIRMED', 'COUNTS'): the copied strings become [10, 1000, 20, 1000].",
+    "id": "binding-v8-fe3ed2a7:g1#4",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "proposal, not yet reproduced"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "compare",
+    "severity": "P1",
+    "claim": "Effect comparison ignores the measure. Identical printed numbers for a hazard ratio and a risk ratio are falsely treated as confirmation of the same result.",
+    "failing_input": "from scripts.g1_audit_primary import compare\ncompare({'measure': 'HR', 'point': '0.8', 'lower': '0.7', 'upper': '0.9'}, {'measure': 'RR', 'effect': '0.8', 'lower': '0.7', 'upper': '0.9'}, [])",
+    "expected": "NOT_COMPARABLE because HR and RR are different measures.",
+    "actual": "('CONFIRMED', 'EFFECT_CI')",
+    "id": "binding-v8-fe3ed2a7:g1#5",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "proposal, not yet reproduced"
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "numbers_in_span",
+    "severity": "P0",
+    "claim": "Positive effects match genuinely negative printed effects because every negative token is also compared by magnitude. typed_comparator_rows therefore accepts a reversed effect sign.",
+    "failing_input": "numbers_in_span({'effect': '1.7'}, 'Mean difference: -1.7', ('effect',))",
+    "expected": "False: the printed effect is -1.7.",
+    "actual": "True.",
+    "id": "binding-v8-fe3ed2a7:g2#1",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED",
+    "reproduced_on": "origin/g1/binding-on-d0848a72 fe3ed2a7 (captain, 6 Oct)"
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "numbers_in_span",
+    "severity": "P0",
+    "claim": "The new row gate accepts percentages as event counts. It checks numeric equality without checking whether the printed token denotes a count.",
+    "failing_input": "numbers_in_span({'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 200}, 'Treatment: N=200, deaths 10%; Control: N=200, deaths 20%.', ('events_t', 'n_t', 'events_c', 'n_c'))",
+    "expected": "False: neither 10 nor 20 is printed as a death count; percentages must not populate events_t/events_c.",
+    "actual": "True. These fields pass the numeric gate used by typed_comparator_rows.",
+    "id": "binding-v8-fe3ed2a7:g2#2",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED",
+    "reproduced_on": "origin/g1/binding-on-d0848a72 fe3ed2a7 (captain, 6 Oct)"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "gate_screen; gate_enum",
+    "severity": "P0",
+    "claim": "Pooled estimates and bounds are validated by substring membership rather than complete numeric tokens. Incorrect values can pass and subsequently populate cmd_apply's pooled_result.",
+    "failing_input": "from scripts.g1_swap import gate_screen\nq = 'RR 0.85 (95% CI 0.70-1.03); 12 trials.'\np = {'measure': 'RR', 'estimate': '0.8', 'lower': '0.7', 'upper': '1.0', 'k': 12, 'quote': q}\nprint(gate_screen({'criteria': {}, 'pooled': p}, q))",
+    "expected": "Reject the pooled claim: the printed estimate and upper bound are 0.85 and 1.03.",
+    "actual": "Returns ({}, p, 12), preserving the incorrect estimate 0.8 and upper bound 1.0. gate_enum uses the same substring check.",
+    "id": "binding-v8-fe3ed2a7:g2#3",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED",
+    "reproduced_on": "origin/g1/binding-on-d0848a72 fe3ed2a7 (captain, 6 Oct)"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "gate_screen; gate_enum",
+    "severity": "P0",
+    "claim": "The claimed trial count k is never checked against the quote. An invented count reaches the selection tie-break and, through enumeration, the adopted pooled result.",
+    "failing_input": "from scripts.g1_swap import gate_screen\nq = 'RR 0.85 (95% CI 0.70-1.03); 12 trials.'\np = {'measure': 'RR', 'estimate': '0.85', 'lower': '0.70', 'upper': '1.03', 'k': 999, 'quote': q}\nprint(gate_screen({'criteria': {}, 'pooled': p}, q))",
+    "expected": "Reject the unsupported k=999; the source prints 12 trials.",
+    "actual": "Returns ({}, p, 999). cmd_screen assigns 999 to T3_LARGEST_K. gate_enum also preserves the unchecked k.",
+    "id": "binding-v8-fe3ed2a7:g2#4",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED",
+    "reproduced_on": "origin/g1/binding-on-d0848a72 fe3ed2a7 (captain, 6 Oct)"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "gate_screen",
+    "severity": "P1",
+    "claim": "A whitespace-only quote passes the evidence gate because it normalizes to the empty string, which is contained in every text. Unsupported PASS or FAIL classifications are accepted.",
+    "failing_input": "from scripts.g1_swap import gate_screen\nprint(gate_screen({'criteria': {'C2_RCT_ONLY': {'verdict': 'PASS', 'quote': '   '}}}, 'This review includes observational cohorts only.'))",
+    "expected": "C2_RCT_ONLY is UNCLEAR because no evidence was supplied.",
+    "actual": "({'C2_RCT_ONLY': {'verdict': 'PASS', 'evidence': '   '}}, None, None)",
+    "id": "binding-v8-fe3ed2a7:g2#5",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "proposal, not yet reproduced"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "gate_enum",
+    "severity": "P1",
+    "claim": "The trial label and reference number are checked independently. A label belonging to reference 1 can be bound to reference 2's PMID, even when the text explicitly excludes reference 2.",
+    "failing_input": "from scripts.g1_swap import gate_enum, jats_text\nxml = '<article><p>Included: Alpha [1]. Excluded: Beta [2].</p><ref id=\"r1\"><label>1</label><article-title>Alpha trial</article-title><pub-id pub-id-type=\"pmid\">11111111</pub-id></ref><ref id=\"r2\"><label>2</label><article-title>Beta trial</article-title><pub-id pub-id-type=\"pmid\">22222222</pub-id></ref></article>'\nclaim = {'trials': [{'label': 'Alpha', 'ref': '2', 'row_quote': None}], 'pooled': {}, 'set_quote': None}\nprint(gate_enum(claim, {'text': jats_text(xml), 'xml': xml, 'pmid': '33333333'}))",
+    "expected": "Refuse the mismatched label/reference pair; Alpha belongs to reference 1 and PMID 11111111.",
+    "actual": "Returns one IN_SCOPE unit with label 'Alpha', ref '2', pmid '22222222', identity 'COMPARATOR_REFERENCE_LIST_PMID', and span 'Beta trial'; refused is empty.",
+    "id": "binding-v8-fe3ed2a7:g2#6",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "proposal, not yet reproduced"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "cmd_enumerate",
+    "severity": "P1",
+    "claim": "Enumeration is marked complete whenever at least one unit passes and none is refused. It never checks whether the model omitted trials, even when the accepted pooled result explicitly states a larger k. cmd_apply accepts this incomplete trial set.",
+    "failing_input": "from scripts.g1_swap import gate_enum, jats_text\nq = 'Two trials contributed: Alpha [1] and Beta [2]. RR 0.85 (95% CI 0.70-1.03).'\nxml = '<article><p>' + q + '</p><ref id=\"r1\"><label>1</label><article-title>Alpha trial</article-title><pub-id pub-id-type=\"pmid\">11111111</pub-id></ref><ref id=\"r2\"><label>2</label><article-title>Beta trial</article-title><pub-id pub-id-type=\"pmid\">22222222</pub-id></ref></article>'\nclaim = {'trials': [{'label': 'Alpha', 'ref': '1', 'row_quote': None}], 'set_quote': q, 'pooled': {'measure': 'RR', 'estimate': '0.85', 'lower': '0.70', 'upper': '1.03', 'k': 2, 'quote': q}}\nunits, refused, pooled, sq = gate_enum(claim, {'text': jats_text(xml), 'xml': xml, 'pmid': '33333333'})\n# Exact status expression from cmd_enumerate:\nprint('ENUMERATED' if units and not refused else ('ENUMERATION_INCOMPLETE' if units else 'NOT_ENUMERATED'))",
+    "expected": "ENUMERATION_INCOMPLETE: Beta is missing from a source-backed two-trial analysis.",
+    "actual": "ENUMERATED, with one unit, no refusals, and an accepted pooled result whose k is 2.",
+    "id": "binding-v8-fe3ed2a7:g2#7",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "proposal, not yet reproduced"
+   }
+  ]
  }
 }
