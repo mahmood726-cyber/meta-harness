@@ -2652,6 +2652,19 @@ def arm_object_difference(x, cfg, slug):
             "registered_eligibility": (cfg or {}).get("eligibility_summary"), "pmid": pmid}
 
 
+def xdedup_as_other_report(f, our_refusal, nct_pool):
+    """The screen's X-DEDUP verdict 'companion/duplicate report of <trial> (NCT..., already pooled)' is the same-trial
+    link stated the other way round: the funnel becomes SCREENED_VIA_OTHER_REPORT through the pool row of that NCT.
+    Pure (a synthetic plant exercises it: tests/test_g1_tracker_plants.py); unchanged when no pooled NCT is named."""
+    if f.get("stage") == "SCREENED_OUT" and f.get("rule_id") == "X-DEDUP" and not f.get("via"):
+        m = re.search(r"\((NCT\d{8}), already pooled\)", f.get("reason") or "") or \
+            re.search(r"(NCT\d{8}), already pooled", our_refusal or "")
+        if m and nct_pool.get(m.group(1)):
+            return dict(f, stage="SCREENED_VIA_OTHER_REPORT", via=nct_pool[m.group(1)].replace("PMID ", ""),
+                        via_decision="include", nct=m.group(1))
+    return f
+
+
 def blocker_class(x, slug):
     """WHY a comparator trial is an OPEN gap, as a class that can be fixed once for every topic it blocks:
       SCREENER_ERROR:<sub> / INSUFFICIENT_RECORD:<sub>   seeded record screened out; audit says our screen is wrong / thin
@@ -3593,13 +3606,7 @@ def topic(slug, T):
     nct_pool = {str(o.get("nct")): str(o.get("id")) for o in ours if o.get("nct") and str(o.get("id")) in pooled_ids}
     nct_pool.update({i: i for i in pooled_ids if str(i).startswith("NCT")})
     for x in trials:
-        f = x.get("seeded_funnel") or {}
-        if f.get("stage") == "SCREENED_OUT" and f.get("rule_id") == "X-DEDUP" and not f.get("via"):
-            m = _re.search(r"\((NCT\d{8}), already pooled\)", f.get("reason") or "") or \
-                _re.search(r"(NCT\d{8}), already pooled", x.get("our_refusal") or "")
-            if m and nct_pool.get(m.group(1)):
-                f = dict(f, stage="SCREENED_VIA_OTHER_REPORT", via=nct_pool[m.group(1)].replace("PMID ", ""),
-                         via_decision="include", nct=m.group(1))
+        f = xdedup_as_other_report(x.get("seeded_funnel") or {}, x.get("our_refusal"), nct_pool)
         via = (f.get("via") if str(f.get("via") or "").startswith("NCT") else f"PMID {f.get('via')}") if f.get("via") else None
         if (not x["in_our_pool"] and f.get("stage") == "SCREENED_VIA_OTHER_REPORT" and via and via not in pooled_ids
                 and via in absent_code):

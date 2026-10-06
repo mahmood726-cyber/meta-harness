@@ -171,12 +171,22 @@ def test_a_comparator_citing_another_report_of_a_trial_we_pool_is_matched_to_tha
 
 def test_the_screens_own_dedup_verdict_joins_a_comparator_trial_to_the_pooled_registration():
     # esketamine Trial D (PMID 31734084) was screened out X-DEDUP 'companion/duplicate report of TRANSFORM-3
-    # (NCT02422186, already pooled)': the same trial; matched to the NCT02422186 pool row
-    import json
-    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", "esketamine-trd-madrs.json"), encoding="utf-8"))
-    x = next(t for t in o["trials"] if t["label"].startswith("Trial D"))
-    assert x["in_our_pool"] and x["matched_via_other_report"]["pool_row"] == "NCT02422186"
-    assert "NCT02422186" not in o["ours_not_in_comparator"]
+    # (NCT02422186, already pooled)': the same trial, matched to the NCT02422186 pool row. That live instance retired with
+    # its comparator (42490943 -> 37377288, 5 Oct; the new comparator names TRANSFORM-3 directly), so the control is
+    # synthetic now -- a control anchored to live data stops being a control when the data moves.
+    f = {"stage": "SCREENED_OUT", "rule_id": "X-DEDUP", "pmid": "31734084",
+         "reason": "X-DEDUP: companion/duplicate report of TRANSFORM-3 (NCT02422186, already pooled)"}
+    out = gt.xdedup_as_other_report(f, None, {"NCT02422186": "NCT02422186"})
+    assert out["stage"] == "SCREENED_VIA_OTHER_REPORT" and out["via"] == "NCT02422186" and out["nct"] == "NCT02422186"
+    assert out["via_decision"] == "include" and out["pmid"] == "31734084"
+    # a pool row reached through its report PMID loses the 'PMID ' prefix in via
+    assert gt.xdedup_as_other_report(f, None, {"NCT02422186": "PMID 31734085"})["via"] == "31734085"
+    # not pooled -> unchanged; another rule -> unchanged; the refusal text is the fallback carrier of the NCT
+    assert gt.xdedup_as_other_report(f, None, {}) == f
+    assert gt.xdedup_as_other_report(dict(f, rule_id="X3"), None, {"NCT02422186": "NCT02422186"})["stage"] == "SCREENED_OUT"
+    g = dict(f, reason="X-DEDUP: companion report")
+    assert gt.xdedup_as_other_report(g, "X-DEDUP: report of NCT02422186, already pooled",
+                                     {"NCT02422186": "NCT02422186"})["stage"] == "SCREENED_VIA_OTHER_REPORT"
 
 
 def test_a_comparator_only_row_never_stops_our_screen_from_seeing_the_trials_record():
