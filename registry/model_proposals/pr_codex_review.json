@@ -1952,5 +1952,181 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r8": {
+  "base": "6b4e18ca2",
+  "head": "7643e128fba38302a70f5459f3191c71a5211258",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ba10eff72ba059cc9b5ddefc3f078390",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "6231457eed22354706f908cd5d04a89cfbbaac7cc95a88cb4d38a46471cb9910"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "The fallback treats an unrecognized printed count as an absent count, allowing a review-wide count to override the pooled result's explicit count.",
+    "failing_input": "q = 'twenty-five trials contributed to the pooled mortality estimate.'\nset_quote = 'the review included 40 trials.'\nnt = q + ' ' + set_quote\n# Execute the changed count-validation block:\nprinted = printed_counts(q)\nif not printed and set_quote and _quoted(set_quote, nt):\n    printed = printed_counts(set_quote)\nprint(40 in printed)",
+    "expected": "False: the pooled quote explicitly states twenty-five trials. Either recognize 25 or refuse validation; do not validate k=40.",
+    "actual": "True. printed_counts(q) returns set(), so the fallback replaces it with {40}, allowing k=40 through the count-evidence check.",
+    "id": "swap-setquote-r8:g1#1",
+    "record_id": "mc-ba10eff72ba059cc9b5ddefc3f078390",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The new number-word matcher converts a range's upper endpoint into an exact trial count, which can validate an unsupported pooled k.",
+    "failing_input": "printed_counts('Mortality was reported in two to five trials per comparison.')",
+    "expected": "set(): the quote supplies a range, not an exact count of five trials.",
+    "actual": "{5}: 'five trials' matches, and blocked_before does not recognize the preceding 'to' as a range connector.",
+    "id": "swap-setquote-r8:g1#2",
+    "record_id": "mc-ba10eff72ba059cc9b5ddefc3f078390",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r9": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fc0adb79278c9d168b261ef70c1596c0",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "5e75050e235d7589a2bb2d84e52e8310667053718eb25dea67943ea89ebfa4a8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "Whitespace around a slash bypasses the phase-range exclusion, allowing a phase number to validate pooled k.",
+    "failing_input": "printed_counts('Phase one / two studies')",
+    "expected": "set(): neither phase number is a trial count.",
+    "actual": "{2}. The slash is not immediately adjacent to 'two', and blocked_before treats the preceding '/' token as non-blocking. pooled_gate can therefore validate k=2.",
+    "id": "swap-setquote-r9:g1#1",
+    "record_id": "mc-fc0adb79278c9d168b261ef70c1596c0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "mentions_a_count / pooled_gate",
+    "severity": "P0",
+    "claim": "The 40-character limit misses explicit counts with longer trial descriptions, enabling substitution of an unrelated review-wide count.",
+    "failing_input": "q = 'Mortality was pooled across 25 high-quality, multicentre, double-blind, placebo-controlled trials (RR 0.8).'; set_quote = 'We included 40 trials.'; nt = set_quote + ' ' + q; mentions_a_count(q)",
+    "expected": "True; the explicit pooled count of 25 must block the set-quote fallback and prevent validation of k=40.",
+    "actual": "False. printed_counts(q) is also empty, so the new fallback reads the verbatim set_quote and sets printed={40}, allowing k=40 through the count check.",
+    "id": "swap-setquote-r9:g1#2",
+    "record_id": "mc-fc0adb79278c9d168b261ef70c1596c0",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r10": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b84df03b41eb9685cf0b8997eb622ca9",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "0dabbda04edc2c18ca04a991a3923fbbb5f5d7b31b3371ce0f5f1857de63fb5e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The new number-word parser treats the denominator of a frequency expression as an absolute trial count, allowing pooled_gate to validate an unsupported k.",
+    "failing_input": "printed_counts('One in five trials reported mortality.')",
+    "expected": "set(): 'one in five' expresses a proportion, not the number of contributing trials.",
+    "actual": "{5}: 'five trials' matches, and the preceding token 'in' does not block it.",
+    "id": "swap-setquote-r10:g1#1",
+    "record_id": "mc-b84df03b41eb9685cf0b8997eb622ca9",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "mentions_a_count / pooled_gate",
+    "severity": "P0",
+    "claim": "An explicit two-trial count expressed as 'both trials' is treated as absent, enabling the new fallback to substitute a review-wide count.",
+    "failing_input": "q = 'Both trials contributed to the mortality analysis (RR 0.80).'; set_quote = 'The review included 40 trials.'; nt = q + ' ' + set_quote; (printed_counts(q), mentions_a_count(q), printed_counts(set_quote))",
+    "expected": "(set(), True, {40}); the fallback must remain closed because the pooled quote explicitly identifies two contributing trials.",
+    "actual": "(set(), False, {40}); with both quotes held in nt, the fallback assigns printed = {40}, allowing a claimed k=40 through the count check.",
+    "id": "swap-setquote-r10:g1#2",
+    "record_id": "mc-b84df03b41eb9685cf0b8997eb622ca9",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r11": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fac50a406f7c532e4c74d53d5d7ed201",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "c680de36db0ce47b3396dc6beaff10dba037bad1387ed7af75c3bef5a1a75acb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "The new fallback checks substring containment, not the promised same-sentence relationship, allowing a review-wide count to validate an unrelated pooled k.",
+    "failing_input": "q = 'The mortality RR was 0.8 (95% CI 0.7-0.9).'; set_quote = nt = 'We included 40 trials. Ten contributed mortality data. The mortality RR was 0.8 (95% CI 0.7-0.9).'; claimed k = 40.",
+    "expected": "Reject k=40: the held text says ten contributed mortality data.",
+    "actual": "All fallback conditions pass: printed_counts(q) is empty, mentions_a_count(q) is False, and printed_counts(set_quote) is {40}. The fallback sets printed={40}, allowing the incorrect k through count validation.",
+    "id": "swap-setquote-r11:g1#1",
+    "record_id": "mc-fac50a406f7c532e4c74d53d5d7ed201",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "An intervening 'the' bypasses the proportion guard, extracting the total trial count as the contributing count.",
+    "failing_input": "printed_counts('Two of the five trials contributed to the mortality analysis (RR 0.8, 95% CI 0.7-0.9).')",
+    "expected": "Return an empty set under the conservative parsing rule, or correctly extract {2}; never validate k=5.",
+    "actual": "Returns {5}, which pooled_gate uses to validate k=5.",
+    "id": "swap-setquote-r11:g1#2",
+    "record_id": "mc-fac50a406f7c532e4c74d53d5d7ed201",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "A qualified lower bound is treated as an exact trial count.",
+    "failing_input": "printed_counts('At least five trials contributed to the mortality analysis (RR 0.8, 95% CI 0.7-0.9).')",
+    "expected": "Return an empty set: 'at least five' does not establish an exact k.",
+    "actual": "Returns {5}, allowing pooled_gate to validate an unsupported exact k=5.",
+    "id": "swap-setquote-r11:g1#3",
+    "record_id": "mc-fac50a406f7c532e4c74d53d5d7ed201",
+    "verdict": null
+   }
+  ]
  }
 }
