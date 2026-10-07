@@ -285,3 +285,14 @@ def test_PLANT_the_borrowed_count_must_equal_the_verified_units_and_r12_phrasing
     pl2 = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2}
     assert sw.pooled_gate(pl2, sw._norm(sq2), set_quote=sq2, verified_units=5)[1] == 5
     assert sw.pooled_gate(pl2, sw._norm(sq2), set_quote=sq2, verified_units=4)[0] is None
+
+
+def test_PLANT_symbol_bounds_zero_ranges_and_subset_sentences_refuse():
+    """codex swap-setquote-r13: #1 '≥five trials'; #2 'Between zero and five trials'; #3 a subset restriction inside the
+    one sentence, even with the verified units equal to the printed count."""
+    assert sw.printed_counts("\u2265five trials contributed to mortality (RR 0.85).") == set()
+    assert sw.printed_counts("\u2265 5 trials contributed to mortality (RR 0.85).") == set()
+    assert sw.printed_counts("Between zero and five trials reported mortality (RR 0.85).") == set()
+    sq = "Five trials were included, but only a subset reported mortality (RR 0.85)."
+    pl = {"measure": "RR", "estimate": "0.85", "k": 5, "quote": "RR 0.85"}
+    assert sw.pooled_gate(pl, sw._norm(sq), set_quote=sq, verified_units=5)[0] is None

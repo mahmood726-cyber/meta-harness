@@ -329,7 +329,12 @@ _APPROX = {"least", "most", "than", "about", "approximately", "around", "nearly"
            "roughly", "circa", "ca", "to", "upto", "beyond", "exceeding", "below", "above",
            # a count after 'of' is a denominator or a total ('50% of ten trials', 'two of the five'; codex
            # swap-setquote-r12 #1): never the contributing k. 'a total of 5 trials' is refused too -- refusal is safe
-           "of"}
+           "of", "between"}
+
+
+_RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s+whom|of\s+these|of\s+those|of\s+them|"
+                       r"among\s+(?:them|these|those)|minority|portion|part\s+of|fractions?|not\s+all|except|excluding|"
+                       r"apart\s+from|other\s+than|remaining|rest\s+of|few(?:er)?|several)\b", re.I)
 
 
 def _clean(q):
@@ -354,7 +359,7 @@ def _numerals(sent):
     for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?!\s*%)", sent):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1
-    words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both"]
+    words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both", "zero", "none", "nil"]
     for m in re.finditer(r"\b(?:" + "|".join(words) + r")\b", sent, re.I):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1
@@ -382,7 +387,8 @@ def _counts_in(s):
     # never after another number word ('twenty five', 'twenty-one'), 'and' / 'hundred' / 'thousand' ('one hundred and
     # twenty'), or 'phase' ('Phase 3', 'Phase three')
     tens = {"twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"}
-    number_words = set(_COUNT_WORDS) | tens | {"hundred", "thousand", "million"}
+    # 'zero' / 'none' start a range too ('between zero and five trials'; codex swap-setquote-r13 #2)
+    number_words = set(_COUNT_WORDS) | tens | {"hundred", "thousand", "million", "zero", "none", "nil"}
 
     def prev_tokens(i, n=2):
         """The n whitespace/hyphen-separated tokens right before position i, lower-cased, punctuation KEPT."""
@@ -411,12 +417,13 @@ def _counts_in(s):
 
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
     # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
-    for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
+    for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
         if not blocked_before(m.start(1)):
             out.add(int(m.group(1)))
     # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
     # a slash joins a range ('Phase one/two studies'; codex swap-setquote-r7 #2): a number word beside '/' is never a count
-    for m in re.finditer(r"(?<![\w/-])(" + "|".join(_COUNT_WORDS) + r")(?![\w/-])" + tail, s, re.I):
+    # ... and a symbol bound before a number word is a bound too ('≥five trials'; codex swap-setquote-r13 #1)
+    for m in re.finditer(r"(?<![\w/~<>≤≥-])(?<![~<>≤≥] )(" + "|".join(_COUNT_WORDS) + r")(?![\w/-])" + tail, s, re.I):
         if not blocked_before(m.start(1)):
             out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
     return out
@@ -473,7 +480,11 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
         # ... and CORROBORATED: text alone cannot prove whose count a sentence prints (codex swap-setquote-r12 #3: 'Of the
         # 40 trials, those reporting mortality gave RR 0.85'), so the borrowed count must equal the number of per-trial
         # units the enumeration independently verified, with none refused. Without that the fallback is closed.
-        if not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q) and verified_units:
+        # ... and the sentence must not restrict the pooled result to a SUBSET of the counted trials ('Five trials were
+        # included, but only a subset reported mortality'; codex swap-setquote-r13 #3): a closed class of restricting
+        # phrases closes the fallback
+        if (not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q) and verified_units
+                and not _RESTRICT.search(sent)):
             c = printed_counts(sent)
             if c == {verified_units}:
                 printed = c

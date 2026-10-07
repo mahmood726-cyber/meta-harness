@@ -2128,5 +2128,111 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r12": {
+  "base": "6b4e18ca2",
+  "head": "d027226fa",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e198ca389f349f7a7a90744ffb9973a8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "ea0443c75551c7f4331f2ab4c499a51ea31c60e6d74b92cd1131b883ea38ef75"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / _counts_in",
+    "severity": "P0",
+    "claim": "A proportion's denominator is accepted as the number of contributing trials. _numerals ignores percentages, and blocked_before does not recognize a percentage before 'of'.",
+    "failing_input": "printed_counts('50% of ten trials contributed to the pooled mortality estimate (RR 0.85).')",
+    "expected": "set(): no exact contributing count is printed; ten is the denominator of the proportion.",
+    "actual": "{10}, allowing k=10 through count validation although only half the trials contributed.",
+    "id": "swap-setquote-r12:g1#1",
+    "record_id": "mc-e198ca389f349f7a7a90744ffb9973a8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in.blocked_before",
+    "severity": "P0",
+    "claim": "An opening bracket hides an approximation qualifier. Stripping '(' leaves an empty previous token, causing blocked_before to return False before checking 'Approximately'.",
+    "failing_input": "printed_counts('Approximately (five trials) contributed to the pooled estimate.')",
+    "expected": "set(): an approximate count must not validate an exact k.",
+    "actual": "{5}, allowing an approximate count to validate k=5.",
+    "id": "swap-setquote-r12:g1#2",
+    "record_id": "mc-e198ca389f349f7a7a90744ffb9973a8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "The new fallback treats sentence containment as evidence that a review-wide count belongs to a pooled result, even when the sentence explicitly restricts the result to a subset.",
+    "failing_input": "q = 'mortality (RR 0.85)'\nsq = 'Of the 40 trials included in the review, only a subset contributed to mortality (RR 0.85).'\nnt = _norm(sq)\nprinted = printed_counts(q)\nsent = next((x for x in _sentences(sq) if _norm(_clean(q)) in _norm(x)), None)\nif not printed and sent and _quoted(sq, nt) and not mentions_a_count(q):\n    c = printed_counts(sent)\n    if len(c) == 1:\n        printed = c\nprint(printed)",
+    "expected": "set(): the contributing subset's size is unstated, so k=40 must not be validated.",
+    "actual": "{40}: the added fallback supplies the review-wide count for validation of the pooled result's k.",
+    "id": "swap-setquote-r12:g1#3",
+    "record_id": "mc-e198ca389f349f7a7a90744ffb9973a8",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r13": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-53ad85d8d2fb978a3dbf502e18752fe8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "36d47005987770b44f1941b429f0570f9f9c7c3a61baeaf6be75658f716c5c33"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / printed_counts",
+    "severity": "P0",
+    "claim": "The number-word pattern accepts symbolic bounds as exact counts: unlike the digit pattern, it does not exclude ≥, ≤, >, < or ~.",
+    "failing_input": "printed_counts('≥five trials contributed to mortality (RR 0.85).')",
+    "expected": "set(): a lower bound does not establish an exact trial count.",
+    "actual": "{5}, allowing k=5 to pass count validation.",
+    "id": "swap-setquote-r13:g1#1",
+    "record_id": "mc-53ad85d8d2fb978a3dbf502e18752fe8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_numerals / _counts_in / printed_counts",
+    "severity": "P0",
+    "claim": "Spelled-out zero is missing from both quantity detection and preceding-number detection, so a range beginning at zero becomes an exact count.",
+    "failing_input": "printed_counts('Between zero and five trials reported mortality (RR 0.85).')",
+    "expected": "set(): the sentence states a range, not an exact count.",
+    "actual": "{5}: _numerals counts only 'five', and blocked_before does not recognise 'zero and' as a range.",
+    "id": "swap-setquote-r13:g1#2",
+    "record_id": "mc-53ad85d8d2fb978a3dbf502e18752fe8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "Matching the enumerated-unit total does not establish that every unit contributed to the pooled outcome. The new fallback accepts a review-wide count even when the same sentence explicitly restricts mortality reporting to a subset.",
+    "failing_input": "State entering the added k-validation block: pl={'k': 5}; q='RR 0.85'; nt='Five trials were included, but only a subset reported mortality (RR 0.85).'; set_quote=nt; verified_units=5.",
+    "expected": "Leave printed empty and refuse k=5: the mortality subset's size is unstated.",
+    "actual": "printed_counts(q) is empty; sentence containment, quotation and corroboration checks all pass; printed becomes {5}, allowing the unsupported mortality k=5 through count validation.",
+    "id": "swap-setquote-r13:g1#3",
+    "record_id": "mc-53ad85d8d2fb978a3dbf502e18752fe8",
+    "verdict": null
+   }
+  ]
  }
 }
