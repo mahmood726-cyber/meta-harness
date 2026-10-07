@@ -592,3 +592,12 @@ def test_PLANT_a_negated_count_is_never_k():
     assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03) was not based on five trials.", vals) == set()
     assert sw.printed_counts("No 5 trials reported mortality (RR 0.85).") == set()
     assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03) was based on five trials.", vals) == {5}
+
+
+def test_PLANT_a_count_negated_after_its_noun_is_never_k():
+    """codex pr25-final5 #1: 'Five trials were not included in the mortality analysis (RR ...)'."""
+    q = "Five trials were not included in the mortality analysis (RR 0.85, 95% CI 0.70 to 1.03)."
+    assert sw.printed_counts(q) == set()
+    assert sw.pooled_gate({"quote": q, "measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5},
+                          sw._norm(q))[0] is None
+    assert sw.printed_counts("Five trials were included in the mortality analysis (RR 0.85, 95% CI 0.70 to 1.03).") == {5}
