@@ -329,12 +329,30 @@ _APPROX = {"least", "most", "than", "about", "approximately", "around", "nearly"
            "roughly", "circa", "ca", "to", "upto", "beyond", "exceeding", "below", "above",
            # a count after 'of' is a denominator or a total ('50% of ten trials', 'two of the five'; codex
            # swap-setquote-r12 #1): never the contributing k. 'a total of 5 trials' is refused too -- refusal is safe
-           "of", "between"}
+           "of", "between",
+           # an estimate or approximation of the count ('An estimated five trials'; codex swap-setquote-r17 #1)
+           "estimated", "est", "approx", "approximate", "apparently", "reportedly", "possibly", "probably", "likely",
+           "perhaps", "potentially", "presumably", "expected", "anticipated", "projected"}
 
 
 _RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s+whom|of\s+these|of\s+those|of\s+them|"
                        r"among\s+(?:them|these|those)|minority|portion|part\s+of|fractions?|not\s+all|except|excluding|"
-                       r"apart\s+from|other\s+than|remaining|rest\s+of|few(?:er)?|several)\b", re.I)
+                       r"apart\s+from|other\s+than|remaining|rest\s+of|few(?:er)?|several|"
+                       # trials taken OUT of the analysis are not its k ('Five trials were excluded from the mortality
+                       # analysis'; codex swap-setquote-r16 #3)
+                       r"exclu\w*|omit\w*|withdr\w*|removed|dropped|lost\s+to|"
+                       # a FRACTION of the trials ('Six trials were included; half reported mortality'; codex
+                       # swap-setquote-r17 #3). 'most' is deliberately absent: doac 29795629's own sentence says 'in most
+                       # studies of secondary prevention' of OTHER studies -- that residue is what k_basis discloses
+                       r"half|halves|quarters?|thirds?|majority|proportion|percent|per\s+cent)\b", re.I)
+
+
+def _stray_percent(sent):
+    """A percentage in a count sentence that is not a CI level or a heterogeneity statistic ('40% reported mortality';
+    codex swap-setquote-r16 #1): the sentence describes a fraction of the trials, so it never supplies k."""
+    t = re.sub(r"\b9[059](?:\.\d+)?\s*%\s*(?:CI|CrI|confidence|credible|prediction|PI)\b", " ", sent, flags=re.I)
+    t = re.sub(r"\bI\s*(?:2|²|\^2)?\s*(?:=|:|of)?\s*\d+(?:\.\d+)?\s*%", " ", t, flags=re.I)
+    return "%" in t
 
 
 def _clean(q):
@@ -347,15 +365,22 @@ def _clean(q):
 
 
 def _sentences(q):
-    """Sentences: split after . ; ! ? followed by space and a capital, digit or opening bracket. A missed split only
+    """Sentences: split after . ! ? followed by space and a capital, digit or opening bracket. A semicolon joins clauses
+    of ONE sentence ('RR .85 (95% CI .70-1.03); 12 trials.' prints its count with its estimate), so it never splits. A missed split only
     MERGES two sentences, and a merged sentence holding two numerals is refused by printed_counts -- never admitted."""
-    return [x for x in re.split(r"(?<=[.;!?])\s+(?=[\"'(\[]?[A-Z0-9])", _clean(q)) if x.strip()]
+    return [x for x in re.split(r"(?<=[.!?])\s+(?=[\"'(\[]?[A-Z0-9])", _clean(q)) if x.strip()]
 
 
 def _numerals(sent):
     """Every quantity in a sentence that could be a count: whole numbers (not decimals, percentages or a phase number)
     and number words (incl. 'both', 'dozen'). Statistics like 0.88 or 95% are not numerals."""
     n = 0
+    # numbers that are never a quantity of trials are removed first (the Part B replay refused colchicine's 'the 3 RCTs
+    # ... I 2 = 0 % [ 20 - 22 ]' as four numerals): bracketed citation markers ('[20-22]', '[3, 5]') and the squared
+    # statistics written with a 2 (I2 / I 2 / I^2, chi2, tau2). A removed number can only stop a refusal; the count
+    # itself must still match the trial-count grammar in _counts_in.
+    sent = re.sub(r"\[\s*\d+(?:\s*[-,]\s*\d+)*\s*\]", " ", sent)
+    sent = re.sub(r"\b(?:I|chi|tau|χ|τ)\s*(?:\^\s*)?2\b", " ", sent, flags=re.I)
     for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?!\s*%)", sent):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1
@@ -372,7 +397,9 @@ def printed_counts(q):
     sentence with two quantities is ambiguous and refused, a closed rule instead of one patch per phrasing)."""
     out = set()
     for sent in _sentences(q):
-        if _numerals(sent) == 1:
+        # a sentence that restricts the result to a SUBSET never supplies k, whichever path reads it (codex
+        # swap-setquote-r15 #1: 'Five trials were included, but only a subset reported mortality (RR ...)')
+        if _numerals(sent) == 1 and not _RESTRICT.search(sent) and not _stray_percent(sent):
             out |= _counts_in(sent)
     return out
 
@@ -408,6 +435,12 @@ def _counts_in(s):
             return False
         if pt[-1] in number_words or pt[-1] in ("phase", "point") or pt[-1] in _APPROX:
             return True
+        # 'of the ten trials', 'of these 5 studies': the article does not break the denominator link (codex
+        # swap-setquote-r14 #1: '50% of the ten trials')
+        # ... nor does an adjective ('50% of the eligible ten trials'; codex swap-setquote-r15 #3): 'of' / 'between'
+        # anywhere in the three tokens before the count marks it a denominator
+        if any(t in ("of", "between") for t in prev_tokens(i, 3)):
+            return True
         # 'and' / 'to' / 'or' right after a number joins a larger number or a RANGE ('one hundred and twenty', 'two to five
         # trials', '3 or 4 studies'; codex swap-setquote-r8 #2): the end of a range is never an exact count
         # 'in' / 'of' after a number is a proportion ('one in five trials', 'three of five studies'; codex
@@ -415,16 +448,23 @@ def _counts_in(s):
         return (pt[-1] in ("and", "to", "or", "in", "of") and len(pt) == 2
                 and (pt[0] in number_words or bool(re.fullmatch(r"\d+", pt[0]))))
 
+    def bound_after(j):
+        """A bound written AFTER the trials word: 'Five trials at most', '5 studies or more' (codex swap-setquote-r14 #2)."""
+        # a bracket may open before it ('Five trials (at most)'; codex swap-setquote-r15 #2)
+        # 'at the most' too (codex swap-setquote-r16 #2)
+        return bool(re.match(r"\s*[,(\[]?\s*(?:(?:at\s+(?:the\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
+                             r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over))\b|\+)", s[j:], re.I))
+
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
     # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
     for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
-        if not blocked_before(m.start(1)):
+        if not blocked_before(m.start(1)) and not bound_after(m.end()):
             out.add(int(m.group(1)))
     # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
     # a slash joins a range ('Phase one/two studies'; codex swap-setquote-r7 #2): a number word beside '/' is never a count
     # ... and a symbol bound before a number word is a bound too ('≥five trials'; codex swap-setquote-r13 #1)
     for m in re.finditer(r"(?<![\w/~<>≤≥-])(?<![~<>≤≥] )(" + "|".join(_COUNT_WORDS) + r")(?![\w/-])" + tail, s, re.I):
-        if not blocked_before(m.start(1)):
+        if not blocked_before(m.start(1)) and not bound_after(m.end()):
             out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
     return out
 
@@ -462,7 +502,14 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
             return None, None
     k = pl.get("k")
     if k is not None:
-        printed = printed_counts(q)
+        # k is read ONLY from the sentence(s) of the pooled quote that print the pooled ESTIMATE (codex swap-setquote-r17
+        # #2: 'Six trials were included. Only three trials reported mortality (RR 0.85).' -- the restricted outcome
+        # sentence refused its own count and the review-wide sentence's 6 survived). A count elsewhere is never k.
+        sents = _sentences(q)
+        if pl.get("estimate") not in (None, ""):
+            ev = float(str(pl["estimate"]).replace("−", "-").replace("–", "-"))
+            sents = [x for x in sents if any(abs(ev - t) < 1e-9 for t in _num_tokens(x))]
+        printed = set().union(*(printed_counts(x) for x in sents)) if sents else set()
         # ... or, ONLY when the pooled quote prints no count, in the meta's own SET QUOTE verbatim in the held text (doac
         # 29795629: 'In the five Phase 3 studies ...'). The pooled result's own count always wins: a review-wide count
         # never overrides it (codex swap-setquote-r7 #1); a set quote not in the text is never read
@@ -483,11 +530,17 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
         # ... and the sentence must not restrict the pooled result to a SUBSET of the counted trials ('Five trials were
         # included, but only a subset reported mortality'; codex swap-setquote-r13 #3): a closed class of restricting
         # phrases closes the fallback
+        # ... and no percentage in the sentence ('mortality was reported by 40%'; codex swap-setquote-r14 #3).
+        # RESIDUAL, stated rather than chased: whether every counted trial contributed to THIS outcome is a semantic
+        # question that prose rules cannot close (r8-r14 each found a new paraphrase). A k taken this way is therefore
+        # never silent: it carries k_basis SET_QUOTE_SENTENCE with the sentence (dash- and whitespace-normalised), and
+        # the signing packet shows that sentence to the reviewer, who confirms the reading before the adoption is applied.
+        fallback = False
         if (not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q) and verified_units
-                and not _RESTRICT.search(sent)):
+                and not _RESTRICT.search(sent) and "%" not in sent):
             c = printed_counts(sent)
             if c == {verified_units}:
-                printed = c
+                printed, fallback = c, True
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
         try:
@@ -497,6 +550,9 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
         if kf != int(kf) or int(kf) not in printed:
             return None, None
         k = int(kf)
+        if fallback:
+            pl = dict(pl, k_basis={"from": "SET_QUOTE_SENTENCE", "sentence": sent, "verified_units": verified_units,
+                                   "reviewer_check": "the count in this sentence must be the trials in THIS pooled result"})
     return pl, k
 
 
@@ -1012,6 +1068,25 @@ def _held_old(slug, old_pmid):
     return os.path.relpath(t, ROOT).replace("\\", "/") if os.path.exists(t) else None
 
 
+def kgap_span(span):
+    """A unit span as k_gap_table.enumeration_units checks it: that reader tag-strips the held JATS to spaces (held_norm)
+    and needs each ' / '-separated line verbatim there, refusing the whole enumeration on one miss. This script renders
+    a table row with its cells joined ' | ', which is in neither form. The row with cells joined by single spaces is
+    contiguous in held_norm, so the whole row stays one line and its identity is kept."""
+    return " ".join(c.strip() for c in re.split(r"\s*\|\s*", str(span)) if c.strip())
+
+
+def retirement_code(fails):
+    """The retirement reason names only the criteria R0 FAILED. A criterion left UNCLEAR because reading stopped at the
+    first failure was never judged, so it is listed as not read, never as a failure (doac R0: C1 FAIL, C2-C6 UNCLEAR).
+    None when nothing failed: such a comparator has no retirement reason."""
+    failed = [f["criterion"] for f in fails if f.get("verdict") == "FAIL"]
+    if not failed:
+        return None
+    unread = [f["criterion"] for f in fails if f.get("verdict") != "FAIL"]
+    return "R0:" + "+".join(failed) + (f" (not read after the failure: {', '.join(unread)})" if unread else "")
+
+
 def cmd_apply(slugs):
     """The swap through the normal path, only for a topic whose selection PICKED a new comparator AND whose enumeration
     is complete (status ENUMERATED): enumeration file, adoption record, comparators.json entry (old one kept under
@@ -1038,6 +1113,8 @@ def cmd_apply(slugs):
             shutil.move(cur, os.path.join(ROOT, "registry", "comparator_enumerations", "retired",
                                           f"{s}.{_j(cur).get('comparator_pmid')}.json"))
         enum = {k: en[k] for k in ("slug", "comparator_pmid", "status", "enumerated_from", "set_span", "source", "units")}
+        # spans in k_gap_table's contract (verbatim in held_norm), not this script's ' | ' table rendering
+        enum["units"] = [dict(u, span=kgap_span(u["span"])) for u in en["units"]]
         with open(cur, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(enum, fh, indent=1, ensure_ascii=False)
         # 2. retirement: R0's failing criteria; spans only where the evidence is verbatim in the old comparator's held text
@@ -1045,7 +1122,11 @@ def cmd_apply(slugs):
         ht = _norm(jats_text(open(os.path.join(ROOT, held), encoding="utf-8", errors="replace").read())) if held else ""
         fails = (sel.get("R0") or {}).get("failing") or []
         spans = [f["evidence"] for f in fails if f.get("evidence") and ht and _norm(f["evidence"]) in ht]
-        retired = {"comparator_pmid": old, "reason_code": "R0:" + "+".join(f["criterion"] for f in fails),
+        code = retirement_code(fails)
+        if not code:
+            print(s, "not applied: R0 records no FAILED criterion, so the old comparator has no retirement reason")
+            continue
+        retired = {"comparator_pmid": old, "reason_code": code,
                    "why": "; ".join(f"{f['criterion']} {f['verdict']}: {str(f.get('evidence'))[:200]}" for f in fails),
                    "spans": spans, "source": ({"path": held, "sha256": hashlib.sha256(open(os.path.join(ROOT, held), "rb").read()).hexdigest()}
                                               if held else None),
@@ -1059,7 +1140,10 @@ def cmd_apply(slugs):
                     "terms": {"per_trial_comparison": "from the comparator's own per-trial rows (read through the existing secondary-meta path)"},
                     "pooled_result": {"measure": pl.get("measure"), "estimate": pl.get("estimate"), "ci_low": pl.get("lower"),
                                       "ci_high": pl.get("upper"), "k": pl.get("k"), "spans": {"result": pl.get("quote")},
-                                      "source": {"path": src, "sha256": en["source"]["sha256"]}},
+                                      "source": {"path": src, "sha256": en["source"]["sha256"]},
+                                      # how k was read: present only when it came from the set-quote sentence, which the
+                                      # signing packet then shows (normalised) for the reviewer's reading
+                                      **({"k_basis": pl["k_basis"]} if pl.get("k_basis") else {})},
                     "trial_set": [{"label": u["label"], "pmid": u["pmid"]} for u in en["units"]], "retired": retired}
         with open(os.path.join(SEL, f"{s}.adoption.json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(adoption, fh, indent=1, ensure_ascii=False)
