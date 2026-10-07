@@ -372,7 +372,9 @@ def printed_counts(q):
     sentence with two quantities is ambiguous and refused, a closed rule instead of one patch per phrasing)."""
     out = set()
     for sent in _sentences(q):
-        if _numerals(sent) == 1:
+        # a sentence that restricts the result to a SUBSET never supplies k, whichever path reads it (codex
+        # swap-setquote-r15 #1: 'Five trials were included, but only a subset reported mortality (RR ...)')
+        if _numerals(sent) == 1 and not _RESTRICT.search(sent):
             out |= _counts_in(sent)
     return out
 
@@ -410,7 +412,9 @@ def _counts_in(s):
             return True
         # 'of the ten trials', 'of these 5 studies': the article does not break the denominator link (codex
         # swap-setquote-r14 #1: '50% of the ten trials')
-        if len(pt) == 2 and pt[0] in ("of", "between") and pt[1] in ("the", "these", "those", "all", "its", "their"):
+        # ... nor does an adjective ('50% of the eligible ten trials'; codex swap-setquote-r15 #3): 'of' / 'between'
+        # anywhere in the three tokens before the count marks it a denominator
+        if any(t in ("of", "between") for t in prev_tokens(i, 3)):
             return True
         # 'and' / 'to' / 'or' right after a number joins a larger number or a RANGE ('one hundred and twenty', 'two to five
         # trials', '3 or 4 studies'; codex swap-setquote-r8 #2): the end of a range is never an exact count
@@ -421,7 +425,8 @@ def _counts_in(s):
 
     def bound_after(j):
         """A bound written AFTER the trials word: 'Five trials at most', '5 studies or more' (codex swap-setquote-r14 #2)."""
-        return bool(re.match(r"\s*,?\s*(?:(?:at\s+(?:most|least)|or\s+(?:more|fewer|less|so|over|under)|"
+        # a bracket may open before it ('Five trials (at most)'; codex swap-setquote-r15 #2)
+        return bool(re.match(r"\s*[,(\[]?\s*(?:(?:at\s+(?:most|least)|or\s+(?:more|fewer|less|so|over|under)|"
                              r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over))\b|\+)", s[j:], re.I))
 
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')

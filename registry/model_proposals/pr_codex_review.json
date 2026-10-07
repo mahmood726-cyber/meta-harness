@@ -2287,5 +2287,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r15": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-06bf63df3721d484e3b201ced24b8ee2",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "827e77ac9507c5c3cec6137833aed3442c02b1dfcc63a66822582d3750bf0721"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "Subset restrictions apply only to the set-quote fallback. A review-wide count directly in the pooled quote is accepted as the outcome's k, even when that quote explicitly limits the outcome to a subset.",
+    "failing_input": "q = 'Five trials were included, but only a subset reported mortality (RR 0.85, CI 0.75 to 0.95).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.75, 'upper': 0.95, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the quote does not establish that all five trials contributed to mortality.",
+    "actual": "(pl, 5): printed_counts(q) returns {5}, bypassing the subset check and accepting the unsupported k.",
+    "id": "swap-setquote-r15:g1#1",
+    "record_id": "mc-06bf63df3721d484e3b201ced24b8ee2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / bound_after",
+    "severity": "P0",
+    "claim": "A parenthesized bound after the trials word is ignored, turning an upper bound into an exact count accepted by the pooled gate.",
+    "failing_input": "printed_counts('Five trials (at most) contributed to the pooled mortality result (RR 0.85, CI 0.75 to 0.95).')",
+    "expected": "set(): 'at most' does not establish an exact contributing count.",
+    "actual": "{5}: bound_after does not allow an opening parenthesis before 'at most', so k=5 passes the count check.",
+    "id": "swap-setquote-r15:g1#2",
+    "record_id": "mc-06bf63df3721d484e3b201ced24b8ee2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / blocked_before",
+    "severity": "P0",
+    "claim": "The denominator guard misses an intervening adjective, allowing a percentage's denominator to become the contributing trial count.",
+    "failing_input": "printed_counts('Mortality was reported in 50% of the eligible ten trials (RR 0.85, CI 0.75 to 0.95).')",
+    "expected": "set(): ten is the denominator of the percentage, not the number reporting mortality.",
+    "actual": "{10}: _numerals ignores 50%, and blocked_before sees only 'eligible' and 'the', so the incorrect k=10 passes the count check.",
+    "id": "swap-setquote-r15:g1#3",
+    "record_id": "mc-06bf63df3721d484e3b201ced24b8ee2",
+    "verdict": null
+   }
+  ]
  }
 }

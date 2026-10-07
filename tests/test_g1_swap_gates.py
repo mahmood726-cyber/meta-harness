@@ -328,3 +328,15 @@ def test_PLANT_r14_denominators_post_bounds_percent_sentences_and_the_k_basis_is
     q3 = "Five trials gave RR 0.85 (95% CI 0.75-0.95)."
     got3, _ = sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 5, "quote": q3}, sw._norm(q3))
     assert got3 and "k_basis" not in got3
+
+
+def test_PLANT_r15_subset_in_the_pooled_quote_bracketed_bounds_and_adjectival_denominators_refuse():
+    """codex swap-setquote-r15: #1 a subset restriction in the pooled quote itself; #2 'Five trials (at most)';
+    #3 '50% of the eligible ten trials'."""
+    q = "Five trials were included, but only a subset reported mortality (RR 0.85, CI 0.75 to 0.95)."
+    assert sw.printed_counts(q) == set()
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "lower": "0.75", "upper": "0.95", "k": 5, "quote": q},
+                          sw._norm(q))[0] is None
+    assert sw.printed_counts("Five trials (at most) contributed to the pooled mortality result (RR 0.85, CI 0.75 to 0.95).") == set()
+    assert sw.printed_counts("Mortality was reported in 50% of the eligible ten trials (RR 0.85, CI 0.75 to 0.95).") == set()
+    assert sw.printed_counts("Five trials contributed to the pooled mortality result (RR 0.85, CI 0.75 to 0.95).") == {5}
