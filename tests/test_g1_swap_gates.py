@@ -136,3 +136,11 @@ def test_PLANT_compound_words_and_decimals_are_never_counts():
     assert sw.printed_counts("Across reviews, the mean was 11.6 Phase 3 studies.") == set()
     assert sw.printed_counts("In the five Phase 3 studies") == {5}
     assert sw.printed_counts("12 randomised controlled trials") == {12}
+
+
+def test_PLANT_larger_numbers_written_phases_and_identifiers_are_never_counts():
+    """codex swap-setquote-r2 #1, #2, #3."""
+    assert 20 not in sw.printed_counts("We included one hundred and twenty trials.")
+    assert sw.printed_counts("We included Phase three studies.") == set()
+    assert sw.printed_counts("We reviewed BRCA1 studies.") == set()
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}

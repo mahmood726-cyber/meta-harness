@@ -1694,5 +1694,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r2": {
+  "base": "6b4e18ca2",
+  "head": "2e7274c83a0f2d10b6ab4e1f9f546736937d2def",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b70f6649ae844392062c7cb78d46188e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "fd082b94c5c48aa9c2fe7596fe00e383599b55326e5a142b6eec14d479dddf87"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The number-word regex accepts the final word of a larger number, allowing pooled_gate to validate an incorrect k.",
+    "failing_input": "printed_counts('We included one hundred and twenty trials.')",
+    "expected": "set() under the supported one-to-twenty grammar, or {120} if compound numbers are supported; never {20}.",
+    "actual": "{20}",
+    "id": "swap-setquote-r2:g1#1",
+    "record_id": "mc-b70f6649ae844392062c7cb78d46188e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The number-word branch lacks phase exclusion, so a written-out phase designation becomes a trial count that can validate k.",
+    "failing_input": "printed_counts('We included Phase three studies.')",
+    "expected": "set(): the text specifies a phase, not the number of studies.",
+    "actual": "{3}",
+    "id": "swap-setquote-r2:g1#2",
+    "record_id": "mc-b70f6649ae844392062c7cb78d46188e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "Removing the digit pattern's leading word boundary allows digits inside identifiers to become trial counts that can validate k.",
+    "failing_input": "printed_counts('We reviewed BRCA1 studies.')",
+    "expected": "set(): BRCA1 is an identifier, and no study count is printed.",
+    "actual": "{1}",
+    "id": "swap-setquote-r2:g1#3",
+    "record_id": "mc-b70f6649ae844392062c7cb78d46188e",
+    "verdict": null
+   }
+  ]
  }
 }

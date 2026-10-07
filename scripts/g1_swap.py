@@ -329,10 +329,13 @@ def printed_counts(q):
     out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", q or "", re.I)}
     tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
     # a WHOLE number: never the fraction of a decimal ('11.6' -> not 6; codex swap-setquote #2) nor a phase number
-    out |= {int(x) for x in re.findall(r"(?<!phase )(?<!phase)(?<![\d.,])(\d+)(?![.,]\d)" + tail, q or "", re.I)}
-    # a WHOLE number word: never the tail of a compound ('twenty-one' -> not 1; codex swap-setquote #1)
+    # ... and never digits inside an identifier ('BRCA1 studies' -> not 1; swap-setquote-r2 #3)
+    out |= {int(x) for x in re.findall(r"(?<!phase )(?<!phase)(?<![\w.,])(\d+)(?![.,]\d)" + tail, q or "", re.I)}
+    # a WHOLE number word: never the tail of a compound ('twenty-one' -> not 1; codex swap-setquote #1), never part of a
+    # larger number ('one hundred and twenty' -> not 20) and never a written-out phase ('Phase three'; r2 #1, #2)
     out |= {_COUNT_WORDS.index(w.lower()) + 1
-            for w in re.findall(r"(?<![\w-])(" + "|".join(_COUNT_WORDS) + r")(?![\w-])" + tail, q or "", re.I)}
+            for w in re.findall(r"(?<![\w-])(?<!phase )(?<!and )(?<!hundred )(?<!thousand )("
+                                + "|".join(_COUNT_WORDS) + r")(?![\w-])" + tail, q or "", re.I)}
     return out
 
 
