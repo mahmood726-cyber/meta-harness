@@ -1663,7 +1663,7 @@
         "analysis_set": "intention-to-treat",
         "analysis_set_declared": "intention-to-treat",
         "randomised_contrast": {
-          "verified": 2,
+          "verified": 3,
           "total": 4
         },
         "matched": true,
@@ -4082,7 +4082,7 @@
         "analysis_set": "trial-reported randomized comparison / safety population",
         "analysis_set_declared": "trial-reported randomized comparison / safety population",
         "randomised_contrast": {
-          "verified": 1,
+          "verified": 2,
           "total": 2
         },
         "matched": true,
@@ -4202,7 +4202,7 @@
     },
     "overlap": {
       "ours_k": 4,
-      "theirs_k": "not stated for this outcome by the adopted comparator's pooled analysis",
+      "theirs_k": "not stated for this outcome by the adopted comparator (its pooled analysis is of a differently named outcome)",
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [],
       "only_theirs": [],
@@ -4811,6 +4811,250 @@
             "level": "not assessed"
           }
         ]
+      },
+      "26052984": {
+        "nct": "NCT00790205",
+        "registry_in_aact": true,
+        "assessed_from": "registry+abstract",
+        "overall": "some concerns",
+        "domains": {
+          "D1_randomisation": {
+            "level": "low",
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": false
+            },
+            "derived_at_build": true
+          },
+          "D2_deviations": {
+            "level": "low",
+            "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "DOUBLE",
+              "AACT.designs.subject_masked": "t",
+              "AACT.designs.caregiver_masked": "f",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
+          },
+          "D3_missing_outcome_data": {
+            "level": "not assessed",
+            "basis": "not assessed - AACT flow shows between-arm differential attrition 1.0% (overall 5.4%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": {
+                "overall_pct": 5.4,
+                "differential_pct": 1.0,
+                "groups": [
+                  [
+                    7332,
+                    6972
+                  ],
+                  [
+                    7339,
+                    6905
+                  ]
+                ]
+              }
+            },
+            "derived_at_build": true
+          },
+          "D4_outcome_measurement": {
+            "level": "low",
+            "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "DOUBLE",
+              "AACT.designs.outcomes_assessor_masked": "f",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
+          },
+          "D5_selective_reporting": {
+            "level": "some concerns",
+            "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Maj') -- possibly post-hoc/unregistered",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "3-point major adverse cardiovascular events",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population)",
+                  "title": "",
+                  "description": "Primary composite CV endpoint of MACE plus which includes CV-related death, nonfatal MI, nonfatal stroke, or unstable angina requiring hospitalization."
+                },
+                {
+                  "measure": "Percentage of Participants With First Confirmed CV Event of Major Adverse Cardiovascular Event (MACE) Plus (Intent to Treat Population)",
+                  "title": "",
+                  "description": "Primary composite CV endpoint of MACE plus which includes CV-related death, nonfatal MI, nonfatal stroke, or unstable angina requiring hospitalization."
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "Percentage of Participants With First Confirmed CV Event of MACE (Per Protocol Population)",
+                  "title": "",
+                  "description": "CV composite endpoint of MACE which includes CV-related death, nonfatal MI, or nonfatal stroke."
+                },
+                {
+                  "measure": "Percentage of Participants With First Confirmed CV Event of MACE (Intent to Treat Population)",
+                  "title": "",
+                  "description": "CV composite endpoint of MACE which includes CV-related death, nonfatal MI, or nonfatal stroke."
+                },
+                {
+                  "measure": "Percent Incidence of All-cause Mortality (Per Protocol Population)",
+                  "title": "",
+                  "description": "Percent incidence of all-cause mortality is reported as the percentage of participants who died due to any cause."
+                },
+                {
+                  "measure": "Percent Incidence of All-cause Mortality (Intent to Treat Population)",
+                  "title": "",
+                  "description": "Percent incidence of all-cause mortality is reported as the percentage of participants who died due to any cause."
+                },
+                {
+                  "measure": "Percent Incidence of Congestive Heart Failure (CHF) Requiring Hospitalization (Per Protocol Population)",
+                  "title": "",
+                  "description": "Percent incidence of CHF requiring hospitalization was reported as the percentage of participants who were admitted to the hospital for CHF."
+                },
+                {
+                  "measure": "Percent Incidence of CHF Requiring Hospitalization (Intent to Treat Population)",
+                  "title": "",
+                  "description": "Percent incidence of CHF requiring hospitalization was reported as the percentage of participants who were admitted to the hospital for CHF."
+                },
+                {
+                  "measure": "Change From Baseline in Renal Function Over Time (Per Protocol Population)",
+                  "title": "",
+                  "description": "Change in renal function based on estimated glomerular filtration rate \\[eGFR\\] using the Modification of Diet in Renal Disease \\[MDRD\\] method."
+                },
+                {
+                  "measure": "Change From Baseline in Renal Function Over Time (Intent to Treat Population)",
+                  "title": "",
+                  "description": "Change in renal function based on eGFR using the MDRD method."
+                },
+                {
+                  "measure": "Change From Baseline in HbA1c Over Time (Per Protocol Population)",
+                  "title": "",
+                  "description": "HbA1c is a measure of the percentage of glycated hemoglobin in the blood. Estimated mean difference between sitagliptin and placebo controlling for baseline HbA1c and region."
+                },
+                {
+                  "measure": "Change From Baseline in HbA1c Over Time (Intent to Treat Population)",
+                  "title": "",
+                  "description": "HbA1c is a measure of the percentage of glycated hemoglobin in the blood. Estimated mean difference between sitagliptin and placebo controlling for baseline HbA1c and region."
+                },
+                {
+                  "measure": "Change From Baseline in Urine Albumin:Creatinine Ratio Over Time (Per Protocol Population)",
+                  "title": "",
+                  "description": "Change from baseline reflects the difference between the urine albumin:creatinine ratio reported time point and baseline value."
+                },
+                {
+                  "measure": "Change From Baseline in Urine Albumin:Creatinine Ratio Over Time (Intent to Treat Population)",
+                  "title": "",
+                  "description": "Change from baseline reflects the difference between the urine albumin:creatinine ratio reported time point and baseline value."
+                },
+                {
+                  "measure": "Percentage of Participants Who Initiated Chronic Insulin Therapy (Per Protocol Population)",
+                  "title": "",
+                  "description": "Chronic insulin therapy is defined as a continuous period of insulin use of more than 3 months."
+                },
+                {
+                  "measure": "Percentage of Participants Who Initiated Chronic Insulin Therapy (Intent to Treat Population)",
+                  "title": "",
+                  "description": "Chronic insulin therapy is defined as a continuous period of insulin use of more than 3 months."
+                },
+                {
+                  "measure": "Percentage of Participants With Initiation of Co-interventional Agent (Per Protocol Population)",
+                  "title": "",
+                  "description": "In participants not receiving insulin at baseline, time to addition of first co-interventional agent (i.e., next oral antihyperglycemic agent \\[AHA\\] or chronic insulin, where chronic insulin therapy is defined as a continuous period of insulin use of more than 3 months.)"
+                },
+                {
+                  "measure": "Percentage of Participants With Initiation of Co-interventional Agent (Intent to Treat Population)",
+                  "title": "",
+                  "description": "In participants not receiving insulin at baseline, time to addition of first co-interventional agent (i.e., next oral AHA or chronic insulin, where chronic insulin therapy is defined as a continuous period of insulin use of more than 3 months.)"
+                }
+              ],
+              "comparison": {
+                "registered_type": null,
+                "registered_label": "Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population)",
+                "matched": false,
+                "method": "component_set",
+                "pooled_components": [
+                  "CV_DEATH",
+                  "NONFATAL_MI",
+                  "NONFATAL_STROKE"
+                ],
+                "registered_components": [
+                  "NONFATAL_MI",
+                  "NONFATAL_STROKE",
+                  "UNSTABLE_ANGINA"
+                ],
+                "registered_text": "Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population) Primary composite CV endpoint of MACE plus which includes CV-related death, nonfatal MI, nonfatal stroke, or unstable angina requiring hospitalization."
+              }
+            },
+            "derived_at_build": true
+          }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "some concerns"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            }
+          ]
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "some concerns"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "canonical": {
@@ -4930,6 +5174,44 @@
               "verdict": "NOT_ASSESSED"
             }
           }
+        },
+        "26052984": {
+          "verdict": "NOT_ASSESSED",
+          "verdict_basis": "formal RoB 2 not assessed: the registry machine-signal family carries no judgement (B-prime withdrew RoB 2 judgements)",
+          "signal_overall": "some concerns on the assessed domains",
+          "signal_overall_raw": "some concerns",
+          "domains": {
+            "D1_randomisation": {
+              "signal": "low",
+              "signal_basis": "AACT allocation = RANDOMIZED",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D2_deviations": {
+              "signal": "low",
+              "signal_basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D3_missing_outcome_data": {
+              "signal": "not assessed",
+              "signal_basis": "not assessed - AACT flow shows between-arm differential attrition 1.0% (overall 5.4%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D4_outcome_measurement": {
+              "signal": "low",
+              "signal_basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            },
+            "D5_selective_reporting": {
+              "signal": "some concerns",
+              "signal_basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Maj') -- possibly post-hoc/unregistered",
+              "signal_source": "registry+abstract",
+              "verdict": "NOT_ASSESSED"
+            }
+          }
         }
       }
     }
@@ -4964,6 +5246,15 @@
         "common": [],
         "differing": [
           "omarigliptin"
+        ]
+      },
+      "26052984": {
+        "nct": "NCT00790205",
+        "status": "verified",
+        "basis": "parser-confirmed contrast: keyword 'sitagliptin' matched AACT arm intervention 'sitagliptin'; the intervention of interest DIFFERS across the randomised arms",
+        "common": [],
+        "differing": [
+          "sitagliptin"
         ]
       }
     }
@@ -5774,12 +6065,12 @@
       "23992601": "low",
       "30418475": "low",
       "28893244": "low",
-      "26052984": null
+      "26052984": "some_concerns"
     },
     "input_set_version": "59188e3077219a12af0a44e986e1c14a2665d43e6cc6f3602d1f2da4017c1346",
     "n_trials": 4,
-    "n_rob_rated": 3,
-    "rob_covered": false,
+    "n_rob_rated": 4,
+    "rob_covered": true,
     "any_high": false,
     "full": {
       "k": 4,
@@ -5825,9 +6116,9 @@
     },
     "drop_high_informative": false,
     "low_only_relation": "fewer_trials",
-    "low_only_kind": "information_availability_sensitivity",
-    "low_only_excluded_adverse": 0,
-    "low_only_excluded_unassessed": 1,
+    "low_only_kind": "bias_sensitivity",
+    "low_only_excluded_adverse": 1,
+    "low_only_excluded_unassessed": 0,
     "low_only_informative": true,
     "low_only_predicate": "fewer_trials",
     "formally_assessed": false,
@@ -5838,12 +6129,12 @@
     "domains": {
       "risk_of_bias": {
         "downgrade": 0,
-        "coverage_incomplete": true,
+        "coverage_incomplete": false,
         "assessed": false,
         "n_trials": 4,
-        "n_rated": 3,
+        "n_rated": 4,
         "n_high": 0,
-        "n_some": 0,
+        "n_some": 1,
         "basis": "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below",
         "state": "NOT_ASSESSABLE",
         "missing_inputs": [
@@ -5901,9 +6192,9 @@
     "conservative_downgrades_pending_human_judgement": [],
     "certainty": "provisional",
     "certainty_state": "GRADE provisional -- not yet fully assessable",
-    "certainty_capped_by_rob_coverage": true,
+    "certainty_capped_by_rob_coverage": false,
     "certainty_capped_single_trial": false,
-    "certainty_capped_d3_unassessed": false,
+    "certainty_capped_d3_unassessed": true,
     "certainty_capped_unassessed_domain": false,
     "unassessed_domains": [
       "risk_of_bias",
@@ -79933,8 +80224,8 @@
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>2 of 3</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>28893244</td><td>contrast unverified (registry class label / dev code)</td><td title='a randomised contrast exists but the intervention of interest is not machine-matchable to a coded arm (registry class label / development code); contrast not machine-verified'>omarigliptin</td></tr><tr><td>23992601</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;saxagliptin&#x27; matched AACT arm intervention &#x27;saxagliptin&#x27;; the intervention of interest DIFFERS across the randomised arms'>saxagliptin</td></tr><tr><td>30418475</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;linagliptin&#x27; matched AACT arm intervention &#x27;linagliptin&#x27;; the intervention of interest DIFFERS across the randomised arms'>linagliptin</td></tr></table></div>",
-      "text_sha256": "08f45f9f8ac36d5c56a02b1a83a6a2c7f8c2eda388a52b9ac7b9182762097a24",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>3 of 4</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>28893244</td><td>contrast unverified (registry class label / dev code)</td><td title='a randomised contrast exists but the intervention of interest is not machine-matchable to a coded arm (registry class label / development code); contrast not machine-verified'>omarigliptin</td></tr><tr><td>23992601</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;saxagliptin&#x27; matched AACT arm intervention &#x27;saxagliptin&#x27;; the intervention of interest DIFFERS across the randomised arms'>saxagliptin</td></tr><tr><td>26052984</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;sitagliptin&#x27; matched AACT arm intervention &#x27;sitagliptin&#x27;; the intervention of interest DIFFERS across the randomised arms'>sitagliptin</td></tr><tr><td>30418475</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;linagliptin&#x27; matched AACT arm intervention &#x27;linagliptin&#x27;; the intervention of interest DIFFERS across the randomised arms'>linagliptin</td></tr></table></div>",
+      "text_sha256": "f5977bfeccdb560eeddee965a831bd7cc84d69f1520894c4f124635de6871f16",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -79943,7 +80234,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "3-point major adverse cardiovascular events: verified 2/4; Adverse events: verified 1/1; Hypoglycemia: verified 1/1; Hospitalization for heart failure: verified 1/2"
+        "gate_verdict_at_build": "3-point major adverse cardiovascular events: verified 3/4; Adverse events: verified 1/1; Hypoglycemia: verified 1/1; Hospitalization for heart failure: verified 2/2"
       }
     },
     {
@@ -80135,7 +80426,7 @@
         "kind": "rated_count",
         "surface": "riskofbias/manuscript",
         "source_path": "/rob_sensitivity",
-        "rated": 3,
+        "rated": 4,
         "total": 4,
         "claim_id": "f3cfb5ce652671d4"
       },
@@ -80210,7 +80501,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "0fb7f9f4cd617ae16e470371a271bccbba9e9c86",
-    "review_sha256": "5b09f7ed994a12fc3bf3c1ff0f229cf7234db12cb828271af01a471ecbba4aaf",
+    "review_sha256": "0d3e9317d7fc2aec02fda386df7ef1292623b5156e2412bd9053ebf7837482ed",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -80401,7 +80692,7 @@
       "screening_ledger_sha256": "96eb6bbca7e1ac15ed236f03ef05d785905792ec2d928c9cb3d74481a6d51d03",
       "extraction_objects_sha256": "f41f89cee700fe037152f4217b65fadb57a168072a8071ba95b24e244ce31d9c",
       "trial_family_map_sha256": "ac57d2aae59fdc2bf9a1116e186c1ff6462101c101b9348cd625e3d28b718a54",
-      "rob_object_sha256": "78fa64ae4ae795ec7ec61faeecd5400201015a56e2a1644f76bc8e85404b14b2",
+      "rob_object_sha256": "4b472f50a93a4b87e556f5625b3314d745c515741b8cec8bf6d79bbea0d8d6b1",
       "held_documents": [
         {
           "ref": "cache/dpp4-mace-t2d/aact_inputs.json",
@@ -80421,7 +80712,7 @@
         }
       ],
       "config_sha256": "dbf32d3ccc22554432b4a1bf5dbec71ef6bcf6a4e2711114bd0dbcf2e5f9bae8",
-      "analysis_code_sha256": "7068adbade69e5a8fa2f3542ef625f3d3f963107420ed5c23be175611a1a14ef",
+      "analysis_code_sha256": "9714631e2293baa520c21efe0e1047253cbbc80430e6a77489dae105189654a6",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -80480,7 +80771,7 @@
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
         "harness/page.py": "b0475d07074b25e5b3684648f56edd8b261831ab",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "a04938c3b128498ae77acab71257e3ca89baad48",
+        "harness/pipeline.py": "61a8ff17890ca0812667de6947a238fb8a05c146",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -80558,8 +80849,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "af9cb49734921efb01a0f835381f72390f56ead14e798caa6fb1e7f071b15960",
-      "review_sha256": "5b09f7ed994a12fc3bf3c1ff0f229cf7234db12cb828271af01a471ecbba4aaf",
+      "manuscript_sha256": "6f0d22126f12365a9f0cdd4452839fbff6550f1ec484824766a9b13c232f184e",
+      "review_sha256": "0d3e9317d7fc2aec02fda386df7ef1292623b5156e2412bd9053ebf7837482ed",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/dpp4-mace-t2d.md UTF-8 text, universal newlines",
@@ -80580,7 +80871,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "1178f09e14651147b117939ff91b292b75d4fc16b59dc3b94d7f672b52059bbe"
+      "release_sha256": "94fb07418d323d9abdd4e80e12fd745106ea9962e5a41bb89ca4a48dcc74725f"
     }
   }
 }
