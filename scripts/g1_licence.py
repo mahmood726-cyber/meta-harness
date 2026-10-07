@@ -50,8 +50,21 @@ def licence(pmid, offline=False):
     os.makedirs(os.path.dirname(CACHE), exist_ok=True)
     with open(CACHE + ".tmp", "w", encoding="utf-8", newline="\n") as fh:
         json.dump(c, fh, indent=1, sort_keys=True)
-    os.replace(CACHE + ".tmp", CACHE)
+    _replace(CACHE + ".tmp", CACHE)
     return v
+
+
+def _replace(src, dst, tries=6):
+    """os.replace with a bounded retry: on Windows a reader or scanner holding dst denies the rename for a moment
+    (WinError 5 killed the 7 Oct dry screen at sglt2-ckd). After `tries` the error is raised -- never swallowed."""
+    import time
+    for i in range(tries):
+        try:
+            return os.replace(src, dst)
+        except PermissionError:
+            if i == tries - 1:
+                raise
+            time.sleep(0.25 * (i + 1))
 
 
 def repo_open(pmid, kind, offline=False):
