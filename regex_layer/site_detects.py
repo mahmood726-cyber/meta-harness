@@ -287,7 +287,7 @@ DETECTS.update({
         "detects": "the (kidney) outcome is a progression, sustained decline, failure, replacement therapy or composite",
         "trigger": r"composite|progress|sustain|declin|decreas|failure|replacement|dialysis|death",
         "text_source": _ROB2_SRC, "lowercased": True},
-    "rob2.py:search:052d9d5ea5": {
+    "rob2.py:search:db7e2cb922": {
         "detects": "the outcome names cardiovascular death (not non-cardiovascular death, not all-cause death)",
         "trigger": r"cardiovascular|\bcv\b|cardiac", "text_source": _ROB2_SRC, "lowercased": True},
     "rob2.py:search:6cd81436fb": {
