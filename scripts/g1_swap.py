@@ -344,14 +344,19 @@ _RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s
                        # analysis'; codex swap-setquote-r16 #3)
                        r"exclu\w*|omit\w*|withdr\w*|removed|dropped|lost\s+to|"
                        # a FRACTION of the trials ('Six trials were included; half reported mortality'; codex
-                       # swap-setquote-r17 #3). 'most' is deliberately absent: doac 29795629's own sentence says 'in most
-                       # studies of secondary prevention' of OTHER studies -- that residue is what k_basis discloses
+                       # swap-setquote-r17 #3). A bare 'most' is not here: doac 29795629's own sentence says 'in most
+                       # studies of secondary prevention' of OTHER studies; the narrower 'most ... reported' form is below
                        r"half|halves|quarters?|thirds?|majority|proportion|percent|per\s+cent|"
                        # trials WITHOUT the outcome's data ('Five trials lacked mortality data'; codex swap-setquote-r18
                        # #2). 'without' is deliberately absent: doac's sentence says 'with or without pulmonary embolism'
                        r"lack\w*|missing|unavailable|unreported|not\s+report\w*|did\s+not\s+(?:report|contribute|provide)|"
                        # 'no mortality data', 'no outcome events' (codex swap-setquote-r19 #2)
-                       r"no\s+(?:\w+\s+){0,2}(?:data|events?|outcomes?))\b", re.I)
+                       r"no\s+(?:\w+\s+){0,2}(?:data|events?|outcomes?)|"
+                       # 'most' as a share of THESE trials ('Five trials were included; most reported mortality'; codex
+                       # swap-setquote-r22 #2): 'most' then a reporting verb within two words, or 'most of the/them'.
+                       # doac's 'in most studies of secondary prevention' (other studies) does not match
+                       r"most\s+(?:of\s+(?:the|them|these|those)|(?:\w+\s+){0,2}(?:reported|report|contributed|provided|"
+                       r"included|had|showed|found|were|was|did|gave|yielded)))\b", re.I)
 
 
 def _stray_percent(sent):
@@ -424,7 +429,7 @@ def _counts_in(s):
     """In one cleaned sentence: 'k = n'; or n -- digits or a number word -- followed by up to three TRIAL ADJECTIVES
     (randomised, controlled, clinical, Phase 3) and then trials / studies / RCTs. A digit that is itself a phase number
     ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
-    out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", s, re.I)}
+    out = set()
     tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
     # the WORD before the count decides, not a fixed-width lookbehind (three review rounds each found a new gap):
     # never after another number word ('twenty five', 'twenty-one'), 'and' / 'hundred' / 'thousand' ('one hundred and
@@ -476,6 +481,10 @@ def _counts_in(s):
         return bool(re.match(r"\s*[,(\[]?\s*(?:(?:at\s+(?:the\s+|a\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
                              r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over))\b|\+)", s[j:], re.I))
 
+    # 'k = n', with the same bound check after it as any other count ('k = 5 or more'; codex swap-setquote-r22 #1)
+    for m in re.finditer(r"\bk\s*=\s*(\d+)(?![.,]\d)", s, re.I):
+        if not bound_after(m.end()):
+            out.add(int(m.group(1)))
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
     # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
     for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):

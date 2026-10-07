@@ -2634,5 +2634,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r22": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-425f5f53137fb9de8948fe4550c41847",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "055808cae977c2fb30bc36165455d3e5629f81c0b50740ab9230ac42b217cfb2"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "The k= parser bypasses bound_after, allowing a lower bound to become an exact pooled trial count through the new set-quote fallback.",
+    "failing_input": "q = 'RR 0.85 (CI 0.70-1.03).'\nsq = 'Mortality: k = 5 or more; ' + q\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(sq), set_quote=sq, verified_units=5)",
+    "expected": "(None, None): '5 or more' does not establish exactly five contributing trials.",
+    "actual": "Returns the accepted pooled dictionary with k_basis.from='SET_QUOTE_SENTENCE', and k=5. The unrestricted k= regex supplies {5}; the bound checks apply only to the other count patterns.",
+    "id": "swap-setquote-r22:g1#1",
+    "record_id": "mc-425f5f53137fb9de8948fe4550c41847",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate / printed_counts",
+    "severity": "P0",
+    "claim": "The new fallback accepts the review-wide trial count even when the same sentence explicitly says only most trials reported the outcome. Verifying five enumerated units does not establish five outcome contributors.",
+    "failing_input": "q = 'mortality RR 0.85 (CI 0.70-1.03).'\nsq = 'Five trials were included; most reported ' + q\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(sq), set_quote=sq, verified_units=5)",
+    "expected": "(None, None): the sentence does not establish an exact mortality-specific k.",
+    "actual": "Returns the accepted pooled dictionary with k_basis.from='SET_QUOTE_SENTENCE', and k=5. 'most' is absent from _RESTRICT, and printed_counts(sq) returns {5}.",
+    "id": "swap-setquote-r22:g1#2",
+    "record_id": "mc-425f5f53137fb9de8948fe4550c41847",
+    "verdict": null
+   }
+  ]
  }
 }

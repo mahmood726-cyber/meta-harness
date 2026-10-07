@@ -442,3 +442,20 @@ def test_PLANT_r21_at_a_minimum_all_cause_and_two_sentences_printing_the_same_re
           "Ten trials reported mortality (RR 0.85, 95% CI 0.70-1.03).")
     assert sw.pooled_gate(dict(base, k=5, quote=q3), sw._norm(q3))[0] is None
     assert sw.pooled_gate(dict(base, k=10, quote=q3), sw._norm(q3))[0] is None
+
+
+def test_PLANT_r22_k_equals_with_a_bound_and_most_reporting_refuse_but_doacs_other_studies_do_not():
+    """codex swap-setquote-r22: #1 'k = 5 or more' through the set-quote fallback; #2 'most reported' a share of these
+    trials. doac 29795629's 'in most studies of secondary prevention' refers to OTHER studies and still admits."""
+    q = "RR 0.85 (CI 0.70-1.03)."
+    pl = {"quote": q, "measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5}
+    sq = "Mortality: k = 5 or more; " + q
+    assert sw.pooled_gate(pl, sw._norm(sq), set_quote=sq, verified_units=5)[0] is None
+    q2 = "mortality RR 0.85 (CI 0.70-1.03)."
+    sq2 = "Five trials were included; most reported " + q2
+    assert sw.pooled_gate(dict(pl, quote=q2), sw._norm(sq2), set_quote=sq2, verified_units=5)[0] is None
+    assert sw.printed_counts("k = 5 (RR 0.85).") == {5}
+    sq3 = ("In the five Phase 3 studies, the primary outcome in most studies of secondary prevention tended to favor "
+           "DOACs (OR 0.88, CI 0.75-1.03).")
+    pl3 = {"quote": "OR 0.88, CI 0.75-1.03", "measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5}
+    assert sw.pooled_gate(pl3, sw._norm(sq3), set_quote=sq3, verified_units=5)[1] == 5
