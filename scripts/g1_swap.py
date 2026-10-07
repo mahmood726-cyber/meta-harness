@@ -523,7 +523,7 @@ def cmd_screen(slugs, run=False):
     # ---- STAGE A: the candidate's own abstract; a gated FAIL on C2-C5 excludes, nothing else is decided here
     a_items = []
     for it in items:
-        rule_ = _j(os.path.join(SEL, f"{it['slug']}.rule.json"))
+        rule_ = _j(os.path.join(SEL, f"{stem(it['slug'])}.rule.json"))
         ab = abstract_of(open(os.path.join(ROOT, it["held"]), encoding="utf-8", errors="replace").read())
         crit = "\n".join(f"{c['id']}: PASS if {c['pass_if']}" for c in rule_["criteria"] if c["id"] in A_CRIT)
         pr = protocol(it["slug"])

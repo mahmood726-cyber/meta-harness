@@ -107,3 +107,9 @@ def test_a_later_round_keeps_the_earlier_pre_registration_and_files_its_ledger_b
     assert r["candidates_file"].endswith("statins-primary-prevention-elderly.r2.candidates.json")
     assert sw.protocol("statins-primary-prevention-elderly@r2")["file"] == "topics/statins-primary-prevention-elderly.json"
     assert runs_store.topic_of("swapscreen::statins-primary-prevention-elderly::123") == "statins-primary-prevention-elderly"
+
+
+def test_stage_a_items_of_a_later_round_read_that_rounds_rule():
+    src = open(sw.__file__, encoding="utf-8").read()
+    assert "f\"{it['slug']}.rule.json\"" not in src                 # every rule read goes through stem()
+    assert os.path.exists(os.path.join(sw.SEL, sw.stem("statins-primary-prevention-elderly@r2") + ".rule.json"))
