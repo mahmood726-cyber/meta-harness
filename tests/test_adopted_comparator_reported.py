@@ -188,3 +188,13 @@ def test_PLANT_codex_r10_span_cases_refuse(span, est, lo, hi):
 ])
 def test_PLANT_codex_r11_span_shapes(span, est, lo, hi, ok):
     assert sc._span_states(span, est, lo, hi) is ok
+
+
+def test_PLANT_a_theirs_k_phrase_survives_html_escaping():
+    """The gate requires theirs_k stated verbatim on the served page; the page HTML-escapes it, so an apostrophe
+    ('comparator's') made it unstatable (verify_all gate limb, 7 Oct)."""
+    import html
+    for s in SWITCHED:
+        v = _j("docs", "reviews", s, "review.json")["comparator"]["overlap"]["theirs_k"]
+        if isinstance(v, str):
+            assert html.escape(v, quote=True) == v, (s, v)

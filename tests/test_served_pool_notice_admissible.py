@@ -16,16 +16,18 @@ def _dpp4():
 
 
 def test_examine_is_excluded_with_the_registers_reason():
+    # TECOS is served since V6-01 (lifted 7 Oct); EXAMINE, re-expressed from a 98% CI, is the only remaining candidate and
+    # is excluded -- so no notice is derived for dpp4 MACE at all
     n, exc = g.topic_notice(_dpp4())
-    assert n is not None and n["entered_pool"] == ["PMID 26052984"]
-    assert n["after"]["k"] == 4
+    assert n is None
     why = [e["why"] for e in exc if e["trial"] == "EXAMINE"]
     assert why and "NOT_ADMISSIBLE_BY_REGISTER" in why[0] and "no verbatim span carries the effect and CI" in why[0]
 
 
-def test_tecos_alone_reproduces_the_signed_v6_01_after():
-    n, _ = g.topic_notice(_dpp4())
-    assert n["after"] == {"k": 4, "estimate": 1.0007, "ci_low": 0.8998, "ci_high": 1.1129}
+def test_served_mace_equals_the_signed_v6_01_after():
+    r = json.load(open(os.path.join(ROOT, "docs", "reviews", "dpp4-mace-t2d", "review.json"), encoding="utf-8"))
+    m = next(o for o in r["outcomes"] if o["name"].startswith("3-point"))
+    assert {k: m["result"][k] for k in ("k", "estimate", "ci_low", "ci_high")} ==         {"k": 4, "estimate": 1.0007, "ci_low": 0.8998, "ci_high": 1.1129}
 
 
 def test_the_decision_is_recorded_and_examine_stays_out_of_the_served_pool():

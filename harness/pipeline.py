@@ -2299,7 +2299,7 @@ def build_review_core(slug, config, records, protocol_sha):
         # equality as the reported value); otherwise not stated. Never the regex: it read 57 / 34, whole-review counts
         _k = _adopted.get("k")
         theirs_k = (_k if reported and isinstance(_k, int) and not isinstance(_k, bool)
-                    else "not stated for this outcome by the adopted comparator's pooled analysis")
+                    else "not stated for this outcome by the adopted comparator (its pooled analysis is of a differently named outcome)")
     elif ck is not None:
         theirs_k = ck
     else:
