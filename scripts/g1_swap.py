@@ -836,7 +836,10 @@ def cmd_apply(slugs):
                                       "ci_high": pl.get("upper"), "k": pl.get("k"), "spans": {"result": pl.get("quote")},
                                       "source": {"path": src, "sha256": en["source"]["sha256"]}},
                     "trial_set": [{"label": u["label"], "pmid": u["pmid"]} for u in en["units"]], "retired": retired}
-        with open(os.path.join(SEL, f"{base(s)}.adoption.json"), "w", encoding="utf-8", newline="\n") as fh:
+        ap = os.path.join(SEL, f"{base(s)}.adoption.json")
+        if os.path.exists(ap) and str(_j(ap).get("comparator_pmid")) != new:     # an earlier round's adoption is kept
+            shutil.move(ap, os.path.join(SEL, f"{base(s)}.adoption.{_j(ap).get('comparator_pmid')}.json"))
+        with open(ap, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(adoption, fh, indent=1, ensure_ascii=False)
         # 3. comparators.json + topic
         cp = os.path.join(ROOT, "cache", base(s), "comparators.json")
