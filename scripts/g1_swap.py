@@ -326,16 +326,25 @@ def printed_counts(q):
     """Trial counts PRINTED in a quote: 'k = n'; or n -- digits or a number word -- followed by up to three TRIAL
     ADJECTIVES (randomised, controlled, clinical, Phase 3) and then trials / studies / RCTs. A digit that is itself a phase
     number ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
-    out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", q or "", re.I)}
+    # whitespace of every kind is one space before anything is matched (codex swap-setquote-r3 #2: 'Phase\nthree')
+    s = " ".join(str(q or "").split())
+    out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", s, re.I)}
     tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
-    # a WHOLE number: never the fraction of a decimal ('11.6' -> not 6; codex swap-setquote #2) nor a phase number
-    # ... and never digits inside an identifier ('BRCA1 studies' -> not 1; swap-setquote-r2 #3)
-    out |= {int(x) for x in re.findall(r"(?<!phase )(?<!phase)(?<![\w.,])(\d+)(?![.,]\d)" + tail, q or "", re.I)}
-    # a WHOLE number word: never the tail of a compound ('twenty-one' -> not 1; codex swap-setquote #1), never part of a
-    # larger number ('one hundred and twenty' -> not 20) and never a written-out phase ('Phase three'; r2 #1, #2)
-    out |= {_COUNT_WORDS.index(w.lower()) + 1
-            for w in re.findall(r"(?<![\w-])(?<!phase )(?<!and )(?<!hundred )(?<!thousand )("
-                                + "|".join(_COUNT_WORDS) + r")(?![\w-])" + tail, q or "", re.I)}
+    # the WORD before the count decides, not a fixed-width lookbehind (three review rounds each found a new gap):
+    # never after another number word ('twenty five', 'twenty-one'), 'and' / 'hundred' / 'thousand' ('one hundred and
+    # twenty'), or 'phase' ('Phase 3', 'Phase three')
+    blocked = set(_COUNT_WORDS) | {"and", "hundred", "thousand", "phase", "million"}
+
+    def prev_word(i):
+        m = re.search(r"([A-Za-z]+)[\s-]*$", s[:i])
+        return m.group(1).lower() if m else ""
+
+    for m in re.finditer(r"(?<![\w.,-])(\d+)(?![.,]\d)" + tail, s, re.I):       # a whole number, never '11.6' or 'BRCA1'
+        if prev_word(m.start(1)) not in blocked:
+            out.add(int(m.group(1)))
+    for m in re.finditer(r"(?<![\w])(" + "|".join(_COUNT_WORDS) + r")(?![\w-])" + tail, s, re.I):
+        if prev_word(m.start(1)) not in blocked:
+            out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
     return out
 
 

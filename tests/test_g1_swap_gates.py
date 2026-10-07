@@ -144,3 +144,12 @@ def test_PLANT_larger_numbers_written_phases_and_identifiers_are_never_counts():
     assert sw.printed_counts("We included Phase three studies.") == set()
     assert sw.printed_counts("We reviewed BRCA1 studies.") == set()
     assert sw.printed_counts("In the five Phase 3 studies") == {5}
+
+
+def test_PLANT_unhyphenated_compounds_and_any_whitespace_before_a_phase_word():
+    """codex swap-setquote-r3 #1 ('twenty five trials') and #2 ('Phase\nthree studies')."""
+    assert sw.printed_counts("We included twenty five trials.") == set()
+    assert sw.printed_counts("Phase\nthree studies") == set()
+    assert sw.printed_counts("Phase   3 studies") == set()
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}
+    assert sw.printed_counts("We pooled 12 randomised controlled trials.") == {12}

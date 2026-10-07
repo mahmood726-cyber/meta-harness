@@ -1747,5 +1747,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r3": {
+  "base": "6b4e18ca2",
+  "head": "0275dd91179732d5d25f17debc17e40b79f1f401",
+  "runs": {
+   "g1": {
+    "record_id": "mc-886eeec4463cec2dc3d3c74d739a3c2e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "87a0c63c58f6ad592f37e425b41689dc90eb73d714af6b29034185d56bf3521d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The new number-word matcher extracts the final component of an unhyphenated compound number, allowing an incorrect trial count to validate k.",
+    "failing_input": "printed_counts('We included twenty five trials.')",
+    "expected": "set(): refuse the unsupported compound number rather than interpret twenty-five as five.",
+    "actual": "{5}",
+    "id": "swap-setquote-r3:g1#1",
+    "record_id": "mc-886eeec4463cec2dc3d3c74d739a3c2e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The written-out phase exclusion only handles exactly one literal space. Multiple spaces or a newline turn a phase designation into a trial count that can validate k.",
+    "failing_input": "printed_counts('Phase\\nthree studies')",
+    "expected": "set(): three is the phase designation, not a number of studies.",
+    "actual": "{3}",
+    "id": "swap-setquote-r3:g1#2",
+    "record_id": "mc-886eeec4463cec2dc3d3c74d739a3c2e",
+    "verdict": null
+   }
+  ]
  }
 }
