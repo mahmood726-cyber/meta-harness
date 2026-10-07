@@ -135,7 +135,9 @@ def pubmed_ids(get_raw, term, cap=PUBMED_LIMIT):
             # PubMed echoes raw control characters in querytranslation (strict=False); a rate-limit reply is a JSON
             # error with no count -- retried with backoff, and after 5 the search fails closed (never a short 'complete')
             r = (json.loads(b.decode("utf-8", "replace"), strict=False) if b[:1] == b"{" else {}).get("esearchresult") or {}
-            if "count" in r:
+            # ... and a failure status is never a result, whatever its body says (codex pr25-final2 #2: a 503 carrying
+            # '{"esearchresult":{"count":"0"}}' was a complete search with no records)
+            if st == 200 and "count" in r:
                 break
             __import__("time").sleep(2 * (attempt + 1))
         else:
@@ -154,7 +156,7 @@ def pubmed_ids(get_raw, term, cap=PUBMED_LIMIT):
 
 def europepmc_ids(get_raw, query, cap=PAGE_CAP):
     """Every Europe PMC hit's PMID, paged by cursorMark to its own hitCount. Hits without a PMID are counted, not kept."""
-    pmids, shas, hits, seen, cur = [], [], None, 0, "*"
+    pmids, shas, hits, seen, cur, uniq = [], [], None, 0, "*", set()
     while True:
         # an error reply is never a search result: a non-200 status or a body with no hitCount is retried with backoff,
         # and after 5 the search fails closed -- as pubmed_ids does (codex pr25-final #3: a 503 with a JSON body was read
@@ -174,10 +176,14 @@ def europepmc_ids(get_raw, query, cap=PAGE_CAP):
         shas.append(hashlib.sha256(b).hexdigest())
         hits = int(r["hitCount"])
         page = (r.get("resultList") or {}).get("result") or []
-        seen += len(page)
+        # completeness counts UNIQUE records: a repeated page adds nothing and stops the paging (codex pr25-final2 #3:
+        # one record served twice reached hitCount 2 and the search was called COMPLETE)
+        before = len(uniq)
+        uniq.update(((x.get("source"), x.get("id")) if x.get("id") else json.dumps(x, sort_keys=True)) for x in page)
+        seen = len(uniq)
         pmids += [x.get("pmid") for x in page if x.get("pmid")]
         nxt = r.get("nextCursorMark")
-        if not page or not nxt or nxt == cur or seen >= hits or seen >= cap:
+        if not page or len(uniq) == before or not nxt or nxt == cur or seen >= hits or seen >= cap:
             break
         cur = nxt
     pmids = list(dict.fromkeys(pmids))
@@ -671,9 +677,15 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
         if kf != int(kf) or int(kf) not in printed:
             return None, None
         k = int(kf)
+        # EVERY machine-read k carries the sentence it was read from (codex pr25-final2 #1: the direct path omitted the
+        # reviewer warning). Whether that count is the trials behind THIS outcome is the disclosed residual: a signer
+        # reads the sentence; nothing is applied unsigned
+        check = "the count in this sentence must be the trials in THIS pooled result"
         if fallback:
             pl = dict(pl, k_basis={"from": "SET_QUOTE_SENTENCE", "sentence": sent, "verified_units": verified_units,
-                                   "reviewer_check": "the count in this sentence must be the trials in THIS pooled result"})
+                                   "reviewer_check": check})
+        else:
+            pl = dict(pl, k_basis={"from": "POOLED_QUOTE_SENTENCE", "sentence": sents[0], "reviewer_check": check})
     return pl, k
 
 
