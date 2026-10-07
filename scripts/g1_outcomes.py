@@ -724,6 +724,10 @@ def acquire_items(slug):
     t = topic(slug)
     ex = _j(os.path.join(OUT, f"{slug}.extraction.json"))
     items, settled = [], []
+    # ONE AACT detail pass for every NCT before any evidence() (each call would otherwise stream the 3 GB files)
+    ta.aact_detail(sorted({n for o in ex["outcomes"] for g in o["gaps"] for n in
+                           [g.get("nct")] + list(ta.registered_ncts(g["id"].replace("PMID ", "")) if str(g["id"]).startswith("PMID ") else [])
+                           if n}))
     for o in ex["outcomes"]:
         cfg = outcome_cfg(t, o["spec"])
         for g in o["gaps"]:
