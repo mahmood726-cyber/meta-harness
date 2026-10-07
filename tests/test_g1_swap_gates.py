@@ -340,3 +340,20 @@ def test_PLANT_r15_subset_in_the_pooled_quote_bracketed_bounds_and_adjectival_de
     assert sw.printed_counts("Five trials (at most) contributed to the pooled mortality result (RR 0.85, CI 0.75 to 0.95).") == set()
     assert sw.printed_counts("Mortality was reported in 50% of the eligible ten trials (RR 0.85, CI 0.75 to 0.95).") == set()
     assert sw.printed_counts("Five trials contributed to the pooled mortality result (RR 0.85, CI 0.75 to 0.95).") == {5}
+
+
+def test_PLANT_applied_enumeration_spans_are_in_k_gap_tables_rendering_of_the_held_source():
+    """The swap reads table rows through its own JATS rendering (cells joined ' | '); k_gap_table.enumeration_units
+    checks each span against held_norm (tags -> spaces) and refuses the WHOLE enumeration on one miss. doac 29795629
+    was refused as NOT_ENUMERABLE that way. The applied span is the row with cells joined by single spaces: verbatim in
+    held_norm, row identity kept."""
+    import json
+    import os
+    import k_gap_table as kt
+    e = json.load(open(os.path.join(sw.ROOT, "registry", "comparator_enumerations", "doac-vte-recurrence.swap.json"),
+                       encoding="utf-8"))
+    held = kt.held_norm(os.path.join(sw.ROOT, e["source"]["path"]))
+    assert len(e["units"]) == 5
+    for u in e["units"]:
+        assert kt.held_norm(None, u["span"]) not in held                       # the swap's own rendering: not found
+        assert kt.held_norm(None, sw.kgap_span(u["span"])) in held             # the applied rendering: found

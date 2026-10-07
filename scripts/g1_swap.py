@@ -1035,6 +1035,14 @@ def _held_old(slug, old_pmid):
     return os.path.relpath(t, ROOT).replace("\\", "/") if os.path.exists(t) else None
 
 
+def kgap_span(span):
+    """A unit span as k_gap_table.enumeration_units checks it: that reader tag-strips the held JATS to spaces (held_norm)
+    and needs each ' / '-separated line verbatim there, refusing the whole enumeration on one miss. This script renders
+    a table row with its cells joined ' | ', which is in neither form. The row with cells joined by single spaces is
+    contiguous in held_norm, so the whole row stays one line and its identity is kept."""
+    return " ".join(c.strip() for c in re.split(r"\s*\|\s*", str(span)) if c.strip())
+
+
 def retirement_code(fails):
     """The retirement reason names only the criteria R0 FAILED. A criterion left UNCLEAR because reading stopped at the
     first failure was never judged, so it is listed as not read, never as a failure (doac R0: C1 FAIL, C2-C6 UNCLEAR).
@@ -1072,6 +1080,8 @@ def cmd_apply(slugs):
             shutil.move(cur, os.path.join(ROOT, "registry", "comparator_enumerations", "retired",
                                           f"{s}.{_j(cur).get('comparator_pmid')}.json"))
         enum = {k: en[k] for k in ("slug", "comparator_pmid", "status", "enumerated_from", "set_span", "source", "units")}
+        # spans in k_gap_table's contract (verbatim in held_norm), not this script's ' | ' table rendering
+        enum["units"] = [dict(u, span=kgap_span(u["span"])) for u in en["units"]]
         with open(cur, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(enum, fh, indent=1, ensure_ascii=False)
         # 2. retirement: R0's failing criteria; spans only where the evidence is verbatim in the old comparator's held text
