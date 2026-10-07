@@ -115,7 +115,7 @@ def main(argv):
     print(tally)
 
 
-if __name__ == "__main__" and not {"--round2", "--cap", "--active"} & set(sys.argv):
+if __name__ == "__main__" and not {"--round2", "--cap", "--active", "--open-sources"} & set(sys.argv):
     main(sys.argv[1:])        # never re-run for --round2: it would overwrite amendments.json with ALREADY_AMENDED
 
 
@@ -273,7 +273,72 @@ def active_decision(slugs, dry=False):
     print({k: v["state"] for k, v in out.items()})
 
 
+HEAD5 = "## Amendment 2026-10-07 -- open search sources: OpenAlex and WHO ICTRP (additive)"
+
+
+def open_sources_decision(dry=False):
+    """A7: Mahmood 7 Oct -- open sources only (no CENTRAL, no Embase): OpenAlex and WHO ICTRP become registered search
+    sources of every active topic, ADDED to the registered ones (nothing removed). The OpenAlex query per topic is the
+    recorded blind proposal chosen by the fixed rule (smallest volume with the maximal union recall on the current
+    comparator, volume <= 10,000; scripts/g1_open_sources.py). ICTRP is registered with its open access route."""
+    first = _j(os.path.join(SA, "active", "open_sources.json"))
+    pp_ = os.path.join(SA, "active", "open_sources_precise.json")
+    prec = _j(pp_)["topics"] if os.path.exists(pp_) else {}
+    out = {}
+    for slug, v in first["topics"].items():
+        cands = [(x, tag) for x, tag in ((v, "round 1"), (prec.get(slug), "precise")) if x and (x.get("openalex") or {}).get("state") == "RAN_OK"]
+        ok = [(x, tag) for x, tag in cands if x["openalex"]["volume"] is not None and x["openalex"]["volume"] <= 10000]
+        tp, pp = os.path.join(ROOT, "topics", f"{slug}.json"), os.path.join(ROOT, "protocols", f"{slug}.md")
+        md = open(pp, encoding="utf-8").read()
+        if HEAD5 in md:
+            out[slug] = {"state": "ALREADY_AMENDED"}
+            continue
+        cfg = _j(tp)
+        if ok:
+            best, tag = max(ok, key=lambda c: (c[0]["openalex"]["recall_union"]["n"], -c[0]["openalex"]["volume"]))
+            o = best["openalex"]
+            oa_txt = (f"OpenAlex query (title_and_abstract.search; {tag} blind proposal, recorded call {best['record']}, "
+                      f"written without sight of any comparator trial): `{best['proposal']['openalex_search']}` -- "
+                      f"{o['volume']} records on 2026-10-07. Measured on the current comparator's eligible trials: "
+                      f"OpenAlex alone {o['recall_openalex']['n']} of {o['recall_openalex']['N']}, registered PubMed "
+                      f"{o['recall_current_pubmed']['n']} of {o['recall_current_pubmed']['N']}, together "
+                      f"{o['recall_union']['n']} of {o['recall_union']['N']}"
+                      + (f"; gain: {', '.join(o['gain'])}" if o["gain"] else "; no gain") + ".")
+            over = [f"{tg} {x['openalex']['volume']} records" for x, tg in cands if (x, tg) not in ok]
+            if over:
+                oa_txt += f" Not adopted, over the 10,000 cap: {'; '.join(over)}."
+            q = best["proposal"]["openalex_search"]
+        else:
+            oa_txt, q = "OpenAlex: no proposal at or under the 10,000 cap; source registered, query pending.", None
+        text = (f"\n{HEAD5}\n\n- **A7 Open sources added** (decided 2026-10-07 by Mahmood: open sources only, no CENTRAL or "
+                f"Embase). (a) {oa_txt} (b) **WHO ICTRP** (trial registrations): registered; run by its open route, a "
+                f"person's Search Portal CSV/XML export (or WHO's full-dataset request form) ingested by "
+                f"scripts/g1_open_sources.py --ictrp-export. Automated querying is not used: trialsearch.who.int/robots.txt "
+                f"disallows all agents and WHO's web/crawling services are for agreed partners. Not yet run.\n")
+        out[slug] = {"state": "DRY_RUN" if dry else "AMENDED", "openalex_query": q}
+        if dry:
+            print(text)
+            continue
+        if q and q not in (cfg.get("openalex_queries") or []):
+            cfg["openalex_queries"] = list(cfg.get("openalex_queries") or []) + [q]
+        srcs = list(cfg.get("registry_sources") or [])
+        if not any(s.get("source") == "WHO ICTRP" for s in srcs):
+            srcs.append({"source": "WHO ICTRP", "route": "Search Portal CSV/XML export by a person (or WHO full-dataset "
+                         "request); automated access disallowed", "registered": "2026-10-07", "state": "REGISTERED_NOT_RUN"})
+        cfg["registry_sources"] = srcs
+        with open(tp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(cfg, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        with open(pp, "a", encoding="utf-8", newline="\n") as fh:
+            fh.write(text)
+    json.dump(out, open(os.path.join(SA, "active", "amendments_a7.json"), "w", encoding="utf-8", newline="\n"), indent=1,
+              ensure_ascii=False)
+    print({k: v["state"] for k, v in out.items()})
+
+
 if __name__ == "__main__" and "--cap" in sys.argv:
     cap_decision("--dry-run" in sys.argv)
+if __name__ == "__main__" and "--open-sources" in sys.argv:
+    open_sources_decision("--dry-run" in sys.argv)
 if __name__ == "__main__" and "--active" in sys.argv:
     active_decision([a for a in sys.argv[1:] if not a.startswith("--")], "--dry-run" in sys.argv)
