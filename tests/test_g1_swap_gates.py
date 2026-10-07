@@ -170,3 +170,13 @@ def test_PLANT_spelled_decimals_refuse_and_punctuation_ends_a_phase():
     assert sw.printed_counts("Phase 3: 5 randomized trials") == {5}
     assert sw.printed_counts("In the five Phase 3 studies") == {5}
     assert sw.printed_counts("Phase 3 studies") == set()
+
+
+def test_PLANT_opening_brackets_and_unicode_hyphens_keep_the_guards():
+    """codex swap-setquote-r6 #1 ('(Phase three studies)', '(twenty five trials)') and #2 ('twenty\u2011five trials')."""
+    assert sw.printed_counts("(Phase three studies)") == set()
+    assert sw.printed_counts("(twenty five trials)") == set()
+    assert sw.printed_counts("twenty\u2011five trials") == set()
+    assert sw.printed_counts("twenty\u2013five trials") == set()
+    assert sw.printed_counts("Phase 3: 5 randomized trials") == {5}
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}

@@ -1870,5 +1870,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r6": {
+  "base": "6b4e18ca2",
+  "head": "10062f993dd5a4d3215473fd2f62a0b03c23d12f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-70107d329a7d3cb6265e6f79925f6138",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "ba270ac14005523e954aa28de0177886d591a31726cbef5b60f6d7a1fcf217a9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / blocked_before",
+    "severity": "P0",
+    "claim": "Leading punctuation disables the phase and compound-number guards. These false counts can validate an invented pooled k.",
+    "failing_input": "printed_counts('(Phase three studies)'); printed_counts('(twenty five trials)')",
+    "expected": "set() for both: 'three' is a phase designation, and 'five' is part of twenty-five.",
+    "actual": "{3} and {5}, respectively. The preceding tokens '(phase' and '(twenty' fail the letters-only check, causing blocked_before to return False.",
+    "id": "swap-setquote-r6:g1#1",
+    "record_id": "mc-70107d329a7d3cb6265e6f79925f6138",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "Compound-number protection recognizes only ASCII hyphens. A nonbreaking hyphen lets the final number word become a false trial count that can validate pooled k.",
+    "failing_input": "printed_counts('twenty\\u2011five trials')",
+    "expected": "set(): refuse the unsupported compound number rather than extract its final component.",
+    "actual": "{5}. U+2011 neither blocks the word match nor splits the preceding tokens, so twenty-five is interpreted as five.",
+    "id": "swap-setquote-r6:g1#2",
+    "record_id": "mc-70107d329a7d3cb6265e6f79925f6138",
+    "verdict": null
+   }
+  ]
  }
 }

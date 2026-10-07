@@ -328,6 +328,8 @@ def printed_counts(q):
     number ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
     # whitespace of every kind is one space before anything is matched (codex swap-setquote-r3 #2: 'Phase\nthree')
     s = " ".join(str(q or "").split())
+    # every dash is a hyphen ('twenty‑five', en / em dash, minus; codex swap-setquote-r6 #2)
+    s = re.sub(r"[‐‑‒–—−]", "-", s)
     out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", s, re.I)}
     tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
     # the WORD before the count decides, not a fixed-width lookbehind (three review rounds each found a new gap):
@@ -345,7 +347,9 @@ def printed_counts(q):
         ('twenty five', 'thirty-five'), 'point' ('four point five'; codex r5 #1) or 'phase'; or it is 'and' right after a
         number word ('one hundred and twenty'). Punctuation on the previous token ends the link ('Phase 3: 5 randomized
         trials' -> 5; codex r5 #2), and a plain conjunction ('cohorts and 5 randomized trials') blocks nothing."""
-        pt = prev_tokens(i)
+        # an OPENING bracket or quote does not end the link ('(Phase three studies)', '(twenty five trials)'; codex r6 #1);
+        # trailing punctuation does ('Phase 3: 5 randomized trials')
+        pt = [t.lstrip("([{\"'‘“") for t in prev_tokens(i)]
         if not pt or not re.fullmatch(r"[a-z]+", pt[-1]):
             return False
         if pt[-1] in number_words or pt[-1] in ("phase", "point"):
