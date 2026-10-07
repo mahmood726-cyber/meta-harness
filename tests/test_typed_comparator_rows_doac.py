@@ -1,0 +1,34 @@
+"""Plants: doac 29795629 Table 1 typed rows (scripts/typed_comparator_rows.py, deterministic regex) pass the tracker's own
+re-check (scripts/g1_tracker.typed_comparator_rows: held sha256, span verbatim, every number printed in its span), and a
+value that is not printed in its row's span is refused."""
+import copy
+import json
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
+import g1_tracker as gt  # noqa: E402
+import typed_comparator_rows as tcr  # noqa: E402
+
+SLUG = "doac-vte-recurrence"
+
+
+def test_PLANT_the_reader_reproduces_the_committed_rows_and_the_tracker_accepts_them():
+    d = tcr.read(SLUG)
+    committed = json.load(open(os.path.join(ROOT, "registry", "comparator_rows", f"{SLUG}.json"), encoding="utf-8"))
+    assert d == committed                                   # regenerated, never hand-entered
+    assert [r["label"] for r in d["rows"]] == ["RE-COVER", "EINSTEIN-DVT", "AMPLIFY", "Hokusai-VTE", "RE-COVER II"]
+    assert (d["rows"][3]["events_t"], d["rows"][3]["n_t"], d["rows"][3]["events_c"], d["rows"][3]["n_c"]) == (130, 4118, 146, 4122)
+    got = gt.typed_comparator_rows(SLUG, "29795629")
+    assert got is not None and len(got["rows"]) == 5
+    assert gt.typed_comparator_rows(SLUG, "24963045") is None          # another comparator: never read
+
+
+def test_PLANT_a_number_not_printed_in_its_span_refuses_the_whole_file(tmp_path, monkeypatch):
+    d = copy.deepcopy(tcr.read(SLUG))
+    d["rows"][0]["events_t"] = 31
+    p = tmp_path / f"{SLUG}.json"
+    p.write_text(json.dumps(d), encoding="utf-8")
+    monkeypatch.setattr(gt, "TYPED_COMPARATOR_ROWS", str(tmp_path / "{slug}.json"))
+    assert gt.typed_comparator_rows(SLUG, "29795629") is None
