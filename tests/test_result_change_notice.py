@@ -453,3 +453,11 @@ def test_PLANT_negation_with_words_between_refuses():
                reason="not currently eligible evidence awaiting adjudication; the numbers are not asserted wrong.")
     back = _n("2026-10-06T00:00:00Z", entered=["T1"])
     assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None
+
+
+def test_PLANT_asserted_wrong_in_any_case_refuses():
+    """codex v8-apply-r12 #3: 'Asserted Wrong' in another case still asserts something wrong."""
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"],
+               reason="eligible evidence awaiting adjudication; the numbers are not asserted wrong; denominators ASSERTED WRONG.")
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None

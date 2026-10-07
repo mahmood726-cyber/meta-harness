@@ -86,7 +86,8 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]], root: s
             return None
         if not re.search(r"(?<![A-Za-z])eligible evidence awaiting adjudication", r) or "ineligible" in r.lower() \
                 or re.search(r"\b(not|no longer|never|non)\b[^.;:]{0,40}\beligible\b", r, re.I) \
-                or "the numbers are not asserted wrong" not in r or "asserted wrong" in r.replace("not asserted wrong", ""):
+                or "the numbers are not asserted wrong" not in r \
+                or "asserted wrong" in r.lower().replace("not asserted wrong", ""):   # case-insensitive (codex r12 #3)
             return None        # ... and no negated eligibility ('not eligible evidence'; codex v8-apply-r9 #2)
         out[tid] = p
     return out
