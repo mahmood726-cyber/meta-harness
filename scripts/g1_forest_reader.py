@@ -2343,7 +2343,10 @@ def main(argv):
         print("REPLAY_OK" if not probs else "REPLAY_PROBLEMS", json.dumps(probs, indent=1))
         return 0 if not probs else 1
     if run:
-        todo = [(it, rd) for it in its for rd in ("codex", "agy")
+        # G1_READERS: the readers THIS box runs (7 Oct: the worker's agy is not signed in -> 'codex' there, both here;
+        # the gate always judges the pair, so a figure with one reading stays unjudged until the other is recorded)
+        readers = tuple(r for r in os.environ.get("G1_READERS", "codex,agy").split(",") if r in ("codex", "agy"))
+        todo = [(it, rd) for it in its for rd in readers
                 if not (runs.get(_key(it, rd)) or {}).get("state") == "RAN_OK"
                 or runs[_key(it, rd)]["image_sha256"] != it["image_sha256"]
                 or runs[_key(it, rd)]["prompt_sha256"] != hashlib.sha256(prompt_bytes(it["figure"], rd)).hexdigest()]
