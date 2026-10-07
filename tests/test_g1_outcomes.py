@@ -114,3 +114,25 @@ def test_counts_pool_on_the_comparators_measure_and_other_scales_are_never_conve
     st, why = go.to_study({"id": "C", "events_t": 120, "n_t": 100, "events_c": 20, "n_c": 100}, "OR")
     assert st is None                                   # events > N is never pooled
     assert go._f("0·77") == 0.77 and go._f("−10.94") == -10.94
+
+
+def test_a_space_separated_thousand_is_the_number():
+    import g1_trial_acquire as ta
+    q = "Complications * | 10 033 | 9985 | .. | Sepsis | 180 (1·8%) | 185 (1·9%)"
+    assert ta._num_in(10033, q) and ta._num_in(9985, q) and ta._num_in(180, q)
+    assert not ta._num_in(1003, q)
+
+
+def test_a_ladder_row_bound_to_another_outcome_is_named_and_set_aside():
+    # 7 Oct (D10): the served abstract extractor gave 'Death from any cause' DECLARE's RENAL HR 0.76 (the effect sits in
+    # the clause before the keyword), and a structured CT.gov row 'HF Hospitalisations' was bound to 'Non-HF
+    # hospitalizations' -- both would serve another outcome's number under the new outcome's name
+    sp = {"name": "Death from any cause", "keywords": ["death from any cause", "all-cause mortality"]}
+    src = ("abstract effect+CI (HR): A renal event occurred in 4.3% in the dapagliflozin group and in 5.6% in the placebo "
+           "group (hazard ratio, 0.76; 95% CI, 0.67 to 0.87), and death from any cause occurred in 6.2% and 6.6%")
+    assert go.ladder_misbound({"effect": 0.76, "source": src}, sp)
+    ok = "abstract effect+CI (HR): death from any cause occurred in 6.2% and 6.6% (hazard ratio, 0.93; 95% CI 0.82 to 1.04)"
+    assert not go.ladder_misbound({"effect": 0.93, "source": ok}, sp)
+    nh = {"name": "Non-HF hospitalizations", "keywords": ["non-hf hospitalizations"]}
+    st = "ClinicalTrials.gov results (structured target endpoint): outcome 'HF Hospitalisations' HR 0.73 (95% CI 0.59 to 0.92)"
+    assert go.ladder_misbound({"effect": 0.73, "source": st}, nh)

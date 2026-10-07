@@ -438,9 +438,12 @@ def _ws(s):
 
 
 def _num_in(v, span):
+    """A whole number printed in the span: plain, comma-grouped, or grouped by a (thin) space -- the Lancet's '10 033'
+    (WOMAN, 7 Oct: five verbatim table rows were refused NUMBERS_NOT_IN_QUOTE)."""
     if v is None:
         return True
-    return bool(re.search(rf"(?<![\d.,]){int(v):,}(?![\d])|(?<![\d.,]){int(v)}(?![\d])", span))
+    grouped = re.escape(f"{int(v):,}").replace(",", "[,\\s  ]")
+    return bool(re.search(rf"(?<![\d.,]){grouped}(?![\d])|(?<![\d.,]){int(v)}(?![\d])", span))
 
 
 def _str_in(v, span):

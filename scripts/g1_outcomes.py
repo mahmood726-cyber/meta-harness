@@ -568,11 +568,45 @@ def d10_outcomes(slug):
 
 
 def _row_of(tr):
-    eo = tr.get("effect_object") or {}
+    """A served-ladder trial row: its arm counts live on ai / n1i / ci / n2i ('ci' = control EVENTS, not an interval;
+    reading effect_object dropped every count, 7 Oct). The source sentence is kept whole for the identity guard."""
+    cnt = dict(zip(("events_t", "n_t", "events_c", "n_c"), (tr.get("ai"), tr.get("n1i"), tr.get("ci"), tr.get("n2i"))))
+    cnt = {k: int(v) for k, v in cnt.items() if isinstance(v, (int, float)) and v == int(v)}
     return {"id": tr.get("id"), "scale": tr.get("scale"), "effect": tr.get("effect"), "ci_low": tr.get("ci_low"),
-            "ci_high": tr.get("ci_high"), "counts": {k: eo.get(k) for k in ("events_t", "n_t", "events_c", "n_c")
-                                                     if eo.get(k) is not None} or None,
-            "provenance": tr.get("provenance"), "source": _excerpt(tr.get("source"), 300)}
+            "ci_high": tr.get("ci_high"), "counts": cnt if len(cnt) == 4 else None,
+            "provenance": tr.get("provenance"), "source": tr.get("source")}
+
+
+def _fmt(v):
+    return [f"{v:g}", f"{v:.2f}", f"{v:.1f}"] if isinstance(v, float) else [str(v)]
+
+
+def ladder_misbound(r, spec):
+    """The served ladder's row is about ANOTHER outcome -> the reason, else None (the row is not used and is named).
+      structured CT.gov  the posted outcome title must pass g1_tracker.binding_verdict for OUR outcome ('HF
+                         Hospitalisations' is not 'Non-HF hospitalizations')
+      abstract           the row's number must sit in the SAME clause as our outcome's words: the text since the last
+                         ')' or ';' before the number names a keyword (DECLARE's renal HR 0.76 preceded 'death from any
+                         cause')"""
+    import g1_tracker as gt
+    src = r.get("source") or ""
+    kws = [k for k in (spec.get("keywords") or []) if len(k) >= 4] + [spec["name"]]
+    m = re.search(r"outcome '([^']+)'", src)
+    if m:
+        bv = gt.binding_verdict(spec["name"], kws, m.group(1), 2)
+        return None if bv["verdict"] == "BINDABLE" else f"STRUCTURED_TITLE_IS_ANOTHER_OUTCOME: '{m.group(1)}' ({bv['gate']})"
+    v = r.get("effect") if r.get("effect") is not None else (r.get("counts") or {}).get("events_t")
+    if v is None:
+        return None
+    body = src.split(":", 1)[1] if ":" in src[:80] else src
+    pos = min((p.start() for f in _fmt(v) for p in [re.search(rf"(?<![\d.]){re.escape(f)}(?![\d])", body)] if p),
+              default=None)
+    if pos is None:
+        return None
+    seg = body[:pos]
+    seg = seg[max(seg.rfind(")"), seg.rfind(";")) + 1:]
+    return None if any(k.lower() in seg.lower() for k in kws) else \
+        f"NUMBER_NOT_IN_THE_OUTCOME'S_CLAUSE: '{_excerpt(seg, 120)}'"
 
 
 def _arm(title, t):
@@ -819,10 +853,14 @@ def _f(x):
 
 def our_rows(slug, o, acquired):
     """Every row we hold for one outcome: ladder (served path), typed AACT, and gated recorded rows (ADMITTED only).
-    -> [{id, source_kind, measure, effect, lower, upper, events_t, n_t, events_c, n_c, basis}]"""
-    rows = []
+    -> ([{id, source_kind, measure, effect, lower, upper, events_t, n_t, events_c, n_c, basis}], [misbound ladder rows])"""
+    rows, misbound = [], []
     for r in o["ladder_rows"]:
         c = r.get("counts") or {}
+        why = ladder_misbound(r, o["spec"])
+        if why:
+            misbound.append({"id": r["id"], "why": why, "source": _excerpt(r.get("source"), 300)})
+            continue
         rows.append({"id": r["id"], "source_kind": "LADDER", "measure": (r.get("scale") or "").upper(), "effect": r.get("effect"),
                      "lower": r.get("ci_low"), "upper": r.get("ci_high"), **{k: c.get(k) for k in ("events_t", "n_t", "events_c", "n_c")},
                      "basis": r.get("source")})
@@ -837,7 +875,7 @@ def our_rows(slug, o, acquired):
                          **{k: w.get(k) for k in ("events_t", "n_t", "events_c", "n_c")},
                          "basis": f"{a.get('source')} | {_excerpt(a.get('span') or a.get('quote'), 300)}"
                                   + (f" | record {a['record_id']}" if a.get("record_id") else "")})
-    return rows
+    return rows, misbound
 
 
 def to_study(r, measure):
@@ -861,14 +899,14 @@ def compare_outcome(slug, o, acquired, pool_n):
     cr = o.get("comparator_result") or {}
     m = estimand_of(cr.get("measure")) or (o["spec"].get("estimand") or "").upper()
     theirs = {"estimate": _f(cr.get("estimate")), "ci_low": _f(cr.get("lower")), "ci_high": _f(cr.get("upper"))}
-    rows = our_rows(slug, o, acquired)
+    rows, misbound = our_rows(slug, o, acquired)
     studies, md = [], []
     for r in rows:
         st, why = to_study(r, m)
         (studies.append(st) if st else md.append({"id": r["id"], "why": why, "measure": r.get("measure"),
                                                   "effect": r.get("effect"), "lower": r.get("lower"), "upper": r.get("upper")}))
     out = {"outcome": o["name"], "kind": o["kind"], "comparator": {"name": o.get("comparator_name"), "measure": m,
-           **theirs, "k": cr.get("k"), "span": o.get("comparator_span")}, "our_rows": rows, "measure_differences": md,
+           **theirs, "k": cr.get("k"), "span": o.get("comparator_span")}, "our_rows": rows, "ladder_rows_misbound": misbound, "measure_differences": md,
            "k_ours_on_measure": len(studies), "pool_trials": pool_n,
            "basis_note": "the comparator printed a POOLED result only (no per-trial rows): our pool vs its printed pool; "
                          "the two trial sets can differ"}
