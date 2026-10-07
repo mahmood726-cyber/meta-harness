@@ -156,3 +156,43 @@ def test_k_from_a_verbatim_set_quote_of_the_same_analysis():
     assert sw.pooled_gate(p, nt, k_quote=sq)[1] == 5
     assert sw.pooled_gate(p, nt, k_quote=other) == (None, None)
     assert sw.pooled_gate(p, nt, k_quote="five Phase 3 studies, OR 0.88 (0.75-1.03) [not in text]") == (None, None)
+
+
+def test_an_enumerated_row_span_verifies_in_the_tables_own_check(tmp_path):
+    # 7 Oct (doac-vte 29795629): units carried the reader's jats_text row 'RE-COVER | 2009 | ... |' while k_gap_table's
+    # enumeration_units checks spans in held_norm (cells joined by spaces) -- all 5 spans 'missed' their held source,
+    # the whole enumeration was refused and the swapped topic counted N=0
+    import k_gap_table as kt
+    body = ('<table-wrap><table><tr><td>Alpha</td><td>2009</td><td>30/1274</td></tr>'
+            '<tr><td>Beta</td><td>2010</td><td>36/1731</td></tr></table></table-wrap>')
+    xml = _xml("Included: Alpha [1] and Beta [2].") .replace("<p>", body + "<p>", 1)
+    p = tmp_path / "x_jats.xml"
+    p.write_text(xml, encoding="utf-8")
+    text = sw.jats_text(xml)
+    units, refused, _, _ = sw.gate_enum({"trials": [{"label": "Alpha", "ref": "1", "row_quote": "Alpha | 2009 | 30/1274 |"},
+                                                    {"label": "Beta", "ref": "2", "row_quote": "Beta | 2010 | 36/1731 |"}],
+                                         "pooled": {}, "set_quote": None}, {"text": text, "xml": xml, "pmid": "33333333"})
+    assert len(units) == 2 and not refused
+    held = kt.held_norm(str(p))
+    assert all(kt.held_norm(None, ln) in held for u in units for ln in u["span"].split(" / "))
+
+
+TBL = ("Study | Publication Year | DOAC and dosing regimen | Primary Events /Total N | Comparator | Primary Events /Total N | Age |\n"
+       "RE-COVER | 2009 | Dabigatran 150mg twice daily | 30/1274 | Warfarin | 27/1265 | 55.5 |\n"
+       "AMPLIFY | 2013 | Apixaban 10mg | 59/2609 | Enoxaparin then warfarin | 71/2635 | 57.0 |\n")
+
+
+def test_comparator_rows_are_typed_only_from_a_header_that_names_the_arms():
+    # 7 Oct: the swapped doac-vte comparator prints per-trial events/N; rows are typed mechanically, arm order taken
+    # from the header ('<intervention> ... Events/N | Comparator | Events/N'), never assumed
+    units = [{"label": "RE-COVER"}, {"label": "AMPLIFY"}]
+    rows, why = sw.type_rows(TBL, units, ["DOAC", "dabigatran"], "OR")
+    assert why is None and [(r["events_t"], r["n_t"], r["events_c"], r["n_c"]) for r in rows] == [(30, 1274, 27, 1265), (59, 2609, 71, 2635)]
+    assert rows[0]["span"] == "RE-COVER 2009 Dabigatran 150mg twice daily 30/1274 Warfarin 27/1265 55.5" and rows[0]["measure"] == "OR"
+    swapped = TBL.replace("DOAC and dosing regimen | Primary Events /Total N | Comparator |",
+                          "Comparator | Primary Events /Total N | DOAC and dosing regimen |")
+    assert swapped != TBL
+    rows, why = sw.type_rows(swapped, units, ["DOAC", "dabigatran"], "OR")
+    assert rows == [] and why == "HEADER_DOES_NOT_NAME_ARMS"
+    rows, why = sw.type_rows(TBL, units + [{"label": "Hokusai-VTE"}], ["DOAC"], "OR")
+    assert rows == [] and why.startswith("ROW_NOT_FOUND")

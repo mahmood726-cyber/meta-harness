@@ -770,7 +770,9 @@ def gate_enum(claim, it):
         if not pmid:
             refused.append({"label": lab, "ref": ref, "why": "IDENTITY_UNRESOLVED", "reference_title": r.get("title")})
             continue
-        span = rq if rq else (r.get("title") or lab)
+        # the span in the HELD source's own form (k_gap_table.held_norm: tags -> spaces), never this reader's ' | ' cell
+        # rendering -- the table re-verifies every span there and refused all 5 doac-vte rows (7 Oct)
+        span = re.sub(r"\s+", " ", (rq if rq else (r.get("title") or lab)).replace("|", " ")).strip()
         units.append({"label": lab, "ref": ref, "pmid": pmid, "identity": ident, "span": span, "scope": "IN_SCOPE",
                       "rule_id": None})
     sq = claim.get("set_quote")
@@ -837,6 +839,8 @@ def cmd_apply(slugs):
     is complete (status ENUMERATED): enumeration file, adoption record, comparators.json entry (old one kept under
     'replaces' with its retirement), topic comparator_pmid. A KEEP / NO_ACHIEVABLE topic is never touched."""
     import shutil
+    import datetime
+    TODAY = datetime.date.today().isoformat()      # the ADOPTION date (DATE is the cache / pre-registration date)
     for s in slugs:
         sel = _j(os.path.join(SEL, f"{stem(s)}.selection.json"))
         ep = os.path.join(ROOT, "registry", "comparator_enumerations", f"{base(s)}.swap.json")
@@ -864,12 +868,15 @@ def cmd_apply(slugs):
         held = _held_old(base(s), old)
         ht = _norm(jats_text(open(os.path.join(ROOT, held), encoding="utf-8", errors="replace").read())) if held else ""
         fails = (sel.get("R0") or {}).get("failing") or []
-        spans = [f["evidence"] for f in fails if f.get("evidence") and ht and _norm(f["evidence"]) in ht]
+        # the REASON is the criteria that FAILED; an UNCLEAR one (e.g. C2-C6 'not read' behind a C1 licence FAIL) is not
+        # a reason the comparator was retired, and only stands in when nothing failed outright
+        fails = [f for f in fails if f.get("verdict") == "FAIL"] or fails
+        spans =[f["evidence"] for f in fails if f.get("evidence") and ht and _norm(f["evidence"]) in ht]
         retired = {"comparator_pmid": old, "reason_code": "R0:" + "+".join(f["criterion"] for f in fails),
                    "why": "; ".join(f"{f['criterion']} {f['verdict']}: {str(f.get('evidence'))[:200]}" for f in fails),
                    "spans": spans, "source": ({"path": held, "sha256": hashlib.sha256(open(os.path.join(ROOT, held), "rb").read()).hexdigest()}
                                               if held else None),
-                   "retired_on": DATE, "record": "kept: cache/<slug>/comparators.json 'replaces', and the G1 denominator ledger"}
+                   "retired_on": TODAY, "record": "kept: cache/<slug>/comparators.json 'replaces', and the G1 denominator ledger"}
         pl = en["pooled"]
         adoption = {"slug": base(s), "round": stem(s), "comparator_pmid": new, "comparator_pmcid": cand.get("pmcid"),
                     "comparator_type": "COMPARATOR_WITH_PER_TRIAL_ROWS",
@@ -893,14 +900,14 @@ def cmd_apply(slugs):
             oldc = [{k: v for k, v in e.items() if k != "retired"} for e in oldc[0].get("replaces") or []]
         entry = {"id": new, "citation": f"{cand.get('title')} PMID {new}", "year": (cand.get("pubdate") or "")[:4],
                  "comparator_type": "COMPARATOR_WITH_PER_TRIAL_ROWS",
-                 "scope_note": (f"Registered comparator identity (adopted {DATE}, pre-registered selection rule "
+                 "scope_note": (f"Registered comparator identity (adopted {TODAY}, pre-registered selection rule "
                                 f"{str(sel['rule_commit'])[:9]}). Its trial set and pooled result are typed, with spans "
                                 f"verified in held sources, in registry/comparator_selection/{base(s)}.adoption.json and "
                                 f"registry/comparator_enumerations/{s}.json."),
                  "held": True, "document_ref": src, "document_sha256": en["source"]["sha256"],
                  "trial_set": [], "k": None, "effect": None, "ci": None, "i2": None, "pi": None, "method": None,
                  "replaces": [dict(e, retired={"reason_code": retired["reason_code"],
-                                               "span": (spans[0] if spans else retired["why"][:300]), "date": DATE}) for e in oldc]}
+                                               "span": (spans[0] if spans else retired["why"][:300]), "date": TODAY}) for e in oldc]}
         with open(cp, "w", encoding="utf-8", newline="\n") as fh:
             json.dump([entry], fh, indent=2, ensure_ascii=False)
         tp = os.path.join(ROOT, "topics", base(s) + ".json")
@@ -908,7 +915,80 @@ def cmd_apply(slugs):
         t["comparator_pmid"] = new
         with open(tp, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(t, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")                                 # the topic file's own trailing newline (diff noise otherwise)
         print(s, "SWAPPED", old, "->", new, "units", len(en["units"]), "retired", retired["reason_code"], flush=True)
+
+
+# ----------------------------------------------------------------------------------------------- typed comparator rows
+_COUNT_HDR = re.compile(r"events?\s*/\s*(?:total\s*)?n\b", re.I)
+
+
+def type_rows(text, units, intervention_terms, measure):
+    """The adopted comparator's OWN per-trial counts, typed mechanically from its table (jats_text rendering), one row per
+    enumerated unit -> (rows, None) or ([], why). Arm order comes from the HEADER only: exactly two events/N columns,
+    the first preceded by an intervention-named column and the second by a 'Comparator' / 'Control' column. These rows
+    are only ever the comparator side (g1_tracker.typed_comparator_rows re-checks digest + spans)."""
+    lines = text.splitlines()
+    idx = {}
+    for u in units:
+        i = next((n for n, ln in enumerate(lines) if ln.startswith(u["label"] + " |")), None)
+        if i is None:
+            return [], f"ROW_NOT_FOUND:{u['label']}"
+        idx[u["label"]] = i
+    first = min(idx.values())
+    hdr = next((lines[n] for n in range(first - 1, max(first - 40, -1), -1) if len(_COUNT_HDR.findall(lines[n])) >= 1), None)
+    if hdr is None:
+        return [], "NO_HEADER"
+    cells = [c.strip() for c in hdr.split("|")]
+    cnt = [i for i, c in enumerate(cells) if _COUNT_HDR.search(c)]
+    if len(cnt) != 2 or min(cnt) < 1:
+        return [], "HEADER_NOT_TWO_COUNT_COLUMNS"
+    arm1, arm2 = cells[cnt[0] - 1], cells[cnt[1] - 1]
+    named = re.compile(r"\b(" + "|".join(re.escape(t) for t in intervention_terms) + r")\b", re.I)
+    if not named.search(arm1) or re.search(r"\b(comparator|control)\b", arm1, re.I) or \
+            not re.search(r"\b(comparator|control)\b", arm2, re.I):
+        return [], "HEADER_DOES_NOT_NAME_ARMS"
+    rows = []
+    for u in units:
+        ln = lines[idx[u["label"]]]
+        rc = [c.strip() for c in ln.split("|")]
+        got = [re.fullmatch(r"(\d[\d,]*)\s*/\s*(\d[\d,]*)", rc[i]) if i < len(rc) else None for i in cnt]
+        if not all(got):
+            return [], f"ROW_COUNTS_UNPARSED:{u['label']}"
+        (et, nt), (ec, nc) = [(int(m.group(1).replace(",", "")), int(m.group(2).replace(",", ""))) for m in got]
+        rows.append({"label": u["label"], "measure": measure, "effect": None, "lower": None, "upper": None,
+                     "events_t": et, "n_t": nt, "events_c": ec, "n_c": nc,
+                     "span": re.sub(r"\s+", " ", ln.replace("|", " ")).strip()})
+    return rows, None
+
+
+def cmd_rows(slugs):
+    """registry/comparator_rows/<slug>.json for an ADOPTED swap: the comparator's own per-trial counts for the enumerated
+    units, typed by type_rows from its held source. Refused (nothing written) unless every unit types."""
+    for s in slugs:
+        b = base(s)
+        en = _j(os.path.join(ROOT, "registry", "comparator_enumerations", f"{b}.json"))
+        ad = _j(os.path.join(SEL, f"{b}.adoption.json"))
+        if str(en.get("comparator_pmid")) != str(ad.get("comparator_pmid")) or \
+                str(protocol(b)["current_comparator"]) != str(ad.get("comparator_pmid")):
+            print(s, "rows refused: enumeration / adoption / topic comparator disagree")
+            continue
+        src = en["source"]["path"]
+        text = jats_text(open(os.path.join(ROOT, src), encoding="utf-8", errors="replace").read())
+        measure = ((ad.get("pooled_result") or {}).get("measure") or "").upper()
+        rows, why = type_rows(text, en["units"], protocol(b)["intervention_terms"], measure)
+        if why:
+            print(s, "rows refused:", why)
+            continue
+        out = {"slug": b, "comparator_pmid": ad["comparator_pmid"],
+               "outcome": f"the comparator table's per-trial primary efficacy events / N (pooled as {measure})",
+               "typed_by": "scripts/g1_swap.py rows (type_rows: arm order from the table header)",
+               "source": {"path": src, "sha256": en["source"]["sha256"]}, "rows": rows}
+        os.makedirs(os.path.join(ROOT, "registry", "comparator_rows"), exist_ok=True)
+        with open(os.path.join(ROOT, "registry", "comparator_rows", f"{b}.json"), "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(out, fh, indent=1, ensure_ascii=False)
+            fh.write("\n")
+        print(s, "rows typed", len(rows), flush=True)
 
 
 if __name__ == "__main__":
@@ -917,4 +997,4 @@ if __name__ == "__main__":
     run = "--run" in args
     args = [a for a in args if not a.startswith("--")]
     {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run),
-     "enumerate": lambda a: cmd_enumerate(a, run=run), "apply": cmd_apply}[cmd](args)
+     "enumerate": lambda a: cmd_enumerate(a, run=run), "apply": cmd_apply, "rows": cmd_rows}[cmd](args)
