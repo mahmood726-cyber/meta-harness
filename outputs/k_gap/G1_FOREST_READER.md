@@ -2,10 +2,10 @@
 
 Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1 Pro (High)`), every call recorded under evidence/model_calls/forest/ and replayed byte-identically. A row is PROPOSED only when both readings agree within the printed rounding; a figure is ACCEPTED only when the agreed rows, pooled by the meta's STATED model, reproduce its printed pool and CI. Accepted rows are SECONDARY rows: never pool inputs, never counted toward agreement with their own meta; another meta's rows feed the two-source rule.
 
-- comparators of 32 tracker topics; other metas selected by the two-source sweep: 714
-- ALL: figures read by both models 273; ACCEPTED 137, REFUSED 135 (pooled-reconstruction pass rate 137 of 273); rows proposed 2035, refused (readings disagree) 568, accepted as secondary 1111
+- comparators of 32 tracker topics; other metas selected by the two-source sweep: 948
+- ALL: figures read by both models 311; ACCEPTED 150, REFUSED 160 (pooled-reconstruction pass rate 150 of 311); rows proposed 2245, refused (readings disagree) 682, accepted as secondary 1225
 - comparators: figures read by both models 23; ACCEPTED 21, REFUSED 2 (pooled-reconstruction pass rate 21 of 23); rows proposed 212, refused (readings disagree) 0, accepted as secondary 212
-- other metas (two-source sweep): figures read by both models 250; ACCEPTED 116, REFUSED 133 (pooled-reconstruction pass rate 116 of 250); rows proposed 1823, refused (readings disagree) 568, accepted as secondary 899
+- other metas (two-source sweep): figures read by both models 288; ACCEPTED 129, REFUSED 158 (pooled-reconstruction pass rate 129 of 288); rows proposed 2033, refused (readings disagree) 682, accepted as secondary 1013
 
 ## Comparators
 
@@ -117,7 +117,18 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 | dapagliflozin-hfpef-hosp | PMID 41147324 | dom70224-fig-0002 | **REFUSED** | 0 / 0 | STATED ['DL', 'PM', 'REML'] |  (-) |  | ROWS_ARE_NOT_STUDIES:subgroup/subgroup, NO_POOLED_ROW_PRINTED |
 | dapagliflozin-hfpef-hosp | PMID 41180724 | F3 | **REFUSED** | 0 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, NO_POOLED_ROW_PRINTED |
 | dapagliflozin-hfpef-hosp | PMID 41597355 | medicina-62-00069-f003 | **ACCEPTED** | 3 / 0 | STATED ['DL'] | 0.79 (0.69-0.89) | DL 0.7849 (0.6940-0.8877) | - |
+| doac-vte-recurrence | PMID 27020475 | f6 | **REFUSED** | 9 / 9 | STATED ['MH-RE'] | 0.36 (0.21-0.61) | MH-RE 0.3583 (0.2115-0.6069) | ROWS_DISAGREE:9 |
+| doac-vte-recurrence | PMID 33581718 | Fig2 | **REFUSED** | 6 / 2 | STATED ['MH-FE'] | 0.75 (0.50-1.11) | MH-FE 0.7456 (0.4993-1.1135) | ROWS_DISAGREE:2 |
+| doac-vte-recurrence | PMID 33633574 | F7 | **REFUSED** | 4 / 3 | STATED ['MH-FE'] | 0.87 (0.65-1.17) | MH-FE 0.8683 (0.6451-1.1688) | ROWS_DISAGREE:3 |
 | doac-vte-recurrence | PMID 33726018 | F3 | **REFUSED** | 0 / 10 | STATED ['DL', 'FE', 'PM', 'REML'] |  (-) |  | ROWS_ARE_NOT_STUDIES:none/none, NO_POOLED_ROW_PRINTED, ROWS_DISAGREE:10 |
+| doac-vte-recurrence | PMID 33732144 | F3 | **REFUSED** | 3 / 0 | STATED ['DL'] | 1.74 (1.43-2.13) | DL 2.1899 (1.4042-3.4151) | RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL |
+| doac-vte-recurrence | PMID 35801133 | fig3 | **REFUSED** | 0 / 16 | STATED ['DL', 'PM', 'REML'] |  (-) |  | ROWS_ARE_NOT_STUDIES:subgroup/subgroup, NO_POOLED_ROW_PRINTED, ROWS_DISAGREE:16 |
+| doac-vte-recurrence | PMID 37139185 | F2 | **ACCEPTED** | 18 / 0 | STATED ['MH-RE'] | 0.71 (0.61-0.84) | MH-RE 0.7150 (0.6055-0.8443) | - |
+| doac-vte-recurrence | PMID 37711939 | FIG7 | **ACCEPTED** | 4 / 0 | STATED ['MH-FE'] | 0.61 (0.41-0.92) | MH-FE 0.6123 (0.4096-0.9152) | - |
+| doac-vte-recurrence | PMID 38770962 | F0004 | **REFUSED** | 8 / 0 | STATED ['DL'] |  (-) |  | POOLED_ROW_DISAGREES |
+| doac-vte-recurrence | PMID 39583376 | FIG2 | **REFUSED** | 0 / 0 | STATED ['MH-RE'] |  (-) |  | ROWS_ARE_NOT_STUDIES:subgroup/subgroup, NO_POOLED_ROW_PRINTED |
+| doac-vte-recurrence | PMID 41295442 | neurolint-17-00183-f003 | **REFUSED** | 9 / 0 | STATED ['MH-FE'] | -0.04 (-0.07--0.00) |  | STATED_MODEL_NOT_COMPUTABLE_FROM_ROWS |
+| doac-vte-recurrence | PMID 41487575 | f3 | **REFUSED** | 2 / 8 | STATED ['DL'] | 0.83 (0.16-4.29) | DL 0.8299 (0.4968-1.3865) | ROWS_DISAGREE:8, RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL |
 | empagliflozin-hfpef-hosp | PMID 33335975 | f0015 | **REFUSED** | 0 / 5 | STATED ['PM', 'PM+HK'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, POOLED_ROW_DISAGREES, ROWS_DISAGREE:5 |
 | empagliflozin-hfpef-hosp | PMID 33586910 | ehf213169-fig-0001 | **ACCEPTED** | 7 / 0 | STATED ['DL'] | 0.77 (0.72-0.83) | DL 0.7711 (0.7165-0.8298) | - |
 | empagliflozin-hfpef-hosp | PMID 34308311 | fig0004 | **ACCEPTED** | 9 / 0 | STATED ['FE'] | 0.75 (0.70-0.80) | FE 0.7467 (0.6973-0.7997) | - |
@@ -155,6 +166,7 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 | iv-iron-hfref-hosp | PMID 39627692 | Fig7 | **REFUSED** | 27 / 1 | STATED ['MH-FE', 'MH-RE'] |  (-) |  | NO_POOLED_ROW_PRINTED, ROWS_DISAGREE:1 |
 | iv-iron-hfref-hosp | PMID 40159279 | Fig4 | **REFUSED** | 6 / 0 | STATED ['PM', 'PM+HK'] | 0.78 (0.55-0.98) | PM 0.7316 (0.5496-0.9737); PM+HK 0.7316 (0.5027-1.0645) | ROW_COUNTS_DO_NOT_GIVE_PRINTED_EFFECT_LOWER_UPPER:FAIR–HF, ROW_COUNTS_DO_NOT_GIVE_PRINTED_LOWER_UPPER:CONFIRM–HF, ROW_COUNTS_DO_NOT_GIVE_PRINTED_EFFECT_LOWER_UPPER:AFFIRM–AHF, ROW_COUNTS_DO_NOT_GIVE_PRINTED_EFFECT_LOWER_UPPER:IRONMAN, ROW_COUNTS_DO_NOT_GIVE_PRINTED_EFFECT_LOWER:HEART–FID, ROW_COUNTS_DO_NOT_GIVE_PRINTED_EFFECT_LOWER_UPPER:FAIR–HF2, RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL |
 | iv-iron-hfref-hosp | PMID 41711738 | xvaf018-F3 | **REFUSED** | 6 / 0 | STATED ['PM'] | 0.75 (0.60-0.94) | PM 0.6864 (0.4835-0.9745) | RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL |
+| melatonin-primary-insomnia-sol | PMID 23691095 | pone-0063773-g001 | **ACCEPTED** | 15 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | 7.06 (4.37-9.75) | DL 9.4873 (4.5092-14.4653); FE 7.0606 (4.3765-9.7448); PM 9.6253 (4.3752-14.8754); REML 9.5779 (4.4248-14.7310) | - |
 | melatonin-primary-insomnia-sol | PMID 32580450 | jcm-09-01949-f008 | **REFUSED** | 0 / 0 | STATED ['DL', 'PM', 'REML'] |  (-) |  | ROWS_ARE_NOT_STUDIES:subgroup/subgroup, NO_POOLED_ROW_PRINTED |
 | melatonin-primary-insomnia-sol | PMID 32580450 | jcm-09-01949-f007 | **REFUSED** | 0 / 0 | STATED ['DL', 'PM', 'REML'] |  (-) |  | ROWS_ARE_NOT_STUDIES:subgroup/outcome, NO_POOLED_ROW_PRINTED |
 | melatonin-primary-insomnia-sol | PMID 32580450 | jcm-09-01949-f008 | **REFUSED** | 0 / 0 | STATED ['DL', 'PM', 'REML'] |  (-) |  | ROWS_ARE_NOT_STUDIES:subgroup/none, NO_POOLED_ROW_PRINTED |
@@ -233,19 +245,41 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 | sglt2-ckd-progression | PMID 33962654 | Fig2 | **REFUSED** | 0 / 0 | STATED ['DL', 'PM', 'REML'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, ROWS_ARE_NOT_STUDIES:none/none, NO_POOLED_ROW_PRINTED |
 | sglt2-ckd-progression | PMID 34336954 | F1 | **ACCEPTED** | 10 / 0 | STATED ['DL'] | 0.73 (0.68-0.78) | DL 0.7316 (0.6823-0.7845) | - |
 | sglt2-ckd-progression | PMID 34349651 | F4 | **ACCEPTED** | 3 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | 0.64 (0.54-0.75) | DL 0.6355 (0.5404-0.7472); FE 0.6355 (0.5404-0.7472); PM 0.6355 (0.5404-0.7472); REML 0.6355 (0.5404-0.7472) | - |
+| sglt2-ckd-progression | PMID 34915880 | Fig2 | **REFUSED** | 10 / 0 | STATED ['PM'] | 0.65 (0.56-0.75) | PM 0.6445 (0.5669-0.7327) | RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL |
 | sglt2-ckd-progression | PMID 35342538 | fig2-20406223221083509 | **REFUSED** | 87 / 4 | STATED ['DL'] | -33.03 (-37.38--28.69) | DL -32.3544 (-35.8138--28.8949) | ROWS_DISAGREE:4, RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL |
 | sglt2-ckd-progression | PMID 36553880 | healthcare-10-02356-f008 | **ACCEPTED** | 3 / 0 | STATED ['MH-RE'] | 0.78 (0.54-1.14) | MH-RE 0.7846 (0.5400-1.1400) | - |
+| sglt2-ckd-progression | PMID 37465885 | clc24085-fig-0003 | **REFUSED** | 5 / 6 | STATED ['DL', 'FE', 'PM', 'REML'] | 0.76 (0.65-0.88) | DL 0.7597 (0.6547-0.8815); FE 0.7773 (0.6856-0.8812); PM 0.7667 (0.6670-0.8813); REML 0.7342 (0.6083-0.8863) | ROWS_DISAGREE:6 |
 | sglt2-ckd-progression | PMID 37989136 | F3 | **ACCEPTED** | 4 / 0 | STATED ['DL', 'PM', 'REML'] | 0.78 (0.71-0.86) | DL 0.7807 (0.7087-0.8601); PM 0.7807 (0.7087-0.8601); REML 0.7807 (0.7087-0.8601) | - |
 | sglt2-ckd-progression | PMID 38238025 | F3 | **ACCEPTED** | 15 / 0 | STATED ['FE', 'REML'] | -0.22 (-0.42--0.03) | FE -0.1659 (-0.2441--0.0877); REML -0.2219 (-0.4150--0.0289) | - |
 | sglt2-ckd-progression | PMID 38273008 | Fig1 | **REFUSED** | 0 / 0 | STATED ['DL', 'PM', 'REML'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, ROWS_ARE_NOT_STUDIES:none/none, NO_POOLED_ROW_PRINTED |
 | sglt2-ckd-progression | PMID 38583093 | F4 | **REFUSED** | 0 / 0 | STATED ['DL', 'DL+HK', 'FE', 'PM', 'PM+HK', 'REML', 'REML+HK'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, ROWS_ARE_NOT_STUDIES:none/none, NO_POOLED_ROW_PRINTED |
+| sglt2-ckd-progression | PMID 39533603 | F6 | **REFUSED** | 7 / 0 | STATED ['DL'] | 1.60 (1.17-2.02) | DL 1.5952 (1.1362-2.0543) | RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL |
 | sglt2-ckd-progression | PMID 40959489 | F6 | **ACCEPTED** | 5 / 0 | STATED ['MH-FE'] | 1.30 (1.06-1.59) | MH-FE 1.2980 (1.0572-1.5937) | - |
+| sglt2-ckd-progression | PMID 41508110 | Fig17 | **ACCEPTED** | 2 / 0 | STATED ['DL'] | 0.11 (-0.03-0.25) | DL 0.1096 (-0.0359-0.2551) | - |
+| sglt2-ckd-progression | PMID 41523725 | FIG7 | **REFUSED** | 0 / 0 | STATED ['DL', 'FE'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, ROWS_ARE_NOT_STUDIES:none/none, NO_POOLED_ROW_PRINTED |
 | sglt2-ckd-progression | PMID 41999103 | edm270203-fig-0003 | **REFUSED** | 12 / 0 | STATED ['DL', 'PM', 'REML'] | 0.66 (0.58-0.74) |  | ROW_CI_ASYMMETRIC:DZI Cherney (2017), ROW_CI_ASYMMETRIC:C Wanner(2018), ROW_CI_ASYMMETRIC:T Kadowaki(2019), ROW_CI_ASYMMETRIC:J Butler(2019), ROW_NOT_NUMERIC:M Böhm(2020), ROW_CI_ASYMMETRIC:M Packer(2020), ROW_CI_ASYMMETRIC:M Böhm(2021), ROW_CI_ASYMMETRIC:SD Anker(2021), ROW_CI_ASYMMETRIC:F Zannad(2021), ROW_CI_ASYMMETRIC:AA Voors(2022), ROW_CI_ASYMMETRIC:A Sharma(2023), STATED_MODEL_NOT_COMPUTABLE_FROM_ROWS |
 | sglt2-ckd-progression | PMID 42144626 | Fig4 | **ACCEPTED** | 4 / 0 | STATED ['REML'] | 0.74 (0.55-0.98) | REML 0.7369 (0.5532-0.9815) | - |
+| sglt2-ckd-progression | PMID 42222151 | F4 | **REFUSED** | 0 / 21 | STATED ['DL', 'PM', 'REML'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, ROWS_ARE_NOT_STUDIES:subgroup/outcome, NO_POOLED_ROW_PRINTED, ROWS_DISAGREE:21 |
+| sglt2-primary-prevention-hf | PMID 26895767 | Fig4 | **REFUSED** | 0 / 12 | NOT_STATED [] | 0.772 (0.543-1.097) |  | ROWS_ARE_NOT_STUDIES:subgroup/subgroup, ROWS_DISAGREE:12, STATED_MODEL_NOT_STATED, FEWER_THAN_2_AGREED_ROWS |
+| sglt2-primary-prevention-hf | PMID 29524188 | Fig2 | **ACCEPTED** | 24 / 0 | STATED ['MH-FE'] | 1.04 (0.97-1.12) | MH-FE 1.0396 (0.9671-1.1175) | - |
+| sglt2-primary-prevention-hf | PMID 33494751 | Fig3 | **REFUSED** | 9 / 12 | STATED ['DL'] | 0.21 (-0.65-1.06) | DL 0.2072 (-0.6482-1.0626) | ROWS_DISAGREE:12 |
 | sglt2-primary-prevention-hf | PMID 33586910 | ehf213169-fig-0001 | **ACCEPTED** | 7 / 0 | STATED ['DL'] | 0.77 (0.72-0.83) | DL 0.7711 (0.7165-0.8298) | - |
 | sglt2-primary-prevention-hf | PMID 33859839 | fig3 | **ACCEPTED** | 5 / 0 | STATED ['MH-RE'] | 0.80 (0.68-0.93) | MH-RE 0.7988 (0.6847-0.9319) | - |
 | sglt2-primary-prevention-hf | PMID 34336954 | F1 | **ACCEPTED** | 10 / 0 | STATED ['DL'] | 0.73 (0.68-0.78) | DL 0.7316 (0.6823-0.7845) | - |
+| sglt2-primary-prevention-hf | PMID 34349651 | F3 | **ACCEPTED** | 15 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] | 0.81 (0.76-0.87) | DL 0.8120 (0.7598-0.8678); FE 0.8120 (0.7598-0.8678); PM 0.8120 (0.7598-0.8678); REML 0.8120 (0.7598-0.8678) | - |
+| sglt2-primary-prevention-hf | PMID 34915880 | Fig1 | **REFUSED** | 11 / 0 | STATED ['PM'] | 0.77 (0.73-0.82) | PM 0.7675 (0.7325-0.8041) | RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL |
+| sglt2-primary-prevention-hf | PMID 36039257 | FIG3 | **ACCEPTED** | 4 / 0 | STATED ['MH-FE'] | 0.76 (0.56-1.04) | MH-FE 0.7619 (0.5559-1.0443) | - |
+| sglt2-primary-prevention-hf | PMID 38273008 | Fig2 | **REFUSED** | 0 / 0 | STATED ['DL', 'PM', 'REML'] |  (-) |  | ROWS_ARE_NOT_STUDIES:subgroup/subgroup, NO_POOLED_ROW_PRINTED |
+| sglt2-primary-prevention-hf | PMID 39323760 | F9 | **ACCEPTED** | 3 / 0 | STATED ['DL'] | 2.83 (1.36-4.29) | DL 2.8293 (1.3627-4.2958) | - |
+| sglt2-primary-prevention-hf | PMID 39429324 | FIG6 | **REFUSED** | 0 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] |  (-) |  | ROWS_ARE_NOT_STUDIES:none/none, NO_POOLED_ROW_PRINTED |
+| sglt2-primary-prevention-hf | PMID 39533603 | F3 | **REFUSED** | 9 / 0 | STATED ['MH-RE'] | -0.04 (-0.05--0.03) |  | STATED_MODEL_NOT_COMPUTABLE_FROM_ROWS |
 | sglt2-primary-prevention-hf | PMID 39731023 | Fig8 | **ACCEPTED** | 3 / 0 | STATED ['MH-RE'] | 0.84 (0.30-2.33) | MH-RE 0.8376 (0.3007-2.3338) | - |
+| sglt2-primary-prevention-hf | PMID 39867488 | fig0003 | **ACCEPTED** | 3 / 0 | STATED ['MH-RE'] | 0.63 (0.44-0.90) | MH-RE 0.6280 (0.4405-0.8953) | - |
+| sglt2-primary-prevention-hf | PMID 40464647 | pvaf040-F4 | **REFUSED** | 0 / 0 | STATED ['DL'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, ROWS_ARE_NOT_STUDIES:none/none, NO_POOLED_ROW_PRINTED |
+| sglt2-primary-prevention-hf | PMID 40535333 | f7 | **REFUSED** | 4 / 25 | STATED ['MH-RE'] |  (-) |  | POOLED_ROW_DISAGREES, MEASURE_DISAGREES, ROWS_DISAGREE:25 |
+| sglt2-primary-prevention-hf | PMID 41180724 | F3 | **REFUSED** | 0 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, NO_POOLED_ROW_PRINTED |
+| sglt2-primary-prevention-hf | PMID 41597355 | medicina-62-00069-f003 | **ACCEPTED** | 3 / 0 | STATED ['DL'] | 0.79 (0.69-0.89) | DL 0.7849 (0.6940-0.8877) | - |
+| sglt2-primary-prevention-hf | PMID 42591121 | f10 | **REFUSED** | 0 / 0 | STATED ['DL', 'FE'] |  (-) |  | NOT_LEGIBLE_IN_BOTH, ROWS_ARE_NOT_STUDIES:none/none, NO_POOLED_ROW_PRINTED |
 | spironolactone-hfref-mortality | PMID 25598008 | Fig2 | **REFUSED** | 11 / 3 | STATED ['DL'] | -0.00 (-0.01-0.01) | DL -0.0079 (-0.0223-0.0065) | ROWS_DISAGREE:3, RECONSTRUCTION_DOES_NOT_REPRODUCE_PRINTED_POOL |
 | spironolactone-hfref-mortality | PMID 26822790 | Fig3 | **ACCEPTED** | 2 / 0 | STATED ['MH-RE'] | 0.73 (0.52-1.01) | MH-RE 0.7287 (0.5243-1.0127) | - |
 | spironolactone-hfref-mortality | PMID 26891235 | pone.0145958.g002 | **ACCEPTED** | 18 / 0 | STATED ['MH-RE'] | 0.82 (0.77-0.88) | MH-RE 0.8237 (0.7710-0.8801) | - |
@@ -289,6 +323,10 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 | tocilizumab-covid19-mortality | PMID 35343397 | F0002 | **ACCEPTED** | 18 / 0 | STATED ['MH-RE'] | 0.89 (0.82-0.95) | MH-RE 0.8805 (0.8184-0.9474) | - |
 | tocilizumab-covid19-mortality | PMID 35802687 | pone.0270668.g003 | **ACCEPTED_SECOND_SOURCE_ONLY** | 14 / 0 | STATED ['DL', 'FE', 'PM', 'REML'] |  (-) |  | NO_POOLED_ROW_PRINTED |
 | tocilizumab-covid19-mortality | PMID 39633779 | fig4 | **ACCEPTED** | 17 / 0 | STATED ['DL', 'PM', 'REML'] | 0.83 (0.73-0.95) | DL 0.8311 (0.7457-0.9263); PM 0.8304 (0.7475-0.9226); REML 0.8340 (0.7313-0.9512) | - |
+| tranexamic-acid-pph | PMID 31195987 | Fig5 | **ACCEPTED** | 17 / 0 | STATED ['MH-FE'] | 0.46 (0.31-0.68) | MH-FE 0.4616 (0.3135-0.6797) | - |
+| tranexamic-acid-pph | PMID 34724964 | Fig2 | **REFUSED** | 0 / 0 | STATED ['MH-FE', 'MH-RE'] |  (-) |  | ROWS_ARE_NOT_STUDIES:outcome/outcome, NO_POOLED_ROW_PRINTED |
+| tranexamic-acid-pph | PMID 34938253 | F7 | **ACCEPTED** | 2 / 0 | STATED ['MH-FE'] | 0.88 (0.51-1.51) | MH-FE 0.8804 (0.5143-1.5072) | - |
+| tranexamic-acid-pph | PMID 38454455 | Fig4 | **ACCEPTED** | 4 / 0 | STATED ['MH-FE'] | 0.78 (0.62-0.97) | MH-FE 0.7775 (0.6223-0.9715) | - |
 
 ## Not read (typed reason)
 
@@ -304,6 +342,7 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - colchicine-postop-af::34369166: PMID 34369166: NO_OUTCOME_FOREST_FIGURE
 - colchicine-postop-af::36176989: PMID 36176989: NO_OUTCOME_FOREST_FIGURE
 - colchicine-recurrent-pericarditis: PMID 22442198: NO_JATS -- no PMC full text; OPEN_BUT_NOT_SCRIPT_READABLE (bronze, https://heart.bmj.com/content/heartjnl/98/14/1078.full.pdf: REFUSED_BY_HOST (GET failed after 1 tries: https://heart.bmj.com/content/hear): a bot challenge is not solved)
+- colchicine-recurrent-pericarditis::31627720: PMID 31627720: NO_OUTCOME_FOREST_FIGURE
 - colchicine-secondary-cv-prevention::32054504: PMID 32054504: NO_OUTCOME_FOREST_FIGURE
 - colchicine-secondary-cv-prevention::34369166: PMID 34369166: NO_OUTCOME_FOREST_FIGURE
 - colchicine-secondary-cv-prevention::34513960: PMID 34513960: AMBIGUOUS_FIGURE:F2,F6,F7
@@ -373,8 +412,43 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - dapagliflozin-hfpef-hosp::41523725: PMID 41523725: AMBIGUOUS_FIGURE:FIG4,FIG6,FIG7
 - dapagliflozin-hfpef-hosp::41767694: PMID 41767694: NO_OUTCOME_FOREST_FIGURE
 - denosumab-vertebral-fracture: PMID 32492050: NO_OUTCOME_FOREST_FIGURE
+- denosumab-vertebral-fracture::37529613: PMID 37529613: NO_OUTCOME_FOREST_FIGURE
+- denosumab-vertebral-fracture::42494861: PMID 42494861: NO_OUTCOME_FOREST_FIGURE
 - doac-vte-recurrence: PMID 24963045: NO_JATS -- no PMC full text; OPEN_BUT_NOT_SCRIPT_READABLE (bronze, https://ashpublications.org/blood/article-pdf/124/12/1968/1379490/1968.pdf: REFUSED_BY_HOST (GET failed after 1 tries: https://ashpublications.org/blood/): a bot challenge is not solved)
+- doac-vte-recurrence::24455237: PMID 24455237: NO_OUTCOME_FOREST_FIGURE
 - doac-vte-recurrence::26383245: PMID 26383245: AMBIGUOUS_FIGURE:pone.0137444.g002,pone.0137444.g004,pone.0137444.g005
+- doac-vte-recurrence::26716830: PMID 26716830: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::27487187: PMID 27487187: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::27631606: PMID 27631606: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::28056795: PMID 28056795: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::28298191: PMID 28298191: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::29720261: PMID 29720261: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::30075504: PMID 30075504: NO_OUTCOME_FOREST_FIGURE:refused F1=MULTIPANEL_NO_UNIQUE_PANEL,F2=MULTIPANEL_NO_UNIQUE_PANEL
+- doac-vte-recurrence::30341244: PMID 30341244: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::31360545: PMID 31360545: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::31770226: PMID 31770226: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::33219708: PMID 33219708: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::33761699: PMID 33761699: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::34211392: PMID 34211392: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::34302375: PMID 34302375: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::34497668: PMID 34497668: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::34600549: PMID 34600549: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::35147105: PMID 35147105: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::35763193: PMID 35763193: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::35807073: PMID 35807073: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::35887834: PMID 35887834: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::35990949: PMID 35990949: NO_OUTCOME_FOREST_FIGURE:refused F1=MULTIPANEL_NO_UNIQUE_PANEL,F5=MULTIPANEL_NO_UNIQUE_PANEL
+- doac-vte-recurrence::36134060: PMID 36134060: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::36844734: PMID 36844734: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::37893585: PMID 37893585: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::38256435: PMID 38256435: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::38313978: PMID 38313978: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::38496142: PMID 38496142: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::38610798: PMID 38610798: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::38707166: PMID 38707166: AMBIGUOUS_FIGURE:FIG3,FIG4
+- doac-vte-recurrence::40142619: PMID 40142619: NO_OUTCOME_FOREST_FIGURE
+- doac-vte-recurrence::40429430: PMID 40429430: AMBIGUOUS_FIGURE:jcm-14-03437-f003,jcm-14-03437-f004,jcm-14-03437-f005
+- doac-vte-recurrence::42694037: PMID 42694037: AMBIGUOUS_FIGURE:fig3,fig5,fig4
 - dpp4-mace-t2d: PMID 34754403: REFUSED_BEFORE_READING:NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel
 - dpp4-mace-t2d::27384445: PMID 27384445: NO_OUTCOME_FOREST_FIGURE
 - dpp4-mace-t2d::28275958: PMID 28275958: NO_OUTCOME_FOREST_FIGURE
@@ -585,6 +659,7 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - sacubitril-valsartan-hfref::33257469: PMID 33257469: AMBIGUOUS_FIGURE:F4,F6,F8
 - sacubitril-valsartan-hfref::34867310: PMID 34867310: NO_OUTCOME_FOREST_FIGURE
 - sacubitril-valsartan-hfref::34993450: PMID 34993450: AMBIGUOUS_FIGURE:fig2,fig3,fig4
+- sacubitril-valsartan-hfref::35081164: PMID 35081164: NO_OUTCOME_FOREST_FIGURE
 - sacubitril-valsartan-hfref::35665248: PMID 35665248: NO_OUTCOME_FOREST_FIGURE
 - sacubitril-valsartan-hfref::35859597: PMID 35859597: NO_OUTCOME_FOREST_FIGURE
 - sacubitril-valsartan-hfref::35990952: PMID 35990952: NO_OUTCOME_FOREST_FIGURE
@@ -593,8 +668,10 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - sacubitril-valsartan-hfref::36527023: PMID 36527023: NO_OUTCOME_FOREST_FIGURE
 - sacubitril-valsartan-hfref::37313196: PMID 37313196: NO_OUTCOME_FOREST_FIGURE
 - sacubitril-valsartan-hfref::38090453: PMID 38090453: NO_OUTCOME_FOREST_FIGURE
+- sacubitril-valsartan-hfref::38094831: PMID 38094831: NO_OUTCOME_FOREST_FIGURE
 - sacubitril-valsartan-hfref::38869007: PMID 38869007: AMBIGUOUS_FIGURE:F0003,F0004
 - sacubitril-valsartan-hfref::41663960: PMID 41663960: NO_OUTCOME_FOREST_FIGURE
+- semaglutide-obesity-mace::34574899: PMID 34574899: NO_OUTCOME_FOREST_FIGURE
 - semaglutide-obesity-mace::35898463: PMID 35898463: NO_OUTCOME_FOREST_FIGURE
 - semaglutide-obesity-mace::36188627: PMID 36188627: NO_OUTCOME_FOREST_FIGURE
 - semaglutide-obesity-mace::36510488: PMID 36510488: NO_OUTCOME_FOREST_FIGURE
@@ -630,44 +707,83 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - semaglutide-obesity-weight::41850241: PMID 41850241: NO_OUTCOME_FOREST_FIGURE
 - semaglutide-obesity-weight::42673571: PMID 42673571: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression: PMID 41203232: REFUSED_BEFORE_READING:NO_PER_TRIAL_TOPIC_FIGURE: the comparator's figures are CKD-progression / eGFR outcomes by baseline eGFR or UACR SUBGROUP, not per-trial rows of the trial-defined cardiorenal composite
+- sglt2-ckd-progression::24225054: PMID 24225054: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::26895767: PMID 26895767: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::28411624: PMID 28411624: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::29524188: PMID 29524188: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::30412076: PMID 30412076: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::32314085: PMID 32314085: AMBIGUOUS_FIGURE:Fig2,Fig3,Fig4
+- sglt2-ckd-progression::32827435: PMID 32827435: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::32847602: PMID 32847602: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::33413348: PMID 33413348: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::33494751: PMID 33494751: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::33519713: PMID 33519713: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::33586910: PMID 33586910: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::33815278: PMID 33815278: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::33859839: PMID 33859839: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::33888126: PMID 33888126: AMBIGUOUS_FIGURE:Fig6,Fig7,Fig2
+- sglt2-ckd-progression::33986377: PMID 33986377: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::34190162: PMID 34190162: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::34239906: PMID 34239906: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::34308311: PMID 34308311: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::34321571: PMID 34321571: NO_OUTCOME_FOREST_FIGURE:refused Fig2=MULTIPANEL_NO_UNIQUE_PANEL,Fig3=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-ckd-progression::34394274: PMID 34394274: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::34457360: PMID 34457360: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::34459238: PMID 34459238: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::34813574: PMID 34813574: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::35140602: PMID 35140602: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::35272683: PMID 35272683: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::35282455: PMID 35282455: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::35445086: PMID 35445086: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::35872994: PMID 35872994: NO_OUTCOME_FOREST_FIGURE:refused f5=MULTIPANEL_NO_UNIQUE_PANEL,f6=MULTIPANEL_NO_UNIQUE_PANEL
 - sglt2-ckd-progression::36030328: PMID 36030328: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::36034443: PMID 36034443: NO_OUTCOME_FOREST_FIGURE:refused f3=MULTIPANEL_NO_UNIQUE_PANEL,f5=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-ckd-progression::36039257: PMID 36039257: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::36303247: PMID 36303247: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::36335326: PMID 36335326: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::36467062: PMID 36467062: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::36589800: PMID 36589800: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::36811901: PMID 36811901: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::36910362: PMID 36910362: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::36994345: PMID 36994345: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::37305172: PMID 37305172: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::37381019: PMID 37381019: NO_OUTCOME_FOREST_FIGURE:refused Fig1=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-ckd-progression::37636033: PMID 37636033: NO_OUTCOME_FOREST_FIGURE:refused F3=MULTIPANEL_NO_UNIQUE_PANEL,F4=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-ckd-progression::37734450: PMID 37734450: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::37794166: PMID 37794166: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::37840144: PMID 37840144: AMBIGUOUS_FIGURE:Fig7,Fig9,Fig2
 - sglt2-ckd-progression::38172861: PMID 38172861: NO_OUTCOME_FOREST_FIGURE:refused Fig5=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-ckd-progression::38223613: PMID 38223613: NO_OUTCOME_FOREST_FIGURE:refused F2=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-ckd-progression::38348420: PMID 38348420: NO_OUTCOME_FOREST_FIGURE:refused f2=MULTIPANEL_NO_UNIQUE_PANEL,f3=MULTIPANEL_NO_UNIQUE_PANEL,f4=MULTIPANEL_NO_UNIQUE_PANEL
 - sglt2-ckd-progression::38542021: PMID 38542021: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::38658986: PMID 38658986: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::38983922: PMID 38983922: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::39145401: PMID 39145401: NO_OUTCOME_FOREST_FIGURE:refused edm2514-fig-0001=MULTIPANEL_NO_UNIQUE_PANEL,edm2514-fig-0002=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-ckd-progression::39234312: PMID 39234312: ARTICLE_PAGE_FIGURE_URL_COUNT_0
+- sglt2-ckd-progression::39323760: PMID 39323760: AMBIGUOUS_FIGURE:F9,F12,F8
+- sglt2-ckd-progression::39398777: PMID 39398777: NO_OUTCOME_FOREST_FIGURE:refused FIG3=MULTIPANEL_NO_UNIQUE_PANEL,FIG5=MULTIPANEL_NO_UNIQUE_PANEL
 - sglt2-ckd-progression::39400108: PMID 39400108: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::39429324: PMID 39429324: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::39578752: PMID 39578752: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::39731023: PMID 39731023: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::39844146: PMID 39844146: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::39867488: PMID 39867488: AMBIGUOUS_FIGURE:fig0003,fig0004
 - sglt2-ckd-progression::39948563: PMID 39948563: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::40005319: PMID 40005319: AMBIGUOUS_FIGURE:medicina-61-00202-f003,medicina-61-00202-f005,medicina-61-00202-f007
 - sglt2-ckd-progression::40193122: PMID 40193122: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::40213686: PMID 40213686: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::40352167: PMID 40352167: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::40420634: PMID 40420634: NO_OUTCOME_FOREST_FIGURE:refused edm270061-fig-0003=MULTIPANEL_NO_UNIQUE_PANEL,edm270061-fig-0004=MULTIPANEL_NO_UNIQUE_PANEL,edm270061-fig-0005=MULTIPANEL_NO_UNIQUE_PANEL,edm270061-fig-0006=MULTIPANEL_NO_UNIQUE_PANEL,edm270061-fig-0007=MULTIPANEL_NO_UNIQUE_PANEL
 - sglt2-ckd-progression::40464647: PMID 40464647: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::40535333: PMID 40535333: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::40604628: PMID 40604628: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::40612436: PMID 40612436: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::40642671: PMID 40642671: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::40656174: PMID 40656174: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::40672365: PMID 40672365: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::40806928: PMID 40806928: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::40959362: PMID 40959362: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::41122558: PMID 41122558: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::41155853: PMID 41155853: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::41180724: PMID 41180724: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::41267697: PMID 41267697: NO_OUTCOME_FOREST_FIGURE
@@ -677,24 +793,87 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - sglt2-ckd-progression::41517628: PMID 41517628: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::41597355: PMID 41597355: NO_OUTCOME_FOREST_FIGURE
 - sglt2-ckd-progression::41711724: PMID 41711724: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::41717349: PMID 41717349: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::41727549: PMID 41727549: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::42120997: PMID 42120997: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::42212277: PMID 42212277: AMBIGUOUS_FIGURE:F2,F3,F4
 - sglt2-ckd-progression::42491272: PMID 42491272: NO_OUTCOME_FOREST_FIGURE:refused fig-0005=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-ckd-progression::42548745: PMID 42548745: NO_OUTCOME_FOREST_FIGURE:refused f3=MULTIPANEL_NO_UNIQUE_PANEL,f5=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-ckd-progression::42549049: PMID 42549049: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::42568838: PMID 42568838: NO_OUTCOME_FOREST_FIGURE
+- sglt2-ckd-progression::42591121: PMID 42591121: NO_OUTCOME_FOREST_FIGURE
 - sglt2-hfref-hosp-cvdeath::36030328: PMID 36030328: NO_OUTCOME_FOREST_FIGURE
 - sglt2-hfref-hosp-cvdeath::39400108: PMID 39400108: NO_OUTCOME_FOREST_FIGURE
 - sglt2-hfref-hosp-cvdeath::39578752: PMID 39578752: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::24225054: PMID 24225054: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::28411624: PMID 28411624: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::32314085: PMID 32314085: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::32827435: PMID 32827435: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::32847602: PMID 32847602: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::33413348: PMID 33413348: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::33962654: PMID 33962654: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::33986377: PMID 33986377: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::34190162: PMID 34190162: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::34239906: PMID 34239906: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::34308311: PMID 34308311: AMBIGUOUS_FIGURE:fig0003,fig0004,fig0002
+- sglt2-primary-prevention-hf::34321571: PMID 34321571: NO_OUTCOME_FOREST_FIGURE:refused Fig2=MULTIPANEL_NO_UNIQUE_PANEL,Fig3=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::34394274: PMID 34394274: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::34457360: PMID 34457360: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::35140602: PMID 35140602: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::35272683: PMID 35272683: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::35282455: PMID 35282455: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::35445086: PMID 35445086: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::35872994: PMID 35872994: NO_OUTCOME_FOREST_FIGURE:refused f5=MULTIPANEL_NO_UNIQUE_PANEL,f6=MULTIPANEL_NO_UNIQUE_PANEL
 - sglt2-primary-prevention-hf::36030328: PMID 36030328: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::36034443: PMID 36034443: NO_OUTCOME_FOREST_FIGURE:refused f3=MULTIPANEL_NO_UNIQUE_PANEL,f5=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::36303247: PMID 36303247: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::36335326: PMID 36335326: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::36467062: PMID 36467062: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::36553880: PMID 36553880: AMBIGUOUS_FIGURE:healthcare-10-02356-f003,healthcare-10-02356-f005,healthcare-10-02356-f008
+- sglt2-primary-prevention-hf::36589800: PMID 36589800: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::36811901: PMID 36811901: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::36910362: PMID 36910362: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::36994345: PMID 36994345: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::37381019: PMID 37381019: NO_OUTCOME_FOREST_FIGURE:refused Fig1=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::37465885: PMID 37465885: AMBIGUOUS_FIGURE:clc24085-fig-0002,clc24085-fig-0003
+- sglt2-primary-prevention-hf::37636033: PMID 37636033: NO_OUTCOME_FOREST_FIGURE:refused F3=MULTIPANEL_NO_UNIQUE_PANEL,F4=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::37734450: PMID 37734450: AMBIGUOUS_FIGURE:fig2-01410768231198442,fig3-01410768231198442,fig4-01410768231198442
 - sglt2-primary-prevention-hf::37794166: PMID 37794166: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::37840144: PMID 37840144: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::38172861: PMID 38172861: NO_OUTCOME_FOREST_FIGURE:refused Fig5=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::38223613: PMID 38223613: NO_OUTCOME_FOREST_FIGURE:refused F2=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::38348420: PMID 38348420: NO_OUTCOME_FOREST_FIGURE:refused f2=MULTIPANEL_NO_UNIQUE_PANEL,f3=MULTIPANEL_NO_UNIQUE_PANEL,f4=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::38658986: PMID 38658986: NO_OUTCOME_FOREST_FIGURE:refused Fig5=MULTIPANEL_NO_UNIQUE_PANEL,Fig7=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::39234312: PMID 39234312: ARTICLE_PAGE_FIGURE_URL_COUNT_0
+- sglt2-primary-prevention-hf::39398777: PMID 39398777: NO_OUTCOME_FOREST_FIGURE:refused FIG3=MULTIPANEL_NO_UNIQUE_PANEL,FIG5=MULTIPANEL_NO_UNIQUE_PANEL
 - sglt2-primary-prevention-hf::39578752: PMID 39578752: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::40005319: PMID 40005319: AMBIGUOUS_FIGURE:medicina-61-00202-f002,medicina-61-00202-f004,medicina-61-00202-f006
+- sglt2-primary-prevention-hf::40213686: PMID 40213686: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::40420634: PMID 40420634: NO_OUTCOME_FOREST_FIGURE:refused edm270061-fig-0003=MULTIPANEL_NO_UNIQUE_PANEL,edm270061-fig-0004=MULTIPANEL_NO_UNIQUE_PANEL,edm270061-fig-0005=MULTIPANEL_NO_UNIQUE_PANEL,edm270061-fig-0006=MULTIPANEL_NO_UNIQUE_PANEL,edm270061-fig-0007=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::40604628: PMID 40604628: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::40612436: PMID 40612436: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::40642671: PMID 40642671: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::40672365: PMID 40672365: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::40806928: PMID 40806928: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::40959362: PMID 40959362: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::41122558: PMID 41122558: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::41155853: PMID 41155853: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::41267697: PMID 41267697: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::41354946: PMID 41354946: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::41508110: PMID 41508110: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::41517628: PMID 41517628: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::41523725: PMID 41523725: AMBIGUOUS_FIGURE:FIG4,FIG6,FIG8
+- sglt2-primary-prevention-hf::41717349: PMID 41717349: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::41727549: PMID 41727549: NO_OUTCOME_FOREST_FIGURE
 - sglt2-primary-prevention-hf::41999103: PMID 41999103: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::42120997: PMID 42120997: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::42212277: PMID 42212277: AMBIGUOUS_FIGURE:F2,F3,F4
+- sglt2-primary-prevention-hf::42222151: PMID 42222151: NO_OUTCOME_FOREST_FIGURE:refused F4=MULTIPANEL_NO_UNIQUE_PANEL
 - sglt2-primary-prevention-hf::42491272: PMID 42491272: NO_OUTCOME_FOREST_FIGURE:refused fig-0005=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::42504019: PMID 42504019: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::42548745: PMID 42548745: NO_OUTCOME_FOREST_FIGURE:refused f3=MULTIPANEL_NO_UNIQUE_PANEL,f5=MULTIPANEL_NO_UNIQUE_PANEL
+- sglt2-primary-prevention-hf::42549049: PMID 42549049: NO_OUTCOME_FOREST_FIGURE
+- sglt2-primary-prevention-hf::42568838: PMID 42568838: NO_OUTCOME_FOREST_FIGURE
 - spironolactone-hfref-mortality::20376345: PMID 20376345: NO_OUTCOME_FOREST_FIGURE
 - spironolactone-hfref-mortality::20492762: PMID 20492762: NO_JATS
 - spironolactone-hfref-mortality::24734111: PMID 24734111: NO_OUTCOME_FOREST_FIGURE
@@ -758,9 +937,64 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - tocilizumab-covid19-mortality::42027697: PMID 42027697: NO_OUTCOME_FOREST_FIGURE
 - tocilizumab-covid19-mortality::42351480: PMID 42351480: NO_OUTCOME_FOREST_FIGURE
 - tranexamic-acid-pph: PMID 39461793: REFUSED_BEFORE_READING:NO_TOPIC_OUTCOME_FIGURE: the comparator's figures are life-threatening bleeding (a composite of death or surgical intervention) and thromboembolic events; none is death due to bleeding
+- tranexamic-acid-pph::23424632: PMID 23424632: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::23483965: PMID 23483965: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::23651507: PMID 23651507: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::25532706: PMID 25532706: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::26878845: PMID 26878845: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::27603364: PMID 27603364: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::27741100: PMID 27741100: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::27977590: PMID 27977590: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::28103911: PMID 28103911: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::28153031: PMID 28153031: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::28222709: PMID 28222709: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::28420413: PMID 28420413: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::28538384: PMID 28538384: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::28637438: PMID 28637438: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::29016673: PMID 29016673: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::29078788: PMID 29078788: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::29454385: PMID 29454385: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::29690892: PMID 29690892: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::30193586: PMID 30193586: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::30379905: PMID 30379905: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::30509227: PMID 30509227: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::30533427: PMID 30533427: NO_OUTCOME_FOREST_FIGURE
 - tranexamic-acid-pph::30585835: PMID 30585835: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::31307381: PMID 31307381: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::31321578: PMID 31321578: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::31456323: PMID 31456323: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::31470844: PMID 31470844: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::31959199: PMID 31959199: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::32199584: PMID 32199584: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::32219141: PMID 32219141: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::32252661: PMID 32252661: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::32637122: PMID 32637122: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::33267906: PMID 33267906: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::33446219: PMID 33446219: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::33532495: PMID 33532495: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::33802254: PMID 33802254: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::34116690: PMID 34116690: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::34158096: PMID 34158096: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::34315966: PMID 34315966: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::34366837: PMID 34366837: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::34987465: PMID 34987465: NO_OUTCOME_FOREST_FIGURE:refused F3=MULTIPANEL_NO_UNIQUE_PANEL
+- tranexamic-acid-pph::35011788: PMID 35011788: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::35033124: PMID 35033124: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::35083272: PMID 35083272: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::35230436: PMID 35230436: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::35392961: PMID 35392961: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::35662737: PMID 35662737: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::35862264: PMID 35862264: NO_OUTCOME_FOREST_FIGURE:refused F0002=MULTIPANEL_NO_UNIQUE_PANEL
 - tranexamic-acid-pph::36073900: PMID 36073900: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::36156738: PMID 36156738: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::36199695: PMID 36199695: NO_OUTCOME_FOREST_FIGURE:refused F4=MULTIPANEL_NO_UNIQUE_PANEL,F5=MULTIPANEL_NO_UNIQUE_PANEL,F6=MULTIPANEL_NO_UNIQUE_PANEL,F7=MULTIPANEL_NO_UNIQUE_PANEL
+- tranexamic-acid-pph::36263090: PMID 36263090: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::36498460: PMID 36498460: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::36604661: PMID 36604661: NO_OUTCOME_FOREST_FIGURE
 - tranexamic-acid-pph::37000863: PMID 37000863: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::37563702: PMID 37563702: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::37644447: PMID 37644447: NO_OUTCOME_FOREST_FIGURE
+- tranexamic-acid-pph::38001439: PMID 38001439: NO_OUTCOME_FOREST_FIGURE
 - tranexamic-acid-pph::38957352: PMID 38957352: NO_OUTCOME_FOREST_FIGURE
 - tranexamic-acid-pph::40642696: PMID 40642696: NO_OUTCOME_FOREST_FIGURE
 - tranexamic-acid-pph::42050041: PMID 42050041: NO_OUTCOME_FOREST_FIGURE
@@ -948,6 +1182,20 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - corticosteroids-covid19-mortality::38262670 / Fernandez-Serrano 2011 / Ferrandez-Serrano 2011: LABEL_DISAGREES; codex {"effect": "0.96", "events_c": "1", "events_t": "1", "label": "Fernandez-Serrano 2011", "lower": "0.06", "n_c": null, "n_t": null, "upper": "14.37", "weight_pct": "0.89"}; agy {"effect": "0.96", "events_c": "1", "events_t": "1", "label": "Ferrandez-Serrano 2011", "lower": "0.06", "n_c": null, "n_t": null, "upper": "14.37", "weight_pct": "0.89"}
 - corticosteroids-covid19-mortality::39003393::Fig4 / Naveen R. Naik 2021 / Naveen B. Naik 2021: LABEL_DISAGREES; codex {"effect": "6.50", "events_c": "2", "events_t": "13", "label": "Naveen R. Naik 2021", "lower": "1.67", "n_c": "21", "n_t": "21", "upper": "25.33", "weight_pct": "0.4%"}; agy {"effect": "6.50", "events_c": "2", "events_t": "13", "label": "Naveen B. Naik 2021", "lower": "1.67", "n_c": "21", "n_t": "21", "upper": "25.33", "weight_pct": "0.4%"}
 - corticosteroids-covid19-mortality::39185470::fig1 / Giorgio Ranzani2020 / Giorgio Bozzi2020: LABEL_DISAGREES; codex {"effect": "0.38", "events_c": "20", "events_t": "9", "label": "Giorgio Ranzani2020", "lower": "0.19", "n_c": "55", "n_t": "65", "upper": "0.77", "weight_pct": "7.1%"}; agy {"effect": "0.38", "events_c": "20", "events_t": "9", "label": "Giorgio Bozzi2020", "lower": "0.19", "n_c": "55", "n_t": "65", "upper": "0.77", "weight_pct": "7.1%"}
+- doac-vte-recurrence::27020475 / Eriksson 2006a: ONLY_IN_READING_A; codex {"label": "Eriksson 2006a", "effect": null, "lower": null, "upper": null, "weight_pct": null, "events_t": "0", "n_t": "615", "events_c": "0", "n_c": "136"}; agy null
+- doac-vte-recurrence::27020475 / Eriksson 2006b: ONLY_IN_READING_A; codex {"label": "Eriksson 2006b", "effect": "1.13", "lower": "0.05", "upper": "23.37", "weight_pct": "6.9%", "events_t": "2", "n_t": "713", "events_c": "0", "n_c": "160"}; agy null
+- doac-vte-recurrence::27020475 / Eriksson 2007: ONLY_IN_READING_A; codex {"label": "Eriksson 2007", "effect": "2.38", "lower": "0.12", "upper": "45.77", "weight_pct": "7.2%", "events_t": "3", "n_t": "479", "events_c": "0", "n_c": "162"}; agy null
+- doac-vte-recurrence::27020475 / Eriksson 2008: ONLY_IN_READING_A; codex {"label": "Eriksson 2008", "effect": "3.01", "lower": "0.61", "upper": "14.91", "weight_pct": "21.5%", "events_t": "6", "n_t": "2266", "events_c": "2", "n_c": "2275"}; agy null
+- doac-vte-recurrence::27020475 / Kakkar 2008: ONLY_IN_READING_A; codex {"label": "Kakkar 2008", "effect": "0.20", "lower": "0.02", "upper": "1.72", "weight_pct": "13.0%", "events_t": "1", "n_t": "1252", "events_c": "5", "n_c": "1257"}; agy null
+- doac-vte-recurrence::27020475 / Lassen 2008: ONLY_IN_READING_A; codex {"label": "Lassen 2008", "effect": "0.11", "lower": "0.01", "upper": "2.10", "weight_pct": "7.4%", "events_t": "0", "n_t": "1254", "events_c": "4", "n_c": "1277"}; agy null
+- doac-vte-recurrence::27020475 / Turpie 2005: ONLY_IN_READING_A; codex {"label": "Turpie 2005", "effect": "1.03", "lower": "0.05", "upper": "21.20", "weight_pct": "6.9%", "events_t": "2", "n_t": "516", "events_c": "0", "n_c": "105"}; agy null
+- doac-vte-recurrence::27020475 / Turpie 2009: ONLY_IN_READING_A; codex {"label": "Turpie 2009", "effect": "0.62", "lower": "0.20", "upper": "1.88", "weight_pct": "37.0%", "events_t": "5", "n_t": "1584", "events_c": "8", "n_c": "1564"}; agy null
+- doac-vte-recurrence::27020475 / Zou 2014: ONLY_IN_READING_A; codex {"label": "Zou 2014", "effect": null, "lower": null, "upper": null, "weight_pct": null, "events_t": "0", "n_t": "102", "events_c": "0", "n_c": "112"}; agy null
+- doac-vte-recurrence::33581718 / Yuenyongwiwat 2019: ONLY_IN_READING_A; codex {"label": "Yuenyongwiwat 2019", "effect": null, "lower": null, "upper": null, "weight_pct": null, "events_t": "0", "n_t": "76", "events_c": "0", "n_c": "79"}; agy null
+- doac-vte-recurrence::33581718 / Yuenyongviwat 2019: ONLY_IN_READING_B; codex null; agy {"effect": "Not estimable", "events_c": "0", "events_t": "0", "label": "Yuenyongviwat 2019", "lower": null, "n_c": "79", "n_t": "76", "upper": null, "weight_pct": null}
+- doac-vte-recurrence::33633574 / Calkins H (2017): READER_DISAGREEMENT_UNRESOLVED:EFFECT; codex {"label": "Calkins H (2017)", "effect": null, "lower": null, "upper": null, "weight_pct": null, "events_t": "0", "n_t": "0", "events_c": "0", "n_c": "0"}; agy {"effect": "Not estimable", "events_c": "0", "events_t": "0", "label": "Calkins H (2017)", "lower": null, "n_c": "0", "n_t": "0", "upper": null, "weight_pct": null}
+- doac-vte-recurrence::33633574 / Peetermans M (2018): READER_DISAGREEMENT_UNRESOLVED:EFFECT; codex {"label": "Peetermans M (2018)", "effect": null, "lower": null, "upper": null, "weight_pct": null, "events_t": "0", "n_t": "0", "events_c": "0", "n_c": "0"}; agy {"effect": "Not estimable", "events_c": "0", "events_t": "0", "label": "Peetermans M (2018)", "lower": null, "n_c": "0", "n_t": "0", "upper": null, "weight_pct": null}
+- doac-vte-recurrence::33633574 / ÖZLER T (2015): READER_DISAGREEMENT_UNRESOLVED:EFFECT; codex {"label": "ÖZLER T (2015)", "effect": null, "lower": null, "upper": null, "weight_pct": null, "events_t": "0", "n_t": "0", "events_c": "0", "n_c": "0"}; agy {"effect": "Not estimable", "events_c": "0", "events_t": "0", "label": "ÖZLER T (2015)", "lower": null, "n_c": "0", "n_t": "0", "upper": null, "weight_pct": null}
 - doac-vte-recurrence::33726018 / Dabigatran vs Warfarin / Dabigatran: LABEL_DISAGREES; codex {"effect": "1.25", "events_c": null, "events_t": null, "label": "Dabigatran vs Warfarin", "lower": "0.98", "n_c": null, "n_t": null, "upper": "1.60", "weight_pct": null}; agy {"effect": "1.25", "events_c": null, "events_t": null, "label": "Dabigatran", "lower": "0.98", "n_c": null, "n_t": null, "upper": "1.60", "weight_pct": null}
 - doac-vte-recurrence::33726018 / Edoxaban vs Warfarin / Edoxaban: LABEL_DISAGREES; codex {"effect": "1.07", "events_c": null, "events_t": null, "label": "Edoxaban vs Warfarin", "lower": "0.69", "n_c": null, "n_t": null, "upper": "1.65", "weight_pct": null}; agy {"effect": "1.07", "events_c": null, "events_t": null, "label": "Edoxaban", "lower": "0.69", "n_c": null, "n_t": null, "upper": "1.65", "weight_pct": null}
 - doac-vte-recurrence::33726018 / Rivaroxaban vs Warfarin / Rivaroxaban: LABEL_DISAGREES; codex {"effect": "1.40", "events_c": null, "events_t": null, "label": "Rivaroxaban vs Warfarin", "lower": "1.06", "n_c": null, "n_t": null, "upper": "1.85", "weight_pct": null}; agy {"effect": "1.40", "events_c": null, "events_t": null, "label": "Rivaroxaban", "lower": "1.06", "n_c": null, "n_t": null, "upper": "1.85", "weight_pct": null}
@@ -958,6 +1206,30 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - doac-vte-recurrence::33726018 / Rivaroxaban vs Dabigatran / Rivaroxaban: LABEL_DISAGREES; codex {"effect": "1.12", "events_c": null, "events_t": null, "label": "Rivaroxaban vs Dabigatran", "lower": "0.84", "n_c": null, "n_t": null, "upper": "1.49", "weight_pct": null}; agy {"effect": "1.12", "events_c": null, "events_t": null, "label": "Rivaroxaban", "lower": "0.84", "n_c": null, "n_t": null, "upper": "1.49", "weight_pct": null}
 - doac-vte-recurrence::33726018 / Enoxaparin vs Dabigatran / Enoxaparin: LABEL_DISAGREES; codex {"effect": "0.99", "events_c": null, "events_t": null, "label": "Enoxaparin vs Dabigatran", "lower": "0.49", "n_c": null, "n_t": null, "upper": "1.98", "weight_pct": null}; agy {"effect": "0.99", "events_c": null, "events_t": null, "label": "Enoxaparin", "lower": "0.49", "n_c": null, "n_t": null, "upper": "1.98", "weight_pct": null}
 - doac-vte-recurrence::33726018 / Enoxaparin vs Edoxaban / Enoxaparin: LABEL_DISAGREES; codex {"effect": "1.16", "events_c": null, "events_t": null, "label": "Enoxaparin vs Edoxaban", "lower": "0.54", "n_c": null, "n_t": null, "upper": "2.52", "weight_pct": null}; agy {"effect": "1.16", "events_c": null, "events_t": null, "label": "Enoxaparin", "lower": "0.54", "n_c": null, "n_t": null, "upper": "2.52", "weight_pct": null}
+- doac-vte-recurrence::35801133 / Only VKA+Hep (Ns=0, Np=0): ONLY_IN_READING_A; codex {"label": "Only VKA+Hep (Ns=0, Np=0)", "effect": null, "lower": null, "upper": null, "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy null
+- doac-vte-recurrence::35801133 / ≤6mo (Ns=0, Np=0): ONLY_IN_READING_A; codex {"label": "≤6mo (Ns=0, Np=0)", "effect": null, "lower": null, "upper": null, "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy null
+- doac-vte-recurrence::35801133 / API: Only VKA+Hep (Ns=0, Np=0): ONLY_IN_READING_B; codex null; agy {"effect": null, "events_c": null, "events_t": null, "label": "API: Only VKA+Hep (Ns=0, Np=0)", "lower": null, "n_c": null, "n_t": null, "upper": null, "weight_pct": null}
+- doac-vte-recurrence::35801133 / API: ≤6mo (Ns=0, Np=0): ONLY_IN_READING_B; codex null; agy {"effect": null, "events_c": null, "events_t": null, "label": "API: ≤6mo (Ns=0, Np=0)", "lower": null, "n_c": null, "n_t": null, "upper": null, "weight_pct": null}
+- doac-vte-recurrence::35801133 / Base case (Ns=6, Np=25,669) / RIV: Base case (Ns=6, Np=25,669): LABEL_DISAGREES; codex {"label": "Base case (Ns=6, Np=25,669)", "effect": "0.60", "lower": "0.33", "upper": "1.11", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.60", "events_c": null, "events_t": null, "label": "RIV: Base case (Ns=6, Np=25,669)", "lower": "0.33", "n_c": null, "n_t": null, "upper": "1.11", "weight_pct": null}
+- doac-vte-recurrence::35801133 / Only HR reported (Ns=1, Np=18,416) / RIV: Only HR reported (Ns=1, Np=18,416): LABEL_DISAGREES; codex {"label": "Only HR reported (Ns=1, Np=18,416)", "effect": "0.98", "lower": "0.77", "upper": "1.25", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.98", "events_c": null, "events_t": null, "label": "RIV: Only HR reported (Ns=1, Np=18,416)", "lower": "0.77", "n_c": null, "n_t": null, "upper": "1.25", "weight_pct": null}
+- doac-vte-recurrence::35801133 / Only VKA±Hep (Ns=6, Np=25,600) / RIV: Only VKA±Hep (Ns=6, Np=25,600): LABEL_DISAGREES; codex {"label": "Only VKA±Hep (Ns=6, Np=25,600)", "effect": "0.60", "lower": "0.32", "upper": "1.11", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.60", "events_c": null, "events_t": null, "label": "RIV: Only VKA±Hep (Ns=6, Np=25,600)", "lower": "0.32", "n_c": null, "n_t": null, "upper": "1.11", "weight_pct": null}
+- doac-vte-recurrence::35801133 / Only VKA+Hep (Ns=5, Np=7,184) / RIV: Only VKA+Hep (Ns=5, Np=7,184): LABEL_DISAGREES; codex {"label": "Only VKA+Hep (Ns=5, Np=7,184)", "effect": "0.44", "lower": "0.26", "upper": "0.73", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.44", "events_c": null, "events_t": null, "label": "RIV: Only VKA+Hep (Ns=5, Np=7,184)", "lower": "0.26", "n_c": null, "n_t": null, "upper": "0.73", "weight_pct": null}
+- doac-vte-recurrence::35801133 / ≤6mo (Ns=3, Np=19,048) / RIV: ≤6mo (Ns=3, Np=19,048): LABEL_DISAGREES; codex {"label": "≤6mo (Ns=3, Np=19,048)", "effect": "0.96", "lower": "0.76", "upper": "1.22", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.96", "events_c": null, "events_t": null, "label": "RIV: ≤6mo (Ns=3, Np=19,048)", "lower": "0.76", "n_c": null, "n_t": null, "upper": "1.22", "weight_pct": null}
+- doac-vte-recurrence::35801133 / >6mo (Ns=1, Np=166) / RIV: >6mo (Ns=1, Np=166): LABEL_DISAGREES; codex {"label": ">6mo (Ns=1, Np=166)", "effect": "0.33", "lower": "0.07", "upper": "1.61", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.33", "events_c": null, "events_t": null, "label": "RIV: >6mo (Ns=1, Np=166)", "lower": "0.07", "n_c": null, "n_t": null, "upper": "1.61", "weight_pct": null}
+- doac-vte-recurrence::35801133 / Only VKA+Hep >6mo (Ns=1, Np=166) / RIV: Only VKA±Hep >6mo (Ns=1, Np=166): LABEL_DISAGREES; codex {"label": "Only VKA+Hep >6mo (Ns=1, Np=166)", "effect": "0.33", "lower": "0.07", "upper": "1.61", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.33", "events_c": null, "events_t": null, "label": "RIV: Only VKA±Hep >6mo (Ns=1, Np=166)", "lower": "0.07", "n_c": null, "n_t": null, "upper": "1.61", "weight_pct": null}
+- doac-vte-recurrence::35801133 / Base case (Ns=1, Np=36,907) / API: Base case (Ns=1, Np=36,907): LABEL_DISAGREES; codex {"label": "Base case (Ns=1, Np=36,907)", "effect": "0.79", "lower": "0.65", "upper": "0.97", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.79", "events_c": null, "events_t": null, "label": "API: Base case (Ns=1, Np=36,907)", "lower": "0.65", "n_c": null, "n_t": null, "upper": "0.97", "weight_pct": null}
+- doac-vte-recurrence::35801133 / Only HR reported (Ns=1, Np=36,907) / API: Only HR reported (Ns=1, Np=36,907): LABEL_DISAGREES; codex {"label": "Only HR reported (Ns=1, Np=36,907)", "effect": "0.79", "lower": "0.65", "upper": "0.97", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.79", "events_c": null, "events_t": null, "label": "API: Only HR reported (Ns=1, Np=36,907)", "lower": "0.65", "n_c": null, "n_t": null, "upper": "0.97", "weight_pct": null}
+- doac-vte-recurrence::35801133 / Only VKA±Hep (Ns=1, Np=36,907) / API: Only VKA±Hep (Ns=1, Np=36,907): LABEL_DISAGREES; codex {"label": "Only VKA±Hep (Ns=1, Np=36,907)", "effect": "0.79", "lower": "0.65", "upper": "0.97", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.79", "events_c": null, "events_t": null, "label": "API: Only VKA±Hep (Ns=1, Np=36,907)", "lower": "0.65", "n_c": null, "n_t": null, "upper": "0.97", "weight_pct": null}
+- doac-vte-recurrence::35801133 / >6mo (Ns=1, Np=36,907) / API: >6mo (Ns=1, Np=36,907): LABEL_DISAGREES; codex {"label": ">6mo (Ns=1, Np=36,907)", "effect": "0.79", "lower": "0.65", "upper": "0.97", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.79", "events_c": null, "events_t": null, "label": "API: >6mo (Ns=1, Np=36,907)", "lower": "0.65", "n_c": null, "n_t": null, "upper": "0.97", "weight_pct": null}
+- doac-vte-recurrence::35801133 / Only VKA±Hep >6mo (Ns=1, Np=36,907) / API: Only VKA±Hep >6mo (Ns=1, Np=36,907): LABEL_DISAGREES; codex {"label": "Only VKA±Hep >6mo (Ns=1, Np=36,907)", "effect": "0.79", "lower": "0.65", "upper": "0.97", "weight_pct": null, "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy {"effect": "0.79", "events_c": null, "events_t": null, "label": "API: Only VKA±Hep >6mo (Ns=1, Np=36,907)", "lower": "0.65", "n_c": null, "n_t": null, "upper": "0.97", "weight_pct": null}
+- doac-vte-recurrence::41487575 / API-CAT 2025: ONLY_IN_READING_A; codex {"label": "API-CAT 2025", "effect": "0.66", "lower": "0.40", "upper": "1.10", "weight_pct": "87.0%", "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy null
+- doac-vte-recurrence::41487575 / EVE 2024: ONLY_IN_READING_A; codex {"label": "EVE 2024", "effect": "1.26", "lower": "0.34", "upper": "4.66", "weight_pct": "13.0%", "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy null
+- doac-vte-recurrence::41487575 / API-CAT 2025: ONLY_IN_READING_A; codex {"label": "API-CAT 2025", "effect": "0.79", "lower": "0.59", "upper": "1.05", "weight_pct": "86.4%", "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy null
+- doac-vte-recurrence::41487575 / EVE 2024: ONLY_IN_READING_A; codex {"label": "EVE 2024", "effect": "0.66", "lower": "0.32", "upper": "1.37", "weight_pct": "13.6%", "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy null
+- doac-vte-recurrence::41487575 / API-CAT 2025: ONLY_IN_READING_A; codex {"label": "API-CAT 2025", "effect": "0.94", "lower": "0.38", "upper": "2.29", "weight_pct": "67.8%", "events_t": "9", "n_t": "866", "events_c": "10", "n_c": "900"}; agy null
+- doac-vte-recurrence::41487575 / EVE 2024: ONLY_IN_READING_A; codex {"label": "EVE 2024", "effect": "0.81", "lower": "0.22", "upper": "2.96", "weight_pct": "32.2%", "events_t": "4", "n_t": "179", "events_c": "5", "n_c": "181"}; agy null
+- doac-vte-recurrence::41487575 / API-CAT 2025: ONLY_IN_READING_A; codex {"label": "API-CAT 2025", "effect": "0.95", "lower": "0.86", "upper": "1.06", "weight_pct": "96.9%", "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy null
+- doac-vte-recurrence::41487575 / EVE 2024: ONLY_IN_READING_A; codex {"label": "EVE 2024", "effect": "1.13", "lower": "0.63", "upper": "2.04", "weight_pct": "3.1%", "events_t": null, "n_t": null, "events_c": null, "n_c": null}; agy null
 - empagliflozin-hfpef-hosp::33335975 / Mc Murray 2019: ONLY_IN_READING_B; codex null; agy {"effect": "0.77", "events_c": "495", "events_t": "382", "label": "Mc Murray 2019", "lower": "0.68", "n_c": "2371", "n_t": "2373", "upper": "0.87", "weight_pct": "50.1%"}
 - empagliflozin-hfpef-hosp::33335975 / Jensen 2020: ONLY_IN_READING_B; codex null; agy {"effect": "3.00", "events_c": "0", "events_t": "1", "label": "Jensen 2020", "lower": "0.12", "n_c": "95", "n_t": "95", "upper": "72.72", "weight_pct": "0.1%"}
 - empagliflozin-hfpef-hosp::33335975 / Packer 2020: ONLY_IN_READING_B; codex null; agy {"effect": "0.78", "events_c": "462", "events_t": "361", "label": "Packer 2020", "lower": "0.69", "n_c": "1867", "n_t": "1863", "upper": "0.88", "weight_pct": "49.3%"}
@@ -1320,6 +1592,82 @@ Two model families read each forest figure (codex `gpt-6-astra`; agy `Gemini 3.1
 - sglt2-ckd-progression::35342538 / Ramirez-Rodriguez 2020 (10mgDapa) / Ramírez-Rodríguez 2020 (10mgDapa): LABEL_DISAGREES; codex {"effect": "-62.00", "events_c": null, "events_t": null, "label": "Ramirez-Rodriguez 2020 (10mgDapa)", "lower": "-103.78", "n_c": null, "n_t": null, "upper": "-20.22", "weight_pct": "0.6%"}; agy {"effect": "-62.00", "events_c": null, "events_t": null, "label": "Ramírez-Rodríguez 2020 (10mgDapa)", "lower": "-103.78", "n_c": null, "n_t": null, "upper": "-20.22", "weight_pct": "0.6%"}
 - sglt2-ckd-progression::35342538 / Stenlof 2013 (100mgCana) / Stenlöf 2013 (100mgCana): LABEL_DISAGREES; codex {"effect": "-48.84", "events_c": null, "events_t": null, "label": "Stenlof 2013 (100mgCana)", "lower": "-59.90", "n_c": null, "n_t": null, "upper": "-37.77", "weight_pct": "1.4%"}; agy {"effect": "-48.84", "events_c": null, "events_t": null, "label": "Stenlöf 2013 (100mgCana)", "lower": "-59.90", "n_c": null, "n_t": null, "upper": "-37.77", "weight_pct": "1.4%"}
 - sglt2-ckd-progression::35342538 / Stenlof 2013 (300mgCana) / Stenlöf 2013 (300mgCana): LABEL_DISAGREES; codex {"effect": "-52.64", "events_c": null, "events_t": null, "label": "Stenlof 2013 (300mgCana)", "lower": "-63.65", "n_c": null, "n_t": null, "upper": "-41.62", "weight_pct": "1.4%"}; agy {"effect": "-52.64", "events_c": null, "events_t": null, "label": "Stenlöf 2013 (300mgCana)", "lower": "-63.65", "n_c": null, "n_t": null, "upper": "-41.62", "weight_pct": "1.4%"}
+- sglt2-ckd-progression::37465885 / Hsiao et al 2020 [16]: ONLY_IN_READING_A; codex {"label": "Hsiao et al 2020 [16]", "effect": "0.65", "lower": "0.47", "upper": "0.90", "weight_pct": "28.8%", "events_t": "36", "n_t": "169", "events_c": "111", "n_c": "338"}; agy null
+- sglt2-ckd-progression::37465885 / Karabulut et al 2022 [18]: ONLY_IN_READING_A; codex {"label": "Karabulut et al 2022 [18]", "effect": "0.38", "lower": "0.16", "upper": "0.87", "weight_pct": "9.5%", "events_t": "6", "n_t": "81", "events_c": "32", "n_c": "163"}; agy null
+- sglt2-ckd-progression::37465885 / Murray et al 2019 [20]: ONLY_IN_READING_A; codex {"label": "Murray et al 2019 [20]", "effect": "0.83", "lower": "0.70", "upper": "0.98", "weight_pct": "39.9%", "events_t": "227", "n_t": "2373", "events_c": "273", "n_c": "2371"}; agy null
+- sglt2-ckd-progression::37465885 / Packer et al 2021 [21]: ONLY_IN_READING_A; codex {"label": "Packer et al 2021 [21]", "effect": "0.52", "lower": "0.33", "upper": "0.82", "weight_pct": "21.8%", "events_t": "21", "n_t": "727", "events_c": "166", "n_c": "3003"}; agy null
+- sglt2-ckd-progression::37465885 / Jiang et al 2023 [17]: ONLY_IN_READING_A; codex {"label": "Jiang et al 2023 [17]", "effect": "0.60", "lower": "-1.80", "upper": "3.00", "weight_pct": "61.3%", "events_t": null, "n_t": "72", "events_c": null, "n_c": "64"}; agy null
+- sglt2-ckd-progression::37465885 / Larsen et al 2023 [19]: ONLY_IN_READING_A; codex {"label": "Larsen et al 2023 [19]", "effect": "2.70", "lower": "-0.40", "upper": "5.80", "weight_pct": "38.7%", "events_t": null, "n_t": "58", "events_c": null, "n_c": "132"}; agy null
+- sglt2-ckd-progression::42222151 / Finerenone vs Placebo: ONLY_IN_READING_B; codex null; agy {"effect": "1.42", "events_c": null, "events_t": null, "label": "Finerenone vs Placebo", "lower": "1.10", "n_c": null, "n_t": null, "upper": "1.84", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / Dapagliflozin vs Placebo: ONLY_IN_READING_B; codex null; agy {"effect": "0.94", "events_c": null, "events_t": null, "label": "Dapagliflozin vs Placebo", "lower": "0.77", "n_c": null, "n_t": null, "upper": "1.16", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / Empagliflozin vs Placebo: ONLY_IN_READING_B; codex null; agy {"effect": "0.88", "events_c": null, "events_t": null, "label": "Empagliflozin vs Placebo", "lower": "0.70", "n_c": null, "n_t": null, "upper": "1.11", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / Sotagliflozin vs Placebo: ONLY_IN_READING_B; codex null; agy {"effect": "0.93", "events_c": null, "events_t": null, "label": "Sotagliflozin vs Placebo", "lower": "0.53", "n_c": null, "n_t": null, "upper": "1.63", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / RASI vs Placebo: ONLY_IN_READING_B; codex null; agy {"effect": "1.21", "events_c": null, "events_t": null, "label": "RASI vs Placebo", "lower": "0.85", "n_c": null, "n_t": null, "upper": "1.73", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / ARNI vs Placebo: ONLY_IN_READING_B; codex null; agy {"effect": "0.69", "events_c": null, "events_t": null, "label": "ARNI vs Placebo", "lower": "0.43", "n_c": null, "n_t": null, "upper": "1.11", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / Dapagliflozin vs Finerenone: ONLY_IN_READING_B; codex null; agy {"effect": "0.66", "events_c": null, "events_t": null, "label": "Dapagliflozin vs Finerenone", "lower": "0.48", "n_c": null, "n_t": null, "upper": "0.92", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / Empagliflozin vs Finerenone: ONLY_IN_READING_B; codex null; agy {"effect": "0.62", "events_c": null, "events_t": null, "label": "Empagliflozin vs Finerenone", "lower": "0.44", "n_c": null, "n_t": null, "upper": "0.88", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / Sotagliflozin vs Finerenone: ONLY_IN_READING_B; codex null; agy {"effect": "0.66", "events_c": null, "events_t": null, "label": "Sotagliflozin vs Finerenone", "lower": "0.36", "n_c": null, "n_t": null, "upper": "1.21", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / RASI vs Finerenone: ONLY_IN_READING_B; codex null; agy {"effect": "0.85", "events_c": null, "events_t": null, "label": "RASI vs Finerenone", "lower": "0.55", "n_c": null, "n_t": null, "upper": "1.33", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / ARNI vs Finerenone: ONLY_IN_READING_B; codex null; agy {"effect": "0.48", "events_c": null, "events_t": null, "label": "ARNI vs Finerenone", "lower": "0.28", "n_c": null, "n_t": null, "upper": "0.83", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / Empagliflozin vs Dapagliflozin: ONLY_IN_READING_B; codex null; agy {"effect": "0.94", "events_c": null, "events_t": null, "label": "Empagliflozin vs Dapagliflozin", "lower": "0.69", "n_c": null, "n_t": null, "upper": "1.27", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / Sotagliflozin vs Dapagliflozin: ONLY_IN_READING_B; codex null; agy {"effect": "0.99", "events_c": null, "events_t": null, "label": "Sotagliflozin vs Dapagliflozin", "lower": "0.55", "n_c": null, "n_t": null, "upper": "1.79", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / RASI vs Dapagliflozin: ONLY_IN_READING_B; codex null; agy {"effect": "1.29", "events_c": null, "events_t": null, "label": "RASI vs Dapagliflozin", "lower": "0.86", "n_c": null, "n_t": null, "upper": "1.94", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / ARNI vs Dapagliflozin: ONLY_IN_READING_B; codex null; agy {"effect": "0.73", "events_c": null, "events_t": null, "label": "ARNI vs Dapagliflozin", "lower": "0.44", "n_c": null, "n_t": null, "upper": "1.22", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / Sotagliflozin vs Empagliflozin: ONLY_IN_READING_B; codex null; agy {"effect": "1.06", "events_c": null, "events_t": null, "label": "Sotagliflozin vs Empagliflozin", "lower": "0.58", "n_c": null, "n_t": null, "upper": "1.93", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / RASI vs Empagliflozin: ONLY_IN_READING_B; codex null; agy {"effect": "1.37", "events_c": null, "events_t": null, "label": "RASI vs Empagliflozin", "lower": "0.90", "n_c": null, "n_t": null, "upper": "2.10", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / ARNI vs Empagliflozin: ONLY_IN_READING_B; codex null; agy {"effect": "0.78", "events_c": null, "events_t": null, "label": "ARNI vs Empagliflozin", "lower": "0.46", "n_c": null, "n_t": null, "upper": "1.32", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / RASI vs Sotagliflozin: ONLY_IN_READING_B; codex null; agy {"effect": "1.30", "events_c": null, "events_t": null, "label": "RASI vs Sotagliflozin", "lower": "0.67", "n_c": null, "n_t": null, "upper": "2.52", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / ARNI vs Sotagliflozin: ONLY_IN_READING_B; codex null; agy {"effect": "0.74", "events_c": null, "events_t": null, "label": "ARNI vs Sotagliflozin", "lower": "0.36", "n_c": null, "n_t": null, "upper": "1.54", "weight_pct": null}
+- sglt2-ckd-progression::42222151 / ARNI vs RASI: ONLY_IN_READING_B; codex null; agy {"effect": "0.57", "events_c": null, "events_t": null, "label": "ARNI vs RASI", "lower": "0.41", "n_c": null, "n_t": null, "upper": "0.78", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / Age: <65 years / <65 years: LABEL_DISAGREES; codex {"label": "Age: <65 years", "effect": "0.681", "lower": "0.415", "upper": "1.118", "weight_pct": null, "events_t": "35", "n_t": "4071", "events_c": "32", "n_c": "2177"}; agy {"effect": "0.681", "events_c": "32", "events_t": "35", "label": "<65 years", "lower": "0.415", "n_c": "2177", "n_t": "4071", "upper": "1.118", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / Age: ≥65 years / ≥65 years: LABEL_DISAGREES; codex {"label": "Age: ≥65 years", "effect": "0.907", "lower": "0.549", "upper": "1.496", "weight_pct": null, "events_t": "37", "n_t": "1347", "events_c": "30", "n_c": "924"}; agy {"effect": "0.907", "events_c": "30", "events_t": "37", "label": "≥65 years", "lower": "0.549", "n_c": "924", "n_t": "1347", "upper": "1.496", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / Smoking history: Yes / Yes: LABEL_DISAGREES; codex {"label": "Smoking history: Yes", "effect": "0.701", "lower": "0.425", "upper": "1.155", "weight_pct": null, "events_t": "35", "n_t": "2390", "events_c": "32", "n_c": "1457"}; agy {"effect": "0.701", "events_c": "32", "events_t": "35", "label": "Yes", "lower": "0.425", "n_c": "1457", "n_t": "2390", "upper": "1.155", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / Smoking history: No / No: LABEL_DISAGREES; codex {"label": "Smoking history: No", "effect": "0.833", "lower": "0.507", "upper": "1.371", "weight_pct": null, "events_t": "37", "n_t": "3028", "events_c": "30", "n_c": "1644"}; agy {"effect": "0.833", "events_c": "30", "events_t": "37", "label": "No", "lower": "0.507", "n_c": "1644", "n_t": "3028", "upper": "1.371", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / History of CV disease: Yes / Yes: LABEL_DISAGREES; codex {"label": "History of CV disease: Yes", "effect": "0.802", "lower": "0.527", "upper": "1.221", "weight_pct": null, "events_t": "50", "n_t": "1799", "events_c": "45", "n_c": "1325"}; agy {"effect": "0.802", "events_c": "45", "events_t": "50", "label": "Yes", "lower": "0.527", "n_c": "1325", "n_t": "1799", "upper": "1.221", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / History of CV disease: No / No: LABEL_DISAGREES; codex {"label": "History of CV disease: No", "effect": "0.646", "lower": "0.336", "upper": "1.241", "weight_pct": null, "events_t": "22", "n_t": "3619", "events_c": "17", "n_c": "1776"}; agy {"effect": "0.646", "events_c": "17", "events_t": "22", "label": "No", "lower": "0.336", "n_c": "1776", "n_t": "3619", "upper": "1.241", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / History of hypertension: Yes / Yes: LABEL_DISAGREES; codex {"label": "History of hypertension: Yes", "effect": "0.857", "lower": "0.592", "upper": "1.240", "weight_pct": null, "events_t": "67", "n_t": "3630", "events_c": "54", "n_c": "2279"}; agy {"effect": "0.857", "events_c": "54", "events_t": "67", "label": "Yes", "lower": "0.592", "n_c": "2279", "n_t": "3630", "upper": "1.240", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / History of hypertension: No / No: LABEL_DISAGREES; codex {"label": "History of hypertension: No", "effect": "0.276", "lower": "0.086", "upper": "0.889", "weight_pct": null, "events_t": "5", "n_t": "1788", "events_c": "8", "n_c": "822"}; agy {"effect": "0.276", "events_c": "8", "events_t": "5", "label": "No", "lower": "0.086", "n_c": "822", "n_t": "1788", "upper": "0.889", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / History of dyslipidemia: Yes / Yes: LABEL_DISAGREES; codex {"label": "History of dyslipidemia: Yes", "effect": "0.765", "lower": "0.505", "upper": "1.157", "weight_pct": null, "events_t": "50", "n_t": "3052", "events_c": "46", "n_c": "1886"}; agy {"effect": "0.765", "events_c": "46", "events_t": "50", "label": "Yes", "lower": "0.505", "n_c": "1886", "n_t": "3052", "upper": "1.157", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / History of dyslipidemia: No / No: LABEL_DISAGREES; codex {"label": "History of dyslipidemia: No", "effect": "0.763", "lower": "0.392", "upper": "1.483", "weight_pct": null, "events_t": "22", "n_t": "2366", "events_c": "16", "n_c": "1215"}; agy {"effect": "0.763", "events_c": "16", "events_t": "22", "label": "No", "lower": "0.392", "n_c": "1215", "n_t": "2366", "upper": "1.483", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / 1ˢᵗ degree family member with Hx of premature CHD: Yes / Yes: LABEL_DISAGREES; codex {"label": "1ˢᵗ degree family member with Hx of premature CHD: Yes", "effect": "0.757", "lower": "0.369", "upper": "1.551", "weight_pct": null, "events_t": "17", "n_t": "945", "events_c": "15", "n_c": "595"}; agy {"effect": "0.757", "events_c": "15", "events_t": "17", "label": "Yes", "lower": "0.369", "n_c": "595", "n_t": "945", "upper": "1.551", "weight_pct": null}
+- sglt2-primary-prevention-hf::26895767 / 1ˢᵗ degree family member with Hx of premature CHD: No / No: LABEL_DISAGREES; codex {"label": "1ˢᵗ degree family member with Hx of premature CHD: No", "effect": "0.789", "lower": "0.527", "upper": "1.180", "weight_pct": null, "events_t": "55", "n_t": "4473", "events_c": "47", "n_c": "2506"}; agy {"effect": "0.789", "events_c": "47", "events_t": "55", "label": "No", "lower": "0.527", "n_c": "2506", "n_t": "4473", "upper": "1.180", "weight_pct": null}
+- sglt2-primary-prevention-hf::33494751 / Brown 2020: ONLY_IN_READING_A; codex {"label": "Brown 2020", "effect": "-1.43", "lower": "-2.65", "upper": "-0.21", "weight_pct": "22.4%", "events_t": null, "n_t": "24", "events_c": null, "n_c": "25"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Eickhoff 2020: ONLY_IN_READING_A; codex {"label": "Eickhoff 2020", "effect": "0.20", "lower": "-1.07", "upper": "1.47", "weight_pct": "20.9%", "events_t": null, "n_t": "34", "events_c": null, "n_c": "35"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Ikonomidis 2020: ONLY_IN_READING_A; codex {"label": "Ikonomidis 2020", "effect": "0.05", "lower": "-1.19", "upper": "1.29", "weight_pct": "21.9%", "events_t": null, "n_t": "80", "events_c": null, "n_c": "80"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Oldgren 2020: ONLY_IN_READING_A; codex {"label": "Oldgren 2020", "effect": "-0.31", "lower": "-1.19", "upper": "0.57", "weight_pct": "34.8%", "events_t": null, "n_t": "24", "events_c": null, "n_c": "24"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Verma 2019: ONLY_IN_READING_A; codex {"label": "Verma 2019", "effect": "-0.60", "lower": "-1.70", "upper": "0.50", "weight_pct": "14.9%", "events_t": null, "n_t": "49", "events_c": null, "n_c": "48"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Shin 2020: ONLY_IN_READING_A; codex {"label": "Shin 2020", "effect": "-0.84", "lower": "-2.10", "upper": "0.42", "weight_pct": "11.4%", "events_t": null, "n_t": "29", "events_c": null, "n_c": "29"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Kayano 2020: ONLY_IN_READING_A; codex {"label": "Kayano 2020", "effect": "-0.90", "lower": "-1.97", "upper": "0.17", "weight_pct": "15.8%", "events_t": null, "n_t": "36", "events_c": null, "n_c": "38"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Eickhoff 2020: ONLY_IN_READING_A; codex {"label": "Eickhoff 2020", "effect": "-0.33", "lower": "-1.13", "upper": "0.47", "weight_pct": "28.0%", "events_t": null, "n_t": "35", "events_c": null, "n_c": "35"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Brown 2020: ONLY_IN_READING_A; codex {"label": "Brown 2020", "effect": "-0.17", "lower": "-1.43", "upper": "1.09", "weight_pct": "11.4%", "events_t": null, "n_t": "32", "events_c": null, "n_c": "34"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Tanaka 2020: ONLY_IN_READING_A; codex {"label": "Tanaka 2020", "effect": "-0.20", "lower": "-1.51", "upper": "1.11", "weight_pct": "10.6%", "events_t": null, "n_t": "73", "events_c": null, "n_c": "86"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Ejiri 2020: ONLY_IN_READING_A; codex {"label": "Ejiri 2020", "effect": "0.50", "lower": "-1.19", "upper": "2.19", "weight_pct": "6.3%", "events_t": null, "n_t": "83", "events_c": null, "n_c": "82"}; agy null
+- sglt2-primary-prevention-hf::33494751 / Carbone 2020: ONLY_IN_READING_A; codex {"label": "Carbone 2020", "effect": "-1.30", "lower": "-4.55", "upper": "1.95", "weight_pct": "1.7%", "events_t": null, "n_t": "17", "events_c": null, "n_c": "19"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Cheng G 2024: ONLY_IN_READING_A; codex {"label": "Cheng G 2024", "effect": "0.25", "lower": "0.03", "upper": "2.14", "weight_pct": "19.7%", "events_t": "1", "n_t": "40", "events_c": "4", "n_c": "40"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Wang Y 2023: ONLY_IN_READING_A; codex {"label": "Wang Y 2023", "effect": "0.50", "lower": "0.05", "upper": "5.32", "weight_pct": "16.2%", "events_t": "1", "n_t": "45", "events_c": "2", "n_c": "45"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Wei F 2023: ONLY_IN_READING_A; codex {"label": "Wei F 2023", "effect": "0.33", "lower": "0.04", "upper": "3.08", "weight_pct": "18.3%", "events_t": "1", "n_t": "42", "events_c": "3", "n_c": "42"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Zhang X 2024: ONLY_IN_READING_A; codex {"label": "Zhang X 2024", "effect": "0.20", "lower": "0.01", "upper": "4.05", "weight_pct": "10.0%", "events_t": "0", "n_t": "43", "events_c": "2", "n_c": "43"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Zhao L 2022: ONLY_IN_READING_A; codex {"label": "Zhao L 2022", "effect": "0.40", "lower": "0.08", "upper": "1.96", "weight_pct": "35.8%", "events_t": "2", "n_t": "49", "events_c": "5", "n_c": "49"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Cheng G 2024: ONLY_IN_READING_A; codex {"label": "Cheng G 2024", "effect": "0.50", "lower": "0.05", "upper": "5.30", "weight_pct": "6.3%", "events_t": "1", "n_t": "40", "events_c": "2", "n_c": "40"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Huo Z 2022: ONLY_IN_READING_A; codex {"label": "Huo Z 2022", "effect": "0.68", "lower": "0.19", "upper": "2.47", "weight_pct": "20.9%", "events_t": "4", "n_t": "163", "events_c": "5", "n_c": "138"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Wang F 2023: ONLY_IN_READING_A; codex {"label": "Wang F 2023", "effect": "0.43", "lower": "0.12", "upper": "1.52", "weight_pct": "21.9%", "events_t": "3", "n_t": "34", "events_c": "7", "n_c": "34"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Wang Y 2023: ONLY_IN_READING_A; codex {"label": "Wang Y 2023", "effect": "0.50", "lower": "0.05", "upper": "5.32", "weight_pct": "6.3%", "events_t": "1", "n_t": "45", "events_c": "2", "n_c": "45"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Wei F 2023: ONLY_IN_READING_A; codex {"label": "Wei F 2023", "effect": "0.20", "lower": "0.02", "upper": "1.64", "weight_pct": "7.9%", "events_t": "1", "n_t": "42", "events_c": "5", "n_c": "42"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Zhang X 2024: ONLY_IN_READING_A; codex {"label": "Zhang X 2024", "effect": "0.33", "lower": "0.01", "upper": "7.96", "weight_pct": "3.5%", "events_t": "0", "n_t": "43", "events_c": "1", "n_c": "43"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Zhao L 2022: ONLY_IN_READING_A; codex {"label": "Zhao L 2022", "effect": "0.50", "lower": "0.05", "upper": "5.34", "weight_pct": "6.3%", "events_t": "1", "n_t": "49", "events_c": "2", "n_c": "49"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Zhu Y 2022: ONLY_IN_READING_A; codex {"label": "Zhu Y 2022", "effect": "0.20", "lower": "0.07", "upper": "0.64", "weight_pct": "26.9%", "events_t": "3", "n_t": "141", "events_c": "67", "n_c": "645"}; agy null
+- sglt2-primary-prevention-hf::40535333 / James S 2024: ONLY_IN_READING_A; codex {"label": "James S 2024", "effect": "0.83", "lower": "0.50", "upper": "1.39", "weight_pct": "39.1%", "events_t": "27", "n_t": "2019", "events_c": "32", "n_c": "1998"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Mao L 2023: ONLY_IN_READING_A; codex {"label": "Mao L 2023", "effect": "0.37", "lower": "0.20", "upper": "0.68", "weight_pct": "34.1%", "events_t": "13", "n_t": "231", "events_c": "35", "n_c": "231"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Yang C 2023: ONLY_IN_READING_A; codex {"label": "Yang C 2023", "effect": "0.42", "lower": "0.19", "upper": "0.92", "weight_pct": "26.8%", "events_t": "8", "n_t": "110", "events_c": "19", "n_c": "110"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Cheng G 2024: ONLY_IN_READING_A; codex {"label": "Cheng G 2024", "effect": "-0.05", "lower": "-0.13", "upper": "0.03", "weight_pct": "6.8%", "events_t": "0", "n_t": "40", "events_c": "2", "n_c": "40"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Wang Y 2023: ONLY_IN_READING_A; codex {"label": "Wang Y 2023", "effect": "0.00", "lower": "-0.04", "upper": "0.04", "weight_pct": "24.6%", "events_t": "0", "n_t": "45", "events_c": "0", "n_c": "45"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Yang C 2023: ONLY_IN_READING_A; codex {"label": "Yang C 2023", "effect": "-0.01", "lower": "-0.04", "upper": "0.02", "weight_pct": "47.1%", "events_t": "1", "n_t": "110", "events_c": "2", "n_c": "110"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Yin Y 2021: ONLY_IN_READING_A; codex {"label": "Yin Y 2021", "effect": "0.03", "lower": "-0.08", "upper": "0.14", "weight_pct": "3.7%", "events_t": "2", "n_t": "30", "events_c": "1", "n_c": "30"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Zhang X 2024: ONLY_IN_READING_A; codex {"label": "Zhang X 2024", "effect": "-0.05", "lower": "-0.12", "upper": "0.03", "weight_pct": "7.8%", "events_t": "0", "n_t": "43", "events_c": "2", "n_c": "43"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Zhao L 2022: ONLY_IN_READING_A; codex {"label": "Zhao L 2022", "effect": "-0.04", "lower": "-0.11", "upper": "0.03", "weight_pct": "10.0%", "events_t": "0", "n_t": "49", "events_c": "2", "n_c": "49"}; agy null
+- sglt2-primary-prevention-hf::40535333 / James S 2024: ONLY_IN_READING_A; codex {"label": "James S 2024", "effect": "0.58", "lower": "0.27", "upper": "1.27", "weight_pct": "89.3%", "events_t": "10", "n_t": "2019", "events_c": "17", "n_c": "1998"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Yang C 2023: ONLY_IN_READING_A; codex {"label": "Yang C 2023", "effect": "0.33", "lower": "0.01", "upper": "8.09", "weight_pct": "5.3%", "events_t": "0", "n_t": "110", "events_c": "1", "n_c": "110"}; agy null
+- sglt2-primary-prevention-hf::40535333 / Yin Y 2021: ONLY_IN_READING_A; codex {"label": "Yin Y 2021", "effect": "0.33", "lower": "0.01", "upper": "7.87", "weight_pct": "5.4%", "events_t": "0", "n_t": "30", "events_c": "1", "n_c": "30"}; agy null
 - spironolactone-hfref-mortality::25598008 / Aldo-DHF trial (2013): READER_DISAGREEMENT_UNRESOLVED:N_C; codex {"effect": "0.00", "events_c": "0", "events_t": "1", "label": "Aldo-DHF trial (2013)", "lower": "-0.01", "n_c": "209", "n_t": "213", "upper": "0.02", "weight_pct": "18.18"}; agy {"effect": "0.00", "events_c": "0", "events_t": "1", "label": "Aldo-DHF trial (2013)", "lower": "-0.01", "n_c": "109", "n_t": "213", "upper": "0.02", "weight_pct": "18.18"}
 - spironolactone-hfref-mortality::25598008 / REMINDER trial (2014): READER_DISAGREEMENT_UNRESOLVED:N_T; codex {"effect": "0.00", "events_c": "3", "events_t": "3", "label": "REMINDER trial (2014)", "lower": "-0.01", "n_c": "506", "n_t": "508", "upper": "0.01", "weight_pct": "57.48"}; agy {"effect": "0.00", "events_c": "3", "events_t": "3", "label": "REMINDER trial (2014)", "lower": "-0.01", "n_c": "506", "n_t": "506", "upper": "0.01", "weight_pct": "57.48"}
 - spironolactone-hfref-mortality::25598008 / ROONGSITONG et al (2005) / ROONGSRITONG et al (2005): LABEL_DISAGREES; codex {"effect": "0.00", "events_c": "0", "events_t": "0", "label": "ROONGSITONG et al (2005)", "lower": "-0.12", "n_c": "15", "n_t": "15", "upper": "0.12", "weight_pct": "0.35"}; agy {"effect": "0.00", "events_c": "0", "events_t": "0", "label": "ROONGSRITONG et al (2005)", "lower": "-0.12", "n_c": "15", "n_t": "15", "upper": "0.12", "weight_pct": "0.35"}
