@@ -3378,5 +3378,48 @@
     "verdict": null
    }
   ]
+ },
+ "pr25-final3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5ce60aff407a84ee7172d70a57598bc6",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_select.py",
+     "scripts/g1_licence.py",
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "f15a37455ff1997b06d0470d2aa9a359e37259de30c88a8307ccdd95ef484eca"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "An ASCII inequality is accepted as an exact trial count. For '>= 5 trials', the bound lookbehind sees '= ', and blocked_before does not recognize '>='; the lower bound therefore becomes k=5.",
+    "failing_input": "q = 'Mortality RR 0.85 (95% CI 0.70-1.03; >= 5 trials).'\nprinted_counts(q)\npooled_gate({'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because at least five trials does not establish exactly five.",
+    "actual": "printed_counts returns {5}; pooled_gate accepts the claim and returns k=5 with POOLED_QUOTE_SENTENCE provenance.",
+    "id": "pr25-final3:g1#1",
+    "record_id": "mc-5ce60aff407a84ee7172d70a57598bc6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pubmed_ids",
+    "severity": "P2",
+    "claim": "Malformed JSON in a transient error response bypasses the retry loop: parsing occurs before checking HTTP status and JSONDecodeError is not caught.",
+    "failing_input": "replies = iter([(503, b'{'), (200, b'{\"esearchresult\":{\"count\":\"0\",\"idlist\":[]}}')])\npubmed_ids(lambda *args: next(replies), 'test')",
+    "expected": "Retry the 503 response, consume the successful second response, and return an empty ID list with state COMPLETE.",
+    "actual": "Raises JSONDecodeError on the first response; the successful second response is never requested.",
+    "id": "pr25-final3:g1#2",
+    "record_id": "mc-5ce60aff407a84ee7172d70a57598bc6",
+    "verdict": null
+   }
+  ]
  }
 }
