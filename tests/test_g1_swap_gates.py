@@ -324,10 +324,11 @@ def test_PLANT_r14_denominators_post_bounds_percent_sentences_and_the_k_basis_is
     got, k = sw.pooled_gate(pl2, sw._norm(sq2), set_quote=sq2, verified_units=5)
     assert k == 5 and got["k_basis"]["from"] == "SET_QUOTE_SENTENCE" and "five Phase 3 studies" in got["k_basis"]["sentence"]
     assert "k_basis" not in pl2                                      # the caller's claim is not mutated
-    # a k printed in the pooled quote itself carries no k_basis (nothing for the reviewer to re-read)
+    # a k printed in the pooled quote itself carries its sentence too (codex pr25-final2 #1: every machine-read k is
+    # disclosed; the contract changed from 'only borrowed counts' to 'every count')
     q3 = "Five trials gave RR 0.85 (95% CI 0.75-0.95)."
     got3, _ = sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 5, "quote": q3}, sw._norm(q3))
-    assert got3 and "k_basis" not in got3
+    assert got3["k_basis"]["from"] == "POOLED_QUOTE_SENTENCE" and "Five trials" in got3["k_basis"]["sentence"]
 
 
 def test_PLANT_r15_subset_in_the_pooled_quote_bracketed_bounds_and_adjectival_denominators_refuse():
@@ -557,3 +558,16 @@ def test_PLANT_europepmc_search_fails_closed_on_an_error_reply_and_a_trailing_ve
     pm, meta = sw.europepmc_ids(lambda *a, **k: ok, "mortality")
     assert pm == ["123"] and meta["state"] == "COMPLETE"
     assert sw.printed_counts("Five trials, at the very least, reported mortality (RR 0.85, 95% CI 0.70 to 1.03).") == set()
+
+
+def test_PLANT_pubmed_error_status_and_repeated_europepmc_pages_never_make_a_complete_search():
+    """codex pr25-final2: #2 a 503 carrying a count of 0 was a complete PubMed search; #3 one Europe PMC record served
+    twice reached hitCount 2 and was called COMPLETE."""
+    import pytest
+    import unittest.mock as um
+    with um.patch("time.sleep", lambda s: None), pytest.raises(SystemExit):
+        sw.pubmed_ids(lambda *a, **k: (503, b'{"esearchresult":{"count":"0","idlist":[]}}'), "mortality")
+    same = (200, b'{"hitCount":2,"resultList":{"result":[{"source":"MED","id":"123","pmid":"123"}]},'
+                 b'"nextCursorMark":"A"}')
+    pm, meta = sw.europepmc_ids(lambda *a, **k: same, "mortality")
+    assert meta["state"] == "TRUNCATED" and meta["fetched_hits"] == 1 and pm == ["123"]
