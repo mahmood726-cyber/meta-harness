@@ -25,12 +25,32 @@ def _main(path):
                                      check=True).stdout)
 
 
-def test_unsigned_switches_serve_the_previous_comparator_exactly():
+def _unsigned_root(tmp_path):
+    """The adoption records with NO signatures file: the switches as they stood before Mahmood signed V8. Synthetic on
+    purpose -- read against the live registry this control retired itself the day V8 was signed (7 Oct)."""
+    d = tmp_path / "registry" / "comparator_selection"
+    d.mkdir(parents=True)
+    for s in SLUGS:
+        src = os.path.join(ROOT, "registry", "comparator_selection", s + ".adoption.json")
+        (d / (s + ".adoption.json")).write_text(open(src, encoding="utf-8").read(), encoding="utf-8")
+    return str(tmp_path)
+
+
+def test_unsigned_switches_serve_the_previous_comparator_exactly(tmp_path):
+    root = _unsigned_root(tmp_path)
     for s in SLUGS:
         cfg = json.load(open(os.path.join(ROOT, "topics", s + ".json"), encoding="utf-8"))
         panel = json.load(open(os.path.join(ROOT, "cache", s, "comparators.json"), encoding="utf-8"))
-        assert sc.served_config(s, cfg)["comparator_pmid"] == _main(f"topics/{s}.json")["comparator_pmid"], s
-        assert sc.served_panel(s, panel) == _main(f"cache/{s}/comparators.json"), s
+        assert sc.served_config(s, cfg, root)["comparator_pmid"] == _main(f"topics/{s}.json")["comparator_pmid"], s
+        assert sc.served_panel(s, panel, root) == _main(f"cache/{s}/comparators.json"), s
+
+
+def test_the_v8_signed_switches_serve_the_adopted_comparators():
+    """Mahmood signed all five (V8, 7 Oct): the committed register now serves each adopted comparator."""
+    for s in SLUGS:
+        cfg = json.load(open(os.path.join(ROOT, "topics", s + ".json"), encoding="utf-8"))
+        a = json.load(open(os.path.join(ROOT, "registry", "comparator_selection", s + ".adoption.json"), encoding="utf-8"))
+        assert sc.served_config(s, cfg)["comparator_pmid"] == str(a["comparator_pmid"]), s
 
 
 def test_a_signed_switch_serves_the_adopted_comparator(tmp_path):
