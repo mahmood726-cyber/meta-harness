@@ -153,3 +153,12 @@ def test_PLANT_unhyphenated_compounds_and_any_whitespace_before_a_phase_word():
     assert sw.printed_counts("Phase   3 studies") == set()
     assert sw.printed_counts("In the five Phase 3 studies") == {5}
     assert sw.printed_counts("We pooled 12 randomised controlled trials.") == {12}
+
+
+def test_PLANT_tens_compounds_refuse_and_a_plain_conjunction_does_not():
+    """codex swap-setquote-r4 #1 ('thirty-five studies' -> not 5) and #2 ('cohorts and 5 randomized trials' -> 5)."""
+    assert sw.printed_counts("We pooled thirty-five studies.") == set()
+    assert sw.printed_counts("We pooled thirty five studies.") == set()
+    assert sw.printed_counts("We included observational cohorts and 5 randomized trials.") == {5}
+    assert sw.printed_counts("cohorts and five randomized trials") == {5}
+    assert 20 not in sw.printed_counts("We included one hundred and twenty trials.")

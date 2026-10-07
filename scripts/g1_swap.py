@@ -333,17 +333,29 @@ def printed_counts(q):
     # the WORD before the count decides, not a fixed-width lookbehind (three review rounds each found a new gap):
     # never after another number word ('twenty five', 'twenty-one'), 'and' / 'hundred' / 'thousand' ('one hundred and
     # twenty'), or 'phase' ('Phase 3', 'Phase three')
-    blocked = set(_COUNT_WORDS) | {"and", "hundred", "thousand", "phase", "million"}
+    tens = {"twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"}
+    number_words = set(_COUNT_WORDS) | tens | {"hundred", "thousand", "million"}
 
-    def prev_word(i):
-        m = re.search(r"([A-Za-z]+)[\s-]*$", s[:i])
-        return m.group(1).lower() if m else ""
+    def prev_words(i, n=2):
+        return [w.lower() for w in re.findall(r"[A-Za-z]+", s[:i])[-n:]]
+
+    def blocked_before(i):
+        """The count is part of a larger number or a phase: the word before it is a number word ('twenty five',
+        'thirty-five') or 'phase'; or it is 'and' right after a number word ('one hundred and twenty'). A plain
+        conjunction ('cohorts and 5 randomized trials') blocks nothing (codex swap-setquote-r4 #2)."""
+        pw = prev_words(i)
+        if not pw:
+            return False
+        if pw[-1] in number_words or pw[-1] == "phase":
+            return True
+        return pw[-1] == "and" and len(pw) == 2 and pw[0] in number_words
 
     for m in re.finditer(r"(?<![\w.,-])(\d+)(?![.,]\d)" + tail, s, re.I):       # a whole number, never '11.6' or 'BRCA1'
-        if prev_word(m.start(1)) not in blocked:
+        if not blocked_before(m.start(1)):
             out.add(int(m.group(1)))
-    for m in re.finditer(r"(?<![\w])(" + "|".join(_COUNT_WORDS) + r")(?![\w-])" + tail, s, re.I):
-        if prev_word(m.start(1)) not in blocked:
+    # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
+    for m in re.finditer(r"(?<![\w-])(" + "|".join(_COUNT_WORDS) + r")(?![\w-])" + tail, s, re.I):
+        if not blocked_before(m.start(1)):
             out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
     return out
 

@@ -1788,5 +1788,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r4": {
+  "base": "6b4e18ca2",
+  "head": "0d6f5946857ad34df73f2c41e5a08706026e5874",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4a8a30660d4abf4bb03f562d3482bcae",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "e07c96cdabb44286382667401e14481baf3aefb5f51dca00ddce7d2f73cd0ae9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "Compound number words are misread as smaller counts when their prefix is outside _COUNT_WORDS. 'thirty' is not blocked, so the new word matcher extracts five from thirty-five, allowing pooled_gate to validate an incorrect k=5.",
+    "failing_input": "printed_counts('We pooled thirty-five studies.')",
+    "expected": "set(): reject the unsupported compound number rather than extract its suffix; alternatively, parse the complete count as {35}.",
+    "actual": "{5}",
+    "id": "swap-setquote-r4:g1#1",
+    "record_id": "mc-4a8a30660d4abf4bb03f562d3482bcae",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P1",
+    "claim": "Unconditionally blocking a preceding 'and' rejects legitimate counts in ordinary conjunctions. This also regresses digit counts previously accepted, causing pooled_gate to reject correctly supported k values.",
+    "failing_input": "printed_counts('We included observational cohorts and 5 randomized trials.')",
+    "expected": "{5}",
+    "actual": "set()",
+    "id": "swap-setquote-r4:g1#2",
+    "record_id": "mc-4a8a30660d4abf4bb03f562d3482bcae",
+    "verdict": null
+   }
+  ]
  }
 }
