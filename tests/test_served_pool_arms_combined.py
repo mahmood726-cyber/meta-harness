@@ -147,3 +147,19 @@ def test_PLANT_fill_refuses_a_fractional_sample_size():
     v = dict(_row()["our_value"], trial="TRANSFORM-1", n_t="209.5")
     st, why = fn.fill_study(v, "MD")
     assert st is None and "whole" in why
+
+
+def test_PLANT_a_non_finite_arm_value_is_refused(monkeypatch):
+    """codex v9-apply-r4 #1: abs(expected - NaN) > 1e-9 is False, so a NaN control mean passed the reproduction check."""
+    real = bspa._aact_binding
+
+    def nan(slug, x):
+        b = copy.deepcopy(real(slug, x))
+        a = next(a for a in b["arms"] if a["role"] == "control")
+        b["span"] = b["span"].replace(f"MEAN {a['mean']} Standard Deviation {a['sd']} N {a['n']}",
+                                      f"MEAN nan Standard Deviation {a['sd']} N {a['n']}")
+        a["mean"] = "nan"
+        return b
+    monkeypatch.setattr(bspa, "_aact_binding", nan)
+    row, why = bspa.pipeline_row(SLUG, _row(), "MD")
+    assert row is None and "finite" in why

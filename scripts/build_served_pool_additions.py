@@ -227,12 +227,20 @@ def _arms_combined_row(slug, x, v, base):
                 f"{a.get('sd')} N {a.get('n')}")
         if segs.count(want) != 1:
             return None, f"arm {a.get('code')} mean/SD/N not printed verbatim as its own segment of the binding span"
+    import math
+    try:
+        vals = [(float(a["mean"]), float(a["sd"])) for a in arms]
+    except (TypeError, ValueError):
+        return None, "an arm mean/SD is not a number"
+    if not all(math.isfinite(m) and math.isfinite(s) and s >= 0 for m, s in vals):
+        # a NaN compares unequal-free (abs(x - nan) > tol is False): refused before any comparison (codex v9-apply-r4 #1)
+        return None, "an arm mean/SD is not a finite number"
     n1, m1, s1 = ba.combine_arms([(int(a["n"]), float(a["mean"]), float(a["sd"])) for a in iv])
     c = ct[0]
     want = (_num(v.get("mean_t")), _num(v.get("sd_t")), _num(v.get("n_t")),
             _num(v.get("mean_c")), _num(v.get("sd_c")), _num(v.get("n_c")))
     got = (round(m1, 4), round(s1, 4), n1, float(c["mean"]), float(c["sd"]), int(c["n"]))
-    if None in want or any(abs(w - g) > 1e-9 for w, g in zip(want, got)):
+    if None in want or not all(abs(w - g) <= 1e-9 for w, g in zip(want, got)):     # NaN fails closed
         return None, f"the printed arms do not reproduce the tracker's combined value: {got} vs {want}"
     return dict(base, mean1=m1, sd1=s1, nc1=n1, mean2=float(c["mean"]), sd2=float(c["sd"]), nc2=int(c["n"]),
                 scale="MD", source=span,
