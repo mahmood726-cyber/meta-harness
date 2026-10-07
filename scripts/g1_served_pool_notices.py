@@ -63,7 +63,9 @@ def identity_ncts(x):
 def served_identity(prim):
     """PMIDs and NCTs of the trials already in the served pool (a served PMID is linked to its NCT)."""
     pmids = {str(t.get("id") or "").replace("PMID ", "").strip() for t in prim.get("trials") or []}
-    return pmids, set().union(*[_ncts_of_pmid(p) for p in pmids]) if pmids else set()
+    ncts = set().union(*[_ncts_of_pmid(p) for p in pmids]) if pmids else set()
+    # a served row whose id IS an NCT (TRANSFORM-1 after V9-02) is that NCT
+    return pmids, ncts | {p.upper() for p in pmids if p.upper().startswith("NCT")}
 
 
 def value_of(x):
@@ -87,6 +89,29 @@ def candidates(o):
             continue
         inc.append(x)
     return inc, exc
+
+
+def conclusion_change(before, after, scale):
+    """A plain statement when the interval's relation to no difference changes (V9-02: 'state the conclusion change
+    plainly'); '' when it does not. No difference is 0 on a difference scale, 1 on a ratio scale."""
+    null = 0.0 if str(scale).upper() in ("MD", "SMD", "RD", "WMD") else 1.0
+
+    def side(r):
+        lo, hi = r.get("ci_low"), r.get("ci_high")
+        if lo is None or hi is None:
+            return None
+        return "includes" if lo <= null <= hi else ("below" if hi < null else "above")
+    b, a = side(before or {}), side(after or {})
+    if b is None or a is None or b == a:
+        return ""
+    words = {"includes": f"includes no difference ({null:g})", "below": f"lies wholly below no difference ({null:g})",
+             "above": f"lies wholly above no difference ({null:g})"}
+    fmt = lambda r: f"{r['estimate']} ({r['ci_low']} to {r['ci_high']}), k={r['k']}"  # noqa: E731
+    return (f"CONCLUSION CHANGE: the served {scale} interval {words[b]} before this change, {fmt(before)}, and "
+            f"{words[a]} after it, {fmt(after)}. The served result changes from "
+            + ("'no difference shown' to 'a difference shown'." if b == "includes" else
+               "'a difference shown' to 'no difference shown'." if a == "includes" else
+               "a difference in one direction to a difference in the other."))
 
 
 def topic_notice(o):
@@ -118,9 +143,11 @@ def topic_notice(o):
                                  f"{ctl.estimate:.4f} for the served pool, served is {before}"}]
     entered, described = [], []
     s_pmids, s_ncts = served_identity(prim)
+    import build_served_pool_additions as bspa       # lazy: that module imports this one
     for x in list(inc):
         fam = str(x.get("family") or "").replace("PMID ", "").strip()
-        hit = (fam in s_pmids) or bool(identity_ncts(x) & s_ncts)
+        sid = bspa.served_id(slug, x).replace("PMID ", "").strip()
+        hit = (fam in s_pmids) or bool(identity_ncts(x) & s_ncts) or sid in s_pmids or sid.upper() in s_ncts
         if hit:
             # the tracker keyed the trial by another identifier (RECOVERY: NCT04381936 vs the served PMID 33933206):
             # it IS in the served pool -- never entered twice
@@ -142,10 +169,20 @@ def topic_notice(o):
             continue
         st.source = f"{x['route']} ({x.get('family')})"
         studies.append(st)
-        tid = str(x.get("family") or x["label"])
-        val = (f"{v.get('events_t')}/{v.get('n_t')} vs {v.get('events_c')}/{v.get('n_c')}" if scale in ("RR", "OR")
-               and None not in (v.get("events_t"), v.get("n_t"), v.get("events_c"), v.get("n_c"))
-               else f"{scale} {v.get('effect')} ({v.get('lower')} to {v.get('upper')})")
+        # the id the served pool knows the trial by (the register row's): TRANSFORM-1 is NCT02417064 there
+        tid = str(row.get("id") or x.get("family") or x["label"])
+        if row.get("mean1") is not None:
+            # an arms-combined MD row (V9-02): the PRINTED arms first, then the merge, never the merge as if printed
+            pa = row.get("arms_printed") or []
+            val = ("per-arm values printed in its posted results ("
+                   + "; ".join(f"{a.get('title')}: mean {a.get('mean')}, SD {a.get('sd')}, n {a.get('n')}" for a in pa)
+                   + f"), the {sum(1 for a in pa if a.get('role') == 'intervention')} dose arms combined by Cochrane "
+                   f"Handbook 6.5.2.10 into mean {row['mean1']:.4f}, SD {row['sd1']:.4f}, n {row['nc1']} against the "
+                   f"shared control (mean {row['mean2']}, SD {row['sd2']}, n {row['nc2']}); {row.get('derivation')}")
+        else:
+            val = (f"{v.get('events_t')}/{v.get('n_t')} vs {v.get('events_c')}/{v.get('n_c')}" if scale in ("RR", "OR")
+                   and None not in (v.get("events_t"), v.get("n_t"), v.get("events_c"), v.get("n_c"))
+                   else f"{scale} {v.get('effect')} ({v.get('lower')} to {v.get('upper')})")
         entered.append(tid)
         described.append(f"{tid} entered the pool contributing {val} ({x['label']}; verified {x['route']})")
     if not entered:
@@ -157,11 +194,20 @@ def topic_notice(o):
     pr = _pl._pool_result(studies, scale=scale)
     nan = lambda v: None if v is None or v != v else float(v)  # noqa: E731
     after = {"k": pr["k"], "estimate": nan(pr.get("estimate")), "ci_low": nan(pr.get("ci_low")), "ci_high": nan(pr.get("ci_high"))}
+    concl = conclusion_change(before, after, scale)
+    # a trial that a signed earlier notice SET ASIDE from this outcome is reinstated, not new: say which notice
+    prior = [p for p in rc.load() if p.get("slug") == slug and p.get("outcome") == prim.get("name")
+             and [str(t) for t in p.get("left_pool") or []] and set(map(str, p.get("left_pool") or [])) & set(entered)]
+    reinst = "".join(f" This REINSTATES {', '.join(sorted(set(map(str, p['left_pool'])) & set(entered)))}, set aside by "
+                     f"the signed notice of {p.get('when_utc')} (the trial stayed eligible evidence awaiting "
+                     f"adjudication; its numbers were not asserted wrong), now read from a typed primary source."
+                     for p in prior)
     notice = {"slug": slug, "outcome": prim.get("name"), "before": before, "after": after, "left_pool": [],
               "entered_pool": entered,
-              "reason": (f"SERVED-POOL REFRESH (Mahmood 5 Oct, 'yes can sign'): {len(entered)} trial(s) verified from a "
+              "reason": (f"SERVED-POOL REFRESH (Mahmood 5 Oct, 'yes can sign'): " + (concl + " " if concl else "")
+                         + f"{len(entered)} trial(s) verified from a "
                          f"primary source by the G1 tracker enter the served pool. "
-                         + "; ".join(described) + ". Entering trials are new evidence, not a correction: the "
+                         + "; ".join(described) + "." + reinst + " Entering trials are evidence, not a correction: the "
                          f"previously served number is not challenged. Engine harness.synth.pool on the served {scale} scale (the same "
                          f"engine reproduces the served pool before the change). Excluded: "
                          + ("; ".join(f"{e['trial']}: {e['why']}" for e in exc) if exc else "none") + "."),

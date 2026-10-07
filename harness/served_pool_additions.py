@@ -62,8 +62,11 @@ def admitted_rows(slug: str | None, outcome: str | None, *, register: list[dict[
 # held source). Any other absence -- ineligible, withdrawn, population, timepoint, unit-of-analysis, a refusal on
 # evidence -- stands, and the row is dropped instead: the served result then cannot match the signed 'after', and the
 # ratchet refuses the page loudly.
+# KNOWN_REPORTED_NOT_YET_EXTRACTED (V9-02, TRANSFORM-1): the value is known to be reported and was not extracted -- the
+# signed row IS that extraction from another held source, which is exactly what this set supersedes.
 SUPERSEDABLE = {"OUTCOME_NOT_IN_SOURCE", "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH", "EXTRACTION_NOT_PERFORMED",
-                "SOURCE_NOT_RETRIEVED", "outcome_not_reported", "MACHINE_ABSENT_VALUE_NOT_FOUND"}
+                "SOURCE_NOT_RETRIEVED", "outcome_not_reported", "MACHINE_ABSENT_VALUE_NOT_FOUND",
+                "KNOWN_REPORTED_NOT_YET_EXTRACTED"}
 
 
 def _norm(x: Any) -> str:
@@ -80,6 +83,29 @@ def _code(a: dict[str, Any]) -> str | None:
     if code == absence.REFUSED_ON_EVIDENCE:
         return absence._reason_hint_code(a.get("reason")) or code
     return code
+
+
+def merge_signed(trials: list[dict[str, Any]], signed: list[dict[str, Any]], withdrawn: bool = False):
+    """The pool's rows with the signed rows joined. A signed row REPLACES the pipeline's own row of the same trial id
+    (V9-02: TRANSFORM-1's 20 Sep hand-transcribed row was still in the pipeline under NCT02417064, so the signed row was
+    skipped as a duplicate and the hand row was then refused -- the served result could never equal the signed after).
+    The replaced row is kept on the signed row for audit. In a WITHDRAWN outcome every signed row is appended, as
+    before: the withdrawal block moves the pipeline's own rows out of the pool."""
+    if not signed:
+        return list(trials)
+    if withdrawn:
+        return list(trials) + list(signed)
+    by_id = {str(r.get("id")): r for r in signed}
+    out = []
+    for t in trials:
+        r = by_id.get(str(t.get("id")))
+        if r is not None:
+            r.setdefault("served_pool_admission", {})["replaced_pipeline_row"] = {
+                k: t.get(k) for k in ("id", "provenance", "source", "mean1", "sd1", "nc1", "mean2", "sd2", "nc2",
+                                      "effect", "ci_low", "ci_high", "ai", "n1i", "ci", "n2i") if t.get(k) is not None}
+            continue
+        out.append(t)
+    return out + list(signed)
 
 
 def signed_entry(slug: str | None, outcome: str | None) -> dict | None:

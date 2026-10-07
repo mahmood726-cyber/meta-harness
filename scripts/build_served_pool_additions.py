@@ -131,11 +131,30 @@ def report_ids(slug, tid):
     return [r["report_id"] for r in fams[0].get("reports") or []] if len(fams) == 1 else []
 
 
+def served_id(slug, x):
+    """The id the served pool knows this trial by. Default: the tracker family (a PMID or an NCT). An arms-combined row is
+    read from a REGISTRY record's posted results ('AACT ... NCTxxxxxxxx outcome n'): when the topic's family registry has
+    exactly that NCT as a family, the row is that family -- TRANSFORM-1 is NCT02417064 on the served page, in its declared
+    absence and in the 20 Sep set-aside this reinstates, while the tracker keys it by its publication PMID 31290965."""
+    import re
+    fam = str(x.get("family") or "").strip()
+    tid = fam if fam.upper().startswith(("PMID ", "NCT")) else f"PMID {fam}"
+    v = sp.value_of(x) or {}
+    if v.get("arms_combined"):
+        m = re.search(r"\b(NCT\d{8})\b", str((x.get("confirm_binding") or {}).get("source") or ""))
+        p = os.path.join(ROOT, "cache", slug, "families.json")
+        if m and os.path.exists(p):
+            fams = [f for f in json.load(open(p, encoding="utf-8")).get("families") or [] if f.get("family_id") == m.group(1)]
+            if len(fams) == 1:
+                return m.group(1)
+    return tid
+
+
 def pipeline_row(slug, x, scale):
     """The tracker row as a served-pipeline trial dict, or (None, why)."""
     v = sp.value_of(x) or {}
     fam = str(x.get("family") or "").strip()
-    tid = fam if fam.upper().startswith(("PMID ", "NCT")) else f"PMID {fam}"
+    tid = served_id(slug, x)
     counts = [v.get(k) for k in ("events_t", "n_t", "events_c", "n_c")]
     reps = report_ids(slug, tid)
     # the trial's OWN sources first (its acquisition record, then its held abstract), the tracker row's spans last
@@ -157,7 +176,57 @@ def pipeline_row(slug, x, scale):
         if not span:
             return None, "no verbatim span carries the effect and CI"
         return dict(base, effect=e, ci_low=lo, ci_high=hi, scale=scale, source=span, derivation="reported"), None
+    if scale == "MD" and str(v.get("measure") or "").upper() == "MD" and v.get("arms_combined"):
+        return _arms_combined_row(slug, x, v, base)
     return None, f"not fillable on the served scale {scale}"
+
+
+BINDINGS_AACT = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "bindings_aact.json")
+
+
+def _aact_binding(slug, x):
+    """The committed typed AACT binding (scripts/g1_binding_aact.py, gates C1-C6) whose source the tracker row confirmed
+    from: same topic, same label, ARMS_COMBINED, the same 'AACT ... outcome <id>' source. None if absent or ambiguous."""
+    if not os.path.exists(BINDINGS_AACT):
+        return None
+    d = json.load(open(BINDINGS_AACT, encoding="utf-8"))
+    rows = d if isinstance(d, list) else (d.get("bindings") or d.get("rows") or [])
+    src = str((x.get("confirm_binding") or {}).get("source") or "")
+    hits = [b for b in rows if b.get("slug") == slug and b.get("label") == x.get("label")
+            and b.get("tuple_kind") == "ARMS_COMBINED" and src and b.get("source") == src]
+    return hits[0] if len(hits) == 1 else None
+
+
+def _arms_combined_row(slug, x, v, base):
+    """V9-02 (Mahmood 7 Oct, 'yes to all'; V9-02Q allows the Cochrane Handbook 6.5.2.10 arm merge into a served pool).
+    The intervention arms are merged from the numbers PRINTED in the binding's verbatim posted-results span: every arm's
+    'MEAN m Standard Deviation s N n' must be in the span, exactly one control arm, and the merge re-derived here must
+    reproduce the tracker's combined value (4 dp). The row serves the merge at full precision with the printed arms and
+    the derivation beside it -- the combined numbers are never presented as printed."""
+    import g1_binding_aact as ba
+    b = _aact_binding(slug, x)
+    if not b:
+        return None, "no committed typed AACT binding (outputs/k_gap/g1_binding/bindings_aact.json) for this row's source"
+    span, arms = str(b.get("span") or ""), b.get("arms") or []
+    iv = [a for a in arms if a.get("role") == "intervention"]
+    ct = [a for a in arms if a.get("role") == "control"]
+    if len(ct) != 1 or len(iv) < 1:
+        return None, f"arms not one control plus intervention arm(s): {[a.get('role') for a in arms]}"
+    for a in arms:
+        if f"MEAN {a.get('mean')} Standard Deviation {a.get('sd')} N {a.get('n')}" not in span:
+            return None, f"arm {a.get('code')} mean/SD/N not printed verbatim in the binding span"
+    n1, m1, s1 = ba.combine_arms([(int(a["n"]), float(a["mean"]), float(a["sd"])) for a in iv])
+    c = ct[0]
+    want = (_num(v.get("mean_t")), _num(v.get("sd_t")), _num(v.get("n_t")),
+            _num(v.get("mean_c")), _num(v.get("sd_c")), _num(v.get("n_c")))
+    got = (round(m1, 4), round(s1, 4), n1, float(c["mean"]), float(c["sd"]), int(c["n"]))
+    if None in want or any(abs(w - g) > 1e-9 for w, g in zip(want, got)):
+        return None, f"the printed arms do not reproduce the tracker's combined value: {got} vs {want}"
+    return dict(base, mean1=m1, sd1=s1, nc1=n1, mean2=float(c["mean"]), sd2=float(c["sd"]), nc2=int(c["n"]),
+                scale="MD", source=span,
+                derivation=(f"arms_combined: {len(iv)} intervention arms merged by Cochrane Handbook 6.5.2.10 from the "
+                            f"printed per-arm values (V9-02Q); {b.get('source')}"),
+                arms_printed=[{k: a.get(k) for k in ("code", "title", "role", "mean", "sd", "n")} for a in arms]), None
 
 
 def _committed():
@@ -215,7 +284,8 @@ def build(notices=None, holds=None):
         inc, _exc = sp.candidates(o)
         rows, why = ([dict(r) for r in prev["rows"]], None) if prev else ([], None)
         for i in ([] if prev else ent):
-            xs = [x for x in inc if str(x.get("family") or "").replace("PMID ", "").strip() == i.replace("PMID ", "").strip()]
+            xs = [x for x in inc if str(x.get("family") or "").replace("PMID ", "").strip() == i.replace("PMID ", "").strip()
+                  or served_id(slug, x) == i]
             if len(xs) != 1:
                 why = f"{i}: {len(xs)} tracker-verified rows outside the served pool (need exactly 1)"
                 break
@@ -229,8 +299,11 @@ def build(notices=None, holds=None):
             continue
         add_studies = []
         for r in rows:
-            st, w = fn.fill_study({"trial": r["label"], "events_t": r.get("ai"), "n_t": r.get("n1i"), "events_c": r.get("ci"),
-                                   "n_c": r.get("n2i"), "measure": r.get("scale"), "effect": r.get("effect"),
+            cont = r.get("mean1") is not None          # an arms-combined MD row (V9-02): per-arm mean / SD / N
+            st, w = fn.fill_study({"trial": r["label"], "events_t": r.get("ai"), "events_c": r.get("ci"),
+                                   "n_t": r.get("nc1") if cont else r.get("n1i"), "n_c": r.get("nc2") if cont else r.get("n2i"),
+                                   "mean_t": r.get("mean1"), "sd_t": r.get("sd1"), "mean_c": r.get("mean2"),
+                                   "sd_c": r.get("sd2"), "measure": r.get("scale"), "effect": r.get("effect"),
                                    "lower": r.get("ci_low"), "upper": r.get("ci_high")}, scale)
             add_studies.append(st)
         after = rc.result_tuple(pl._pool_result(studies + add_studies, scale=scale))

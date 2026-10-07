@@ -72,6 +72,13 @@ def fill_study(row, scale):
                                                                            _num(v.get("upper"))):
         return synth.Study(label=row["trial"], effect=_num(v["effect"]), ci_low=_num(v["lower"]), ci_high=_num(v["upper"]),
                            measure=scale.upper(), source="COMPARATOR_SOURCED effect+CI"), None
+    # a continuous row on the served MD scale from per-arm mean / SD / N (V9-02: a 6.5.2.10 arms-combined row; the
+    # register re-derives the merge from the printed arms before anything is admitted)
+    arms = [_num(v.get(k)) for k in ("mean_t", "sd_t", "n_t", "mean_c", "sd_c", "n_c")]
+    if scale.upper() == "MD" and str(v.get("measure") or "").upper() == "MD" and None not in arms:
+        m1, s1, n1, m2, s2, n2 = arms
+        return synth.Study(label=row["trial"], mean1=m1, sd1=s1, nc1=int(n1), mean2=m2, sd2=s2, nc2=int(n2),
+                           measure="MD", source="per-arm mean/SD/N"), None
     return None, f"NOT_FILLABLE_ON_SERVED_SCALE ({v.get('measure')} row, served {scale}, no counts)"
 
 
