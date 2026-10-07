@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -283,7 +284,7 @@ def abandoned(root: Path = ROOT) -> dict[str, dict]:
     registry/g1_abandoned.json (scripts/g1_abandon_apply.py). {} when no register is committed. A register naming any
     other rule, or an entry in any other state, refuses: the page never counts against an unapproved list."""
     p = root / ABANDONED
-    if not p.exists():
+    if not os.path.lexists(p):    # lexists: a dangling link is a broken register, not an absent one (codex r6 g1#2)
         return {}
     if not p.is_file():          # a path that exists but is not a file is a broken register, never 'none' (codex r4 g1#2)
         raise ValueError(f"ABANDONED: {p} exists but is not a file")

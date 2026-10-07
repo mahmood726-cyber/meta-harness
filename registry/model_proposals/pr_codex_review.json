@@ -1856,5 +1856,48 @@
     "verdict": null
    }
   ]
+ },
+ "abandon-ten-r6": {
+  "base": "20915e04f",
+  "head": "32efcbb9bd7aed09cebaed4e44a2c47e7279c04f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ec7703cadb9def54cecb9da2ebce8a6c",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "9ab71e3d7f6e35a3a57465c7d4607af7b1e692e196fe856a938cefb2fb4c2e8c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P0",
+    "claim": "closed_trials is checked only with len(), so a single trial-ID string can substantiate eleven closed trials. The inflated count and score pass every gate and enter the abandonment register.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_abandon_apply as m\nrows = [dict(slug=s, rank=i, N_eligible=100, open=12-i, closed=12-i, U=round(1.5*(12-i)/100, 4), swap_adopted=False, closed_trials=[f'trial-{i}-{j}' for j in range(12-i)], abandon=i<=10, state='G1_OPEN') for i, s in enumerate(m.APPROVED + ['zz-kept'], 1)]\nrows[0]['closed_trials'] = 'NCT12345678'\nrank = dict(rule_sha256=m.RULE_SHA, read_at_commit=m.RULE_COMMIT, abandon=m.APPROVED, ranked=rows, population_n=11)\n# Run in the repository containing the pinned rule commit.\nwith patch.object(m.json, 'load', return_value=rank):\n    result = m.build()\nprint(result['topics'][0]['closed'], result['topics'][0]['score_U'], result['topics'][0]['closed_trials'])",
+    "expected": "Refuse the malformed closed_trials field; string length cannot establish a trial count.",
+    "actual": "Returns successfully and prints: 11 0.165 NCT12345678. The generated reason claims eleven eligible comparator trials closed.",
+    "id": "abandon-ten-r6:g1#1",
+    "record_id": "mc-ec7703cadb9def54cecb9da2ebce8a6c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/render_g1_tracker.py",
+    "function": "abandoned",
+    "severity": "P2",
+    "claim": "A dangling register symlink silently becomes 'no abandonment register'. Path.exists() follows the link and returns False, bypassing the subsequent broken-register check.",
+    "failing_input": "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nfrom scripts.render_g1_tracker import abandoned\n# Requires filesystem support and permission for symlink creation.\nwith TemporaryDirectory() as tmp:\n    root = Path(tmp)\n    (root / 'registry').mkdir()\n    (root / 'registry' / 'g1_abandoned.json').symlink_to('missing.json')\n    print(abandoned(root))",
+    "expected": "Raise an error for the broken register rather than treating abandonment information as absent.",
+    "actual": "Returns and prints {}. Callers consequently apply no abandonment exclusions.",
+    "id": "abandon-ten-r6:g1#2",
+    "record_id": "mc-ec7703cadb9def54cecb9da2ebce8a6c",
+    "verdict": null
+   }
+  ]
  }
 }

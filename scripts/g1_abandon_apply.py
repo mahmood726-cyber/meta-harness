@@ -64,7 +64,12 @@ def build():
             raise SystemExit(f"REFUSED: {r.get('slug')} has impossible counts or a non-finite score")
         n = r["N_eligible"]
         u = 0.0 if not n else r["closed"] / n + 0.5 * r["open"] / n - 0.5 * (1 if r["swap_adopted"] else 0)
-        if abs(round(u, 4) - r["U"]) > 1e-9 or r["closed"] != len(r.get("closed_trials") or []):
+        ct = r.get("closed_trials")
+        # closed must be substantiated by that many DISTINCT named trials, not by a string's length (codex abandon-ten-r6
+        # g1#1)
+        if not isinstance(ct, list) or not all(isinstance(x, str) and x.strip() for x in ct) or len(set(ct)) != len(ct):
+            raise SystemExit(f"REFUSED: {r['slug']} closed_trials is not a list of distinct named trials")
+        if abs(round(u, 4) - r["U"]) > 1e-9 or r["closed"] != len(ct):
             raise SystemExit(f"REFUSED: {r['slug']} U {r['U']} is not the rule's score on its counts ({round(u, 4)})")
     # the WHOLE ranking must be the rule applied: re-sorted by the rule's own order (U descending, then larger closed,
     # then slug ascending) it must give exactly the recorded ranks, and only ranks 1..10 may carry abandon (codex

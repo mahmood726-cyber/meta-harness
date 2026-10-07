@@ -154,6 +154,8 @@ def test_PLANT_a_register_path_that_is_not_a_file_refuses(tmp_path):
     lambda r: r.update(closed=r["open"] + 1, closed_trials=["x"] * (r["open"] + 1)),   # closed > open
     lambda r: r.update(open=-1),
     lambda r: r.update(swap_adopted="no"),
+    lambda r: r.update(closed_trials="x" * r["closed"]),                 # a string's length (codex abandon-ten-r6 g1#1)
+    lambda r: r.update(closed_trials=["same"] * r["closed"]),            # one trial named N times
 ])
 def test_PLANT_impossible_counts_or_scores_refuse(monkeypatch, tmp_path, corrupt):
     import g1_abandon_apply as ap
