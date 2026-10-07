@@ -3421,5 +3421,36 @@
     "verdict": null
    }
   ]
+ },
+ "pr25-final4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-867c6e78cbd3a8f207ceaf3eaeb77b47",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_select.py",
+     "scripts/g1_licence.py",
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "7747f00112ce7776cc4ff0bd0a728db151c13229152f11139cce5a3af37da69d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "An explicitly negated trial count is accepted as the pooled result's k. Neither the restriction filter nor the preceding-token checks reject 'not based on'.",
+    "failing_input": "q = 'Mortality RR 0.85 (95% CI 0.70-1.03) was not based on five trials.'\nprinted_counts(q)\npl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\npooled_gate(pl, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because the held text explicitly denies k=5.",
+    "actual": "printed_counts returns {5}; pooled_gate accepts k=5 and adds k_basis.from='POOLED_QUOTE_SENTENCE'. The reviewer annotation does not prevent the numeric gate from passing.",
+    "id": "pr25-final4:g1#1",
+    "record_id": "mc-867c6e78cbd3a8f207ceaf3eaeb77b47",
+    "verdict": null
+   }
+  ]
  }
 }
