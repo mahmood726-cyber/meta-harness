@@ -223,3 +223,11 @@ def test_PLANT_a_binding_is_used_only_for_its_own_trial(monkeypatch):
     assert bspa._aact_binding(SLUG, x) is not None
     assert bspa._aact_binding(SLUG, dict(x, family="PMID 99999999")) is None
     assert bspa._aact_binding(SLUG, dict(x, family="NCT09999999")) is None
+
+
+def test_PLANT_a_nan_interval_never_yields_a_conclusion_statement():
+    """codex v9-apply-r10 #1: a NaN bound fell through to 'wholly above no difference'."""
+    import g1_served_pool_notices as sp
+    nan = float("nan")
+    assert sp.conclusion_change({"k": 2, "estimate": 1.0, "ci_low": nan, "ci_high": nan},
+                                {"k": 3, "estimate": 0.9, "ci_low": 0.8, "ci_high": 0.95}, "HR") == ""

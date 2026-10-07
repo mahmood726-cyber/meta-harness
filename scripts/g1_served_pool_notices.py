@@ -98,7 +98,8 @@ def conclusion_change(before, after, scale):
 
     def side(r):
         lo, hi = r.get("ci_low"), r.get("ci_high")
-        if lo is None or hi is None:
+        # no statement from an unknown interval: None, non-numeric or NaN bounds (codex v9-apply-r10 #1)
+        if not all(isinstance(v, (int, float)) and v == v for v in (lo, hi)):
             return None
         return "includes" if lo <= null <= hi else ("below" if hi < null else "above")
     b, a = side(before or {}), side(after or {})

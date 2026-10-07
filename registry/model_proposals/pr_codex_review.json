@@ -4637,5 +4637,40 @@
     "verdict": null
    }
   ]
+ },
+ "v9-apply-r10": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5cb1c271df9e85961d5a6b4c5ee114f5",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "141425ac518d409af0f060d07b0d0fc63ec927f137c8b1c75c36643b5995c883"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_served_pool_notices.py",
+    "function": "conclusion_change",
+    "severity": "P1",
+    "claim": "A NaN confidence interval is classified as wholly above the null, producing a false statement that a difference was previously shown. Both comparisons with NaN are false, so side() falls through to 'above'.",
+    "failing_input": "conclusion_change({'estimate': float('nan'), 'ci_low': float('nan'), 'ci_high': float('nan'), 'k': 0}, {'estimate': 0.0, 'ci_low': -1.0, 'ci_high': 1.0, 'k': 1}, 'MD')",
+    "expected": "Reject the non-finite interval or return an empty string; an undefined result cannot establish a previous difference.",
+    "actual": "CONCLUSION CHANGE: the served MD interval lies wholly above no difference (0) before this change, nan (nan to nan), k=0, and includes no difference (0) after it, 0.0 (-1.0 to 1.0), k=1. The served result changes from 'a difference shown' to 'no difference shown'.",
+    "id": "v9-apply-r10:g1#1",
+    "record_id": "mc-5cb1c271df9e85961d5a6b4c5ee114f5",
+    "verdict": null
+   }
+  ]
  }
 }
