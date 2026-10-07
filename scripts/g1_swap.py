@@ -852,10 +852,26 @@ def cmd_apply(slugs):
         print(s, "SWAPPED", old, "->", new, "units", len(en["units"]), "retired", retired["reason_code"], flush=True)
 
 
+def released(slugs):
+    """Slugs whose swap rule was RELEASED without a search (registry/comparator_selection/swap_releases.json: the topic
+    was abandoned by decision, 7 Oct). No stage may run on one."""
+    p = os.path.join(SEL, "swap_releases.json")
+    if not os.path.exists(p):
+        return []
+    lst = _j(p).get("released")
+    # an existing register that is malformed refuses; it never reads as 'nothing released' (codex abandon-ten-r2 g1#2)
+    if not isinstance(lst, list) or not lst or not all(isinstance(r, dict) and isinstance(r.get("slug"), str) and r["slug"].strip() for r in lst):
+        raise SystemExit(f"REFUSED: {p} has no valid 'released' list")
+    rel = {r["slug"] for r in lst}
+    return [s for s in slugs if s in rel]
+
+
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     cmd, *args = sys.argv[1:]
     run = "--run" in args
     args = [a for a in args if not a.startswith("--")]
+    if released(args):
+        raise SystemExit(f"REFUSED: swap rule released (topic abandoned by decision): {released(args)}")
     {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run),
      "enumerate": lambda a: cmd_enumerate(a, run=run), "apply": cmd_apply}[cmd](args)
