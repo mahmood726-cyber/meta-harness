@@ -445,3 +445,11 @@ def test_PLANT_negated_eligibility_and_broken_register_refuse(tmp_path):
     (tmp_path / "registry" / "result_change_reinstatements.json").mkdir(parents=True)
     with pytest.raises(ValueError):
         notice_kinds._declared(back, str(tmp_path))
+
+
+def test_PLANT_negation_with_words_between_refuses():
+    """codex v8-apply-r11 #4: 'not currently eligible evidence ...'."""
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"],
+               reason="not currently eligible evidence awaiting adjudication; the numbers are not asserted wrong.")
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None

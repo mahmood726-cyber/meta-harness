@@ -178,3 +178,13 @@ def test_PLANT_the_span_must_state_estimate_then_lower_then_upper():
 ])
 def test_PLANT_codex_r10_span_cases_refuse(span, est, lo, hi):
     assert not sc._span_states(span, est, lo, hi)
+
+
+@pytest.mark.parametrize("span,est,lo,hi,ok", [
+    ("Mortality RR 0.80; hospitalization RR 0.70; stroke RR 0.90", 0.80, 0.70, 0.90, False),   # three estimates (r11 #1)
+    ("HR 1e-3 (95% CI 1e-4 to 1e-2)", 3, 1, 4, False),                                           # sci notation (r11 #2)
+    ("RR 0.80, 95% CI 0.70 to 0.90.", 0.80, 0.70, 0.90, True),                                   # sentence end (r11 #3)
+    ("All-cause mortality: RR 0.8 (0.7-0.9)", 0.8, 0.7, 0.9, True),
+])
+def test_PLANT_codex_r11_span_shapes(span, est, lo, hi, ok):
+    assert sc._span_states(span, est, lo, hi) is ok

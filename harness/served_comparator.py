@@ -131,33 +131,49 @@ def adopted_outcome_matches(adopted: dict[str, Any], outcome_name: str) -> bool:
 _NUM_TOKEN = None
 
 
-def _tokens(text: str) -> list[float]:
-    """The span's numbers as WHOLE tokens, in order. A '-' is a sign only where no letter, digit or '.' stands before it
-    ('MD=-4.09', '[-8.45'), so '0.7-0.9' is a range and 'DPP-4' is 4. A token followed by '%' (a CI level, a rate) is
-    not a result number and is dropped."""
+def _tokens(text: str) -> list[tuple[float, int, int]]:
+    """The span's numbers as WHOLE tokens, in order, each (value, start, end). A '-' is a sign only where no letter, digit
+    or '.' stands before it ('MD=-4.09', '[-8.45'), so '0.7-0.9' is a range and 'DPP-4' is 4. A sentence-ending '.' does
+    not hide a number ('0.90.'; codex v8-apply-r11 #3). A token followed by '%' (a CI level, a rate) is dropped."""
     import re
     global _NUM_TOKEN
     if _NUM_TOKEN is None:
-        _NUM_TOKEN = re.compile(r"(?<![\w.])(-?)(\d+(?:\.\d+)?|\.\d+)(?![\d.])")
+        _NUM_TOKEN = re.compile(r"(?<![\w.])(-?)(\d+(?:\.\d+)?|\.\d+)(?!\d)(?!\.\d)")
     out = []
     for m in _NUM_TOKEN.finditer(text):
         if m.end() < len(text) and text[m.end()] == "%":
             continue
         body = m.group(2) if not m.group(2).startswith(".") else "0" + m.group(2)
-        out.append(float(m.group(1) + body))
+        out.append((float(m.group(1) + body), m.start(), m.end()))
     return out
 
 
 def _span_states(span: str, est: Any, lo: Any, hi: Any) -> bool:
-    """The span STATES this result: three CONSECUTIVE number tokens equal to the estimate, the lower bound and the upper
-    bound, exactly (never a rounding: 0.876 is not a printed 0.88; never a fragment of another token; never an estimate
-    from one result beside another result's interval), and lower <= estimate <= upper. Four hand-built matchers each
-    failed review (codex v8-apply r8, r9, r10); this one only compares whole tokens."""
+    """The span STATES this result as ONE estimate with its interval:
+      - three CONSECUTIVE whole-number tokens equal exactly (no rounding, no complement) to the estimate, the lower and
+        the upper bound, with lower <= estimate <= upper;
+      - interval SHAPE: between estimate and lower bound an opening '(' or '[' or the word 'CI'; between the bounds only a
+        range connector ('-', en or em dash, 'to' or ','); no ';' inside the triple (three estimates of three outcomes are
+        not an estimate and its interval; codex v8-apply-r11 #1);
+      - no scientific notation anywhere in the span (mantissa / exponent fragments read as other numbers; r11 #2).
+    Hand-built matchers failed review four times (codex v8-apply r8-r11); this compares whole tokens and their shape."""
+    import re
     try:
         trip = (float(est), float(lo), float(hi))
     except (TypeError, ValueError):
         return False
-    if not (trip[1] <= trip[0] <= trip[2]):
+    if not (trip[1] <= trip[0] <= trip[2]) or re.search(r"\d[eE][+-]?\d", span):
         return False
     t = _tokens(span)
-    return any(tuple(t[i:i + 3]) == trip for i in range(len(t) - 2))
+    for i in range(len(t) - 2):
+        if tuple(x[0] for x in t[i:i + 3]) != trip:
+            continue
+        a, b = span[t[i][2]:t[i + 1][1]], span[t[i + 1][2]:t[i + 2][1]]
+        if ";" in a or ";" in b:
+            continue
+        if not (re.search(r"[(\[]", a) or re.search(r"\bCI\b", a)):
+            continue
+        if not re.fullmatch(r"\s*(-|–|—|to|,)\s*", b, re.I):
+            continue
+        return True
+    return False

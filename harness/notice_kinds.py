@@ -85,7 +85,7 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]], root: s
         if [str(x) for x in p.get("left_pool") or []] != [tid] or (p.get("entered_pool") or []):
             return None
         if not re.search(r"(?<![A-Za-z])eligible evidence awaiting adjudication", r) or "ineligible" in r.lower() \
-                or re.search(r"\b(not|no longer|never)\s+eligible\b", r, re.I) \
+                or re.search(r"\b(not|no longer|never|non)\b[^.;:]{0,40}\beligible\b", r, re.I) \
                 or "the numbers are not asserted wrong" not in r or "asserted wrong" in r.replace("not asserted wrong", ""):
             return None        # ... and no negated eligibility ('not eligible evidence'; codex v8-apply-r9 #2)
         out[tid] = p
