@@ -37,6 +37,11 @@ UNRESOLVED_SUBPROCESS = {
                                                      "agy_runner)",
     ("reproducible_ai/model_call_live.py", "[_agy_exe(), '--version']"): "agy --version (client version for the record)",
     ("scripts/build_search_benchmark.py", "cmd"): "python scripts/measure_search_recall.py (the `commands` list)",
+    ("scripts/g1_remote_codex.py", "[os.path.join(GIT_BIN, 'ssh.exe'), *SSH_OPTS, PEER, cmd]"):
+        "ssh (Git for Windows) to the worker, which runs the SAME recorded codex calls (reproducible_ai.model_call_live); "
+        "records are copied back and committed like local ones",
+    ("scripts/g1_remote_codex.py", "[os.path.join(GIT_BIN, 'scp.exe'), *SSH_OPTS, '-r', src, dst"):
+        "scp (Git for Windows): job files to the worker and its call records back",
     ("scripts/g1_batch.py", "args"): "python scripts/secondary_meta_build.py SLUG (replay: no --run, no model) / "
                                      "python scripts/g1_tracker.py SLUG --no-table (the `steps` list)",
     ("scripts/m2_battery.py", "cmd"): "python build_topic.py / python -m harness.gate (run([PY, ...]) callers)",
