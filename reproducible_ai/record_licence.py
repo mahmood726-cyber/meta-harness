@@ -103,7 +103,17 @@ NICE_HOSTS = ("www.nice.org.uk", "nice.org.uk")
 # a whole-text block (scripts/k_gap_upw_locate.py: '<<<TEXT ... TEXT>>>'): 21 committed records carried whole Unpaywall
 # texts in this shape and neither detector above saw them (6 Oct audit) -- 14 of them were not CC
 _TEXT_BLOCK = re.compile(r"<<<TEXT\n(.*?)\nTEXT>>>", re.S)
-_DOI_REF = re.compile(r"\bDOI\s+(10\.[^\s)]+)")
+_DOI_REF = re.compile(r"\bDOI\s+(10\.\S+)")
+
+
+def _doi_of(m):
+    """The whole DOI of a _DOI_REF match: DOIs may contain parentheses ('10.1016/s2213-8587(25)00123-4', cut at the
+    first ')' before 7 Oct); only an UNBALANCED closer -- a ref wrapping its DOI '(DOI 10.1/x)' -- or trailing
+    punctuation is dropped."""
+    d = m.group(1).rstrip(".,;")
+    while d.endswith(")") and d.count(")") > d.count("("):
+        d = d[:-1].rstrip(".,;")
+    return d
 
 
 def doi_licences(index_path=UPW_INDEX):
@@ -181,7 +191,7 @@ def ref_licences(ref, lic, dlic):
         return [(f"PMID {m.group(1)} report", lic.get(m.group(1)))]
     m = _DOI_REF.search(ref)
     if m:
-        return [(f"DOI {m.group(1)}", dlic.get(m.group(1).lower()))]
+        return [(f"DOI {_doi_of(m)}", dlic.get(_doi_of(m).lower()))]
     return []
 
 

@@ -100,3 +100,12 @@ def test_jats_licence_reads_a_creative_commons_licence_named_in_words(tmp_path):
                       "<body>Creative Commons Attribution License (CC BY)</body></article>", encoding="utf-8")
     assert rl.jats_licence(str(words)) == "CC"
     assert rl.jats_licence(str(closed)) == "NOT_OPEN"          # words OUTSIDE <permissions> never count
+
+
+def test_a_doi_with_parentheses_is_looked_up_whole():
+    # 7 Oct: 'DOI 10.1016/s2213-8587(25)00123-4' was cut at the first ')' by [^\s)]+, so its CC BY licence was never
+    # found and two open Lancet D&E texts were refused; a ref that WRAPS a DOI in parentheses still drops the closer
+    from reproducible_ai import record_licence as rl
+    d = "10.1016/s2213-8587(25)00123-4"
+    assert rl.ref_licences(f"DOI {d} Unpaywall open text", {}, {d: "cc-by"}) == [(f"DOI {d}", "cc-by")]
+    assert rl.ref_licences("trial copy (DOI 10.1/abc)", {}, {"10.1/abc": "cc-by"}) == [("DOI 10.1/abc", "cc-by")]
