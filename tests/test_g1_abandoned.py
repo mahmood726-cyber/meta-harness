@@ -128,3 +128,21 @@ def test_PLANT_a_kept_topic_scoring_above_the_ten_refuses(monkeypatch, tmp_path)
     monkeypatch.setattr(ap, "RANK", str(p))
     with pytest.raises(SystemExit):
         ap.build()
+
+
+def test_PLANT_scores_must_be_the_rule_on_the_counts(monkeypatch, tmp_path):
+    import g1_abandon_apply as ap
+    rank = json.loads((ROOT / "outputs" / "k_gap" / "g1_abandon_rank.json").read_text(encoding="utf-8"))
+    for r in rank["ranked"]:
+        r["U"] += 100                        # order kept, every score wrong (codex abandon-ten-r4 g1#1)
+    p = tmp_path / "rank.json"
+    p.write_text(json.dumps(rank), encoding="utf-8")
+    monkeypatch.setattr(ap, "RANK", str(p))
+    with pytest.raises(SystemExit):
+        ap.build()
+
+
+def test_PLANT_a_register_path_that_is_not_a_file_refuses(tmp_path):
+    (tmp_path / "registry" / "g1_abandoned.json").mkdir(parents=True)
+    with pytest.raises(ValueError):
+        rg.abandoned(tmp_path)

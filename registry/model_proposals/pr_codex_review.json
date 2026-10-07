@@ -1770,5 +1770,48 @@
     "verdict": null
    }
   ]
+ },
+ "abandon-ten-r4": {
+  "base": "20915e04f",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-518fa1c8c683f5854913fdef6fac099f",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "cef8cf60b6d6fba92dcea8a69e197578fbec91c1bc3ce92e94c1a94848d99232"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P0",
+    "claim": "The gate checks score ordering but never validates scores against the pinned rule and counts. Adding 100 to every U preserves every check and publishes corrupted scores and boundary values.",
+    "failing_input": "Starting with a valid ranking:\nimport json\nfrom unittest.mock import patch\nfrom scripts import g1_abandon_apply as m\nbaseline = m.build()\nwith open(m.RANK, encoding='utf-8') as <outside-workdir>/n    rank = json.load(f)\nfor row in rank['ranked']:\n    row['U'] += 100\nwith patch.object(m.json, 'load', return_value=rank):\n    result = m.build()\nprint(result['topics'][0]['score_U'] - baseline['topics'][0]['score_U'])",
+    "expected": "Refusal because the scores no longer equal the pinned rule applied to the unchanged counts.",
+    "actual": "build() succeeds; the printed difference is 100. Both boundary scores and all ten published score_U values are increased by 100.",
+    "id": "abandon-ten-r4:g1#1",
+    "record_id": "mc-518fa1c8c683f5854913fdef6fac099f",
+    "verdict": null
+   },
+   {
+    "file": "scripts/render_g1_tracker.py",
+    "function": "abandoned",
+    "severity": "P2",
+    "claim": "An existing directory at the register path silently becomes an absent register. This disables abandonment exclusions instead of failing closed on an invalid register.",
+    "failing_input": "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nfrom scripts import render_g1_tracker as m\nwith TemporaryDirectory() as tmp:\n    root = Path(tmp)\n    (root / 'registry' / 'g1_abandoned.json').mkdir(parents=True)\n    print(m.abandoned(root))",
+    "expected": "Raise an error because the register path exists but cannot be read as a JSON file.",
+    "actual": "Returns and prints {}. Callers consequently apply no abandonment exclusions.",
+    "id": "abandon-ten-r4:g1#2",
+    "record_id": "mc-518fa1c8c683f5854913fdef6fac099f",
+    "verdict": null
+   }
+  ]
  }
 }

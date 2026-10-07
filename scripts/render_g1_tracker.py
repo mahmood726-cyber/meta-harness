@@ -283,8 +283,10 @@ def abandoned(root: Path = ROOT) -> dict[str, dict]:
     registry/g1_abandoned.json (scripts/g1_abandon_apply.py). {} when no register is committed. A register naming any
     other rule, or an entry in any other state, refuses: the page never counts against an unapproved list."""
     p = root / ABANDONED
-    if not p.is_file():
+    if not p.exists():
         return {}
+    if not p.is_file():          # a path that exists but is not a file is a broken register, never 'none' (codex r4 g1#2)
+        raise ValueError(f"ABANDONED: {p} exists but is not a file")
     d = json.loads(p.read_text(encoding="utf-8"))
     if d.get("rule_sha256") != ABANDON_RULE_SHA:
         raise ValueError(f"ABANDONED: {p} names rule sha256 {str(d.get('rule_sha256'))[:12]}, not G1-ABANDON-v1")

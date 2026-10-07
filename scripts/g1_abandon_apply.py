@@ -50,6 +50,13 @@ def build():
     if [by.get(s, {}).get("rank") for s in APPROVED] != list(range(1, len(APPROVED) + 1)) \
             or len(by) != len(rank["ranked"]):
         raise SystemExit("REFUSED: the approved ten are not ranks 1..10 of the ranking (or a slug is ranked twice)")
+    # every score must BE the pre-registered formula on the row's own counts (codex abandon-ten-r4 g1#1, P0: shifting
+    # every U by 100 kept the order and published corrupted scores); the ranking rounds U to 4 dp
+    for r in rank["ranked"]:
+        n = r["N_eligible"]
+        u = 0.0 if not n else r["closed"] / n + 0.5 * r["open"] / n - 0.5 * (1 if r["swap_adopted"] else 0)
+        if abs(round(u, 4) - r["U"]) > 1e-9 or r["closed"] != len(r.get("closed_trials") or []):
+            raise SystemExit(f"REFUSED: {r['slug']} U {r['U']} is not the rule's score on its counts ({round(u, 4)})")
     # the WHOLE ranking must be the rule applied: re-sorted by the rule's own order (U descending, then larger closed,
     # then slug ascending) it must give exactly the recorded ranks, and only ranks 1..10 may carry abandon (codex
     # abandon-ten-r3 g1#1: a later kept topic scoring above the ten passed a rank-11-only check)
