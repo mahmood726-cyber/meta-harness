@@ -127,3 +127,14 @@ def test_a_skip_for_a_new_comparator_retires_the_old_comparators_accepted_read()
     gfr.merge_skips(sec, {"t": {"pmid": "222", "why": "NO_OUTCOME_FOREST_FIGURE"}})
     assert "t" not in sec["results"] and sec["skipped"]["t"]["pmid"] == "222"
     assert sec["retired_results"]["t::111"]["state"] == "ACCEPTED"
+
+
+def test_a_missing_figure_tool_skips_that_item_only(monkeypatch):
+    # 7 Oct: 'import fitz' failed on the worker inside figure_for and the whole 995-candidate run died
+    def boom(*a, **k):
+        raise ModuleNotFoundError("No module named 'fitz'", name="fitz")
+    monkeypatch.setattr(gfr, "figure_for", boom)
+    monkeypatch.setattr(gfr, "jats_path", lambda p: "x")
+    monkeypatch.setattr(gfr, "comparator_of", lambda s: "999")
+    its, skipped = gfr.items([], False, pairs=[("t", "1")])
+    assert its == [] and skipped["t::1"]["why"] == "FIGURE_TOOL_UNAVAILABLE:fitz"

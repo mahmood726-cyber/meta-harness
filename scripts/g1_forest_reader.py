@@ -1737,7 +1737,10 @@ def items(slugs, run, pairs=None, extras=None, meta_extras=None, named=None):
         t = extra or TARGETS.get(f"{slug}::{pmid}") or (TARGETS.get(slug) if role == "comparator" else None)
         if run and t and t.get("supplement") and jats_path(pmid):
             fetch_supplement(pmid, pmcid_of(pmid), t["supplement"])
-        fig, why = figure_for(slug, pmid, extra)
+        try:
+            fig, why = figure_for(slug, pmid, extra)
+        except ImportError as exc:              # 7 Oct: the worker has no PyMuPDF; one supplement-PDF target killed
+            fig, why = None, f"FIGURE_TOOL_UNAVAILABLE:{exc.name}"   # a 995-candidate run -- this item only, named
         if not fig:
             skipped[key] = {"pmid": pmid, "why": why, "role": role, "slug": slug}
             if why == "NO_JATS" and not pmcid_of(pmid) and role == "comparator":
