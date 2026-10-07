@@ -101,6 +101,39 @@ def expanded_section(exps, edc):
                                        "no false exclusion was found in any exclude sample") + ".")
     return L + ["", " ".join(read), ""]
 
+
+def active_section():
+    """The 12 active topics against their CURRENT comparators (7 Oct): derived from outputs/search_audit/active/."""
+    a = _j(os.path.join("active", "ACTIVE_AUDIT.json"))
+    if not a:
+        return []
+    dc = _j(os.path.join("active", "screen_dual_codex_active.json"))
+    fin = {(r["slug"], r["label"]): r.get("final") for r in dc.get("rows") or []}
+    L = [f"## Active topics ({len(a['active'])}) against their current comparators (7 Oct)", "",
+         f"Active = not G1_MATCHED and not abandoned under {a['selection']['abandon_rule']}. Comparator = this branch's "
+         f"tracker rows (V8 adoptions included). Kinds: {a['kinds']}. Search measured on the served retrieval and on the "
+         f"CURRENT registered queries (recorded esearch probe of every query, amendments included); screen = the served "
+         f"decision where the record was served, else this branch's rule screener on the held record.", "",
+         "| Topic | Comparator | Eligible | Search served | Search current | Screen (of identified) | Dual Codex final on "
+         "eligible E/I/U | Short |", "|---|---|---|---|---|---|---|---|"]
+    for t in a["topics"]:
+        el = [r for r in t["trials"] if r["kind"] == "ELIGIBLE"]
+        c = collections.Counter(fin.get((t["slug"], r["label"])) for r in el)
+        L.append(f"| {t['slug']} | {t['comparator_pmid']} | {len(el)} | {t['search_recall']['n']}/{t['search_recall']['N']} | "
+                 f"{t['search_recall_current']['n']}/{t['search_recall_current']['N']} | "
+                 f"{t['screen_recall_current']['n']}/{t['screen_recall_current']['N']} | {c['ELIGIBLE']}/{c['INELIGIBLE']}/"
+                 f"{c['UNRESOLVED']} | {', '.join(t['short']) or '-'} |")
+    T = a["totals"]
+    L += ["", f"Totals: search served {T['search_recall']['n']}/{T['search_recall']['N']}, current "
+              f"{T['search_recall_current']['n']}/{T['search_recall_current']['N']}; screen of the identified "
+              f"{T['screen_recall_current']['n']}/{T['screen_recall_current']['N']}."]
+    if dc:
+        k = dc["kappa"]
+        L += [f"Dual Codex over all {dc['n_rows']} comparator rows: kappa A vs B {k['reader_A_vs_reader_B']}, rule vs final "
+              f"{k['rule_vs_final']}; {_adj(dc)}; final {dc['final']}; against the rule screen {dc['screen_errors']}: "
+              + "; ".join(f"{r['label']} ({r['slug']}) {r['screen_error']}" for r in dc["rows"] if r.get("screen_error")) + "."]
+    return L + [""]
+
 def main():
     a = _j("SEARCH_SCREEN_AUDIT.json")
     vol = _j("search_volume_probe.json").get("topics", {})
@@ -224,7 +257,12 @@ def main():
     exps = {f[:-5]: _j(os.path.join("expanded", f)) for f in sorted(os.listdir(os.path.join(SA, "expanded")))
             if f.endswith(".json")} if os.path.isdir(os.path.join(SA, "expanded")) else {}
     if exps and all(exps.values()):
-        L += expanded_section(exps, _j("expanded_dual_codex.json"))
+        edc = _j("expanded_dual_codex.json")
+        act_edc = _j("expanded_dual_codex_active.json")       # the active topics' expansions (7 Oct)
+        if act_edc:
+            edc = dict(edc, topics={**(edc.get("topics") or {}), **(act_edc.get("topics") or {})})
+        L += expanded_section(exps, edc)
+    L += active_section()
     still = []
     for s in sorted({s for _, t, _ in rounds for s in t}):
         accepted = any(str(((t.get(s) or {}).get("validation") or {}).get("verdict", "")).startswith("ACCEPT") for _, t, _ in rounds)
@@ -243,6 +281,17 @@ def main():
           "Adding population terms is an eligibility amendment.",
           "4. **Served pages**: the amendments and screen fixes change what a rebuild serves; no page was regenerated here.",
           ""]
+    act_over = []
+    for f in sorted(os.listdir(os.path.join(SA, "expanded"))) if os.path.isdir(os.path.join(SA, "expanded")) else []:
+        e = _j(os.path.join("expanded", f))
+        ch = e.get("chosen") or {}
+        if ch.get("over_cap") and e["recall"]["identified_after"] < e["recall"]["eligible"]:
+            best = max(ch["over_cap"], key=lambda o: (o["recall_union"]["n"], -o["volume"]))
+            act_over.append(f"{e['slug']}: adopted query {e['recall']['identified_after']} of {e['recall']['eligible']}; the "
+                            f"over-cap blind proposal {best['round']} ({best['record']}) reaches {best['recall_union']['n']} "
+                            f"of {best['recall_union']['N']} at {best['volume']} records")
+    if act_over:
+        L.insert(len(L) - 1, "5. **Active topics still short only above the 10,000 cap** (7 Oct): " + "; ".join(act_over) + ".")
     v = _j("verification_2026-10-05.json")
     if v:
         m = v["same_11_at_main_469a97eb"]

@@ -50,3 +50,25 @@ def test_the_section_label_in_force_is_the_one_at_the_verb_not_the_one_before_th
     rec = dict(LODOCO, abstract="BACKGROUND: Inflammation matters. METHODS: In a trial, 50 patients with stable angina were "
                                 "randomized to colchicine or placebo.")
     assert screen.enrolled_population(rec, TERMS)[0] == "stable angina"
+
+
+# 7 Oct (active-topic audit, melatonin V8 comparator): Dawson 1998 (PMID 9850013) was X2 though both dual Codex readers
+# judged it eligible: its title says 'elderly insomniacs' (not 'insomnia') and its enrolment sentence uses 'were treated
+# with' -- 'subjects with sleep maintenance insomnia were treated with either ... melatonin or a placebo' -- a verb the
+# enrolment list lacked. Synthetic record of the same shape (not the PubMed text).
+MEL_TERMS = ["primary insomnia", "insomnia", "sleep onset latency", "sleep latency"]
+MEL = {"id": "1", "id_type": "pmid", "pubtypes": ["Randomized Controlled Trial"],
+       "title": "Nocturnal melatonin and sleep architecture in older insomniacs.",
+       "abstract": ("Melatonin secretion declines with age. Twenty older subjects with sleep maintenance insomnia were treated "
+                    "with either melatonin or a placebo for two sessions. Sleep was recorded by polysomnography.")}
+
+
+def test_were_treated_with_states_this_studys_enrolment():
+    hit = screen.enrolled_population(MEL, MEL_TERMS)
+    assert hit and hit[0] == "insomnia" and "were treated with either melatonin or a placebo" in hit[1]
+
+
+def test_were_treated_in_a_background_section_never_qualifies():
+    rec = dict(MEL, abstract=("BACKGROUND: In earlier cohorts, patients with insomnia were treated with hypnotics. "
+                              "METHODS: We randomly assigned 40 healthy volunteers to melatonin or placebo."))
+    assert screen.enrolled_population(rec, MEL_TERMS) is None

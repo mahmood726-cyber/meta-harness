@@ -84,7 +84,7 @@ Screen-named exclusions re-checked (83): dual review v2 final {'INELIGIBLE': 83}
 
 ## Dual Codex screen review of every comparator row (6 Oct)
 
-Every one of the 348 comparator rows, kinds enumerated: {'SERVED': 211, 'NO_HELD_RECORD': 39, 'COUNTERFACTUAL': 98} (COUNTERFACTUAL = a trial our search missed, screened in memory by this branch's screener on its held record). 309 items read by BOTH independent recorded readers (gpt-6-astra, gpt-5.5); 86 adjudicated (gpt-6-astra (effort high)) where they disagreed or could not decide.
+Every one of the 348 comparator rows, kinds enumerated: {'SERVED': 211, 'NO_HELD_RECORD': 39, 'COUNTERFACTUAL': 98} (COUNTERFACTUAL = a trial our search missed, screened in memory by this branch's screener on its held record). 309 items read by BOTH independent recorded readers (gpt-6-astra, gpt-5.5); 86 sent to adjudication (gpt-6-astra (effort high)) where they disagreed or could not decide.
 
 - **Cohen's kappa, reader A vs reader B: 0.914**; rule screener vs A 0.7659, vs B 0.8011, vs the adjudicated final 0.7715.
 - Readers agree on 264 of 309. Final: {'ELIGIBLE': 120, 'INELIGIBLE': 116, 'UNRESOLVED': 73}.
@@ -100,20 +100,44 @@ Every one of the 348 comparator rows, kinds enumerated: {'SERVED': 211, 'NO_HELD
 
 Rounds 2 and precise are validated against the queries registered after the round-1 amendment, so a gain there is new. Accepted and added by the dated 2026-10-06 amendment (A4): corticosteroids-cap-mortality, dpp4-mace-t2d, sglt2-ckd-progression.
 
-## Volume cap raised to 10,000 for 4 topics (decision 6 Oct, under Mahmood's delegation; amendment A5)
+## Expanded searches (volume cap 10,000)
 
-Query per topic by a fixed rule: the smallest-volume blind proposal with the maximal measured recall gain. Run in full; records not already held were rule-screened; a dual Codex review then read every new rule include, every newly identified comparator trial and a seeded random sample of 100 rule excludes per topic (seed recorded).
+Query per topic by a fixed rule: the smallest-volume blind proposal with the maximal measured recall gain. Run in full; records not already held were rule-screened; a dual Codex review then read every new rule include, every newly identified comparator trial and a seeded random sample of 100 rule excludes per topic (seed recorded). Decision per topic: denosumab-vertebral-fracture: active topic short on search recall against its current comparator: blind query re-validated, cap 10,000 (2026-10-07, captain under Mahmood's delegation, amendment A6); omega3-cardiovascular-events: volume cap raised to 10,000 (2026-10-06, under Mahmood's delegation); probiotics-aad-prevention: volume cap raised to 10,000 (2026-10-06, under Mahmood's delegation); semaglutide-obesity-mace: volume cap raised to 10,000 (2026-10-06, under Mahmood's delegation); sglt2-primary-prevention-hf: volume cap raised to 10,000 (2026-10-06, under Mahmood's delegation); statins-primary-prevention-elderly: active topic short on search recall against its current comparator: blind query re-validated, cap 10,000 (2026-10-07, captain under Mahmood's delegation, amendment A6).
 
-| Topic | Records (new) | Rule include / exclude / dedup | Eligible comparator trials identified | Newly identified passing the screen | Rule includes: Codex final E/I/U | False-exclusion rate (95% CI), extrapolated |
+| Topic | Records (new) | Rule include / exclude / dedup | Eligible comparator trials identified | Newly identified passing the screen | Rule includes: Codex final E/I/U | False-exclusion rate (95% CI), extrapolated over the sampling frame |
 |---|---|---|---|---|---|---|
-| omega3-cardiovascular-events | 5251 (5213) | 308 / 4693 / 180 | 9 -> **18** of 18 | 4 of 9 | 84 / 53 / 171 | 0.0349 ([0.0119, 0.0976]), ~163.7 of 4693 |
+| denosumab-vertebral-fracture | 1360 (1340) | 22 / 1287 / 30 | 1 -> **2** of 2 | 0 of 1 | 15 / 6 / 1 | 0.0108 ([0.0019, 0.0584]), ~13.8 of 1286 |
+| omega3-cardiovascular-events | 5251 (5213) | 308 / 4693 / 180 | 9 -> **18** of 18 | 4 of 9 | 84 / 53 / 171 | 0.0349 ([0.0119, 0.0976]), ~163.6 of 4691 |
 | probiotics-aad-prevention | 7058 (6752) | 9 / 6716 / 19 | 36 -> **36** of 41 | 0 of 0 | 9 / 0 / 0 | 0.0206 ([0.0057, 0.0721]), ~138.5 of 6716 |
-| semaglutide-obesity-mace | 5006 (4962) | 1 / 4836 / 119 | 1 -> **2** of 2 | 0 of 1 | 0 / 0 / 1 | 0.0 ([0, 0.0393]), ~0.0 of 4836 |
+| semaglutide-obesity-mace | 5006 (4962) | 1 / 4836 / 119 | 1 -> **2** of 2 | 0 of 1 | 0 / 0 / 1 | 0.0 ([0, 0.0393]), ~0.0 of 4835 |
 | sglt2-primary-prevention-hf | 5237 (5153) | 40 / 4629 / 471 | 4 -> **5** of 5 | 1 of 1 | 14 / 24 / 1 | 0.0108 ([0.0019, 0.0584]), ~49.8 of 4629 |
+| statins-primary-prevention-elderly | 1300 (1296) | 8 / 1221 / 64 | 2 -> **4** of 6 | 1 of 2 | 0 / 5 / 2 | 0.0 ([0, 0.0389]), ~0.0 of 1221 |
 
-Newly identified comparator trials screened as new records, rule decision -> dual Codex final: Alfaddagh 2017 [46] (omega3-cardiovascular-events) X3 -> UNRESOLVED; Pahor 2019 [48] (omega3-cardiovascular-events) X2 -> UNRESOLVED; O‘Neil et al. 28 NCT02453711 (semaglutide-obesity-mace) X2 -> UNRESOLVED; Kosiborod (18) (sglt2-primary-prevention-hf) INCLUDE -> INELIGIBLE.
+Newly identified comparator trials screened as new records, rule decision -> dual Codex final: Bone 2008 (denosumab-vertebral-fracture) X2 -> INELIGIBLE; Alfaddagh 2017 [46] (omega3-cardiovascular-events) X3 -> UNRESOLVED; Pahor 2019 [48] (omega3-cardiovascular-events) X2 -> UNRESOLVED; O‘Neil et al. 28 NCT02453711 (semaglutide-obesity-mace) X2 -> UNRESOLVED; Kosiborod (18) (sglt2-primary-prevention-hf) INCLUDE -> INELIGIBLE; CARDS aged 65-75 (Neil 2006) (statins-primary-prevention-elderly) INCLUDE -> INELIGIBLE.
 
-Reading: identification gains are real (omega3 doubles); but the rule screen's precision on the new includes is modest where many abstracts cannot be decided (UNRESOLVED), and the exclude samples estimate dozens to ~160 eligible-by-reader records per topic excluded by the rule screen -- the next screen work, before these searches feed a served pool.
+Reading (derived from the table): identification: denosumab-vertebral-fracture 1 -> 2 of 2; omega3-cardiovascular-events 9 -> 18 of 18; semaglutide-obesity-mace 1 -> 2 of 2; sglt2-primary-prevention-hf 4 -> 5 of 5; statins-primary-prevention-elderly 2 -> 4 of 6. rule includes reviewed: 386, Codex final 122 eligible / 88 ineligible / 176 unresolved (32% confirmed eligible). exclude samples: denosumab-vertebral-fracture 1 of 93 decided (0.0108, 95% CI [0.0019, 0.0584]), ~13.8 of 1286; omega3-cardiovascular-events 3 of 86 decided (0.0349, 95% CI [0.0119, 0.0976]), ~163.6 of 4691; probiotics-aad-prevention 2 of 97 decided (0.0206, 95% CI [0.0057, 0.0721]), ~138.5 of 6716; sglt2-primary-prevention-hf 1 of 93 decided (0.0108, 95% CI [0.0019, 0.0584]), ~49.8 of 4629.
+
+## Active topics (12) against their current comparators (7 Oct)
+
+Active = not G1_MATCHED and not abandoned under G1-ABANDON-v1. Comparator = this branch's tracker rows (V8 adoptions included). Kinds: {'ELIGIBLE': 40, 'SCREEN_NAMED': 27, 'NAMED_OTHER': 10}. Search measured on the served retrieval and on the CURRENT registered queries (recorded esearch probe of every query, amendments included); screen = the served decision where the record was served, else this branch's rule screener on the held record.
+
+| Topic | Comparator | Eligible | Search served | Search current | Screen (of identified) | Dual Codex final on eligible E/I/U | Short |
+|---|---|---|---|---|---|---|---|
+| colchicine-recurrent-pericarditis | 22442198 | 1 | 1/1 | 1/1 | 1/1 | 0/0/1 | - |
+| corticosteroids-covid19-mortality | 32876694 | 5 | 5/5 | 5/5 | 5/5 | 5/0/0 | - |
+| denosumab-vertebral-fracture | 32492050 | 2 | 1/2 | 2/2 | 1/2 | 1/1/0 | - |
+| doac-vte-recurrence | 24963045 | 6 | 6/6 | 6/6 | 6/6 | 6/0/0 | - |
+| iv-iron-hfref-hosp | 39727669 | 5 | 5/5 | 5/5 | 5/5 | 2/0/3 | - |
+| melatonin-primary-insomnia-sol | 35691474 | 2 | 0/2 | 2/2 | 1/2 | 1/0/1 | - |
+| sacubitril-valsartan-hfref | 36722326 | 2 | 2/2 | 2/2 | 1/2 | 1/0/1 | - |
+| semaglutide-obesity-mace | 39345822 | 2 | 1/2 | 2/2 | 1/2 | 1/0/1 | - |
+| sglt2-ckd-progression | 41203232 | 3 | 3/3 | 3/3 | 3/3 | 0/0/3 | - |
+| sglt2-primary-prevention-hf | 33519713 | 5 | 4/5 | 5/5 | 5/5 | 4/1/0 | - |
+| statins-primary-prevention-elderly | 32529863 | 6 | 2/6 | 4/6 | 3/4 | 1/5/0 | HPS diabetes (Collins 2003), ASCOT-LLA older (Collier 2011) |
+| tranexamic-acid-pph | 39461793 | 1 | 1/1 | 1/1 | 1/1 | 1/0/0 | - |
+
+Totals: search served 31/40, current 38/40; screen of the identified 33/38.
+Dual Codex over all 77 comparator rows: kappa A vs B 1.0, rule vs final 0.8943; 20 adjudicated; final {'ELIGIBLE': 23, 'INELIGIBLE': 35, 'UNRESOLVED': 19}; against the rule screen {'FALSE_EXCLUSION': 0, 'FALSE_INCLUSION': 3}: Kosiborod (18) (sglt2-primary-prevention-hf) FALSE_INCLUSION; CARDS aged 65-75 (Neil 2006) (statins-primary-prevention-elderly) FALSE_INCLUSION; JUPITER aged 70+ (Glynn 2010) (statins-primary-prevention-elderly) FALSE_INCLUSION.
 
 ## Decisions for Mahmood (not taken by this lane)
 
@@ -121,6 +145,7 @@ Reading: identification gains are real (omega3 doubles); but the rule screen's p
 2. **Secondary-report family routing** (COPPS POAF, the substudy class): Codex NR-C28 showed the narrow 'admit a PubMed-RCT substudy' rule is unsafe; a family-routing stage is needed (notice COLCHICINE_POSTOP_AF_GAPS).
 3. **Probiotics eligibility vocabulary**: the registered population 'patients receiving antibiotics' has no screening term; H. pylori-eradication and C. difficile trials stay X2 (Cindoruk, Plomer, Plummer, Shimbo). Adding population terms is an eligibility amendment.
 4. **Served pages**: the amendments and screen fixes change what a rebuild serves; no page was regenerated here.
+5. **Active topics still short only above the 10,000 cap** (7 Oct): statins-primary-prevention-elderly: adopted query 4 of 6; the over-cap blind proposal precise10k (mc-4905cf1d32b06df5622c3a9a22cdc355.json) reaches 6 of 6 at 10119 records.
 
 ## Verification of this branch
 

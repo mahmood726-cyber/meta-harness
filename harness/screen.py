@@ -334,8 +334,11 @@ def _poptext(rec) -> str:
 # whom THIS study randomised or enrolled is not incidental. LoDoCo (Nidorf 2013, PMID 23265346) was X2-excluded from
 # colchicine secondary prevention: title 'Low-dose colchicine for secondary prevention of cardiovascular disease',
 # abstract '532 patients with stable coronary disease ... were randomly assigned colchicine 0.5 mg/day or no colchicine'.
+# 'were treated with' (7 Oct): 'subjects with sleep maintenance insomnia were treated with either ... melatonin or a
+# placebo' states this study's allocation (melatonin Dawson 1998, PMID 9850013, X2; plant
+# tests/test_search_audit_enrolled_population.py::test_were_treated_with_states_this_studys_enrolment)
 _ENROL_VERB = _re.compile(r"\b(?:randomi[sz]ed|randomly (?:assigned|allocated)|were (?:enrolled|recruited|assigned|allocated)"
-                          r"|we (?:enrolled|recruited|randomi[sz]ed|randomly assigned))\b", _re.I)
+                          r"|were treated with|we (?:enrolled|recruited|randomi[sz]ed|randomly assigned))\b", _re.I)
 _SECTION = _re.compile(r"\b(BACKGROUND|INTRODUCTION|CONTEXT|RATIONALE|OBJECTIVES?|AIMS?|PURPOSE|METHODS?|DESIGN|"
                        r"PARTICIPANTS|PATIENTS|SETTING|RESULTS|FINDINGS|CONCLUSIONS?|INTERPRETATION)\s*:", _re.I)
 _NOT_ENROL_SECTIONS = {"background", "introduction", "context", "rationale"}
