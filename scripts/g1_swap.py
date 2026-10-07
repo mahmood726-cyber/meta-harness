@@ -563,7 +563,17 @@ def _bound_counts(sent, vals):
     cnt = printed_counts(sent)
     if not cnt:
         return set()
-    clauses = [c for c in _clean(sent).split(";") if c.strip()]
+    # clauses split only at TOP-LEVEL semicolons: inside brackets they separate statistics of one result ('(3 studies;
+    # RR: 0.48; 95% CI: 0.36-0.63' -- the final Part B replay refused colchicine 31477020 on a bracket-blind split)
+    clauses, depth, cur = [], 0, ""
+    for ch in _clean(sent):
+        depth += 1 if ch in "([" else (-1 if ch in ")]" and depth > 0 else 0)
+        if ch == ";" and depth == 0:
+            clauses.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    clauses = [c for c in clauses + [cur] if c.strip()]
     res = [c for c in clauses if all(any(abs(v - t) < 1e-9 for t in _num_tokens(c)) for v in vals)] if vals else clauses
     if len(res) != 1:
         return set()

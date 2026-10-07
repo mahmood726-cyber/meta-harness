@@ -528,3 +528,13 @@ def test_PLANT_r29_exponents_and_distant_approximators_refuse():
     assert sw.printed_counts("1e+5 trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).") == set()
     assert sw.printed_counts("Roughly speaking, five trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).") == set()
     assert sw.printed_counts("In the five trials, mortality RR was 0.85 (95% CI 0.70 to 1.03).") == {5}
+
+
+def test_PLANT_semicolons_inside_brackets_do_not_split_a_result():
+    """Final Part B replay regression: colchicine 31477020 '(3 studies; RR: 0.48; 95% CI: 0.36-0.63 ...' was refused
+    because the clause split ignored brackets. A top-level semicolon still separates another outcome's count."""
+    q = ("patients with recurrent pericarditis (3 studies; RR: 0.48; 95% CI: 0.36\u20130.63 benefited from colchicine "
+         "treatment")
+    assert sw._bound_counts(q, [0.48, 0.36, 0.63]) == {3}
+    assert sw._bound_counts("Five trials reported recurrence; mortality RR 0.85 (95% CI 0.70-1.03).",
+                            [0.85, 0.70, 1.03]) == set()
