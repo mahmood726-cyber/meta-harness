@@ -416,3 +416,15 @@ def test_PLANT_r19_the_count_sentence_prints_the_whole_result_no_outcome_data_an
     q3 = "Approximately: five trials contributed to mortality (RR 0.85)."
     assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 5, "quote": q3}, sw._norm(q3))[0] is None
     assert sw.printed_counts("Phase 3: 5 randomized trials gave RR 0.85.") == {5}
+
+
+def test_PLANT_r20_singular_quantities_and_bracketed_symbol_bounds_refuse():
+    """codex swap-setquote-r20: #1 'Five trials reported recurrence; mortality was reported by a single trial (...)';
+    #2 'pooled from ≥(five trials)'."""
+    q = "Five trials reported recurrence; mortality was reported by a single trial (RR 0.85, 95% CI 0.70-1.03)."
+    pl = {"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5, "quote": q}
+    assert sw.printed_counts(q) == set() and sw.pooled_gate(pl, sw._norm(q))[0] is None
+    q2 = "Mortality was pooled from \u2265(five trials) (RR 0.85, 95% CI 0.70-1.03)."
+    pl2 = dict(pl, quote=q2)
+    assert sw.printed_counts(q2) == set() and sw.pooled_gate(pl2, sw._norm(q2))[0] is None
+    assert sw.printed_counts("Five trials and a randomized trial gave RR 0.85.") == set()

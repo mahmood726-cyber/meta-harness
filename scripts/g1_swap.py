@@ -368,7 +368,10 @@ def _clean(q):
     # every dash is a hyphen ('twenty‑five', en / em dash, minus; codex swap-setquote-r6 #2)
     s = re.sub(r"[‐‑‒–—−]", "-", s)
     # a slash with spaces round it is still a range ('Phase one / two studies'; codex swap-setquote-r9 #1)
-    return re.sub(r"\s*/\s*", "/", s)
+    s = re.sub(r"\s*/\s*", "/", s)
+    # a bracket right after a bound symbol does not detach the bound from its count ('≥(five trials)'; codex
+    # swap-setquote-r20 #2)
+    return re.sub(r"([~<>≤≥])\s*[(\[]\s*", r"\1", s)
 
 
 def _sentences(q):
@@ -391,7 +394,12 @@ def _numerals(sent):
     for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?!\s*%)", sent):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1
-    words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both", "zero", "none", "nil"]
+    words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both", "zero", "none", "nil",
+                                                # singular and collective quantities are quantities too ('mortality was
+                                                # reported by a single trial'; codex swap-setquote-r20 #1)
+                                                "single", "sole", "lone", "multiple", "numerous", "various", "many",
+                                                "each", "every", "another", "all"]
+    sent = re.sub(r"\ban?\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trial|study|rct)\b", " one ", sent, flags=re.I)
     for m in re.finditer(r"\b(?:" + "|".join(words) + r")\b", sent, re.I):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1

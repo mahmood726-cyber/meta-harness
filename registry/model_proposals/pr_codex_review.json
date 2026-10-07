@@ -2540,5 +2540,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r20": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-969a48f4da7aa1efbc3c75f1bb234707",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "8429cbf52c89a78e437621b937f484cfa57a1de61d8f49ef3c968f334cc6b4be"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate / printed_counts",
+    "severity": "P0",
+    "claim": "A count for another outcome is accepted as the mortality k when both outcomes share a sentence. 'single' is not counted by _numerals, so the sentence incorrectly passes the exactly-one-quantity check.",
+    "failing_input": "q = 'Five trials reported recurrence; mortality was reported by a single trial (RR 0.85, 95% CI 0.70-1.03).'; pl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}; printed_counts(q); pooled_gate(pl, _norm(q))",
+    "expected": "Reject the stated mortality k=5: pooled_gate returns (None, None). The text assigns five trials to recurrence and a single trial to mortality.",
+    "actual": "printed_counts(q) returns {5}; pooled_gate returns (pl, 5). Matching the estimate and bounds within the sentence does not bind its trial count to that outcome.",
+    "id": "swap-setquote-r20:g1#1",
+    "record_id": "mc-969a48f4da7aa1efbc3c75f1bb234707",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / printed_counts",
+    "severity": "P0",
+    "claim": "An opening parenthesis hides a symbolic bound from the count checks, allowing a lower bound to become an exact pooled k.",
+    "failing_input": "q = 'Mortality was pooled from ≥(five trials) (RR 0.85, 95% CI 0.70-1.03).'; pl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}; printed_counts(q); pooled_gate(pl, _norm(q))",
+    "expected": "printed_counts(q) returns set(); pooled_gate returns (None, None), because at least five trials does not establish exactly five.",
+    "actual": "printed_counts(q) returns {5}; pooled_gate returns (pl, 5). The regex sees '(' immediately before 'five', and blocked_before treats the preceding token '≥(' as nonalphabetic and returns False.",
+    "id": "swap-setquote-r20:g1#2",
+    "record_id": "mc-969a48f4da7aa1efbc3c75f1bb234707",
+    "verdict": null
+   }
+  ]
  }
 }
