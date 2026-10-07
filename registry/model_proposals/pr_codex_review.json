@@ -3526,5 +3526,747 @@
     "verdict": null
    }
   ]
+ },
+ "abandon-ten-r7": {
+  "base": "20915e04f",
+  "head": "c5ed195661366172a9fdd97d49626f56c5182577",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ed6c789c6b7f3a2ddb995a00ee8e7859",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "e4eab1c20e127ce678da09dc22475b2d7dc5189c01d01fe644688d54683d0b67"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "released",
+    "severity": "P2",
+    "claim": "A dangling swap_releases.json symlink silently bypasses the release guard: os.path.exists() returns False, so a broken register is treated as no released topics.",
+    "failing_input": "import os, tempfile\nfrom scripts import g1_swap as g\nwith tempfile.TemporaryDirectory() as <outside-workdir>/n    os.symlink(os.path.join(d, 'missing.json'), os.path.join(d, 'swap_releases.json'))\n    g.SEL = d\n    print(g.released(['pcsk9-mace']))",
+    "expected": "Raise an error for the broken register and prevent stage dispatch.",
+    "actual": "Returns [] without reading or validating the register, allowing the CLI to dispatch the requested stage.",
+    "id": "abandon-ten-r7:g1#1",
+    "record_id": "mc-ed6c789c6b7f3a2ddb995a00ee8e7859",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply": {
+  "base": "0be24501b",
+  "head": "f2e464f2b7d35f4908146662582ff292fe3929ea",
+  "runs": {
+   "g1": {
+    "record_id": "mc-772e1f868b2b5266219f8dfcb7129c90",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/result_changes.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "fe7e480dec99ba4ab565f68ec501561be1481af21685f7769d887e849154c019"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/pipeline.py",
+    "function": "build_review_core",
+    "severity": "P0",
+    "claim": "The adopted pooled estimate is assigned to the first configured outcome without checking outcome_as_printed. A valid estimate for one endpoint becomes a reported number for another endpoint.",
+    "failing_input": "At the new reported-result block: config = {'comparator_outcomes': [{'name': 'All-cause mortality', 'keywords': ['mortality']}]}; _adopted = {'estimate': 0.70, 'scale': 'RR', 'ci_low': 0.60, 'ci_high': 0.80, 'outcome_as_printed': 'Stroke', 'source': 'signed adoption', 'span': 'Stroke: RR 0.70 (95% CI 0.60–0.80)'}; reported = [].",
+    "expected": "Reject the outcome mismatch or leave all-cause mortality unreported.",
+    "actual": "Appends {'outcome': 'All-cause mortality', 'estimate': 0.70, 'scale': 'RR', 'ci_low': 0.60, 'ci_high': 0.80, 'source': 'signed adoption', 'span': 'Stroke: RR 0.70 (95% CI 0.60–0.80)'}. The mortality result contains the stroke estimate.",
+    "id": "v8-apply:g1#1",
+    "record_id": "mc-772e1f868b2b5266219f8dfcb7129c90",
+    "verdict": null
+   },
+   {
+    "file": "harness/result_changes.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "Substring matching treats a different trial's identifier as explicitly naming the entering trial, incorrectly recognizing a reinstatement.",
+    "failing_input": "from harness.result_changes import reversed_setasides\np = {'slug': 's', 'outcome': 'mortality', 'left_pool': ['TRIAL-1'], 'when_utc': '2026-10-06T00:00:00Z', 'reason': 'eligible evidence awaiting adjudication; the numbers are not asserted wrong', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nn = {'slug': 's', 'outcome': 'mortality', 'entered_pool': ['TRIAL-1'], 'when_utc': '2026-10-07T00:00:00Z', 'reason': 'REVERSES set-aside for TRIAL-10'}\nprint(reversed_setasides(n, [p]))",
+    "expected": "None: the reason names TRIAL-10, not the entering TRIAL-1.",
+    "actual": "Returns {'TRIAL-1': p}, recognizing the notice as a reinstatement because 'TRIAL-1' is a substring of 'TRIAL-10'.",
+    "id": "v8-apply:g1#2",
+    "record_id": "mc-772e1f868b2b5266219f8dfcb7129c90",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_comparator.py",
+    "function": "adopted_pooled",
+    "severity": "P2",
+    "claim": "A dangling adoption-register symlink is silently classified as an absent adoption. Returning None enables the caller's regex fallback instead of refusing the broken evidence register.",
+    "failing_input": "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nfrom harness.served_comparator import adopted_pooled\nwith TemporaryDirectory() as root:\n    p = Path(root) / 'registry/comparator_selection/demo.adoption.json'\n    p.parent.mkdir(parents=True)\n    p.symlink_to(p.with_name('missing.json'))\n    print(adopted_pooled('demo', {'comparator_pmid': '123'}, root))",
+    "expected": "Raise an error because the adoption-register path exists as a broken link.",
+    "actual": "Returns None because os.path.exists(p) is False; the broken register is indistinguishable from an adoption that never existed.",
+    "id": "v8-apply:g1#3",
+    "record_id": "mc-772e1f868b2b5266219f8dfcb7129c90",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r2": {
+  "base": "0be24501b",
+  "head": "17145a1a9",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e797074b2ef0194ce5e2396914901964",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/result_changes.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "aeae84bf7569008bf1a759d7dd619c383a212a6153ddd27761cd59dc88f3d0b5"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/served_comparator.py",
+    "function": "adopted_outcome_matches",
+    "severity": "P0",
+    "claim": "Substring matching assigns a pooled estimate to a different endpoint. build_review_core then publishes that estimate under the matched endpoint and stops searching.",
+    "failing_input": "from harness.served_comparator import adopted_outcome_matches\nadopted_outcome_matches({'rule_primary_outcome': 'All-cause mortality'}, 'All-cause mortality or hospitalization')",
+    "expected": "False: mortality alone and the composite of mortality or hospitalization are different outcomes.",
+    "actual": "True. In build_review_core, the composite receives the adopted mortality estimate and confidence interval.",
+    "id": "v8-apply-r2:g1#1",
+    "record_id": "mc-e797074b2ef0194ce5e2396914901964",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_comparator.py",
+    "function": "adopted_pooled",
+    "severity": "P2",
+    "claim": "An existing, signed replacement adoption with a missing pooled result silently becomes 'no adoption'. build_review_core consequently re-enables regex extraction instead of refusing the broken adoption.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import served_comparator as m\na = {'comparator_pmid': '222', 'retired': {'comparator_pmid': '111'}}\nwith patch.object(m.os.path, 'lexists', return_value=True), patch.object(m.os.path, 'isfile', return_value=True), patch.object(m, '_j', return_value=a), patch.object(m, 'switch_signed', return_value=True):\n    print(m.adopted_pooled('demo', {'comparator_pmid': '222'}, root='.'))",
+    "expected": "Raise an error because the signed adoption lacks its required pooled result; do not permit regex fallback.",
+    "actual": "Returns None. The pipeline's '[] if _adopted else config.get(...)' branch therefore runs comparator_effect on the comparator text.",
+    "id": "v8-apply-r2:g1#2",
+    "record_id": "mc-e797074b2ef0194ce5e2396914901964",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r3": {
+  "base": "0be24501b",
+  "head": "9cc684546e1d7d5bbbe0b8a18237a01ab75fe727",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d1a184c25a88d9ccb165e0ef237e23bb",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/result_changes.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "acc541a6272073c4d45d1e8e05ba8ccd00b3022de73444149ff87d428c44fc6a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/served_comparator.py",
+    "function": "adopted_outcome_matches",
+    "severity": "P1",
+    "claim": "Removing every trailing parenthetical merges distinct follow-up endpoints. The pipeline can consequently label a 30-day estimate as a one-year result.",
+    "failing_input": "adopted_outcome_matches({'rule_primary_outcome': 'All-cause mortality (30 days)'}, 'All-cause mortality (1 year)')",
+    "expected": "False: the follow-up periods define different endpoints.",
+    "actual": "True: both names normalize to 'all-cause mortality'.",
+    "id": "v8-apply-r3:g1#1",
+    "record_id": "mc-d1a184c25a88d9ccb165e0ef237e23bb",
+    "verdict": null
+   },
+   {
+    "file": "harness/result_changes.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "An already-reversed historical set-aside remains sufficient for reinstatement even after a subsequent signed exclusion for ineligibility. The function searches for any qualifying historical removal instead of checking the removal currently being reversed.",
+    "failing_input": "base = {'slug': 'example', 'outcome': 'mortality', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\np = dict(base, when_utc='2026-10-01T00:00:00Z', left_pool=['T'], entered_pool=[], reason='T: eligible evidence awaiting adjudication; the numbers are not asserted wrong')\nr = dict(base, when_utc='2026-10-02T00:00:00Z', left_pool=[], entered_pool=['T'], reason='REVERSES set-aside for T')\nc = dict(base, when_utc='2026-10-03T00:00:00Z', left_pool=['T'], entered_pool=[], reason='T excluded: nonrandomized study; the numbers are asserted wrong')\nn = dict(base, when_utc='2026-10-04T00:00:00Z', left_pool=[], entered_pool=['T'], reason='REVERSES set-aside for T')\nreversed_setasides(n, [p, r, c, n])",
+    "expected": "None: the current exclusion is the ineligibility correction c; p was already reversed by r.",
+    "actual": "{'T': p}: the intervening reinstatement and subsequent exclusion are ignored.",
+    "id": "v8-apply-r3:g1#2",
+    "record_id": "mc-d1a184c25a88d9ccb165e0ef237e23bb",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_comparator.py",
+    "function": "adopted_pooled",
+    "severity": "P2",
+    "claim": "A signed adoption with a missing rule silently produces an unusable adopted result. Because the result is truthy, build_review_core disables ordinary extraction, while every outcome match fails, leaving reported results empty instead of refusing the broken register.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import served_comparator as sc\nadoption = {'comparator_pmid': '2', 'retired': {'comparator_pmid': '1'}, 'pooled_result': {'measure': 'RR', 'estimate': 0.8, 'ci_low': 0.7, 'ci_high': 0.9, 'outcome': 'Mortality', 'spans': {'result': 'Mortality RR 0.8 (95% CI 0.7–0.9).'}}}\nwith patch.object(sc.os.path, 'lexists', return_value=True), patch.object(sc.os.path, 'isfile', side_effect=lambda p: p.endswith('.adoption.json')), patch.object(sc, '_j', return_value=adoption), patch.object(sc, 'switch_signed', return_value=True):\n    result = sc.adopted_pooled('example', {'comparator_pmid': '2'})\n    print(result['rule_primary_outcome'], sc.adopted_outcome_matches(result, 'Mortality'))",
+    "expected": "Raise ValueError because the signed adoption's required outcome rule is missing.",
+    "actual": "Prints 'None False'. The adopted result is returned successfully but cannot match any configured outcome.",
+    "id": "v8-apply-r3:g1#3",
+    "record_id": "mc-d1a184c25a88d9ccb165e0ef237e23bb",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r4": {
+  "base": "0be24501b",
+  "head": "3bda094aa",
+  "runs": {
+   "g1": {
+    "record_id": "mc-708412c17f249180b8892f4f3907bb9b",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/result_changes.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "e0c8b4af101f067af0eaeab135cd909a59a39c0c981eb8430f41d9eb41828b3a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/served_comparator.py",
+    "function": "_norm / adopted_outcome_matches",
+    "severity": "P0",
+    "claim": "Removing every digit-free trailing parenthetical merges clinically different endpoints. build_review_core consequently publishes the adopted estimate under the wrong outcome.",
+    "failing_input": "from harness.served_comparator import adopted_outcome_matches\nadopted_outcome_matches({'rule_primary_outcome': 'Myocardial infarction (fatal)'}, 'Myocardial infarction (nonfatal)')",
+    "expected": "False: fatal and nonfatal myocardial infarction are different endpoints.",
+    "actual": "True. Both normalize to 'myocardial infarction', allowing the pipeline to report the fatal-MI estimate and confidence interval as nonfatal MI.",
+    "id": "v8-apply-r4:g1#1",
+    "record_id": "mc-708412c17f249180b8892f4f3907bb9b",
+    "verdict": null
+   },
+   {
+    "file": "harness/result_changes.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "Lexicographic timestamp ordering can select an older set-aside over a newer signed exclusion. Valid UTC timestamps with fractional seconds demonstrate an improper reinstatement.",
+    "failing_input": "from harness.result_changes import reversed_setasides\np = {'slug': 'x', 'outcome': 'mortality', 'left_pool': ['TRIAL-1'], 'when_utc': '2026-10-07T09:00:00Z', 'reason': 'eligible evidence awaiting adjudication; the numbers are not asserted wrong', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nq = dict(p, when_utc='2026-10-07T09:00:00.500Z', reason='Excluded as ineligible after adjudication')\nn = {'slug': 'x', 'outcome': 'mortality', 'entered_pool': ['TRIAL-1'], 'when_utc': '2026-10-07T10:00:00Z', 'reason': 'REVERSES set-aside for TRIAL-1'}\nreversed_setasides(n, [p, q])",
+    "expected": "None: q is the latest earlier signed movement and excludes the trial as ineligible.",
+    "actual": "{'TRIAL-1': p}. The timestamp ending '00Z' sorts after '00.500Z', so the function incorrectly accepts the older set-aside as grounds for reinstatement.",
+    "id": "v8-apply-r4:g1#2",
+    "record_id": "mc-708412c17f249180b8892f4f3907bb9b",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r5": {
+  "base": "0be24501b",
+  "head": "16de26d9c",
+  "runs": {
+   "g1": {
+    "record_id": "mc-005609ef3b38306efcb6ea54657b8fac",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/result_changes.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "f7ce54e0695ce4aec1eb5d7b003bf6a7ad6541d01c00f53d086c67bef4788b07"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/result_changes.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "Conflicting notices with identical timestamps are resolved by list order. A set-aside can therefore authorize reinstatement despite an equally recent exclusion; ambiguous chronology should fail closed.",
+    "failing_input": "from harness.result_changes import reversed_setasides\np = {'slug': 's', 'outcome': 'mortality', 'when_utc': '2026-10-07T10:00:00Z', 'left_pool': ['T1'], 'entered_pool': [], 'reason': 'eligible evidence awaiting adjudication; the numbers are not asserted wrong', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nq = dict(p, reason='Excluded as ineligible: nonrandomized study.')\nn = {'slug': 's', 'outcome': 'mortality', 'when_utc': '2026-10-07T11:00:00Z', 'entered_pool': ['T1'], 'reason': 'REVERSES set-aside T1'}\nreversed_setasides(n, [p, q])\nreversed_setasides(n, [q, p])",
+    "expected": "Both calls return None because the latest movement cannot be unambiguously established.",
+    "actual": "The first call returns {'T1': p}; the second returns None. max() selects the first candidate when timestamps tie.",
+    "id": "v8-apply-r5:g1#1",
+    "record_id": "mc-005609ef3b38306efcb6ea54657b8fac",
+    "verdict": null
+   },
+   {
+    "file": "harness/result_changes.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "The qualifying reason is checked globally across a notice, rather than for the trial being reinstated. A set-aside explanation for one trial also qualifies another trial explicitly excluded as ineligible.",
+    "failing_input": "from harness.result_changes import reversed_setasides\np = {'slug': 's', 'outcome': 'mortality', 'when_utc': '2026-10-07T10:00:00Z', 'left_pool': ['T1', 'T2'], 'entered_pool': [], 'reason': 'T1: eligible evidence awaiting adjudication; the numbers are not asserted wrong. T2: excluded as ineligible because it is a nonrandomized study.', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nn = {'slug': 's', 'outcome': 'mortality', 'when_utc': '2026-10-07T11:00:00Z', 'entered_pool': ['T2'], 'reason': 'REVERSES set-aside T2'}\nreversed_setasides(n, [p])",
+    "expected": "None: T2 was excluded as ineligible, not set aside awaiting adjudication.",
+    "actual": "Returns {'T2': p}, authorizing the reinstatement using T1's reason.",
+    "id": "v8-apply-r5:g1#2",
+    "record_id": "mc-005609ef3b38306efcb6ea54657b8fac",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_comparator.py",
+    "function": "adopted_pooled",
+    "severity": "P2",
+    "claim": "An existing adoption record matching the configured comparator silently returns None when its retired comparator identity is missing. This treats a broken replacement record as absent and enables build_review_core's regex fallback.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import served_comparator as sc\na = {'comparator_pmid': '222', 'pooled_result': {'measure': 'RR', 'estimate': 0.8, 'ci_low': 0.7, 'ci_high': 0.9}}\nwith patch.object(sc.os.path, 'lexists', return_value=True), patch.object(sc.os.path, 'isfile', return_value=True), patch.object(sc, '_j', return_value=a):\n    result = sc.adopted_pooled('s', {'comparator_pmid': '222'}, root='fixture')\n    print(result)",
+    "expected": "Raise a validation error for the missing retired comparator identity, preventing extraction fallback.",
+    "actual": "Prints None: the 'not old' condition returns before validating the adoption or checking its signature.",
+    "id": "v8-apply-r5:g1#3",
+    "record_id": "mc-005609ef3b38306efcb6ea54657b8fac",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r6": {
+  "base": "0be24501b",
+  "head": "915b27167",
+  "runs": {
+   "g1": {
+    "record_id": "mc-606d68d3c401345d0b0f9eed20cf1ef6",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/result_changes.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "8c8281d6335ce58dc1c6495be152b30cced58fa88bffc8d080a202021796b511"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/result_changes.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "A set-aside statement about one trial authorizes reinstating another trial explicitly removed as observational. The checks search the entire prior reason without attributing the qualifying wording to the entering trial.",
+    "failing_input": "from harness.result_changes import reversed_setasides\np = {'slug': 'topic', 'outcome': 'mortality', 'when_utc': '2026-10-07T10:00:00Z', 'left_pool': ['TRIAL-A', 'TRIAL-B'], 'entered_pool': [], 'reason': 'TRIAL-A: eligible evidence awaiting adjudication; the numbers are not asserted wrong. TRIAL-B: excluded because this is an observational cohort.', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nn = {'slug': 'topic', 'outcome': 'mortality', 'when_utc': '2026-10-07T11:00:00Z', 'left_pool': [], 'entered_pool': ['TRIAL-B'], 'reason': 'REVERSES set-aside for TRIAL-B'}\nprint(reversed_setasides(n, [p, n]))",
+    "expected": "None: TRIAL-B was excluded as observational; only TRIAL-A was set aside awaiting adjudication.",
+    "actual": "Returns {'TRIAL-B': p}, authorizing the reinstatement classification.",
+    "id": "v8-apply-r6:g1#1",
+    "record_id": "mc-606d68d3c401345d0b0f9eed20cf1ef6",
+    "verdict": null
+   },
+   {
+    "file": "harness/result_changes.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "An already signed movement at the reinstatement's exact timestamp is silently ignored. Consequently, two reinstatements at the same instant can both claim to reverse the original set-aside, despite the unresolved ordering. The tie check covers only movements strictly earlier than the current notice.",
+    "failing_input": "from harness.result_changes import reversed_setasides\np = {'slug': 'topic', 'outcome': 'mortality', 'when_utc': '2026-10-07T10:00:00Z', 'left_pool': ['TRIAL-A'], 'entered_pool': [], 'reason': 'TRIAL-A: eligible evidence awaiting adjudication; the numbers are not asserted wrong.', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nq = {'slug': 'topic', 'outcome': 'mortality', 'when_utc': '2026-10-07T11:00:00Z', 'left_pool': [], 'entered_pool': ['TRIAL-A'], 'reason': 'REVERSES set-aside for TRIAL-A', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nn = dict(q, reason='Adjudication REVERSES set-aside for TRIAL-A')\nprint(reversed_setasides(n, [p, q, n]))",
+    "expected": "None: another signed reinstatement exists at the same instant, so the function cannot establish that the set-aside is still the applicable preceding movement.",
+    "actual": "Returns {'TRIAL-A': p}; q is discarded by the strict timestamp comparison before ambiguity is checked.",
+    "id": "v8-apply-r6:g1#2",
+    "record_id": "mc-606d68d3c401345d0b0f9eed20cf1ef6",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r7": {
+  "base": "0be24501b",
+  "head": "f4cb7959e",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1e72d2767c72bd998e98859ce6ba0f51",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/result_changes.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "499c210bd5c94e6df54bde13d8b102c0ebd4761fea65c1757b915e65b1f62be4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/result_changes.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "The reason check accepts an explicit denial of reinstating the entering trial. It checks only that REVERSES, set-aside, and the trial identifier appear somewhere, allowing another trial's reversal to justify this trial.",
+    "failing_input": "from harness.result_changes import reversed_setasides\np = {'slug': 'review', 'outcome': 'mortality', 'when_utc': '2026-10-07T09:00:00Z', 'left_pool': ['TRIAL-1'], 'entered_pool': [], 'reason': 'eligible evidence awaiting adjudication; the numbers are not asserted wrong', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nn = {'slug': 'review', 'outcome': 'mortality', 'when_utc': '2026-10-07T10:00:00Z', 'left_pool': [], 'entered_pool': ['TRIAL-1'], 'reason': 'REVERSES the set-aside for TRIAL-10; does not reverse the set-aside for TRIAL-1.'}\nreversed_setasides(n, [p])",
+    "expected": "None: the reason explicitly denies reversing TRIAL-1's set-aside.",
+    "actual": "{'TRIAL-1': p}: TRIAL-1 is accepted as a reinstatement.",
+    "id": "v8-apply-r7:g1#1",
+    "record_id": "mc-1e72d2767c72bd998e98859ce6ba0f51",
+    "verdict": null
+   },
+   {
+    "file": "harness/result_changes.py",
+    "function": "reversed_setasides",
+    "severity": "P2",
+    "claim": "Excluding the current notice by object identity makes classification depend on whether the caller passes the original dictionary or an equivalent copy. A copied notice causes its stored counterpart to be mistaken for a conflicting simultaneous movement.",
+    "failing_input": "from harness.result_changes import reversed_setasides\np = {'slug': 'review', 'outcome': 'mortality', 'when_utc': '2026-10-07T09:00:00Z', 'left_pool': ['TRIAL-1'], 'entered_pool': [], 'reason': 'eligible evidence awaiting adjudication; the numbers are not asserted wrong', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nn = {'slug': 'review', 'outcome': 'mortality', 'when_utc': '2026-10-07T10:00:00Z', 'left_pool': [], 'entered_pool': ['TRIAL-1'], 'reason': 'REVERSES the set-aside for TRIAL-1.', 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}}\nnotices = [p, n]\n(reversed_setasides(n, notices), reversed_setasides(dict(n), notices))",
+    "expected": "Both calls return {'TRIAL-1': p}; they describe the same notice and history.",
+    "actual": "The original dictionary returns {'TRIAL-1': p}; the equivalent copy returns None.",
+    "id": "v8-apply-r7:g1#2",
+    "record_id": "mc-1e72d2767c72bd998e98859ce6ba0f51",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r8": {
+  "base": "0be24501b",
+  "head": "10e735f80",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ece5f1f579376d87606fb2805a9bb5fc",
+    "state": "RAN_OK",
+    "files": [
+     "harness/notice_kinds.py",
+     "harness/pipeline.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "25b0f356cfbeb5054d56fa74d08f90d64bf7511df48996dc9ccd249995ae00c6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/served_comparator.py",
+    "function": "adopted_pooled",
+    "severity": "P0",
+    "claim": "Once switch_signed returns True, pooled values are returned without checking that they occur in the quoted span. The new pipeline branch copies these values directly into reported results, so a contradictory adoption value reaches the result.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import served_comparator as m\n\na = {'comparator_pmid': '2', 'retired': {'comparator_pmid': '1'}, 'pooled_result': {'measure': 'RR', 'estimate': 99, 'ci_low': 0.7, 'ci_high': 0.9, 'outcome': 'All-cause mortality', 'spans': {'result': 'All-cause mortality: RR 0.8 (95% CI 0.7–0.9).'}}}\nrule = {'protocol_reference': {'primary_outcome': 'All-cause mortality'}}\nwith patch.object(m.os.path, 'lexists', return_value=True), patch.object(m.os.path, 'isfile', return_value=True), patch.object(m, '_j', side_effect=[a, rule]), patch.object(m, 'switch_signed', return_value=True):\n    result = m.adopted_pooled('demo', {'comparator_pmid': '2'})\n    print(result['estimate'], m.adopted_outcome_matches(result, 'All-cause mortality'))",
+    "expected": "Reject the contradictory pooled_result; 99 must not become the reported mortality estimate.",
+    "actual": "Prints '99 True'. The returned estimate contradicts the returned span, and the pipeline's new adopted branch publishes that estimate.",
+    "id": "v8-apply-r8:g1#1",
+    "record_id": "mc-ece5f1f579376d87606fb2805a9bb5fc",
+    "verdict": null
+   },
+   {
+    "file": "harness/notice_kinds.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "The eligibility substring also matches 'ineligible evidence awaiting adjudication', classifying an explicitly ineligible exclusion as a reversible eligible-evidence set-aside.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import notice_kinds as m\n\np = {'slug': 'demo', 'outcome': 'mortality', 'when_utc': '2026-10-06T00:00:00Z', 'left_pool': ['T1'], 'entered_pool': [], 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}, 'reason': 'ineligible evidence awaiting adjudication; the numbers are not asserted wrong'}\nn = {'slug': 'demo', 'outcome': 'mortality', 'when_utc': '2026-10-07T00:00:00Z', 'left_pool': [], 'entered_pool': ['T1']}\n# Model an applied, signed predecessor.\nwith patch.object(m, 'not_applied', return_value=False):\n    result = m.reversed_setasides(n, [p, n], declared={'T1': p['when_utc']})\n    print(result == {'T1': p})",
+    "expected": "Return None because the predecessor explicitly describes ineligible evidence.",
+    "actual": "Returns {'T1': p}; the example prints True because 'eligible evidence awaiting adjudication' is a substring of 'ineligible evidence awaiting adjudication'.",
+    "id": "v8-apply-r8:g1#2",
+    "record_id": "mc-ece5f1f579376d87606fb2805a9bb5fc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/acquire_comparator_record.py",
+    "function": "acquire",
+    "severity": "P2",
+    "claim": "The ALREADY_HELD shortcut accepts a nonempty comparator_record with no id. The new build guard rejects that same cache and directs users to this acquisition script, which then skips the repair.",
+    "failing_input": "import io\nimport json\nfrom unittest.mock import patch\nfrom scripts import acquire_comparator_record as m\nfrom harness import fetch, http, served_comparator as sc\nfrom harness.pipeline import comparator_records_problem\n\ncfg = {'comparator_pmid': '2'}\nd = {'comparator_pmid': '2', 'comparator_record': {'title': 'Incomplete cached record'}, 'records': []}\nwith patch.object(sc, 'served_config', return_value=cfg), patch('builtins.open', side_effect=[io.StringIO(json.dumps(cfg)), io.StringIO(json.dumps(d))]):\n    print(m.acquire('demo'))\nprint(comparator_records_problem(cfg, d, {}))",
+    "expected": "Fetch a comparator record whose id is '2', or explicitly reject the malformed cache; do not report ALREADY_HELD.",
+    "actual": "Returns {'slug': 'demo', 'state': 'ALREADY_HELD', 'pmid': '2'} without fetching. The build guard returns 'COMPARATOR RECORDS STALE (build refused): configured comparator PMID 2: no PubMed record of the comparator is held -- run scripts/acquire_comparator_record.py'.",
+    "id": "v8-apply-r8:g1#3",
+    "record_id": "mc-ece5f1f579376d87606fb2805a9bb5fc",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r9": {
+  "base": "0be24501b",
+  "head": "123767be3",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6fd3b51ad45092c26c73465a3cc3a0bd",
+    "state": "RAN_OK",
+    "files": [
+     "harness/notice_kinds.py",
+     "harness/pipeline.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "b026db4f13822230b8292554eb96ba22cdbf93919db0540d740940059435ed01"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/served_comparator.py",
+    "function": "adopted_pooled",
+    "severity": "P0",
+    "claim": "The span check validates unordered number membership, not which number is the estimate or each CI bound. Swapping the estimate and lower bound passes and supplies the wrong estimate to build_review_core.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import served_comparator as sc\nfrom harness import verify\n\na = {'comparator_pmid': '222', 'retired': {'comparator_pmid': '111'}, 'pooled_result': {'measure': 'RR', 'estimate': 0.7, 'ci_low': 0.8, 'ci_high': 0.9, 'spans': {'result': 'All-cause mortality: RR 0.8 (95% CI 0.7 to 0.9).'}}}\nr = {'protocol_reference': {'primary_outcome': 'All-cause mortality'}}\nwith patch.object(sc.os.path, 'lexists', return_value=True), patch.object(sc.os.path, 'isfile', return_value=True), patch.object(sc, '_j', side_effect=[a, r]), patch.object(sc, 'switch_signed', return_value=True):\n    result = sc.adopted_pooled('demo', {'comparator_pmid': '222'}, root='.')\n    print(result['estimate'], result['ci_low'], result['ci_high'])",
+    "expected": "Raise ValueError: the record contradicts the span, which reports estimate 0.8 and lower bound 0.7.",
+    "actual": "Prints 0.7 0.8 0.9. All three number-membership checks still pass after the swap.",
+    "id": "v8-apply-r9:g1#1",
+    "record_id": "mc-6fd3b51ad45092c26c73465a3cc3a0bd",
+    "verdict": null
+   },
+   {
+    "file": "harness/notice_kinds.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "The eligibility predicate accepts an explicitly negated eligibility statement. Checking for the word 'ineligible' does not reject 'not eligible'.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import notice_kinds as nk\n\np = {'slug': 'demo', 'outcome': 'mortality', 'when_utc': '2026-10-01T00:00:00Z', 'left_pool': ['T1'], 'entered_pool': [], 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}, 'reason': 'This is not eligible evidence awaiting adjudication; the numbers are not asserted wrong.'}\nn = {'slug': 'demo', 'outcome': 'mortality', 'when_utc': '2026-10-02T00:00:00Z', 'left_pool': [], 'entered_pool': ['T1']}\n# Isolate the eligibility predicate with an applied prior movement.\nwith patch.object(nk, 'not_applied', return_value=False):\n    print(nk.reversed_setasides(n, [p, n], declared={'T1': p['when_utc']}) == {'T1': p})",
+    "expected": "False: reversed_setasides should return None because the prior notice expressly denies the required eligibility claim.",
+    "actual": "True: returns {'T1': p}, classifying the movement as a qualifying reinstatement.",
+    "id": "v8-apply-r9:g1#2",
+    "record_id": "mc-6fd3b51ad45092c26c73465a3cc3a0bd",
+    "verdict": null
+   },
+   {
+    "file": "harness/notice_kinds.py",
+    "function": "_declared",
+    "severity": "P2",
+    "claim": "A dangling declaration-register symlink silently becomes an absent register because os.path.exists follows the broken link. This hides a broken evidence source as an empty declaration set.",
+    "failing_input": "import os\nimport tempfile\nfrom pathlib import Path\nfrom harness.notice_kinds import _declared\n\nwith tempfile.TemporaryDirectory() as tmp:\n    root = Path(tmp)\n    (root / 'registry').mkdir()\n    os.symlink(root / 'missing.json', root / 'registry' / 'result_change_reinstatements.json')\n    print(_declared({'slug': 'demo', 'outcome': 'mortality', 'when_utc': '2026-10-02T00:00:00Z'}, root=tmp))",
+    "expected": "Raise an error identifying the existing but unreadable declaration register.",
+    "actual": "Returns {}. The caller consequently treats declarations as absent rather than reporting the broken register.",
+    "id": "v8-apply-r9:g1#3",
+    "record_id": "mc-6fd3b51ad45092c26c73465a3cc3a0bd",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r10": {
+  "base": "0be24501b",
+  "head": "21db912ea",
+  "runs": {
+   "g1": {
+    "record_id": "mc-49cfba5387b3653820b162c95e14f106",
+    "state": "RAN_OK",
+    "files": [
+     "harness/notice_kinds.py",
+     "harness/pipeline.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "4a4c0955baa3de5f7146f422b738afc633044bd23021575b4d53058349d597c5"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/served_comparator.py",
+    "function": "_pos / _span_states",
+    "severity": "P0",
+    "claim": "The verbatim-number gate accepts rounded substitutes for the stored numbers. adopted_pooled then returns the unrounded values, although those values never appeared in the quoted text.",
+    "failing_input": "_span_states('OR 0.88 (95% CI 0.80-0.95)', 0.876, 0.801, 0.954)",
+    "expected": "False: the text does not state estimate 0.876 or bounds 0.801 and 0.954.",
+    "actual": "True: _pos generates rounded forms 0.88, 0.80 and 0.95 and accepts them.",
+    "id": "v8-apply-r10:g1#1",
+    "record_id": "mc-49cfba5387b3653820b162c95e14f106",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_comparator.py",
+    "function": "_span_states",
+    "severity": "P0",
+    "claim": "Searching from one character after a match's start destroys token boundaries and lets the decimal portion of the estimate serve as the lower confidence bound.",
+    "failing_input": "_span_states('RR 1.2 (95% CI 1.1-1.4)', 1.2, 0.2, 1.4)",
+    "expected": "False: the stated lower bound is 1.1, not 0.2.",
+    "actual": "True: slicing after the '1' in '1.2' exposes '.2' as a standalone match for 0.2, so the incorrect bound passes the adoption gate.",
+    "id": "v8-apply-r10:g1#2",
+    "record_id": "mc-49cfba5387b3653820b162c95e14f106",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_comparator.py",
+    "function": "_span_states",
+    "severity": "P0",
+    "claim": "The gate checks number order without requiring the estimate and bounds to belong to the same result. It accepts an estimate from one drug combined with another drug's confidence interval.",
+    "failing_input": "_span_states('Drug A: OR 0.88 (95% CI 0.80-0.96); Drug B: OR 1.05 (95% CI 0.75-1.15)', 0.88, 0.75, 1.15)",
+    "expected": "False: neither reported result is OR 0.88 with CI 0.75-1.15.",
+    "actual": "True: the estimate is found under Drug A and both bounds under Drug B, allowing the fabricated combination through adopted_pooled.",
+    "id": "v8-apply-r10:g1#3",
+    "record_id": "mc-49cfba5387b3653820b162c95e14f106",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r11": {
+  "base": "0be24501b",
+  "head": "b8afe75e7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fbcf51d3456edbc7ec25139dd7b83db0",
+    "state": "RAN_OK",
+    "files": [
+     "harness/notice_kinds.py",
+     "harness/pipeline.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "1977b404af533dfa73ef9f8c2ee141069a6bbf00a60cb8becb5bc203a8c4068c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/served_comparator.py",
+    "function": "_span_states",
+    "severity": "P0",
+    "claim": "Consecutive numeric tokens from three different outcomes pass as one estimate and confidence interval. adopted_pooled can consequently publish bounds that the quoted text never states.",
+    "failing_input": "_span_states('Mortality RR 0.80; hospitalization RR 0.70; stroke RR 0.90', 0.80, 0.70, 0.90)",
+    "expected": "False: the text states three point estimates and no confidence interval.",
+    "actual": "True: tokens [0.8, 0.7, 0.9] satisfy the gate.",
+    "id": "v8-apply-r11:g1#1",
+    "record_id": "mc-fbcf51d3456edbc7ec25139dd7b83db0",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_comparator.py",
+    "function": "_tokens / _span_states",
+    "severity": "P0",
+    "claim": "Scientific notation is split into mantissas and unsigned exponent fragments, allowing an entirely different result to pass the numeric gate.",
+    "failing_input": "_span_states('HR 1e-3 (95% CI 1e-4 to 1e-2)', 3, 1, 4)",
+    "expected": "False: the stated result is 0.001 with interval [0.0001, 0.01], not 3 with interval [1, 4].",
+    "actual": "True: _tokens returns [1.0, 3.0, 1.0, 4.0, 1.0, 2.0], containing the accepted triple [3.0, 1.0, 4.0].",
+    "id": "v8-apply-r11:g1#2",
+    "record_id": "mc-fbcf51d3456edbc7ec25139dd7b83db0",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_comparator.py",
+    "function": "_tokens / _span_states",
+    "severity": "P2",
+    "claim": "A sentence-ending period causes a valid upper confidence bound to disappear, so an otherwise valid signed adoption fails its numeric gate.",
+    "failing_input": "_span_states('RR 0.80, 95% CI 0.70 to 0.90.', 0.80, 0.70, 0.90)",
+    "expected": "True: the exact estimate and interval are stated.",
+    "actual": "False: _tokens returns [0.8, 0.7]; the trailing period prevents 0.90 from matching.",
+    "id": "v8-apply-r11:g1#3",
+    "record_id": "mc-fbcf51d3456edbc7ec25139dd7b83db0",
+    "verdict": null
+   },
+   {
+    "file": "harness/notice_kinds.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "The eligibility check accepts an explicitly negated eligibility claim when an adverb separates 'not' and 'eligible', incorrectly classifying the later entry as a reinstatement.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.notice_kinds import reversed_setasides\np = {'slug': 's', 'outcome': 'mortality', 'when_utc': '2026-10-06T00:00:00Z', 'left_pool': ['T1'], 'entered_pool': [], 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}, 'reason': 'not currently eligible evidence awaiting adjudication; the numbers are not asserted wrong'}\nn = {'slug': 's', 'outcome': 'mortality', 'when_utc': '2026-10-07T00:00:00Z', 'left_pool': [], 'entered_pool': ['T1']}\n# Isolate an applied predecessor from the external application-status predicate.\nwith patch('harness.notice_kinds.not_applied', return_value=False):\n    result = reversed_setasides(n, [p], declared={'T1': p['when_utc']})",
+    "expected": "None: the predecessor explicitly says the evidence is not currently eligible.",
+    "actual": "{'T1': p}: the positive substring matches, while the negation expression misses 'not currently eligible'.",
+    "id": "v8-apply-r11:g1#4",
+    "record_id": "mc-fbcf51d3456edbc7ec25139dd7b83db0",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-apply-r12": {
+  "base": "0be24501b",
+  "head": "bd11c69e8",
+  "runs": {
+   "g1": {
+    "record_id": "mc-17b38d01ae3f9417cab19a513e8f6d9e",
+    "state": "RAN_OK",
+    "files": [
+     "harness/notice_kinds.py",
+     "harness/pipeline.py",
+     "harness/served_comparator.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/countersign_result_change.py",
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "d0e9b193a435be69856e4454c4b11537e15155758ab3dcbd05e5d398b209deb3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/served_comparator.py",
+    "function": "_span_states",
+    "severity": "P0",
+    "claim": "The validator combines an estimate from one outcome with another outcome's confidence limits. It allows arbitrary intervening text and sentence boundaries, so adopted_pooled can return bounds that the span explicitly does not report for the estimate.",
+    "failing_input": "from harness.served_comparator import _span_states\n_span_states('Mortality RR 0.80 (CI unavailable). Hospitalization CI 0.70-0.90.', 0.80, 0.70, 0.90)",
+    "expected": "False: the mortality confidence interval is unavailable; 0.70–0.90 belongs to hospitalization.",
+    "actual": "True: the triple passes the validation used by adopted_pooled.",
+    "id": "v8-apply-r12:g1#1",
+    "record_id": "mc-17b38d01ae3f9417cab19a513e8f6d9e",
+    "verdict": null
+   },
+   {
+    "file": "harness/served_comparator.py",
+    "function": "_tokens / _span_states",
+    "severity": "P2",
+    "claim": "Whitespace before a percent sign makes a confidence level count as an additional numeric token, rejecting an otherwise valid quoted result.",
+    "failing_input": "from harness.served_comparator import _span_states\n_span_states('RR 0.80 (95 % CI 0.70-0.90)', 0.80, 0.70, 0.90)",
+    "expected": "True: 95 % is the confidence level, and the stated estimate and bounds match.",
+    "actual": "False: tokens are 0.80, 95, 0.70, 0.90, so the requested triple is not consecutive. adopted_pooled consequently raises ValueError for this valid span.",
+    "id": "v8-apply-r12:g1#2",
+    "record_id": "mc-17b38d01ae3f9417cab19a513e8f6d9e",
+    "verdict": null
+   },
+   {
+    "file": "harness/notice_kinds.py",
+    "function": "reversed_setasides",
+    "severity": "P1",
+    "claim": "The 'asserted wrong' veto is case-sensitive. A notice explicitly asserting that denominators are wrong still qualifies as a set-aside asserting nothing wrong.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.notice_kinds import reversed_setasides\np = {'slug': 'topic', 'outcome': 'mortality', 'when_utc': '2026-10-06T00:00:00Z', 'left_pool': ['T1'], 'entered_pool': [], 'reviewer_countersignature': {'state': 'SEEN_AND_SIGNED'}, 'reason': 'eligible evidence awaiting adjudication; the numbers are not asserted wrong; the denominators are ASSERTED WRONG.'}\nn = {'slug': 'topic', 'outcome': 'mortality', 'when_utc': '2026-10-07T00:00:00Z', 'left_pool': [], 'entered_pool': ['T1']}\n# Supply an applied prior notice without relying on external application-state fixtures.\nwith patch('harness.notice_kinds.not_applied', return_value=False):\n    result = reversed_setasides(n, [p, n], declared={'T1': p['when_utc']})\nprint(result)",
+    "expected": "None: the prior notice explicitly asserts wrong denominators and therefore fails the documented set-aside criterion.",
+    "actual": "{'T1': p}: the prior notice qualifies despite its explicit assertion.",
+    "id": "v8-apply-r12:g1#3",
+    "record_id": "mc-17b38d01ae3f9417cab19a513e8f6d9e",
+    "verdict": null
+   }
+  ]
+ },
+ "v8-final-range": {
+  "base": "bd11c69e8",
+  "head": "866e6c810",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d80efcf71534622cf085a58213550508",
+    "state": "RAN_OK",
+    "files": [
+     "harness/certificate.py",
+     "harness/fetch.py",
+     "harness/notice_kinds.py",
+     "harness/pipeline.py",
+     "harness/rob2.py",
+     "scripts/acquire_comparator_record.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/cross_source_endpoint_sweep.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/k_gap_counterfactual.py",
+     "scripts/second_source_sweep.py",
+     "scripts/trial_family_sweep.py"
+    ],
+    "prompt_sha256": "e4f7bfabb845cdd300f425f66b20605b3b0c5eca1754e47d0fe63e43383f5896"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }
