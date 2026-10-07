@@ -354,7 +354,10 @@ def printed_counts(q):
             return False
         if pt[-1] in number_words or pt[-1] in ("phase", "point"):
             return True
-        return pt[-1] == "and" and len(pt) == 2 and pt[0] in number_words
+        # 'and' / 'to' / 'or' right after a number joins a larger number or a RANGE ('one hundred and twenty', 'two to five
+        # trials', '3 or 4 studies'; codex swap-setquote-r8 #2): the end of a range is never an exact count
+        return (pt[-1] in ("and", "to", "or") and len(pt) == 2
+                and (pt[0] in number_words or bool(re.fullmatch(r"\d+", pt[0]))))
 
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
     for m in re.finditer(r"(?<![\w.,/-])(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
@@ -366,6 +369,14 @@ def printed_counts(q):
         if not blocked_before(m.start(1)):
             out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
     return out
+
+
+def mentions_a_count(q):
+    """Any number -- digits or a number word, tens and compounds included -- within a few words before trials / studies /
+    RCTs. Broader than printed_counts on purpose: it decides only whether the pooled quote speaks to k at all."""
+    words = "|".join(_COUNT_WORDS + ["thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred"])
+    return bool(re.search(r"(?:\d+|\b(?:" + words + r"))\b[\w\s/,()-]{0,40}?\b(?:trials|studies|rcts)\b",
+                          " ".join(str(q or "").split()), re.I))
 
 
 def pooled_gate(pl, nt, set_quote=None):
@@ -392,7 +403,10 @@ def pooled_gate(pl, nt, set_quote=None):
         # ... or, ONLY when the pooled quote prints no count, in the meta's own SET QUOTE verbatim in the held text (doac
         # 29795629: 'In the five Phase 3 studies ...'). The pooled result's own count always wins: a review-wide count
         # never overrides it (codex swap-setquote-r7 #1); a set quote not in the text is never read
-        if not printed and set_quote and _quoted(set_quote, nt):
+        # The fallback is closed whenever the pooled quote MENTIONS a count at all, parsed or not ('twenty-five trials
+        # contributed' is a count this reader refuses; a review-wide 'included 40 trials' must not stand in for it --
+        # codex swap-setquote-r8 #1)
+        if not printed and set_quote and _quoted(set_quote, nt) and not mentions_a_count(q):
             printed = printed_counts(set_quote)
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer

@@ -192,3 +192,15 @@ def test_PLANT_the_pooled_quotes_own_count_wins_and_slash_ranges_are_never_count
     assert sw.pooled_gate(dict(pl, k=3), nt, set_quote=sq)[1] == 3
     assert sw.printed_counts("Phase one/two studies") == set()
     assert sw.printed_counts("Phase 1/2 studies") == set()
+
+
+def test_PLANT_an_unparsed_pooled_count_closes_the_fallback_and_range_ends_are_not_counts():
+    """codex swap-setquote-r8 #1 ('twenty-five trials' then a review-wide 40) and #2 ('two to five trials')."""
+    q = "twenty-five trials contributed to the pooled mortality estimate: RR 0.80 (95% CI 0.70 to 0.90)."
+    sq = "the review included 40 trials."
+    nt = sw._norm(q + " " + sq)
+    pl = {"measure": "RR", "estimate": "0.80", "lower": "0.70", "upper": "0.90", "k": 40, "quote": q}
+    assert sw.pooled_gate(pl, nt, set_quote=sq)[0] is None
+    assert sw.printed_counts("Mortality was reported in two to five trials per comparison.") == set()
+    assert sw.printed_counts("in 3 or 4 studies") == set()
+    assert sw.printed_counts("We included observational cohorts and 5 randomized trials.") == {5}
