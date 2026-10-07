@@ -1,0 +1,35 @@
+{
+ "rule_id": "D10-MULTI-OUTCOME-PROPOSAL-v1",
+ "decision": "Mahmood D10 (relayed 2026-10-07): multi-outcome. For the 12 active topics, propose secondary outcomes the comparator meta also reports -- all-cause mortality, key harms, and the comparator's prespecified secondaries; register each as a dated protocol amendment BEFORE extraction; extract from open sources only (Unpaywall/PMC, AACT, FDA, EMA, NICE), regex first, recorded codex otherwise; compare each new outcome against the comparator's printed result as for the primary. New served outcomes go to the captain as notices for Mahmood's signature.",
+ "committed_before": "any comparator outcome inventory, any proposal, and any extraction for these outcomes",
+ "topics": ["iv-iron-hfref-hosp", "corticosteroids-covid19-mortality", "sacubitril-valsartan-hfref", "semaglutide-obesity-mace",
+            "statins-primary-prevention-elderly", "colchicine-recurrent-pericarditis", "doac-vte-recurrence",
+            "melatonin-primary-insomnia-sol", "sglt2-ckd-progression", "sglt2-primary-prevention-hf", "tranexamic-acid-pph",
+            "denosumab-vertebral-fracture"],
+ "comparator": "the topic's CURRENT comparator (topics/<slug>.json comparator_pmid at the commit of this rule)",
+ "inventory": {
+  "what": "every outcome for which the comparator PRINTS a pooled result (point estimate with a two-sided interval, on a ratio or mean-difference scale) in its own held text or own supplement, plus the outcomes its methods name as prespecified secondary outcomes",
+  "how": ["R1 regex over the held comparator text (local; any licence: typed reading only, spans kept as short excerpts)",
+          "R2 one recorded codex call per comparator, given its CC BY / CC0 full text, or only its title + abstract when the copy is not CC BY / CC0 (lane licence rule); every claimed outcome must carry a quote verbatim in the text it was given, and every number must be a whole token of that quote"],
+  "merge": "an outcome counts as printed only with a verbatim span (R1) or a gated quote (R2)"
+ },
+ "proposal": {
+  "families_in_order": [
+   {"id": "P1_ALL_CAUSE_MORTALITY", "propose_if": "the comparator prints a pooled all-cause mortality result (death from any cause / all-cause death / total mortality) and it is not our primary outcome"},
+   {"id": "P2_KEY_HARMS", "propose_if": "the comparator prints a pooled result for a harm (serious adverse events, adverse events leading to discontinuation, or a named drug-specific harm); one outcome per distinct harm"},
+   {"id": "P3_PRESPECIFIED_SECONDARIES", "propose_if": "the comparator's methods name it as a prespecified secondary outcome AND the comparator prints a pooled result for it"}],
+  "not_new": "an outcome equal to our primary is never proposed; one already declared in topics/<slug>.json (secondary_outcomes / harm_outcomes) is LINKED to the comparator's printed result (compared, not re-registered)",
+  "cap": "at most 5 new outcomes per topic, taken in family order P1, P2, P3 and, within a family, in the comparator's own order of reporting",
+  "outcome_spec": {
+   "name": "the comparator's own wording, shortened only by removing the estimate",
+   "estimand": "the comparator's printed measure family for that outcome (HR / RR / OR -> the same ratio; MD / SMD as printed); never chosen by looking at trial data",
+   "keywords": "the comparator's own outcome phrase plus, for P1 only, the fixed synonym list below; never tuned on trial texts",
+   "timepoint": "as the comparator prints it, else 'trial-reported follow-up'",
+   "kind": "P1 and P3 -> secondary efficacy outcome; P2 -> harm outcome"
+  },
+  "P1_synonyms": ["all-cause mortality", "all-cause death", "death from any cause", "deaths from any cause", "any-cause death", "any-cause mortality", "total mortality", "overall mortality"]
+ },
+ "registration": "per topic: a dated section '## Amendment 2026-10-07 (D10 multi-outcome)' in protocols/<slug>.md naming each new outcome with its spec and the comparator span it rests on, plus the same specs appended to topics/<slug>.json; committed and pushed BEFORE any extraction for them. Retrospective disclosure: the topics' trial pools were built before D10.",
+ "extraction": "the served ladder unchanged (harness.pipeline._build_outcome: abstract, CT.gov results, held open full texts, verified inputs), run in memory -- docs/reviews is never written by this lane; then, for trials the ladder leaves without a value, recorded codex over open sources only (CC BY / CC0 full text, abstract, AACT, FDA, EMA with acknowledgement, NICE OGL/CC), every value gated on a verbatim quote",
+ "comparison": "each new outcome's pooled result vs the comparator's printed pooled result for the same outcome, on the comparator's measure; a measure difference is reported, never converted; anti-circularity: the comparator's numbers are never our values"
+}
