@@ -520,3 +520,11 @@ def test_PLANT_r28_a_different_trial_fraction_k_and_dash_bounds_refuse():
                             [0.85]) == set()
     assert sw.printed_counts("Mortality RR 0.85 (k = 5/6).") == set()
     assert sw.printed_counts("Five trials\u2014at least\u2014reported mortality (RR 0.85).") == set()
+
+
+def test_PLANT_r29_exponents_and_distant_approximators_refuse():
+    """codex swap-setquote-r29: #2 '1e+5 trials'; #3 'Roughly speaking, five trials'. (#1, a count in a 'but' clause of
+    the same sentence, is the disclosed residual: doac 29795629's own sentence has that shape.)"""
+    assert sw.printed_counts("1e+5 trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).") == set()
+    assert sw.printed_counts("Roughly speaking, five trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).") == set()
+    assert sw.printed_counts("In the five trials, mortality RR was 0.85 (95% CI 0.70 to 1.03).") == {5}

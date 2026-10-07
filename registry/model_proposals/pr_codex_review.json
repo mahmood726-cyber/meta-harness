@@ -2969,5 +2969,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r29": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d9fa1abb4df1351d7070be99dcee1e7c",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "a456a3453cdac59d09d18539be823e9c2a67c84e3cb17786445408facbbfb51f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate / _bound_counts",
+    "severity": "P0",
+    "claim": "The count-binding check separates clauses only at semicolons, allowing a recurrence count to become the mortality k despite an explicitly different mortality count.",
+    "failing_input": "q = 'Two trials reported mortality. Five trials reported recurrence, but mortality RR 0.85 (95% CI from 0.70 to 1.03).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the stated mortality k=5 contradicts the held text's two mortality trials.",
+    "actual": "(pl, 5). The result-bearing sentence passes every restriction, and _bound_counts associates its recurrence count with mortality.",
+    "id": "swap-setquote-r29:g1#1",
+    "record_id": "mc-d9fa1abb4df1351d7070be99dcee1e7c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / _counts_in",
+    "severity": "P0",
+    "claim": "Both numeric regexes can restart after the plus sign in scientific notation and extract the exponent as an exact trial count.",
+    "failing_input": "printed_counts('1e+5 trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).')",
+    "expected": "set(): unsupported scientific notation must be refused, or correctly interpreted as 100000; it must never yield 5.",
+    "actual": "{5}. _numerals counts the exponent as the sole numeral, and _counts_in matches '5 trials'. This count is eligible for acceptance as pooled k=5.",
+    "id": "swap-setquote-r29:g1#2",
+    "record_id": "mc-d9fa1abb4df1351d7070be99dcee1e7c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / _counts_in.blocked_before",
+    "severity": "P0",
+    "claim": "An intervening word hides an explicit approximator, allowing an approximate trial count to supply an exact pooled k.",
+    "failing_input": "printed_counts('Roughly speaking, five trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).')",
+    "expected": "set(): 'Roughly speaking' makes five approximate rather than an exact contributing count.",
+    "actual": "{5}. blocked_before examines 'speaking,' and returns False before considering the earlier 'roughly'; the result-bearing sentence can therefore validate pooled k=5.",
+    "id": "swap-setquote-r29:g1#3",
+    "record_id": "mc-d9fa1abb4df1351d7070be99dcee1e7c",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -418,7 +418,8 @@ def _numerals(sent):
     sent = re.sub(r"\[\s*\d+(?:\s*[-,]\s*\d+)*\s*\]", " ", sent)
     sent = re.sub(r"\b(?:I|chi|tau|χ|τ)\s*(?:\^\s*)?2\b", " ", sent, flags=re.I)
     # scientific notation is one number, not an integer prefix ('5e1'; codex swap-setquote-r24 #3)
-    for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?![eE][+-]?\d)(?!\s*%)", sent):
+    # ... and never the exponent of one ('1e+5'; codex swap-setquote-r29 #2): a digit after '+' is not a count
+    for m in re.finditer(r"(?<![\w.,/+])\d+(?:,\d{3})*(?![.,]?\d)(?![eE][+-]?\d)(?!\s*%)", sent):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1
     words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both", "zero", "none", "nil"]
@@ -483,8 +484,9 @@ def _counts_in(s):
             return True
         # ... nor does an article or determiner between them ('At least the five trials'; codex swap-setquote-r27 #3)
         p3 = [t.lstrip("([{\"'‘“").rstrip(":;,.!?)]}\"'’”") for t in prev_tokens(i, 3)]
-        if (len(p3) >= 2 and p3[-1] in ("the", "these", "those", "all", "its", "their", "a", "an", "our", "such")
-                and p3[-2] in _APPROX):
+        # ... nor any word: an approximator anywhere in the three tokens before the count qualifies it ('Roughly
+        # speaking, five trials'; codex swap-setquote-r29 #3)
+        if any(t in _APPROX for t in p3):
             return True
         if not pt or not re.fullmatch(r"[a-z]+", pt[-1]):
             return False
@@ -528,7 +530,7 @@ def _counts_in(s):
             out.add(int(m.group(1)))
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
     # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
-    for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?!\d)(?![.,]\d)(?![eE][+-]?\d)(?!/)" + tail, s, re.I):
+    for m in re.finditer(r"(?<![\w.,/~<>≤≥+-])(?<![~<>≤≥] )(\d+)(?!\d)(?![.,]\d)(?![eE][+-]?\d)(?!/)" + tail, s, re.I):
         if not blocked_before(m.start(1)) and not bound_after(m.end()):
             out.add(int(m.group(1)))
     # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
