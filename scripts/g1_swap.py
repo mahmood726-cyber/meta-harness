@@ -156,11 +156,23 @@ def europepmc_ids(get_raw, query, cap=PAGE_CAP):
     """Every Europe PMC hit's PMID, paged by cursorMark to its own hitCount. Hits without a PMID are counted, not kept."""
     pmids, shas, hits, seen, cur = [], [], None, 0, "*"
     while True:
-        st, b = get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-                        {"query": query, "format": "json", "pageSize": "1000", "resultType": "lite", "cursorMark": cur})
-        r = json.loads(b.decode("utf-8"), strict=False)
+        # an error reply is never a search result: a non-200 status or a body with no hitCount is retried with backoff,
+        # and after 5 the search fails closed -- as pubmed_ids does (codex pr25-final #3: a 503 with a JSON body was read
+        # as a COMPLETE search with zero hits)
+        for attempt in range(5):
+            st, b = get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                            {"query": query, "format": "json", "pageSize": "1000", "resultType": "lite", "cursorMark": cur})
+            try:
+                r = json.loads(b.decode("utf-8", "replace"), strict=False) if b[:1] == b"{" else {}
+            except ValueError:
+                r = {}
+            if st == 200 and "hitCount" in r:
+                break
+            __import__("time").sleep(2 * (attempt + 1))
+        else:
+            raise SystemExit(f"REFUSED: Europe PMC search returned status {st} with no hitCount at cursor {cur}: {b[:200]!r}")
         shas.append(hashlib.sha256(b).hexdigest())
-        hits = int(r.get("hitCount") or 0)
+        hits = int(r["hitCount"])
         page = (r.get("resultList") or {}).get("result") or []
         seen += len(page)
         pmids += [x.get("pmid") for x in page if x.get("pmid")]
@@ -511,7 +523,8 @@ def _counts_in(s):
         # 'at the most' too (codex swap-setquote-r16 #2)
         # ... and 'at a minimum' (codex swap-setquote-r21 #1)
         # a dash may open it too ('Five trials—at least—'; cleaning makes every dash '-'; codex swap-setquote-r28 #3)
-        return bool(re.match(r"\s*[,(\[-]?\s*(?:(?:at\s+(?:the\s+|a\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
+        # ... and 'at the very least' (codex pr25-final #2)
+        return bool(re.match(r"\s*[,(\[-]?\s*(?:(?:at\s+(?:the\s+|a\s+)?(?:very\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
                              r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over)|"
                              # a trailing approximation ('five trials, approximately'; codex swap-setquote-r23 #1)
                              r"approx\w*|about|roughly|circa|estimated|give\s+or\s+take|or\s+thereabouts)\b|\+)",
