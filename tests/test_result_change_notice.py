@@ -391,3 +391,15 @@ def test_PLANT_a_reinstatement_must_reverse_a_real_signed_setaside():
     # a trial that was never set aside rides along: not a reinstatement
     both = dict(back, entered_pool=["PMID 1", "PMID 9"], reason=back["reason"] + " PMID 9 too.")
     assert result_changes.reversed_setasides(both, [aside, both]) is None
+
+
+def test_PLANT_a_reinstatement_names_the_trial_not_a_longer_id():
+    """'TRIAL-1' inside 'TRIAL-10' is not the trial named (codex v8-apply #2)."""
+    sig = {"state": "BATCH_SEEN_AND_SIGNED"}
+    aside = {"slug": "s", "outcome": "o", "left_pool": ["TRIAL-1"], "entered_pool": [], "when_utc": "2026-09-20T00:00:00Z",
+             "reason": "set aside; eligible evidence awaiting adjudication; the numbers are not asserted wrong.",
+             "reviewer_countersignature": sig}
+    back = {"slug": "s", "outcome": "o", "left_pool": [], "entered_pool": ["TRIAL-1"], "when_utc": "2026-10-06T00:00:00Z",
+            "reason": "This REVERSES the set-aside of TRIAL-10."}
+    assert result_changes.reversed_setasides(back, [aside, back]) is None
+    assert result_changes.reversed_setasides(dict(back, reason="This REVERSES the set-aside of TRIAL-1."), [aside, back])

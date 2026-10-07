@@ -71,8 +71,10 @@ def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[
     is SIGNED. This, not a regex over the comparator's text, is the 'reported' result a served page shows for it: the
     regex misattributed on two of the five V8 switches (dpp4 0.88 = the SGLT-2 OR in the same sentence; statins 0.72)."""
     p = os.path.join(root, "registry", "comparator_selection", f"{slug}.adoption.json")
-    if not slug or not os.path.exists(p):
+    if not slug or not os.path.lexists(p):
         return None
+    if not os.path.isfile(p):        # a dangling link / directory is a broken register, never 'no adoption' (codex v8-apply #3)
+        raise ValueError(f"ADOPTION: {p} exists but is not a readable file")
     a = _j(p)
     cur, old = str(a.get("comparator_pmid") or ""), str((a.get("retired") or {}).get("comparator_pmid") or "")
     if str(config.get("comparator_pmid") or "") != cur or not old or not switch_signed(slug, old, cur, root):
@@ -80,7 +82,22 @@ def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[
     pr = a.get("pooled_result") or {}
     if any(pr.get(k) is None for k in ("measure", "estimate", "ci_low", "ci_high")):
         return None
+    rp = os.path.join(root, "registry", "comparator_selection", f"{slug}.rule.json")
+    rule_outcome = (_j(rp).get("protocol_reference") or {}).get("primary_outcome") if os.path.isfile(rp) else None
     return {"estimate": pr["estimate"], "ci_low": pr["ci_low"], "ci_high": pr["ci_high"], "scale": pr["measure"],
+            "rule_primary_outcome": rule_outcome,
             "k": pr.get("k"), "outcome_as_printed": pr.get("outcome"),
             "span": ((pr.get("spans") or {}).get("result") or "")[:400],
             "source": f"adoption pooled_result (registry/comparator_selection/{slug}.adoption.json; signed switch, V8)"}
+
+
+def _norm(x: Any) -> str:
+    return " ".join(str(x or "").lower().split())
+
+
+def adopted_outcome_matches(adopted: dict[str, Any], outcome_name: str) -> bool:
+    """The adopted pooled result passed criterion C5 for its rule's PRIMARY outcome, so it may stand for a served
+    comparator outcome only when that outcome's name and the rule's primary-outcome name are the same, or one contains the
+    other (case and spacing ignored). Any other endpoint is never given the adopted number (codex v8-apply #1)."""
+    r, o = _norm((adopted or {}).get("rule_primary_outcome")), _norm(outcome_name)
+    return bool(r and o) and (r == o or r in o or o in r)

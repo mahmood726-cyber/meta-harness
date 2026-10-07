@@ -2272,12 +2272,16 @@ def build_review_core(slug, config, records, protocol_sha):
     reported = []
     from . import served_comparator as _scmp
     _adopted = _scmp.adopted_pooled(slug, config)
-    if _adopted and config.get("comparator_outcomes"):
+    if _adopted:
         # a SIGNED replacement comparator: its gated pooled result (adoption record, verbatim span), never the regex --
-        # which served dpp4 the SGLT-2 OR (0.88) and statins 0.72 (V8 apply, 7 Oct); other outcomes stay unreported
-        reported.append({"outcome": config["comparator_outcomes"][0]["name"], "estimate": _adopted["estimate"],
-                         "scale": _adopted["scale"], "ci_low": _adopted["ci_low"], "ci_high": _adopted["ci_high"],
-                         "source": _adopted["source"], "span": _adopted["span"]})
+        # which served dpp4 the SGLT-2 OR (0.88) and statins 0.72 (V8 apply, 7 Oct). It stands only for the comparator
+        # outcome that IS its rule's primary outcome (codex v8-apply #1); every other outcome stays unreported
+        for co in config.get("comparator_outcomes", []):
+            if _scmp.adopted_outcome_matches(_adopted, co["name"]):
+                reported.append({"outcome": co["name"], "estimate": _adopted["estimate"], "scale": _adopted["scale"],
+                                 "ci_low": _adopted["ci_low"], "ci_high": _adopted["ci_high"],
+                                 "source": _adopted["source"], "span": _adopted["span"]})
+                break
     for co in ([] if _adopted else config.get("comparator_outcomes", [])):
         eff = extract.comparator_effect(comp_abstract, comp_full, co["keywords"])
         if eff:

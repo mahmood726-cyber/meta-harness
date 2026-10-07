@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from typing import Any
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -101,7 +102,8 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]]) -> dict
         return None
     out = {}
     for tid in ent:
-        if tid not in reason:
+        # the trial is NAMED, not merely a substring of another id ('TRIAL-1' inside 'TRIAL-10'; codex v8-apply #2)
+        if not re.search(r"(?<![\w-])" + re.escape(tid) + r"(?![\w-])", reason):
             return None
         prior = [p for p in notices if p is not n and p.get("slug") == n.get("slug") and p.get("outcome") == n.get("outcome")
                  and tid in [str(x) for x in p.get("left_pool") or []] and not not_applied(p)
