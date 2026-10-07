@@ -127,11 +127,18 @@ def topic_notice(o):
             inc.remove(x)
             exc.append({"trial": x["label"], "why": f"ALREADY_IN_SERVED_POOL by identity ({x.get('family')} = served "
                         f"{sorted(identity_ncts(x) & s_ncts) or fam}); the tracker's in_our_pool missed the link"})
+    import build_served_pool_additions as bspa       # lazy: that module imports this one
     for x in inc:
         v = dict(value_of(x) or {}, trial=x["label"])
         st, why = fn.fill_study(v, scale)
         if not st:
             exc.append({"trial": x["label"], "why": why})
+            continue
+        # a notice may name only a trial the served-pool register can ADMIT once signed: EXAMINE's 95% CI is re-expressed
+        # from the label's printed 98% CI, no held span prints it, and a signed notice naming it could never be applied
+        row, rwhy = bspa.pipeline_row(slug, x, scale)
+        if not row:
+            exc.append({"trial": x["label"], "why": f"NOT_ADMISSIBLE_BY_REGISTER: {rwhy}"})
             continue
         st.source = f"{x['route']} ({x.get('family')})"
         studies.append(st)
