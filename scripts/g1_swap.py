@@ -472,20 +472,21 @@ def recover(items, runs, rec_dir):
     return n
 
 
-def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs):
-    """Recorded calls, local at G1_CODEX_CONCURRENCY and (G1_REMOTE_SHARE=1) every other one on the worker."""
+def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs, purpose=None, line="screen", batch="swapscreen", caller_file="scripts/g1_swap.py"):
+    """Recorded calls, local at G1_CODEX_CONCURRENCY and (G1_REMOTE_SHARE=1) every other one on the worker. purpose /
+    line / batch / caller_file label the record (defaults: the swap screen); scripts/g1_outcomes.py reuses this runner."""
     import concurrent.futures as cf
     import shutil
     from kgap import runs_store
     conc = int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))
     remote = todo[1::2] if os.environ.get("G1_REMOTE_SHARE") == "1" else []
     local = [it for it in todo if it not in remote]
-    purpose = lambda it: (f"G1 comparator swap: screen candidate {it['pmid']} for {it['slug']} "
-                          f"({'stage A abstract C2-C5' if it.get('stage') == 'A' else 'full text C2-C6'}, rule)")
+    purpose = purpose or (lambda it: (f"G1 comparator swap: screen candidate {it['pmid']} for {it['slug']} "
+                          f"({'stage A abstract C2-C5' if it.get('stage') == 'A' else 'full text C2-C6'}, rule)"))
 
     def one(it):
         rec = mcl.call(it["prompt"], schema=json.loads(json.dumps(it.get("schema") or SCREEN_SCHEMA)), model=fp.MODEL,
-                       effort=fp.EFFORT, caller={"file": "scripts/g1_swap.py", "line": "screen", "purpose": purpose(it)},
+                       effort=fp.EFFORT, caller={"file": caller_file, "line": line, "purpose": purpose(it)},
                        input_digests=it["digests"], timeout_s=1500)
         ms.write_record(rec, rec_dir)
         return it["key"], {"record_id": rec["record_id"], "state": rec["state"], "host": "local",
@@ -494,9 +495,9 @@ def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs):
     def remote_batch():
         import g1_remote_codex as rc
         jobs = [{"key": it["key"], "prompt": it["prompt"], "schema": it.get("schema") or SCREEN_SCHEMA, "model": fp.MODEL,
-                 "effort": fp.EFFORT, "caller": {"file": "scripts/g1_swap.py", "line": "screen", "purpose": purpose(it)},
+                 "effort": fp.EFFORT, "caller": {"file": caller_file, "line": line, "purpose": purpose(it)},
                  "input_digests": it["digests"], "timeout_s": 1500} for it in remote]
-        res = rc.submit(jobs, "swapscreen", concurrency=conc) if jobs else {}
+        res = rc.submit(jobs, batch, concurrency=conc) if jobs else {}
         out = {}
         for it in remote:
             v = res.get(it["key"]) or {}
