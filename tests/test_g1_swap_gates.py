@@ -484,3 +484,11 @@ def test_PLANT_r24_k_equals_after_an_approximator_and_scientific_notation_refuse
     assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), approximately k = 5.", vals) == set()
     assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), k = 5e1.", vals) == set()
     assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), k = 5.", vals) == {5}
+
+
+def test_PLANT_r25_a_k_regex_never_backtracks_into_a_decimal():
+    """codex swap-setquote-r25 #1: 'k = 12.5' read as k = 1 because the regex backtracked inside the decimal."""
+    q = "Mortality RR 1 (95% CI 0.8-1.2), k = 12.5."
+    assert sw.printed_counts(q) == set()
+    assert sw.pooled_gate({"quote": q, "measure": "RR", "estimate": "1", "lower": "0.8", "upper": "1.2", "k": 1},
+                          sw._norm(q))[0] is None

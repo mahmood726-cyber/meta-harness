@@ -2781,5 +2781,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r25": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ee972efaf529ec7493902204d8c1234b",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "6e07885189515bdd35b37b22c8231b5801af76800c7abb638e7140a0080e31e1"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "The k regex backtracks inside a decimal and accepts its leading digit as an integer count. An integer-valued effect estimate supplies the one numeral required by printed_counts, allowing the fabricated k through.",
+    "failing_input": "q = 'Mortality RR 1 (95% CI 0.8-1.2), k = 12.5.'; pl = {'quote': q, 'measure': 'RR', 'estimate': 1, 'lower': 0.8, 'upper': 1.2, 'k': 1}; pooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the quote does not print k = 1; its fractional k must be refused.",
+    "actual": "(pl, 1). _numerals(q) returns 1 from 'RR 1', while the k regex backtracks from '12' to '1', so printed_counts(q) returns {1}.",
+    "id": "swap-setquote-r25:g1#1",
+    "record_id": "mc-ee972efaf529ec7493902204d8c1234b",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "Outcome binding depends on semicolon separation. A count explicitly attached to recurrence is accepted as the mortality count when the outcomes are separated by a comma.",
+    "failing_input": "q = 'Five trials reported recurrence, whereas mortality RR 0.85 (95% CI 0.70-1.03).'; pl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}; pooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the mortality result has no stated contributing-trial count.",
+    "actual": "(pl, 5). The sentence has one counted numeral and no restriction match. Splitting only on ';' leaves both outcomes in one clause, so _bound_counts returns {5}.",
+    "id": "swap-setquote-r25:g1#2",
+    "record_id": "mc-ee972efaf529ec7493902204d8c1234b",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -488,12 +488,13 @@ def _counts_in(s):
     # 'k = n', with the same bound check after it as any other count ('k = 5 or more'; codex swap-setquote-r22 #1)
     # ... and the same check BEFORE it, read before the 'k' ('approximately k = 5'), and never the integer prefix of a
     # number in scientific notation ('k = 5e1') (codex swap-setquote-r24 #2, #3)
-    for m in re.finditer(r"\bk\s*=\s*(\d+)(?![.,]\d)(?![eE][+-]?\d)", s, re.I):
+    # (?!\d) stops the regex backtracking INTO a number: 'k = 12.5' must not yield k = 1 (codex swap-setquote-r25 #1)
+    for m in re.finditer(r"\bk\s*=\s*(\d+)(?!\d)(?![.,]\d)(?![eE][+-]?\d)", s, re.I):
         if not bound_after(m.end()) and not blocked_before(m.start()):
             out.add(int(m.group(1)))
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
     # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
-    for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?![.,]\d)(?![eE][+-]?\d)(?!/)" + tail, s, re.I):
+    for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?!\d)(?![.,]\d)(?![eE][+-]?\d)(?!/)" + tail, s, re.I):
         if not blocked_before(m.start(1)) and not bound_after(m.end()):
             out.add(int(m.group(1)))
     # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
