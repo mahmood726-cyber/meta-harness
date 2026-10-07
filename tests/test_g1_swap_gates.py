@@ -96,3 +96,111 @@ def test_codex_v8_p1_fixes_round():
     # g1#3: a spaced citation range keeps its middle
     xml3 = _xml("Alpha [1 - 2].")
     assert sw.label_cites("Alpha", xml3, sw.jats_refs(xml3)) == {"1", "2"}
+
+
+# ---- k from the meta's own SET QUOTE, digits or a number word (doac-vte 29795629, 7 Oct) ------------------------------
+SET_Q = ("In the five Phase 3 studies of DOACs for acute treatment of patients with a DVT, participants randomized to "
+         "receive a DOAC did not differ (OR 0.88, CI 0.75-1.03).")
+
+
+def test_k_may_be_read_from_the_verbatim_set_quote_as_a_number_word():
+    nt = sw._norm(SET_Q)
+    pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": "OR 0.88, CI 0.75-1.03"}
+    got, k = sw.pooled_gate(pl, nt, set_quote=SET_Q)
+    assert got and k == 5
+    assert sw.pooled_gate(pl, nt)[0] is None                      # without the set quote the k is not printed: refused
+
+
+def test_PLANT_a_phase_number_is_never_the_trial_count():
+    nt = sw._norm(SET_Q)
+    pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 3, "quote": "OR 0.88, CI 0.75-1.03"}
+    assert sw.pooled_gate(pl, nt, set_quote=SET_Q)[0] is None     # 'Phase 3 studies' is not k = 3
+
+
+def test_PLANT_a_set_quote_not_in_the_text_is_never_read():
+    nt = sw._norm("OR 0.88, CI 0.75-1.03 in some trials.")
+    pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": "OR 0.88, CI 0.75-1.03"}
+    assert sw.pooled_gate(pl, nt, set_quote="In the five studies we found OR 0.88, CI 0.75-1.03.")[0] is None
+
+
+def test_PLANT_only_trial_adjectives_may_stand_between_the_count_and_trials():
+    q = "Five large international multicentre studies reported OR 0.88, CI 0.75-1.03."
+    nt = sw._norm(q)
+    pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": "OR 0.88, CI 0.75-1.03"}
+    assert sw.pooled_gate(pl, nt, set_quote=q)[0] is None
+
+
+def test_PLANT_compound_words_and_decimals_are_never_counts():
+    """codex swap-setquote #1 ('Twenty-one' -> 1) and #2 ('11.6 Phase 3 studies' -> 6)."""
+    assert 1 not in sw.printed_counts("Twenty-one randomized trials were pooled.")
+    assert sw.printed_counts("Across reviews, the mean was 11.6 Phase 3 studies.") == set()
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}
+    assert sw.printed_counts("12 randomised controlled trials") == {12}
+
+
+def test_PLANT_larger_numbers_written_phases_and_identifiers_are_never_counts():
+    """codex swap-setquote-r2 #1, #2, #3."""
+    assert 20 not in sw.printed_counts("We included one hundred and twenty trials.")
+    assert sw.printed_counts("We included Phase three studies.") == set()
+    assert sw.printed_counts("We reviewed BRCA1 studies.") == set()
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}
+
+
+def test_PLANT_unhyphenated_compounds_and_any_whitespace_before_a_phase_word():
+    """codex swap-setquote-r3 #1 ('twenty five trials') and #2 ('Phase\nthree studies')."""
+    assert sw.printed_counts("We included twenty five trials.") == set()
+    assert sw.printed_counts("Phase\nthree studies") == set()
+    assert sw.printed_counts("Phase   3 studies") == set()
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}
+    assert sw.printed_counts("We pooled 12 randomised controlled trials.") == {12}
+
+
+def test_PLANT_tens_compounds_refuse_and_a_plain_conjunction_does_not():
+    """codex swap-setquote-r4 #1 ('thirty-five studies' -> not 5) and #2 ('cohorts and 5 randomized trials' -> 5)."""
+    assert sw.printed_counts("We pooled thirty-five studies.") == set()
+    assert sw.printed_counts("We pooled thirty five studies.") == set()
+    assert sw.printed_counts("We included observational cohorts and 5 randomized trials.") == {5}
+    assert sw.printed_counts("cohorts and five randomized trials") == {5}
+    assert 20 not in sw.printed_counts("We included one hundred and twenty trials.")
+
+
+def test_PLANT_spelled_decimals_refuse_and_punctuation_ends_a_phase():
+    """codex swap-setquote-r5 #1 ('four point five studies') and #2 ('Phase 3: 5 randomized trials' -> 5)."""
+    assert sw.printed_counts("The mean was four point five studies per review.") == set()
+    assert sw.printed_counts("Phase 3: 5 randomized trials") == {5}
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}
+    assert sw.printed_counts("Phase 3 studies") == set()
+
+
+def test_PLANT_opening_brackets_and_unicode_hyphens_keep_the_guards():
+    """codex swap-setquote-r6 #1 ('(Phase three studies)', '(twenty five trials)') and #2 ('twenty\u2011five trials')."""
+    assert sw.printed_counts("(Phase three studies)") == set()
+    assert sw.printed_counts("(twenty five trials)") == set()
+    assert sw.printed_counts("twenty\u2011five trials") == set()
+    assert sw.printed_counts("twenty\u2013five trials") == set()
+    assert sw.printed_counts("Phase 3: 5 randomized trials") == {5}
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}
+
+
+def test_PLANT_the_pooled_quotes_own_count_wins_and_slash_ranges_are_never_counts():
+    """codex swap-setquote-r7 #1 (a review-wide set count overriding the pooled quote's own count) and #2 ('one/two')."""
+    q = "Mortality was pooled across three trials: RR 0.80 (95% CI 0.70 to 0.90)."
+    sq = "Ten randomized trials were included in this review."
+    nt = sw._norm(q + " " + sq)
+    pl = {"measure": "RR", "estimate": "0.80", "lower": "0.70", "upper": "0.90", "k": 10, "quote": q}
+    assert sw.pooled_gate(pl, nt, set_quote=sq)[0] is None
+    assert sw.pooled_gate(dict(pl, k=3), nt, set_quote=sq)[1] == 3
+    assert sw.printed_counts("Phase one/two studies") == set()
+    assert sw.printed_counts("Phase 1/2 studies") == set()
+
+
+def test_PLANT_an_unparsed_pooled_count_closes_the_fallback_and_range_ends_are_not_counts():
+    """codex swap-setquote-r8 #1 ('twenty-five trials' then a review-wide 40) and #2 ('two to five trials')."""
+    q = "twenty-five trials contributed to the pooled mortality estimate: RR 0.80 (95% CI 0.70 to 0.90)."
+    sq = "the review included 40 trials."
+    nt = sw._norm(q + " " + sq)
+    pl = {"measure": "RR", "estimate": "0.80", "lower": "0.70", "upper": "0.90", "k": 40, "quote": q}
+    assert sw.pooled_gate(pl, nt, set_quote=sq)[0] is None
+    assert sw.printed_counts("Mortality was reported in two to five trials per comparison.") == set()
+    assert sw.printed_counts("in 3 or 4 studies") == set()
+    assert sw.printed_counts("We included observational cohorts and 5 randomized trials.") == {5}

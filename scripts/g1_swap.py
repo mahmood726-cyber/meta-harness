@@ -107,7 +107,9 @@ def cmd_rules(slugs):
 
 
 # ---------------------------------------------------------------------------------------------------------------- search
-DATE = "2026-10-06"
+# the day the stage actually ran (a fixed "2026-10-06" would stamp later searches with a false date); held files are
+# found by glob, so earlier-dated copies are still read
+DATE = os.environ.get("G1_SWAP_DATE") or __import__("datetime").datetime.now(__import__("datetime").timezone.utc).strftime("%Y-%m-%d")
 CONTACT = "meta-harness@example.org"          # never a personal address in a request
 
 
@@ -116,22 +118,73 @@ def _terms(p):
     return t[:12]
 
 
+PAGE_CAP = 20000          # ids per database; a search past this is written TRUNCATED, never complete
+
+
+PUBMED_LIMIT = 9999      # ESearch cannot page past retstart 9998; beyond it the search is TRUNCATED (Europe PMC pages on)
+
+
+def pubmed_ids(get_raw, term, cap=PUBMED_LIMIT):
+    """Every PubMed id for the query, paged by retstart to esearch's own count. (ids, {count, fetched, state, sha256s})"""
+    ids, shas, count, start = [], [], None, 0
+    while True:
+        for attempt in range(5):
+            st, b = get_raw("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                            {"db": "pubmed", "term": term, "retstart": str(start), "retmax": str(min(500, cap - start)),
+                             "retmode": "json", "tool": "meta-harness", "email": CONTACT})
+            # PubMed echoes raw control characters in querytranslation (strict=False); a rate-limit reply is a JSON
+            # error with no count -- retried with backoff, and after 5 the search fails closed (never a short 'complete')
+            r = (json.loads(b.decode("utf-8", "replace"), strict=False) if b[:1] == b"{" else {}).get("esearchresult") or {}
+            if "count" in r:
+                break
+            __import__("time").sleep(2 * (attempt + 1))
+        else:
+            raise SystemExit(f"REFUSED: PubMed esearch returned no count at retstart {start}: {b[:200]!r}")
+        shas.append(hashlib.sha256(b).hexdigest())
+        count = int(r["count"])
+        page = r.get("idlist") or []
+        ids += page
+        start += len(page)
+        if not page or start >= count or start >= cap:
+            break
+    ids = list(dict.fromkeys(ids))
+    return ids, {"count": count, "fetched": len(ids), "state": "COMPLETE" if len(ids) >= count else "TRUNCATED",
+                 "response_sha256s": shas}
+
+
+def europepmc_ids(get_raw, query, cap=PAGE_CAP):
+    """Every Europe PMC hit's PMID, paged by cursorMark to its own hitCount. Hits without a PMID are counted, not kept."""
+    pmids, shas, hits, seen, cur = [], [], None, 0, "*"
+    while True:
+        st, b = get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                        {"query": query, "format": "json", "pageSize": "1000", "resultType": "lite", "cursorMark": cur})
+        r = json.loads(b.decode("utf-8"), strict=False)
+        shas.append(hashlib.sha256(b).hexdigest())
+        hits = int(r.get("hitCount") or 0)
+        page = (r.get("resultList") or {}).get("result") or []
+        seen += len(page)
+        pmids += [x.get("pmid") for x in page if x.get("pmid")]
+        nxt = r.get("nextCursorMark")
+        if not page or not nxt or nxt == cur or seen >= hits or seen >= cap:
+            break
+        cur = nxt
+    pmids = list(dict.fromkeys(pmids))
+    return pmids, {"count": hits, "fetched_hits": seen, "with_pmid": len(pmids),
+                   "state": "COMPLETE" if seen >= hits else "TRUNCATED", "response_sha256s": shas}
+
+
 def cmd_search(slugs):
     """Recorded search per topic: PubMed esearch + Europe PMC, both restricted to meta-analyses / systematic reviews and
-    built mechanically from the topic's intervention terms. Response sha256 and every hit kept."""
+    built mechanically from the topic's intervention terms. Each database is paged to its own count (the 7 Oct first run
+    stopped at 600 / 1000 and reported its reach as the population); response sha256s and every hit kept."""
     from harness import http
     for s in slugs:
         p = protocol(s)
         iv = " OR ".join(f'"{t}"' for t in _terms(p))
         pq = f'({iv}) AND (meta-analysis[pt] OR meta-analys*[ti] OR "systematic review"[ti] OR "network meta"[ti])'
-        st, b = http.get_raw("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-                             {"db": "pubmed", "term": pq, "retmax": "600", "retmode": "json", "tool": "meta-harness",
-                              "email": CONTACT})
-        pm = json.loads(b.decode("utf-8"))["esearchresult"]["idlist"]
+        pm, pm_meta = pubmed_ids(http.get_raw, pq)
         eq = f'({iv}) AND (TITLE:"meta-analysis" OR TITLE:"meta analysis" OR TITLE:"systematic review" OR PUB_TYPE:"Meta-Analysis")'
-        st2, b2 = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-                               {"query": eq, "format": "json", "pageSize": "1000", "resultType": "lite"})
-        ep = [r.get("pmid") for r in json.loads(b2.decode("utf-8"))["resultList"]["result"] if r.get("pmid")]
+        ep, ep_meta = europepmc_ids(http.get_raw, eq)
         ids = sorted(set(pm) | set(ep) | {p["current_comparator"]})
         recs = {}
         for i in range(0, len(ids), 150):
@@ -145,12 +198,15 @@ def cmd_search(slugs):
                            "pmcid": next((a["value"] for a in v.get("articleids", []) if a["idtype"] == "pmc"), None),
                            "doi": next((a["value"] for a in v.get("articleids", []) if a["idtype"] == "doi"), None)}
         out = {"slug": s, "date": DATE, "rule": f"registry/comparator_selection/{s}.rule.json",
-               "pubmed": {"query": pq, "n": len(pm), "response_sha256": hashlib.sha256(b).hexdigest()},
-               "europepmc": {"query": eq, "n": len(ep), "response_sha256": hashlib.sha256(b2).hexdigest()},
+               "pubmed": dict({"query": pq, "n": len(pm)}, **pm_meta),
+               "europepmc": dict({"query": eq, "n": len(ep)}, **ep_meta),
                "current_comparator_added": p["current_comparator"], "records": recs}
+        if len(recs) < len(ids):
+            out["records_state"] = f"TRUNCATED: {len(recs)} summaries for {len(ids)} ids"
         with open(os.path.join(SEL, f"{s}.search.json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(out, fh, indent=1, ensure_ascii=False)
-        print(s, "pubmed", len(pm), "europepmc", len(ep), "records", len(recs), flush=True)
+        print(s, "pubmed", f"{len(pm)}/{pm_meta['count']}", pm_meta["state"], "europepmc",
+              f"{ep_meta['fetched_hits']}/{ep_meta['count']}", ep_meta["state"], "records", len(recs), "of", len(ids), flush=True)
 
 
 # ---------------------------------------------------------------------------------------------------------------- screen
@@ -261,7 +317,69 @@ def label_cites(lab, xml, refs):
     return out
 
 
-def pooled_gate(pl, nt):
+_TRIAL_ADJ = r"(?:randomi[sz]ed|controlled|clinical|phase\s*(?:[1-4]|iv|i{1,3}))"
+_COUNT_WORDS = ("one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
+                "seventeen eighteen nineteen twenty").split()
+
+
+def printed_counts(q):
+    """Trial counts PRINTED in a quote: 'k = n'; or n -- digits or a number word -- followed by up to three TRIAL
+    ADJECTIVES (randomised, controlled, clinical, Phase 3) and then trials / studies / RCTs. A digit that is itself a phase
+    number ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
+    # whitespace of every kind is one space before anything is matched (codex swap-setquote-r3 #2: 'Phase\nthree')
+    s = " ".join(str(q or "").split())
+    # every dash is a hyphen ('twenty‑five', en / em dash, minus; codex swap-setquote-r6 #2)
+    s = re.sub(r"[‐‑‒–—−]", "-", s)
+    out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", s, re.I)}
+    tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
+    # the WORD before the count decides, not a fixed-width lookbehind (three review rounds each found a new gap):
+    # never after another number word ('twenty five', 'twenty-one'), 'and' / 'hundred' / 'thousand' ('one hundred and
+    # twenty'), or 'phase' ('Phase 3', 'Phase three')
+    tens = {"twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"}
+    number_words = set(_COUNT_WORDS) | tens | {"hundred", "thousand", "million"}
+
+    def prev_tokens(i, n=2):
+        """The n whitespace/hyphen-separated tokens right before position i, lower-cased, punctuation KEPT."""
+        return [t.lower() for t in re.split(r"[\s-]+", s[:i].strip()) if t][-n:]
+
+    def blocked_before(i):
+        """The count is part of a larger number, a spelled decimal or a phase: the token right before it is a number word
+        ('twenty five', 'thirty-five'), 'point' ('four point five'; codex r5 #1) or 'phase'; or it is 'and' right after a
+        number word ('one hundred and twenty'). Punctuation on the previous token ends the link ('Phase 3: 5 randomized
+        trials' -> 5; codex r5 #2), and a plain conjunction ('cohorts and 5 randomized trials') blocks nothing."""
+        # an OPENING bracket or quote does not end the link ('(Phase three studies)', '(twenty five trials)'; codex r6 #1);
+        # trailing punctuation does ('Phase 3: 5 randomized trials')
+        pt = [t.lstrip("([{\"'‘“") for t in prev_tokens(i)]
+        if not pt or not re.fullmatch(r"[a-z]+", pt[-1]):
+            return False
+        if pt[-1] in number_words or pt[-1] in ("phase", "point"):
+            return True
+        # 'and' / 'to' / 'or' right after a number joins a larger number or a RANGE ('one hundred and twenty', 'two to five
+        # trials', '3 or 4 studies'; codex swap-setquote-r8 #2): the end of a range is never an exact count
+        return (pt[-1] in ("and", "to", "or") and len(pt) == 2
+                and (pt[0] in number_words or bool(re.fullmatch(r"\d+", pt[0]))))
+
+    # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
+    for m in re.finditer(r"(?<![\w.,/-])(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
+        if not blocked_before(m.start(1)):
+            out.add(int(m.group(1)))
+    # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
+    # a slash joins a range ('Phase one/two studies'; codex swap-setquote-r7 #2): a number word beside '/' is never a count
+    for m in re.finditer(r"(?<![\w/-])(" + "|".join(_COUNT_WORDS) + r")(?![\w/-])" + tail, s, re.I):
+        if not blocked_before(m.start(1)):
+            out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
+    return out
+
+
+def mentions_a_count(q):
+    """Any number -- digits or a number word, tens and compounds included -- within a few words before trials / studies /
+    RCTs. Broader than printed_counts on purpose: it decides only whether the pooled quote speaks to k at all."""
+    words = "|".join(_COUNT_WORDS + ["thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred"])
+    return bool(re.search(r"(?:\d+|\b(?:" + words + r"))\b[\w\s/,()-]{0,40}?\b(?:trials|studies|rcts)\b",
+                          " ".join(str(q or "").split()), re.I))
+
+
+def pooled_gate(pl, nt, set_quote=None):
     """The pooled claim stands only if its quote is verbatim in the held text, every stated estimate / bound EQUALS a whole
     numeric token of that quote (never a substring: '0.8' inside '0.85' -- g2#3), and a stated k is PRINTED in the quote
     as 'k = n' or 'n trials / studies / RCTs' (g2#4: an invented k reached the T3 largest-k tie-break). Returns
@@ -281,9 +399,15 @@ def pooled_gate(pl, nt):
             return None, None
     k = pl.get("k")
     if k is not None:
-        printed = {int(x) for pair in re.findall(r"\bk\s*=\s*(\d+)|\b(\d+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?"
-                                                  r"(?:clinical\s+)?(?:trials|studies|rcts)\b", q, re.I)
-                   for x in pair if x}
+        printed = printed_counts(q)
+        # ... or, ONLY when the pooled quote prints no count, in the meta's own SET QUOTE verbatim in the held text (doac
+        # 29795629: 'In the five Phase 3 studies ...'). The pooled result's own count always wins: a review-wide count
+        # never overrides it (codex swap-setquote-r7 #1); a set quote not in the text is never read
+        # The fallback is closed whenever the pooled quote MENTIONS a count at all, parsed or not ('twenty-five trials
+        # contributed' is a count this reader refuses; a review-wide 'included 40 trials' must not stand in for it --
+        # codex swap-setquote-r8 #1)
+        if not printed and set_quote and _quoted(set_quote, nt) and not mentions_a_count(q):
+            printed = printed_counts(set_quote)
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
         try:
@@ -474,7 +598,33 @@ def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs):
     runs_store.save(runs, slugs=set(slugs))
 
 
-def cmd_screen(slugs, run=False):
+def _t2(pubdate):
+    m = re.match(r"(\d{4})\s*(\w{3})?", pubdate or "")
+    mon = {"Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6, "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10,
+           "Nov": 11, "Dec": 12}.get((m.group(2) or "")[:3].title(), 0) if m else 0
+    return int(m.group(1)) * 100 + mon if m else 0
+
+
+def read_limit(items, cands_all, limit):
+    """READ ORDER (7 Oct): limit 'r0' reads the CURRENT comparator only (rule R0 decides first: a passing current
+    comparator is KEPT and no candidate matters); an integer N reads the current comparator plus the N NEWEST C1-PASS
+    candidates per topic. Every candidate left unread is marked read=NOT_READ_EARLY_STOP, and
+    g1_comparator_select.unread_problem refuses any pick an unread candidate could still outrank."""
+    if limit is None:
+        return items, set()
+    keep, dropped = [], set()
+    for s in {it["slug"] for it in items}:
+        cur = protocol(s)["current_comparator"]
+        mine = [it for it in items if it["slug"] == s]
+        rest = sorted((it for it in mine if it["pmid"] != cur),
+                      key=lambda it: (-_t2(cands_all[s][0][it["pmid"]].get("pubdate")), it["pmid"]))
+        n = 0 if limit == "r0" else int(limit)
+        keep += [it for it in mine if it["pmid"] == cur] + rest[:n]
+        dropped |= {it["key"] for it in rest[n:]}
+    return keep, dropped
+
+
+def cmd_screen(slugs, run=False, limit=None):
     import concurrent.futures as cf
     from kgap import runs_store
     from reproducible_ai import model_call_live as mcl
@@ -503,6 +653,8 @@ def cmd_screen(slugs, run=False):
         cands_all[s] = (cands, len(srch["records"]))
         print(s, "on-topic", len(cands), "C1 PASS", sum(c["criteria"]["C1_OPEN_LICENCE"]["verdict"] == "PASS" for c in cands.values()),
               "to read", sum(1 for it in items if it["slug"] == s), flush=True)
+
+    items, unread = read_limit(items, cands_all, limit)
 
     def done(it):
         r = runs.get(it["key"]) or {}
@@ -590,6 +742,8 @@ def cmd_screen(slugs, run=False):
             it = by_key.get(f"swapscreen::{s}::{pmid}")
             r = runs.get(f"swapscreen::{s}::{pmid}") or {}
             ex = excluded.get(f"swapscreen::{s}::{pmid}")
+            if f"swapscreen::{s}::{pmid}" in unread:
+                c["read"] = "NOT_READ_EARLY_STOP"
             if ex:
                 c["criteria"].update(ex[0])
                 c["criteria"]["C6_ROWS_AND_POOLED"] = {"verdict": "UNCLEAR", "evidence": "not read: excluded at stage A"}
@@ -717,7 +871,7 @@ def gate_enum(claim, it):
         span = rq if rq else (r.get("title") or lab)
         units.append({"label": lab, "ref": ref, "pmid": pmid, "identity": ident, "span": span, "scope": "IN_SCOPE",
                       "rule_id": None})
-    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt)
+    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt, set_quote=claim.get("set_quote"))
     sq = claim.get("set_quote")
     return units, refused, pooled, (sq if _quoted(sq, nt) else None)
 
@@ -870,8 +1024,9 @@ if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     cmd, *args = sys.argv[1:]
     run = "--run" in args
+    limit = next((a.split("=", 1)[1] for a in args if a.startswith("--newest=")), "r0" if "--r0" in args else None)
     args = [a for a in args if not a.startswith("--")]
     if released(args):
         raise SystemExit(f"REFUSED: swap rule released (topic abandoned by decision): {released(args)}")
-    {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run),
+    {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run, limit=limit),
      "enumerate": lambda a: cmd_enumerate(a, run=run), "apply": cmd_apply}[cmd](args)

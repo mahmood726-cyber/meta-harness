@@ -1899,5 +1899,304 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote": {
+  "base": "6b4e18ca2",
+  "head": "b40f81fa4151bb0cfeb7b8c9bb47b758062d22b7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-77e89a469e6d8b2265a4faafc0e99111",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "cb87bf8f573eac52104f83daf361aa1c632b10f1a34dde3aca10ba8bd499ea8e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The number-word regex matches the suffix of compound numbers, allowing pooled_gate to validate an incorrect k used downstream.",
+    "failing_input": "printed_counts('Twenty-one randomized trials were pooled.')",
+    "expected": "Recognize 21 or refuse the unsupported compound number; never validate 1.",
+    "actual": "Returns {1}, allowing a claimed k=1 to pass the printed-count check.",
+    "id": "swap-setquote:g1#1",
+    "record_id": "mc-77e89a469e6d8b2265a4faafc0e99111",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The digit regex accepts the fractional portion of a decimal as an integer count. The newly supported phase adjective makes this false count eligible for pooled_gate validation.",
+    "failing_input": "printed_counts('Across reviews, the mean was 11.6 Phase 3 studies.')",
+    "expected": "set(): 11.6 is not an integer trial count, and 3 is a phase number.",
+    "actual": "Returns {6}, allowing a claimed k=6 to pass the printed-count check.",
+    "id": "swap-setquote:g1#2",
+    "record_id": "mc-77e89a469e6d8b2265a4faafc0e99111",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r2": {
+  "base": "6b4e18ca2",
+  "head": "2e7274c83a0f2d10b6ab4e1f9f546736937d2def",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b70f6649ae844392062c7cb78d46188e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "fd082b94c5c48aa9c2fe7596fe00e383599b55326e5a142b6eec14d479dddf87"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The number-word regex accepts the final word of a larger number, allowing pooled_gate to validate an incorrect k.",
+    "failing_input": "printed_counts('We included one hundred and twenty trials.')",
+    "expected": "set() under the supported one-to-twenty grammar, or {120} if compound numbers are supported; never {20}.",
+    "actual": "{20}",
+    "id": "swap-setquote-r2:g1#1",
+    "record_id": "mc-b70f6649ae844392062c7cb78d46188e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The number-word branch lacks phase exclusion, so a written-out phase designation becomes a trial count that can validate k.",
+    "failing_input": "printed_counts('We included Phase three studies.')",
+    "expected": "set(): the text specifies a phase, not the number of studies.",
+    "actual": "{3}",
+    "id": "swap-setquote-r2:g1#2",
+    "record_id": "mc-b70f6649ae844392062c7cb78d46188e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "Removing the digit pattern's leading word boundary allows digits inside identifiers to become trial counts that can validate k.",
+    "failing_input": "printed_counts('We reviewed BRCA1 studies.')",
+    "expected": "set(): BRCA1 is an identifier, and no study count is printed.",
+    "actual": "{1}",
+    "id": "swap-setquote-r2:g1#3",
+    "record_id": "mc-b70f6649ae844392062c7cb78d46188e",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r3": {
+  "base": "6b4e18ca2",
+  "head": "0275dd91179732d5d25f17debc17e40b79f1f401",
+  "runs": {
+   "g1": {
+    "record_id": "mc-886eeec4463cec2dc3d3c74d739a3c2e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "87a0c63c58f6ad592f37e425b41689dc90eb73d714af6b29034185d56bf3521d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The new number-word matcher extracts the final component of an unhyphenated compound number, allowing an incorrect trial count to validate k.",
+    "failing_input": "printed_counts('We included twenty five trials.')",
+    "expected": "set(): refuse the unsupported compound number rather than interpret twenty-five as five.",
+    "actual": "{5}",
+    "id": "swap-setquote-r3:g1#1",
+    "record_id": "mc-886eeec4463cec2dc3d3c74d739a3c2e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The written-out phase exclusion only handles exactly one literal space. Multiple spaces or a newline turn a phase designation into a trial count that can validate k.",
+    "failing_input": "printed_counts('Phase\\nthree studies')",
+    "expected": "set(): three is the phase designation, not a number of studies.",
+    "actual": "{3}",
+    "id": "swap-setquote-r3:g1#2",
+    "record_id": "mc-886eeec4463cec2dc3d3c74d739a3c2e",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r4": {
+  "base": "6b4e18ca2",
+  "head": "0d6f5946857ad34df73f2c41e5a08706026e5874",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4a8a30660d4abf4bb03f562d3482bcae",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "e07c96cdabb44286382667401e14481baf3aefb5f51dca00ddce7d2f73cd0ae9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "Compound number words are misread as smaller counts when their prefix is outside _COUNT_WORDS. 'thirty' is not blocked, so the new word matcher extracts five from thirty-five, allowing pooled_gate to validate an incorrect k=5.",
+    "failing_input": "printed_counts('We pooled thirty-five studies.')",
+    "expected": "set(): reject the unsupported compound number rather than extract its suffix; alternatively, parse the complete count as {35}.",
+    "actual": "{5}",
+    "id": "swap-setquote-r4:g1#1",
+    "record_id": "mc-4a8a30660d4abf4bb03f562d3482bcae",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P1",
+    "claim": "Unconditionally blocking a preceding 'and' rejects legitimate counts in ordinary conjunctions. This also regresses digit counts previously accepted, causing pooled_gate to reject correctly supported k values.",
+    "failing_input": "printed_counts('We included observational cohorts and 5 randomized trials.')",
+    "expected": "{5}",
+    "actual": "set()",
+    "id": "swap-setquote-r4:g1#2",
+    "record_id": "mc-4a8a30660d4abf4bb03f562d3482bcae",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r5": {
+  "base": "6b4e18ca2",
+  "head": "bd1dcf0f00be0d81b58a5eb9b02aef3e5d7f4a62",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c031cef42061eaf6c59fded73baa8a45",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "ef4984ba1d26f71333451566a844f7242070354262c31dc17e19348142510779"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The new number-word matcher extracts the final word of a spelled-out decimal as an integer count. pooled_gate can consequently validate k=5 against text that states 4.5.",
+    "failing_input": "printed_counts('The mean was four point five studies per review.')",
+    "expected": "set(): a fractional mean provides no whole-number trial count.",
+    "actual": "{5}",
+    "id": "swap-setquote-r5:g1#1",
+    "record_id": "mc-c031cef42061eaf6c59fded73baa8a45",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts.blocked_before",
+    "severity": "P1",
+    "claim": "The backward scan discards digits and punctuation, incorrectly treating 'phase' as immediately preceding an independent trial count. This makes pooled_gate reject an explicitly supported k=5.",
+    "failing_input": "printed_counts('Phase 3: 5 randomized trials')",
+    "expected": "{5}: 3 is the phase number; 5 is the explicit trial count.",
+    "actual": "set()",
+    "id": "swap-setquote-r5:g1#2",
+    "record_id": "mc-c031cef42061eaf6c59fded73baa8a45",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r6": {
+  "base": "6b4e18ca2",
+  "head": "10062f993dd5a4d3215473fd2f62a0b03c23d12f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-70107d329a7d3cb6265e6f79925f6138",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "ba270ac14005523e954aa28de0177886d591a31726cbef5b60f6d7a1fcf217a9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / blocked_before",
+    "severity": "P0",
+    "claim": "Leading punctuation disables the phase and compound-number guards. These false counts can validate an invented pooled k.",
+    "failing_input": "printed_counts('(Phase three studies)'); printed_counts('(twenty five trials)')",
+    "expected": "set() for both: 'three' is a phase designation, and 'five' is part of twenty-five.",
+    "actual": "{3} and {5}, respectively. The preceding tokens '(phase' and '(twenty' fail the letters-only check, causing blocked_before to return False.",
+    "id": "swap-setquote-r6:g1#1",
+    "record_id": "mc-70107d329a7d3cb6265e6f79925f6138",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "Compound-number protection recognizes only ASCII hyphens. A nonbreaking hyphen lets the final number word become a false trial count that can validate pooled k.",
+    "failing_input": "printed_counts('twenty\\u2011five trials')",
+    "expected": "set(): refuse the unsupported compound number rather than extract its final component.",
+    "actual": "{5}. U+2011 neither blocks the word match nor splits the preceding tokens, so twenty-five is interpreted as five.",
+    "id": "swap-setquote-r6:g1#2",
+    "record_id": "mc-70107d329a7d3cb6265e6f79925f6138",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r7": {
+  "base": "6b4e18ca2",
+  "head": "cce7103ab5251e3aaf79f4a5254a2660b9d31ddc",
+  "runs": {
+   "g1": {
+    "record_id": "mc-dac882e5aa25b516173f346f6b09d5e8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "a6b1252bc09965dc50e6730c73ff120457d0719f4d1b3a50f5e49475b8db0dab"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "Unioning the review's set count with the pooled quote's count allows the overall review size to override an explicitly smaller outcome-specific trial count.",
+    "failing_input": "q = 'Mortality was pooled across three trials: RR 0.80 (95% CI 0.70 to 0.90).'; set_quote = 'Ten randomized trials were included in this review.'; nt = q + ' ' + set_quote; claimed k = 10. The new validation computes printed_counts(q) | printed_counts(set_quote).",
+    "expected": "Reject k=10 for this pooled result; its own quote explicitly states three contributing trials.",
+    "actual": "The union is {3, 10}, so the k-membership check accepts 10. Both quotes are verbatim in nt, so the set-quote evidence check does not prevent this.",
+    "id": "swap-setquote-r7:g1#1",
+    "record_id": "mc-dac882e5aa25b516173f346f6b09d5e8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "A combined phase designation written with number words is incorrectly returned as a trial count, allowing an unsupported k to pass validation.",
+    "failing_input": "printed_counts('Phase one/two studies')",
+    "expected": "set(): one/two denotes phases, and no study count is printed.",
+    "actual": "{2}. The slash permits matching 'two'; the preceding token 'one/' fails the alphabetic-token check, so blocked_before returns False.",
+    "id": "swap-setquote-r7:g1#2",
+    "record_id": "mc-dac882e5aa25b516173f346f6b09d5e8",
+    "verdict": null
+   }
+  ]
  }
 }
