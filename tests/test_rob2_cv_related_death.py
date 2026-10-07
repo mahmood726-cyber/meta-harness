@@ -28,3 +28,27 @@ def test_d5_matches_the_registered_secondary_without_any_model():
                "description": "CV death, nonfatal MI, nonfatal stroke, or hospitalization for unstable angina"}
     d = rob2.derive_d5([primary], "3-point major adverse cardiovascular events", no_model, [TECOS_SECONDARY])
     assert d["level"] == "low" and d["inputs"]["comparison"]["registered_type"] == "secondary"
+
+
+def test_every_stored_rating_rederives_without_the_embedding_model(monkeypatch):
+    """CI has no sentence_transformers: the publication gate re-derives every stored RoB rating from the committed
+    embedding cache alone. Simulate that here, so a rating that needs the model (or an uncommitted cache entry) fails
+    LOCALLY, not first on CI (PR #24, 7 Oct)."""
+    import glob
+    import json
+    from harness import embed
+
+    def unavailable(*a, **k):
+        raise ImportError("No module named 'sentence_transformers' (simulated CI)")
+    monkeypatch.setattr(embed, "_get_model", unavailable)
+
+    def _match(a, b):                                    # the gate's own matcher (harness.gate L1)
+        ranked = embed.rank(a, [b])
+        return bool(ranked) and ranked[0][1] >= 0.45
+    bad = {}
+    for p in sorted(glob.glob(os.path.join(ROOT, "cache", "*", "rob2.json"))):
+        d = json.load(open(p, encoding="utf-8"))
+        v = rob2.rederivation_violations({"rob2": d}, _match)
+        if v:
+            bad[os.path.basename(os.path.dirname(p))] = [(x.get("trial"), x.get("domain")) for x in v]
+    assert bad == {}
