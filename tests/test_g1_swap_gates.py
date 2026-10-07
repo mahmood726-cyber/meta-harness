@@ -392,3 +392,13 @@ def test_PLANT_citation_markers_and_squared_statistics_are_not_numerals():
          "0.36-0.63, p\u2009<\u20090.0001, I 2 \u2009=\u20090\u00a0% [ 20 \u2013 22 ]; interaction p\u2009=\u20090.56)")
     assert sw.printed_counts(q) == {3}
     assert sw.printed_counts("Five trials [12] and 3 cohorts gave RR 0.8.") == set()     # a real second quantity stays
+
+
+def test_PLANT_r18_minimum_bounds_and_trials_lacking_the_outcome_never_supply_k():
+    """codex swap-setquote-r18: #1 'At a minimum five trials'; #2 'Five trials lacked mortality data; the pooled ...'."""
+    q = "At a minimum five trials yielded a pooled RR of 0.85."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 5, "quote": q}, sw._norm(q))[0] is None
+    q2 = "Five trials lacked mortality data; the pooled mortality RR was 0.85 (95% CI 0.70-1.03)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5, "quote": q2},
+                          sw._norm(q2))[0] is None
+    assert sw.printed_counts("Mortality was not reported in five trials (RR 0.85).") == set()

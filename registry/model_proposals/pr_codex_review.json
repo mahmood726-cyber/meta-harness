@@ -2446,5 +2446,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r18": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fca38498133830d96a700cc0a88e5821",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "93b14f33a0258e95d7daa433190686471bf43282ff959b303163699862c04f0a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "A lower bound expressed as 'at a minimum' is accepted as an exact pooled trial count. blocked_before does not reject 'minimum'.",
+    "failing_input": "q = 'At a minimum five trials yielded a pooled RR of 0.85.'\npl = {'measure': 'RR', 'estimate': 0.85, 'k': 5, 'quote': q}\nprinted_counts(q)\npooled_gate(pl, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because the quote establishes only k >= 5.",
+    "actual": "printed_counts returns {5}; pooled_gate returns (pl, 5), admitting an unsupported exact count.",
+    "id": "swap-setquote-r18:g1#1",
+    "record_id": "mc-fca38498133830d96a700cc0a88e5821",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "A count explicitly describing trials without mortality data is accepted as the mortality result's k. The restriction filter misses 'lacked', and sharing a sentence with the estimate is sufficient for acceptance.",
+    "failing_input": "q = 'Five trials lacked mortality data; the pooled mortality RR was 0.85 (95% CI 0.70-1.03).'\npl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\nprinted_counts(q)\npooled_gate(pl, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because five counts noncontributing trials and the contributing count is unstated.",
+    "actual": "printed_counts returns {5}; pooled_gate returns (pl, 5). The unsupported k passes directly, without verified_units corroboration or a k_basis reviewer annotation.",
+    "id": "swap-setquote-r18:g1#2",
+    "record_id": "mc-fca38498133830d96a700cc0a88e5821",
+    "verdict": null
+   }
+  ]
  }
 }

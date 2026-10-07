@@ -332,7 +332,9 @@ _APPROX = {"least", "most", "than", "about", "approximately", "around", "nearly"
            "of", "between",
            # an estimate or approximation of the count ('An estimated five trials'; codex swap-setquote-r17 #1)
            "estimated", "est", "approx", "approximate", "apparently", "reportedly", "possibly", "probably", "likely",
-           "perhaps", "potentially", "presumably", "expected", "anticipated", "projected"}
+           "perhaps", "potentially", "presumably", "expected", "anticipated", "projected",
+           # 'At a minimum five trials' (codex swap-setquote-r18 #1)
+           "minimum", "maximum", "min", "max"}
 
 
 _RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s+whom|of\s+these|of\s+those|of\s+them|"
@@ -344,7 +346,11 @@ _RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s
                        # a FRACTION of the trials ('Six trials were included; half reported mortality'; codex
                        # swap-setquote-r17 #3). 'most' is deliberately absent: doac 29795629's own sentence says 'in most
                        # studies of secondary prevention' of OTHER studies -- that residue is what k_basis discloses
-                       r"half|halves|quarters?|thirds?|majority|proportion|percent|per\s+cent)\b", re.I)
+                       r"half|halves|quarters?|thirds?|majority|proportion|percent|per\s+cent|"
+                       # trials WITHOUT the outcome's data ('Five trials lacked mortality data'; codex swap-setquote-r18
+                       # #2). 'without' is deliberately absent: doac's sentence says 'with or without pulmonary embolism'
+                       r"lack\w*|missing|unavailable|unreported|not\s+report\w*|did\s+not\s+(?:report|contribute|provide)|"
+                       r"no\s+(?:data|events?|outcome))\b", re.I)
 
 
 def _stray_percent(sent):
