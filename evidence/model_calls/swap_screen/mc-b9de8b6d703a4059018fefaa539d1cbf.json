@@ -1,0 +1,232 @@
+{
+ "caller": {
+  "file": "scripts/g1_swap.py",
+  "line": "screen",
+  "purpose": "G1 comparator swap: screen candidate 33244947 for tocilizumab-covid19-mortality (stage A abstract C2-C5, rule)"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a1127e-d8a5-7ed0-bd08-946c465e3d87",
+   "tokens used": "17,013"
+  },
+  "lane_log": "registry/model_calls/lane_log/unattributed.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "outside_workdir_reads": 0,
+  "stderr_bytes": 3749,
+  "stderr_sha256": "a1699ce571af3476a22738fce5b41fe76305e5501a6627c89f008e1828850e85",
+  "stdout_bytes": 698,
+  "stdout_sha256": "7347d713c554b8f0514dcb2346b4481d246d15572da6a860906cb62a53a11b11",
+  "tokens_used": 17013,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "4da9c0b92f1fef514faaabb55df38dbdfa9571f097644afc3274c1ed2f07b2ad"
+ },
+ "input_digests": [
+  {
+   "ref": "cache/comparators/33244947/2026-10-02_kgap_jats.xml",
+   "sha256": "0fab6a4172f92ec593afa66ecdfa62ef125c7fc0e6e751eea90a8c120673c7e2",
+   "what": "the candidate meta's open JATS (CC BY / CC0), rendered to text, first 180000 chars"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "3992e8b45b9ca40633febc6b424fdcdee74ad1f09d62e34a71f793a414dde891",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-6-astra",
+  "id_requested": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "criteria": {
+     "additionalProperties": false,
+     "properties": {
+      "C2_RCT_ONLY": {
+       "additionalProperties": false,
+       "properties": {
+        "quote": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "verdict": {
+         "enum": [
+          "PASS",
+          "FAIL",
+          "UNCLEAR"
+         ],
+         "type": "string"
+        }
+       },
+       "required": [
+        "verdict",
+        "quote"
+       ],
+       "type": "object"
+      },
+      "C3_POPULATION": {
+       "additionalProperties": false,
+       "properties": {
+        "quote": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "verdict": {
+         "enum": [
+          "PASS",
+          "FAIL",
+          "UNCLEAR"
+         ],
+         "type": "string"
+        }
+       },
+       "required": [
+        "verdict",
+        "quote"
+       ],
+       "type": "object"
+      },
+      "C4_INTERVENTION_VS_COMPARATOR": {
+       "additionalProperties": false,
+       "properties": {
+        "quote": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "verdict": {
+         "enum": [
+          "PASS",
+          "FAIL",
+          "UNCLEAR"
+         ],
+         "type": "string"
+        }
+       },
+       "required": [
+        "verdict",
+        "quote"
+       ],
+       "type": "object"
+      },
+      "C5_OUTCOME_AND_ESTIMAND": {
+       "additionalProperties": false,
+       "properties": {
+        "quote": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "verdict": {
+         "enum": [
+          "PASS",
+          "FAIL",
+          "UNCLEAR"
+         ],
+         "type": "string"
+        }
+       },
+       "required": [
+        "verdict",
+        "quote"
+       ],
+       "type": "object"
+      }
+     },
+     "required": [
+      "C2_RCT_ONLY",
+      "C3_POPULATION",
+      "C4_INTERVENTION_VS_COMPARATOR",
+      "C5_OUTCOME_AND_ESTIMAND"
+     ],
+     "type": "object"
+    }
+   },
+   "required": [
+    "criteria"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "timeout_s": 1500,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "U1RBR0UgQSAoYWJzdHJhY3Qgb25seSkuIFlvdSBhc3Nlc3MgT05FIHB1Ymxpc2hlZCBtZXRhLWFuYWx5c2lzIGZyb20gaXRzIFRJVExFIGFuZCBBQlNUUkFDVCBhZ2FpbnN0IGNyaXRlcmlhCkMyLUM1IG9mIGEgUFJFLVJFR0lTVEVSRUQgcnVsZS4gQW5zd2VyIEZBSUwgb25seSB3aGVuIHRoZSBhYnN0cmFjdCBpdHNlbGYgc2hvd3MgdGhlIGNyaXRlcmlvbiBpcyBOT1QgbWV0LCBxdW90aW5nIHRoYXQKcGFzc2FnZSBjaGFyYWN0ZXIgZm9yIGNoYXJhY3RlcjsgYW5zd2VyIFBBU1Mgd2hlbiBpdCBzaG93cyBpdCBpcyBtZXQgKHdpdGggdGhlIHF1b3RlKTsgb3RoZXJ3aXNlIFVOQ0xFQVIuIEEgZnVsbC10ZXh0CnJlYWRpbmcgZm9sbG93cyBmb3IgZXZlcnkgY2FuZGlkYXRlIG5vdCBleGNsdWRlZCBoZXJlLCBzbyBwcmVmZXIgVU5DTEVBUiB3aGVuZXZlciB0aGUgYWJzdHJhY3QgZG9lcyBub3QgZGVjaWRlLgoKUFJPVE9DT0w6IEluIGhvc3BpdGFsaXNlZCBhZHVsdHMgd2l0aCBDT1ZJRC0xOSwgZG9lcyB0b2NpbGl6dW1hYiByZWR1Y2UgMjgtZGF5IGFsbC1jYXVzZSBtb3J0YWxpdHkgdmVyc3VzIHVzdWFsIGNhcmUsIHN0YW5kYXJkIGNhcmUsIG9yIHBsYWNlYm8/ClBSSU1BUlkgT1VUQ09NRTogMjgtZGF5IGFsbC1jYXVzZSBtb3J0YWxpdHkgKGVzdGltYW5kIE9SKQpDUklURVJJQToKQzJfUkNUX09OTFk6IFBBU1MgaWYgdGhlIGFuYWx5c2lzIHBvb2xzIHJhbmRvbWlzZWQgY29udHJvbGxlZCB0cmlhbHMgb25seSAoaXRzIG93biBlbGlnaWJpbGl0eSAvIG1ldGhvZHMgc3RhdGVtZW50KQpDM19QT1BVTEFUSU9OOiBQQVNTIGlmIHRoZSBwb29sZWQgYW5hbHlzaXMgaXMgaW4gdGhlIHByb3RvY29sJ3MgcG9wdWxhdGlvbjogSW4gaG9zcGl0YWxpc2VkIGFkdWx0cyB3aXRoIENPVklELTE5LCBkb2VzIHRvY2lsaXp1bWFiIHJlZHVjZSAyOC1kYXkgYWxsLWNhdXNlIG1vcnRhbGl0eSB2ZXJzdXMgdXN1YWwgY2FyZSwgc3RhbmRhcmQgY2FyZSwgb3IgcGxhY2Vibz8gKGVsaWdpYmlsaXR5OiBSQ1Q7IGhvc3BpdGFsaXNlZCBDT1ZJRC0xOSBieSB0aXRsZSBvciByZWdpc3RyeSBjb25kaXRpb25zOyB0b2NpbGl6dW1hYiB2cyB1c3VhbCBjYXJlLCBzdGFuZGFyZCBjYXJlLCBwbGFjZWJvLCBvciBzdXBwb3J0aXZlIGNhcmU7IFAvSS9DL2Rlc2lnbiBvbmx5OyBkb3VibGUtYmxpbmRpbmcgbm90IHJlcXVpcmVkLikKQzRfSU5URVJWRU5USU9OX1ZTX0NPTVBBUkFUT1I6IFBBU1MgaWYgdGhlIHBvb2xlZCBjb21wYXJpc29uIGlzIHRvY2lsaXp1bWFiIC8gdGN6IC8gaWwtNiBhbnRhZ29uaXN0IC8gaWwtNiByZWNlcHRvciBhbnRhZ29uaXN0IHZlcnN1cyB1c3VhbCBjYXJlIC8gc3RhbmRhcmQgY2FyZSAvIHN0YW5kYXJkIG9mIGNhcmUgLyBzdGFuZGFyZCB0cmVhdG1lbnQgLyBwbGFjZWJvIC8gY29udHJvbApDNV9PVVRDT01FX0FORF9FU1RJTUFORDogUEFTUyBpZiBpdCBwb29scyAyOC1kYXkgYWxsLWNhdXNlIG1vcnRhbGl0eSAocHJvdG9jb2wgdGltZXBvaW50OiAyOCBkYXlzKSBvbiB0aGUgZXN0aW1hbmQgZmFtaWx5IHJhdGlvIChIUiwgUlIgb3IgT1IpCj09PSBUSVRMRSBBTkQgQUJTVFJBQ1QgPT09ClRvY2lsaXp1bWFiIGFuZCBDT1ZJRC0xOTogYSBtZXRhLWFuYWx5c2lzIG9mIDIxMjAgcGF0aWVudHMgd2l0aCBzZXZlcmUgZGlzZWFzZSBhbmQgaW1wbGljYXRpb25zIGZvciBjbGluaWNhbCB0cmlhbCBtZXRob2RvbG9naWVzCkJhY2tncm91bmQvYWltClNpbmNlIHRoZSBvdXRicmVhayBvZiB0aGUgQ09WSUQtMTksIG51bWVyb3VzIHRoZXJhcGllcyB0byBjb3VudGVyYWN0IHRoaXMgc2V2ZXJlIGRpc2Vhc2UgaGF2ZSBlbWVyZ2VkLiBUaGUgYmVuZWZpdHMgb2YgVG9jaWxpenVtYWIgZm9yIHNldmVyZWx5IGluZmVjdGVkIENPVklELTE5IHBhdGllbnRzIGFuZCB0aGUgbWV0aG9kb2xvZ2llcyBvZiBvbmdvaW5nIGNsaW5pY2FsIHRyaWFscyBhcmUgZXhwbG9yZWQuCk1hdGVyaWFscyBhbmQgbWV0aG9kcwpBIHN5c3RlbWF0aWMgc2VhcmNoIGFkaGVyaW5nIHRvIFBSSVNNQSBndWlkZWxpbmVzIHdhcyBjb25kdWN0ZWQgaW4gUHViTWVkLCBDb2NocmFuZSBDZW50cmFsLCBtZWRSeGl2LCBhbmQgYmlvUnhpdiB1c2luZyB0aGUgZm9sbG93aW5nIGtleXdvcmRzOiDigJxUb2NpbGl6dW1hYizigJ0g4oCcQWN0ZW1yYSzigJ0g4oCcQ09WSUQtMTku4oCdIEFuIGFkZGl0aW9uYWwgc3Vic2VhcmNoIHdhcyBjb25kdWN0ZWQgb24gQ2xpbmljYWx0cmlhbHMuZ292IHRvIGxvY2F0ZSBvbmdvaW5nIHRvY2lsaXp1bWFiIHRyaWFscy4KUmVzdWx0cwpBIHRvdGFsIG9mIDEzIHN0dWRpZXMgd2VyZSBpbmNsdWRlZCBpbiB0aGUgbWV0YS1hbmFseXNpcyBjb21wcmlzaW5nIDIxMjAgcGF0aWVudHMuIFRoZSB0cmVhdG1lbnQgZ3JvdXAgaGFkIGxvd2VyIG1vcnRhbGl0eSBjb21wYXJlZCB0byB0aGUgY29udHJvbCBncm91cCAoT1IgPSAwLjQyLCA5NSUgQ0kgPSAwLjI2IHRvIDAuNjksIFAgPSAwLjAwMDUsIEkyID0gNTUlKS4gQSBkZXNjcmlwdGl2ZSBhbmFseXNpcyBvZiA1MCByZWdpc3RlcmVkIHRyaWFscyB3YXMgY29uZHVjdGVkLgpDb25jbHVzaW9uClRoaXMgcmV2aWV3IG1ldGEtYW5hbHl6ZWQgdGhlIHRoZXJhcGV1dGljIGJlbmVmaXRzIG9mIHRvY2lsaXp1bWFiIGluIENPVklELTE5IHBhdGllbnRzIHdpdGggc2V2ZXJlIGRpc2Vhc2UgZm9yIG1vcnRhbGl0eSwgbWVjaGFuaWNhbCB2ZW50aWxhdGlvbiwgYW5kIHRoZSBjaGFyYWN0ZXJpc3RpY3Mgb2YgQ09WSUQtMTkgcmVnaXN0ZXJlZCB0cmlhbHMuCg==",
+  "bytes": 2770,
+  "sha256": "a3ad43dca93bc86b6d84c9be98752c3e15d02e5682cb929d995c1ce639dd7baf"
+ },
+ "record_id": "mc-b9de8b6d703a4059018fefaa539d1cbf",
+ "request_utc": "2026-10-06T18:34:23Z",
+ "response": {
+  "b64": "eyJjcml0ZXJpYSI6eyJDMl9SQ1RfT05MWSI6eyJ2ZXJkaWN0IjoiVU5DTEVBUiIsInF1b3RlIjoiQSB0b3RhbCBvZiAxMyBzdHVkaWVzIHdlcmUgaW5jbHVkZWQgaW4gdGhlIG1ldGEtYW5hbHlzaXMgY29tcHJpc2luZyAyMTIwIHBhdGllbnRzLiJ9LCJDM19QT1BVTEFUSU9OIjp7InZlcmRpY3QiOiJVTkNMRUFSIiwicXVvdGUiOiJUaGUgYmVuZWZpdHMgb2YgVG9jaWxpenVtYWIgZm9yIHNldmVyZWx5IGluZmVjdGVkIENPVklELTE5IHBhdGllbnRzIGFuZCB0aGUgbWV0aG9kb2xvZ2llcyBvZiBvbmdvaW5nIGNsaW5pY2FsIHRyaWFscyBhcmUgZXhwbG9yZWQuIn0sIkM0X0lOVEVSVkVOVElPTl9WU19DT01QQVJBVE9SIjp7InZlcmRpY3QiOiJQQVNTIiwicXVvdGUiOiJUaGUgdHJlYXRtZW50IGdyb3VwIGhhZCBsb3dlciBtb3J0YWxpdHkgY29tcGFyZWQgdG8gdGhlIGNvbnRyb2wgZ3JvdXAgKE9SID0gMC40MiwgOTUlIENJID0gMC4yNiB0byAwLjY5LCBQID0gMC4wMDA1LCBJMiA9IDU1JSkuIn0sIkM1X09VVENPTUVfQU5EX0VTVElNQU5EIjp7InZlcmRpY3QiOiJVTkNMRUFSIiwicXVvdGUiOiJUaGUgdHJlYXRtZW50IGdyb3VwIGhhZCBsb3dlciBtb3J0YWxpdHkgY29tcGFyZWQgdG8gdGhlIGNvbnRyb2wgZ3JvdXAgKE9SID0gMC40MiwgOTUlIENJID0gMC4yNiB0byAwLjY5LCBQID0gMC4wMDA1LCBJMiA9IDU1JSkuIn19fQ==",
+  "bytes": 697,
+  "sha256": "da3c7d172ffb3dd1e36d8c866cc126341af57925e5d1a894f111e169421854e5"
+ },
+ "response_utc": "2026-10-06T18:34:39Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}
