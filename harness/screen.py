@@ -597,8 +597,11 @@ def screen_record(rec, inc, neg_pmids):
         # inclusion only (exclusions were judged above), and only from sentences about THIS study: the whole abstract
         # let in a retrospective cohort, a society position paper and a C. difficile TREATMENT trial whose background
         # named the outcome (recorded radius review: 4 of 12 non-comparator flips contradicted)
-        own = this_study_sentences(rec)
-        pop_haystack, pop_haystack_raw = (poptext + " " + own.lower()), (raw_pop + " " + own)
+        # `own` stays a LIST of kept sentences: the include-span fallback below iterates it (merge 7 Oct: a string here
+        # raised TypeError; plant test_merge_7oct_a_this_study_span_crossing_the_join_never_crashes)
+        this_study = this_study_sentences(rec)
+        own = [this_study] if this_study else []
+        pop_haystack, pop_haystack_raw = (poptext + " " + this_study.lower()), (raw_pop + " " + this_study)
     popok = _has(pop_haystack, population_any)
     enrolled = None if popok or not population_any else enrolled_population(rec, population_any)
     if enrolled:

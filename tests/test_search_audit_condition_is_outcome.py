@@ -71,3 +71,17 @@ def test_an_economic_evaluation_alongside_a_trial_is_not_the_trials_primary_repo
     rec = dict(TRIAL, title="Health economic evaluation alongside the PROSPECT randomized trial of probiotics.")
     d = _decide(rec)
     assert d["rule_id"] == "X1" and "economic evaluation" in d["reason"]
+
+
+def test_merge_7oct_a_this_study_span_crossing_the_join_never_crashes():
+    # merge of V8 (7 Oct): V8's include-span fallback iterates `own` as a LIST of kept sentences; the CONDITION_IS_OUTCOME
+    # path had rebound `own` to the joined this-study STRING, so `[raw_pop] + own` raised TypeError on any topic where
+    # the rule is derived and not prevention (iv-iron-hfref-hosp among the active topics) whenever the population
+    # window crossed the title/abstract join
+    cfg = json.load(open(os.path.join(ROOT, "topics", "iv-iron-hfref-hosp.json"), encoding="utf-8"))
+    rec = {"id": "1", "id_type": "pmid", "pubtypes": ["Randomized Controlled Trial"],
+           "title": "Ferric carboxymaltose for iron deficiency: a randomized placebo-controlled trial.",
+           "abstract": "BACKGROUND: Iron deficiency is common. METHODS: Heart failure patients were randomized to ferric "
+                       "carboxymaltose or placebo."}
+    d = _decide(rec, cfg)
+    assert d["decision"] == "include" and "Heart failure" in d["span"], d
