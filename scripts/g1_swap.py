@@ -317,7 +317,24 @@ def label_cites(lab, xml, refs):
     return out
 
 
-def pooled_gate(pl, nt):
+_TRIAL_ADJ = r"(?:randomi[sz]ed|controlled|clinical|phase\s*(?:[1-4]|iv|i{1,3}))"
+_COUNT_WORDS = ("one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
+                "seventeen eighteen nineteen twenty").split()
+
+
+def printed_counts(q):
+    """Trial counts PRINTED in a quote: 'k = n'; or n -- digits or a number word -- followed by up to three TRIAL
+    ADJECTIVES (randomised, controlled, clinical, Phase 3) and then trials / studies / RCTs. A digit that is itself a phase
+    number ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
+    out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", q or "", re.I)}
+    tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
+    out |= {int(x) for x in re.findall(r"(?<!phase )(?<!phase)\b(\d+)" + tail, q or "", re.I)}
+    out |= {_COUNT_WORDS.index(w.lower()) + 1
+            for w in re.findall(r"\b(" + "|".join(_COUNT_WORDS) + r")" + tail, q or "", re.I)}
+    return out
+
+
+def pooled_gate(pl, nt, set_quote=None):
     """The pooled claim stands only if its quote is verbatim in the held text, every stated estimate / bound EQUALS a whole
     numeric token of that quote (never a substring: '0.8' inside '0.85' -- g2#3), and a stated k is PRINTED in the quote
     as 'k = n' or 'n trials / studies / RCTs' (g2#4: an invented k reached the T3 largest-k tie-break). Returns
@@ -337,9 +354,11 @@ def pooled_gate(pl, nt):
             return None, None
     k = pl.get("k")
     if k is not None:
-        printed = {int(x) for pair in re.findall(r"\bk\s*=\s*(\d+)|\b(\d+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?"
-                                                  r"(?:clinical\s+)?(?:trials|studies|rcts)\b", q, re.I)
-                   for x in pair if x}
+        printed = printed_counts(q)
+        # ... or printed in the meta's own SET QUOTE, when that quote is verbatim in the held text (doac 29795629: 'In the
+        # five Phase 3 studies ...'); a set quote that is not in the text is never read
+        if set_quote and _quoted(set_quote, nt):
+            printed |= printed_counts(set_quote)
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
         try:
@@ -803,7 +822,7 @@ def gate_enum(claim, it):
         span = rq if rq else (r.get("title") or lab)
         units.append({"label": lab, "ref": ref, "pmid": pmid, "identity": ident, "span": span, "scope": "IN_SCOPE",
                       "rule_id": None})
-    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt)
+    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt, set_quote=claim.get("set_quote"))
     sq = claim.get("set_quote")
     return units, refused, pooled, (sq if _quoted(sq, nt) else None)
 

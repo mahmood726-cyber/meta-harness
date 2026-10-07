@@ -96,3 +96,35 @@ def test_codex_v8_p1_fixes_round():
     # g1#3: a spaced citation range keeps its middle
     xml3 = _xml("Alpha [1 - 2].")
     assert sw.label_cites("Alpha", xml3, sw.jats_refs(xml3)) == {"1", "2"}
+
+
+# ---- k from the meta's own SET QUOTE, digits or a number word (doac-vte 29795629, 7 Oct) ------------------------------
+SET_Q = ("In the five Phase 3 studies of DOACs for acute treatment of patients with a DVT, participants randomized to "
+         "receive a DOAC did not differ (OR 0.88, CI 0.75-1.03).")
+
+
+def test_k_may_be_read_from_the_verbatim_set_quote_as_a_number_word():
+    nt = sw._norm(SET_Q)
+    pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": "OR 0.88, CI 0.75-1.03"}
+    got, k = sw.pooled_gate(pl, nt, set_quote=SET_Q)
+    assert got and k == 5
+    assert sw.pooled_gate(pl, nt)[0] is None                      # without the set quote the k is not printed: refused
+
+
+def test_PLANT_a_phase_number_is_never_the_trial_count():
+    nt = sw._norm(SET_Q)
+    pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 3, "quote": "OR 0.88, CI 0.75-1.03"}
+    assert sw.pooled_gate(pl, nt, set_quote=SET_Q)[0] is None     # 'Phase 3 studies' is not k = 3
+
+
+def test_PLANT_a_set_quote_not_in_the_text_is_never_read():
+    nt = sw._norm("OR 0.88, CI 0.75-1.03 in some trials.")
+    pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": "OR 0.88, CI 0.75-1.03"}
+    assert sw.pooled_gate(pl, nt, set_quote="In the five studies we found OR 0.88, CI 0.75-1.03.")[0] is None
+
+
+def test_PLANT_only_trial_adjectives_may_stand_between_the_count_and_trials():
+    q = "Five large international multicentre studies reported OR 0.88, CI 0.75-1.03."
+    nt = sw._norm(q)
+    pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": "OR 0.88, CI 0.75-1.03"}
+    assert sw.pooled_gate(pl, nt, set_quote=q)[0] is None
