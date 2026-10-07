@@ -50,6 +50,12 @@ def build():
     if [by.get(s, {}).get("rank") for s in APPROVED] != list(range(1, len(APPROVED) + 1)) \
             or len(by) != len(rank["ranked"]):
         raise SystemExit("REFUSED: the approved ten are not ranks 1..10 of the ranking (or a slug is ranked twice)")
+    # the WHOLE ranking must be the rule applied: re-sorted by the rule's own order (U descending, then larger closed,
+    # then slug ascending) it must give exactly the recorded ranks, and only ranks 1..10 may carry abandon (codex
+    # abandon-ten-r3 g1#1: a later kept topic scoring above the ten passed a rank-11-only check)
+    resorted = sorted(rank["ranked"], key=lambda r: (-r["U"], -r["closed"], r["slug"]))
+    if [r["rank"] for r in resorted] != list(range(1, len(resorted) + 1)) or             any(bool(r.get("abandon")) != (r["rank"] <= len(APPROVED)) for r in rank["ranked"]):
+        raise SystemExit("REFUSED: the ranking is not the rule's own order (U desc, closed desc, slug asc)")
     nxt = next(r for r in rank["ranked"] if r["rank"] == len(APPROVED) + 1)
     if nxt["slug"] in APPROVED or nxt.get("abandon") or nxt["U"] > by[APPROVED[-1]]["U"]:
         raise SystemExit(f"REFUSED: rank {nxt['rank']} ({nxt['slug']}) contradicts the boundary")

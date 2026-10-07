@@ -860,7 +860,7 @@ def released(slugs):
         return []
     lst = _j(p).get("released")
     # an existing register that is malformed refuses; it never reads as 'nothing released' (codex abandon-ten-r2 g1#2)
-    if not isinstance(lst, list) or not lst or not all(isinstance(r, dict) and r.get("slug") for r in lst):
+    if not isinstance(lst, list) or not lst or not all(isinstance(r, dict) and isinstance(r.get("slug"), str) and r["slug"].strip() for r in lst):
         raise SystemExit(f"REFUSED: {p} has no valid 'released' list")
     rel = {r["slug"] for r in lst}
     return [s for s in slugs if s in rel]

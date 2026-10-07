@@ -1727,5 +1727,48 @@
     "verdict": null
    }
   ]
+ },
+ "abandon-ten-r3": {
+  "base": "20915e04f",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b48ba00082b666c5e601a483953c5045",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "dfb7c40193ba312a7dd7cde5a920fac0216d951910603f13aa6bfaefafeb9527"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P1",
+    "claim": "The boundary gate checks only rank 11. A later kept topic can have a score exceeding every abandoned topic, yet build() accepts the contradictory ranking and produces the register.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_abandon_apply as m\nimport json\n\nwith open(m.RANK, encoding='utf-8') as <outside-workdir>/n    rank = json.load(f)\nrow = next(r for r in rank['ranked'] if r['rank'] > 11)\nrow['U'] = max(r['U'] for r in rank['ranked']) + 1\nwith patch.object(m.json, 'load', return_value=rank):\n    result = m.build()\n    print(row['U'] > result['boundary']['last_abandoned']['U'])",
+    "expected": "Refuse the internally inconsistent ranking: a kept topic scores higher than the purported ten highest-scoring topics.",
+    "actual": "build() returns the abandonment register; the print outputs True. No check examines the scores of ranks after 11.",
+    "id": "abandon-ten-r3:g1#1",
+    "record_id": "mc-b48ba00082b666c5e601a483953c5045",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "released",
+    "severity": "P2",
+    "claim": "The malformed-register gate accepts non-string, truthy slugs. A numeric slug silently becomes an entry that cannot match a CLI topic argument, allowing processing instead of refusing the malformed register.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_swap as m\n\nwith patch.object(m.os.path, 'exists', return_value=True), patch.object(m, '_j', return_value={'released': [{'slug': 123}]}):\n    print(m.released(['123']))",
+    "expected": "Raise SystemExit because the existing release register contains an invalid slug type.",
+    "actual": "Returns and prints []; the CLI's release guard therefore permits dispatch.",
+    "id": "abandon-ten-r3:g1#2",
+    "record_id": "mc-b48ba00082b666c5e601a483953c5045",
+    "verdict": null
+   }
+  ]
  }
 }

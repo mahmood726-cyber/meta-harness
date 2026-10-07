@@ -111,8 +111,20 @@ def test_PLANT_a_self_contradicting_ranking_refuses(monkeypatch, tmp_path):
 
 def test_PLANT_a_malformed_release_register_refuses(monkeypatch):
     import g1_swap as g
-    for bad in ({"released": None}, {"released": []}, {"released": [{"no": "slug"}]}):
+    for bad in ({"released": None}, {"released": []}, {"released": [{"no": "slug"}]}, {"released": [{"slug": 123}]}):
         monkeypatch.setattr(g, "_j", lambda p, bad=bad: bad)
         monkeypatch.setattr(g.os.path, "exists", lambda p: True)
         with pytest.raises(SystemExit):
             g.released(["pcsk9-mace"])
+
+
+def test_PLANT_a_kept_topic_scoring_above_the_ten_refuses(monkeypatch, tmp_path):
+    import g1_abandon_apply as ap
+    rank = json.loads((ROOT / "outputs" / "k_gap" / "g1_abandon_rank.json").read_text(encoding="utf-8"))
+    row = next(r for r in rank["ranked"] if r["rank"] > 11)          # a later kept topic (codex abandon-ten-r3 g1#1)
+    row["U"] = max(r["U"] for r in rank["ranked"]) + 1
+    p = tmp_path / "rank.json"
+    p.write_text(json.dumps(rank), encoding="utf-8")
+    monkeypatch.setattr(ap, "RANK", str(p))
+    with pytest.raises(SystemExit):
+        ap.build()
