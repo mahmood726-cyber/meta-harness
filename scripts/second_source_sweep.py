@@ -35,7 +35,9 @@ def _load_json(*parts):
 
 def _core(slug):
     cfg = _load_json("topics", slug + ".json")
-    records = _load_json("cache", slug, "records.json")
+    from harness import fetch as _fetch          # records.json + a signed comparator's overlay, as the served build reads
+    records = _fetch._with_comparator_records(_load_json("cache", slug, "records.json"), cfg,
+                                              os.path.join(ROOT, "cache", slug))
     return build_review_core(slug, cfg, records, protocol_sha(slug))
 
 

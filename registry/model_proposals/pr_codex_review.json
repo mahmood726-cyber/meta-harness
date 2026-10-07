@@ -970,5 +970,934 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "binding-v8-fe3ed2a7": {
+  "base": "73a231a3ef7f1dd5abe41e694badd505d3ecd7c4",
+  "head": "fe3ed2a77882508f6af911a75dc2dadf03ab995d",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "state": "RAN_OK",
+    "files": [
+     "kgap/k_gap.py",
+     "kgap/runs_store.py",
+     "scripts/g1_audit_primary.py",
+     "scripts/g1_binding_aact.py",
+     "scripts/g1_binding_enumerate.py",
+     "scripts/g1_binding_locate.py",
+     "scripts/g1_comparator_select.py",
+     "scripts/g1_licence.py",
+     "scripts/g1_remote_codex.py"
+    ],
+    "prompt_sha256": "6636317742679a1c6d7f57589785f578ea43ec167249b784b418626ee98d3c8d"
+   },
+   "g2": {
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py",
+     "scripts/g1_tracker.py",
+     "scripts/k_gap_table.py",
+     "scripts/secondary_meta_build.py"
+    ],
+    "prompt_sha256": "67389e7d25054eb036735ab70351ba72fe794e1427101241107acbfd6ebc1fc4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_binding_aact.py",
+    "function": "arm_role",
+    "severity": "P1",
+    "claim": "The placebo-matching regex consumes at most two words after 'to match'. A dose before the drug name leaves the drug in the remaining text and misclassifies its placebo as intervention.",
+    "failing_input": "from scripts.g1_binding_aact import arm_role\narm_role('Placebo to match 56 mg esketamine', ['esketamine'])",
+    "expected": "'control'",
+    "actual": "'intervention'",
+    "id": "binding-v8-fe3ed2a7:g1#1",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_binding_enumerate.py",
+    "function": "arm_scope",
+    "severity": "P1",
+    "claim": "An alphabetic control description is treated as an identifiable active drug unless it exactly matches UNKNOWN_ARM. Adding a conventional abbreviation to 'usual care' therefore creates an unsupported exclusion.",
+    "failing_input": "from scripts.g1_binding_enumerate import arm_scope\narm_scope([{'drug': 'esketamine'}, {'drug': 'Usual care (TAU)'}], ['esketamine'], ['placebo'])",
+    "expected": "'UNRESOLVED'",
+    "actual": "'OUT_OF_SCOPE:COMPARATOR_NOT_PLACEBO'",
+    "id": "binding-v8-fe3ed2a7:g1#2",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "compare",
+    "severity": "P1",
+    "claim": "The continuous-arm comparison never compares sd_c, so an incorrect control-arm standard deviation receives CONFIRMED.",
+    "failing_input": "from scripts.g1_audit_primary import compare\ncompare({'arms': [{'label': 'esketamine', 'mean': '1', 'sd': '2', 'n': '100'}, {'label': 'placebo', 'mean': '0', 'sd': '3', 'n': '100'}]}, {'mean_t': 1, 'sd_t': 2, 'n_t': 100, 'mean_c': 0, 'sd_c': 999, 'n_c': 100}, ['esketamine'])",
+    "expected": "('DISAGREE', 'ARMS'): the reader's control SD is 3, whereas ours is 999.",
+    "actual": "('CONFIRMED', 'ARMS')",
+    "id": "binding-v8-fe3ed2a7:g1#3",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "compare",
+    "severity": "P1",
+    "claim": "Count comparison removes decimal points instead of parsing numeric values. Integer-valued decimal strings can falsely confirm counts and denominators ten times larger than those printed.",
+    "failing_input": "from scripts.g1_audit_primary import compare\ncompare({'events_t': '1.0', 'n_t': '100.0', 'events_c': '2.0', 'n_c': '100.0'}, {'events_t': 10, 'n_t': 1000, 'events_c': 20, 'n_c': 1000}, [])",
+    "expected": "('DISAGREE', 'COUNTS'), or explicit rejection of decimal count syntax.",
+    "actual": "('CONFIRMED', 'COUNTS'): the copied strings become [10, 1000, 20, 1000].",
+    "id": "binding-v8-fe3ed2a7:g1#4",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "compare",
+    "severity": "P1",
+    "claim": "Effect comparison ignores the measure. Identical printed numbers for a hazard ratio and a risk ratio are falsely treated as confirmation of the same result.",
+    "failing_input": "from scripts.g1_audit_primary import compare\ncompare({'measure': 'HR', 'point': '0.8', 'lower': '0.7', 'upper': '0.9'}, {'measure': 'RR', 'effect': '0.8', 'lower': '0.7', 'upper': '0.9'}, [])",
+    "expected": "NOT_COMPARABLE because HR and RR are different measures.",
+    "actual": "('CONFIRMED', 'EFFECT_CI')",
+    "id": "binding-v8-fe3ed2a7:g1#5",
+    "record_id": "mc-b46275d6f5da645e85f95d3e5727ab4c",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "numbers_in_span",
+    "severity": "P0",
+    "claim": "Positive effects match genuinely negative printed effects because every negative token is also compared by magnitude. typed_comparator_rows therefore accepts a reversed effect sign.",
+    "failing_input": "numbers_in_span({'effect': '1.7'}, 'Mean difference: -1.7', ('effect',))",
+    "expected": "False: the printed effect is -1.7.",
+    "actual": "True.",
+    "id": "binding-v8-fe3ed2a7:g2#1",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "reproduced_on": "origin/g1/binding-on-d0848a72 fe3ed2a7 (captain, 6 Oct)",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "numbers_in_span",
+    "severity": "P0",
+    "claim": "The new row gate accepts percentages as event counts. It checks numeric equality without checking whether the printed token denotes a count.",
+    "failing_input": "numbers_in_span({'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 200}, 'Treatment: N=200, deaths 10%; Control: N=200, deaths 20%.', ('events_t', 'n_t', 'events_c', 'n_c'))",
+    "expected": "False: neither 10 nor 20 is printed as a death count; percentages must not populate events_t/events_c.",
+    "actual": "True. These fields pass the numeric gate used by typed_comparator_rows.",
+    "id": "binding-v8-fe3ed2a7:g2#2",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "reproduced_on": "origin/g1/binding-on-d0848a72 fe3ed2a7 (captain, 6 Oct)",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "gate_screen; gate_enum",
+    "severity": "P0",
+    "claim": "Pooled estimates and bounds are validated by substring membership rather than complete numeric tokens. Incorrect values can pass and subsequently populate cmd_apply's pooled_result.",
+    "failing_input": "from scripts.g1_swap import gate_screen\nq = 'RR 0.85 (95% CI 0.70-1.03); 12 trials.'\np = {'measure': 'RR', 'estimate': '0.8', 'lower': '0.7', 'upper': '1.0', 'k': 12, 'quote': q}\nprint(gate_screen({'criteria': {}, 'pooled': p}, q))",
+    "expected": "Reject the pooled claim: the printed estimate and upper bound are 0.85 and 1.03.",
+    "actual": "Returns ({}, p, 12), preserving the incorrect estimate 0.8 and upper bound 1.0. gate_enum uses the same substring check.",
+    "id": "binding-v8-fe3ed2a7:g2#3",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "reproduced_on": "origin/g1/binding-on-d0848a72 fe3ed2a7 (captain, 6 Oct)",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "gate_screen; gate_enum",
+    "severity": "P0",
+    "claim": "The claimed trial count k is never checked against the quote. An invented count reaches the selection tie-break and, through enumeration, the adopted pooled result.",
+    "failing_input": "from scripts.g1_swap import gate_screen\nq = 'RR 0.85 (95% CI 0.70-1.03); 12 trials.'\np = {'measure': 'RR', 'estimate': '0.85', 'lower': '0.70', 'upper': '1.03', 'k': 999, 'quote': q}\nprint(gate_screen({'criteria': {}, 'pooled': p}, q))",
+    "expected": "Reject the unsupported k=999; the source prints 12 trials.",
+    "actual": "Returns ({}, p, 999). cmd_screen assigns 999 to T3_LARGEST_K. gate_enum also preserves the unchecked k.",
+    "id": "binding-v8-fe3ed2a7:g2#4",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "reproduced_on": "origin/g1/binding-on-d0848a72 fe3ed2a7 (captain, 6 Oct)",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "gate_screen",
+    "severity": "P1",
+    "claim": "A whitespace-only quote passes the evidence gate because it normalizes to the empty string, which is contained in every text. Unsupported PASS or FAIL classifications are accepted.",
+    "failing_input": "from scripts.g1_swap import gate_screen\nprint(gate_screen({'criteria': {'C2_RCT_ONLY': {'verdict': 'PASS', 'quote': '   '}}}, 'This review includes observational cohorts only.'))",
+    "expected": "C2_RCT_ONLY is UNCLEAR because no evidence was supplied.",
+    "actual": "({'C2_RCT_ONLY': {'verdict': 'PASS', 'evidence': '   '}}, None, None)",
+    "id": "binding-v8-fe3ed2a7:g2#5",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "gate_enum",
+    "severity": "P1",
+    "claim": "The trial label and reference number are checked independently. A label belonging to reference 1 can be bound to reference 2's PMID, even when the text explicitly excludes reference 2.",
+    "failing_input": "from scripts.g1_swap import gate_enum, jats_text\nxml = '<article><p>Included: Alpha [1]. Excluded: Beta [2].</p><ref id=\"r1\"><label>1</label><article-title>Alpha trial</article-title><pub-id pub-id-type=\"pmid\">11111111</pub-id></ref><ref id=\"r2\"><label>2</label><article-title>Beta trial</article-title><pub-id pub-id-type=\"pmid\">22222222</pub-id></ref></article>'\nclaim = {'trials': [{'label': 'Alpha', 'ref': '2', 'row_quote': None}], 'pooled': {}, 'set_quote': None}\nprint(gate_enum(claim, {'text': jats_text(xml), 'xml': xml, 'pmid': '33333333'}))",
+    "expected": "Refuse the mismatched label/reference pair; Alpha belongs to reference 1 and PMID 11111111.",
+    "actual": "Returns one IN_SCOPE unit with label 'Alpha', ref '2', pmid '22222222', identity 'COMPARATOR_REFERENCE_LIST_PMID', and span 'Beta trial'; refused is empty.",
+    "id": "binding-v8-fe3ed2a7:g2#6",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "cmd_enumerate",
+    "severity": "P1",
+    "claim": "Enumeration is marked complete whenever at least one unit passes and none is refused. It never checks whether the model omitted trials, even when the accepted pooled result explicitly states a larger k. cmd_apply accepts this incomplete trial set.",
+    "failing_input": "from scripts.g1_swap import gate_enum, jats_text\nq = 'Two trials contributed: Alpha [1] and Beta [2]. RR 0.85 (95% CI 0.70-1.03).'\nxml = '<article><p>' + q + '</p><ref id=\"r1\"><label>1</label><article-title>Alpha trial</article-title><pub-id pub-id-type=\"pmid\">11111111</pub-id></ref><ref id=\"r2\"><label>2</label><article-title>Beta trial</article-title><pub-id pub-id-type=\"pmid\">22222222</pub-id></ref></article>'\nclaim = {'trials': [{'label': 'Alpha', 'ref': '1', 'row_quote': None}], 'set_quote': q, 'pooled': {'measure': 'RR', 'estimate': '0.85', 'lower': '0.70', 'upper': '1.03', 'k': 2, 'quote': q}}\nunits, refused, pooled, sq = gate_enum(claim, {'text': jats_text(xml), 'xml': xml, 'pmid': '33333333'})\n# Exact status expression from cmd_enumerate:\nprint('ENUMERATED' if units and not refused else ('ENUMERATION_INCOMPLETE' if units else 'NOT_ENUMERATED'))",
+    "expected": "ENUMERATION_INCOMPLETE: Beta is missing from a source-backed two-trial analysis.",
+    "actual": "ENUMERATED, with one unit, no refusals, and an accepted pooled result whose k is 2.",
+    "id": "binding-v8-fe3ed2a7:g2#7",
+    "record_id": "mc-486c686829fd32da4e18c44aec939e28",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   }
+  ]
+ },
+ "captain-v8-groundwork": {
+  "base": "origin/main",
+  "head": "45d699bbf26d7d098979338a7368c9f633e8539b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c132c6451c2e1fb33c42c3a755317401",
+    "state": "RAN_OK",
+    "files": [
+     "harness/target_endpoint.py",
+     "scripts/derive_outcome_notices.py",
+     "scripts/signing_packet.py"
+    ],
+    "prompt_sha256": "bf3cb8917c751aa65679ab99f3584602c33a2bcf52fee2ab9f6a81de707f0e4c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/target_endpoint.py",
+    "function": "_components_from_text",
+    "severity": "P1",
+    "claim": "The new verb pattern classifies an enrollment population as a heart-failure hospitalization endpoint. Using 'for' instead of 'with' does not distinguish an endpoint from a population description.",
+    "failing_input": "_components_from_text('Patients hospitalized for heart failure were eligible for enrollment.')",
+    "expected": "No 'heart failure hospitalization' endpoint component: the sentence describes eligibility, not an outcome.",
+    "actual": "The added regex matches 'hospitalized for heart failure' and adds 'heart failure hospitalization' to comps.",
+    "id": "captain-v8-groundwork:g1#1",
+    "record_id": "mc-c132c6451c2e1fb33c42c3a755317401",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_in": "next commit on v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/signing_packet.py",
+    "function": "served_outcome_changes",
+    "severity": "P2",
+    "claim": "A failed Git baseline lookup silently becomes an empty baseline because the subprocess return code and stderr are ignored. This can report no changes when comparison could not be performed.",
+    "failing_input": "From the project root, with neither the named ref nor review present: served_outcome_changes(Path('.'), '__missing_review__', '__missing_ref__')",
+    "expected": "An explicit failure identifying the unreadable baseline; completeness must not pass without a successful baseline lookup.",
+    "actual": "Git returns a nonzero status with empty stdout. Both baseline and candidate become {'outcomes': []}, and the function returns [].",
+    "id": "captain-v8-groundwork:g1#2",
+    "record_id": "mc-c132c6451c2e1fb33c42c3a755317401",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_in": "next commit on v8/comparator-switches-2026-10-06"
+   }
+  ]
+ },
+ "v8-p0-fixes": {
+  "base": "836bbc67c",
+  "head": "9ff0e26ed",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1a9ac6aa683c6cb432b8343aa3364bfa",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "5a32caa43adc62f6bbff6589975356cb0aa4401a5579836d88360983b3e26fe8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "numbers_in_span",
+    "severity": "P0",
+    "claim": "The count filter excludes only numbers followed by '%'; percentages written as 'percent' still validate as death counts.",
+    "failing_input": "numbers_in_span({'events': 10}, 'Deaths occurred in 10 percent of participants.', ['events'])",
+    "expected": "False: the span reports a percentage, not 10 deaths.",
+    "actual": "True.",
+    "id": "v8-p0-fixes:g1#1",
+    "record_id": "mc-1a9ac6aa683c6cb432b8343aa3364bfa",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_num_tokens / pooled_gate",
+    "severity": "P0",
+    "claim": "The tokenizer drops leading decimal points, allowing fabricated estimates and bounds to pass as whole numeric tokens.",
+    "failing_input": "q = 'Pooled RR .85 (95% CI .70 to 1.03), 4 trials.'; pl = {'quote': q, 'estimate': 85, 'lower': 70, 'upper': 1.03, 'k': 4}; pooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the printed estimate and lower bound are 0.85 and 0.70, not 85 and 70.",
+    "actual": "(pl, 4): _num_tokens(q) returns [85.0, 95.0, 70.0, 1.03, 4.0].",
+    "id": "v8-p0-fixes:g1#2",
+    "record_id": "mc-1a9ac6aa683c6cb432b8343aa3364bfa",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P1",
+    "claim": "Converting k with int() silently truncates fractional claims during validation, then returns the unvalidated original value for downstream trial-count ranking.",
+    "failing_input": "q = 'Pooled RR 0.85 (95% CI 0.70 to 1.03), 3 trials.'; pl = {'quote': q, 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 3.9}; pooled_gate(pl, _norm(q))",
+    "expected": "(None, None): 3.9 is neither an integer trial count nor the printed count of 3.",
+    "actual": "(pl, 3.9), because int(3.9) matches the printed 3.",
+    "id": "v8-p0-fixes:g1#3",
+    "record_id": "mc-1a9ac6aa683c6cb432b8343aa3364bfa",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "numbers_in_span",
+    "severity": "P1",
+    "claim": "The new sign rule treats a range dash preceded by whitespace as a minus sign, rejecting correctly extracted positive confidence bounds.",
+    "failing_input": "numbers_in_span({'lower': 0.70, 'upper': 1.03}, 'RR 0.85 (95% CI 0.70 –1.03)', ['lower', 'upper'])",
+    "expected": "True: both positive bounds are printed in the confidence interval.",
+    "actual": "False: the upper bound is tokenized as -1.03. The same defect occurs in scripts/g1_swap.py::_num_tokens.",
+    "id": "v8-p0-fixes:g1#4",
+    "record_id": "mc-1a9ac6aa683c6cb432b8343aa3364bfa",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   }
+  ]
+ },
+ "v8-p1-fixes": {
+  "base": "9ff0e26ed",
+  "head": "99fba0526",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_audit_primary.py",
+     "scripts/g1_binding_aact.py",
+     "scripts/g1_binding_enumerate.py",
+     "scripts/g1_swap.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "6b3bf1483b20936e21fa951dcdf9702a87be5e83052c99bd5fbe7aa1b2b462f0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_num_tokens",
+    "severity": "P0",
+    "claim": "Stripping preceding whitespace makes consecutive negative table values look like positive range endpoints. The same changed logic appears in numbers_in_span.",
+    "failing_input": "_num_tokens('Mean difference and 95% CI: -1.2 -2.0 -0.4')",
+    "expected": "[95.0, -1.2, -2.0, -0.4]",
+    "actual": "[95.0, -1.2, 2.0, 0.4]",
+    "id": "v8-p1-fixes:g1#1",
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "label_cites",
+    "severity": "P1",
+    "claim": "Labels match inside other author names, allowing another study's citation to satisfy the new binding check.",
+    "failing_input": "label_cites('Lee', '<p>Lee [1]. McLee [2].</p>', {})",
+    "expected": "{'1'}; reference 2 must not count as evidence for Lee.",
+    "actual": "{'1', '2'}; gate_enum's new check therefore does not reject reference 2.",
+    "id": "v8-p1-fixes:g1#2",
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "label_cites",
+    "severity": "P1",
+    "claim": "Whitespace around a citation-range dash drops intermediate references, causing the binding check to reject a correctly cited reference.",
+    "failing_input": "label_cites('Alpha', '<p>Alpha [1 - 3].</p>', {})",
+    "expected": "{'1', '2', '3'}",
+    "actual": "{'1', '3'}; gate_enum rejects reference 2 with LABEL_CITES_ANOTHER_REFERENCE:1,3.",
+    "id": "v8-p1-fixes:g1#3",
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "_count / compare",
+    "severity": "P0",
+    "claim": "Removing commas without validating thousands grouping converts a decimal-comma value into an integer and confirms the wrong count.",
+    "failing_input": "compare({'events_t': '1,5', 'n_t': '100', 'events_c': '2', 'n_c': '100'}, {'events_t': 15, 'n_t': 100, 'events_c': 2, 'n_c': 100}, [])",
+    "expected": "('NOT_COMPARABLE', 'COUNTS_NOT_INTEGERS'): '1,5' is not an integer with valid thousands separators.",
+    "actual": "('CONFIRMED', 'COUNTS'), because _count('1,5') returns 15.",
+    "id": "v8-p1-fixes:g1#4",
+    "record_id": "mc-d78c9a7165023efb4fb4ec5e6ee8e3a7",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   }
+  ]
+ },
+ "v8-round3": {
+  "base": "99fba0526",
+  "head": "fcbe058388235567a62e31d16276bf3391312726",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c0c51a29dfbe59ee4a20178dcf7cdea3",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_audit_primary.py",
+     "scripts/g1_swap.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "de008c416ea1b21795b34d5c10ac4cd7c842a683c6069d4cbb63857c4b6baf72"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_num_tokens",
+    "severity": "P0",
+    "claim": "A spaced range produces an additional, unprinted negative value. The new branch admits both signs instead of preserving the positive range endpoint, allowing incorrect numeric evidence.",
+    "failing_input": "_num_tokens('0.80 - 1.01')",
+    "expected": "[0.8, 1.01]",
+    "actual": "[0.8, 1.01, -1.01]",
+    "id": "v8-round3:g1#1",
+    "record_id": "mc-c0c51a29dfbe59ee4a20178dcf7cdea3",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   },
+   {
+    "file": "scripts/g1_audit_primary.py",
+    "function": "_count",
+    "severity": "P2",
+    "claim": "The change rejects ordinary spaces used as thousands separators, although the function accepts thousands-grouped printed integers and previously supported this representation.",
+    "failing_input": "_count('1 000')",
+    "expected": "1000",
+    "actual": "ValueError: not a count: '1 000'",
+    "id": "v8-round3:g1#2",
+    "record_id": "mc-c0c51a29dfbe59ee4a20178dcf7cdea3",
+    "verdict": null,
+    "status": "REPRODUCED_AND_FIXED",
+    "fixed_on": "v8/comparator-switches-2026-10-06"
+   }
+  ]
+ },
+ "v8-round4": {
+  "base": "fcbe05838",
+  "head": "2cb12f53e308c8cd2e4e7344818527645fe8f344",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d717232f08ee8e5b9920f0ce10e9f8d5",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_audit_primary.py",
+     "scripts/g1_swap.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "c7c71362ea27aa37de629cc9fa37a680d596cd2ac2d2c1e4585af268d203690c"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "kgap-1006": {
+  "base": "8a62b7ffe",
+  "head": "e82d99dcf",
+  "runs": {
+   "g1": {
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "state": "RAN_OK",
+    "files": [
+     "reproducible_ai/model_call_live.py",
+     "reproducible_ai/model_call_remote.py",
+     "scripts/g1_trial_acquire.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "321110e4ed3f208de5b3cfc068eeac47b26d02c081777910478aa2d7f6ee93c1"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_trial_acquire.py",
+    "function": "second_readers",
+    "severity": "P2",
+    "claim": "A failed second-reader call permanently suppresses ordinary retries when its prompt digest matches. Selection checks the digest without checking whether reader 2 succeeded; even --all reuses the failed record through have2.",
+    "failing_input": "Set PROP to a JSON file containing {\"runs\":{\"s|trial\":{\"slug\":\"s\",\"label\":\"trial\",\"pmid\":\"\",\"ncts\":[],\"state\":\"RAN_OK\",\"record_id\":\"r1\",\"prompt_sha256\":\"abc\",\"reader2\":{\"record_id\":\"r2\",\"state\":\"FAILED\",\"prompt_sha256\":\"abc\"}}}}. Call second_readers(['s'], '', workers=1).",
+    "expected": "The failed second-reader entry is eligible for a retry.",
+    "actual": "The entry is skipped before evidence loading; todo is empty and no retry occurs. second_reader_check continues returning PENDING_SECOND_READER.",
+    "id": "kgap-1006:g1#1",
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/model_call_remote.py",
+    "function": "RemoteCodexRunner.agents_digest",
+    "severity": "P2",
+    "claim": "A transport failure is silently converted into absent instruction provenance and cached for the runner's lifetime.",
+    "failing_input": "from reproducible_ai.model_call_remote import RemoteCodexRunner\ncalls = []\ndef execute(argv, timeout):\n    calls.append(argv)\n    return (255, b'', b'Connection timed out')\nr = RemoteCodexRunner(execute=execute)\nprint(r.agents_digest, r.agents_digest, len(calls))",
+    "expected": "Expose the transport failure instead of treating the worker's instruction digest as absent; a transient failure should not be cached as successful absence.",
+    "actual": "Prints: None None 1. The SSH error is discarded, and model_call_live.call omits the worker instruction digest.",
+    "id": "kgap-1006:g1#2",
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/model_call_remote.py",
+    "function": "RemoteCodexRunner.__call__",
+    "severity": "P2",
+    "claim": "Failure to retrieve last.txt discards the transport error and returns the successful execution status, contrary to the runner's failed-transport contract.",
+    "failing_input": "from unittest.mock import patch\nfrom reproducible_ai import model_call_remote as mr\ndef execute(argv, timeout):\n    if argv[0] == 'scp' and argv[-2].endswith('/last.txt'):\n        return 255, b'', b'Connection reset'\n    return 0, b'ok', b''\nwith patch.object(mr.mcl, 'prepare_workdir', return_value=None):\n    result = mr.RemoteCodexRunner(execute=execute)(b'prompt', {}, 'gpt-6-astra', 'high', 1)\nprint({k: result[k] for k in ('rc', 'stderr', 'last_message')})",
+    "expected": "A nonzero result retaining the last-message transfer error.",
+    "actual": "Prints {'rc': 0, 'stderr': b'', 'last_message': b''}. The transfer failure becomes an unexplained missing response.",
+    "id": "kgap-1006:g1#3",
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/model_call_remote.py",
+    "function": "_run",
+    "severity": "P2",
+    "claim": "Process-launch failures escape as exceptions instead of becoming failed-call data. Missing ssh/scp therefore bypasses the transport failure handling.",
+    "failing_input": "from unittest.mock import patch\nfrom reproducible_ai.model_call_remote import _run\nwith patch('reproducible_ai.model_call_remote.subprocess.run', side_effect=FileNotFoundError('ssh unavailable')):\n    _run(['ssh', 'worker', 'codex --version'], 120)",
+    "expected": "Return a nonzero return code, stdout bytes, and diagnostic stderr bytes, as specified by the module's transport contract.",
+    "actual": "Raises FileNotFoundError('ssh unavailable'); only TimeoutExpired is caught.",
+    "id": "kgap-1006:g1#4",
+    "record_id": "mc-9d8cace6b78a892146623ee44a82fbbf",
+    "verdict": null
+   }
+  ]
+ },
+ "forest-1006": {
+  "base": "597d0d27a",
+  "head": "78e474d45",
+  "runs": {
+   "g1": {
+    "record_id": "mc-dfcf62e7c1baf44bfd34e220dafa9fa3",
+    "state": "RAN_OK",
+    "files": [
+     "harness/copy_licence.py",
+     "kgap/k_gap.py",
+     "reproducible_ai/model_call_live.py",
+     "reproducible_ai/model_source.py",
+     "reproducible_ai/record_licence.py",
+     "scripts/g1_forest_reader.py",
+     "scripts/g1_primary_verify.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "f3dd73078714d8cb4b7aaedee24d7d6c59c0c57df11f16c9479273b535f53cf3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "text_block_problems",
+    "severity": "P1",
+    "claim": "The full-text licence guard silently skips blocks with Windows CRLF line endings because _TEXT_BLOCK requires literal LF delimiters.",
+    "failing_input": "import base64\nfrom reproducible_ai import record_licence as rl\nbody = 'Restricted report text. ' * (rl.DECLARED_MIN + 1)\np = '<<<TEXT\\r\\n' + body + '\\r\\nTEXT>>>'\nr = {'record_id': 'test', 'prompt': {'b64': base64.b64encode(p.encode()).decode()}, 'input_digests': [{'ref': 'DOI 10.1234/restricted'}]}\nrl.text_block_problems(r, dlic={'10.1234/restricted': 'all-rights-reserved'}, lic={})",
+    "expected": "A nonempty problems list rejecting the restricted full-text block, just as with LF delimiters.",
+    "actual": "[]; the block is treated as absent.",
+    "id": "forest-1006:g1#1",
+    "record_id": "mc-dfcf62e7c1baf44bfd34e220dafa9fa3",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "regulatory_sources",
+    "severity": "P1",
+    "claim": "Evidence JSON parsing failures become an empty source list. Appending an instruction after the evidence makes restricted regulatory text disappear from the licence check.",
+    "failing_input": "import base64\nfrom reproducible_ai import record_licence as rl\np = '=== EVIDENCE ===\\n{\"agency\":\"OTHER\",\"url\":\"https://publisher.example/restricted\",\"windows\":[{\"text\":\"Restricted document text.\"}]}\\nReturn JSON only.'\nr = {'record_id': 'test', 'prompt': {'b64': base64.b64encode(p.encode()).decode()}, 'input_digests': []}\nrl.regulatory_sources(r, with_obj=True)",
+    "expected": "Either extract the evidence and reject the unapproved host, or report an evidence-parsing failure that blocks the call.",
+    "actual": "[]; the ValueError is swallowed, so no regulatory-window licence check runs.",
+    "id": "forest-1006:g1#2",
+    "record_id": "mc-dfcf62e7c1baf44bfd34e220dafa9fa3",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "jats_licence",
+    "severity": "P1",
+    "claim": "Valid attributes on the JATS permissions element prevent recognition of its Creative Commons licence. The regex matches only the exact opening tag <permissions>.",
+    "failing_input": "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nfrom reproducible_ai.record_licence import jats_licence\nwith TemporaryDirectory() as <outside-workdir>/n    p = Path(d) / 'article.xml'\n    p.write_text('<article xmlns:xlink=\"http://www.w3.org/1999/xlink\"><front><article-meta><permissions id=\"p1\"><license xlink:href=\"https://creativecommons.org/licenses/by/4.0/\"><license-p>Creative Commons Attribution 4.0</license-p></license></permissions></article-meta></front></article>', encoding='utf-8')\n    print(jats_licence(p))",
+    "expected": "CC",
+    "actual": "NOT_OPEN",
+    "id": "forest-1006:g1#3",
+    "record_id": "mc-dfcf62e7c1baf44bfd34e220dafa9fa3",
+    "verdict": null
+   }
+  ]
+ },
+ "search-1006": {
+  "base": "207166d6c",
+  "head": "9c72f26bb",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "state": "RAN_OK",
+    "files": [
+     "reproducible_ai/model_call_live.py",
+     "scripts/g1_expanded_dual_codex.py",
+     "scripts/g1_expanded_search.py",
+     "scripts/g1_lane_log_repair.py",
+     "scripts/g1_query_audit.py",
+     "scripts/g1_screen_dual_codex.py",
+     "scripts/g1_search_amend.py",
+     "scripts/g1_search_screen_report.py"
+    ],
+    "prompt_sha256": "0aaf38e02ec05fdaea6b29f79b5563250107aa115f6adebdc049400f6dc46f75"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_expanded_search.py",
+    "function": "run",
+    "severity": "P1",
+    "claim": "A newly fetched record removed by deduplication inherits the trial's old served decision. The records table can classify it as X-DEDUP while the trial summary counts that same record as included.",
+    "failing_input": "Call run('fixture') with chosen()={'query':'Q'}; esearch_all()={'ids':['102','103'],'count':2}; existing cache records=[{'id':'101'}]; fetched records=[{'id':'102'},{'id':'103'}]; pipeline._dedup()=[{'id':'102'}]; screen.run()={'decisions':[{'id':'102','decision':'exclude','rule_id':'X1'}]}; audit topics=[{'slug':'fixture','trials':[{'kind':'ELIGIBLE','label':'T','pmids':['101','103'],'search':'MISSED','screen':'INCLUDED','screen_include':{'record':'101'}}]}]. Use an empty topic configuration and no expanded-text cache. These are exact mocked dependency returns.",
+    "expected": "Record 103 remains classified as dedup-collapsed, with no new include decision; newly_identified_and_screen_included is 0.",
+    "actual": "records contains PMID 103 as exclude/X-DEDUP, but trials[0].screen_decisions labels it 'served screen (record already held)' with decision='include'. newly_identified_and_screen_included is 1.",
+    "id": "search-1006:g1#1",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_expanded_dual_codex.py",
+    "function": "items / main",
+    "severity": "P0",
+    "claim": "The extrapolation includes comparator exclusions in its population size even though they are excluded from the random sampling frame and their separately determined outcomes are ignored.",
+    "failing_input": "Use one topic with exactly two non-dedup rule exclusions, PMIDs '1' and '2', both with held records. Make '2' a newly identified comparator through trials=[{'label':'T','newly_identified':true,'screen_decisions':[{'pmid':'2','source':'rule screen (new record)'}]}]. Have both verified readers return ELIGIBLE for '1' and INELIGIBLE for '2'. Run main([]) with these cached reader results. SAMPLE_N=100 means the entire non-comparator exclusion population is reviewed.",
+    "expected": "There is exactly 1 false exclusion among the 2 exclusions: the non-comparator census contributes 1 and the comparator contributes 0. Report 1 overall, or report the non-comparator estimate over its population of 1 separately.",
+    "actual": "The sample contains only PMID '1', giving rate=1.0, but n_excludes_total=2. The output reports extrapolated_false_exclusions=2.0.",
+    "id": "search-1006:g1#2",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_expanded_dual_codex.py",
+    "function": "items",
+    "severity": "P2",
+    "claim": "Missing held records silently disappear from the review inventory, including records that the script promises to review exhaustively.",
+    "failing_input": "Set TOPICS=('fixture',). Set EXP/fixture.json to {\"records\":[{\"pmid\":\"1\",\"decision\":\"include\"}],\"trials\":[]}, and TEXTS/fixture.records.json to []. Call items().",
+    "expected": "An explicit missing-held-record error or an inventory entry identifying PMID '1' as unreviewable, preserving the required review coverage.",
+    "actual": "Returns []. The `if rec is None: continue` branch removes the required include without recording any failure or missing coverage.",
+    "id": "search-1006:g1#3",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_screen_dual_codex.py",
+    "function": "main",
+    "severity": "P1",
+    "claim": "Pending adjudications are reported as completed adjudications. The same defect appears in g1_expanded_dual_codex.main.",
+    "failing_input": "Run main([]) with one held item whose rule_decision is 'exclude'. Supply cached reader A and B records whose verify_screening results are respectively {'model_decision':'ELIGIBLE'} and {'model_decision':'INELIGIBLE'}, and no cached record for adj_prompt().",
+    "expected": "The row is UNRESOLVED, with 0 completed adjudications and 1 pending adjudication.",
+    "actual": "The row is UNRESOLVED and has no adjudicator entry, but the output reports adjudicated=1 because it counts len(need). The report generator describes that count as items adjudicated.",
+    "id": "search-1006:g1#4",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_search_screen_report.py",
+    "function": "main",
+    "severity": "P0",
+    "claim": "The expanded-search interpretation contains unconditional quantitative findings instead of deriving them from the loaded results.",
+    "failing_input": "Supply all four expanded-topic JSON files as nonempty objects with esearch.count=10, new_records=0, rule_screen={'include':0,'exclude':0,'dedup_collapsed':0}, and recall={'identified_before':1,'identified_after':1,'eligible':1,'newly_identified':0,'newly_identified_and_screen_included':0}. Supply expanded_dual_codex.json with sample_n=100 and, for each topic, exclude_sample={'rate':0.0,'wilson95':[0.0,0.0369935],'extrapolated_false_exclusions':0.0,'excludes_total':100}, rule_includes_final={'ELIGIBLE':0,'INELIGIBLE':0,'UNRESOLVED':0}, comparator_trials=[]. Run main() with its other report inputs valid.",
+    "expected": "The interpretation states that comparator identification did not increase and the estimated false-exclusion counts are zero.",
+    "actual": "The generated report still states 'identification gains are real (omega3 doubles)' and that the samples estimate 'dozens to ~160 eligible-by-reader records per topic excluded', contradicting the supplied results and its own table.",
+    "id": "search-1006:g1#5",
+    "record_id": "mc-0effd2370e2b7513024f6e474c305984",
+    "verdict": null
+   }
+  ]
+ },
+ "abandon-ten": {
+  "base": "20915e04f",
+  "head": "e6ffa2792",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6ba7fe8dadec2a006e4105223b75aedd",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "97ba3f02712a09be8914a8327439bcc66a65de7bf24b486a2360d698384e11df"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/render_g1_tracker.py",
+    "function": "abandoned",
+    "severity": "P1",
+    "claim": "The register validation accepts topics outside the approved ten. Copying the public rule hash and supplying any nonempty decision words is sufficient to classify an unapproved topic as abandoned, excluding it from matched counts and the active denominator.",
+    "failing_input": "from pathlib import Path\nfrom unittest.mock import patch\nimport json\nimport scripts.render_g1_tracker as m\n\nd = {'rule_sha256': m.ABANDON_RULE_SHA, 'topics': [{'slug': 'unapproved-topic', 'state': 'ABANDONED_BY_DECISION', 'decision': {'words': 'no approval given'}}]}\nwith patch.object(Path, 'is_file', return_value=True), patch.object(Path, 'read_text', return_value=json.dumps(d)):\n    print(list(m.abandoned(Path('.'))))",
+    "expected": "Raise ValueError: unapproved-topic is not in the approved abandonment list; the rule hash alone does not establish approval.",
+    "actual": "The supplied code returns ['unapproved-topic'], accepting the abandonment. This follows directly from the checks shown; execution was blocked by the environment.",
+    "id": "abandon-ten:g1#1",
+    "record_id": "mc-6ba7fe8dadec2a006e4105223b75aedd",
+    "verdict": null
+   }
+  ]
+ },
+ "abandon-ten-r2": {
+  "base": "20915e04f",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c4c5eacb3afb9fe5065d59a500a8db66",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "5a7da8bbd3e8a2d9be66a56915daf7cf66011a6114b6f51ff537b2544eb9a5ee"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P1",
+    "claim": "The approved list is checked independently of row ranks. A contradictory ranking can classify the same topic as both abandoned and first kept, despite the promised refusal on disagreement.",
+    "failing_input": "from scripts import g1_abandon_apply as m\nfrom unittest.mock import patch, mock_open\nimport json\nwith open(m.RANK, encoding='utf-8') as <outside-workdir>/n    rank = json.load(f)\na = next(r for r in rank['ranked'] if r['slug'] == m.APPROVED[0])\nb = next(r for r in rank['ranked'] if r['rank'] == 11)\na['rank'], b['rank'] = b['rank'], a['rank']\nwith patch('builtins.open', mock_open(read_data=json.dumps(rank))):\n    result = m.build()\nprint(result['boundary']['first_kept']['slug'] in m.APPROVED)",
+    "expected": "Refuse the inconsistent ranking before producing the abandonment register.",
+    "actual": "By inspection, prints True: build succeeds, lists the first approved topic as ABANDONED_BY_DECISION, and also identifies it as first_kept. Local execution was blocked by environment policy.",
+    "id": "abandon-ten-r2:g1#1",
+    "record_id": "mc-c4c5eacb3afb9fe5065d59a500a8db66",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "released",
+    "severity": "P1",
+    "claim": "An existing release register with a null release list silently becomes an empty release set. The CLI consequently permits stages instead of refusing an invalid register.",
+    "failing_input": "from scripts import g1_swap as m\nfrom unittest.mock import patch\nslug = 'balanced-crystalloids-vs-saline-mortality'\nwith patch.object(m.os.path, 'exists', return_value=True), patch.object(m, '_j', return_value={'released': None}):\n    print(m.released([slug]))",
+    "expected": "Raise an error because an existing register has no valid release list; stop before dispatching a stage.",
+    "actual": "By inspection, returns and prints []; the CLI's if released(args) guard does not refuse execution.",
+    "id": "abandon-ten-r2:g1#2",
+    "record_id": "mc-c4c5eacb3afb9fe5065d59a500a8db66",
+    "verdict": null
+   }
+  ]
+ },
+ "abandon-ten-r3": {
+  "base": "20915e04f",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b48ba00082b666c5e601a483953c5045",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "dfb7c40193ba312a7dd7cde5a920fac0216d951910603f13aa6bfaefafeb9527"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P1",
+    "claim": "The boundary gate checks only rank 11. A later kept topic can have a score exceeding every abandoned topic, yet build() accepts the contradictory ranking and produces the register.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_abandon_apply as m\nimport json\n\nwith open(m.RANK, encoding='utf-8') as <outside-workdir>/n    rank = json.load(f)\nrow = next(r for r in rank['ranked'] if r['rank'] > 11)\nrow['U'] = max(r['U'] for r in rank['ranked']) + 1\nwith patch.object(m.json, 'load', return_value=rank):\n    result = m.build()\n    print(row['U'] > result['boundary']['last_abandoned']['U'])",
+    "expected": "Refuse the internally inconsistent ranking: a kept topic scores higher than the purported ten highest-scoring topics.",
+    "actual": "build() returns the abandonment register; the print outputs True. No check examines the scores of ranks after 11.",
+    "id": "abandon-ten-r3:g1#1",
+    "record_id": "mc-b48ba00082b666c5e601a483953c5045",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "released",
+    "severity": "P2",
+    "claim": "The malformed-register gate accepts non-string, truthy slugs. A numeric slug silently becomes an entry that cannot match a CLI topic argument, allowing processing instead of refusing the malformed register.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_swap as m\n\nwith patch.object(m.os.path, 'exists', return_value=True), patch.object(m, '_j', return_value={'released': [{'slug': 123}]}):\n    print(m.released(['123']))",
+    "expected": "Raise SystemExit because the existing release register contains an invalid slug type.",
+    "actual": "Returns and prints []; the CLI's release guard therefore permits dispatch.",
+    "id": "abandon-ten-r3:g1#2",
+    "record_id": "mc-b48ba00082b666c5e601a483953c5045",
+    "verdict": null
+   }
+  ]
+ },
+ "abandon-ten-r4": {
+  "base": "20915e04f",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-518fa1c8c683f5854913fdef6fac099f",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "cef8cf60b6d6fba92dcea8a69e197578fbec91c1bc3ce92e94c1a94848d99232"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P0",
+    "claim": "The gate checks score ordering but never validates scores against the pinned rule and counts. Adding 100 to every U preserves every check and publishes corrupted scores and boundary values.",
+    "failing_input": "Starting with a valid ranking:\nimport json\nfrom unittest.mock import patch\nfrom scripts import g1_abandon_apply as m\nbaseline = m.build()\nwith open(m.RANK, encoding='utf-8') as <outside-workdir>/n    rank = json.load(f)\nfor row in rank['ranked']:\n    row['U'] += 100\nwith patch.object(m.json, 'load', return_value=rank):\n    result = m.build()\nprint(result['topics'][0]['score_U'] - baseline['topics'][0]['score_U'])",
+    "expected": "Refusal because the scores no longer equal the pinned rule applied to the unchanged counts.",
+    "actual": "build() succeeds; the printed difference is 100. Both boundary scores and all ten published score_U values are increased by 100.",
+    "id": "abandon-ten-r4:g1#1",
+    "record_id": "mc-518fa1c8c683f5854913fdef6fac099f",
+    "verdict": null
+   },
+   {
+    "file": "scripts/render_g1_tracker.py",
+    "function": "abandoned",
+    "severity": "P2",
+    "claim": "An existing directory at the register path silently becomes an absent register. This disables abandonment exclusions instead of failing closed on an invalid register.",
+    "failing_input": "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nfrom scripts import render_g1_tracker as m\nwith TemporaryDirectory() as tmp:\n    root = Path(tmp)\n    (root / 'registry' / 'g1_abandoned.json').mkdir(parents=True)\n    print(m.abandoned(root))",
+    "expected": "Raise an error because the register path exists but cannot be read as a JSON file.",
+    "actual": "Returns and prints {}. Callers consequently apply no abandonment exclusions.",
+    "id": "abandon-ten-r4:g1#2",
+    "record_id": "mc-518fa1c8c683f5854913fdef6fac099f",
+    "verdict": null
+   }
+  ]
+ },
+ "abandon-ten-r5": {
+  "base": "20915e04f",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-42eec10a14be1bcd3a19323fa9cc10ac",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "83a017e16591d7ab1f440e0d29224cf0d118f6969e78b0dea30803267492516e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P0",
+    "claim": "Non-finite scores bypass validation: abs(NaN) > 1e-9 is false. A NaN in the first ranked row also passes sorting and boundary checks, reaching the published score and reason.",
+    "failing_input": "With the pinned committed rule available:\nfrom unittest.mock import patch\nimport scripts.g1_abandon_apply as m\nrows = [dict(slug=s, rank=i, N_eligible=100, closed=12-i, closed_trials=[f'trial-{j}' for j in range(12-i)], open=0, swap_adopted=False, U=(12-i)/100, abandon=i<=10) for i,s in enumerate(m.APPROVED+['kept'], 1)]\nrows[0]['U'] = float('nan')\nrank = dict(rule_sha256=m.RULE_SHA, read_at_commit=m.RULE_COMMIT, abandon=m.APPROVED, ranked=rows, population_n=11)\nwith patch.object(m.json, 'load', return_value=rank), patch('builtins.open'):\n    result = m.build()\nprint(result['topics'][0]['score_U'])",
+    "expected": "Refuse the non-finite score; the first row's counts require U = 0.11.",
+    "actual": "Returns a register with score_U = NaN and 'U = nan' in the reason. main --write serializes the score as NaN.",
+    "id": "abandon-ten-r5:g1#1",
+    "record_id": "mc-42eec10a14be1bcd3a19323fa9cc10ac",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P0",
+    "claim": "The score check never validates count bounds. Zero eligible trials with positive closed-trial counts passes every gate and publishes impossible counts; the zero-denominator branch assigns these rows a score of zero.",
+    "failing_input": "With the pinned committed rule available:\nfrom unittest.mock import patch\nimport scripts.g1_abandon_apply as m\nrows = [dict(slug=s, rank=i, N_eligible=0, closed=12-i, closed_trials=[f'trial-{j}' for j in range(12-i)], open=0, swap_adopted=False, U=0.0, abandon=i<=10) for i,s in enumerate(m.APPROVED+['kept'], 1)]\nrank = dict(rule_sha256=m.RULE_SHA, read_at_commit=m.RULE_COMMIT, abandon=m.APPROVED, ranked=rows, population_n=11)\nwith patch.object(m.json, 'load', return_value=rank), patch('builtins.open'):\n    result = m.build()\nprint(result['topics'][0]['reason'])",
+    "expected": "Refuse rows where closed exceeds N_eligible, including positive closed counts with zero eligible trials.",
+    "actual": "Returns the abandonment register. The first topic has N_eligible=0, closed=11, score_U=0.0, and a reason stating '11 of 0 eligible comparator trials closed'.",
+    "id": "abandon-ten-r5:g1#2",
+    "record_id": "mc-42eec10a14be1bcd3a19323fa9cc10ac",
+    "verdict": null
+   }
+  ]
+ },
+ "abandon-ten-r6": {
+  "base": "20915e04f",
+  "head": "32efcbb9bd7aed09cebaed4e44a2c47e7279c04f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ec7703cadb9def54cecb9da2ebce8a6c",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "9ab71e3d7f6e35a3a57465c7d4607af7b1e692e196fe856a938cefb2fb4c2e8c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P0",
+    "claim": "closed_trials is checked only with len(), so a single trial-ID string can substantiate eleven closed trials. The inflated count and score pass every gate and enter the abandonment register.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_abandon_apply as m\nrows = [dict(slug=s, rank=i, N_eligible=100, open=12-i, closed=12-i, U=round(1.5*(12-i)/100, 4), swap_adopted=False, closed_trials=[f'trial-{i}-{j}' for j in range(12-i)], abandon=i<=10, state='G1_OPEN') for i, s in enumerate(m.APPROVED + ['zz-kept'], 1)]\nrows[0]['closed_trials'] = 'NCT12345678'\nrank = dict(rule_sha256=m.RULE_SHA, read_at_commit=m.RULE_COMMIT, abandon=m.APPROVED, ranked=rows, population_n=11)\n# Run in the repository containing the pinned rule commit.\nwith patch.object(m.json, 'load', return_value=rank):\n    result = m.build()\nprint(result['topics'][0]['closed'], result['topics'][0]['score_U'], result['topics'][0]['closed_trials'])",
+    "expected": "Refuse the malformed closed_trials field; string length cannot establish a trial count.",
+    "actual": "Returns successfully and prints: 11 0.165 NCT12345678. The generated reason claims eleven eligible comparator trials closed.",
+    "id": "abandon-ten-r6:g1#1",
+    "record_id": "mc-ec7703cadb9def54cecb9da2ebce8a6c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/render_g1_tracker.py",
+    "function": "abandoned",
+    "severity": "P2",
+    "claim": "A dangling register symlink silently becomes 'no abandonment register'. Path.exists() follows the link and returns False, bypassing the subsequent broken-register check.",
+    "failing_input": "from pathlib import Path\nfrom tempfile import TemporaryDirectory\nfrom scripts.render_g1_tracker import abandoned\n# Requires filesystem support and permission for symlink creation.\nwith TemporaryDirectory() as tmp:\n    root = Path(tmp)\n    (root / 'registry').mkdir()\n    (root / 'registry' / 'g1_abandoned.json').symlink_to('missing.json')\n    print(abandoned(root))",
+    "expected": "Raise an error for the broken register rather than treating abandonment information as absent.",
+    "actual": "Returns and prints {}. Callers consequently apply no abandonment exclusions.",
+    "id": "abandon-ten-r6:g1#2",
+    "record_id": "mc-ec7703cadb9def54cecb9da2ebce8a6c",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -31,7 +31,12 @@ def _config():
 
 
 def _records():
+    # the configured comparator's own record is held, as on every real topic: a page is never built naming a comparator
+    # it holds nothing of (harness.pipeline.comparator_records_problem, V8 apply 7 Oct)
     return {
+        "comparator_pmid": "999",
+        "comparator_record": {"id": "999", "id_type": "pmid", "title": "A synthetic comparator meta-analysis",
+                              "abstract": "", "pubtypes": ["Meta-Analysis"], "year": "2019"},
         "fetched_utc": "2026-09-14",
         "pubmed_queries": ["condition AND drug"],
         "ctgov_query": {"condition": "condition", "intervention": "drug"},

@@ -126,7 +126,68 @@ def build(root: Path, title: str, out: Path, base_note: str, version: str = "V3"
     return digest
 
 
-def guard(root: Path, packet: Path) -> list[str]:
+def served_outcome_changes(root: Path, slug: str, base_ref: str = "origin/main") -> list[dict]:
+    """EVERY served outcome of `slug` whose pooled result differs between the base (the served page at base_ref) and
+    the candidate (root's docs/reviews/<slug>/review.json): [{outcome, before, after, left_pool, entered_pool}].
+    A packet must present all of them, never only the headline outcome (6 Oct: V6-01's MACE notice hid that the same
+    change withdrew the served heart-failure-hospitalisation estimate)."""
+    import subprocess
+    sys.path.insert(0, str(root))
+    from harness import result_changes as rc
+    p = Path(root) / "docs" / "reviews" / slug / "review.json"
+    if not p.exists():
+        raise FileNotFoundError(f"served_outcome_changes: no candidate review for {slug} ({p})")
+    cand = json.load(open(p, encoding="utf-8"))
+    # the comparison must be PERFORMED: an unresolvable base ref refuses (codex captain-v8-groundwork g1#2: a failed
+    # git show became an empty base and reported 'no change'); only a path absent AT a valid base is an empty base
+    if subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{base_ref}^{{commit}}"], cwd=root, capture_output=True,
+                      stdin=subprocess.DEVNULL).returncode:
+        raise ValueError(f"served_outcome_changes: base ref {base_ref!r} does not resolve to a commit")
+    shown = subprocess.run(["git", "show", f"{base_ref}:docs/reviews/{slug}/review.json"], cwd=root, capture_output=True,
+                           stdin=subprocess.DEVNULL)
+    if shown.returncode:
+        err = shown.stderr.decode("utf-8", "replace")
+        if "does not exist" not in err and "exists on disk, but not in" not in err:
+            raise RuntimeError(f"served_outcome_changes: cannot read the base page of {slug} at {base_ref}: {err.strip()}")
+        base = {"outcomes": []}                     # a topic with no served page at the base: every outcome is new
+    else:
+        base = json.loads(shown.stdout)
+    out = []
+    names = [o.get("name") for o in base.get("outcomes") or []] + [o.get("name") for o in cand.get("outcomes") or []]
+    for name in dict.fromkeys(names):
+        b = next((o for o in base.get("outcomes") or [] if o.get("name") == name), {})
+        c = next((o for o in cand.get("outcomes") or [] if o.get("name") == name), {})
+        before, after = rc.result_tuple(b.get("result")), rc.result_tuple(c.get("result"))
+        if rc._same(before, after):
+            continue
+        bp = {str(t.get("id")) for t in b.get("trials") or []}
+        ap = {str(t.get("id")) for t in c.get("trials") or []}
+        out.append({"outcome": name, "before": before, "after": after, "left_pool": sorted(bp - ap),
+                    "entered_pool": sorted(ap - bp)})
+    return out
+
+
+def completeness_problems(root: Path, packet_entries: list[tuple[str, str]], base_ref: str = "origin/main") -> list[str]:
+    """For every topic named in the packet: each served outcome that changes against base_ref is either IN the packet
+    or covered by a notice already signed and applied (result_changes.notice_for, same before/after and rows)."""
+    sys.path.insert(0, str(root))
+    from harness import result_changes as rc
+    listed = set(packet_entries)
+    signed = [n for n in _notices(root) if _signed(n) and not rc.not_applied(n)]
+    problems = []
+    for slug in sorted({s for s, _ in packet_entries}):
+        for ch in served_outcome_changes(root, slug, base_ref):
+            if (slug, ch["outcome"]) in listed:
+                continue
+            if rc.notice_for(signed, slug, ch["outcome"], ch["before"], ch["after"], ch["left_pool"], ch["entered_pool"]):
+                continue
+            problems.append(f"UNLISTED CHANGE {slug} / {ch['outcome']}: {ch['before']} -> {ch['after']} (left "
+                            f"{ch['left_pool']}, entered {ch['entered_pool']}) -- every served outcome that changes must "
+                            "be in the packet")
+    return problems
+
+
+def guard(root: Path, packet: Path, base_ref: str | None = "origin/main") -> list[str]:
     raw = packet.read_bytes()
     text = raw.decode("utf-8")
     problems = []
@@ -179,6 +240,9 @@ def guard(root: Path, packet: Path) -> list[str]:
                             f"not section {sec}")
         if not ann.get("conclusion_changed") and sec != "A":
             problems.append(f"{eid}: no conclusion change, so it belongs in BATCHABLE (section A), not section {sec}")
+    if base_ref:
+        problems += completeness_problems(root, [(m.group("slug").strip(), m.group("outcome").strip()) for m in entries],
+                                          base_ref)
     return problems
 
 

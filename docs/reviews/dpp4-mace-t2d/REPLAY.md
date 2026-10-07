@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `05e16efdc2abfcba8c6477074a3e5c98d2b2765103cf5ba453f5e6ea606a862a` |
-| html_sha256 (served page bytes) | `a15ea90d83a453a21433a75d190fd99b913d03e6832f57987c7a9321ca6204c7` |
-| release_sha256 (certificate) | `8e6d93751db5829d6cdec250efea0ffb1b6bb4bd202d3a53719dfab088726bd5` |
+| review_sha256 (canonical review core) | `9dc26d08dc031cffe1756ae00c2c06f198669ebac0dc2270879673918e89c1e3` |
+| html_sha256 (served page bytes) | `ceec212cba19ffcda6a60722c3029bbeed651ea3621c5bef6309942617c4fcd5` |
+| release_sha256 (certificate) | `62826bc99543502429a31583641d9ba1515b1ee779b8a70a2535825eb00d0b10` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `0fb7f9f4cd617ae16e470371a271bccbba9e9c86` |
 | analysis code | 87 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `6b6aad816138b8a1b022cc60793dbb9ed18232e3` |
+| recorded generating commit | `648272ab607c35a1fb3d025b572a4e5cc25daf4a` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -42,6 +42,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `outputs/handover/in3/aact/reported_events.txt` | `96356f7251be3d0c803bce360bf6c77537fc34f381ed2546a644b34832d80d76` |
 
 Recorded judgments live under `cache/dpp4-mace-t2d/`; their object digest is
-`998a1185addb12fbb16dcc968eb97ef50c93d8bdcc09f46360bb644ac910c791`. Acquisitions live under `docs/acquisitions/dpp4-mace-t2d/`.
+`f41f89cee700fe037152f4217b65fadb57a168072a8071ba95b24e244ce31d9c`. Acquisitions live under `docs/acquisitions/dpp4-mace-t2d/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

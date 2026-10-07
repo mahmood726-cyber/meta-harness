@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from harness import honest_ratchet, page, result_changes
+from harness import honest_ratchet, notice_kinds, page, result_changes
 
 SLUG = "esketamine-trd-madrs"
 OUT = "Observed-case Day-28 raw change-score MADRS MD"
@@ -231,9 +231,17 @@ def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
     IS_WRONG = "was the WRONG QUANTITY for this outcome, and is asserted wrong"
     ENTERED = "Entering trials are new evidence, not a correction"
     LIFTED = "a new claim on the page, not a correction of a served number"
-    for n in result_changes.load():
+    notices = result_changes.load()
+    for n in notices:
         where = (n["slug"], n["outcome"])
         reason = n["reason"]
+        # A REINSTATEMENT (V8-06, 7 Oct): the entering trial was SET ASIDE by an earlier signed notice for this outcome
+        # ('eligible evidence awaiting adjudication') and this notice is that adjudication, reversing it by name. Its
+        # claim is the reversal, which result_changes.reversed_setasides verifies against the record; it must not
+        # assert the old number wrong (the set-aside already said it was not).
+        if notice_kinds.reversed_setasides(n, notices):
+            assert IS_WRONG not in reason, (where, "a reinstatement must not assert the old number wrong")
+            continue
         # Three kinds, each with its own claim: a trial LEFT (set-aside: not asserted wrong, awaiting
         # adjudication); a trial ENTERED (new evidence: the old number is not asserted wrong); a row's number was
         # SUBSTITUTED with nobody leaving or entering (the old number was the wrong quantity: asserted wrong).
@@ -355,3 +363,101 @@ def test_PLANT_a_lifted_suppression_is_derived_not_left_unexplained(tmp_path, mo
     assert "PMID 30415637 is now resolved as SIGNAL_SPURIOUS: The hit names future ancillary studies." in reason
     assert "a new claim on the page, not a correction" in reason
     assert "asserted wrong" not in reason
+
+
+# ---------------------------------------------------------------- reinstatement: declared, then proved from the record
+SIG = {"state": "SEEN_AND_SIGNED"}
+ASIDE_REASON = "set aside; eligible evidence awaiting adjudication; the numbers are not asserted wrong."
+
+
+def _n(when, left=(), entered=(), reason="r", sig=SIG, **kw):
+    return dict({"slug": "s", "outcome": "o", "when_utc": when, "left_pool": list(left), "entered_pool": list(entered),
+                 "reason": reason, "reviewer_countersignature": sig}, **kw)
+
+
+def test_PLANT_a_declared_reinstatement_is_proved_from_the_record():
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"], reason=ASIDE_REASON)
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"], reason="anything at all")       # its wording is never read
+    d = {"T1": "2026-09-20T00:00:00Z"}
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared=d) == {"T1": aside}
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={}) is None            # undeclared
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-21T00:00:00Z"}) is None
+
+
+@pytest.mark.parametrize("bad", [
+    {"outcome": "other"}, {"left_pool": ["T2"]}, {"left_pool": ["T1", "T2"]},                 # other outcome / trial / two trials
+    {"reviewer_countersignature": {"state": "OPEN"}}, {"withdrawal": {"state": "WITHDRAWN_BY_SIGNER"}},
+    {"reason": "CORRECTION: T1 is not randomized and is ineligible; the old result was wrong."},   # not a set-aside
+])
+def test_PLANT_the_reversed_notice_must_be_a_signed_applied_single_trial_setaside(bad):
+    aside = dict(_n("2026-09-20T00:00:00Z", left=["T1"], reason=ASIDE_REASON), **bad)
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None
+
+
+def test_PLANT_order_must_be_known_and_latest():
+    aside = _n("2026-10-01T00:00:00Z", left=["T"], reason=ASIDE_REASON)
+    d = {"T": "2026-10-01T00:00:00Z"}
+    back = _n("2026-10-04T00:00:00Z", entered=["T"])
+    later = _n("2026-10-03T00:00:00Z", left=["T"], reason="CORRECTION: T is ineligible")          # a later move
+    assert notice_kinds.reversed_setasides(back, [aside, later, back], declared=d) is None
+    same = _n("2026-10-01T00:00:00.000Z", left=["T"], reason="excluded")                          # tie at the instant
+    assert notice_kinds.reversed_setasides(back, [aside, same, back], declared=d) is None
+    twin = _n("2026-10-04T00:00:00Z", entered=["T"], reason="another reinstatement at the same instant", left=[])
+    twin["entered_pool"] = ["T", "U"]
+    assert notice_kinds.reversed_setasides(back, [aside, twin, back], declared=d) is None
+    frac = _n("2026-10-01T00:00:00.500Z", left=["T"], reason="excluded")                         # instants, not strings
+    assert notice_kinds.reversed_setasides(back, [aside, frac, back], declared=d) is None
+    assert notice_kinds.reversed_setasides(dict(back, when_utc="not a time"), [aside, back], declared=d) is None
+
+
+def test_PLANT_a_copy_of_the_notice_is_the_same_notice():
+    """codex v8-apply-r7 #2: identity by content, never by object identity."""
+    import copy
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"], reason=ASIDE_REASON)
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    d = {"T1": "2026-09-20T00:00:00Z"}
+    assert notice_kinds.reversed_setasides(copy.deepcopy(back), [aside, back], declared=d) == {"T1": aside}
+
+
+def test_the_committed_v8_06_reinstatement_is_declared_and_proved():
+    notices = result_changes.load()
+    n = next(x for x in notices if x["slug"] == "dpp4-mace-t2d" and x["outcome"] == "Hospitalization for heart failure"
+             and x["entered_pool"] == ["PMID 23992601"])
+    got = notice_kinds.reversed_setasides(n, notices)
+    assert got and got["PMID 23992601"]["when_utc"] == "2026-09-20T23:30:00Z"
+
+
+def test_PLANT_ineligible_evidence_is_not_eligible_evidence():
+    """codex v8-apply-r8 #2: 'eligible evidence awaiting adjudication' is a substring of 'ineligible evidence ...'."""
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"],
+               reason="ineligible evidence awaiting adjudication; the numbers are not asserted wrong.")
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None
+
+
+def test_PLANT_negated_eligibility_and_broken_register_refuse(tmp_path):
+    """codex v8-apply-r9 #2 ('not eligible evidence ...') and #3 (a declaration register that is not a file)."""
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"],
+               reason="This is not eligible evidence awaiting adjudication; the numbers are not asserted wrong.")
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None
+    (tmp_path / "registry" / "result_change_reinstatements.json").mkdir(parents=True)
+    with pytest.raises(ValueError):
+        notice_kinds._declared(back, str(tmp_path))
+
+
+def test_PLANT_negation_with_words_between_refuses():
+    """codex v8-apply-r11 #4: 'not currently eligible evidence ...'."""
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"],
+               reason="not currently eligible evidence awaiting adjudication; the numbers are not asserted wrong.")
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None
+
+
+def test_PLANT_asserted_wrong_in_any_case_refuses():
+    """codex v8-apply-r12 #3: 'Asserted Wrong' in another case still asserts something wrong."""
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"],
+               reason="eligible evidence awaiting adjudication; the numbers are not asserted wrong; denominators ASSERTED WRONG.")
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None

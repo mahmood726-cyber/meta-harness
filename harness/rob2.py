@@ -113,7 +113,10 @@ def _component_set(text: str) -> frozenset[str]:
         s,
     ):
         comps.add("KIDNEY_PROGRESSION_COMPOSITE")
-    if re.search(r"\bcv\s+death\b|\bcardiovascular(?:\s*\([^)]*\))?\s+death\b|\bdeath from cardiovascular causes\b", s):
+    # ... including the '-related' form registries use ('CV-related death': TECOS's registered 3-point MACE secondary)
+    # never NON-cardiovascular death: '\b' sits between '-' and 'c', so the bare pattern counted it (found 7 Oct)
+    if re.search(r"(?<!non-)(?<!non)(?<!non )\b(?:cv\s+death|cardiovascular(?:\s*\([^)]*\))?\s+death"
+                 r"|(?:cv|cardiovascular)[- ]related\s+death)\b|\bdeath from cardiovascular causes\b", s):
         comps.add("CV_DEATH")
     if re.search(r"\bnon[- ]?fatal\s+(myocardial infarction|mi)\b", s):
         comps.add("NONFATAL_MI")

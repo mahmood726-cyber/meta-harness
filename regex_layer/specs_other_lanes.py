@@ -62,7 +62,7 @@ SITE_SPECS: dict = {
         "plants": {"accept": [("composite kidney outcome", None), ("progression of ckd", None),
                               ("renal replacement therapy", None)],
                    "refuse": ["urine albumin-to-creatinine ratio at week 12", "kidney function at baseline"]}},
-    "rob2.py:search:052d9d5ea5": {
+    "rob2.py:search:db7e2cb922": {
         "kind": "search", "what": "_component_set: the outcome names cardiovascular death",
         "plants": {"accept": [("cv death", None), ("cardiovascular death", None), ("cardiovascular (cv) death", None),
                               ("death from cardiovascular causes", None),

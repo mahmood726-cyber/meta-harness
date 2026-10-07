@@ -118,7 +118,10 @@ def jats_licence(path):
     except OSError:
         return "NOT_HELD"
     perm = " ".join(re.findall(r"<permissions>.*?</permissions>", x, re.S))
-    return "CC" if re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", perm) else "NOT_OPEN"
+    # the licence named by URL, or IN WORDS inside the article's own <permissions> ('distributed under the terms of the
+    # Creative Commons Attribution License (CC BY)': 19 open articles had no URL, 6 Oct); never words outside <permissions>
+    return "CC" if (re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", perm)
+                    or re.search(r"Creative\s+Commons\s+(?:Attribution|Zero|CC0)|\bCC0\b|\bCC[ -]BY\b", perm)) else "NOT_OPEN"
 
 
 def _comparator_jats(pmid):

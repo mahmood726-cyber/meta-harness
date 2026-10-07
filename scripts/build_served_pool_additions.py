@@ -38,13 +38,21 @@ def _num(v):
     return f if f == f else None
 
 
+_COMPARATOR_KEYS = ("comparator_row", "comparator_row_provenance", "comparator_row_findings", "comparator_sourced",
+                    "agreement_with_comparator_row", "comparator_row_reasons", "comparator_row_state")
+
+
 def _spans(x):
-    """Every verbatim span the tracker row (and its acquisition record) carries."""
+    """Every verbatim span the tracker row (and its acquisition record) carries -- never one from the COMPARATOR's own row:
+    our served value must not cite the very meta it is compared with (V6-01's TECOS row cited the comparator's table,
+    which labels TECOS's 3-point 0.99 as its 4-point composite; the endpoint gate then refused it)."""
     out = []
 
     def walk(o):
         if isinstance(o, dict):
             for k, v in o.items():
+                if k in _COMPARATOR_KEYS:
+                    continue
                 if k in ("span", "quote") and isinstance(v, str) and v.strip():
                     out.append(v)
                 else:
@@ -130,7 +138,8 @@ def pipeline_row(slug, x, scale):
     tid = fam if fam.upper().startswith(("PMID ", "NCT")) else f"PMID {fam}"
     counts = [v.get(k) for k in ("events_t", "n_t", "events_c", "n_c")]
     reps = report_ids(slug, tid)
-    spans = _spans(x) + _acquired_spans(slug, fam) + _held_abstract_spans(slug, set(reps))
+    # the trial's OWN sources first (its acquisition record, then its held abstract), the tracker row's spans last
+    spans = _acquired_spans(slug, fam) + _held_abstract_spans(slug, set(reps)) + _spans(x)
     if not reps:
         return None, "no held report of this trial in the topic's family registry"
     base = {"id": tid, "label": x["label"], "provenance": "served_pool_signed_notice", "family_report_id": reps[0],
@@ -158,10 +167,18 @@ def _committed():
     return list((json.load(open(REG, encoding="utf-8")) or {}).get("additions") or [])
 
 
+def hold_applies(h):
+    """A hold stays on the record for good. It stops applying only when its SIGNER lifted it: final.state
+    LIFTED_BY_SIGNER with who and their verbatim words (Mahmood 7 Oct: 'lift v6-01 and agree'). Any other final state --
+    a withdrawal -- keeps the notice out, and a lift with no signer or no quote is not a lift."""
+    f = h.get("final") or {}
+    return not (f.get("state") == "LIFTED_BY_SIGNER" and str(f.get("by") or "").strip() and str(f.get("quote") or "").strip())
+
+
 def build(notices=None, holds=None):
     notices = rc.load() if notices is None else notices
     holds = json.load(open(HOLDS, encoding="utf-8"))["holds"] if holds is None else holds
-    held = {(h["slug"], h["id"]): h for h in holds}
+    held = {(h["slug"], h["id"]): h for h in holds if hold_applies(h)}
     adds, excluded = [], []
     for n in notices:
         sig = n.get("reviewer_countersignature") or {}

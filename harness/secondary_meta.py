@@ -697,6 +697,11 @@ def _as_number(v):
     return s.replace(",", "")
 
 
+_COUNT_WORDS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen "
+    "eighteen nineteen twenty".split())}
+
+
 def gate_locator_claim(claim: dict, shown_text: str, prefer: Optional[str] = None) -> tuple:
     """The deterministic gate on a recorded locator answer ('quote where the trial reports its result and copy the numbers').
     Returns (value dict or None, typed reason). The model only LOCATES: every accepted number is a string the trial's own
@@ -717,11 +722,16 @@ def gate_locator_claim(claim: dict, shown_text: str, prefer: Optional[str] = Non
            if claim.get(k) not in (None, "")}
     if not raw:
         return None, "NO_NUMBERS_COPIED"
-    nums = {k: _as_number(v) for k, v in raw.items()}
+    # a COUNT may be printed as a word ('four of 119'): it stands only when that very word is in the quote (never a
+    # word for an effect or a bound); every other value must be a printed numeral, as before
+    worded = {k: str(v).strip().lower() for k, v in raw.items()
+              if k in ("events_t", "n_t", "events_c", "n_c") and str(v).strip().lower() in _COUNT_WORDS}
+    nums = {k: (str(_COUNT_WORDS[worded[k]]) if k in worded else _as_number(v)) for k, v in raw.items()}
     if any(v is None for v in nums.values()):
         return None, "NON_NUMERIC"
     qn = q.replace(",", "")
-    if not all(re.search(r"(?<![\d.])" + re.escape(v.lstrip("-")) + r"(?![\d])", qn) for v in nums.values()):
+    if not all((re.search(r"\b" + re.escape(worded[k]) + r"\b", qn, re.I) if k in worded else
+                re.search(r"(?<![\d.])" + re.escape(v.lstrip("-")) + r"(?![\d])", qn)) for k, v in nums.items()):
         return None, "NUMBER_NOT_IN_QUOTE"
     # a SIGNED copy must be printed with its sign: '-2.5' is not in 'mean difference 2.5 (1.2 to 3.8)'
     if not all(re.search(r"-\s?" + re.escape(v.lstrip("-")) + r"(?![\d])", qn) for v in nums.values()

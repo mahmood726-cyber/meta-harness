@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `c33950456ad288b69e113eec3a8d85bdddf0cd07039205f537e71c9787354eb0` |
-| html_sha256 (served page bytes) | `17dc5bb525fb29e2f3103d1088e0c7bc756f103678398903f9d6fcd6c23e6130` |
-| release_sha256 (certificate) | `2027bd5675bcc7e6c2efdf2f69460f0ab5dd61ec729fc86e12df015fa2dd3130` |
+| review_sha256 (canonical review core) | `50e3e56b579aaea26e8dc830b457d6b0eae608b3303e05443a810ce08d2020cd` |
+| html_sha256 (served page bytes) | `0c44943f6524c69006d80e3a3e68c6b29a8421bf35745a72e8090ddccdd7850b` |
+| release_sha256 (certificate) | `a96bb76a0d501107cde483e944eccb7ef5cf5365781412d8ed0d14f27fd94b6b` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `43f5f12e367109bebd37936a8177ef00c6dcf1f6` |
 | analysis code | 87 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `6b6aad816138b8a1b022cc60793dbb9ed18232e3` |
+| recorded generating commit | `648272ab607c35a1fb3d025b572a4e5cc25daf4a` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -40,6 +40,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/finerenone-ckd-t2d-renal/comparator_fulltext.txt` | `0e4dc2ef38a6a8f7b59078fe54def5b47a8d3f82805dff7964599f1549d7671c` |
 
 Recorded judgments live under `cache/finerenone-ckd-t2d-renal/`; their object digest is
-`1cb0da7cfb49a593a43e8019a8ec8a7e25a9295a9f6d440e1b08d385a21775f6`. Acquisitions live under `docs/acquisitions/finerenone-ckd-t2d-renal/`.
+`d680bc03d3ed1dd9eb19949350dbaba4cd31433a2468cfd03d0faa216cb196b7`. Acquisitions live under `docs/acquisitions/finerenone-ckd-t2d-renal/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

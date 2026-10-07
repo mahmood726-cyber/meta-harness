@@ -492,7 +492,7 @@ def reader_main(run, model=None, prop=None):
         done = {r["prompt_sha256"] for r in runs.values() if r["state"] == "RAN_OK"}
         todo = [b for b in bs if rc._sha(b["prompt"]) not in done]
         print(f"items {len(its)}, batches {len(bs)}, to run {len(todo)}", flush=True)
-        with cf.ThreadPoolExecutor(max_workers=3) as ex:
+        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))) as ex:
             for r in ex.map(one, todo):
                 runs[r["batch"]] = r
                 print(r["batch"], r["state"], r["record_id"], flush=True)

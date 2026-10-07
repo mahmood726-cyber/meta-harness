@@ -1078,8 +1078,10 @@ def _neg(x):
     """A printed number negated as printed ('1.7' -> '-1.7', '-12.71' -> '12.71'): digits and precision unchanged."""
     if x is None:
         return None
-    t = str(x).strip()
-    return t[1:] if t.startswith("-") else ("-" + t if t not in ("0", "0.0", "0.00") else t)
+    t = str(x).strip().lstrip("+")                   # an explicit '+' is a sign, not part of the digits (review)
+    if re.fullmatch(r"0+(?:\.0+)?", t):
+        return t
+    return t[1:] if t.startswith("-") else "-" + t
 
 
 def oriented_secondary_row(r):
@@ -1870,6 +1872,43 @@ def _held_norm(path, text=None):
     return re.sub(r"\s+", " ", raw).strip()
 
 
+def numbers_in_span(obj, span, keys):
+    """Every typed number in obj[keys] is PRINTED in the span (codex review merge-08315be6e:g2#1/#2): a token equal to it
+    at the printed precision, with its sign. A row whose numbers do not come from its own span is refused."""
+    text = (span or "").replace(",", "")
+    signed, counts = [], []
+    for m in re.finditer(r"([-−–]?)(\d*\.\d+|\d+(?:\.\d+)?)", text):
+        before = text[:m.start()].rstrip()
+        prev = before[-1] if before else " "
+        # a dash after a digit -- spaced or not: '0.80-1.01', '0.80 - 1.01' -- is a RANGE dash, never a minus; any other
+        # leading dash is the number's sign. A leading decimal ('.85') is read as 0.85, never as 85 (codex v8-p0-fixes)
+        glued = m.start() > 0 and (text[m.start() - 1].isdigit() or text[m.start() - 1] == ".")
+        spaced_after_digit = bool(m.group(1)) and not glued and (prev.isdigit() or prev == ".")
+        neg = bool(m.group(1)) and not glued and not spaced_after_digit
+        y = float(m.group(2)) * (-1 if neg else 1)
+        if spaced_after_digit:
+            # '1.2 -3.4' is two values OR a range '1.2 to 3.4': AMBIGUOUS, so the token supports NEITHER sign -- a row
+            # resting on it is refused, never guessed (codex v8-p1-fixes g1#1 and v8-round3 g1#1 pull opposite ways;
+            # refusing costs coverage, never correctness). Table cells are unambiguous: jats_text puts '|' between them.
+            continue
+        signed.append(y)
+        # a token followed by '%' / 'percent' / 'per cent' / 'pct' is a PERCENTAGE, never a count (g2#2; v8-p0-fixes g1#1)
+        if not re.match(r"\s*(?:%|percent\b|per\s+cent\b|pct\b)", text[m.end():], re.I):
+            counts.append(y)
+    for k in keys:
+        v = obj.get(k)
+        if v is None or v == "":
+            continue
+        try:
+            x = float(str(v).replace("−", "-").replace("–", "-"))
+        except ValueError:
+            return False
+        pool = counts if (k.startswith("events") or k.startswith("n_") or k == "n") else signed
+        if not any(abs(x - y) < 1e-9 for y in pool):
+            return False
+    return True
+
+
 def no_rows_adoption(slug, comp):
     """The ADOPTION of a COMPARATOR_NO_PER_TRIAL_ROWS comparator (Mahmood, ratified exception to selection rule C6), or
     None. Re-checked, never trusted: same comparator PMID as the tracker's, the held source's sha256 unchanged, and the
@@ -1887,6 +1926,15 @@ def no_rows_adoption(slug, comp):
         return None
     held = _held_norm(src)
     if not all(_held_norm(None, s_) in held for s_ in (pr.get("spans") or {}).values()):
+        return None
+    # the adopted estimate, bounds and measure must be the ones the RESULT span prints (codex review g2#2)
+    spans = pr.get("spans") or {}
+    res = spans.get("result") or ""
+    if not numbers_in_span(pr, res, ("estimate", "ci_low", "ci_high")):
+        return None
+    words = {"RR": r"\bRR\b|risk ratio|relative risk", "OR": r"\bOR\b|odds ratio", "HR": r"\bHR\b|hazard ratio",
+             "MD": r"\bMD\b|mean difference"}.get((pr.get("measure") or "").upper())
+    if not words or not re.search(words, " ".join(str(v) for v in spans.values()), re.I):
         return None
     return a
 
@@ -1964,7 +2012,8 @@ def typed_comparator_rows(slug, comp):
     if not os.path.isfile(src) or hashlib.sha256(open(src, "rb").read()).hexdigest() != d["source"].get("sha256"):
         return None
     held = _held_norm(src)
-    rows = [r for r in d.get("rows") or [] if r.get("span") and _held_norm(None, r["span"]) in held]
+    rows = [r for r in d.get("rows") or [] if r.get("span") and _held_norm(None, r["span"]) in held
+            and numbers_in_span(r, r["span"], ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c"))]
     return dict(d, rows=rows) if rows and len(rows) == len(d.get("rows") or []) else None
 
 
@@ -2445,6 +2494,14 @@ def enumeration_scope(x, cfg):
         return None
     comps = [c.lower() for c in (cfg.get("comparator_terms") or [])]
     if not comps or any(c in en["span"].lower() for c in comps):
+        return None
+    # the ABSENCE of a comparator term is not evidence of an active control (codex review g2#3): the comparator's own
+    # arms must name an identifiable active drug, and the span must not say the comparator is unreported
+    import g1_binding_enumerate as _be
+    ag = cfg.get("intervention_agents") or cfg.get("intervention_terms") or []
+    agents = [a.lower() for a in (sum(ag.values(), []) if isinstance(ag, dict) else ag) if len(a) >= 4]
+    if re.search(r"not reported|not stated|unspecified|unclear|unknown", en["span"], re.I) or \
+            _be.arm_scope(en.get("arms") or [], agents, comps) != "OUT_OF_SCOPE:COMPARATOR_NOT_PLACEBO":
         return None
     src = os.path.join(ROOT, en.get("source") or "")
     if not os.path.isfile(src):

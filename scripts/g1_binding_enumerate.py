@@ -74,6 +74,26 @@ def ref_fields(body):
             (y.group(1) if y else ""))
 
 
+UNKNOWN_ARM = re.compile(r"^\s*(?:nr|n/?a|not reported|not stated|unspecified|unclear|unknown|control|usual care|"
+                         r"standard care|standard of care|treatment as usual|tau|best supportive care|-|—|)\s*$", re.I)
+
+
+def arm_scope(arms, agents, comps):
+    """IN_SCOPE when an arm names a topic comparator; OUT_OF_SCOPE:COMPARATOR_NOT_PLACEBO only when EVERY non-agent arm
+    names an identifiable active drug (codex review merge-08315be6e:g1#5 / g2#3: the ABSENCE of a comparator term is not
+    evidence of an active control); anything else -- no other arm, an unreported / generic control -- is UNRESOLVED."""
+    drugs = [str(a.get("drug") or "").strip() for a in arms or []]
+    if any(any(c in d.lower() for c in comps) for d in drugs):
+        return "IN_SCOPE"
+    others = [d for d in drugs if not any(ag in d.lower() for ag in agents)]
+    # a conventional abbreviation in brackets does not make a generic control an active drug: 'Usual care (TAU)' is
+    # still usual care (codex binding-v8-fe3ed2a7:g1#2)
+    bare = lambda d: re.sub(r"\s*\([^)]*\)", "", d).strip()  # noqa: E731
+    if others and all(not UNKNOWN_ARM.match(bare(d)) and re.search(r"[A-Za-z]{4,}", bare(d)) for d in others):
+        return "OUT_OF_SCOPE:COMPARATOR_NOT_PLACEBO"
+    return "UNRESOLVED"
+
+
 def enumerate_topic(slug, lookup=False):
     cfg = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
     agents = [a.lower() for a in (cfg.get("intervention_agents") or cfg.get("intervention_terms") or []) if len(a) >= 4]
@@ -89,10 +109,9 @@ def enumerate_topic(slug, lookup=False):
         drugs = [a["drug"].lower() for a in r["arms"]]
         if not any(any(ag in d for ag in agents) for d in drugs):
             continue
-        has_comp = any(any(c in d for c in comps) for d in drugs)
         au, title, yr = ref_fields(refs.get(r["ref"], ""))
         rec = {"label": r["label"], "study_no": r["study_no"], "ref": r["ref"], "arms": r["arms"],
-               "scope": "IN_SCOPE" if has_comp else "OUT_OF_SCOPE:COMPARATOR_NOT_PLACEBO",
+               "scope": arm_scope(r["arms"], agents, comps),
                "span": " / ".join(r["lines"]), "reference": refs.get(r["ref"]),
                "ref_first_author": au, "ref_title": title, "ref_year": yr, "pmid": None, "identity": "NOT_LOOKED_UP"}
         if lookup and title:
@@ -127,8 +146,11 @@ def write_input(res):
            "open_question": res["open_question"],
            "units": [{"label": t["label"], "ref": t["ref"], "pmid": t["pmid"], "identity": t["identity"],
                       "span": t["span"], "arms": t["arms"],
-                      "scope": "IN_SCOPE" if t["scope"] == "IN_SCOPE" else "OUT_OF_SCOPE",
-                      "rule_id": None if t["scope"] == "IN_SCOPE" else "E2:COMPARATOR_NOT_PLACEBO",
+                      # only an affirmatively typed active control becomes an exclusion; UNRESOLVED / UNCLEAR stays an
+                      # open unit (never 'OUT_OF_SCOPE' with an invented reason)
+                      "scope": ("IN_SCOPE" if t["scope"] == "IN_SCOPE" else "OUT_OF_SCOPE"
+                                if t["scope"] == "OUT_OF_SCOPE:COMPARATOR_NOT_PLACEBO" else "UNRESOLVED"),
+                      "rule_id": "E2:COMPARATOR_NOT_PLACEBO" if t["scope"] == "OUT_OF_SCOPE:COMPARATOR_NOT_PLACEBO" else None,
                       "reference": t["reference"]} for t in res["trials"]]}
     os.makedirs(ENUM_DIR, exist_ok=True)
     p = os.path.join(ENUM_DIR, res["slug"] + ".json")

@@ -2097,7 +2097,7 @@ def main(argv):
                 or runs[_key(it, rd)]["image_sha256"] != it["image_sha256"]
                 or runs[_key(it, rd)]["prompt_sha256"] != hashlib.sha256(prompt_bytes(it["figure"], rd)).hexdigest()]
         print(f"figures {len(its)}, calls to run {len(todo)}, skipped {len(skipped)}", flush=True)
-        with RunLock(), cf.ThreadPoolExecutor(max_workers=3) as cx, cf.ThreadPoolExecutor(max_workers=3) as ag:
+        with RunLock(), cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))) as cx, cf.ThreadPoolExecutor(max_workers=3) as ag:
             futs = {(cx if rd == "codex" else ag).submit(run_reader, it, rd): (it, rd) for it, rd in todo}
             for f in cf.as_completed(futs):
                 it, rd = futs[f]

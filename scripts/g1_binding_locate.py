@@ -52,7 +52,10 @@ def item(t, pmid):
     texts = dg.held_texts(t["slug"], pmid, rec)
     if rec and (rec.get("abstract") or "").strip():
         texts.append(("ABSTRACT", ((rec.get("title") or "") + "\n" + (rec.get("abstract") or "")).strip()))
-    body = "\n\n".join(f"=== {ref} ===\n{x}" for ref, x in texts)[:tl.MAX_CHARS]
+    # LICENCE GATE (6 Oct incident): a recorded prompt is committed evidence -- full text only under CC BY / CC0
+    import g1_licence as _lic
+    texts, dropped = _lic.gate(pmid, texts, offline=os.environ.get("G1_LICENCE_OFFLINE") == "1")
+    body ="\n\n".join(f"=== {ref} ===\n{x}" for ref, x in texts)[:tl.MAX_CHARS]
     want_counts = (po.get("estimand") or "").upper() in ("RR", "OR", "RD")
     wanted = ("\nWANTED: events and totals in EACH arm (events_t, n_t, events_c, n_c), as printed.\n" if want_counts else
               f"\nWANTED: the {po.get('estimand') or 'effect'} with its 95% confidence interval, as printed.\n")
@@ -62,14 +65,15 @@ def item(t, pmid):
     return {"slug": t["slug"], "pmid": pmid, "label": t["label"], "outcome": po["name"], "spec": po,
             "interv": cfg.get("intervention_terms") or [], "comp": cfg.get("comparator_terms") or [],
             "prefer": "counts" if want_counts else None, "prompt": p, "text": body,
-            "key": f"locate::{t['slug']}::{pmid}::table", "sources": [ref for ref, _ in texts]}
+            "key": f"locate::{t['slug']}::{pmid}::table", "sources": [ref for ref, _ in texts], "licence_dropped": dropped}
 
 
 def call(it, model):
     rec = mcl.call(it["prompt"], schema=json.loads(json.dumps(smb.LOCATE_SCHEMA)), model=model, effort=fp.EFFORT,
                    caller={"file": "scripts/g1_binding_locate.py", "line": "call",
                            "purpose": f"G1 binding lane: locate {it['slug']} PMID {it['pmid']} ({it['label']})"},
-                   input_digests=[{"ref": f"held text PMID {it['pmid']} ({'+'.join(it['sources'])})",
+                   # declared in the form the recorder's licence guard resolves (record_licence.ref_licences)
+                   input_digests=[{"ref": f"held open text PMID {it['pmid']} ({'+'.join(it['sources'])})",
                                    "sha256": hashlib.sha256(it["text"].encode("utf-8")).hexdigest(),
                                    "what": f"held text shown, first {tl.MAX_CHARS} chars"}],
                    timeout_s=1200)
@@ -85,10 +89,14 @@ def main(argv):
     items = [item(t, p) for t in targets for p in t["pmids"][:1]]
     items = [it for it in items if it["text"].strip()]
     runs = runs_store.load()
+    # a ledger entry whose RECORD is gone (removed for licence, 6 Oct: mc-60163e27) is not a run: re-run it
+    def _rec_ok(it):
+        rid = (runs.get(it["key"]) or {}).get("record_id")
+        return bool(rid) and os.path.exists(os.path.join(tl.REC_DIR, rid + ".json"))
     todo = [it for it in items if (runs.get(it["key"]) or {}).get("prompt_sha256") != hashlib.sha256(it["prompt"]).hexdigest()
-            or (runs.get(it["key"]) or {}).get("state") != "RAN_OK"]
+            or (runs.get(it["key"]) or {}).get("state") != "RAN_OK" or not _rec_ok(it)]
     if run and todo:
-        with cf.ThreadPoolExecutor(max_workers=3) as ex:           # codex concurrency 3
+        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))) as ex:
             for key, r in ex.map(lambda it: call(it, model), todo):
                 runs[key] = r
                 print(key, r["state"], r["record_id"], flush=True)
@@ -96,7 +104,8 @@ def main(argv):
     rows, tally = [], Counter()
     for it in items:
         r = runs.get(it["key"])
-        if not r or r.get("prompt_sha256") != hashlib.sha256(it["prompt"]).hexdigest() or r.get("state") != "RAN_OK":
+        if not r or r.get("prompt_sha256") != hashlib.sha256(it["prompt"]).hexdigest() or r.get("state") != "RAN_OK" \
+                or not os.path.exists(os.path.join(tl.REC_DIR, str(r.get("record_id")) + ".json")):
             verdict, val, why, rid, claim = "NOT_RUN", None, "no recorded call for this prompt", (r or {}).get("record_id"), None
         else:
             rid = r["record_id"]

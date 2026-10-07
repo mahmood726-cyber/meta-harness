@@ -293,13 +293,16 @@ def test_composite_component_mismatch_guard():
     assert not extract.composite_component_mismatch("Kidney composite outcome", tecos)
 
 
-def test_dpp4_tecos_declared_absent_for_estimand():
-    """dpp4-mace-t2d must NOT pool TECOS under the 3-point label (its abstract is a 4-point composite)."""
+def test_dpp4_tecos_pooled_3_point_only_from_its_own_3_point_registry_outcome():
+    """dpp4-mace-t2d must never pool TECOS's 4-point abstract composite under the 3-point label. Since V6-01 (signed,
+    lifted 7 Oct) TECOS IS pooled -- from its own CT.gov 3-point MACE outcome (AACT 258888999, HR 0.99 (0.89, 1.1)),
+    never from its abstract's 4-point HR 0.98 or the comparator's table that calls 0.99 the 4-point composite."""
     r = json.load(open(os.path.join(DOCS, "reviews", "dpp4-mace-t2d", "review.json"), encoding="utf-8"))
     prim = next(o for o in r["outcomes"] if o.get("primary"))
-    assert "26052984" not in [str(t.get("label")) for t in prim.get("trials", [])], "TECOS still pooled 3-point"
-    da = [t for t in prim.get("declared_absent_trials", []) if str(t.get("label")) == "26052984"]
-    assert da and ("estimand" in da[0]["reason"].lower() or "4-point" in da[0]["reason"].lower() or "component" in da[0]["reason"].lower())
+    t = next(x for x in prim.get("trials", []) if str(x.get("id")) == "PMID 26052984")
+    src = str(t.get("source") or "")
+    assert (t.get("effect"), t.get("ci_low"), t.get("ci_high")) == (0.99, 0.89, 1.1)
+    assert "MACE" in src and "unstable angina" not in src.lower() and "0.98" not in src
 
 
 # ---- population guard + definition-audit fixes (cross-family definition sweep) -------------------

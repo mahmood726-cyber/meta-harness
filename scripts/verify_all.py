@@ -284,8 +284,18 @@ def limb_replay_currency():
     return (PASS if rc == 0 else REFUSED), output
 
 
+def limb_provenance():
+    """Every served value and every countable G1 tracker row traces to a deterministic extractor (held source + span) or
+    a recorded model call whose record is in the tree; hand-entered values only while on the shrink-only burn-down list
+    (Mahmood 6 Oct: 'nothing hand-entered and nothing unrecorded'). Refuses any UNTRACED row."""
+    rc, out = _run([sys.executable, os.path.join("scripts", "provenance_census.py")])
+    lines = out.strip().splitlines()
+    return (PASS if rc == 0 else REFUSED), "\n".join(lines[:3] + [ln for ln in lines if ln.startswith("REFUSED")][:30])
+
+
 LIMBS = [
     ("replay currency (generated guides and offline dependencies)", limb_replay_currency),
+    ("provenance gate (every served value / tracker row: extractor or recorded call; none UNTRACED)", limb_provenance),
     ("unit tests (pytest tests/)", limb_unit_tests),
     ("offline reproduction (every live page replays from committed cache)", limb_reproduction),
     ("publication gate on every live review page", limb_gate_every_page),

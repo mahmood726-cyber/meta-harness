@@ -45,7 +45,12 @@ REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "secondary")   # the tie
 DATE = "2026-09-30"
 N_CANDIDATES = 8
 CAPTION = re.compile(r"forest|pooled|hazard ratio|risk ratio|odds ratio|relative risk|meta-analys[ie]s of", re.I)
-NAMED = {"tocilizumab-covid19-mortality": ["34228774"]}      # WHO REACT (JAMA 2021), named by Mahmood
+NAMED = {"tocilizumab-covid19-mortality": ["34228774"],     # WHO REACT (JAMA 2021), named by Mahmood
+         # g1/binding lane (Mahmood 6 Oct: old metas allowed, "use hard"): CC BY open metas citing >= 4 of the topic's
+         # OPEN comparator trials (Europe PMC citations), the comparator itself excluded; CC BY only (lane licence rule)
+         "colchicine-secondary-cv-prevention": ["37600022", "34957237", "37608812", "38505729", "41458740", "41517355",
+                                                "41214504", "35949770"],
+         "corticosteroids-cap-mortality": ["26641253", "39660004"]}
 QUERY = {
     "glp1-ra-mace-t2d": '(TITLE:"GLP-1" OR TITLE:"glucagon-like peptide") AND (TITLE:"cardiovascular" OR TITLE:"MACE")',
     "semaglutide-obesity-weight": 'TITLE:"semaglutide" AND (TITLE:"weight" OR TITLE:"obesity")',
@@ -53,6 +58,10 @@ QUERY = {
                                   'TITLE:"DOAC") AND TITLE:"warfarin" AND TITLE:"atrial fibrillation"',
     "tocilizumab-covid19-mortality": '(TITLE:"interleukin-6" OR TITLE:"IL-6" OR TITLE:"tocilizumab") AND TITLE:"COVID" '
                                      'AND (TITLE:"mortality" OR TITLE:"randomized" OR TITLE:"randomised" OR TITLE:"trials")',
+    # g1/binding lane (5 Oct): the agent-only default would draw septic-shock metas; the topic is pneumonia
+    "corticosteroids-cap-mortality": '(TITLE:"corticosteroid" OR TITLE:"corticosteroids" OR TITLE:"steroid" OR '
+                                     'TITLE:"steroids" OR TITLE:"glucocorticoid" OR TITLE:"glucocorticoids" OR '
+                                     'TITLE:"hydrocortisone" OR TITLE:"dexamethasone") AND TITLE:"pneumonia"',
 }
 
 
@@ -1087,7 +1096,7 @@ def build(slug, run, runs):
     if run:
         done = {(r["prompt_sha256"], r.get("image_sha256")) for r in runs.values() if r["state"] == "RAN_OK"}
         todo = [i for i in items if (hashlib.sha256(fp.prompt_bytes(i)).hexdigest(), i["image_sha256"]) not in done]
-        with cf.ThreadPoolExecutor(max_workers=3) as ex:
+        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "3"))) as ex:
             for r in ex.map(read_one, todo):
                 runs[r["key"]] = r
                 print(r["key"], r["state"], r["record_id"], flush=True)

@@ -62,9 +62,12 @@ def test_e2_named_difference_survives_cite_or_demote_only_when_re_derived():
     import g1_tracker as gt
     e = json.load(open(INPUT, encoding="utf-8"))
     u = next(x for x in e["units"] if x["scope"] == "OUT_OF_SCOPE")
-    en = {"scope": u["scope"], "rule_id": u["rule_id"], "span": u["span"], "ref": u["ref"],
+    # the unit's ARMS ride with it exactly as k_gap_table.enumeration_units carries them: E2 needs a printed active control
+    en = {"scope": u["scope"], "rule_id": u["rule_id"], "span": u["span"], "ref": u["ref"], "arms": u.get("arms"),
           "source": e["source"]["path"], "sha256": e["source"]["sha256"], "enumerated_from": e["enumerated_from"]}
     cfg = json.load(open(os.path.join(ROOT, "topics", SLUG + ".json"), encoding="utf-8"))
+    # without arms naming an active drug, the absence of 'placebo' names nothing (codex review g2#3)
+    assert gt.enumeration_scope({"enumeration": dict(en, arms=None)}, cfg) is None
 
     def o_with(span_text):
         x = {"label": u["label"], "in_our_pool": False, "route": "NO_ROW", "enumeration": en}

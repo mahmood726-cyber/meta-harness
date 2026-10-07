@@ -342,7 +342,10 @@ def test_author_only_et_al_needs_exactly_one_first_author(monkeypatch):
            'title': 'Colchicine for the prevention of postpericardiotomy syndrome'}
     other = {'rid': 'REF:6', 'label': '6', 'first_author': 'Adler', 'year': '1998', 'title': 'x'}
     monkeypatch.setattr(kt, 'REF_PMID', {kt._ref_key(ref): {'state': 'CONFIRMED', 'pmid': '12574898'}})
-    # no trial words in the citation and no publication type known: a unique first author is not yet a trial
+    # no trial words in the citation and no publication type known: a unique first author is not yet a trial.
+    # "No type known" is SET here, not assumed: kt.COLLECTIVE is module state that any earlier test running
+    # k_gap_table.main() fills from the held cache, which types 12574898 as an RCT (in-suite failure, 7 Oct)
+    monkeypatch.setattr(kt, 'COLLECTIVE', {})
     r = kt.resolve_unit(unit('Finkelstein Y et al', layout='text'), parsed(ref, other), IDX, None)
     assert r['pmids'] == [] and 'author_only_ref_refused_no_trial_context:REF:10' in r['basis']
     # PubMed types its confirmed PMID as a Randomized Controlled Trial: admitted

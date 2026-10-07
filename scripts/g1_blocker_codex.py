@@ -107,7 +107,7 @@ def main(argv):
             head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
             return slug, {"record_id": rec["record_id"], "state": rec["state"],
                           "prompt_sha256": hashlib.sha256(p).hexdigest(), "head": head}
-        with cf.ThreadPoolExecutor(max_workers=3) as ex:
+        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))) as ex:
             for slug, r in ex.map(one, slugs):
                 data["runs"][slug] = r
                 print(slug, r["state"], r["record_id"], flush=True)

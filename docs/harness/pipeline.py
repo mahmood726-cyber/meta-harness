@@ -2220,6 +2220,27 @@ def build_outcome_from_inputs(inp, spec, kind, slug, **overrides):
                           eligibility_contract=kw["eligibility_contract"], slug=slug)
 
 
+def comparator_records_problem(config, records, rec_by_id):
+    """Why the held comparator inputs do NOT belong to the configured comparator, or None. A comparator switch (V8,
+    signed 7 Oct) changed config comparator_pmid, but the cached records still held the OLD comparator's PubMed record
+    field, Unpaywall status and full text: the rebuilt pages named the new comparator with a blank record (pmid null) and
+    read its 'reported' numbers from the old comparator's text. A page is never built from another meta's text."""
+    cmp = str(config.get("comparator_pmid") or "").strip()
+    if not cmp:
+        return None
+    held = str((records or {}).get("comparator_pmid") or "").strip() if isinstance(records, dict) else cmp
+    rec = rec_by_id.get(cmp) or (((records or {}).get("comparator_record") or {})
+                                if isinstance(records, dict) and str(((records or {}).get("comparator_record") or {}).get("id")) == cmp
+                                else {})
+    probs = []
+    if held != cmp:
+        probs.append(f"held comparator full text / OA status are for PMID {held or 'none'}")
+    if not rec:
+        probs.append("no PubMed record of the comparator is held")
+    return (f"COMPARATOR RECORDS STALE (build refused): configured comparator PMID {cmp}: " + "; ".join(probs)
+            + " -- run scripts/acquire_comparator_record.py") if probs else None
+
+
 @aact_cache.cache_only_build
 def build_review_core(slug, config, records, protocol_sha):
     from . import trial_family as trial_family_mod
@@ -2239,12 +2260,29 @@ def build_review_core(slug, config, records, protocol_sha):
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
-    comp_rec = rec_by_id.get(config.get("comparator_pmid")) or {}
+    _cprob = comparator_records_problem(config, records, rec_by_id)
+    if _cprob:
+        raise ValueError(_cprob)
+    _cr = (records.get("comparator_record") or {}) if isinstance(records, dict) else {}
+    comp_rec = rec_by_id.get(config.get("comparator_pmid")) or (
+        _cr if str(_cr.get("id")) == str(config.get("comparator_pmid")) else {})
     comp_abstract = comp_rec.get("abstract", "")
     comp_full = records.get("comparator_fulltext") or ""
 
     reported = []
-    for co in config.get("comparator_outcomes", []):
+    from . import served_comparator as _scmp
+    _adopted = _scmp.adopted_pooled(slug, config)
+    if _adopted:
+        # a SIGNED replacement comparator: its gated pooled result (adoption record, verbatim span), never the regex --
+        # which served dpp4 the SGLT-2 OR (0.88) and statins 0.72 (V8 apply, 7 Oct). It stands only for the comparator
+        # outcome that IS its rule's primary outcome (codex v8-apply #1); every other outcome stays unreported
+        for co in config.get("comparator_outcomes", []):
+            if _scmp.adopted_outcome_matches(_adopted, co["name"]):
+                reported.append({"outcome": co["name"], "estimate": _adopted["estimate"], "scale": _adopted["scale"],
+                                 "ci_low": _adopted["ci_low"], "ci_high": _adopted["ci_high"],
+                                 "source": _adopted["source"], "span": _adopted["span"]})
+                break
+    for co in ([] if _adopted else config.get("comparator_outcomes", [])):
         eff = extract.comparator_effect(comp_abstract, comp_full, co["keywords"])
         if eff:
             reported.append({"outcome": co["name"], "estimate": eff["effect"], "scale": eff["scale"],
@@ -2256,7 +2294,13 @@ def build_review_core(slug, config, records, protocol_sha):
     # text and recorded in the config (with the quote in comparator_k_source), that value is used and
     # the fragile auto-extraction is not.
     ck = config.get("comparator_k")
-    if ck is not None:
+    if _adopted:
+        # the adopted pooled analysis's own k -- only when that analysis IS one of our comparator outcomes (the same
+        # equality as the reported value); otherwise not stated. Never the regex: it read 57 / 34, whole-review counts
+        _k = _adopted.get("k")
+        theirs_k = (_k if reported and isinstance(_k, int) and not isinstance(_k, bool)
+                    else "not stated for this outcome by the adopted comparator (its pooled analysis is of a differently named outcome)")
+    elif ck is not None:
         theirs_k = ck
     else:
         theirs_k = (extract.extract_meta(comp_abstract, config["primary_outcome"]["keywords"]).get("k")
