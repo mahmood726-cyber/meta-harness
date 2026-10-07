@@ -584,3 +584,11 @@ def test_PLANT_ascii_inequalities_are_bounds_and_a_malformed_pubmed_error_is_ret
     with um.patch("time.sleep", lambda s: None):
         ids, meta = sw.pubmed_ids(lambda *a, **k: next(replies), "mortality")
     assert ids == ["42"] and meta["state"] == "COMPLETE"
+
+
+def test_PLANT_a_negated_count_is_never_k():
+    """codex pr25-final4 #1: 'was not based on five trials' (the negated-count class: 'Not Randomized 1,807')."""
+    vals = [0.85, 0.70, 1.03]
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03) was not based on five trials.", vals) == set()
+    assert sw.printed_counts("No 5 trials reported mortality (RR 0.85).") == set()
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03) was based on five trials.", vals) == {5}

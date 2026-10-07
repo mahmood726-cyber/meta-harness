@@ -502,6 +502,10 @@ def _counts_in(s):
         # an OPENING bracket or quote does not end the link ('(Phase three studies)', '(twenty five trials)'; codex r6 #1);
         # trailing punctuation does ('Phase 3: 5 randomized trials')
         pt = [t.lstrip("([{\"'‘“") for t in prev_tokens(i)]
+        # a NEGATED count is never k: a negation within the 40 characters before it refuses (codex pr25-final4 #1: 'was
+        # not based on five trials'; the house rule from the 'Not Randomized 1,807' extraction incident)
+        if re.search(r"\b(?:not|no|never|neither|nor|non|without|cannot|none)\b", s[max(0, i - 40):i], re.I):
+            return True
         # punctuation never hides an approximator ('Approximately: five trials'; codex swap-setquote-r19 #3); it still
         # ends the link for a phase ('Phase 3: 5 randomized trials' -> 5)
         if pt and pt[-1].rstrip(":;,.!?)]}\"'’”") in _APPROX:
