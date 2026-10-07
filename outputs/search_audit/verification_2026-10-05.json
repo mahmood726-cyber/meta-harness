@@ -1,0 +1,51 @@
+{
+ "where": "Tailscale worker, this lane's own clean worktree (DIRTY=0), worker venv",
+ "commit": "45db91f63605ca4d4a1959730f061af63453a599",
+ "pytest_full_suite": {
+  "passed": 4712,
+  "failed": 11,
+  "skipped": 17,
+  "xfailed": 72,
+  "seconds": 2279
+ },
+ "failed": [
+  "tests/test_aact_cache.py::test_replay_with_snapshot_access_forbidden",
+  "tests/test_bundle.py::test_bundle_is_current",
+  "tests/test_certificate.py::test_held_document_byte_mutation_refuses",
+  "tests/test_certificate.py::test_all_certificate_inputs_and_manuscript_match",
+  "tests/test_certificate_code_closure.py::test_pinned_blob_identities_are_what_git_stores",
+  "tests/test_certificate_code_closure.py::test_stdlib_audit_reproduces_every_served_certificate",
+  "tests/test_claim_object.py::test_claim_check_helper_and_build_gate_fire",
+  "tests/test_fixstate.py::test_real_store_validates",
+  "tests/test_gate.py::test_real_review_reproduces_and_passes_full_gate",
+  "tests/test_result_withdrawn.py::test_withdrawn_page_pools_nothing_states_everything_and_passes_the_gate[dapagliflozin-hfpef-hosp]",
+  "tests/test_result_withdrawn.py::test_withdrawn_page_pools_nothing_states_everything_and_passes_the_gate[empagliflozin-hfpef-hosp]"
+ ],
+ "same_11_at_main_469a97eb": {
+  "passed": 14,
+  "failed": 1,
+  "failed_names": [
+   "tests/test_claim_object.py::test_claim_check_helper_and_build_gate_fire"
+  ],
+  "why_that_one": "environmental on the worker (makedirs 'F:/' -- the worker has no F: drive); fails at main too",
+  "what_ran": "the 9 other failing tests by id + the whole tests/test_result_withdrawn.py (6 cases) = 15 cases"
+ },
+ "attributable_to_this_branch": 10,
+ "why": "harness/screen.py and harness/fetch.py are in every page certificate's pinned code closure, and the dated amendments change topics/protocols: every served page must be regenerated and re-certified from its recorded command (the certificate, bundle, replay, gate and fix-ledger tests check exactly that). Not done on this branch: a rebuild re-runs the amended searches and changes served pooled results -- a consolidation decision.",
+ "verify_all": {
+  "refused_limbs": [
+   "unit tests",
+   "offline reproduction (review_sha256 / CERTIFICATE release_sha256 / index.html re-render)",
+   "fix-state discipline (docs/fix_ledger.json stale)",
+   "held-out leak detector (COULD-NOT-EXECUTE: key not on the worker)"
+  ],
+  "passed_limbs_include": [
+   "served-artefact leak scan",
+   "search completeness",
+   "honest-state ratchet",
+   "gate scorecard",
+   "index currency",
+   "replay currency"
+  ]
+ }
+}

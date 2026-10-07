@@ -55,3 +55,8 @@ LVEF <=40% subgroup reports the assigned HFrEF composite endpoint.
   DAPA-HF and EMPEROR-Reduced.
 - **Negative** - EMPA-REG OUTCOME (empagliflozin, double-blind, placebo-controlled, but
   type 2 diabetes rather than HFrEF) must be recovered and EXCLUDED.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 35112512) backward reference list (PubMed elink and Europe PMC) and its forward citations; no other open meta-analysis is held for this topic yet. Rationale: the registered search identified 2 of 2 of the comparator's eligible trials; with this route and the full retrieval below, 2 of 2 (2 of 2 without the comparator's own reference list, which contains its trials by construction). The route retrieves 54 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-6313513d7b27cb50369bb259fc48c1f0.json).

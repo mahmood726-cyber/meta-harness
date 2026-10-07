@@ -62,3 +62,9 @@ and thromboembolic events as pooled OR 0.96 (95% CI 0.65-1.41).
 - **Negative** - HALT-IT (tranexamic acid for acute gastrointestinal bleeding, PMID
   32563378 - another disease area) must be recovered and EXCLUDED as the wrong
   population.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 39461793) backward reference list (PubMed elink and Europe PMC) and its forward citations; no other open meta-analysis is held for this topic yet. Rationale: the registered search identified 1 of 1 of the comparator's eligible trials; with this route and the full retrieval below, 1 of 1 (1 of 1 without the comparator's own reference list, which contains its trials by construction). The route retrieves 66 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A2 ClinicalTrials.gov retrieval.** The registered query {"cond": "postpartum hemorrhage", "intr": "tranexamic acid"} is unchanged. It returns 74 studies; the earlier retrieval kept the first 30 (a one-page cap in harness.fetch, now paginated with the source's own total recorded).
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-ed16d0f4cef93b68d0a71b1a463b9b9a.json).

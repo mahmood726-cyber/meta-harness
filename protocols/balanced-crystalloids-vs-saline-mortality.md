@@ -55,3 +55,8 @@ renal-replacement therapy.
 - **Positive** - SMART (PMID 29485925) and PLUS (PMID 35041780) must be recovered and included by P/I/C/design.
 - **Tracked landmark** - BaSICS (PMID 34375394) is queried and verified as a real large trial, but PubMed tags the fetched record as Journal Article only; under this fixed harness it is expected to fail closed at the RCT-publication-type screen rather than be force-included.
 - **Negative** - SPLYT-P (PMID 36534387), a pediatric/PICU balanced-fluid trial, must be recovered and EXCLUDED as wrong population.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 30140441) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 2 other open meta-analyses (PMID 35436929, 34991134; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 5 of 5 of the comparator's eligible trials; with this route and the full retrieval below, 5 of 5 (5 of 5 without the comparator's own reference list, which contains its trials by construction). The route retrieves 115 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-75e0290b3a9709b3d6246423c980fdaf.json).

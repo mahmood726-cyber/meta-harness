@@ -66,3 +66,8 @@ the served page and does not rename the pinned slug/URL.
 - **Widened scope.** Steroidal mineralocorticoid receptor antagonist class review: spironolactone or eplerenone versus placebo in adults with HFrEF.
 - **Reason.** The page title and PICO intervention line already specify spironolactone or eplerenone; the slug/URL is a pinned served identity and is not renamed in this lane fix.
 - **Pre-specified list.** spironolactone; eplerenone.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 40959489) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 2 other open meta-analyses (PMID 26891235, 37811017; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 2 of 2 of the comparator's eligible trials; with this route and the full retrieval below, 2 of 2 (2 of 2 without the comparator's own reference list, which contains its trials by construction). The route retrieves 129 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-b716126b9c252d0e997d8facb66440be.json).

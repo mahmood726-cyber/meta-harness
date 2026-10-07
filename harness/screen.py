@@ -174,13 +174,19 @@ import re as _re
 _NOT_NON = r"(?<![a-z])(?<!non-)(?<!non )(?<!not )"
 _TITLE_RCT = _re.compile(_NOT_NON + r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
 _TITLE_RCT_NOT = _re.compile(r"\bprotocol\b|\bsecondary analysis\b|\bpost[-\s]?hoc\b|\bsubstudy\b|"
-                             r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b", _re.I)
+                             r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b|"
+                             # an economic evaluation run ALONGSIDE a trial is not the trial's primary report (search+screen
+                             # audit radius review: PMID 36289153 'Health economic evaluation alongside the ... PROSPECT
+                             # randomized trial' was included once its population check widened)
+                             r"\beconomic evaluation\b|\bcost[-\s]?effectiveness\b|\bcost[-\s]?utility\b", _re.I)
 # Decision 5 Oct (Handbook, Mahmood's delegation): a 'substudy' / 'secondary analysis' that reports a prespecified outcome
 # of the trial's RANDOMISED comparison is a report of that RCT -- the title word alone never excludes. X1 excludes such a
 # record only when the record itself says the analysis is non-randomised, post hoc or observational. colchicine-postop
 # Imazio [19] (22090167, 'results of the COPPS atrial fibrillation substudy'; 'the COPPS trial, a multicenter,
 # double-blind, randomized trial') was excluded X1 by the title word.
-_TITLE_NOT_RESULTS = _re.compile(r"\bprotocol\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b",
+_TITLE_NOT_RESULTS = _re.compile(r"\bprotocol\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b|"
+                                 # an economic evaluation alongside a trial (as _TITLE_RCT_NOT above)
+                                 r"\beconomic evaluation\b|\bcost[-\s]?effectiveness\b|\bcost[-\s]?utility\b",
                                  _re.I)                         # not a results report at all
 _TITLE_POST_HOC = _re.compile(r"\bpost[-\s]?hoc\b", _re.I)
 _TITLE_SUBSTUDY = _re.compile(r"\bsubstudy\b|\bsub-study\b|\bsecondary analysis\b", _re.I)
@@ -321,6 +327,66 @@ def _poptext_raw(rec) -> str:
 
 def _poptext(rec) -> str:
     return _poptext_raw(rec).lower()
+
+
+# ENROLLED-POPULATION sentence (search+screen audit 2026-10-05, class SCREEN_POPULATION_TITLE_ONLY): the population is
+# judged from the title/conditions so that an INCIDENTAL abstract mention cannot qualify -- but a sentence that states
+# whom THIS study randomised or enrolled is not incidental. LoDoCo (Nidorf 2013, PMID 23265346) was X2-excluded from
+# colchicine secondary prevention: title 'Low-dose colchicine for secondary prevention of cardiovascular disease',
+# abstract '532 patients with stable coronary disease ... were randomly assigned colchicine 0.5 mg/day or no colchicine'.
+_ENROL_VERB = _re.compile(r"\b(?:randomi[sz]ed|randomly (?:assigned|allocated)|were (?:enrolled|recruited|assigned|allocated)"
+                          r"|we (?:enrolled|recruited|randomi[sz]ed|randomly assigned))\b", _re.I)
+_SECTION = _re.compile(r"\b(BACKGROUND|INTRODUCTION|CONTEXT|RATIONALE|OBJECTIVES?|AIMS?|PURPOSE|METHODS?|DESIGN|"
+                       r"PARTICIPANTS|PATIENTS|SETTING|RESULTS|FINDINGS|CONCLUSIONS?|INTERPRETATION)\s*:", _re.I)
+_NOT_ENROL_SECTIONS = {"background", "introduction", "context", "rationale"}
+
+
+_THIS_STUDY = _re.compile(r"\b(?:primary (?:outcome|end ?point)s?|(?:aim|objective|purpose)s? of (?:this|the present|our) "
+                          r"(?:study|trial)|we (?:assessed|evaluated|investigated|examined|tested|compared|aimed)|"
+                          r"this (?:randomi[sz]ed |controlled |double-blind |placebo-controlled )*(?:study|trial) "
+                          r"(?:assessed|evaluated|investigated|examined|tested|compared|aimed))\b", _re.I)
+
+
+def this_study_sentences(rec) -> str:
+    """The abstract's sentences about THIS study -- its enrolment / randomisation (an enrolment verb), its objective
+    or its primary outcome -- outside BACKGROUND-type sections, joined. Background sentences never enter."""
+    ab = rec.get("abstract") or ""
+    keep = []
+    for m in _re.finditer(r"[^.!?]+[.!?]?", ab):
+        snt = m.group(0)
+        cue = _ENROL_VERB.search(snt) or _THIS_STUDY.search(snt)
+        if not cue:
+            continue
+        sec = None
+        for s in _SECTION.finditer(ab, 0, m.start() + cue.start()):
+            sec = s.group(1).lower()
+        if sec in _NOT_ENROL_SECTIONS:
+            continue
+        keep.append(" ".join(snt.split()))
+    return " ".join(keep)
+
+
+def enrolled_population(rec, terms):
+    """(term, sentence) when a population term occurs, NON-negated, in an abstract sentence that states this study's
+    enrolment / randomisation (an enrolment verb in the same sentence) and is not in a BACKGROUND-type section; else
+    None. A background sentence about other patients never qualifies."""
+    ab = rec.get("abstract") or ""
+    if not ab or not terms:
+        return None
+    for m in _re.finditer(r"[^.!?]+[.!?]?", ab):
+        snt = m.group(0)
+        v = _ENROL_VERB.search(snt)
+        if not v:
+            continue
+        sec = None                      # the section label in force AT the enrolment verb ('METHODS: In a ... trial')
+        for s in _SECTION.finditer(ab, 0, m.start() + v.start()):
+            sec = s.group(1).lower()
+        if sec in _NOT_ENROL_SECTIONS:
+            continue
+        hit = _has(snt, terms)
+        if hit:
+            return hit, " ".join(snt.split())
+    return None
 
 
 def _arm_object_screening_enabled(config) -> bool:
@@ -479,6 +545,18 @@ def screen_record(rec, inc, neg_pmids):
         return over
     if not _is_rct(rec):
         pts = ", ".join(rec.get("pubtypes", [])) or "(no publication types)"
+        # REASON MUST MATCH ITS SPAN (search+screen audit 2026-10-05; measured by scripts/measure_x1_reason_evidence.py:
+        # 16 served X1s said 'not a randomized controlled trial' while citing 'publication types: ... Randomized
+        # Controlled Trial'). When PubMed types the record an RCT and a TITLE marker is what fired, say so and quote the
+        # marker: the record is a protocol / secondary report of a trial, not 'not an RCT'. The decision is unchanged --
+        # routing a secondary report to its trial family is a separate, owner-decided stage (Codex NR-C28).
+        mk = _TITLE_RCT_NOT.search(rec.get("title", "") or "")
+        if mk and rec.get("id_type") == "pmid" and any("randomized controlled trial" in p.lower()
+                                                        for p in rec.get("pubtypes", [])):
+            return ScreenDecision("exclude", "X1",
+                    f"not a primary report: the title marks a protocol / secondary report of a trial ('{mk.group(0)}'), "
+                    f"though PubMed types it an RCT (record: {label}).",
+                    _span(rec.get("title", "") or "", mk.group(0)))
         return ScreenDecision("exclude", "X1", f"not a randomized controlled trial (record: {label}).",
                 f"publication types: {pts}")
     bad = None
@@ -515,12 +593,23 @@ def screen_record(rec, inc, neg_pmids):
         return ScreenDecision("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
                 _span(raw_pop, bad))
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
+    if inc.get("population_any_from_abstract") and not inc.get("prevention"):
+        # inclusion only (exclusions were judged above), and only from sentences about THIS study: the whole abstract
+        # let in a retrospective cohort, a society position paper and a C. difficile TREATMENT trial whose background
+        # named the outcome (recorded radius review: 4 of 12 non-comparator flips contradicted)
+        own = this_study_sentences(rec)
+        pop_haystack, pop_haystack_raw = (poptext + " " + own.lower()), (raw_pop + " " + own)
     popok = _has(pop_haystack, population_any)
+    enrolled = None if popok or not population_any else enrolled_population(rec, population_any)
+    if enrolled:
+        popok = enrolled[0]
+        pop_haystack_raw = enrolled[1]          # the include span quotes the enrolment sentence itself
     if population_any and not popok:
-        _where = "title/conditions/abstract" if inc.get("prevention") else "title/conditions"
+        _wide = inc.get("prevention") or inc.get("population_any_from_abstract")
+        _where = "title/conditions/abstract" if _wide else "title/conditions"
         return ScreenDecision("exclude", "X2",
                 f"population not on-topic: {_where} do not mention any of {population_any}"
-                + ("" if inc.get("prevention") else " (an incidental abstract mention does not qualify)") + ".",
+                + ("" if _wide else " (an incidental abstract mention does not qualify)") + ".",
                 f"examined {_where}: “{_quote(pop_haystack_raw)}”")
     # Title-anchoring for the intervention exists to reject INCIDENTAL abstract mentions in PMID
     # records; for a CT.gov (nct) record the STRUCTURED interventions field is reliable and must be
@@ -725,8 +814,49 @@ def _source_case_basis(basis: str, rec: dict) -> str:
     return out
 
 
+def condition_is_outcome(config: dict) -> list:
+    """The registered population terms that ARE the primary outcome's keywords (folded, '*' stripped). Such a topic is a
+    prevention question whatever its flag says: a trial names WHOM it enrolled ('patients receiving antibiotics'), not
+    the outcome it prevents ('antibiotic-associated diarrhoea'). Found by acq/k-gap's screen audit (F_PREVENTION) and
+    confirmed by the search+screen audit's recorded dual review: probiotics-aad-prevention had 10 comparator trials
+    X2 'population not on-topic' that reader and adjudicator both judged eligible."""
+    inc = config.get("include") or {}
+    pop = {lexicon.fold(t).rstrip("*").strip().lower() for t in (inc.get("population_any") or []) if t}
+    kw = [lexicon.fold(k).lower() for k in ((config.get("primary_outcome") or {}).get("keywords") or []) if k]
+    shared = sorted(p for p in pop if p and any(p in k or k in p for k in kw))
+    # ... and the REGISTERED population (pico.json P) names none of those terms: they define the outcome, not whom the
+    # trial enrols. Without this, every topic whose outcome repeats its disease name ('heart failure hospitalisation',
+    # 'COVID-19 mortality') would let an incidental abstract mention qualify (23 of 38 topics share a term; 1 passes).
+    p_text = lexicon.fold(str(_registered_population(config.get("slug")) or "")).lower()
+    if not p_text or any(s in p_text for s in pop):
+        return []
+    return shared
+
+
+_PICO = None
+
+
+def _registered_population(slug):
+    global _PICO
+    if _PICO is None:
+        import json as _json
+        import os as _os
+        p = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "pico.json")
+        try:
+            _PICO = {t.get("id"): t for t in _json.load(open(p, encoding="utf-8")).get("topics", [])}
+        except (OSError, ValueError):
+            _PICO = {}
+    return (_PICO.get(slug) or {}).get("P")
+
+
 def run(all_recs: list, config: dict) -> dict:
     inc = effective_include(config)
+    if not inc.get("prevention") and condition_is_outcome(config):
+        # CONDITION_IS_OUTCOME: the POPULATION INCLUSION check may read the abstract (a trial names whom it enrolled,
+        # not the outcome it prevents); the registered population EXCLUSIONS keep their title/conditions haystack -- a
+        # first draft reused prevention=True, which also widened the exclusions and turned 6 includes the dual review
+        # judged eligible into X2 ('treatment of AAD' in a background sentence). Derived, so the config cannot drift.
+        inc = dict(inc, population_any_from_abstract=True)
     neg = set(config.get("negative_control_pmids", []))
     # Companion/duplicate/design reports are NOT independent trials (unit-of-analysis / duplicate-
     # publication defect the external audit named: a "design and rationale" paper or a secondary report
