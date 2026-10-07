@@ -326,7 +326,10 @@ _TENS = ("twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ni
 # a count right after one of these is approximate, a bound or a comparison, never an exact k ('at least five', 'more than
 # 5', 'up to five', 'about 12'; codex swap-setquote-r11 #3) -- a closed class of English approximators
 _APPROX = {"least", "most", "than", "about", "approximately", "around", "nearly", "almost", "over", "under", "some",
-           "roughly", "circa", "ca", "to", "upto", "beyond", "exceeding", "below", "above"}
+           "roughly", "circa", "ca", "to", "upto", "beyond", "exceeding", "below", "above",
+           # a count after 'of' is a denominator or a total ('50% of ten trials', 'two of the five'; codex
+           # swap-setquote-r12 #1): never the contributing k. 'a total of 5 trials' is refused too -- refusal is safe
+           "of"}
 
 
 def _clean(q):
@@ -383,7 +386,9 @@ def _counts_in(s):
 
     def prev_tokens(i, n=2):
         """The n whitespace/hyphen-separated tokens right before position i, lower-cased, punctuation KEPT."""
-        return [t.lower() for t in re.split(r"[\s-]+", s[:i].strip()) if t][-n:]
+        # an opening bracket on its own is no token ('Approximately (five trials)'; codex swap-setquote-r12 #2)
+        toks = [t.lower().lstrip("([{\"'‘“") for t in re.split(r"[\s-]+", s[:i].strip())]
+        return [t for t in toks if t][-n:]
 
     def blocked_before(i):
         """The count is part of a larger number, a spelled decimal or a phase: the token right before it is a number word
@@ -430,7 +435,7 @@ def mentions_a_count(q):
                 or re.search(r"\b(?:" + words + r")\b", s, re.I))
 
 
-def pooled_gate(pl, nt, set_quote=None):
+def pooled_gate(pl, nt, set_quote=None, verified_units=None):
     """The pooled claim stands only if its quote is verbatim in the held text, every stated estimate / bound EQUALS a whole
     numeric token of that quote (never a substring: '0.8' inside '0.85' -- g2#3), and a stated k is PRINTED in the quote
     as 'k = n' or 'n trials / studies / RCTs' (g2#4: an invented k reached the T3 largest-k tie-break). Returns
@@ -465,9 +470,12 @@ def pooled_gate(pl, nt, set_quote=None):
         # containment let 'We included 40 trials.' speak for a pooled result two sentences later).
         # both sides through the same cleaning (dashes, slashes, whitespace): the comparison is of like with like
         sent = next((x for x in _sentences(set_quote) if _norm(_clean(q)) in _norm(x)), None) if set_quote else None
-        if not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q):
+        # ... and CORROBORATED: text alone cannot prove whose count a sentence prints (codex swap-setquote-r12 #3: 'Of the
+        # 40 trials, those reporting mortality gave RR 0.85'), so the borrowed count must equal the number of per-trial
+        # units the enumeration independently verified, with none refused. Without that the fallback is closed.
+        if not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q) and verified_units:
             c = printed_counts(sent)
-            if len(c) == 1:
+            if c == {verified_units}:
                 printed = c
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
@@ -932,7 +940,9 @@ def gate_enum(claim, it):
         span = rq if rq else (r.get("title") or lab)
         units.append({"label": lab, "ref": ref, "pmid": pmid, "identity": ident, "span": span, "scope": "IN_SCOPE",
                       "rule_id": None})
-    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt, set_quote=claim.get("set_quote"))
+    # the set-quote count is corroborated by the units verified above: distinct PMIDs, and only when nothing was refused
+    verified = len({u["pmid"] for u in units}) if units and not refused else None
+    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt, set_quote=claim.get("set_quote"), verified_units=verified)
     sq = claim.get("set_quote")
     return units, refused, pooled, (sq if _quoted(sq, nt) else None)
 
