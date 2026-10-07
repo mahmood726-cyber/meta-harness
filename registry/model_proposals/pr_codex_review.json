@@ -2340,5 +2340,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r16": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7d9e41323a4c8a12945c29d5bdb2e877",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "9fed6347f26e4a5e62052933371f53f1bed271bf8aba6ca890399c433b198eb0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "A percentage-defined subset is accepted as the full contributing trial count. The percentage check protects only the set-quote fallback; a directly parsed count bypasses it.",
+    "failing_input": "printed_counts('Ten trials were included, and 40% reported mortality (RR 0.85, CI 0.70-1.03).')",
+    "expected": "set(); reject k=10 because the quote explicitly limits mortality reporting to 40% of the trials.",
+    "actual": "{10}. pooled_gate consequently accepts the unsupported k=10 when this is the held pooled quote.",
+    "id": "swap-setquote-r16:g1#1",
+    "record_id": "mc-7d9e41323a4c8a12945c29d5bdb2e877",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in.bound_after / printed_counts",
+    "severity": "P0",
+    "claim": "The bound detector misses 'at the most', turning an explicit upper bound into an exact contributing count.",
+    "failing_input": "printed_counts('Five trials at the most contributed to the pooled RR 0.85 (CI 0.70-1.03).')",
+    "expected": "set(); an upper bound does not establish an exact k.",
+    "actual": "{5}, making k=5 eligible to pass pooled_gate.",
+    "id": "swap-setquote-r16:g1#2",
+    "record_id": "mc-7d9e41323a4c8a12945c29d5bdb2e877",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The parser accepts the number of excluded trials as the number contributing to the result. The restriction pattern recognizes 'excluding' but misses 'excluded'.",
+    "failing_input": "printed_counts('Five trials were excluded from the mortality analysis (RR 0.85, CI 0.70-1.03).')",
+    "expected": "set(); the contributing trial count is not stated.",
+    "actual": "{5}, making the excluded-trial count eligible to pass pooled_gate as k=5.",
+    "id": "swap-setquote-r16:g1#3",
+    "record_id": "mc-7d9e41323a4c8a12945c29d5bdb2e877",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -334,7 +334,18 @@ _APPROX = {"least", "most", "than", "about", "approximately", "around", "nearly"
 
 _RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s+whom|of\s+these|of\s+those|of\s+them|"
                        r"among\s+(?:them|these|those)|minority|portion|part\s+of|fractions?|not\s+all|except|excluding|"
-                       r"apart\s+from|other\s+than|remaining|rest\s+of|few(?:er)?|several)\b", re.I)
+                       r"apart\s+from|other\s+than|remaining|rest\s+of|few(?:er)?|several|"
+                       # trials taken OUT of the analysis are not its k ('Five trials were excluded from the mortality
+                       # analysis'; codex swap-setquote-r16 #3)
+                       r"exclu\w*|omit\w*|withdr\w*|removed|dropped|lost\s+to)\b", re.I)
+
+
+def _stray_percent(sent):
+    """A percentage in a count sentence that is not a CI level or a heterogeneity statistic ('40% reported mortality';
+    codex swap-setquote-r16 #1): the sentence describes a fraction of the trials, so it never supplies k."""
+    t = re.sub(r"\b9[059](?:\.\d+)?\s*%\s*(?:CI|CrI|confidence|credible|prediction|PI)\b", " ", sent, flags=re.I)
+    t = re.sub(r"\bI\s*(?:2|²|\^2)?\s*(?:=|:|of)?\s*\d+(?:\.\d+)?\s*%", " ", t, flags=re.I)
+    return "%" in t
 
 
 def _clean(q):
@@ -374,7 +385,7 @@ def printed_counts(q):
     for sent in _sentences(q):
         # a sentence that restricts the result to a SUBSET never supplies k, whichever path reads it (codex
         # swap-setquote-r15 #1: 'Five trials were included, but only a subset reported mortality (RR ...)')
-        if _numerals(sent) == 1 and not _RESTRICT.search(sent):
+        if _numerals(sent) == 1 and not _RESTRICT.search(sent) and not _stray_percent(sent):
             out |= _counts_in(sent)
     return out
 
@@ -426,7 +437,8 @@ def _counts_in(s):
     def bound_after(j):
         """A bound written AFTER the trials word: 'Five trials at most', '5 studies or more' (codex swap-setquote-r14 #2)."""
         # a bracket may open before it ('Five trials (at most)'; codex swap-setquote-r15 #2)
-        return bool(re.match(r"\s*[,(\[]?\s*(?:(?:at\s+(?:most|least)|or\s+(?:more|fewer|less|so|over|under)|"
+        # 'at the most' too (codex swap-setquote-r16 #2)
+        return bool(re.match(r"\s*[,(\[]?\s*(?:(?:at\s+(?:the\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
                              r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over))\b|\+)", s[j:], re.I))
 
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')

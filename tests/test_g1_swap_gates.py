@@ -357,3 +357,13 @@ def test_PLANT_applied_enumeration_spans_are_in_k_gap_tables_rendering_of_the_he
     for u in e["units"]:
         assert kt.held_norm(None, u["span"]) not in held                       # the swap's own rendering: not found
         assert kt.held_norm(None, sw.kgap_span(u["span"])) in held             # the applied rendering: found
+
+
+def test_PLANT_r16_percent_fractions_at_the_most_and_excluded_trials_refuse_while_ci_levels_do_not():
+    """codex swap-setquote-r16: #1 'Ten trials were included, and 40% reported mortality'; #2 'at the most';
+    #3 'Five trials were excluded'. A CI level or an I-squared is not a fraction of the trials and keeps a clean count."""
+    assert sw.printed_counts("Ten trials were included, and 40% reported mortality (RR 0.85, CI 0.70-1.03).") == set()
+    assert sw.printed_counts("Five trials at the most contributed to the pooled RR 0.85 (CI 0.70-1.03).") == set()
+    assert sw.printed_counts("Five trials were excluded from the mortality analysis (RR 0.85, CI 0.70-1.03).") == set()
+    assert sw.printed_counts("Five trials gave RR 0.85 (95% CI 0.70-1.03; I2 = 0%).") == {5}
+    assert sw.printed_counts("Five trials gave RR 0.85 (95% confidence interval 0.70-1.03).") == {5}
