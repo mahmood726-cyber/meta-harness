@@ -37,3 +37,9 @@ structured exclusion of phase 2 / phase II trials was declared in the protocol b
 not executable in the topic config. The config now excludes phase 2/II contexts at
 screening while leaving the phase 3 treatment-resistant-depression esketamine
 trials eligible. This amendment changes screening only.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 42490943) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 2 other open meta-analyses (PMID 36514492, 33888663; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 4 of 5 of the comparator's eligible trials; with this route and the full retrieval below, 5 of 5 (5 of 5 without the comparator's own reference list, which contains its trials by construction). The route retrieves 98 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A2 ClinicalTrials.gov retrieval.** The registered query {"cond": "treatment resistant depression", "intr": "esketamine"} is unchanged. It returns 43 studies; the earlier retrieval kept the first 30 (a one-page cap in harness.fetch, now paginated with the source's own total recorded).
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-d75ec639c14a61d5b6399d1b81808004.json).

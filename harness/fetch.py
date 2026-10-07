@@ -48,6 +48,56 @@ def _epmc_linked(pmid: str, kind: str, pages: int = 2) -> list[str]:
     return out
 
 
+def _epmc_linked_result(pmid: str, kind: str, max_pages: int = 20) -> dict:
+    """_epmc_linked with the source's own hitCount on the funnel, all pages: a reference list or citation list shorter
+    than its hitCount is recorded as a cap with its remainder (never silent). Only PubMed-indexed items (source MED)
+    become ids; the rest are counted on the funnel as not linkable (they flow nowhere, and that is stated)."""
+    ids, hits, seen, pg = [], None, 0, 1
+    block, item = ("referenceList", "reference") if kind == "references" else ("citationList", "citation")
+    while pg <= max_pages:
+        d = http.get_json(EPMC_ART.format(pmid=pmid, kind=kind), {"format": "json", "pageSize": 1000, "page": pg})
+        time.sleep(0.2)
+        if hits is None:
+            hits = _maybe_int(d.get("hitCount"))
+        items = (d.get(block, {}) or {}).get(item, []) or []
+        seen += len(items)
+        ids += [str(it["id"]) for it in items if str(it.get("source")) == "MED" and it.get("id")]
+        if len(items) < 1000:
+            break
+        pg += 1
+    ids = _dedupe(ids)
+    remainder = None if hits is None else max(0, hits - seen)
+    cap = ({"kind": "none", "n": None, "remainder": None} if not remainder else
+           {"kind": "hard_hits_cap", "n": seen, "remainder": remainder})
+    return {"ids": ids, "count": hits, "state": "RAN_OK" if ids else "RAN_ZERO", "error": None,
+            "funnel": _source_funnel(hits, seen, len(ids), cap)}
+
+
+def review_reference_list_sources(config: dict) -> list[tuple[str, str, object, str]]:
+    """THE REVIEW_REFERENCE_LIST identification route, standing for every topic (search+screen audit, 2026-10-05;
+    disabled only by an explicit config 'review_reference_list': false). [(ledger kind, query, call, adapter)]:
+      the comparator   backward: its Europe PMC reference list (COMPARATOR_REFERENCE_LIST) -- the PubMed elink list
+                       runs as COMPARATOR_REFERENCES above; forward: the papers citing it (EPMC_FORWARD_CITATION)
+      other open metas config 'reference_list_metas' (1-2 PMIDs, declared by a dated protocol amendment): backward,
+                       both adapters (EPMC_BACKWARD_CITATION, PUBMED_ELINK_BACKWARD_CITATION)
+    Identification only: every PMID found flows through the same efetch + screen as a searched record."""
+    if config.get("review_reference_list") is False:
+        return []
+    out = []
+    comp = str(config.get("comparator_pmid") or "")
+    if comp:
+        out.append(("COMPARATOR_REFERENCE_LIST", f"{comp} references (Europe PMC)",
+                    lambda p=comp: _epmc_linked_result(p, "references"), "harness.fetch._epmc_linked_result"))
+        out.append(("EPMC_FORWARD_CITATION", f"{comp} citations (Europe PMC)",
+                    lambda p=comp: _epmc_linked_result(p, "citations"), "harness.fetch._epmc_linked_result"))
+    for m in [str(x) for x in config.get("reference_list_metas") or [] if str(x) and str(x) != comp][:2]:
+        out.append(("EPMC_BACKWARD_CITATION", f"{m} references (Europe PMC)",
+                    lambda p=m: _epmc_linked_result(p, "references"), "harness.fetch._epmc_linked_result"))
+        out.append(("PUBMED_ELINK_BACKWARD_CITATION", f"{m} references (PubMed elink)",
+                    lambda p=m: _refs(p), "harness.fetch._refs"))
+    return out
+
+
 def _europepmc_pmids(query: str, retmax: int = 40) -> list[str]:
     """Reach adapter: Europe PMC indexes more than PubMed's esearch top-N and ranks differently,
     surfacing registered trials esearch misses. Returns PubMed-indexed PMIDs (SRC:MED) so they
@@ -239,8 +289,19 @@ def _ctgov_results(nct: str):
         return None
 
 
-def _ctgov_search(cond: str, intr: str, page_size: int = 30) -> list[dict]:
-    params = {"pageSize": page_size, "fields":
+def _ctgov_search(cond: str, intr: str, page_size: int = 100) -> list[dict]:
+    """EVERY study the registered CT.gov query returns (all pages). Before 2026-10-05 this fetched ONE page of 30 and
+    recorded no total: 16 of the 32 G1 topics were silently truncated (dpp4 30 of 244, semaglutide-weight 30 of 355,
+    tocilizumab 30 of 86 -- 7 of tocilizumab's comparator trials matched the query and were never retained). Found by
+    the search+screen audit's volume probe (outputs/search_audit/search_volume_probe.json); plant
+    tests/test_search_audit_ctgov_pagination.py."""
+    return _ctgov_search_result(cond, intr, page_size)["records"]
+
+
+def _ctgov_search_result(cond: str, intr: str, page_size: int = 100, max_pages: int = 200) -> dict:
+    """{ids, records, count, state, funnel}: all pages, with the source's own totalCount as the funnel's hits. A
+    shortfall (fewer studies than totalCount) is recorded on the funnel as a cap with its remainder -- never silent."""
+    params = {"pageSize": page_size, "countTotal": "true", "fields":
               "protocolSection.identificationModule,protocolSection.designModule,"
               "protocolSection.conditionsModule,protocolSection.armsInterventionsModule,"
               "protocolSection.statusModule,hasResults"}
@@ -248,9 +309,27 @@ def _ctgov_search(cond: str, intr: str, page_size: int = 30) -> list[dict]:
         params["query.cond"] = cond
     if intr:
         params["query.intr"] = intr
-    d = http.get_json(CTGOV, params)
+    studies, total, token = [], None, None
+    for _ in range(max_pages):
+        d = http.get_json(CTGOV, dict(params, pageToken=token) if token else params)
+        if total is None:
+            total = _maybe_int(d.get("totalCount"))
+        studies.extend(d.get("studies", []))
+        token = d.get("nextPageToken")
+        if not token:
+            break
+    records = _ctgov_rows(studies)
+    ids = [r["id"] for r in records if r.get("id")]
+    remainder = None if total is None else max(0, total - len(ids))
+    cap = ({"kind": "none", "n": None, "remainder": None} if remainder == 0 else
+           {"kind": "pagination_incomplete", "n": len(ids), "remainder": remainder})
+    return {"ids": ids, "records": records, "count": total, "state": "RAN_OK" if ids else "RAN_ZERO", "error": None,
+            "funnel": _source_funnel(total, len(ids), len(ids), cap)}
+
+
+def _ctgov_rows(studies: list[dict]) -> list[dict]:
     out = []
-    for s in d.get("studies", []):
+    for s in studies:
         ps = s.get("protocolSection", {})
         idm = ps.get("identificationModule", {})
         dm = ps.get("designModule", {})
@@ -569,6 +648,10 @@ def _run_with_recorder(config: dict, recorder: _acq.RawRecorder) -> dict:
         )
         _append_unique(pmids, ids)
 
+    for kind, query, call, adapter in review_reference_list_sources(config):
+        _, ids, _ = _run_source(ledger, kind, query, run_utc, True, call, adapter=adapter)
+        _append_unique(pmids, ids)
+
     if config.get("cite_chase"):
         seeds = [config.get("comparator_pmid")] + list(config.get("positive_control_pmids", []))
         for seed in [s for s in seeds if s]:
@@ -630,11 +713,10 @@ def _run_with_recorder(config: dict, recorder: _acq.RawRecorder) -> dict:
             json.dumps(cg, sort_keys=True),
             run_utc,
             True,
-            lambda cg=cg: _ctgov_search(cg.get("cond", ""), cg.get("intr", "")),
-            id_getter=lambda row: row.get("id"),
-            adapter="harness.fetch._ctgov_search",
+            lambda cg=cg: _ctgov_search_result(cg.get("cond", ""), cg.get("intr", "")),
+            adapter="harness.fetch._ctgov_search_result",
         )
-        ctgov = payload if isinstance(payload, list) else []
+        ctgov = payload.get("records", []) if isinstance(payload, dict) else []
 
     comparator_oa = None
     comp_doi = ""

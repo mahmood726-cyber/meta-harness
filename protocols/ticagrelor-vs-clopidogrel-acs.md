@@ -60,3 +60,8 @@ diabetic patients: A systematic review and meta-analysis" (PMCID PMC5435320, DOI
 10.1371/journal.pone.0177872). It is an open-access meta-analysis of ticagrelor versus
 clopidogrel/prasugrel in ACS; the comparator extraction uses the ticagrelor-versus-
 clopidogrel composite endpoint reported in the abstract.
+
+## Amendment 2026-10-05 -- identification sources (search+screen audit)
+
+- **A1 REVIEW_REFERENCE_LIST (standing identification source).** Added: the comparator's (PMID 28545073) backward reference list (PubMed elink and Europe PMC) and its forward citations, and the backward reference lists of 2 other open meta-analyses (PMID 38455558, 30863011; rule: most trial rows read by the secondary-meta lane, ties to the newer). Rationale: the registered search identified 3 of 4 of the comparator's eligible trials; with this route and the full retrieval below, 3 of 4 (3 of 4 without the comparator's own reference list, which contains its trials by construction). The route retrieves 110 records (recorded: outputs/search_audit/rrl_probe.json). Identification only: every record still passes the registered screen.
+- **A3 Concept query: not adopted** (KEEP_CURRENT: no recall gain; recorded call mc-199cc3b1ad4430a07507bdcca4d38bfb.json).

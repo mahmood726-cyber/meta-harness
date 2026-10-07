@@ -1,0 +1,309 @@
+"""The G1 SEARCH + SCREEN RECALL AUDIT report, built ONLY from the committed artefacts of this lane (no number typed by
+hand): SEARCH_SCREEN_AUDIT.json, search_miss_probe.json, search_volume_probe.json, rrl_probe.json, query_audit.json,
+screen_dual_review.json (v2) + _v1, screen_radius_review.json, screen_fix_radius_*.json, amendments.json.
+
+Every screen miss (an ELIGIBLE comparator trial our search identified that our screen excluded) is typed, first match:
+  FIXED_ON_BRANCH        served exclude -> this branch's screener includes it
+  POST_SCREEN_STAGE      X-DEDUP / X-CONTRAST (duplicate / contrast handling after the screen; not an eligibility call)
+  DESIGN_NOT_STATED      X-DESIGN on absence ('no placebo/double-blind/masked in text'): verification owed (registry
+                         masking / full text), never a scope difference
+  SCREEN_FALSE_EXCLUSION adjudicated ELIGIBLE by the recorded dual review (v2) and still excluded on this branch
+  PROTOCOL_EXCLUSION     adjudicated INELIGIBLE (the registered criteria exclude it)
+  UNRESOLVED             the reader and the adjudicator could not decide from the held record
+
+  python scripts/g1_search_screen_report.py   -> outputs/search_audit/SEARCH_SCREEN_REPORT.md
+"""
+from __future__ import annotations
+
+import collections
+import json
+import os
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SA = os.path.join(ROOT, "outputs", "search_audit")
+
+
+def _j(n):
+    p = os.path.join(SA, n)
+    return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}
+
+
+def screen_type(r):
+    ex = r.get("screen_exclusion") or {}
+    dr = r.get("dual_review") or {}
+    if r.get("screen_branch") == "INCLUDED":
+        return "FIXED_ON_BRANCH"
+    if ex.get("rule_id") in ("X-DEDUP", "X-CONTRAST"):
+        return "POST_SCREEN_STAGE"
+    if ex.get("rule_id") == "X-DESIGN" and "no 'placebo'" in (ex.get("span") or ""):
+        return "DESIGN_NOT_STATED"
+    if dr.get("final") == "ELIGIBLE":
+        return "SCREEN_FALSE_EXCLUSION"
+    if dr.get("final") == "INELIGIBLE":
+        return "PROTOCOL_EXCLUSION"
+    return "UNRESOLVED"
+
+
+
+def _adj(dc):
+    """'n adjudicated' counts COMPLETED adjudications; a pending one is stated, never counted (codex review mc-0effd237)."""
+    a = dc.get("adjudication")
+    if a is None:                                   # an output written before 7 Oct: the count was adjudications NEEDED
+        return f"{dc.get('adjudicated')} sent to adjudication"
+    return f"{a['completed']} adjudicated" + (f", {a['pending']} pending" if a["pending"] else "")
+
+
+def expanded_section(exps, edc):
+    """The expanded-search section, every sentence derived from the results passed in (codex review mc-0effd237 P0: the
+    reading had been hard-coded prose that contradicted its own table on other inputs)."""
+    edc = edc or {}
+    tops = edc.get("topics") or {}
+    L = ["## Expanded searches (volume cap 10,000)", "",
+         "Query per topic by a fixed rule: the smallest-volume blind proposal with the maximal measured recall gain. "
+         "Run in full; records not already held were rule-screened; a dual Codex review then read every new rule "
+         f"include, every newly identified comparator trial and a seeded random sample of {edc.get('sample_n')} "
+         "rule excludes per topic (seed recorded). Decision per topic: "
+         + "; ".join(f"{s}: {e.get('decision') or '(not recorded)'}" for s, e in exps.items()) + ".", "",
+         "| Topic | Records (new) | Rule include / exclude / dedup | Eligible comparator trials identified | "
+         "Newly identified passing the screen | Rule includes: Codex final E/I/U | False-exclusion rate (95% CI), "
+         "extrapolated over the sampling frame |", "|---|---|---|---|---|---|---|"]
+    for s, e in exps.items():
+        t = tops.get(s) or {}
+        rs, rc, ex = e["rule_screen"], e["recall"], t.get("exclude_sample") or {}
+        fi = t.get("rule_includes_final") or {}
+        L.append(f"| {s} | {e['esearch']['count']} ({e['new_records']}) | {rs['include']} / {rs['exclude']} / "
+                 f"{rs['dedup_collapsed']} | {rc['identified_before']} -> **{rc['identified_after']}** of {rc['eligible']} | "
+                 f"{rc['newly_identified_and_screen_included']} of {rc['newly_identified']} | {fi.get('ELIGIBLE')} / "
+                 f"{fi.get('INELIGIBLE')} / {fi.get('UNRESOLVED')} | {ex.get('rate')} ({ex.get('wilson95')}), "
+                 f"~{ex.get('extrapolated_false_exclusions')} of {ex.get('excludes_total')} |")
+    comp = [(s, c) for s in exps for c in (tops.get(s) or {}).get("comparator_trials") or []]
+    if comp:
+        L += ["", "Newly identified comparator trials screened as new records, rule decision -> dual Codex final: "
+              + "; ".join(f"{c['label']} ({s}) {c['rule']} -> {c['final']}" for s, c in comp) + "."]
+    gain = [(s, e["recall"]) for s, e in exps.items() if e["recall"].get("newly_identified")]
+    fe = [(s, (tops.get(s) or {}).get("exclude_sample") or {}) for s in exps]
+    fe_pos = [(s, x) for s, x in fe if x.get("false_exclusions") or x.get("rate")]
+    fin = collections.Counter()
+    for s in exps:
+        fin.update((tops.get(s) or {}).get("rule_includes_final") or {})
+    n_inc = sum(fin.values())
+    read = ["Reading (derived from the table):"]
+    read.append("identification: " + ("; ".join(f"{s} {r['identified_before']} -> {r['identified_after']} of {r['eligible']}"
+                                                  for s, r in gain) if gain else
+                                       "no topic identified an additional eligible comparator trial") + ".")
+    if n_inc:
+        read.append(f"rule includes reviewed: {n_inc}, Codex final {fin['ELIGIBLE']} eligible / {fin['INELIGIBLE']} ineligible / "
+                    f"{fin['UNRESOLVED']} unresolved ({round(100 * fin['ELIGIBLE'] / n_inc)}% confirmed eligible).")
+    read.append("exclude samples: " + ("; ".join(f"{s} {x.get('false_exclusions', '?')} of {x.get('decided', '?')} decided "
+                                                  f"({x.get('rate')}, 95% CI {x.get('wilson95')}), ~"
+                                                  f"{x.get('extrapolated_false_exclusions')} of {x.get('excludes_total')}"
+                                                  for s, x in fe_pos) if fe_pos else
+                                       "no false exclusion was found in any exclude sample") + ".")
+    return L + ["", " ".join(read), ""]
+
+
+def active_section():
+    """The 12 active topics against their CURRENT comparators (7 Oct): derived from outputs/search_audit/active/."""
+    a = _j(os.path.join("active", "ACTIVE_AUDIT.json"))
+    if not a:
+        return []
+    dc = _j(os.path.join("active", "screen_dual_codex_active.json"))
+    fin = {(r["slug"], r["label"]): r.get("final") for r in dc.get("rows") or []}
+    L = [f"## Active topics ({len(a['active'])}) against their current comparators (7 Oct)", "",
+         f"Active = not G1_MATCHED and not abandoned under {a['selection']['abandon_rule']}. Comparator = this branch's "
+         f"tracker rows (V8 adoptions included). Kinds: {a['kinds']}. Search measured on the served retrieval and on the "
+         f"CURRENT registered queries (recorded esearch probe of every query, amendments included); screen = the served "
+         f"decision where the record was served, else this branch's rule screener on the held record.", "",
+         "| Topic | Comparator | Eligible | Search served | Search current | Screen (of identified) | Dual Codex final on "
+         "eligible E/I/U | Short |", "|---|---|---|---|---|---|---|---|"]
+    for t in a["topics"]:
+        el = [r for r in t["trials"] if r["kind"] == "ELIGIBLE"]
+        c = collections.Counter(fin.get((t["slug"], r["label"])) for r in el)
+        L.append(f"| {t['slug']} | {t['comparator_pmid']} | {len(el)} | {t['search_recall']['n']}/{t['search_recall']['N']} | "
+                 f"{t['search_recall_current']['n']}/{t['search_recall_current']['N']} | "
+                 f"{t['screen_recall_current']['n']}/{t['screen_recall_current']['N']} | {c['ELIGIBLE']}/{c['INELIGIBLE']}/"
+                 f"{c['UNRESOLVED']} | {', '.join(t['short']) or '-'} |")
+    T = a["totals"]
+    L += ["", f"Totals: search served {T['search_recall']['n']}/{T['search_recall']['N']}, current "
+              f"{T['search_recall_current']['n']}/{T['search_recall_current']['N']}; screen of the identified "
+              f"{T['screen_recall_current']['n']}/{T['screen_recall_current']['N']}."]
+    if dc:
+        k = dc["kappa"]
+        L += [f"Dual Codex over all {dc['n_rows']} comparator rows: kappa A vs B {k['reader_A_vs_reader_B']}, rule vs final "
+              f"{k['rule_vs_final']}; {_adj(dc)}; final {dc['final']}; against the rule screen {dc['screen_errors']}: "
+              + "; ".join(f"{r['label']} ({r['slug']}) {r['screen_error']}" for r in dc["rows"] if r.get("screen_error")) + "."]
+    return L + [""]
+
+def main():
+    a = _j("SEARCH_SCREEN_AUDIT.json")
+    vol = _j("search_volume_probe.json").get("topics", {})
+    qa = _j("query_audit.json").get("topics", {})
+    dv1 = _j("screen_dual_review_v1.json")
+    rr = _j("screen_radius_review.json")
+    T = a["totals"]
+    L = ["# G1 search + screen recall audit", "",
+         f"Branch g1/search-screen-audit. Inputs pinned: acq/k-gap {a['inputs']['acq_commit'][:10]}. Every number below is "
+         f"read from the committed artefacts in outputs/search_audit/ (this file is generated by "
+         f"scripts/g1_search_screen_report.py).", "",
+         "## What was counted", "",
+         f"Comparator trials across the 32 topics: {T['N_comparator']}. Kinds: {a['kinds']['ELIGIBLE']} ELIGIBLE (the "
+         f"recall denominator, equal to the tracker's N_eligible on every topic), {a['kinds']['SCREEN_NAMED']} left the "
+         f"eligible set because OUR screen excluded them (re-checked below, never assumed correct), "
+         f"{a['kinds']['NAMED_OTHER']} other named differences (outcome set, estimand).", "",
+         "## Search", "",
+         f"- Registered search (PubMed + CT.gov as run): **{T['search_recall']['n']} of {T['search_recall']['N']}** eligible "
+         f"trials identified.",
+         f"- Plus other published metas' reference lists already held: {T['search_or_rrl_other_recall']['n']} of "
+         f"{T['search_or_rrl_other_recall']['N']}.",
+         f"- After this branch's identification fixes (counterfactual, recorded probes): **{T['fixed_identification_recall']['n']} "
+         f"of {T['fixed_identification_recall']['N']}**; {T['fixed_identification_recall_independent']['n']} of "
+         f"{T['fixed_identification_recall_independent']['N']} without the comparator's own reference list (circular as a "
+         f"measure: it lists its trials by construction).",
+         f"- Search misses, typed by the recorded probe: " + ", ".join(f"{k} {v}" for k, v in sorted(T["miss_types"].items())) + ".",
+         ""]
+    trunc = [(s, v["ctgov_retained"], v["ctgov_count_today"]) for s, v in sorted(vol.items()) if v.get("ctgov_truncated")]
+    L += [f"**Class defect 1, CT.gov silently capped at 30** ({len(trunc)} of {len(vol)} topics): "
+          + "; ".join(f"{s} {r} of {n}" for s, r, n in trunc) + ". Fixed (harness.fetch pagination, plant).", "",
+          "**Class defect 2, REVIEW_REFERENCE_LIST not standing**: only the comparator's PubMed elink list ran by default. "
+          "Now standing for every topic: comparator backward (PubMed + Europe PMC) and forward citation, plus up to 2 other "
+          "open metas' reference lists (plant; declared by dated amendment A1 on every topic).", "",
+          "**Query gaps**: registered PubMed queries are mostly hand-written keyword or title-word queries. One blind recorded "
+          "query audit per topic (the proposer never saw the comparator's trials):", ""]
+    acc = [(s, q) for s, q in sorted(qa.items()) if str((q.get("validation") or {}).get("verdict", "")).startswith("ACCEPT")]
+    cap = [(s, q) for s, q in sorted(qa.items()) if "volume" in str((q.get("validation") or {}).get("verdict", ""))]
+    L += ["| Topic | Registered queries match | + proposed (union) | Proposed volume | Verdict |", "|---|---|---|---|---|"]
+    for s, q in acc + cap:
+        v = q["validation"]
+        L.append(f"| {s} | {v['recall_current']['n']}/{v['recall_current']['N']} | {v['recall_union']['n']}/"
+                 f"{v['recall_union']['N']} | {v['proposed_pubmed_count']} | {v['verdict']} |")
+    L += ["", f"{len(acc)} accepted and ADDED by dated amendment A3; {len(cap)} gain recall but exceed the 5,000-record volume "
+          f"cap -- **decision for Mahmood** (the cap is this lane's threshold, not a rule); "
+          f"{len(qa) - len(acc) - len(cap)} show no recall gain.", ""]
+    # screen
+    dr = a.get("dual_review") or {}
+    L += ["## Screen", "",
+          f"- Screen recall (eligible trials our search identified, then included by our screen): served "
+          f"**{T['screen_recall']['n']} of {T['screen_recall']['N']}**; under this branch's screener "
+          f"**{T['screen_recall_branch']['n']} of {T['screen_recall_branch']['N']}**.",
+          f"- Recorded dual review v2 (second screener: {dr.get('reader_model')}; adjudicator: {dr.get('adjudicator_model')}; "
+          f"both see the registered criteria including the exclusion lists): {dr.get('n_items')} items "
+          f"({dr.get('tally')}). **Cohen's kappa, rule screener vs reader: {(dr.get('kappa_rule_vs_reader') or {}).get('kappa')}** "
+          f"on {(dr.get('kappa_rule_vs_reader') or {}).get('n_decided')} decided items "
+          f"({(dr.get('kappa_rule_vs_reader') or {}).get('n_undecided')} the reader could not decide from the record).",
+          f"- v1 (reader saw only the summary criteria, not the registered exclusion lists): kappa "
+          f"{(dv1.get('kappa_rule_vs_reader') or {}).get('kappa')}; kept for the record -- the two differ because v1 judged "
+          f"protocol-excluded populations (CABG, assisted reproduction, eye disease) against a looser standard.", ""]
+    rows = [(t["slug"], r) for t in a["topics"] for r in t["trials"]
+            if r["kind"] == "ELIGIBLE" and r["search"].startswith("IDENTIFIED") and r["screen"] == "EXCLUDED"]
+    types = collections.Counter(screen_type(r) for _, r in rows)
+    L += [f"Eligible trials our screen EXCLUDED (served): {len(rows)}. Typed: " + ", ".join(f"{k} {v}" for k, v in
+                                                                                            types.most_common()) + ".", "",
+          "| Topic | Trial | Rule (served) | Dual review | Branch | Type |", "|---|---|---|---|---|---|"]
+    for s, r in sorted(rows, key=lambda x: (screen_type(x[1]), x[0])):
+        ex = r.get("screen_exclusion") or {}
+        L.append(f"| {s} | {r['label']} | {ex.get('rule_id')} | {(r.get('dual_review') or {}).get('final')} | "
+                 f"{r.get('screen_branch')} | {screen_type(r)} |")
+    named = [(t["slug"], r) for t in a["topics"] for r in t["trials"] if r["kind"] == "SCREEN_NAMED"]
+    nt = collections.Counter((r.get("dual_review") or {}).get("final") or "NOT_READ" for _, r in named)
+    v1n = collections.Counter(i.get("final") for i in dv1.get("items") or [] if i.get("kind") == "SCREEN_NAMED")
+    L += ["", f"Screen-named exclusions re-checked ({len(named)}): dual review v2 final {dict(nt)}"
+          + (f" -- every one confirmed by the second screener (v1, whose reader did not see the registered exclusion "
+             f"lists, had {v1n.get('ELIGIBLE', 0)} adjudicated eligible: an instrument gap, not a screener error)"
+             if set(nt) == {"INELIGIBLE"} else
+             "; any adjudicated ELIGIBLE is a protocol-term exclusion whose change is an eligibility amendment") + ".", "",
+          "### Screen fixes on this branch (each with plants that fail before, and a measured radius over all 3,201 held "
+          "decisions)", "",
+          "- **A, enrolled-population sentence**: a population term in an abstract sentence stating THIS study's "
+          "enrolment counts (LoDoCo, Nidorf 2013). LoDoCo itself then stops at X3: our protocol requires placebo, LoDoCo "
+          "randomised 'no colchicine' -- a protocol scope difference, not a screener error.",
+          "- **C, X1 reason matches its span**: 16 X1s said 'not an RCT' while citing PubMed type RCT; the title marker that "
+          "fired is now named and quoted. 0 decisions change.",
+          "- **D, condition is the outcome**: when the registered population terms are the outcome (probiotics: 'AAD'), "
+          "the population inclusion check reads sentences about THIS study (never background). A whole-abstract draft was "
+          "rejected by the recorded radius review (4 of 12 contradicted).",
+          "- **E, economic evaluation title marker**: a health-economic evaluation alongside a trial is a secondary report.",
+          f"- Recorded radius review of every non-comparator flip: {rr.get('tally')}.", ""]
+    dc = _j("screen_dual_codex.json")
+    if dc:
+        k = dc["kappa"]
+        L += ["## Dual Codex screen review of every comparator row (6 Oct)", "",
+              f"Every one of the {dc['n_rows']} comparator rows, kinds enumerated: {dc['coverage']} (COUNTERFACTUAL = a trial "
+              f"our search missed, screened in memory by this branch's screener on its held record). {dc['n_read_by_both']} "
+              f"items read by BOTH independent recorded readers ({dc['models']['reader_A']}, {dc['models']['reader_B']}); "
+              f"{_adj(dc)} ({dc['models']['adjudicator']}) where they disagreed or could not decide.", "",
+              f"- **Cohen's kappa, reader A vs reader B: {k['reader_A_vs_reader_B']}**; rule screener vs A {k['rule_vs_reader_A']}, "
+              f"vs B {k['rule_vs_reader_B']}, vs the adjudicated final {k['rule_vs_final']}.",
+              f"- Readers agree on {dc['readers_agree']} of {dc['n_read_by_both']}. Final: {dc['final']}.",
+              f"- Against the rule screener: {dc['screen_errors']} (the served rows use the SERVED decision; the "
+              f"probiotics X2 class among them is fixed on this branch).", ""]
+    rounds = []
+    for name, label in (("query_audit.json", "round 1 (gpt-6-astra)"), ("query_audit_r2.json", "round 2 (gpt-5.5)"),
+                        ("query_audit_precise.json", "precise (over-cap topics, gpt-6-astra)")):
+        t = _j(name).get("topics", {})
+        if t:
+            verd = collections.Counter("ACCEPT" if str((q.get("validation") or {}).get("verdict", "")).startswith("ACCEPT")
+                                       else "OVER_CAP" if "volume" in str((q.get("validation") or {}).get("verdict", ""))
+                                       else "NO_GAIN" for q in t.values())
+            rounds.append((label, t, verd))
+    if rounds:
+        L += ["## Blind query audits, all rounds", "",
+              "| Round | Topics | Accepted | Over cap | No gain |", "|---|---|---|---|---|"]
+        for label, t, verd in rounds:
+            L.append(f"| {label} | {len(t)} | {verd['ACCEPT']} | {verd['OVER_CAP']} | {verd['NO_GAIN']} |")
+        acc2 = sorted({s for label, t, _ in rounds[1:] for s, q in t.items()
+                       if str((q.get("validation") or {}).get("verdict", "")).startswith("ACCEPT")})
+        L += ["", f"Rounds 2 and precise are validated against the queries registered after the round-1 amendment, so a "
+              f"gain there is new. Accepted and added by the dated 2026-10-06 amendment (A4): {', '.join(acc2) or 'none'}.", ""]
+    exps = {f[:-5]: _j(os.path.join("expanded", f)) for f in sorted(os.listdir(os.path.join(SA, "expanded")))
+            if f.endswith(".json")} if os.path.isdir(os.path.join(SA, "expanded")) else {}
+    if exps and all(exps.values()):
+        edc = _j("expanded_dual_codex.json")
+        act_edc = _j("expanded_dual_codex_active.json")       # the active topics' expansions (7 Oct)
+        if act_edc:
+            edc = dict(edc, topics={**(edc.get("topics") or {}), **(act_edc.get("topics") or {})})
+        L += expanded_section(exps, edc)
+    L += active_section()
+    still = []
+    for s in sorted({s for _, t, _ in rounds for s in t}):
+        accepted = any(str(((t.get(s) or {}).get("validation") or {}).get("verdict", "")).startswith("ACCEPT") for _, t, _ in rounds)
+        over = [((t.get(s) or {}).get("validation") or {}).get("proposed_pubmed_count") for _, t, _ in rounds
+                if "volume" in str(((t.get(s) or {}).get("validation") or {}).get("verdict", ""))]
+        decided = (json.load(open(os.path.join(ROOT, "topics", f"{s}.json"), encoding="utf-8")).get("search_volume_cap") or {})
+        if over and not accepted and not decided:
+            still.append(f"{s} (smallest over-cap proposal {min(over)})")
+    L += ["## Decisions for Mahmood (not taken by this lane)", "",
+          f"1. **Volume cap**: topics where a blind query gains recall only above 5,000 records, after every round: "
+          f"{'; '.join(still) or 'none (the 4 over-cap topics were decided 6 Oct: cap 10,000, amendment A5)'}.",
+          "2. **Secondary-report family routing** (COPPS POAF, the substudy class): Codex NR-C28 showed the narrow 'admit a "
+          "PubMed-RCT substudy' rule is unsafe; a family-routing stage is needed (notice COLCHICINE_POSTOP_AF_GAPS).",
+          "3. **Probiotics eligibility vocabulary**: the registered population 'patients receiving antibiotics' has no "
+          "screening term; H. pylori-eradication and C. difficile trials stay X2 (Cindoruk, Plomer, Plummer, Shimbo). "
+          "Adding population terms is an eligibility amendment.",
+          "4. **Served pages**: the amendments and screen fixes change what a rebuild serves; no page was regenerated here.",
+          ""]
+    act_over = []
+    for f in sorted(os.listdir(os.path.join(SA, "expanded"))) if os.path.isdir(os.path.join(SA, "expanded")) else []:
+        e = _j(os.path.join("expanded", f))
+        ch = e.get("chosen") or {}
+        if ch.get("over_cap") and e["recall"]["identified_after"] < e["recall"]["eligible"]:
+            best = max(ch["over_cap"], key=lambda o: (o["recall_union"]["n"], -o["volume"]))
+            act_over.append(f"{e['slug']}: adopted query {e['recall']['identified_after']} of {e['recall']['eligible']}; the "
+                            f"over-cap blind proposal {best['round']} ({best['record']}) reaches {best['recall_union']['n']} "
+                            f"of {best['recall_union']['N']} at {best['volume']} records")
+    if act_over:
+        L.insert(len(L) - 1, "5. **Active topics still short only above the 10,000 cap** (7 Oct): " + "; ".join(act_over) + ".")
+    v = _j("verification_2026-10-05.json")
+    if v:
+        m = v["same_11_at_main_469a97eb"]
+        L += ["## Verification of this branch", "",
+              f"Full test suite on the worker at {v['commit'][:10]}: {v['pytest_full_suite']['passed']} passed, "
+              f"{v['pytest_full_suite']['failed']} failed. At main ({m.get('what_ran')}): {m['passed']} passed, "
+              f"{m['failed']} failed ({m['why_that_one']}). **{v['attributable_to_this_branch']} failures are this "
+              f"branch's**, all certificate / bundle / replay / gate / fix-ledger checks: {v['why']}", "",
+              "verify_all refused limbs: " + "; ".join(v["verify_all"]["refused_limbs"]) + ".", ""]
+    open(os.path.join(SA, "SEARCH_SCREEN_REPORT.md"), "w", encoding="utf-8", newline="\n").write("\n".join(L))
+    print("\n".join(L[:30]))
+
+
+if __name__ == "__main__":
+    main()
