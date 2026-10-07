@@ -394,13 +394,14 @@ def _numerals(sent):
     for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?!\s*%)", sent):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1
-    words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both", "zero", "none", "nil",
-                                                # singular and collective quantities are quantities too ('mortality was
-                                                # reported by a single trial'; codex swap-setquote-r20 #1)
-                                                "single", "sole", "lone", "multiple", "numerous", "various", "many",
-                                                "each", "every", "another", "all"]
+    words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both", "zero", "none", "nil"]
+    # singular and collective quantities are quantities too ('mortality was reported by a single trial'; codex
+    # swap-setquote-r20 #1) -- but not inside a hyphenated compound ('all-cause mortality', 'single-centre'; codex
+    # swap-setquote-r21 #2, a false refusal)
+    collective = ["single", "sole", "lone", "multiple", "numerous", "various", "many", "each", "every", "another", "all"]
     sent = re.sub(r"\ban?\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trial|study|rct)\b", " one ", sent, flags=re.I)
-    for m in re.finditer(r"\b(?:" + "|".join(words) + r")\b", sent, re.I):
+    for m in re.finditer(r"\b(?:" + "|".join(words) + r")\b|(?<![\w-])(?:" + "|".join(collective) + r")(?![\w-])",
+                         sent, re.I):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1
     return n
@@ -471,7 +472,8 @@ def _counts_in(s):
         """A bound written AFTER the trials word: 'Five trials at most', '5 studies or more' (codex swap-setquote-r14 #2)."""
         # a bracket may open before it ('Five trials (at most)'; codex swap-setquote-r15 #2)
         # 'at the most' too (codex swap-setquote-r16 #2)
-        return bool(re.match(r"\s*[,(\[]?\s*(?:(?:at\s+(?:the\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
+        # ... and 'at a minimum' (codex swap-setquote-r21 #1)
+        return bool(re.match(r"\s*[,(\[]?\s*(?:(?:at\s+(?:the\s+|a\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
                              r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over))\b|\+)", s[j:], re.I))
 
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
@@ -532,7 +534,9 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
                 if pl.get(key) not in (None, "")]
         if vals:
             sents = [x for x in sents if all(any(abs(v - t) < 1e-9 for t in _num_tokens(x)) for v in vals)]
-        printed = set().union(*(printed_counts(x) for x in sents)) if sents else set()
+        # exactly ONE sentence may print the result: two sentences printing identical numbers for different outcomes
+        # are ambiguous, never unioned (codex swap-setquote-r21 #3)
+        printed = printed_counts(sents[0]) if len(sents) == 1 else set()
         # ... or, ONLY when the pooled quote prints no count, in the meta's own SET QUOTE verbatim in the held text (doac
         # 29795629: 'In the five Phase 3 studies ...'). The pooled result's own count always wins: a review-wide count
         # never overrides it (codex swap-setquote-r7 #1); a set quote not in the text is never read

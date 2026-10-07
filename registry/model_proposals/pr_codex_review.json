@@ -2581,5 +2581,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r21": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e29e076df6594a899f9d5036346b08c8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "6974464ead1c83cda137b6674b5045371e85c456876a9ae23f6dd4edc42f74c8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "A lower bound becomes an exact trial count because bound_after recognises 'at the minimum' but misses 'at a minimum'.",
+    "failing_input": "q = 'Five trials at a minimum reported mortality (RR 0.85, 95% CI 0.70-1.03).'\npl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\nprinted_counts(q)\npooled_gate(pl, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because the text establishes only k >= 5.",
+    "actual": "printed_counts returns {5}; pooled_gate returns (pl, 5), accepting the bound as an exact count.",
+    "id": "swap-setquote-r21:g1#1",
+    "record_id": "mc-e29e076df6594a899f9d5036346b08c8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_numerals / printed_counts",
+    "severity": "P1",
+    "claim": "The word 'all' in 'all-cause mortality' is counted as another quantity, rejecting an otherwise valid pooled claim.",
+    "failing_input": "q = '5 trials reported all-cause mortality (RR 0.85, 95% CI 0.70-1.03).'\npl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\n_numerals(q)\nprinted_counts(q)\npooled_gate(pl, _norm(q))",
+    "expected": "One count-bearing numeral; printed_counts returns {5}; pooled_gate returns (pl, 5).",
+    "actual": "_numerals returns 2, counting '5' and 'all'; printed_counts returns set(); pooled_gate returns (None, None).",
+    "id": "swap-setquote-r21:g1#2",
+    "record_id": "mc-e29e076df6594a899f9d5036346b08c8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "When different outcomes have identical estimates and confidence bounds, their trial counts are unioned. The gate therefore accepts the other outcome's count instead of refusing the ambiguity.",
+    "failing_input": "q = 'Five trials reported recurrence (RR 0.85, 95% CI 0.70-1.03). Ten trials reported mortality (RR 0.85, 95% CI 0.70-1.03).'\npl = {'outcome': 'mortality', 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): mortality explicitly has ten contributing trials; five belongs to recurrence.",
+    "actual": "(pl, 5): both sentences pass the numeric-result filter, printed becomes {5, 10}, and membership alone validates the incorrect mortality count.",
+    "id": "swap-setquote-r21:g1#3",
+    "record_id": "mc-e29e076df6594a899f9d5036346b08c8",
+    "verdict": null
+   }
+  ]
  }
 }

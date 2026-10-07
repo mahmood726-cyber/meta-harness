@@ -428,3 +428,17 @@ def test_PLANT_r20_singular_quantities_and_bracketed_symbol_bounds_refuse():
     pl2 = dict(pl, quote=q2)
     assert sw.printed_counts(q2) == set() and sw.pooled_gate(pl2, sw._norm(q2))[0] is None
     assert sw.printed_counts("Five trials and a randomized trial gave RR 0.85.") == set()
+
+
+def test_PLANT_r21_at_a_minimum_all_cause_and_two_sentences_printing_the_same_result():
+    """codex swap-setquote-r21: #1 'Five trials at a minimum'; #2 'all-cause' is not a quantity (a false refusal);
+    #3 two sentences printing identical numbers for different outcomes are ambiguous, never unioned."""
+    base = {"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03"}
+    q = "Five trials at a minimum reported mortality (RR 0.85, 95% CI 0.70-1.03)."
+    assert sw.pooled_gate(dict(base, k=5, quote=q), sw._norm(q))[0] is None
+    q2 = "5 trials reported all-cause mortality (RR 0.85, 95% CI 0.70-1.03)."
+    assert sw.pooled_gate(dict(base, k=5, quote=q2), sw._norm(q2))[1] == 5
+    q3 = ("Five trials reported recurrence (RR 0.85, 95% CI 0.70-1.03). "
+          "Ten trials reported mortality (RR 0.85, 95% CI 0.70-1.03).")
+    assert sw.pooled_gate(dict(base, k=5, quote=q3), sw._norm(q3))[0] is None
+    assert sw.pooled_gate(dict(base, k=10, quote=q3), sw._norm(q3))[0] is None
