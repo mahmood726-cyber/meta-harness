@@ -231,9 +231,17 @@ def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
     IS_WRONG = "was the WRONG QUANTITY for this outcome, and is asserted wrong"
     ENTERED = "Entering trials are new evidence, not a correction"
     LIFTED = "a new claim on the page, not a correction of a served number"
-    for n in result_changes.load():
+    notices = result_changes.load()
+    for n in notices:
         where = (n["slug"], n["outcome"])
         reason = n["reason"]
+        # A REINSTATEMENT (V8-06, 7 Oct): the entering trial was SET ASIDE by an earlier signed notice for this outcome
+        # ('eligible evidence awaiting adjudication') and this notice is that adjudication, reversing it by name. Its
+        # claim is the reversal, which result_changes.reversed_setasides verifies against the record; it must not
+        # assert the old number wrong (the set-aside already said it was not).
+        if result_changes.reversed_setasides(n, notices):
+            assert IS_WRONG not in reason, (where, "a reinstatement must not assert the old number wrong")
+            continue
         # Three kinds, each with its own claim: a trial LEFT (set-aside: not asserted wrong, awaiting
         # adjudication); a trial ENTERED (new evidence: the old number is not asserted wrong); a row's number was
         # SUBSTITUTED with nobody leaving or entering (the old number was the wrong quantity: asserted wrong).
@@ -355,3 +363,28 @@ def test_PLANT_a_lifted_suppression_is_derived_not_left_unexplained(tmp_path, mo
     assert "PMID 30415637 is now resolved as SIGNAL_SPURIOUS: The hit names future ancillary studies." in reason
     assert "a new claim on the page, not a correction" in reason
     assert "asserted wrong" not in reason
+
+
+def test_PLANT_a_reinstatement_must_reverse_a_real_signed_setaside():
+    """The fourth kind (V8-06) is admitted only against the record: an earlier, signed, applied notice for the SAME
+    outcome that set THIS trial aside, a reason that says it REVERSES that set-aside and names the trial. Each planted
+    defect below makes it an ordinary entering notice again, which must then carry the new-evidence claim."""
+    sig = {"state": "BATCH_SEEN_AND_SIGNED"}
+    aside = {"slug": "s", "outcome": "o", "left_pool": ["PMID 1"], "entered_pool": [], "when_utc": "2026-09-20T00:00:00Z",
+             "reason": "PMID 1 set aside", "reviewer_countersignature": sig}
+    back = {"slug": "s", "outcome": "o", "left_pool": [], "entered_pool": ["PMID 1"], "when_utc": "2026-10-06T00:00:00Z",
+            "reason": "Binder fix. This REVERSES the 20 Sep set-aside of PMID 1."}
+    assert result_changes.reversed_setasides(back, [aside, back]) == {"PMID 1": aside}
+    # no prior set-aside at all
+    assert result_changes.reversed_setasides(back, [back]) is None
+    # the set-aside was for another outcome / another trial / came later / was never signed / was withdrawn
+    for bad in (dict(aside, outcome="other"), dict(aside, left_pool=["PMID 2"]), dict(aside, when_utc="2026-10-07T00:00:00Z"),
+                dict(aside, reviewer_countersignature={"state": "OPEN"}),
+                dict(aside, withdrawal={"state": "WITHDRAWN_BY_SIGNER"})):
+        assert result_changes.reversed_setasides(back, [bad, back]) is None, bad
+    # the reason does not say it reverses the set-aside, or does not name the trial
+    assert result_changes.reversed_setasides(dict(back, reason="PMID 1 entered."), [aside, back]) is None
+    assert result_changes.reversed_setasides(dict(back, reason="This REVERSES the set-aside."), [aside, back]) is None
+    # a trial that was never set aside rides along: not a reinstatement
+    both = dict(back, entered_pool=["PMID 1", "PMID 9"], reason=back["reason"] + " PMID 9 too.")
+    assert result_changes.reversed_setasides(both, [aside, both]) is None
