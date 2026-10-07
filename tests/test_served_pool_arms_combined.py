@@ -231,3 +231,10 @@ def test_PLANT_a_nan_interval_never_yields_a_conclusion_statement():
     nan = float("nan")
     assert sp.conclusion_change({"k": 2, "estimate": 1.0, "ci_low": nan, "ci_high": nan},
                                 {"k": 3, "estimate": 0.9, "ci_low": 0.8, "ci_high": 0.95}, "HR") == ""
+
+
+def test_PLANT_reversed_bounds_never_yield_a_conclusion_statement():
+    """codex v9-apply-r11 #2: ci_low > ci_high passed validation."""
+    import g1_served_pool_notices as sp
+    assert sp.conclusion_change({"k": 2, "estimate": 1.0, "ci_low": 1.2, "ci_high": 0.9},
+                                {"k": 3, "estimate": 0.9, "ci_low": 0.8, "ci_high": 0.95}, "HR") == ""

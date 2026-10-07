@@ -52,3 +52,10 @@ def test_PLANT_a_compact_json_licence_entry_is_found(tmp_path, monkeypatch):
     monkeypatch.setattr(L, "LICENCES", str(p))
     r = L.retired_comparator("doac-vte-recurrence", "29795629")
     assert r is not None and r["span"]["text"].startswith('"24963045":{')
+
+
+def test_PLANT_an_international_cc_by_is_open():
+    """codex v9-apply-r11 #1: 'CC BY 4.0 International' read as non-open."""
+    for lic in ("CC BY 4.0 International", "Creative Commons Attribution 4.0 International License", "CC-BY-4.0 International"):
+        assert L._is_open_licence(lic), lic
+    assert not L._is_open_licence("CC BY-NC 4.0 International")

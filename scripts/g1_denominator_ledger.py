@@ -147,6 +147,10 @@ def _is_open_licence(lic):
     so 'CC BY 4.0' / 'cc-by-4.0' / 'CC0 1.0' are open (codex v9-apply-r8 #1); 'cc by-nc' is not."""
     import re
     s = re.sub(r"[\s_-]+", " ", str(lic or "").lower()).strip()
+    s = s.replace("creative commons attribution", "cc by").replace("creative commons zero", "cc0")
+    # version and 'International' / 'licen[cs]e' designations are not qualifiers (codex v9-apply-r11 #1)
+    s = re.sub(r"\s+(international|generic|unported)?\s*(licen[cs]e)?$", "", s).strip()
+    s = re.sub(r"\s+(international|generic|unported)$", "", s).strip()
     return bool(re.fullmatch(r"cc by( \d+(\.\d+)?)?|cc ?0( \d+(\.\d+)?)?|cc zero|public domain|pd", s))
 
 
