@@ -322,27 +322,79 @@ _COUNT_WORDS = ("one two three four five six seven eight nine ten eleven twelve 
                 "seventeen eighteen nineteen twenty").split()
 
 
-def printed_counts(q):
-    """Trial counts PRINTED in a quote: 'k = n'; or n -- digits or a number word -- followed by up to three TRIAL
-    ADJECTIVES (randomised, controlled, clinical, Phase 3) and then trials / studies / RCTs. A digit that is itself a phase
-    number ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
+_TENS = ("twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety")
+# a count right after one of these is approximate, a bound or a comparison, never an exact k ('at least five', 'more than
+# 5', 'up to five', 'about 12'; codex swap-setquote-r11 #3) -- a closed class of English approximators
+_APPROX = {"least", "most", "than", "about", "approximately", "around", "nearly", "almost", "over", "under", "some",
+           "roughly", "circa", "ca", "to", "upto", "beyond", "exceeding", "below", "above",
+           # a count after 'of' is a denominator or a total ('50% of ten trials', 'two of the five'; codex
+           # swap-setquote-r12 #1): never the contributing k. 'a total of 5 trials' is refused too -- refusal is safe
+           "of", "between"}
+
+
+_RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s+whom|of\s+these|of\s+those|of\s+them|"
+                       r"among\s+(?:them|these|those)|minority|portion|part\s+of|fractions?|not\s+all|except|excluding|"
+                       r"apart\s+from|other\s+than|remaining|rest\s+of|few(?:er)?|several)\b", re.I)
+
+
+def _clean(q):
     # whitespace of every kind is one space before anything is matched (codex swap-setquote-r3 #2: 'Phase\nthree')
     s = " ".join(str(q or "").split())
     # every dash is a hyphen ('twenty‑five', en / em dash, minus; codex swap-setquote-r6 #2)
     s = re.sub(r"[‐‑‒–—−]", "-", s)
     # a slash with spaces round it is still a range ('Phase one / two studies'; codex swap-setquote-r9 #1)
-    s = re.sub(r"\s*/\s*", "/", s)
+    return re.sub(r"\s*/\s*", "/", s)
+
+
+def _sentences(q):
+    """Sentences: split after . ; ! ? followed by space and a capital, digit or opening bracket. A missed split only
+    MERGES two sentences, and a merged sentence holding two numerals is refused by printed_counts -- never admitted."""
+    return [x for x in re.split(r"(?<=[.;!?])\s+(?=[\"'(\[]?[A-Z0-9])", _clean(q)) if x.strip()]
+
+
+def _numerals(sent):
+    """Every quantity in a sentence that could be a count: whole numbers (not decimals, percentages or a phase number)
+    and number words (incl. 'both', 'dozen'). Statistics like 0.88 or 95% are not numerals."""
+    n = 0
+    for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?!\s*%)", sent):
+        if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
+            n += 1
+    words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both", "zero", "none", "nil"]
+    for m in re.finditer(r"\b(?:" + "|".join(words) + r")\b", sent, re.I):
+        if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
+            n += 1
+    return n
+
+
+def printed_counts(q):
+    """Trial counts PRINTED in a quote, read SENTENCE BY SENTENCE, and only from a sentence holding exactly ONE numeral
+    (codex swap-setquote-r11 #2: 'Two of the five trials'; also 'one in five', '12 trials, 3,456 participants' -- any
+    sentence with two quantities is ambiguous and refused, a closed rule instead of one patch per phrasing)."""
+    out = set()
+    for sent in _sentences(q):
+        if _numerals(sent) == 1:
+            out |= _counts_in(sent)
+    return out
+
+
+def _counts_in(s):
+    """In one cleaned sentence: 'k = n'; or n -- digits or a number word -- followed by up to three TRIAL ADJECTIVES
+    (randomised, controlled, clinical, Phase 3) and then trials / studies / RCTs. A digit that is itself a phase number
+    ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
     out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", s, re.I)}
     tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
     # the WORD before the count decides, not a fixed-width lookbehind (three review rounds each found a new gap):
     # never after another number word ('twenty five', 'twenty-one'), 'and' / 'hundred' / 'thousand' ('one hundred and
     # twenty'), or 'phase' ('Phase 3', 'Phase three')
     tens = {"twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"}
-    number_words = set(_COUNT_WORDS) | tens | {"hundred", "thousand", "million"}
+    # 'zero' / 'none' start a range too ('between zero and five trials'; codex swap-setquote-r13 #2)
+    number_words = set(_COUNT_WORDS) | tens | {"hundred", "thousand", "million", "zero", "none", "nil"}
 
     def prev_tokens(i, n=2):
         """The n whitespace/hyphen-separated tokens right before position i, lower-cased, punctuation KEPT."""
-        return [t.lower() for t in re.split(r"[\s-]+", s[:i].strip()) if t][-n:]
+        # an opening bracket on its own is no token ('Approximately (five trials)'; codex swap-setquote-r12 #2)
+        toks = [t.lower().lstrip("([{\"'‘“") for t in re.split(r"[\s-]+", s[:i].strip())]
+        return [t for t in toks if t][-n:]
 
     def blocked_before(i):
         """The count is part of a larger number, a spelled decimal or a phase: the token right before it is a number word
@@ -354,20 +406,24 @@ def printed_counts(q):
         pt = [t.lstrip("([{\"'‘“") for t in prev_tokens(i)]
         if not pt or not re.fullmatch(r"[a-z]+", pt[-1]):
             return False
-        if pt[-1] in number_words or pt[-1] in ("phase", "point"):
+        if pt[-1] in number_words or pt[-1] in ("phase", "point") or pt[-1] in _APPROX:
             return True
         # 'and' / 'to' / 'or' right after a number joins a larger number or a RANGE ('one hundred and twenty', 'two to five
         # trials', '3 or 4 studies'; codex swap-setquote-r8 #2): the end of a range is never an exact count
-        return (pt[-1] in ("and", "to", "or") and len(pt) == 2
+        # 'in' / 'of' after a number is a proportion ('one in five trials', 'three of five studies'; codex
+        # swap-setquote-r10 #1): its denominator is not the number of contributing trials
+        return (pt[-1] in ("and", "to", "or", "in", "of") and len(pt) == 2
                 and (pt[0] in number_words or bool(re.fullmatch(r"\d+", pt[0]))))
 
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
-    for m in re.finditer(r"(?<![\w.,/-])(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
+    # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
+    for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
         if not blocked_before(m.start(1)):
             out.add(int(m.group(1)))
     # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
     # a slash joins a range ('Phase one/two studies'; codex swap-setquote-r7 #2): a number word beside '/' is never a count
-    for m in re.finditer(r"(?<![\w/-])(" + "|".join(_COUNT_WORDS) + r")(?![\w/-])" + tail, s, re.I):
+    # ... and a symbol bound before a number word is a bound too ('≥five trials'; codex swap-setquote-r13 #1)
+    for m in re.finditer(r"(?<![\w/~<>≤≥-])(?<![~<>≤≥] )(" + "|".join(_COUNT_WORDS) + r")(?![\w/-])" + tail, s, re.I):
         if not blocked_before(m.start(1)):
             out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
     return out
@@ -381,12 +437,12 @@ def mentions_a_count(q):
     if not re.search(r"\b(?:trials?|stud(?:y|ies)|rcts?)\b", s, re.I):
         return False
     words = "|".join(_COUNT_WORDS + ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
-                                     "hundred", "dozen"])
+                                     "hundred", "dozen", "both", "either", "neither"])
     return bool(re.search(r"(?<![\d.,])\d+(?![.,]?\d)(?!\s*%)", s)
                 or re.search(r"\b(?:" + words + r")\b", s, re.I))
 
 
-def pooled_gate(pl, nt, set_quote=None):
+def pooled_gate(pl, nt, set_quote=None, verified_units=None):
     """The pooled claim stands only if its quote is verbatim in the held text, every stated estimate / bound EQUALS a whole
     numeric token of that quote (never a substring: '0.8' inside '0.85' -- g2#3), and a stated k is PRINTED in the quote
     as 'k = n' or 'n trials / studies / RCTs' (g2#4: an invented k reached the T3 largest-k tie-break). Returns
@@ -413,8 +469,25 @@ def pooled_gate(pl, nt, set_quote=None):
         # The fallback is closed whenever the pooled quote MENTIONS a count at all, parsed or not ('twenty-five trials
         # contributed' is a count this reader refuses; a review-wide 'included 40 trials' must not stand in for it --
         # codex swap-setquote-r8 #1)
-        if not printed and set_quote and _quoted(set_quote, nt) and not mentions_a_count(q):
-            printed = printed_counts(set_quote)
+        # STRUCTURAL rule, replacing a blacklist that four review rounds each found a new hole in (codex swap-setquote-r10
+        # #2 'Both trials ...' beside 'included 40 trials'): the set quote's count stands for k only when the pooled quote
+        # lies INSIDE the set-quote sentence -- the count and the pooled result are printed together -- and that sentence
+        # prints exactly ONE count. A review-wide count elsewhere in the paper can therefore never stand in.
+        # Read ONLY the one sentence of the set quote that holds the pooled quote (codex swap-setquote-r11 #1: substring
+        # containment let 'We included 40 trials.' speak for a pooled result two sentences later).
+        # both sides through the same cleaning (dashes, slashes, whitespace): the comparison is of like with like
+        sent = next((x for x in _sentences(set_quote) if _norm(_clean(q)) in _norm(x)), None) if set_quote else None
+        # ... and CORROBORATED: text alone cannot prove whose count a sentence prints (codex swap-setquote-r12 #3: 'Of the
+        # 40 trials, those reporting mortality gave RR 0.85'), so the borrowed count must equal the number of per-trial
+        # units the enumeration independently verified, with none refused. Without that the fallback is closed.
+        # ... and the sentence must not restrict the pooled result to a SUBSET of the counted trials ('Five trials were
+        # included, but only a subset reported mortality'; codex swap-setquote-r13 #3): a closed class of restricting
+        # phrases closes the fallback
+        if (not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q) and verified_units
+                and not _RESTRICT.search(sent)):
+            c = printed_counts(sent)
+            if c == {verified_units}:
+                printed = c
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
         try:
@@ -878,7 +951,9 @@ def gate_enum(claim, it):
         span = rq if rq else (r.get("title") or lab)
         units.append({"label": lab, "ref": ref, "pmid": pmid, "identity": ident, "span": span, "scope": "IN_SCOPE",
                       "rule_id": None})
-    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt, set_quote=claim.get("set_quote"))
+    # the set-quote count is corroborated by the units verified above: distinct PMIDs, and only when nothing was refused
+    verified = len({u["pmid"] for u in units}) if units and not refused else None
+    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt, set_quote=claim.get("set_quote"), verified_units=verified)
     sq = claim.get("set_quote")
     return units, refused, pooled, (sq if _quoted(sq, nt) else None)
 

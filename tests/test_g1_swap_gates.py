@@ -106,15 +106,16 @@ SET_Q = ("In the five Phase 3 studies of DOACs for acute treatment of patients w
 def test_k_may_be_read_from_the_verbatim_set_quote_as_a_number_word():
     nt = sw._norm(SET_Q)
     pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": "OR 0.88, CI 0.75-1.03"}
-    got, k = sw.pooled_gate(pl, nt, set_quote=SET_Q)
+    got, k = sw.pooled_gate(pl, nt, set_quote=SET_Q, verified_units=5)
     assert got and k == 5
     assert sw.pooled_gate(pl, nt)[0] is None                      # without the set quote the k is not printed: refused
+    assert sw.pooled_gate(pl, nt, set_quote=SET_Q)[0] is None     # set quote without verified units: refused (r12 #3)
 
 
 def test_PLANT_a_phase_number_is_never_the_trial_count():
     nt = sw._norm(SET_Q)
     pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 3, "quote": "OR 0.88, CI 0.75-1.03"}
-    assert sw.pooled_gate(pl, nt, set_quote=SET_Q)[0] is None     # 'Phase 3 studies' is not k = 3
+    assert sw.pooled_gate(pl, nt, set_quote=SET_Q, verified_units=3)[0] is None  # 'Phase 3 studies' is not k = 3
 
 
 def test_PLANT_a_set_quote_not_in_the_text_is_never_read():
@@ -215,3 +216,83 @@ def test_PLANT_spaced_slash_ranges_and_far_counts_never_admit_the_set_quote():
     assert sw.mentions_a_count(q)
     pl = {"measure": "RR", "estimate": "0.8", "k": 40, "quote": q}
     assert sw.pooled_gate(pl, sw._norm(sq + " " + q), set_quote=sq)[0] is None
+
+
+def test_PLANT_the_set_quote_count_stands_only_in_the_sentence_that_prints_the_pooled_result():
+    """codex swap-setquote-r10: '#1 'One in five trials' is a proportion; #2 'Both trials' beside a review-wide 40. The
+    structural rule: the pooled quote must lie inside the set-quote sentence, which prints exactly one count."""
+    assert sw.printed_counts("One in five trials reported mortality.") == set()
+    assert sw.printed_counts("three of five studies") == set()
+    q = "Both trials contributed to the mortality analysis (RR 0.80)."
+    sq = "The review included 40 trials."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.80", "k": 40, "quote": q},
+                          sw._norm(q + " " + sq), set_quote=sq)[0] is None
+    # a pooled quote OUTSIDE the set-quote sentence never borrows its count, even a clean one
+    q2 = "OR 0.88, CI 0.75 to 1.03"
+    sq2 = "We included 5 randomized trials."
+    assert sw.pooled_gate({"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2},
+                          sw._norm(sq2 + " Recurrence: " + q2 + "."), set_quote=sq2)[0] is None
+    # the doac shape: the pooled result printed INSIDE the one-count sentence is admitted
+    sq3 = "In the five Phase 3 studies, recurrent VTE tended to favour DOACs (OR 0.88, CI 0.75 to 1.03)."
+    got = sw.pooled_gate({"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2},
+                         sw._norm(sq3), set_quote=sq3, verified_units=5)
+    assert got[0] is not None and got[1] == 5
+    # two counts in the set-quote sentence: ambiguous, refused
+    sq4 = "In the five Phase 3 studies and 2 randomized trials, OR 0.88, CI 0.75 to 1.03."
+    assert sw.pooled_gate({"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2},
+                          sw._norm(sq4), set_quote=sq4)[0] is None
+
+
+def test_PLANT_counts_come_only_from_one_numeral_sentences_and_the_sentence_holding_the_pool():
+    """codex swap-setquote-r11: #1 the count must sit in the SAME sentence as the pooled result; #2 'Two of the five
+    trials'; #3 'At least five trials'. Plus the class: two quantities in one sentence refuse; symbol bounds refuse."""
+    assert sw.printed_counts("Two of the five trials contributed to the mortality analysis (RR 0.8, 95% CI 0.7-0.9).") == set()
+    assert sw.printed_counts("At least five trials contributed to the mortality analysis (RR 0.8, 95% CI 0.7-0.9).") == set()
+    assert sw.printed_counts("More than 5 trials reported it.") == set()
+    assert sw.printed_counts("Up to five trials reported it.") == set()
+    assert sw.printed_counts("Data came from ~5 trials.") == set()
+    assert sw.printed_counts("12 trials with 3,456 participants") == set()
+    # one numeral per sentence, across two sentences: each is read on its own
+    assert sw.printed_counts("Five trials were pooled. The RR was 0.8 (95% CI 0.7-0.9).") == {5}
+    q = "The mortality RR was 0.8 (95% CI 0.7-0.9)."
+    sq = "We included 40 trials. Ten contributed mortality data. The mortality RR was 0.8 (95% CI 0.7-0.9)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.8", "lower": "0.7", "upper": "0.9", "k": 40, "quote": q},
+                          sw._norm(sq), set_quote=sq)[0] is None
+
+
+def test_PLANT_the_doac_shape_with_an_en_dash_still_finds_its_sentence():
+    """The pooled quote and the set-quote sentence are cleaned alike: an en dash in both must still match."""
+    q = "OR 0.88, CI 0.75\u20131.03"
+    sq = "In the five Phase 3 studies, the outcome tended to favor DOACs (OR 0.88, CI 0.75\u20131.03)."
+    got = sw.pooled_gate({"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q},
+                         sw._norm(sq), set_quote=sq, verified_units=5)
+    assert got[0] is not None and got[1] == 5
+
+
+def test_PLANT_the_borrowed_count_must_equal_the_verified_units_and_r12_phrasings_refuse():
+    """codex swap-setquote-r12: #1 '50% of ten trials'; #2 'Approximately (five trials)'; #3 a subset inside the one
+    sentence ('Of the 40 trials, those reporting mortality ...'). The fallback now needs the enumeration's verified units."""
+    assert sw.printed_counts("50% of ten trials contributed to the pooled mortality estimate (RR 0.85).") == set()
+    assert sw.printed_counts("Approximately (five trials) contributed to the pooled estimate.") == set()
+    q = "mortality (RR 0.85)"
+    sq = "Across the 40 trials, those that reported mortality (RR 0.85) were few."
+    pl = {"measure": "RR", "estimate": "0.85", "k": 40, "quote": q}
+    assert sw.pooled_gate(pl, sw._norm(sq), set_quote=sq)[0] is None                    # no verified units: closed
+    assert sw.pooled_gate(pl, sw._norm(sq), set_quote=sq, verified_units=6)[0] is None  # 40 != 6 verified units
+    # the doac shape passes only when the verified units equal the printed count
+    q2 = "OR 0.88, CI 0.75\u20131.03"
+    sq2 = "In the five Phase 3 studies, the outcome tended to favor DOACs (OR 0.88, CI 0.75\u20131.03)."
+    pl2 = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2}
+    assert sw.pooled_gate(pl2, sw._norm(sq2), set_quote=sq2, verified_units=5)[1] == 5
+    assert sw.pooled_gate(pl2, sw._norm(sq2), set_quote=sq2, verified_units=4)[0] is None
+
+
+def test_PLANT_symbol_bounds_zero_ranges_and_subset_sentences_refuse():
+    """codex swap-setquote-r13: #1 '≥five trials'; #2 'Between zero and five trials'; #3 a subset restriction inside the
+    one sentence, even with the verified units equal to the printed count."""
+    assert sw.printed_counts("\u2265five trials contributed to mortality (RR 0.85).") == set()
+    assert sw.printed_counts("\u2265 5 trials contributed to mortality (RR 0.85).") == set()
+    assert sw.printed_counts("Between zero and five trials reported mortality (RR 0.85).") == set()
+    sq = "Five trials were included, but only a subset reported mortality (RR 0.85)."
+    pl = {"measure": "RR", "estimate": "0.85", "k": 5, "quote": "RR 0.85"}
+    assert sw.pooled_gate(pl, sw._norm(sq), set_quote=sq, verified_units=5)[0] is None
