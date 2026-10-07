@@ -421,3 +421,73 @@ result OUR_ROWS_INCOMPLETE (0 of 7 verified count rows).
 - The regulatory binder: R1–R4.
 
 Commits: 6ef2a9eee, then the melatonin commit. g1 + k_gap suites: 278 pass. Nothing landed; no served number changed.
+
+---
+
+## Part B: comparator swaps on the 12 ACTIVE unmatched topics, all 12 decided (7 Oct, branch g1/binding-on-d0848a72 @ bc4707883)
+
+Rebased onto v8/comparator-switches-2026-10-06. Rule SHAs were committed before any search: 262d0ea08 for 6 topics, c5ecb6640 for 6 (statins / melatonin / denosumab are round 2, `.r2`; the 5 Oct rules are untouched). Screening used the fixed scripts/g1_swap.py: 1073 recorded swap-screen calls, 5 local + 5 worker, all passing record_licence. Selection is by the rule alone (g1_comparator_select.py).
+
+### FOR V9: one adopted swap, doac-vte-recurrence, 24963045 -> 29795629 (commit bc4707883)
+
+- **Pick.** 519 on-topic candidates; only one passes C1-C6: PMC5967718 (PLoS One 2018, CC BY 4.0).
+- **R0 retired 24963045.** Reason: C1_OPEN_LICENCE FAIL (Unpaywall bronze, no CC licence). Its C2-C6 were not read, because a non-CC text is never read.
+- **Enumeration.** Recorded call mc-2174b137, ENUMERATED with k=5 and 0 refused. Each trial is bound to the PMID its own reference list prints: RE-COVER 19966341, EINSTEIN-DVT 21128814, AMPLIFY 23808982, Hokusai-VTE 23991658, RE-COVER II 24344086.
+- **Pooled, as printed.** OR 0.88 (0.75-1.03), "five Phase 3 studies".
+- **Typed comparator rows.** From Table 1 (events/N), with arm order taken from the table header: 30/1274 v 27/1265, 36/1731 v 51/1718, 59/2609 v 71/2635, 130/4118 v 146/4122, 30/1279 v 28/1289. They are re-checked by g1_tracker.typed_comparator_rows (digest + spans).
+- **Every changed outcome (local recount, gates unchanged, shared outputs restored):**
+
+| | before (24963045) | after (29795629) |
+|---|---|---|
+| N comparator trials | 7 | 5 |
+| eligible / matched / verified | 6 / 6 / 6 | 5 / 5 / 5 |
+| ours not in comparator | - | EINSTEIN-PE 22449293 (NOT_EXPLAINED_BY_DATE) |
+| same-trials RESULT | MEASURE_DIFFERENCE (k 6, no comparator rows) | MEASURE_DIFFERENCE_SAME_CONCLUSION (k 5, typed rows): our HRs v their OR, never converted |
+| per-trial agreement | NO_COMPARATOR_ROW x6 | HR_VS_OR x4, RR_VS_OR x1 |
+| G1 | NOT_YET (RESULT_AGREES false) | NOT_YET (RESULT_AGREES false) |
+| comparator identity | van Es 2014, RR 0.90 (0.77-1.06) | 2018 SR/MA, OR 0.88 (0.75-1.03) |
+
+- **The swap does NOT flip G1.** The rule's T1 (estimand match) scored 0, because no CC BY candidate pooled HR and passed. The move: a comparator we cannot hold openly is replaced by one we hold under CC BY, with an enumerated set and typed rows. The remaining block is the measure difference, which is not to be converted.
+- **Served numbers change** (comparator, N). Lane branch only; nothing landed. The notice is for you to derive (derive_outcome_notices) for Mahmood's signature.
+- **Stale year.** `docs/reviews/doac-vte-recurrence/review.json` still names the old comparator, so the tracker's `ours_not_in_comparator_detail.comparator_year` reads 2014 (old) until you regenerate. No verdict changes here (2012 < both years). It is still a class: g1_tracker line 3801 takes the comparator year from review.json, not from the current comparator. Reported, not changed.
+
+### NO_ACHIEVABLE_COMPARATOR: 11 topics keep their current comparator (rule if_none_pass; no served change)
+
+These show the closest candidate and what it failed (ties broken by most recent). The R0 column records why the current comparator itself would not qualify as a swap target.
+
+| topic | rule | cands | R0 on current | closest candidate (n tied) | its non-PASS |
+|---|---|---|---|---|---|
+| iv-iron | 262d0ea08 | 35 | 39727669: C5, C6 UNCLEAR (rows only in figures) | 41711738 (1) at 4/6 | C3 UNCLEAR, C6 UNCLEAR (forest plot) |
+| corticosteroids-covid19 | 262d0ea08 | 380 | 32876694: C1 FAIL | **38124031 (1) at 5/6** | **C6 UNCLEAR: rows only in supplement Figure S5 (docx)** |
+| sacubitril-valsartan | 262d0ea08 | 139 | 36722326: C1 FAIL | 38013641 (3) at 4/6 | C5 FAIL, C6 FAIL |
+| semaglutide-mace | 262d0ea08 | 196 | 39345822: C1 FAIL | 41276951 (1) at 4/6 | C3 FAIL (CKD population) |
+| sglt2-ckd | 262d0ea08 | 570 | 41203232: C1 FAIL | 42109728 (17) at 4/6 | C5 FAIL (creatinine-doubling composite), C6 FAIL |
+| tranexamic-acid | 262d0ea08 | 726 | 39461793: C3 FAIL | 40719896 (54) at 3/6 | C3 FAIL (sICH) |
+| colchicine-recurrent-pericarditis | c5ecb6640 | 206 | 22442198: C1 FAIL | 31477020 (2) at 4/6 | C3 FAIL (mixed pericarditis), C5 UNCLEAR |
+| sglt2-primary-prevention-hf | c5ecb6640 | 586 | 33519713: C3 FAIL | 40005319 (3) at 5/6 | C3 FAIL (T2DM, HF or CKD) |
+| statins@r2 | c5ecb6640 | 429 | 32529863: C1 FAIL | 41655587 (34) at 3/6 | C3, C5, C6 FAIL |
+| melatonin@r2 | c5ecb6640 | 315 | 35691474: not read (no CC text delivered) | 41602948 (27) at 3/6 | C3 FAIL (delirium) |
+| denosumab@r2 | c5ecb6640 | 163 | 32492050: C3, C5 FAIL | 42494861 (1) at 4/6 | C5 FAIL (BMD), C6 FAIL |
+
+**Decision for you or Mahmood (not taken by me).** C6 allows "a forest plot with counts or effects … in the article or its own open supplement", but the screen reader sees text only, so rows that exist only as an image read UNCLEAR. This binds for exactly one candidate, corticosteroids **38124031**: a network meta-analysis of glucocorticoid regimens with C1-C5 PASS, whose rows are in supplement Figure S5. I did NOT read that figure: adding a figure read after the search, for the one candidate that came close, would be a selective post-hoc procedure change. A ratified figure-read extension would have to apply to every candidate. The lane already has a recorded, CC-BY-gated forest-figure reader in secondary_meta_build.
+
+### Harness defects found on the way (each fixed as a class, with a plant that fails first)
+
+- **8ef29d1e8: unread candidates.** 151 candidates passed C1 on an Unpaywall CC BY location with no PMC id and were never read. They are now read from k_gap.unpaywall_text, but only when the location that DELIVERED the text is CC BY/CC0; the guard checks that location. 37 became readable; the rest fail closed.
+- **8ef29d1e8: worker refusals.** 48 worker jobs were refused licence='NOT_HELD', with 0 refused locally. The guard reads the declared comparator JATS, which submit() never shipped. The declared JATS are now tarred to my own worker worktree (untracked there).
+- **8acfaf449: record_licence DOI regex.** A DOI containing parentheses, '10.1016/s2213-8587(25)...', was cut at the first ')' and refused. Your guard is still fail-closed.
+- **612b5559c: pooled gate k.** 'five Phase 3 studies' was refused as k=5 while k=3 would have PASSED (the '3' in 'Phase 3'). k may now transfer from a verbatim set quote only when that quote carries every stated estimate and bound.
+- **86e8a6ad7, four fixes:**
+  - Enumeration spans are written in held_norm form; k_gap_table had refused all 5 doac rows.
+  - The R0 retirement reason lists only the criteria that FAILED.
+  - The adoption date is the run date.
+  - New `g1_swap rows` / type_rows: arm order from the header only.
+- **Tests.** 826 g1/licence/swap/comparator tests pass.
+
+### Still with you from earlier
+
+- The record_licence words-licence fix.
+- The TECOS record history purge.
+- The NC-licence policy gap.
+- fulltext_index entries without a pmcid never verify.
+- A request for a CT.gov declared-ref form.
