@@ -718,3 +718,87 @@ My 37031750 is a cross-check dissenter on GISSI-P.
   - test_served_comparator ×2: dpp4 served comparator 34754403 vs origin/main's 31462224. The test compares against the moving origin/main; captain/binding.
   - test_claim_object: passes locally; worker-environment.
 - **Budget:** meter primary window 36% used (weekly not reported by the meter; Mahmood: 77% left). Disk C: 19.9 GB, F: 38.9 GB.
+
+## 2026-10-07 — 12 active topics: dual reads of binding's swap candidates + adopted comparators; audit of every accepted figure (forest lane, g1/forest-reader-v2 72ea526b)
+
+- **Scope:** the 12 active topics only. The 10 abandoned by decision get no further work.
+- **Adopted comparators:**
+  - melatonin 35691474: Fig X2 ACCEPTED (binding's 3b477b4dc cherry-picked onto v2); third-reader audit agrees.
+  - statins 32529863 and denosumab 32492050: no per-trial forest figure (network-estimate figures). Their per-trial rows are in an XLSX supplement, which is typed-table work, not a figure read. Their old reads of the retired comparators (39076238, 36852077) now sit in `retired_results` and no longer stand as the topic's read (plant).
+- **For binding (swap C6): candidates whose rows exist only as images, now dual-read.** Candidates are C1 PASS and not failing C2–C4 in your screen, 1,232 pairs: 237 here, 995 on the worker.
+  - The selection and intervention gates skipped 1,106 before any call.
+  - 124 figures were read (codex + agy, 248 recorded calls; the worker ran codex only because its agy is not signed in), giving 125 new verdicts (one from readings already on record): **54 ACCEPTED**, 71 REFUSED.
+  - Each ACCEPTED figure has its per-trial rows agreed by two models and the printed pooled row reconstructed under the stated model. That is evidence for C6; it says nothing about C2–C5, which remain your screen's verdicts:
+  - **denosumab-vertebral-fracture** (1):
+    - 42078984 F3 (3 rows, pooled HR 0.78 (0.70-0.87), model DL)
+  - **doac-vte-recurrence** (16):
+    - 31354488 f2 (9 rows, pooled RR 0.60 (0.49-0.75), model MH-FE)
+    - 34970469 fg005 (5 rows, pooled RR 0.85 (0.43-1.69), model MH-RE)
+    - 35860059 fig4 (4 rows, pooled HR 0.71 (0.47-1.06), model DL)
+    - 36431258 jcm-11-06781-f003 (9 rows, pooled RR 1.67 (1.34-2.09), model MH-FE)
+    - 36831090 biomedicines-11-00554-f002 (4 rows, pooled OR 1.12 (0.74-1.68), model MH-RE)
+    - 37139185 F2 (18 rows, pooled RR 0.71 (0.61-0.84), model MH-RE)
+    - 37519604 FIG8 (5 rows, pooled RR 0.76 (0.54-1.06), model MH-RE)
+    - 37711939 FIG7 (4 rows, pooled RR 0.61 (0.41-0.92), model MH-FE)
+    - 37842293 f2 (4 rows, pooled HR 0.71 (0.57-0.88), model DL)
+    - 38931375 pharmaceuticals-17-00708-f004 (12 rows, pooled OR 0.67 (0.37-1.21), model MH-RE)
+    - 39077410 S3.F3 (2 rows, pooled RR 0.25 (0.03-2.27), model MH-RE)
+    - 39597873 jcm-13-06730-f002 (4 rows, pooled RR 0.95 (0.83-1.08), model MH-FE)
+    - 40918033 fig1 (5 rows, pooled RR 0.94 (0.68-1.29), model PM)
+    - 41560781 fig3 (9 rows, pooled OR 1.365 (1.042-1.788), model DL)
+    - 41754756 pharmaceuticals-19-00215-f004 (10 rows, pooled EVENT PROPORTION (THROMBOEMBOLIC RATE) 0.07 (0.05-0.09), model DL)
+    - 42183132 fig4 (5 rows, pooled RR 0.92 (0.70-1.23), model MH-RE)
+  - **melatonin-primary-insomnia-sol** (1):
+    - 23691095 pone-0063773-g001 (15 rows, pooled WMD (95% CI) 7.06 (4.37-9.75), model FE)
+  - **sglt2-ckd-progression** (10):
+    - 34129237 clc23665-fig-0001 (4 rows, pooled HR 0.58 (0.51-0.65), model FE)
+    - 35557542 F3 (5 rows, pooled HR 0.83 (0.74-0.92), model FE)
+    - 37660005 Fig3 (6 rows, pooled MD -5.34 (-9.00--1.69), model REML)
+    - 39816302 FIG6 (4 rows, pooled OR 0.72 (0.58-0.89), model MH-RE)
+    - 41366914 F2 (5 rows, pooled OR 0.55 (0.41-0.73), model MH-FE)
+    - 41508110 Fig17 (2 rows, pooled MD 0.11 (-0.03-0.25), model DL)
+    - 41777041 edm270174-fig-0003 (5 rows, pooled HR 0.62 (0.52-0.74), model DL)
+    - 42095149 F16 (5 rows, pooled RR 0.77 (0.66-0.89), model MH-RE)
+    - 42109728 f8 (4 rows, pooled OR 0.68 (0.60-0.78), model MH-FE)
+    - 42180672 f5 (10 rows, pooled RR 1.02 (0.90-1.16), model MH-FE)
+  - **sglt2-primary-prevention-hf** (20):
+    - 28663934 fig-4 (22 rows, pooled WMD (95% CI) -7.24 (-15.54-1.06), model DL)
+    - 29524188 Fig2 (24 rows, pooled OR 1.04 (0.97-1.12), model MH-FE)
+    - 30988077 F2 (3 rows, pooled OR 0.86 (0.78-0.95), model DL,FE,PM,REML)
+    - 34349651 F3 (15 rows, pooled HR 0.81 (0.76-0.87), model DL,FE,PM,REML)
+    - 36039257 FIG3 (4 rows, pooled RR 0.76 (0.56-1.04), model MH-FE)
+    - 36897734 F4 (12 rows, pooled RR 0.93 (0.81-1.07), model FE)
+    - 37660005 Fig3 (6 rows, pooled MD -5.34 (-9.00--1.69), model REML)
+    - 38773486 Fig3 (6 rows, pooled RR 0.49 (0.30-0.81), model MH-RE)
+    - 39323760 F9 (3 rows, pooled MD 2.83 (1.36-4.29), model DL)
+    - 39816302 FIG2 (11 rows, pooled OR 0.65 (0.62-0.69), model MH-RE)
+    - 39867488 fig0003 (3 rows, pooled RR 0.63 (0.44-0.90), model MH-RE)
+    - 39868862 eci14392-fig-0004 (4 rows, pooled HR 0.63 (0.52-0.77), model REML)
+    - 41084648 FIG6 (13 rows, pooled RR 2.24 (1.88-2.67), model MH-RE)
+    - 41180736 F3 (5 rows, pooled RR 0.73 (0.61-0.88), model DL)
+    - 41303036 jcm-14-08001-f004 (9 rows, pooled OR 0.58 (0.48-0.69), model MH-RE)
+    - 41366914 F5 (2 rows, pooled OR 0.30 (0.16-0.56), model MH-FE)
+    - 41597355 medicina-62-00069-f003 (3 rows, pooled HR 0.79 (0.69-0.89), model DL)
+    - 42095149 F3 (11 rows, pooled RR 0.76 (0.68-0.84), model MH-RE)
+    - 42109728 f7 (6 rows, pooled OR 0.88 (0.75-1.02), model MH-FE)
+    - 42180672 f6 (21 rows, pooled RR 1.09 (1.00-1.17), model MH-FE)
+  - **tranexamic-acid-pph** (6):
+    - 31195987 Fig5 (17 rows, pooled RR 0.46 (0.31-0.68), model MH-FE)
+    - 34938253 F7 (2 rows, pooled OR 0.88 (0.51-1.51), model MH-FE)
+    - 36529753 Fig9 (5 rows, pooled MD -0.35 (-0.62--0.08), model DL)
+    - 38454455 Fig4 (4 rows, pooled RR 0.78 (0.62-0.97), model MH-FE)
+    - 39353153 ohn973-fig-0002 (8 rows, pooled RR 0.62 (0.35-1.10), model DL)
+    - 42355800 jcm-15-04630-f005 (6 rows, pooled RR 0.24 (0.14-0.41), model PM+HK)
+- **Tables:** in the held candidates, image-only tables (JATS table-wrap with a graphic and no table) are study characteristics, risk of bias, search strategies or pooled-only outcomes. None carries per-trial outcome rows, so there were no table reads.
+- **Third-reader audit:** comparators 21 (19 agree); metas **171 of 171 accepted audited** (154 agree, 3 agree on every accepted row, 14 disagree). Active-topic count findings:
+  - DAPA-MI (sglt2-HF 41180736): n_t 2019 accepted vs 2319 from the audit. CT.gov enrolment is 4017 = 2019 + 1998, so the accepted reading is the consistent one.
+  - den Exter 2017 (doac 41560781): n_c 882 vs 862, **open**.
+  - Araki2015 (sglt2-HF 29524188): one upper bound, 1.56 vs 1.58, **open**.
+  - All other disagreements are label or display only.
+- **Corticosteroids-covid19** has a pre-registered swap rule but no candidates file on swap/part-b, so there was nothing to read for it.
+- **Worker agy is not signed in** ("Authentication required"), so it needs Mahmood's interactive login. Until then the worker runs codex only and the agy halves run here.
+- **Fixed (plants fail first):** retired-comparator reads; FIGURE_TOOL_UNAVAILABLE per item (the worker has no PyMuPDF, and one supplement-PDF target killed a 995-candidate run); G1_READERS per box.
+- **Correction:** commit edbb5c2e's message says 14 ACCEPTED; the count is 13 (the names were right, the sum was wrong).
+- **Budget:** codex meter primary_used=27.0 (5h window). Disk C: 12.6 GB
+ F: 37.3 GB
+ .
