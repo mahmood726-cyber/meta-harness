@@ -123,6 +123,27 @@ DETECTS: dict = {
         "detects": "the text refers to hospitalization / being hospitalized (here, for heart failure)",
         "trigger": r"hospi|admi",
         "text_source": _COMPONENTS_SRC, "lowercased": True},
+    # the HHF VERB form (V8 groundwork, 6 Oct): event, not population; never an eligibility sentence
+    "target_endpoint.py:search:dd5374fdc1": {
+        "detects": "the text says someone was hospitalized FOR (because of, due to) heart failure -- the verb form of the "
+                   "heart-failure-hospitalization endpoint, not 'hospitalized with heart failure'",
+        "trigger": r"hospitali",
+        "text_source": _COMPONENTS_SRC, "lowercased": True},
+    "target_endpoint.py:search:87b0688b0c": {
+        "detects": "the hospitalization is stated as something that HAPPENED (were / was / had been hospitalized), not a "
+                   "description of who was enrolled",
+        "trigger": r"hospitali",
+        "text_source": _COMPONENTS_SRC, "lowercased": True},
+    "target_endpoint.py:search:a76d57a8e4": {
+        "detects": "the sentence states a result: an effect measure (hazard / odds / risk ratio, HR, RR, OR), a "
+                   "percentage, or a comparison (vs, versus)",
+        "trigger": r"ratio|\bhr\b|\brr\b|\bor\b|%|\bvs\b|versus",
+        "text_source": _COMPONENTS_SRC, "lowercased": True},
+    "target_endpoint.py:search:8292d00421": {
+        "detects": "the sentence is about eligibility, enrolment, inclusion or recruitment (who entered the trial), so "
+                   "it never states the outcome event",
+        "trigger": r"eligib|enrol|inclusion|recruit",
+        "text_source": _COMPONENTS_SRC, "lowercased": True},
     "target_endpoint.py:search:2535b7ece1": {
         "detects": "the text names death from heart failure (fatal HF / heart-failure death) as a component -- not a "
                    "non-fatal HF event",

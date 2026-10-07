@@ -1,4 +1,4 @@
-"""Acquire a SIGNED replacement comparator's own records into cache/<slug>/records.json (V8 applied, 7 Oct).
+"""Acquire a SIGNED replacement comparator's own records into cache/<slug>/comparator_records.json (V8 applied, 7 Oct).
 
 The comparator switches changed topics/<slug>.json comparator_pmid and cache/<slug>/comparators.json, but the topic's
 held records still carried the OLD comparator's full text and Unpaywall status, and four of the five new comparators had
@@ -11,8 +11,9 @@ from the held one, this writes, with the same code paths the full fetch uses (ha
   comparator_pmid       the served comparator's PMID
   comparator_oa         Unpaywall status of its DOI
   comparator_fulltext   its PMC open full text ('' when PMC holds none)
-and keeps the replaced comparator's identity under comparator_replaced {pmid, oa, fulltext_sha256}. The search's own
-record set ('records') is NOT touched: the comparator is not a search result. Refuses unless the switch is signed.
+into cache/<slug>/comparator_records.json (harness.fetch.ensure overlays it on records.json), and keeps the replaced
+comparator's identity under comparator_replaced {pmid, oa, fulltext_sha256}. records.json, the search cache, is never
+rewritten: other evidence digests it. Refuses unless the switch is signed.
 
     python scripts/acquire_comparator_record.py [--write] SLUG...
 """
@@ -28,21 +29,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 
-def _style(p):
-    """The file's own JSON style (indent, ascii escaping, separators, trailing newline), found by re-serialising it: the
-    rewrite changes only the comparator fields, never 60k lines of formatting."""
-    raw = open(p, encoding="utf-8").read()
-    obj = json.loads(raw)
-    body, tail = (raw[:-1], "\n") if raw.endswith("\n") else (raw, "")
-    for indent in (1, 2, None, 4):
-        for asc in (False, True):
-            for seps in ((", ", ": "), (",", ": "), (",", ":")):
-                kw = {"indent": indent, "ensure_ascii": asc, "separators": seps}
-                if json.dumps(obj, **kw) == body:
-                    return {"kw": kw, "tail": tail}
-    raise SystemExit(f"REFUSED: {p} is in no JSON style this writer can reproduce; not rewritten")
-
-
 def acquire(slug, write=False):
     from harness import fetch, http
     from harness import served_comparator as sc
@@ -51,13 +37,15 @@ def acquire(slug, write=False):
     adopted = str(cfg.get("comparator_pmid") or "")
     if served != adopted:
         raise SystemExit(f"REFUSED {slug}: the switch to {adopted} is not signed (served comparator is {served})")
-    p = os.path.join(ROOT, "cache", slug, "records.json")
-    d = json.load(open(p, encoding="utf-8"))
+    # held = what the pipeline will see: records.json with any comparator_records.json overlay (harness.fetch)
+    cache_dir = os.path.join(ROOT, "cache", slug)
+    d = fetch._with_comparator_records(json.load(open(os.path.join(cache_dir, "records.json"), encoding="utf-8")),
+                                       cfg, cache_dir)
     held = str(d.get("comparator_pmid") or "")
     # already held only when the held record really IS this comparator's (codex v8-apply-r8 #3: a record with no id passed
     # this shortcut while the build guard refused the same cache)
-    held_rec = str((d.get("comparator_record") or {}).get("id") or "") == served or \
-        any(str(r.get("id")) == served for r in d.get("records") or [])
+    held_rec = (str((d.get("comparator_record") or {}).get("id") or "") == served
+                or any(str(r.get("id")) == served for r in d.get("records") or []))
     if held == served and held_rec:
         return {"slug": slug, "state": "ALREADY_HELD", "pmid": served}
     recs = fetch._efetch([served])
@@ -77,19 +65,19 @@ def acquire(slug, write=False):
     out = {"slug": slug, "state": "ACQUIRED", "pmid": served, "replaced": held, "title": rec["title"][:120],
            "oa": oa, "fulltext_chars": len(ft), "fulltext_sha256": hashlib.sha256(ft.encode("utf-8")).hexdigest()}
     if write:
-        d["comparator_replaced"] = {"pmid": held, "oa": d.get("comparator_oa"),
-                                    "fulltext_sha256": hashlib.sha256(old_ft.encode("utf-8")).hexdigest(),
-                                    "replaced_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                                    "by": "scripts/acquire_comparator_record.py (signed switch, packet V8)"}
-        d["comparator_record"] = rec
-        d["comparator_pmid"] = served
-        d["comparator_oa"] = oa
-        d["comparator_fulltext"] = ft
-        d["comparator_acquired_utc"] = d["comparator_replaced"]["replaced_utc"]
-        style = _style(p)
-        text = json.dumps(d, **style["kw"]) + style["tail"]
-        with open(p, "w", encoding="utf-8", newline="\n") as fh:
-            fh.write(text)
+        when = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        cr = {"_doc": ("The SIGNED replacement comparator's own records, acquired by scripts/acquire_comparator_record.py "
+                       "through harness.fetch's code paths; harness.fetch.ensure overlays them on records.json when this "
+                       "file names the configured comparator. records.json (the search cache) is never rewritten."),
+              "comparator_pmid": served, "comparator_record": rec, "comparator_oa": oa, "comparator_fulltext": ft,
+              "comparator_replaced": {"pmid": held, "oa": d.get("comparator_oa"),
+                                      "fulltext_sha256": hashlib.sha256(old_ft.encode("utf-8")).hexdigest(),
+                                      "replaced_utc": when,
+                                      "by": "scripts/acquire_comparator_record.py (signed switch, packet V8)"},
+              "comparator_acquired_utc": when}
+        with open(os.path.join(cache_dir, fetch.COMPARATOR_RECORDS), "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(cr, fh, indent=1, ensure_ascii=False)
+            fh.write("\n")
     return out
 
 
