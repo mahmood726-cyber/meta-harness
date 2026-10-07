@@ -634,3 +634,8 @@ Per topic: tocilizumab-covid19-mortality NOT_YET indep 5/19 matched 5/19; balanc
 - 0 rows admitted. Licence: 0 problems. Leak gate: clean.
 - **Recount unchanged:** G1_MATCHED 9, INDEPENDENT 92/346, COVERAGE 164/346.
 - **Watching.** The binding lane is re-screening statins, melatonin and denosumab (`@r2`). I will run the cascade on any new adoption, and on doac when its adoption lands.
+
+**doac-vte-recurrence adoption (comparator 29795629, ed5be6dc4).** No acquisition was needed.
+- All 5 trials in its set are already bound PRIMARY in our pool: RE-COVER, RE-COVER II, Hokusai-VTE, AMPLIFY and EINSTEIN-DVT.
+- So there were 0 targets and 0 calls.
+- Its G1 standing now depends only on the tracker being regenerated against 29795629, which is the captain's step.
