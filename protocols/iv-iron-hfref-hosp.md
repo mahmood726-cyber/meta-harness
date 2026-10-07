@@ -59,3 +59,34 @@ plus serious adverse events and qualitative angioedema/hypersensitivity detail.
   (PMID 33197395), and IRONMAN (PMID 36347265).
 - **Negative** - the COPD intravenous-iron RCT (PMID 32565444) must be recovered
   and EXCLUDED as wrong population.
+
+## Amendment 2026-10-07 (D10 multi-outcome: outcomes the comparator also reports)
+**Status: registered BEFORE any extraction of these outcomes; retrospective with respect to the trial pool**
+(the pool, search and eligibility were fixed before D10 and are unchanged). Decision: Mahmood D10 (relayed
+2026-10-07): add outcomes the comparator meta also reports -- all-cause mortality, key harms and its
+prespecified secondaries. Rule `registry/outcome_amendments/D10_rule.json` (commit a40e00850); proposal
+`registry/outcome_amendments/iv-iron-hfref-hosp.proposal.json` (commit 10878e620). The outcomes were chosen from the
+comparator's (PMID 39727669) own text by that rule alone; no trial-level result for them
+was extracted or viewed by this lane before this amendment.
+
+- **New secondary outcome: Total deaths** (P1_ALL_CAUSE_MORTALITY). Estimand OR; timepoint trial-reported follow-up;
+  keywords total deaths, all-cause mortality, all-cause death, death from any cause, deaths from any cause, any-cause death, any-cause mortality, total mortality, overall mortality. The comparator prints OR 0.85
+  (0.70 to 1.03): "total deaths (OR: 0.85; 95% CI: 0.70 to 1.03, p = 0.09; I 2 = 0%)" [R2 CC_FULL_TEXT].
+- **New harm outcome: Incidence of serious adverse events** (P2_KEY_HARMS). Estimand OR; timepoint trial-reported follow-up;
+  keywords incidence of serious adverse events, serious adverse events. The comparator prints OR 0.73
+  (0.49 to 1.10): "incidence of serious adverse events between the FCM and placebo/SoC groups, with an OR of 0.73 (95% CI: 0.49 to 1.10, p = 0.13)" [R2 CC_FULL_TEXT].
+- **New secondary outcome: Non-HF hospitalizations** (P3_PRESPECIFIED_SECONDARIES). Estimand OR; timepoint trial-reported follow-up;
+  keywords non-hf hospitalizations. The comparator prints OR 0.71
+  (0.41 to 1.25): "non-HF hospitalizations (OR: 0.71; 95% CI: 0.41 to 1.25, p = 0.24; I 2 = 92%)" [R2 CC_FULL_TEXT].
+- **New secondary outcome: Composite of cardiovascular hospitalizations and cardiovascular deaths** (P3_PRESPECIFIED_SECONDARIES). Estimand OR; timepoint trial-reported follow-up;
+  keywords composite of cardiovascular hospitalizations and cardiovascular deaths. The comparator prints OR 0.65
+  (0.40 to 1.04): "composite of cardiovascular hospitalizations and cardiovascular deaths (OR: 0.65; 95% CI: 0.40 to 1.04, p = 0.07; I 2 = 88%)" [R2 CC_FULL_TEXT].
+- **New secondary outcome: Mean 6MWT distance** (P3_PRESPECIFIED_SECONDARIES). Estimand MD; timepoint baseline to the 24-week follow-up;
+  keywords mean 6mwt distance, 6mwt distance. The comparator prints WMD 14.03
+  (−10.94 to 38.99): "mean 6MWT distance from the baseline to the 24-week follow-up was observed, with a WMD of 14.03 m (95% CI: −10.94 to 38.99, p = 0.27; I 2 = 100%)" [R2 CC_FULL_TEXT].
+- **Extraction.** The served ladder is unchanged (abstract, CT.gov results, held open full texts, verified
+  inputs); trials it leaves without a value may be read by recorded codex over open sources only (CC BY / CC0
+  full text, abstracts, AACT, FDA, EMA with acknowledgement, NICE OGL/CC), every value quote-gated.
+- **Comparison.** Each outcome's pooled result is compared with the comparator's printed result on the
+  comparator's measure; a measure difference is reported, never converted. Nothing is served until
+  Mahmood signs its notice.

@@ -58,3 +58,24 @@ events and drug-withdrawal. Trial-set overlap is stated on the page.
   pericarditis RCTs (CORP, CORP-2, ICAP).
 - **Negative** — COLCOT (colchicine, double-blind, placebo-controlled, but post-MI coronary
   disease — another topic in this set) must be recovered and EXCLUDED (X5).
+
+## Amendment 2026-10-07 (D10 multi-outcome: outcomes the comparator also reports)
+**Status: registered BEFORE any extraction of these outcomes; retrospective with respect to the trial pool**
+(the pool, search and eligibility were fixed before D10 and are unchanged). Decision: Mahmood D10 (relayed
+2026-10-07): add outcomes the comparator meta also reports -- all-cause mortality, key harms and its
+prespecified secondaries. Rule `registry/outcome_amendments/D10_rule.json` (commit a40e00850); proposal
+`registry/outcome_amendments/colchicine-recurrent-pericarditis.proposal.json` (commit 10878e620). The outcomes were chosen from the
+comparator's (PMID 22442198) own text by that rule alone; no trial-level result for them
+was extracted or viewed by this lane before this amendment.
+
+- **New harm outcome: Drug withdrawals** (P2_KEY_HARMS). Estimand RR; timepoint trial-reported follow-up;
+  keywords drug withdrawals. The comparator prints RR 1.85
+  (1.04 to 3.29): "drug withdrawals (RR=1.85, 95% CI 1.04 to 3.29, p for effect 0.04, p for heterogeneity = 0.42, I(2)=0%)" [R2 ABSTRACT_ONLY].
+- **Linked, already registered: Adverse events (gastrointestinal)** -- compared with the comparator's "adverse events",
+  RR 1.22 (0.71 to 2.10). No change to its spec.
+- **Extraction.** The served ladder is unchanged (abstract, CT.gov results, held open full texts, verified
+  inputs); trials it leaves without a value may be read by recorded codex over open sources only (CC BY / CC0
+  full text, abstracts, AACT, FDA, EMA with acknowledgement, NICE OGL/CC), every value quote-gated.
+- **Comparison.** Each outcome's pooled result is compared with the comparator's printed result on the
+  comparator's measure; a measure difference is reported, never converted. Nothing is served until
+  Mahmood signs its notice.

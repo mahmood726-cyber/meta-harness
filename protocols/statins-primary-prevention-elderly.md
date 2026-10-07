@@ -69,3 +69,22 @@ found during resolution were not open access.
 - **Negative** - CORONA (rosuvastatin in older patients with systolic heart failure,
   PMID 17984166 - different disease/topic) must be recovered and EXCLUDED as wrong
   population.
+
+## Amendment 2026-10-07 (D10 multi-outcome: outcomes the comparator also reports)
+**Status: registered BEFORE any extraction of these outcomes; retrospective with respect to the trial pool**
+(the pool, search and eligibility were fixed before D10 and are unchanged). Decision: Mahmood D10 (relayed
+2026-10-07): add outcomes the comparator meta also reports -- all-cause mortality, key harms and its
+prespecified secondaries. Rule `registry/outcome_amendments/D10_rule.json` (commit a40e00850); proposal
+`registry/outcome_amendments/statins-primary-prevention-elderly.proposal.json` (commit 10878e620). The outcomes were chosen from the
+comparator's (PMID 32529863) own text by that rule alone; no trial-level result for them
+was extracted or viewed by this lane before this amendment.
+
+- **New secondary outcome: All-cause mortality** (P1_ALL_CAUSE_MORTALITY). Estimand OR; timepoint trial-reported follow-up;
+  keywords all-cause mortality, all-cause death, death from any cause, deaths from any cause, any-cause death, any-cause mortality, total mortality, overall mortality. The comparator prints OR 0.94
+  (0.76 to 1.16): "For the primary prevention subgroup, four trials (14,821 patients in total) 37 – 40 found that statins had no statistically significant effect on all-cause mortality compared with the control group (OR: 0.94, 95% CI: …" [R1 regex over the held comparator text].
+- **Extraction.** The served ladder is unchanged (abstract, CT.gov results, held open full texts, verified
+  inputs); trials it leaves without a value may be read by recorded codex over open sources only (CC BY / CC0
+  full text, abstracts, AACT, FDA, EMA with acknowledgement, NICE OGL/CC), every value quote-gated.
+- **Comparison.** Each outcome's pooled result is compared with the comparator's printed result on the
+  comparator's measure; a measure difference is reported, never converted. Nothing is served until
+  Mahmood signs its notice.

@@ -99,3 +99,25 @@ closed access during the build, so it was not used as the comparator.
   0.18 (0.09-0.39). It is excluded from the DOAC-vs-VKA pool because the
   comparator is placebo and the phase is extended/secondary prevention, not
   acute VTE treatment.
+
+## Amendment 2026-10-07 (D10 multi-outcome: outcomes the comparator also reports)
+**Status: registered BEFORE any extraction of these outcomes; retrospective with respect to the trial pool**
+(the pool, search and eligibility were fixed before D10 and are unchanged). Decision: Mahmood D10 (relayed
+2026-10-07): add outcomes the comparator meta also reports -- all-cause mortality, key harms and its
+prespecified secondaries. Rule `registry/outcome_amendments/D10_rule.json` (commit a40e00850); proposal
+`registry/outcome_amendments/doac-vte-recurrence.proposal.json` (commit 10878e620). The outcomes were chosen from the
+comparator's (PMID 29795629) own text by that rule alone; no trial-level result for them
+was extracted or viewed by this lane before this amendment.
+
+- **New secondary outcome: Total mortality** (P1_ALL_CAUSE_MORTALITY). Estimand OR; timepoint trial-reported follow-up;
+  keywords total mortality, all-cause mortality, all-cause death, death from any cause, deaths from any cause, any-cause death, any-cause mortality, overall mortality. The comparator prints OR 0.94
+  (0.79 to 1.12): "total mortality (0.94, 0.79–1.12)" [R2 CC_FULL_TEXT].
+- **New secondary outcome: Net clinical benefit** (P3_PRESPECIFIED_SECONDARIES). Estimand OR; timepoint trial-reported follow-up;
+  keywords net clinical benefit. The comparator prints OR 0.72
+  (0.61 to 0.85): "net clinical benefit (0.72, 0.61–0.85)" [R2 CC_FULL_TEXT].
+- **Extraction.** The served ladder is unchanged (abstract, CT.gov results, held open full texts, verified
+  inputs); trials it leaves without a value may be read by recorded codex over open sources only (CC BY / CC0
+  full text, abstracts, AACT, FDA, EMA with acknowledgement, NICE OGL/CC), every value quote-gated.
+- **Comparison.** Each outcome's pooled result is compared with the comparator's printed result on the
+  comparator's measure; a measure difference is reported, never converted. Nothing is served until
+  Mahmood signs its notice.

@@ -86,3 +86,28 @@ protocol's broad cardiovascular-outcome-trial scope was not executable. The conf
 now requires cardiovascular-outcome / cardiovascular-events / MACE wording, so
 short glycaemic or imaging-marker diabetes trials are not included merely because
 they are randomized SGLT2 placebo trials. This amendment changes screening only.
+
+## Amendment 2026-10-07 (D10 multi-outcome: outcomes the comparator also reports)
+**Status: registered BEFORE any extraction of these outcomes; retrospective with respect to the trial pool**
+(the pool, search and eligibility were fixed before D10 and are unchanged). Decision: Mahmood D10 (relayed
+2026-10-07): add outcomes the comparator meta also reports -- all-cause mortality, key harms and its
+prespecified secondaries. Rule `registry/outcome_amendments/D10_rule.json` (commit a40e00850); proposal
+`registry/outcome_amendments/sglt2-primary-prevention-hf.proposal.json` (commit 10878e620). The outcomes were chosen from the
+comparator's (PMID 33519713) own text by that rule alone; no trial-level result for them
+was extracted or viewed by this lane before this amendment.
+
+- **New secondary outcome: Death from any cause** (P1_ALL_CAUSE_MORTALITY). Estimand RR; timepoint trial-reported follow-up;
+  keywords death from any cause, all-cause mortality, all-cause death, deaths from any cause, any-cause death, any-cause mortality, total mortality, overall mortality. The comparator prints RR 0.77
+  (0.59 to 1.01): "SGLT-2i could reduce the risk of death from any cause (RR, 0.77; 95% CI, 0.59 to 1.01; P = 0.06) without statistical significance in type 2 diabetes patients." [R2 CC_FULL_TEXT].
+- **New secondary outcome: MACE** (P3_PRESPECIFIED_SECONDARIES). Estimand RR; timepoint trial-reported follow-up;
+  keywords mace. The comparator prints RR 0.92
+  (0.86 to 0.98): "The meta-analysis using the fixed-effects model showed that SGLT-2i resulted in a lower rate of MACE (RR, 0.92; 95% CI, 0.86 to 0.98; P < 0.007)" [R2 CC_FULL_TEXT].
+- **New secondary outcome: Cardiovascular death** (P3_PRESPECIFIED_SECONDARIES). Estimand RR; timepoint trial-reported follow-up;
+  keywords cardiovascular death. The comparator prints RR 0.78
+  (0.62 to 0.99): "The meta-analysis using the random-effects model showed that SGLT-2i could decrease the occurrence of cardiovascular death (RR, 0.78; 95% CI, 0.62 to 0.99; P = 0.04)" [R2 CC_FULL_TEXT].
+- **Extraction.** The served ladder is unchanged (abstract, CT.gov results, held open full texts, verified
+  inputs); trials it leaves without a value may be read by recorded codex over open sources only (CC BY / CC0
+  full text, abstracts, AACT, FDA, EMA with acknowledgement, NICE OGL/CC), every value quote-gated.
+- **Comparison.** Each outcome's pooled result is compared with the comparator's printed result on the
+  comparator's measure; a measure difference is reported, never converted. Nothing is served until
+  Mahmood signs its notice.
