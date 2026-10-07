@@ -1653,5 +1653,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote": {
+  "base": "6b4e18ca2",
+  "head": "b40f81fa4151bb0cfeb7b8c9bb47b758062d22b7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-77e89a469e6d8b2265a4faafc0e99111",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "cb87bf8f573eac52104f83daf361aa1c632b10f1a34dde3aca10ba8bd499ea8e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The number-word regex matches the suffix of compound numbers, allowing pooled_gate to validate an incorrect k used downstream.",
+    "failing_input": "printed_counts('Twenty-one randomized trials were pooled.')",
+    "expected": "Recognize 21 or refuse the unsupported compound number; never validate 1.",
+    "actual": "Returns {1}, allowing a claimed k=1 to pass the printed-count check.",
+    "id": "swap-setquote:g1#1",
+    "record_id": "mc-77e89a469e6d8b2265a4faafc0e99111",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The digit regex accepts the fractional portion of a decimal as an integer count. The newly supported phase adjective makes this false count eligible for pooled_gate validation.",
+    "failing_input": "printed_counts('Across reviews, the mean was 11.6 Phase 3 studies.')",
+    "expected": "set(): 11.6 is not an integer trial count, and 3 is a phase number.",
+    "actual": "Returns {6}, allowing a claimed k=6 to pass the printed-count check.",
+    "id": "swap-setquote:g1#2",
+    "record_id": "mc-77e89a469e6d8b2265a4faafc0e99111",
+    "verdict": null
+   }
+  ]
  }
 }

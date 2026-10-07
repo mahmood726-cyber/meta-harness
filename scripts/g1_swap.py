@@ -328,9 +328,11 @@ def printed_counts(q):
     number ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
     out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", q or "", re.I)}
     tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
-    out |= {int(x) for x in re.findall(r"(?<!phase )(?<!phase)\b(\d+)" + tail, q or "", re.I)}
+    # a WHOLE number: never the fraction of a decimal ('11.6' -> not 6; codex swap-setquote #2) nor a phase number
+    out |= {int(x) for x in re.findall(r"(?<!phase )(?<!phase)(?<![\d.,])(\d+)(?![.,]\d)" + tail, q or "", re.I)}
+    # a WHOLE number word: never the tail of a compound ('twenty-one' -> not 1; codex swap-setquote #1)
     out |= {_COUNT_WORDS.index(w.lower()) + 1
-            for w in re.findall(r"\b(" + "|".join(_COUNT_WORDS) + r")" + tail, q or "", re.I)}
+            for w in re.findall(r"(?<![\w-])(" + "|".join(_COUNT_WORDS) + r")(?![\w-])" + tail, q or "", re.I)}
     return out
 
 

@@ -128,3 +128,11 @@ def test_PLANT_only_trial_adjectives_may_stand_between_the_count_and_trials():
     nt = sw._norm(q)
     pl = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": "OR 0.88, CI 0.75-1.03"}
     assert sw.pooled_gate(pl, nt, set_quote=q)[0] is None
+
+
+def test_PLANT_compound_words_and_decimals_are_never_counts():
+    """codex swap-setquote #1 ('Twenty-one' -> 1) and #2 ('11.6 Phase 3 studies' -> 6)."""
+    assert 1 not in sw.printed_counts("Twenty-one randomized trials were pooled.")
+    assert sw.printed_counts("Across reviews, the mean was 11.6 Phase 3 studies.") == set()
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}
+    assert sw.printed_counts("12 randomised controlled trials") == {12}
