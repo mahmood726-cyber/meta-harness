@@ -335,7 +335,7 @@ def _fulltext_extract(ft, spec, interv, comp, dc):
         return {"absent": True, "reason": ("full text holds a baseline-characteristics table whose inline copy in the "
                                            "prose could not be located and removed; refused rather than risk reading "
                                            "baseline values as outcomes")}
-    kw = dict(declared_composite=dc, estimand=spec.get("estimand"))
+    kw = dict(declared_composite=dc, estimand=spec.get("estimand"), outcome_name=spec.get("name"))
     own = _ft_mod.own_result_prose(seg["prose"])
     fx = extract.extract_trial(own["prose"], spec["keywords"], interv, comp, **kw)
     if seg.get("unstructured"):
@@ -1299,7 +1299,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         ve = (verified_effects or {}).get(d["id"])
         effect_candidates = candidate_index.get(d["id"], [])
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
-                                   declared_composite=dc, estimand=spec.get("estimand"))
+                                   declared_composite=dc, estimand=spec.get("estimand"), outcome_name=spec.get("name"))
         if not ex.get("absent"):
             # ESTIMAND-HOMOGENEITY (composite component count): an N-point MACE outcome must not pool a
             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).

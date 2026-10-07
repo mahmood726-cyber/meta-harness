@@ -1,4 +1,4 @@
-"""Specifications for the 24 compiled patterns in harness/extract.py.
+"""Specifications for the 26 compiled patterns in harness/extract.py.
 
 Each spec says, in plain words, what the pattern is FOR -- the thing a human labeller (or a recorded model call, as a
 PROPOSAL) marks in a sentence without ever seeing the regex. `kind`:
@@ -28,6 +28,21 @@ SPECS = {
               "spec": "an event count for one group written as COUNT [patients] (PERCENT%) with the denominator elsewhere",
               "trigger": r"\d\s*%", "plants": {"accept": [("37 patients (18.5%)", ("37", "18.5"))],
                                                "refuse": ["18.5% of patients", "37 patients in total"]}},
+    "_ARM3W": {"kind": "extractor", "fields": ["count_word", "denominator", "percent"],
+               "spec": "an event count for one group written as a NUMBER WORD of DENOMINATOR [patients] (PERCENT%) "
+                       "(probiotics 15740542 / 18026577, 7 Oct); never the last word of a compound",
+               "trigger": r"\bof\s+\d", "plants": {"accept": [("four of 119 (3.4%)", ("four", "119", "3.4")),
+                                                              ("seven of 44 patients (15.9%)", ("seven", "44", "15.9"))],
+                                                   "refuse": ["twenty-nine of 127 (23%)", "four of 119 patients",
+                                                              "25 of 400 patients (6.2%)"]}},
+    "_EFFECT_BARE_RX": {"kind": "extractor", "fields": ["measure", "point", "lower", "upper"],
+                        "spec": "a ratio effect whose confidence interval is bracketed WITHOUT a CI label: MEASURE POINT "
+                                "(LOWER to UPPER[, P...]) (omega3 21115589, SU.FOL.OM3, 7 Oct)",
+                        "trigger": r"ratio|\b(?:RR|OR|HR)\b",
+                        "plants": {"accept": [("hazard ratio 1.08 (0.79 to 1.47, P=0.64)", ("hazard ratio", "1.08", "0.79", "1.47")),
+                                              ("HR 0.70 (0.54-0.90)", ("HR", "0.70", "0.54", "0.90"))],
+                                   "refuse": ["hazard ratio 1.08 (95% CI 0.79 to 1.47)", "aged 65 (60 to 70) years",
+                                              "the hazard ratio was 1.08"]}},
     "_ARM4": {"kind": "extractor", "fields": ["percent", "count", "denominator"],
               "spec": "an event proportion for one group written as PERCENT% (COUNT/DENOMINATOR)",
               "trigger": r"%\s*[\(\[]", "plants": {"accept": [("9% (7/78)", ("9", "7", "78"))],
@@ -231,3 +246,20 @@ INLINE_SPECS.update(_OTHER_LANES_5)
 from regex_layer.specs_whole_numbers import SITE_SPECS as _WHOLE_NUMBERS  # noqa: E402
 
 INLINE_SPECS.update(_WHOLE_NUMBERS)
+
+# 7 Oct (acq/k-gap lane, captain's misattribution adjudications): the clause / outcome-name sites of harness/extract.py
+INLINE_SPECS.update({
+    "extract.py:search:41df6d0110": {
+        "kind": "search", "what": "extract_effect_for: a 'fatal or ...' clause is a composite (CANVAS 'fatal or hospitalized HF')",
+        "plants": {"accept": [("as was fatal or hospitalized HF (HR, 0.70", None)],
+                   "refuse": ["hospitalized HF alone (HR, 0.67", "fatal outcomes or not"]}},
+    "extract.py:split:a96b0679ec": {
+        "kind": "split", "what": "_outcome_name_alternatives: a declared outcome name's ' / ' (or ';') alternatives",
+        "plants": {"accept": [("Major vascular events / MACE", ["Major vascular events", "MACE"]),
+                              ("Mortality; death", ["Mortality", " death"])],
+                   "refuse": ["first HHF/CV death", "Any bleeding"]}},
+    "extract.py:sub:2130bc52f0": {
+        "kind": "search", "what": "_outcome_name_alternatives: a parenthetical dropped from the declared outcome name",
+        "plants": {"accept": [("Symptomatic recurrent VTE (DVT / nonfatal PE)", None)],
+                   "refuse": ["Symptomatic recurrent VTE"]}},
+})

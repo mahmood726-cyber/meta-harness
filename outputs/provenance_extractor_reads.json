@@ -1,0 +1,367 @@
+{
+ "rule": "For every row on the burn-down list (registry/provenance_hand_entered.json; served rows and countable tracker rows),\nthe extractor is run over each HELD document that can carry the value:\n  * the document the served row itself cites (its 'source' names a held path: cache/<slug>/records.json <section> PMID n\n    abstract, or cache/<slug>/pmc_<n>_fulltext.txt / ft_<n>.txt),\n  * the trial's own record abstract, and its held full text in the PRODUCER's representation (the JATS cache converted\n    by harness.fulltext.combined_text(parse_pmc_xml(...)), or the harness's own outputs/k_gap/_ft/<pmid>.txt).\nA row is RETIRABLE only when the extractor's output on one document EQUALS the served value (counts exactly; an effect\nand both CI bounds at the served precision). Then registry/provenance_extractor_reads.json records {document, its\nsha256, span, numbers, extractor sha256}; scripts/provenance_census.py may class the row EXTRACTOR from it. Anything\nelse is listed with what the extractor gave on each document -- never accepted, never auto-replaced.",
+ "extractor_sha256": "f583aa7aeede015679be6c07601b10ecb73cf5951b123ba635801c25b654f4b7",
+ "served_ref": "origin/v8/comparator-switches-2026-10-06",
+ "rows": [
+  {
+   "key": "served|dapagliflozin-hfpef-hosp|Adverse events|PMID 34711976",
+   "served": {
+    "ai": 44,
+    "n1i": 162,
+    "ci": 38,
+    "n2i": 162,
+    "provenance": "abstract_verified_arms"
+   },
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE",
+   "tried": [
+    {
+     "document": "cache/dapagliflozin-hfpef-hosp/records.json PMID 34711976 abstract",
+     "sha256": "ee2f9858729e3e0b25ef56b63dd55b643bf083fa4c1db56c22b2c8602fe28bfa",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    },
+    {
+     "document": "outputs/k_gap/_ft/34711976.txt (producer representation)",
+     "sha256": "da4a21d953eb7c7e1f056b99e2ff01cbd39b1ea8d7c2a67afcfad26f2fefe856",
+     "extractor": {
+      "absent": "ambiguous: admissible sentences state different percentage-corroborated arm counts for this outcome; refused rather than take the first (R4)"
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|esketamine-trd-madrs|Adverse events|PMID 37025256",
+   "served": {
+    "ai": 120,
+    "n1i": 126,
+    "ci": 89,
+    "n2i": 126,
+    "provenance": "fulltext_verified_arms"
+   },
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE",
+   "tried": [
+    {
+     "document": "cache/esketamine-trd-madrs/records.json PMID 37025256 abstract",
+     "sha256": "bc8881df0b2541b0c4293fb95a4e1782ce9744b980e8da33b95a4354bfb1f958",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    },
+    {
+     "document": "cache/esketamine-trd-madrs/ft_37025256.txt (producer representation)",
+     "sha256": "af09996e25c80c895f80ff54591e49536d06b447d89cd138c7cd5674b1d68cff",
+     "extractor": {
+      "absent": "multi-arm dose-ranging trial (>1 intervention dose arm vs one comparator): the effect cannot be attributed to a single pre-specified comparison; refused (multi-"
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|glp1-ra-mace-t2d|Adverse events leading to discontinuation|PMID 27295427",
+   "served": {
+    "ai": 444,
+    "n1i": 4668,
+    "ci": 339,
+    "n2i": 4672,
+    "provenance": "fulltext_verified_arms"
+   },
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE",
+   "tried": [
+    {
+     "document": "cache/glp1-ra-mace-t2d/records.json PMID 27295427 abstract",
+     "sha256": "e62b48ed840c00e59d254d7b6115fd52491a16958151de09e0a5bdf4f71bbb8c",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    },
+    {
+     "document": "cache/glp1-ra-mace-t2d/ft_27295427.txt (producer representation)",
+     "sha256": "0e7df25785d8f4805bb72436ef4b23e1f491cb4b15a70fbbde4b13380df2a07d",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|melatonin-primary-insomnia-sol|Adverse events|PMID 20712869",
+   "served": {
+    "ai": 136,
+    "n1i": 394,
+    "ci": 142,
+    "n2i": 395,
+    "provenance": "fulltext_verified_arms"
+   },
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE",
+   "tried": [
+    {
+     "document": "cache/melatonin-primary-insomnia-sol/records.json PMID 20712869 abstract",
+     "sha256": "77f015bd88b96fd2340cc517126a38f27a7a7784f4d9ef40406066ba8c2f1040",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    },
+    {
+     "document": "cache/melatonin-primary-insomnia-sol/ft_20712869.txt (producer representation)",
+     "sha256": "cb75bc964aead96f8fb24dd16ca4200eeab018430b75dbeb6b2daa41c53fd19e",
+     "extractor": {
+      "ai": 65,
+      "n1i": 86,
+      "ci": 63,
+      "n2i": 86
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|probiotics-aad-prevention|Any adverse events|PMID 39529939",
+   "served": {
+    "ai": 7,
+    "n1i": 285,
+    "ci": 3,
+    "n2i": 279,
+    "provenance": "fulltext_verified_arms"
+   },
+   "state": "RETIRABLE_BY_EXTRACTOR",
+   "tried": [
+    {
+     "document": "cache/probiotics-aad-prevention/records.json PMID 39529939 abstract",
+     "sha256": "4cfc75a07637821b67ef4370b5bb13ef30a3ac5dcf11ba42c54321cc808905be",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    },
+    {
+     "document": "cache/probiotics-aad-prevention/ft_39529939.txt (producer representation)",
+     "sha256": "0c1e0febc0870e9e8eab9c060eb08406f431ae5cd2c5a6c722ff7095d13c0ff9",
+     "extractor": {
+      "ai": 7,
+      "n1i": 285,
+      "ci": 3,
+      "n2i": 279
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|probiotics-aad-prevention|Any adverse events|PMID 41699149",
+   "served": {
+    "ai": 64,
+    "n1i": 125,
+    "ci": 69,
+    "n2i": 130,
+    "provenance": "fulltext_verified_arms"
+   },
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE",
+   "tried": [
+    {
+     "document": "cache/probiotics-aad-prevention/records.json PMID 41699149 abstract",
+     "sha256": "37873a70ee634e329635f5873394f1e7d3bb6f08bbde51b13fb473ba15fa312e",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    },
+    {
+     "document": "cache/probiotics-aad-prevention/ft_41699149.txt (producer representation)",
+     "sha256": "7affb474e08511ddde106238516b13494e0c2e34431b214e7fb3baf0eeb46d41",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|probiotics-aad-prevention|Serious adverse events|PMID 34541475",
+   "served": {
+    "ai": 4,
+    "n1i": 181,
+    "ci": 6,
+    "n2i": 178,
+    "provenance": "fulltext_verified_arms"
+   },
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE",
+   "tried": [
+    {
+     "document": "cache/probiotics-aad-prevention/records.json PMID 34541475 abstract",
+     "sha256": "106bd2f76874fb8fcbacecb52f0bfaaa06ed9f650438a94c034328a7918c2856",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    },
+    {
+     "document": "cache/probiotics-aad-prevention/ft_34541475.txt (producer representation)",
+     "sha256": "d84f1ad150dc006b34827bdb56125580f31b7e7dc97ca3626727cc928f34dd64",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|sglt2-ckd-progression|Diabetic ketoacidosis|PMID 36331190",
+   "served": {
+    "ai": 6,
+    "n1i": 3304,
+    "ci": 1,
+    "n2i": 3305,
+    "provenance": "fulltext_verified_arms"
+   },
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE",
+   "tried": [
+    {
+     "document": "cache/sglt2-ckd-progression/records.json PMID 36331190 abstract",
+     "sha256": "f1f788812cff3f57ed6661d01c5172983972178e1de7219269154cc10ce65baf",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    },
+    {
+     "document": "cache/sglt2-ckd-progression/ft_36331190.txt (producer representation)",
+     "sha256": "4dc3d9b323ef06b466df06b8b77c817502f056fe5d307945afcf75794e71a3bc",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|sglt2-ckd-progression|Lower-limb amputation|PMID 36331190",
+   "served": {
+    "effect": 1.43,
+    "ci_low": 0.8,
+    "ci_high": 2.57,
+    "scale": "HR",
+    "provenance": "fulltext_verified"
+   },
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE",
+   "tried": [
+    {
+     "document": "cache/sglt2-ckd-progression/records.json PMID 36331190 abstract",
+     "sha256": "f1f788812cff3f57ed6661d01c5172983972178e1de7219269154cc10ce65baf",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    },
+    {
+     "document": "cache/sglt2-ckd-progression/ft_36331190.txt (producer representation)",
+     "sha256": "4dc3d9b323ef06b466df06b8b77c817502f056fe5d307945afcf75794e71a3bc",
+     "extractor": {
+      "absent": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|sglt2-primary-prevention-hf|Hospitalization for heart failure|PMID 26378978",
+   "served": {
+    "effect": 0.65,
+    "ci_low": 0.5,
+    "ci_high": 0.85,
+    "scale": "HR",
+    "provenance": "fulltext_verified"
+   },
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE",
+   "tried": [
+    {
+     "document": "cache/sglt2-primary-prevention-hf/pmc_26819227_fulltext.txt (cited)",
+     "sha256": "5accb7c8c720dfa649f31bfb3153140dce70df360dabfae77c67cef747912c76",
+     "extractor": {
+      "effect": 0.62,
+      "ci_low": 0.53,
+      "ci_high": 0.73,
+      "scale": "HR"
+     }
+    },
+    {
+     "document": "cache/sglt2-primary-prevention-hf/records.json PMID 26378978 abstract",
+     "sha256": "427170de1d3e223d9d8e55fb82267a9d283eff4f824bef0827f163b55e67aade",
+     "extractor": {
+      "ai": 490,
+      "n1i": 4687,
+      "ci": 282,
+      "n2i": 2333
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|sglt2-primary-prevention-hf|Hospitalization for heart failure|PMID 28605608",
+   "served": {
+    "effect": 0.67,
+    "ci_low": 0.52,
+    "ci_high": 0.87,
+    "scale": "HR",
+    "provenance": "fulltext_verified"
+   },
+   "state": "RETIRABLE_BY_EXTRACTOR",
+   "tried": [
+    {
+     "document": "cache/sglt2-primary-prevention-hf/records.json PMID 29526832 abstract (cited)",
+     "sha256": "6227aebc8815c1746452ed0a8f632f68bbb3116088e49d69b392398b62479c63",
+     "extractor": {
+      "effect": 0.67,
+      "ci_low": 0.52,
+      "ci_high": 0.87,
+      "scale": "HR"
+     }
+    }
+   ]
+  },
+  {
+   "key": "served|sglt2-primary-prevention-hf|Hospitalization for heart failure|PMID 32966714",
+   "served": {
+    "effect": 0.7,
+    "ci_low": 0.54,
+    "ci_high": 0.9,
+    "scale": "HR",
+    "provenance": "fulltext_verified"
+   },
+   "state": "RETIRABLE_BY_EXTRACTOR",
+   "tried": [
+    {
+     "document": "cache/sglt2-primary-prevention-hf/records.json PMID 33026243 abstract (cited)",
+     "sha256": "a60dd7d3abcf75404890bfe023139ffaac297e4d36270684bc670d90fc91d349",
+     "extractor": {
+      "effect": 0.7,
+      "ci_low": 0.54,
+      "ci_high": 0.9,
+      "scale": "HR"
+     }
+    }
+   ]
+  },
+  {
+   "key": "tracker|sglt2-primary-prevention-hf|Cannon (11)|PRIMARY",
+   "state": "RETIRABLE_BY_EXTRACTOR",
+   "tracker_value": {
+    "measure": "HR",
+    "effect": "0.7",
+    "lower": "0.54",
+    "upper": "0.9",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null
+   }
+  },
+  {
+   "key": "tracker|sglt2-primary-prevention-hf|Radholm (9)|PRIMARY",
+   "state": "RETIRABLE_BY_EXTRACTOR",
+   "tracker_value": {
+    "measure": "HR",
+    "effect": "0.67",
+    "lower": "0.52",
+    "upper": "0.87",
+    "events_t": null,
+    "n_t": null,
+    "events_c": null,
+    "n_c": null
+   }
+  },
+  {
+   "key": "tracker|sglt2-primary-prevention-hf|Zinman (8)|PRIMARY",
+   "state": "EXTRACTOR_DOES_NOT_REPRODUCE (no retired served read for this trial)"
+  }
+ ]
+}

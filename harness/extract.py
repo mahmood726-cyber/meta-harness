@@ -25,6 +25,14 @@ _ARM2 = re.compile(r"(\d+)\s*/\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*[);,]")
 # The trailing [);,] (not just ")") lets a percentage be followed by an in-paren CI or clause —
 # "25 of 400 patients (6.2%; 95% CI, 3.9 to 8.6)" (NEJM style) — without breaking corroboration.
 _ARM3 = re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:patients?|participants?|women|men|subjects?|people)?\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*[);,]")
+# _ARM3 with a NUMBER-WORD count ('four of 119 (3.4%)', 'seven of 44 patients (15.9%)'; probiotics 15740542 / 18026577,
+# where only the effect -- or the wrong sentence's effect -- could be read). A separate pattern so _ARM3's group 1 stays
+# digits for every other reader (regex_layer measurement / ambiguity). Not inside a compound ('twenty-nine' is not
+# 'nine'); the percentage must corroborate the count exactly as for _ARM3.
+_ARM3W = re.compile(r"(?<![\w-])(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|"
+                    r"fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\s+of\s+(\d+)\s+"
+                    r"(?:patients?|participants?|women|men|subjects?|people|children)?\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*[);,]",
+                    re.I)
 # "N [patients] (P%)" with the denominator stated elsewhere in the sentence/abstract.
 # "N [patients] (P%)" or "N [patients] [P%]" — parentheses OR square brackets.
 _ARMP = re.compile(r"(\d+)\s+(?:patients?|participants?|cases?|subjects?)?\s*[\(\[]\s*(\d+(?:\.\d+)?)\s*%\s*[\)\]]")
@@ -163,6 +171,10 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
         ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
         if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
             groups.append(ArmHit(m.start(), ev, n))
+    for m in _ARM3W.finditer(sentence):  # "four of 119 (3.4%)" -- a NUMBER-WORD count (own pattern; _ARM3 stays digits)
+        ev, n, pct = _WORDNUM[m.group(1).lower()], int(m.group(2)), float(m.group(3))
+        if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
+            groups.append(ArmHit(m.start(), ev, n))
     for m in _ARM4.finditer(sentence):  # "P% (N/M)" percentage-first
         pct, ev, n = float(m.group(1)), int(m.group(2)), int(m.group(3))
         if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
@@ -210,6 +222,17 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
                     return None  # R4 ambiguity: several stated denominators corroborate this count; refused
                 if best:
                     groups.append(ArmHit(pos, ev, best))
+    # TOTAL-AS-ARM misattribution (captain's adjudication, 7 Oct; probiotics 39529939 'Any adverse events'): 'only 1.8%
+    # (10/564) experienced an AE: 2.5% (7/285) in the studied probiotic ... and 1.1% (3/279) ... placebo' -- the whole
+    # trial's 10/564 was read as an arm. With three or more corroborated groups, a group whose count AND denominator are
+    # each the sum of two other groups' is the total, never an arm; it is dropped. Positions of the sum's parts are
+    # distinct groups (two readings of one span cannot sum to a third).
+    if len(groups) >= 3:
+        _tot = {g for g in groups
+                for a, b in itertools.combinations([h for h in groups if h[0] != g[0]], 2)
+                if a[0] != b[0] and g[1] == a[1] + b[1] and g[2] == a[2] + b[2]}
+        if _tot:
+            groups = [g for g in groups if g not in _tot]
     # R4 ambiguity: two readings at the SAME position that disagree on (count, denominator) -> refused
     _bypos = {}
     for g in groups:
@@ -319,6 +342,82 @@ def extract_effect(sentence):
     """Return (scale, point, lo, hi) from the FIRST effect+CI phrase, else None."""
     m = _EFFECT.search(sentence)
     return _effect_from_match(m, sentence) if m else None
+
+
+# UNLABELLED CI (BMJ style): 'hazard ratio 1.08 (0.79 to 1.47, P=0.64)' -- the bracket follows the point estimate
+# directly and carries no 'CI' label (omega3 21115589, SU.FOL.OM3: the omega-3 factor's own sentence was unreadable, so
+# the factorial guard refused the trial). Full measure words or the capitalised abbreviations only; the bracket must
+# open right after the point estimate, hold exactly 'lo to|- hi', and close or continue with ', P' / ';' -- and the point
+# must lie inside [lo, hi] (_effect_from_match). Only when the sentence holds NO labelled effect+CI phrase.
+_EFFECT_BARE_RX = re.compile(
+    r"(relative risk|risk ratio|rate ratio|odds ratio|hazard ratio|(?-i:\bRR\b)|(?-i:\bOR\b)|(?-i:\bHR\b))"
+    r"[,:]?\s+(\d+(?:\.\d+)?)\s*\(\s*(\d+(?:\.\d+)?)\s*(?:to|[-–—])\s*(\d+(?:\.\d+)?)\s*(?:\)|,\s*[Pp]\b|;)", re.I)
+_EFFECT_BARE = whole_numbers(_EFFECT_BARE_RX)
+
+
+# Keywords that name a MEASURE (or a generic anchor), not an outcome: every effect clause carries one, so they can never
+# say WHICH effect is the outcome's (CREDENCE 30990260: 'hazard ratio' in the HHF keyword list matched the MACE clause)
+_MEASURE_WORDS = {"hazard ratio", "hr", "relative risk", "risk ratio", "rr", "odds ratio", "or", "rate ratio",
+                  "incidence rate ratio", "irr", "risk difference", "mean difference"}
+
+
+def _clause_kws(kws):
+    return [k for k in (kws or []) if k and k.strip().lower() not in _MEASURE_WORDS
+            and k.strip().lower() not in GENERIC_ANCHORS]
+
+
+def extract_effect_for(sentence, kws, require_terms=None, interv_terms=None, single_outcome_clause=False):
+    """The effect+CI that belongs to the OUTCOME, not the first in the sentence. FIRST-HR-IN-SENTENCE misattribution
+    (captain's adjudication, 7 Oct; doac 19966341 'Any bleeding'): 'Major bleeding ... (hazard ratio ..., 0.82; 95% CI,
+    0.45 to 1.48), and episodes of any bleeding ... (hazard ratio ..., 0.71; 95% CI, 0.59 to 0.85)' was read as 0.82.
+    With two or more effect phrases in one sentence, each effect owns the clause that runs from the previous effect to
+    it; the first effect whose clause names an outcome keyword is taken. When NO clause names it -- the keyword follows
+    every effect as a shared noun ('similar 28-day (... RR 0.97 ...) and 6-month (... RR 0.90 ...) mortality rates',
+    prone 19903918) -- the first effect is kept, as before: re-attribution happens only on positive evidence that the
+    outcome is named beside a LATER effect and not beside an earlier one. One effect phrase -> extract_effect.
+    A sentence with no labelled effect+CI phrase is read for an UNLABELLED one (_EFFECT_BARE), under the same rules.
+
+    require_terms (a FACTORIAL trial's intervention terms): the chosen effect's OWN clause must name our intervention,
+    else None. Sentence-level naming was not enough: a markup-merged 'sentence' held the omega-3 factor's name and the
+    B-vitamin factor's 'non-fatal myocardial infarction (... hazard ratio 0.88 (0.53 to 1.46) ...)' (SU.FOL.OM3).
+
+    Clause attribution uses OUTCOME keywords only (_clause_kws: never 'hazard ratio' / 'HR' / a generic anchor, which
+    every clause carries). When no clause names the outcome but exactly ONE clause names our intervention (interv_terms),
+    that clause's effect is taken ('Fish oil (RR 0.28 ...), non-steroidal anti-inflammatory drugs (RR 0.37 ...) and
+    colchicine (RR 0.37 ...) may reduce the risk of postoperative atrial fibrillation', colchicine-postop-af 39848652);
+    otherwise the first effect, as before."""
+    ms = list(_EFFECT.finditer(sentence)) or list(_EFFECT_BARE.finditer(sentence))
+    if not ms:
+        return None
+
+    def ours(m, start):
+        return not require_terms or _interv_in(sentence[start:m.end()], require_terms)
+    ok = _clause_kws(kws)
+    clauses, prev = [], 0
+    for m in ms:
+        clauses.append((m, prev, sentence[prev:m.end()]))
+        prev = m.end()
+    if single_outcome_clause:
+        # a sentence that NAMES A COMPOSITE while the declared outcome is single: an effect is taken only from a clause
+        # that names the outcome by keyword and is NOT itself a composite -- 'cardiovascular death or hospitalized HF (HR
+        # 0.78 ...), as was fatal or hospitalized HF (HR 0.70 ...) and hospitalized HF alone (HR 0.67 ...)' (CANVAS
+        # 29526832) gives 0.67; nothing else is ever taken from such a sentence (the sentence-level skip, refined)
+        for m, start, clause in clauses:
+            if any(_kw_in_sentence(k, clause.lower()) for k in ok):
+                if _names_composite(clause) or re.search(r"\bfatal or\b", clause, re.I):
+                    return None
+                return _effect_from_match(m, sentence) if ours(m, start) else None
+        return None
+    if len(ms) == 1:
+        return _effect_from_match(ms[0], sentence) if ours(ms[0], 0) else None
+    for m, start, clause in clauses:
+        if any(_kw_in_sentence(k, clause.lower()) for k in ok):
+            return _effect_from_match(m, sentence) if ours(m, start) else None
+    if interv_terms:
+        named = [(m, start) for m, start, clause in clauses if _interv_in(clause, interv_terms)]
+        if len(named) == 1:
+            return _effect_from_match(named[0][0], sentence) if ours(*named[0]) else None
+    return _effect_from_match(ms[0], sentence) if ours(ms[0], 0) else None
 
 
 GENERIC_ANCHORS = {"primary outcome", "primary end point", "primary endpoint",
@@ -536,7 +635,10 @@ _COMPOSITE_ENDPOINT = re.compile(
     r"\bor hospitali[sz]ation for (?:heart failure|hf)\b|"
     # VERB FORM of a death composite: 'had been intubated or had died' (BACC Bay), 'died or required mechanical
     # ventilation'. 'died or were lost to follow-up' is a disposition, not an endpoint, and stays unmatched.
-    r"\bor (?:who )?(?:had )?died\b|\bdied or (?:required|needed|received|were intubated|was intubated)\b", re.I)
+    r"\bor (?:who )?(?:had )?died\b|\bdied or (?:required|needed|received|were intubated|was intubated)\b|"
+    # SLASH FORM of a death composite: 'first HHF/CV death' (VERTIS CV 33026243 -- the 'first HHF' keyword bound the
+    # composite's HR 0.88 instead of first HHF alone, 0.70), 'death/MI'
+    r"\b[A-Za-z]+\s*/\s*(?:(?:CV|cardiovascular|all-cause|cardiac)\s+)?death\b|\bdeath\s*/\s*[A-Za-z]", re.I)
 
 
 def _names_composite(sentence):
@@ -722,8 +824,8 @@ _MED_IQR = re.compile(  # "median X (IQR a-b)" / "median X (IQR a to b)"
 # (harness/whole_numbers.py), so the extractor sees no match there and takes its existing refuse / declare-absent path.
 # Only patterns read solely inside this module are wrapped; _EFFECT is also read by absence.py and reason_audit.py and
 # is left as it is (0 fragment matches in every held sentence; regex_layer/partial.py).
-(_ARM, _ARM2, _ARM3, _ARMP, _ARM4, _DENOM_EACH, _NEQ, _K, _RATE_EVPT, _MEAN_SD, _MED_IQR) = (
-    whole_numbers(_rx) for _rx in (_ARM, _ARM2, _ARM3, _ARMP, _ARM4, _DENOM_EACH, _NEQ, _K, _RATE_EVPT, _MEAN_SD,
+(_ARM, _ARM2, _ARM3, _ARM3W, _ARMP, _ARM4, _DENOM_EACH, _NEQ, _K, _RATE_EVPT, _MEAN_SD, _MED_IQR) = (
+    whole_numbers(_rx) for _rx in (_ARM, _ARM2, _ARM3, _ARM3W, _ARMP, _ARM4, _DENOM_EACH, _NEQ, _K, _RATE_EVPT, _MEAN_SD,
                                    _MED_IQR))
 
 
@@ -825,7 +927,38 @@ def _covariate_model_sentence(s):
     return bool(COVARIATE_ANALYSIS.search(s or ""))
 
 
-def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True, estimand=None):
+def _outcome_name_alternatives(name):
+    """The declared outcome NAME as phrases a sentence can carry: parentheticals dropped, ' / ' alternatives split
+    ('Major vascular events / MACE' -> 'major vascular events', 'MACE'); a phrase under 4 characters is never used."""
+    base = re.sub(r"\([^)]*\)", " ", name or "")
+    return [p.strip() for p in re.split(r"\s+/\s+|;", base) if len(p.strip()) >= 4]
+
+
+def _named_sentences(sents, outcome_name):
+    alts = _outcome_name_alternatives(outcome_name)
+    return [s for s in sents if any(_kw_in_sentence(a, s.lower()) for a in alts)]
+
+
+def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True, estimand=None,
+                  outcome_name=None, _only_named=False):
+    """(see _extract_trial). BROADER-OUTCOME misattribution (captain's adjudication, 7 Oct; probiotics 15740542
+    'Antibiotic-associated diarrhoea'): 'a lower prevalence of diarrhoea (...) [nine of 119 (8%) vs. 29 of 127 (23%),
+    relative risk: 0.3 ...]' matched only the looser keyword 'prevalence of diarrhoea'; the next sentence names the
+    outcome itself ('reduced the risk of antibiotic-associated diarrhoea ... [four of 119 (3.4%) vs. 22 of 127 (17.3%)
+    ...]'). With the declared outcome's NAME, the sentences that carry it are read FIRST, and that reading is kept only
+    when it yields an admissible value; otherwise the reading is exactly as before. (Filtering instead dropped the
+    result sentences of 31 served rows, whose result is written 'the primary outcome occurred in ...': measured.)"""
+    if outcome_name and not _only_named:
+        r = extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=declared_composite,
+                          estimand=estimand, outcome_name=outcome_name, _only_named=True)
+        if not r.get("absent"):
+            return r
+    return _extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite, estimand, outcome_name,
+                          _only_named)
+
+
+def _extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True, estimand=None,
+                   outcome_name=None, _only_named=False):
     """Best conservative extraction for one trial's outcome. Returns dict or a reason.
 
     declared_composite: whether the review's declared outcome is itself a composite. When False
@@ -864,7 +997,10 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
             "multi-arm dose-ranging trial (>1 intervention dose arm vs one comparator): the effect "
             "cannot be attributed to a single pre-specified comparison; refused (multi-arm guard). "
             "Specify the dose in the topic's intervention terms to pin the arm.")}
-    sents = _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
+    _ekws = _effective_kws(abstract, outcome_kws)
+    sents = _outcome_sentences(abstract, _ekws)
+    if _only_named:
+        sents = _named_sentences(sents, outcome_name)
     # REGISTERED-ESTIMAND PREFERENCE (time-to-event): when the review registers a HAZARD RATIO, the
     # trial's source-reported HR is the correct input and PREEMPTS count reconstruction (a crude RR from
     # counts discards censoring). Only a genuine HR effect in an outcome sentence is taken; if none is
@@ -872,10 +1008,12 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
     if estimand and "hazard" in str(estimand).lower().replace("hr", "hazard"):
         for s in sents:
             if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
-                    or (_skip_composite and _names_composite(s))
                     or _kw_only_in_null_result(s, outcome_kws)):
                 continue
-            eff = None if _covariate_model_sentence(s) else extract_effect(s)
+            # a composite-naming sentence (single declared outcome): only a non-composite clause naming the outcome
+            eff = None if _covariate_model_sentence(s) else extract_effect_for(
+                s, _ekws, interv_terms if factorial else None, interv_terms,
+                single_outcome_clause=bool(_skip_composite and _names_composite(s)))
             if eff and eff[0] == "HR":
                 return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": "HR",
                         "source": f"abstract source-reported HR (registered estimand): " + s.strip()[:200]}
@@ -891,7 +1029,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
             # reconcile with the effect the paper reports for THIS outcome — first the same
             # sentence, else the outcome's reported effect anywhere in the abstract. Refuse a
             # count table we cannot reconcile with the paper's own number.
-            rep = extract_effect(s)  # tuple (scale, point, lo, hi) or None
+            rep = extract_effect_for(s, _ekws, interv_terms if factorial else None, interv_terms)  # tuple (scale, point, lo, hi) or None
             if not rep:
                 d = effect_in_outcome(abstract, outcome_kws)  # dict or None
                 if d:
@@ -915,10 +1053,11 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
         return _arm_res[0]
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
-                or (_skip_composite and _names_composite(s))
                 or _kw_only_in_null_result(s, outcome_kws)):
             continue
-        eff = None if _covariate_model_sentence(s) else extract_effect(s)
+        eff = None if _covariate_model_sentence(s) else extract_effect_for(
+            s, _ekws, interv_terms if factorial else None, interv_terms,
+            single_outcome_clause=bool(_skip_composite and _names_composite(s)))
         if eff:
             return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": eff[0],
                     "source": f"abstract effect+CI ({eff[0]}): " + s.strip()[:200]}

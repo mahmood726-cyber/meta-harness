@@ -247,6 +247,12 @@ def texts(slug: str, rec: dict):
         yield "pmc_fulltext", ft.read_text(encoding="utf-8", errors="replace")
 
 
+def _name_kw(o):
+    """outcome_name when the extractor takes one (the producer passes the declared outcome's name)."""
+    import inspect
+    return {"outcome_name": o.get("name")} if "outcome_name" in inspect.signature(extract.extract_trial).parameters         and os.environ.get("REGEX_LAYER_NO_NAME") != "1" else {}
+
+
 def run_all(slug, cfg, recs):
     interv = cfg.get("intervention_terms", ["colchicine"])
     comp = cfg.get("comparator_terms", ["placebo", "control"])
@@ -259,7 +265,7 @@ def run_all(slug, cfg, recs):
                 dc = extract.declared_is_composite(o.get("name", ""))
                 try:
                     ex = extract.extract_trial(text, o["keywords"], interv, comp, declared_composite=dc,
-                                               estimand=o.get("estimand"))
+                                               estimand=o.get("estimand"), **_name_kw(o))
                 except Exception as exc:  # a crash is an output too
                     ex = {"CRASH": repr(exc)}
                 res[(str(rec.get("id")), src, o.get("name"))] = json.dumps(ex, sort_keys=True, default=str)
