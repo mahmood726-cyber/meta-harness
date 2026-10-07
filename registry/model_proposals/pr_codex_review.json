@@ -4555,5 +4555,40 @@
     "verdict": null
    }
   ]
+ },
+ "v9-apply-r8": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-2df66e8e4034d6e1c16ef5ba9db591c1",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "f126ecde8b296f919c911e6b2f27bf7f19b2f15b88d320e6119c4073b0367047"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_licence_retirement",
+    "severity": "P1",
+    "claim": "The open-licence guard compares only exact unversioned names. A recorded CC BY 4.0 licence passes the retirement gate when the probe's open flag is false, despite the function explicitly requiring no CC BY/CC0 licence. This accepts contradictory evidence as a justified licence exclusion.",
+    "failing_input": "import sys\nsys.path.insert(0, 'scripts')\nimport g1_denominator_ledger as g\nfrom unittest.mock import patch, mock_open\nentry = {'state': 'LOOKED_UP', 'open': False, 'license': 'CC BY 4.0'}\nraw = '{\"123\": {\"state\": \"LOOKED_UP\", \"open\": false, \"license\": \"CC BY 4.0\"}}'\nwith patch.object(g, '_licence_entry', return_value=entry), patch('builtins.open', mock_open(read_data=raw)), patch.object(g, '_sha', return_value='test-sha'):\n    result = g._licence_retirement({'comparator_pmid': '123', 'reason_code': 'R0:C1_OPEN_LICENCE'}, {'comparator_pmid': '456'})\n    print(result is None)",
+    "expected": "True: refuse to certify the retirement because the recorded licence explicitly identifies CC BY; the contradictory probe requires resolution.",
+    "actual": "False: returns a retirement record for PMID 123 with reason_code R0:C1_OPEN_LICENCE and quotes the CC BY 4.0 entry as supporting evidence. 'cc by 4.0' is not in OPEN_LICENCES.",
+    "id": "v9-apply-r8:g1#1",
+    "record_id": "mc-2df66e8e4034d6e1c16ef5ba9db591c1",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -33,3 +33,12 @@ def test_PLANT_an_incomplete_licence_probe_is_not_evidence(monkeypatch):
     assert L.retired_comparator("doac-vte-recurrence", "29795629") is None
     monkeypatch.setattr(L, "_licence_entry", lambda pmid: {"state": "LOOKED_UP", "license": None})
     assert L.retired_comparator("doac-vte-recurrence", "29795629") is None
+
+
+def test_PLANT_a_versioned_open_licence_is_still_open(monkeypatch):
+    """codex v9-apply-r8 #1: 'CC BY 4.0' with open=false passed as a closed licence."""
+    for lic in ("CC BY 4.0", "cc-by-4.0", "CC0 1.0", "public domain"):
+        monkeypatch.setattr(L, "_licence_entry", lambda pmid, lic=lic: {"state": "LOOKED_UP", "open": False, "license": lic})
+        assert L.retired_comparator("doac-vte-recurrence", "29795629") is None, lic
+    for lic in ("cc by-nc", "CC BY-NC-ND 4.0"):
+        assert not L._is_open_licence(lic), lic

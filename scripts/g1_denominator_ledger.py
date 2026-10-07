@@ -140,7 +140,14 @@ ENUM = os.path.join(ROOT, "registry", "comparator_enumerations", "{slug}.json")
 
 
 LICENCES = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "licences.json")
-OPEN_LICENCES = ("cc by", "cc0", "cc-by", "cc-0")
+
+
+def _is_open_licence(lic):
+    """CC BY (any version, no NC/ND/SA qualifier), CC0 or public domain -- the licences rule criterion C1 accepts. Normalised
+    so 'CC BY 4.0' / 'cc-by-4.0' / 'CC0 1.0' are open (codex v9-apply-r8 #1); 'cc by-nc' is not."""
+    import re
+    s = re.sub(r"[\s_-]+", " ", str(lic or "").lower()).strip()
+    return bool(re.fullmatch(r"cc by( \d+(\.\d+)?)?|cc ?0( \d+(\.\d+)?)?|cc zero|public domain|pd", s))
 
 
 def _licence_entry(pmid):
@@ -161,7 +168,7 @@ def _licence_retirement(r, a):
     # a complete probe only: 'open' explicitly false and the 'license' field present (codex v9-apply-r7 #2 -- missing
     # fields are unknown status, not a closed licence)
     if not e or e.get("state") != "LOOKED_UP" or e.get("open") is not False or "license" not in e \
-            or str(e.get("license") or "").lower() in OPEN_LICENCES:
+            or _is_open_licence(e.get("license")):
         return None
     raw = open(LICENCES, encoding="utf-8").read()
     m = re.search(r'"' + re.escape(pmid) + r'": \{[^{}]*\}', raw)
