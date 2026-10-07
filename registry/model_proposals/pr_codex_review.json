@@ -3323,5 +3323,60 @@
     "verdict": null
    }
   ]
+ },
+ "pr25-final2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f427b8057fe7260a5f9c96b8b9bddcd1",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_select.py",
+     "scripts/g1_licence.py",
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "79648a0fe863f7da69ee2774d2d14c113073cea864a6db2c5cae64abaa9619c4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate / _bound_counts",
+    "severity": "P0",
+    "claim": "A count belonging to another outcome validates the pooled result's k when both outcomes share a comma-separated sentence. The direct path also omits the reviewer warning attached to borrowed counts.",
+    "failing_input": "q = 'Five trials reported recurrence, but mortality RR 0.85 (95% CI 0.70 to 1.03).'; pl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}; pooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the sentence supplies a recurrence trial count, not a mortality trial count.",
+    "actual": "(pl, 5). The single clause contains every stated value, so _bound_counts accepts its unrelated count of five.",
+    "id": "pr25-final2:g1#1",
+    "record_id": "mc-f427b8057fe7260a5f9c96b8b9bddcd1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pubmed_ids",
+    "severity": "P1",
+    "claim": "HTTP failure responses can be classified as successful searches with no records because the response status is ignored.",
+    "failing_input": "pubmed_ids(lambda *args: (503, b'{\"esearchresult\":{\"count\":\"0\",\"idlist\":[]}}'), 'mortality')",
+    "expected": "Retry the failed response and ultimately refuse the search.",
+    "actual": "Returns ids=[] with count=0, fetched=0 and state='COMPLETE' after one request.",
+    "id": "pr25-final2:g1#2",
+    "record_id": "mc-f427b8057fe7260a5f9c96b8b9bddcd1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "europepmc_ids",
+    "severity": "P1",
+    "claim": "Repeated pagination results count toward completeness, allowing an incomplete search to be marked COMPLETE.",
+    "failing_input": "europepmc_ids(lambda *args: (200, b'{\"hitCount\":2,\"resultList\":{\"result\":[{\"source\":\"MED\",\"id\":\"123\",\"pmid\":\"123\"}]},\"nextCursorMark\":\"A\"}'), 'mortality')",
+    "expected": "TRUNCATED or refusal: both requests returned the same record, leaving the second reported hit uncollected.",
+    "actual": "Returns ['123'] with count=2, fetched_hits=2, with_pmid=1 and state='COMPLETE'. The repeated cursor stops pagination, but completeness uses the inflated row count.",
+    "id": "pr25-final2:g1#3",
+    "record_id": "mc-f427b8057fe7260a5f9c96b8b9bddcd1",
+    "verdict": null
+   }
+  ]
  }
 }
