@@ -43,3 +43,9 @@ def test_PLANT_the_page_recount_counts_a_decision_named_trial_as_named():
     o["comparator_findings"] += gt.decision_named_divergences("dpp4-mace-t2d", o["trials"], reg=REG, decisions=DEC)
     r = rg.recompute(o)
     assert "EXAMINE" not in r["unnamed"] and r["criteria"]["DIVERGENCES_NAMED"]
+
+
+def test_PLANT_unknown_pool_membership_is_never_an_exclusion():
+    """codex v9-apply-r9 #1: a missing / null in_our_pool counted as 'outside the pool'."""
+    for t in ({"label": "EXAMINE"}, {"label": "EXAMINE", "in_our_pool": None}):
+        assert gt.decision_named_divergences("dpp4-mace-t2d", [t], reg=REG, decisions=DEC) == []

@@ -4590,5 +4590,52 @@
     "verdict": null
    }
   ]
+ },
+ "v9-apply-r9": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ed3c59e79386e216304c13e142f57a2c",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "4f3a1dae4561fb6dedf6724ecaaf23dbbe777840d0d7b5fc3cd4c3b40237d57e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "decision_named_divergences",
+    "severity": "P1",
+    "claim": "Unknown pool membership is classified as exclusion: `not x.get('in_our_pool')` accepts missing or null membership as proof that the trial is outside the pool.",
+    "failing_input": "decision_named_divergences('s', [{'label': 'T', 'in_our_pool': None}], reg={'entries': [{'slug': 's', 'trial': 'T', 'decision': 'D7a', 'signed': {'state': 'SEEN_AND_SIGNED', 'quote': 'Approved'}}]}, decisions={'decisions': [{'id': 'D7a', 'rule': 'Keep T outside the served pool'}]})",
+    "expected": "No exclusion finding until pool membership is explicitly established as false; return [] or report unknown membership.",
+    "actual": "Returns a finding with finding='DECISION_EXCLUDED_FROM_SERVED_POOL', trial='T', decision='D7a', and gate='D7a' despite membership being unknown.",
+    "id": "v9-apply-r9:g1#1",
+    "record_id": "mc-ed3c59e79386e216304c13e142f57a2c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_licence_retirement",
+    "severity": "P2",
+    "claim": "Valid compact JSON prevents recognition of a completed licence retirement. The verbatim-entry regex requires exactly one space after the PMID's colon, although JSON does not require that space.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport g1_denominator_ledger as m\nentry = {'state': 'LOOKED_UP', 'open': False, 'license': 'all rights reserved'}\nraw = '{\"123\":{\"state\":\"LOOKED_UP\",\"open\":false,\"license\":\"all rights reserved\"}}'\nwith patch.object(m, '_licence_entry', return_value=entry), patch('builtins.open', mock_open(read_data=raw)):\n    result = m._licence_retirement({'comparator_pmid': '123', 'reason_code': 'R0:C1_OPEN_LICENCE'}, {'comparator_pmid': '456'})\n    print(result)",
+    "expected": "A retirement record for PMID 123 with the compact entry preserved verbatim as its evidence span, just as for the equivalent JSON containing a space after \"123\":.",
+    "actual": "Returns None because the regex cannot match '\"123\":{'; the valid retirement remains a ledger problem.",
+    "id": "v9-apply-r9:g1#2",
+    "record_id": "mc-ed3c59e79386e216304c13e142f57a2c",
+    "verdict": null
+   }
+  ]
  }
 }

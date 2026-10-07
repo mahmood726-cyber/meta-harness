@@ -171,7 +171,7 @@ def _licence_retirement(r, a):
             or _is_open_licence(e.get("license")):
         return None
     raw = open(LICENCES, encoding="utf-8").read()
-    m = re.search(r'"' + re.escape(pmid) + r'": \{[^{}]*\}', raw)
+    m = re.search(r'"' + re.escape(pmid) + r'"\s*:\s*\{[^{}]*\}', raw)     # any JSON spacing (codex v9-apply-r9 #2)
     if not m:
         return None
     return {"retired_pmid": pmid, "reason_code": r["reason_code"], "new_pmid": a["comparator_pmid"],

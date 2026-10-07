@@ -2800,7 +2800,7 @@ def decision_named_divergences(slug, trials, reg=None, decisions=None):
             continue
         for x in trials or []:
             if str(x.get("label") or "").strip().lower() == str(e.get("trial") or "").strip().lower() \
-                    and not x.get("in_our_pool"):
+                    and x.get("in_our_pool") is False:          # unknown membership is never an exclusion (r9 #1)
                 out.append({"finding": e.get("kind") or "DECISION_EXCLUDED_FROM_SERVED_POOL", "trial": x["label"],
                             "decision": d["id"], "gate": d["id"], "detail": e.get("detail"),
                             "span": {"text": d.get("rule"), "source": f"registry/g1_decisions.json#{d['id']}"},

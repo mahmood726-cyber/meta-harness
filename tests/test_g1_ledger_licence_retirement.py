@@ -42,3 +42,13 @@ def test_PLANT_a_versioned_open_licence_is_still_open(monkeypatch):
         assert L.retired_comparator("doac-vte-recurrence", "29795629") is None, lic
     for lic in ("cc by-nc", "CC BY-NC-ND 4.0"):
         assert not L._is_open_licence(lic), lic
+
+
+def test_PLANT_a_compact_json_licence_entry_is_found(tmp_path, monkeypatch):
+    """codex v9-apply-r9 #2: '"24963045":{' (no space after the colon) was not recognised."""
+    e = {"license": None, "open": False, "pmcid": None, "state": "LOOKED_UP"}
+    p = tmp_path / "licences.json"
+    p.write_text(json.dumps({"24963045": e}, separators=(",", ":")), encoding="utf-8")
+    monkeypatch.setattr(L, "LICENCES", str(p))
+    r = L.retired_comparator("doac-vte-recurrence", "29795629")
+    assert r is not None and r["span"]["text"].startswith('"24963045":{')
