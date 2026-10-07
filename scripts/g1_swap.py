@@ -856,7 +856,13 @@ def released(slugs):
     """Slugs whose swap rule was RELEASED without a search (registry/comparator_selection/swap_releases.json: the topic
     was abandoned by decision, 7 Oct). No stage may run on one."""
     p = os.path.join(SEL, "swap_releases.json")
-    rel = {r["slug"] for r in (_j(p).get("released") or [])} if os.path.exists(p) else set()
+    if not os.path.exists(p):
+        return []
+    lst = _j(p).get("released")
+    # an existing register that is malformed refuses; it never reads as 'nothing released' (codex abandon-ten-r2 g1#2)
+    if not isinstance(lst, list) or not lst or not all(isinstance(r, dict) and r.get("slug") for r in lst):
+        raise SystemExit(f"REFUSED: {p} has no valid 'released' list")
+    rel = {r["slug"] for r in lst}
     return [s for s in slugs if s in rel]
 
 

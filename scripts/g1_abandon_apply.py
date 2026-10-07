@@ -45,7 +45,14 @@ def build():
     if rank.get("abandon") != APPROVED:
         raise SystemExit(f"REFUSED: the approved ten differ from the ranking's list: {rank.get('abandon')}")
     by = {r["slug"]: r for r in rank["ranked"]}
+    # the ten must BE ranks 1..10 of the ranking and the first kept topic must not be one of them (codex abandon-ten-r2
+    # g1#1): a ranking that contradicts itself refuses rather than producing a register
+    if [by.get(s, {}).get("rank") for s in APPROVED] != list(range(1, len(APPROVED) + 1)) \
+            or len(by) != len(rank["ranked"]):
+        raise SystemExit("REFUSED: the approved ten are not ranks 1..10 of the ranking (or a slug is ranked twice)")
     nxt = next(r for r in rank["ranked"] if r["rank"] == len(APPROVED) + 1)
+    if nxt["slug"] in APPROVED or nxt.get("abandon") or nxt["U"] > by[APPROVED[-1]]["U"]:
+        raise SystemExit(f"REFUSED: rank {nxt['rank']} ({nxt['slug']}) contradicts the boundary")
     topics = []
     for s in APPROVED:
         r = by[s]

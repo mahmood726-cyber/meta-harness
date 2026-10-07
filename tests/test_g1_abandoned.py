@@ -90,3 +90,29 @@ def test_PLANT_the_register_must_be_exactly_the_approved_ten_with_his_words(tmp_
                                                              encoding="utf-8")
     with pytest.raises(ValueError):
         rg.abandoned(tmp_path)
+
+
+def test_PLANT_a_self_contradicting_ranking_refuses(monkeypatch, tmp_path):
+    import g1_abandon_apply as ap
+    rank = json.loads((ROOT / "outputs" / "k_gap" / "g1_abandon_rank.json").read_text(encoding="utf-8"))
+    for r in rank["ranked"]:                    # the first approved topic ALSO claims rank 11 (the first kept)
+        if r["rank"] == 11:
+            r["rank"] = 99
+    next(r for r in rank["ranked"] if r["slug"] == ap.APPROVED[0])["rank"] = 11
+    real = ap.RANK
+    p = tmp_path / "rank.json"
+    p.write_text(json.dumps(rank), encoding="utf-8")
+    monkeypatch.setattr(ap, "RANK", str(p))
+    with pytest.raises(SystemExit):
+        ap.build()
+    monkeypatch.setattr(ap, "RANK", real)
+    assert ap.build()["boundary"]["first_kept"]["slug"] == "iv-iron-hfref-hosp"     # the committed ranking is consistent
+
+
+def test_PLANT_a_malformed_release_register_refuses(monkeypatch):
+    import g1_swap as g
+    for bad in ({"released": None}, {"released": []}, {"released": [{"no": "slug"}]}):
+        monkeypatch.setattr(g, "_j", lambda p, bad=bad: bad)
+        monkeypatch.setattr(g.os.path, "exists", lambda p: True)
+        with pytest.raises(SystemExit):
+            g.released(["pcsk9-mace"])

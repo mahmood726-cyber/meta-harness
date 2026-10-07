@@ -1684,5 +1684,48 @@
     "verdict": null
    }
   ]
+ },
+ "abandon-ten-r2": {
+  "base": "20915e04f",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c4c5eacb3afb9fe5065d59a500a8db66",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "5a7da8bbd3e8a2d9be66a56915daf7cf66011a6114b6f51ff537b2544eb9a5ee"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P1",
+    "claim": "The approved list is checked independently of row ranks. A contradictory ranking can classify the same topic as both abandoned and first kept, despite the promised refusal on disagreement.",
+    "failing_input": "from scripts import g1_abandon_apply as m\nfrom unittest.mock import patch, mock_open\nimport json\nwith open(m.RANK, encoding='utf-8') as <outside-workdir>/n    rank = json.load(f)\na = next(r for r in rank['ranked'] if r['slug'] == m.APPROVED[0])\nb = next(r for r in rank['ranked'] if r['rank'] == 11)\na['rank'], b['rank'] = b['rank'], a['rank']\nwith patch('builtins.open', mock_open(read_data=json.dumps(rank))):\n    result = m.build()\nprint(result['boundary']['first_kept']['slug'] in m.APPROVED)",
+    "expected": "Refuse the inconsistent ranking before producing the abandonment register.",
+    "actual": "By inspection, prints True: build succeeds, lists the first approved topic as ABANDONED_BY_DECISION, and also identifies it as first_kept. Local execution was blocked by environment policy.",
+    "id": "abandon-ten-r2:g1#1",
+    "record_id": "mc-c4c5eacb3afb9fe5065d59a500a8db66",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "released",
+    "severity": "P1",
+    "claim": "An existing release register with a null release list silently becomes an empty release set. The CLI consequently permits stages instead of refusing an invalid register.",
+    "failing_input": "from scripts import g1_swap as m\nfrom unittest.mock import patch\nslug = 'balanced-crystalloids-vs-saline-mortality'\nwith patch.object(m.os.path, 'exists', return_value=True), patch.object(m, '_j', return_value={'released': None}):\n    print(m.released([slug]))",
+    "expected": "Raise an error because an existing register has no valid release list; stop before dispatching a stage.",
+    "actual": "By inspection, returns and prints []; the CLI's if released(args) guard does not refuse execution.",
+    "id": "abandon-ten-r2:g1#2",
+    "record_id": "mc-c4c5eacb3afb9fe5065d59a500a8db66",
+    "verdict": null
+   }
+  ]
  }
 }
