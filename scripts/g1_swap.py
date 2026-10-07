@@ -212,7 +212,8 @@ def _quoted(q, nt):
 
 def _num_tokens(q):
     """Whole numeric tokens of a quote, signed; a dash right after a digit is a range dash ('0.70-1.03'), not a minus."""
-    text = (q or "").replace(",", "")
+    # a middle dot BETWEEN digits is a decimal point (Lancet '0·77', 7 Oct); a unit's 'mg·kg' is untouched
+    text = re.sub(r"(?<=\d)·(?=\d)", ".", q or "").replace(",", "")
     out = []
     for m in re.finditer(r"([-−–]?)(\d*\.\d+|\d+(?:\.\d+)?)", text):
         before = text[:m.start()].rstrip()
@@ -301,7 +302,7 @@ def pooled_gate(pl, nt, k_quote=None):
         if pl.get(key) in (None, ""):
             continue
         try:
-            vals.append(float(str(pl[key]).replace("−", "-").replace("–", "-")))
+            vals.append(float(re.sub(r"(?<=\d)·(?=\d)", ".", str(pl[key])).replace("−", "-").replace("–", "-")))
         except ValueError:
             return None, None
 

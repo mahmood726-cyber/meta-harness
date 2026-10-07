@@ -196,3 +196,14 @@ def test_comparator_rows_are_typed_only_from_a_header_that_names_the_arms():
     assert rows == [] and why == "HEADER_DOES_NOT_NAME_ARMS"
     rows, why = sw.type_rows(TBL, units + [{"label": "Hokusai-VTE"}], ["DOAC"], "OR")
     assert rows == [] and why.startswith("ROW_NOT_FOUND")
+
+
+def test_a_middle_dot_decimal_is_a_decimal():
+    # 7 Oct (D10 inventory, tranexamic 39461793, Lancet): 'pooled OR 0·77 [95% CI 0·63–0·93]' -- all 21 verbatim claims
+    # were refused because '0·77' never parsed and tokenised as 0 and 77. A middle dot BETWEEN DIGITS is a decimal point.
+    q = "Life-threatening bleeding (pooled OR 0·77 [95% CI 0·63–0·93]; high-quality evidence)"
+    p = {"measure": "OR", "estimate": "0·77", "lower": "0·63", "upper": "0·93", "quote": q}
+    assert sw.pooled_gate(p, sw._norm(q))[0] is not None
+    assert sw.pooled_gate(dict(p, estimate="0.77", lower="0.63", upper="0.93"), sw._norm(q))[0] is not None
+    assert sw.pooled_gate(dict(p, estimate="77"), sw._norm(q)) == (None, None)
+    assert sw._num_tokens("dose 5 mg·kg") == [5.0]
