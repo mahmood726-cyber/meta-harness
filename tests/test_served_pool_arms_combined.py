@@ -96,3 +96,20 @@ def test_PLANT_a_signed_row_replaces_the_pipelines_own_row_of_the_same_trial():
     assert [t["provenance"] for t in out] == ["abstract", "served_pool_signed_notice"]
     assert out[1]["served_pool_admission"]["replaced_pipeline_row"]["provenance"] == "fulltext_verified_arms"
     assert spa.merge_signed([other], [], withdrawn=False) == [other]
+
+
+def test_PLANT_an_arm_count_is_matched_as_a_whole_number_never_a_prefix(monkeypatch):
+    """codex v9-apply g1#1: 'N 10' matched the held 'N 108' as a substring."""
+    real = bspa._aact_binding
+
+    def short(slug, x):
+        b = copy.deepcopy(real(slug, x))
+        for a in b["arms"]:
+            if a["role"] == "control":
+                a["n"] = "10"
+        return b
+    monkeypatch.setattr(bspa, "_aact_binding", short)
+    x = _row()
+    x = dict(x, our_value=dict(x["our_value"], n_c=10))
+    row, why = bspa.pipeline_row(SLUG, x, "MD")
+    assert row is None and "verbatim" in why

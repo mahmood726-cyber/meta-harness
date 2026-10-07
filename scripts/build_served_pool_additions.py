@@ -212,8 +212,12 @@ def _arms_combined_row(slug, x, v, base):
     ct = [a for a in arms if a.get("role") == "control"]
     if len(ct) != 1 or len(iv) < 1:
         return None, f"arms not one control plus intervention arm(s): {[a.get('role') for a in arms]}"
+    import re
     for a in arms:
-        if f"MEAN {a.get('mean')} Standard Deviation {a.get('sd')} N {a.get('n')}" not in span:
+        # whole numbers only: 'N 10' must never match the printed 'N 108' (codex v9-apply g1#1)
+        pat = (r"(?<![\d.])MEAN " + re.escape(str(a.get("mean"))) + r" Standard Deviation " + re.escape(str(a.get("sd")))
+               + r" N " + re.escape(str(a.get("n"))) + r"(?![\d.])")
+        if not re.search(pat, span):
             return None, f"arm {a.get('code')} mean/SD/N not printed verbatim in the binding span"
     n1, m1, s1 = ba.combine_arms([(int(a["n"]), float(a["mean"]), float(a["sd"])) for a in iv])
     c = ct[0]
