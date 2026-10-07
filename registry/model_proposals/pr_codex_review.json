@@ -3483,5 +3483,48 @@
     "verdict": null
    }
   ]
+ },
+ "pr25-final6": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e31e83f4ec0cae92f6862fbcadbc9d8b",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_select.py",
+     "scripts/g1_licence.py",
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "4303738b3a32723bbb4785e8dabe2d56550ae78c0add951b98a8c200be64309d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "The 30-character trailing negation window allows explicitly noncontributing trials to supply the pooled k.",
+    "failing_input": "q = 'Five trials evaluating the effects of treatment were not included in the mortality analysis (RR 0.85; 95% CI 0.70-1.03).'; printed_counts(q); pooled_gate({'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because the five trials were explicitly not included.",
+    "actual": "printed_counts returns {5}; pooled_gate accepts k=5 with POOLED_QUOTE_SENTENCE provenance. 'not included' falls outside bound_after's 30-character window and is not caught by _RESTRICT.",
+    "id": "pr25-final6:g1#1",
+    "record_id": "mc-e31e83f4ec0cae92f6862fbcadbc9d8b",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "An explicit lower bound becomes an exact pooled count when its approximator precedes the count by more than three tokens.",
+    "failing_input": "q = 'At least the previously identified five trials reported mortality (RR 0.85; 95% CI 0.70-1.03).'; printed_counts(q); pooled_gate({'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because 'at least five' does not establish exactly five contributing trials.",
+    "actual": "printed_counts returns {5}; pooled_gate accepts k=5 with POOLED_QUOTE_SENTENCE provenance. blocked_before checks only 'the previously identified', missing 'least' immediately outside its three-token window.",
+    "id": "pr25-final6:g1#2",
+    "record_id": "mc-e31e83f4ec0cae92f6862fbcadbc9d8b",
+    "verdict": null
+   }
+  ]
  }
 }
