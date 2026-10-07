@@ -330,6 +330,8 @@ def printed_counts(q):
     s = " ".join(str(q or "").split())
     # every dash is a hyphen ('twenty‑five', en / em dash, minus; codex swap-setquote-r6 #2)
     s = re.sub(r"[‐‑‒–—−]", "-", s)
+    # a slash with spaces round it is still a range ('Phase one / two studies'; codex swap-setquote-r9 #1)
+    s = re.sub(r"\s*/\s*", "/", s)
     out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", s, re.I)}
     tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
     # the WORD before the count decides, not a fixed-width lookbehind (three review rounds each found a new gap):
@@ -372,11 +374,16 @@ def printed_counts(q):
 
 
 def mentions_a_count(q):
-    """Any number -- digits or a number word, tens and compounds included -- within a few words before trials / studies /
-    RCTs. Broader than printed_counts on purpose: it decides only whether the pooled quote speaks to k at all."""
-    words = "|".join(_COUNT_WORDS + ["thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred"])
-    return bool(re.search(r"(?:\d+|\b(?:" + words + r"))\b[\w\s/,()-]{0,40}?\b(?:trials|studies|rcts)\b",
-                          " ".join(str(q or "").split()), re.I))
+    """Does the pooled quote speak to k at all? Deliberately coarse, with no distance window (codex swap-setquote-r9 #2:
+    a 40-character window missed '25 high-quality, multicentre, ... trials'): it names trials / studies / RCTs AND holds
+    any whole number that is not a decimal or a percentage, or any number word. A false 'yes' only refuses the claim."""
+    s = " ".join(str(q or "").split())
+    if not re.search(r"\b(?:trials?|stud(?:y|ies)|rcts?)\b", s, re.I):
+        return False
+    words = "|".join(_COUNT_WORDS + ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
+                                     "hundred", "dozen"])
+    return bool(re.search(r"(?<![\d.,])\d+(?![.,]?\d)(?!\s*%)", s)
+                or re.search(r"\b(?:" + words + r")\b", s, re.I))
 
 
 def pooled_gate(pl, nt, set_quote=None):
