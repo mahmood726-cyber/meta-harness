@@ -4,6 +4,8 @@ verbatim in a quoted span) -- the value Mahmood saw in packet V8. The regex comp
 the five: dpp4 served 0.88 (the SGLT-2 inhibitors' MACE OR in the same sentence) for an adopted DPP-4 OR of 1.00, and
 statins served 0.72 for an adopted primary-prevention OR of 0.88."""
 import json
+
+import pytest
 import os
 import sys
 
@@ -167,3 +169,12 @@ def test_PLANT_the_span_must_state_estimate_then_lower_then_upper():
     assert not sc._span_states(span, 0.8, 0.9, 0.7)          # bounds reversed
     assert not sc._span_states("RR 0.2 (0.7-0.9)", 0.8, 0.7, 0.9)
     assert sc._span_states("MD=-4.09, 95%CI -5.73 to -2.45", -4.09, -5.73, -2.45)
+
+
+@pytest.mark.parametrize("span,est,lo,hi", [
+    ("OR 0.88 (95% CI 0.80-0.95)", 0.876, 0.801, 0.954),                                    # rounded substitutes (r10 #1)
+    ("RR 1.2 (95% CI 1.1-1.4)", 1.2, 0.2, 1.4),                                             # a token fragment (r10 #2)
+    ("Drug A: OR 0.88 (95% CI 0.80-0.96); Drug B: OR 1.05 (95% CI 0.75-1.15)", 0.88, 0.75, 1.15),   # mixed results (r10 #3)
+])
+def test_PLANT_codex_r10_span_cases_refuse(span, est, lo, hi):
+    assert not sc._span_states(span, est, lo, hi)

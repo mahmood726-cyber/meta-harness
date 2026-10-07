@@ -128,37 +128,36 @@ def adopted_outcome_matches(adopted: dict[str, Any], outcome_name: str) -> bool:
     return r in {x for x in labels if x}
 
 
-def _pos(text: str, v: Any) -> int | None:
-    """Earliest position of the number v AS PRINTED in text (whole token; never its complement or a rounding of another
-    number), or None."""
+_NUM_TOKEN = None
+
+
+def _tokens(text: str) -> list[float]:
+    """The span's numbers as WHOLE tokens, in order. A '-' is a sign only where no letter, digit or '.' stands before it
+    ('MD=-4.09', '[-8.45'), so '0.7-0.9' is a range and 'DPP-4' is 4. A token followed by '%' (a CI level, a rate) is
+    not a result number and is dropped."""
     import re
-    try:
-        f = float(v)
-    except (TypeError, ValueError):
-        return None
-    forms = {f"{f:g}", f"{f:.2f}", f"{f:.1f}", f"{f:.3f}", str(v)}
-    forms |= {x.replace("-0.", "-.") for x in forms if x.startswith("-0.")} | {x[1:] for x in forms if x.startswith("0.")}
-    def minus_before(i: int) -> bool:
-        # a '-' directly before the number is its SIGN unless a digit stands right before the dash ('0.7-0.9' is a range)
-        return i > 0 and text[i - 1] == "-" and not (i > 1 and text[i - 2].isdigit())
-    hits = [m.start() for x in forms if x for m in re.finditer(rf"(?<![\d.]){re.escape(x)}(?![\d])", text)
-            if not (x[0].isdigit() and f >= 0 and minus_before(m.start()))]
-    return min(hits) if hits else None
+    global _NUM_TOKEN
+    if _NUM_TOKEN is None:
+        _NUM_TOKEN = re.compile(r"(?<![\w.])(-?)(\d+(?:\.\d+)?|\.\d+)(?![\d.])")
+    out = []
+    for m in _NUM_TOKEN.finditer(text):
+        if m.end() < len(text) and text[m.end()] == "%":
+            continue
+        body = m.group(2) if not m.group(2).startswith(".") else "0" + m.group(2)
+        out.append(float(m.group(1) + body))
+    return out
 
 
 def _span_states(span: str, est: Any, lo: Any, hi: Any) -> bool:
-    """The span STATES this result: lower <= estimate <= upper, and the three numbers appear in the span in the order
-    estimate, lower bound, upper bound (codex v8-apply-r8 #1: membership alone; r9 #1: a swapped estimate and bound)."""
+    """The span STATES this result: three CONSECUTIVE number tokens equal to the estimate, the lower bound and the upper
+    bound, exactly (never a rounding: 0.876 is not a printed 0.88; never a fragment of another token; never an estimate
+    from one result beside another result's interval), and lower <= estimate <= upper. Four hand-built matchers each
+    failed review (codex v8-apply r8, r9, r10); this one only compares whole tokens."""
     try:
-        e, l, h = float(est), float(lo), float(hi)
+        trip = (float(est), float(lo), float(hi))
     except (TypeError, ValueError):
         return False
-    if not (l <= e <= h):
+    if not (trip[1] <= trip[0] <= trip[2]):
         return False
-    pe = _pos(span, est)
-    pl = _pos(span[pe + 1:] if pe is not None else "", lo)
-    if pe is None or pl is None:
-        return False
-    pl += pe + 1
-    ph = _pos(span[pl + 1:], hi)
-    return ph is not None
+    t = _tokens(span)
+    return any(tuple(t[i:i + 3]) == trip for i in range(len(t) - 2))
