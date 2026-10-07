@@ -86,6 +86,9 @@ def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[
         raise ValueError(f"ADOPTION: {slug}: signed switch to {cur} but the adoption record has no complete pooled_result")
     rp = os.path.join(root, "registry", "comparator_selection", f"{slug}.rule.json")
     rule_outcome = (_j(rp).get("protocol_reference") or {}).get("primary_outcome") if os.path.isfile(rp) else None
+    if not rule_outcome:
+        # without its rule the adopted value cannot be tied to an endpoint: broken, never silently empty (codex r3 #3)
+        raise ValueError(f"ADOPTION: {slug}: signed switch to {cur} but its rule (primary outcome) is missing")
     return {"estimate": pr["estimate"], "ci_low": pr["ci_low"], "ci_high": pr["ci_high"], "scale": pr["measure"],
             "rule_primary_outcome": rule_outcome,
             "k": pr.get("k"), "outcome_as_printed": pr.get("outcome"),
@@ -98,7 +101,9 @@ def _norm(x: Any) -> str:
     collapsed."""
     import re
     s = " ".join(str(x or "").lower().split())
-    return re.sub(r"\s*\([^()]*\)\s*$", "", s).strip()
+    # only a DIGIT-FREE qualifier is a definition ('(CV death, nonfatal MI, nonfatal stroke)'); one with a digit is a
+    # timepoint or threshold and defines a different endpoint ('(30 days)' vs '(1 year)'; codex v8-apply-r3 #1)
+    return re.sub(r"\s*\([^()0-9]*\)\s*$", "", s).strip()
 
 
 def adopted_outcome_matches(adopted: dict[str, Any], outcome_name: str) -> bool:

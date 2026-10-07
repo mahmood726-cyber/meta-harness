@@ -105,18 +105,25 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]]) -> dict
         # the trial is NAMED, not merely a substring of another id ('TRIAL-1' inside 'TRIAL-10'; codex v8-apply #2)
         if not re.search(r"(?<![\w-])" + re.escape(tid) + r"(?![\w-])", reason):
             return None
-        prior = [p for p in notices if p is not n and p.get("slug") == n.get("slug") and p.get("outcome") == n.get("outcome")
-                 and tid in [str(x) for x in p.get("left_pool") or []] and not not_applied(p)
-                 and str(p.get("when_utc") or "") < str(n.get("when_utc") or "")
-                 # the prior notice must itself have made the SET-ASIDE claim: a correction that removed an ineligible
-                 # trial is not reversible this way (codex v8-signing g1#1, reproduced)
-                 and "eligible evidence awaiting adjudication" in str(p.get("reason") or "")
-                 and "the numbers are not asserted wrong" in str(p.get("reason") or "")
-                 and "asserted wrong" not in str(p.get("reason") or "").replace("not asserted wrong", "")
+        # the notice being reversed is the LATEST earlier signed, applied notice that MOVED this trial (in or out) for the
+        # same outcome -- not any qualifying set-aside in its history (codex v8-apply-r3 #2: set aside, reinstated, then
+        # excluded as ineligible must not reinstate again)
+        moved = [p for p in notices if p is not n and p.get("slug") == n.get("slug") and p.get("outcome") == n.get("outcome")
+                 and tid in [str(x) for x in (p.get("left_pool") or []) + (p.get("entered_pool") or [])]
+                 and not not_applied(p) and str(p.get("when_utc") or "") < str(n.get("when_utc") or "")
                  and (p.get("reviewer_countersignature") or {}).get("state") in ("SEEN_AND_SIGNED", "BATCH_SEEN_AND_SIGNED")]
-        if not prior:
+        if not moved:
             return None
-        out[tid] = prior[-1]
+        p = max(moved, key=lambda x: str(x.get("when_utc") or ""))
+        reason_p = str(p.get("reason") or "")
+        # ... and it must be a SET-ASIDE of this trial: a correction that removed an ineligible trial is not reversible
+        # this way (codex v8-signing g1#1)
+        if tid not in [str(x) for x in p.get("left_pool") or []] \
+                or "eligible evidence awaiting adjudication" not in reason_p \
+                or "the numbers are not asserted wrong" not in reason_p \
+                or "asserted wrong" in reason_p.replace("not asserted wrong", ""):
+            return None
+        out[tid] = p
     return out
 
 

@@ -92,3 +92,24 @@ def test_PLANT_a_signed_adoption_without_its_pooled_result_refuses(tmp_path):
         json.dumps(_j("registry", "comparator_switch_signatures.json")), encoding="utf-8")
     with pytest.raises(ValueError):
         sc.adopted_pooled(s, {"comparator_pmid": a["comparator_pmid"]}, str(tmp_path))
+
+
+def test_PLANT_a_timepoint_qualifier_defines_a_different_endpoint():
+    """codex v8-apply-r3 #1: '(30 days)' and '(1 year)' are different endpoints; a digit-free definition is not."""
+    assert not sc.adopted_outcome_matches({"rule_primary_outcome": "All-cause mortality (30 days)"},
+                                          "All-cause mortality (1 year)")
+    assert sc.adopted_outcome_matches({"rule_primary_outcome": "3-point MACE (CV death, nonfatal MI, nonfatal stroke)"},
+                                      "3-point MACE")
+
+
+def test_PLANT_a_signed_adoption_without_its_rule_refuses(tmp_path):
+    import pytest
+    s = "dpp4-mace-t2d"
+    d = tmp_path / "registry" / "comparator_selection"
+    d.mkdir(parents=True)
+    a = _j("registry", "comparator_selection", f"{s}.adoption.json")
+    (d / f"{s}.adoption.json").write_text(json.dumps(a), encoding="utf-8")       # no rule file beside it (codex r3 #3)
+    (tmp_path / "registry" / "comparator_switch_signatures.json").write_text(
+        json.dumps(_j("registry", "comparator_switch_signatures.json")), encoding="utf-8")
+    with pytest.raises(ValueError):
+        sc.adopted_pooled(s, {"comparator_pmid": a["comparator_pmid"]}, str(tmp_path))

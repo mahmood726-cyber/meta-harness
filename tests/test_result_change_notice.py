@@ -403,3 +403,17 @@ def test_PLANT_a_reinstatement_names_the_trial_not_a_longer_id():
             "reason": "This REVERSES the set-aside of TRIAL-10."}
     assert result_changes.reversed_setasides(back, [aside, back]) is None
     assert result_changes.reversed_setasides(dict(back, reason="This REVERSES the set-aside of TRIAL-1."), [aside, back])
+
+
+def test_PLANT_a_reinstatement_reverses_the_latest_move_not_any_past_setaside():
+    """codex v8-apply-r3 #2: set aside -> reinstated -> excluded as ineligible must not be 'reinstated' again."""
+    sig = {"state": "SEEN_AND_SIGNED"}
+    base = {"slug": "s", "outcome": "o", "reviewer_countersignature": sig}
+    p = dict(base, when_utc="2026-10-01T00:00:00Z", left_pool=["T"], entered_pool=[],
+             reason="T set aside; eligible evidence awaiting adjudication; the numbers are not asserted wrong")
+    r = dict(base, when_utc="2026-10-02T00:00:00Z", left_pool=[], entered_pool=["T"], reason="This REVERSES the set-aside of T.")
+    c = dict(base, when_utc="2026-10-03T00:00:00Z", left_pool=["T"], entered_pool=[],
+             reason="CORRECTION: T is not randomized and is ineligible; the old result was wrong.")
+    n = dict(base, when_utc="2026-10-04T00:00:00Z", left_pool=[], entered_pool=["T"], reason="This REVERSES the set-aside of T.")
+    assert result_changes.reversed_setasides(n, [p, r, c, n]) is None
+    assert result_changes.reversed_setasides(r, [p, r]) == {"T": p}
