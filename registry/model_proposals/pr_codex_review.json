@@ -4719,5 +4719,40 @@
     "verdict": null
    }
   ]
+ },
+ "v9-apply-r12": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5eb1974f81ba0586260a73fa153ee9c7",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "8a88282230edcead812be374fa3e0e4c53454c7b044d5cbb362297c37aa27257"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_is_open_licence",
+    "severity": "P1",
+    "claim": "Canonical CC BY licence URLs are classified as non-open. Consequently, _licence_retirement does not reject a contradictory LOOKED_UP/open=False probe whose licence URL explicitly identifies CC BY, allowing an incorrect comparator retirement.",
+    "failing_input": "_is_open_licence('https://creativecommons.org/licenses/by/4.0/')",
+    "expected": "True; this identifies a CC BY 4.0 licence and must prevent licence-based retirement.",
+    "actual": "False. Normalisation leaves the URL intact, and none of the fullmatch alternatives accepts it.",
+    "id": "v9-apply-r12:g1#1",
+    "record_id": "mc-5eb1974f81ba0586260a73fa153ee9c7",
+    "verdict": null
+   }
+  ]
  }
 }

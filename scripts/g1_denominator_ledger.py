@@ -146,6 +146,10 @@ def _is_open_licence(lic):
     """CC BY (any version, no NC/ND/SA qualifier), CC0 or public domain -- the licences rule criterion C1 accepts. Normalised
     so 'CC BY 4.0' / 'cc-by-4.0' / 'CC0 1.0' are open (codex v9-apply-r8 #1); 'cc by-nc' is not."""
     import re
+    u = re.search(r"creativecommons\.org/(licenses|publicdomain)/([a-z-]+)", str(lic or "").lower())
+    if u:
+        # a canonical licence URL is classified by its path (codex v9-apply-r12 #1)
+        return (u.group(1), u.group(2)) in (("licenses", "by"), ("publicdomain", "zero"), ("publicdomain", "mark"))
     s = re.sub(r"[\s_-]+", " ", str(lic or "").lower()).strip()
     s = s.replace("creative commons attribution", "cc by").replace("creative commons zero", "cc0")
     # version and 'International' / 'licen[cs]e' designations are not qualifiers (codex v9-apply-r11 #1)

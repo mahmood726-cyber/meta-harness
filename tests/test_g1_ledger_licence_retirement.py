@@ -59,3 +59,12 @@ def test_PLANT_an_international_cc_by_is_open():
     for lic in ("CC BY 4.0 International", "Creative Commons Attribution 4.0 International License", "CC-BY-4.0 International"):
         assert L._is_open_licence(lic), lic
     assert not L._is_open_licence("CC BY-NC 4.0 International")
+
+
+def test_PLANT_a_cc_licence_url_is_classified_by_its_path():
+    """codex v9-apply-r12 #1: canonical CC BY URLs read as non-open."""
+    for u in ("https://creativecommons.org/licenses/by/4.0/", "http://creativecommons.org/licenses/by/3.0",
+              "https://creativecommons.org/publicdomain/zero/1.0/"):
+        assert L._is_open_licence(u), u
+    for u in ("https://creativecommons.org/licenses/by-nc/4.0/", "https://creativecommons.org/licenses/by-nc-nd/4.0/"):
+        assert not L._is_open_licence(u), u
