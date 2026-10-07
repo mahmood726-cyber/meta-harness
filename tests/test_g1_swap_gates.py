@@ -392,3 +392,149 @@ def test_PLANT_citation_markers_and_squared_statistics_are_not_numerals():
          "0.36-0.63, p\u2009<\u20090.0001, I 2 \u2009=\u20090\u00a0% [ 20 \u2013 22 ]; interaction p\u2009=\u20090.56)")
     assert sw.printed_counts(q) == {3}
     assert sw.printed_counts("Five trials [12] and 3 cohorts gave RR 0.8.") == set()     # a real second quantity stays
+
+
+def test_PLANT_r18_minimum_bounds_and_trials_lacking_the_outcome_never_supply_k():
+    """codex swap-setquote-r18: #1 'At a minimum five trials'; #2 'Five trials lacked mortality data; the pooled ...'."""
+    q = "At a minimum five trials yielded a pooled RR of 0.85."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 5, "quote": q}, sw._norm(q))[0] is None
+    q2 = "Five trials lacked mortality data; the pooled mortality RR was 0.85 (95% CI 0.70-1.03)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5, "quote": q2},
+                          sw._norm(q2))[0] is None
+    assert sw.printed_counts("Mortality was not reported in five trials (RR 0.85).") == set()
+
+
+def test_PLANT_r19_the_count_sentence_prints_the_whole_result_no_outcome_data_and_punctuated_approximators():
+    """codex swap-setquote-r19: #1 the estimate's value appearing as another outcome's CI bound; #2 'had no mortality
+    data'; #3 'Approximately: five trials'."""
+    q = "Five trials reported recurrence (RR 0.70, 95% CI 0.50-0.85). Mortality RR 0.85 (95% CI 0.70-1.03)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5, "quote": q},
+                          sw._norm(q))[0] is None
+    q2 = "Five trials had no mortality data; pooled mortality RR 0.85 (95% CI 0.70-1.03)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5, "quote": q2},
+                          sw._norm(q2))[0] is None
+    q3 = "Approximately: five trials contributed to mortality (RR 0.85)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 5, "quote": q3}, sw._norm(q3))[0] is None
+    assert sw.printed_counts("Phase 3: 5 randomized trials gave RR 0.85.") == {5}
+
+
+def test_PLANT_r20_singular_quantities_and_bracketed_symbol_bounds_refuse():
+    """codex swap-setquote-r20: #1 'Five trials reported recurrence; mortality was reported by a single trial (...)';
+    #2 'pooled from ≥(five trials)'."""
+    q = "Five trials reported recurrence; mortality was reported by a single trial (RR 0.85, 95% CI 0.70-1.03)."
+    pl = {"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5, "quote": q}
+    assert sw.printed_counts(q) == set() and sw.pooled_gate(pl, sw._norm(q))[0] is None
+    q2 = "Mortality was pooled from \u2265(five trials) (RR 0.85, 95% CI 0.70-1.03)."
+    pl2 = dict(pl, quote=q2)
+    assert sw.printed_counts(q2) == set() and sw.pooled_gate(pl2, sw._norm(q2))[0] is None
+    assert sw.printed_counts("Five trials and a randomized trial gave RR 0.85.") == set()
+
+
+def test_PLANT_r21_at_a_minimum_all_cause_and_two_sentences_printing_the_same_result():
+    """codex swap-setquote-r21: #1 'Five trials at a minimum'; #2 'all-cause' is not a quantity (a false refusal);
+    #3 two sentences printing identical numbers for different outcomes are ambiguous, never unioned."""
+    base = {"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03"}
+    q = "Five trials at a minimum reported mortality (RR 0.85, 95% CI 0.70-1.03)."
+    assert sw.pooled_gate(dict(base, k=5, quote=q), sw._norm(q))[0] is None
+    q2 = "5 trials reported all-cause mortality (RR 0.85, 95% CI 0.70-1.03)."
+    assert sw.pooled_gate(dict(base, k=5, quote=q2), sw._norm(q2))[1] == 5
+    q3 = ("Five trials reported recurrence (RR 0.85, 95% CI 0.70-1.03). "
+          "Ten trials reported mortality (RR 0.85, 95% CI 0.70-1.03).")
+    assert sw.pooled_gate(dict(base, k=5, quote=q3), sw._norm(q3))[0] is None
+    assert sw.pooled_gate(dict(base, k=10, quote=q3), sw._norm(q3))[0] is None
+
+
+def test_PLANT_r22_k_equals_with_a_bound_and_most_reporting_refuse_but_doacs_other_studies_do_not():
+    """codex swap-setquote-r22: #1 'k = 5 or more' through the set-quote fallback; #2 'most reported' a share of these
+    trials. doac 29795629's 'in most studies of secondary prevention' refers to OTHER studies and still admits."""
+    q = "RR 0.85 (CI 0.70-1.03)."
+    pl = {"quote": q, "measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5}
+    sq = "Mortality: k = 5 or more; " + q
+    assert sw.pooled_gate(pl, sw._norm(sq), set_quote=sq, verified_units=5)[0] is None
+    q2 = "mortality RR 0.85 (CI 0.70-1.03)."
+    sq2 = "Five trials were included; most reported " + q2
+    assert sw.pooled_gate(dict(pl, quote=q2), sw._norm(sq2), set_quote=sq2, verified_units=5)[0] is None
+    assert sw.printed_counts("k = 5 (RR 0.85).") == {5}
+    sq3 = ("In the five Phase 3 studies, the primary outcome in most studies of secondary prevention tended to favor "
+           "DOACs (OR 0.88, CI 0.75-1.03).")
+    pl3 = {"quote": "OR 0.88, CI 0.75-1.03", "measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5}
+    assert sw.pooled_gate(pl3, sw._norm(sq3), set_quote=sq3, verified_units=5)[1] == 5
+
+
+def test_PLANT_r23_trailing_approximation_counts_in_another_clause_and_ci_levels_in_the_fallback():
+    """codex swap-setquote-r23: #1 'five trials, approximately'; #2 a count in a ';'-clause about another outcome;
+    #3 a '95% CI' must not close the set-quote fallback (a false refusal)."""
+    base = {"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03"}
+    q = "The mortality analysis used five trials, approximately (RR 0.85, 95% CI 0.70-1.03)."
+    assert sw.printed_counts(q) == set() and sw.pooled_gate(dict(base, k=5, quote=q), sw._norm(q))[0] is None
+    q2 = "Five trials reported recurrence; mortality RR 0.85 (95% CI 0.70-1.03)."
+    assert sw.pooled_gate(dict(base, k=5, quote=q2), sw._norm(q2))[0] is None
+    q3 = "RR 0.85 (95% CI 0.70-1.03); 12 trials."                      # a bare count clause still binds
+    assert sw.pooled_gate(dict(base, k=12, quote=q3), sw._norm(q3))[1] == 12
+    sq = "Five trials reported mortality RR 0.85 (95% CI 0.70-1.03)."
+    q4 = "mortality RR 0.85 (95% CI 0.70-1.03)."
+    got, k = sw.pooled_gate(dict(base, k=5, quote=q4), sw._norm(sq), set_quote=sq, verified_units=5)
+    assert k == 5 and got["k_basis"]["from"] == "SET_QUOTE_SENTENCE"
+
+
+def test_PLANT_r24_k_equals_after_an_approximator_and_scientific_notation_refuse():
+    """codex swap-setquote-r24 #2 'approximately k = 5'; #3 'k = 5e1'. (#1, a count in another comma-clause of the same
+    sentence, is the disclosed semantic residue: a clause rule would also refuse doac 29795629's own sentence.)"""
+    vals = [0.85, 0.70, 1.03]
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), approximately k = 5.", vals) == set()
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), k = 5e1.", vals) == set()
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), k = 5.", vals) == {5}
+
+
+def test_PLANT_r25_a_k_regex_never_backtracks_into_a_decimal():
+    """codex swap-setquote-r25 #1: 'k = 12.5' read as k = 1 because the regex backtracked inside the decimal."""
+    q = "Mortality RR 1 (95% CI 0.8-1.2), k = 12.5."
+    assert sw.printed_counts(q) == set()
+    assert sw.pooled_gate({"quote": q, "measure": "RR", "estimate": "1", "lower": "0.8", "upper": "1.2", "k": 1},
+                          sw._norm(q))[0] is None
+
+
+def test_PLANT_r26_an_abbreviation_never_detaches_its_approximator():
+    """codex swap-setquote-r26 #1: 'Approx. 5 trials' was split after 'Approx.' and the 5 read as exact."""
+    assert sw.printed_counts("Approx. 5 trials reported mortality RR 0.85 (95% CI 0.70-1.03).") == set()
+    assert sw.printed_counts("Ca. 5 trials reported mortality RR 0.85.") == set()
+    assert len(sw._sentences("See Fig. 2 for the forest plot. Five trials were pooled.")) == 2
+
+
+def test_PLANT_r27_contrasts_second_estimates_trial_noun_bounds_and_article_approximators():
+    """codex swap-setquote-r27: #1 (and r24-r26 #1) a contrast between outcomes in one sentence, or a second effect
+    estimate; #2 'k = 5 trials or more'; #3 'At least the five trials'."""
+    vals = [0.85, 0.70, 1.03]
+    assert sw._bound_counts("Five trials reported recurrence (RR 0.75), whereas mortality RR 0.85 (95% CI 0.70-1.03) "
+                            "was pooled separately.", vals) == set()
+    assert sw._bound_counts("Five trials reported recurrence, whereas mortality RR 0.85 (95% CI 0.70-1.03).", vals) == set()
+    assert sw._bound_counts("Five trials gave recurrence RR 0.75 and mortality RR 0.85 (95% CI 0.70-1.03).", vals) == set()
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), k = 5 trials or more.", vals) == set()
+    assert sw._bound_counts("At least the five trials contributed to mortality RR 0.85 (95% CI 0.70-1.03).", vals) == set()
+    assert sw._bound_counts("The five trials contributed to mortality RR 0.85 (95% CI 0.70-1.03).", vals) == {5}
+
+
+def test_PLANT_r28_a_different_trial_fraction_k_and_dash_bounds_refuse():
+    """codex swap-setquote-r28: #1 'but a different trial reported mortality'; #2 'k = 5/6'; #3 'Five trials—at least—'."""
+    assert sw._bound_counts("Five trials reported recurrence, but a different trial reported mortality (RR 0.85).",
+                            [0.85]) == set()
+    assert sw.printed_counts("Mortality RR 0.85 (k = 5/6).") == set()
+    assert sw.printed_counts("Five trials\u2014at least\u2014reported mortality (RR 0.85).") == set()
+
+
+def test_PLANT_r29_exponents_and_distant_approximators_refuse():
+    """codex swap-setquote-r29: #2 '1e+5 trials'; #3 'Roughly speaking, five trials'. (#1, a count in a 'but' clause of
+    the same sentence, is the disclosed residual: doac 29795629's own sentence has that shape.)"""
+    assert sw.printed_counts("1e+5 trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).") == set()
+    assert sw.printed_counts("Roughly speaking, five trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).") == set()
+    assert sw.printed_counts("In the five trials, mortality RR was 0.85 (95% CI 0.70 to 1.03).") == {5}
+
+
+def test_PLANT_semicolons_inside_brackets_do_not_split_a_result():
+    """Final Part B replay regression: colchicine 31477020 '(3 studies; RR: 0.48; 95% CI: 0.36-0.63 ...' was refused
+    because the clause split ignored brackets. A top-level semicolon still separates another outcome's count."""
+    q = ("patients with recurrent pericarditis (3 studies; RR: 0.48; 95% CI: 0.36\u20130.63 benefited from colchicine "
+         "treatment")
+    assert sw._bound_counts(q, [0.48, 0.36, 0.63]) == {3}
+    assert sw._bound_counts("Five trials reported recurrence; mortality RR 0.85 (95% CI 0.70-1.03).",
+                            [0.85, 0.70, 1.03]) == set()

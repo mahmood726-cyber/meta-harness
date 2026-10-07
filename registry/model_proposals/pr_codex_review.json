@@ -2692,5 +2692,581 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r18": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fca38498133830d96a700cc0a88e5821",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "93b14f33a0258e95d7daa433190686471bf43282ff959b303163699862c04f0a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "A lower bound expressed as 'at a minimum' is accepted as an exact pooled trial count. blocked_before does not reject 'minimum'.",
+    "failing_input": "q = 'At a minimum five trials yielded a pooled RR of 0.85.'\npl = {'measure': 'RR', 'estimate': 0.85, 'k': 5, 'quote': q}\nprinted_counts(q)\npooled_gate(pl, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because the quote establishes only k >= 5.",
+    "actual": "printed_counts returns {5}; pooled_gate returns (pl, 5), admitting an unsupported exact count.",
+    "id": "swap-setquote-r18:g1#1",
+    "record_id": "mc-fca38498133830d96a700cc0a88e5821",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "A count explicitly describing trials without mortality data is accepted as the mortality result's k. The restriction filter misses 'lacked', and sharing a sentence with the estimate is sufficient for acceptance.",
+    "failing_input": "q = 'Five trials lacked mortality data; the pooled mortality RR was 0.85 (95% CI 0.70-1.03).'\npl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\nprinted_counts(q)\npooled_gate(pl, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because five counts noncontributing trials and the contributing count is unstated.",
+    "actual": "printed_counts returns {5}; pooled_gate returns (pl, 5). The unsupported k passes directly, without verified_units corroboration or a k_basis reviewer annotation.",
+    "id": "swap-setquote-r18:g1#2",
+    "record_id": "mc-fca38498133830d96a700cc0a88e5821",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r19": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-efc0a1660985f71901721ca2c8396016",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "4034667c1177224aa9fd2194eebcba8f4b6eef40c25369c54d6077f812cada36"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "Estimate-sentence selection matches any numeric token, including another outcome's confidence bound. This lets that outcome's trial count become the mortality k.",
+    "failing_input": "q = 'Five trials reported recurrence (RR 0.70, 95% CI 0.50-0.85). Mortality RR 0.85 (95% CI 0.70-1.03).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): no mortality trial count is stated.",
+    "actual": "(pl, 5): the recurrence sentence is selected because its upper confidence bound equals the mortality estimate.",
+    "id": "swap-setquote-r19:g1#1",
+    "record_id": "mc-efc0a1660985f71901721ca2c8396016",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "The restriction filter accepts a count explicitly describing trials with no mortality data, allowing that count into the pooled mortality result.",
+    "failing_input": "q = 'Five trials had no mortality data; pooled mortality RR 0.85 (95% CI 0.70-1.03).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the five trials lack the outcome data and do not establish the contributing k.",
+    "actual": "(pl, 5): 'no mortality data' matches none of the restriction patterns, and printed_counts(q) returns {5}.",
+    "id": "swap-setquote-r19:g1#2",
+    "record_id": "mc-efc0a1660985f71901721ca2c8396016",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in.blocked_before / pooled_gate",
+    "severity": "P0",
+    "claim": "Punctuation after an approximation word bypasses the approximation guard, promoting an approximate trial count to an exact k.",
+    "failing_input": "q = 'Approximately: five trials contributed to mortality (RR 0.85).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): an approximate count cannot validate an exact k.",
+    "actual": "(pl, 5): blocked_before sees 'approximately:', returns False before checking _APPROX, and printed_counts(q) returns {5}.",
+    "id": "swap-setquote-r19:g1#3",
+    "record_id": "mc-efc0a1660985f71901721ca2c8396016",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r20": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-969a48f4da7aa1efbc3c75f1bb234707",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "8429cbf52c89a78e437621b937f484cfa57a1de61d8f49ef3c968f334cc6b4be"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate / printed_counts",
+    "severity": "P0",
+    "claim": "A count for another outcome is accepted as the mortality k when both outcomes share a sentence. 'single' is not counted by _numerals, so the sentence incorrectly passes the exactly-one-quantity check.",
+    "failing_input": "q = 'Five trials reported recurrence; mortality was reported by a single trial (RR 0.85, 95% CI 0.70-1.03).'; pl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}; printed_counts(q); pooled_gate(pl, _norm(q))",
+    "expected": "Reject the stated mortality k=5: pooled_gate returns (None, None). The text assigns five trials to recurrence and a single trial to mortality.",
+    "actual": "printed_counts(q) returns {5}; pooled_gate returns (pl, 5). Matching the estimate and bounds within the sentence does not bind its trial count to that outcome.",
+    "id": "swap-setquote-r20:g1#1",
+    "record_id": "mc-969a48f4da7aa1efbc3c75f1bb234707",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / printed_counts",
+    "severity": "P0",
+    "claim": "An opening parenthesis hides a symbolic bound from the count checks, allowing a lower bound to become an exact pooled k.",
+    "failing_input": "q = 'Mortality was pooled from ≥(five trials) (RR 0.85, 95% CI 0.70-1.03).'; pl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}; printed_counts(q); pooled_gate(pl, _norm(q))",
+    "expected": "printed_counts(q) returns set(); pooled_gate returns (None, None), because at least five trials does not establish exactly five.",
+    "actual": "printed_counts(q) returns {5}; pooled_gate returns (pl, 5). The regex sees '(' immediately before 'five', and blocked_before treats the preceding token '≥(' as nonalphabetic and returns False.",
+    "id": "swap-setquote-r20:g1#2",
+    "record_id": "mc-969a48f4da7aa1efbc3c75f1bb234707",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r21": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e29e076df6594a899f9d5036346b08c8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "6974464ead1c83cda137b6674b5045371e85c456876a9ae23f6dd4edc42f74c8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "A lower bound becomes an exact trial count because bound_after recognises 'at the minimum' but misses 'at a minimum'.",
+    "failing_input": "q = 'Five trials at a minimum reported mortality (RR 0.85, 95% CI 0.70-1.03).'\npl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\nprinted_counts(q)\npooled_gate(pl, _norm(q))",
+    "expected": "printed_counts returns set(); pooled_gate returns (None, None), because the text establishes only k >= 5.",
+    "actual": "printed_counts returns {5}; pooled_gate returns (pl, 5), accepting the bound as an exact count.",
+    "id": "swap-setquote-r21:g1#1",
+    "record_id": "mc-e29e076df6594a899f9d5036346b08c8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_numerals / printed_counts",
+    "severity": "P1",
+    "claim": "The word 'all' in 'all-cause mortality' is counted as another quantity, rejecting an otherwise valid pooled claim.",
+    "failing_input": "q = '5 trials reported all-cause mortality (RR 0.85, 95% CI 0.70-1.03).'\npl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\n_numerals(q)\nprinted_counts(q)\npooled_gate(pl, _norm(q))",
+    "expected": "One count-bearing numeral; printed_counts returns {5}; pooled_gate returns (pl, 5).",
+    "actual": "_numerals returns 2, counting '5' and 'all'; printed_counts returns set(); pooled_gate returns (None, None).",
+    "id": "swap-setquote-r21:g1#2",
+    "record_id": "mc-e29e076df6594a899f9d5036346b08c8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "When different outcomes have identical estimates and confidence bounds, their trial counts are unioned. The gate therefore accepts the other outcome's count instead of refusing the ambiguity.",
+    "failing_input": "q = 'Five trials reported recurrence (RR 0.85, 95% CI 0.70-1.03). Ten trials reported mortality (RR 0.85, 95% CI 0.70-1.03).'\npl = {'outcome': 'mortality', 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): mortality explicitly has ten contributing trials; five belongs to recurrence.",
+    "actual": "(pl, 5): both sentences pass the numeric-result filter, printed becomes {5, 10}, and membership alone validates the incorrect mortality count.",
+    "id": "swap-setquote-r21:g1#3",
+    "record_id": "mc-e29e076df6594a899f9d5036346b08c8",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r22": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-425f5f53137fb9de8948fe4550c41847",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "055808cae977c2fb30bc36165455d3e5629f81c0b50740ab9230ac42b217cfb2"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "The k= parser bypasses bound_after, allowing a lower bound to become an exact pooled trial count through the new set-quote fallback.",
+    "failing_input": "q = 'RR 0.85 (CI 0.70-1.03).'\nsq = 'Mortality: k = 5 or more; ' + q\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(sq), set_quote=sq, verified_units=5)",
+    "expected": "(None, None): '5 or more' does not establish exactly five contributing trials.",
+    "actual": "Returns the accepted pooled dictionary with k_basis.from='SET_QUOTE_SENTENCE', and k=5. The unrestricted k= regex supplies {5}; the bound checks apply only to the other count patterns.",
+    "id": "swap-setquote-r22:g1#1",
+    "record_id": "mc-425f5f53137fb9de8948fe4550c41847",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate / printed_counts",
+    "severity": "P0",
+    "claim": "The new fallback accepts the review-wide trial count even when the same sentence explicitly says only most trials reported the outcome. Verifying five enumerated units does not establish five outcome contributors.",
+    "failing_input": "q = 'mortality RR 0.85 (CI 0.70-1.03).'\nsq = 'Five trials were included; most reported ' + q\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(sq), set_quote=sq, verified_units=5)",
+    "expected": "(None, None): the sentence does not establish an exact mortality-specific k.",
+    "actual": "Returns the accepted pooled dictionary with k_basis.from='SET_QUOTE_SENTENCE', and k=5. 'most' is absent from _RESTRICT, and printed_counts(sq) returns {5}.",
+    "id": "swap-setquote-r22:g1#2",
+    "record_id": "mc-425f5f53137fb9de8948fe4550c41847",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r23": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b1698a470ecad643da1895b5e04c6211",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "4d2c7ea8b57ffee4d999cbbdd22eff5fb6a1839ce81367180d281a17b74a4272"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / printed_counts",
+    "severity": "P0",
+    "claim": "A trailing approximation is accepted as an exact trial count. bound_after does not recognize 'approximately', allowing an estimated k into the pooled result.",
+    "failing_input": "printed_counts('The mortality analysis used five trials, approximately (RR 0.85, 95% CI 0.70-1.03).')",
+    "expected": "set(): the sentence explicitly qualifies five as approximate.",
+    "actual": "{5}. With this quote and matching estimate/bounds, pooled_gate accepts k=5.",
+    "id": "swap-setquote-r23:g1#1",
+    "record_id": "mc-b1698a470ecad643da1895b5e04c6211",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "Sharing a sentence does not bind a trial count to the pooled outcome. A count explicitly attached to recurrence is accepted as mortality k.",
+    "failing_input": "q = 'Five trials reported recurrence; mortality RR 0.85 (95% CI 0.70-1.03).'; pl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}; pooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the quote supplies no mortality trial count.",
+    "actual": "(pl, 5). The semicolon preserves one sentence; its matching result values and sole count pass despite referring to different outcomes.",
+    "id": "swap-setquote-r23:g1#2",
+    "record_id": "mc-b1698a470ecad643da1895b5e04c6211",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P1",
+    "claim": "The set-quote fallback rejects confidence-level percentages, although printed_counts explicitly permits them. This rejects an otherwise valid, corroborated count.",
+    "failing_input": "sq = 'Five trials reported mortality RR 0.85 (95% CI 0.70-1.03).'; q = 'mortality RR 0.85 (95% CI 0.70-1.03).'; pl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}; pooled_gate(pl, _norm(sq), set_quote=sq, verified_units=5)",
+    "expected": "Accept k=5 with SET_QUOTE_SENTENCE provenance: the containing sentence prints the exact count and result, corroborated by five verified units.",
+    "actual": "(None, None), because the fallback requires '%' not in sent and therefore rejects '95% CI'.",
+    "id": "swap-setquote-r23:g1#3",
+    "record_id": "mc-b1698a470ecad643da1895b5e04c6211",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r24": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-00dfdda91ec8094baf30644ea9b305cc",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "d566a0a2923cb6c1b0f9104e283356d2927934cc6d07cce19dec4f7019136588"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts",
+    "severity": "P0",
+    "claim": "A count for another outcome binds to the pooled result when both appear in one comma-separated clause. The function checks numeric co-occurrence, allowing pooled_gate to accept an unsupported mortality k.",
+    "failing_input": "_bound_counts('Five trials reported recurrence, whereas mortality RR 0.85 (95% CI 0.70-1.03).', [0.85, 0.70, 1.03])",
+    "expected": "set(): five describes recurrence trials; the mortality trial count is unstated.",
+    "actual": "{5}",
+    "id": "swap-setquote-r24:g1#1",
+    "record_id": "mc-00dfdda91ec8094baf30644ea9b305cc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in",
+    "severity": "P0",
+    "claim": "The k = n branch skips blocked_before, so a preceding approximation survives printed_counts and binds as an exact result count.",
+    "failing_input": "_bound_counts('Mortality RR 0.85 (95% CI 0.70-1.03), approximately k = 5.', [0.85, 0.70, 1.03])",
+    "expected": "set(): an approximate count cannot establish exact k.",
+    "actual": "{5}",
+    "id": "swap-setquote-r24:g1#2",
+    "record_id": "mc-00dfdda91ec8094baf30644ea9b305cc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in",
+    "severity": "P0",
+    "claim": "The k = n regex accepts the integer prefix of scientific notation. _numerals also counts that prefix alone, allowing the incorrect value through the single-numeral guard and into result binding.",
+    "failing_input": "_bound_counts('Mortality RR 0.85 (95% CI 0.70-1.03), k = 5e1.', [0.85, 0.70, 1.03])",
+    "expected": "set() under the supported whole-integer grammar, or {50} if scientific notation is supported; never {5}.",
+    "actual": "{5}",
+    "id": "swap-setquote-r24:g1#3",
+    "record_id": "mc-00dfdda91ec8094baf30644ea9b305cc",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r25": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ee972efaf529ec7493902204d8c1234b",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "6e07885189515bdd35b37b22c8231b5801af76800c7abb638e7140a0080e31e1"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / pooled_gate",
+    "severity": "P0",
+    "claim": "The k regex backtracks inside a decimal and accepts its leading digit as an integer count. An integer-valued effect estimate supplies the one numeral required by printed_counts, allowing the fabricated k through.",
+    "failing_input": "q = 'Mortality RR 1 (95% CI 0.8-1.2), k = 12.5.'; pl = {'quote': q, 'measure': 'RR', 'estimate': 1, 'lower': 0.8, 'upper': 1.2, 'k': 1}; pooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the quote does not print k = 1; its fractional k must be refused.",
+    "actual": "(pl, 1). _numerals(q) returns 1 from 'RR 1', while the k regex backtracks from '12' to '1', so printed_counts(q) returns {1}.",
+    "id": "swap-setquote-r25:g1#1",
+    "record_id": "mc-ee972efaf529ec7493902204d8c1234b",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "Outcome binding depends on semicolon separation. A count explicitly attached to recurrence is accepted as the mortality count when the outcomes are separated by a comma.",
+    "failing_input": "q = 'Five trials reported recurrence, whereas mortality RR 0.85 (95% CI 0.70-1.03).'; pl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}; pooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the mortality result has no stated contributing-trial count.",
+    "actual": "(pl, 5). The sentence has one counted numeral and no restriction match. Splitting only on ';' leaves both outcomes in one clause, so _bound_counts returns {5}.",
+    "id": "swap-setquote-r25:g1#2",
+    "record_id": "mc-ee972efaf529ec7493902204d8c1234b",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r26": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fa49339dcfb0b574223eb61683c94122",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "f3a5ccda73785ad1e5244d884ed236dd46bbb7e403a48fb6afcf493473201ee0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_sentences / printed_counts",
+    "severity": "P0",
+    "claim": "Sentence splitting detaches an approximation abbreviation from its count, allowing an approximate k to pass as exact.",
+    "failing_input": "printed_counts('Approx. 5 trials reported mortality RR 0.85 (95% CI 0.70-1.03).')",
+    "expected": "set(): 'Approx. 5' does not establish an exact trial count.",
+    "actual": "{5}. _sentences splits after 'Approx.', so the count's sentence loses its approximator. pooled_gate likewise selects that result sentence and accepts k=5.",
+    "id": "swap-setquote-r26:g1#1",
+    "record_id": "mc-fa49339dcfb0b574223eb61683c94122",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts",
+    "severity": "P0",
+    "claim": "Count-to-result binding separates clauses only at semicolons, allowing another outcome's trial count to become the mortality result's k.",
+    "failing_input": "_bound_counts('Five trials reported recurrence, whereas mortality RR 0.85 (95% CI 0.70-1.03).', [0.85, 0.70, 1.03])",
+    "expected": "set(): the five trials are explicitly attached to recurrence; no mortality trial count is established.",
+    "actual": "{5}. The entire sentence is treated as one clause containing both the count and the mortality values, allowing pooled_gate to accept k=5.",
+    "id": "swap-setquote-r26:g1#2",
+    "record_id": "mc-fa49339dcfb0b574223eb61683c94122",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r27": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-69d6390567c3cb3230661e2160b239dc",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "191dc370d83b02dfda1cd728aceabc5adf6cee92b9ca3c7b8c2aea3c2eb1d575"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts",
+    "severity": "P0",
+    "claim": "Splitting clauses only at semicolons lets another outcome's trial count validate the pooled result when a comma separates the outcomes.",
+    "failing_input": "_bound_counts('Five trials reported recurrence (RR 0.75), whereas mortality RR 0.85 (95% CI 0.70-1.03) was pooled separately.', [0.85, 0.70, 1.03])",
+    "expected": "set(): the mortality result has no stated trial count.",
+    "actual": "{5}, allowing pooled_gate to accept the recurrence count as mortality k.",
+    "id": "swap-setquote-r27:g1#1",
+    "record_id": "mc-69d6390567c3cb3230661e2160b239dc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / _bound_counts",
+    "severity": "P0",
+    "claim": "The 'k = n' path bypasses the trailing-bound check when 'trials' intervenes. Although the ordinary trial-count path rejects '5 trials or more', the k path adds 5 anyway.",
+    "failing_input": "_bound_counts('Mortality RR 0.85 (95% CI 0.70-1.03), k = 5 trials or more.', [0.85, 0.70, 1.03])",
+    "expected": "set(): '5 trials or more' supplies a lower bound, not an exact k.",
+    "actual": "{5}, allowing pooled_gate to accept an exact k of 5.",
+    "id": "swap-setquote-r27:g1#2",
+    "record_id": "mc-69d6390567c3cb3230661e2160b239dc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in.blocked_before",
+    "severity": "P0",
+    "claim": "An article between a bound and its count defeats the approximation guard. The lookback handles intervening words for 'of' and 'between', but not 'at least'.",
+    "failing_input": "_bound_counts('At least the five trials contributed to mortality RR 0.85 (95% CI 0.70-1.03).', [0.85, 0.70, 1.03])",
+    "expected": "set(): the sentence establishes at least five contributing trials, not exactly five.",
+    "actual": "{5}, allowing pooled_gate to accept the lower bound as exact k.",
+    "id": "swap-setquote-r27:g1#3",
+    "record_id": "mc-69d6390567c3cb3230661e2160b239dc",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r28": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1ddd205f8321af8c34f9fd658a06c95e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "222e045e2488377df5e63ca3f9598f679de8a93993c5253c52eb3729578e3f66"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts",
+    "severity": "P0",
+    "claim": "A count belonging to another outcome is accepted as the mortality k. Only semicolons separate clauses, and _numerals misses the singular quantity in 'a different trial'.",
+    "failing_input": "_bound_counts('Five trials reported recurrence, but a different trial reported mortality (RR 0.85).', [0.85])",
+    "expected": "set(): the five trials concern recurrence; mortality comes from a different trial.",
+    "actual": "{5}: the recurrence count is accepted as belonging to the mortality result.",
+    "id": "swap-setquote-r28:g1#1",
+    "record_id": "mc-1ddd205f8321af8c34f9fd658a06c95e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / printed_counts",
+    "severity": "P0",
+    "claim": "The k-assignment regex accepts the numerator of a fraction as an exact count. _numerals ignores the denominator because it follows '/', so the single-numeral guard also passes.",
+    "failing_input": "printed_counts('Mortality RR 0.85 (k = 5/6).')",
+    "expected": "set(): 5/6 is not an exact integer trial count.",
+    "actual": "{5}; _bound_counts with vals=[0.85] also returns {5}.",
+    "id": "swap-setquote-r28:g1#2",
+    "record_id": "mc-1ddd205f8321af8c34f9fd658a06c95e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in.bound_after",
+    "severity": "P0",
+    "claim": "A trailing lower bound separated by an em dash is accepted as an exact count. Cleaning converts the dash to '-', but bound_after does not permit that separator.",
+    "failing_input": "printed_counts('Five trials—at least—reported mortality (RR 0.85).')",
+    "expected": "set(): 'at least' establishes a lower bound, not exact k=5.",
+    "actual": "{5}; _bound_counts with vals=[0.85] also returns {5}.",
+    "id": "swap-setquote-r28:g1#3",
+    "record_id": "mc-1ddd205f8321af8c34f9fd658a06c95e",
+    "verdict": null
+   }
+  ]
+ },
+ "swap-setquote-r29": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d9fa1abb4df1351d7070be99dcee1e7c",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "a456a3453cdac59d09d18539be823e9c2a67c84e3cb17786445408facbbfb51f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate / _bound_counts",
+    "severity": "P0",
+    "claim": "The count-binding check separates clauses only at semicolons, allowing a recurrence count to become the mortality k despite an explicitly different mortality count.",
+    "failing_input": "q = 'Two trials reported mortality. Five trials reported recurrence, but mortality RR 0.85 (95% CI from 0.70 to 1.03).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the stated mortality k=5 contradicts the held text's two mortality trials.",
+    "actual": "(pl, 5). The result-bearing sentence passes every restriction, and _bound_counts associates its recurrence count with mortality.",
+    "id": "swap-setquote-r29:g1#1",
+    "record_id": "mc-d9fa1abb4df1351d7070be99dcee1e7c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / _counts_in",
+    "severity": "P0",
+    "claim": "Both numeric regexes can restart after the plus sign in scientific notation and extract the exponent as an exact trial count.",
+    "failing_input": "printed_counts('1e+5 trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).')",
+    "expected": "set(): unsupported scientific notation must be refused, or correctly interpreted as 100000; it must never yield 5.",
+    "actual": "{5}. _numerals counts the exponent as the sole numeral, and _counts_in matches '5 trials'. This count is eligible for acceptance as pooled k=5.",
+    "id": "swap-setquote-r29:g1#2",
+    "record_id": "mc-d9fa1abb4df1351d7070be99dcee1e7c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / _counts_in.blocked_before",
+    "severity": "P0",
+    "claim": "An intervening word hides an explicit approximator, allowing an approximate trial count to supply an exact pooled k.",
+    "failing_input": "printed_counts('Roughly speaking, five trials reported mortality RR 0.85 (95% CI from 0.70 to 1.03).')",
+    "expected": "set(): 'Roughly speaking' makes five approximate rather than an exact contributing count.",
+    "actual": "{5}. blocked_before examines 'speaking,' and returns False before considering the earlier 'roughly'; the result-bearing sentence can therefore validate pooled k=5.",
+    "id": "swap-setquote-r29:g1#3",
+    "record_id": "mc-d9fa1abb4df1351d7070be99dcee1e7c",
+    "verdict": null
+   }
+  ]
  }
 }
