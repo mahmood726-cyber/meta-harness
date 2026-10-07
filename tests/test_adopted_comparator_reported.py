@@ -49,8 +49,12 @@ def test_adopted_pooled_needs_a_signed_switch(tmp_path):
 def test_PLANT_theirs_k_is_the_adopted_pooled_analysis_k():
     for s in SWITCHED:
         pr = _j("registry", "comparator_selection", f"{s}.adoption.json")["pooled_result"]
-        ov = _j("docs", "reviews", s, "review.json")["comparator"]["overlap"]
-        assert ov["theirs_k"] == pr["k"], (s, ov["theirs_k"], pr["k"])
+        rv = _j("docs", "reviews", s, "review.json")["comparator"]
+        ov = rv["overlap"]
+        if rv["reported"]:
+            assert ov["theirs_k"] == pr["k"], (s, ov["theirs_k"], pr["k"])
+        else:                                   # the adopted analysis is not this outcome: its k is not this outcome's k
+            assert isinstance(ov["theirs_k"], str) and "not stated" in ov["theirs_k"], (s, ov["theirs_k"])
 
 
 def test_PLANT_the_adopted_number_stands_only_for_its_rules_primary_outcome():
@@ -58,8 +62,8 @@ def test_PLANT_the_adopted_number_stands_only_for_its_rules_primary_outcome():
     a = {"rule_primary_outcome": "Stroke"}
     assert not sc.adopted_outcome_matches(a, "All-cause mortality")
     assert sc.adopted_outcome_matches({"rule_primary_outcome": "new vertebral fracture"}, "New vertebral fracture")
-    assert sc.adopted_outcome_matches({"rule_primary_outcome": "3-point major adverse cardiovascular events (CV death)"},
-                                      "3-point major adverse cardiovascular events")
+    assert not sc.adopted_outcome_matches({"rule_primary_outcome": "3-point major adverse cardiovascular events (CV death)"},
+                                          "3-point major adverse cardiovascular events")
     assert not sc.adopted_outcome_matches({"rule_primary_outcome": None}, "anything")
 
 
@@ -98,8 +102,11 @@ def test_PLANT_a_timepoint_qualifier_defines_a_different_endpoint():
     """codex v8-apply-r3 #1: '(30 days)' and '(1 year)' are different endpoints; a digit-free definition is not."""
     assert not sc.adopted_outcome_matches({"rule_primary_outcome": "All-cause mortality (30 days)"},
                                           "All-cause mortality (1 year)")
-    assert sc.adopted_outcome_matches({"rule_primary_outcome": "3-point MACE (CV death, nonfatal MI, nonfatal stroke)"},
-                                      "3-point MACE")
+    # names that differ only by a qualifier are NOT matched: absent, never guessed (codex v8-apply-r4 #1)
+    assert not sc.adopted_outcome_matches({"rule_primary_outcome": "3-point MACE (CV death, nonfatal MI, nonfatal stroke)"},
+                                          "3-point MACE")
+    assert not sc.adopted_outcome_matches({"rule_primary_outcome": "Myocardial infarction (fatal)"},
+                                          "Myocardial infarction (nonfatal)")
 
 
 def test_PLANT_a_signed_adoption_without_its_rule_refuses(tmp_path):

@@ -417,3 +417,16 @@ def test_PLANT_a_reinstatement_reverses_the_latest_move_not_any_past_setaside():
     n = dict(base, when_utc="2026-10-04T00:00:00Z", left_pool=[], entered_pool=["T"], reason="This REVERSES the set-aside of T.")
     assert result_changes.reversed_setasides(n, [p, r, c, n]) is None
     assert result_changes.reversed_setasides(r, [p, r]) == {"T": p}
+
+
+def test_PLANT_notice_times_are_instants_not_strings():
+    """codex v8-apply-r4 #2: '...09:00:00Z' (older) sorts after '...09:00:00.500Z' as a string."""
+    sig = {"state": "SEEN_AND_SIGNED"}
+    base = {"slug": "x", "outcome": "o", "reviewer_countersignature": sig}
+    p = dict(base, when_utc="2026-10-07T09:00:00Z", left_pool=["T"], entered_pool=[],
+             reason="eligible evidence awaiting adjudication; the numbers are not asserted wrong")
+    q = dict(base, when_utc="2026-10-07T09:00:00.500Z", left_pool=["T"], entered_pool=[],
+             reason="CORRECTION: T is ineligible; the old result was wrong.")
+    n = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=[], entered_pool=["T"], reason="This REVERSES the set-aside of T.")
+    assert result_changes.reversed_setasides(n, [p, q, n]) is None
+    assert result_changes.reversed_setasides(dict(n, when_utc="not a time"), [p, n]) is None

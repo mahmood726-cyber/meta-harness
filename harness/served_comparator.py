@@ -97,21 +97,18 @@ def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[
 
 
 def _norm(x: Any) -> str:
-    """Lower-case, a trailing parenthetical qualifier removed ('3-point MACE (CV death, nonfatal MI, ...)'), spacing
-    collapsed."""
-    import re
-    s = " ".join(str(x or "").lower().split())
-    # only a DIGIT-FREE qualifier is a definition ('(CV death, nonfatal MI, nonfatal stroke)'); one with a digit is a
-    # timepoint or threshold and defines a different endpoint ('(30 days)' vs '(1 year)'; codex v8-apply-r3 #1)
-    return re.sub(r"\s*\([^()0-9]*\)\s*$", "", s).strip()
+    """Lower-case, spacing collapsed. Nothing else: every looser rule tried merged distinct endpoints -- containment
+    ('mortality' in 'mortality or hospitalization'), dropping a parenthetical ('(30 days)' vs '(1 year)'), dropping a
+    digit-free one ('(fatal)' vs '(nonfatal)') -- codex v8-apply rounds 1, 2, 3, 4."""
+    return " ".join(str(x or "").lower().split())
 
 
 def adopted_outcome_matches(adopted: dict[str, Any], outcome_name: str) -> bool:
     """The adopted pooled result passed criterion C5 for its rule's PRIMARY outcome, so it may stand for a served
-    comparator outcome only when the two NAME THE SAME ENDPOINT: equal once case, spacing and a trailing parenthetical
-    qualifier are removed, where ' / ' in the served name separates alternative labels of one outcome ('Total
-    cardiovascular events / major vascular events'). Containment is never enough: 'all-cause mortality' is not 'all-cause
-    mortality or hospitalization' (codex v8-apply #1 and r2 #1)."""
+    comparator outcome only when the two names are EQUAL (case and spacing ignored), where ' / ' in the served name
+    separates alternative labels of one outcome ('Total cardiovascular events / major vascular events'). Where the names
+    differ in any other way the comparator's reported result is left ABSENT -- never matched by a heuristic and never
+    mapped by hand (Mahmood's rule: nothing hand-entered)."""
     r = _norm((adopted or {}).get("rule_primary_outcome"))
     if not r:
         return False

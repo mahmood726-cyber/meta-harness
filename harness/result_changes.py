@@ -90,6 +90,16 @@ def not_applied(n: dict[str, Any]) -> bool:
     return (n.get("withdrawal") or {}).get("state") == "WITHDRAWN_BY_SIGNER" or bool((n.get("superseded_by") or {}).get("notice"))
 
 
+def _instant(t: Any):
+    """A notice's when_utc as an aware datetime (UTC 'Z' or an offset, fractional seconds allowed), or None."""
+    import datetime as _dt
+    try:
+        d = _dt.datetime.fromisoformat(str(t).strip().replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    return d if d.tzinfo else None
+
+
 def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]]) -> dict[str, dict[str, Any]] | None:
     """A REINSTATEMENT (V8-06, 7 Oct): every trial this notice enters was SET ASIDE by an earlier signed, applied notice
     for the same outcome ('eligible evidence awaiting adjudication'), and this notice is that adjudication, reversing it by
@@ -108,13 +118,19 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]]) -> dict
         # the notice being reversed is the LATEST earlier signed, applied notice that MOVED this trial (in or out) for the
         # same outcome -- not any qualifying set-aside in its history (codex v8-apply-r3 #2: set aside, reinstated, then
         # excluded as ineligible must not reinstate again)
-        moved = [p for p in notices if p is not n and p.get("slug") == n.get("slug") and p.get("outcome") == n.get("outcome")
+        # times are compared as instants, never as strings ('...00Z' sorts after '...00.500Z'; codex v8-apply-r4 #2);
+        # a notice whose time cannot be parsed makes the question unanswerable, so it refuses
+        t_n = _instant(n.get("when_utc"))
+        cands = [p for p in notices if p is not n and p.get("slug") == n.get("slug") and p.get("outcome") == n.get("outcome")
                  and tid in [str(x) for x in (p.get("left_pool") or []) + (p.get("entered_pool") or [])]
-                 and not not_applied(p) and str(p.get("when_utc") or "") < str(n.get("when_utc") or "")
+                 and not not_applied(p)
                  and (p.get("reviewer_countersignature") or {}).get("state") in ("SEEN_AND_SIGNED", "BATCH_SEEN_AND_SIGNED")]
+        if t_n is None or any(_instant(p.get("when_utc")) is None for p in cands):
+            return None
+        moved = [p for p in cands if _instant(p.get("when_utc")) < t_n]
         if not moved:
             return None
-        p = max(moved, key=lambda x: str(x.get("when_utc") or ""))
+        p = max(moved, key=lambda x: _instant(x.get("when_utc")))
         reason_p = str(p.get("reason") or "")
         # ... and it must be a SET-ASIDE of this trial: a correction that removed an ineligible trial is not reversible
         # this way (codex v8-signing g1#1)

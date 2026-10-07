@@ -2294,8 +2294,12 @@ def build_review_core(slug, config, records, protocol_sha):
     # text and recorded in the config (with the quote in comparator_k_source), that value is used and
     # the fragile auto-extraction is not.
     ck = config.get("comparator_k")
-    if _adopted and isinstance(_adopted.get("k"), int) and not isinstance(_adopted.get("k"), bool):
-        theirs_k = _adopted["k"]        # the adopted pooled analysis's own k (the regex read 57 / 34: whole-review counts)
+    if _adopted:
+        # the adopted pooled analysis's own k -- only when that analysis IS one of our comparator outcomes (the same
+        # equality as the reported value); otherwise not stated. Never the regex: it read 57 / 34, whole-review counts
+        _k = _adopted.get("k")
+        theirs_k = (_k if reported and isinstance(_k, int) and not isinstance(_k, bool)
+                    else "not stated for this outcome by the adopted comparator's pooled analysis")
     elif ck is not None:
         theirs_k = ck
     else:
