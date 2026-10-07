@@ -3268,5 +3268,60 @@
     "verdict": null
    }
   ]
+ },
+ "pr25-final": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4ee093027ecb7276ef067914ae7316b7",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_select.py",
+     "scripts/g1_licence.py",
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "18fd5e046e5101447544052c6a17a1ce36f08389e1d92aec021daf940db601ac"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate / _bound_counts",
+    "severity": "P0",
+    "claim": "A trial count belonging to another outcome is accepted as the mortality result's k. Comma-separated clauses remain together, and 'but' does not trigger refusal. Number-word counts newly enable this case.",
+    "failing_input": "q = 'Five trials reported recurrence, but mortality data came from observational cohorts (RR 0.85, 95% CI 0.70 to 1.03).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the five trials concern recurrence; no mortality trial count is supplied.",
+    "actual": "(pl, 5): _bound_counts accepts the recurrence count because the same clause contains the mortality estimate and bounds.",
+    "id": "pr25-final:g1#1",
+    "record_id": "mc-4ee093027ecb7276ef067914ae7316b7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate / _counts_in.bound_after",
+    "severity": "P0",
+    "claim": "An explicitly qualified lower bound is accepted as an exact trial count. The trailing-bound regex misses 'at the very least'.",
+    "failing_input": "q = 'Five trials, at the very least, reported mortality (RR 0.85, 95% CI 0.70 to 1.03).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the text establishes k >= 5, not k = 5.",
+    "actual": "(pl, 5): printed_counts returns {5}, allowing an unsupported exact k downstream.",
+    "id": "pr25-final:g1#2",
+    "record_id": "mc-4ee093027ecb7276ef067914ae7316b7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "europepmc_ids",
+    "severity": "P1",
+    "claim": "An HTTP error containing JSON is silently classified as a complete search with zero hits. The status is ignored and missing hitCount defaults to zero.",
+    "failing_input": "europepmc_ids(lambda *args, **kwargs: (503, b'{\"error\":\"Service unavailable\"}'), 'mortality')",
+    "expected": "Raise/refuse, or return an explicit failed-search state; an error is not evidence of zero matches.",
+    "actual": "Returns an empty PMID list with count=0, fetched_hits=0, with_pmid=0 and state='COMPLETE', plus the error response's SHA-256.",
+    "id": "pr25-final:g1#3",
+    "record_id": "mc-4ee093027ecb7276ef067914ae7316b7",
+    "verdict": null
+   }
+  ]
  }
 }
