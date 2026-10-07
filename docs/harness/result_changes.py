@@ -89,6 +89,35 @@ def not_applied(n: dict[str, Any]) -> bool:
     return (n.get("withdrawal") or {}).get("state") == "WITHDRAWN_BY_SIGNER" or bool((n.get("superseded_by") or {}).get("notice"))
 
 
+def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]]) -> dict[str, dict[str, Any]] | None:
+    """A REINSTATEMENT (V8-06, 7 Oct): every trial this notice enters was SET ASIDE by an earlier signed, applied notice
+    for the same outcome ('eligible evidence awaiting adjudication'), and this notice is that adjudication, reversing it by
+    name. {trial id: the set-aside notice} when that holds for EVERY entering trial and the reason says it REVERSES the
+    set-aside and names each trial; None otherwise. A reinstatement claims nothing about the old number: the set-aside
+    already said it was not asserted wrong, and the old pool lacked this trial only because it was set aside."""
+    ent = [str(t) for t in n.get("entered_pool") or []]
+    reason = str(n.get("reason") or "")
+    if not ent or n.get("left_pool") or "REVERSES" not in reason or "set-aside" not in reason:
+        return None
+    out = {}
+    for tid in ent:
+        if tid not in reason:
+            return None
+        prior = [p for p in notices if p is not n and p.get("slug") == n.get("slug") and p.get("outcome") == n.get("outcome")
+                 and tid in [str(x) for x in p.get("left_pool") or []] and not not_applied(p)
+                 and str(p.get("when_utc") or "") < str(n.get("when_utc") or "")
+                 # the prior notice must itself have made the SET-ASIDE claim: a correction that removed an ineligible
+                 # trial is not reversible this way (codex v8-signing g1#1, reproduced)
+                 and "eligible evidence awaiting adjudication" in str(p.get("reason") or "")
+                 and "the numbers are not asserted wrong" in str(p.get("reason") or "")
+                 and "asserted wrong" not in str(p.get("reason") or "").replace("not asserted wrong", "")
+                 and (p.get("reviewer_countersignature") or {}).get("state") in ("SEEN_AND_SIGNED", "BATCH_SEEN_AND_SIGNED")]
+        if not prior:
+            return None
+        out[tid] = prior[-1]
+    return out
+
+
 def notice_for(notices: list[dict[str, Any]], slug: str, outcome: str, before: dict[str, Any] | None,
                after: dict[str, Any] | None, left: list[str], entered: list[str]) -> dict[str, Any] | None:
     """The one notice that names this change EXACTLY (both results, every row that moved), or None."""
