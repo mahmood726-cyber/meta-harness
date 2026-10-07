@@ -2863,5 +2863,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r27": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-69d6390567c3cb3230661e2160b239dc",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "191dc370d83b02dfda1cd728aceabc5adf6cee92b9ca3c7b8c2aea3c2eb1d575"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts",
+    "severity": "P0",
+    "claim": "Splitting clauses only at semicolons lets another outcome's trial count validate the pooled result when a comma separates the outcomes.",
+    "failing_input": "_bound_counts('Five trials reported recurrence (RR 0.75), whereas mortality RR 0.85 (95% CI 0.70-1.03) was pooled separately.', [0.85, 0.70, 1.03])",
+    "expected": "set(): the mortality result has no stated trial count.",
+    "actual": "{5}, allowing pooled_gate to accept the recurrence count as mortality k.",
+    "id": "swap-setquote-r27:g1#1",
+    "record_id": "mc-69d6390567c3cb3230661e2160b239dc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / _bound_counts",
+    "severity": "P0",
+    "claim": "The 'k = n' path bypasses the trailing-bound check when 'trials' intervenes. Although the ordinary trial-count path rejects '5 trials or more', the k path adds 5 anyway.",
+    "failing_input": "_bound_counts('Mortality RR 0.85 (95% CI 0.70-1.03), k = 5 trials or more.', [0.85, 0.70, 1.03])",
+    "expected": "set(): '5 trials or more' supplies a lower bound, not an exact k.",
+    "actual": "{5}, allowing pooled_gate to accept an exact k of 5.",
+    "id": "swap-setquote-r27:g1#2",
+    "record_id": "mc-69d6390567c3cb3230661e2160b239dc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in.blocked_before",
+    "severity": "P0",
+    "claim": "An article between a bound and its count defeats the approximation guard. The lookback handles intervening words for 'of' and 'between', but not 'at least'.",
+    "failing_input": "_bound_counts('At least the five trials contributed to mortality RR 0.85 (95% CI 0.70-1.03).', [0.85, 0.70, 1.03])",
+    "expected": "set(): the sentence establishes at least five contributing trials, not exactly five.",
+    "actual": "{5}, allowing pooled_gate to accept the lower bound as exact k.",
+    "id": "swap-setquote-r27:g1#3",
+    "record_id": "mc-69d6390567c3cb3230661e2160b239dc",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -499,3 +499,16 @@ def test_PLANT_r26_an_abbreviation_never_detaches_its_approximator():
     assert sw.printed_counts("Approx. 5 trials reported mortality RR 0.85 (95% CI 0.70-1.03).") == set()
     assert sw.printed_counts("Ca. 5 trials reported mortality RR 0.85.") == set()
     assert len(sw._sentences("See Fig. 2 for the forest plot. Five trials were pooled.")) == 2
+
+
+def test_PLANT_r27_contrasts_second_estimates_trial_noun_bounds_and_article_approximators():
+    """codex swap-setquote-r27: #1 (and r24-r26 #1) a contrast between outcomes in one sentence, or a second effect
+    estimate; #2 'k = 5 trials or more'; #3 'At least the five trials'."""
+    vals = [0.85, 0.70, 1.03]
+    assert sw._bound_counts("Five trials reported recurrence (RR 0.75), whereas mortality RR 0.85 (95% CI 0.70-1.03) "
+                            "was pooled separately.", vals) == set()
+    assert sw._bound_counts("Five trials reported recurrence, whereas mortality RR 0.85 (95% CI 0.70-1.03).", vals) == set()
+    assert sw._bound_counts("Five trials gave recurrence RR 0.75 and mortality RR 0.85 (95% CI 0.70-1.03).", vals) == set()
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), k = 5 trials or more.", vals) == set()
+    assert sw._bound_counts("At least the five trials contributed to mortality RR 0.85 (95% CI 0.70-1.03).", vals) == set()
+    assert sw._bound_counts("The five trials contributed to mortality RR 0.85 (95% CI 0.70-1.03).", vals) == {5}

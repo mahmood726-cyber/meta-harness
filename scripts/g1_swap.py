@@ -356,7 +356,16 @@ _RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s
                        # swap-setquote-r22 #2): 'most' then a reporting verb within two words, or 'most of the/them'.
                        # doac's 'in most studies of secondary prevention' (other studies) does not match
                        r"most\s+(?:of\s+(?:the|them|these|those)|(?:\w+\s+){0,2}(?:reported|report|contributed|provided|"
-                       r"included|had|showed|found|were|was|did|gave|yielded)))\b", re.I)
+                       r"included|had|showed|found|were|was|did|gave|yielded))|"
+                       # a CONTRAST between outcomes in one sentence ('Five trials reported recurrence, whereas mortality
+                       # RR ...'; codex swap-setquote-r24 #1 .. r27 #1): the count may belong to the other side. 'but' is
+                       # deliberately absent (doac's sentence: '..., but this primary outcome showed ...')
+                       r"whereas|whilst|while|in\s+contrast|by\s+contrast|unlike|separately|respectively|"
+                       r"compared\s+with\s+(?:those|the\s+\w+\s+outcome))\b", re.I)
+
+
+# two effect estimates in one sentence: two results, so the count's owner is ambiguous (codex swap-setquote-r27 #1)
+_EFFECT = re.compile(r"\b(?:RR|OR|HR|RD|MD|SMD|IRR|WMD)\s*[:=]?\s*[-−]?\d*\.?\d+", re.I)
 
 
 def _stray_percent(sent):
@@ -433,7 +442,8 @@ def printed_counts(q):
     for sent in _sentences(q):
         # a sentence that restricts the result to a SUBSET never supplies k, whichever path reads it (codex
         # swap-setquote-r15 #1: 'Five trials were included, but only a subset reported mortality (RR ...)')
-        if _numerals(sent) == 1 and not _RESTRICT.search(sent) and not _stray_percent(sent):
+        if (_numerals(sent) == 1 and not _RESTRICT.search(sent) and not _stray_percent(sent)
+                and len(_EFFECT.findall(sent)) <= 1):
             out |= _counts_in(sent)
     return out
 
@@ -469,6 +479,11 @@ def _counts_in(s):
         # ends the link for a phase ('Phase 3: 5 randomized trials' -> 5)
         if pt and pt[-1].rstrip(":;,.!?)]}\"'’”") in _APPROX:
             return True
+        # ... nor does an article or determiner between them ('At least the five trials'; codex swap-setquote-r27 #3)
+        p3 = [t.lstrip("([{\"'‘“").rstrip(":;,.!?)]}\"'’”") for t in prev_tokens(i, 3)]
+        if (len(p3) >= 2 and p3[-1] in ("the", "these", "those", "all", "its", "their", "a", "an", "our", "such")
+                and p3[-2] in _APPROX):
+            return True
         if not pt or not re.fullmatch(r"[a-z]+", pt[-1]):
             return False
         if pt[-1] in number_words or pt[-1] in ("phase", "point") or pt[-1] in _APPROX:
@@ -502,7 +517,10 @@ def _counts_in(s):
     # number in scientific notation ('k = 5e1') (codex swap-setquote-r24 #2, #3)
     # (?!\d) stops the regex backtracking INTO a number: 'k = 12.5' must not yield k = 1 (codex swap-setquote-r25 #1)
     for m in re.finditer(r"\bk\s*=\s*(\d+)(?!\d)(?![.,]\d)(?![eE][+-]?\d)", s, re.I):
-        if not bound_after(m.end()) and not blocked_before(m.start()):
+        # the bound may follow a trial noun ('k = 5 trials or more'; codex swap-setquote-r27 #2)
+        j = m.end()
+        noun = re.match(r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b", s[j:], re.I)
+        if not bound_after(j + (noun.end() if noun else 0)) and not blocked_before(m.start()):
             out.add(int(m.group(1)))
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
     # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
