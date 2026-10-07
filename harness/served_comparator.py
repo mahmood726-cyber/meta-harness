@@ -81,7 +81,9 @@ def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[
         return None
     pr = a.get("pooled_result") or {}
     if any(pr.get(k) is None for k in ("measure", "estimate", "ci_low", "ci_high")):
-        return None
+        # a SIGNED adoption without its pooled result is a broken register, not 'no adoption' (which would re-enable the
+        # regex over the comparator's text; codex v8-apply-r2 #2)
+        raise ValueError(f"ADOPTION: {slug}: signed switch to {cur} but the adoption record has no complete pooled_result")
     rp = os.path.join(root, "registry", "comparator_selection", f"{slug}.rule.json")
     rule_outcome = (_j(rp).get("protocol_reference") or {}).get("primary_outcome") if os.path.isfile(rp) else None
     return {"estimate": pr["estimate"], "ci_low": pr["ci_low"], "ci_high": pr["ci_high"], "scale": pr["measure"],
@@ -92,12 +94,21 @@ def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[
 
 
 def _norm(x: Any) -> str:
-    return " ".join(str(x or "").lower().split())
+    """Lower-case, a trailing parenthetical qualifier removed ('3-point MACE (CV death, nonfatal MI, ...)'), spacing
+    collapsed."""
+    import re
+    s = " ".join(str(x or "").lower().split())
+    return re.sub(r"\s*\([^()]*\)\s*$", "", s).strip()
 
 
 def adopted_outcome_matches(adopted: dict[str, Any], outcome_name: str) -> bool:
     """The adopted pooled result passed criterion C5 for its rule's PRIMARY outcome, so it may stand for a served
-    comparator outcome only when that outcome's name and the rule's primary-outcome name are the same, or one contains the
-    other (case and spacing ignored). Any other endpoint is never given the adopted number (codex v8-apply #1)."""
-    r, o = _norm((adopted or {}).get("rule_primary_outcome")), _norm(outcome_name)
-    return bool(r and o) and (r == o or r in o or o in r)
+    comparator outcome only when the two NAME THE SAME ENDPOINT: equal once case, spacing and a trailing parenthetical
+    qualifier are removed, where ' / ' in the served name separates alternative labels of one outcome ('Total
+    cardiovascular events / major vascular events'). Containment is never enough: 'all-cause mortality' is not 'all-cause
+    mortality or hospitalization' (codex v8-apply #1 and r2 #1)."""
+    r = _norm((adopted or {}).get("rule_primary_outcome"))
+    if not r:
+        return False
+    labels = {_norm(x) for x in str(outcome_name or "").split(" / ")} | {_norm(outcome_name)}
+    return r in {x for x in labels if x}

@@ -70,3 +70,25 @@ def test_PLANT_a_broken_adoption_register_refuses(tmp_path):
     (d / "x.adoption.json").mkdir()                       # exists, not a file (codex v8-apply #3)
     with pytest.raises(ValueError):
         sc.adopted_pooled("x", {"comparator_pmid": "1"}, str(tmp_path))
+
+
+def test_PLANT_a_composite_is_not_its_component():
+    """codex v8-apply-r2 #1: containment assigned a mortality estimate to 'mortality or hospitalization'."""
+    assert not sc.adopted_outcome_matches({"rule_primary_outcome": "All-cause mortality"},
+                                          "All-cause mortality or hospitalization")
+    assert sc.adopted_outcome_matches({"rule_primary_outcome": "Major vascular events"},
+                                      "Total cardiovascular events / major vascular events")
+
+
+def test_PLANT_a_signed_adoption_without_its_pooled_result_refuses(tmp_path):
+    import pytest
+    s = "dpp4-mace-t2d"
+    d = tmp_path / "registry" / "comparator_selection"
+    d.mkdir(parents=True)
+    a = _j("registry", "comparator_selection", f"{s}.adoption.json")
+    a.pop("pooled_result")
+    (d / f"{s}.adoption.json").write_text(json.dumps(a), encoding="utf-8")
+    (tmp_path / "registry" / "comparator_switch_signatures.json").write_text(
+        json.dumps(_j("registry", "comparator_switch_signatures.json")), encoding="utf-8")
+    with pytest.raises(ValueError):
+        sc.adopted_pooled(s, {"comparator_pmid": a["comparator_pmid"]}, str(tmp_path))
