@@ -215,15 +215,22 @@ def main(argv):
                      "rule_vs_reader_A": kappa([(rd(r), A(r)) for r in read]),
                      "rule_vs_reader_B": kappa([(rd(r), B(r)) for r in read]),
                      "rule_vs_final": kappa([(rd(r), r["final"]) for r in read])},
-           "readers_agree": sum(1 for r in read if A(r) == B(r)), "adjudicated": len(need),
+           "readers_agree": sum(1 for r in read if A(r) == B(r)), "adjudication": adjudication_counts(need),
            "final": {k: sum(1 for r in read if r["final"] == k) for k in ("ELIGIBLE", "INELIGIBLE", "UNRESOLVED")},
            "screen_errors": {k: sum(1 for r in read if r["screen_error"] == k) for k in ("FALSE_EXCLUSION", "FALSE_INCLUSION")},
            "rows": rows}
     dest = OUT if not shard else SA / f"screen_dual_codex.shard{shard.replace('/', 'of')}.json"
     json.dump(out, open(dest, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
-    print(json.dumps({k: out[k] for k in ("n_rows", "coverage", "n_read_by_both", "kappa", "readers_agree", "adjudicated",
+    print(json.dumps({k: out[k] for k in ("n_rows", "coverage", "n_read_by_both", "kappa", "readers_agree", "adjudication",
                                           "final", "screen_errors")}))
 
+
+
+def adjudication_counts(need):
+    """Adjudications NEEDED (readers disagree or cannot tell), COMPLETED (a recorded adjudicator verdict) and PENDING --
+    'adjudicated' had counted the needed ones, pending included (codex review mc-0effd237 P1)."""
+    done = sum(1 for r in need if r.get("adjudicator"))
+    return {"needed": len(need), "completed": done, "pending": len(need) - done}
 
 if __name__ == "__main__":
     main(sys.argv[1:])

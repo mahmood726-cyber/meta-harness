@@ -44,6 +44,63 @@ def screen_type(r):
     return "UNRESOLVED"
 
 
+
+def _adj(dc):
+    """'n adjudicated' counts COMPLETED adjudications; a pending one is stated, never counted (codex review mc-0effd237)."""
+    a = dc.get("adjudication")
+    if a is None:                                   # an output written before 7 Oct: the count was adjudications NEEDED
+        return f"{dc.get('adjudicated')} sent to adjudication"
+    return f"{a['completed']} adjudicated" + (f", {a['pending']} pending" if a["pending"] else "")
+
+
+def expanded_section(exps, edc):
+    """The expanded-search section, every sentence derived from the results passed in (codex review mc-0effd237 P0: the
+    reading had been hard-coded prose that contradicted its own table on other inputs)."""
+    edc = edc or {}
+    tops = edc.get("topics") or {}
+    L = ["## Expanded searches (volume cap 10,000)", "",
+         "Query per topic by a fixed rule: the smallest-volume blind proposal with the maximal measured recall gain. "
+         "Run in full; records not already held were rule-screened; a dual Codex review then read every new rule "
+         f"include, every newly identified comparator trial and a seeded random sample of {edc.get('sample_n')} "
+         "rule excludes per topic (seed recorded). Decision per topic: "
+         + "; ".join(f"{s}: {e.get('decision') or '(not recorded)'}" for s, e in exps.items()) + ".", "",
+         "| Topic | Records (new) | Rule include / exclude / dedup | Eligible comparator trials identified | "
+         "Newly identified passing the screen | Rule includes: Codex final E/I/U | False-exclusion rate (95% CI), "
+         "extrapolated over the sampling frame |", "|---|---|---|---|---|---|---|"]
+    for s, e in exps.items():
+        t = tops.get(s) or {}
+        rs, rc, ex = e["rule_screen"], e["recall"], t.get("exclude_sample") or {}
+        fi = t.get("rule_includes_final") or {}
+        L.append(f"| {s} | {e['esearch']['count']} ({e['new_records']}) | {rs['include']} / {rs['exclude']} / "
+                 f"{rs['dedup_collapsed']} | {rc['identified_before']} -> **{rc['identified_after']}** of {rc['eligible']} | "
+                 f"{rc['newly_identified_and_screen_included']} of {rc['newly_identified']} | {fi.get('ELIGIBLE')} / "
+                 f"{fi.get('INELIGIBLE')} / {fi.get('UNRESOLVED')} | {ex.get('rate')} ({ex.get('wilson95')}), "
+                 f"~{ex.get('extrapolated_false_exclusions')} of {ex.get('excludes_total')} |")
+    comp = [(s, c) for s in exps for c in (tops.get(s) or {}).get("comparator_trials") or []]
+    if comp:
+        L += ["", "Newly identified comparator trials screened as new records, rule decision -> dual Codex final: "
+              + "; ".join(f"{c['label']} ({s}) {c['rule']} -> {c['final']}" for s, c in comp) + "."]
+    gain = [(s, e["recall"]) for s, e in exps.items() if e["recall"].get("newly_identified")]
+    fe = [(s, (tops.get(s) or {}).get("exclude_sample") or {}) for s in exps]
+    fe_pos = [(s, x) for s, x in fe if x.get("false_exclusions") or x.get("rate")]
+    fin = collections.Counter()
+    for s in exps:
+        fin.update((tops.get(s) or {}).get("rule_includes_final") or {})
+    n_inc = sum(fin.values())
+    read = ["Reading (derived from the table):"]
+    read.append("identification: " + ("; ".join(f"{s} {r['identified_before']} -> {r['identified_after']} of {r['eligible']}"
+                                                  for s, r in gain) if gain else
+                                       "no topic identified an additional eligible comparator trial") + ".")
+    if n_inc:
+        read.append(f"rule includes reviewed: {n_inc}, Codex final {fin['ELIGIBLE']} eligible / {fin['INELIGIBLE']} ineligible / "
+                    f"{fin['UNRESOLVED']} unresolved ({round(100 * fin['ELIGIBLE'] / n_inc)}% confirmed eligible).")
+    read.append("exclude samples: " + ("; ".join(f"{s} {x.get('false_exclusions', '?')} of {x.get('decided', '?')} decided "
+                                                  f"({x.get('rate')}, 95% CI {x.get('wilson95')}), ~"
+                                                  f"{x.get('extrapolated_false_exclusions')} of {x.get('excludes_total')}"
+                                                  for s, x in fe_pos) if fe_pos else
+                                       "no false exclusion was found in any exclude sample") + ".")
+    return L + ["", " ".join(read), ""]
+
 def main():
     a = _j("SEARCH_SCREEN_AUDIT.json")
     vol = _j("search_volume_probe.json").get("topics", {})
@@ -140,7 +197,7 @@ def main():
               f"Every one of the {dc['n_rows']} comparator rows, kinds enumerated: {dc['coverage']} (COUNTERFACTUAL = a trial "
               f"our search missed, screened in memory by this branch's screener on its held record). {dc['n_read_by_both']} "
               f"items read by BOTH independent recorded readers ({dc['models']['reader_A']}, {dc['models']['reader_B']}); "
-              f"{dc['adjudicated']} adjudicated ({dc['models']['adjudicator']}) where they disagreed or could not decide.", "",
+              f"{_adj(dc)} ({dc['models']['adjudicator']}) where they disagreed or could not decide.", "",
               f"- **Cohen's kappa, reader A vs reader B: {k['reader_A_vs_reader_B']}**; rule screener vs A {k['rule_vs_reader_A']}, "
               f"vs B {k['rule_vs_reader_B']}, vs the adjudicated final {k['rule_vs_final']}.",
               f"- Readers agree on {dc['readers_agree']} of {dc['n_read_by_both']}. Final: {dc['final']}.",
@@ -164,35 +221,10 @@ def main():
                        if str((q.get("validation") or {}).get("verdict", "")).startswith("ACCEPT")})
         L += ["", f"Rounds 2 and precise are validated against the queries registered after the round-1 amendment, so a "
               f"gain there is new. Accepted and added by the dated 2026-10-06 amendment (A4): {', '.join(acc2) or 'none'}.", ""]
-    exp_topics = ("omega3-cardiovascular-events", "probiotics-aad-prevention", "semaglutide-obesity-mace",
-                  "sglt2-primary-prevention-hf")
-    exps = {s: _j(os.path.join("expanded", f"{s}.json")) for s in exp_topics}
-    edc = _j("expanded_dual_codex.json")
-    if all(exps.values()):
-        L += ["## Volume cap raised to 10,000 for 4 topics (decision 6 Oct, under Mahmood's delegation; amendment A5)", "",
-              "Query per topic by a fixed rule: the smallest-volume blind proposal with the maximal measured recall gain. "
-              "Run in full; records not already held were rule-screened; a dual Codex review then read every new rule "
-              f"include, every newly identified comparator trial and a seeded random sample of {edc.get('sample_n')} "
-              "rule excludes per topic (seed recorded).", "",
-              "| Topic | Records (new) | Rule include / exclude / dedup | Eligible comparator trials identified | "
-              "Newly identified passing the screen | Rule includes: Codex final E/I/U | False-exclusion rate (95% CI), "
-              "extrapolated |", "|---|---|---|---|---|---|---|"]
-        for s in exp_topics:
-            e, t = exps[s], (edc.get("topics") or {}).get(s) or {}
-            rs, rc, ex = e["rule_screen"], e["recall"], t.get("exclude_sample") or {}
-            fi = t.get("rule_includes_final") or {}
-            L.append(f"| {s} | {e['esearch']['count']} ({e['new_records']}) | {rs['include']} / {rs['exclude']} / "
-                     f"{rs['dedup_collapsed']} | {rc['identified_before']} -> **{rc['identified_after']}** of {rc['eligible']} | "
-                     f"{rc['newly_identified_and_screen_included']} of {rc['newly_identified']} | {fi.get('ELIGIBLE')} / "
-                     f"{fi.get('INELIGIBLE')} / {fi.get('UNRESOLVED')} | {ex.get('rate')} ({ex.get('wilson95')}), "
-                     f"~{ex.get('extrapolated_false_exclusions')} of {ex.get('excludes_total')} |")
-        comp = [(s, c) for s in exp_topics for c in ((edc.get("topics") or {}).get(s) or {}).get("comparator_trials") or []]
-        L += ["", "Newly identified comparator trials screened as new records, rule decision -> dual Codex final: "
-              + "; ".join(f"{c['label']} ({s}) {c['rule']} -> {c['final']}" for s, c in comp) + ".", "",
-              "Reading: identification gains are real (omega3 doubles); but the rule screen's precision on the new includes "
-              "is modest where many abstracts cannot be decided (UNRESOLVED), and the exclude samples estimate dozens to "
-              "~160 eligible-by-reader records per topic excluded by the rule screen -- the next screen work, before these "
-              "searches feed a served pool.", ""]
+    exps = {f[:-5]: _j(os.path.join("expanded", f)) for f in sorted(os.listdir(os.path.join(SA, "expanded")))
+            if f.endswith(".json")} if os.path.isdir(os.path.join(SA, "expanded")) else {}
+    if exps and all(exps.values()):
+        L += expanded_section(exps, _j("expanded_dual_codex.json"))
     still = []
     for s in sorted({s for _, t, _ in rounds for s in t}):
         accepted = any(str(((t.get(s) or {}).get("validation") or {}).get("verdict", "")).startswith("ACCEPT") for _, t, _ in rounds)

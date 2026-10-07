@@ -99,6 +99,7 @@ def run(slug):
     # whose record was held only because it was hand-named is identified by this query only if the query returns it.
     # Its screen decision: this branch's rule screen for a new record; the served screen for a record already held.
     hits = set(ids)
+    new_set, fetched_ids = set(new), {str(r["id"]) for r in recs}
     gain = []
     for t in audit["trials"]:
         if t["kind"] != "ELIGIBLE":
@@ -110,6 +111,12 @@ def run(slug):
             for p in hit:
                 if p in dec:
                     decs.append({"pmid": p, "source": "rule screen (new record)", **{k: dec[p].get(k) for k in ("decision", "rule_id")}})
+                elif p in new_set:
+                    # a NEW record without its own decision: collapsed by dedup, or never returned by efetch. It never
+                    # inherits the trial's served decision, which belongs to a record already held (codex review
+                    # mc-0effd237 P1; plant tests/test_search_audit_codex_review_1006.py)
+                    decs.append({"pmid": p, "source": "new record", **({"decision": "exclude", "rule_id": "X-DEDUP"}
+                                 if p in fetched_ids else {"decision": None, "rule_id": "NOT_RETURNED_BY_EFETCH"})})
                 else:
                     sv = (t.get("screen_include") or t.get("screen_exclusion") or {})
                     decs.append({"pmid": p, "source": "served screen (record already held)",
@@ -136,6 +143,28 @@ def run(slug):
     print(slug, json.dumps({k: out[k] for k in ("esearch", "new_records", "rule_screen", "recall")})[:600], flush=True)
 
 
+def relabel(slug):
+    """Offline repair of an output written before 7 Oct: a trial hit that is a NEW record without its own rule decision
+    (dedup-collapsed) had been labelled with the trial's served decision. Same rule as run(); no search re-run."""
+    p = os.path.join(OUT, f"{slug}.json")
+    e = _j(p)
+    rows = {r["pmid"]: r for r in e["records"]}
+    n = 0
+    for t in e["trials"]:
+        for d in t["screen_decisions"]:
+            if d["source"].startswith("served") and d["pmid"] in rows:
+                d.update(source="new record", decision=rows[d["pmid"]]["decision"], rule_id=rows[d["pmid"]]["rule_id"])
+                n += 1
+    e["recall"]["newly_identified_and_screen_included"] = sum(1 for g in e["trials"] if g["newly_identified"] and any(
+        d["decision"] == "include" for d in g["screen_decisions"]))
+    json.dump(e, open(p, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
+    print(slug, "relabelled", n)
+
+
 if __name__ == "__main__":
-    for s in (sys.argv[1:] or TOPICS):
-        run(s)
+    if sys.argv[1:2] == ["--relabel"]:
+        for s in (sys.argv[2:] or TOPICS):
+            relabel(s)
+    else:
+        for s in (sys.argv[1:] or TOPICS):
+            run(s)

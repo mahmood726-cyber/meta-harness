@@ -36,7 +36,11 @@ TOPICS = ("omega3-cardiovascular-events", "probiotics-aad-prevention", "semaglut
 
 
 def items():
-    out = []
+    """(items, unreviewable). The exclude sample's population is its sampling frame -- rule excludes that are neither
+    dedup-collapsed nor comparator trials (comparator trials are reviewed exhaustively and reported by name), so the
+    extrapolated count is over that frame only. A selected record with no held text is listed, never dropped (codex
+    review mc-0effd237 P0 / P2; plants tests/test_search_audit_codex_review_1006.py)."""
+    out, missing = [], []
     for slug in TOPICS:
         e = json.load(open(EXP / f"{slug}.json", encoding="utf-8"))
         recs = {str(r["id"]): r for r in json.load(open(TEXTS / f"{slug}.records.json", encoding="utf-8"))}
@@ -51,14 +55,22 @@ def items():
             for p in pids:
                 r, rec = rows[p], recs.get(p)
                 if rec is None:
+                    missing.append({"slug": slug, "record": p, "sample_kind": kind,
+                                    "why": "no held text for this PMID (expanded-search text store)"})
                     continue
                 ht = D.P.held_text_screening(rec)
                 out.append({"slug": slug, "sample_kind": kind, "label": comp.get(p, f"pmid {p}"), "record": p,
                             "rule_decision": r["decision"], "rule": {k: r.get(k) for k in ("rule_id", "reason", "span")},
                             "item_id": f"{slug}::expanded::{p}", "held_text": ht, "held_sha256": D._sha(ht.encode("utf-8")),
                             "held_ref": f"pubmed:{p} (expanded search 2026-10-06; text sha256 {r['held_sha256'][:12]})",
-                            "n_excludes_total": len(exc) + len([x for x in comp if rows[x]["decision"] == "exclude"])})
-    return out
+                            "n_excludes_total": len(exc)})
+    return out, missing
+
+
+def adjudication_counts(need):
+    """Adjudications NEEDED (readers disagree or cannot tell), COMPLETED (a recorded adjudicator verdict) and PENDING."""
+    done = sum(1 for r in need if r.get("adjudicator"))
+    return {"needed": len(need), "completed": done, "pending": len(need) - done}
 
 
 def wilson(k, n, z=1.959964):
@@ -75,10 +87,11 @@ def main(argv):
     live = "--run" in argv
     workers = int(argv[argv.index("--workers") + 1]) if "--workers" in argv else 5
     shard = argv[argv.index("--shard") + 1] if "--shard" in argv else None
-    its = items()
+    its, missing = items()
     if shard:
         i, n = map(int, shard.split("/"))
         its = its[i::n]
+        missing = missing[i::n]
     have, known = D._have()
     if live:
         todo = [(pb, dg, m, f"G1 expanded-search dual codex, {tag}, {it['item_id']}", None)
@@ -139,14 +152,17 @@ def main(argv):
                                "extrapolated_false_exclusions": None if rate is None else round(rate * ntot, 1)},
             "comparator_trials": [{"label": r["label"], "rule": r["rule"].get("rule_id"), "final": r["final"]}
                                   for r in R if r["sample_kind"] == "COMPARATOR"],
+            "unreviewable": sum(1 for m in missing if m["slug"] == slug),
             "kappa_A_vs_B": X.kappa([(r["reader_A"]["v"].get("model_decision"), r["reader_B"]["v"].get("model_decision")) for r in R]),
         }
     out = {"schema": 1, "seed": SEED, "sample_n": SAMPLE_N, "models": {"reader_A": X.MODEL_A, "reader_B": X.MODEL_B,
            "adjudicator": f"{X.MODEL_ADJ} (effort high)"}, "shard": shard, "n_items": len(rows),
-           "n_read_by_both": sum(1 for r in rows if r.get("final")), "adjudicated": len(need), "topics": summ, "rows": rows}
+           "n_read_by_both": sum(1 for r in rows if r.get("final")), "adjudication": adjudication_counts(need),
+           "unreviewable": missing, "topics": summ, "rows": rows}
     dest = SA / ("expanded_dual_codex.json" if not shard else f"expanded_dual_codex.shard{shard.replace('/', 'of')}.json")
     json.dump(out, open(dest, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
-    print(json.dumps({k: out[k] for k in ("n_items", "n_read_by_both", "adjudicated")}), json.dumps(summ)[:1500])
+    print(json.dumps({k: out[k] for k in ("n_items", "n_read_by_both", "adjudication")}), len(missing), "unreviewable",
+          json.dumps(summ)[:1500])
 
 
 if __name__ == "__main__":
