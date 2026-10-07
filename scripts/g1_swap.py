@@ -534,7 +534,11 @@ def _counts_in(s):
                 and (pt[0] in number_words or bool(re.fullmatch(r"\d+", pt[0]))))
 
     def bound_after(j):
-        """A bound written AFTER the trials word: 'Five trials at most', '5 studies or more' (codex swap-setquote-r14 #2)."""
+        """A bound written AFTER the trials word: 'Five trials at most', '5 studies or more' (codex swap-setquote-r14 #2).
+        Also a NEGATION within 30 characters after it ('Five trials were not included'; codex pr25-final5 #1) -- the
+        mirror of the 40-character negation check before the count."""
+        if re.search(r"\b(?:not|no|never|neither|nor|non|without|cannot|none)\b", s[j:j + 30], re.I):
+            return True
         # a bracket may open before it ('Five trials (at most)'; codex swap-setquote-r15 #2)
         # 'at the most' too (codex swap-setquote-r16 #2)
         # ... and 'at a minimum' (codex swap-setquote-r21 #1)
