@@ -2393,5 +2393,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r17": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b1ec611faa53256d0d858684d608a7b8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "bf3a094c5d79f5ae9921f502148495a3baf59091a95da7ed0ca73b254787e64e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / printed_counts",
+    "severity": "P0",
+    "claim": "An approximate count written in words is accepted as an exact k. The preceding word 'estimated' is not blocked, and pooled_gate trusts the resulting count.",
+    "failing_input": "printed_counts('An estimated five trials reported mortality (RR 0.85).')",
+    "expected": "set(): the sentence does not establish an exact trial count.",
+    "actual": "{5}, allowing pooled_gate to validate k=5.",
+    "id": "swap-setquote-r17:g1#1",
+    "record_id": "mc-b1ec611faa53256d0d858684d608a7b8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "Counts from unrelated sentences are combined without linking them to the pooled outcome. A restriction in the outcome sentence removes the correct count while leaving the review-wide count eligible.",
+    "failing_input": "printed_counts('Six trials were included. Only three trials reported mortality (RR 0.85).')",
+    "expected": "The review-wide count 6 must not validate the mortality result's k; a proposed k=6 must be rejected.",
+    "actual": "{6}. The first sentence contributes 6; _RESTRICT discards the mortality sentence, so pooled_gate accepts the wrong k=6.",
+    "id": "swap-setquote-r17:g1#2",
+    "record_id": "mc-b1ec611faa53256d0d858684d608a7b8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "The new fallback accepts the total number of enumerated trials even when its sentence explicitly says half contributed to mortality. 'half' is absent from both the restriction and numeral checks. The k_basis annotation does not prevent acceptance.",
+    "failing_input": "sq = 'Six trials were included; half reported mortality (RR 0.85, CI 0.70 to 1.03).'\npl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 6, 'quote': 'RR 0.85, CI 0.70 to 1.03'}\npooled_gate(pl, _norm(sq), set_quote=sq, verified_units=6)",
+    "expected": "(None, None): six enumerated trials do not corroborate six mortality contributors; the sentence states three.",
+    "actual": "Returns the accepted claim with k_basis.from='SET_QUOTE_SENTENCE' and validated k=6.",
+    "id": "swap-setquote-r17:g1#3",
+    "record_id": "mc-b1ec611faa53256d0d858684d608a7b8",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -367,3 +367,28 @@ def test_PLANT_r16_percent_fractions_at_the_most_and_excluded_trials_refuse_whil
     assert sw.printed_counts("Five trials were excluded from the mortality analysis (RR 0.85, CI 0.70-1.03).") == set()
     assert sw.printed_counts("Five trials gave RR 0.85 (95% CI 0.70-1.03; I2 = 0%).") == {5}
     assert sw.printed_counts("Five trials gave RR 0.85 (95% confidence interval 0.70-1.03).") == {5}
+
+
+def test_PLANT_r17_estimated_counts_other_sentences_and_halves_never_supply_k():
+    """codex swap-setquote-r17: #1 'An estimated five trials'; #2 a count in a sentence other than the one printing the
+    pooled estimate; #3 'half reported mortality' in the set-quote sentence."""
+    assert sw.printed_counts("An estimated five trials reported mortality (RR 0.85).") == set()
+    q = "Six trials were included. Only three trials reported mortality (RR 0.85)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 6, "quote": q}, sw._norm(q))[0] is None
+    q2 = "Six trials were included. Mortality was lower (RR 0.85)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 6, "quote": q2}, sw._norm(q2))[0] is None
+    q3 = "Mortality was lower across six trials (RR 0.85)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 6, "quote": q3}, sw._norm(q3))[1] == 6
+    sq = "Six trials were included; half reported mortality (RR 0.85, CI 0.70 to 1.03)."
+    pl = {"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 6, "quote": "RR 0.85, CI 0.70 to 1.03"}
+    assert sw.pooled_gate(pl, sw._norm(sq), set_quote=sq, verified_units=6)[0] is None
+
+
+def test_PLANT_citation_markers_and_squared_statistics_are_not_numerals():
+    """Part B replay regression: colchicine's 'the pooled results from the 3 RCTs ... (RR 0.48, 95 % CI 0.36-0.63,
+    p < 0.0001, I 2 = 0 % [ 20 - 22 ]; interaction p = 0.56)' read as four numerals and was refused. The citation
+    marker and the spaced I-squared are not quantities of trials; the count is still read only by the trial grammar."""
+    q = ("the pooled results from the 3 RCTs enrolling patients with recurrent pericarditis (RR 0.48, 95\u00a0% CI "
+         "0.36-0.63, p\u2009<\u20090.0001, I 2 \u2009=\u20090\u00a0% [ 20 \u2013 22 ]; interaction p\u2009=\u20090.56)")
+    assert sw.printed_counts(q) == {3}
+    assert sw.printed_counts("Five trials [12] and 3 cohorts gave RR 0.8.") == set()     # a real second quantity stays

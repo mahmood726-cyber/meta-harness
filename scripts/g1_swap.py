@@ -329,7 +329,10 @@ _APPROX = {"least", "most", "than", "about", "approximately", "around", "nearly"
            "roughly", "circa", "ca", "to", "upto", "beyond", "exceeding", "below", "above",
            # a count after 'of' is a denominator or a total ('50% of ten trials', 'two of the five'; codex
            # swap-setquote-r12 #1): never the contributing k. 'a total of 5 trials' is refused too -- refusal is safe
-           "of", "between"}
+           "of", "between",
+           # an estimate or approximation of the count ('An estimated five trials'; codex swap-setquote-r17 #1)
+           "estimated", "est", "approx", "approximate", "apparently", "reportedly", "possibly", "probably", "likely",
+           "perhaps", "potentially", "presumably", "expected", "anticipated", "projected"}
 
 
 _RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s+whom|of\s+these|of\s+those|of\s+them|"
@@ -337,7 +340,11 @@ _RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s
                        r"apart\s+from|other\s+than|remaining|rest\s+of|few(?:er)?|several|"
                        # trials taken OUT of the analysis are not its k ('Five trials were excluded from the mortality
                        # analysis'; codex swap-setquote-r16 #3)
-                       r"exclu\w*|omit\w*|withdr\w*|removed|dropped|lost\s+to)\b", re.I)
+                       r"exclu\w*|omit\w*|withdr\w*|removed|dropped|lost\s+to|"
+                       # a FRACTION of the trials ('Six trials were included; half reported mortality'; codex
+                       # swap-setquote-r17 #3). 'most' is deliberately absent: doac 29795629's own sentence says 'in most
+                       # studies of secondary prevention' of OTHER studies -- that residue is what k_basis discloses
+                       r"half|halves|quarters?|thirds?|majority|proportion|percent|per\s+cent)\b", re.I)
 
 
 def _stray_percent(sent):
@@ -358,15 +365,22 @@ def _clean(q):
 
 
 def _sentences(q):
-    """Sentences: split after . ; ! ? followed by space and a capital, digit or opening bracket. A missed split only
+    """Sentences: split after . ! ? followed by space and a capital, digit or opening bracket. A semicolon joins clauses
+    of ONE sentence ('RR .85 (95% CI .70-1.03); 12 trials.' prints its count with its estimate), so it never splits. A missed split only
     MERGES two sentences, and a merged sentence holding two numerals is refused by printed_counts -- never admitted."""
-    return [x for x in re.split(r"(?<=[.;!?])\s+(?=[\"'(\[]?[A-Z0-9])", _clean(q)) if x.strip()]
+    return [x for x in re.split(r"(?<=[.!?])\s+(?=[\"'(\[]?[A-Z0-9])", _clean(q)) if x.strip()]
 
 
 def _numerals(sent):
     """Every quantity in a sentence that could be a count: whole numbers (not decimals, percentages or a phase number)
     and number words (incl. 'both', 'dozen'). Statistics like 0.88 or 95% are not numerals."""
     n = 0
+    # numbers that are never a quantity of trials are removed first (the Part B replay refused colchicine's 'the 3 RCTs
+    # ... I 2 = 0 % [ 20 - 22 ]' as four numerals): bracketed citation markers ('[20-22]', '[3, 5]') and the squared
+    # statistics written with a 2 (I2 / I 2 / I^2, chi2, tau2). A removed number can only stop a refusal; the count
+    # itself must still match the trial-count grammar in _counts_in.
+    sent = re.sub(r"\[\s*\d+(?:\s*[-,]\s*\d+)*\s*\]", " ", sent)
+    sent = re.sub(r"\b(?:I|chi|tau|χ|τ)\s*(?:\^\s*)?2\b", " ", sent, flags=re.I)
     for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?!\s*%)", sent):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1
@@ -488,7 +502,14 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
             return None, None
     k = pl.get("k")
     if k is not None:
-        printed = printed_counts(q)
+        # k is read ONLY from the sentence(s) of the pooled quote that print the pooled ESTIMATE (codex swap-setquote-r17
+        # #2: 'Six trials were included. Only three trials reported mortality (RR 0.85).' -- the restricted outcome
+        # sentence refused its own count and the review-wide sentence's 6 survived). A count elsewhere is never k.
+        sents = _sentences(q)
+        if pl.get("estimate") not in (None, ""):
+            ev = float(str(pl["estimate"]).replace("−", "-").replace("–", "-"))
+            sents = [x for x in sents if any(abs(ev - t) < 1e-9 for t in _num_tokens(x))]
+        printed = set().union(*(printed_counts(x) for x in sents)) if sents else set()
         # ... or, ONLY when the pooled quote prints no count, in the meta's own SET QUOTE verbatim in the held text (doac
         # 29795629: 'In the five Phase 3 studies ...'). The pooled result's own count always wins: a review-wide count
         # never overrides it (codex swap-setquote-r7 #1); a set quote not in the text is never read
