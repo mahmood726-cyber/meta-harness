@@ -134,7 +134,11 @@ def pubmed_ids(get_raw, term, cap=PUBMED_LIMIT):
                              "retmode": "json", "tool": "meta-harness", "email": CONTACT})
             # PubMed echoes raw control characters in querytranslation (strict=False); a rate-limit reply is a JSON
             # error with no count -- retried with backoff, and after 5 the search fails closed (never a short 'complete')
-            r = (json.loads(b.decode("utf-8", "replace"), strict=False) if b[:1] == b"{" else {}).get("esearchresult") or {}
+            # a malformed error body is retried like any other failure, never raised past the loop (codex pr25-final3 #2)
+            try:
+                r = (json.loads(b.decode("utf-8", "replace"), strict=False) if b[:1] == b"{" else {}).get("esearchresult") or {}
+            except ValueError:
+                r = {}
             # ... and a failure status is never a result, whatever its body says (codex pr25-final2 #2: a 503 carrying
             # '{"esearchresult":{"count":"0"}}' was a complete search with no records)
             if st == 200 and "count" in r:
@@ -401,6 +405,8 @@ def _clean(q):
     s = re.sub(r"[‐‑‒–—−]", "-", s)
     # a slash with spaces round it is still a range ('Phase one / two studies'; codex swap-setquote-r9 #1)
     s = re.sub(r"\s*/\s*", "/", s)
+    # ASCII inequalities are the bound symbols ('>= 5 trials'; codex pr25-final3 #1)
+    s = re.sub(r">\s*=|=\s*>", "≥", re.sub(r"<\s*=|=\s*<", "≤", s))
     # a bracket right after a bound symbol does not detach the bound from its count ('≥(five trials)'; codex
     # swap-setquote-r20 #2)
     return re.sub(r"([~<>≤≥])\s*[(\[]\s*", r"\1", s)
