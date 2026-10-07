@@ -106,6 +106,11 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]]) -> dict
         prior = [p for p in notices if p is not n and p.get("slug") == n.get("slug") and p.get("outcome") == n.get("outcome")
                  and tid in [str(x) for x in p.get("left_pool") or []] and not not_applied(p)
                  and str(p.get("when_utc") or "") < str(n.get("when_utc") or "")
+                 # the prior notice must itself have made the SET-ASIDE claim: a correction that removed an ineligible
+                 # trial is not reversible this way (codex v8-signing g1#1, reproduced)
+                 and "eligible evidence awaiting adjudication" in str(p.get("reason") or "")
+                 and "the numbers are not asserted wrong" in str(p.get("reason") or "")
+                 and "asserted wrong" not in str(p.get("reason") or "").replace("not asserted wrong", "")
                  and (p.get("reviewer_countersignature") or {}).get("state") in ("SEEN_AND_SIGNED", "BATCH_SEEN_AND_SIGNED")]
         if not prior:
             return None

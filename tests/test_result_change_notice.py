@@ -371,7 +371,8 @@ def test_PLANT_a_reinstatement_must_reverse_a_real_signed_setaside():
     defect below makes it an ordinary entering notice again, which must then carry the new-evidence claim."""
     sig = {"state": "BATCH_SEEN_AND_SIGNED"}
     aside = {"slug": "s", "outcome": "o", "left_pool": ["PMID 1"], "entered_pool": [], "when_utc": "2026-09-20T00:00:00Z",
-             "reason": "PMID 1 set aside", "reviewer_countersignature": sig}
+             "reason": "PMID 1 set aside; eligible evidence awaiting adjudication; the numbers are not asserted wrong.",
+             "reviewer_countersignature": sig}
     back = {"slug": "s", "outcome": "o", "left_pool": [], "entered_pool": ["PMID 1"], "when_utc": "2026-10-06T00:00:00Z",
             "reason": "Binder fix. This REVERSES the 20 Sep set-aside of PMID 1."}
     assert result_changes.reversed_setasides(back, [aside, back]) == {"PMID 1": aside}
@@ -380,7 +381,9 @@ def test_PLANT_a_reinstatement_must_reverse_a_real_signed_setaside():
     # the set-aside was for another outcome / another trial / came later / was never signed / was withdrawn
     for bad in (dict(aside, outcome="other"), dict(aside, left_pool=["PMID 2"]), dict(aside, when_utc="2026-10-07T00:00:00Z"),
                 dict(aside, reviewer_countersignature={"state": "OPEN"}),
-                dict(aside, withdrawal={"state": "WITHDRAWN_BY_SIGNER"})):
+                dict(aside, withdrawal={"state": "WITHDRAWN_BY_SIGNER"}),
+                # a CORRECTION that removed an ineligible trial is not a set-aside (codex v8-signing g1#1)
+                dict(aside, reason="CORRECTION: PMID 1 is not randomized and is ineligible; the old result was wrong.")):
         assert result_changes.reversed_setasides(back, [bad, back]) is None, bad
     # the reason does not say it reverses the set-aside, or does not name the trial
     assert result_changes.reversed_setasides(dict(back, reason="PMID 1 entered."), [aside, back]) is None
