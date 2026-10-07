@@ -19,7 +19,7 @@ only). For every SERVED trial x outcome of the active G1 topics (not abandoned u
   python scripts/g1_d11_rob_grade.py --build                 (local: AACT + caches -> items, outside the tree)
   python scripts/g1_d11_rob_grade.py --run rob|grade [--shard i/n] [--workers 5]
   python scripts/g1_d11_rob_grade.py --derive                -> outputs/d11/D11_SIGNOFF.json + .md + NOTICES_DRAFT.md
-Items (the source texts shown) live in MH_D11_ITEMS (default C:/mh-tmp/search/d11); each source's sha256 is recorded
+Items (the source texts shown) live in MH_D11_ITEMS (a directory outside the tree); each source's sha256 is recorded
 in every call's input digests and in the committed outputs.
 """
 from __future__ import annotations
@@ -37,7 +37,7 @@ from reproducible_ai import model_source as ms  # noqa: E402
 
 OUT = ROOT / "outputs" / "d11"
 REC_DIR = ROOT / ms.RECORD_DIR
-ITEMS = Path(os.environ.get("MH_D11_ITEMS", "C:/mh-tmp/search/d11"))
+ITEMS = Path(os.environ.get("MH_D11_ITEMS", str(Path.home() / "mh-d11-items")))
 IDX = OUT / "records_index.json"
 MODEL_A, MODEL_B, MODEL_ADJ = "gpt-6-astra", "gpt-5.5", "gpt-6-astra"
 LANE = "d11-rob-grade"
