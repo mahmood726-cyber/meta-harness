@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `e3321ff0f791e555f83b460056c8c3440ba71df898e8ea04c9a431f862292fb1` |
-| html_sha256 (served page bytes) | `a0af803fadb19310f746d5ca730001ade662cb79efdc82c438d8613abe7b7a29` |
-| release_sha256 (certificate) | `9ee984478d463c441eae45add40fb7daca206c86e8fa0e20f06b22b3b6cfb733` |
+| review_sha256 (canonical review core) | `6ee910751b8e1d3d6dc91a86614d2917229400bdbea124849d404c90b4fd0c1a` |
+| html_sha256 (served page bytes) | `ef924d86070ecec8bed4f562f955c66a4d5be3670b2419ef364b22ebda77efda` |
+| release_sha256 (certificate) | `a132f6bbe72a91fed8f207fb69f0f5441461903d929c5271ad2be0c603fc88ac` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `146edbf724354bd40134ccaeae7719aebdf9f5f8` |
 | analysis code | 87 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `172fe8cd90504f746d88aafa6c23f8d552a93661` |
+| recorded generating commit | `20915e04fa0f1a50039049b5ebfbf60be36ab5e4` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -36,6 +36,7 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 
 | Repository-relative document | SHA-256 |
 |---|---|
+| `cache/comparators/35691474/2026-10-05_repository_mmc1.txt` | `dc37c6f89ec03f7ec488266b4fe1254f0c7f35f2ece78c24d7ba11604d1baaa7` |
 | `cache/melatonin-primary-insomnia-sol/aact_inputs.json` | `e65ac7358432997fc96a87854e59c9a863c6b2caaff0c5ebfc4aa356b3306496` |
 | `cache/melatonin-primary-insomnia-sol/comparator_fulltext.txt` | `1a0b83a7aa25c0dfcd2935033c36a6e73d6985fcc9b9a8b127f7fd4e852e3fad` |
 | `cache/melatonin-primary-insomnia-sol/ft_12790159.txt` | `77c8b7be1f77d8e2b4f68408fffbb6b61b3b4e3cfe9ab8c6101acaea31a6070a` |

@@ -233,7 +233,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - SAVOR-TIMI 53: **PRIMARY** - our held-source pool PMID 23992601 (abstract); vs comparator row: AGREE
 - EXAMINE: **PRIMARY** - single source: effect + two-sided 98% CI verbatim (level printed); re-expressed at 95% (NDA022271 022271s015lbl.pdf (held cache/regulatory/NDA022271/2026-10-05_022271s015lbl_section.txt)); the trial's own tuple (reading lane proposal, gated); vs comparator row: AGREE_ON_POINT:COMPARATOR_ONE_SIDED_BOUND; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - TECOS: **PRIMARY** - single PRIMARY source (2 Oct decision): AACT AACT AACT 2026-08-30 NCT00790205 outcome 258888999; model-read (record mc-157eeafcc07b39c4cae52b6d0d4ea7c7), gate-verified (g1/finish-line scripts/g1_trial_acquire.py); vs comparator row: AGREE; our refusal: declared absent (estimand mismatch): TECOS's abstract reports its primary as a FOUR-point composite (cardiovascular death, nonfatal myocardial infarction, nonfatal stroke, OR hospitalization for unstable angina), HR 0.98 (0.88-1.09). Our ou
-- CARMELINA: **PRIMARY** - our held-source pool PMID 30418475 (fulltext_verified); vs comparator row: AGREE
+- CARMELINA: **PRIMARY** - our held-source pool PMID 30418475 (abstract); vs comparator row: AGREE
 - pooled by us, not listed by the comparator: PMID 28893244 (2017; comparator 2021): NOT_EXPLAINED_BY_DATE
 
 ## empagliflozin-hfpef-hosp (comparator PMID 37773799)
@@ -256,7 +256,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 
 - DUAL FOREST READER (codex + agy) f2: **ACCEPTED** -- 2 comparator rows; printed pool reproduced by ['DL', 'FE', 'PM', 'REML']
 - Bakris et al. (15): **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Bakris et al. (16): **PRIMARY** - our held-source pool PMID 33264825 (fulltext_verified); vs comparator row: AGREE
+- Bakris et al. (16): **PRIMARY** - our held-source pool PMID 33264825 (abstract); vs comparator row: AGREE
 - Katayama et al. (17): **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Pitt et al. (18): **PRIMARY** - our held-source pool PMID 34449181 (abstract); vs comparator row: DISAGREE; side: SECONDARY_WRONG (primary numbers are in the primary's own span)
 - NAMED NOT_IN_COMPARATOR_OUTCOME_ANALYSIS: Bakris et al. (15) -- rule G1-OUTCOME-SET (G1 matches the comparator's result for this outcome); SPAN [comparator PMID 36742404 figure f2 panel A (recorded read mc-f40f9208be80faa7c4f046746acd0f47)]: "comparator PMID 36742404 figure f2 panel A (recorded read mc-f40f9208be80faa7c4f046746acd0f47): rows ['FIDELIO-DKD', 'FIGARO-DKD']; positive control reproduced (['FE', 'DL', 'PM']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)"
@@ -498,10 +498,10 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 30415602: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic 
 - Empagliflozin after Acute Myocardial Infarction.: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 38587237: SCREENED_OUT X2: wrong population: title/conditions mention 'myocardial infarction'.
 - Canagliflozin and Cardiovascular and Renal Events in Type 2 : **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 28605608: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic 
-- Empagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 36331190 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Empagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 36331190 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Dapagliflozin in Myocardial Infarction without Diabetes or H: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 38320489: SCREENED_OUT X2: wrong population: title/conditions mention 'myocardial infarction'.
 - Dapagliflozin in Heart Failure with Mildly Reduced or Preser: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 36027570: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure'.
-- Dapagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 32970396 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Dapagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 32970396 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Effect of Empagliflozin on the Clinical Stability of Patient: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 33081531: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure'.
 - Canagliflozin and Renal Outcomes in Type 2 Diabetes and Neph: **PRIMARY** - our held-source pool PMID 30990260 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Empagliflozin, Cardiovascular Outcomes, and Mortality in Typ: **NO_ROW** - IDENTIFICATION (secondary refused: ['MEASURE_SMD_IS_NOT_ESTIMAND_HR', 'OUTCOME_NOT_THE_TOPICS']); vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 26378978: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic 
