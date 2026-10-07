@@ -807,9 +807,122 @@ def cmd_acquire(slugs, run=False):
         print(s, dict(Counter(e["state"] for e in out)), flush=True)
 
 
+# ------------------------------------------------------------------------------------------------------------ compare
+def _f(x):
+    if x in (None, ""):
+        return None
+    try:
+        return float(re.sub(r"(?<=\d)·(?=\d)", ".", str(x)).replace("−", "-").replace("–", "-"))
+    except ValueError:
+        return None
+
+
+def our_rows(slug, o, acquired):
+    """Every row we hold for one outcome: ladder (served path), typed AACT, and gated recorded rows (ADMITTED only).
+    -> [{id, source_kind, measure, effect, lower, upper, events_t, n_t, events_c, n_c, basis}]"""
+    rows = []
+    for r in o["ladder_rows"]:
+        c = r.get("counts") or {}
+        rows.append({"id": r["id"], "source_kind": "LADDER", "measure": (r.get("scale") or "").upper(), "effect": r.get("effect"),
+                     "lower": r.get("ci_low"), "upper": r.get("ci_high"), **{k: c.get(k) for k in ("events_t", "n_t", "events_c", "n_c")},
+                     "basis": r.get("source")})
+    for r in o["typed_rows"]:
+        rows.append({"id": r["id"], "source_kind": r["rung"], "measure": None, "effect": None, "lower": None, "upper": None,
+                     **r["counts"], "basis": r["span"]})
+    for a in acquired:
+        if a.get("outcome") == o["name"] and a.get("state") in ("ADMITTED", "TYPED_ADMITTED"):
+            w = a["row"]
+            rows.append({"id": a["id"], "source_kind": "ACQUIRED_" + str(a.get("kind")), "measure": (w.get("measure") or "").upper(),
+                         "effect": _f(w.get("effect")), "lower": _f(w.get("lower")), "upper": _f(w.get("upper")),
+                         **{k: w.get(k) for k in ("events_t", "n_t", "events_c", "n_c")},
+                         "basis": f"{a.get('source')} | {_excerpt(a.get('span') or a.get('quote'), 300)}"
+                                  + (f" | record {a['record_id']}" if a.get("record_id") else "")})
+    return rows
+
+
+def to_study(r, measure):
+    """A synth.Study on the COMPARATOR's measure, or (None, why). Counts pool as that measure (OR / RR) directly; an
+    effect pools only when printed on that measure; anything else is a MEASURE_DIFFERENCE -- never converted."""
+    from harness import synth
+    cnt = all(isinstance(r.get(k), int) for k in ("events_t", "n_t", "events_c", "n_c"))
+    if cnt and measure in ("OR", "RR") and r["n_t"] > 0 and r["n_c"] > 0 and r["events_t"] <= r["n_t"] and r["events_c"] <= r["n_c"]:
+        return synth.Study(label=r["id"], ai=r["events_t"], n1i=r["n_t"], ci=r["events_c"], n2i=r["n_c"], measure=measure,
+                           derivation="reported"), None
+    if r.get("effect") is not None and r.get("lower") is not None and r.get("upper") is not None and \
+            (r.get("measure") or "") == measure:
+        return synth.Study(label=r["id"], effect=float(r["effect"]), ci_low=float(r["lower"]), ci_high=float(r["upper"]),
+                           measure=measure, derivation="reported"), None
+    return None, f"MEASURE_DIFFERENCE: ours {r.get('measure') or 'counts'} vs comparator {measure} (never converted)"
+
+
+def compare_outcome(slug, o, acquired, pool_n):
+    import g1_tracker as gt
+    from harness import synth
+    cr = o.get("comparator_result") or {}
+    m = estimand_of(cr.get("measure")) or (o["spec"].get("estimand") or "").upper()
+    theirs = {"estimate": _f(cr.get("estimate")), "ci_low": _f(cr.get("lower")), "ci_high": _f(cr.get("upper"))}
+    rows = our_rows(slug, o, acquired)
+    studies, md = [], []
+    for r in rows:
+        st, why = to_study(r, m)
+        (studies.append(st) if st else md.append({"id": r["id"], "why": why, "measure": r.get("measure"),
+                                                  "effect": r.get("effect"), "lower": r.get("lower"), "upper": r.get("upper")}))
+    out = {"outcome": o["name"], "kind": o["kind"], "comparator": {"name": o.get("comparator_name"), "measure": m,
+           **theirs, "k": cr.get("k"), "span": o.get("comparator_span")}, "our_rows": rows, "measure_differences": md,
+           "k_ours_on_measure": len(studies), "pool_trials": pool_n,
+           "basis_note": "the comparator printed a POOLED result only (no per-trial rows): our pool vs its printed pool; "
+                         "the two trial sets can differ"}
+    if None in theirs.values():
+        out["verdict"] = {"verdict": "COMPARATOR_RESULT_NOT_TYPED"}
+        return out
+    if studies:
+        p = synth.pool(studies, scale=m)
+        ours = {"estimate": p.estimate, "ci_low": p.ci_low, "ci_high": p.ci_high}
+        out["ours"] = {"k": p.k, "measure": m, **{k: round(v, 4) for k, v in ours.items()}, "tau2": round(p.tau2, 4),
+                       "ci_provenance": p.ci_provenance}
+        out["verdict"] = gt.result_verdict(ours, theirs, m)
+    elif md:
+        # only other-scale rows: the same-conclusion test (as the primary), never a conversion
+        scales = {d["measure"] for d in md}
+        if len(scales) == 1 and all(d["effect"] is not None for d in md):
+            sc = scales.pop()
+            p = synth.pool([synth.Study(label=d["id"], effect=float(d["effect"]), ci_low=float(d["lower"]),
+                                        ci_high=float(d["upper"]), measure=sc, derivation="reported") for d in md], scale=sc)
+            ours = {"estimate": p.estimate, "ci_low": p.ci_low, "ci_high": p.ci_high}
+            out["ours"] = {"k": p.k, "measure": sc, **{k: round(v, 4) for k, v in ours.items()}, "ci_provenance": p.ci_provenance}
+            same = gt._concl(ours, sc) == gt._concl(theirs, m)
+            out["verdict"] = {"verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION" if same else "DIFFERENT_CONCLUSION",
+                              "basis": f"our {sc} vs the comparator's {m}: never converted"}
+        else:
+            out["verdict"] = {"verdict": "MEASURE_DIFFERENCE_NOT_POOLABLE"}
+    else:
+        out["verdict"] = {"verdict": "NO_ROWS"}
+    return out
+
+
+def cmd_compare(slugs):
+    for s in slugs:
+        p = os.path.join(OUT, f"{s}.extraction.json")
+        if not os.path.exists(p):
+            continue
+        ex = _j(p)
+        ap = os.path.join(OUT, f"{s}.acquired.json")
+        acquired = _j(ap)["rows"] if os.path.exists(ap) else []
+        res = {"slug": s, "comparator_pmid": ex["comparator_pmid"], "outcomes": [compare_outcome(s, o, acquired, len(ex["pool"]))
+                                                                                 for o in ex["outcomes"]]}
+        with open(os.path.join(OUT, f"{s}.comparison.json"), "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(res, fh, indent=1, ensure_ascii=False, default=str)
+            fh.write("\n")
+        for c in res["outcomes"]:
+            o, t = c.get("ours") or {}, c["comparator"]
+            print(f"{s} | {c['outcome'][:38]} | ours k={o.get('k')} {o.get('measure')} {o.get('estimate')} ({o.get('ci_low')}, "
+                  f"{o.get('ci_high')}) of {c['pool_trials']} | theirs {t['measure']} {t['estimate']} ({t['ci_low']}, {t['ci_high']}) "
+                  f"| {c['verdict']['verdict']}", flush=True)
+
+
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     cmd, *args = sys.argv[1:]
     run = "--run" in args
     args = [a for a in args if not a.startswith("--")]
-    {"inventory": lambda a: cmd_inventory(a, run=run), "propose": cmd_propose, "register": cmd_register, "extract": cmd_extract, "acquire": lambda a: cmd_acquire(a, run=run)}[cmd](args)
+    {"inventory": lambda a: cmd_inventory(a, run=run), "propose": cmd_propose, "register": cmd_register, "extract": cmd_extract, "acquire": lambda a: cmd_acquire(a, run=run), "compare": cmd_compare}[cmd](args)

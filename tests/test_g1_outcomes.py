@@ -103,3 +103,14 @@ def test_posted_arms_map_by_our_terms_and_refuse_ambiguity():
     assert v == (22, 200, 15, 100) and why is None                           # dose arms summed; shared control once
     v, why = go._two_arms([("Dabigatran", 10, 100), ("Warfarin", 15, 100), ("Aspirin", 9, 100)], doac)
     assert v is None and why.startswith("UNMAPPED_GROUP")
+
+
+def test_counts_pool_on_the_comparators_measure_and_other_scales_are_never_converted():
+    r = {"id": "A", "events_t": 10, "n_t": 100, "events_c": 20, "n_c": 100, "measure": None}
+    st, why = go.to_study(r, "OR")
+    assert st is not None and why is None
+    st, why = go.to_study({"id": "B", "measure": "HR", "effect": 0.8, "lower": 0.6, "upper": 1.1}, "OR")
+    assert st is None and why.startswith("MEASURE_DIFFERENCE")
+    st, why = go.to_study({"id": "C", "events_t": 120, "n_t": 100, "events_c": 20, "n_c": 100}, "OR")
+    assert st is None                                   # events > N is never pooled
+    assert go._f("0·77") == 0.77 and go._f("−10.94") == -10.94
