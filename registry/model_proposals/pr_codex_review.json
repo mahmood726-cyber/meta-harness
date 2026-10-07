@@ -2916,5 +2916,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r28": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1ddd205f8321af8c34f9fd658a06c95e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "222e045e2488377df5e63ca3f9598f679de8a93993c5253c52eb3729578e3f66"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts",
+    "severity": "P0",
+    "claim": "A count belonging to another outcome is accepted as the mortality k. Only semicolons separate clauses, and _numerals misses the singular quantity in 'a different trial'.",
+    "failing_input": "_bound_counts('Five trials reported recurrence, but a different trial reported mortality (RR 0.85).', [0.85])",
+    "expected": "set(): the five trials concern recurrence; mortality comes from a different trial.",
+    "actual": "{5}: the recurrence count is accepted as belonging to the mortality result.",
+    "id": "swap-setquote-r28:g1#1",
+    "record_id": "mc-1ddd205f8321af8c34f9fd658a06c95e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / printed_counts",
+    "severity": "P0",
+    "claim": "The k-assignment regex accepts the numerator of a fraction as an exact count. _numerals ignores the denominator because it follows '/', so the single-numeral guard also passes.",
+    "failing_input": "printed_counts('Mortality RR 0.85 (k = 5/6).')",
+    "expected": "set(): 5/6 is not an exact integer trial count.",
+    "actual": "{5}; _bound_counts with vals=[0.85] also returns {5}.",
+    "id": "swap-setquote-r28:g1#2",
+    "record_id": "mc-1ddd205f8321af8c34f9fd658a06c95e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in.bound_after",
+    "severity": "P0",
+    "claim": "A trailing lower bound separated by an em dash is accepted as an exact count. Cleaning converts the dash to '-', but bound_after does not permit that separator.",
+    "failing_input": "printed_counts('Five trials—at least—reported mortality (RR 0.85).')",
+    "expected": "set(): 'at least' establishes a lower bound, not exact k=5.",
+    "actual": "{5}; _bound_counts with vals=[0.85] also returns {5}.",
+    "id": "swap-setquote-r28:g1#3",
+    "record_id": "mc-1ddd205f8321af8c34f9fd658a06c95e",
+    "verdict": null
+   }
+  ]
  }
 }

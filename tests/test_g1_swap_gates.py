@@ -512,3 +512,11 @@ def test_PLANT_r27_contrasts_second_estimates_trial_noun_bounds_and_article_appr
     assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), k = 5 trials or more.", vals) == set()
     assert sw._bound_counts("At least the five trials contributed to mortality RR 0.85 (95% CI 0.70-1.03).", vals) == set()
     assert sw._bound_counts("The five trials contributed to mortality RR 0.85 (95% CI 0.70-1.03).", vals) == {5}
+
+
+def test_PLANT_r28_a_different_trial_fraction_k_and_dash_bounds_refuse():
+    """codex swap-setquote-r28: #1 'but a different trial reported mortality'; #2 'k = 5/6'; #3 'Five trials—at least—'."""
+    assert sw._bound_counts("Five trials reported recurrence, but a different trial reported mortality (RR 0.85).",
+                            [0.85]) == set()
+    assert sw.printed_counts("Mortality RR 0.85 (k = 5/6).") == set()
+    assert sw.printed_counts("Five trials\u2014at least\u2014reported mortality (RR 0.85).") == set()

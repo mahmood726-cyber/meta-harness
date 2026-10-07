@@ -426,7 +426,9 @@ def _numerals(sent):
     # swap-setquote-r20 #1) -- but not inside a hyphenated compound ('all-cause mortality', 'single-centre'; codex
     # swap-setquote-r21 #2, a false refusal)
     collective = ["single", "sole", "lone", "multiple", "numerous", "various", "many", "each", "every", "another", "all"]
-    sent = re.sub(r"\ban?\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trial|study|rct)\b", " one ", sent, flags=re.I)
+    # 'a trial', 'a different trial', 'an additional RCT': any singular trial noun is one more quantity (codex
+    # swap-setquote-r28 #1)
+    sent = re.sub(r"\ban?\s+(?:[\w-]+\s+){0,3}(?:trial|study|rct)\b", " one ", sent, flags=re.I)
     for m in re.finditer(r"\b(?:" + "|".join(words) + r")\b|(?<![\w-])(?:" + "|".join(collective) + r")(?![\w-])",
                          sent, re.I):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
@@ -506,7 +508,8 @@ def _counts_in(s):
         # a bracket may open before it ('Five trials (at most)'; codex swap-setquote-r15 #2)
         # 'at the most' too (codex swap-setquote-r16 #2)
         # ... and 'at a minimum' (codex swap-setquote-r21 #1)
-        return bool(re.match(r"\s*[,(\[]?\s*(?:(?:at\s+(?:the\s+|a\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
+        # a dash may open it too ('Five trials—at least—'; cleaning makes every dash '-'; codex swap-setquote-r28 #3)
+        return bool(re.match(r"\s*[,(\[-]?\s*(?:(?:at\s+(?:the\s+|a\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
                              r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over)|"
                              # a trailing approximation ('five trials, approximately'; codex swap-setquote-r23 #1)
                              r"approx\w*|about|roughly|circa|estimated|give\s+or\s+take|or\s+thereabouts)\b|\+)",
@@ -516,7 +519,8 @@ def _counts_in(s):
     # ... and the same check BEFORE it, read before the 'k' ('approximately k = 5'), and never the integer prefix of a
     # number in scientific notation ('k = 5e1') (codex swap-setquote-r24 #2, #3)
     # (?!\d) stops the regex backtracking INTO a number: 'k = 12.5' must not yield k = 1 (codex swap-setquote-r25 #1)
-    for m in re.finditer(r"\bk\s*=\s*(\d+)(?!\d)(?![.,]\d)(?![eE][+-]?\d)", s, re.I):
+    # ... nor the numerator of a fraction ('k = 5/6'; codex swap-setquote-r28 #2)
+    for m in re.finditer(r"\bk\s*=\s*(\d+)(?!\d)(?![.,]\d)(?![eE][+-]?\d)(?!\s*/)", s, re.I):
         # the bound may follow a trial noun ('k = 5 trials or more'; codex swap-setquote-r27 #2)
         j = m.end()
         noun = re.match(r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b", s[j:], re.I)
