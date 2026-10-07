@@ -35,8 +35,19 @@ def _j(p):
         return json.load(fh)
 
 
+def stem(s):
+    """'slug@r2' -> 'slug.r2': a later swap ROUND for a topic whose earlier pre-registration must never be rewritten
+    (5 Oct rules for statins / melatonin / denosumab); a plain slug is its own stem."""
+    return s.replace("@", ".")
+
+
+def base(s):
+    return s.split("@")[0]
+
+
 def protocol(slug):
     """The protocol fields a rule quotes, taken from the topic file only."""
+    slug = base(slug)
     c = _j(os.path.join(ROOT, "topics", slug + ".json"))
     po = c.get("primary_outcome") or {}
     est = (po.get("estimand") or "").upper()
@@ -53,7 +64,7 @@ def rule(slug):
     fam = ("ratio (HR, RR or OR)" if est in RATIO else f"{est} (a standardised difference fails)")
     t1 = (f"1 = {est}; 0 = another ratio" if est in RATIO else f"1 = {est} on the protocol's scale; 0 = other")
     return {
-        "slug": slug,
+        "slug": base(slug), "round": (slug.split("@")[1] if "@" in slug else "r1"),
         "purpose": ("PRE-REGISTERED selection rule for a replacement comparator meta (Mahmood 6 Oct: 'solve it through "
                     "comparator swaps'). Committed BEFORE any candidate search; candidates are judged per criterion from "
                     "their own text, and the pick follows from R0, the criteria and the tie-breaks alone. How our pool "
@@ -88,13 +99,13 @@ def rule(slug):
         "if_none_pass": ("NO_ACHIEVABLE_COMPARATOR: record the closest candidate and its single failing criterion; the "
                          "topic keeps its current comparator; no criterion is relaxed after the search"),
         "selector": "scripts/g1_comparator_select.py (deterministic; reads this rule and the typed candidates file)",
-        "candidates_file": f"registry/comparator_selection/{slug}.candidates.json",
+        "candidates_file": f"registry/comparator_selection/{stem(slug)}.candidates.json",
         "process": "scripts/g1_swap.py (rules -> search -> screen -> select); enumeration and acquisition follow the pick"}
 
 
 def cmd_rules(slugs):
     for s in slugs:
-        p = os.path.join(SEL, f"{s}.rule.json")
+        p = os.path.join(SEL, f"{stem(s)}.rule.json")
         if os.path.exists(p):
             old = _j(p)
             if old.get("process", "").startswith("scripts/g1_swap.py"):
@@ -144,11 +155,11 @@ def cmd_search(slugs):
                            "pubtypes": v.get("pubtype"),
                            "pmcid": next((a["value"] for a in v.get("articleids", []) if a["idtype"] == "pmc"), None),
                            "doi": next((a["value"] for a in v.get("articleids", []) if a["idtype"] == "doi"), None)}
-        out = {"slug": s, "date": DATE, "rule": f"registry/comparator_selection/{s}.rule.json",
+        out = {"slug": s, "date": DATE, "rule": f"registry/comparator_selection/{stem(s)}.rule.json",
                "pubmed": {"query": pq, "n": len(pm), "response_sha256": hashlib.sha256(b).hexdigest()},
                "europepmc": {"query": eq, "n": len(ep), "response_sha256": hashlib.sha256(b2).hexdigest()},
                "current_comparator_added": p["current_comparator"], "records": recs}
-        with open(os.path.join(SEL, f"{s}.search.json"), "w", encoding="utf-8", newline="\n") as fh:
+        with open(os.path.join(SEL, f"{stem(s)}.search.json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(out, fh, indent=1, ensure_ascii=False)
         print(s, "pubmed", len(pm), "europepmc", len(ep), "records", len(recs), flush=True)
 
@@ -355,7 +366,7 @@ def screen_item(s, p, pmid, rec, rule_):
     crit = "\n".join(f"{c['id']}: PASS if {c['pass_if']}" for c in rule_["criteria"] if c["id"] != "C1_OPEN_LICENCE")
     prompt = (SCREEN_INSTR + f"\n\nPROTOCOL: {p['question']}\nPRIMARY OUTCOME: {p['primary_outcome']} "
               f"(estimand {p['estimand']}, timepoint {p['timepoint']})\nCRITERIA:\n{crit}\n<<<TEXT\n{text[:180000]}\nTEXT>>>\n").encode("utf-8")
-    return {"key": f"swapscreen::{s}::{pmid}", "pmid": pmid, "slug": s, "prompt": prompt, "text": text, "held": rel,
+    return {"key": f"swapscreen::{base(s)}::{pmid}", "pmid": pmid, "slug": s, "prompt": prompt, "text": text, "held": rel,
             "digests": [{"ref": rel, "sha256": hashlib.sha256(open(os.path.join(ROOT, rel), "rb").read()).hexdigest(),
                          "what": "the candidate meta's open JATS (CC BY / CC0), rendered to text, first 180000 chars"}]}
 
@@ -462,7 +473,7 @@ def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs):
                     runs[k] = r
                     print(k, r["state"], r["record_id"], flush=True)
                     if sum(1 for v in runs.values() if v is r) and len(runs) % 20 == 0:
-                        runs_store.save(runs, slugs=set(slugs))      # periodic: an interruption loses <= 20 entries
+                        runs_store.save(runs, slugs={base(x) for x in slugs})      # periodic: an interruption loses <= 20 entries
                 except Exception as exc:  # noqa: BLE001 - a refused call is named, never dropped
                     print("LOCAL CALL FAILED", type(exc).__name__, str(exc)[:200], flush=True)
         try:
@@ -471,7 +482,7 @@ def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs):
                 print(k, r["state"], r["record_id"], "worker", flush=True)
         except Exception as exc:  # noqa: BLE001 - worker failure is reported; the local half stands
             print("WORKER BATCH FAILED", type(exc).__name__, str(exc)[:300], flush=True)
-    runs_store.save(runs, slugs=set(slugs))
+    runs_store.save(runs, slugs={base(x) for x in slugs})
 
 
 def cmd_screen(slugs, run=False):
@@ -484,8 +495,8 @@ def cmd_screen(slugs, run=False):
     runs = runs_store.load()
     items, cands_all = [], {}
     for s in slugs:
-        p, rule_ = protocol(s), _j(os.path.join(SEL, f"{s}.rule.json"))
-        srch = _j(os.path.join(SEL, f"{s}.search.json"))
+        p, rule_ = protocol(s), _j(os.path.join(SEL, f"{stem(s)}.rule.json"))
+        srch = _j(os.path.join(SEL, f"{stem(s)}.search.json"))
         cands = {}
         for pmid, rec in srch["records"].items():
             if pmid != p["current_comparator"] and not on_topic(rec.get("title"), p):
@@ -582,14 +593,14 @@ def cmd_screen(slugs, run=False):
             for k, r in fut.result().items():
                 runs[k] = r
                 print(k, r["state"], r["record_id"], "worker", flush=True)
-        runs_store.save(runs, slugs=set(slugs))
+        runs_store.save(runs, slugs={base(x) for x in slugs})
     by_key = {it["key"]: it for it in items}
     for s in slugs:
         cands, n_rec = cands_all[s]
         for pmid, c in cands.items():
-            it = by_key.get(f"swapscreen::{s}::{pmid}")
-            r = runs.get(f"swapscreen::{s}::{pmid}") or {}
-            ex = excluded.get(f"swapscreen::{s}::{pmid}")
+            it = by_key.get(f"swapscreen::{base(s)}::{pmid}")
+            r = runs.get(f"swapscreen::{base(s)}::{pmid}") or {}
+            ex = excluded.get(f"swapscreen::{base(s)}::{pmid}")
             if ex:
                 c["criteria"].update(ex[0])
                 c["criteria"]["C6_ROWS_AND_POOLED"] = {"verdict": "UNCLEAR", "evidence": "not read: excluded at stage A"}
@@ -613,17 +624,17 @@ def cmd_screen(slugs, run=False):
             c["tie_breaks"] = {"T1_ESTIMAND_MATCH": 1 if (est in meas or {"HAZARD": "HR", "RISK": "RR", "ODDS": "OR"}.get(meas.split()[0] if meas else "", "") == est) else 0,
                                "T2_MOST_RECENT": int(m.group(1)) * 100 + mon if m else 0,
                                "T3_LARGEST_K": k or 0}
-        out = {"slug": s, "rule": f"registry/comparator_selection/{s}.rule.json",
+        out = {"slug": s, "rule": f"registry/comparator_selection/{stem(s)}.rule.json",
                "rule_commit": __import__("subprocess").run(["git", "-C", ROOT, "log", "-1", "--format=%H", "--",
-                                                            f"registry/comparator_selection/{s}.rule.json"],
+                                                            f"registry/comparator_selection/{stem(s)}.rule.json"],
                                                            capture_output=True, text=True).stdout.strip(),
-               "search_file": f"registry/comparator_selection/{s}.search.json", "records_searched": n_rec,
+               "search_file": f"registry/comparator_selection/{stem(s)}.search.json", "records_searched": n_rec,
                "screening": ("title prefilter: the topic's intervention terms in the title (else off-topic, not listed); "
                              "C1 mechanically from licence metadata; C2-C6 by one recorded codex call per C1-PASS candidate "
                              "over its held CC BY/CC0 JATS (evidence/model_calls/swap_screen), each verdict counted only "
                              "with its quote verbatim in the held text (else UNCLEAR). Nothing about our pool is read."),
                "candidates": sorted(cands.values(), key=lambda c: c["pmid"])}
-        with open(os.path.join(SEL, f"{s}.candidates.json"), "w", encoding="utf-8", newline="\n") as fh:
+        with open(os.path.join(SEL, f"{stem(s)}.candidates.json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(out, fh, indent=1, ensure_ascii=False)
         npass = sum(all(v.get("verdict") == "PASS" for v in c["criteria"].values()) for c in cands.values())
         print(s, "candidates", len(cands), "all-PASS", npass, flush=True)
@@ -673,7 +684,7 @@ def enum_item(s, pmid, rel):
     text = jats_text(xml)
     prompt = (ENUM_INSTR + f"\n\nPROTOCOL: {p['question']}\nOUTCOME: {p['primary_outcome']} (estimand {p['estimand']}, "
               f"timepoint {p['timepoint']})\n<<<TEXT\n{text[:180000]}\nTEXT>>>\n").encode("utf-8")
-    return {"key": f"swapenum::{s}::{pmid}", "slug": s, "pmid": pmid, "prompt": prompt, "text": text, "xml": xml,
+    return {"key": f"swapenum::{base(s)}::{pmid}", "slug": base(s), "pmid": pmid, "prompt": prompt, "text": text, "xml": xml,
             "held": rel, "schema": ENUM_SCHEMA, "stage": "ENUM",
             "digests": [{"ref": rel, "sha256": hashlib.sha256(open(os.path.join(ROOT, rel), "rb").read()).hexdigest(),
                          "what": "the picked comparator's open JATS (CC BY / CC0), rendered to text, first 180000 chars"}]}
@@ -733,12 +744,12 @@ def cmd_enumerate(slugs, run=False):
     runs = runs_store.load()
     items = []
     for s in slugs:
-        sel = _j(os.path.join(SEL, f"{s}.selection.json"))
+        sel = _j(os.path.join(SEL, f"{stem(s)}.selection.json"))
         pk = (sel.get("pick") or {}).get("pmid")
         if sel.get("result") not in ("PICKED", "PICKED_BY_RATIFIED_EXCEPTION") or not pk:
             print(s, "no new comparator:", sel.get("result"))
             continue
-        c = next(x for x in _j(os.path.join(SEL, f"{s}.candidates.json"))["candidates"] if x["pmid"] == pk)
+        c = next(x for x in _j(os.path.join(SEL, f"{stem(s)}.candidates.json"))["candidates"] if x["pmid"] == pk)
         items.append(enum_item(s, pk, c["held"]))
     done = lambda it: (runs.get(it["key"]) or {}).get("prompt_sha256") == hashlib.sha256(it["prompt"]).hexdigest() and \
         os.path.exists(os.path.join(rec_dir, str((runs.get(it["key"]) or {}).get("record_id")) + ".json"))
@@ -782,8 +793,8 @@ def cmd_apply(slugs):
     'replaces' with its retirement), topic comparator_pmid. A KEEP / NO_ACHIEVABLE topic is never touched."""
     import shutil
     for s in slugs:
-        sel = _j(os.path.join(SEL, f"{s}.selection.json"))
-        ep = os.path.join(ROOT, "registry", "comparator_enumerations", f"{s}.swap.json")
+        sel = _j(os.path.join(SEL, f"{stem(s)}.selection.json"))
+        ep = os.path.join(ROOT, "registry", "comparator_enumerations", f"{base(s)}.swap.json")
         if sel.get("result") not in ("PICKED", "PICKED_BY_RATIFIED_EXCEPTION"):
             print(s, "not applied:", sel.get("result"))
             continue
@@ -793,19 +804,19 @@ def cmd_apply(slugs):
             continue
         en = _j(ep)
         new, old = str(sel["pick"]["pmid"]), str((sel.get("R0") or {}).get("comparator_pmid"))
-        cand = next(c for c in _j(os.path.join(SEL, f"{s}.candidates.json"))["candidates"] if c["pmid"] == new)
+        cand = next(c for c in _j(os.path.join(SEL, f"{stem(s)}.candidates.json"))["candidates"] if c["pmid"] == new)
         src = en["source"]["path"]
         # 1. enumeration: the old comparator's file (if any) is retired beside, never deleted
-        cur = os.path.join(ROOT, "registry", "comparator_enumerations", f"{s}.json")
+        cur = os.path.join(ROOT, "registry", "comparator_enumerations", f"{base(s)}.json")
         if os.path.exists(cur) and str(_j(cur).get("comparator_pmid")) != new:
             os.makedirs(os.path.join(ROOT, "registry", "comparator_enumerations", "retired"), exist_ok=True)
             shutil.move(cur, os.path.join(ROOT, "registry", "comparator_enumerations", "retired",
-                                          f"{s}.{_j(cur).get('comparator_pmid')}.json"))
+                                          f"{base(s)}.{_j(cur).get('comparator_pmid')}.json"))
         enum = {k: en[k] for k in ("slug", "comparator_pmid", "status", "enumerated_from", "set_span", "source", "units")}
         with open(cur, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(enum, fh, indent=1, ensure_ascii=False)
         # 2. retirement: R0's failing criteria; spans only where the evidence is verbatim in the old comparator's held text
-        held = _held_old(s, old)
+        held = _held_old(base(s), old)
         ht = _norm(jats_text(open(os.path.join(ROOT, held), encoding="utf-8", errors="replace").read())) if held else ""
         fails = (sel.get("R0") or {}).get("failing") or []
         spans = [f["evidence"] for f in fails if f.get("evidence") and ht and _norm(f["evidence"]) in ht]
@@ -815,9 +826,9 @@ def cmd_apply(slugs):
                                               if held else None),
                    "retired_on": DATE, "record": "kept: cache/<slug>/comparators.json 'replaces', and the G1 denominator ledger"}
         pl = en["pooled"]
-        adoption = {"slug": s, "comparator_pmid": new, "comparator_pmcid": cand.get("pmcid"),
+        adoption = {"slug": base(s), "round": stem(s), "comparator_pmid": new, "comparator_pmcid": cand.get("pmcid"),
                     "comparator_type": "COMPARATOR_WITH_PER_TRIAL_ROWS",
-                    "selection": {"rule_commit": sel["rule_commit"], "selection_file": f"registry/comparator_selection/{s}.selection.json",
+                    "selection": {"rule_commit": sel["rule_commit"], "selection_file": f"registry/comparator_selection/{stem(s)}.selection.json",
                                   "result": sel["result"], "R0": sel.get("R0"),
                                   "decided_by": "Mahmood 2026-10-06: 'solve it through comparator swaps' (pre-registered rule)"},
                     "terms": {"per_trial_comparison": "from the comparator's own per-trial rows (read through the existing secondary-meta path)"},
@@ -825,10 +836,10 @@ def cmd_apply(slugs):
                                       "ci_high": pl.get("upper"), "k": pl.get("k"), "spans": {"result": pl.get("quote")},
                                       "source": {"path": src, "sha256": en["source"]["sha256"]}},
                     "trial_set": [{"label": u["label"], "pmid": u["pmid"]} for u in en["units"]], "retired": retired}
-        with open(os.path.join(SEL, f"{s}.adoption.json"), "w", encoding="utf-8", newline="\n") as fh:
+        with open(os.path.join(SEL, f"{base(s)}.adoption.json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(adoption, fh, indent=1, ensure_ascii=False)
         # 3. comparators.json + topic
-        cp = os.path.join(ROOT, "cache", s, "comparators.json")
+        cp = os.path.join(ROOT, "cache", base(s), "comparators.json")
         oldc = _j(cp)
         if oldc and str(oldc[0].get("id")) == new:
             oldc = [{k: v for k, v in e.items() if k != "retired"} for e in oldc[0].get("replaces") or []]
@@ -836,7 +847,7 @@ def cmd_apply(slugs):
                  "comparator_type": "COMPARATOR_WITH_PER_TRIAL_ROWS",
                  "scope_note": (f"Registered comparator identity (adopted {DATE}, pre-registered selection rule "
                                 f"{str(sel['rule_commit'])[:9]}). Its trial set and pooled result are typed, with spans "
-                                f"verified in held sources, in registry/comparator_selection/{s}.adoption.json and "
+                                f"verified in held sources, in registry/comparator_selection/{base(s)}.adoption.json and "
                                 f"registry/comparator_enumerations/{s}.json."),
                  "held": True, "document_ref": src, "document_sha256": en["source"]["sha256"],
                  "trial_set": [], "k": None, "effect": None, "ci": None, "i2": None, "pi": None, "method": None,
@@ -844,7 +855,7 @@ def cmd_apply(slugs):
                                                "span": (spans[0] if spans else retired["why"][:300]), "date": DATE}) for e in oldc]}
         with open(cp, "w", encoding="utf-8", newline="\n") as fh:
             json.dump([entry], fh, indent=2, ensure_ascii=False)
-        tp = os.path.join(ROOT, "topics", s + ".json")
+        tp = os.path.join(ROOT, "topics", base(s) + ".json")
         t = _j(tp)
         t["comparator_pmid"] = new
         with open(tp, "w", encoding="utf-8", newline="\n") as fh:

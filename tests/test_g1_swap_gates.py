@@ -96,3 +96,14 @@ def test_codex_v8_p1_fixes_round():
     # g1#3: a spaced citation range keeps its middle
     xml3 = _xml("Alpha [1 - 2].")
     assert sw.label_cites("Alpha", xml3, sw.jats_refs(xml3)) == {"1", "2"}
+
+
+def test_a_later_round_keeps_the_earlier_pre_registration_and_files_its_ledger_by_topic():
+    from kgap import runs_store
+    assert sw.stem("statins-primary-prevention-elderly@r2") == "statins-primary-prevention-elderly.r2"
+    assert sw.base("statins-primary-prevention-elderly@r2") == "statins-primary-prevention-elderly"
+    r = sw.rule("statins-primary-prevention-elderly@r2")
+    assert r["slug"] == "statins-primary-prevention-elderly" and r["round"] == "r2"
+    assert r["candidates_file"].endswith("statins-primary-prevention-elderly.r2.candidates.json")
+    assert sw.protocol("statins-primary-prevention-elderly@r2")["file"] == "topics/statins-primary-prevention-elderly.json"
+    assert runs_store.topic_of("swapscreen::statins-primary-prevention-elderly::123") == "statins-primary-prevention-elderly"
