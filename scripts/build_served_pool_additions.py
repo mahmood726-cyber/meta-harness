@@ -200,9 +200,19 @@ def _aact_binding(slug, x):
         return None
     d = json.load(open(BINDINGS_AACT, encoding="utf-8"))
     rows = d if isinstance(d, list) else (d.get("bindings") or d.get("rows") or [])
+    import re
     src = str((x.get("confirm_binding") or {}).get("source") or "")
+    fam = str(x.get("family") or "").replace("PMID ", "").strip()
+
+    def own(b):
+        # the binding belongs to THIS row's trial (codex v9-apply-r7 #1): a PMID family is the binding's pmid, an NCT
+        # family is the NCT in the binding's source
+        if fam.upper().startswith("NCT"):
+            m = re.search(r"\b(NCT\d{8})\b", str(b.get("source") or ""))
+            return bool(m) and m.group(1) == fam.upper()
+        return fam.isdigit() and str(b.get("pmid") or "") == fam
     hits = [b for b in rows if b.get("slug") == slug and b.get("label") == x.get("label")
-            and b.get("tuple_kind") == "ARMS_COMBINED" and src and b.get("source") == src]
+            and b.get("tuple_kind") == "ARMS_COMBINED" and src and b.get("source") == src and own(b)]
     return hits[0] if len(hits) == 1 else None
 
 

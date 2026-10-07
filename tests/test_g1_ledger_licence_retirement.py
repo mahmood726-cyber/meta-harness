@@ -25,3 +25,11 @@ def test_PLANT_an_open_licence_never_supports_a_licence_retirement(monkeypatch):
     assert L.retired_comparator("doac-vte-recurrence", "29795629") is None
     monkeypatch.setattr(L, "_licence_entry", lambda pmid: None)
     assert L.retired_comparator("doac-vte-recurrence", "29795629") is None
+
+
+def test_PLANT_an_incomplete_licence_probe_is_not_evidence(monkeypatch):
+    """codex v9-apply-r7 #2: missing 'open' / 'license' fields passed as a closed licence."""
+    monkeypatch.setattr(L, "_licence_entry", lambda pmid: {"state": "LOOKED_UP"})
+    assert L.retired_comparator("doac-vte-recurrence", "29795629") is None
+    monkeypatch.setattr(L, "_licence_entry", lambda pmid: {"state": "LOOKED_UP", "license": None})
+    assert L.retired_comparator("doac-vte-recurrence", "29795629") is None

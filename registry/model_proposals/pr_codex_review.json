@@ -4508,5 +4508,52 @@
     "verdict": null
    }
   ]
+ },
+ "v9-apply-r7": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1ab2b70ee842162d1e681c2a65a11ff3",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "56fb1dec260dbf355c7b2b8ba6b5e56ad95dc46df06ac0960ff8b8f60edb4263"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "_aact_binding",
+    "severity": "P1",
+    "claim": "The binding lookup never checks the tracker's family against the binding's trial. A row explicitly keyed to one NCT can acquire another NCT's binding merely by matching slug, label and source. The new arms-combined path consumes that binding without an identity check.",
+    "failing_input": "import sys, json\nfrom unittest.mock import patch, mock_open\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\nsrc = 'AACT AACT fixture NCT00000002 outcome 1'\nx = {'family': 'NCT00000001', 'label': 'Trial A', 'confirm_binding': {'source': src}}\nb = {'slug': 'topic', 'label': 'Trial A', 'tuple_kind': 'ARMS_COMBINED', 'source': src, 'nct_id': 'NCT00000002'}\nwith patch.object(m.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data=json.dumps([b]))):\n    result = m._aact_binding('topic', x)\nprint(result)",
+    "expected": "None: NCT00000002's binding cannot establish evidence for the explicitly different family NCT00000001.",
+    "actual": "Returns b, accepting NCT00000002's binding for the NCT00000001 tracker row.",
+    "id": "v9-apply-r7:g1#1",
+    "record_id": "mc-1ab2b70ee842162d1e681c2a65a11ff3",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_licence_retirement",
+    "severity": "P1",
+    "claim": "An incomplete licence probe is accepted as evidence of a closed licence. Missing 'open' and 'license' fields both pass the guard, converting unknown licence status into an accepted comparator retirement.",
+    "failing_input": "import sys\nfrom unittest.mock import patch, mock_open\nsys.path.insert(0, 'scripts')\nimport g1_denominator_ledger as m\nr = {'comparator_pmid': '123', 'reason_code': 'R0:C1_OPEN_LICENCE'}\na = {'comparator_pmid': '456'}\ne = {'state': 'LOOKED_UP'}\nwith patch.object(m, '_licence_entry', return_value=e), patch('builtins.open', mock_open(read_data='{\"123\": {\"state\": \"LOOKED_UP\"}}')), patch.object(m, '_sha', return_value='fixture-sha256'):\n    result = m._licence_retirement(r, a)\nprint(result)",
+    "expected": "None: the probe contains no explicit open/closed determination, so the removal must remain a ledger problem.",
+    "actual": "Returns a retirement record with retired_pmid='123', new_pmid='456', reason_code='R0:C1_OPEN_LICENCE', and the incomplete probe entry as its supporting span.",
+    "id": "v9-apply-r7:g1#2",
+    "record_id": "mc-1ab2b70ee842162d1e681c2a65a11ff3",
+    "verdict": null
+   }
+  ]
  }
 }

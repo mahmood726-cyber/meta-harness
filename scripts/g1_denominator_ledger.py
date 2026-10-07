@@ -158,7 +158,10 @@ def _licence_retirement(r, a):
     import re
     pmid = str(r.get("comparator_pmid") or "")
     e = _licence_entry(pmid)
-    if not e or e.get("state") != "LOOKED_UP" or e.get("open") or str(e.get("license") or "").lower() in OPEN_LICENCES:
+    # a complete probe only: 'open' explicitly false and the 'license' field present (codex v9-apply-r7 #2 -- missing
+    # fields are unknown status, not a closed licence)
+    if not e or e.get("state") != "LOOKED_UP" or e.get("open") is not False or "license" not in e \
+            or str(e.get("license") or "").lower() in OPEN_LICENCES:
         return None
     raw = open(LICENCES, encoding="utf-8").read()
     m = re.search(r'"' + re.escape(pmid) + r'": \{[^{}]*\}', raw)

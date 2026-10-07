@@ -14,12 +14,21 @@ import build_served_pool_additions as bspa  # noqa: E402
 import g1_fill_notices as fn  # noqa: E402
 from harness import served_pool_additions as spa  # noqa: E402
 
+import pytest  # noqa: E402
+
 SLUG = "esketamine-trd-madrs"
+FIX = os.path.join(ROOT, "tests", "fixtures")
+
+
+@pytest.fixture(autouse=True)
+def _pinned_binding(monkeypatch):
+    """PINNED inputs (a control must not live in the mutable corpus): the AACT binding as committed at 63dcc5beb."""
+    monkeypatch.setattr(bspa, "BINDINGS_AACT", os.path.join(FIX, "v9_bindings_aact_esketamine.json"))
 
 
 def _row():
-    o = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1", f"{SLUG}.json"), encoding="utf-8"))
-    return next(t for t in o["trials"] if "TRANSFORM-1" in t["label"])
+    """The TRANSFORM-1 tracker row as committed at main 63dcc5beb, BEFORE V9-02 put it in the served pool."""
+    return copy.deepcopy(json.load(open(os.path.join(FIX, "v9_transform1_tracker_row.json"), encoding="utf-8"))["row"])
 
 
 def test_PLANT_a_combined_md_row_fills_on_the_md_scale():
@@ -204,3 +213,13 @@ def test_PLANT_an_nct_family_is_never_reassigned_and_every_arm_has_a_role(monkey
     monkeypatch.setattr(bspa, "_aact_binding", unrole)
     row, why = bspa.pipeline_row(SLUG, x, "MD")
     assert row is None and "role" in why
+
+
+def test_PLANT_a_binding_is_used_only_for_its_own_trial(monkeypatch):
+    """codex v9-apply-r7 #1: a row keyed to one trial could take another trial's binding by slug + label + source."""
+    real_rows = json.load(open(bspa.BINDINGS_AACT, encoding="utf-8"))
+    rows = real_rows if isinstance(real_rows, list) else (real_rows.get("bindings") or real_rows.get("rows"))
+    x = _row()
+    assert bspa._aact_binding(SLUG, x) is not None
+    assert bspa._aact_binding(SLUG, dict(x, family="PMID 99999999")) is None
+    assert bspa._aact_binding(SLUG, dict(x, family="NCT09999999")) is None
