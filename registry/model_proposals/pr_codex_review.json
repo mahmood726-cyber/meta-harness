@@ -1911,5 +1911,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r7": {
+  "base": "6b4e18ca2",
+  "head": "cce7103ab5251e3aaf79f4a5254a2660b9d31ddc",
+  "runs": {
+   "g1": {
+    "record_id": "mc-dac882e5aa25b516173f346f6b09d5e8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "a6b1252bc09965dc50e6730c73ff120457d0719f4d1b3a50f5e49475b8db0dab"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "Unioning the review's set count with the pooled quote's count allows the overall review size to override an explicitly smaller outcome-specific trial count.",
+    "failing_input": "q = 'Mortality was pooled across three trials: RR 0.80 (95% CI 0.70 to 0.90).'; set_quote = 'Ten randomized trials were included in this review.'; nt = q + ' ' + set_quote; claimed k = 10. The new validation computes printed_counts(q) | printed_counts(set_quote).",
+    "expected": "Reject k=10 for this pooled result; its own quote explicitly states three contributing trials.",
+    "actual": "The union is {3, 10}, so the k-membership check accepts 10. Both quotes are verbatim in nt, so the set-quote evidence check does not prevent this.",
+    "id": "swap-setquote-r7:g1#1",
+    "record_id": "mc-dac882e5aa25b516173f346f6b09d5e8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "A combined phase designation written with number words is incorrectly returned as a trial count, allowing an unsupported k to pass validation.",
+    "failing_input": "printed_counts('Phase one/two studies')",
+    "expected": "set(): one/two denotes phases, and no study count is printed.",
+    "actual": "{2}. The slash permits matching 'two'; the preceding token 'one/' fails the alphabetic-token check, so blocked_before returns False.",
+    "id": "swap-setquote-r7:g1#2",
+    "record_id": "mc-dac882e5aa25b516173f346f6b09d5e8",
+    "verdict": null
+   }
+  ]
  }
 }

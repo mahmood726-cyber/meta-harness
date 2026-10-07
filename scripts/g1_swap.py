@@ -356,11 +356,13 @@ def printed_counts(q):
             return True
         return pt[-1] == "and" and len(pt) == 2 and pt[0] in number_words
 
-    for m in re.finditer(r"(?<![\w.,-])(\d+)(?![.,]\d)" + tail, s, re.I):       # a whole number, never '11.6' or 'BRCA1'
+    # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
+    for m in re.finditer(r"(?<![\w.,/-])(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
         if not blocked_before(m.start(1)):
             out.add(int(m.group(1)))
     # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
-    for m in re.finditer(r"(?<![\w-])(" + "|".join(_COUNT_WORDS) + r")(?![\w-])" + tail, s, re.I):
+    # a slash joins a range ('Phase one/two studies'; codex swap-setquote-r7 #2): a number word beside '/' is never a count
+    for m in re.finditer(r"(?<![\w/-])(" + "|".join(_COUNT_WORDS) + r")(?![\w/-])" + tail, s, re.I):
         if not blocked_before(m.start(1)):
             out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
     return out
@@ -387,10 +389,11 @@ def pooled_gate(pl, nt, set_quote=None):
     k = pl.get("k")
     if k is not None:
         printed = printed_counts(q)
-        # ... or printed in the meta's own SET QUOTE, when that quote is verbatim in the held text (doac 29795629: 'In the
-        # five Phase 3 studies ...'); a set quote that is not in the text is never read
-        if set_quote and _quoted(set_quote, nt):
-            printed |= printed_counts(set_quote)
+        # ... or, ONLY when the pooled quote prints no count, in the meta's own SET QUOTE verbatim in the held text (doac
+        # 29795629: 'In the five Phase 3 studies ...'). The pooled result's own count always wins: a review-wide count
+        # never overrides it (codex swap-setquote-r7 #1); a set quote not in the text is never read
+        if not printed and set_quote and _quoted(set_quote, nt):
+            printed = printed_counts(set_quote)
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
         try:

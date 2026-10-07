@@ -180,3 +180,15 @@ def test_PLANT_opening_brackets_and_unicode_hyphens_keep_the_guards():
     assert sw.printed_counts("twenty\u2013five trials") == set()
     assert sw.printed_counts("Phase 3: 5 randomized trials") == {5}
     assert sw.printed_counts("In the five Phase 3 studies") == {5}
+
+
+def test_PLANT_the_pooled_quotes_own_count_wins_and_slash_ranges_are_never_counts():
+    """codex swap-setquote-r7 #1 (a review-wide set count overriding the pooled quote's own count) and #2 ('one/two')."""
+    q = "Mortality was pooled across three trials: RR 0.80 (95% CI 0.70 to 0.90)."
+    sq = "Ten randomized trials were included in this review."
+    nt = sw._norm(q + " " + sq)
+    pl = {"measure": "RR", "estimate": "0.80", "lower": "0.70", "upper": "0.90", "k": 10, "quote": q}
+    assert sw.pooled_gate(pl, nt, set_quote=sq)[0] is None
+    assert sw.pooled_gate(dict(pl, k=3), nt, set_quote=sq)[1] == 3
+    assert sw.printed_counts("Phase one/two studies") == set()
+    assert sw.printed_counts("Phase 1/2 studies") == set()
