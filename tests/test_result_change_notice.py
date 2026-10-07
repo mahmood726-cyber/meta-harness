@@ -430,3 +430,20 @@ def test_PLANT_notice_times_are_instants_not_strings():
     n = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=[], entered_pool=["T"], reason="This REVERSES the set-aside of T.")
     assert result_changes.reversed_setasides(n, [p, q, n]) is None
     assert result_changes.reversed_setasides(dict(n, when_utc="not a time"), [p, n]) is None
+
+
+def test_PLANT_tied_or_mixed_movements_never_reinstate():
+    """codex v8-apply-r5 #1 (tie at one instant) and #2 (another trial's set-aside wording)."""
+    sig = {"state": "SEEN_AND_SIGNED"}
+    base = {"slug": "s", "outcome": "o", "reviewer_countersignature": sig}
+    p = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["T1"], entered_pool=[],
+             reason="eligible evidence awaiting adjudication; the numbers are not asserted wrong")
+    q = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["T1"], entered_pool=[],
+             reason="T1 excluded as ineligible")
+    n = dict(base, when_utc="2026-10-08T00:00:00Z", left_pool=[], entered_pool=["T1"], reason="This REVERSES the set-aside of T1.")
+    assert result_changes.reversed_setasides(n, [p, q, n]) is None
+    assert result_changes.reversed_setasides(n, [q, p, n]) is None
+    mixed = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["T1", "T2"], entered_pool=[],
+                 reason="T1: eligible evidence awaiting adjudication; the numbers are not asserted wrong. T2: excluded as ineligible.")
+    n2 = dict(n, entered_pool=["T2"], reason="This REVERSES the set-aside of T2.")
+    assert result_changes.reversed_setasides(n2, [mixed, n2]) is None

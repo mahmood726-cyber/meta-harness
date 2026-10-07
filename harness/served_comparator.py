@@ -77,7 +77,13 @@ def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[
         raise ValueError(f"ADOPTION: {p} exists but is not a readable file")
     a = _j(p)
     cur, old = str(a.get("comparator_pmid") or ""), str((a.get("retired") or {}).get("comparator_pmid") or "")
-    if str(config.get("comparator_pmid") or "") != cur or not old or not switch_signed(slug, old, cur, root):
+    if str(config.get("comparator_pmid") or "") != cur:
+        return None
+    if not old:
+        # an adoption for the configured comparator with no retired identity cannot be tied to a signature: broken,
+        # never 'absent' (which would re-enable the regex; codex v8-apply-r5 #3)
+        raise ValueError(f"ADOPTION: {slug}: adoption of {cur} names no retired comparator")
+    if not switch_signed(slug, old, cur, root):
         return None
     pr = a.get("pooled_result") or {}
     if any(pr.get(k) is None for k in ("measure", "estimate", "ci_low", "ci_high")):

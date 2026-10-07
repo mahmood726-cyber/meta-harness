@@ -120,3 +120,13 @@ def test_PLANT_a_signed_adoption_without_its_rule_refuses(tmp_path):
         json.dumps(_j("registry", "comparator_switch_signatures.json")), encoding="utf-8")
     with pytest.raises(ValueError):
         sc.adopted_pooled(s, {"comparator_pmid": a["comparator_pmid"]}, str(tmp_path))
+
+
+def test_PLANT_an_adoption_without_a_retired_identity_refuses(tmp_path):
+    import pytest
+    d = tmp_path / "registry" / "comparator_selection"
+    d.mkdir(parents=True)
+    (d / "x.adoption.json").write_text(json.dumps({"comparator_pmid": "222", "pooled_result": {
+        "measure": "RR", "estimate": 0.8, "ci_low": 0.7, "ci_high": 0.9}}), encoding="utf-8")   # codex r5 #3
+    with pytest.raises(ValueError):
+        sc.adopted_pooled("x", {"comparator_pmid": "222"}, str(tmp_path))
