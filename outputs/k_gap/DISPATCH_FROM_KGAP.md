@@ -589,3 +589,48 @@ Per topic: tocilizumab-covid19-mortality NOT_YET indep 5/19 matched 5/19; balanc
 - **Spend.** Codex use is limited by evidence, not by capacity.
   - This round made 58 calls; tonight's total is about 150.
   - The no-source trials (107) and the measure- and timepoint-gated rows can't move without a decision from the captain or Mahmood. The decisions are listed in the earlier sections.
+
+## 2026-10-07 -- extractor misattribution fixed (held for Mahmood); acquisition on the adopted comparators
+
+**Job 1: extractor misattribution (93e40ef41).**
+- This is one batched change to `harness/extract.py`, which is PINNED.
+  - It re-certifies every page.
+  - Where it moves a served number, it is held for a notice that Mahmood signs.
+- It also touches `harness/pipeline.py`, a **main-lane file**. The only edit passes `outcome_name=spec["name"]` into the extractor.
+- **Fixes, each planted on the real adjudicated sentence** (`tests/test_extract_misattribution.py`, 11 tests; all fail on the old extractor and pass on the new):
+  - **First-HR-in-sentence.** The effect is now read from the clause that names the outcome; doac 19966341 "any bleeding" reads 0.71 (was 0.82).
+    - Measure words such as "hazard ratio" never decide which clause is chosen.
+    - With no outcome clause, the one clause naming our intervention wins.
+    - If neither applies, the first effect is kept, as before.
+  - **Broader outcome.** Sentences that carry the outcome name are read first, and that reading is kept only if it yields a value. Probiotics 15740542 AAD reads 4/119 vs 22/127.
+  - **Total-as-arm.** A group equal to the sum of the other two is dropped. Probiotics 39529939 reads 7/285 vs 3/279, never the 10/564 total.
+  - **Factorial trials and bare CIs.** Omega3 21115589 (SU.FOL.OM3) reads HR 1.08 (0.79–1.47) for the omega-3 factor; a clause about the co-randomised factor never counts.
+  - **Also fixed:** number-word counts ("seven of 44"), slash composites (HHF/CV death), and a single outcome inside a composite sentence (CANVAS 0.67).
+- **Radius.** 85 of 10,098 extractions change (76 without the name).
+  - **7 served values would move**, and every one equals the adjudicated value:
+    - doac 19966341: 0.82 → 0.71;
+    - omega3 21115589: refused → 1.08;
+    - probiotics 15740542: → 4/119 vs 22/127;
+    - probiotics 18026577: → 7/44 vs 16/45;
+    - tocilizumab 33631066 SAE: → 103/295 vs 55/143.
+  - **Not applied to served pages; needs Mahmood's notice.** Report: `outputs/regex_layer/RADIUS_misattribution_2026-10-07.json`.
+  - **Caveat.** The radius tool reads raw JATS where the producer reads the converted text. The one no-name difference that comes from this (omega3 0.88 on raw XML) is a radius-tool artefact, not a served move.
+- **Burn-down.** 5 of 15 hand-entered values are now reproduced by the extractor from a held document; the read, its sha and its span are in `registry/provenance_extractor_reads.json`.
+  - Retired: probiotics 39529939 AEs; CANVAS 28605608 (0.67); VERTIS 32966714 (0.70); tracker rows Radholm (9) and Cannon (11).
+  - Not retired (10):
+    - EMPA-REG 26378978: its sentence runs on past a citation, so it is read as a subgroup sentence and picks loop diuretics 0.62. Fixing that would mean another change to the pinned extractor; I have not made one.
+    - The adverse-event count rows: no single extractable span.
+
+**Job 2: full-cascade acquisition on the adopted comparators (27e74015d).**
+- Comparators covered: denosumab 32492050, melatonin 35691474, statins 32529863.
+  - doac-vte-recurrence 29795629 is picked but not adopted yet, so it was not run.
+  - dpp4 and esketamine adoptions are outside the 12 active topics.
+- **8 target trials** (the population comes from the v8 tracker files):
+  - **4 had an open source.** Each got reader 1 and reader 2 (8 calls, 5 local + 5 worker slots); all came back SOURCE_ABSENT:
+    - Bone 2008: AACT posts bone density only;
+    - CARDS aged 65-75 and ASCOT-LLA older: regulator text covers the whole trial, not the older subgroup;
+    - ALLHAT-LLT older: no open source.
+  - **4 had no open source** (no call made): Dawson 1998, James 1990, HPS diabetes, MEGA older.
+- 0 rows admitted. Licence: 0 problems. Leak gate: clean.
+- **Recount unchanged:** G1_MATCHED 9, INDEPENDENT 92/346, COVERAGE 164/346.
+- **Watching.** The binding lane is re-screening statins, melatonin and denosumab (`@r2`). I will run the cascade on any new adoption, and on doac when its adoption lands.
