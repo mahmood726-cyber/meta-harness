@@ -495,8 +495,8 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
         # ... and no percentage in the sentence ('mortality was reported by 40%'; codex swap-setquote-r14 #3).
         # RESIDUAL, stated rather than chased: whether every counted trial contributed to THIS outcome is a semantic
         # question that prose rules cannot close (r8-r14 each found a new paraphrase). A k taken this way is therefore
-        # never silent: it carries k_basis SET_QUOTE_SENTENCE with the sentence (dash- and whitespace-normalised), and the signing packet shows
-        # that sentence to the reviewer, who confirms the reading before the adoption is applied.
+        # never silent: it carries k_basis SET_QUOTE_SENTENCE with the sentence (dash- and whitespace-normalised), and
+        # the signing packet shows that sentence to the reviewer, who confirms the reading before the adoption is applied.
         fallback = False
         if (not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q) and verified_units
                 and not _RESTRICT.search(sent) and "%" not in sent):
