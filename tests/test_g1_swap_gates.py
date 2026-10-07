@@ -240,3 +240,29 @@ def test_PLANT_the_set_quote_count_stands_only_in_the_sentence_that_prints_the_p
     sq4 = "In the five Phase 3 studies and 2 randomized trials, OR 0.88, CI 0.75 to 1.03."
     assert sw.pooled_gate({"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2},
                           sw._norm(sq4), set_quote=sq4)[0] is None
+
+
+def test_PLANT_counts_come_only_from_one_numeral_sentences_and_the_sentence_holding_the_pool():
+    """codex swap-setquote-r11: #1 the count must sit in the SAME sentence as the pooled result; #2 'Two of the five
+    trials'; #3 'At least five trials'. Plus the class: two quantities in one sentence refuse; symbol bounds refuse."""
+    assert sw.printed_counts("Two of the five trials contributed to the mortality analysis (RR 0.8, 95% CI 0.7-0.9).") == set()
+    assert sw.printed_counts("At least five trials contributed to the mortality analysis (RR 0.8, 95% CI 0.7-0.9).") == set()
+    assert sw.printed_counts("More than 5 trials reported it.") == set()
+    assert sw.printed_counts("Up to five trials reported it.") == set()
+    assert sw.printed_counts("Data came from ~5 trials.") == set()
+    assert sw.printed_counts("12 trials with 3,456 participants") == set()
+    # one numeral per sentence, across two sentences: each is read on its own
+    assert sw.printed_counts("Five trials were pooled. The RR was 0.8 (95% CI 0.7-0.9).") == {5}
+    q = "The mortality RR was 0.8 (95% CI 0.7-0.9)."
+    sq = "We included 40 trials. Ten contributed mortality data. The mortality RR was 0.8 (95% CI 0.7-0.9)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.8", "lower": "0.7", "upper": "0.9", "k": 40, "quote": q},
+                          sw._norm(sq), set_quote=sq)[0] is None
+
+
+def test_PLANT_the_doac_shape_with_an_en_dash_still_finds_its_sentence():
+    """The pooled quote and the set-quote sentence are cleaned alike: an en dash in both must still match."""
+    q = "OR 0.88, CI 0.75\u20131.03"
+    sq = "In the five Phase 3 studies, the outcome tended to favor DOACs (OR 0.88, CI 0.75\u20131.03)."
+    got = sw.pooled_gate({"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q},
+                         sw._norm(sq), set_quote=sq)
+    assert got[0] is not None and got[1] == 5

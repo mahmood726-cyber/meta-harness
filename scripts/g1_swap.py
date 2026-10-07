@@ -322,16 +322,57 @@ _COUNT_WORDS = ("one two three four five six seven eight nine ten eleven twelve 
                 "seventeen eighteen nineteen twenty").split()
 
 
-def printed_counts(q):
-    """Trial counts PRINTED in a quote: 'k = n'; or n -- digits or a number word -- followed by up to three TRIAL
-    ADJECTIVES (randomised, controlled, clinical, Phase 3) and then trials / studies / RCTs. A digit that is itself a phase
-    number ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
+_TENS = ("twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety")
+# a count right after one of these is approximate, a bound or a comparison, never an exact k ('at least five', 'more than
+# 5', 'up to five', 'about 12'; codex swap-setquote-r11 #3) -- a closed class of English approximators
+_APPROX = {"least", "most", "than", "about", "approximately", "around", "nearly", "almost", "over", "under", "some",
+           "roughly", "circa", "ca", "to", "upto", "beyond", "exceeding", "below", "above"}
+
+
+def _clean(q):
     # whitespace of every kind is one space before anything is matched (codex swap-setquote-r3 #2: 'Phase\nthree')
     s = " ".join(str(q or "").split())
     # every dash is a hyphen ('twenty‑five', en / em dash, minus; codex swap-setquote-r6 #2)
     s = re.sub(r"[‐‑‒–—−]", "-", s)
     # a slash with spaces round it is still a range ('Phase one / two studies'; codex swap-setquote-r9 #1)
-    s = re.sub(r"\s*/\s*", "/", s)
+    return re.sub(r"\s*/\s*", "/", s)
+
+
+def _sentences(q):
+    """Sentences: split after . ; ! ? followed by space and a capital, digit or opening bracket. A missed split only
+    MERGES two sentences, and a merged sentence holding two numerals is refused by printed_counts -- never admitted."""
+    return [x for x in re.split(r"(?<=[.;!?])\s+(?=[\"'(\[]?[A-Z0-9])", _clean(q)) if x.strip()]
+
+
+def _numerals(sent):
+    """Every quantity in a sentence that could be a count: whole numbers (not decimals, percentages or a phase number)
+    and number words (incl. 'both', 'dozen'). Statistics like 0.88 or 95% are not numerals."""
+    n = 0
+    for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?!\s*%)", sent):
+        if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
+            n += 1
+    words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both"]
+    for m in re.finditer(r"\b(?:" + "|".join(words) + r")\b", sent, re.I):
+        if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
+            n += 1
+    return n
+
+
+def printed_counts(q):
+    """Trial counts PRINTED in a quote, read SENTENCE BY SENTENCE, and only from a sentence holding exactly ONE numeral
+    (codex swap-setquote-r11 #2: 'Two of the five trials'; also 'one in five', '12 trials, 3,456 participants' -- any
+    sentence with two quantities is ambiguous and refused, a closed rule instead of one patch per phrasing)."""
+    out = set()
+    for sent in _sentences(q):
+        if _numerals(sent) == 1:
+            out |= _counts_in(sent)
+    return out
+
+
+def _counts_in(s):
+    """In one cleaned sentence: 'k = n'; or n -- digits or a number word -- followed by up to three TRIAL ADJECTIVES
+    (randomised, controlled, clinical, Phase 3) and then trials / studies / RCTs. A digit that is itself a phase number
+    ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
     out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", s, re.I)}
     tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
     # the WORD before the count decides, not a fixed-width lookbehind (three review rounds each found a new gap):
@@ -354,7 +395,7 @@ def printed_counts(q):
         pt = [t.lstrip("([{\"'‘“") for t in prev_tokens(i)]
         if not pt or not re.fullmatch(r"[a-z]+", pt[-1]):
             return False
-        if pt[-1] in number_words or pt[-1] in ("phase", "point"):
+        if pt[-1] in number_words or pt[-1] in ("phase", "point") or pt[-1] in _APPROX:
             return True
         # 'and' / 'to' / 'or' right after a number joins a larger number or a RANGE ('one hundred and twenty', 'two to five
         # trials', '3 or 4 studies'; codex swap-setquote-r8 #2): the end of a range is never an exact count
@@ -364,7 +405,8 @@ def printed_counts(q):
                 and (pt[0] in number_words or bool(re.fullmatch(r"\d+", pt[0]))))
 
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
-    for m in re.finditer(r"(?<![\w.,/-])(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
+    # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
+    for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
         if not blocked_before(m.start(1)):
             out.add(int(m.group(1)))
     # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
@@ -419,9 +461,14 @@ def pooled_gate(pl, nt, set_quote=None):
         # #2 'Both trials ...' beside 'included 40 trials'): the set quote's count stands for k only when the pooled quote
         # lies INSIDE the set-quote sentence -- the count and the pooled result are printed together -- and that sentence
         # prints exactly ONE count. A review-wide count elsewhere in the paper can therefore never stand in.
-        if (not printed and set_quote and _quoted(set_quote, nt) and _norm(q) in _norm(set_quote)
-                and not mentions_a_count(q) and len(printed_counts(set_quote)) == 1):
-            printed = printed_counts(set_quote)
+        # Read ONLY the one sentence of the set quote that holds the pooled quote (codex swap-setquote-r11 #1: substring
+        # containment let 'We included 40 trials.' speak for a pooled result two sentences later).
+        # both sides through the same cleaning (dashes, slashes, whitespace): the comparison is of like with like
+        sent = next((x for x in _sentences(set_quote) if _norm(_clean(q)) in _norm(x)), None) if set_quote else None
+        if not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q):
+            c = printed_counts(sent)
+            if len(c) == 1:
+                printed = c
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
         try:
