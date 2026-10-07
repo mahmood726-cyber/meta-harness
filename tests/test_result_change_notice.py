@@ -447,3 +447,19 @@ def test_PLANT_tied_or_mixed_movements_never_reinstate():
                  reason="T1: eligible evidence awaiting adjudication; the numbers are not asserted wrong. T2: excluded as ineligible.")
     n2 = dict(n, entered_pool=["T2"], reason="This REVERSES the set-aside of T2.")
     assert result_changes.reversed_setasides(n2, [mixed, n2]) is None
+
+
+def test_PLANT_only_a_single_trial_setaside_can_be_reversed_and_no_concurrent_move():
+    """codex v8-apply-r6 #1 (claims attributed by text across trials) and #2 (a movement at the same instant)."""
+    sig = {"state": "SEEN_AND_SIGNED"}
+    base = {"slug": "t", "outcome": "m", "reviewer_countersignature": sig}
+    two = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["TRIAL-A", "TRIAL-B"], entered_pool=[],
+               reason="TRIAL-A: eligible evidence awaiting adjudication; the numbers are not asserted wrong. TRIAL-B: observational.")
+    nb = dict(base, when_utc="2026-10-08T00:00:00Z", left_pool=[], entered_pool=["TRIAL-B"], reason="This REVERSES the set-aside of TRIAL-B.")
+    assert result_changes.reversed_setasides(nb, [two, nb]) is None
+    one = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["TRIAL-A"], entered_pool=[],
+               reason="TRIAL-A: eligible evidence awaiting adjudication; the numbers are not asserted wrong.")
+    na = dict(base, when_utc="2026-10-08T00:00:00Z", left_pool=[], entered_pool=["TRIAL-A"], reason="This REVERSES the set-aside of TRIAL-A.")
+    assert result_changes.reversed_setasides(na, [one, na]) == {"TRIAL-A": one}
+    twin = dict(na, reason="This REVERSES the set-aside of TRIAL-A (second).", reviewer_countersignature=sig)
+    assert result_changes.reversed_setasides(na, [one, na, twin]) is None

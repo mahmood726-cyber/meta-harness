@@ -127,6 +127,8 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]]) -> dict
                  and (p.get("reviewer_countersignature") or {}).get("state") in ("SEEN_AND_SIGNED", "BATCH_SEEN_AND_SIGNED")]
         if t_n is None or any(_instant(p.get("when_utc")) is None for p in cands):
             return None
+        if any(_instant(p.get("when_utc")) >= t_n for p in cands):
+            return None        # another signed movement at (or after) this instant: the order is unknown (codex r6 #2)
         moved = [p for p in cands if _instant(p.get("when_utc")) < t_n]
         if not moved:
             return None
@@ -139,7 +141,9 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]]) -> dict
         # ... and it must be a SET-ASIDE of THIS trial: a correction that removed an ineligible trial is not reversible
         # this way (codex v8-signing g1#1). The claim must belong to this trial: a notice that moved several trials and
         # names any of them as ineligible / wrong never reinstates by another trial's set-aside wording (codex r5 #2)
-        if tid not in [str(x) for x in p.get("left_pool") or []] \
+        # STRUCTURE, not wording: the reversed notice must have moved exactly ONE trial -- this one -- so its claim can
+        # only be about this trial (codex r5 #2, r6 #1: a reason covering several trials cannot be attributed by text)
+        if [str(x) for x in p.get("left_pool") or []] != [tid] or (p.get("entered_pool") or []) \
                 or "eligible evidence awaiting adjudication" not in reason_p \
                 or "the numbers are not asserted wrong" not in reason_p \
                 or "asserted wrong" in reason_p.replace("not asserted wrong", "") \
