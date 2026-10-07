@@ -34,8 +34,10 @@ def _key(n: dict[str, Any]) -> tuple:
 def _declared(n: dict[str, Any], root: str | None = None) -> dict[str, str]:
     """{trial: reversed set-aside's when_utc} DECLARED for this notice in registry/result_change_reinstatements.json."""
     p = os.path.join(root or ROOT, REINSTATEMENTS)
-    if not os.path.exists(p):
+    if not os.path.lexists(p):
         return {}
+    if not os.path.isfile(p):     # a dangling link / directory is a broken register, never 'none declared' (codex r9 #3)
+        raise ValueError(f"REINSTATEMENTS: {p} exists but is not a readable file")
     rows = (json.load(open(p, encoding="utf-8")).get("reinstatements") or [])
     t = _instant(n.get("when_utc"))
     return {str(r["trial"]): str(r["reverses_when_utc"]) for r in rows
@@ -83,7 +85,8 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]], root: s
         if [str(x) for x in p.get("left_pool") or []] != [tid] or (p.get("entered_pool") or []):
             return None
         if not re.search(r"(?<![A-Za-z])eligible evidence awaiting adjudication", r) or "ineligible" in r.lower() \
+                or re.search(r"\b(not|no longer|never)\s+eligible\b", r, re.I) \
                 or "the numbers are not asserted wrong" not in r or "asserted wrong" in r.replace("not asserted wrong", ""):
-            return None
+            return None        # ... and no negated eligibility ('not eligible evidence'; codex v8-apply-r9 #2)
         out[tid] = p
     return out

@@ -92,10 +92,10 @@ def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[
         raise ValueError(f"ADOPTION: {slug}: signed switch to {cur} but the adoption record has no complete pooled_result")
     # the numbers must be the span's own: estimate and both bounds verbatim in the quoted result span (Unicode minus read
     # as '-'). A record whose numbers contradict its span is broken, never served (codex v8-apply-r8 #1)
-    from . import verify as _verify
     span = ((pr.get("spans") or {}).get("result") or "").replace("−", "-")
-    if not span or not all(_verify._effect_in(span, pr[k]) for k in ("estimate", "ci_low", "ci_high")):
-        raise ValueError(f"ADOPTION: {slug}: pooled_result numbers are not verbatim in its quoted result span")
+    if not _span_states(span, pr["estimate"], pr["ci_low"], pr["ci_high"]):
+        raise ValueError(f"ADOPTION: {slug}: pooled_result is not stated in its quoted result span as estimate, then "
+                         f"lower, then upper bound")
     rp = os.path.join(root, "registry", "comparator_selection", f"{slug}.rule.json")
     rule_outcome = (_j(rp).get("protocol_reference") or {}).get("primary_outcome") if os.path.isfile(rp) else None
     if not rule_outcome:
@@ -126,3 +126,39 @@ def adopted_outcome_matches(adopted: dict[str, Any], outcome_name: str) -> bool:
         return False
     labels = {_norm(x) for x in str(outcome_name or "").split(" / ")} | {_norm(outcome_name)}
     return r in {x for x in labels if x}
+
+
+def _pos(text: str, v: Any) -> int | None:
+    """Earliest position of the number v AS PRINTED in text (whole token; never its complement or a rounding of another
+    number), or None."""
+    import re
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    forms = {f"{f:g}", f"{f:.2f}", f"{f:.1f}", f"{f:.3f}", str(v)}
+    forms |= {x.replace("-0.", "-.") for x in forms if x.startswith("-0.")} | {x[1:] for x in forms if x.startswith("0.")}
+    def minus_before(i: int) -> bool:
+        # a '-' directly before the number is its SIGN unless a digit stands right before the dash ('0.7-0.9' is a range)
+        return i > 0 and text[i - 1] == "-" and not (i > 1 and text[i - 2].isdigit())
+    hits = [m.start() for x in forms if x for m in re.finditer(rf"(?<![\d.]){re.escape(x)}(?![\d])", text)
+            if not (x[0].isdigit() and f >= 0 and minus_before(m.start()))]
+    return min(hits) if hits else None
+
+
+def _span_states(span: str, est: Any, lo: Any, hi: Any) -> bool:
+    """The span STATES this result: lower <= estimate <= upper, and the three numbers appear in the span in the order
+    estimate, lower bound, upper bound (codex v8-apply-r8 #1: membership alone; r9 #1: a swapped estimate and bound)."""
+    try:
+        e, l, h = float(est), float(lo), float(hi)
+    except (TypeError, ValueError):
+        return False
+    if not (l <= e <= h):
+        return False
+    pe = _pos(span, est)
+    pl = _pos(span[pe + 1:] if pe is not None else "", lo)
+    if pe is None or pl is None:
+        return False
+    pl += pe + 1
+    ph = _pos(span[pl + 1:], hi)
+    return ph is not None

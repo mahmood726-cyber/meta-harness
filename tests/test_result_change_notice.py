@@ -434,3 +434,14 @@ def test_PLANT_ineligible_evidence_is_not_eligible_evidence():
                reason="ineligible evidence awaiting adjudication; the numbers are not asserted wrong.")
     back = _n("2026-10-06T00:00:00Z", entered=["T1"])
     assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None
+
+
+def test_PLANT_negated_eligibility_and_broken_register_refuse(tmp_path):
+    """codex v8-apply-r9 #2 ('not eligible evidence ...') and #3 (a declaration register that is not a file)."""
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"],
+               reason="This is not eligible evidence awaiting adjudication; the numbers are not asserted wrong.")
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None
+    (tmp_path / "registry" / "result_change_reinstatements.json").mkdir(parents=True)
+    with pytest.raises(ValueError):
+        notice_kinds._declared(back, str(tmp_path))

@@ -157,3 +157,13 @@ def test_every_signed_adoption_passes_its_own_span_check():
     for s in SWITCHED:
         cfg = _j("topics", f"{s}.json")
         assert sc.adopted_pooled(s, cfg) is not None, s
+
+
+def test_PLANT_the_span_must_state_estimate_then_lower_then_upper():
+    """codex v8-apply-r9 #1: number membership alone let a swapped estimate and bound through."""
+    span = "All-cause mortality: RR 0.8 (0.7-0.9)"
+    assert sc._span_states(span, 0.8, 0.7, 0.9)
+    assert not sc._span_states(span, 0.7, 0.8, 0.9)          # swapped
+    assert not sc._span_states(span, 0.8, 0.9, 0.7)          # bounds reversed
+    assert not sc._span_states("RR 0.2 (0.7-0.9)", 0.8, 0.7, 0.9)
+    assert sc._span_states("MD=-4.09, 95%CI -5.73 to -2.45", -4.09, -5.73, -2.45)
