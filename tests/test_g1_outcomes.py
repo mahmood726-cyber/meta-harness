@@ -50,9 +50,11 @@ def test_a_result_of_another_contrast_or_population_is_not_ours():
 
 
 def test_an_already_declared_outcome_is_linked_whatever_its_read_family():
-    doac = go.topic("doac-vte-recurrence")
-    assert go.linked_to("major bleeding", doac) == "Major bleeding"
-    assert go.linked_to("net clinical benefit", doac) is None
+    # a SYNTHETIC topic: the live topic file changes when amendments register (a control pinned to a mutable artefact
+    # retires itself -- this assertion broke the moment 'Net clinical benefit' was registered, 7 Oct)
+    t = {"secondary_outcomes": [], "harm_outcomes": [{"name": "Major bleeding", "keywords": ["major bleeding"]}]}
+    assert go.linked_to("major bleeding", t) == "Major bleeding"
+    assert go.linked_to("net clinical benefit", t) is None
 
 
 def test_one_agent_of_a_class_topic_is_a_split_not_our_result():
@@ -88,3 +90,16 @@ def test_the_registered_spec_is_the_comparators_wording_and_measure():
                      "comparator_result": {"measure": "pooled OR", "timepoint": "24 weeks"}})
     assert "death from any cause" in p1["keywords"] and p1["timepoint"] == "24 weeks" and "population" not in p1
     assert [go.estimand_of(m) for m in ("WMD", "RR", "Pooled OR", "hazard ratio", "SMD")] == ["MD", "RR", "OR", "HR", "SMD"]
+
+
+def test_posted_arms_map_by_our_terms_and_refuse_ambiguity():
+    doac = go.topic("doac-vte-recurrence")
+    assert go._arm("Dabigatran Etexilate", doac) == "intervention"
+    assert go._arm("Warfarin", doac) == "control"
+    assert go._arm("Placebo for dabigatran + warfarin", doac) == "control"     # the placebo-for clause is not the drug
+    assert go._arm("Run-in period", doac) is None
+    v, why = go._two_arms([("Dabigatran 150 mg", 10, 100), ("Dabigatran 110 mg", 12, 100), ("Warfarin", 15, 100),
+                           ("Total", 37, 300)], doac)
+    assert v == (22, 200, 15, 100) and why is None                           # dose arms summed; shared control once
+    v, why = go._two_arms([("Dabigatran", 10, 100), ("Warfarin", 15, 100), ("Aspirin", 9, 100)], doac)
+    assert v is None and why.startswith("UNMAPPED_GROUP")

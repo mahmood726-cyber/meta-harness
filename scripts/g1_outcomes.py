@@ -542,9 +542,270 @@ def cmd_register(slugs):
         print(s, "registered", len(specs), "new,", len(prop["linked_existing"]), "linked", flush=True)
 
 
+# ------------------------------------------------------------------------------------------------------------ extract
+def d10_outcomes(slug):
+    """[(our outcome name, spec, kind, comparator entry)] for the registered D10 outcomes and the linked existing ones."""
+    t = topic(slug)
+    prop = _j(os.path.join(OUT, f"{slug}.proposal.json"))
+    out = []
+    by = {e["name"].lower(): e for e in prop["new_outcomes"]}
+    for kind in ("secondary_outcomes", "harm_outcomes"):
+        for sp in t.get(kind) or []:
+            if str(sp.get("amendment", "")).startswith(AMEND_DATE + " D10"):
+                e = by.get(sp["name"].lower())
+                out.append((sp["name"], sp, "harm" if kind == "harm_outcomes" else "efficacy", e))
+    # linked: the best-matching comparator entry per already-registered outcome (most shared words)
+    best = {}
+    for e in prop["linked_existing"]:
+        sc = len(_words(e["name"]) & _words(e["linked_to"]))
+        if e["linked_to"] not in best or sc > best[e["linked_to"]][0]:
+            best[e["linked_to"]] = (sc, e)
+    allspec = {o["name"]: (o, k) for k in ("secondary_outcomes", "harm_outcomes") for o in t.get(k) or []}
+    for name, (_, e) in best.items():
+        sp, k = allspec[name]
+        out.append((name, sp, "harm" if k == "harm_outcomes" else "efficacy", e))
+    return out
+
+
+def _row_of(tr):
+    eo = tr.get("effect_object") or {}
+    return {"id": tr.get("id"), "scale": tr.get("scale"), "effect": tr.get("effect"), "ci_low": tr.get("ci_low"),
+            "ci_high": tr.get("ci_high"), "counts": {k: eo.get(k) for k in ("events_t", "n_t", "events_c", "n_c")
+                                                     if eo.get(k) is not None} or None,
+            "provenance": tr.get("provenance"), "source": _excerpt(tr.get("source"), 300)}
+
+
+def _arm(title, t):
+    """'intervention' / 'control' / None for a posted group title, by OUR terms: the intervention names one of our agents /
+    terms (a 'placebo for <drug>' clause is not the drug); the control names our comparator or a generic control and no
+    intervention term."""
+    import g1_binding_aact as ba
+    rest = ba.PLACEBO_FOR.sub(" ", title or "")
+    iv = bool(_term_re(_intervention_terms(t)).search(rest))
+    ct = bool(_term_re([x for x in (t.get("comparator_terms") or []) if len(x) >= 3] + GENERIC_CONTROL).search(rest))
+    return "intervention" if iv and not ct else "control" if ct and not iv else None   # both / neither: unmapped
+
+
+def _two_arms(groups, t):
+    """groups: [(title, affected, at_risk)] -> (e_t, n_t, e_c, n_c, refusal). Intervention arms SUMMED (one group, the
+    shared control counted once); exactly one control; a 'total' group ignored."""
+    iv, ct = [], []
+    for title, a, n in groups:
+        if re.fullmatch(r"\s*total\s*", title or "", re.I):
+            continue
+        role = _arm(title, t)
+        (iv if role == "intervention" else ct if role == "control" else []).append((a, n, title))
+        if role is None:
+            return None, f"UNMAPPED_GROUP:{(title or '')[:60]}"
+    if len(ct) != 1 or not iv:
+        return None, f"ARMS:{len(iv)}_intervention_{len(ct)}_control"
+    if any(x[0] is None or x[1] in (None, 0) for x in iv + ct):
+        return None, "COUNT_MISSING"
+    return (sum(x[0] for x in iv), sum(x[1] for x in iv), ct[0][0], ct[0][1]), None
+
+
+def _aact_rows(name, nct):
+    from kgap import aact_adapter as aa
+    return list(aa._rows(name, {nct}))
+
+
+def aact_typed(nct, outcome_name, spec, t):
+    """Typed AACT rungs for one (trial, outcome): TC reported_event_totals (all-cause mortality / serious adverse
+    events), TD a reported_events term equal to one of the outcome's keywords. -> (row or None, [refusals])."""
+    from kgap import aact_adapter as aa
+    snap = (aa.snapshot() or {}).get("id")
+    titles = {r["ctgov_group_code"]: r.get("title") for r in _aact_rows("result_groups.txt", nct)
+              if (r.get("result_type") or "").lower().startswith("reported event")}
+    refusals = []
+    kws = [k.lower() for k in spec.get("keywords") or []]
+    is_mort = any(MORT.search(k) for k in kws) or bool(MORT.search(outcome_name))
+    is_sae = bool(re.search(r"\bserious adverse events?\b", outcome_name, re.I))
+    if is_mort or is_sae:
+        cls = "Total, all-cause mortality" if is_mort else "Total, serious adverse events"
+        rows = [r for r in _aact_rows("reported_event_totals.txt", nct) if r.get("classification") == cls]
+        groups = [(titles.get(r["ctgov_group_code"]), _int(r.get("subjects_affected")), _int(r.get("subjects_at_risk")))
+                  for r in rows]
+        if groups:
+            v, why = _two_arms(groups, t)
+            if v:
+                span = " | ".join(f"{g[0]}: {g[1]}/{g[2]}" for g in groups)
+                return {"rung": "AACT_EVENT_TOTALS", "counts": dict(zip(("events_t", "n_t", "events_c", "n_c"), v)),
+                        "span": f"AACT {snap} {nct} reported_event_totals '{cls}': {span}"}, refusals
+            refusals.append({"rung": "AACT_EVENT_TOTALS", "why": why})
+    if not is_mort:
+        ev = [r for r in _aact_rows("reported_events.txt", nct)
+              if (r.get("adverse_event_term") or "").strip().lower() in kws]
+        types = {r.get("event_type") for r in ev}
+        if len(types) > 1:
+            refusals.append({"rung": "AACT_REPORTED_EVENTS", "why": "TERM_IN_SERIOUS_AND_OTHER (patients may be counted twice)"})
+        elif ev:
+            terms = {r["adverse_event_term"].strip().lower() for r in ev}
+            if len(terms) > 1:
+                refusals.append({"rung": "AACT_REPORTED_EVENTS", "why": f"SEVERAL_MATCHING_TERMS:{sorted(terms)}"})
+            else:
+                groups = [(titles.get(r["ctgov_group_code"]), _int(r.get("subjects_affected")), _int(r.get("subjects_at_risk")))
+                          for r in ev]
+                v, why = _two_arms(groups, t)
+                if v:
+                    span = " | ".join(f"{g[0]}: {g[1]}/{g[2]}" for g in groups)
+                    return {"rung": "AACT_REPORTED_EVENTS", "counts": dict(zip(("events_t", "n_t", "events_c", "n_c"), v)),
+                            "span": f"AACT {snap} {nct} reported_events {ev[0].get('event_type')} '{ev[0]['adverse_event_term']}': {span}"}, refusals
+                refusals.append({"rung": "AACT_REPORTED_EVENTS", "why": why})
+    return None, refusals
+
+
+def _int(x):
+    try:
+        return int(float(x))
+    except (TypeError, ValueError):
+        return None
+
+
+def cmd_extract(slugs):
+    """Stage 1: the served ladder in memory (k_gap_counterfactual.build_with_held_sources; docs/reviews never written)
+    -> each D10 / linked outcome's rows and absences; then the typed AACT rungs for the trials the ladder left empty.
+    -> registry/outcome_amendments/<slug>.extraction.json"""
+    import k_gap_counterfactual as cf
+    for s in slugs:
+        outs = d10_outcomes(s)
+        if not outs:
+            print(s, "no D10 outcomes")
+            continue
+        t = topic(s)
+        recs = {r["id"]: r for r in _j(os.path.join(ROOT, "cache", s, "records.json"))["records"]}
+        core, _ = cf.build_with_held_sources(s)
+        by = {o["name"]: o for o in core["outcomes"]}
+        pool_ids = sorted({str(x.get("id")) for o in core["outcomes"]
+                           for x in (o.get("trials") or []) + (o.get("declared_absent_trials") or [])})
+        res = {"slug": s, "comparator_pmid": t["comparator_pmid"], "pool": [], "outcomes": []}
+        for pid in pool_ids:
+            pm = pid.replace("PMID ", "")
+            nct = (recs.get(pm) or {}).get("nct")
+            res["pool"].append({"id": pid, "nct": nct if isinstance(nct, str) else (nct or [None])[0]})
+        for name, sp, kind, comp in outs:
+            o = by.get(name) or {}
+            rows = [_row_of(tr) for tr in o.get("trials") or []]
+            have = {r["id"] for r in rows}
+            typed, gaps = [], []
+            for p in res["pool"]:
+                if p["id"] in have:
+                    continue
+                row, refusals = aact_typed(p["nct"], name, sp, t) if p["nct"] else (None, [{"why": "NO_NCT"}])
+                (typed.append(dict(row, id=p["id"], nct=p["nct"])) if row else
+                 gaps.append({"id": p["id"], "nct": p["nct"], "typed_refusals": refusals}))
+            res["outcomes"].append({"name": name, "kind": kind, "spec": sp,
+                                    "comparator_result": (comp or {}).get("comparator_result"),
+                                    "comparator_name": (comp or {}).get("name"), "comparator_span": (comp or {}).get("span"),
+                                    "ladder_rows": rows, "ladder_result": o.get("result"),
+                                    "ladder_absent": [{"id": a.get("id"), "reason_code": a.get("reason_code")}
+                                                      for a in o.get("declared_absent_trials") or []],
+                                    "typed_rows": typed, "gaps": gaps})
+            print(s, "|", name[:40], "| ladder", len(rows), "| typed", len(typed), "| gaps", len(gaps), flush=True)
+        with open(os.path.join(OUT, f"{s}.extraction.json"), "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(res, fh, indent=1, ensure_ascii=False, default=str)
+            fh.write("\n")
+
+
+# ------------------------------------------------------------------------------------------- acquire (recorded rung)
+ACQ_REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "d10_extract")
+
+
+def outcome_cfg(t, spec):
+    """The topic config with the D10 outcome in the primary slot: g1_trial_acquire's evidence builder, deterministic
+    readers and gate all read cfg['primary_outcome'] -- unchanged code, pointed at this outcome."""
+    po = {k: spec.get(k) for k in ("name", "keywords", "estimand", "timepoint", "population") if spec.get(k) is not None}
+    return dict(t, primary_outcome=po)
+
+
+def acquire_items(slug):
+    """One item per (gap trial, D10 outcome) left by extract stage 1: deterministic readers first (typed_first); an item
+    carries a prompt only when an open source exists and nothing deterministic admitted a value."""
+    import g1_trial_acquire as ta
+    t = topic(slug)
+    ex = _j(os.path.join(OUT, f"{slug}.extraction.json"))
+    items, settled = [], []
+    for o in ex["outcomes"]:
+        cfg = outcome_cfg(t, o["spec"])
+        for g in o["gaps"]:
+            pmid = g["id"].replace("PMID ", "") if str(g["id"]).startswith("PMID ") else None
+            ncts = sorted({n for n in [g.get("nct")] + list(ta.registered_ncts(pmid) if pmid else []) if n})
+            tg = {"slug": slug, "label": f"{g['id']} :: {o['name']}", "pmid": pmid, "ncts": ncts}
+            try:
+                ev, held = ta.evidence(tg, cfg, str(t["comparator_pmid"]))
+            except Exception as exc:  # noqa: BLE001 - recorded, never fatal
+                settled.append({"outcome": o["name"], "id": g["id"], "state": "EVIDENCE_ERROR", "why": str(exc)[:200]})
+                continue
+            v, adm = ta.typed_first(tg, cfg, held)
+            if v == "ADMITTED":
+                settled.append({"outcome": o["name"], "id": g["id"], "state": "TYPED_ADMITTED", "kind": adm["kind"],
+                                "span": adm["span"], "source": adm["source"], "row": _row_dict(adm["row"])})
+                continue
+            if not any(a.get("state") == "POSTED" for a in ev["aact"].values()) and not held["text"] \
+                    and not ev.get("regulatory"):
+                settled.append({"outcome": o["name"], "id": g["id"], "state": "NO_OPEN_SOURCE"})
+                continue
+            p = (ta.INSTR + "\n\n=== EVIDENCE ===\n" + json.dumps(ev, ensure_ascii=False, indent=0, default=str)).encode("utf-8")
+            psha = hashlib.sha256(p).hexdigest()
+            items.append({"key": f"d10ext::{slug}::{g['id']}::{o['name']}", "slug": slug, "pmid": g["id"],
+                          "outcome": o["name"], "prompt": p, "schema": ta.SCHEMA, "_held": held, "_cfg": cfg,
+                          "digests": [{"ref": "evidence", "sha256": psha,
+                                       "what": "inline evidence: AACT snapshot rows, PMC OA / CC Unpaywall text, FDA / "
+                                               "EMA / NICE windows, meta rows (g1_trial_acquire.evidence, D10 outcome)"}]})
+    return items, settled
+
+
+def _row_dict(row):
+    return {k: getattr(row, k, None) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")}
+
+
+def cmd_acquire(slugs, run=False):
+    import g1_swap as sw
+    import g1_trial_acquire as ta
+    from kgap import runs_store
+    from reproducible_ai import model_call_live as mcl
+    from reproducible_ai import model_source as ms
+    import k_gap_forest_plot as fp
+    runs = runs_store.load()
+    for s in slugs:
+        if not os.path.exists(os.path.join(OUT, f"{s}.extraction.json")):
+            print(s, "no extraction (run extract first)")
+            continue
+        items, settled = acquire_items(s)
+        done = lambda it: (runs.get(it["key"]) or {}).get("prompt_sha256") == hashlib.sha256(it["prompt"]).hexdigest() \
+            and (runs.get(it["key"]) or {}).get("state") == "RAN_OK" and \
+            os.path.exists(os.path.join(ACQ_REC_DIR, str(runs[it["key"]].get("record_id")) + ".json"))
+        print(s, "items", len(items), "settled without a call", len(settled), "recovered", sw.recover(items, runs, ACQ_REC_DIR),
+              flush=True)
+        if run:
+            sw._run_calls([it for it in items if not done(it)], runs, ACQ_REC_DIR, mcl, ms, fp, [s],
+                          purpose=lambda it: f"D10 multi-outcome: {it['slug']} / {it['pmid']} / {it['outcome'][:40]} "
+                                             f"(open sources only; g1_trial_acquire gates)",
+                          line="acquire", batch="d10ext", caller_file="scripts/g1_outcomes.py")
+        out = list(settled)
+        for it in items:
+            if not done(it):
+                out.append({"outcome": it["outcome"], "id": it["pmid"], "state": "NOT_RUN"})
+                continue
+            rid = runs[it["key"]]["record_id"]
+            resp = json.loads(ms.replay(ms.load_record(os.path.join(ACQ_REC_DIR, rid + ".json"))).decode("utf-8"))
+            verdict, adm = ta.gate(resp, it["_held"], it["_cfg"], s)
+            e = {"outcome": it["outcome"], "id": it["pmid"], "state": verdict, "record_id": rid,
+                 "model_verdict": resp.get("verdict"), "why": resp.get("why")}
+            if verdict == "ADMITTED":
+                e.update(kind=adm["kind"], span=adm.get("span"), quote=adm.get("quote"), source=adm["source"],
+                         row=_row_dict(adm["row"]))
+            out.append(e)
+        p = os.path.join(OUT, f"{s}.acquired.json")
+        with open(p, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump({"slug": s, "rows": out}, fh, indent=1, ensure_ascii=False, default=str)
+            fh.write("\n")
+        from collections import Counter
+        print(s, dict(Counter(e["state"] for e in out)), flush=True)
+
+
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     cmd, *args = sys.argv[1:]
     run = "--run" in args
     args = [a for a in args if not a.startswith("--")]
-    {"inventory": lambda a: cmd_inventory(a, run=run), "propose": cmd_propose, "register": cmd_register}[cmd](args)
+    {"inventory": lambda a: cmd_inventory(a, run=run), "propose": cmd_propose, "register": cmd_register, "extract": cmd_extract, "acquire": lambda a: cmd_acquire(a, run=run)}[cmd](args)
