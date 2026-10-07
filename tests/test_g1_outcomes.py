@@ -75,3 +75,16 @@ def test_sharing_one_word_with_our_primary_does_not_make_it_our_primary():
     assert not go.is_our_primary("Death within 24 h", tx)
     assert go.is_our_primary("Death due to bleeding", tx)
     assert go.is_our_primary("recurrent VTE and related death", go.topic("doac-vte-recurrence"))
+
+
+def test_the_registered_spec_is_the_comparators_wording_and_measure():
+    e = {"name": "incidence of serious adverse events", "family": "P2_KEY_HARMS",
+         "comparator_result": {"measure": "OR", "estimate": "0.73", "lower": "0.49", "upper": "1.10", "timepoint": None}}
+    sp = go.spec_of(e)
+    assert sp["name"] == "Incidence of serious adverse events" and sp["estimand"] == "OR"
+    assert sp["keywords"] == ["incidence of serious adverse events", "serious adverse events"]
+    assert sp["population"].startswith("trial-reported")
+    p1 = go.spec_of({"name": "total deaths", "family": "P1_ALL_CAUSE_MORTALITY",
+                     "comparator_result": {"measure": "pooled OR", "timepoint": "24 weeks"}})
+    assert "death from any cause" in p1["keywords"] and p1["timepoint"] == "24 weeks" and "population" not in p1
+    assert [go.estimand_of(m) for m in ("WMD", "RR", "Pooled OR", "hazard ratio", "SMD")] == ["MD", "RR", "OR", "HR", "SMD"]

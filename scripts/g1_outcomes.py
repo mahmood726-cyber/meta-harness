@@ -439,9 +439,112 @@ def cmd_propose(slugs):
             print(f"   FLAG {e['flag']} {e['outcome'][:50]}")
 
 
+# ----------------------------------------------------------------------------------------------------------- register
+AMEND_DATE = "2026-10-07"
+AMEND_HEAD = f"## Amendment {AMEND_DATE} (D10 multi-outcome: outcomes the comparator also reports)"
+
+
+def estimand_of(measure):
+    m = (measure or "").upper()
+    for pat, est in ((r"\bSMD\b|STANDARDI[SZ]ED MEAN", "SMD"), (r"\bW?MD\b|MEAN DIFFERENCE", "MD"),
+                     (r"\bA?HR\b|HAZARD", "HR"), (r"\bRR\b|RISK RATIO|RELATIVE RISK", "RR"), (r"\bOR\b|ODDS", "OR")):
+        if re.search(pat, m):
+            return est
+    return None
+
+
+_LEAD = re.compile(r"^(?:the\s+)?(?:incidence|rate|risk|occurrence|mean|change in|variations? in)\s+(?:of\s+)?", re.I)
+
+
+def spec_of(entry):
+    """The outcome spec the rule fixes: the comparator's own wording; estimand = its printed measure family; keywords =
+    its outcome phrase (and the phrase without a leading 'incidence of' / 'mean' ...), plus the fixed P1 synonyms."""
+    rule = _j(RULE)
+    name = entry["name"].strip()
+    phrase = name.lower()
+    kws = [phrase] + ([_LEAD.sub("", phrase)] if _LEAD.sub("", phrase) != phrase else [])
+    if entry["family"].startswith("P1"):
+        kws += rule["proposal"]["P1_synonyms"]
+    r = entry["comparator_result"]
+    spec = {"name": name[0].upper() + name[1:], "estimand": estimand_of(r.get("measure")),
+            "keywords": list(dict.fromkeys(kws)), "timepoint": r.get("timepoint") or "trial-reported follow-up",
+            "amendment": f"{AMEND_DATE} D10 ({entry['family']})"}
+    if entry["family"].startswith("P2"):
+        spec["population"] = "trial-reported randomized comparison / safety population"
+    return spec
+
+
+def _excerpt(span, n=220):
+    s = re.sub(r"\s+", " ", span or "").strip()
+    return s if len(s) <= n else s[:n].rsplit(" ", 1)[0] + " …"
+
+
+def amendment_text(slug, prop, specs, rule_sha, prop_sha):
+    lines = [AMEND_HEAD,
+             "**Status: registered BEFORE any extraction of these outcomes; retrospective with respect to the trial pool**",
+             "(the pool, search and eligibility were fixed before D10 and are unchanged). Decision: Mahmood D10 (relayed",
+             f"{AMEND_DATE}): add outcomes the comparator meta also reports -- all-cause mortality, key harms and its",
+             f"prespecified secondaries. Rule `registry/outcome_amendments/D10_rule.json` (commit {rule_sha}); proposal",
+             f"`registry/outcome_amendments/{slug}.proposal.json` (commit {prop_sha}). The outcomes were chosen from the",
+             f"comparator's (PMID {prop['comparator_pmid']}) own text by that rule alone; no trial-level result for them",
+             "was extracted or viewed by this lane before this amendment.", ""]
+    for e, sp in zip(prop["new_outcomes"], specs):
+        kind = "harm outcome" if e["family"].startswith("P2") else "secondary outcome"
+        r = e["comparator_result"]
+        lines += [f"- **New {kind}: {sp['name']}** ({e['family']}). Estimand {sp['estimand']}; timepoint {sp['timepoint']};",
+                  f"  keywords {', '.join(sp['keywords'])}. The comparator prints {r.get('measure')} {r.get('estimate')}",
+                  f"  ({r.get('lower')} to {r.get('upper')}): \"{_excerpt(e['span'])}\" [{e['basis'].split(' record ')[0]}]."]
+    for e in prop["linked_existing"]:
+        r = e["comparator_result"]
+        lines += [f"- **Linked, already registered: {e['linked_to']}** -- compared with the comparator's \"{e['name']}\",",
+                  f"  {r.get('measure')} {r.get('estimate')} ({r.get('lower')} to {r.get('upper')}). No change to its spec."]
+    lines += ["- **Extraction.** The served ladder is unchanged (abstract, CT.gov results, held open full texts, verified",
+              "  inputs); trials it leaves without a value may be read by recorded codex over open sources only (CC BY / CC0",
+              "  full text, abstracts, AACT, FDA, EMA with acknowledgement, NICE OGL/CC), every value quote-gated.",
+              "- **Comparison.** Each outcome's pooled result is compared with the comparator's printed result on the",
+              "  comparator's measure; a measure difference is reported, never converted. Nothing is served until",
+              "  Mahmood signs its notice.", ""]
+    return "\n".join(lines)
+
+
+def cmd_register(slugs):
+    import subprocess
+    sha = lambda p: subprocess.run(["git", "-C", ROOT, "log", "-1", "--format=%h", "--", p], capture_output=True,
+                                   text=True).stdout.strip() or None
+    rule_sha = sha("registry/outcome_amendments/D10_rule.json")
+    for s in slugs:
+        prop = _j(os.path.join(OUT, f"{s}.proposal.json"))
+        prop_sha = sha(f"registry/outcome_amendments/{s}.proposal.json")
+        if not prop["new_outcomes"] and not prop["linked_existing"]:
+            print(s, "nothing to register")
+            continue
+        if not (rule_sha and prop_sha):
+            raise SystemExit(f"{s}: the rule and the proposal must be COMMITTED before registration")
+        pp = os.path.join(ROOT, "protocols", f"{s}.md")
+        md = open(pp, encoding="utf-8").read()
+        if AMEND_HEAD in md:
+            print(s, "already registered (kept: an amendment is never rewritten)")
+            continue
+        tp = os.path.join(ROOT, "topics", f"{s}.json")
+        t = _j(tp)
+        specs = [spec_of(e) for e in prop["new_outcomes"]]
+        have = {o["name"].lower() for o in (t.get("secondary_outcomes") or []) + (t.get("harm_outcomes") or [])}
+        clash = [sp["name"] for sp in specs if sp["name"].lower() in have or not sp["estimand"]]
+        if clash:
+            raise SystemExit(f"{s}: refusing -- name clash or no estimand for {clash}")
+        for e, sp in zip(prop["new_outcomes"], specs):
+            t.setdefault("harm_outcomes" if e["family"].startswith("P2") else "secondary_outcomes", []).append(sp)
+        with open(tp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(t, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        with open(pp, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(md.rstrip("\n") + "\n\n" + amendment_text(s, prop, specs, rule_sha, prop_sha))
+        print(s, "registered", len(specs), "new,", len(prop["linked_existing"]), "linked", flush=True)
+
+
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     cmd, *args = sys.argv[1:]
     run = "--run" in args
     args = [a for a in args if not a.startswith("--")]
-    {"inventory": lambda a: cmd_inventory(a, run=run), "propose": cmd_propose}[cmd](args)
+    {"inventory": lambda a: cmd_inventory(a, run=run), "propose": cmd_propose, "register": cmd_register}[cmd](args)
