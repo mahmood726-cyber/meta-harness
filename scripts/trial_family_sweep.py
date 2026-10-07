@@ -134,6 +134,8 @@ def main():
     for slug in cohort:
         try:
             cfg, records = load(ROOT/'topics'/f'{slug}.json'), load(ROOT/'cache'/slug/'records.json')
+            from harness import fetch as _fetch   # + a signed comparator's overlay, as the served build reads
+            records = _fetch._with_comparator_records(records, cfg, str(ROOT/'cache'/slug))
             before = namespace['build_review_core'](slug,copy.deepcopy(cfg),copy.deepcopy(records),'lane-fn-local-verification')
             after = pipeline.build_review_core(slug,copy.deepcopy(cfg),copy.deepcopy(records),'lane-fn-local-verification')
             if pool_signature(before) != pool_signature(after):

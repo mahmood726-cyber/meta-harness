@@ -26,3 +26,13 @@ def test_examine_is_excluded_with_the_registers_reason():
 def test_tecos_alone_reproduces_the_signed_v6_01_after():
     n, _ = g.topic_notice(_dpp4())
     assert n["after"] == {"k": 4, "estimate": 1.0007, "ci_low": 0.8998, "ci_high": 1.1129}
+
+
+def test_the_decision_is_recorded_and_examine_stays_out_of_the_served_pool():
+    """D7 (Mahmood 7 Oct, 'agree'): re-expressed CIs are for MATCHING only, never a served pool."""
+    d = json.load(open(os.path.join(ROOT, "registry", "g1_decisions.json"), encoding="utf-8"))
+    dec = next(x for x in d["decisions"] if x["id"] == "D7-REEXPRESSED-CI-MATCHING-ONLY")
+    assert dec["ratified"]["by"] == "Mahmood" and dec["ratified"]["quote"] == "agree"
+    r = json.load(open(os.path.join(ROOT, "docs", "reviews", "dpp4-mace-t2d", "review.json"), encoding="utf-8"))
+    mace = next(o for o in r["outcomes"] if o["name"].startswith("3-point"))
+    assert "PMID 23992602" not in [str(t.get("id")) for t in mace.get("trials") or []]

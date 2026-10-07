@@ -69,3 +69,19 @@ def test_the_overlay_applies_only_to_the_configured_comparator(tmp_path):
     base = {"comparator_pmid": "111", "records": []}
     assert fetch._with_comparator_records(base, {"comparator_pmid": "222"}, str(tmp_path))["comparator_pmid"] == "222"
     assert fetch._with_comparator_records(base, {"comparator_pmid": "333"}, str(tmp_path)) == base
+
+
+def test_every_script_that_builds_a_page_reads_the_comparator_overlay():
+    """A script that loads records.json itself and builds a review page must apply the signed comparator's overlay
+    (fetch.ensure or fetch._with_comparator_records); otherwise it rebuilds the old comparator and the guard refuses
+    (k_gap_counterfactual.build did, found 7 Oct by regenerating dpp4's tracker)."""
+    import glob
+    import re
+    bad = []
+    for p in sorted(glob.glob(os.path.join(ROOT, "scripts", "*.py"))):
+        s = open(p, encoding="utf-8").read()
+        if "build_review_core(" not in s or "def build_review_core" in s:
+            continue
+        if re.search(r"records\.json", s) and "fetch.ensure(" not in s and "_with_comparator_records(" not in s:
+            bad.append(os.path.basename(p))
+    assert bad == [] or bad == ["run_prospective_topic.py"], bad     # prospective runs build into their own fresh cache

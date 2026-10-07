@@ -167,10 +167,18 @@ def _committed():
     return list((json.load(open(REG, encoding="utf-8")) or {}).get("additions") or [])
 
 
+def hold_applies(h):
+    """A hold stays on the record for good. It stops applying only when its SIGNER lifted it: final.state
+    LIFTED_BY_SIGNER with who and their verbatim words (Mahmood 7 Oct: 'lift v6-01 and agree'). Any other final state --
+    a withdrawal -- keeps the notice out, and a lift with no signer or no quote is not a lift."""
+    f = h.get("final") or {}
+    return not (f.get("state") == "LIFTED_BY_SIGNER" and str(f.get("by") or "").strip() and str(f.get("quote") or "").strip())
+
+
 def build(notices=None, holds=None):
     notices = rc.load() if notices is None else notices
     holds = json.load(open(HOLDS, encoding="utf-8"))["holds"] if holds is None else holds
-    held = {(h["slug"], h["id"]): h for h in holds}
+    held = {(h["slug"], h["id"]): h for h in holds if hold_applies(h)}
     adds, excluded = [], []
     for n in notices:
         sig = n.get("reviewer_countersignature") or {}
