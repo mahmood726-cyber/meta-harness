@@ -639,3 +639,55 @@ Per topic: tocilizumab-covid19-mortality NOT_YET indep 5/19 matched 5/19; balanc
 - All 5 trials in its set are already bound PRIMARY in our pool: RE-COVER, RE-COVER II, Hokusai-VTE, AMPLIFY and EINSTEIN-DVT.
 - So there were 0 targets and 0 calls.
 - Its G1 standing now depends only on the tracker being regenerated against 29795629, which is the captain's step.
+
+## 2026-10-07 -- open-source routes (Mahmood: "any other open access sources but use in reproducible ai") (be45bfb45)
+
+**Method.** The population is the 16 open-gap trials across the 12 active topics, taken from the v8 trackers.
+- I probed every candidate route against each of those trials before building anything.
+- I built only the routes that had candidates.
+- Each route has a typed source record, deterministic reading first, the licence guard, and a plant (`tests/test_open_sources.py`, 13 plants).
+
+**Admitted n per route:**
+
+| Route | Admitted | Notes |
+|---|---|---|
+| OPEN_LOCATION (OpenAlex / Semantic Scholar) | 0 | No new CC copy. The licence of record is read from the host page's own licence tag, never from the index field: OpenAlex calls REMAP-CAP's JAMA copy cc-by, and JAMA answers with a bot challenge. 4 bot challenges recorded, none solved. |
+| Regex first: the pinned extractor on held CC text, through `gate()` exactly like a model answer | **1** | Tsutsui 2021 (PARALLEL-HF), HR 1.09 (0.65–1.82), from a CC BY-NC-ND copy. |
+| Stated registration (the one NCT a report prints) → AACT | 0 | Added NCT02468232 (posted results). |
+| EUCTR (typed only) | 0 | 3 result pages held: EFFECT-HF (HF hospitalisation posted as percentages only; the time-to-event result is a composite), semaglutide phase 2 (no MACE), AFFIRM-AHF. |
+| CTIS | 0 | REMAP-CAP has no results posted. |
+
+**Decision needed.** Tsutsui is admitted by the gates, but reader 1 had refused it on population grounds.
+- Its result is on the FAS, 223 of the 225 randomised. The other 2 were randomised by mistake and never treated.
+- The text gate has no population rule for effects, and 223/225 sits well inside the 10% randomised-N tolerance used elsewhere.
+- Please adjudicate: keep it, or name it as a population difference.
+
+**EU CTR licence.** The register defers to EMA's legal notice, and that notice's permission "does not apply to content supplied by third parties". Results are entered by the sponsor.
+- So EU CTR content is THIRD_PARTY_SPONSOR: it is read by the typed parser only and never shown to a model.
+- The parser maps results into the AACT registry shape. They pass through `registry_gate`, which is the AACT branch factored out with unchanged behaviour.
+- The EU CTR search does not index NCT numbers, so that fallback finds nothing. Discovery is by the EudraCT numbers in AACT.
+
+**Probed but not built (0 candidates among the 16):**
+- Europe PMC full text duplicates PMC.
+- No medRxiv or other preprints exist for these trials.
+- Zenodo, Dryad, Figshare and OSF (via DataCite) have nothing relevant.
+- ISRCTN has no numeric results for these trials.
+- PMDA has no Entresto review; its Prolia and Wegovy reviews don't cover our outcomes.
+- I found no IQWiG, ICER or FDA advisory-committee document covering these trials.
+- TGA timed out.
+- CADTH answered with a bot challenge.
+- Sponsor pages would duplicate AACT or the paper.
+
+**Excluded because they need an account or a data-use agreement** (listed for Mahmood, not used): Health Canada PRCI, the EMA clinical data portal, YODA, Vivli, CSDR, Project Data Sphere, the CORE API (needs a key), and the WHO ICTRP web service (partner-only).
+
+**Other changes:**
+- `record_licence` checks an open-location copy against that copy's own record, never against the DOI.
+- Admitted text rows now name the copy the text came from. Before this, an Unpaywall copy was labelled "PMC OA". Replays will rewrite those labels; no values change.
+
+**Calls:** 2 (CoDEX, readers 1 and 2: SOURCE_ABSENT). Licence: 0 problems. Leak gate: clean.
+
+**Recount:**
+- COVERAGE 165/346 (+1); INDEPENDENT 93/346 (+1); G1_MATCHED 9.
+- sacubitril-valsartan-hfref is now 2/9 matched, which meets ALL_ELIGIBLE_MATCHED. RESULT_AGREES stays open because the comparator prints no row for PARALLEL-HF.
+
+**What remains.** The other 15 gap trials have no open source on any route: the older-subgroup statin papers, the 1990s melatonin trials, and the COVID steroid trials, whose texts sit under the emergency licence, which is not CC.
