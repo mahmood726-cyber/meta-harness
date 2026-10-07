@@ -3452,5 +3452,36 @@
     "verdict": null
    }
   ]
+ },
+ "pr25-final5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-9d028206a8a191297f6440f35bc3b18e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_select.py",
+     "scripts/g1_licence.py",
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "2e6816d9ea09e2f5ec0ee3aa51746140ef455b8a1b61fbefe0d61261d3704188"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "Negation after the trial count is missed. A count explicitly describing trials not included in the analysis is accepted as the pooled result's k: blocked_before checks only preceding text, and _RESTRICT does not match 'were not included'.",
+    "failing_input": "q = 'Five trials were not included in the mortality analysis (RR 0.85, 95% CI 0.70 to 1.03).'\nprinted_counts(q)\npl = {'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5, 'quote': q}\npooled_gate(pl, _norm(q))",
+    "expected": "printed_counts(q) returns set(); pooled_gate returns (None, None), because the sentence supplies no count of contributing trials.",
+    "actual": "printed_counts(q) returns {5}; pooled_gate accepts k=5 and returns the claim with k_basis.from='POOLED_QUOTE_SENTENCE'.",
+    "id": "pr25-final5:g1#1",
+    "record_id": "mc-9d028206a8a191297f6440f35bc3b18e",
+    "verdict": null
+   }
+  ]
  }
 }
