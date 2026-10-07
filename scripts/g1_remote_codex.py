@@ -68,6 +68,36 @@ def sync_worker(sha):
     return got
 
 
+_JATS_REF = r"cache/comparators/\d+/\S*jats\S*\.xml"
+
+
+def support_files(jobs):
+    """The untracked files the worker's pre-call licence guard must READ for these jobs: each declared comparator JATS
+    (its <permissions> carry the licence). Without them the worker refused every full-text job 'NOT_HELD' (7 Oct)."""
+    import re
+    out = set()
+    for j in jobs:
+        for dg in j.get("input_digests") or []:
+            m = re.match(_JATS_REF, str(dg.get("ref") or ""))
+            if m and os.path.isfile(os.path.join(ROOT, m.group(0))):
+                out.add(m.group(0))
+    return sorted(out)
+
+
+def _ship_support(files, batch):
+    """One tar to my own worker worktree (untracked there too; never committed, never redistributed)."""
+    if not files:
+        return
+    tarp = os.path.join(LOCAL, batch + ".support.tar")
+    r = subprocess.run(["tar", "-cf", tarp, *files], cwd=ROOT, capture_output=True, text=True)
+    if r.returncode:
+        raise RuntimeError(f"support tar failed: {r.stderr[-300:]}")
+    _scp(tarp, _remote(WT + "\\_remote\\"), 600)
+    r = _ssh(f'cd /d {WT} && tar -xf "_remote\\{batch}.support.tar"', 600)
+    if r.returncode:
+        raise RuntimeError(f"support untar on worker failed: {r.stderr[-300:]}")
+
+
 def submit(jobs, batch, concurrency=5, timeout=7200):
     """jobs: [{key, prompt (bytes), schema, model, effort, caller, input_digests, timeout_s}] -> {key: record dict}."""
     sha = head_sha()
@@ -85,6 +115,7 @@ def submit(jobs, batch, concurrency=5, timeout=7200):
     for f in LICENCE_FILES:                       # the guard decides on the SAME licence data as here
         if os.path.exists(os.path.join(ROOT, f)):
             _scp(os.path.join(ROOT, f), _remote(WT + "\\" + f.replace("/", "\\")), 600)
+    _ship_support(support_files(jobs), batch)
     r = _ssh(f'cd /d {WT} && set PYTHONIOENCODING=utf-8&& "{PY}" scripts\\g1_remote_codex.py --worker "{rb}" '
              f'--concurrency {concurrency}', timeout)
     if r.returncode:

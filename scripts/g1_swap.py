@@ -358,17 +358,42 @@ def on_topic(title, p):
         bool(re.search(r"\b(" + "|".join(re.escape(x.lower()) for x in p["intervention_terms"] if len(x) >= 3) + r")", t))
 
 
+UPW_OPEN = ("cc-by", "cc0", "public-domain")
+
+
+def upw_open_text(doi):
+    """(text, cache rel path) of a DOI's Unpaywall OA copy when the location that DELIVERED the text is CC BY / CC0
+    (C1 may have passed on another location: the guard decides on this one); else (None, None)."""
+    from kgap import k_gap
+    cache = os.path.join(ROOT, "outputs", "k_gap", "_upw")
+    u = k_gap.unpaywall_text(doi, cache, os.path.join(ROOT, "outputs", "k_gap", "unpaywall_text_index.json"))
+    if u.get("state") != "OA_TEXT" or str(u.get("license") or "").lower() not in UPW_OPEN or not u.get("text"):
+        return None, None
+    key = hashlib.sha1(doi.lower().encode("utf-8")).hexdigest()[:16]
+    return u["text"], f"outputs/k_gap/_upw/{key}.txt"
+
+
 def screen_item(s, p, pmid, rec, rule_):
     rel = held_jats(pmid, rec.get("pmcid_open"))
-    if not rel:
-        return None
-    text = jats_text(open(os.path.join(ROOT, rel), encoding="utf-8", errors="replace").read())
     crit = "\n".join(f"{c['id']}: PASS if {c['pass_if']}" for c in rule_["criteria"] if c["id"] != "C1_OPEN_LICENCE")
+    if rel:
+        xml = open(os.path.join(ROOT, rel), encoding="utf-8", errors="replace").read()
+        text, abstract, kind = jats_text(xml), abstract_of(xml), "JATS"
+        dg = {"ref": rel, "sha256": hashlib.sha256(open(os.path.join(ROOT, rel), "rb").read()).hexdigest(),
+              "what": "the candidate meta's open JATS (CC BY / CC0), rendered to text, first 180000 chars"}
+    else:
+        # C1 passed on an Unpaywall CC BY location with no PMC copy (151 candidates, 7 Oct): its open text, prose only
+        doi = (rec.get("doi") or "").strip()
+        text, rel = upw_open_text(doi) if doi and not rec.get("pmcid_open") else (None, None)
+        if not text:
+            return None
+        abstract, kind = (rec.get("title") or "") + "\n" + text[:4000], "UPW_TEXT"
+        dg = {"ref": f"DOI {doi.lower()} Unpaywall open text", "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+              "what": "the candidate meta's Unpaywall OA copy (CC BY / CC0 location), as text, first 180000 chars"}
     prompt = (SCREEN_INSTR + f"\n\nPROTOCOL: {p['question']}\nPRIMARY OUTCOME: {p['primary_outcome']} "
               f"(estimand {p['estimand']}, timepoint {p['timepoint']})\nCRITERIA:\n{crit}\n<<<TEXT\n{text[:180000]}\nTEXT>>>\n").encode("utf-8")
     return {"key": f"swapscreen::{base(s)}::{pmid}", "pmid": pmid, "slug": s, "prompt": prompt, "text": text, "held": rel,
-            "digests": [{"ref": rel, "sha256": hashlib.sha256(open(os.path.join(ROOT, rel), "rb").read()).hexdigest(),
-                         "what": "the candidate meta's open JATS (CC BY / CC0), rendered to text, first 180000 chars"}]}
+            "abstract": abstract, "source_kind": kind, "digests": [dg]}
 
 
 A_CRIT = ("C2_RCT_ONLY", "C3_POPULATION", "C4_INTERVENTION_VS_COMPARATOR", "C5_OUTCOME_AND_ESTIMAND")
@@ -506,7 +531,7 @@ def cmd_screen(slugs, run=False):
             cands[pmid] = {"pmid": pmid, "title": rec.get("title"), "pubdate": rec.get("pubdate"), "doi": rec.get("doi"),
                            "pmcid": pmcid, "is_current_comparator": pmid == p["current_comparator"],
                            "criteria": {"C1_OPEN_LICENCE": v}}
-            if v["verdict"] == "PASS" and pmcid:
+            if v["verdict"] == "PASS":                       # PMC JATS, else the Unpaywall CC BY text
                 it = screen_item(s, p, pmid, rec, rule_)
                 if it:
                     items.append(it)
@@ -524,7 +549,7 @@ def cmd_screen(slugs, run=False):
     a_items = []
     for it in items:
         rule_ = _j(os.path.join(SEL, f"{stem(it['slug'])}.rule.json"))
-        ab = abstract_of(open(os.path.join(ROOT, it["held"]), encoding="utf-8", errors="replace").read())
+        ab = it["abstract"]
         crit = "\n".join(f"{c['id']}: PASS if {c['pass_if']}" for c in rule_["criteria"] if c["id"] in A_CRIT)
         pr = protocol(it["slug"])
         prompt = (A_INSTR + f"\n\nPROTOCOL: {pr['question']}\nPRIMARY OUTCOME: {pr['primary_outcome']} (estimand "

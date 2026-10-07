@@ -113,3 +113,20 @@ def test_stage_a_items_of_a_later_round_read_that_rounds_rule():
     src = open(sw.__file__, encoding="utf-8").read()
     assert "f\"{it['slug']}.rule.json\"" not in src                 # every rule read goes through stem()
     assert os.path.exists(os.path.join(sw.SEL, sw.stem("statins-primary-prevention-elderly@r2") + ".rule.json"))
+
+
+def test_a_c1_pass_through_unpaywall_alone_is_read_from_its_open_text(monkeypatch):
+    # 7 Oct: 151 candidates passed C1 on an Unpaywall CC BY location but had no PMC id, so screen_item built no item and
+    # they were never read -- "0 eligible" then said nothing about them
+    from kgap import k_gap
+    p = sw.protocol("iv-iron-hfref-hosp")
+    rule_ = sw.rule("iv-iron-hfref-hosp")
+    monkeypatch.setattr(sw, "held_jats", lambda pmid, pmcid: None)
+    body = "Systematic review and meta-analysis of randomised trials. " * 80
+    monkeypatch.setattr(k_gap, "unpaywall_text", lambda doi, c, i, offline=False: {"text": body, "state": "OA_TEXT",
+                                                                                  "license": "cc-by", "url": "u"})
+    it = sw.screen_item("iv-iron-hfref-hosp", p, "1", {"doi": "10.1/X", "pmcid_open": None, "title": "T"}, rule_)
+    assert it and it["digests"][0]["ref"].startswith("DOI 10.1/x") and it["abstract"]
+    monkeypatch.setattr(k_gap, "unpaywall_text", lambda doi, c, i, offline=False: {"text": body, "state": "OA_TEXT",
+                                                                                  "license": None, "url": "u"})
+    assert sw.screen_item("iv-iron-hfref-hosp", p, "1", {"doi": "10.1/X", "pmcid_open": None, "title": "T"}, rule_) is None
