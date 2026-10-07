@@ -107,7 +107,9 @@ def cmd_rules(slugs):
 
 
 # ---------------------------------------------------------------------------------------------------------------- search
-DATE = "2026-10-06"
+# the day the stage actually ran (a fixed "2026-10-06" would stamp later searches with a false date); held files are
+# found by glob, so earlier-dated copies are still read
+DATE = os.environ.get("G1_SWAP_DATE") or __import__("datetime").datetime.now(__import__("datetime").timezone.utc).strftime("%Y-%m-%d")
 CONTACT = "meta-harness@example.org"          # never a personal address in a request
 
 
@@ -116,22 +118,95 @@ def _terms(p):
     return t[:12]
 
 
+PAGE_CAP = 20000          # ids per database; a search past this is written TRUNCATED, never complete
+
+
+PUBMED_LIMIT = 9999      # ESearch cannot page past retstart 9998; beyond it the search is TRUNCATED (Europe PMC pages on)
+
+
+def pubmed_ids(get_raw, term, cap=PUBMED_LIMIT):
+    """Every PubMed id for the query, paged by retstart to esearch's own count. (ids, {count, fetched, state, sha256s})"""
+    ids, shas, count, start = [], [], None, 0
+    while True:
+        for attempt in range(5):
+            st, b = get_raw("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                            {"db": "pubmed", "term": term, "retstart": str(start), "retmax": str(min(500, cap - start)),
+                             "retmode": "json", "tool": "meta-harness", "email": CONTACT})
+            # PubMed echoes raw control characters in querytranslation (strict=False); a rate-limit reply is a JSON
+            # error with no count -- retried with backoff, and after 5 the search fails closed (never a short 'complete')
+            # a malformed error body is retried like any other failure, never raised past the loop (codex pr25-final3 #2)
+            try:
+                r = (json.loads(b.decode("utf-8", "replace"), strict=False) if b[:1] == b"{" else {}).get("esearchresult") or {}
+            except ValueError:
+                r = {}
+            # ... and a failure status is never a result, whatever its body says (codex pr25-final2 #2: a 503 carrying
+            # '{"esearchresult":{"count":"0"}}' was a complete search with no records)
+            if st == 200 and "count" in r:
+                break
+            __import__("time").sleep(2 * (attempt + 1))
+        else:
+            raise SystemExit(f"REFUSED: PubMed esearch returned no count at retstart {start}: {b[:200]!r}")
+        shas.append(hashlib.sha256(b).hexdigest())
+        count = int(r["count"])
+        page = r.get("idlist") or []
+        ids += page
+        start += len(page)
+        if not page or start >= count or start >= cap:
+            break
+    ids = list(dict.fromkeys(ids))
+    return ids, {"count": count, "fetched": len(ids), "state": "COMPLETE" if len(ids) >= count else "TRUNCATED",
+                 "response_sha256s": shas}
+
+
+def europepmc_ids(get_raw, query, cap=PAGE_CAP):
+    """Every Europe PMC hit's PMID, paged by cursorMark to its own hitCount. Hits without a PMID are counted, not kept."""
+    pmids, shas, hits, seen, cur, uniq = [], [], None, 0, "*", set()
+    while True:
+        # an error reply is never a search result: a non-200 status or a body with no hitCount is retried with backoff,
+        # and after 5 the search fails closed -- as pubmed_ids does (codex pr25-final #3: a 503 with a JSON body was read
+        # as a COMPLETE search with zero hits)
+        for attempt in range(5):
+            st, b = get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                            {"query": query, "format": "json", "pageSize": "1000", "resultType": "lite", "cursorMark": cur})
+            try:
+                r = json.loads(b.decode("utf-8", "replace"), strict=False) if b[:1] == b"{" else {}
+            except ValueError:
+                r = {}
+            if st == 200 and "hitCount" in r:
+                break
+            __import__("time").sleep(2 * (attempt + 1))
+        else:
+            raise SystemExit(f"REFUSED: Europe PMC search returned status {st} with no hitCount at cursor {cur}: {b[:200]!r}")
+        shas.append(hashlib.sha256(b).hexdigest())
+        hits = int(r["hitCount"])
+        page = (r.get("resultList") or {}).get("result") or []
+        # completeness counts UNIQUE records: a repeated page adds nothing and stops the paging (codex pr25-final2 #3:
+        # one record served twice reached hitCount 2 and the search was called COMPLETE)
+        before = len(uniq)
+        uniq.update(((x.get("source"), x.get("id")) if x.get("id") else json.dumps(x, sort_keys=True)) for x in page)
+        seen = len(uniq)
+        pmids += [x.get("pmid") for x in page if x.get("pmid")]
+        nxt = r.get("nextCursorMark")
+        if not page or len(uniq) == before or not nxt or nxt == cur or seen >= hits or seen >= cap:
+            break
+        cur = nxt
+    pmids = list(dict.fromkeys(pmids))
+    return pmids, {"count": hits, "fetched_hits": seen, "with_pmid": len(pmids),
+                   "state": "COMPLETE" if seen >= hits else "TRUNCATED", "response_sha256s": shas}
+
+
 def cmd_search(slugs):
     """Recorded search per topic: PubMed esearch + Europe PMC, both restricted to meta-analyses / systematic reviews and
-    built mechanically from the topic's intervention terms. Response sha256 and every hit kept."""
+    built mechanically from the topic's intervention terms. Each database is paged to its own count (the 7 Oct first run
+    stopped at 600 / 1000 and reported its reach as the population); response sha256s and every hit kept."""
     from harness import http
     for s in slugs:
         p = protocol(s)
         iv = " OR ".join(f'"{t}"' for t in _terms(p))
         pq = f'({iv}) AND (meta-analysis[pt] OR meta-analys*[ti] OR "systematic review"[ti] OR "network meta"[ti])'
-        st, b = http.get_raw("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-                             {"db": "pubmed", "term": pq, "retmax": "600", "retmode": "json", "tool": "meta-harness",
-                              "email": CONTACT})
-        pm = json.loads(b.decode("utf-8"))["esearchresult"]["idlist"]
+        pm, pm_meta = pubmed_ids(http.get_raw, pq)
         eq = f'({iv}) AND (TITLE:"meta-analysis" OR TITLE:"meta analysis" OR TITLE:"systematic review" OR PUB_TYPE:"Meta-Analysis")'
-        st2, b2 = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-                               {"query": eq, "format": "json", "pageSize": "1000", "resultType": "lite"})
-        ep = [r.get("pmid") for r in json.loads(b2.decode("utf-8"))["resultList"]["result"] if r.get("pmid")]
+        ep, ep_meta = europepmc_ids(http.get_raw, eq)
         ids = sorted(set(pm) | set(ep) | {p["current_comparator"]})
         recs = {}
         for i in range(0, len(ids), 150):
@@ -145,12 +220,15 @@ def cmd_search(slugs):
                            "pmcid": next((a["value"] for a in v.get("articleids", []) if a["idtype"] == "pmc"), None),
                            "doi": next((a["value"] for a in v.get("articleids", []) if a["idtype"] == "doi"), None)}
         out = {"slug": s, "date": DATE, "rule": f"registry/comparator_selection/{s}.rule.json",
-               "pubmed": {"query": pq, "n": len(pm), "response_sha256": hashlib.sha256(b).hexdigest()},
-               "europepmc": {"query": eq, "n": len(ep), "response_sha256": hashlib.sha256(b2).hexdigest()},
+               "pubmed": dict({"query": pq, "n": len(pm)}, **pm_meta),
+               "europepmc": dict({"query": eq, "n": len(ep)}, **ep_meta),
                "current_comparator_added": p["current_comparator"], "records": recs}
+        if len(recs) < len(ids):
+            out["records_state"] = f"TRUNCATED: {len(recs)} summaries for {len(ids)} ids"
         with open(os.path.join(SEL, f"{s}.search.json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(out, fh, indent=1, ensure_ascii=False)
-        print(s, "pubmed", len(pm), "europepmc", len(ep), "records", len(recs), flush=True)
+        print(s, "pubmed", f"{len(pm)}/{pm_meta['count']}", pm_meta["state"], "europepmc",
+              f"{ep_meta['fetched_hits']}/{ep_meta['count']}", ep_meta["state"], "records", len(recs), "of", len(ids), flush=True)
 
 
 # ---------------------------------------------------------------------------------------------------------------- screen
@@ -261,7 +339,283 @@ def label_cites(lab, xml, refs):
     return out
 
 
-def pooled_gate(pl, nt):
+_TRIAL_ADJ = r"(?:randomi[sz]ed|controlled|clinical|phase\s*(?:[1-4]|iv|i{1,3}))"
+_COUNT_WORDS = ("one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
+                "seventeen eighteen nineteen twenty").split()
+
+
+_TENS = ("twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety")
+# a count right after one of these is approximate, a bound or a comparison, never an exact k ('at least five', 'more than
+# 5', 'up to five', 'about 12'; codex swap-setquote-r11 #3) -- a closed class of English approximators
+_APPROX = {"least", "most", "than", "about", "approximately", "around", "nearly", "almost", "over", "under", "some",
+           "roughly", "circa", "ca", "to", "upto", "beyond", "exceeding", "below", "above",
+           # a count after 'of' is a denominator or a total ('50% of ten trials', 'two of the five'; codex
+           # swap-setquote-r12 #1): never the contributing k. 'a total of 5 trials' is refused too -- refusal is safe
+           "of", "between",
+           # an estimate or approximation of the count ('An estimated five trials'; codex swap-setquote-r17 #1)
+           "estimated", "est", "approx", "approximate", "apparently", "reportedly", "possibly", "probably", "likely",
+           "perhaps", "potentially", "presumably", "expected", "anticipated", "projected",
+           # 'At a minimum five trials' (codex swap-setquote-r18 #1)
+           "minimum", "maximum", "min", "max"}
+
+
+_RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s+whom|of\s+these|of\s+those|of\s+them|"
+                       r"among\s+(?:them|these|those)|minority|portion|part\s+of|fractions?|not\s+all|except|excluding|"
+                       r"apart\s+from|other\s+than|remaining|rest\s+of|few(?:er)?|several|"
+                       # trials taken OUT of the analysis are not its k ('Five trials were excluded from the mortality
+                       # analysis'; codex swap-setquote-r16 #3)
+                       r"exclu\w*|omit\w*|withdr\w*|removed|dropped|lost\s+to|"
+                       # a FRACTION of the trials ('Six trials were included; half reported mortality'; codex
+                       # swap-setquote-r17 #3). A bare 'most' is not here: doac 29795629's own sentence says 'in most
+                       # studies of secondary prevention' of OTHER studies; the narrower 'most ... reported' form is below
+                       r"half|halves|quarters?|thirds?|majority|proportion|percent|per\s+cent|"
+                       # trials WITHOUT the outcome's data ('Five trials lacked mortality data'; codex swap-setquote-r18
+                       # #2). 'without' is deliberately absent: doac's sentence says 'with or without pulmonary embolism'
+                       r"lack\w*|missing|unavailable|unreported|not\s+report\w*|did\s+not\s+(?:report|contribute|provide)|"
+                       # 'no mortality data', 'no outcome events' (codex swap-setquote-r19 #2)
+                       r"no\s+(?:\w+\s+){0,2}(?:data|events?|outcomes?)|"
+                       # 'most' as a share of THESE trials ('Five trials were included; most reported mortality'; codex
+                       # swap-setquote-r22 #2): 'most' then a reporting verb within two words, or 'most of the/them'.
+                       # doac's 'in most studies of secondary prevention' (other studies) does not match
+                       r"most\s+(?:of\s+(?:the|them|these|those)|(?:\w+\s+){0,2}(?:reported|report|contributed|provided|"
+                       r"included|had|showed|found|were|was|did|gave|yielded))|"
+                       # a CONTRAST between outcomes in one sentence ('Five trials reported recurrence, whereas mortality
+                       # RR ...'; codex swap-setquote-r24 #1 .. r27 #1): the count may belong to the other side. 'but' is
+                       # deliberately absent (doac's sentence: '..., but this primary outcome showed ...')
+                       r"whereas|whilst|while|in\s+contrast|by\s+contrast|unlike|separately|respectively|"
+                       r"compared\s+with\s+(?:those|the\s+\w+\s+outcome))\b", re.I)
+
+
+# two effect estimates in one sentence: two results, so the count's owner is ambiguous (codex swap-setquote-r27 #1)
+_EFFECT = re.compile(r"\b(?:RR|OR|HR|RD|MD|SMD|IRR|WMD)\s*[:=]?\s*[-−]?\d*\.?\d+", re.I)
+
+
+def _stray_percent(sent):
+    """A percentage in a count sentence that is not a CI level or a heterogeneity statistic ('40% reported mortality';
+    codex swap-setquote-r16 #1): the sentence describes a fraction of the trials, so it never supplies k."""
+    t = re.sub(r"\b9[059](?:\.\d+)?\s*%\s*(?:CI|CrI|confidence|credible|prediction|PI)\b", " ", sent, flags=re.I)
+    t = re.sub(r"\bI\s*(?:2|²|\^2)?\s*(?:=|:|of)?\s*\d+(?:\.\d+)?\s*%", " ", t, flags=re.I)
+    return "%" in t
+
+
+def _clean(q):
+    # whitespace of every kind is one space before anything is matched (codex swap-setquote-r3 #2: 'Phase\nthree')
+    s = " ".join(str(q or "").split())
+    # every dash is a hyphen ('twenty‑five', en / em dash, minus; codex swap-setquote-r6 #2)
+    s = re.sub(r"[‐‑‒–—−]", "-", s)
+    # a slash with spaces round it is still a range ('Phase one / two studies'; codex swap-setquote-r9 #1)
+    s = re.sub(r"\s*/\s*", "/", s)
+    # ASCII inequalities are the bound symbols ('>= 5 trials'; codex pr25-final3 #1)
+    s = re.sub(r">\s*=|=\s*>", "≥", re.sub(r"<\s*=|=\s*<", "≤", s))
+    # a bracket right after a bound symbol does not detach the bound from its count ('≥(five trials)'; codex
+    # swap-setquote-r20 #2)
+    return re.sub(r"([~<>≤≥])\s*[(\[]\s*", r"\1", s)
+
+
+def _sentences(q):
+    """Sentences: split after . ! ? followed by space and a capital, digit or opening bracket. A semicolon joins clauses
+    of ONE sentence ('RR .85 (95% CI .70-1.03); 12 trials.' prints its count with its estimate), so it never splits.
+    Never after an abbreviation ('Approx. 5 trials' keeps its approximator; codex swap-setquote-r26 #1). A missed split
+    only MERGES two sentences, and a merged sentence holding two numerals is refused by printed_counts."""
+    parts = [x for x in re.split(r"(?<=[.!?])\s+(?=[\"'(\[]?[A-Z0-9])", _clean(q)) if x.strip()]
+    out = []
+    for x in parts:
+        if out and _ABBREV.search(out[-1]):
+            out[-1] = out[-1] + " " + x
+        else:
+            out.append(x)
+    return out
+
+
+_ABBREV = re.compile(r"\b(?:approx|ca|c|circa|e\.g|i\.e|vs|cf|et\s+al|fig|figs|ref|refs|no|nos|tab|suppl|appx|"
+                     r"est|resp|incl|excl|min|max|mo|yr|yrs|wk|wks|av|avg)\.$", re.I)
+
+
+def _numerals(sent):
+    """Every quantity in a sentence that could be a count: whole numbers (not decimals, percentages or a phase number)
+    and number words (incl. 'both', 'dozen'). Statistics like 0.88 or 95% are not numerals."""
+    n = 0
+    # numbers that are never a quantity of trials are removed first (the Part B replay refused colchicine's 'the 3 RCTs
+    # ... I 2 = 0 % [ 20 - 22 ]' as four numerals): bracketed citation markers ('[20-22]', '[3, 5]') and the squared
+    # statistics written with a 2 (I2 / I 2 / I^2, chi2, tau2). A removed number can only stop a refusal; the count
+    # itself must still match the trial-count grammar in _counts_in.
+    sent = re.sub(r"\[\s*\d+(?:\s*[-,]\s*\d+)*\s*\]", " ", sent)
+    sent = re.sub(r"\b(?:I|chi|tau|χ|τ)\s*(?:\^\s*)?2\b", " ", sent, flags=re.I)
+    # scientific notation is one number, not an integer prefix ('5e1'; codex swap-setquote-r24 #3)
+    # ... and never the exponent of one ('1e+5'; codex swap-setquote-r29 #2): a digit after '+' is not a count
+    for m in re.finditer(r"(?<![\w.,/+])\d+(?:,\d{3})*(?![.,]?\d)(?![eE][+-]?\d)(?!\s*%)", sent):
+        if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
+            n += 1
+    words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both", "zero", "none", "nil"]
+    # singular and collective quantities are quantities too ('mortality was reported by a single trial'; codex
+    # swap-setquote-r20 #1) -- but not inside a hyphenated compound ('all-cause mortality', 'single-centre'; codex
+    # swap-setquote-r21 #2, a false refusal)
+    collective = ["single", "sole", "lone", "multiple", "numerous", "various", "many", "each", "every", "another", "all"]
+    # 'a trial', 'a different trial', 'an additional RCT': any singular trial noun is one more quantity (codex
+    # swap-setquote-r28 #1)
+    sent = re.sub(r"\ban?\s+(?:[\w-]+\s+){0,3}(?:trial|study|rct)\b", " one ", sent, flags=re.I)
+    for m in re.finditer(r"\b(?:" + "|".join(words) + r")\b|(?<![\w-])(?:" + "|".join(collective) + r")(?![\w-])",
+                         sent, re.I):
+        if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
+            n += 1
+    return n
+
+
+def printed_counts(q):
+    """Trial counts PRINTED in a quote, read SENTENCE BY SENTENCE, and only from a sentence holding exactly ONE numeral
+    (codex swap-setquote-r11 #2: 'Two of the five trials'; also 'one in five', '12 trials, 3,456 participants' -- any
+    sentence with two quantities is ambiguous and refused, a closed rule instead of one patch per phrasing)."""
+    out = set()
+    for sent in _sentences(q):
+        # a sentence that restricts the result to a SUBSET never supplies k, whichever path reads it (codex
+        # swap-setquote-r15 #1: 'Five trials were included, but only a subset reported mortality (RR ...)')
+        if (_numerals(sent) == 1 and not _RESTRICT.search(sent) and not _stray_percent(sent)
+                and len(_EFFECT.findall(sent)) <= 1):
+            out |= _counts_in(sent)
+    return out
+
+
+def _counts_in(s):
+    """In one cleaned sentence: 'k = n'; or n -- digits or a number word -- followed by up to three TRIAL ADJECTIVES
+    (randomised, controlled, clinical, Phase 3) and then trials / studies / RCTs. A digit that is itself a phase number
+    ('Phase 3 studies') is never a count, and any other word between the count and 'studies' refuses."""
+    out = set()
+    tail = r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b"
+    # the WORD before the count decides, not a fixed-width lookbehind (three review rounds each found a new gap):
+    # never after another number word ('twenty five', 'twenty-one'), 'and' / 'hundred' / 'thousand' ('one hundred and
+    # twenty'), or 'phase' ('Phase 3', 'Phase three')
+    tens = {"twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"}
+    # 'zero' / 'none' start a range too ('between zero and five trials'; codex swap-setquote-r13 #2)
+    number_words = set(_COUNT_WORDS) | tens | {"hundred", "thousand", "million", "zero", "none", "nil"}
+
+    def prev_tokens(i, n=2):
+        """The n whitespace/hyphen-separated tokens right before position i, lower-cased, punctuation KEPT."""
+        # an opening bracket on its own is no token ('Approximately (five trials)'; codex swap-setquote-r12 #2)
+        toks = [t.lower().lstrip("([{\"'‘“") for t in re.split(r"[\s-]+", s[:i].strip())]
+        return [t for t in toks if t][-n:]
+
+    def blocked_before(i):
+        """The count is part of a larger number, a spelled decimal or a phase: the token right before it is a number word
+        ('twenty five', 'thirty-five'), 'point' ('four point five'; codex r5 #1) or 'phase'; or it is 'and' right after a
+        number word ('one hundred and twenty'). Punctuation on the previous token ends the link ('Phase 3: 5 randomized
+        trials' -> 5; codex r5 #2), and a plain conjunction ('cohorts and 5 randomized trials') blocks nothing."""
+        # an OPENING bracket or quote does not end the link ('(Phase three studies)', '(twenty five trials)'; codex r6 #1);
+        # trailing punctuation does ('Phase 3: 5 randomized trials')
+        pt = [t.lstrip("([{\"'‘“") for t in prev_tokens(i)]
+        # a NEGATED count is never k: a negation within the 40 characters before it refuses (codex pr25-final4 #1: 'was
+        # not based on five trials'; the house rule from the 'Not Randomized 1,807' extraction incident)
+        if re.search(r"\b(?:not|no|never|neither|nor|non|without|cannot|none)\b", s[max(0, i - 40):i], re.I):
+            return True
+        # punctuation never hides an approximator ('Approximately: five trials'; codex swap-setquote-r19 #3); it still
+        # ends the link for a phase ('Phase 3: 5 randomized trials' -> 5)
+        if pt and pt[-1].rstrip(":;,.!?)]}\"'’”") in _APPROX:
+            return True
+        # ... nor does an article or determiner between them ('At least the five trials'; codex swap-setquote-r27 #3)
+        p3 = [t.lstrip("([{\"'‘“").rstrip(":;,.!?)]}\"'’”") for t in prev_tokens(i, 3)]
+        # ... nor any word: an approximator anywhere in the three tokens before the count qualifies it ('Roughly
+        # speaking, five trials'; codex swap-setquote-r29 #3)
+        if any(t in _APPROX for t in p3):
+            return True
+        if not pt or not re.fullmatch(r"[a-z]+", pt[-1]):
+            return False
+        if pt[-1] in number_words or pt[-1] in ("phase", "point") or pt[-1] in _APPROX:
+            return True
+        # 'of the ten trials', 'of these 5 studies': the article does not break the denominator link (codex
+        # swap-setquote-r14 #1: '50% of the ten trials')
+        # ... nor does an adjective ('50% of the eligible ten trials'; codex swap-setquote-r15 #3): 'of' / 'between'
+        # anywhere in the three tokens before the count marks it a denominator
+        if any(t in ("of", "between") for t in prev_tokens(i, 3)):
+            return True
+        # 'and' / 'to' / 'or' right after a number joins a larger number or a RANGE ('one hundred and twenty', 'two to five
+        # trials', '3 or 4 studies'; codex swap-setquote-r8 #2): the end of a range is never an exact count
+        # 'in' / 'of' after a number is a proportion ('one in five trials', 'three of five studies'; codex
+        # swap-setquote-r10 #1): its denominator is not the number of contributing trials
+        return (pt[-1] in ("and", "to", "or", "in", "of") and len(pt) == 2
+                and (pt[0] in number_words or bool(re.fullmatch(r"\d+", pt[0]))))
+
+    def bound_after(j):
+        """A bound written AFTER the trials word: 'Five trials at most', '5 studies or more' (codex swap-setquote-r14 #2).
+        Also a NEGATION within 30 characters after it ('Five trials were not included'; codex pr25-final5 #1) -- the
+        mirror of the 40-character negation check before the count."""
+        if re.search(r"\b(?:not|no|never|neither|nor|non|without|cannot|none)\b", s[j:j + 30], re.I):
+            return True
+        # a bracket may open before it ('Five trials (at most)'; codex swap-setquote-r15 #2)
+        # 'at the most' too (codex swap-setquote-r16 #2)
+        # ... and 'at a minimum' (codex swap-setquote-r21 #1)
+        # a dash may open it too ('Five trials—at least—'; cleaning makes every dash '-'; codex swap-setquote-r28 #3)
+        # ... and 'at the very least' (codex pr25-final #2)
+        return bool(re.match(r"\s*[,(\[-]?\s*(?:(?:at\s+(?:the\s+|a\s+)?(?:very\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
+                             r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over)|"
+                             # a trailing approximation ('five trials, approximately'; codex swap-setquote-r23 #1)
+                             r"approx\w*|about|roughly|circa|estimated|give\s+or\s+take|or\s+thereabouts)\b|\+)",
+                             s[j:], re.I))
+
+    # 'k = n', with the same bound check after it as any other count ('k = 5 or more'; codex swap-setquote-r22 #1)
+    # ... and the same check BEFORE it, read before the 'k' ('approximately k = 5'), and never the integer prefix of a
+    # number in scientific notation ('k = 5e1') (codex swap-setquote-r24 #2, #3)
+    # (?!\d) stops the regex backtracking INTO a number: 'k = 12.5' must not yield k = 1 (codex swap-setquote-r25 #1)
+    # ... nor the numerator of a fraction ('k = 5/6'; codex swap-setquote-r28 #2)
+    for m in re.finditer(r"\bk\s*=\s*(\d+)(?!\d)(?![.,]\d)(?![eE][+-]?\d)(?!\s*/)", s, re.I):
+        # the bound may follow a trial noun ('k = 5 trials or more'; codex swap-setquote-r27 #2)
+        j = m.end()
+        noun = re.match(r"\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts)\b", s[j:], re.I)
+        if not bound_after(j + (noun.end() if noun else 0)) and not blocked_before(m.start()):
+            out.add(int(m.group(1)))
+    # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
+    # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
+    for m in re.finditer(r"(?<![\w.,/~<>≤≥+-])(?<![~<>≤≥] )(\d+)(?!\d)(?![.,]\d)(?![eE][+-]?\d)(?!/)" + tail, s, re.I):
+        if not blocked_before(m.start(1)) and not bound_after(m.end()):
+            out.add(int(m.group(1)))
+    # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
+    # a slash joins a range ('Phase one/two studies'; codex swap-setquote-r7 #2): a number word beside '/' is never a count
+    # ... and a symbol bound before a number word is a bound too ('≥five trials'; codex swap-setquote-r13 #1)
+    for m in re.finditer(r"(?<![\w/~<>≤≥-])(?<![~<>≤≥] )(" + "|".join(_COUNT_WORDS) + r")(?![\w/-])" + tail, s, re.I):
+        if not blocked_before(m.start(1)) and not bound_after(m.end()):
+            out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
+    return out
+
+
+def mentions_a_count(q):
+    """Does the pooled quote speak to k at all? Deliberately coarse, with no distance window (codex swap-setquote-r9 #2:
+    a 40-character window missed '25 high-quality, multicentre, ... trials'): it names trials / studies / RCTs AND holds
+    any whole number that is not a decimal or a percentage, or any number word. A false 'yes' only refuses the claim."""
+    s = " ".join(str(q or "").split())
+    if not re.search(r"\b(?:trials?|stud(?:y|ies)|rcts?)\b", s, re.I):
+        return False
+    words = "|".join(_COUNT_WORDS + ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
+                                     "hundred", "dozen", "both", "either", "neither"])
+    return bool(re.search(r"(?<![\d.,])\d+(?![.,]?\d)(?!\s*%)", s)
+                or re.search(r"\b(?:" + words + r")\b", s, re.I))
+
+
+def _bound_counts(sent, vals):
+    """The counts of one sentence that are BOUND to the stated result: printed in the clause (';'-separated) that prints
+    every stated value, or in a clause that is nothing but a count ('RR .85 (95% CI .70-1.03); 12 trials.'). A count in
+    a clause about something else never binds (codex swap-setquote-r23 #2: 'Five trials reported recurrence; mortality
+    RR 0.85 (...)'). The sentence-level rules of printed_counts (one quantity, restrictions, percentages) apply first."""
+    cnt = printed_counts(sent)
+    if not cnt:
+        return set()
+    # clauses split only at TOP-LEVEL semicolons: inside brackets they separate statistics of one result ('(3 studies;
+    # RR: 0.48; 95% CI: 0.36-0.63' -- the final Part B replay refused colchicine 31477020 on a bracket-blind split)
+    clauses, depth, cur = [], 0, ""
+    for ch in _clean(sent):
+        depth += 1 if ch in "([" else (-1 if ch in ")]" and depth > 0 else 0)
+        if ch == ";" and depth == 0:
+            clauses.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    clauses = [c for c in clauses + [cur] if c.strip()]
+    res = [c for c in clauses if all(any(abs(v - t) < 1e-9 for t in _num_tokens(c)) for v in vals)] if vals else clauses
+    if len(res) != 1:
+        return set()
+    bare = re.compile(r"^\W*(?:k\s*=\s*\d+|\d+\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts))\W*$", re.I)
+    ok = [res[0]] + [c for c in clauses if c is not res[0] and bare.match(c)]
+    return {n for n in cnt if any(n in _counts_in(c) for c in ok)}
+
+
+def pooled_gate(pl, nt, set_quote=None, verified_units=None):
     """The pooled claim stands only if its quote is verbatim in the held text, every stated estimate / bound EQUALS a whole
     numeric token of that quote (never a substring: '0.8' inside '0.85' -- g2#3), and a stated k is PRINTED in the quote
     as 'k = n' or 'n trials / studies / RCTs' (g2#4: an invented k reached the T3 largest-k tie-break). Returns
@@ -281,9 +635,53 @@ def pooled_gate(pl, nt):
             return None, None
     k = pl.get("k")
     if k is not None:
-        printed = {int(x) for pair in re.findall(r"\bk\s*=\s*(\d+)|\b(\d+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?"
-                                                  r"(?:clinical\s+)?(?:trials|studies|rcts)\b", q, re.I)
-                   for x in pair if x}
+        # k is read ONLY from the sentence(s) of the pooled quote that print the pooled ESTIMATE (codex swap-setquote-r17
+        # #2: 'Six trials were included. Only three trials reported mortality (RR 0.85).' -- the restricted outcome
+        # sentence refused its own count and the review-wide sentence's 6 survived). A count elsewhere is never k.
+        sents = _sentences(q)
+        # the sentence must print the WHOLE stated result -- estimate and both bounds -- not merely the estimate's value,
+        # which can be another outcome's CI bound (codex swap-setquote-r19 #1: 'Five trials reported recurrence (RR 0.70,
+        # 95% CI 0.50-0.85). Mortality RR 0.85 (...)')
+        vals = [float(str(pl[key]).replace("−", "-").replace("–", "-")) for key in ("estimate", "lower", "upper")
+                if pl.get(key) not in (None, "")]
+        if vals:
+            sents = [x for x in sents if all(any(abs(v - t) < 1e-9 for t in _num_tokens(x)) for v in vals)]
+        # exactly ONE sentence may print the result: two sentences printing identical numbers for different outcomes
+        # are ambiguous, never unioned (codex swap-setquote-r21 #3)
+        printed = _bound_counts(sents[0], vals) if len(sents) == 1 else set()
+        # ... or, ONLY when the pooled quote prints no count, in the meta's own SET QUOTE verbatim in the held text (doac
+        # 29795629: 'In the five Phase 3 studies ...'). The pooled result's own count always wins: a review-wide count
+        # never overrides it (codex swap-setquote-r7 #1); a set quote not in the text is never read
+        # The fallback is closed whenever the pooled quote MENTIONS a count at all, parsed or not ('twenty-five trials
+        # contributed' is a count this reader refuses; a review-wide 'included 40 trials' must not stand in for it --
+        # codex swap-setquote-r8 #1)
+        # STRUCTURAL rule, replacing a blacklist that four review rounds each found a new hole in (codex swap-setquote-r10
+        # #2 'Both trials ...' beside 'included 40 trials'): the set quote's count stands for k only when the pooled quote
+        # lies INSIDE the set-quote sentence -- the count and the pooled result are printed together -- and that sentence
+        # prints exactly ONE count. A review-wide count elsewhere in the paper can therefore never stand in.
+        # Read ONLY the one sentence of the set quote that holds the pooled quote (codex swap-setquote-r11 #1: substring
+        # containment let 'We included 40 trials.' speak for a pooled result two sentences later).
+        # both sides through the same cleaning (dashes, slashes, whitespace): the comparison is of like with like
+        sent = next((x for x in _sentences(set_quote) if _norm(_clean(q)) in _norm(x)), None) if set_quote else None
+        # ... and CORROBORATED: text alone cannot prove whose count a sentence prints (codex swap-setquote-r12 #3: 'Of the
+        # 40 trials, those reporting mortality gave RR 0.85'), so the borrowed count must equal the number of per-trial
+        # units the enumeration independently verified, with none refused. Without that the fallback is closed.
+        # ... and the sentence must not restrict the pooled result to a SUBSET of the counted trials ('Five trials were
+        # included, but only a subset reported mortality'; codex swap-setquote-r13 #3): a closed class of restricting
+        # phrases closes the fallback
+        # ... and no percentage in the sentence ('mortality was reported by 40%'; codex swap-setquote-r14 #3).
+        # RESIDUAL, stated rather than chased: whether every counted trial contributed to THIS outcome is a semantic
+        # question that prose rules cannot close (r8-r14 each found a new paraphrase). A k taken this way is therefore
+        # never silent: it carries k_basis SET_QUOTE_SENTENCE with the sentence (dash- and whitespace-normalised), and
+        # the signing packet shows that sentence to the reviewer, who confirms the reading before the adoption is applied.
+        fallback = False
+        if (not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q) and verified_units
+                and not _RESTRICT.search(sent) and not _stray_percent(sent)):
+            # a CI level is not a fraction of the trials: the same percentage test as every other count sentence (codex
+            # swap-setquote-r23 #3 -- '"%" not in sent' refused 'Five trials reported mortality RR 0.85 (95% CI ...)')
+            c = _bound_counts(sent, vals)
+            if c == {verified_units}:
+                printed, fallback = c, True
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
         try:
@@ -293,6 +691,15 @@ def pooled_gate(pl, nt):
         if kf != int(kf) or int(kf) not in printed:
             return None, None
         k = int(kf)
+        # EVERY machine-read k carries the sentence it was read from (codex pr25-final2 #1: the direct path omitted the
+        # reviewer warning). Whether that count is the trials behind THIS outcome is the disclosed residual: a signer
+        # reads the sentence; nothing is applied unsigned
+        check = "the count in this sentence must be the trials in THIS pooled result"
+        if fallback:
+            pl = dict(pl, k_basis={"from": "SET_QUOTE_SENTENCE", "sentence": sent, "verified_units": verified_units,
+                                   "reviewer_check": check})
+        else:
+            pl = dict(pl, k_basis={"from": "POOLED_QUOTE_SENTENCE", "sentence": sents[0], "reviewer_check": check})
     return pl, k
 
 
@@ -474,7 +881,33 @@ def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs):
     runs_store.save(runs, slugs=set(slugs))
 
 
-def cmd_screen(slugs, run=False):
+def _t2(pubdate):
+    m = re.match(r"(\d{4})\s*(\w{3})?", pubdate or "")
+    mon = {"Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6, "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10,
+           "Nov": 11, "Dec": 12}.get((m.group(2) or "")[:3].title(), 0) if m else 0
+    return int(m.group(1)) * 100 + mon if m else 0
+
+
+def read_limit(items, cands_all, limit):
+    """READ ORDER (7 Oct): limit 'r0' reads the CURRENT comparator only (rule R0 decides first: a passing current
+    comparator is KEPT and no candidate matters); an integer N reads the current comparator plus the N NEWEST C1-PASS
+    candidates per topic. Every candidate left unread is marked read=NOT_READ_EARLY_STOP, and
+    g1_comparator_select.unread_problem refuses any pick an unread candidate could still outrank."""
+    if limit is None:
+        return items, set()
+    keep, dropped = [], set()
+    for s in {it["slug"] for it in items}:
+        cur = protocol(s)["current_comparator"]
+        mine = [it for it in items if it["slug"] == s]
+        rest = sorted((it for it in mine if it["pmid"] != cur),
+                      key=lambda it: (-_t2(cands_all[s][0][it["pmid"]].get("pubdate")), it["pmid"]))
+        n = 0 if limit == "r0" else int(limit)
+        keep += [it for it in mine if it["pmid"] == cur] + rest[:n]
+        dropped |= {it["key"] for it in rest[n:]}
+    return keep, dropped
+
+
+def cmd_screen(slugs, run=False, limit=None):
     import concurrent.futures as cf
     from kgap import runs_store
     from reproducible_ai import model_call_live as mcl
@@ -503,6 +936,8 @@ def cmd_screen(slugs, run=False):
         cands_all[s] = (cands, len(srch["records"]))
         print(s, "on-topic", len(cands), "C1 PASS", sum(c["criteria"]["C1_OPEN_LICENCE"]["verdict"] == "PASS" for c in cands.values()),
               "to read", sum(1 for it in items if it["slug"] == s), flush=True)
+
+    items, unread = read_limit(items, cands_all, limit)
 
     def done(it):
         r = runs.get(it["key"]) or {}
@@ -590,6 +1025,8 @@ def cmd_screen(slugs, run=False):
             it = by_key.get(f"swapscreen::{s}::{pmid}")
             r = runs.get(f"swapscreen::{s}::{pmid}") or {}
             ex = excluded.get(f"swapscreen::{s}::{pmid}")
+            if f"swapscreen::{s}::{pmid}" in unread:
+                c["read"] = "NOT_READ_EARLY_STOP"
             if ex:
                 c["criteria"].update(ex[0])
                 c["criteria"]["C6_ROWS_AND_POOLED"] = {"verdict": "UNCLEAR", "evidence": "not read: excluded at stage A"}
@@ -717,7 +1154,9 @@ def gate_enum(claim, it):
         span = rq if rq else (r.get("title") or lab)
         units.append({"label": lab, "ref": ref, "pmid": pmid, "identity": ident, "span": span, "scope": "IN_SCOPE",
                       "rule_id": None})
-    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt)
+    # the set-quote count is corroborated by the units verified above: distinct PMIDs, and only when nothing was refused
+    verified = len({u["pmid"] for u in units}) if units and not refused else None
+    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt, set_quote=claim.get("set_quote"), verified_units=verified)
     sq = claim.get("set_quote")
     return units, refused, pooled, (sq if _quoted(sq, nt) else None)
 
@@ -776,6 +1215,25 @@ def _held_old(slug, old_pmid):
     return os.path.relpath(t, ROOT).replace("\\", "/") if os.path.exists(t) else None
 
 
+def kgap_span(span):
+    """A unit span as k_gap_table.enumeration_units checks it: that reader tag-strips the held JATS to spaces (held_norm)
+    and needs each ' / '-separated line verbatim there, refusing the whole enumeration on one miss. This script renders
+    a table row with its cells joined ' | ', which is in neither form. The row with cells joined by single spaces is
+    contiguous in held_norm, so the whole row stays one line and its identity is kept."""
+    return " ".join(c.strip() for c in re.split(r"\s*\|\s*", str(span)) if c.strip())
+
+
+def retirement_code(fails):
+    """The retirement reason names only the criteria R0 FAILED. A criterion left UNCLEAR because reading stopped at the
+    first failure was never judged, so it is listed as not read, never as a failure (doac R0: C1 FAIL, C2-C6 UNCLEAR).
+    None when nothing failed: such a comparator has no retirement reason."""
+    failed = [f["criterion"] for f in fails if f.get("verdict") == "FAIL"]
+    if not failed:
+        return None
+    unread = [f["criterion"] for f in fails if f.get("verdict") != "FAIL"]
+    return "R0:" + "+".join(failed) + (f" (not read after the failure: {', '.join(unread)})" if unread else "")
+
+
 def cmd_apply(slugs):
     """The swap through the normal path, only for a topic whose selection PICKED a new comparator AND whose enumeration
     is complete (status ENUMERATED): enumeration file, adoption record, comparators.json entry (old one kept under
@@ -802,6 +1260,8 @@ def cmd_apply(slugs):
             shutil.move(cur, os.path.join(ROOT, "registry", "comparator_enumerations", "retired",
                                           f"{s}.{_j(cur).get('comparator_pmid')}.json"))
         enum = {k: en[k] for k in ("slug", "comparator_pmid", "status", "enumerated_from", "set_span", "source", "units")}
+        # spans in k_gap_table's contract (verbatim in held_norm), not this script's ' | ' table rendering
+        enum["units"] = [dict(u, span=kgap_span(u["span"])) for u in en["units"]]
         with open(cur, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(enum, fh, indent=1, ensure_ascii=False)
         # 2. retirement: R0's failing criteria; spans only where the evidence is verbatim in the old comparator's held text
@@ -809,7 +1269,11 @@ def cmd_apply(slugs):
         ht = _norm(jats_text(open(os.path.join(ROOT, held), encoding="utf-8", errors="replace").read())) if held else ""
         fails = (sel.get("R0") or {}).get("failing") or []
         spans = [f["evidence"] for f in fails if f.get("evidence") and ht and _norm(f["evidence"]) in ht]
-        retired = {"comparator_pmid": old, "reason_code": "R0:" + "+".join(f["criterion"] for f in fails),
+        code = retirement_code(fails)
+        if not code:
+            print(s, "not applied: R0 records no FAILED criterion, so the old comparator has no retirement reason")
+            continue
+        retired = {"comparator_pmid": old, "reason_code": code,
                    "why": "; ".join(f"{f['criterion']} {f['verdict']}: {str(f.get('evidence'))[:200]}" for f in fails),
                    "spans": spans, "source": ({"path": held, "sha256": hashlib.sha256(open(os.path.join(ROOT, held), "rb").read()).hexdigest()}
                                               if held else None),
@@ -823,7 +1287,10 @@ def cmd_apply(slugs):
                     "terms": {"per_trial_comparison": "from the comparator's own per-trial rows (read through the existing secondary-meta path)"},
                     "pooled_result": {"measure": pl.get("measure"), "estimate": pl.get("estimate"), "ci_low": pl.get("lower"),
                                       "ci_high": pl.get("upper"), "k": pl.get("k"), "spans": {"result": pl.get("quote")},
-                                      "source": {"path": src, "sha256": en["source"]["sha256"]}},
+                                      "source": {"path": src, "sha256": en["source"]["sha256"]},
+                                      # how k was read: present only when it came from the set-quote sentence, which the
+                                      # signing packet then shows (normalised) for the reviewer's reading
+                                      **({"k_basis": pl["k_basis"]} if pl.get("k_basis") else {})},
                     "trial_set": [{"label": u["label"], "pmid": u["pmid"]} for u in en["units"]], "retired": retired}
         with open(os.path.join(SEL, f"{s}.adoption.json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(adoption, fh, indent=1, ensure_ascii=False)
@@ -870,8 +1337,9 @@ if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     cmd, *args = sys.argv[1:]
     run = "--run" in args
+    limit = next((a.split("=", 1)[1] for a in args if a.startswith("--newest=")), "r0" if "--r0" in args else None)
     args = [a for a in args if not a.startswith("--")]
     if released(args):
         raise SystemExit(f"REFUSED: swap rule released (topic abandoned by decision): {released(args)}")
-    {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run),
+    {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run, limit=limit),
      "enumerate": lambda a: cmd_enumerate(a, run=run), "apply": cmd_apply}[cmd](args)

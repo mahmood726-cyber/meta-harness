@@ -69,6 +69,24 @@ def select(rule, cands, exception=None):
     return ranked[0], ranked
 
 
+def unread_problem(rule, cands, pick):
+    """A screen may stop early (g1_swap.py screen --newest N): candidates left unread are marked read=NOT_READ_EARLY_STOP.
+    The pick stands only if NO unread candidate could outrank it under the tie-breaks, which hold for any T1 because
+    every unread candidate is STRICTLY OLDER (T2) than the pick and the pick already has the best T1 (1). Otherwise the
+    selection is INCOMPLETE and refuses -- an unread candidate is never treated as a failed one. None when complete."""
+    unread = [c for c in cands if c.get("read") == "NOT_READ_EARLY_STOP"]
+    if not unread:
+        return None
+    if pick is None:
+        return f"INCOMPLETE_READ: no candidate read passes and {len(unread)} C1-PASS candidates are unread"
+    tb = pick.get("tie_breaks") or {}
+    newer = [c["pmid"] for c in unread if ((c.get("tie_breaks") or {}).get("T2_MOST_RECENT") or 0) >= (tb.get("T2_MOST_RECENT") or 0)]
+    if tb.get("T1_ESTIMAND_MATCH") != 1 or newer:
+        return (f"INCOMPLETE_READ: {len(unread)} unread candidates could outrank the pick {pick.get('pmid')} "
+                f"(pick T1 {tb.get('T1_ESTIMAND_MATCH')}; unread not strictly older: {newer[:5]})")
+    return None
+
+
 def rule_sha(slug):
     p = os.path.relpath(os.path.join(SEL, f"{slug}.rule.json"), ROOT)
     r = subprocess.run(["git", "-C", ROOT, "log", "-1", "--format=%H", "--", p], capture_output=True, text=True)
@@ -93,6 +111,10 @@ def main(argv):
         return
     pick0, _ = select(rule, cands)                       # the pre-registered rule alone, always recorded
     pick, ranked = select(rule, cands, exc)
+    for pk in (pick0, pick):
+        prob = unread_problem(rule, cands, pk)
+        if prob:
+            raise SystemExit(f"REFUSED {slug}: {prob}")
     out = {"slug": slug, "rule": f"registry/comparator_selection/{slug}.rule.json", "rule_commit": rule_sha(slug),
            "n_candidates": len(cands), "n_eligible": len(ranked),
            "pick": ({k: pick.get(k) for k in ("pmid", "pmcid", "title", "year")} if pick else None),
