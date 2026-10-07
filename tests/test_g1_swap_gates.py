@@ -204,3 +204,14 @@ def test_PLANT_an_unparsed_pooled_count_closes_the_fallback_and_range_ends_are_n
     assert sw.printed_counts("Mortality was reported in two to five trials per comparison.") == set()
     assert sw.printed_counts("in 3 or 4 studies") == set()
     assert sw.printed_counts("We included observational cohorts and 5 randomized trials.") == {5}
+
+
+def test_PLANT_spaced_slash_ranges_and_far_counts_never_admit_the_set_quote():
+    """codex swap-setquote-r9 #1 ('Phase one / two studies') and #2 (a count 60 characters before 'trials')."""
+    assert sw.printed_counts("Phase one / two studies") == set()
+    assert sw.printed_counts("Phase 1 / 2 studies") == set()
+    q = "Mortality was pooled across 25 high-quality, multicentre, double-blind, placebo-controlled trials (RR 0.8)."
+    sq = "We included 40 trials."
+    assert sw.mentions_a_count(q)
+    pl = {"measure": "RR", "estimate": "0.8", "k": 40, "quote": q}
+    assert sw.pooled_gate(pl, sw._norm(sq + " " + q), set_quote=sq)[0] is None
