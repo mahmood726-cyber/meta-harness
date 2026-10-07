@@ -2487,5 +2487,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r19": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-efc0a1660985f71901721ca2c8396016",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "4034667c1177224aa9fd2194eebcba8f4b6eef40c25369c54d6077f812cada36"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "Estimate-sentence selection matches any numeric token, including another outcome's confidence bound. This lets that outcome's trial count become the mortality k.",
+    "failing_input": "q = 'Five trials reported recurrence (RR 0.70, 95% CI 0.50-0.85). Mortality RR 0.85 (95% CI 0.70-1.03).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): no mortality trial count is stated.",
+    "actual": "(pl, 5): the recurrence sentence is selected because its upper confidence bound equals the mortality estimate.",
+    "id": "swap-setquote-r19:g1#1",
+    "record_id": "mc-efc0a1660985f71901721ca2c8396016",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / pooled_gate",
+    "severity": "P0",
+    "claim": "The restriction filter accepts a count explicitly describing trials with no mortality data, allowing that count into the pooled mortality result.",
+    "failing_input": "q = 'Five trials had no mortality data; pooled mortality RR 0.85 (95% CI 0.70-1.03).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the five trials lack the outcome data and do not establish the contributing k.",
+    "actual": "(pl, 5): 'no mortality data' matches none of the restriction patterns, and printed_counts(q) returns {5}.",
+    "id": "swap-setquote-r19:g1#2",
+    "record_id": "mc-efc0a1660985f71901721ca2c8396016",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in.blocked_before / pooled_gate",
+    "severity": "P0",
+    "claim": "Punctuation after an approximation word bypasses the approximation guard, promoting an approximate trial count to an exact k.",
+    "failing_input": "q = 'Approximately: five trials contributed to mortality (RR 0.85).'\npl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'k': 5}\npooled_gate(pl, _norm(q))",
+    "expected": "(None, None): an approximate count cannot validate an exact k.",
+    "actual": "(pl, 5): blocked_before sees 'approximately:', returns False before checking _APPROX, and printed_counts(q) returns {5}.",
+    "id": "swap-setquote-r19:g1#3",
+    "record_id": "mc-efc0a1660985f71901721ca2c8396016",
+    "verdict": null
+   }
+  ]
  }
 }

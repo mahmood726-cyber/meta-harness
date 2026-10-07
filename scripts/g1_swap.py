@@ -350,7 +350,8 @@ _RESTRICT = re.compile(r"\b(?:subsets?|subgroups?|only|some\s+of|of\s+which|of\s
                        # trials WITHOUT the outcome's data ('Five trials lacked mortality data'; codex swap-setquote-r18
                        # #2). 'without' is deliberately absent: doac's sentence says 'with or without pulmonary embolism'
                        r"lack\w*|missing|unavailable|unreported|not\s+report\w*|did\s+not\s+(?:report|contribute|provide)|"
-                       r"no\s+(?:data|events?|outcome))\b", re.I)
+                       # 'no mortality data', 'no outcome events' (codex swap-setquote-r19 #2)
+                       r"no\s+(?:\w+\s+){0,2}(?:data|events?|outcomes?))\b", re.I)
 
 
 def _stray_percent(sent):
@@ -437,6 +438,10 @@ def _counts_in(s):
         # an OPENING bracket or quote does not end the link ('(Phase three studies)', '(twenty five trials)'; codex r6 #1);
         # trailing punctuation does ('Phase 3: 5 randomized trials')
         pt = [t.lstrip("([{\"'‘“") for t in prev_tokens(i)]
+        # punctuation never hides an approximator ('Approximately: five trials'; codex swap-setquote-r19 #3); it still
+        # ends the link for a phase ('Phase 3: 5 randomized trials' -> 5)
+        if pt and pt[-1].rstrip(":;,.!?)]}\"'’”") in _APPROX:
+            return True
         if not pt or not re.fullmatch(r"[a-z]+", pt[-1]):
             return False
         if pt[-1] in number_words or pt[-1] in ("phase", "point") or pt[-1] in _APPROX:
@@ -512,9 +517,13 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
         # #2: 'Six trials were included. Only three trials reported mortality (RR 0.85).' -- the restricted outcome
         # sentence refused its own count and the review-wide sentence's 6 survived). A count elsewhere is never k.
         sents = _sentences(q)
-        if pl.get("estimate") not in (None, ""):
-            ev = float(str(pl["estimate"]).replace("−", "-").replace("–", "-"))
-            sents = [x for x in sents if any(abs(ev - t) < 1e-9 for t in _num_tokens(x))]
+        # the sentence must print the WHOLE stated result -- estimate and both bounds -- not merely the estimate's value,
+        # which can be another outcome's CI bound (codex swap-setquote-r19 #1: 'Five trials reported recurrence (RR 0.70,
+        # 95% CI 0.50-0.85). Mortality RR 0.85 (...)')
+        vals = [float(str(pl[key]).replace("−", "-").replace("–", "-")) for key in ("estimate", "lower", "upper")
+                if pl.get(key) not in (None, "")]
+        if vals:
+            sents = [x for x in sents if all(any(abs(v - t) < 1e-9 for t in _num_tokens(x)) for v in vals)]
         printed = set().union(*(printed_counts(x) for x in sents)) if sents else set()
         # ... or, ONLY when the pooled quote prints no count, in the meta's own SET QUOTE verbatim in the held text (doac
         # 29795629: 'In the five Phase 3 studies ...'). The pooled result's own count always wins: a review-wide count

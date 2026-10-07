@@ -402,3 +402,17 @@ def test_PLANT_r18_minimum_bounds_and_trials_lacking_the_outcome_never_supply_k(
     assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5, "quote": q2},
                           sw._norm(q2))[0] is None
     assert sw.printed_counts("Mortality was not reported in five trials (RR 0.85).") == set()
+
+
+def test_PLANT_r19_the_count_sentence_prints_the_whole_result_no_outcome_data_and_punctuated_approximators():
+    """codex swap-setquote-r19: #1 the estimate's value appearing as another outcome's CI bound; #2 'had no mortality
+    data'; #3 'Approximately: five trials'."""
+    q = "Five trials reported recurrence (RR 0.70, 95% CI 0.50-0.85). Mortality RR 0.85 (95% CI 0.70-1.03)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5, "quote": q},
+                          sw._norm(q))[0] is None
+    q2 = "Five trials had no mortality data; pooled mortality RR 0.85 (95% CI 0.70-1.03)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03", "k": 5, "quote": q2},
+                          sw._norm(q2))[0] is None
+    q3 = "Approximately: five trials contributed to mortality (RR 0.85)."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 5, "quote": q3}, sw._norm(q3))[0] is None
+    assert sw.printed_counts("Phase 3: 5 randomized trials gave RR 0.85.") == {5}
