@@ -1813,5 +1813,48 @@
     "verdict": null
    }
   ]
+ },
+ "abandon-ten-r5": {
+  "base": "20915e04f",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-42eec10a14be1bcd3a19323fa9cc10ac",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "83a017e16591d7ab1f440e0d29224cf0d118f6969e78b0dea30803267492516e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P0",
+    "claim": "Non-finite scores bypass validation: abs(NaN) > 1e-9 is false. A NaN in the first ranked row also passes sorting and boundary checks, reaching the published score and reason.",
+    "failing_input": "With the pinned committed rule available:\nfrom unittest.mock import patch\nimport scripts.g1_abandon_apply as m\nrows = [dict(slug=s, rank=i, N_eligible=100, closed=12-i, closed_trials=[f'trial-{j}' for j in range(12-i)], open=0, swap_adopted=False, U=(12-i)/100, abandon=i<=10) for i,s in enumerate(m.APPROVED+['kept'], 1)]\nrows[0]['U'] = float('nan')\nrank = dict(rule_sha256=m.RULE_SHA, read_at_commit=m.RULE_COMMIT, abandon=m.APPROVED, ranked=rows, population_n=11)\nwith patch.object(m.json, 'load', return_value=rank), patch('builtins.open'):\n    result = m.build()\nprint(result['topics'][0]['score_U'])",
+    "expected": "Refuse the non-finite score; the first row's counts require U = 0.11.",
+    "actual": "Returns a register with score_U = NaN and 'U = nan' in the reason. main --write serializes the score as NaN.",
+    "id": "abandon-ten-r5:g1#1",
+    "record_id": "mc-42eec10a14be1bcd3a19323fa9cc10ac",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_abandon_apply.py",
+    "function": "build",
+    "severity": "P0",
+    "claim": "The score check never validates count bounds. Zero eligible trials with positive closed-trial counts passes every gate and publishes impossible counts; the zero-denominator branch assigns these rows a score of zero.",
+    "failing_input": "With the pinned committed rule available:\nfrom unittest.mock import patch\nimport scripts.g1_abandon_apply as m\nrows = [dict(slug=s, rank=i, N_eligible=0, closed=12-i, closed_trials=[f'trial-{j}' for j in range(12-i)], open=0, swap_adopted=False, U=0.0, abandon=i<=10) for i,s in enumerate(m.APPROVED+['kept'], 1)]\nrank = dict(rule_sha256=m.RULE_SHA, read_at_commit=m.RULE_COMMIT, abandon=m.APPROVED, ranked=rows, population_n=11)\nwith patch.object(m.json, 'load', return_value=rank), patch('builtins.open'):\n    result = m.build()\nprint(result['topics'][0]['reason'])",
+    "expected": "Refuse rows where closed exceeds N_eligible, including positive closed counts with zero eligible trials.",
+    "actual": "Returns the abandonment register. The first topic has N_eligible=0, closed=11, score_U=0.0, and a reason stating '11 of 0 eligible comparator trials closed'.",
+    "id": "abandon-ten-r5:g1#2",
+    "record_id": "mc-42eec10a14be1bcd3a19323fa9cc10ac",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -52,7 +52,16 @@ def build():
         raise SystemExit("REFUSED: the approved ten are not ranks 1..10 of the ranking (or a slug is ranked twice)")
     # every score must BE the pre-registered formula on the row's own counts (codex abandon-ten-r4 g1#1, P0: shifting
     # every U by 100 kept the order and published corrupted scores); the ranking rounds U to 4 dp
+    import math
+
+    def _count(v):
+        return isinstance(v, int) and not isinstance(v, bool) and v >= 0
     for r in rank["ranked"]:
+        # counts must be possible and the score finite before any arithmetic (codex abandon-ten-r5 g1#1, g1#2: a NaN
+        # passed the tolerance test; '11 of 0 eligible closed' passed every gate)
+        if not all(_count(r.get(k)) for k in ("N_eligible", "open", "closed")) or not (
+                r["closed"] <= r["open"] <= r["N_eligible"]) or not isinstance(r.get("U"), (int, float))                 or isinstance(r.get("U"), bool) or not math.isfinite(r["U"]) or not isinstance(r.get("swap_adopted"), bool):
+            raise SystemExit(f"REFUSED: {r.get('slug')} has impossible counts or a non-finite score")
         n = r["N_eligible"]
         u = 0.0 if not n else r["closed"] / n + 0.5 * r["open"] / n - 0.5 * (1 if r["swap_adopted"] else 0)
         if abs(round(u, 4) - r["U"]) > 1e-9 or r["closed"] != len(r.get("closed_trials") or []):

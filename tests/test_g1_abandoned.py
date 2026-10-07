@@ -146,3 +146,21 @@ def test_PLANT_a_register_path_that_is_not_a_file_refuses(tmp_path):
     (tmp_path / "registry" / "g1_abandoned.json").mkdir(parents=True)
     with pytest.raises(ValueError):
         rg.abandoned(tmp_path)
+
+
+@pytest.mark.parametrize("corrupt", [
+    lambda r: r.update(U=float("nan")),                                  # non-finite (codex abandon-ten-r5 g1#1)
+    lambda r: r.update(N_eligible=0),                                    # closed > N (codex abandon-ten-r5 g1#2)
+    lambda r: r.update(closed=r["open"] + 1, closed_trials=["x"] * (r["open"] + 1)),   # closed > open
+    lambda r: r.update(open=-1),
+    lambda r: r.update(swap_adopted="no"),
+])
+def test_PLANT_impossible_counts_or_scores_refuse(monkeypatch, tmp_path, corrupt):
+    import g1_abandon_apply as ap
+    rank = json.loads((ROOT / "outputs" / "k_gap" / "g1_abandon_rank.json").read_text(encoding="utf-8"))
+    corrupt(rank["ranked"][0])
+    p = tmp_path / "rank.json"
+    p.write_text(json.dumps(rank), encoding="utf-8")
+    monkeypatch.setattr(ap, "RANK", str(p))
+    with pytest.raises(SystemExit):
+        ap.build()
