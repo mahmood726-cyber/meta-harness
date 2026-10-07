@@ -269,6 +269,13 @@ def trial_totals(recs: dict[str, dict]) -> dict:
 
 ABANDONED = Path("registry") / "g1_abandoned.json"
 ABANDON_RULE_SHA = "c3ee2f6224b62b0aa50312ace3ae1e634332efeb8e59684176aefce7fed28f1d"
+# THE DECISION ITSELF, pinned here: the ten Mahmood approved and his words (7 Oct, 'abandon ten'). The register must equal
+# this exactly -- the rule hash is public, so it alone never establishes approval (codex abandon-ten g1#1, reproduced).
+ABANDON_APPROVED = ("balanced-crystalloids-vs-saline-mortality", "ticagrelor-vs-clopidogrel-acs", "metformin-pcos-ovulation",
+                    "colchicine-secondary-cv-prevention", "probiotics-aad-prevention", "colchicine-postop-af",
+                    "pcsk9-mace", "corticosteroids-cap-mortality", "tocilizumab-covid19-mortality",
+                    "omega3-cardiovascular-events")
+ABANDON_WORDS = "abandon ten"
 
 
 def abandoned(root: Path = ROOT) -> dict[str, dict]:
@@ -283,9 +290,12 @@ def abandoned(root: Path = ROOT) -> dict[str, dict]:
         raise ValueError(f"ABANDONED: {p} names rule sha256 {str(d.get('rule_sha256'))[:12]}, not G1-ABANDON-v1")
     out = {}
     for t in d.get("topics") or []:
-        if t.get("state") != "ABANDONED_BY_DECISION" or not (t.get("decision") or {}).get("words"):
+        if t.get("state") != "ABANDONED_BY_DECISION" or (t.get("decision") or {}).get("words") != ABANDON_WORDS:
             raise ValueError(f"ABANDONED: {t.get('slug')} is not ABANDONED_BY_DECISION with the decision's words")
         out[t["slug"]] = dict(t, _register=d)
+    if sorted(out) != sorted(ABANDON_APPROVED) or len(d.get("topics") or []) != len(ABANDON_APPROVED):
+        raise ValueError(f"ABANDONED: the register is not exactly the approved ten (extra "
+                         f"{sorted(set(out) - set(ABANDON_APPROVED))}, missing {sorted(set(ABANDON_APPROVED) - set(out))})")
     return out
 
 

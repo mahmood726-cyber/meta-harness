@@ -1653,5 +1653,36 @@
     "verdict": null
    }
   ]
+ },
+ "abandon-ten": {
+  "base": "20915e04f",
+  "head": "e6ffa2792",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6ba7fe8dadec2a006e4105223b75aedd",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_abandon_apply.py",
+     "scripts/g1_swap.py",
+     "scripts/render_g1_tracker.py"
+    ],
+    "prompt_sha256": "97ba3f02712a09be8914a8327439bcc66a65de7bf24b486a2360d698384e11df"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/render_g1_tracker.py",
+    "function": "abandoned",
+    "severity": "P1",
+    "claim": "The register validation accepts topics outside the approved ten. Copying the public rule hash and supplying any nonempty decision words is sufficient to classify an unapproved topic as abandoned, excluding it from matched counts and the active denominator.",
+    "failing_input": "from pathlib import Path\nfrom unittest.mock import patch\nimport json\nimport scripts.render_g1_tracker as m\n\nd = {'rule_sha256': m.ABANDON_RULE_SHA, 'topics': [{'slug': 'unapproved-topic', 'state': 'ABANDONED_BY_DECISION', 'decision': {'words': 'no approval given'}}]}\nwith patch.object(Path, 'is_file', return_value=True), patch.object(Path, 'read_text', return_value=json.dumps(d)):\n    print(list(m.abandoned(Path('.'))))",
+    "expected": "Raise ValueError: unapproved-topic is not in the approved abandonment list; the rule hash alone does not establish approval.",
+    "actual": "The supplied code returns ['unapproved-topic'], accepting the abandonment. This follows directly from the checks shown; execution was blocked by the environment.",
+    "id": "abandon-ten:g1#1",
+    "record_id": "mc-6ba7fe8dadec2a006e4105223b75aedd",
+    "verdict": null
+   }
+  ]
  }
 }

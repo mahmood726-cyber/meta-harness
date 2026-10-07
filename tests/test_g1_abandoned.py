@@ -76,3 +76,17 @@ def test_PLANT_a_released_swap_rule_cannot_run_and_its_rule_file_is_kept():
     p = subprocess.run([sys.executable, str(ROOT / "scripts" / "g1_swap.py"), "search", slugs[0]], cwd=ROOT,
                        capture_output=True, text=True)
     assert p.returncode != 0 and "REFUSED: swap rule released" in (p.stderr + p.stdout)
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda t: t + [dict(t[0], slug="unapproved-topic")],          # an extra, unapproved topic (codex abandon-ten g1#1)
+    lambda t: t[1:],                                              # one approved topic missing
+    lambda t: [dict(t[0], decision=dict(t[0]["decision"], words="no approval given"))] + t[1:],   # other words
+])
+def test_PLANT_the_register_must_be_exactly_the_approved_ten_with_his_words(tmp_path, mutate):
+    reg = json.loads((ROOT / "registry" / "g1_abandoned.json").read_text(encoding="utf-8"))
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "g1_abandoned.json").write_text(json.dumps(dict(reg, topics=mutate(reg["topics"]))),
+                                                             encoding="utf-8")
+    with pytest.raises(ValueError):
+        rg.abandoned(tmp_path)
