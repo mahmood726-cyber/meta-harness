@@ -111,6 +111,20 @@ def doi_licences(index_path=UPW_INDEX):
     return {str(d).lower(): (e or {}).get("license") for d, e in idx.items()}
 
 
+OPEN_SOURCES = os.path.join(ROOT, "registry", "open_sources.json")
+
+
+def open_location_licence(url, doi, path=None):
+    """The licence of ONE open-location copy (scripts/g1_open_sources.py), read from its HOST page and held in its typed
+    record -- only when that record is a held CC text of the SAME DOI. Anything else: None (not open)."""
+    path = path or OPEN_SOURCES
+    d = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {}
+    r = d.get(str(url or "")) or {}
+    if r.get("route") != "OPEN_LOCATION" or r.get("state") != "CC_TEXT":
+        return None
+    return r.get("licence") if str(r.get("doi") or "").lower() == str(doi or "").lower() else None
+
+
 def jats_licence(path):
     """'CC' when the held JATS's own <permissions> name a Creative Commons licence, else 'NOT_OPEN'."""
     try:
@@ -240,6 +254,13 @@ def record_problems(record, lic=None, dlic=None, reg=None):
         dl = None
         for d in _walk(ev):
             t = d.get("text")
+            if d.get("doi") and not d.get("pmid") and isinstance(t, str) and len(t) > MIN_TEXT and d.get("copy_url"):
+                # an open-location copy: ITS record's host-page licence, never the DOI's (another copy may differ)
+                ol = open_location_licence(d["copy_url"], d["doi"])
+                if not str(ol or "").startswith("cc"):
+                    probs.append(f"{record.get('record_id')}: prompt carries {len(t)} chars of DOI {d['doi']} copy "
+                                 f"{d['copy_url']}; its held record is not a CC text of that DOI ({ol!r})")
+                continue
             if d.get("doi") and not d.get("pmid") and isinstance(t, str) and len(t) > MIN_TEXT:
                 dl = doi_licences() if dlic is None and dl is None else (dlic if dlic is not None else dl)
                 if not str(dl.get(str(d["doi"]).lower()) or "").startswith("cc"):

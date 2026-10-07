@@ -395,13 +395,42 @@ def _windows(t, terms):
     return "\n".join(out)[:FT_CAP + 2000]
 
 
+def open_location_evidence(pmid, terms):
+    """(whole, shown, sha, doi, licence, url): a CC copy of the trial's report found by OpenAlex / Semantic Scholar and
+    licensed on its HOST page (scripts/g1_open_sources.open_location), when PMC and Unpaywall hold none."""
+    import g1_open_sources as osrc
+    from reproducible_ai import record_licence as rl
+    if not pmid:
+        return "", "", None, None, None, None
+    meta = osrc.report_meta(pmid)
+    doi = rl.pmid_doi(pmid) or meta.get("doi")
+    if not doi:
+        return "", "", None, None, None, None
+    t, rec = osrc.open_location(pmid, doi, meta.get("title"))
+    if not t:
+        return "", "", None, doi, None, None
+    shown = t if len(t) <= FT_CAP else _windows(t, terms)
+    return t, shown, hashlib.sha256(t.encode("utf-8")).hexdigest(), doi, rec["licence"], rec["url"]
+
+
 def evidence(t, cfg, comp):
+    import g1_open_sources as osrc
     terms = outcome_terms(cfg)
-    aact = aact_evidence(t["ncts"])
     whole, shown, sha = text_evidence(t["pmid"], terms)
-    origin, doi, ulic = ("PMC", None, None) if whole else ("UNPAYWALL", None, None)
+    origin, doi, ulic, ourl = ("PMC", None, None, None) if whole else ("UNPAYWALL", None, None, None)
     if not whole:
         whole, shown, sha, doi, ulic = unpaywall_evidence(t["pmid"], terms)
+    if not whole:
+        origin = "OPEN_LOCATION"
+        whole, shown, sha, doi, ulic, ourl = open_location_evidence(t["pmid"], terms)
+    if whole and not t["ncts"]:
+        # the ONE registration the trial's own report prints (PARALLEL-HF: 'NCT02468232'): its posted results join
+        # the cascade. Several ids (a report citing other trials) -> none chosen
+        stated = osrc.stated_registration(whole)
+        if stated:
+            t["ncts"] = [stated]
+            t["ncts_from"] = f"stated in the trial's own report ({origin} text sha256 {sha})"
+    aact = aact_evidence(t["ncts"])
     po = cfg.get("primary_outcome") or {}
     ev = {"trial": t["label"], "pmid": t["pmid"], "ncts": t["ncts"],
           "outcome": {k: po.get(k) for k in ("name", "keywords", "estimand", "timepoint", "population")},
@@ -414,14 +443,24 @@ def evidence(t, cfg, comp):
                         # licence guard checks the DOI's Unpaywall licence
                         {"doi": doi, "licence": ulic, "sha256": sha, "chars": len(whole), "shown_chars": len(shown),
                          "text": shown} if whole and origin == "UNPAYWALL" and str(ulic or "").startswith("cc") else
+                        # an open-location copy: CC on its HOST page (registry/open_sources.json; the guard reads it)
+                        {"doi": doi, "licence": ulic, "copy_url": ourl, "sha256": sha, "chars": len(whole),
+                         "shown_chars": len(shown), "text": shown}
+                        if whole and origin == "OPEN_LOCATION" and str(ulic or "").startswith("cc") else
                         {"state": "HELD_NOT_OPEN_LICENSED", "note": "held for the deterministic gates; never shown"}
                         if whole else {"state": "NO_OPEN_FULL_TEXT"}),
           "meta_rows": meta_evidence(t["slug"], t["label"])}
     reg_shown, reg_held = regulatory_evidence(t, terms)
     if reg_shown:
         ev["regulatory"] = reg_shown
+    # EU CTR / CTIS: sponsor-supplied (third-party) content -- held for the typed reader only, never put in a prompt
+    try:
+        euctr = osrc.euctr_evidence(t["ncts"])
+    except Exception as exc:  # noqa: BLE001 - an unreachable register is recorded as nothing held, never guessed
+        euctr = {"_error": {"why": str(exc)[:160]}}
     return ev, {"aact": aact, "text": whole, "sha": sha, "terms": terms, "comp": comp, "pmid": t["pmid"], "reg": reg_held,
-                "slug": t["slug"], "text_origin": origin if whole else None, "doi": doi, "doi_licence": ulic}
+                "slug": t["slug"], "text_origin": origin if whole else None, "doi": doi, "doi_licence": ulic,
+                "text_url": ourl, "euctr": euctr}
 
 
 def regulatory_evidence(t, terms):
@@ -594,8 +633,16 @@ def gate(resp, held, cfg, slug):
             m = typed_match_table(resp["quote"], resp, held["terms"])
         if not m:
             return "REFUSED:TYPED_MATCH_NOT_FOUND_BESIDE_OUTCOME_TERMS", None
-        return "ADMITTED", {"kind": "TEXT", "source": f"PMID {resp['source_ref']} PMC OA full text sha256 {held['sha']}",
-                            "span": m.get("span"), "quote": resp["quote"], "row": row}
+        # the copy the text came from, as held (an Unpaywall copy was labelled 'PMC OA' before 7 Oct)
+        src_label = {"UNPAYWALL": f"PMID {resp['source_ref']} Unpaywall copy DOI {held.get('doi')} "
+                                  f"({held.get('doi_licence')}) full text sha256 {held['sha']}",
+                     "OPEN_LOCATION": f"PMID {resp['source_ref']} open-location copy {held.get('text_url')} "
+                                      f"({held.get('doi_licence')}, licence read from its host page) full text sha256 "
+                                      f"{held['sha']}"}.get(held.get("text_origin"),
+                                                            f"PMID {resp['source_ref']} PMC OA full text sha256 "
+                                                            f"{held['sha']}")
+        return "ADMITTED", {"kind": "TEXT", "source": src_label, "span": m.get("span"), "quote": resp["quote"],
+                            "row": row}
     if src == "REGULATORY":
         return regulatory_gate(resp, held, row, counts, effect)
     if src == "AACT":
@@ -604,36 +651,49 @@ def gate(resp, held, cfg, slug):
         reg = a.get("_reg")
         if not reg:
             return "REFUSED:NO_POSTED_RESULTS_FOR_NCT", None
-        oid = str(resp.get("aact_outcome_id") or "")
-        o = reg["outcomes"].get(oid)
-        if not o:
-            return "REFUSED:AACT_OUTCOME_ID_UNKNOWN", None
-        an = next((x for x in reg["analyses"] if x.get("outcome_id") == oid), None)
-        groups = reg["groups"].get(oid) or []
-        bv = gt.binding_verdict(po.get("name") or "", list(po.get("keywords") or []), o.get("title"),
-                                len({g["group"] for g in groups}), is_primary=(o.get("type") or "").upper() == "PRIMARY",
-                                analysis=an, estimand=po.get("estimand"), population=po.get("population"))
-        if bv["verdict"] != "BINDABLE":
-            return f"REFUSED:AACT_{bv['gate']}", None
-        tf = str(o.get("time_frame") or "")
-        if "," in tf or " and " in tf:
-            return "REFUSED:AACT_MULTIPLE_TIME_FRAMES", None
-        if counts:
-            short = posted_population_short(slug, held.get("pmid"), resp["n_t"] + resp["n_c"])
-            if short:
-                # SMART (NCT02444988) posts its MEDICAL-ICU subset, 2735 + 2646 = 5381, while its report randomised 15,802
-                return "REFUSED:POSTED_N_IS_A_SUBPOPULATION", {"note": short}
-        one = {"outcomes": {oid: o}, "analyses": [x for x in reg["analyses"] if x.get("outcome_id") == oid],
-               "groups": {oid: groups}}
-        # identity is the binding gate's (named / estimand / analysis set / composite): the matcher checks the NUMBERS,
-        # so it is given the outcome's own title (HEART-FID's 'Number of Hospitalizations for Heart Failure' is named
-        # by the topic's outcome NAME, not by a literal keyword substring)
-        m = sm.typed_match_registry(row, one, [o.get("title") or ""], f"{n} outcome {oid}")
-        if not m:
-            return "REFUSED:TUPLE_NOT_THE_POSTED_RESULT", None
-        return "ADMITTED", {"kind": "AACT", "source": f"AACT {(a.get('snapshot') or {}).get('id')} {n} outcome {oid}",
-                            "span": m.get("span"), "quote": resp["quote"], "row": row, "time_frame": tf}
+        v, adm = registry_gate(reg, str(resp.get("aact_outcome_id") or ""), row, counts, po, slug, held.get("pmid"),
+                               "AACT", f"AACT {(a.get('snapshot') or {}).get('id')} {n}", n)
+        if v == "ADMITTED":
+            adm["quote"] = resp["quote"]
+        return v, adm
     return "REFUSED:UNKNOWN_SOURCE", None
+
+
+def registry_gate(reg, oid, row, counts, po, slug, pmid, prefix, label, ref):
+    """A POSTED result's tuple through the registry binding gates (the AACT rules, verbatim; EU CTR results are read
+    into the same shape by g1_open_sources.euctr_registry): the outcome exists; named / estimand / analysis set /
+    composite (g1_tracker.binding_verdict); ONE time frame; the posted N not a subpopulation of the randomised total;
+    the tuple IS the posted result (typed_match_registry)."""
+    import g1_tracker as gt
+    from harness import secondary_meta as sm
+    o = reg["outcomes"].get(oid)
+    if not o:
+        return f"REFUSED:{prefix}_OUTCOME_ID_UNKNOWN", None
+    an = next((x for x in reg["analyses"] if x.get("outcome_id") == oid), None)
+    groups = reg["groups"].get(oid) or []
+    bv = gt.binding_verdict(po.get("name") or "", list(po.get("keywords") or []), o.get("title"),
+                            len({g["group"] for g in groups}), is_primary=(o.get("type") or "").upper() == "PRIMARY",
+                            analysis=an, estimand=po.get("estimand"), population=po.get("population"))
+    if bv["verdict"] != "BINDABLE":
+        return f"REFUSED:{prefix}_{bv['gate']}", None
+    tf = str(o.get("time_frame") or "")
+    if "," in tf or " and " in tf:
+        return f"REFUSED:{prefix}_MULTIPLE_TIME_FRAMES", None
+    if counts:
+        short = posted_population_short(slug, pmid, row.n_t + row.n_c)
+        if short:
+            # SMART (NCT02444988) posts its MEDICAL-ICU subset, 2735 + 2646 = 5381, while its report randomised 15,802
+            return "REFUSED:POSTED_N_IS_A_SUBPOPULATION", {"note": short}
+    one = {"outcomes": {oid: o}, "analyses": [x for x in reg["analyses"] if x.get("outcome_id") == oid],
+           "groups": {oid: groups}}
+    # identity is the binding gate's (named / estimand / analysis set / composite): the matcher checks the NUMBERS,
+    # so it is given the outcome's own title (HEART-FID's 'Number of Hospitalizations for Heart Failure' is named
+    # by the topic's outcome NAME, not by a literal keyword substring)
+    m = sm.typed_match_registry(row, one, [o.get("title") or ""], f"{ref} outcome {oid}")
+    if not m:
+        return "REFUSED:TUPLE_NOT_THE_POSTED_RESULT", None
+    return "ADMITTED", {"kind": prefix, "source": f"{label} outcome {oid}", "span": m.get("span"), "quote": None,
+                        "row": row, "time_frame": tf}
 
 
 def regulatory_gate(resp, held, row, counts, effect):
@@ -704,11 +764,133 @@ def comparator_pmid(slug, o):
     return str(o.get("comparator_pmid") or "")
 
 
+_NUMTOK = re.compile(r"(?<![\d.])\d+(?:[.·]\d+)?(?![\d])")
+
+
+def _printed(v, quote):
+    """The number as PRINTED in the quote ('0.70' for 0.7), or None: the gates match printed strings."""
+    if v is None:
+        return None
+    for m in _NUMTOK.finditer(quote or ""):
+        tok = m.group(0).replace("·", ".")
+        try:
+            if abs(float(tok) - float(v)) < 1e-9:
+                return tok
+        except ValueError:
+            continue
+    return None
+
+
+def _sentence_of(text, head):
+    """The verbatim span of the held text from the extractor's quoted head to the end of its sentence (<= 900 chars)."""
+    w, h = _ws(text), _ws(head)[:120]
+    i = w.find(h) if h else -1
+    if i < 0:
+        return None
+    j = w.find(". ", i + len(h) - 1)
+    return w[i:min(len(w) if j < 0 else j + 1, i + 900)]
+
+
+def extractor_proposal(t, cfg, held):
+    """REGEX FIRST on the trial's own open text: harness.extract.extract_trial (the pinned extractor, unchanged) reads
+    the outcome's effect or counts; its sentence is located VERBATIM in the held text and the reading goes through the
+    SAME gate as a model answer (gate(): quote verbatim in the whole text, every number printed in the quote, the
+    typed tuple beside the outcome terms). (verdict, admitted) or (None, None)."""
+    from harness import extract
+    po = cfg.get("primary_outcome") or {}
+    try:
+        ex = extract.extract_trial(held["text"], list(po.get("keywords") or []), cfg.get("intervention_terms") or [],
+                                   cfg.get("comparator_terms") or [],
+                                   declared_composite=extract.declared_is_composite(po.get("name") or ""),
+                                   estimand=po.get("estimand"), outcome_name=po.get("name"))
+    except Exception:  # noqa: BLE001 - an extractor failure is no reading, never a guess
+        return None, None
+    if ex.get("absent"):
+        return None, None
+    quote = _sentence_of(held["text"], re.sub(r"^abstract [^:]{0,80}:\s*", "", str(ex.get("source") or "")))
+    if not quote:
+        return None, None
+    counts = all(ex.get(k) is not None for k in ("ai", "n1i", "ci", "n2i"))
+    eff = not counts and all(ex.get(k) is not None for k in ("effect", "ci_low", "ci_high"))
+    measure = "COUNTS" if counts else str(ex.get("scale") or "").upper()
+    if not (counts or eff) or measure not in MEASURES:
+        return None, None
+    resp = {"verdict": "FOUND", "source": "PMC_TEXT", "source_ref": str(t["pmid"]), "quote": quote, "measure": measure,
+            "events_t": ex.get("ai") if counts else None, "n_t": ex.get("n1i") if counts else None,
+            "events_c": ex.get("ci") if counts else None, "n_c": ex.get("n2i") if counts else None,
+            "effect": _printed(ex.get("effect"), quote) if eff else None,
+            "lower": _printed(ex.get("ci_low"), quote) if eff else None,
+            "upper": _printed(ex.get("ci_high"), quote) if eff else None}
+    if eff and None in (resp["effect"], resp["lower"], resp["upper"]):
+        return None, None
+    v, adm = gate(resp, held, cfg, t["slug"])
+    if v == "ADMITTED":
+        xsha = hashlib.sha256(open(os.path.join(ROOT, "harness", "extract.py"), "rb").read()).hexdigest()
+        adm.update(kind="TEXT_EXTRACTOR", source=adm["source"] + " (read deterministically: harness.extract."
+                                                                  f"extract_trial, extract.py sha256 {xsha})")
+    return v, adm
+
+
+def euctr_typed(t, cfg, held):
+    """The EU CTR results page, read DETERMINISTICALLY (never shown to a model: sponsor-supplied content). Proposals:
+    a posted two-sided 95% analysis on the protocol's estimand between exactly the experimental and the control group
+    (in that order -- an effect is never inverted), or the two groups' people-unit counts; arms are oriented by the
+    topic's intervention / comparator terms on the group title with its abbreviations spelled out from the page's own
+    arm definitions. Each proposal goes through registry_gate (the AACT rules). Two different admitted tuples ->
+    nothing (ambiguous). (verdict, admitted) or (None, None)."""
+    import g1_open_sources as osrc
+    from harness import secondary_meta as sm_
+    po = cfg.get("primary_outcome") or {}
+    est = (po.get("estimand") or "").upper()
+    want = {"HR": "hazard ratio", "RR": "risk ratio", "OR": "odds ratio"}.get(est)
+    it = [x.lower() for x in cfg.get("intervention_terms") or []]
+    ct = [x.lower() for x in cfg.get("comparator_terms") or []]
+    got = []
+    for eid, e in (held.get("euctr") or {}).items():
+        reg = (e or {}).get("_reg")
+        if not reg:
+            continue
+
+        def side(gid, reg=reg):
+            ttl = osrc.expand_arm(reg["group_titles"].get(gid), reg.get("arm_aliases")).lower()
+            i_, c_ = any(x in ttl for x in it), any(x in ttl for x in ct)
+            return "T" if i_ and not c_ else ("C" if c_ and not i_ else None)
+        for oid in reg["outcomes"]:
+            props = []
+            for a in [x for x in reg["analyses"] if x.get("outcome_id") == oid]:
+                if want and want in (a.get("param_type") or "").lower() and [side(g) for g in a.get("groups") or []] == \
+                        ["T", "C"]:
+                    props.append(dict(effect=a.get("param_value"), lower=a.get("ci_lower"), upper=a.get("ci_upper"),
+                                      events_t=None, n_t=None, events_c=None, n_c=None))
+            g = reg["groups"].get(oid) or []
+            sides = {side(x["group"]): x for x in g}
+            if len(g) == 2 and set(sides) == {"T", "C"}:
+                props.append(dict(effect=None, lower=None, upper=None, events_t=sides["T"]["count"], n_t=sides["T"]["n"],
+                                  events_c=sides["C"]["count"], n_c=sides["C"]["n"]))
+            for p_ in props:
+                rw = sm_.SecondaryRow(meta_pmid="ACQUIRED", meta_doi="", location={}, source_digest="",
+                                      provenance="REGISTRY_TYPED", trial_label="", measure=est,
+                                      outcome_definition=reg["outcomes"][oid].get("title") or "", **p_)
+                rec = (e.get("record") or {})
+                v, adm = registry_gate(reg, oid, rw, p_["events_t"] is not None, po, t["slug"], t["pmid"], "EUCTR",
+                                       f"EUCTR {eid} results page {rec.get('url')} text sha256 "
+                                       f"{reg['_snapshot']['digest']} ({osrc.THIRD_PARTY}; read deterministically: "
+                                       f"g1_open_sources.parse_euctr)", eid)
+                if v == "ADMITTED":
+                    adm.update(url=rec.get("url"), licence=osrc.THIRD_PARTY, doc_sha256=rec.get("doc_sha256"),
+                               text_sha256=rec.get("text_sha256"), found_by=e.get("found_by"))
+                    got.append(adm)
+    distinct = {tuple(str(getattr(a["row"], k)) for k in _TUPLE) for a in got}
+    return ("ADMITTED", got[0]) if len(distinct) == 1 else (None, None)
+
+
 def typed_first(t, cfg, held):
     """DETERMINISTIC sources before any model: (verdict, admitted) or (None, None). (1) the trial's own held text's
-    outcome table row (table_tuple) from a legitimately open copy (PMC CC / author manuscript, or a CC Unpaywall copy);
-    (2) a regulator's counts (g1_regulatory_source.regulatory_typed: one trial-named line, two corroborated e/N (p%)
-    cells, arms ordered by a header naming both), under the randomised-N check."""
+    outcome table row (table_tuple) from a legitimately open copy (PMC CC / author manuscript, or a CC Unpaywall or
+    open-location copy); (2) the pinned regex extractor on that text (extractor_proposal, through gate()); (3) the EU
+    CTR results page (euctr_typed, through registry_gate); (4) a regulator's counts (g1_regulatory_source.
+    regulatory_typed: one trial-named line, two corroborated e/N (p%) cells, arms ordered by a header naming both),
+    under the randomised-N check."""
     import g1_regulatory_source as rs
     from harness import secondary_meta as sm_
     po = cfg.get("primary_outcome") or {}
@@ -730,6 +912,14 @@ def typed_first(t, cfg, held):
             return "ADMITTED", {"kind": "TEXT_TABLE", "source": f"{held.get('text_origin')} held full text sha256 "
                                                                 f"{held['sha']} (read deterministically: table_tuple)",
                                 "source_copy": copy, "span": tt[2][:600], "quote": None, "row": row(tt[1], tt[0])}
+        if ok:
+            v, adm = extractor_proposal(t, cfg, held)
+            if v == "ADMITTED":
+                adm["source_copy"] = copy
+                return v, adm
+    v, adm = euctr_typed(t, cfg, held)
+    if v == "ADMITTED":
+        return v, adm
     reg = {k: v for k, v in (held.get("reg") or {}).items() if not k.startswith("_")}
     if reg and est in ("RR", "OR", "RD"):
         g = rs.regulatory_typed(reg, terms, cfg.get("intervention_terms") or [], cfg.get("comparator_terms") or [])
@@ -814,6 +1004,8 @@ def run(slugs, ref, redo=(), workers=5, remote_workers=0):
                 ev, _held = evidence(t, cfg, comp)
         except Exception as exc:  # noqa: BLE001 - one trial's failure is recorded, never fatal
             return key, dict(base, record_id=None, state="EVIDENCE_ERROR", why=f"{type(exc).__name__}: {str(exc)[:200]}")
+        if t.get("ncts_from"):                            # a registration the trial's own report prints (evidence())
+            base.update(ncts=t["ncts"], ncts_from=t["ncts_from"])
         v, _adm = typed_first(t, cfg, _held)
         if v == "ADMITTED":
             return key, dict(base, record_id=None, state="TYPED_ADMITTED")
