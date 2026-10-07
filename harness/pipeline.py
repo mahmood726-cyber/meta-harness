@@ -2220,6 +2220,27 @@ def build_outcome_from_inputs(inp, spec, kind, slug, **overrides):
                           eligibility_contract=kw["eligibility_contract"], slug=slug)
 
 
+def comparator_records_problem(config, records, rec_by_id):
+    """Why the held comparator inputs do NOT belong to the configured comparator, or None. A comparator switch (V8,
+    signed 7 Oct) changed config comparator_pmid, but the cached records still held the OLD comparator's PubMed record
+    field, Unpaywall status and full text: the rebuilt pages named the new comparator with a blank record (pmid null) and
+    read its 'reported' numbers from the old comparator's text. A page is never built from another meta's text."""
+    cmp = str(config.get("comparator_pmid") or "").strip()
+    if not cmp:
+        return None
+    held = str((records or {}).get("comparator_pmid") or "").strip() if isinstance(records, dict) else cmp
+    rec = rec_by_id.get(cmp) or (((records or {}).get("comparator_record") or {})
+                                if isinstance(records, dict) and str(((records or {}).get("comparator_record") or {}).get("id")) == cmp
+                                else {})
+    probs = []
+    if held != cmp:
+        probs.append(f"held comparator full text / OA status are for PMID {held or 'none'}")
+    if not rec:
+        probs.append("no PubMed record of the comparator is held")
+    return (f"COMPARATOR RECORDS STALE (build refused): configured comparator PMID {cmp}: " + "; ".join(probs)
+            + " -- run scripts/acquire_comparator_record.py") if probs else None
+
+
 @aact_cache.cache_only_build
 def build_review_core(slug, config, records, protocol_sha):
     from . import trial_family as trial_family_mod
@@ -2239,7 +2260,12 @@ def build_review_core(slug, config, records, protocol_sha):
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
-    comp_rec = rec_by_id.get(config.get("comparator_pmid")) or {}
+    _cprob = comparator_records_problem(config, records, rec_by_id)
+    if _cprob:
+        raise ValueError(_cprob)
+    _cr = (records.get("comparator_record") or {}) if isinstance(records, dict) else {}
+    comp_rec = rec_by_id.get(config.get("comparator_pmid")) or (
+        _cr if str(_cr.get("id")) == str(config.get("comparator_pmid")) else {})
     comp_abstract = comp_rec.get("abstract", "")
     comp_full = records.get("comparator_fulltext") or ""
 

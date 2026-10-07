@@ -166,3 +166,16 @@ def test_PLANT_impossible_counts_or_scores_refuse(monkeypatch, tmp_path, corrupt
     monkeypatch.setattr(ap, "RANK", str(p))
     with pytest.raises(SystemExit):
         ap.build()
+
+
+def test_PLANT_a_dangling_release_register_refuses(monkeypatch, tmp_path):
+    import os as _os
+    import g1_swap as g
+    link = tmp_path / "swap_releases.json"
+    try:
+        _os.symlink(tmp_path / "missing.json", link)
+    except OSError:
+        pytest.skip("this filesystem / account cannot create symlinks")
+    monkeypatch.setattr(g, "SEL", str(tmp_path))
+    with pytest.raises((SystemExit, OSError)):
+        g.released(["pcsk9-mace"])

@@ -856,7 +856,7 @@ def released(slugs):
     """Slugs whose swap rule was RELEASED without a search (registry/comparator_selection/swap_releases.json: the topic
     was abandoned by decision, 7 Oct). No stage may run on one."""
     p = os.path.join(SEL, "swap_releases.json")
-    if not os.path.exists(p):
+    if not os.path.lexists(p):     # a dangling link is a broken register (codex abandon-ten-r7 g1#1)
         return []
     lst = _j(p).get("released")
     # an existing register that is malformed refuses; it never reads as 'nothing released' (codex abandon-ten-r2 g1#2)
