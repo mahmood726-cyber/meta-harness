@@ -459,3 +459,19 @@ def test_PLANT_r22_k_equals_with_a_bound_and_most_reporting_refuse_but_doacs_oth
            "DOACs (OR 0.88, CI 0.75-1.03).")
     pl3 = {"quote": "OR 0.88, CI 0.75-1.03", "measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5}
     assert sw.pooled_gate(pl3, sw._norm(sq3), set_quote=sq3, verified_units=5)[1] == 5
+
+
+def test_PLANT_r23_trailing_approximation_counts_in_another_clause_and_ci_levels_in_the_fallback():
+    """codex swap-setquote-r23: #1 'five trials, approximately'; #2 a count in a ';'-clause about another outcome;
+    #3 a '95% CI' must not close the set-quote fallback (a false refusal)."""
+    base = {"measure": "RR", "estimate": "0.85", "lower": "0.70", "upper": "1.03"}
+    q = "The mortality analysis used five trials, approximately (RR 0.85, 95% CI 0.70-1.03)."
+    assert sw.printed_counts(q) == set() and sw.pooled_gate(dict(base, k=5, quote=q), sw._norm(q))[0] is None
+    q2 = "Five trials reported recurrence; mortality RR 0.85 (95% CI 0.70-1.03)."
+    assert sw.pooled_gate(dict(base, k=5, quote=q2), sw._norm(q2))[0] is None
+    q3 = "RR 0.85 (95% CI 0.70-1.03); 12 trials."                      # a bare count clause still binds
+    assert sw.pooled_gate(dict(base, k=12, quote=q3), sw._norm(q3))[1] == 12
+    sq = "Five trials reported mortality RR 0.85 (95% CI 0.70-1.03)."
+    q4 = "mortality RR 0.85 (95% CI 0.70-1.03)."
+    got, k = sw.pooled_gate(dict(base, k=5, quote=q4), sw._norm(sq), set_quote=sq, verified_units=5)
+    assert k == 5 and got["k_basis"]["from"] == "SET_QUOTE_SENTENCE"

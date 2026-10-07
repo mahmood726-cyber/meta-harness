@@ -2675,5 +2675,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r23": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b1698a470ecad643da1895b5e04c6211",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "4d2c7ea8b57ffee4d999cbbdd22eff5fb6a1839ce81367180d281a17b74a4272"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in / printed_counts",
+    "severity": "P0",
+    "claim": "A trailing approximation is accepted as an exact trial count. bound_after does not recognize 'approximately', allowing an estimated k into the pooled result.",
+    "failing_input": "printed_counts('The mortality analysis used five trials, approximately (RR 0.85, 95% CI 0.70-1.03).')",
+    "expected": "set(): the sentence explicitly qualifies five as approximate.",
+    "actual": "{5}. With this quote and matching estimate/bounds, pooled_gate accepts k=5.",
+    "id": "swap-setquote-r23:g1#1",
+    "record_id": "mc-b1698a470ecad643da1895b5e04c6211",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "Sharing a sentence does not bind a trial count to the pooled outcome. A count explicitly attached to recurrence is accepted as mortality k.",
+    "failing_input": "q = 'Five trials reported recurrence; mortality RR 0.85 (95% CI 0.70-1.03).'; pl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}; pooled_gate(pl, _norm(q))",
+    "expected": "(None, None): the quote supplies no mortality trial count.",
+    "actual": "(pl, 5). The semicolon preserves one sentence; its matching result values and sole count pass despite referring to different outcomes.",
+    "id": "swap-setquote-r23:g1#2",
+    "record_id": "mc-b1698a470ecad643da1895b5e04c6211",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P1",
+    "claim": "The set-quote fallback rejects confidence-level percentages, although printed_counts explicitly permits them. This rejects an otherwise valid, corroborated count.",
+    "failing_input": "sq = 'Five trials reported mortality RR 0.85 (95% CI 0.70-1.03).'; q = 'mortality RR 0.85 (95% CI 0.70-1.03).'; pl = {'quote': q, 'measure': 'RR', 'estimate': 0.85, 'lower': 0.70, 'upper': 1.03, 'k': 5}; pooled_gate(pl, _norm(sq), set_quote=sq, verified_units=5)",
+    "expected": "Accept k=5 with SET_QUOTE_SENTENCE provenance: the containing sentence prints the exact count and result, corroborated by five verified units.",
+    "actual": "(None, None), because the fallback requires '%' not in sent and therefore rejects '95% CI'.",
+    "id": "swap-setquote-r23:g1#3",
+    "record_id": "mc-b1698a470ecad643da1895b5e04c6211",
+    "verdict": null
+   }
+  ]
  }
 }

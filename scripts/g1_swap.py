@@ -479,7 +479,10 @@ def _counts_in(s):
         # 'at the most' too (codex swap-setquote-r16 #2)
         # ... and 'at a minimum' (codex swap-setquote-r21 #1)
         return bool(re.match(r"\s*[,(\[]?\s*(?:(?:at\s+(?:the\s+|a\s+)?(?:most|least|maximum|minimum)|or\s+(?:more|fewer|less|so|over|under)|"
-                             r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over))\b|\+)", s[j:], re.I))
+                             r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over)|"
+                             # a trailing approximation ('five trials, approximately'; codex swap-setquote-r23 #1)
+                             r"approx\w*|about|roughly|circa|estimated|give\s+or\s+take|or\s+thereabouts)\b|\+)",
+                             s[j:], re.I))
 
     # 'k = n', with the same bound check after it as any other count ('k = 5 or more'; codex swap-setquote-r22 #1)
     for m in re.finditer(r"\bk\s*=\s*(\d+)(?![.,]\d)", s, re.I):
@@ -510,6 +513,23 @@ def mentions_a_count(q):
                                      "hundred", "dozen", "both", "either", "neither"])
     return bool(re.search(r"(?<![\d.,])\d+(?![.,]?\d)(?!\s*%)", s)
                 or re.search(r"\b(?:" + words + r")\b", s, re.I))
+
+
+def _bound_counts(sent, vals):
+    """The counts of one sentence that are BOUND to the stated result: printed in the clause (';'-separated) that prints
+    every stated value, or in a clause that is nothing but a count ('RR .85 (95% CI .70-1.03); 12 trials.'). A count in
+    a clause about something else never binds (codex swap-setquote-r23 #2: 'Five trials reported recurrence; mortality
+    RR 0.85 (...)'). The sentence-level rules of printed_counts (one quantity, restrictions, percentages) apply first."""
+    cnt = printed_counts(sent)
+    if not cnt:
+        return set()
+    clauses = [c for c in _clean(sent).split(";") if c.strip()]
+    res = [c for c in clauses if all(any(abs(v - t) < 1e-9 for t in _num_tokens(c)) for v in vals)] if vals else clauses
+    if len(res) != 1:
+        return set()
+    bare = re.compile(r"^\W*(?:k\s*=\s*\d+|\d+\s+(?:" + _TRIAL_ADJ + r"\s+){0,3}(?:trials|studies|rcts))\W*$", re.I)
+    ok = [res[0]] + [c for c in clauses if c is not res[0] and bare.match(c)]
+    return {n for n in cnt if any(n in _counts_in(c) for c in ok)}
 
 
 def pooled_gate(pl, nt, set_quote=None, verified_units=None):
@@ -545,7 +565,7 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
             sents = [x for x in sents if all(any(abs(v - t) < 1e-9 for t in _num_tokens(x)) for v in vals)]
         # exactly ONE sentence may print the result: two sentences printing identical numbers for different outcomes
         # are ambiguous, never unioned (codex swap-setquote-r21 #3)
-        printed = printed_counts(sents[0]) if len(sents) == 1 else set()
+        printed = _bound_counts(sents[0], vals) if len(sents) == 1 else set()
         # ... or, ONLY when the pooled quote prints no count, in the meta's own SET QUOTE verbatim in the held text (doac
         # 29795629: 'In the five Phase 3 studies ...'). The pooled result's own count always wins: a review-wide count
         # never overrides it (codex swap-setquote-r7 #1); a set quote not in the text is never read
@@ -573,8 +593,10 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
         # the signing packet shows that sentence to the reviewer, who confirms the reading before the adoption is applied.
         fallback = False
         if (not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q) and verified_units
-                and not _RESTRICT.search(sent) and "%" not in sent):
-            c = printed_counts(sent)
+                and not _RESTRICT.search(sent) and not _stray_percent(sent)):
+            # a CI level is not a fraction of the trials: the same percentage test as every other count sentence (codex
+            # swap-setquote-r23 #3 -- '"%" not in sent' refused 'Five trials reported mortality RR 0.85 (95% CI ...)')
+            c = _bound_counts(sent, vals)
             if c == {verified_units}:
                 printed, fallback = c, True
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
