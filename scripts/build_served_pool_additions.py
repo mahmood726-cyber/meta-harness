@@ -203,6 +203,8 @@ def _arms_combined_row(slug, x, v, base):
     'MEAN m Standard Deviation s N n' must be in the span, exactly one control arm, and the merge re-derived here must
     reproduce the tracker's combined value (4 dp). The row serves the merge at full precision with the printed arms and
     the derivation beside it -- the combined numbers are never presented as printed."""
+    import re
+
     import g1_binding_aact as ba
     b = _aact_binding(slug, x)
     if not b:
@@ -212,13 +214,19 @@ def _arms_combined_row(slug, x, v, base):
     ct = [a for a in arms if a.get("role") == "control"]
     if len(ct) != 1 or len(iv) < 1:
         return None, f"arms not one control plus intervention arm(s): {[a.get('role') for a in arms]}"
-    import re
+    # each arm's tuple is bound to ITS OWN segment of the span ('OG000 <title> [role]: MEAN m Standard Deviation s N n',
+    # segments separated by ' || '), compared whole -- never a substring anywhere in the span (codex v9-apply g1#1: 'N 10'
+    # inside 'N 108'; v9-apply-r2 #1: two arms reusing the control's printed values)
+    segs = [s.strip() for s in span.split(" || ")]
+    if len({a.get("code") for a in arms}) != len(arms):
+        return None, "arm codes are not distinct"
     for a in arms:
-        # whole numbers only: 'N 10' must never match the printed 'N 108' (codex v9-apply g1#1)
-        pat = (r"(?<![\d.])MEAN " + re.escape(str(a.get("mean"))) + r" Standard Deviation " + re.escape(str(a.get("sd")))
-               + r" N " + re.escape(str(a.get("n"))) + r"(?![\d.])")
-        if not re.search(pat, span):
-            return None, f"arm {a.get('code')} mean/SD/N not printed verbatim in the binding span"
+        if not re.fullmatch(r"\d+", str(a.get("n") or "")):
+            return None, f"arm {a.get('code')} N {a.get('n')!r} is not a whole number as printed"   # r2 #2: never int()-truncated
+        want = (f"{a.get('code')} {a.get('title')} [{a.get('role')}]: MEAN {a.get('mean')} Standard Deviation "
+                f"{a.get('sd')} N {a.get('n')}")
+        if segs.count(want) != 1:
+            return None, f"arm {a.get('code')} mean/SD/N not printed verbatim as its own segment of the binding span"
     n1, m1, s1 = ba.combine_arms([(int(a["n"]), float(a["mean"]), float(a["sd"])) for a in iv])
     c = ct[0]
     want = (_num(v.get("mean_t")), _num(v.get("sd_t")), _num(v.get("n_t")),

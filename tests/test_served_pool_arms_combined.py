@@ -113,3 +113,30 @@ def test_PLANT_an_arm_count_is_matched_as_a_whole_number_never_a_prefix(monkeypa
     x = dict(x, our_value=dict(x["our_value"], n_c=10))
     row, why = bspa.pipeline_row(SLUG, x, "MD")
     assert row is None and "verbatim" in why
+
+
+def test_PLANT_each_arm_tuple_is_bound_to_its_own_segment_and_counts_are_whole(monkeypatch):
+    """codex v9-apply-r2: #1 two intervention arms reusing the control's printed values passed (values not bound to
+    their arm); #2 a fractional printed N was truncated by int()."""
+    real = bspa._aact_binding
+
+    def reuse(slug, x):
+        b = copy.deepcopy(real(slug, x))
+        c = next(a for a in b["arms"] if a["role"] == "control")
+        for a in b["arms"]:
+            if a["role"] == "intervention":
+                a.update(mean=c["mean"], sd=c["sd"], n=c["n"])
+        return b
+    monkeypatch.setattr(bspa, "_aact_binding", reuse)
+    row, why = bspa.pipeline_row(SLUG, _row(), "MD")
+    assert row is None
+
+    def frac(slug, x):
+        b = copy.deepcopy(real(slug, x))
+        a = next(a for a in b["arms"] if a["role"] == "control")
+        b["span"] = b["span"].replace(f"N {a['n']}", f"N {a['n']}.5")
+        a["n"] = f"{a['n']}.5"
+        return b
+    monkeypatch.setattr(bspa, "_aact_binding", frac)
+    row, why = bspa.pipeline_row(SLUG, _row(), "MD")
+    assert row is None and "whole" in why
