@@ -397,7 +397,7 @@
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "prespecified secondary outcome, registered 'Number of Participants With an Event of CV-Related Death'",
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE); registered 'Number of Participants With an Event of MACE (Confirmed CV-Related Death, Fatal and Nonfatal MI, and Fatal and Nonfatal Stroke)'",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
           "inputs": {
             "pooled_outcome": "3-point major adverse cardiovascular events",
@@ -521,17 +521,21 @@
               }
             ],
             "comparison": {
-              "registered_type": "secondary",
-              "registered_label": "Number of Participants With an Event of CV-Related Death",
+              "registered_type": "primary",
+              "registered_label": "Number of Participants With an Event of MACE (Confirmed CV-Related Death, Fatal and Nonfatal MI, and Fatal and Nonfatal Stroke)",
               "matched": true,
-              "method": "text_identity",
+              "method": "component_set",
               "pooled_components": [
                 "CV_DEATH",
                 "NONFATAL_MI",
                 "NONFATAL_STROKE"
               ],
-              "registered_components": [],
-              "registered_text": "Number of Participants With an Event of CV-Related Death Participants with adjudicated and confirmed AEs of cardiovascular-related death."
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Number of Participants With an Event of MACE (Confirmed CV-Related Death, Fatal and Nonfatal MI, and Fatal and Nonfatal Stroke) Participants with an Event of MACE (confirmed cardiovascular, CV-related death, fatal and nonfatal myocardial infarction \\[MI\\], and fatal and nonfatal stroke)."
             }
           },
           "derived_at_build": true
@@ -603,7 +607,7 @@
       "nct": "NCT00790205",
       "registry_in_aact": true,
       "assessed_from": "registry+abstract",
-      "overall": "some concerns",
+      "overall": "low (on assessed domains; some domains require human judgement)",
       "domains": {
         "D1_randomisation": {
           "level": "low",
@@ -661,8 +665,8 @@
           "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Maj') -- possibly post-hoc/unregistered",
+          "level": "low",
+          "basis": "prespecified secondary outcome, registered 'Percentage of Participants With First Confirmed CV Event of MACE (Per Protocol Population)'",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
           "inputs": {
             "pooled_outcome": "3-point major adverse cardiovascular events",
@@ -761,9 +765,9 @@
               }
             ],
             "comparison": {
-              "registered_type": null,
-              "registered_label": "Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population)",
-              "matched": false,
+              "registered_type": "secondary",
+              "registered_label": "Percentage of Participants With First Confirmed CV Event of MACE (Per Protocol Population)",
+              "matched": true,
               "method": "component_set",
               "pooled_components": [
                 "CV_DEATH",
@@ -771,11 +775,11 @@
                 "NONFATAL_STROKE"
               ],
               "registered_components": [
+                "CV_DEATH",
                 "NONFATAL_MI",
-                "NONFATAL_STROKE",
-                "UNSTABLE_ANGINA"
+                "NONFATAL_STROKE"
               ],
-              "registered_text": "Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population) Primary composite CV endpoint of MACE plus which includes CV-related death, nonfatal MI, nonfatal stroke, or unstable angina requiring hospitalization."
+              "registered_text": "Percentage of Participants With First Confirmed CV Event of MACE (Per Protocol Population) CV composite endpoint of MACE which includes CV-related death, nonfatal MI, or nonfatal stroke."
             }
           },
           "derived_at_build": true
@@ -802,7 +806,7 @@
           {
             "domain": "D5_selective_reporting",
             "label": "registered outcome versus pooled outcome",
-            "level": "some concerns"
+            "level": "low"
           }
         ],
         "unassessed_domains": [
@@ -832,7 +836,7 @@
         {
           "domain": "D5_selective_reporting",
           "label": "registered outcome versus pooled outcome",
-          "level": "some concerns"
+          "level": "low"
         }
       ],
       "unassessed_domains": [
