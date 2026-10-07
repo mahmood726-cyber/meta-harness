@@ -571,3 +571,16 @@ def test_PLANT_pubmed_error_status_and_repeated_europepmc_pages_never_make_a_com
                  b'"nextCursorMark":"A"}')
     pm, meta = sw.europepmc_ids(lambda *a, **k: same, "mortality")
     assert meta["state"] == "TRUNCATED" and meta["fetched_hits"] == 1 and pm == ["123"]
+
+
+def test_PLANT_ascii_inequalities_are_bounds_and_a_malformed_pubmed_error_is_retried():
+    """codex pr25-final3: #1 '>= 5 trials' read as k = 5; #2 a malformed JSON error body escaped the retry loop."""
+    import unittest.mock as um
+    vals = [0.85, 0.70, 1.03]
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03; >= 5 trials).", vals) == set()
+    assert sw.printed_counts("Mortality pooled from => 5 trials (RR 0.85).") == set()
+    assert sw.printed_counts("Mortality pooled from <=5 trials (RR 0.85).") == set()
+    replies = iter([(503, b"{"), (200, b'{"esearchresult":{"count":"1","idlist":["42"]}}')])
+    with um.patch("time.sleep", lambda s: None):
+        ids, meta = sw.pubmed_ids(lambda *a, **k: next(replies), "mortality")
+    assert ids == ["42"] and meta["state"] == "COMPLETE"
