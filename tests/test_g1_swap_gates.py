@@ -475,3 +475,12 @@ def test_PLANT_r23_trailing_approximation_counts_in_another_clause_and_ci_levels
     q4 = "mortality RR 0.85 (95% CI 0.70-1.03)."
     got, k = sw.pooled_gate(dict(base, k=5, quote=q4), sw._norm(sq), set_quote=sq, verified_units=5)
     assert k == 5 and got["k_basis"]["from"] == "SET_QUOTE_SENTENCE"
+
+
+def test_PLANT_r24_k_equals_after_an_approximator_and_scientific_notation_refuse():
+    """codex swap-setquote-r24 #2 'approximately k = 5'; #3 'k = 5e1'. (#1, a count in another comma-clause of the same
+    sentence, is the disclosed semantic residue: a clause rule would also refuse doac 29795629's own sentence.)"""
+    vals = [0.85, 0.70, 1.03]
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), approximately k = 5.", vals) == set()
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), k = 5e1.", vals) == set()
+    assert sw._bound_counts("Mortality RR 0.85 (95% CI 0.70-1.03), k = 5.", vals) == {5}

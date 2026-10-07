@@ -396,7 +396,8 @@ def _numerals(sent):
     # itself must still match the trial-count grammar in _counts_in.
     sent = re.sub(r"\[\s*\d+(?:\s*[-,]\s*\d+)*\s*\]", " ", sent)
     sent = re.sub(r"\b(?:I|chi|tau|χ|τ)\s*(?:\^\s*)?2\b", " ", sent, flags=re.I)
-    for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?!\s*%)", sent):
+    # scientific notation is one number, not an integer prefix ('5e1'; codex swap-setquote-r24 #3)
+    for m in re.finditer(r"(?<![\w.,/])\d+(?:,\d{3})*(?![.,]?\d)(?![eE][+-]?\d)(?!\s*%)", sent):
         if not re.search(r"\bphase\s*$", sent[:m.start()], re.I):
             n += 1
     words = list(_COUNT_WORDS) + list(_TENS) + ["hundred", "thousand", "million", "dozen", "both", "zero", "none", "nil"]
@@ -485,12 +486,14 @@ def _counts_in(s):
                              s[j:], re.I))
 
     # 'k = n', with the same bound check after it as any other count ('k = 5 or more'; codex swap-setquote-r22 #1)
-    for m in re.finditer(r"\bk\s*=\s*(\d+)(?![.,]\d)", s, re.I):
-        if not bound_after(m.end()):
+    # ... and the same check BEFORE it, read before the 'k' ('approximately k = 5'), and never the integer prefix of a
+    # number in scientific notation ('k = 5e1') (codex swap-setquote-r24 #2, #3)
+    for m in re.finditer(r"\bk\s*=\s*(\d+)(?![.,]\d)(?![eE][+-]?\d)", s, re.I):
+        if not bound_after(m.end()) and not blocked_before(m.start()):
             out.add(int(m.group(1)))
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
     # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
-    for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
+    for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?![.,]\d)(?![eE][+-]?\d)(?!/)" + tail, s, re.I):
         if not blocked_before(m.start(1)) and not bound_after(m.end()):
             out.add(int(m.group(1)))
     # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)

@@ -2728,5 +2728,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r24": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-00dfdda91ec8094baf30644ea9b305cc",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "d566a0a2923cb6c1b0f9104e283356d2927934cc6d07cce19dec4f7019136588"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts",
+    "severity": "P0",
+    "claim": "A count for another outcome binds to the pooled result when both appear in one comma-separated clause. The function checks numeric co-occurrence, allowing pooled_gate to accept an unsupported mortality k.",
+    "failing_input": "_bound_counts('Five trials reported recurrence, whereas mortality RR 0.85 (95% CI 0.70-1.03).', [0.85, 0.70, 1.03])",
+    "expected": "set(): five describes recurrence trials; the mortality trial count is unstated.",
+    "actual": "{5}",
+    "id": "swap-setquote-r24:g1#1",
+    "record_id": "mc-00dfdda91ec8094baf30644ea9b305cc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in",
+    "severity": "P0",
+    "claim": "The k = n branch skips blocked_before, so a preceding approximation survives printed_counts and binds as an exact result count.",
+    "failing_input": "_bound_counts('Mortality RR 0.85 (95% CI 0.70-1.03), approximately k = 5.', [0.85, 0.70, 1.03])",
+    "expected": "set(): an approximate count cannot establish exact k.",
+    "actual": "{5}",
+    "id": "swap-setquote-r24:g1#2",
+    "record_id": "mc-00dfdda91ec8094baf30644ea9b305cc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_counts_in",
+    "severity": "P0",
+    "claim": "The k = n regex accepts the integer prefix of scientific notation. _numerals also counts that prefix alone, allowing the incorrect value through the single-numeral guard and into result binding.",
+    "failing_input": "_bound_counts('Mortality RR 0.85 (95% CI 0.70-1.03), k = 5e1.', [0.85, 0.70, 1.03])",
+    "expected": "set() under the supported whole-integer grammar, or {50} if scientific notation is supported; never {5}.",
+    "actual": "{5}",
+    "id": "swap-setquote-r24:g1#3",
+    "record_id": "mc-00dfdda91ec8094baf30644ea9b305cc",
+    "verdict": null
+   }
+  ]
  }
 }
