@@ -107,7 +107,9 @@ def cmd_rules(slugs):
 
 
 # ---------------------------------------------------------------------------------------------------------------- search
-DATE = "2026-10-06"
+# the day the stage actually ran (a fixed "2026-10-06" would stamp later searches with a false date); held files are
+# found by glob, so earlier-dated copies are still read
+DATE = os.environ.get("G1_SWAP_DATE") or __import__("datetime").datetime.now(__import__("datetime").timezone.utc).strftime("%Y-%m-%d")
 CONTACT = "meta-harness@example.org"          # never a personal address in a request
 
 
@@ -116,22 +118,73 @@ def _terms(p):
     return t[:12]
 
 
+PAGE_CAP = 20000          # ids per database; a search past this is written TRUNCATED, never complete
+
+
+PUBMED_LIMIT = 9999      # ESearch cannot page past retstart 9998; beyond it the search is TRUNCATED (Europe PMC pages on)
+
+
+def pubmed_ids(get_raw, term, cap=PUBMED_LIMIT):
+    """Every PubMed id for the query, paged by retstart to esearch's own count. (ids, {count, fetched, state, sha256s})"""
+    ids, shas, count, start = [], [], None, 0
+    while True:
+        for attempt in range(5):
+            st, b = get_raw("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                            {"db": "pubmed", "term": term, "retstart": str(start), "retmax": str(min(500, cap - start)),
+                             "retmode": "json", "tool": "meta-harness", "email": CONTACT})
+            # PubMed echoes raw control characters in querytranslation (strict=False); a rate-limit reply is a JSON
+            # error with no count -- retried with backoff, and after 5 the search fails closed (never a short 'complete')
+            r = (json.loads(b.decode("utf-8", "replace"), strict=False) if b[:1] == b"{" else {}).get("esearchresult") or {}
+            if "count" in r:
+                break
+            __import__("time").sleep(2 * (attempt + 1))
+        else:
+            raise SystemExit(f"REFUSED: PubMed esearch returned no count at retstart {start}: {b[:200]!r}")
+        shas.append(hashlib.sha256(b).hexdigest())
+        count = int(r["count"])
+        page = r.get("idlist") or []
+        ids += page
+        start += len(page)
+        if not page or start >= count or start >= cap:
+            break
+    ids = list(dict.fromkeys(ids))
+    return ids, {"count": count, "fetched": len(ids), "state": "COMPLETE" if len(ids) >= count else "TRUNCATED",
+                 "response_sha256s": shas}
+
+
+def europepmc_ids(get_raw, query, cap=PAGE_CAP):
+    """Every Europe PMC hit's PMID, paged by cursorMark to its own hitCount. Hits without a PMID are counted, not kept."""
+    pmids, shas, hits, seen, cur = [], [], None, 0, "*"
+    while True:
+        st, b = get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                        {"query": query, "format": "json", "pageSize": "1000", "resultType": "lite", "cursorMark": cur})
+        r = json.loads(b.decode("utf-8"), strict=False)
+        shas.append(hashlib.sha256(b).hexdigest())
+        hits = int(r.get("hitCount") or 0)
+        page = (r.get("resultList") or {}).get("result") or []
+        seen += len(page)
+        pmids += [x.get("pmid") for x in page if x.get("pmid")]
+        nxt = r.get("nextCursorMark")
+        if not page or not nxt or nxt == cur or seen >= hits or seen >= cap:
+            break
+        cur = nxt
+    pmids = list(dict.fromkeys(pmids))
+    return pmids, {"count": hits, "fetched_hits": seen, "with_pmid": len(pmids),
+                   "state": "COMPLETE" if seen >= hits else "TRUNCATED", "response_sha256s": shas}
+
+
 def cmd_search(slugs):
     """Recorded search per topic: PubMed esearch + Europe PMC, both restricted to meta-analyses / systematic reviews and
-    built mechanically from the topic's intervention terms. Response sha256 and every hit kept."""
+    built mechanically from the topic's intervention terms. Each database is paged to its own count (the 7 Oct first run
+    stopped at 600 / 1000 and reported its reach as the population); response sha256s and every hit kept."""
     from harness import http
     for s in slugs:
         p = protocol(s)
         iv = " OR ".join(f'"{t}"' for t in _terms(p))
         pq = f'({iv}) AND (meta-analysis[pt] OR meta-analys*[ti] OR "systematic review"[ti] OR "network meta"[ti])'
-        st, b = http.get_raw("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-                             {"db": "pubmed", "term": pq, "retmax": "600", "retmode": "json", "tool": "meta-harness",
-                              "email": CONTACT})
-        pm = json.loads(b.decode("utf-8"))["esearchresult"]["idlist"]
+        pm, pm_meta = pubmed_ids(http.get_raw, pq)
         eq = f'({iv}) AND (TITLE:"meta-analysis" OR TITLE:"meta analysis" OR TITLE:"systematic review" OR PUB_TYPE:"Meta-Analysis")'
-        st2, b2 = http.get_raw("https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-                               {"query": eq, "format": "json", "pageSize": "1000", "resultType": "lite"})
-        ep = [r.get("pmid") for r in json.loads(b2.decode("utf-8"))["resultList"]["result"] if r.get("pmid")]
+        ep, ep_meta = europepmc_ids(http.get_raw, eq)
         ids = sorted(set(pm) | set(ep) | {p["current_comparator"]})
         recs = {}
         for i in range(0, len(ids), 150):
@@ -145,12 +198,15 @@ def cmd_search(slugs):
                            "pmcid": next((a["value"] for a in v.get("articleids", []) if a["idtype"] == "pmc"), None),
                            "doi": next((a["value"] for a in v.get("articleids", []) if a["idtype"] == "doi"), None)}
         out = {"slug": s, "date": DATE, "rule": f"registry/comparator_selection/{s}.rule.json",
-               "pubmed": {"query": pq, "n": len(pm), "response_sha256": hashlib.sha256(b).hexdigest()},
-               "europepmc": {"query": eq, "n": len(ep), "response_sha256": hashlib.sha256(b2).hexdigest()},
+               "pubmed": dict({"query": pq, "n": len(pm)}, **pm_meta),
+               "europepmc": dict({"query": eq, "n": len(ep)}, **ep_meta),
                "current_comparator_added": p["current_comparator"], "records": recs}
+        if len(recs) < len(ids):
+            out["records_state"] = f"TRUNCATED: {len(recs)} summaries for {len(ids)} ids"
         with open(os.path.join(SEL, f"{s}.search.json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(out, fh, indent=1, ensure_ascii=False)
-        print(s, "pubmed", len(pm), "europepmc", len(ep), "records", len(recs), flush=True)
+        print(s, "pubmed", f"{len(pm)}/{pm_meta['count']}", pm_meta["state"], "europepmc",
+              f"{ep_meta['fetched_hits']}/{ep_meta['count']}", ep_meta["state"], "records", len(recs), "of", len(ids), flush=True)
 
 
 # ---------------------------------------------------------------------------------------------------------------- screen
