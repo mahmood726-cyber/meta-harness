@@ -130,3 +130,30 @@ def test_PLANT_an_adoption_without_a_retired_identity_refuses(tmp_path):
         "measure": "RR", "estimate": 0.8, "ci_low": 0.7, "ci_high": 0.9}}), encoding="utf-8")   # codex r5 #3
     with pytest.raises(ValueError):
         sc.adopted_pooled("x", {"comparator_pmid": "222"}, str(tmp_path))
+
+
+def test_PLANT_adopted_numbers_must_be_verbatim_in_their_span(tmp_path):
+    """codex v8-apply-r8 #1: a pooled_result contradicting its own quoted span is broken, never served."""
+    import pytest
+    s = "denosumab-vertebral-fracture"
+    d = tmp_path / "registry" / "comparator_selection"
+    d.mkdir(parents=True)
+    a = _j("registry", "comparator_selection", f"{s}.adoption.json")
+    for f in ("rule",):
+        (d / f"{s}.{f}.json").write_text(json.dumps(_j("registry", "comparator_selection", f"{s}.{f}.json")), encoding="utf-8")
+    (tmp_path / "registry" / "comparator_switch_signatures.json").write_text(
+        json.dumps(_j("registry", "comparator_switch_signatures.json")), encoding="utf-8")
+    good = dict(a)
+    (d / f"{s}.adoption.json").write_text(json.dumps(good), encoding="utf-8")
+    assert sc.adopted_pooled(s, {"comparator_pmid": a["comparator_pmid"]}, str(tmp_path))["estimate"] == 0.32
+    bad = dict(a, pooled_result=dict(a["pooled_result"], estimate=99))
+    (d / f"{s}.adoption.json").write_text(json.dumps(bad), encoding="utf-8")
+    with pytest.raises(ValueError):
+        sc.adopted_pooled(s, {"comparator_pmid": a["comparator_pmid"]}, str(tmp_path))
+
+
+def test_every_signed_adoption_passes_its_own_span_check():
+    """All five V8 adoptions (esketamine's span prints a Unicode minus) load without error."""
+    for s in SWITCHED:
+        cfg = _j("topics", f"{s}.json")
+        assert sc.adopted_pooled(s, cfg) is not None, s

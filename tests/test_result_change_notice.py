@@ -426,3 +426,11 @@ def test_the_committed_v8_06_reinstatement_is_declared_and_proved():
              and x["entered_pool"] == ["PMID 23992601"])
     got = notice_kinds.reversed_setasides(n, notices)
     assert got and got["PMID 23992601"]["when_utc"] == "2026-09-20T23:30:00Z"
+
+
+def test_PLANT_ineligible_evidence_is_not_eligible_evidence():
+    """codex v8-apply-r8 #2: 'eligible evidence awaiting adjudication' is a substring of 'ineligible evidence ...'."""
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"],
+               reason="ineligible evidence awaiting adjudication; the numbers are not asserted wrong.")
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None

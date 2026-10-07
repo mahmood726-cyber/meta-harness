@@ -54,9 +54,12 @@ def acquire(slug, write=False):
     p = os.path.join(ROOT, "cache", slug, "records.json")
     d = json.load(open(p, encoding="utf-8"))
     held = str(d.get("comparator_pmid") or "")
-    if held == served and str((d.get("comparator_record") or {}).get("id") or "") in ("", served):
-        if any(str(r.get("id")) == served for r in d.get("records") or []) or d.get("comparator_record"):
-            return {"slug": slug, "state": "ALREADY_HELD", "pmid": served}
+    # already held only when the held record really IS this comparator's (codex v8-apply-r8 #3: a record with no id passed
+    # this shortcut while the build guard refused the same cache)
+    held_rec = str((d.get("comparator_record") or {}).get("id") or "") == served or \
+        any(str(r.get("id")) == served for r in d.get("records") or [])
+    if held == served and held_rec:
+        return {"slug": slug, "state": "ALREADY_HELD", "pmid": served}
     recs = fetch._efetch([served])
     rec = next((r for r in recs if str(r.get("id")) == served), None)
     if not rec or not rec.get("title"):

@@ -5,6 +5,7 @@ forces a rebuild of the served pages."""
 from __future__ import annotations
 
 import json
+import re
 import os
 from typing import Any
 
@@ -77,7 +78,12 @@ def reversed_setasides(n: dict[str, Any], notices: list[dict[str, Any]], root: s
             return None
         p = at[0]
         r = str(p.get("reason") or "")
-        if [str(x) for x in p.get("left_pool") or []] != [tid] or (p.get("entered_pool") or [])                 or "eligible evidence awaiting adjudication" not in r or "the numbers are not asserted wrong" not in r                 or "asserted wrong" in r.replace("not asserted wrong", ""):
+        # the set-aside claim, with 'eligible' a WHOLE word ('ineligible evidence awaiting adjudication' is not it; codex
+        # v8-apply-r8 #2) and nothing asserted wrong or ineligible
+        if [str(x) for x in p.get("left_pool") or []] != [tid] or (p.get("entered_pool") or []):
+            return None
+        if not re.search(r"(?<![A-Za-z])eligible evidence awaiting adjudication", r) or "ineligible" in r.lower() \
+                or "the numbers are not asserted wrong" not in r or "asserted wrong" in r.replace("not asserted wrong", ""):
             return None
         out[tid] = p
     return out

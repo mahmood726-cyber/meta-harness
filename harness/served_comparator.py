@@ -90,6 +90,12 @@ def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[
         # a SIGNED adoption without its pooled result is a broken register, not 'no adoption' (which would re-enable the
         # regex over the comparator's text; codex v8-apply-r2 #2)
         raise ValueError(f"ADOPTION: {slug}: signed switch to {cur} but the adoption record has no complete pooled_result")
+    # the numbers must be the span's own: estimate and both bounds verbatim in the quoted result span (Unicode minus read
+    # as '-'). A record whose numbers contradict its span is broken, never served (codex v8-apply-r8 #1)
+    from . import verify as _verify
+    span = ((pr.get("spans") or {}).get("result") or "").replace("−", "-")
+    if not span or not all(_verify._effect_in(span, pr[k]) for k in ("estimate", "ci_low", "ci_high")):
+        raise ValueError(f"ADOPTION: {slug}: pooled_result numbers are not verbatim in its quoted result span")
     rp = os.path.join(root, "registry", "comparator_selection", f"{slug}.rule.json")
     rule_outcome = (_j(rp).get("protocol_reference") or {}).get("primary_outcome") if os.path.isfile(rp) else None
     if not rule_outcome:
