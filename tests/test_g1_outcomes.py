@@ -60,3 +60,18 @@ def test_one_agent_of_a_class_topic_is_a_split_not_our_result():
     assert not go.contrast_is_ours("canagliflozin vs placebo", sg)
     assert go.contrast_is_ours("SGLT2 inhibitors vs placebo", sg)
     assert go.contrast_is_ours("denosumab vs placebo", go.topic("denosumab-vertebral-fracture"))   # one-agent topic
+
+
+def test_a_single_agent_meta_of_a_class_topic_is_the_whole_analysis():
+    # iv-iron's comparator 39727669 pools FCM only: 'FCM vs placebo/SoC' IS its result; a split only when the same
+    # comparator also prints a class-level result
+    iv = go.topic("iv-iron-hfref-hosp")
+    assert go.contrast_is_ours("FCM vs placebo/SoC", iv, class_level_printed=False)
+    assert not go.contrast_is_ours("FCM vs placebo/SoC", iv, class_level_printed=True)
+
+
+def test_sharing_one_word_with_our_primary_does_not_make_it_our_primary():
+    tx = go.topic("tranexamic-acid-pph")
+    assert not go.is_our_primary("Death within 24 h", tx)
+    assert go.is_our_primary("Death due to bleeding", tx)
+    assert go.is_our_primary("recurrent VTE and related death", go.topic("doac-vte-recurrence"))

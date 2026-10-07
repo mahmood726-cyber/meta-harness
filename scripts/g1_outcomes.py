@@ -266,7 +266,8 @@ def is_our_primary(name, t):
     one of our primary's specific keywords (>= 8 characters)."""
     po = t["primary_outcome"]
     a, b = _words(name), _words(po["name"])
-    if a and b and len(a & b) >= max(1, min(len(a), len(b)) / 2):
+    # Jaccard >= 0.5: one shared word ('death' in 'Death within 24 h' v 'Death due to bleeding') is not identity (7 Oct)
+    if a and b and len(a & b) / len(a | b) >= 0.5:
         return True
     return any(len(k) >= 8 and k.lower() in (name or "").lower() for k in po.get("keywords") or [])
 
@@ -296,9 +297,10 @@ def candidates(inv, t):
     that family (abstract-only reads), named by the fixed lexicon."""
     out, excluded = [], []
     pre = inv["R2_codex"]["prespecified_secondaries"]
+    cls = class_level_printed(inv["R2_codex"]["outcomes"], t)
     for o in inv["R2_codex"]["outcomes"]:
         fam = "ALL_CAUSE_MORTALITY" if (MORT.search(o["name"]) or o["family"] == "ALL_CAUSE_MORTALITY") else o["family"]
-        why = None if contrast_is_ours(o.get("contrast"), t) else "OTHER_CONTRAST"
+        why = None if contrast_is_ours(o.get("contrast"), t, cls) else "OTHER_CONTRAST"
         why = why or (None if population_is_ours(o.get("population"), t) else "OTHER_POPULATION")
         c = dict(o, family=fam, basis=f"R2 {inv['R2_codex']['source_kind']} record {inv['R2_codex']['record_id']}",
                  prespecified=_prespecified(o["name"], pre))
@@ -343,20 +345,32 @@ def _term_re(terms):
     return re.compile(r"\b(" + "|".join(re.escape(x) for x in sorted(set(terms), key=len, reverse=True)) + r")", re.I)
 
 
-def contrast_is_ours(contrast, t):
+def _general_terms(t):
+    agents = {a.lower() for a in _flat(t.get("intervention_agents"))}
+    return [x for x in _flat(t.get("intervention_class_terms")) + _flat(t.get("intervention_terms"))
+            if len(x) >= 3 and x.lower() not in agents]
+
+
+def class_level_printed(outcomes, t):
+    """Does this comparator print ANY result whose contrast names our class (not one agent)?"""
+    g = _general_terms(t)
+    return bool(g) and any(_term_re(g).search(o.get("contrast") or "") for o in outcomes)
+
+
+def contrast_is_ours(contrast, t, class_level_printed=True):
     """The result's own contrast names OUR intervention (an agent, a term or the class) AND our comparator (its terms or
     a generic control). A network meta-analysis's 'risedronate vs placebo' is not denosumab's result (7 Oct)."""
     c = contrast or ""
     if not (_term_re(_intervention_terms(t)).search(c) and
             _term_re([x for x in (t.get("comparator_terms") or []) if len(x) >= 3] + GENERIC_CONTROL).search(c)):
         return False
-    # a CLASS topic (>= 2 agents): the result must be the class's, never one agent's split ('canagliflozin vs placebo'
-    # inside an SGLT2-inhibitor meta, 7 Oct)
+    # a CLASS topic (>= 2 agents) whose comparator prints class-level results: the result must be the class's, never one
+    # agent's split ('canagliflozin vs placebo' inside an SGLT2-inhibitor meta, 7 Oct). A comparator that pools ONE
+    # agent only (iv-iron 39727669: FCM) has no class result -- its single-agent contrast IS the whole analysis.
     agents = _flat(t.get("intervention_agents"))
     names = list(t.get("intervention_agents").keys()) if isinstance(t.get("intervention_agents"), dict) else agents
-    if len(names) >= 2:
-        general = [x for x in _flat(t.get("intervention_class_terms")) + _flat(t.get("intervention_terms"))
-                   if len(x) >= 3 and x.lower() not in {a.lower() for a in agents}]
+    if len(names) >= 2 and class_level_printed:
+        general = _general_terms(t)
         return bool(general and _term_re(general).search(c))
     return True
 
