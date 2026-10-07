@@ -187,3 +187,20 @@ def test_PLANT_served_id_needs_the_aact_source_format_and_an_independent_paper_l
     import g1_served_pool_notices as sp
     monkeypatch.setattr(sp, "_ncts_of_pmid", lambda pmid: set())
     assert bspa.served_id(SLUG, x) == "PMID 31290965"            # no PubMed/AACT link from the paper to that NCT
+
+
+def test_PLANT_an_nct_family_is_never_reassigned_and_every_arm_has_a_role(monkeypatch):
+    """codex v9-apply-r6: #1 an NCT-keyed family bypassed the identity check; #2 an arm with an unclassified role passed
+    the completeness gate and was silently left out of the merge."""
+    x = _row()
+    other = dict(x, family="NCT09999999")
+    assert bspa.served_id(SLUG, other) == "NCT09999999"
+    real = bspa._aact_binding
+
+    def unrole(slug, xx):
+        b = copy.deepcopy(real(slug, xx))
+        next(a for a in b["arms"] if a["code"] == "OG001")["role"] = "unclear"
+        return b
+    monkeypatch.setattr(bspa, "_aact_binding", unrole)
+    row, why = bspa.pipeline_row(SLUG, x, "MD")
+    assert row is None and "role" in why

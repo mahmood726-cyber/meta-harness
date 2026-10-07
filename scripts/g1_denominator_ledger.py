@@ -139,6 +139,36 @@ ADOPT = os.path.join(ROOT, "registry", "comparator_selection", "{slug}.adoption.
 ENUM = os.path.join(ROOT, "registry", "comparator_enumerations", "{slug}.json")
 
 
+LICENCES = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "licences.json")
+OPEN_LICENCES = ("cc by", "cc0", "cc-by", "cc-0")
+
+
+def _licence_entry(pmid):
+    """The recorded licence probe's entry for a PMID ({license, open, pmcid, state}), or None."""
+    if not os.path.exists(LICENCES):
+        return None
+    return _j(LICENCES).get(str(pmid))
+
+
+def _licence_retirement(r, a):
+    """V9-03: a comparator retired ONLY for its licence (R0 C1_OPEN_LICENCE) has no open text to quote -- that is the
+    reason it was retired. Its span is the recorded licence probe's VERBATIM entry for the retired PMID
+    (outputs/k_gap/g1_binding/licences.json, sha256 recorded), which must say LOOKED_UP, not open, and carry no CC BY /
+    CC0 licence. Anything else: None (the removal then stays a ledger problem)."""
+    import re
+    pmid = str(r.get("comparator_pmid") or "")
+    e = _licence_entry(pmid)
+    if not e or e.get("state") != "LOOKED_UP" or e.get("open") or str(e.get("license") or "").lower() in OPEN_LICENCES:
+        return None
+    raw = open(LICENCES, encoding="utf-8").read()
+    m = re.search(r'"' + re.escape(pmid) + r'": \{[^{}]*\}', raw)
+    if not m:
+        return None
+    return {"retired_pmid": pmid, "reason_code": r["reason_code"], "new_pmid": a["comparator_pmid"],
+            "span": {"text": m.group(0), "parts": [m.group(0)],
+                     "source": os.path.relpath(LICENCES, ROOT).replace(os.sep, "/"), "source_sha256": _sha(LICENCES)}}
+
+
 def retired_comparator(slug, cur_pmid):
     """A COMPARATOR REPLACEMENT recorded for this topic (registry/comparator_selection/<slug>.adoption.json): the topic's
     current comparator is the adopted one, and the old one is retired with a reason code and spans copied VERBATIM from
@@ -150,6 +180,8 @@ def retired_comparator(slug, cur_pmid):
     if str(a.get("comparator_pmid")) != str(cur_pmid) or not a.get("retired"):
         return None
     r = a["retired"]
+    if not r.get("spans") and str(r.get("reason_code") or "").startswith("R0:C1_OPEN_LICENCE"):
+        return _licence_retirement(r, a)
     src = os.path.join(ROOT, (r.get("source") or {}).get("path") or "")
     if not os.path.isfile(src) or _sha(src) != r["source"].get("sha256"):
         return None

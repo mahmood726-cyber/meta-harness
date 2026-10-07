@@ -146,7 +146,10 @@ def served_id(slug, x):
         m = re.fullmatch(r"AACT AACT \S+ (NCT\d{8}) outcome \d+",
                          str((x.get("confirm_binding") or {}).get("source") or "").strip())
         pid = fam.replace("PMID ", "").strip()
-        if m and pid.isdigit() and m.group(1) not in sp._ncts_of_pmid(pid):
+        if m and pid.upper().startswith("NCT"):
+            # an NCT-keyed family is that NCT: never reassigned by a source string (codex v9-apply-r6 #1)
+            return tid
+        if m and (not pid.isdigit() or m.group(1) not in sp._ncts_of_pmid(pid)):
             m = None
         p = os.path.join(ROOT, "cache", slug, "families.json")
         if m and os.path.exists(p):
@@ -218,6 +221,9 @@ def _arms_combined_row(slug, x, v, base):
     span, arms = str(b.get("span") or ""), b.get("arms") or []
     iv = [a for a in arms if a.get("role") == "intervention"]
     ct = [a for a in arms if a.get("role") == "control"]
+    if len(iv) + len(ct) != len(arms):
+        # every arm has an accepted role: an unclassified arm is never silently left out (codex v9-apply-r6 #2)
+        return None, f"an arm has no accepted role: {[a.get('role') for a in arms]}"
     if len(ct) != 1 or len(iv) < 1:
         return None, f"arms not one control plus intervention arm(s): {[a.get('role') for a in arms]}"
     # each arm's tuple is bound to ITS OWN segment of the span ('OG000 <title> [role]: MEAN m Standard Deviation s N n',
