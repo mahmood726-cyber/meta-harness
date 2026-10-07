@@ -530,7 +530,33 @@ def _run_calls(todo, runs, rec_dir, mcl, ms, fp, slugs):
     runs_store.save(runs, slugs=set(slugs))
 
 
-def cmd_screen(slugs, run=False):
+def _t2(pubdate):
+    m = re.match(r"(\d{4})\s*(\w{3})?", pubdate or "")
+    mon = {"Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6, "Jul": 7, "Aug": 8, "Sep": 9, "Oct": 10,
+           "Nov": 11, "Dec": 12}.get((m.group(2) or "")[:3].title(), 0) if m else 0
+    return int(m.group(1)) * 100 + mon if m else 0
+
+
+def read_limit(items, cands_all, limit):
+    """READ ORDER (7 Oct): limit 'r0' reads the CURRENT comparator only (rule R0 decides first: a passing current
+    comparator is KEPT and no candidate matters); an integer N reads the current comparator plus the N NEWEST C1-PASS
+    candidates per topic. Every candidate left unread is marked read=NOT_READ_EARLY_STOP, and
+    g1_comparator_select.unread_problem refuses any pick an unread candidate could still outrank."""
+    if limit is None:
+        return items, set()
+    keep, dropped = [], set()
+    for s in {it["slug"] for it in items}:
+        cur = protocol(s)["current_comparator"]
+        mine = [it for it in items if it["slug"] == s]
+        rest = sorted((it for it in mine if it["pmid"] != cur),
+                      key=lambda it: (-_t2(cands_all[s][0][it["pmid"]].get("pubdate")), it["pmid"]))
+        n = 0 if limit == "r0" else int(limit)
+        keep += [it for it in mine if it["pmid"] == cur] + rest[:n]
+        dropped |= {it["key"] for it in rest[n:]}
+    return keep, dropped
+
+
+def cmd_screen(slugs, run=False, limit=None):
     import concurrent.futures as cf
     from kgap import runs_store
     from reproducible_ai import model_call_live as mcl
@@ -559,6 +585,8 @@ def cmd_screen(slugs, run=False):
         cands_all[s] = (cands, len(srch["records"]))
         print(s, "on-topic", len(cands), "C1 PASS", sum(c["criteria"]["C1_OPEN_LICENCE"]["verdict"] == "PASS" for c in cands.values()),
               "to read", sum(1 for it in items if it["slug"] == s), flush=True)
+
+    items, unread = read_limit(items, cands_all, limit)
 
     def done(it):
         r = runs.get(it["key"]) or {}
@@ -646,6 +674,8 @@ def cmd_screen(slugs, run=False):
             it = by_key.get(f"swapscreen::{s}::{pmid}")
             r = runs.get(f"swapscreen::{s}::{pmid}") or {}
             ex = excluded.get(f"swapscreen::{s}::{pmid}")
+            if f"swapscreen::{s}::{pmid}" in unread:
+                c["read"] = "NOT_READ_EARLY_STOP"
             if ex:
                 c["criteria"].update(ex[0])
                 c["criteria"]["C6_ROWS_AND_POOLED"] = {"verdict": "UNCLEAR", "evidence": "not read: excluded at stage A"}
@@ -912,6 +942,7 @@ if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     cmd, *args = sys.argv[1:]
     run = "--run" in args
+    limit = next((a.split("=", 1)[1] for a in args if a.startswith("--newest=")), "r0" if "--r0" in args else None)
     args = [a for a in args if not a.startswith("--")]
-    {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run),
+    {"rules": cmd_rules, "search": cmd_search, "screen": lambda a: cmd_screen(a, run=run, limit=limit),
      "enumerate": lambda a: cmd_enumerate(a, run=run), "apply": cmd_apply}[cmd](args)
