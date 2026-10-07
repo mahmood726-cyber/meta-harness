@@ -65,7 +65,12 @@ def test_a_signed_switch_serves_the_adopted_comparator(tmp_path):
     assert sc.served_config(s, cfg, str(tmp_path))["comparator_pmid"] == a["comparator_pmid"]
 
 
-def test_the_served_pages_name_the_previous_comparator():
+def test_the_served_pages_name_exactly_the_comparator_the_signatures_permit():
+    """The REQUIREMENT, not a snapshot: a served page names served_config's comparator -- the previous one while a switch
+    is unsigned, the adopted one once signed (V8, 7 Oct). The earlier form pinned 'the previous comparator' and turned
+    red the day the switches were signed."""
     for s in SLUGS:
         r = json.load(open(os.path.join(ROOT, "docs", "reviews", s, "review.json"), encoding="utf-8"))
-        assert str(r["comparator"].get("pmid")) == _main(f"topics/{s}.json")["comparator_pmid"], s
+        cfg = json.load(open(os.path.join(ROOT, "topics", s + ".json"), encoding="utf-8"))
+        assert str(r["comparator"].get("pmid")) == str(sc.served_config(s, cfg)["comparator_pmid"]), s
+        assert r["comparator"].get("pmid") is not None, (s, "a served comparator block always names its PMID")

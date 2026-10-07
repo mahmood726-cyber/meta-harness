@@ -2270,7 +2270,15 @@ def build_review_core(slug, config, records, protocol_sha):
     comp_full = records.get("comparator_fulltext") or ""
 
     reported = []
-    for co in config.get("comparator_outcomes", []):
+    from . import served_comparator as _scmp
+    _adopted = _scmp.adopted_pooled(slug, config)
+    if _adopted and config.get("comparator_outcomes"):
+        # a SIGNED replacement comparator: its gated pooled result (adoption record, verbatim span), never the regex --
+        # which served dpp4 the SGLT-2 OR (0.88) and statins 0.72 (V8 apply, 7 Oct); other outcomes stay unreported
+        reported.append({"outcome": config["comparator_outcomes"][0]["name"], "estimate": _adopted["estimate"],
+                         "scale": _adopted["scale"], "ci_low": _adopted["ci_low"], "ci_high": _adopted["ci_high"],
+                         "source": _adopted["source"], "span": _adopted["span"]})
+    for co in ([] if _adopted else config.get("comparator_outcomes", [])):
         eff = extract.comparator_effect(comp_abstract, comp_full, co["keywords"])
         if eff:
             reported.append({"outcome": co["name"], "estimate": eff["effect"], "scale": eff["scale"],
@@ -2282,7 +2290,9 @@ def build_review_core(slug, config, records, protocol_sha):
     # text and recorded in the config (with the quote in comparator_k_source), that value is used and
     # the fragile auto-extraction is not.
     ck = config.get("comparator_k")
-    if ck is not None:
+    if _adopted and isinstance(_adopted.get("k"), int) and not isinstance(_adopted.get("k"), bool):
+        theirs_k = _adopted["k"]        # the adopted pooled analysis's own k (the regex read 57 / 34: whole-review counts)
+    elif ck is not None:
         theirs_k = ck
     else:
         theirs_k = (extract.extract_meta(comp_abstract, config["primary_outcome"]["keywords"]).get("k")

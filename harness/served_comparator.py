@@ -63,3 +63,24 @@ def served_panel(slug: str, panel: list[dict[str, Any]], root: str = ROOT) -> li
     rec = copy.deepcopy(rep)
     rec.pop("retired", None)
     return [rec] + [copy.deepcopy(c) for c in panel[1:]]
+
+
+def adopted_pooled(slug: str, config: dict[str, Any], root: str = ROOT) -> dict[str, Any] | None:
+    """The signed replacement comparator's gated pooled result (its adoption record: numbers verbatim in a quoted span of
+    the comparator's own text), or None. Only for the comparator the page is configured with, and only once the switch
+    is SIGNED. This, not a regex over the comparator's text, is the 'reported' result a served page shows for it: the
+    regex misattributed on two of the five V8 switches (dpp4 0.88 = the SGLT-2 OR in the same sentence; statins 0.72)."""
+    p = os.path.join(root, "registry", "comparator_selection", f"{slug}.adoption.json")
+    if not slug or not os.path.exists(p):
+        return None
+    a = _j(p)
+    cur, old = str(a.get("comparator_pmid") or ""), str((a.get("retired") or {}).get("comparator_pmid") or "")
+    if str(config.get("comparator_pmid") or "") != cur or not old or not switch_signed(slug, old, cur, root):
+        return None
+    pr = a.get("pooled_result") or {}
+    if any(pr.get(k) is None for k in ("measure", "estimate", "ci_low", "ci_high")):
+        return None
+    return {"estimate": pr["estimate"], "ci_low": pr["ci_low"], "ci_high": pr["ci_high"], "scale": pr["measure"],
+            "k": pr.get("k"), "outcome_as_printed": pr.get("outcome"),
+            "span": ((pr.get("spans") or {}).get("result") or "")[:400],
+            "source": f"adoption pooled_result (registry/comparator_selection/{slug}.adoption.json; signed switch, V8)"}
