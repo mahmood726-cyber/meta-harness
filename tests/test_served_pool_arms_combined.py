@@ -140,3 +140,10 @@ def test_PLANT_each_arm_tuple_is_bound_to_its_own_segment_and_counts_are_whole(m
     monkeypatch.setattr(bspa, "_aact_binding", frac)
     row, why = bspa.pipeline_row(SLUG, _row(), "MD")
     assert row is None and "whole" in why
+
+
+def test_PLANT_fill_refuses_a_fractional_sample_size():
+    """codex v9-apply-r3 #1: the MD branch of fill_study int()-truncated a fractional N."""
+    v = dict(_row()["our_value"], trial="TRANSFORM-1", n_t="209.5")
+    st, why = fn.fill_study(v, "MD")
+    assert st is None and "whole" in why

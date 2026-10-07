@@ -77,6 +77,9 @@ def fill_study(row, scale):
     arms = [_num(v.get(k)) for k in ("mean_t", "sd_t", "n_t", "mean_c", "sd_c", "n_c")]
     if scale.upper() == "MD" and str(v.get("measure") or "").upper() == "MD" and None not in arms:
         m1, s1, n1, m2, s2, n2 = arms
+        if n1 != int(n1) or n2 != int(n2) or n1 <= 0 or n2 <= 0:
+            # never truncated: a fractional or non-positive N is not a sample size (codex v9-apply-r3 #1)
+            return None, f"NOT_FILLABLE: arm N {v.get('n_t')!r} / {v.get('n_c')!r} is not a whole positive number"
         return synth.Study(label=row["trial"], mean1=m1, sd1=s1, nc1=int(n1), mean2=m2, sd2=s2, nc2=int(n2),
                            measure="MD", source="per-arm mean/SD/N"), None
     return None, f"NOT_FILLABLE_ON_SERVED_SCALE ({v.get('measure')} row, served {scale}, no counts)"
