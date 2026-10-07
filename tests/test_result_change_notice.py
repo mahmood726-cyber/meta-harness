@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from harness import honest_ratchet, page, result_changes
+from harness import honest_ratchet, notice_kinds, page, result_changes
 
 SLUG = "esketamine-trd-madrs"
 OUT = "Observed-case Day-28 raw change-score MADRS MD"
@@ -239,7 +239,7 @@ def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
         # ('eligible evidence awaiting adjudication') and this notice is that adjudication, reversing it by name. Its
         # claim is the reversal, which result_changes.reversed_setasides verifies against the record; it must not
         # assert the old number wrong (the set-aside already said it was not).
-        if result_changes.reversed_setasides(n, notices):
+        if notice_kinds.reversed_setasides(n, notices):
             assert IS_WRONG not in reason, (where, "a reinstatement must not assert the old number wrong")
             continue
         # Three kinds, each with its own claim: a trial LEFT (set-aside: not asserted wrong, awaiting
@@ -365,101 +365,64 @@ def test_PLANT_a_lifted_suppression_is_derived_not_left_unexplained(tmp_path, mo
     assert "asserted wrong" not in reason
 
 
-def test_PLANT_a_reinstatement_must_reverse_a_real_signed_setaside():
-    """The fourth kind (V8-06) is admitted only against the record: an earlier, signed, applied notice for the SAME
-    outcome that set THIS trial aside, a reason that says it REVERSES that set-aside and names the trial. Each planted
-    defect below makes it an ordinary entering notice again, which must then carry the new-evidence claim."""
-    sig = {"state": "BATCH_SEEN_AND_SIGNED"}
-    aside = {"slug": "s", "outcome": "o", "left_pool": ["PMID 1"], "entered_pool": [], "when_utc": "2026-09-20T00:00:00Z",
-             "reason": "PMID 1 set aside; eligible evidence awaiting adjudication; the numbers are not asserted wrong.",
-             "reviewer_countersignature": sig}
-    back = {"slug": "s", "outcome": "o", "left_pool": [], "entered_pool": ["PMID 1"], "when_utc": "2026-10-06T00:00:00Z",
-            "reason": "Binder fix. This REVERSES the 20 Sep set-aside of PMID 1."}
-    assert result_changes.reversed_setasides(back, [aside, back]) == {"PMID 1": aside}
-    # no prior set-aside at all
-    assert result_changes.reversed_setasides(back, [back]) is None
-    # the set-aside was for another outcome / another trial / came later / was never signed / was withdrawn
-    for bad in (dict(aside, outcome="other"), dict(aside, left_pool=["PMID 2"]), dict(aside, when_utc="2026-10-07T00:00:00Z"),
-                dict(aside, reviewer_countersignature={"state": "OPEN"}),
-                dict(aside, withdrawal={"state": "WITHDRAWN_BY_SIGNER"}),
-                # a CORRECTION that removed an ineligible trial is not a set-aside (codex v8-signing g1#1)
-                dict(aside, reason="CORRECTION: PMID 1 is not randomized and is ineligible; the old result was wrong.")):
-        assert result_changes.reversed_setasides(back, [bad, back]) is None, bad
-    # the reason does not say it reverses the set-aside, or does not name the trial
-    assert result_changes.reversed_setasides(dict(back, reason="PMID 1 entered."), [aside, back]) is None
-    assert result_changes.reversed_setasides(dict(back, reason="This REVERSES the set-aside."), [aside, back]) is None
-    # a trial that was never set aside rides along: not a reinstatement
-    both = dict(back, entered_pool=["PMID 1", "PMID 9"], reason=back["reason"] + " PMID 9 too.")
-    assert result_changes.reversed_setasides(both, [aside, both]) is None
+# ---------------------------------------------------------------- reinstatement: declared, then proved from the record
+SIG = {"state": "SEEN_AND_SIGNED"}
+ASIDE_REASON = "set aside; eligible evidence awaiting adjudication; the numbers are not asserted wrong."
 
 
-def test_PLANT_a_reinstatement_names_the_trial_not_a_longer_id():
-    """'TRIAL-1' inside 'TRIAL-10' is not the trial named (codex v8-apply #2)."""
-    sig = {"state": "BATCH_SEEN_AND_SIGNED"}
-    aside = {"slug": "s", "outcome": "o", "left_pool": ["TRIAL-1"], "entered_pool": [], "when_utc": "2026-09-20T00:00:00Z",
-             "reason": "set aside; eligible evidence awaiting adjudication; the numbers are not asserted wrong.",
-             "reviewer_countersignature": sig}
-    back = {"slug": "s", "outcome": "o", "left_pool": [], "entered_pool": ["TRIAL-1"], "when_utc": "2026-10-06T00:00:00Z",
-            "reason": "This REVERSES the set-aside of TRIAL-10."}
-    assert result_changes.reversed_setasides(back, [aside, back]) is None
-    assert result_changes.reversed_setasides(dict(back, reason="This REVERSES the set-aside of TRIAL-1."), [aside, back])
+def _n(when, left=(), entered=(), reason="r", sig=SIG, **kw):
+    return dict({"slug": "s", "outcome": "o", "when_utc": when, "left_pool": list(left), "entered_pool": list(entered),
+                 "reason": reason, "reviewer_countersignature": sig}, **kw)
 
 
-def test_PLANT_a_reinstatement_reverses_the_latest_move_not_any_past_setaside():
-    """codex v8-apply-r3 #2: set aside -> reinstated -> excluded as ineligible must not be 'reinstated' again."""
-    sig = {"state": "SEEN_AND_SIGNED"}
-    base = {"slug": "s", "outcome": "o", "reviewer_countersignature": sig}
-    p = dict(base, when_utc="2026-10-01T00:00:00Z", left_pool=["T"], entered_pool=[],
-             reason="T set aside; eligible evidence awaiting adjudication; the numbers are not asserted wrong")
-    r = dict(base, when_utc="2026-10-02T00:00:00Z", left_pool=[], entered_pool=["T"], reason="This REVERSES the set-aside of T.")
-    c = dict(base, when_utc="2026-10-03T00:00:00Z", left_pool=["T"], entered_pool=[],
-             reason="CORRECTION: T is not randomized and is ineligible; the old result was wrong.")
-    n = dict(base, when_utc="2026-10-04T00:00:00Z", left_pool=[], entered_pool=["T"], reason="This REVERSES the set-aside of T.")
-    assert result_changes.reversed_setasides(n, [p, r, c, n]) is None
-    assert result_changes.reversed_setasides(r, [p, r]) == {"T": p}
+def test_PLANT_a_declared_reinstatement_is_proved_from_the_record():
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"], reason=ASIDE_REASON)
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"], reason="anything at all")       # its wording is never read
+    d = {"T1": "2026-09-20T00:00:00Z"}
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared=d) == {"T1": aside}
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={}) is None            # undeclared
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-21T00:00:00Z"}) is None
 
 
-def test_PLANT_notice_times_are_instants_not_strings():
-    """codex v8-apply-r4 #2: '...09:00:00Z' (older) sorts after '...09:00:00.500Z' as a string."""
-    sig = {"state": "SEEN_AND_SIGNED"}
-    base = {"slug": "x", "outcome": "o", "reviewer_countersignature": sig}
-    p = dict(base, when_utc="2026-10-07T09:00:00Z", left_pool=["T"], entered_pool=[],
-             reason="eligible evidence awaiting adjudication; the numbers are not asserted wrong")
-    q = dict(base, when_utc="2026-10-07T09:00:00.500Z", left_pool=["T"], entered_pool=[],
-             reason="CORRECTION: T is ineligible; the old result was wrong.")
-    n = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=[], entered_pool=["T"], reason="This REVERSES the set-aside of T.")
-    assert result_changes.reversed_setasides(n, [p, q, n]) is None
-    assert result_changes.reversed_setasides(dict(n, when_utc="not a time"), [p, n]) is None
+@pytest.mark.parametrize("bad", [
+    {"outcome": "other"}, {"left_pool": ["T2"]}, {"left_pool": ["T1", "T2"]},                 # other outcome / trial / two trials
+    {"reviewer_countersignature": {"state": "OPEN"}}, {"withdrawal": {"state": "WITHDRAWN_BY_SIGNER"}},
+    {"reason": "CORRECTION: T1 is not randomized and is ineligible; the old result was wrong."},   # not a set-aside
+])
+def test_PLANT_the_reversed_notice_must_be_a_signed_applied_single_trial_setaside(bad):
+    aside = dict(_n("2026-09-20T00:00:00Z", left=["T1"], reason=ASIDE_REASON), **bad)
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None
 
 
-def test_PLANT_tied_or_mixed_movements_never_reinstate():
-    """codex v8-apply-r5 #1 (tie at one instant) and #2 (another trial's set-aside wording)."""
-    sig = {"state": "SEEN_AND_SIGNED"}
-    base = {"slug": "s", "outcome": "o", "reviewer_countersignature": sig}
-    p = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["T1"], entered_pool=[],
-             reason="eligible evidence awaiting adjudication; the numbers are not asserted wrong")
-    q = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["T1"], entered_pool=[],
-             reason="T1 excluded as ineligible")
-    n = dict(base, when_utc="2026-10-08T00:00:00Z", left_pool=[], entered_pool=["T1"], reason="This REVERSES the set-aside of T1.")
-    assert result_changes.reversed_setasides(n, [p, q, n]) is None
-    assert result_changes.reversed_setasides(n, [q, p, n]) is None
-    mixed = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["T1", "T2"], entered_pool=[],
-                 reason="T1: eligible evidence awaiting adjudication; the numbers are not asserted wrong. T2: excluded as ineligible.")
-    n2 = dict(n, entered_pool=["T2"], reason="This REVERSES the set-aside of T2.")
-    assert result_changes.reversed_setasides(n2, [mixed, n2]) is None
+def test_PLANT_order_must_be_known_and_latest():
+    aside = _n("2026-10-01T00:00:00Z", left=["T"], reason=ASIDE_REASON)
+    d = {"T": "2026-10-01T00:00:00Z"}
+    back = _n("2026-10-04T00:00:00Z", entered=["T"])
+    later = _n("2026-10-03T00:00:00Z", left=["T"], reason="CORRECTION: T is ineligible")          # a later move
+    assert notice_kinds.reversed_setasides(back, [aside, later, back], declared=d) is None
+    same = _n("2026-10-01T00:00:00.000Z", left=["T"], reason="excluded")                          # tie at the instant
+    assert notice_kinds.reversed_setasides(back, [aside, same, back], declared=d) is None
+    twin = _n("2026-10-04T00:00:00Z", entered=["T"], reason="another reinstatement at the same instant", left=[])
+    twin["entered_pool"] = ["T", "U"]
+    assert notice_kinds.reversed_setasides(back, [aside, twin, back], declared=d) is None
+    frac = _n("2026-10-01T00:00:00.500Z", left=["T"], reason="excluded")                         # instants, not strings
+    assert notice_kinds.reversed_setasides(back, [aside, frac, back], declared=d) is None
+    assert notice_kinds.reversed_setasides(dict(back, when_utc="not a time"), [aside, back], declared=d) is None
 
 
-def test_PLANT_only_a_single_trial_setaside_can_be_reversed_and_no_concurrent_move():
-    """codex v8-apply-r6 #1 (claims attributed by text across trials) and #2 (a movement at the same instant)."""
-    sig = {"state": "SEEN_AND_SIGNED"}
-    base = {"slug": "t", "outcome": "m", "reviewer_countersignature": sig}
-    two = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["TRIAL-A", "TRIAL-B"], entered_pool=[],
-               reason="TRIAL-A: eligible evidence awaiting adjudication; the numbers are not asserted wrong. TRIAL-B: observational.")
-    nb = dict(base, when_utc="2026-10-08T00:00:00Z", left_pool=[], entered_pool=["TRIAL-B"], reason="This REVERSES the set-aside of TRIAL-B.")
-    assert result_changes.reversed_setasides(nb, [two, nb]) is None
-    one = dict(base, when_utc="2026-10-07T10:00:00Z", left_pool=["TRIAL-A"], entered_pool=[],
-               reason="TRIAL-A: eligible evidence awaiting adjudication; the numbers are not asserted wrong.")
-    na = dict(base, when_utc="2026-10-08T00:00:00Z", left_pool=[], entered_pool=["TRIAL-A"], reason="This REVERSES the set-aside of TRIAL-A.")
-    assert result_changes.reversed_setasides(na, [one, na]) == {"TRIAL-A": one}
-    twin = dict(na, reason="This REVERSES the set-aside of TRIAL-A (second).", reviewer_countersignature=sig)
-    assert result_changes.reversed_setasides(na, [one, na, twin]) is None
+def test_PLANT_a_copy_of_the_notice_is_the_same_notice():
+    """codex v8-apply-r7 #2: identity by content, never by object identity."""
+    import copy
+    aside = _n("2026-09-20T00:00:00Z", left=["T1"], reason=ASIDE_REASON)
+    back = _n("2026-10-06T00:00:00Z", entered=["T1"])
+    d = {"T1": "2026-09-20T00:00:00Z"}
+    assert notice_kinds.reversed_setasides(copy.deepcopy(back), [aside, back], declared=d) == {"T1": aside}
+
+
+def test_the_committed_v8_06_reinstatement_is_declared_and_proved():
+    notices = result_changes.load()
+    n = next(x for x in notices if x["slug"] == "dpp4-mace-t2d" and x["outcome"] == "Hospitalization for heart failure"
+             and x["entered_pool"] == ["PMID 23992601"])
+    got = notice_kinds.reversed_setasides(n, notices)
+    assert got and got["PMID 23992601"]["when_utc"] == "2026-09-20T23:30:00Z"
