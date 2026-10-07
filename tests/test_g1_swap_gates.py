@@ -215,3 +215,28 @@ def test_PLANT_spaced_slash_ranges_and_far_counts_never_admit_the_set_quote():
     assert sw.mentions_a_count(q)
     pl = {"measure": "RR", "estimate": "0.8", "k": 40, "quote": q}
     assert sw.pooled_gate(pl, sw._norm(sq + " " + q), set_quote=sq)[0] is None
+
+
+def test_PLANT_the_set_quote_count_stands_only_in_the_sentence_that_prints_the_pooled_result():
+    """codex swap-setquote-r10: '#1 'One in five trials' is a proportion; #2 'Both trials' beside a review-wide 40. The
+    structural rule: the pooled quote must lie inside the set-quote sentence, which prints exactly one count."""
+    assert sw.printed_counts("One in five trials reported mortality.") == set()
+    assert sw.printed_counts("three of five studies") == set()
+    q = "Both trials contributed to the mortality analysis (RR 0.80)."
+    sq = "The review included 40 trials."
+    assert sw.pooled_gate({"measure": "RR", "estimate": "0.80", "k": 40, "quote": q},
+                          sw._norm(q + " " + sq), set_quote=sq)[0] is None
+    # a pooled quote OUTSIDE the set-quote sentence never borrows its count, even a clean one
+    q2 = "OR 0.88, CI 0.75 to 1.03"
+    sq2 = "We included 5 randomized trials."
+    assert sw.pooled_gate({"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2},
+                          sw._norm(sq2 + " Recurrence: " + q2 + "."), set_quote=sq2)[0] is None
+    # the doac shape: the pooled result printed INSIDE the one-count sentence is admitted
+    sq3 = "In the five Phase 3 studies, recurrent VTE tended to favour DOACs (OR 0.88, CI 0.75 to 1.03)."
+    got = sw.pooled_gate({"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2},
+                         sw._norm(sq3), set_quote=sq3)
+    assert got[0] is not None and got[1] == 5
+    # two counts in the set-quote sentence: ambiguous, refused
+    sq4 = "In the five Phase 3 studies and 2 randomized trials, OR 0.88, CI 0.75 to 1.03."
+    assert sw.pooled_gate({"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2},
+                          sw._norm(sq4), set_quote=sq4)[0] is None

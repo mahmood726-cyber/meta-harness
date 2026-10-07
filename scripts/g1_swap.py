@@ -358,7 +358,9 @@ def printed_counts(q):
             return True
         # 'and' / 'to' / 'or' right after a number joins a larger number or a RANGE ('one hundred and twenty', 'two to five
         # trials', '3 or 4 studies'; codex swap-setquote-r8 #2): the end of a range is never an exact count
-        return (pt[-1] in ("and", "to", "or") and len(pt) == 2
+        # 'in' / 'of' after a number is a proportion ('one in five trials', 'three of five studies'; codex
+        # swap-setquote-r10 #1): its denominator is not the number of contributing trials
+        return (pt[-1] in ("and", "to", "or", "in", "of") and len(pt) == 2
                 and (pt[0] in number_words or bool(re.fullmatch(r"\d+", pt[0]))))
 
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
@@ -381,7 +383,7 @@ def mentions_a_count(q):
     if not re.search(r"\b(?:trials?|stud(?:y|ies)|rcts?)\b", s, re.I):
         return False
     words = "|".join(_COUNT_WORDS + ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
-                                     "hundred", "dozen"])
+                                     "hundred", "dozen", "both", "either", "neither"])
     return bool(re.search(r"(?<![\d.,])\d+(?![.,]?\d)(?!\s*%)", s)
                 or re.search(r"\b(?:" + words + r")\b", s, re.I))
 
@@ -413,7 +415,12 @@ def pooled_gate(pl, nt, set_quote=None):
         # The fallback is closed whenever the pooled quote MENTIONS a count at all, parsed or not ('twenty-five trials
         # contributed' is a count this reader refuses; a review-wide 'included 40 trials' must not stand in for it --
         # codex swap-setquote-r8 #1)
-        if not printed and set_quote and _quoted(set_quote, nt) and not mentions_a_count(q):
+        # STRUCTURAL rule, replacing a blacklist that four review rounds each found a new hole in (codex swap-setquote-r10
+        # #2 'Both trials ...' beside 'included 40 trials'): the set quote's count stands for k only when the pooled quote
+        # lies INSIDE the set-quote sentence -- the count and the pooled result are printed together -- and that sentence
+        # prints exactly ONE count. A review-wide count elsewhere in the paper can therefore never stand in.
+        if (not printed and set_quote and _quoted(set_quote, nt) and _norm(q) in _norm(set_quote)
+                and not mentions_a_count(q) and len(printed_counts(set_quote)) == 1):
             printed = printed_counts(set_quote)
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
