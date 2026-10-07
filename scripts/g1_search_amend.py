@@ -115,7 +115,7 @@ def main(argv):
     print(tally)
 
 
-if __name__ == "__main__" and "--round2" not in sys.argv and "--cap" not in sys.argv:
+if __name__ == "__main__" and not {"--round2", "--cap", "--active"} & set(sys.argv):
     main(sys.argv[1:])        # never re-run for --round2: it would overwrite amendments.json with ALREADY_AMENDED
 
 
@@ -224,5 +224,56 @@ def cap_decision(dry=False):
     print({k: v["state"] for k, v in out.items()})
 
 
+HEAD4 = "## Amendment 2026-10-07 -- search re-validated against the current comparator (active topics)"
+
+
+def active_decision(slugs, dry=False):
+    """A6: active G1 topics still short on search recall against their CURRENT comparator (V8 adoptions). Instruction
+    (captain, under Mahmood's delegation, 7 Oct: 'run the expanded searches ... for any whose recall is still short').
+    The query added is the one scripts/g1_expanded_search.py --active chose by the fixed rule (smallest volume with the
+    maximal recall measured on the current comparator, volume <= 10,000) among the recorded blind proposals."""
+    out = {}
+    for slug in slugs:
+        e = _j(os.path.join(SA, "expanded", f"{slug}.json"))
+        ch, rec = e["chosen"], e["recall"]
+        tp, pp = os.path.join(ROOT, "topics", f"{slug}.json"), os.path.join(ROOT, "protocols", f"{slug}.md")
+        md = open(pp, encoding="utf-8").read()
+        if HEAD4 in md:
+            out[slug] = {"state": "ALREADY_AMENDED"}
+            continue
+        cfg = _j(tp)
+        over = "; ".join(f"{o['round']} ({o['record']}) {o['volume']} records, recall {o['recall_union']['n']} of "
+                         f"{o['recall_union']['N']}" for o in ch.get("over_cap") or [])
+        text = (f"\n{HEAD4}\n\n- **A6 Concept query added** (union; none removed): `{ch['query']}`. Decided 2026-10-07 by "
+                f"the captain under Mahmood's delegation. Reason: against the CURRENT comparator (PMID "
+                f"{cfg.get('comparator_pmid')}) the registered queries identify {ch['recall_current_at_audit']['n']} of "
+                f"{ch['recall_current_at_audit']['N']} eligible comparator trials; this blind proposal ({ch['source']}, "
+                f"recorded call {ch['record']}; written without sight of any comparator trial) identifies "
+                f"{ch['recall_union_at_audit']['n']} of {ch['recall_union_at_audit']['N']} together with them, at "
+                f"{ch['volume_at_audit']} records (cap 10,000). Run in full on 2026-10-07: {e['esearch']['count']} "
+                f"records, {e['new_records']} not already held; rule screen of the new records: {e['rule_screen']}. "
+                f"Eligible comparator trials identified: {rec['identified_before']} -> {rec['identified_after']} of "
+                f"{rec['eligible']} ({rec['newly_identified_and_screen_included']} of the {rec['newly_identified']} newly "
+                f"identified pass the rule screen). Recorded: outputs/search_audit/expanded/{slug}.json."
+                + (f" Not adopted, over the cap: {over}." if over else "")
+                + " The standing REVIEW_REFERENCE_LIST route (A1) reads the topic's current comparator.\n")
+        out[slug] = {"state": "DRY_RUN" if dry else "AMENDED", "query": ch["query"]}
+        if dry:
+            print(text)
+            continue
+        if ch["query"] not in (cfg.get("pubmed_queries") or []):
+            cfg["pubmed_queries"] = list(cfg.get("pubmed_queries") or []) + [ch["query"]]
+        with open(tp, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(cfg, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        with open(pp, "a", encoding="utf-8", newline="\n") as fh:
+            fh.write(text)
+    json.dump(out, open(os.path.join(SA, "active", "amendments_a6.json"), "w", encoding="utf-8", newline="\n"), indent=1,
+              ensure_ascii=False)
+    print({k: v["state"] for k, v in out.items()})
+
+
 if __name__ == "__main__" and "--cap" in sys.argv:
     cap_decision("--dry-run" in sys.argv)
+if __name__ == "__main__" and "--active" in sys.argv:
+    active_decision([a for a in sys.argv[1:] if not a.startswith("--")], "--dry-run" in sys.argv)

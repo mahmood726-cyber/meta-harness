@@ -17,6 +17,7 @@ a model family with reader A). Agreement: Cohen's kappa A vs B (inter-reader), r
   python scripts/g1_screen_dual_codex.py --run [--workers 5] [--shard i/n]   (live; skips items already RAN_OK)
   python scripts/g1_screen_dual_codex.py                                   (offline: re-derive from the records)
   -> outputs/search_audit/screen_dual_codex.json
+  --audit <ACTIVE_AUDIT.json> --out <path>: the same review over another audit's rows (active topics, 7 Oct)
 """
 from __future__ import annotations
 
@@ -50,9 +51,17 @@ def _branch_decision(slug, rec):
     return d[0] if d else None
 
 
-def items():
-    a = json.load(open(SA / "SEARCH_SCREEN_AUDIT.json", encoding="utf-8"))
+def _extra():
+    """Records fetched by PMID for the active-topic audit (g1_active_recall.py; texts outside the tree, MH_ACTIVE_TEXTS)."""
+    import os
+    p = Path(os.environ.get("MH_ACTIVE_TEXTS", str(Path.home() / "mh-active-texts"))) / "records.json"
+    return {str(r["id"]): r for r in json.load(open(p, encoding="utf-8"))} if p.exists() else {}
+
+
+def items(audit=None):
+    a = json.load(open(audit or SA / "SEARCH_SCREEN_AUDIT.json", encoding="utf-8"))
     mem, msha = D._members()
+    extra = _extra()
     out = []
     for t in a["topics"]:
         recs = D._records(t["slug"])
@@ -71,7 +80,10 @@ def items():
                 if rid is None:
                     rid = next((x for x in r["pmids"] if x in mem), None)
                     where = f"outputs/k_gap/member_records.json@acq:{msha[:12]}"
-                rec = recs.get(rid) or mem.get(rid) if rid else None
+                if rid is None:
+                    rid = next((x for x in r["pmids"] if x in extra), None)
+                    where = "PubMed record fetched by PMID for the active-topic audit"
+                rec = (recs.get(rid) or mem.get(rid) or extra.get(rid)) if rid else None
                 if rec is None:
                     out.append(dict(base, coverage="NO_HELD_RECORD", pmids=r["pmids"], ncts=r["ncts"]))
                     continue
@@ -143,7 +155,9 @@ def main(argv):
     live = "--run" in argv
     workers = int(argv[argv.index("--workers") + 1]) if "--workers" in argv else 5
     shard = argv[argv.index("--shard") + 1] if "--shard" in argv else None
-    its = items()
+    audit = Path(argv[argv.index("--audit") + 1]) if "--audit" in argv else None
+    out_p = Path(argv[argv.index("--out") + 1]) if "--out" in argv else OUT
+    its = items(audit)
     if shard:
         i, n = map(int, shard.split("/"))
         slugs = sorted({x["slug"] for x in its})
@@ -219,7 +233,7 @@ def main(argv):
            "final": {k: sum(1 for r in read if r["final"] == k) for k in ("ELIGIBLE", "INELIGIBLE", "UNRESOLVED")},
            "screen_errors": {k: sum(1 for r in read if r["screen_error"] == k) for k in ("FALSE_EXCLUSION", "FALSE_INCLUSION")},
            "rows": rows}
-    dest = OUT if not shard else SA / f"screen_dual_codex.shard{shard.replace('/', 'of')}.json"
+    dest = out_p if not shard else out_p.with_name(out_p.stem + f".shard{shard.replace('/', 'of')}.json")
     json.dump(out, open(dest, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
     print(json.dumps({k: out[k] for k in ("n_rows", "coverage", "n_read_by_both", "kappa", "readers_agree", "adjudication",
                                           "final", "screen_errors")}))

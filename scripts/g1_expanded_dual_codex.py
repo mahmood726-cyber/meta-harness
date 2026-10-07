@@ -11,6 +11,7 @@ Reviewing every one of the ~21,000 excludes twice is ~42,000 calls; the sample m
 precision. Stated, not hidden.
 
   python scripts/g1_expanded_dual_codex.py --run [--workers 5] [--shard i/n]   -> outputs/search_audit/expanded_dual_codex.json
+  ... --topics a,b --out expanded_dual_codex_active                             (active topics, 7 Oct)
 """
 from __future__ import annotations
 
@@ -84,6 +85,10 @@ def wilson(k, n, z=1.959964):
 
 
 def main(argv):
+    global TOPICS
+    if "--topics" in argv:                       # active topics (7 Oct): their own output, the 6 Oct file untouched
+        TOPICS = tuple(argv[argv.index("--topics") + 1].split(","))
+    base = argv[argv.index("--out") + 1] if "--out" in argv else "expanded_dual_codex"
     live = "--run" in argv
     workers = int(argv[argv.index("--workers") + 1]) if "--workers" in argv else 5
     shard = argv[argv.index("--shard") + 1] if "--shard" in argv else None
@@ -159,7 +164,7 @@ def main(argv):
            "adjudicator": f"{X.MODEL_ADJ} (effort high)"}, "shard": shard, "n_items": len(rows),
            "n_read_by_both": sum(1 for r in rows if r.get("final")), "adjudication": adjudication_counts(need),
            "unreviewable": missing, "topics": summ, "rows": rows}
-    dest = SA / ("expanded_dual_codex.json" if not shard else f"expanded_dual_codex.shard{shard.replace('/', 'of')}.json")
+    dest = SA / (f"{base}.json" if not shard else f"{base}.shard{shard.replace('/', 'of')}.json")
     json.dump(out, open(dest, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
     print(json.dumps({k: out[k] for k in ("n_items", "n_read_by_both", "adjudication")}), len(missing), "unreviewable",
           json.dumps(summ)[:1500])

@@ -93,8 +93,19 @@ PRECISE = ("\nPRECISION TARGET: an earlier blind proposal for this question retu
            "Still do NOT name or target specific trials.\n")
 
 
+PRECISE10K = ("\nPRECISION TARGET: an earlier blind proposal for this question returned {n} PubMed records, too many to "
+              "screen. Write a search that keeps the population and intervention concepts complete but stays under about "
+              "9,000 records (the screening budget is 10,000). Still do NOT name or target specific trials.\n")
+
+
 def _round(argv):
-    """(tag, model, out, idx): r1 (default, gpt-6-astra), r2 (independent proposer, gpt-5.5), precise (over-cap topics)."""
+    """(tag, model, out, idx): r1 (default, gpt-6-astra), r2 (independent proposer, gpt-5.5), precise (over-cap topics);
+    precise10k / precise10k-b (7 Oct: an active topic still short whose recall-complete blind proposal exceeds 10,000;
+    gpt-6-astra and an independent gpt-5.5 proposer; named slugs only)."""
+    if "--precise10k" in argv:
+        tag = "precise10k-b" if "--b" in argv else "precise10k"
+        return (tag, "gpt-5.5" if "--b" in argv else "gpt-6-astra", OUT.with_name(f"query_audit_{tag}.json"),
+                IDX.with_name(f"query_audit_{tag}_records.json"))
     if "--precise" in argv:
         return "precise", "gpt-6-astra", OUT.with_name("query_audit_precise.json"), IDX.with_name("query_audit_precise_records.json")
     if "--round" in argv and argv[argv.index("--round") + 1] == "r2":
@@ -182,9 +193,25 @@ def main(argv):
     topics = [t for t in a["topics"] if not slugs_arg or t["slug"] in slugs_arg]
     if tag == "precise":
         topics = [t for t in topics if "volume" in str(((r1.get(t["slug"]) or {}).get("validation") or {}).get("verdict", ""))]
+    act_dir = AUDIT.parent / "active"
+    if tag.startswith("precise10k"):
+        global VOLUME_CAP
+        VOLUME_CAP = 10000
+        if not slugs_arg:
+            raise SystemExit("REFUSED: precise10k runs only on named slugs")
+        act = {t["slug"]: t for t in json.load(open(act_dir / "ACTIVE_AUDIT.json", encoding="utf-8"))["topics"]}
+        topics = [act[s] for s in slugs_arg]                 # the CURRENT comparator's rows (V8), for validation only
+        rv = json.load(open(act_dir / "query_revalidation.json", encoding="utf-8"))["topics"]
     prompts = {}
     for t in topics:
         pb, dg = prompt(t["slug"], vol)
+        if tag.startswith("precise10k"):
+            n = max(p["validation"]["proposed_pubmed_count"] or 0 for p in rv[t["slug"]]["proposals"])
+            pb = pb.replace(b"Return only the JSON object.\n",
+                            (PRECISE10K.format(n=n) + "Return only the JSON object.\n").encode("utf-8"), 1)
+            dg = dg + [{"ref": "outputs/search_audit/active/query_revalidation.json",
+                        "sha256": _sha((act_dir / "query_revalidation.json").read_bytes()),
+                        "what": "the earlier blind proposals' measured volumes (the prompt carries only the largest volume)"}]
         if tag == "precise":
             n = r1[t["slug"]]["validation"]["proposed_pubmed_count"]
             pb = pb.replace(b"Return only the JSON object.\n", (PRECISE.format(n=n) + "Return only the JSON object.\n").encode("utf-8"), 1)

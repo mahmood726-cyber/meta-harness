@@ -60,9 +60,32 @@ def held_text(rec):
                      for lab, k in (("TITLE", "title"), ("PUBLICATION TYPES", "pubtypes"), ("ABSTRACT", "abstract")))
 
 
-def run(slug):
+def chosen_active(slug):
+    """Active topics (7 Oct): the same rule over every recorded blind proposal RE-VALIDATED against the CURRENT comparator
+    (outputs/search_audit/active/query_revalidation.json + the precise10k rounds), volume <= CAP."""
+    c = []
+    rv = _j(os.path.join(SA, "active", "query_revalidation.json"))["topics"].get(slug) or {}
+    cands = [(p["round"], p["record"], p["query"], p["validation"]) for p in rv.get("proposals") or []]
+    for tag in ("precise10k", "precise10k-b"):
+        f = os.path.join(SA, f"query_audit_{tag}.json")
+        q = (_j(f)["topics"].get(slug) if os.path.exists(f) else None) or {}
+        if q.get("validation"):
+            cands.append((tag, q["record"], q["proposal"]["pubmed_query"], q["validation"]))
+    for tag, rec, query, v in cands:
+        if v.get("proposed_pubmed_count") and v["proposed_pubmed_count"] <= CAP:
+            c.append((v["recall_union"]["n"], -v["proposed_pubmed_count"], tag, rec, query, v))
+    best = max(c, key=lambda x: (x[0], x[1]))
+    return {"source": f"{best[2]} (re-validated against the current comparator)", "record": best[3], "query": best[4],
+            "volume_at_audit": -best[1], "recall_union_at_audit": best[5]["recall_union"],
+            "recall_current_at_audit": best[5]["recall_current"],
+            "candidates": [{"round": x[2], "record": x[3], "volume": -x[1], "recall_union": x[5]["recall_union"]} for x in c],
+            "over_cap": [{"round": t, "record": r, "volume": v.get("proposed_pubmed_count"), "recall_union": v["recall_union"]}
+                         for t, r, _, v in cands if (v.get("proposed_pubmed_count") or 0) > CAP]}
+
+
+def run(slug, active=False):
     from harness import acquisition as acq, fetch, pipeline, screen
-    ch = chosen(slug)
+    ch = chosen_active(slug) if active else chosen(slug)
     res = acq.esearch_all(ch["query"], sleep=0.34)
     ids = [str(x) for x in res.get("ids") or []]
     have = {str(r["id"]) for r in _j(os.path.join(ROOT, "cache", slug, "records.json")).get("records") or []}
@@ -94,7 +117,8 @@ def run(slug):
     rows = [{"pmid": str(r["id"]), "held_sha256": hashlib.sha256(held_text(r).encode("utf-8")).hexdigest(), **_d(r)}
             for r in recs]
     not_fetched = sorted(set(new) - {str(r["id"]) for r in recs})
-    audit = next(t for t in _j(os.path.join(SA, "SEARCH_SCREEN_AUDIT.json"))["topics"] if t["slug"] == slug)
+    src = os.path.join(SA, "active", "ACTIVE_AUDIT.json") if active else os.path.join(SA, "SEARCH_SCREEN_AUDIT.json")
+    audit = next(t for t in _j(src)["topics"] if t["slug"] == slug)
     # identified by the expanded query = a PMID of the trial is among the query's HITS (held already or new); a trial
     # whose record was held only because it was hand-named is identified by this query only if the query returns it.
     # Its screen decision: this branch's rule screen for a new record; the served screen for a record already held.
@@ -105,7 +129,8 @@ def run(slug):
         if t["kind"] != "ELIGIBLE":
             continue
         hit = sorted(set(t["pmids"]) & hits)
-        before = t["search"].startswith("IDENTIFIED")
+        # before = identified by the search as registered NOW (active: the current registered queries, recorded probe)
+        before = (t["search_current"] == "IDENTIFIED") if active else t["search"].startswith("IDENTIFIED")
         if hit or before:
             decs = []
             for p in hit:
@@ -125,7 +150,10 @@ def run(slug):
             gain.append({"label": t["label"], "identified_before": before, "identified_by_expanded_query": bool(hit),
                          "newly_identified": bool(hit) and not before, "hit_pmids": hit, "screen_decisions": decs})
     n_el = sum(1 for t in audit["trials"] if t["kind"] == "ELIGIBLE")
-    out = {"slug": slug, "decision": "volume cap raised to 10,000 (2026-10-06, under Mahmood's delegation)", "chosen": ch,
+    dec_txt = ("active topic short on search recall against its current comparator: blind query re-validated, cap 10,000 "
+               "(2026-10-07, captain under Mahmood's delegation, amendment A6)" if active else
+               "volume cap raised to 10,000 (2026-10-06, under Mahmood's delegation)")
+    out = {"slug": slug, "decision": dec_txt, "chosen": ch,
            "esearch": {"count": res.get("count"), "ids": len(ids), "state": res.get("state"), "funnel": res.get("funnel")},
            "new_records": len(new), "fetched": len(recs), "not_returned_by_efetch": not_fetched,
            "rule_screen": {"include": sum(1 for r in rows if r["decision"] == "include"),
@@ -165,6 +193,9 @@ if __name__ == "__main__":
     if sys.argv[1:2] == ["--relabel"]:
         for s in (sys.argv[2:] or TOPICS):
             relabel(s)
+    elif sys.argv[1:2] == ["--active"]:
+        for s in sys.argv[2:]:
+            run(s, active=True)
     else:
         for s in (sys.argv[1:] or TOPICS):
             run(s)
