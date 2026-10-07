@@ -538,3 +538,22 @@ def test_PLANT_semicolons_inside_brackets_do_not_split_a_result():
     assert sw._bound_counts(q, [0.48, 0.36, 0.63]) == {3}
     assert sw._bound_counts("Five trials reported recurrence; mortality RR 0.85 (95% CI 0.70-1.03).",
                             [0.85, 0.70, 1.03]) == set()
+
+
+def test_PLANT_europepmc_search_fails_closed_on_an_error_reply_and_a_trailing_very_least_bound_refuses():
+    """codex pr25-final: #3 a 503 with a JSON body was read as a COMPLETE search with zero hits (a search that reports
+    reach as the population); #2 'Five trials, at the very least, ...'."""
+    import pytest
+    calls = []
+
+    def err(*a, **k):
+        calls.append(1)
+        return 503, b'{"error":"Service unavailable"}'
+    import unittest.mock as um
+    with um.patch("time.sleep", lambda s: None), pytest.raises(SystemExit):
+        sw.europepmc_ids(err, "mortality")
+    assert len(calls) == 5                                                    # retried, then refused
+    ok = (200, b'{"hitCount": 1, "resultList": {"result": [{"pmid": "123"}]}, "nextCursorMark": "*"}')
+    pm, meta = sw.europepmc_ids(lambda *a, **k: ok, "mortality")
+    assert pm == ["123"] and meta["state"] == "COMPLETE"
+    assert sw.printed_counts("Five trials, at the very least, reported mortality (RR 0.85, 95% CI 0.70 to 1.03).") == set()
