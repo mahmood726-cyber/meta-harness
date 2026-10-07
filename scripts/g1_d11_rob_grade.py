@@ -411,7 +411,9 @@ def panel(kind, items, prompt_fn, adj_fn, shown_fn, workers, argv, live):
             name = idx.get(_sha(pb))
             if name:
                 _, claim = _load(name)
-                row["adjudicator"] = {"record": name, "v": verify(kind, claim, shown)}
+                # THIS item's sources (a stale loop variable verified every adjudicator against the last item's;
+                # plant tests/test_d11_verifier.py::test_the_adjudicator_is_verified_against_its_own_items_sources)
+                row["adjudicator"] = {"record": name, "v": verify(kind, claim, shown_fn(it))}
             elif live and it in _shard(items, argv):
                 todo.append((pb, dg, MODEL_ADJ, kind, f"D11 {kind} adjudicator, {it['item_id']}", "high"))
     if live and todo:
@@ -526,6 +528,26 @@ def derive(data, rob_items, rob_rows, grade_items, grade_rows):
                                  "readers": {x: (r[f"reader_{x}"]["claim"]["domains"][d]) for x in "AB"},
                                  "adjudicator": ((r.get("adjudicator") or {}).get("v") or {}).get("domains", {}).get(d)})
     k_rule = {d: kappa(vs_rule[d], ("low", "some_concerns", "high")) for d in RULE_DOMS}
+    # kappa collapses when the rule is near-constant (it rates almost every D1 'low'): state raw agreement beside it
+    agree_rule = {d: {"agree": sum(1 for a, b in vs_rule[d] if a == b), "decided": sum(1 for a, b in vs_rule[d]
+                      if b in ("low", "some_concerns", "high")), "rule_levels": dict(__import__("collections").Counter(a for a, _ in vs_rule[d]))}
+                  for d in RULE_DOMS}
+    # the adjudicator shares a model family with reader A: how often it sided with each, and the finals under each
+    # reader alone (sensitivity), so the panel's dependence on that choice is visible
+    side = {"A": 0, "B": 0, "neither": 0}
+    for r in rob_rows:
+        for d in r.get("disputed") or []:
+            if not r.get("adjudicator"):
+                continue
+            a, b, j = (r["reader_A"]["v"]["domains"][d], r["reader_B"]["v"]["domains"][d],
+                       r["adjudicator"]["v"]["domains"][d])
+            side["A" if j == a and j != b else "B" if j == b and j != a else "neither"] += 1
+    import collections as _c
+    sens = {"rob_overall_reader_A_only": dict(_c.Counter(rob_overall(r["reader_A"]["v"]["domains"]) for r in rob_rows if r.get("reader_A"))),
+            "rob_overall_reader_B_only": dict(_c.Counter(rob_overall(r["reader_B"]["v"]["domains"]) for r in rob_rows if r.get("reader_B"))),
+            "grade_reader_A_only": dict(_c.Counter(certainty(r["reader_A"]["v"]["domains"]) for r in grade_rows if r.get("reader_A"))),
+            "grade_reader_B_only": dict(_c.Counter(certainty(r["reader_B"]["v"]["domains"]) for r in grade_rows if r.get("reader_B"))),
+            "adjudicator_sided_with": side}
     # GRADE: Codex final vs the rule's assessed domains (primary outcome)
     g_vs = []
     for r in grade_rows:
@@ -555,7 +577,9 @@ def derive(data, rob_items, rob_rows, grade_items, grade_rows):
                           for k in sorted({r.get("final_overall") for r in rows if r.get("final_overall")})}
     out = {"schema": 1, "aact_snapshot": data["aact_snapshot"], "models": {"reader_A": MODEL_A, "reader_B": MODEL_B,
            "adjudicator": f"{MODEL_ADJ} (effort high)"}, "n_rob_items": len(rob_items), "n_grade_items": len(grade_items),
-           "rob": {"kappa_A_vs_B": kab, "kappa_final_vs_rule": k_rule, "rule_abstains": rule_abstains,
+           "sensitivity": sens,
+           "rob": {"kappa_A_vs_B": kab, "kappa_final_vs_rule": k_rule, "agreement_final_vs_rule": agree_rule,
+                   "rule_abstains": rule_abstains,
                    "overall_final": tally(rob_rows), "adjudicated": sum(1 for r in rob_rows if r.get("adjudicator")),
                    "disputed": sum(1 for r in rob_rows if r.get("disputed")),
                    "unverified_quotes": sum(len(r[f"reader_{x}"]["v"]["problems"]) for r in rob_rows for x in "AB" if r.get(f"reader_{x}"))},
@@ -570,8 +594,65 @@ def derive(data, rob_items, rob_rows, grade_items, grade_rows):
            "grade_rows": [{k: v for k, v in r.items()} | {f"reader_{x}": {"record": r[f"reader_{x}"]["record"], "v": r[f"reader_{x}"]["v"]}
                            for x in "AB" if r.get(f"reader_{x}")} for r in grade_rows]}
     json.dump(out, open(OUT / "D11_SIGNOFF.json", "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
+    open(OUT / "D11_SIGNOFF.md", "w", encoding="utf-8", newline="\n").write(render(out))
+    open(OUT / "NOTICES_DRAFT.md", "w", encoding="utf-8", newline="\n").write(render_notices(out))
     print(json.dumps({k: out[k] for k in ("n_rob_items", "n_grade_items", "rob", "grade")}, indent=1)[:3000])
     print(len(findings), "findings;", len(notices), "draft notices")
+
+
+def render(o):
+    r, g = o["rob"], o["grade"]
+    L = ["# D11 reproducible-AI sign-off: RoB 2 and GRADE", "",
+         f"Generated by scripts/g1_d11_rob_grade.py from recorded model calls. Readers {o['models']['reader_A']} and "
+         f"{o['models']['reader_B']} (independent), adjudicator {o['models']['adjudicator']}. Open sources only: PubMed "
+         f"abstracts and ClinicalTrials.gov records (AACT {o['aact_snapshot']}). A judgement counts only when its quote "
+         f"is found in the source it names; overall RoB 2 and GRADE certainty are derived in code.", "",
+         f"## RoB 2 ({o['n_rob_items']} trial x outcome items)", "",
+         f"- Domains disputed between the readers on {r['disputed']} items; adjudicated {r['adjudicated']}. Reader quotes "
+         f"that did not verify: {r['unverified_quotes']}.",
+         f"- Overall (derived): {r['overall_final']}.", "",
+         "| Domain | kappa A vs B (n) | kappa final vs rule (n) | rule abstains |", "|---|---|---|---|"]
+    for d in DOMAINS:
+        kr = r["kappa_final_vs_rule"].get(d)
+        ag = r["agreement_final_vs_rule"].get(d)
+        vs = (f"{kr[0]} ({kr[1]}); raw agreement {ag['agree']}/{ag['decided']}; rule levels {ag['rule_levels']}"
+              if kr else "rule does not rate this domain")
+        L.append(f"| {d} | {r['kappa_A_vs_B'][d][0]} ({r['kappa_A_vs_B'][d][1]}) | {vs} | {r['rule_abstains'].get(d, '-')} |")
+    sv = o["sensitivity"]
+    L += ["", f"Adjudicator (same model family as reader A) sided with A {sv['adjudicator_sided_with']['A']}, with B "
+              f"{sv['adjudicator_sided_with']['B']}, neither {sv['adjudicator_sided_with']['neither']}. Sensitivity -- RoB 2 overall "
+              f"under reader A alone {sv['rob_overall_reader_A_only']}, under reader B alone {sv['rob_overall_reader_B_only']}."]
+    L += ["", f"## GRADE ({o['n_grade_items']} served outcomes)", "",
+          f"- Sensitivity: certainty under reader A alone {sv['grade_reader_A_only']}, under reader B alone {sv['grade_reader_B_only']}.",
+          f"- Certainty (derived): {g['certainty_final']}; adjudicated {g['adjudicated']}.",
+          f"- kappa final vs the rule's ASSESSED domains: {g['kappa_final_vs_rule_assessed_domains']}.", "",
+          "| Domain | kappa A vs B (n) |", "|---|---|"]
+    for d in GDOMAINS:
+        L.append(f"| {d} | {g['kappa_A_vs_B'][d][0]} ({g['kappa_A_vs_B'][d][1]}) |")
+    fk = {}
+    for f in o["findings"]:
+        fk[f["kind"]] = fk.get(f["kind"], 0) + 1
+    L += ["", f"## Findings ({len(o['findings'])}: {fk})", ""]
+    for f in o["findings"]:
+        if f["kind"] == "ROB_DISAGREES":
+            L.append(f"- **{f['item']}** {f['domain']}: rule {f['rule']} ({f['rule_id']}; {str(f['rule_basis'])[:160]}) vs Codex "
+                     f"final {f['codex']}. Reader A: {f['readers']['A'].get('judgement')} \"{str(f['readers']['A'].get('quote'))[:140]}\" "
+                     f"({f['readers']['A'].get('source')}).")
+        else:
+            L.append(f"- **{f['item']}** {f['kind']} {f.get('domain', '')}: rule {f.get('rule')} vs Codex {f.get('codex')}.")
+    return "\n".join(L) + "\n"
+
+
+def render_notices(o):
+    L = ["# DRAFT notices from the D11 sign-off -- UNSIGNED", "",
+         "Each line is a proposed change to a served page. None is applied. Each needs Mahmood's signature before a rebuild "
+         "carries it (we never sign for him).", ""]
+    for n in o["notices_draft"]:
+        if n["kind"] == "ROB_DOMAIN_CHANGE":
+            L.append(f"- [ ] {n['item']}: RoB 2 {n['domain']} {n['from']} -> {n['to']} (recorded panel: D11_SIGNOFF.json)")
+        else:
+            L.append(f"- [ ] {n['item']}: GRADE certainty, served '{n['rule']}' -> panel '{n['codex']}'")
+    return "\n".join(L) + "\n"
 
 
 if __name__ == "__main__":
