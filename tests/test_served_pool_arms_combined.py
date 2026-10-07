@@ -163,3 +163,27 @@ def test_PLANT_a_non_finite_arm_value_is_refused(monkeypatch):
     monkeypatch.setattr(bspa, "_aact_binding", nan)
     row, why = bspa.pipeline_row(SLUG, _row(), "MD")
     assert row is None and "finite" in why
+
+
+def test_PLANT_an_arm_in_the_span_but_not_in_the_binding_refuses(monkeypatch):
+    """codex v9-apply-r5 #1: an intervention arm omitted from the binding's arm list (present in the span) passed."""
+    real = bspa._aact_binding
+
+    def drop(slug, x):
+        b = copy.deepcopy(real(slug, x))
+        b["arms"] = [a for a in b["arms"] if a["code"] != "OG001"]
+        return b
+    monkeypatch.setattr(bspa, "_aact_binding", drop)
+    row, why = bspa.pipeline_row(SLUG, _row(), "MD")
+    assert row is None and "segment" in why
+
+
+def test_PLANT_served_id_needs_the_aact_source_format_and_an_independent_paper_link(monkeypatch):
+    """codex v9-apply-r5 #2: any NCT mentioned in the source could replace the paper's identity."""
+    x = _row()
+    assert bspa.served_id(SLUG, x) == "NCT02417064"
+    bad = dict(x, confirm_binding=dict(x["confirm_binding"], source="see also NCT02417064 (a different trial)"))
+    assert bspa.served_id(SLUG, bad) == "PMID 31290965"
+    import g1_served_pool_notices as sp
+    monkeypatch.setattr(sp, "_ncts_of_pmid", lambda pmid: set())
+    assert bspa.served_id(SLUG, x) == "PMID 31290965"            # no PubMed/AACT link from the paper to that NCT

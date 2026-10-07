@@ -141,7 +141,13 @@ def served_id(slug, x):
     tid = fam if fam.upper().startswith(("PMID ", "NCT")) else f"PMID {fam}"
     v = sp.value_of(x) or {}
     if v.get("arms_combined"):
-        m = re.search(r"\b(NCT\d{8})\b", str((x.get("confirm_binding") or {}).get("source") or ""))
+        # only the binder's exact AACT source format, and only when the paper's OWN records link it to that NCT
+        # (AACT reference table / PubMed databank link) -- never an NCT merely mentioned (codex v9-apply-r5 #2)
+        m = re.fullmatch(r"AACT AACT \S+ (NCT\d{8}) outcome \d+",
+                         str((x.get("confirm_binding") or {}).get("source") or "").strip())
+        pid = fam.replace("PMID ", "").strip()
+        if m and pid.isdigit() and m.group(1) not in sp._ncts_of_pmid(pid):
+            m = None
         p = os.path.join(ROOT, "cache", slug, "families.json")
         if m and os.path.exists(p):
             fams = [f for f in json.load(open(p, encoding="utf-8")).get("families") or [] if f.get("family_id") == m.group(1)]
@@ -220,6 +226,11 @@ def _arms_combined_row(slug, x, v, base):
     segs = [s.strip() for s in span.split(" || ")]
     if len({a.get("code") for a in arms}) != len(arms):
         return None, "arm codes are not distinct"
+    # every arm segment of the span is one of the binding's arms: an arm printed in the span but missing from the
+    # binding's list would make an incomplete merge (codex v9-apply-r5 #1)
+    arm_segs = [s for s in segs if re.match(r"OG\d+ ", s)]
+    if len(arm_segs) != len(arms):
+        return None, f"the span prints {len(arm_segs)} arm segments, the binding lists {len(arms)} arms"
     for a in arms:
         if not re.fullmatch(r"\d+", str(a.get("n") or "")):
             return None, f"arm {a.get('code')} N {a.get('n')!r} is not a whole number as printed"   # r2 #2: never int()-truncated
