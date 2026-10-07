@@ -117,3 +117,13 @@ def test_an_accepted_figure_the_selection_cannot_rebuild_is_audited_from_its_own
 def test_a_stored_item_whose_image_changed_is_not_audited(tmp_path, monkeypatch):
     v = _stored(tmp_path, monkeypatch, img=b"OTHER BYTES")
     assert gfr.stored_item("t::1", v) is None
+
+
+def test_a_skip_for_a_new_comparator_retires_the_old_comparators_accepted_read():
+    # 7 Oct: statins / denosumab / melatonin swapped comparators; their ACCEPTED reads were of the RETIRED comparator.
+    # merge_skips kept them (an accepted result survives a re-selection failure) -- but a skip for a DIFFERENT pmid is
+    # a different artefact: the stale read moves to retired_results, never stays as the topic's comparator read
+    sec = {"results": {"t": {"state": "ACCEPTED", "pmid": "111"}}, "skipped": {}, "meta_results": {}, "meta_skipped": {}}
+    gfr.merge_skips(sec, {"t": {"pmid": "222", "why": "NO_OUTCOME_FOREST_FIGURE"}})
+    assert "t" not in sec["results"] and sec["skipped"]["t"]["pmid"] == "222"
+    assert sec["retired_results"]["t::111"]["state"] == "ACCEPTED"

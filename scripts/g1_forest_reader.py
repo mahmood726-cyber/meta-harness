@@ -2266,6 +2266,16 @@ def intervention_skip(its, skipped, run):
 GATE_VERDICT_SKIPS = ("INTERVENTION_NOT_THE_TOPICS",)
 
 
+def retire_if_other_pmid(sec, r, k, new_pmid):
+    """A topic's comparator changed (7 Oct swaps: statins, denosumab, melatonin): a stored read of the OLD comparator is
+    of a retired artefact. It moves to retired_results['<key>::<old pmid>'] (kept on record), never standing as this
+    key's result -- neither by surviving a later skip nor by being silently overwritten."""
+    prev = sec[r].get(k)
+    if prev and new_pmid and prev.get("pmid") and str(prev["pmid"]) != str(new_pmid):
+        sec.setdefault("retired_results", {})[f"{k}::{prev['pmid']}"] = prev
+        sec[r].pop(k, None)
+
+
 def merge_skips(sec, skipped):
     """A key this run skipped goes to (meta_)skipped -- UNLESS an earlier run ACCEPTED it: an accepted result rests on
     its recorded readings and is never erased by a later failure to re-select its figure (ae9a3075 dropped tocilizumab
@@ -2274,6 +2284,7 @@ def merge_skips(sec, skipped):
     it refuses the figure even when an earlier run accepted it."""
     for k, v in skipped.items():
         r, s = ("results", "skipped") if "::" not in k else ("meta_results", "meta_skipped")
+        retire_if_other_pmid(sec, r, k, v.get("pmid") if isinstance(v, dict) else None)
         prev = sec[r].get(k)
         if prev and prev.get("state") in ("ACCEPTED", SECOND_SOURCE_ONLY) and v not in GATE_VERDICT_SKIPS:
             prev["later_skip"] = v
@@ -2307,6 +2318,10 @@ def main(argv):
         return 0
     elif "--citing" in argv:                     # figures of OA metas citing an unmatched trial (g1_citing_targets)
         its, skipped = items([], run, named=citing_named(slugs))
+    elif any(a.startswith("--pairs-file=") for a in argv):   # explicit (slug, pmid) candidates, e.g. binding's swap
+        pf = next(a.split("=", 1)[1] for a in argv if a.startswith("--pairs-file="))   # candidates (7 Oct)
+        with open(pf, encoding="utf-8") as fh:
+            its, skipped = items([], run, pairs=[tuple(p) for p in json.load(fh)])
     elif "--kgap-sweep" in argv:
         its, skipped = items([], run, pairs=kgap_sweep_pairs(slugs))
     elif "--metas" in argv:
@@ -2352,9 +2367,11 @@ def main(argv):
     # comparators under 'results'/'skipped' (keyed by slug: the interface g1_tracker reads); other metas under
     # 'meta_results'/'meta_skipped' (keyed '<slug>::<pmid>')
     sec = {"results": dict(prev.get("results") or {}), "skipped": dict(prev.get("skipped") or {}),
-           "meta_results": dict(prev.get("meta_results") or {}), "meta_skipped": dict(prev.get("meta_skipped") or {})}
+           "meta_results": dict(prev.get("meta_results") or {}), "meta_skipped": dict(prev.get("meta_skipped") or {}),
+           "retired_results": dict(prev.get("retired_results") or {})}
     for k, v in res.items():
         r, s = ("results", "skipped") if "::" not in k else ("meta_results", "meta_skipped")
+        retire_if_other_pmid(sec, r, k, v.get("pmid"))
         sec[r][k] = v
         sec[s].pop(k, None)
     merge_skips(sec, skipped)
