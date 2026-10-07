@@ -2234,5 +2234,58 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r14": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3e8dc3e659c254dca1b28401caebcd38",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "1609c11a6e37bfa7ed119188af2d22a25313019cb2d95e791dfcf64c2fca4bae"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / _counts_in",
+    "severity": "P0",
+    "claim": "A percentage's denominator is accepted as the contributing trial count when an article separates 'of' from the number.",
+    "failing_input": "printed_counts('50% of the ten trials contributed to the mortality analysis (RR 0.85).')",
+    "expected": "set(): the sentence does not print an exact contributing count; ten is the denominator.",
+    "actual": "{10}. _numerals ignores 50%, and blocked_before sees only 'the', allowing pooled_gate to validate k=10.",
+    "id": "swap-setquote-r14:g1#1",
+    "record_id": "mc-3e8dc3e659c254dca1b28401caebcd38",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts / _counts_in",
+    "severity": "P0",
+    "claim": "Bounds appearing after the trial count are accepted as exact counts because approximation checks examine only preceding tokens.",
+    "failing_input": "printed_counts('Five trials at most contributed to the pooled RR 0.85.')",
+    "expected": "set(): 'at most' specifies an upper bound, not an exact count.",
+    "actual": "{5}, allowing pooled_gate to validate k=5.",
+    "id": "swap-setquote-r14:g1#2",
+    "record_id": "mc-3e8dc3e659c254dca1b28401caebcd38",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "pooled_gate",
+    "severity": "P0",
+    "claim": "The new fallback can borrow the review-wide count despite explicit evidence that only a percentage contributed mortality data. Verifying the total enumeration does not verify endpoint participation.",
+    "failing_input": "Use a pooled claim with k=5 and quote='the pooled mortality estimate was RR 0.85 (95% CI 0.75-0.95).'; set_quote='Five trials were included, mortality was reported by 40%, and the pooled mortality estimate was RR 0.85 (95% CI 0.75-0.95).'; nt containing that exact set_quote; verified_units=5.",
+    "expected": "Reject k=5: the sentence explicitly limits mortality reporting to 40% of the included trials.",
+    "actual": "The fallback assigns printed={5}, passing the stated-k check. The pooled quote mentions no count, _RESTRICT does not match the sentence, and printed_counts ignores 40%, leaving the review-wide five as its sole count.",
+    "id": "swap-setquote-r14:g1#3",
+    "record_id": "mc-3e8dc3e659c254dca1b28401caebcd38",
+    "verdict": null
+   }
+  ]
  }
 }

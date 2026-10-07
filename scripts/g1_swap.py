@@ -408,6 +408,10 @@ def _counts_in(s):
             return False
         if pt[-1] in number_words or pt[-1] in ("phase", "point") or pt[-1] in _APPROX:
             return True
+        # 'of the ten trials', 'of these 5 studies': the article does not break the denominator link (codex
+        # swap-setquote-r14 #1: '50% of the ten trials')
+        if len(pt) == 2 and pt[0] in ("of", "between") and pt[1] in ("the", "these", "those", "all", "its", "their"):
+            return True
         # 'and' / 'to' / 'or' right after a number joins a larger number or a RANGE ('one hundred and twenty', 'two to five
         # trials', '3 or 4 studies'; codex swap-setquote-r8 #2): the end of a range is never an exact count
         # 'in' / 'of' after a number is a proportion ('one in five trials', 'three of five studies'; codex
@@ -415,16 +419,21 @@ def _counts_in(s):
         return (pt[-1] in ("and", "to", "or", "in", "of") and len(pt) == 2
                 and (pt[0] in number_words or bool(re.fullmatch(r"\d+", pt[0]))))
 
+    def bound_after(j):
+        """A bound written AFTER the trials word: 'Five trials at most', '5 studies or more' (codex swap-setquote-r14 #2)."""
+        return bool(re.match(r"\s*,?\s*(?:(?:at\s+(?:most|least)|or\s+(?:more|fewer|less|so|over|under)|"
+                             r"(?:as\s+a\s+)?(?:maximum|minimum)|and\s+(?:more|above|over))\b|\+)", s[j:], re.I))
+
     # a whole number, never '11.6', 'BRCA1' or one end of a slash range ('Phase 1/2 studies')
     # ... nor a bound written as a symbol ('~5', '>5', '≥5 trials')
     for m in re.finditer(r"(?<![\w.,/~<>≤≥-])(?<![~<>≤≥] )(\d+)(?![.,]\d)(?!/)" + tail, s, re.I):
-        if not blocked_before(m.start(1)):
+        if not blocked_before(m.start(1)) and not bound_after(m.end()):
             out.add(int(m.group(1)))
     # a hyphen before a number word means a compound ('thirty-five'; codex swap-setquote-r4 #1)
     # a slash joins a range ('Phase one/two studies'; codex swap-setquote-r7 #2): a number word beside '/' is never a count
     # ... and a symbol bound before a number word is a bound too ('≥five trials'; codex swap-setquote-r13 #1)
     for m in re.finditer(r"(?<![\w/~<>≤≥-])(?<![~<>≤≥] )(" + "|".join(_COUNT_WORDS) + r")(?![\w/-])" + tail, s, re.I):
-        if not blocked_before(m.start(1)):
+        if not blocked_before(m.start(1)) and not bound_after(m.end()):
             out.add(_COUNT_WORDS.index(m.group(1).lower()) + 1)
     return out
 
@@ -483,11 +492,17 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
         # ... and the sentence must not restrict the pooled result to a SUBSET of the counted trials ('Five trials were
         # included, but only a subset reported mortality'; codex swap-setquote-r13 #3): a closed class of restricting
         # phrases closes the fallback
+        # ... and no percentage in the sentence ('mortality was reported by 40%'; codex swap-setquote-r14 #3).
+        # RESIDUAL, stated rather than chased: whether every counted trial contributed to THIS outcome is a semantic
+        # question that prose rules cannot close (r8-r14 each found a new paraphrase). A k taken this way is therefore
+        # never silent: it carries k_basis SET_QUOTE_SENTENCE with the sentence (dash- and whitespace-normalised), and the signing packet shows
+        # that sentence to the reviewer, who confirms the reading before the adoption is applied.
+        fallback = False
         if (not printed and sent and _quoted(set_quote, nt) and not mentions_a_count(q) and verified_units
-                and not _RESTRICT.search(sent)):
+                and not _RESTRICT.search(sent) and "%" not in sent):
             c = printed_counts(sent)
             if c == {verified_units}:
-                printed = c
+                printed, fallback = c, True
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
         try:
@@ -497,6 +512,9 @@ def pooled_gate(pl, nt, set_quote=None, verified_units=None):
         if kf != int(kf) or int(kf) not in printed:
             return None, None
         k = int(kf)
+        if fallback:
+            pl = dict(pl, k_basis={"from": "SET_QUOTE_SENTENCE", "sentence": sent, "verified_units": verified_units,
+                                   "reviewer_check": "the count in this sentence must be the trials in THIS pooled result"})
     return pl, k
 
 
@@ -1012,6 +1030,17 @@ def _held_old(slug, old_pmid):
     return os.path.relpath(t, ROOT).replace("\\", "/") if os.path.exists(t) else None
 
 
+def retirement_code(fails):
+    """The retirement reason names only the criteria R0 FAILED. A criterion left UNCLEAR because reading stopped at the
+    first failure was never judged, so it is listed as not read, never as a failure (doac R0: C1 FAIL, C2-C6 UNCLEAR).
+    None when nothing failed: such a comparator has no retirement reason."""
+    failed = [f["criterion"] for f in fails if f.get("verdict") == "FAIL"]
+    if not failed:
+        return None
+    unread = [f["criterion"] for f in fails if f.get("verdict") != "FAIL"]
+    return "R0:" + "+".join(failed) + (f" (not read after the failure: {', '.join(unread)})" if unread else "")
+
+
 def cmd_apply(slugs):
     """The swap through the normal path, only for a topic whose selection PICKED a new comparator AND whose enumeration
     is complete (status ENUMERATED): enumeration file, adoption record, comparators.json entry (old one kept under
@@ -1045,7 +1074,11 @@ def cmd_apply(slugs):
         ht = _norm(jats_text(open(os.path.join(ROOT, held), encoding="utf-8", errors="replace").read())) if held else ""
         fails = (sel.get("R0") or {}).get("failing") or []
         spans = [f["evidence"] for f in fails if f.get("evidence") and ht and _norm(f["evidence"]) in ht]
-        retired = {"comparator_pmid": old, "reason_code": "R0:" + "+".join(f["criterion"] for f in fails),
+        code = retirement_code(fails)
+        if not code:
+            print(s, "not applied: R0 records no FAILED criterion, so the old comparator has no retirement reason")
+            continue
+        retired = {"comparator_pmid": old, "reason_code": code,
                    "why": "; ".join(f"{f['criterion']} {f['verdict']}: {str(f.get('evidence'))[:200]}" for f in fails),
                    "spans": spans, "source": ({"path": held, "sha256": hashlib.sha256(open(os.path.join(ROOT, held), "rb").read()).hexdigest()}
                                               if held else None),
@@ -1059,7 +1092,10 @@ def cmd_apply(slugs):
                     "terms": {"per_trial_comparison": "from the comparator's own per-trial rows (read through the existing secondary-meta path)"},
                     "pooled_result": {"measure": pl.get("measure"), "estimate": pl.get("estimate"), "ci_low": pl.get("lower"),
                                       "ci_high": pl.get("upper"), "k": pl.get("k"), "spans": {"result": pl.get("quote")},
-                                      "source": {"path": src, "sha256": en["source"]["sha256"]}},
+                                      "source": {"path": src, "sha256": en["source"]["sha256"]},
+                                      # how k was read: present only when it came from the set-quote sentence, which the
+                                      # signing packet then shows (normalised) for the reviewer's reading
+                                      **({"k_basis": pl["k_basis"]} if pl.get("k_basis") else {})},
                     "trial_set": [{"label": u["label"], "pmid": u["pmid"]} for u in en["units"]], "retired": retired}
         with open(os.path.join(SEL, f"{s}.adoption.json"), "w", encoding="utf-8", newline="\n") as fh:
             json.dump(adoption, fh, indent=1, ensure_ascii=False)

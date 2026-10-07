@@ -296,3 +296,35 @@ def test_PLANT_symbol_bounds_zero_ranges_and_subset_sentences_refuse():
     sq = "Five trials were included, but only a subset reported mortality (RR 0.85)."
     pl = {"measure": "RR", "estimate": "0.85", "k": 5, "quote": "RR 0.85"}
     assert sw.pooled_gate(pl, sw._norm(sq), set_quote=sq, verified_units=5)[0] is None
+
+
+def test_PLANT_a_retirement_names_only_the_criteria_the_old_comparator_FAILED():
+    """doac R0: C1 FAIL, C2-C6 UNCLEAR (never read because C1 failed). The reason code must not claim six failures."""
+    fails = [{"criterion": "C1_OPEN_LICENCE", "verdict": "FAIL", "evidence": "no CC BY"},
+             {"criterion": "C2_RCT_ONLY", "verdict": "UNCLEAR", "evidence": "not read: C1 failed"}]
+    code = sw.retirement_code(fails)
+    assert code == "R0:C1_OPEN_LICENCE (not read after the failure: C2_RCT_ONLY)"
+    assert sw.retirement_code([{"criterion": "C2_RCT_ONLY", "verdict": "UNCLEAR"}]) is None   # nothing failed: no retirement
+
+
+def test_PLANT_r14_denominators_post_bounds_percent_sentences_and_the_k_basis_is_recorded():
+    """codex swap-setquote-r14: #1 '50% of the ten trials'; #2 'Five trials at most'; #3 a percentage in the set-quote
+    sentence. And a k borrowed from the set-quote sentence is never silent: it carries k_basis with the sentence."""
+    assert sw.printed_counts("50% of the ten trials contributed to the mortality analysis (RR 0.85).") == set()
+    assert sw.printed_counts("Five trials at most contributed to the pooled RR 0.85.") == set()
+    assert sw.printed_counts("5 studies or more reported it.") == set()
+    assert sw.printed_counts("Five trials contributed to the pooled RR 0.85.") == {5}
+    q = "the pooled mortality estimate was RR 0.85 (95% CI 0.75-0.95)."
+    sq = "Five trials were included, mortality was reported by 40%, and the pooled mortality estimate was RR 0.85 (95% CI 0.75-0.95)."
+    pl = {"measure": "RR", "estimate": "0.85", "lower": "0.75", "upper": "0.95", "k": 5, "quote": q}
+    assert sw.pooled_gate(pl, sw._norm(sq), set_quote=sq, verified_units=5)[0] is None
+    q2 = "OR 0.88, CI 0.75\u20131.03"
+    sq2 = "In the five Phase 3 studies, the outcome tended to favor DOACs (OR 0.88, CI 0.75\u20131.03)."
+    pl2 = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": q2}
+    got, k = sw.pooled_gate(pl2, sw._norm(sq2), set_quote=sq2, verified_units=5)
+    assert k == 5 and got["k_basis"]["from"] == "SET_QUOTE_SENTENCE" and "five Phase 3 studies" in got["k_basis"]["sentence"]
+    assert "k_basis" not in pl2                                      # the caller's claim is not mutated
+    # a k printed in the pooled quote itself carries no k_basis (nothing for the reviewer to re-read)
+    q3 = "Five trials gave RR 0.85 (95% CI 0.75-0.95)."
+    got3, _ = sw.pooled_gate({"measure": "RR", "estimate": "0.85", "k": 5, "quote": q3}, sw._norm(q3))
+    assert got3 and "k_basis" not in got3
