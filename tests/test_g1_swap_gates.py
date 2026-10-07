@@ -162,3 +162,11 @@ def test_PLANT_tens_compounds_refuse_and_a_plain_conjunction_does_not():
     assert sw.printed_counts("We included observational cohorts and 5 randomized trials.") == {5}
     assert sw.printed_counts("cohorts and five randomized trials") == {5}
     assert 20 not in sw.printed_counts("We included one hundred and twenty trials.")
+
+
+def test_PLANT_spelled_decimals_refuse_and_punctuation_ends_a_phase():
+    """codex swap-setquote-r5 #1 ('four point five studies') and #2 ('Phase 3: 5 randomized trials' -> 5)."""
+    assert sw.printed_counts("The mean was four point five studies per review.") == set()
+    assert sw.printed_counts("Phase 3: 5 randomized trials") == {5}
+    assert sw.printed_counts("In the five Phase 3 studies") == {5}
+    assert sw.printed_counts("Phase 3 studies") == set()

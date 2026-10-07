@@ -336,19 +336,21 @@ def printed_counts(q):
     tens = {"twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"}
     number_words = set(_COUNT_WORDS) | tens | {"hundred", "thousand", "million"}
 
-    def prev_words(i, n=2):
-        return [w.lower() for w in re.findall(r"[A-Za-z]+", s[:i])[-n:]]
+    def prev_tokens(i, n=2):
+        """The n whitespace/hyphen-separated tokens right before position i, lower-cased, punctuation KEPT."""
+        return [t.lower() for t in re.split(r"[\s-]+", s[:i].strip()) if t][-n:]
 
     def blocked_before(i):
-        """The count is part of a larger number or a phase: the word before it is a number word ('twenty five',
-        'thirty-five') or 'phase'; or it is 'and' right after a number word ('one hundred and twenty'). A plain
-        conjunction ('cohorts and 5 randomized trials') blocks nothing (codex swap-setquote-r4 #2)."""
-        pw = prev_words(i)
-        if not pw:
+        """The count is part of a larger number, a spelled decimal or a phase: the token right before it is a number word
+        ('twenty five', 'thirty-five'), 'point' ('four point five'; codex r5 #1) or 'phase'; or it is 'and' right after a
+        number word ('one hundred and twenty'). Punctuation on the previous token ends the link ('Phase 3: 5 randomized
+        trials' -> 5; codex r5 #2), and a plain conjunction ('cohorts and 5 randomized trials') blocks nothing."""
+        pt = prev_tokens(i)
+        if not pt or not re.fullmatch(r"[a-z]+", pt[-1]):
             return False
-        if pw[-1] in number_words or pw[-1] == "phase":
+        if pt[-1] in number_words or pt[-1] in ("phase", "point"):
             return True
-        return pw[-1] == "and" and len(pw) == 2 and pw[0] in number_words
+        return pt[-1] == "and" and len(pt) == 2 and pt[0] in number_words
 
     for m in re.finditer(r"(?<![\w.,-])(\d+)(?![.,]\d)" + tail, s, re.I):       # a whole number, never '11.6' or 'BRCA1'
         if not blocked_before(m.start(1)):

@@ -1829,5 +1829,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r5": {
+  "base": "6b4e18ca2",
+  "head": "bd1dcf0f00be0d81b58a5eb9b02aef3e5d7f4a62",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c031cef42061eaf6c59fded73baa8a45",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "ef4984ba1d26f71333451566a844f7242070354262c31dc17e19348142510779"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts",
+    "severity": "P0",
+    "claim": "The new number-word matcher extracts the final word of a spelled-out decimal as an integer count. pooled_gate can consequently validate k=5 against text that states 4.5.",
+    "failing_input": "printed_counts('The mean was four point five studies per review.')",
+    "expected": "set(): a fractional mean provides no whole-number trial count.",
+    "actual": "{5}",
+    "id": "swap-setquote-r5:g1#1",
+    "record_id": "mc-c031cef42061eaf6c59fded73baa8a45",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "printed_counts.blocked_before",
+    "severity": "P1",
+    "claim": "The backward scan discards digits and punctuation, incorrectly treating 'phase' as immediately preceding an independent trial count. This makes pooled_gate reject an explicitly supported k=5.",
+    "failing_input": "printed_counts('Phase 3: 5 randomized trials')",
+    "expected": "{5}: 3 is the phase number; 5 is the explicit trial count.",
+    "actual": "set()",
+    "id": "swap-setquote-r5:g1#2",
+    "record_id": "mc-c031cef42061eaf6c59fded73baa8a45",
+    "verdict": null
+   }
+  ]
  }
 }
