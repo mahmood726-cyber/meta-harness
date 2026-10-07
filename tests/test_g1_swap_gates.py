@@ -492,3 +492,10 @@ def test_PLANT_r25_a_k_regex_never_backtracks_into_a_decimal():
     assert sw.printed_counts(q) == set()
     assert sw.pooled_gate({"quote": q, "measure": "RR", "estimate": "1", "lower": "0.8", "upper": "1.2", "k": 1},
                           sw._norm(q))[0] is None
+
+
+def test_PLANT_r26_an_abbreviation_never_detaches_its_approximator():
+    """codex swap-setquote-r26 #1: 'Approx. 5 trials' was split after 'Approx.' and the 5 read as exact."""
+    assert sw.printed_counts("Approx. 5 trials reported mortality RR 0.85 (95% CI 0.70-1.03).") == set()
+    assert sw.printed_counts("Ca. 5 trials reported mortality RR 0.85.") == set()
+    assert len(sw._sentences("See Fig. 2 for the forest plot. Five trials were pooled.")) == 2

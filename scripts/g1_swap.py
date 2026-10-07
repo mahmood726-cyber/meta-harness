@@ -381,9 +381,21 @@ def _clean(q):
 
 def _sentences(q):
     """Sentences: split after . ! ? followed by space and a capital, digit or opening bracket. A semicolon joins clauses
-    of ONE sentence ('RR .85 (95% CI .70-1.03); 12 trials.' prints its count with its estimate), so it never splits. A missed split only
-    MERGES two sentences, and a merged sentence holding two numerals is refused by printed_counts -- never admitted."""
-    return [x for x in re.split(r"(?<=[.!?])\s+(?=[\"'(\[]?[A-Z0-9])", _clean(q)) if x.strip()]
+    of ONE sentence ('RR .85 (95% CI .70-1.03); 12 trials.' prints its count with its estimate), so it never splits.
+    Never after an abbreviation ('Approx. 5 trials' keeps its approximator; codex swap-setquote-r26 #1). A missed split
+    only MERGES two sentences, and a merged sentence holding two numerals is refused by printed_counts."""
+    parts = [x for x in re.split(r"(?<=[.!?])\s+(?=[\"'(\[]?[A-Z0-9])", _clean(q)) if x.strip()]
+    out = []
+    for x in parts:
+        if out and _ABBREV.search(out[-1]):
+            out[-1] = out[-1] + " " + x
+        else:
+            out.append(x)
+    return out
+
+
+_ABBREV = re.compile(r"\b(?:approx|ca|c|circa|e\.g|i\.e|vs|cf|et\s+al|fig|figs|ref|refs|no|nos|tab|suppl|appx|"
+                     r"est|resp|incl|excl|min|max|mo|yr|yrs|wk|wks|av|avg)\.$", re.I)
 
 
 def _numerals(sent):

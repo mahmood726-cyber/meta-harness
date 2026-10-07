@@ -2822,5 +2822,46 @@
     "verdict": null
    }
   ]
+ },
+ "swap-setquote-r26": {
+  "base": "6b4e18ca2",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fa49339dcfb0b574223eb61683c94122",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_swap.py"
+    ],
+    "prompt_sha256": "f3a5ccda73785ad1e5244d884ed236dd46bbb7e403a48fb6afcf493473201ee0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_sentences / printed_counts",
+    "severity": "P0",
+    "claim": "Sentence splitting detaches an approximation abbreviation from its count, allowing an approximate k to pass as exact.",
+    "failing_input": "printed_counts('Approx. 5 trials reported mortality RR 0.85 (95% CI 0.70-1.03).')",
+    "expected": "set(): 'Approx. 5' does not establish an exact trial count.",
+    "actual": "{5}. _sentences splits after 'Approx.', so the count's sentence loses its approximator. pooled_gate likewise selects that result sentence and accepts k=5.",
+    "id": "swap-setquote-r26:g1#1",
+    "record_id": "mc-fa49339dcfb0b574223eb61683c94122",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_swap.py",
+    "function": "_bound_counts",
+    "severity": "P0",
+    "claim": "Count-to-result binding separates clauses only at semicolons, allowing another outcome's trial count to become the mortality result's k.",
+    "failing_input": "_bound_counts('Five trials reported recurrence, whereas mortality RR 0.85 (95% CI 0.70-1.03).', [0.85, 0.70, 1.03])",
+    "expected": "set(): the five trials are explicitly attached to recurrence; no mortality trial count is established.",
+    "actual": "{5}. The entire sentence is treated as one clause containing both the count and the mortality values, allowing pooled_gate to accept k=5.",
+    "id": "swap-setquote-r26:g1#2",
+    "record_id": "mc-fa49339dcfb0b574223eb61683c94122",
+    "verdict": null
+   }
+  ]
  }
 }
