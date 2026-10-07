@@ -130,3 +130,29 @@ def test_a_c1_pass_through_unpaywall_alone_is_read_from_its_open_text(monkeypatc
     monkeypatch.setattr(k_gap, "unpaywall_text", lambda doi, c, i, offline=False: {"text": body, "state": "OA_TEXT",
                                                                                   "license": None, "url": "u"})
     assert sw.screen_item("iv-iron-hfref-hosp", p, "1", {"doi": "10.1/X", "pmcid_open": None, "title": "T"}, rule_) is None
+
+
+def test_k_printed_as_a_word_with_a_phase_qualifier():
+    # 7 Oct (doac-vte pick 29795629): 'In the five Phase 3 studies ... (OR 0.88, CI 0.75-1.03)' -- k=5 was refused (the
+    # word 'five' was never read) while k=3 would have PASSED ('3 studies' inside 'Phase 3 studies')
+    q = "In the five Phase 3 studies, DOACs did not differ from warfarin (OR 0.88, CI 0.75-1.03)."
+    p = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "quote": q}
+    assert sw.pooled_gate(dict(p, k=5), sw._norm(q))[1] == 5
+    assert sw.pooled_gate(dict(p, k=3), sw._norm(q)) == (None, None)
+    assert sw.pooled_gate(dict(p, k=12, quote="12 randomised controlled trials; OR 0.88 (0.75-1.03)"),
+                          sw._norm("12 randomised controlled trials; OR 0.88 (0.75-1.03)"))[1] == 12
+
+
+def test_k_from_a_verbatim_set_quote_of_the_same_analysis():
+    # 7 Oct (doac-vte 29795629): the pooled quote (abstract) prints OR 0.88 (0.75-1.03) but not k; the set quote prints
+    # 'five Phase 3 studies' WITH the same OR 0.88 / 0.75 / 1.03. k stands only when the set quote carries every stated
+    # estimate and bound -- a k printed beside a DIFFERENT analysis never transfers
+    pq = "comparable risk of recurrent VTE and death (OR 0.88, 95% CI 0.75-1.03), recurrent DVT (0.83, 0.66-1.05)."
+    sq = "In the five Phase 3 studies, DOACs did not differ from warfarin (OR 0.88, CI 0.75-1.03)."
+    other = "In the five Phase 3 studies, DOACs did not differ from warfarin on bleeding (OR 0.61, CI 0.45-0.83)."
+    p = {"measure": "OR", "estimate": "0.88", "lower": "0.75", "upper": "1.03", "k": 5, "quote": pq}
+    nt = sw._norm(pq + " " + sq + " " + other)
+    assert sw.pooled_gate(p, nt) == (None, None)
+    assert sw.pooled_gate(p, nt, k_quote=sq)[1] == 5
+    assert sw.pooled_gate(p, nt, k_quote=other) == (None, None)
+    assert sw.pooled_gate(p, nt, k_quote="five Phase 3 studies, OR 0.88 (0.75-1.03) [not in text]") == (None, None)

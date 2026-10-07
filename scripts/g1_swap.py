@@ -272,29 +272,49 @@ def label_cites(lab, xml, refs):
     return out
 
 
-def pooled_gate(pl, nt):
+_NUM_WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen "
+                                         "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+
+
+def k_printed(q):
+    """Every trial count a quote PRINTS: 'k = n', or 'n [phase 3] [randomised] [controlled] [clinical] trials / studies
+    / RCTs' with n a numeral or a number word ('five Phase 3 studies', 7 Oct). A numeral that is itself a phase label
+    ('Phase 3 studies') is never a count."""
+    out = {int(x) for x in re.findall(r"\bk\s*=\s*(\d+)", q, re.I)}
+    for n in re.findall(r"(?<!phase\s)\b(\d+|" + "|".join(_NUM_WORDS) + r")\s+(?:phase\s+(?:[1-4]|i{1,3}|iv)\s+)?"
+                        r"(?:randomi[sz]ed\s+)?(?:controlled\s+)?(?:clinical\s+)?(?:trials|studies|rcts)\b", q, re.I):
+        out.add(int(n) if n.isdigit() else _NUM_WORDS[n.lower()])
+    return out
+
+
+def pooled_gate(pl, nt, k_quote=None):
     """The pooled claim stands only if its quote is verbatim in the held text, every stated estimate / bound EQUALS a whole
     numeric token of that quote (never a substring: '0.8' inside '0.85' -- g2#3), and a stated k is PRINTED in the quote
     as 'k = n' or 'n trials / studies / RCTs' (g2#4: an invented k reached the T3 largest-k tie-break). Returns
-    (pooled or None, k or None)."""
+    (pooled or None, k or None). k_quote (the enumeration's set quote, 7 Oct): k may instead be printed there, only when
+    that quote is verbatim too AND carries every stated estimate / bound as whole tokens -- the SAME analysis."""
     q = pl.get("quote")
     if not _quoted(q, nt):
         return None, None
-    toks = _num_tokens(q)
+    vals = []
     for key in ("estimate", "lower", "upper"):
         if pl.get(key) in (None, ""):
             continue
         try:
-            v = float(str(pl[key]).replace("−", "-").replace("–", "-"))
+            vals.append(float(str(pl[key]).replace("−", "-").replace("–", "-")))
         except ValueError:
             return None, None
-        if not any(abs(v - t) < 1e-9 for t in toks):
-            return None, None
+
+    def carries(qq):
+        toks = _num_tokens(qq)
+        return all(any(abs(v - t) < 1e-9 for t in toks) for v in vals)
+    if not carries(q):
+        return None, None
     k = pl.get("k")
     if k is not None:
-        printed = {int(x) for pair in re.findall(r"\bk\s*=\s*(\d+)|\b(\d+)\s+(?:randomi[sz]ed\s+)?(?:controlled\s+)?"
-                                                  r"(?:clinical\s+)?(?:trials|studies|rcts)\b", q, re.I)
-                   for x in pair if x}
+        printed = k_printed(q)
+        if k_quote and vals and _quoted(k_quote, nt) and carries(k_quote):
+            printed |= k_printed(k_quote)
         # k is a whole number as stated, never truncated (a fractional '11.6' is not 11 -- v8-p0-fixes g1#3), and the
         # value handed downstream is the validated integer
         try:
@@ -753,8 +773,8 @@ def gate_enum(claim, it):
         span = rq if rq else (r.get("title") or lab)
         units.append({"label": lab, "ref": ref, "pmid": pmid, "identity": ident, "span": span, "scope": "IN_SCOPE",
                       "rule_id": None})
-    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt)
     sq = claim.get("set_quote")
+    pooled, _k = pooled_gate(claim.get("pooled") or {}, nt, k_quote=sq)
     return units, refused, pooled, (sq if _quoted(sq, nt) else None)
 
 
