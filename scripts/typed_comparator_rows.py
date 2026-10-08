@@ -44,9 +44,14 @@ def _cells(tr):
             for c in re.findall(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", tr, re.S)]
 
 
+def _uncomment(raw):
+    """XML comments are not text: a commented-out row is never read (codex doac-table1 #1)."""
+    return re.sub(r"<!--.*?-->", " ", raw, flags=re.S)
+
+
 def held_norm(raw):
-    """Tag-stripped, unescaped, whitespace-collapsed (the tracker's _held_norm for markup sources)."""
-    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", raw))).strip()
+    """Comment-stripped, tag-stripped, unescaped, whitespace-collapsed (the tracker's _held_norm for markup sources)."""
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", _uncomment(raw)))).strip()
 
 
 def read(slug):
@@ -54,7 +59,7 @@ def read(slug):
     path = os.path.join(ROOT, cfg["source"])
     raw = open(path, encoding="utf-8", errors="replace").read()
     sha = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    m = re.search(r'<table-wrap\b[^>]*id="' + re.escape(cfg["table_id"]) + r'".*?</table-wrap>', raw, re.S)
+    m = re.search(r'<table-wrap\b[^>]*id="' + re.escape(cfg["table_id"]) + r'".*?</table-wrap>', _uncomment(raw), re.S)
     if not m:
         raise SystemExit(f"REFUSED: table {cfg['table_id']} not in {cfg['source']}")
     trs = [_cells(tr) for tr in re.findall(r"<tr\b.*?</tr>", m.group(0), re.S)]

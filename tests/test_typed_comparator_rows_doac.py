@@ -32,3 +32,19 @@ def test_PLANT_a_number_not_printed_in_its_span_refuses_the_whole_file(tmp_path,
     p.write_text(json.dumps(d), encoding="utf-8")
     monkeypatch.setattr(gt, "TYPED_COMPARATOR_ROWS", str(tmp_path / "{slug}.json"))
     assert gt.typed_comparator_rows(SLUG, "29795629") is None
+
+
+def test_PLANT_a_commented_out_row_is_never_read(tmp_path, monkeypatch):
+    """codex doac-table1 #1: rows inside XML comments became comparator results."""
+    src = os.path.join(ROOT, tcr.READERS[SLUG]["source"])
+    raw = open(src, encoding="utf-8").read()
+    i = raw.index("<td", raw.index("RE-COVER II") - 400)
+    tr = raw.rfind("<tr", 0, raw.index("RE-COVER II"))
+    fake = "<!-- <tr><td>FAKE-TRIAL</td><td>2015</td><td>X</td><td>1/10</td><td>Warfarin</td><td>2/10</td><td>50</td><td>40</td></tr> -->"
+    p = tmp_path / "held.xml"
+    p.write_text(raw[:tr] + fake + raw[tr:], encoding="utf-8")
+    cfg = dict(tcr.READERS[SLUG], source=str(p))
+    monkeypatch.setitem(tcr.READERS, SLUG, cfg)
+    monkeypatch.setattr(tcr, "ROOT", "")
+    d = tcr.read(SLUG)
+    assert "FAKE-TRIAL" not in [r["label"] for r in d["rows"]] and len(d["rows"]) == 5
