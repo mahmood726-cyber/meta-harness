@@ -691,3 +691,47 @@ Per topic: tocilizumab-covid19-mortality NOT_YET indep 5/19 matched 5/19; balanc
 - sacubitril-valsartan-hfref is now 2/9 matched, which meets ALL_ELIGIBLE_MATCHED. RESULT_AGREES stays open because the comparator prints no row for PARALLEL-HF.
 
 **What remains.** The other 15 gap trials have no open source on any route: the older-subgroup statin papers, the 1990s melatonin trials, and the COVID steroid trials, whose texts sit under the emergency licence, which is not CC.
+
+## 2026-10-08 -- gap-list share: D8 + quarantine, sacubitril identity join, routes ledger, V10 proposals
+
+**V10, flip-ready on one decision: denosumab-vertebral-fracture / Bone 2008 (PMID 18381571).** Add the drafted entry to `registry/scope_adjudications.json`. It is in `outputs/k_gap/notices/V10_SCOPE_ADJUDICATIONS_2026-10-08.json`, spans verified against main.
+- **The spans.**
+  - Protocol: "postmenopausal women with osteoporosis."
+  - Held abstract: "Subjects included 332 postmenopausal women with lumbar spine BMD T-scores between -1.0 and -2.5."
+  - That band is osteopenia. The Prolia EPAR describes study 20040132 identically and calls it a prevention study.
+- **Effect.** RESULT_AGREES is already met (FREEDOM). Eligible becomes 1/1 and the divergence is named, so **denosumab flips** (11 of 22 active).
+- **Why there is no count route.** Every open route is recorded, none with a count: AACT is BMD only; the EPAR names 20040132 seven times with no fracture count; PMDA has only the 2017 RA review. The OA copy and ANZCTR/CADTH answered with bot challenges, jRCT refused TLS, TGA was unreachable, and CORE needs an account.
+
+**V10, not flip-ready alone: semaglutide-obesity-mace / O'Neil 2018.**
+- **Correction to CLOSE-4.** No dated amendment is needed. The registered protocol's I line already says "once-weekly subcutaneous semaglutide 2.4 mg added to standard care." Against O'Neil's "All treatment doses were delivered once-daily via subcutaneous injections.", this is the same decision-2 protocol-text route that semaglutide-obesity-weight uses. The draft entry is in the same file.
+- **Caveat.** The MACE protocol's exclusion list, unlike weight's, doesn't name "a different semaglutide dose". The entry rests on the I line alone; your call.
+- **What is still missing.** RESULT_AGREES needs SELECT counts (binding) plus D12.
+
+**sacubitril-valsartan-hfref: identity join done (125802eb5).** `registry/identity_links.json` links PMID 33731544 to NCT02468232 on two typed facts, each with span and digest:
+- the report's own open text states exactly one NCT, "...Japanese HFrEF Patients (NCT02468232)...";
+- the title acronym PARALLEL-HF equals the CT.gov acronym.
+
+`scripts/g1_identity_links.join()` joins only to a registration already pooled. The tracker change is a 2-line hook after the SCREENED_VIA_OTHER_REPORT loop; **please port it to main's g1_tracker** (my lane's tracker is older).
+- **Result.** Tsutsui becomes PRIMARY through the served row, HR 1.0881 (0.6501–1.8212). ours_not_in_comparator becomes empty.
+- **Still not flip-ready.** RESULT_AGREES stays unmet: the comparator is an NMA with no per-trial rows. The unsigned PARALLEL-HF screen notice is no longer needed for the match, because the join goes through the registration we already pool.
+
+**D8 in acquisition (1162f4121).**
+- **Prompt side.** `g1_licence.py` (ported unchanged): CC BY / CC0 article, open copy, unknown counted as closed.
+- **Reader side.** Unchanged: a CC copy or a PMC author manuscript, never bronze. D8's text is "no paywalled text, even by a regex reader".
+- **Audit of all 5484 tracked records.** 12 carried full text of non-CC-BY/CC0 articles: ODYSSEY FH I/II (CC BY-NC), TRANSFORM-1 (CC BY-NC) and PARALLEL-HF (no licence).
+  - All 12 are removed from acq/k-gap, and their ledger entries are marked QUARANTINED_LICENCE. No admitted row rested on them.
+  - **Two of them are on main: mc-2249c745cf51bbc0, mc-3c1d4445e0c6a231. Please quarantine them there.**
+- **Standing plant.** `tests/test_d8_records.py`: every tracked record, offline, with an uncached licence counting as closed.
+
+**Fetch fix, cascade, cortico re-fetch.** You had already done all three (ea493ea5d / fd4901b76). I stopped my duplicate and committed none of it.
+
+**Routes ledger (a13479fa5).** `cache/<slug>/routes_ledger.json` covers all 12 topics, 17 unmatched trials, with one recorded attempt per host (`registry/route_attempts.json`):
+- ANZCTR: BOT_CHALLENGE (a Cloudflare managed challenge);
+- jRCT and RCT portal: TLS_REFUSED (both TLS stacks);
+- TGA: UNREACHABLE after backoff;
+- CADTH: BOT_CHALLENGE;
+- CORE: account only.
+
+0 admitted.
+
+**Codex.** 0 calls this round: no new route produced a text a prompt may carry. The local level would be 2 (2.6 GB RAM free, C: 7.7 GB); the worker is offline.
