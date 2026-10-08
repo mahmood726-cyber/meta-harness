@@ -54,7 +54,10 @@ def test_tracker_shows_the_replacement_comparators_set():
     tp = next(t for t in T["topics"] if t["slug"] == SLUG)
     assert tp["comparator_set_state"] == "ENUMERATED" and tp["comparator_pmid"] == "32492050"
     o = gt.topic(SLUG, T)
-    assert o["N_comparator_trials"] == 2 and o["N_eligible"] == 2
+    # V10-01 (signed 8 Oct, 'yes all v10'): Bone 2008 (PMID 18381571, T-score -1.0 to -2.5) is named by our protocol's
+    # population span, so 1 of the 2 comparator trials is eligible
+    assert o["N_comparator_trials"] == 2 and o["N_eligible"] == 1
+    assert any("18381571" in json.dumps(d) for d in o["named_differences"])
     assert gt.scope_citation_violations(o) == []
 
 
