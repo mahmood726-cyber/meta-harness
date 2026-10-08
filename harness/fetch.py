@@ -10,7 +10,6 @@ import json
 import os
 import re
 import time
-import urllib.parse
 import xml.etree.ElementTree as ET
 
 _NCT_RE = re.compile(r"NCT\d{8}")
@@ -166,6 +165,11 @@ def _resolve_pmcid(pmid: str) -> str | None:
     return _select_pmc_link(d.get("linksets", [{}])[0].get("linksetdbs", []))
 
 
+def _url_path(url: str) -> str:
+    """The URL without its query string or fragment (plain string split; this module makes no network-library import)."""
+    return url.split("#", 1)[0].split("?", 1)[0]
+
+
 def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
     """Download the PMC OA .tar.gz package and extract row-structured text from the supplementary
     spreadsheet/CSV files the article references (per-arm SD tables have hidden here). Best-effort;
@@ -203,7 +207,7 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
         # URL PATH ends .tar.gz -- a query string does not hide it (r7 #2)
         records = [r for r in all_records if (r.get("id") or "").upper() == f"PMC{pmcid}".upper()]
         advertised = [ln.get("href") or "" for r in records for ln in r.findall("link")
-                      if ln.get("format") == "tgz" or urllib.parse.urlsplit(ln.get("href") or "").path.endswith(".tar.gz")]
+                      if ln.get("format") == "tgz" or _url_path(ln.get("href") or "").endswith(".tar.gz")]
         tgz = [h for h in advertised if re.match(r"(ftp|https?)://\S+$", h)]
         if advertised and not tgz:
             # a package is advertised but no usable URL is given: a malformed reply, never absence (codex fetch-loud-r8 #1)
