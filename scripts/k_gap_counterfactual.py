@@ -170,8 +170,11 @@ def pmc_fulltext_cached(pmid, offline=False):
                          "note": "PMC efetch serves front matter only: 'The publisher of this article does not allow "
                                  "downloading of the full text in XML form.' Not an open machine-readable source"}
         else:
-            idx[pmid] = {"state": "FETCH_EMPTY", "pmcid": pmcid,
-                         "note": "PMCID exists but harness.fetch._pmc_fulltext returned '' (it swallows errors); not cached"}
+            # the fetch's TYPED outcome (harness.fetch.LAST_PMC_STATE): a FETCH_FAILED:<stage>:<error> is recorded as
+            # such and retried; EMPTY_BODY is a PMC record with no body -- never confused with 'no open full text'
+            st = fetch.LAST_PMC_STATE.get(pmid) or "UNKNOWN"
+            idx[pmid] = {"state": "FETCH_FAILED" if st.startswith("FETCH_FAILED") else "FETCH_EMPTY", "pmcid": pmcid,
+                         "fetch_state": st, "note": "not cached; retried on the next run"}
     if os.path.exists(fp) and os.path.getsize(fp) == 0:
         os.remove(fp)
     # write ONLY this PMID's entry into the index as it is NOW (another writer may have added entries during the

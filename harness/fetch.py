@@ -176,6 +176,7 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
         time.sleep(0.34)
         m = re.search(r'href="(ftp://[^"]+\.tar\.gz)"', oa) or re.search(r'href="(https?://[^"]+\.tar\.gz)"', oa)
         if not m:
+            LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
             return ""
         url = m.group(1).replace("ftp://ftp.ncbi.nlm.nih.gov", "https://ftp.ncbi.nlm.nih.gov")
         tar_bytes = http.get(url)
@@ -187,23 +188,52 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
                 txt = _ft.supplement_text_from_bytes(base, data)
                 if txt:
                     blocks.append(f"SUPPLEMENT {base}\n{txt}")
+        LAST_SUPPLEMENT_STATE[pmcid] = "HELD" if blocks else "NO_USABLE_SUPPLEMENT"
         return "\n\n".join(blocks)
-    except Exception:  # noqa: BLE001 - supplements are optional reach; never fail the fetch
+    except Exception as exc:  # noqa: BLE001 - supplements are optional reach; the fetch goes on, the failure is TYPED
+        LAST_SUPPLEMENT_STATE[pmcid] = _failed("SUPPLEMENT", exc)
+        _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
         return ""
 
 
 PUBLISHER_DISALLOWS_XML = "does not allow downloading of the full text in XML form"
+# The TYPED outcome of the last _pmc_fulltext call per PMID (captain order 8 Oct: the fetch used to swallow every error
+# into '', so 'not in PMC', a rate limit and a network fault were indistinguishable and the k-gap index recorded 'swallows
+# errors; not cached'): HELD | NO_PMCID | PUBLISHER_DISALLOWS_XML | EMPTY_BODY | FETCH_FAILED:<STAGE>:<ExcType>: <msg>
 LAST_PMC_STATE: dict = {}
+LAST_SUPPLEMENT_STATE: dict = {}     # per PMCID: HELD | NO_OA_PACKAGE | NO_USABLE_SUPPLEMENT | FETCH_FAILED:SUPPLEMENT:...
 
 
-def _pmc_fulltext(pmid: str, with_supplements: bool = False) -> str:
+class PmcFetchError(RuntimeError):
+    """A PMC full-text fetch that FAILED (as opposed to an article that has no open full text)."""
+
+    def __init__(self, pmid: str, stage: str, exc: BaseException):
+        super().__init__(f"PMC full text for PMID {pmid} failed at {stage}: {type(exc).__name__}: {exc}")
+        self.pmid, self.stage, self.cause = pmid, stage, exc
+
+
+def _failed(stage: str, exc: BaseException) -> str:
+    return f"FETCH_FAILED:{stage}:{type(exc).__name__}: {str(exc)[:200]}"
+
+
+def _warn(key: str, state: str) -> None:
+    import sys
+    print(f"[harness.fetch] {key}: {state}", file=sys.stderr)
+
+
+def _pmc_fulltext(pmid: str, with_supplements: bool = False, strict: bool = False) -> str:
     """Resolve PubMed->PMC and return body prose + STRUCTURED tables (per-arm values keep their row),
-    optionally + supplementary spreadsheet/CSV text. Falls back to '' (abstract path) on any failure.
-    The number is never interpreted here — this only makes the verbatim source legible for locate."""
+    optionally + supplementary spreadsheet/CSV text. The number is never interpreted here — this only makes the
+    verbatim source legible for locate. Returns '' when there is no full text (the abstract path) -- and EVERY call
+    leaves its typed outcome in LAST_PMC_STATE[pmid]; a FAILED fetch is printed to stderr, and with strict=True raises
+    PmcFetchError instead of returning '' (a failure is never silently the same as 'no open full text')."""
+    stage = "RESOLVE"
     try:
         pmcid = _resolve_pmcid(pmid)
         if not pmcid:
+            LAST_PMC_STATE[pmid] = "NO_PMCID"
             return ""
+        stage = "EFETCH"
         xml = http.get_text(f"{EUTILS}/efetch.fcgi",
                            {"db": "pmc", "id": pmcid, "retmode": "xml",
                             "tool": "meta-harness", "email": "meta-harness@example.org"})
@@ -214,14 +244,20 @@ def _pmc_fulltext(pmid: str, with_supplements: bool = False) -> str:
             # open machine-readable source -- recorded as such, never retried as a transient empty
             LAST_PMC_STATE[pmid] = "PUBLISHER_DISALLOWS_XML"
             return ""
+        stage = "PARSE"
         parsed = _ft.parse_pmc_xml(xml)
         text = _ft.combined_text(parsed)
         if with_supplements and parsed.get("supplements"):
             sup = _pmc_oa_supplement_text(pmcid, parsed["supplements"])
             if sup:
                 text = (text + "\n\n=== SUPPLEMENTARY FILES ===\n" + sup).strip()
+        LAST_PMC_STATE[pmid] = "HELD" if text.strip() else "EMPTY_BODY"
         return text
-    except Exception:  # noqa: BLE001 - full text is optional; fall back to abstract
+    except Exception as exc:  # noqa: BLE001 - the pipeline falls back to the abstract, but the failure is TYPED and LOUD
+        LAST_PMC_STATE[pmid] = _failed(stage, exc)
+        _warn(f"PMID {pmid}", LAST_PMC_STATE[pmid])
+        if strict:
+            raise PmcFetchError(pmid, stage, exc) from exc
         return ""
 
 
@@ -660,7 +696,10 @@ def _run_with_recorder(config: dict, recorder: _acq.RawRecorder) -> dict:
             ft = _pmc_fulltext(r["id"], with_supplements=with_sup)
             if ft:
                 fulltext_by_pmid[r["id"]] = ft
-    fulltext_status = ("RAN_OK" if fulltext_by_pmid else
+    # a run in which a fetch FAILED is never reported as clean (captain order 8 Oct: failures were silent)
+    fulltext_failures = {r["id"]: LAST_PMC_STATE.get(r["id"]) for r in pubmed[:config.get("max_fulltext", 40)]
+                         if str(LAST_PMC_STATE.get(r["id"]) or "").startswith("FETCH_FAILED")} if config.get("fulltext") else {}
+    fulltext_status = ("RAN_WITH_FAILURES" if fulltext_failures else "RAN_OK" if fulltext_by_pmid else
                        ("RAN_ZERO" if config.get("fulltext") else "NOT_RUN"))
 
     ncts = []
