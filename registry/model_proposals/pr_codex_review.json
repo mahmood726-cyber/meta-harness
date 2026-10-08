@@ -5231,5 +5231,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r8": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a98702b0533476d48bc5d23e1f1b9e12",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "214b4e3558687fea1616bb625f43cc1bcbece6b438088bcc73ed441755e14264"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "An advertised TGZ package with a missing download URL is classified as NO_OA_PACKAGE. The URL filter discards the malformed link before checking package presence, turning an invalid service response into confirmed absence.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><records><record id=\"PMC123\"><link format=\"tgz\"/></record></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Returns '' and records FETCH_FAILED:SUPPLEMENT:... because a package is advertised but its download URL is missing.",
+    "actual": "Returns '' and records NO_OA_PACKAGE without warning. The caller therefore does not recognize a supplement failure, including in strict mode.",
+    "id": "fetch-loud-r8:g1#1",
+    "record_id": "mc-a98702b0533476d48bc5d23e1f1b9e12",
+    "verdict": null
+   }
+  ]
  }
 }

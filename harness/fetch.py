@@ -190,9 +190,14 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
         # only a record FOR THIS article counts (codex fetch-loud-r7 #1); a package is a link of format 'tgz' or whose
         # URL PATH ends .tar.gz -- a query string does not hide it (r7 #2)
         records = [r for r in all_records if (r.get("id") or "").upper() == f"PMC{pmcid}".upper()]
-        tgz = [ln.get("href", "") for r in records for ln in r.findall("link")
-               if re.match(r"(ftp|https?)://", ln.get("href", ""))
-               and (ln.get("format") == "tgz" or urllib.parse.urlsplit(ln.get("href", "")).path.endswith(".tar.gz"))]
+        advertised = [ln.get("href") or "" for r in records for ln in r.findall("link")
+                      if ln.get("format") == "tgz" or urllib.parse.urlsplit(ln.get("href") or "").path.endswith(".tar.gz")]
+        tgz = [h for h in advertised if re.match(r"(ftp|https?)://\S+$", h)]
+        if advertised and not tgz:
+            # a package is advertised but no usable URL is given: a malformed reply, never absence (codex fetch-loud-r8 #1)
+            LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:OA_MALFORMED_PACKAGE_LINK: {advertised[:2]!r}"[:200]
+            _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
+            return ""
         if not tgz:
             if err is not None and err.get("code") == "idIsNotOpenAccess":
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"

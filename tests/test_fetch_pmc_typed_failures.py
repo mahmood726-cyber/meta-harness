@@ -176,3 +176,11 @@ def test_PLANT_a_record_for_another_article_is_not_absence_and_a_query_string_hi
     monkeypatch.setattr(fetch.http, "get", get)
     assert fetch._pmc_oa_supplement_text("921", ["s.xlsx"]) == ""
     assert seen == ["https://x/p.tar.gz?sig=1"]
+
+
+def test_PLANT_an_advertised_package_without_a_usable_url_is_a_failure(monkeypatch):
+    """codex fetch-loud-r8 #1: a tgz link with no download URL read as NO_OA_PACKAGE."""
+    for i, link in enumerate(["<link format='tgz'/>", "<link format='tgz' href=''/>", "<link format='tgz' href='/rel/p.tar.gz'/>"]):
+        monkeypatch.setattr(fetch.http, "get_text", lambda *a, _l=link, _i=i, **k: f"<OA><records><record id='PMC93{_i}'>{_l}</record></records></OA>")
+        assert fetch._pmc_oa_supplement_text(f"93{i}", ["s.xlsx"]) == ""
+        assert fetch.LAST_SUPPLEMENT_STATE[f"93{i}"].startswith("FETCH_FAILED:SUPPLEMENT:OA_MALFORMED_PACKAGE_LINK"), link
