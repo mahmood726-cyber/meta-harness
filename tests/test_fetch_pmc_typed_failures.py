@@ -199,3 +199,11 @@ def test_PLANT_a_service_error_beside_an_advertised_package_is_a_failure(monkeyp
     monkeypatch.setattr(fetch.http, "get", lambda *a, **k: b"")
     assert fetch._pmc_oa_supplement_text("941", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["941"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: internalError")
+
+
+def test_PLANT_only_the_oa_envelope_counts(monkeypatch):
+    """codex fetch-loud-r11 #1: an unrelated document containing a matching <record> read as NO_OA_PACKAGE."""
+    for i, reply in enumerate(["<html><record id='PMC950'/></html>", "<OA><junk><record id='PMC951'/></junk></OA>"]):
+        monkeypatch.setattr(fetch.http, "get_text", lambda *a, _r=reply, **k: _r)
+        assert fetch._pmc_oa_supplement_text(f"95{i}", ["s.xlsx"]) == ""
+        assert fetch.LAST_SUPPLEMENT_STATE[f"95{i}"].startswith("FETCH_FAILED:SUPPLEMENT:OA_UNEXPECTED_RESPONSE"), reply

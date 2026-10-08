@@ -185,7 +185,12 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:OA_UNPARSEABLE: {pe}"[:200]
             _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
-        errs = oa_root.findall(".//error")
+        if oa_root.tag != "OA":
+            # not the OA service's envelope: an unrelated document is never evidence of absence (codex fetch-loud-r11 #1)
+            LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:OA_UNEXPECTED_RESPONSE: root <{oa_root.tag[:40]}>"
+            _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
+            return ""
+        errs = oa_root.findall("error")
         # every error must be 'not open access' for absence; any other error anywhere in the reply is a failure (r9 #1)
         err = next((e for e in errs if e.get("code") != "idIsNotOpenAccess"), errs[0] if errs else None)
         if err is not None and err.get("code") != "idIsNotOpenAccess":
@@ -193,7 +198,7 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: {err.get('code') or 'NO_CODE'} {(err.text or '')[:120]}"
             _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
-        all_records = oa_root.findall(".//record")
+        all_records = oa_root.findall("records/record")
         # only a record FOR THIS article counts (codex fetch-loud-r7 #1); a package is a link of format 'tgz' or whose
         # URL PATH ends .tar.gz -- a query string does not hide it (r7 #2)
         records = [r for r in all_records if (r.get("id") or "").upper() == f"PMC{pmcid}".upper()]

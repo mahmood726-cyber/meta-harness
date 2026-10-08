@@ -5327,5 +5327,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r11": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d4c1c450386ff6c9c5fbe6476cd5bfe8",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "0abbe37da859da50543480ef3db2c97767255f25d8c8ca26c321be39f7201044"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "Unexpected XML can be classified as confirmed package absence. The code searches descendants for matching records without validating the response envelope, so an unrelated document containing a matching record produces NO_OA_PACKAGE instead of a fetch failure.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nwith patch.object(fetch.http, 'get_text', return_value='<unexpected><record id=\"PMC1234567\"/></unexpected>'), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('1234567', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['1234567'])",
+    "expected": "Return ''; record FETCH_FAILED:SUPPLEMENT:OA_UNEXPECTED_RESPONSE and emit a warning because this is not an OA service response.",
+    "actual": "Returns ''; records NO_OA_PACKAGE without a warning because records is nonempty and err is None.",
+    "id": "fetch-loud-r11:g1#1",
+    "record_id": "mc-d4c1c450386ff6c9c5fbe6476cd5bfe8",
+    "verdict": null
+   }
+  ]
  }
 }
