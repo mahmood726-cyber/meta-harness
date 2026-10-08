@@ -5062,5 +5062,47 @@
     "verdict": null
    }
   ]
+ },
+ "idlink-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-113558120c8eace56fe764c001db2fc6",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "5a2245e1117757daa3f00fb2de0d6c6442146acc86674b0db4bb83d57dc2239f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported",
+    "severity": "P1",
+    "claim": "ONE_NCT_STATED_IN_OWN_REPORT is validated by substring membership, so a report explicitly registered to another trial can support the wrong binding. join() accepts that link when its target is pooled.",
+    "failing_input": "supported({'nct': 'NCT00000001', 'rules': [{'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': 'Our trial registration is NCT00000002. The previous ALPHA trial was NCT00000001.', 'text_sha256': __import__('hashlib').sha256(b'Our trial registration is NCT00000002. The previous ALPHA trial was NCT00000001.').hexdigest()}, {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'ALPHA', 'title': 'A successor to ALPHA'}]})",
+    "expected": "False: the span names two registrations and assigns the requested registration to a previous trial.",
+    "actual": "True: the requested NCT occurs anywhere in the span; uniqueness and attribution are not checked.",
+    "id": "idlink-r2:g1#1",
+    "record_id": "mc-113558120c8eace56fe764c001db2fc6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported",
+    "severity": "P1",
+    "claim": "TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM never checks a registry acronym. Any nonempty title substring satisfies this supposedly independent identity fact, allowing join() to accept links without the required corroboration.",
+    "failing_input": "supported({'nct': 'NCT00000001', 'rules': [{'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': 'Trial registration: NCT00000001.', 'text_sha256': __import__('hashlib').sha256(b'Trial registration: NCT00000001.').hexdigest()}, {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'randomized', 'title': 'A randomized trial'}]})",
+    "expected": "False: no trial acronym or evidence of equality with the registry acronym is supplied.",
+    "actual": "True: 'randomized' is a nonempty substring of the supplied title, which is the entire acronym validation.",
+    "id": "idlink-r2:g1#2",
+    "record_id": "mc-113558120c8eace56fe764c001db2fc6",
+    "verdict": null
+   }
+  ]
  }
 }

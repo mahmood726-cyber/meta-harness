@@ -25,7 +25,8 @@ def test_every_committed_link_rests_on_both_typed_facts_with_spans():
 def _link(nct, acro):
     return {"nct": nct, "rules": [
         {"rule": "ONE_NCT_STATED_IN_OWN_REPORT", "span": f"... Patients ({nct}). Study ...", "text_sha256": "a" * 64},
-        {"rule": "TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM", "span": acro, "title": f"Results From the {acro} Study."}]}
+        {"rule": "TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM", "span": acro, "title": f"Results From the {acro} Study.",
+         "registry_acronym": acro, "registry_acronym_source": "AACT test studies.txt"}]}
 
 
 def _unit(label, in_pool=False, route="NO_ROW"):
@@ -73,3 +74,20 @@ def test_PLANT_a_missing_links_file_is_an_error_not_no_links(tmp_path):
     import pytest
     with pytest.raises(FileNotFoundError):
         L.load(str(tmp_path / "identity_links.json"))
+
+
+def test_PLANT_the_nct_fact_needs_exactly_this_registration_and_the_acronym_fact_needs_the_registry():
+    """codex idlink-r2: #1 substring membership let a span naming another (or a second) trial support the link;
+    #2 the acronym fact never compared against the registry's acronym."""
+    good = _link("NCT02468232", "PARALLEL-HF")
+    one, acro = good["rules"]
+    bad = [dict(good, rules=[dict(one, span="... (NCT02468232) and (NCT01111111) ..."), acro]),
+           dict(good, rules=[dict(one, span="... (NCT024682321) ..."), acro]),
+           dict(good, rules=[one, dict(acro, registry_acronym="PARADIGM-HF")]),
+           dict(good, rules=[one, {k: v for k, v in acro.items() if k != "registry_acronym"}]),
+           dict(good, rules=[one, dict(acro, registry_acronym_source="")])]
+    for lk in bad:
+        assert not L.supported(lk), lk
+    assert L.supported(good)
+    assert L.nct_ids_in("x (NCT02468232). NCT0246823 NCT024682321 XNCT01111111 nct00000001") == {"NCT02468232",
+                                                                                                "NCT00000001"}

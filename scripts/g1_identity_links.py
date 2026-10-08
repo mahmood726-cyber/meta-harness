@@ -31,18 +31,56 @@ def load(path=None):
     return json.load(open(p, encoding="utf-8"))
 
 
+def nct_ids_in(text):
+    """Every distinct 'NCT' + exactly 8 digits in the text, bounded by non-alphanumerics. Plain scan, no regex."""
+    out, up, i = set(), (text or "").upper(), 0
+    while True:
+        i = up.find("NCT", i)
+        if i < 0:
+            return out
+        j = i + 3
+        while j < len(up) and up[j].isdigit():
+            j += 1
+        if j - i == 11 and (i == 0 or not up[i - 1].isalnum()) and (j == len(up) or not up[j].isalnum()):
+            out.add(up[i:j])
+        i += 3
+
+
+def _fold(s):
+    return "".join(ch for ch in str(s or "").upper() if ch.isalnum())
+
+
+def registry_acronym_from_aact(nct, snap):
+    """The registered acronym of `nct` from an AACT snapshot's studies.txt (typed read, no model): (acronym, source)."""
+    import csv
+    csv.field_size_limit(10 ** 9)
+    p = os.path.join(snap, "studies.txt")
+    with open(p, encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f, delimiter="|"):
+            if row.get("nct_id") == nct:
+                return (row.get("acronym") or "").strip() or None, f"AACT {os.path.basename(snap)} studies.txt {nct} acronym"
+    return None, f"AACT {os.path.basename(snap)} studies.txt: {nct} not found"
+
+
 def supported(lk):
-    """True only when the link carries BOTH typed facts, each with its span, and they agree with the link's NCT: the
-    report's own span states that NCT, and the acronym span sits in the recorded title (codex idlink-r1 #1)."""
+    """True only when the link carries BOTH typed facts, each with its span, and they agree with the link's NCT
+    (codex idlink-r1 #1, r2 #1 #2):
+      ONE_NCT_STATED_IN_OWN_REPORT -- the report span names exactly ONE registration, and it is the link's NCT (a span
+        naming another trial's NCT, or two, never supports it); the whole-text check is the builder's, pinned by text_sha256
+      TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM -- the acronym span sits in the recorded PubMed title AND equals (folded) the
+        REGISTRY's acronym for that NCT, recorded with its source (registry_acronym / registry_acronym_source)."""
     if not isinstance(lk, dict) or not str(lk.get("nct") or "").startswith("NCT"):
         return False
     rules = {r.get("rule"): r for r in (lk.get("rules") or []) if isinstance(r, dict)}
     if set(rules) != set(RULES) or len(lk.get("rules") or []) != 2:
         return False
     one, acro = rules[RULES[0]], rules[RULES[1]]
-    return (isinstance(one.get("span"), str) and lk["nct"] in one["span"] and len(str(one.get("text_sha256") or "")) == 64
-            and isinstance(acro.get("span"), str) and acro["span"].strip() != ""
-            and acro["span"] in str(acro.get("title") or ""))
+    if not (isinstance(one.get("span"), str) and nct_ids_in(one["span"]) == {lk["nct"].upper()}
+            and len(str(one.get("text_sha256") or "")) == 64):
+        return False
+    span = acro.get("span")
+    return (isinstance(span, str) and _fold(span) != "" and span in str(acro.get("title") or "")
+            and _fold(span) == _fold(acro.get("registry_acronym")) and bool(acro.get("registry_acronym_source")))
 
 
 def join(trials, comp_rows, rp, nct_pool, pooled_ids, matched_ids, routes, links=None):
