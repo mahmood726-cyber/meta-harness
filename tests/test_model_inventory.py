@@ -48,6 +48,9 @@ UNRESOLVED_SUBPROCESS = {
     ("scripts/verify_all.py", "cmd"): "python -m pytest / python scripts/... (_run([sys.executable, ...]) callers)",
     ("tests/test_certificate_code_closure.py", "args"): "python scripts/audit_certificate_stdlib.py",
     ("tests/test_gate_scorecard.py", "cmd"): "git init / add / commit on a fixture repo",
+    ("outputs/pva-2026-10-08/codex_review_tabs/run_jobs.py", "[CODEX, 'exec', '-s', 'read-only', '--skip-git-repo-check', "):
+        "codex exec (read-only) -- the pva review-tabs rendering review, 3 rounds x 7 jobs; every call recorded in "
+        "r*/calls.jsonl (prompt/input/output sha256). A review lane's notes: no served page or build reads its outputs",
 }
 
 # committed model outputs -> what reads them and what they can change

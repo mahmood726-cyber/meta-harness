@@ -15,7 +15,9 @@ from pathlib import Path
 
 A = Path(__file__).resolve().parent
 W = Path("C:/mh-lanes/wt-tabs")
-CODEX = "C:/Users/mahmo/AppData/Roaming/npm/codex.cmd"
+# the run used the npm-installed codex CLI (codex-cli 0.153.x, model gpt-6-astra as each call log records); resolved
+# from PATH here so the committed record names no machine-specific path
+CODEX = os.environ.get("CODEX_EXE") or "codex"   # the codex CLI executable (on Windows: the npm codex.cmd)
 TABS = ("protocol", "search", "included", "extraction", "riskofbias", "analysis", "outcomes", "comparator", "changes",
         "reproduction")
 REG = ("g1_abandoned.json", "g1_decisions.json", "result_change_reinstatements.json", "comparator_switch_signatures.json",
