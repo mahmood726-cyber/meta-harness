@@ -667,3 +667,13 @@ A count is never computed from either.
   - Results-table rows need two arm cells, and a header that omits the row-label column is handled.
 - **Process note.** A stopped background run's python child survived and overwrote the staged file. It was restored from the commit and K3 replayed with no new calls; nothing was lost.
 - **Worker:** still unreachable, so everything ran here at 5.
+
+---
+
+### Codex review of this lane's 7-8 Oct range (96525f4a3..5beded898) -- 25 findings, all reproduced and fixed (de53e5b04)
+
+- Records mc-03278c66 (D10 code), mc-e6c67fca (counts binders), mc-8914a3b0 (gates). Plants: tests/test_g1_codex_review_1008.py (26, each failed first). Verdicts: registry/model_proposals/g1_codex_review.json.
+- **For every lane that runs `g1_trial_acquire` (pre-existing defects in its deterministic table reader `table_tuple`, now fixed):** it admitted a composite row as the outcome ('Death or hospitalisation'), a Kaplan-Meier / rate row as counts, took column 1 as the intervention without reading the header (a placebo-first table was reversed), ignored a labelled timepoint when only one row matched, accepted a safety-population header, and called tuples with different Ns 'the same'. Now each is refused; orientation comes from the header by the topic's own terms (`arm_terms`). The one row ever admitted through it -- SMART 818/7942 v 875/7860 -- is unchanged (its real header names both arms; '28-90 day or in-hospital' admits 'in-hospital before 30 days'). Also: a PMC_TEXT answer must cite the held paper; an Unpaywall retrieval failure is an error, never 'no open source'.
+- `g1_tracker.reported_is_our_outcome`: an unnamed served comparator result is now refused (unverifiable); none of the 28 served reviews has one, so nothing moves.
+- Counts binders and D10 code: 16 further fixes (clause-scoped keywords, denominator kinds, '1.00%' precision, rate units, PMID-NCT evidence, table-caption boundary, 'Non-HF' v 'HF', qualified SAE subsets, generic controls only for control comparators, negated subgroups, fatal v nonfatal).
+- **Replay (no model calls): nothing this lane produced moved** -- 12/12 D10 proposals identical at their commit's topics, 7/7 staged close-4 counts identical, D10 comparisons identical, SMART identical. 1181 g1 tests pass.
