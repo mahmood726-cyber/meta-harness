@@ -212,6 +212,12 @@ class PmcFetchError(RuntimeError):
         self.pmid, self.stage, self.cause = pmid, stage, exc
 
 
+def run_failed(pmid: str) -> bool:
+    """Did the last full-text fetch for this PMID FAIL anywhere (body or a requested supplement)?"""
+    st = str(LAST_PMC_STATE.get(pmid) or "")
+    return st.startswith("FETCH_FAILED") or st.startswith("HELD_WITH_SUPPLEMENT_FAILURE")
+
+
 def _failed(stage: str, exc: BaseException) -> str:
     return f"FETCH_FAILED:{stage}:{type(exc).__name__}: {str(exc)[:200]}"
 
@@ -247,11 +253,17 @@ def _pmc_fulltext(pmid: str, with_supplements: bool = False, strict: bool = Fals
         stage = "PARSE"
         parsed = _ft.parse_pmc_xml(xml)
         text = _ft.combined_text(parsed)
+        sup_failed = None
         if with_supplements and parsed.get("supplements"):
             sup = _pmc_oa_supplement_text(pmcid, parsed["supplements"])
             if sup:
                 text = (text + "\n\n=== SUPPLEMENTARY FILES ===\n" + sup).strip()
-        LAST_PMC_STATE[pmid] = "HELD" if text.strip() else "EMPTY_BODY"
+            st = LAST_SUPPLEMENT_STATE.get(pmcid) or ""
+            sup_failed = st if st.startswith("FETCH_FAILED") else None
+        LAST_PMC_STATE[pmid] = ("EMPTY_BODY" if not text.strip() else
+                                # a requested supplement that FAILED beside a held body is a failure of the run (codex
+                                # fetch-loud #1); the body is still returned
+                                f"HELD_WITH_SUPPLEMENT_FAILURE:{sup_failed}" if sup_failed else "HELD")
         return text
     except Exception as exc:  # noqa: BLE001 - the pipeline falls back to the abstract, but the failure is TYPED and LOUD
         LAST_PMC_STATE[pmid] = _failed(stage, exc)
@@ -698,7 +710,7 @@ def _run_with_recorder(config: dict, recorder: _acq.RawRecorder) -> dict:
                 fulltext_by_pmid[r["id"]] = ft
     # a run in which a fetch FAILED is never reported as clean (captain order 8 Oct: failures were silent)
     fulltext_failures = {r["id"]: LAST_PMC_STATE.get(r["id"]) for r in pubmed[:config.get("max_fulltext", 40)]
-                         if str(LAST_PMC_STATE.get(r["id"]) or "").startswith("FETCH_FAILED")} if config.get("fulltext") else {}
+                         if run_failed(r["id"])} if config.get("fulltext") else {}
     fulltext_status = ("RAN_WITH_FAILURES" if fulltext_failures else "RAN_OK" if fulltext_by_pmid else
                        ("RAN_ZERO" if config.get("fulltext") else "NOT_RUN"))
 

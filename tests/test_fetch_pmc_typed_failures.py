@@ -67,3 +67,14 @@ def test_PLANT_a_supplement_failure_is_typed(monkeypatch):
     monkeypatch.setattr(fetch.http, "get_text", boom)
     assert fetch._pmc_oa_supplement_text("777", ["s1.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["777"].startswith("FETCH_FAILED:SUPPLEMENT:TimeoutError")
+
+
+def test_PLANT_a_failed_supplement_beside_a_held_body_is_a_failure_of_the_run(monkeypatch):
+    """codex fetch-loud #1: the body succeeded, the supplement failed, and the run read RAN_OK."""
+    monkeypatch.setattr(fetch, "_resolve_pmcid", lambda pmid: "42")
+    monkeypatch.setattr(fetch.http, "get_text", lambda url, *a, **k: "<article/>" if "efetch" in url else (_ for _ in ()).throw(TimeoutError("timed out")))
+    monkeypatch.setattr(fetch._ft, "parse_pmc_xml", lambda xml: {"supplements": ["s1.xlsx"]})
+    monkeypatch.setattr(fetch._ft, "combined_text", lambda parsed: "Body text.")
+    assert fetch._pmc_fulltext("888", with_supplements=True) == "Body text."
+    assert fetch.LAST_PMC_STATE["888"].startswith("HELD_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT")
+    assert fetch.run_failed("888")
