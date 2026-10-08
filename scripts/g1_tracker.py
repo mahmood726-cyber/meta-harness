@@ -378,16 +378,62 @@ def _concl(r, measure):
     return "BENEFIT" if r["ci_high"] < null else "HARM" if r["ci_low"] > null else "NULL_INCLUDED"
 
 
-def same_trials_compare(pairs, method_label, participants_of=None):
+def d12_pairs(pairs, d12):
+    """D12 COUNTS_FOR_MATCHING (registry/g1_decisions.json; scripts/g1_d12.py): a pair our verified value cannot meet on
+    the comparator's count measure (our HR vs their RR / OR: a MEASURE_DIFFERENCE) is compared instead on the trial's OWN
+    per-arm counts -- AACT posted results or a held primary span, verified by g1_d12 at this build -- re-expressed on the
+    comparator's measure. FOR MATCHING ONLY: only the pair is replaced; the trial's our_value and every served pool are
+    untouched. Returns (pairs, [what was used, per trial])."""
+    if not d12:
+        return list(pairs), []
+    out, used = [], []
+    for o_, t_ in pairs:
+        tm = (t_.measure or "").upper()
+        _row, why = on_comparator_measure(o_, t_)
+        hit = d12.get(o_.trial_label) or d12.get(t_.trial_label)
+        if _row is None and hit and tm in _COUNT_MEASURES:
+            new = sm.SecondaryRow(meta_pmid="OURS", meta_doi="", location={}, source_digest="", provenance="D12_OWN_COUNTS",
+                                  trial_label=o_.trial_label, measure=tm, outcome_definition="", **hit["row"])
+            out.append((new, t_))
+            used.append({"trial": o_.trial_label, "decision": "D12-COUNTS_FOR_MATCHING", "measure": tm,
+                         "counts": dict(hit["row"]), "rule": hit.get("rule"), "basis": hit.get("basis"),
+                         "source": hit.get("source"), "span": hit.get("span"),
+                         "served_value_unchanged": {"measure": o_.measure, "effect": o_.effect, "lower": o_.lower,
+                                                    "upper": o_.upper},
+                         "replaces": why})
+        else:
+            out.append((o_, t_))
+    return out, used
+
+
+def same_trials_compare(pairs, method_label, participants_of=None, d12=None):
     """same_trials_core on the pairs whose comparator row has a two-sided interval (or counts); a pair whose comparator
     printed ONE bound only (comparator_one_sided) can be pooled by neither side and is set aside BY NAME in
-    comparator_one_sided_not_pooled -- never silently dropped."""
+    comparator_one_sided_not_pooled -- never silently dropped. d12: {trial label: verified own counts} (d12_pairs)."""
+    pairs, d12_used = d12_pairs(pairs, d12)
     one_sided = [t_.trial_label for _, t_ in pairs if comparator_one_sided(t_)]
     kept = [p for p in pairs if not comparator_one_sided(p[1])]
     out = same_trials_core(kept, method_label, participants_of) if kept else {"state": "NO_SHARED_TRIAL", "k": 0}
     if one_sided:
         out = dict(out, comparator_one_sided_not_pooled=one_sided)
+    if d12_used:
+        out = dict(out, d12_counts_for_matching=d12_used)
     return out
+
+
+def d12_for(slug, trials):
+    """The verified D12 own-count bindings of this topic's matched trials (scripts/g1_d12.for_topic), keyed by our trial
+    label, and the refusals. Imported here only: g1_d12 is a matching input, never a serving one."""
+    import g1_d12
+    cfg = json.load(open(os.path.join(ROOT, "topics", f"{slug}.json"), encoding="utf-8")) \
+        if os.path.exists(os.path.join(ROOT, "topics", f"{slug}.json")) else {}
+    spec = (cfg.get("primary_outcome") or {}).get("name") or ""
+    kw = list((cfg.get("primary_outcome") or {}).get("keywords") or [])
+
+    def endpoint_ok(title):
+        # the same outcome gate a registry binding passes: named by a topic keyword, not another composite
+        return bool(spec) and binding_verdict(spec, kw, title, 2)["gate"] not in ("OUTCOME_NOT_NAMED", "ESTIMAND")
+    return g1_d12.for_topic(slug, trials, endpoint_ok=endpoint_ok)
 
 
 def same_trials_core(pairs, method_label, participants_of=None):
@@ -2041,7 +2087,8 @@ def apply_typed_comparator_rows(o):
             x["agreement_with_comparator_row"] = agreement(x["our_value"], theirs)
             pairs.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
     method = (o.get("same_trials") or {}).get("method") or "PM"
-    o["same_trials"] = dict(same_trials_compare(pairs, method) if pairs else {"state": "NO_SHARED_TRIAL"},
+    o["same_trials"] = dict(same_trials_compare(pairs, method, d12=d12_for(o.get("slug"), o.get("trials") or [])[0])
+                            if pairs else {"state": "NO_SHARED_TRIAL"},
                             method_basis=f"typed comparator rows ({d['source']['path']}); {method}",
                             comparator_rows="TYPED_COMPARATOR_ROW")
     o["per_trial_agreement"] = dict(Counter(x.get("agreement_with_comparator_row") for x in o["trials"] if is_matched(x)))
@@ -3176,7 +3223,9 @@ def refresh_same_trials_after_bindings(o, pairs, method, comp):
         add.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
     if not add:
         return []
-    o["same_trials"] = dict(same_trials_compare(list(pairs) + add, method), method_basis=st.get("method_basis"),
+    o["same_trials"] = dict(same_trials_compare(list(pairs) + add, method,
+                                                d12=d12_for(o.get("slug"), o.get("trials") or [])[0]),
+                            method_basis=st.get("method_basis"),
                             comparator_rows=st.get("comparator_rows"),
                             recomputed_after_bindings=[t.trial_label for _, t in add])
     return [t.trial_label for _, t in add]
@@ -3833,6 +3882,7 @@ def topic(slug, T):
         extra_detail.append({"id": e, "year": y, "comparator_year": comp_year,
                              "why_not_in_comparator": ("PUBLISHED_AFTER_COMPARATOR" if y and comp_year and y > comp_year
                                                        else "NOT_EXPLAINED_BY_DATE")})
+    d12_map, d12_refused = d12_for(slug, trials)
     out = {"schema_version": SCHEMA_VERSION, "slug": slug, "comparator_pmid": comp,
             "N_comparator_trials": len(trials), "k_matched": sum(1 for x in trials if is_matched(x)),
             "k_in_our_pool": sum(1 for x in trials if x["in_our_pool"]),
@@ -3848,7 +3898,8 @@ def topic(slug, T):
                           "(registry/comparator_nct_check.json)"} for x in trials if x.get("comparator_cites_unknown_nct")],
             "k_ours_total": res.get("k"), "routes": dict(routes), "trials": trials,
             "per_trial_agreement": dict(Counter(x["agreement_with_comparator_row"] for x in trials if is_matched(x))),
-            "same_trials": dict(same_trials_compare(pairs, method, participants_from_trial_record(slug, trials)),
+            "same_trials": dict(same_trials_compare(pairs, method, participants_from_trial_record(slug, trials),
+                                                    d12=d12_map),
                                 method_basis=("comparator positive control reproduced " + method) if pc.get("methods")
                                 else "comparator positive control not reproduced: PM default",
                                 excluded_named_scope_differences=pairs_excluded),
@@ -3856,6 +3907,7 @@ def topic(slug, T):
             "comparator": {k: rep.get(k) for k in ("outcome", "estimate", "ci_low", "ci_high", "scale")},
             "comparator_basis": comp_basis, "comparator_rows_source": comparator_rows_source,
             "ours_not_in_comparator": extra, "ours_not_in_comparator_detail": extra_detail,
+            "d12_not_used": d12_refused,
             "secondary_tally": S["tally"], "secondary_skipped": S["skipped"], "registry": S.get("registry")}
     if ((out["same_trials"].get("verdict") or {}).get("verdict") or "").startswith(("DIFFERENT_CONCLUSION",
                                                                                      "SAME_CONCLUSION_DIFFERENT")):

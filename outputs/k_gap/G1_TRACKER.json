@@ -83,6 +83,13 @@
    "decided": "2026-10-07",
    "id": "D11-REPRODUCIBLE_AI_SIGNOFF",
    "rule": "RoB 2 and GRADE judgements are signed off by a recorded dual-model reviewer plus an adjudicator in the harness. Disagreements with the rule-based rating are shown on the page. The recorded sign-off replaces any notion of human expert sign-off."
+  },
+  {
+   "applied_in": "scripts/g1_d12.py (verifies each binding at build: K1 against the AACT snapshot's own rows and group titles; K2 span verbatim in the trial's held abstract, counts as number tokens); registry/d12_counts_for_matching.json (binding lane's staged own-count bindings, imported with ref and sha256); scripts/g1_tracker.py d12_pairs (replaces only a same-trials MEASURE_DIFFERENCE pair, never our_value). Plant: tests/test_g1_d12.py (counts used for matching never enter a served pool).",
+   "by": "Mahmood",
+   "decided": "2026-10-08",
+   "id": "D12-COUNTS_FOR_MATCHING",
+   "rule": "A trial's own typed per-arm counts (AACT posted results or a held primary span, verbatim) may be used for the G1 same-trial comparison on the comparator's measure; the served pool keeps its registered estimand. This parallels D7 (matching only): nothing served changes."
   }
  ],
  "schema": "g1_tracker_canonical_v1",
@@ -870,7 +877,7 @@
    "coverage_complete": true,
    "discrepancy_findings": [],
    "excluded_by_scope": 0,
-   "g1_status": "NOT_YET",
+   "g1_status": "G1_MATCHED",
    "g1r_reproduction": {
     "rows": 0,
     "state": "NO_PRINTED_POOL"
@@ -888,7 +895,7 @@
    "named_differences": [],
    "open_gaps": [],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION",
+   "same_trials_verdict": "AGREE",
    "secondary_single": [],
    "slug": "doac-vte-recurrence",
    "source": {
@@ -896,9 +903,7 @@
     "commit": null
    },
    "top_blocker": null,
-   "unmet": [
-    "RESULT_AGREES"
-   ]
+   "unmet": []
   },
   "dpp4-mace-t2d": {
    "N_comparator_trials": 4,
@@ -3755,7 +3760,7 @@
     "O‘Neil et al. 28 NCT02453711"
    ],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION",
+   "same_trials_verdict": "AGREE",
    "secondary_single": [],
    "slug": "semaglutide-obesity-mace",
    "source": {
@@ -3764,8 +3769,7 @@
    },
    "top_blocker": "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD",
    "unmet": [
-    "ALL_ELIGIBLE_MATCHED",
-    "RESULT_AGREES"
+    "ALL_ELIGIBLE_MATCHED"
    ]
   },
   "semaglutide-obesity-weight": {
@@ -4964,8 +4968,8 @@
    "TWO_SOURCE": 3
   },
   "topics_by_status": {
-   "G1_MATCHED": 10,
-   "NOT_YET": 22
+   "G1_MATCHED": 11,
+   "NOT_YET": 21
   }
  }
 }
