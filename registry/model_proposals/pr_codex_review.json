@@ -4269,6 +4269,215 @@
   "verdicts": {},
   "findings": []
  },
+ "doac-table1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-05a30898e5262e4fb3fbc58d363233b8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "fa639b807f14d2da89f2a4587f203173af90a1d1793753aeba6d8f2637682f17"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read / held_norm",
+    "severity": "P0",
+    "claim": "Commented-out XML rows become comparator results. The row regex scans inside XML comments, and held_norm also preserves their cell text, so the span check accepts obsolete counts.",
+    "failing_input": "from io import StringIO, BytesIO\nfrom unittest.mock import patch\nimport scripts.typed_comparator_rows as m\n\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\n\nraw = ('<table-wrap id=\"pone.0197583.t001\"><table>'\n       + tr(m.READERS['doac-vte-recurrence']['header'])\n       + tr(['VTE Studies'])\n       + '<!--' + tr(['Withdrawn', '2018', 'Drug A', '90/100', 'Drug B', '80/100', '60', '50']) + '-->'\n       + tr(['Current', '2018', 'Drug A', '10/100', 'Drug B', '20/100', '60', '50'])\n       + '</table></table-wrap>')\n\ndef held_open(path, mode='r', **kwargs):\n    return BytesIO(raw.encode('utf-8')) if 'b' in mode else StringIO(raw)\n\nwith patch('builtins.open', held_open):\n    print([(r['label'], r['events_t'], r['events_c']) for r in m.read('doac-vte-recurrence')['rows']])",
+    "expected": "[('Current', 10, 20)]",
+    "actual": "[('Withdrawn', 90, 80), ('Current', 10, 20)]. Confirmed by tracing the supplied regexes with this ASCII fixture in JavaScript; local Python execution was blocked.",
+    "id": "doac-table1:g1#1",
+    "record_id": "mc-05a30898e5262e4fb3fbc58d363233b8",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-eceff01d6b276bbf9bc375be96883863",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "e2a268a0d757f04d673c626e054f45ff6fbf572a951a03c6a2635ae14501a313"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The reader treats every numeric e/N cell as an event count, ignoring explicit table notes that identify the numerator as a percentage. The verbatim-span check still passes.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\nraw = ('<table-wrap id=\"' + cfg['table_id'] + '\"><table>'\n       + tr(cfg['header']) + tr(['VTE Studies'])\n       + tr(['Trial A', '2018', 'Drug A', '5/200', 'Warfarin', '10/200', '60', '40'])\n       + '</table><table-wrap-foot><p>Primary Events /Total N cells report event percentages followed by total N, not event counts.</p></table-wrap-foot></table-wrap>')\ndef fake_open(path, mode='r', **kwargs):\n    return io.BytesIO(raw.encode('utf-8')) if mode == 'rb' else io.StringIO(raw)\nwith patch.object(m, 'open', fake_open, create=True):\n    print(m.read(slug)['rows'][0])",
+    "expected": "Refuse extraction: the numerators are explicitly percentages, so they cannot populate events_t or events_c.",
+    "actual": "Returns a row containing events_t=5, n_t=200, events_c=10, n_c=200, measure='OR'; no refusal occurs.",
+    "id": "doac-table1-r2:g1#1",
+    "record_id": "mc-eceff01d6b276bbf9bc375be96883863",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The reader neither validates nor preserves denominator populations. It emits a paired comparator row even when the held table explicitly gives randomised and safety populations for opposite arms.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\nraw = ('<table-wrap id=\"' + cfg['table_id'] + '\"><table>'\n       + tr(cfg['header']) + tr(['VTE Studies'])\n       + tr(['Trial A', '2018', 'Drug A', '5/200', 'Warfarin', '6/180', '60', '40'])\n       + '</table><table-wrap-foot><p>Drug A events and Total N refer to the randomised population. Warfarin events and Total N refer to the safety population; 200 were randomised and 180 received treatment.</p></table-wrap-foot></table-wrap>')\ndef fake_open(path, mode='r', **kwargs):\n    return io.BytesIO(raw.encode('utf-8')) if mode == 'rb' else io.StringIO(raw)\nwith patch.object(m, 'open', fake_open, create=True):\n    print(m.read(slug)['rows'][0])",
+    "expected": "Refuse the paired comparison because its arms use incompatible denominator kinds.",
+    "actual": "Returns events_t=5, n_t=200, events_c=6, n_c=180, measure='OR', with no population qualification or error. The emitted span excludes the explanatory footnote.",
+    "id": "doac-table1-r2:g1#2",
+    "record_id": "mc-eceff01d6b276bbf9bc375be96883863",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4e21e385e5943e380b93518dfc255a1b",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "b18828dc4d7a50f22a4be5ba13aee82fcfe7c40ca517d82cc9a7bded38159078"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The note guard misses single-quoted or whitespace-separated ref-type attributes. When the referenced footnote is outside table-wrap, percentage estimates are accepted as event counts.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as t\nheader = ''.join('<th>' + h + '</th>' for h in t.READERS['doac-vte-recurrence']['header'])\nraw = '''<article><table-wrap id=\"pone.0197583.t001\"><caption><p>Primary outcomes<xref ref-type='table-fn' rid='n1'>a</xref></p></caption><table><tr>''' + header + '''</tr><tr><td>VTE Studies</td></tr><tr><td>Trial A</td><td>2018</td><td>DOAC</td><td>10/100</td><td>Warfarin</td><td>20/200</td><td>60</td><td>40</td></tr></table></table-wrap><fn-group><fn id=\"n1\"><p>The values before '/' are Kaplan-Meier percentages, not event counts.</p></fn></fn-group></article>'''\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: io.BytesIO(raw.encode()) if 'b' in mode else io.StringIO(raw)):\n    r = t.read('doac-vte-recurrence')['rows'][0]\n    print(r['events_t'], r['n_t'], r['events_c'], r['n_c'])",
+    "expected": "Refuse the table because it references a note redefining numerators as Kaplan-Meier percentages.",
+    "actual": "Returns a row and prints 10 100 20 200, treating the estimates as event counts. Traced from the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r3:g1#1",
+    "record_id": "mc-4e21e385e5943e380b93518dfc255a1b",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The reader ignores population qualifiers in the caption. An exact header match therefore permits randomised and safety denominators to be emitted together as comparable events/N rows.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as t\nheader = ''.join('<th>' + h + '</th>' for h in t.READERS['doac-vte-recurrence']['header'])\nraw = '''<article><table-wrap id=\"pone.0197583.t001\"><caption><p>Total N is the randomised population for the DOAC arm and the safety population for the comparator arm.</p></caption><table><tr>''' + header + '''</tr><tr><td>VTE Studies</td></tr><tr><td>Trial A</td><td>2018</td><td>DOAC</td><td>10/100</td><td>Warfarin</td><td>20/200</td><td>60</td><td>40</td></tr></table></table-wrap></article>'''\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: io.BytesIO(raw.encode()) if 'b' in mode else io.StringIO(raw)):\n    r = t.read('doac-vte-recurrence')['rows'][0]\n    print(r['events_t'], r['n_t'], r['events_c'], r['n_c'])",
+    "expected": "Refuse the row because the two denominators represent different populations.",
+    "actual": "Returns a row and prints 10 100 20 200, discarding the population distinction. Traced from the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r3:g1#2",
+    "record_id": "mc-4e21e385e5943e380b93518dfc255a1b",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b6438e17cf2b57e94dd06a6adabf28cf",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "43fce84a4dd277c72ae2ecb9d58941d403d17404d9ba27587786a45ded8a8b45"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "Population qualifiers in arm cells bypass the population safeguards. The reader emits comparable-looking n_t/n_c fields even when the held row explicitly identifies different denominator kinds.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\nraw = ('<table-wrap id=\"pone.0197583.t001\"><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(['Trial A', '2018', 'Drug (safety population)', '5/90', 'Warfarin (randomised population)', '8/100', '60', '50']) + '</table></table-wrap>')\nwith patch('builtins.open', side_effect=[io.StringIO(raw), io.BytesIO(raw.encode())]):\n    print(m.read(slug)['rows'])",
+    "expected": "Refuse the row because its treatment denominator is a safety population while its control denominator is a randomised population.",
+    "actual": "Returns a row with events_t=5, n_t=90, events_c=8, n_c=100 and measure='OR'. The population qualifiers survive only in intervention/comparator strings; no check rejects the incompatible denominators.",
+    "id": "doac-table1-r4:g1#1",
+    "record_id": "mc-b6438e17cf2b57e94dd06a6adabf28cf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The table-selection regex can match id=\"…\" inside another attribute's quoted value. An unrelated table preceding the requested table supplies the returned counts, despite all subsequent validation passing.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\ndef table(attrs, treatment, control):\n    return ('<table-wrap ' + attrs + '><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(['Trial A', '2018', 'Drug', treatment, 'Warfarin', control, '60', '50']) + '</table></table-wrap>')\nraw = '<article><body>' + table('id=\"obsolete\" specific-use=\\'superseded version of id=\"pone.0197583.t001\"\\'', '5/100', '8/100') + table('id=\"pone.0197583.t001\"', '15/100', '18/100') + '</body></article>'\nwith patch('builtins.open', side_effect=[io.StringIO(raw), io.BytesIO(raw.encode())]):\n    print(m.read(slug)['rows'])",
+    "expected": "Select the table whose actual id attribute is pone.0197583.t001 and return events_t=15, n_t=100, events_c=18, n_c=100.",
+    "actual": "Selects the table whose actual id is obsolete and returns events_t=5, n_t=100, events_c=8, n_c=100. Its caption, header and verbatim span pass every remaining check.",
+    "id": "doac-table1-r4:g1#2",
+    "record_id": "mc-b6438e17cf2b57e94dd06a6adabf28cf",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ce2e358f103e586750c4dbc74673e12e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "c0355da176c2becea78051ccf1d8a9910617b4bf46681fae5cb83d7b6ceda3f5"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "Explicit Kaplan–Meier percentages are returned as integer event counts. The e/N syntax check does not reject unit qualifiers elsewhere in the row.",
+    "failing_input": "from io import StringIO, BytesIO\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\ncfg = m.READERS['doac-vte-recurrence']\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\ncells = ['Trial A (numerators are Kaplan-Meier percentages)', '2018', 'Drug', '2/1000', 'Warfarin', '3/1200', '60', '40']\nraw = '<table-wrap id=\"' + cfg['table_id'] + '\"><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(cells) + '</table></table-wrap>'\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: BytesIO(raw.encode()) if 'b' in mode else StringIO(raw)):\n    print(m.read('doac-vte-recurrence')['rows'])",
+    "expected": "Refuse the row: Kaplan–Meier percentages cannot establish integer event counts.",
+    "actual": "Returns a row with events_t=2, n_t=1000, events_c=3, n_c=1200 and measure='OR'. Derived by tracing the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r5:g1#1",
+    "record_id": "mc-ce2e358f103e586750c4dbc74673e12e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The population-qualifier guard omits 'analysed' and 'randomised', allowing explicitly incompatible denominator kinds into the returned comparator row.",
+    "failing_input": "from io import StringIO, BytesIO\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\ncfg = m.READERS['doac-vte-recurrence']\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\ncells = ['Trial A', '2018', 'Drug (analysed)', '2/90', 'Warfarin (randomised)', '3/100', '60', '40']\nraw = '<table-wrap id=\"' + cfg['table_id'] + '\"><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(cells) + '</table></table-wrap>'\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: BytesIO(raw.encode()) if 'b' in mode else StringIO(raw)):\n    print(m.read('doac-vte-recurrence')['rows'])",
+    "expected": "Refuse the row because the treatment denominator is analysed and the comparator denominator is randomised.",
+    "actual": "Returns events_t=2, n_t=90, events_c=3, n_c=100 and measure='OR', accepting both denominator kinds without qualification. Derived by tracing the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r5:g1#2",
+    "record_id": "mc-ce2e358f103e586750c4dbc74673e12e",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r6": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-57512d513ff008efc57a48da4802a60e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "129814c7e7740a8370401a0b89bbd6bdfd455f18b23523f115be0bd9605546c5"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
  "v9-apply": {
   "base": "origin/main",
   "head": "4d5967bcd",
