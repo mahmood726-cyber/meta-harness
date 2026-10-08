@@ -140,7 +140,7 @@ def test_PLANT_single_quoted_and_codeless_oa_errors_are_failures(monkeypatch):
 def test_PLANT_a_single_quoted_archive_link_is_followed_not_read_as_no_package(monkeypatch):
     """codex fetch-loud-r5 #1 (same class): a single-quoted href was missed and the package read as absent."""
     seen = []
-    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><record id='PMC906'><link format='tgz' href='https://ftp.ncbi.nlm.nih.gov/pub/pmc/x.tar.gz'/></record></OA>")
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><records><record id='PMC906'><link format='tgz' href='https://ftp.ncbi.nlm.nih.gov/pub/pmc/x.tar.gz'/></record></records></OA>")
 
     def get(url, *a, **k):
         seen.append(url)
@@ -207,3 +207,10 @@ def test_PLANT_only_the_oa_envelope_counts(monkeypatch):
         monkeypatch.setattr(fetch.http, "get_text", lambda *a, _r=reply, **k: _r)
         assert fetch._pmc_oa_supplement_text(f"95{i}", ["s.xlsx"]) == ""
         assert fetch.LAST_SUPPLEMENT_STATE[f"95{i}"].startswith("FETCH_FAILED:SUPPLEMENT:OA_UNEXPECTED_RESPONSE"), reply
+
+
+def test_PLANT_a_nested_service_error_is_a_failure(monkeypatch):
+    """codex fetch-loud-r12 #1: an <error> inside a record escaped the failure check."""
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><records><record id='PMC960'><error code='internalError'>x</error></record></records></OA>")
+    assert fetch._pmc_oa_supplement_text("960", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["960"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: internalError")

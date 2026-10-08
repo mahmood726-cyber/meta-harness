@@ -190,7 +190,7 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:OA_UNEXPECTED_RESPONSE: root <{oa_root.tag[:40]}>"
             _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
-        errs = oa_root.findall("error")
+        errs = oa_root.findall(".//error")   # nested errors too (codex fetch-loud-r12 #1)
         # every error must be 'not open access' for absence; any other error anywhere in the reply is a failure (r9 #1)
         err = next((e for e in errs if e.get("code") != "idIsNotOpenAccess"), errs[0] if errs else None)
         if err is not None and err.get("code") != "idIsNotOpenAccess":

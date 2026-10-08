@@ -5359,5 +5359,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r12": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-eeb34215879f5bc3af729d8a3ebae74d",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "06d127ce60b493648c3f33963a9c9d59114990f97ce01f2c5e0fc5b0a0052315"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "Nested OA service errors are silently classified as confirmed package absence. findall(\"error\") checks only direct children, so an error inside a matching record escapes the failure check.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch as f\nxml = '<OA><records><record id=\"PMC123\"><error code=\"serverError\">Temporarily unavailable</error></record></records></OA>'\nwith patch.object(f.http, 'get_text', return_value=xml), patch.object(f.time, 'sleep'):\n    result = f._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(result, f.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return ''; record FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR or OA_UNEXPECTED_RESPONSE, since this response contains an error rather than evidence of absence.",
+    "actual": "Return ''; record NO_OA_PACKAGE without warning. The matching record satisfies the absence branch despite its nested error.",
+    "id": "fetch-loud-r12:g1#1",
+    "record_id": "mc-eeb34215879f5bc3af729d8a3ebae74d",
+    "verdict": null
+   }
+  ]
  }
 }
