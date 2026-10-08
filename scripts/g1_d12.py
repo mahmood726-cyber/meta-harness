@@ -97,7 +97,7 @@ def _held_nct(slug, pmid):
     return None
 
 
-def reader_counts(record_id, pmid=None, nct=None):
+def reader_counts(record_id, pmid=None, nct=None, endpoint_ok=None):
     """(events_t, n_t, events_c, n_c) as the independent second reader's RECORDED response states them, or None."""
     import base64
     p = os.path.join(ROOT, "evidence", "model_calls", "audit", f"{record_id}.json")
@@ -124,6 +124,9 @@ def reader_counts(record_id, pmid=None, nct=None):
                 return None
             if nct not in ptxt:
                 return None
+    if endpoint_ok is not None and not endpoint_ok(str(resp.get("quote") or "")[:600]):
+        # the reader located ANOTHER endpoint of this paper (codex d12-r6 #2): its numbers confirm nothing here
+        return None
     vals = tuple(_whole(resp.get(k)) for k in _VALUE_KEYS)
     return None if None in vals else vals
 
@@ -194,6 +197,11 @@ class Aact:
                 n.setdefault(r["ctgov_group_code"], []).append(r["count"])
         for r in self._meas:
             if r["nct_id"] != nct or r["outcome_id"] != oid or (r.get("classification") or "") != cls:
+                continue
+            if (r.get("category") or "").strip():
+                # a category splits the measure (alive / dead, a follow-up window ...): which one is the event is not
+                # typed here, so a categorised row is never an event count (codex d12-r6 #1)
+                e.setdefault(r["ctgov_group_code"], []).extend([None, None])
                 continue
             pt, units = (r.get("param_type") or "").upper(), (r.get("units") or "").lower()
             # an ALLOWLIST of units that are a count of people, exactly -- never a substring test, which admitted
@@ -274,6 +282,15 @@ def _tied(text, pos, e, n):
     """The count at pos is tied to ITS denominator (codex d12-r1 #3): written 'e of n' / 'e/n', or the first percentage
     after it equals 100*e/n at its printed precision."""
     s = str(text or "")[pos:pos + 40].replace(",", "")
+    # the count is written with an explicit denominator: it must BE n -- never fall through to a percentage (r6 #3)
+    for sep in (" of ", "/"):
+        if s.startswith(f"{e}{sep}"):
+            rest = s[len(f"{e}{sep}"):]
+            k = 0
+            while k < len(rest) and _isd(rest[k]):
+                k += 1
+            if k:
+                return rest[:k] == str(n)
     for pre in (f"{e} of {n}", f"{e}/{n}"):
         # a numeric boundary after the denominator: '10 of 1000' is never '10 of 100' (codex d12-r2 #3)
         if s.startswith(pre) and not _isd(s[len(pre):len(pre) + 1]):
@@ -404,7 +421,10 @@ def verify(b, aact=None, endpoint_ok=None):
         if not ok:
             return False, why
         # the RECORD is read, not the label (codex d12-r3 #1): its own response must state these four counts, arm for arm
-        got = reader_counts(sr["record_id"], pmid=str(b.get("pmid")), nct=(b.get("ncts") or [None])[0])
+        if endpoint_ok is None:
+            return False, "K2_ENDPOINT_NOT_CHECKABLE"
+        got = reader_counts(sr["record_id"], pmid=str(b.get("pmid")), nct=(b.get("ncts") or [None])[0],
+                            endpoint_ok=endpoint_ok)
         if got != (et, nt, ec, nc):
             return False, f"K2_SECOND_READER_RECORD_DOES_NOT_STATE_THESE_COUNTS:{got}"
         st = int_tokens(span)

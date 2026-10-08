@@ -95,23 +95,23 @@ REAL_READER = D.reader_counts
 def _terms(monkeypatch):
     monkeypatch.setattr(D, "arm_terms", lambda slug: TERMS)
     # synthetic bindings carry pmid "1": the reader stub states the synthetic counts (real records: REAL_READER)
-    monkeypatch.setattr(D, "reader_counts", lambda rid, pmid=None, nct=None: (59, 2609, 71, 2635)
+    monkeypatch.setattr(D, "reader_counts", lambda rid, pmid=None, nct=None, endpoint_ok=None: (59, 2609, 71, 2635)
                         if rid == "mc-7948396356bf9b690759ec525d16a1c4" else None)
     monkeypatch.setattr(D, "_held_nct", lambda slug, pmid: "NCT00000001")
 
 
 def test_PLANT_a_binding_is_used_only_when_it_verifies(monkeypatch):
     monkeypatch.setattr(D, "_held_abstract", lambda slug, pmid: HELD)
-    assert D.verify(_k2())[0]
-    assert D.verify(_k2(span="occurred in 59 of 2609 patients (2.3%) in the apixaban group, as compared with 71 of 2636"))[1] \
+    assert D.verify(_k2(), None, EP_ANY)[0]
+    assert D.verify(_k2(span="occurred in 59 of 2609 patients (2.3%) in the apixaban group, as compared with 71 of 2636"), None, EP_ANY)[1] \
         == "K2_SPAN_NOT_VERBATIM_IN_HELD_ABSTRACT"
-    assert D.verify(_k2(values={"events_t": 58, "n_t": 2609, "events_c": 71, "n_c": 2635}))[1] == \
+    assert D.verify(_k2(values={"events_t": 58, "n_t": 2609, "events_c": 71, "n_c": 2635}), None, EP_ANY)[1] == \
         "K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN"
-    assert D.verify(_k2(values={"events_t": 59, "n_t": 2609, "events_c": 71, "n_c": 70}))[1] == "IMPOSSIBLE_COUNTS"
-    assert D.verify(_k2(own_tuple=False))[1] == "NOT_AN_OWN_COUNTS_TUPLE"
+    assert D.verify(_k2(values={"events_t": 59, "n_t": 2609, "events_c": 71, "n_c": 70}), None, EP_ANY)[1] == "IMPOSSIBLE_COUNTS"
+    assert D.verify(_k2(own_tuple=False), None, EP_ANY)[1] == "NOT_AN_OWN_COUNTS_TUPLE"
     k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42")
     assert D.verify(k1, aact=None)[1] == "K1_NOT_VERIFIABLE:NO_AACT_SNAPSHOT"
-    assert D.verify(dict(k1, source="AACT AACT 2026-08-30 NCT09999999 outcome 42"))[1] == \
+    assert D.verify(dict(k1, source="AACT AACT 2026-08-30 NCT09999999 outcome 42"), None, EP_ANY)[1] == \
         "K1_SOURCE_NOT_AN_AACT_OUTCOME_OF_THIS_TRIAL"
 
 
@@ -138,6 +138,10 @@ def EP(title):
     return "recurrent" in title.lower()
 
 
+def EP_ANY(title):
+    return True
+
+
 def test_PLANT_k1_verifies_against_the_aact_rows_and_their_group_titles(tmp_path):
     a = _snapshot(tmp_path)
     k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42",
@@ -155,9 +159,9 @@ def test_identity_not_label_joins_a_binding_to_a_trial(tmp_path, monkeypatch):
     reg = {"bindings": [_k2(label="Some other label")]}
     trials = [{"label": "T 18", "in_our_pool": True, "family": "PMID 1"},
               {"label": "U", "in_our_pool": True, "family": "PMID 2"}]
-    ok, refused = D.for_topic("s", trials, snap="", reg=reg)
+    ok, refused = D.for_topic("s", trials, snap="", reg=reg, endpoint_ok=EP_ANY)
     assert list(ok) == ["T 18"] and refused == []
-    ok, refused = D.for_topic("s", [{"label": "T 18", "in_our_pool": False, "family": "PMID 1"}], snap="", reg=reg)
+    ok, refused = D.for_topic("s", [{"label": "T 18", "in_our_pool": False, "family": "PMID 1"}], snap="", reg=reg, endpoint_ok=EP_ANY)
     assert ok == {} and refused[0]["why"] == "IDENTITY:0_MATCHED_TRIALS"
 
 
@@ -185,14 +189,14 @@ def _held(monkeypatch, text):
 def test_PLANT_r1_1_a_percentage_is_never_a_count(monkeypatch):
     t = _held(monkeypatch, "Death occurred in 2% of 59 apixaban patients and 3% of 71 with conventional therapy.")
     b = _k2(span=t, values={"events_t": 2, "n_t": 59, "events_c": 3, "n_c": 71})
-    assert D.verify(b)[1] == "K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN"
+    assert D.verify(b, None, EP_ANY)[1] == "K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN"
     assert D.count_positions("2% of 59 and 59 of 2609 and 2.59 events", 59) == [13]
 
 
 def test_PLANT_r1_2_counts_assigned_to_the_opposite_arms_never_verify(monkeypatch):
     t = _held(monkeypatch, "occurred in 71 of 2635 patients (2.7%) in the apixaban group, as compared with 59 of 2609 "
                            "(2.3%) in the conventional-therapy group")
-    assert D.verify(_k2(span=t))[1] == "K2_COUNTS_NOT_IN_THE_ARMS_ORDER"
+    assert D.verify(_k2(span=t), None, EP_ANY)[1] == "K2_COUNTS_NOT_IN_THE_ARMS_ORDER"
 
 
 def test_PLANT_r1_3_a_count_must_be_tied_to_its_own_denominator(monkeypatch):
@@ -200,7 +204,7 @@ def test_PLANT_r1_3_a_count_must_be_tied_to_its_own_denominator(monkeypatch):
     t = _held(monkeypatch, "Randomised: 2609 apixaban and 2635 conventional therapy. In the safety population, 59 deaths "
                            "(2.4%) with apixaban and 71 deaths (2.9%) with conventional therapy.")
     b = _k2(span=t, n_source="abstract")
-    assert D.verify(b)[1] == "K2_COUNT_NOT_TIED_TO_ITS_DENOMINATOR"
+    assert D.verify(b, None, EP_ANY)[1] == "K2_COUNT_NOT_TIED_TO_ITS_DENOMINATOR"
 
 
 def test_PLANT_r1_4_a_non_count_or_fractional_aact_value_is_never_an_event_count(tmp_path):
@@ -226,10 +230,10 @@ def test_PLANT_k2_needs_the_independent_second_readers_confirmation(monkeypatch)
     """codex d12-r2 (#2 #4 #6): syntax cannot certify endpoint, population or arm ownership; a K2 span is used only with the
     binding lane's recorded independent reader CONFIRMED, and that record held in evidence/model_calls/audit."""
     _held(monkeypatch, HELD)
-    assert D.verify(_k2())[0]
+    assert D.verify(_k2(), None, EP_ANY)[0]
     for sr in ({"verdict": "NOT_COMPARABLE", "record_id": "mc-7948396356bf9b690759ec525d16a1c4"},
                {"verdict": "CONFIRMED", "record_id": "mc-0000000000000000000000000000dead"}, {}):
-        assert D.verify(_k2(second_reader=sr))[1].startswith(("K2_NO_INDEPENDENT_CONFIRMATION",
+        assert D.verify(_k2(second_reader=sr), None, EP_ANY)[1].startswith(("K2_NO_INDEPENDENT_CONFIRMATION",
                                                               "K2_SECOND_READER_RECORD_DOES_NOT_STATE_THESE_COUNTS:None")), sr
 
 
@@ -251,7 +255,7 @@ def test_PLANT_r2_k2_joins_by_its_pmid_only(monkeypatch):
     _held(monkeypatch, HELD)
     reg = {"bindings": [_k2()]}
     trials = [{"label": "Other report", "in_our_pool": True, "family": "NCT00000001"}]
-    ok, refused = D.for_topic("s", trials, snap="", reg=reg)
+    ok, refused = D.for_topic("s", trials, snap="", reg=reg, endpoint_ok=EP_ANY)
     assert ok == {} and refused[0]["why"] == "IDENTITY:0_MATCHED_TRIALS"
 
 
@@ -259,7 +263,7 @@ def test_PLANT_r3_1_the_record_is_read_not_the_label(monkeypatch):
     _held(monkeypatch, HELD)
     assert REAL_READER("mc-7948396356bf9b690759ec525d16a1c4", "23808982", "NCT00643201") == (59, 2609, 71, 2635)
     monkeypatch.setattr(D, "reader_counts", lambda rid, **kw: (71, 2635, 59, 2609))            # the record says the reverse
-    assert D.verify(_k2())[1].startswith("K2_SECOND_READER_RECORD_DOES_NOT_STATE_THESE_COUNTS")
+    assert D.verify(_k2(), None, EP_ANY)[1].startswith("K2_SECOND_READER_RECORD_DOES_NOT_STATE_THESE_COUNTS")
 
 
 def test_PLANT_r3_2_slash_rates_are_not_counts(tmp_path):
@@ -272,7 +276,7 @@ def test_PLANT_r3_3_k1_joins_only_through_its_source_nct():
     k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42", ncts=["NCT00000001", "NCT00000009"],
              pmid="77")
     trials = [{"label": "Another trial", "in_our_pool": True, "family": "NCT00000009"}]
-    ok, refused = D.for_topic("s", trials, snap="", reg={"bindings": [k1]})
+    ok, refused = D.for_topic("s", trials, snap="", reg={"bindings": [k1]}, endpoint_ok=EP_ANY)
     assert ok == {} and refused[0]["why"] == "IDENTITY:0_MATCHED_TRIALS"
 
 
@@ -280,7 +284,7 @@ def test_PLANT_r3_4_equal_counts_in_both_arms_verify(monkeypatch):
     t = _held(monkeypatch, "occurred in 30 of 1274 patients (2.4%) in the apixaban group, as compared with 30 of 1265 "
                            "(2.4%) in the conventional-therapy group")
     monkeypatch.setattr(D, "reader_counts", lambda rid, **kw: (30, 1274, 30, 1265))
-    assert D.verify(_k2(span=t, values={"events_t": 30, "n_t": 1274, "events_c": 30, "n_c": 1265}))[0]
+    assert D.verify(_k2(span=t, values={"events_t": 30, "n_t": 1274, "events_c": 30, "n_c": 1265}), None, EP_ANY)[0]
 
 
 def test_PLANT_r3_5_non_finite_values_are_not_counts():
@@ -348,3 +352,24 @@ def test_PLANT_r5_2_3_several_rows_per_group_are_refused_never_overwritten(tmp_p
 def test_PLANT_r5_4_superscripts_do_not_crash_the_tokenizer():
     assert D.int_tokens("10² cells, 59 of 2609") == {10, 59, 2609}
     assert D.count_positions("2² of 59 events", 59) == [6]
+
+
+def test_PLANT_r6_1_a_categorised_measurement_is_never_an_event_count(tmp_path):
+    a = _snapshot(tmp_path)
+    a._meas = [dict(r, category="Alive") for r in a._meas]
+    assert a.arms("NCT00000001", "42", None) == {}
+
+
+def test_PLANT_r6_2_the_readers_located_outcome_must_be_ours(monkeypatch):
+    _held(monkeypatch, HELD)
+    rid = "mc-7948396356bf9b690759ec525d16a1c4"     # AMPLIFY's recorded reader: recurrent VTE
+    assert REAL_READER(rid, "23808982", "NCT00643201", endpoint_ok=lambda q: "venous thromboembolism" in q.lower()) \
+        == (59, 2609, 71, 2635)
+    assert REAL_READER(rid, "23808982", "NCT00643201", endpoint_ok=lambda q: "myocardial infarction" in q.lower()) is None
+    assert D.verify(_k2(), None, None)[1] == "K2_ENDPOINT_NOT_CHECKABLE"
+
+
+def test_PLANT_r6_3_an_explicit_other_denominator_never_falls_through_to_a_percentage():
+    # '59 of 2400 analysed (2.3%)' -- 2.3% also fits 59/2609, but the stated denominator is 2400
+    assert not D._tied("59 of 2400 analysed (2.3% by Kaplan-Meier)", 0, 59, 2609)
+    assert D._tied("59 of 2609 (2.3%)", 0, 59, 2609)

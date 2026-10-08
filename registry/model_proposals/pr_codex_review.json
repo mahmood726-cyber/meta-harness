@@ -6011,5 +6011,59 @@
     "verdict": null
    }
   ]
+ },
+ "d12-r6": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-57b0c7c7aece834ca32ac1284cccdce1",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "c3d44497214957232c486120fdb752e8d1ed35d0dcfe70b2045ef2bf99719200"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms / verify",
+    "severity": "P0",
+    "claim": "K1 ignores measurement category. An outcome titled 'All-cause mortality' whose measurements count surviving participants passes verification with survivors used as deaths.",
+    "failing_input": "from scripts import g1_d12 as g\nfrom unittest.mock import patch\nnct = 'NCT00000001'\na = g.Aact('snapshot')\na._outcomes = {'1': {'nct_id': nct, 'title': 'All-cause mortality'}}\na._counts, a._meas, a._groups = [], [], []\nfor code, title, survivors in [('T', 'Drug', 90), ('C', 'Placebo', 80)]:\n    base = {'nct_id': nct, 'outcome_id': '1', 'ctgov_group_code': code}\n    a._counts.append(dict(base, scope='Measure', units='participants', count='100'))\n    a._meas.append(dict(base, classification='', category='Alive', param_type='COUNT_OF_PARTICIPANTS', units='participants', param_value=str(survivors)))\n    a._groups.append(dict(base, title=title))\nb = {'slug': 'mortality', 'pmid': '1', 'ncts': [nct], 'rule': 'K1', 'source': 'AACT NCT00000001 outcome 1', 'classification': 'unclassified', 'tuple_kind': 'COUNTS', 'own_tuple': True, 'values': {'events_t': 90, 'n_t': 100, 'events_c': 80, 'n_c': 100}, 'span': 'Drug: 90 of 100 participants; Placebo: 80 of 100 participants'}\nwith patch.object(g, '_held_nct', return_value=nct), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(g.verify(b, a, endpoint_ok=lambda title: title == 'All-cause mortality'))",
+    "expected": "Reject the binding: the measurement category is Alive, so 90 and 80 are not death counts.",
+    "actual": "(True, \"K1: AACT snapshot NCT00000001 outcome 1 (unclassified): groups [('C', (80, 100)), ('T', (90, 100))]\")",
+    "id": "d12-r6:g1#1",
+    "record_id": "mc-57b0c7c7aece834ca32ac1284cccdce1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "reader_counts / verify",
+    "severity": "P0",
+    "claim": "K2 accepts an independent reader's truthful extraction of another endpoint from the same paper. reader_counts checks paper identity and four numbers, but not the requested endpoint; verify ignores endpoint_ok for K2. Myocardial-infarction counts therefore pass a death-count binding.",
+    "failing_input": "import base64, json\nfrom unittest.mock import patch, mock_open\nfrom scripts import g1_d12 as g\nspan = 'Drug: 10 of 100 patients had myocardial infarction. Placebo: 20 of 100 patients had myocardial infarction.'\nvalues = {'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100}\nresponse = dict(values, state='REPORTED', outcome='myocardial infarction')\naudit = {'state': 'RAN_OK', 'input_digests': [{'ref': 'PMID 1'}], 'prompt': 'Extract myocardial-infarction counts from PMID 1.', 'response': {'b64': base64.b64encode(json.dumps(response).encode()).decode()}}\nb = {'slug': 'mortality', 'pmid': '1', 'rule': 'K2', 'tuple_kind': 'COUNTS', 'own_tuple': True, 'values': values, 'span': span, 'second_reader': {'verdict': 'CONFIRMED', 'record_id': 'mi-reader'}}\nwith patch.object(g, '_held_abstract', return_value=span), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(g.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data=json.dumps(audit))):\n    print(g.verify(b, endpoint_ok=lambda title: 'death' in title.lower()))",
+    "expected": "Reject the mortality binding: both the held span and the independent reader concern myocardial infarction, not deaths.",
+    "actual": "(True, 'K2: PMID 1 held abstract span (events and Ns in the span, arms in order)')",
+    "id": "d12-r6:g1#2",
+    "record_id": "mc-57b0c7c7aece834ca32ac1284cccdce1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_tied / verify",
+    "severity": "P0",
+    "claim": "An explicit denominator mismatch falls through to percentage matching. A nearby Kaplan–Meier percentage can consequently certify randomised denominators for counts explicitly reported with analysed denominators. The independent-reader number check does not prevent this acceptance.",
+    "failing_input": "import base64, json\nfrom unittest.mock import patch, mock_open\nfrom scripts import g1_d12 as g\nprint(g._tied('10 of 90 analysed patients died (10% Kaplan-Meier estimate)', 0, 10, 100))\nspan = 'Drug: 10 of 90 analysed patients died (10% Kaplan-Meier estimate). Placebo: 20 of 180 analysed patients died (10% Kaplan-Meier estimate). Randomised: 100 and 200.'\nvalues = {'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 200}\nresponse = dict(values, state='REPORTED')\naudit = {'state': 'RAN_OK', 'input_digests': [{'ref': 'PMID 1'}], 'response': {'b64': base64.b64encode(json.dumps(response).encode()).decode()}}\nb = {'slug': 'mortality', 'pmid': '1', 'rule': 'K2', 'tuple_kind': 'COUNTS', 'own_tuple': True, 'values': values, 'span': span, 'second_reader': {'verdict': 'CONFIRMED', 'record_id': 'reader'}}\nwith patch.object(g, '_held_abstract', return_value=span), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(g.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data=json.dumps(audit))):\n    print(g.verify(b))",
+    "expected": "_tied returns False and verify rejects the binding. The explicit count denominators are 90 and 180; Kaplan–Meier percentages cannot establish alternative count denominators of 100 and 200.",
+    "actual": "_tied returns True. verify returns (True, 'K2: PMID 1 held abstract span (events and Ns in the span, arms in order)').",
+    "id": "d12-r6:g1#3",
+    "record_id": "mc-57b0c7c7aece834ca32ac1284cccdce1",
+    "verdict": null
+   }
+  ]
  }
 }
