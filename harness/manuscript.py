@@ -164,7 +164,12 @@ def object_numerals(review):
 def _forest(review):
     """A minimal object-derived forest plot (SVG) of the primary outcome: one row per pooled trial with its
     effect and CI, and a diamond for the pooled estimate. Ratio scales use a log x-axis with null at 1."""
-    prim = _primary(review)
+    return forest_for(_primary(review))
+
+
+def forest_for(prim, label="Forest plot of the primary outcome"):
+    """The same forest for ANY outcome object (the page's Analysis tab draws one per pooled outcome; the manuscript's
+    primary-outcome figure is forest_for(primary) with the default label, byte-identical to before)."""
     if not prim or not prim.get("trials"):
         return ""
     res = prim.get("result") or {}
@@ -213,7 +218,7 @@ def _forest(review):
         return padL + (vv - lo_x) / span * (W - padL - padR)
 
     null = 1.0 if is_ratio else 0.0
-    parts = [f"<svg viewBox='0 0 {W} {H}' role='img' aria-label='Forest plot of the primary outcome' "
+    parts = [f"<svg viewBox='0 0 {W} {H}' role='img' aria-label='{_e(label)}' "
              f"style='max-width:100%;height:auto;font:12px system-ui'>"]
     nx = xpix(null)
     if nx is not None and lo_x <= (math.log(null) if is_ratio else null) <= hi_x:
