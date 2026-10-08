@@ -450,3 +450,11 @@ Codex ran 8 recorded readers at concurrency 8 plus 3 review passes (r1a, r1b, an
 **For the captain, outside this range:**
 - (a) cache/corticosteroids-covid19-mortality/ft_32678530.txt, the RECOVERY NEJM full text (fulltext_index copy_licence NOT_OPEN), is **tracked on main**. This looks like a non-CC full text committed (D8 / "only excerpts, CC BY/CC0 or US-gov"). Not touched here.
 - (b) The older binding range (g1/binding-on-d0848a72: tranexamic D10 binding, held D10 amendments) still needs its rebase PR; that is next on this lane.
+
+### Final-5 binding, closing update (2026-10-08 23:40 GMTDT, g1/final5-binding @ 997f90b09)
+- Codex review rounds: r1a (5 findings), r1b (6), r2 (4), r3 (2), r4 (3). Every finding was reproduced and fixed with a plant that failed first, except the D15 conflict, which is a signed decision and goes to Mahmood. **The loop was stopped by rule after r4.** The residual class is free-prose regex coverage in the CoDEX absence detector; it fails toward CANDIDATE (a read), never toward an admission.
+- Tests: subset **1519 passed**, 3 xfailed, 0 failed. Recount results are unchanged from the report above:
+  - cortico: RESULT_AGREES met; ALL_ELIGIBLE_MATCHED left.
+  - iv-iron: D14 named, D15 applied, EFFECT-HF side proposed.
+  - ENGAGE (AACT) and CoDEX: NOT_FOUND. CANVAS: side not nameable.
+- **Ready to merge as a range:** 96921df40..997f90b09. Regenerate with python scripts/g1_final5_typed.py --fetch first, which pulls the pinned RECOVERY appendix into the git-ignored outputs/k_gap/_supp.
