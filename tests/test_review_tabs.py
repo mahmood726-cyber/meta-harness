@@ -127,3 +127,26 @@ def test_heading_order_and_keyboard_tabs():
     js = page._JS
     for need in ("role','tablist'", "role','tab'", "role','tabpanel'", "ArrowRight", "ArrowLeft", "aria-selected"):
         assert need in js
+
+
+def test_extraction_tab_states_the_census_class_for_every_row(monkeypatch):
+    """The page's provenance class is the provenance-census gate's class, row for row (one shared function)."""
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import provenance_census as pc
+    cen = {}
+    for x in pc.census(str(ROOT))["served"]["rows"]:
+        cen.setdefault((x["slug"], x["outcome"], str(x["id"])), set()).add(x["class"])
+    n = 0
+    for p in REVIEWS:
+        r = json.loads(p.read_text(encoding="utf-8"))
+        for row in T.extraction_rows(r):
+            assert row["class"] in cen[(r["slug"], row["outcome"], str(row["id"]))], (r["slug"], row["outcome"], row["id"])
+            n += 1
+    assert n > 50
+    # plant: drop the recorded-read conversion from the page's path -> a converted row reads HAND_ENTERED and differs
+    from harness import provenance_class as PC
+    monkeypatch.setattr(PC, "recorded_reads", lambda root=None: {})
+    r = _review("sacubitril-valsartan-hfref")
+    planted = {(row["outcome"], str(row["id"])): row["class"] for row in T.extraction_rows(r)}
+    assert any(v == "HAND_ENTERED" and "RECORDED_MODEL_CALL" in cen[(r["slug"], o, i)] for (o, i), v in planted.items())

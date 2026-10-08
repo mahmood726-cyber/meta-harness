@@ -73,3 +73,26 @@ def _deterministic_basis(b: str) -> bool:
     """A basis naming a deterministic source of the value: the trial's own held text or registry (AACT), a typed table
     read over held bytes (sha256 + row), or a verbatim span of a held regulatory document."""
     return bool(_DET.search(b or ""))
+
+
+def recorded_reads(root: str = ROOT) -> dict:
+    p = os.path.join(root, "registry", "provenance_recorded_reads.json")
+    if not os.path.exists(p):
+        return {}
+    with open(p, encoding="utf-8") as fh:
+        return json.load(fh).get("reads") or {}
+
+
+def served_class(t: dict, slug: str, outcome_name: str, root: str = ROOT, reads: dict | None = None) -> tuple[str, str, list]:
+    """The census's class for one served row: classify_served, then a HAND_ENTERED row converted by a recorded,
+    replayable locator read (scripts/provenance_convert.py) whose gated numbers EQUAL the served value becomes
+    RECORDED_MODEL_CALL. Returns (class, why, record ids the class rests on)."""
+    cls, why = classify_served(t, root)
+    recs = _records_in(t)
+    if cls == "HAND_ENTERED":
+        reads = recorded_reads(root) if reads is None else reads
+        rr = reads.get(f"{slug}|{str(t.get('id')).replace('PMID ', '').strip()}|{outcome_name}") or {}
+        if rr.get("state") == "AGREES" and rr.get("record_id") and record_held(rr["record_id"], root):
+            cls, why = "RECORDED_MODEL_CALL", f"recorded read {rr['record_id']} agrees with the served value"
+            recs = sorted(set(recs) | {rr["record_id"]})
+    return cls, why, recs
