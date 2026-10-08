@@ -33,7 +33,9 @@ def test_every_pooled_trial_has_a_derivation():
             for t in o.get("trials", []):
                 if any(t.get(k) is not None for k in ("ai", "mean1", "e1i", "effect")):
                     derivation = t.get("derivation")
-                    assert derivation == "reported" or str(derivation).startswith("reconstructed"), (
+                    # 'arms_combined: ...' (V9-02): an MD reconstructed from PRINTED per-arm values by the Cochrane
+                    # Handbook 6.5.2.10 merge, with the arms and their source on the row -- a reconstruction kind
+                    assert derivation == "reported" or str(derivation).startswith(("reconstructed", "arms_combined: ")), (
                         f,
                         t.get("id"),
                     )

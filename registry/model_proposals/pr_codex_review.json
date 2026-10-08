@@ -4477,5 +4477,548 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "v9-apply": {
+  "base": "origin/main",
+  "head": "4d5967bcd",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1fc83b09aeb77272d57f582e5a459ea2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "31432b309ae4edaa9c5ff90c5f2820ce24c36f3e73b0e19b33ec549261ea4f3c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "_arms_combined_row",
+    "severity": "P0",
+    "claim": "The verbatim check accepts sample-size prefixes: `N 10` matches held text `N 100`. Matching incorrect tracker values then pass the reproduction check, allowing unsupported sample sizes into the returned pool row.",
+    "failing_input": "import sys\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\nfrom unittest.mock import patch\nb = {'source': 'test binding', 'span': 'Intervention: MEAN 1.0 Standard Deviation 2.0 N 100\\nControl: MEAN 0.0 Standard Deviation 2.0 N 200', 'arms': [{'code': 'I', 'role': 'intervention', 'mean': 1.0, 'sd': 2.0, 'n': 10}, {'code': 'C', 'role': 'control', 'mean': 0.0, 'sd': 2.0, 'n': 20}]}\nv = {'mean_t': 1.0, 'sd_t': 2.0, 'n_t': 10, 'mean_c': 0.0, 'sd_c': 2.0, 'n_c': 20}\nwith patch.object(m, '_aact_binding', return_value=b):\n    row, why = m._arms_combined_row('test', {}, v, {})\n    print(row['nc1'], row['nc2'], why)",
+    "expected": "Reject the row: the held span prints sample sizes 100 and 200, whereas the binding and tracker claim 10 and 20.",
+    "actual": "Returns a successful MD row with nc1=10 and nc2=20; the call prints `10 20 None`. Both substring checks pass, and recomputing from the incorrect binding agrees with the incorrect tracker.",
+    "id": "v9-apply:g1#1",
+    "record_id": "mc-1fc83b09aeb77272d57f582e5a459ea2",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r2": {
+  "base": "origin/main",
+  "head": "f8bc979ef",
+  "runs": {
+   "g1": {
+    "record_id": "mc-71751c6b5a02f1e1a5d67f229af58f44",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "b2212a1aefc6291b616912c8a1f28fa2e00498393dc0491efeca7b2f521dc3b9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "_arms_combined_row",
+    "severity": "P0",
+    "claim": "The verbatim check searches the entire span without binding a numeric tuple to its arm. Two intervention arms can both reuse the control's printed values, reversing the resulting effect while passing every new check.",
+    "failing_input": "import sys\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\nfrom unittest.mock import patch\nb = {'source': 'fixture', 'span': 'Active A: MEAN 1 Standard Deviation 1 N 10\\nActive B: MEAN 1 Standard Deviation 1 N 10\\nPlacebo: MEAN 5 Standard Deviation 1 N 10', 'arms': [{'code': 'A', 'role': 'intervention', 'mean': 5, 'sd': 1, 'n': 10}, {'code': 'B', 'role': 'intervention', 'mean': 5, 'sd': 1, 'n': 10}, {'code': 'C', 'role': 'control', 'mean': 1, 'sd': 1, 'n': 10}]}\nv = dict(mean_t=5, sd_t=0.9733, n_t=20, mean_c=1, sd_c=1, n_c=10)\nwith patch.object(m, '_aact_binding', return_value=b):\n    row, why = m._arms_combined_row('fixture', {}, v, {})\n    print(row['mean1'], row['mean2'], row['nc1'], row['nc2'], why)",
+    "expected": "Reject the binding because the printed values contradict its arm assignments. The source-supported mean difference is 1 - 5 = -4.",
+    "actual": "Returns an admitted row: printed projection is '5.0 1.0 20 10 None'. Its mean difference is +4. Both intervention checks match the same placebo text, and the control check matches intervention text.",
+    "id": "v9-apply-r2:g1#1",
+    "record_id": "mc-71751c6b5a02f1e1a5d67f229af58f44",
+    "verdict": null
+   },
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "_arms_combined_row",
+    "severity": "P0",
+    "claim": "Fractional printed sample sizes pass the evidence check and are silently truncated by int() before combination and tracker comparison. Consequently, the emitted denominators are not the values printed in the source.",
+    "failing_input": "import sys\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\nfrom unittest.mock import patch\nb = {'source': 'fixture', 'span': 'Active A: MEAN 1 Standard Deviation 1 N 10.5\\nActive B: MEAN 1 Standard Deviation 1 N 10.5\\nPlacebo: MEAN 5 Standard Deviation 1 N 10.5', 'arms': [{'code': 'A', 'role': 'intervention', 'mean': 1, 'sd': 1, 'n': 10.5}, {'code': 'B', 'role': 'intervention', 'mean': 1, 'sd': 1, 'n': 10.5}, {'code': 'C', 'role': 'control', 'mean': 5, 'sd': 1, 'n': 10.5}]}\nv = dict(mean_t=1, sd_t=0.9733, n_t=20, mean_c=5, sd_c=1, n_c=10)\nwith patch.object(m, '_aact_binding', return_value=b):\n    row, why = m._arms_combined_row('fixture', {}, v, {})\n    print(row['nc1'], row['nc2'], why)",
+    "expected": "Reject nonintegral participant counts before conversion or pooling.",
+    "actual": "Returns an admitted row: printed projection is '20 10 None'. Each printed N of 10.5 becomes 10; the intervention total and pooled SD are calculated using those truncated counts.",
+    "id": "v9-apply-r2:g1#2",
+    "record_id": "mc-71751c6b5a02f1e1a5d67f229af58f44",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c432c154c716662681264251c11e14ad",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "b59b28e666fa8cfce2f4abe85721db35e28db207eab01fff9469db93904cf4db"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_fill_notices.py",
+    "function": "fill_study",
+    "severity": "P0",
+    "claim": "The new MD branch silently truncates fractional sample sizes with int(), admitting denominators that were not supplied and changing the study's variance and pooling weight.",
+    "failing_input": "fill_study({'trial': 'T', 'measure': 'MD', 'mean_t': 1, 'sd_t': 2, 'n_t': 10.9, 'mean_c': 0, 'sd_c': 2, 'n_c': 20.9}, 'MD')",
+    "expected": "Reject the row because both sample sizes are non-integers; return no Study and an explicit validation reason.",
+    "actual": "Returns a Study with mean1=1, sd1=2, nc1=10, mean2=0, sd2=2, nc2=20, measure='MD', and no error. Neither denominator was supplied by the input.",
+    "id": "v9-apply-r3:g1#1",
+    "record_id": "mc-c432c154c716662681264251c11e14ad",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-2cb46c3b181860f09be39294841f8bd8",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "f92a6d5aac7676071400e314e4c360c99f63a3beda15ab4239c00958a4523e08"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "_arms_combined_row",
+    "severity": "P2",
+    "claim": "A nonfinite control mean bypasses the tracker-value verification: abs(expected - NaN) > 1e-9 is false. The function consequently returns an admitted row containing NaN even though the tracker specifies a finite mean.",
+    "failing_input": "import sys\nfrom unittest.mock import patch\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\narms = [\n    dict(code='I1', title='Dose 1', role='intervention', n='10', mean='1', sd='2'),\n    dict(code='I2', title='Dose 2', role='intervention', n='10', mean='1', sd='2'),\n    dict(code='C', title='Control', role='control', n='10', mean='NaN', sd='2'),\n]\nspan = ' || '.join(f\"{a['code']} {a['title']} [{a['role']}]: MEAN {a['mean']} Standard Deviation {a['sd']} N {a['n']}\" for a in arms)\nb = dict(arms=arms, span=span, source='synthetic posted-results fixture')\nv = dict(mean_t=1, sd_t=1.9467, n_t=20, mean_c=0, sd_c=2, n_c=10)\nwith patch.object(m, '_aact_binding', return_value=b):\n    result = m._arms_combined_row('test', {}, v, {'label': 'Test'})\nprint(result)",
+    "expected": "Reject the binding and return (None, reason): the printed control mean is nonfinite and does not reproduce the tracker's mean_c=0.",
+    "actual": "Returns (row, None), with row['mean2']=NaN, row['mean1']=1.0, row['nc1']=20 and row['nc2']=10. Both the verbatim-segment check and the numeric reproduction gate accept the invalid control mean.",
+    "id": "v9-apply-r4:g1#1",
+    "record_id": "mc-2cb46c3b181860f09be39294841f8bd8",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e3e6de2d41355ef4df565510342f3a15",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "25a7f004c470b9f0733e5f55f6644c6f8b0cb97418213a776a380487d4f14da4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "_arms_combined_row",
+    "severity": "P0",
+    "claim": "The verbatim check validates only arms listed in the binding, without checking for intervention arms omitted from that list but present in the span. An incomplete merge therefore passes when the tracker repeats the same omission, producing an incorrect intervention mean and sample size.",
+    "failing_input": "import sys\nfrom unittest.mock import patch\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\n\ndef arm(code, role, mean):\n    return dict(code=code, title=code, role=role, mean=str(mean), sd='1', n='10')\ndef segment(a):\n    return f\"{a['code']} {a['title']} [{a['role']}]: MEAN {a['mean']} Standard Deviation {a['sd']} N {a['n']}\"\na = arm('OG001', 'intervention', 0)\nb = arm('OG002', 'intervention', 0)\nomitted = arm('OG003', 'intervention', 30)\nc = arm('OG004', 'control', 0)\nbinding = dict(source='synthetic fixture', arms=[a, b, c], span=' || '.join(map(segment, [a, b, omitted, c])))\nv = dict(mean_t=0, sd_t=0.9733, n_t=20, mean_c=0, sd_c=1, n_c=10)\nwith patch.object(m, '_aact_binding', return_value=binding):\n    row, why = m._arms_combined_row('fixture', {}, v, {'id': 'fixture'})\n    print(row['mean1'], row['nc1'], why)",
+    "expected": "Reject the binding because its arm list omits an intervention segment. Combining all three printed intervention arms would give mean1=10 and nc1=30.",
+    "actual": "Returns an accepted MD row with mean1=0.0, nc1=20 and why=None.",
+    "id": "v9-apply-r5:g1#1",
+    "record_id": "mc-e3e6de2d41355ef4df565510342f3a15",
+    "verdict": null
+   },
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "served_id",
+    "severity": "P1",
+    "claim": "Any NCT mention in confirm_binding.source can replace the paper's identity, even when the text explicitly identifies that NCT as a different trial. The function does not require the documented AACT source format or verify a paper-to-family link. topic_notice uses this identity to classify a record as already pooled before validating its extraction.",
+    "failing_input": "import sys\nfrom unittest.mock import patch, mock_open\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\nx = {'family': '12345678', 'confirm_binding': {'source': 'Discussion: NCT00000001 is a different trial, not the trial reported by this paper.'}}\nwith patch.object(m.sp, 'value_of', return_value={'arms_combined': True}), patch.object(m.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data='{\"families\": [{\"family_id\": \"NCT00000001\"}]}')):\n    print(m.served_id('fixture', x))",
+    "expected": "Preserve 'PMID 12345678', or refuse the binding: the source provides no evidence that this paper belongs to NCT00000001.",
+    "actual": "Returns 'NCT00000001'.",
+    "id": "v9-apply-r5:g1#2",
+    "record_id": "mc-e3e6de2d41355ef4df565510342f3a15",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r6": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ddc5f966116adfe77907b738553bfccf",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "f810a1c22cc96ef28e66c0b3fd720bb23ac21308a669e18d9df4f88f1f42461b"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "served_id",
+    "severity": "P1",
+    "claim": "An NCT-keyed family can be reassigned to a different trial solely from confirm_binding.source. The identity-evidence check runs only when pid.isdigit(), so NCT families bypass it.",
+    "failing_input": "import sys\nfrom unittest.mock import patch, mock_open\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\nx = {'family': 'NCT02417064', 'confirm_binding': {'source': 'AACT AACT fixture NCT00000001 outcome 1'}}\nwith patch.object(m.sp, 'value_of', return_value={'arms_combined': True}), patch.object(m.sp, '_ncts_of_pmid', return_value=set()), patch.object(m.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data='{\"families\": [{\"family_id\": \"NCT00000001\"}]}')):\n    print(m.served_id('demo', x))",
+    "expected": "Reject the conflicting trial identity or retain NCT02417064; do not bind it to NCT00000001.",
+    "actual": "Returns 'NCT00000001' without requiring evidence connecting the original family to that trial.",
+    "id": "v9-apply-r6:g1#1",
+    "record_id": "mc-ddc5f966116adfe77907b738553bfccf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "_arms_combined_row",
+    "severity": "P1",
+    "claim": "An unclassified arm passes the completeness gate but is silently omitted from the calculation. Checking segment counts and distinct codes does not ensure every listed arm has an accepted role.",
+    "failing_input": "import sys\nfrom unittest.mock import patch\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\narms = [\n    {'code': 'OG001', 'title': 'Low dose', 'role': 'intervention', 'mean': 2, 'sd': 1, 'n': 10},\n    {'code': 'OG002', 'title': 'Placebo', 'role': 'control', 'mean': 0, 'sd': 1, 'n': 10},\n    {'code': 'OG003', 'title': 'High dose', 'role': 'unknown', 'mean': 10, 'sd': 1, 'n': 10}\n]\nspan = ' || '.join(f\"{a['code']} {a['title']} [{a['role']}]: MEAN {a['mean']} Standard Deviation {a['sd']} N {a['n']}\" for a in arms)\nb = {'arms': arms, 'span': span, 'source': 'AACT AACT fixture NCT02417064 outcome 1'}\nv = {'mean_t': 2, 'sd_t': 1, 'n_t': 10, 'mean_c': 0, 'sd_c': 1, 'n_c': 10}\nwith patch.object(m, '_aact_binding', return_value=b):\n    row, why = m._arms_combined_row('demo', {}, v, {'id': 'NCT02417064'})\n    print(row['mean1'], row['nc1'], why)",
+    "expected": "Refuse admission until OG003's role is resolved or its exclusion is explicitly justified.",
+    "actual": "Returns an admitted row with mean1=2.0, nc1=10 and why=None. OG003 appears in arms_printed but contributes nothing to the calculation.",
+    "id": "v9-apply-r6:g1#2",
+    "record_id": "mc-ddc5f966116adfe77907b738553bfccf",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r7": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1ab2b70ee842162d1e681c2a65a11ff3",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "56fb1dec260dbf355c7b2b8ba6b5e56ad95dc46df06ac0960ff8b8f60edb4263"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "_aact_binding",
+    "severity": "P1",
+    "claim": "The binding lookup never checks the tracker's family against the binding's trial. A row explicitly keyed to one NCT can acquire another NCT's binding merely by matching slug, label and source. The new arms-combined path consumes that binding without an identity check.",
+    "failing_input": "import sys, json\nfrom unittest.mock import patch, mock_open\nsys.path.insert(0, 'scripts')\nimport build_served_pool_additions as m\nsrc = 'AACT AACT fixture NCT00000002 outcome 1'\nx = {'family': 'NCT00000001', 'label': 'Trial A', 'confirm_binding': {'source': src}}\nb = {'slug': 'topic', 'label': 'Trial A', 'tuple_kind': 'ARMS_COMBINED', 'source': src, 'nct_id': 'NCT00000002'}\nwith patch.object(m.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data=json.dumps([b]))):\n    result = m._aact_binding('topic', x)\nprint(result)",
+    "expected": "None: NCT00000002's binding cannot establish evidence for the explicitly different family NCT00000001.",
+    "actual": "Returns b, accepting NCT00000002's binding for the NCT00000001 tracker row.",
+    "id": "v9-apply-r7:g1#1",
+    "record_id": "mc-1ab2b70ee842162d1e681c2a65a11ff3",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_licence_retirement",
+    "severity": "P1",
+    "claim": "An incomplete licence probe is accepted as evidence of a closed licence. Missing 'open' and 'license' fields both pass the guard, converting unknown licence status into an accepted comparator retirement.",
+    "failing_input": "import sys\nfrom unittest.mock import patch, mock_open\nsys.path.insert(0, 'scripts')\nimport g1_denominator_ledger as m\nr = {'comparator_pmid': '123', 'reason_code': 'R0:C1_OPEN_LICENCE'}\na = {'comparator_pmid': '456'}\ne = {'state': 'LOOKED_UP'}\nwith patch.object(m, '_licence_entry', return_value=e), patch('builtins.open', mock_open(read_data='{\"123\": {\"state\": \"LOOKED_UP\"}}')), patch.object(m, '_sha', return_value='fixture-sha256'):\n    result = m._licence_retirement(r, a)\nprint(result)",
+    "expected": "None: the probe contains no explicit open/closed determination, so the removal must remain a ledger problem.",
+    "actual": "Returns a retirement record with retired_pmid='123', new_pmid='456', reason_code='R0:C1_OPEN_LICENCE', and the incomplete probe entry as its supporting span.",
+    "id": "v9-apply-r7:g1#2",
+    "record_id": "mc-1ab2b70ee842162d1e681c2a65a11ff3",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r8": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-2df66e8e4034d6e1c16ef5ba9db591c1",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "f126ecde8b296f919c911e6b2f27bf7f19b2f15b88d320e6119c4073b0367047"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_licence_retirement",
+    "severity": "P1",
+    "claim": "The open-licence guard compares only exact unversioned names. A recorded CC BY 4.0 licence passes the retirement gate when the probe's open flag is false, despite the function explicitly requiring no CC BY/CC0 licence. This accepts contradictory evidence as a justified licence exclusion.",
+    "failing_input": "import sys\nsys.path.insert(0, 'scripts')\nimport g1_denominator_ledger as g\nfrom unittest.mock import patch, mock_open\nentry = {'state': 'LOOKED_UP', 'open': False, 'license': 'CC BY 4.0'}\nraw = '{\"123\": {\"state\": \"LOOKED_UP\", \"open\": false, \"license\": \"CC BY 4.0\"}}'\nwith patch.object(g, '_licence_entry', return_value=entry), patch('builtins.open', mock_open(read_data=raw)), patch.object(g, '_sha', return_value='test-sha'):\n    result = g._licence_retirement({'comparator_pmid': '123', 'reason_code': 'R0:C1_OPEN_LICENCE'}, {'comparator_pmid': '456'})\n    print(result is None)",
+    "expected": "True: refuse to certify the retirement because the recorded licence explicitly identifies CC BY; the contradictory probe requires resolution.",
+    "actual": "False: returns a retirement record for PMID 123 with reason_code R0:C1_OPEN_LICENCE and quotes the CC BY 4.0 entry as supporting evidence. 'cc by 4.0' is not in OPEN_LICENCES.",
+    "id": "v9-apply-r8:g1#1",
+    "record_id": "mc-2df66e8e4034d6e1c16ef5ba9db591c1",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r9": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ed3c59e79386e216304c13e142f57a2c",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "4f3a1dae4561fb6dedf6724ecaaf23dbbe777840d0d7b5fc3cd4c3b40237d57e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "decision_named_divergences",
+    "severity": "P1",
+    "claim": "Unknown pool membership is classified as exclusion: `not x.get('in_our_pool')` accepts missing or null membership as proof that the trial is outside the pool.",
+    "failing_input": "decision_named_divergences('s', [{'label': 'T', 'in_our_pool': None}], reg={'entries': [{'slug': 's', 'trial': 'T', 'decision': 'D7a', 'signed': {'state': 'SEEN_AND_SIGNED', 'quote': 'Approved'}}]}, decisions={'decisions': [{'id': 'D7a', 'rule': 'Keep T outside the served pool'}]})",
+    "expected": "No exclusion finding until pool membership is explicitly established as false; return [] or report unknown membership.",
+    "actual": "Returns a finding with finding='DECISION_EXCLUDED_FROM_SERVED_POOL', trial='T', decision='D7a', and gate='D7a' despite membership being unknown.",
+    "id": "v9-apply-r9:g1#1",
+    "record_id": "mc-ed3c59e79386e216304c13e142f57a2c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_licence_retirement",
+    "severity": "P2",
+    "claim": "Valid compact JSON prevents recognition of a completed licence retirement. The verbatim-entry regex requires exactly one space after the PMID's colon, although JSON does not require that space.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport g1_denominator_ledger as m\nentry = {'state': 'LOOKED_UP', 'open': False, 'license': 'all rights reserved'}\nraw = '{\"123\":{\"state\":\"LOOKED_UP\",\"open\":false,\"license\":\"all rights reserved\"}}'\nwith patch.object(m, '_licence_entry', return_value=entry), patch('builtins.open', mock_open(read_data=raw)):\n    result = m._licence_retirement({'comparator_pmid': '123', 'reason_code': 'R0:C1_OPEN_LICENCE'}, {'comparator_pmid': '456'})\n    print(result)",
+    "expected": "A retirement record for PMID 123 with the compact entry preserved verbatim as its evidence span, just as for the equivalent JSON containing a space after \"123\":.",
+    "actual": "Returns None because the regex cannot match '\"123\":{'; the valid retirement remains a ledger problem.",
+    "id": "v9-apply-r9:g1#2",
+    "record_id": "mc-ed3c59e79386e216304c13e142f57a2c",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r10": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5cb1c271df9e85961d5a6b4c5ee114f5",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "141425ac518d409af0f060d07b0d0fc63ec927f137c8b1c75c36643b5995c883"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_served_pool_notices.py",
+    "function": "conclusion_change",
+    "severity": "P1",
+    "claim": "A NaN confidence interval is classified as wholly above the null, producing a false statement that a difference was previously shown. Both comparisons with NaN are false, so side() falls through to 'above'.",
+    "failing_input": "conclusion_change({'estimate': float('nan'), 'ci_low': float('nan'), 'ci_high': float('nan'), 'k': 0}, {'estimate': 0.0, 'ci_low': -1.0, 'ci_high': 1.0, 'k': 1}, 'MD')",
+    "expected": "Reject the non-finite interval or return an empty string; an undefined result cannot establish a previous difference.",
+    "actual": "CONCLUSION CHANGE: the served MD interval lies wholly above no difference (0) before this change, nan (nan to nan), k=0, and includes no difference (0) after it, 0.0 (-1.0 to 1.0), k=1. The served result changes from 'a difference shown' to 'no difference shown'.",
+    "id": "v9-apply-r10:g1#1",
+    "record_id": "mc-5cb1c271df9e85961d5a6b4c5ee114f5",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r11": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-aa59887860a46c8a0e8ca73827ad3a70",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "bc778e77247c9bf09cd907890921da34d7384664bfd8378cde9056fa7ad01357"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_is_open_licence",
+    "severity": "P1",
+    "claim": "A CC BY licence with its International designation is classified as non-open. This also allows _licence_retirement to accept it as grounds for retirement when the recorded open flag is false.",
+    "failing_input": "_is_open_licence('CC BY 4.0 International')",
+    "expected": "True: International is not an NC, ND or SA restriction.",
+    "actual": "False.",
+    "id": "v9-apply-r11:g1#1",
+    "record_id": "mc-aa59887860a46c8a0e8ca73827ad3a70",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_served_pool_notices.py",
+    "function": "conclusion_change",
+    "severity": "P2",
+    "claim": "Reversed confidence bounds pass validation and produce a definitive conclusion-change statement from an invalid interval.",
+    "failing_input": "conclusion_change({'estimate': 0, 'ci_low': -1, 'ci_high': 1, 'k': 2}, {'estimate': 0, 'ci_low': 1, 'ci_high': -1, 'k': 2}, 'MD')",
+    "expected": "Reject the reversed interval or return an empty string, as for other unknown or invalid intervals.",
+    "actual": "CONCLUSION CHANGE: the served MD interval includes no difference (0) before this change, 0 (-1 to 1), k=2, and lies wholly below no difference (0) after it, 0 (1 to -1), k=2. The served result changes from 'no difference shown' to 'a difference shown'.",
+    "id": "v9-apply-r11:g1#2",
+    "record_id": "mc-aa59887860a46c8a0e8ca73827ad3a70",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r12": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5eb1974f81ba0586260a73fa153ee9c7",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "8a88282230edcead812be374fa3e0e4c53454c7b044d5cbb362297c37aa27257"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_is_open_licence",
+    "severity": "P1",
+    "claim": "Canonical CC BY licence URLs are classified as non-open. Consequently, _licence_retirement does not reject a contradictory LOOKED_UP/open=False probe whose licence URL explicitly identifies CC BY, allowing an incorrect comparator retirement.",
+    "failing_input": "_is_open_licence('https://creativecommons.org/licenses/by/4.0/')",
+    "expected": "True; this identifies a CC BY 4.0 licence and must prevent licence-based retirement.",
+    "actual": "False. Normalisation leaves the URL intact, and none of the fullmatch alternatives accepts it.",
+    "id": "v9-apply-r12:g1#1",
+    "record_id": "mc-5eb1974f81ba0586260a73fa153ee9c7",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r13": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-59e7f022c55caa1916958d1b072060b8",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "4624aa65658cc80e6e077a68e27e89355b52dfb0f412bf239fc3d924e32c2cbe"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_is_open_licence",
+    "severity": "P1",
+    "claim": "Valid open-licence names are classified as closed: normalization omits CC0's 'Universal' designation and CC BY's 'International Public License' suffix. Consequently, _licence_retirement's safeguard against retiring an openly licensed comparator misses these names.",
+    "failing_input": "[_is_open_licence('CC0 1.0 Universal'), _is_open_licence('Creative Commons Attribution 4.0 International Public License')]",
+    "expected": "[True, True]",
+    "actual": "[False, False]",
+    "id": "v9-apply-r13:g1#1",
+    "record_id": "mc-59e7f022c55caa1916958d1b072060b8",
+    "verdict": null
+   }
+  ]
+ },
+ "v9-apply-r14": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-8c97ede695f5d60bc3338c8aecc0a7e2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "3685e60702f8cd080bc08055278e673578267df17484e3cbcbebc15c1cd7b3c1"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }

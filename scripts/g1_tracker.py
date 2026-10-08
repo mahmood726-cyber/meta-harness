@@ -2780,6 +2780,34 @@ def full_text_held(pmid):
     return bool((_FT_INDEX.get(str(pmid)) or {}).get("bytes"))
 
 
+def decision_named_divergences(slug, trials, reg=None, decisions=None):
+    """V9-01Q (Mahmood 7 Oct, 'yes to all'; decision D7a): a comparator trial kept OUT of the served pool by a recorded
+    decision is named as a comparator finding citing that decision -- never a scope difference, so it does not leave the
+    eligible denominator. Named only when its entry in registry/g1_decision_named_divergences.json is SEEN_AND_SIGNED,
+    the decision exists in registry/g1_decisions.json, and the trial is outside our pool."""
+    if reg is None:
+        p = os.path.join(ROOT, "registry", "g1_decision_named_divergences.json")
+        reg = _j(p) if os.path.exists(p) else {}
+    if decisions is None:
+        p = os.path.join(ROOT, "registry", "g1_decisions.json")
+        decisions = _j(p) if os.path.exists(p) else {}
+    dec = {d.get("id"): d for d in decisions.get("decisions") or []}
+    out = []
+    for e in reg.get("entries") or []:
+        sig = e.get("signed") or {}
+        d = dec.get(e.get("decision"))
+        if e.get("slug") != slug or sig.get("state") != "SEEN_AND_SIGNED" or not sig.get("quote") or not d:
+            continue
+        for x in trials or []:
+            if str(x.get("label") or "").strip().lower() == str(e.get("trial") or "").strip().lower() \
+                    and x.get("in_our_pool") is False:          # unknown membership is never an exclusion (r9 #1)
+                out.append({"finding": e.get("kind") or "DECISION_EXCLUDED_FROM_SERVED_POOL", "trial": x["label"],
+                            "decision": d["id"], "gate": d["id"], "detail": e.get("detail"),
+                            "span": {"text": d.get("rule"), "source": f"registry/g1_decisions.json#{d['id']}"},
+                            "signed": {k: sig.get(k) for k in ("item", "by", "quote", "when_utc", "packet_sha256")}})
+    return out
+
+
 def comparator_findings(trials, comp):
     """Findings ABOUT the comparator's own rows, typed, each with where it sits and what it rests on."""
     out = []
@@ -3843,7 +3871,7 @@ def topic(slug, T):
                                            "span": sspan, "basis": "check the comparator's own trial table: a trial "
                                            "missing from our enumeration, or a wrong count in the comparator"})
     out["comparator_findings"] = (out.get("comparator_findings") or []) + \
-        comparator_unadjusted_cluster_findings(trials, comp, slug)
+        comparator_unadjusted_cluster_findings(trials, comp, slug) + decision_named_divergences(slug, trials)
     _abs = _j(os.path.join(OUT, "comparator_abstracts.json")) if os.path.exists(os.path.join(OUT, "comparator_abstracts.json")) else {}
     _ab = _abs.get(str(comp))
     wp = whole_pool_comparison(out, printed_k=printed_trial_count(_ab if isinstance(_ab, str) else json.dumps(_ab or "")))
