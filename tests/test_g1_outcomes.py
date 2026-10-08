@@ -136,3 +136,31 @@ def test_a_ladder_row_bound_to_another_outcome_is_named_and_set_aside():
     nh = {"name": "Non-HF hospitalizations", "keywords": ["non-hf hospitalizations"]}
     st = "ClinicalTrials.gov results (structured target endpoint): outcome 'HF Hospitalisations' HR 0.73 (95% CI 0.59 to 0.92)"
     assert go.ladder_misbound({"effect": 0.73, "source": st}, nh)
+
+
+def test_a_qualified_subset_or_a_composite_is_not_our_outcome():
+    # 7 Oct (D10): IRONMAN's 'cardiac serious adverse events' was served as serious adverse events, and STAREE's
+    # 'Death from any cause, dementia, or persistent physical disability' HR 0.94 as all-cause mortality
+    sae = {"name": "Incidence of serious adverse events", "keywords": ["incidence of serious adverse events",
+                                                                        "serious adverse events"]}
+    r = {"counts": {"events_t": 200}, "source": "abstract arm-level counts (percentage-corroborated): Fewer patients in "
+         "the ferric derisomaltose group had cardiac serious adverse events (200 [36%]) than in the usual care group"}
+    assert go.ladder_misbound(r, sae)
+    ok = {"counts": {"events_t": 250}, "source": "abstract arm-level counts (percentage-corroborated): Serious adverse "
+          "events occurred in 250 (45%) of 559 patients in the ferric carboxymaltose group"}
+    assert not go.ladder_misbound(ok, sae)
+    acm = {"name": "All-cause mortality", "keywords": ["all-cause mortality", "death from any cause"]}
+    comp = {"effect": 0.94, "source": "abstract effect+CI (HR): Death from any cause, dementia, or persistent physical "
+            "disability occurred in 637 participants (hazard ratio, 0.94; 95% CI, 0.80 to 1.10)"}
+    assert go.ladder_misbound(comp, acm)
+    jup = {"effect": 0.8, "source": "abstract effect+CI (HR): Corresponding rates of all-cause mortality in this age group "
+           "were 1.63 and 2.04 (hazard ratio, 0.80 [CI, 0.62 to 1.04]; P = 0.09)"}
+    assert not go.ladder_misbound(jup, acm)
+
+
+def test_a_number_the_source_does_not_show_is_refused_not_passed():
+    acm = {"name": "All-cause mortality", "keywords": ["all-cause mortality", "death from any cause"]}
+    cut = {"effect": 0.94, "source": "abstract effect+CI (HR): Death from any cause, dementia, or persistent physical "
+           "disability occurred in 637 participants (21.6 events per 1000 person-years) in the atorvastatin group and in 676 "
+           "participants (23.0 events per 10"}
+    assert go.ladder_misbound(cut, acm)

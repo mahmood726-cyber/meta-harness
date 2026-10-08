@@ -602,11 +602,35 @@ def ladder_misbound(r, spec):
     pos = min((p.start() for f in _fmt(v) for p in [re.search(rf"(?<![\d.]){re.escape(f)}(?![\d])", body)] if p),
               default=None)
     if pos is None:
-        return None
+        # FAIL CLOSED: a number the row's own source does not show cannot be tied to our outcome (STAREE's stored
+        # source stops before its HR 0.94 -- this branch returned 'fine' and the composite passed, 7 Oct)
+        return "NUMBER_NOT_IN_THE_ROW'S_SOURCE (the clause cannot be checked)"
     seg = body[:pos]
     seg = seg[max(seg.rfind(")"), seg.rfind(";")) + 1:]
-    return None if any(k.lower() in seg.lower() for k in kws) else \
-        f"NUMBER_NOT_IN_THE_OUTCOME'S_CLAUSE: '{_excerpt(seg, 120)}'"
+    hit = next((k for k in kws if k.lower() in seg.lower()), None)
+    if not hit:
+        return f"NUMBER_NOT_IN_THE_OUTCOME'S_CLAUSE: '{_excerpt(seg, 120)}'"
+    # a QUALIFIED subset: 'cardiac serious adverse events' is not serious adverse events (IRONMAN, 7 Oct)
+    i = seg.lower().find(hit.lower())
+    prev = re.findall(r"[A-Za-z-]+", seg[:i])[-1:] if i > 0 else []
+    if prev and QUALIFIER.fullmatch(prev[0]):
+        return f"QUALIFIED_SUBSET: '{prev[0]} {hit}'"
+    # a COMPOSITE named in the clause: the tracker's own definition / composite gates on the clause as a title
+    # ('Death from any cause, dementia, or persistent physical disability' is not all-cause mortality: STAREE, 7 Oct)
+    bv = gt.binding_verdict(spec["name"], kws, seg, 2)
+    if bv["verdict"] != "BINDABLE" and bv.get("gate") == "ESTIMAND":
+        return f"COMPOSITE_OR_OTHER_DEFINITION: {_excerpt(bv.get('reason'), 160)}"
+    # ...and a plain ENUMERATION around the keyword ('X, Y, or Z occurred'), which that gate does not read
+    after, before = seg[i + len(hit):], seg[:i].rstrip()
+    if re.match(r"\s*(?:,\s*[^,;()]{2,60}){0,4},?\s+(?:or|and/or)\s+\w", after) or \
+            re.search(r"(?:,|\bor|\band/or)$", before):
+        return f"COMPOSITE_ENUMERATION: '{_excerpt(seg[max(0, i - 60):i + len(hit) + 80], 160)}'"
+    return None
+
+
+QUALIFIER = re.compile(r"cardiac|cardiovascular|renal|kidney|hepatic|liver|gastrointestinal|respiratory|pulmonary|"
+                       r"neurologic(?:al)?|psychiatric|ocular|skin|infusion|injection|treatment-related|drug-related|"
+                       r"related|fatal|non-fatal|nonfatal|bleeding|infectious|vascular", re.I)
 
 
 def _arm(title, t):
