@@ -688,3 +688,14 @@ An independent recorded reader saw each trial's AACT posted results and abstract
 - **Not comparable (2): EINSTEIN-DVT, EINSTEIN-PE.** The reader reported only the posted HR and percentages, so there is no counter-evidence.
 
 DOAC's D12 what-if (Table 1 identical, OR 0.881 both sides, AGREE) stands on these counts.
+
+## D12 applied: G1 flips (2026-10-08 11:46 GMTDT, lane g1/binding-on-d0848a72 @ fd94095b0; FOR V10)
+D12 is now applied in g1_tracker at all three pairing sites. Verified K1, K2 and K4 per-arm counts become our side of the same-trials pair, and only on the comparator's RR/OR measure. The served our_value is never changed and no served pool changes, so no served-number notice is needed. Shared outputs were restored after the local recount. Tests: 1186 passed, 3 xfailed.
+- **doac-vte-recurrence: FLIP to G1_MATCHED.** N 5, eligible 5, matched 5, all four criteria met. Pooled OR 0.881 (0.749-1.036) on both sides, AGREE; all 5 per-trial rows AGREE. Counts come from K1 (AACT) and K2 (abstract) bindings in bindings_counts.json.
+- **semaglutide-obesity-mace: NOT_YET, one criterion closer.** RESULT_AGREES is now met: SELECT (K1 AACT) OR 0.7985 (0.712-0.896) v the comparator's 0.80 (0.71-0.90). The only blocker left is ALL_ELIGIBLE_MATCHED (O'Neil), which waits on the k-gap X-DOSE amendment.
+- **sglt2-primary-prevention-hf: NOT_YET.**
+  - DECLARE-TIMI 58 HHF is bound by K4: 212/8582 v 286/8578 (Farxiga label Table 14; 25 FDA/EMA documents agree), identical to the comparator row (AGREE).
+  - CANVAS (comparator row "Radholm") is bound by K4: 123/5795 v 120/4347, from FDA review 204042Orig1s027 Table 30 (pooled DIA3008 & DIA4003, HR 0.67, 0.52-0.87; this equals our served HR). The comparator row is 87/5795 v 117/4347 (RR 0.56), so the row is DISAGREE.
+  - Result: k=3 pooled RR, ours 0.626 (0.29-1.34) v theirs 0.532 (0.25-1.14), SAME_CONCLUSION_DIFFERENT_ESTIMATE. RESULT_AGREES and DIVERGENCES_NAMED are both unmet.
+  - **Side is UNRESOLVED.** The existing side rule (disagreement_side) reads the trial's own held report, and we hold no full text for PMID 28605608. 87/5795 and 117/4347 appear in none of the topic's held regulatory documents; 123/5795 and 120/4347 appear in FDA Table 30. I did not name a side, because no existing rule names one from a regulatory document. **Captain/Mahmood decision:** should the existing COMPARATOR_ROW_NOT_IN_TRIAL_REPORT rule also read a held regulatory report of the same trial (US-gov text)? If yes, CANVAS gets that side, with the span from Table 30.
+- Unchanged, still waiting on decisions: RE-COVER day 180 v 224; the CONFIRM-HF incidence numerator; the EFFECT-HF safety-set N. The DECLARE FDA-review HR 0.83 misattribution was reported earlier.
