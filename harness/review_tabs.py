@@ -136,7 +136,8 @@ def search_additions(r: dict) -> str:
 
 # ---------------------------------------------------------------------------------------------------- Included studies
 def _ids(t: dict) -> tuple[str | None, str | None]:
-    s = json.dumps({k: t.get(k) for k in ("id", "label", "pmid", "nct", "trial_family_id", "effect_source_id")})
+    s = json.dumps({k: t.get(k) for k in ("id", "label", "pmid", "nct", "trial_family_id", "family_id", "registry_ids",
+                                          "effect_source_id")})
     pm = re.search(r"PMID[ :]*(\d{6,9})", s) or re.search(r'"pmid": "?(\d{6,9})', s)
     nct = re.search(r"NCT\d{8}", s)
     return (pm.group(1) if pm else None), (nct.group(0) if nct else None)
@@ -388,7 +389,8 @@ _CLAIM_FIELDS = (  # the definitions are harness/claim.py derive()'s own docstri
     ("crosses_null", "strict cross: lower limit < null < upper limit"),
     ("touches_null", "a CI limit sits exactly on the null (rounded-boundary case)"),
     ("null", "the no-effect value on this scale"),
-    ("direction", "benefit / harm / none relative to the null (descriptive only)"),
+    ("direction", "benefit / harm / none relative to the null: benefit = estimate on the protective side for a ratio (< 1) "
+                  "or a mean difference (< 0). Descriptive only; it does not reverse for an outcome where higher is better"),
     ("state", "claim state"), ("refusal_code", "why no claim is made"), ("basis", "basis"))
 
 
@@ -401,11 +403,20 @@ def conclusions(r: dict) -> str:
         return _reason("conclusions", "the primary outcome carries no canonical claim object at this build.")
     rows = "".join(f"<tr><th><code>{_e(k)}</code></th><td>{_e(claim.get(k))}</td><td class='muted'>{_e(d)}</td></tr>"
                    for k, d in _CLAIM_FIELDS if k in claim)
-    scope = (((r.get("reproduction") or {}).get("claim_check") or {}).get("scope") or {})
+    cc = (r.get("reproduction") or {}).get("claim_check") or {}
+    scope = cc.get("scope") or {}
     nis = scope.get("not_in_scope")
-    cover = ("The claim check (<code>reproduction.claim_check</code>) compares the page's statements about the primary "
-             "result with this object; recorded as outside its scope: " + "; ".join(_e(x) for x in nis) + "."
-             if nis else "The claim check's scope is not recorded in this review object.")
+    counts = cc.get("scope_counts") or scope.get("counts") or {}
+    if cc:
+        cover = (f"The claim check (<code>reproduction.claim_check</code>) recorded <strong>{_e(cc.get('claims_checked'))}</strong> "
+                 "claim(s) checked on the surfaces " + ", ".join(_e(x) for x in cc.get("surfaces") or []) + " (by kind: "
+                 + ", ".join(f"{_e(k)} {_e(v)}" for k, v in counts.items()) + f"; contradictions found: "
+                 f"{_e(len(cc.get('contradictions') or []))})"
+                 + ("; recorded as outside its scope: " + "; ".join(_e(x) for x in nis) if nis else "") + ".")
+        if not counts.get("outcome_result"):
+            cover += " <strong>No primary-result claim was checked</strong> (outcome_result 0), so this object was not compared with the page's prose."
+    else:
+        cover = "No claim check is recorded in this review object."
     return ("<h4 id='conclusions'>Conclusion: the canonical claim object for the primary outcome</h4>"
             f"<p>The page's conclusion is this object, derived from the pooled result by <code>harness/claim.py</code>. {cover} "
             "Certainty is stated in the Risk of bias &amp; GRADE tab.</p>"
@@ -430,17 +441,22 @@ def changes_tab(r: dict) -> str:
     out = []
     if notices:
         rows = []
+        by_name = {o.get("name"): o for o in r.get("outcomes") or []}
         for n in notices:
             sig = n.get("reviewer_countersignature") or {}
             st = P.result_changes_status(n)
+            cur = outcome_state(by_name[n.get("outcome")]) if n.get("outcome") in by_name else "outcome not in this build"
             rows.append(f"<tr><td>{_e(str(n.get('when_utc'))[:10])}</td><td>{_e(n.get('outcome'))}</td>"
-                        f"<td>{_e('NOT APPLIED: ' + st['state'] if st else 'applied')}</td><td>{_e(sig.get('state'))}</td>"
+                        f"<td>{_e('not applied: ' + st['state'] if st else 'not withdrawn, held or superseded')}</td>"
+                        f"<td>{_e(cur)}</td><td>{_e(sig.get('state'))}</td>"
                         f"<td>{_e(sig.get('by'))}</td><td>{_e(str(sig.get('when_utc'))[:16])}</td>"
                         f"<td><code>{_e(str(sig.get('rendered_sha256'))[:16])}</code></td></tr>")
         out.append("<p>Every result-change notice for this topic in <code>docs/result_changes.json</code>, with its "
                    "countersignature. A signature is on the bytes of the rendered notice below (its "
-                   "<code>rendered_sha256</code>), not on this table.</p><table class='recs' id='notice-ledger'><tr>"
-                   "<th>Notice date</th><th>Outcome</th><th>Applied?</th><th>Signature</th><th>By</th><th>When (UTC)</th>"
+                   "<code>rendered_sha256</code>), not on this table. A notice records a change at its date; the outcome's "
+                   "served state NOW is the column beside it (a later gate may have withheld it).</p><table class='recs' id='notice-ledger'><tr>"
+                   "<th>Notice date</th><th>Outcome</th><th>Notice record status</th><th>Outcome's served state now</th>"
+                   "<th>Signature</th><th>By</th><th>When (UTC)</th>"
                    f"<th>Signed block sha256</th></tr>{''.join(rows)}</table>")
         for n in notices:
             st = P.result_changes_status(n)
@@ -451,7 +467,9 @@ def changes_tab(r: dict) -> str:
             out.append(P.result_change_block(n))
     else:
         out.append(_reason("every committed notice", "no result-change notice for this topic in docs/result_changes.json "
-                                                     "at this build: the served result has not changed since first publication."))
+                                                     "at this build. The absence of a notice is not evidence that the result "
+                                                     "never changed: changes before the notice system, and pool notes, are in "
+                                                     "the Reproduce tab."))
     try:
         rein = [x for x in _registry("result_change_reinstatements.json").get("reinstatements") or [] if x.get("slug") == slug]
     except (OSError, ValueError):

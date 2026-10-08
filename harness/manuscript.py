@@ -178,7 +178,7 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
     import math
     scale = (res.get("scale") or prim.get("estimand") or "").upper()
     is_ratio = scale in ("HR", "RR", "OR", "IRR") or scale.startswith("MIXED")
-    rows = []
+    rows, not_drawn = [], []
     for t in prim["trials"]:
         e, lo, hi = t.get("effect"), t.get("ci_low"), t.get("ci_high")
         if e is None and t.get("ai") is not None:
@@ -188,8 +188,11 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
                 a, n1, c, n2 = t["ai"], t["n1i"], t["ci"], t["n2i"]
                 if scale == "OR":
                     e = (a * (n2 - c)) / (c * (n1 - a)) if c and (n1 - a) else None
-                elif scale in ("RR", "IRR") or scale.startswith("MIXED"):
+                elif scale in ("RR", "IRR", "HR") or scale.startswith("MIXED"):
+                    # an HR / mixed first-event pool consumes a counts-only row as its reconstructed RR (labelled below)
                     e = (a / n1) / (c / n2) if c and n2 and n1 else None
+                    if e is not None and scale != "RR":
+                        t = dict(t, scale="RR from counts")
                 else:
                     e = None
             except (TypeError, ZeroDivisionError):
@@ -199,7 +202,9 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
             lo = hi = None
         if e is not None:
             rs = str(t.get("scale") or "").upper()
-            rows.append((str(t.get("label")) + (f" ({rs})" if rs and rs != scale and t.get("effect") is not None else ""), e, lo, hi))
+            rows.append((str(t.get("label")) + (f" ({rs})" if rs and rs != scale and (t.get("effect") is not None or rs == "RR FROM COUNTS") else ""), e, lo, hi))
+        else:
+            not_drawn.append(str(t.get("label")))
     if not rows:
         return ""
     pooled = (res.get("estimate"), res.get("ci_low"), res.get("ci_high"))
@@ -252,6 +257,8 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
         parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(pv)}</text>")
     _axis = res.get("effect_label") or scale or "effect"
     parts.append(f"<text x='{padL}' y='{H-6}' fill='#546e7a'>{_e(_axis)} ({'log scale, null=1' if is_ratio else 'null=0'})</text></svg>")
+    if not_drawn:
+        parts.append(f"<p class='note'>Not drawn (no displayable effect on this scale): {_e(', '.join(not_drawn))}.</p>")
     return "".join(parts)
 
 
