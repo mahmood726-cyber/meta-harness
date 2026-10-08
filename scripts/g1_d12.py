@@ -81,6 +81,16 @@ def _held_abstract(slug, pmid):
     return ""
 
 
+def _held_nct(slug, pmid):
+    p = os.path.join(ROOT, "cache", slug, "records.json")
+    if not os.path.exists(p):
+        return None
+    for r in json.load(open(p, encoding="utf-8")).get("records", []):
+        if str(r.get("id")) == str(pmid):
+            return r.get("nct") or None
+    return None
+
+
 def _aact_source(source):
     """(nct, outcome_id) from 'AACT ... NCT######## outcome ########', else (None, None). Plain token scan."""
     toks = str(source or "").replace("(", " ").replace(")", " ").split()
@@ -121,25 +131,128 @@ class Aact:
                      if r["nct_id"] == nct and r["outcome_id"] == oid and r["ctgov_group_code"] == code), None)
 
     def arms(self, nct, oid, classification):
-        """{group code: (events, participants)} for that NCT + outcome + classification ('unclassified' = empty)."""
+        """{group code: (events, participants)} for that NCT + outcome + classification ('unclassified' = empty). Only a
+        COUNT of participants is an event count (codex d12-r1 #4): param_type COUNT_OF_PARTICIPANTS, or NUMBER whose
+        units name participants; the value must be a whole number. Anything else is not returned."""
         cls = "" if classification in (None, "", "unclassified") else classification
         n = {r["ctgov_group_code"]: r["count"] for r in self._counts
              if r["nct_id"] == nct and r["outcome_id"] == oid and r.get("scope") == "Measure"}
-        e = {r["ctgov_group_code"]: r["param_value"] for r in self._meas
-             if r["nct_id"] == nct and r["outcome_id"] == oid and (r.get("classification") or "") == cls}
+        e = {}
+        for r in self._meas:
+            if r["nct_id"] != nct or r["outcome_id"] != oid or (r.get("classification") or "") != cls:
+                continue
+            pt, units = (r.get("param_type") or "").upper(), (r.get("units") or "").lower()
+            if not (pt == "COUNT_OF_PARTICIPANTS" or (pt == "NUMBER" and "participant" in units)):
+                continue
+            e[r["ctgov_group_code"]] = r["param_value"]
         out = {}
         for g in set(n) & set(e):
-            try:
-                out[g] = (int(float(e[g])), int(float(n[g])))
-            except ValueError:
-                continue
+            ev, nn = _whole(e[g]), _whole(n[g])
+            if ev is not None and nn is not None:
+                out[g] = (ev, nn)
         return out
+
+
+def _whole(x):
+    """int(x) only when x is a whole number written as one ('30', '30.0'); else None (never truncated)."""
+    try:
+        f = float(str(x).strip())
+    except ValueError:
+        return None
+    return int(f) if f == int(f) and f >= 0 else None
+
+
+_COUNT_NOUNS = ("of ", "/", "events", "event ", "patients", "participants", "subjects", "deaths", "women", "men ")
+
+
+def count_positions(text, value):
+    """Positions where `value` is written AS A COUNT: a whole-number token (not a percentage, not part of a decimal or a
+    longer number) followed by 'of N', '/N' or a count noun ('events', 'patients' ...) (codex d12-r1 #1)."""
+    s, v, out, i = str(text or ""), str(value), [], 0
+    while True:
+        i = s.find(v, i)
+        if i < 0:
+            return out
+        j = i + len(v)
+        left_ok = i == 0 or not (s[i - 1].isdigit() or s[i - 1] in ".,")
+        right = s[j:j + 14].lower()
+        right_ok = j == len(s) or not (s[j].isdigit() or (s[j] in ".," and s[j + 1:j + 2].isdigit()))
+        if left_ok and right_ok and not right.lstrip().startswith("%") and \
+                any(right.lstrip(" [(").startswith(w) for w in _COUNT_NOUNS):
+            out.append(i)
+        i = j
+
+
+def _pct_after(text, pos, width=70):
+    """The first 'x%' / 'x %' within `width` chars after pos, as a float, else None."""
+    seg = str(text or "")[pos:pos + width]
+    k = seg.find("%")
+    if k < 0:
+        return None
+    j = k
+    while j > 0 and seg[j - 1] == " ":
+        j -= 1
+    st = j
+    while st > 0 and (seg[st - 1].isdigit() or seg[st - 1] == "."):
+        st -= 1
+    try:
+        return float(seg[st:j])
+    except ValueError:
+        return None
+
+
+def _tied(text, pos, e, n):
+    """The count at pos is tied to ITS denominator (codex d12-r1 #3): written 'e of n' / 'e/n', or the first percentage
+    after it equals 100*e/n at its printed precision."""
+    s = str(text or "")[pos:pos + 40].replace(",", "")
+    if s.startswith(f"{e} of {n}") or s.startswith(f"{e}/{n}"):
+        return True
+    p = _pct_after(text, pos)
+    if p is None:
+        return False
+    dec = len(str(p).split(".")[1]) if "." in str(p) and not str(p).endswith(".0") else 0
+    return abs(round(100.0 * e / n, dec) - p) < 1e-9 or abs(100.0 * e / n - p) <= 0.5 * 10 ** (-dec) + 1e-9
+
+
+def _norm(t):
+    return " ".join(str(t or "").lower().replace("-", " ").split())
+
+
+def arm_terms(slug):
+    """(treatment terms, control terms) from topics/<slug>.json (intervention agents + terms + class terms; comparator
+    terms), lower-cased, hyphens as spaces."""
+    p = os.path.join(ROOT, "topics", f"{slug}.json")
+    if not os.path.exists(p):
+        return [], []
+    t = json.load(open(p, encoding="utf-8"))
+    tr = set(t.get("intervention_terms") or []) | set(t.get("intervention_class_terms") or [])
+    for v in (t.get("intervention_agents") or {}).values():
+        tr |= set(v)
+    return sorted({_norm(x) for x in tr if x}), sorted({_norm(x) for x in t.get("comparator_terms") or [] if x})
+
+
+def _first(normtext, terms):
+    hits = [normtext.find(x) for x in terms if x and normtext.find(x) >= 0]
+    return min(hits) if hits else None
+
+
+def arms_in_order(span, slug, pos_t, pos_c):
+    """The arm each count belongs to, read from the text (codex d12-r1 #2): the treatment count and the control count
+    appear in the same order as the first treatment term and the first control term. Positions are mapped through the
+    same normalisation (lower case, hyphens as spaces, single spaces)."""
+    tr, co = arm_terms(slug)
+    nt_ = _norm(span)
+    ft, fc = _first(nt_, tr), _first(nt_, co)
+    if ft is None or fc is None:
+        return False, "K2_ARM_TERMS_NOT_BOTH_IN_SPAN"
+    return ((pos_t < pos_c) == (ft < fc)), "K2_COUNTS_NOT_IN_THE_ARMS_ORDER"
 
 
 def verify(b, aact=None):
     """(True, basis) when the binding verifies under D12, else (False, why)."""
     v = b.get("values") or {}
-    if b.get("tuple_kind") != "COUNTS" or not b.get("own_tuple") or any(not isinstance(v.get(k), int) for k in _VALUE_KEYS):
+    if b.get("tuple_kind") != "COUNTS" or not b.get("own_tuple") or any(
+            not isinstance(v.get(k), int) or isinstance(v.get(k), bool) for k in _VALUE_KEYS):
         return False, "NOT_AN_OWN_COUNTS_TUPLE"
     et, nt, ec, nc = (v[k] for k in _VALUE_KEYS)
     if not (0 <= et <= nt and 0 <= ec <= nc and nt > 0 and nc > 0):
@@ -149,6 +262,10 @@ def verify(b, aact=None):
         nct, oid = _aact_source(b.get("source"))
         if not nct or not oid or nct not in (b.get("ncts") or []):
             return False, "K1_SOURCE_NOT_AN_AACT_OUTCOME_OF_THIS_TRIAL"
+        # the trial's own held report must carry that registration (codex d12-r1 #5): the binding's NCT list is not
+        # evidence on its own
+        if _held_nct(b.get("slug"), b.get("pmid")) != nct:
+            return False, "K1_HELD_REPORT_DOES_NOT_CARRY_THIS_NCT"
         if aact is None:
             return False, "K1_NOT_VERIFIABLE:NO_AACT_SNAPSHOT"
         arms = aact.arms(nct, oid, b.get("classification"))
@@ -162,6 +279,13 @@ def verify(b, aact=None):
             title = aact.group_title(nct, oid, g)
             if not title or f"{title}: {e_} of {n_} participants" not in span:
                 return False, f"K1_SPAN_DOES_NOT_STATE_AACT_GROUP:{g}"
+        # and the treatment pair's group title names a treatment term, the control pair's a control term
+        tr, co = arm_terms(b.get("slug"))
+        for g, (e_, n_) in arms.items():
+            tt = _norm(aact.group_title(nct, oid, g))
+            want = tr if (e_, n_) == (et, nt) else co
+            if _first(tt, want) is None:
+                return False, f"K1_GROUP_TITLE_NOT_THE_BOUND_ARM:{g}"
         return True, f"K1: AACT {os.path.basename(aact.snap)} {nct} outcome {oid} ({b.get('classification')}): " \
                      f"groups {sorted(arms.items())}"
     if rule == "K2":
@@ -169,25 +293,33 @@ def verify(b, aact=None):
         span = b.get("span") or ""
         if not ab or not span or span not in ab:
             return False, "K2_SPAN_NOT_VERBATIM_IN_HELD_ABSTRACT"
+        pt, pc = count_positions(span, et), count_positions(span, ec)
+        if len(pt) != 1 or len(pc) != 1 or pt[0] == pc[0]:
+            return False, "K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN"
+        if not (_tied(span, pt[0], et, nt) and _tied(span, pc[0], ec, nc)):
+            return False, "K2_COUNT_NOT_TIED_TO_ITS_DENOMINATOR"
+        ok, why = arms_in_order(span, b.get("slug"), pt[0], pc[0])
+        if not ok:
+            return False, why
         st = int_tokens(span)
-        if et not in st or ec not in st:
-            return False, "K2_EVENT_COUNTS_NOT_IN_SPAN"
         if nt in st and nc in st:
-            return True, f"K2: PMID {b['pmid']} held abstract span (events and Ns in the span)"
+            return True, f"K2: PMID {b['pmid']} held abstract span (events and Ns in the span, arms in order)"
         ns = str(b.get("n_source") or "")
         if ns == "abstract":
             at = int_tokens(ab)
             if nt in at and nc in at:
-                return True, f"K2: PMID {b['pmid']} held abstract span (events); Ns stated in the same held abstract"
+                return True, f"K2: PMID {b['pmid']} held abstract span (events, arms in order, % = events/N); " \
+                             f"Ns stated in the same held abstract"
             return False, "K2_NS_NOT_IN_HELD_ABSTRACT"
         nct, oid = _aact_source(ns)
-        if nct and oid and nct in (b.get("ncts") or []):
+        if nct and oid and nct in (b.get("ncts") or []) and _held_nct(b.get("slug"), b.get("pmid")) == nct:
             if aact is None:
                 return False, "K2_N_NOT_VERIFIABLE:NO_AACT_SNAPSHOT"
-            n = {r["ctgov_group_code"]: r["count"] for r in aact._counts
+            n = {r["ctgov_group_code"]: _whole(r["count"]) for r in aact._counts
                  if r["nct_id"] == nct and r["outcome_id"] == oid and r.get("scope") == "Measure"}
-            if sorted(int(float(x)) for x in n.values()) == sorted([nt, nc]) and len(n) == 2:
-                return True, f"K2: PMID {b['pmid']} held abstract span (events); Ns AACT {nct} outcome {oid} counts"
+            if len(n) == 2 and sorted(n.values()) == sorted([nt, nc]):
+                return True, f"K2: PMID {b['pmid']} held abstract span (events, arms in order, % = events/N); " \
+                             f"Ns AACT {nct} outcome {oid} counts"
             return False, f"K2_AACT_NS_DIFFER:{sorted(n.items())}"
         return False, "K2_NS_UNSOURCED"
     return False, f"RULE_NOT_UNDER_D12:{rule}"

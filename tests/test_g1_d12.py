@@ -76,18 +76,30 @@ def test_PLANT_d12_replaces_only_the_comparison_pair_never_our_value():
 def _k2(**kw):
     b = {"slug": "s", "label": "T", "pmid": "1", "ncts": ["NCT00000001"], "own_tuple": True, "tuple_kind": "COUNTS",
          "rule": "K2", "values": {"events_t": 59, "n_t": 2609, "events_c": 71, "n_c": 2635},
-         "span": "occurred in 59 of 2609 patients, as compared with 71 of 2635"}
+         "span": "occurred in 59 of 2609 patients (2.3%) in the apixaban group, as compared with 71 of 2635 (2.7%) in the "
+                 "conventional-therapy group"}
     b.update(kw)
     return b
 
 
+TERMS = (["apixaban", "rivaroxaban", "drug"], ["conventional therapy", "vitamin k antagonist", "placebo"])
+HELD = ("RESULTS: The outcome occurred in 59 of 2609 patients (2.3%) in the apixaban group, as compared with 71 of 2635 "
+        "(2.7%) in the conventional-therapy group.")
+
+
+@pytest.fixture(autouse=True)
+def _terms(monkeypatch):
+    monkeypatch.setattr(D, "arm_terms", lambda slug: TERMS)
+    monkeypatch.setattr(D, "_held_nct", lambda slug, pmid: "NCT00000001")
+
+
 def test_PLANT_a_binding_is_used_only_when_it_verifies(monkeypatch):
-    held = "RESULTS: The outcome occurred in 59 of 2609 patients, as compared with 71 of 2635 (2.7%)."
-    monkeypatch.setattr(D, "_held_abstract", lambda slug, pmid: held)
+    monkeypatch.setattr(D, "_held_abstract", lambda slug, pmid: HELD)
     assert D.verify(_k2())[0]
-    assert D.verify(_k2(span="occurred in 59 of 2609 patients, as compared with 71 of 2636"))[1] == \
-        "K2_SPAN_NOT_VERBATIM_IN_HELD_ABSTRACT"
-    assert D.verify(_k2(values={"events_t": 58, "n_t": 2609, "events_c": 71, "n_c": 2635}))[1] == "K2_EVENT_COUNTS_NOT_IN_SPAN"
+    assert D.verify(_k2(span="occurred in 59 of 2609 patients (2.3%) in the apixaban group, as compared with 71 of 2636"))[1] \
+        == "K2_SPAN_NOT_VERBATIM_IN_HELD_ABSTRACT"
+    assert D.verify(_k2(values={"events_t": 58, "n_t": 2609, "events_c": 71, "n_c": 2635}))[1] == \
+        "K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN"
     assert D.verify(_k2(values={"events_t": 59, "n_t": 2609, "events_c": 71, "n_c": 70}))[1] == "IMPOSSIBLE_COUNTS"
     assert D.verify(_k2(own_tuple=False))[1] == "NOT_AN_OWN_COUNTS_TUPLE"
     k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42")
@@ -102,8 +114,9 @@ def _snapshot(tmp_path, titles=("Drug", "Placebo")):
         "1|NCT00000001|42|g0|OG000|Measure|Participants|2609\n2|NCT00000001|42|g1|OG001|Measure|Participants|2635\n",
         encoding="utf-8")
     (tmp_path / "outcome_measurements.txt").write_text(
-        "id|nct_id|outcome_id|result_group_id|ctgov_group_code|classification|category|title|param_value\n"
-        "1|NCT00000001|42|g0|OG000||||59\n2|NCT00000001|42|g1|OG001||||71\n", encoding="utf-8")
+        "id|nct_id|outcome_id|result_group_id|ctgov_group_code|classification|category|title|units|param_type|param_value\n"
+        "1|NCT00000001|42|g0|OG000||||Participants|COUNT_OF_PARTICIPANTS|59\n"
+        "2|NCT00000001|42|g1|OG001||||Participants|COUNT_OF_PARTICIPANTS|71\n", encoding="utf-8")
     (tmp_path / "result_groups.txt").write_text(
         "id|nct_id|ctgov_group_code|result_type|title|description|outcome_id\n"
         f"g0|NCT00000001|OG000|Outcome|{titles[0]}||42\ng1|NCT00000001|OG001|Outcome|{titles[1]}||42\n", encoding="utf-8")
@@ -125,7 +138,7 @@ def test_PLANT_k1_verifies_against_the_aact_rows_and_their_group_titles(tmp_path
 
 
 def test_identity_not_label_joins_a_binding_to_a_trial(tmp_path, monkeypatch):
-    monkeypatch.setattr(D, "_held_abstract", lambda slug, pmid: "occurred in 59 of 2609 patients, as compared with 71 of 2635")
+    monkeypatch.setattr(D, "_held_abstract", lambda slug, pmid: HELD)
     reg = {"bindings": [_k2(label="Some other label")]}
     trials = [{"label": "T 18", "in_our_pool": True, "family": "PMID 1"},
               {"label": "U", "in_our_pool": True, "family": "PMID 2"}]
@@ -149,3 +162,48 @@ def test_the_committed_bindings_carry_their_import_provenance():
 def test_a_missing_bindings_file_is_an_error(tmp_path):
     with pytest.raises(FileNotFoundError):
         D.load(str(tmp_path / "none.json"))
+
+
+def _held(monkeypatch, text):
+    monkeypatch.setattr(D, "_held_abstract", lambda slug, pmid: text)
+    return text
+
+
+def test_PLANT_r1_1_a_percentage_is_never_a_count(monkeypatch):
+    t = _held(monkeypatch, "Death occurred in 2% of 59 apixaban patients and 3% of 71 with conventional therapy.")
+    b = _k2(span=t, values={"events_t": 2, "n_t": 59, "events_c": 3, "n_c": 71})
+    assert D.verify(b)[1] == "K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN"
+    assert D.count_positions("2% of 59 and 59 of 2609 and 2.59 events", 59) == [13]
+
+
+def test_PLANT_r1_2_counts_assigned_to_the_opposite_arms_never_verify(monkeypatch):
+    t = _held(monkeypatch, "occurred in 71 of 2635 patients (2.7%) in the apixaban group, as compared with 59 of 2609 "
+                           "(2.3%) in the conventional-therapy group")
+    assert D.verify(_k2(span=t))[1] == "K2_COUNTS_NOT_IN_THE_ARMS_ORDER"
+
+
+def test_PLANT_r1_3_a_count_must_be_tied_to_its_own_denominator(monkeypatch):
+    # deaths in a safety population (59 of 2500, 2.4%) beside randomised Ns elsewhere in the text
+    t = _held(monkeypatch, "Randomised: 2609 apixaban and 2635 conventional therapy. In the safety population, 59 deaths "
+                           "(2.4%) with apixaban and 71 deaths (2.9%) with conventional therapy.")
+    b = _k2(span=t, n_source="abstract")
+    assert D.verify(b)[1] == "K2_COUNT_NOT_TIED_TO_ITS_DENOMINATOR"
+
+
+def test_PLANT_r1_4_a_non_count_or_fractional_aact_value_is_never_an_event_count(tmp_path):
+    a = _snapshot(tmp_path)
+    a._meas = [dict(r, param_type="MEAN", units="kg") for r in a._meas]
+    assert a.arms("NCT00000001", "42", None) == {}
+    a2 = _snapshot(tmp_path)
+    a2._meas = [dict(r, param_value="59.4" if r["param_value"] == "59" else r["param_value"]) for r in a2._meas]
+    assert len(a2.arms("NCT00000001", "42", None)) == 1
+    assert D._whole("30.0") == 30 and D._whole("30.5") is None and D._whole("x") is None
+
+
+def test_PLANT_r1_5_k1_needs_the_trials_own_report_to_carry_the_nct(tmp_path, monkeypatch):
+    a = _snapshot(tmp_path)
+    k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42",
+             span="X | unclassified | Drug: 59 of 2609 participants | Placebo: 71 of 2635 participants")
+    assert D.verify(k1, a)[0]
+    monkeypatch.setattr(D, "_held_nct", lambda slug, pmid: "NCT00000002")
+    assert D.verify(k1, a)[1] == "K1_HELD_REPORT_DOES_NOT_CARRY_THIS_NCT"

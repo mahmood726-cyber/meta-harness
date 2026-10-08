@@ -5621,5 +5621,83 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "d12-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "c64042e8a432a213739b2011098cf405854f4d702340bf7e00c131676cba53b2"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K2), for_topic",
+    "severity": "P0",
+    "claim": "Integer percentages pass as death counts. Token membership does not check whether a number is a count, so percentage values enter the matching result.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\ntext = 'Each arm randomised 200 participants. Kaplan-Meier mortality estimates were 10% for treatment and 20% for control.'\nb = dict(slug='fixture', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=text, values=dict(events_t=10, n_t=200, events_c=20, n_c=200))\ntrials = [dict(label='T', family='PMID 1', in_our_pool=True)]\nwith patch.object(d, '_held_abstract', return_value=text):\n    out, refused = d.for_topic('fixture', trials, snap='', reg={'bindings': [b]})\nprint(out['T']['row'], refused)",
+    "expected": "Reject the binding: the held text supplies estimates, not per-arm death counts.",
+    "actual": "{'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 200} []",
+    "id": "d12-r1:g1#1",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K2), for_topic",
+    "severity": "P0",
+    "claim": "The verifier checks numbers independently and loses their arm associations. Swapped event counts pass even when the held text explicitly assigns each count to the opposite arm.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\ntext = 'Treatment: 10 deaths among 100 participants. Control: 20 deaths among 200 participants.'\nb = dict(slug='fixture', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=text, values=dict(events_t=20, n_t=100, events_c=10, n_c=200))\ntrials = [dict(label='T', family='PMID 1', in_our_pool=True)]\nwith patch.object(d, '_held_abstract', return_value=text):\n    out, refused = d.for_topic('fixture', trials, snap='', reg={'bindings': [b]})\nprint(out['T']['row'], refused)",
+    "expected": "Reject the supplied tuple. The supported tuple is events_t=10, n_t=100, events_c=20, n_c=200.",
+    "actual": "{'events_t': 20, 'n_t': 100, 'events_c': 10, 'n_c': 200} []",
+    "id": "d12-r1:g1#2",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K2), for_topic",
+    "severity": "P0",
+    "claim": "Denominator kinds are not validated. Death counts explicitly limited to safety populations can be combined with randomised denominators merely because those denominators occur in the span.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\ntext = 'Randomised populations: treatment 100, control 100. Safety populations: treatment 80, control 90. Deaths were collected only in the safety populations: treatment 8, control 9.'\nb = dict(slug='fixture', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=text, values=dict(events_t=8, n_t=100, events_c=9, n_c=100))\ntrials = [dict(label='T', family='PMID 1', in_our_pool=True)]\nwith patch.object(d, '_held_abstract', return_value=text):\n    out, refused = d.for_topic('fixture', trials, snap='', reg={'bindings': [b]})\nprint(out['T']['row'], refused)",
+    "expected": "Reject the mixed-denominator tuple. The stated safety counts have denominators 80 and 90.",
+    "actual": "{'events_t': 8, 'n_t': 100, 'events_c': 9, 'n_c': 100} []",
+    "id": "d12-r1:g1#3",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms, verify (K1)",
+    "severity": "P0",
+    "claim": "AACT measurements are converted with int(float(...)) without validating their parameter type or integrality. Fractional means are silently truncated and then certified as exact event counts.",
+    "failing_input": "from scripts import g1_d12 as d\na = d.Aact('fixture')\nbase = dict(nct_id='NCT00000001', outcome_id='1')\na._counts = [dict(base, ctgov_group_code=g, scope='Measure', count='100') for g in ('G1', 'G2')]\na._meas = [dict(base, ctgov_group_code=g, classification='', param_type='Mean', param_value=v) for g, v in [('G1', '12.9'), ('G2', '24.9')]]\na._groups = [dict(base, ctgov_group_code=g, title=t) for g, t in [('G1', 'Treatment'), ('G2', 'Control')]]\nb = dict(rule='K1', tuple_kind='COUNTS', own_tuple=True, source='AACT NCT00000001 outcome 1', ncts=['NCT00000001'], classification='unclassified', span='Treatment: 12 of 100 participants; Control: 24 of 100 participants', values=dict(events_t=12, n_t=100, events_c=24, n_c=100))\nprint(sorted(a.arms('NCT00000001', '1', 'unclassified').items()))\nprint(d.verify(b, a)[0])",
+    "expected": "Reject these measurements as event counts: the source contains fractional means 12.9 and 24.9, not counts 12 and 24.",
+    "actual": "[('G1', (12, 100)), ('G2', (24, 100))]\nTrue",
+    "id": "d12-r1:g1#4",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "for_topic, verify (K2)",
+    "severity": "P1",
+    "claim": "The identity join trusts the binding's asserted NCT list without checking the paper's evidence. Counts from a paper explicitly reporting one trial can therefore bind to a different trial.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\ntext = 'These results concern only trial NCT00000001. Treatment: 10 deaths among 100 participants. Control: 20 deaths among 100 participants.'\nb = dict(slug='fixture', pmid='1', ncts=['NCT00000002'], rule='K2', tuple_kind='COUNTS', own_tuple=True, span=text, values=dict(events_t=10, n_t=100, events_c=20, n_c=100))\ntrials = [dict(label='Other trial', family='NCT00000002', in_our_pool=True)]\nwith patch.object(d, '_held_abstract', return_value=text):\n    out, refused = d.for_topic('fixture', trials, snap='', reg={'bindings': [b]})\nprint(out['Other trial']['row'], refused)",
+    "expected": "Reject the identity binding: the held paper identifies NCT00000001 and supplies no evidence connecting its counts to NCT00000002.",
+    "actual": "{'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100} []",
+    "id": "d12-r1:g1#5",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   }
+  ]
  }
 }
