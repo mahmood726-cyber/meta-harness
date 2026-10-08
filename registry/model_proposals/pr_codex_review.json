@@ -6065,5 +6065,215 @@
     "verdict": null
    }
   ]
+ },
+ "idlink-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3e57ba9a47db12c7b0587164260e8fcd",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "846c66a0e4a835a5a6c621539c02318351e813e3f91a060836dfce7dd817e483"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "join",
+    "severity": "P1",
+    "claim": "Accepts an identity link with zero supporting facts. The advertised two-fact evidence requirement is never checked; an unsupported PMID-to-NCT mapping becomes a PRIMARY, countable match.",
+    "failing_input": "from scripts.g1_identity_links import join\nt = {}\nx = {'in_our_pool': False, 'route': 'NO_ROW'}\nmatched = set()\nroutes = {'NO_ROW': 1}\nlinks = {'33731544': {'nct': 'NCT02468232', 'rules': []}}\nout = join([x], [t], {id(t): '33731544'}, {'NCT02468232': 'pool1'}, {'pool1'}, matched, routes, links=links)\nprint(len(out), x['in_our_pool'], x['route'], x['g1_countable'], matched, routes)",
+    "expected": "Reject the unsupported link or raise an evidence-validation error before mutating the match and route state.",
+    "actual": "1 True PRIMARY True {'pool1'} {'NO_ROW': 0, 'PRIMARY': 1}",
+    "id": "idlink-r1:g1#1",
+    "record_id": "mc-3e57ba9a47db12c7b0587164260e8fcd",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "load",
+    "severity": "P2",
+    "claim": "A missing identity-links artifact silently returns the same value as a successfully loaded empty artifact. The tracker consequently treats unavailable binding evidence as no matching links, without reporting the acquisition/configuration failure.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.g1_identity_links import load\nwith patch('scripts.g1_identity_links.os.path.exists', return_value=False):\n    print(load('missing-identity-links.json'))",
+    "expected": "Raise a missing-artifact error or return an explicit unavailable status that prevents normal classification.",
+    "actual": "{}; join() consumes this as an empty link mapping and returns no matches without an error.",
+    "id": "idlink-r1:g1#2",
+    "record_id": "mc-3e57ba9a47db12c7b0587164260e8fcd",
+    "verdict": null
+   }
+  ]
+ },
+ "idlink-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-113558120c8eace56fe764c001db2fc6",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "5a2245e1117757daa3f00fb2de0d6c6442146acc86674b0db4bb83d57dc2239f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported",
+    "severity": "P1",
+    "claim": "ONE_NCT_STATED_IN_OWN_REPORT is validated by substring membership, so a report explicitly registered to another trial can support the wrong binding. join() accepts that link when its target is pooled.",
+    "failing_input": "supported({'nct': 'NCT00000001', 'rules': [{'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': 'Our trial registration is NCT00000002. The previous ALPHA trial was NCT00000001.', 'text_sha256': __import__('hashlib').sha256(b'Our trial registration is NCT00000002. The previous ALPHA trial was NCT00000001.').hexdigest()}, {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'ALPHA', 'title': 'A successor to ALPHA'}]})",
+    "expected": "False: the span names two registrations and assigns the requested registration to a previous trial.",
+    "actual": "True: the requested NCT occurs anywhere in the span; uniqueness and attribution are not checked.",
+    "id": "idlink-r2:g1#1",
+    "record_id": "mc-113558120c8eace56fe764c001db2fc6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported",
+    "severity": "P1",
+    "claim": "TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM never checks a registry acronym. Any nonempty title substring satisfies this supposedly independent identity fact, allowing join() to accept links without the required corroboration.",
+    "failing_input": "supported({'nct': 'NCT00000001', 'rules': [{'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': 'Trial registration: NCT00000001.', 'text_sha256': __import__('hashlib').sha256(b'Trial registration: NCT00000001.').hexdigest()}, {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'randomized', 'title': 'A randomized trial'}]})",
+    "expected": "False: no trial acronym or evidence of equality with the registry acronym is supplied.",
+    "actual": "True: 'randomized' is a nonempty substring of the supplied title, which is the entire acronym validation.",
+    "id": "idlink-r2:g1#2",
+    "record_id": "mc-113558120c8eace56fe764c001db2fc6",
+    "verdict": null
+   }
+  ]
+ },
+ "idlink-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b272e3087dfa839829447fe3dcb4a57e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "e5f68db0cf235b837b39d06e7395ae5bb957c02bd2176edb09cdd9a6b3549df9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported / join",
+    "severity": "P1",
+    "claim": "An NCT mentioned explicitly as another study passes the own-report identity check. Combined with that study's acronym in a comparison title, this incorrectly binds an unrelated report to the pooled trial.",
+    "failing_input": "import hashlib\nimport scripts.g1_identity_links as m\nspan = 'The previous PARALLEL-HF trial was registered as NCT02468232. Our unrelated observational cohort was not registered.'\nlk = {'nct': 'NCT02468232', 'rules': [{'rule': m.RULES[0], 'span': span, 'text_sha256': hashlib.sha256(span.encode()).hexdigest()}, {'rule': m.RULES[1], 'span': 'PARALLEL-HF', 'title': 'An unrelated observational cohort: comparison with PARALLEL-HF', 'registry_acronym': 'PARALLEL-HF', 'registry_acronym_source': 'AACT snap studies.txt NCT02468232 acronym'}]}\nt = {}\nx = {'in_our_pool': False, 'route': 'NO_ROW'}\nprint(m.supported(lk))\nm.join([x], [t], {id(t): '123'}, {'NCT02468232': 'pooled-trial'}, {'pooled-trial'}, set(), {'NO_ROW': 1}, links={'123': lk})\nprint(x['in_our_pool'], x['route'])",
+    "expected": "False; then False NO_ROW. The supplied text explicitly distinguishes this cohort from the registered trial.",
+    "actual": "True; then True PRIMARY. The NCT check only tests occurrence, and join marks the unrelated report g1_countable=True.",
+    "id": "idlink-r3:g1#1",
+    "record_id": "mc-b272e3087dfa839829447fe3dcb4a57e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "registry_acronym_from_aact",
+    "severity": "P2",
+    "claim": "A missing required acronym column silently becomes an absent acronym instead of a schema error. This makes a broken snapshot indistinguishable from a valid record with no registered acronym.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts.g1_identity_links import registry_acronym_from_aact\nwith patch('builtins.open', return_value=io.StringIO('nct_id|brief_title\\nNCT02468232|Example trial\\n')):\n    print(registry_acronym_from_aact('NCT02468232', 'snap'))",
+    "expected": "Raise an explicit schema error because studies.txt lacks the acronym column.",
+    "actual": "(None, 'AACT snap studies.txt NCT02468232 acronym')",
+    "id": "idlink-r3:g1#2",
+    "record_id": "mc-b272e3087dfa839829447fe3dcb4a57e",
+    "verdict": null
+   }
+  ]
+ },
+ "idlink-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b5593c8b8962c5b2306db502e7bc0528",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "010a0e2ac2761f582e2c2be4a9f05956ee7ca6c719e7ceaad837c81d7b13d736"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study",
+    "severity": "P1",
+    "claim": "A comparison phrase at the beginning of a title bypasses the comparison exclusion. The checked suffix includes a leading space, so 'compared with' does not match ' compared with'. This incorrectly classifies the referenced trial as the paper's own study.",
+    "failing_input": "title_names_own_study('Compared with the PARALLEL-HF trial: outcomes in an observational cohort', 'PARALLEL-HF')",
+    "expected": "False: the title explicitly describes comparison with another trial.",
+    "actual": "True.",
+    "id": "idlink-r4:g1#1",
+    "record_id": "mc-b5593c8b8962c5b2306db502e7bc0528",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study",
+    "severity": "P1",
+    "claim": "An own-study title beginning with 'The <ACRONYM> Study' is rejected because before.endswith(' the') requires a space before the initial article. Consequently, supported() rejects otherwise valid identity links with this title form.",
+    "failing_input": "title_names_own_study('The PARALLEL-HF Study: Results', 'PARALLEL-HF')",
+    "expected": "True: the title explicitly names its own study, matching the documented rule.",
+    "actual": "False.",
+    "id": "idlink-r4:g1#2",
+    "record_id": "mc-b5593c8b8962c5b2306db502e7bc0528",
+    "verdict": null
+   }
+  ]
+ },
+ "idlink-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d17104445981927a1e8a8df5036ec532",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "a3bf2ad09a30a029837cb1c860f80810588bf4a2ce048b103e3fa01436a95c20"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study / supported",
+    "severity": "P1",
+    "claim": "The comparison exclusion checks only words immediately preceding 'the'. Explicit comparisons with intervening words pass as own-study evidence, allowing a cited trial's registration to support the wrong paper.",
+    "failing_input": "from scripts.g1_identity_links import supported\nfrom hashlib import sha256\ntext = 'We compared our unregistered cohort with the ALPHA trial (NCT00000001).'\nlink = {'nct': 'NCT00000001', 'rules': [\n    {'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': text, 'text_sha256': sha256(text.encode()).hexdigest()},\n    {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'ALPHA', 'title': 'Outcomes compared with those of the ALPHA trial', 'registry_acronym': 'ALPHA', 'registry_acronym_source': 'AACT studies.txt NCT00000001 acronym'}\n]}\nprint(supported(link))",
+    "expected": "False: both spans describe the registered trial as an external comparator, not this paper's own study.",
+    "actual": "True. Removing 'the' leaves a prefix ending in 'those of', which evades every comparison suffix check.",
+    "id": "idlink-r5:g1#1",
+    "record_id": "mc-d17104445981927a1e8a8df5036ec532",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study / supported",
+    "severity": "P1",
+    "claim": "Missing word boundaries allow an acronym and the following 'trial' marker to be extracted from a single unrelated word. This fabricates title evidence for a trial binding.",
+    "failing_input": "from scripts.g1_identity_links import supported\nfrom hashlib import sha256\ntext = 'Our unregistered cohort used the A trial (NCT00000001) as background evidence.'\nlink = {'nct': 'NCT00000001', 'rules': [\n    {'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': text, 'text_sha256': sha256(text.encode()).hexdigest()},\n    {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'A', 'title': 'The Atrial Fibrillation study', 'registry_acronym': 'A', 'registry_acronym_source': 'AACT studies.txt NCT00000001 acronym'}\n]}\nprint(supported(link))",
+    "expected": "False: 'Atrial' does not name a study with acronym 'A'; the registration appears only as background evidence.",
+    "actual": "True. The predicate splits 'Atrial' into acronym 'A' and suffix 'trial', satisfying its own-study check.",
+    "id": "idlink-r5:g1#2",
+    "record_id": "mc-d17104445981927a1e8a8df5036ec532",
+    "verdict": null
+   }
+  ]
  }
 }
