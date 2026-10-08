@@ -1171,11 +1171,19 @@ def build_index(docs_dir: str) -> str:
         rows.append((slug, m, comp, ov, ident))
 
     if rows:
-        body = "<table><tr><th>Review</th><th>Method</th><th>Comparator</th>"\
-               "<th>Overlap (ours / theirs / shared)</th></tr>"
+        from . import review_tabs as _rt   # ACTIVE / ABANDONED_BY_DECISION from registry/g1_abandoned.json
+        body = ("<p class='audit-link'><strong>External audit pack:</strong> <a href='audit/index.html'>auditor's guide, "
+                "review list with pinned identities, per-review checklists, extraction spot-check sample and findings "
+                "template</a>.</p>")
+        body += "<table><tr><th>Review</th><th>Status</th><th>Method</th><th>Comparator</th>"\
+                "<th>Overlap (ours / theirs / shared)</th></tr>"
         for slug, m, comp, ov, ident in rows:
+            _st = _rt.topic_status(slug)
+            _stc = ("<strong>ABANDONED BY DECISION</strong> (" + _E(_st.get("rule_id")) + ", " + _E(_st.get("date")) + ")"
+                    if _st["state"] == "ABANDONED_BY_DECISION" else _E(_st["state"]))
             body += (
                 f"<tr><td><a href='reviews/{_E(slug)}/index.html'>{_E(m.get('title') or slug)}</a></td>"
+                f"<td data-topic-status='{_E(_st['state'])}'>{_stc}</td>"
                 f"<td>{_E(m.get('served_method'))}</td>"
                 f"<td>{_E(comp.get('name'))} ({_E(ident)})</td>"
                 f"<td>{_E(ov.get('ours_k'))} / {_E(ov.get('theirs_k'))} / {_E(ov.get('shared_k'))}</td></tr>"
