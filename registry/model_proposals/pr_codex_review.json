@@ -6305,5 +6305,47 @@
     "verdict": null
    }
   ]
+ },
+ "v10-apply-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-024d4015dc9682c744e1bb4e0fbe8db3",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "ac45f9858a5b05ff6657dfe7bf67a36e3e1dbc9eddca8424358e41e381c1e298"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study",
+    "severity": "P1",
+    "claim": "Comparison titles pass the ownership gate when words intervene between the comparison phrase and 'the <acronym> trial'. This lets a reference to another trial support an identity link.",
+    "failing_input": "title_names_own_study('Outcomes compared with those of the ALPHA trial', 'ALPHA')",
+    "expected": "False: the title identifies ALPHA as the comparison trial.",
+    "actual": "True: the text immediately preceding 'the' ends with 'of', which is not among the rejected suffixes.",
+    "id": "v10-apply-r2:g1#1",
+    "record_id": "mc-024d4015dc9682c744e1bb4e0fbe8db3",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported",
+    "severity": "P1",
+    "claim": "The registration-evidence gate checks only identifier occurrence, so even an explicit denial of the proposed registration supports the link.",
+    "failing_input": "supported({'nct': 'NCT00000001', 'ratified': {'state': 'SEEN_AND_SIGNED', 'by': 'Mahmood', 'quote': 'Approved', 'packet_sha256': 'a' * 64, 'item_section_sha256': 'b' * 64}, 'rules': [{'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': 'The ALPHA trial was not registered as NCT00000001.', 'text_sha256': 'c' * 64}, {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'ALPHA', 'title': 'The ALPHA trial: results', 'registry_acronym': 'ALPHA', 'registry_acronym_source': 'AACT studies.txt NCT00000001 acronym'}]})",
+    "expected": "False: the held registration span explicitly denies this binding.",
+    "actual": "True: the singleton identifier matches, all remaining checks pass, and join() can consequently bind this report to the pooled NCT00000001 row.",
+    "id": "v10-apply-r2:g1#2",
+    "record_id": "mc-024d4015dc9682c744e1bb4e0fbe8db3",
+    "verdict": null
+   }
+  ]
  }
 }
