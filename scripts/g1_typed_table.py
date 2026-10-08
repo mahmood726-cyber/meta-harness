@@ -96,6 +96,7 @@ def judge(slug: str) -> dict:
     acc = gfr.accept(rows, pooled, model, spec["measure"], held) if pooled and rows else \
         {"state": "REFUSED", "problems": [], "recomputed": {}, "methods_reproducing": [], "pooled_anchor": None}
     acc["problems"] = [p for p in acc["problems"] if not p.startswith("ROW_COUNTS_DO_NOT_GIVE_PRINTED")]
+    acc["state"] = "ACCEPTED" if not acc["problems"] else "REFUSED"
     problems = probs + acc["problems"]
     # the gate's allowance includes a half-unit row-rounding extra meant for TRANSCRIBED rows; typed counts carry no
     # row rounding, so how far each reproducing method is from printed rounding alone is recorded beside the verdict

@@ -37,3 +37,10 @@ def test_the_doac_table_meets_the_unchanged_reconstruction_gate_and_records_its_
     assert len(r["proposed_rows"]) == 5 and r["state"] == "ACCEPTED"
     assert r["acceptance"]["methods_reproducing"] == ["DL", "PM", "REML"]
     assert r["margin"]["upper_outside_printed_rounding"] is True
+
+
+def test_the_acceptance_state_the_tracker_reads_is_the_verdict():
+    # 8 Oct merge-check: the not-applicable per-row problem was filtered from the list but acceptance.state stayed
+    # REFUSED, so g1_tracker.lane_comparator_rows (which reads acceptance.state) dropped all 5 rows
+    r = tt.judge("doac-vte-recurrence")
+    assert r["acceptance"]["state"] == r["state"] == "ACCEPTED"
