@@ -229,3 +229,9 @@ def test_printed_numbers_keep_their_printed_form():
     assert A._printed(0.7, "HR 0.70 (0.54-0.90)") == "0.70"
     assert A._printed(1.82, "0.65–1.82") == "1.82"
     assert A._printed(2.5, "HR 0.70") is None
+
+
+def test_a_managed_challenge_page_is_a_challenge_not_a_plain_403():
+    # ANZCTR (8 Oct): HTTP 403 with 'Managed Challenge / I'm Under Attack Mode' and no Cloudflare title
+    page = b"<html><head><title>Oops</title></head><body>Managed Challenge / I'm Under Attack Mode - Enable JavaScript</body></html>"
+    assert O.is_challenge(403, page)

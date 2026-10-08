@@ -47,7 +47,8 @@ THIRD_PARTY = "THIRD_PARTY_SPONSOR"            # EMA legal notice: permissions d
 MIN_TEXT = 3000                                # a shorter PDF text layer is no report (cover page, error page)
 VERSION_ORDER = {"publishedVersion": 0, "acceptedVersion": 1, "submittedVersion": 2}
 
-_CHALLENGE = re.compile(r"<title>\s*Just a moment|cf-chl|challenge-platform|cf_chl_opt|captcha|Attention Required", re.I)
+_CHALLENGE = re.compile(r"<title>\s*Just a moment|cf-chl|challenge-platform|cf_chl_opt|captcha|Attention Required|"
+                        r"Managed Challenge|Under Attack Mode", re.I)    # ANZCTR 8 Oct: 403 'Managed Challenge'
 
 
 # ---------------------------------------------------------------------------------------------------------- fetching
