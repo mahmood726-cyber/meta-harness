@@ -5295,5 +5295,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r10": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-cb165c08055371730bb50a4ae32015c5",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "095f7ecf07dafbdcb99abf0bfce264c39fbff7cc669e70f7e92c21367da802d0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "OA service errors are ignored when a matching record advertises a usable package URL: error handling occurs only inside `if not tgz`. A failed response can therefore become NO_USABLE_SUPPLEMENT or HELD. This reproducer follows directly from the diff; execution was blocked by session policy.",
+    "failing_input": "import io, tarfile\nfrom unittest.mock import patch\nfrom harness import fetch as f\n\nbuf = io.BytesIO()\nwith tarfile.open(fileobj=buf, mode='w:gz'):\n    pass\noa = '<OA><error code=\"serviceUnavailable\">Temporary failure</error><records><record id=\"PMC1234567\"><link format=\"tgz\" href=\"https://example.org/package.tar.gz\"/></record></records></OA>'\nwith patch.object(f.http, 'get_text', return_value=oa), patch.object(f.http, 'get', return_value=buf.getvalue()), patch.object(f.time, 'sleep'):\n    result = f._pmc_oa_supplement_text('1234567', ['supp.csv'])\n    print(repr(result), f.LAST_SUPPLEMENT_STATE['1234567'])",
+    "expected": "Returns ''; LAST_SUPPLEMENT_STATE['1234567'] starts with FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR and records serviceUnavailable.",
+    "actual": "Returns ''; LAST_SUPPLEMENT_STATE['1234567'] is NO_USABLE_SUPPLEMENT. The service error is discarded without a warning.",
+    "id": "fetch-loud-r10:g1#1",
+    "record_id": "mc-cb165c08055371730bb50a4ae32015c5",
+    "verdict": null
+   }
+  ]
  }
 }

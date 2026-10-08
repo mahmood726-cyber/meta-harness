@@ -191,3 +191,11 @@ def test_PLANT_a_later_service_error_is_not_masked_by_not_open_access(monkeypatc
     monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error code='idIsNotOpenAccess'>x</error><error code='internalError'>down</error></OA>")
     assert fetch._pmc_oa_supplement_text("940", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["940"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: internalError")
+
+
+def test_PLANT_a_service_error_beside_an_advertised_package_is_a_failure(monkeypatch):
+    """codex fetch-loud-r10 #1: errors were inspected only when no package was advertised."""
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error code='internalError'>partial</error><records><record id='PMC941'><link format='tgz' href='https://x/p.tar.gz'/></record></records></OA>")
+    monkeypatch.setattr(fetch.http, "get", lambda *a, **k: b"")
+    assert fetch._pmc_oa_supplement_text("941", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["941"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: internalError")
