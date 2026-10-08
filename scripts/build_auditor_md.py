@@ -112,7 +112,8 @@ the evidence (quote the source, with its link), and severity: **changes a served
         m = j(live, f"docs/reviews/{slug}/manifest.json")
         page = show(live, f"docs/reviews/{slug}/index.html")
         try:
-            g1 = j(live, f"outputs/k_gap/g1/{slug}.json").get("g1_status")
+            gs = j(live, f"outputs/k_gap/g1/{slug}.json").get("g1_status") or {}
+            g1 = (gs.get("state") or "not recorded") + (f" (unmet: {', '.join(gs.get('unmet') or [])})" if gs.get("unmet") else "")
         except subprocess.CalledProcessError:
             g1 = "not recorded"
         st = "ABANDONED BY DECISION" if slug in abandoned else "ACTIVE"
@@ -163,7 +164,7 @@ the evidence (quote the source, with its link), and severity: **changes a served
             continue
         key = {"zinc-common-cold-duration": "zinc", "vitamin-d-acute-respiratory-infection": "vitamin",
                "prone-positioning-ards-mortality": "prone", "hfnc-vs-conventional-o2-reintubation": "hfnc",
-               "azithromycin-copd-exacerbation": "azithro", "antibiotics-vs-appendectomy-appendicitis": "appendic"}.get(s, s)
+               "azithromycin-copd-exacerbation": "azithro", "antibiotics-vs-appendectomy-appendicitis": "antibiotics ("}.get(s, s)
         log = [ln for ln in git("log", live, "--format=%h %ad %s", "--date=short", "-i", "--grep=declin").splitlines()
                if key.lower() in ln.lower()]
         if log:
