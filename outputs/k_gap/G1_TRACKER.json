@@ -57,32 +57,74 @@
    "rule": "A comparator trial kept OUT of the served pool by a recorded decision (D7: a re-expressed CI is for matching only) is a NAMED divergence, typed DECISION_EXCLUDED_FROM_SERVED_POOL, citing the decision id and its rule text as the span. It stays out of the served pool and keeps NOT_ADMISSIBLE_BY_REGISTER; only a trial listed in registry/g1_decision_named_divergences.json is named. First and only entry: dpp4-mace-t2d / EXAMINE (V9-01Q)."
   },
   {
-   "applied_in": null,
+   "applied_in": "assigned 8 Oct (lane_status/DISPATCH_ALL_LANES_2026-10-08_V9_GAP.md): every lane runs scripts/g1_licence.py before a reader touches a held text; NOT YET ENFORCED in code -- a reader-side guard is owed",
    "by": "Mahmood",
    "decided": "2026-10-07",
    "id": "D8-OPEN_SOURCES_ONLY",
    "rule": "Only open sources: Unpaywall / PMC / Europe PMC open access, ClinicalTrials.gov / AACT, FDA, EMA, NICE, WHO ICTRP and open-access metas. No paywalled text is read, even by a regex reader. Enforced by the licence guard (scripts/g1_licence.py) on every held text a reader may consume."
   },
   {
-   "applied_in": null,
+   "applied_in": "assigned 8 Oct to the search lane (WHO ICTRP, OpenAlex, Europe PMC in place of CENTRAL / Embase); no licensed database is queried by any script in this repository",
    "by": "Mahmood",
    "decided": "2026-10-07",
    "id": "D9-NO_LICENSED_DATABASES",
    "rule": "No licensed bibliographic databases: no Cochrane CENTRAL, no Embase. Open alternatives (WHO ICTRP, OpenAlex, Europe PMC) are used instead."
   },
   {
-   "applied_in": null,
+   "applied_in": "assigned 8 Oct to the binding lane (dated protocol amendments per active topic; each new served outcome through signed result-change notices); NOT YET APPLIED to any topic",
    "by": "Mahmood",
    "decided": "2026-10-07",
    "id": "D10-MULTI_OUTCOME",
    "rule": "Each active topic is widened beyond its one registered outcome through dated protocol amendments; every newly served outcome enters through signed result-change notices."
   },
   {
-   "applied_in": null,
+   "applied_in": "assigned 8 Oct to the search lane (recorded dual-model RoB 2 / GRADE review plus adjudicator, disagreements on the page); NOT YET APPLIED",
    "by": "Mahmood",
    "decided": "2026-10-07",
    "id": "D11-REPRODUCIBLE_AI_SIGNOFF",
    "rule": "RoB 2 and GRADE judgements are signed off by a recorded dual-model reviewer plus an adjudicator in the harness. Disagreements with the rule-based rating are shown on the page. The recorded sign-off replaces any notion of human expert sign-off."
+  },
+  {
+   "applied_in": "scripts/g1_d12.py (verifies each binding at build: K1 against the AACT snapshot's own rows and group titles; K2 span verbatim in the trial's held abstract, counts as number tokens); registry/d12_counts_for_matching.json (binding lane's staged own-count bindings, imported with ref and sha256); scripts/g1_tracker.py d12_pairs (replaces only a same-trials MEASURE_DIFFERENCE pair, never our_value). Plant: tests/test_g1_d12.py (counts used for matching never enter a served pool).",
+   "by": "Mahmood",
+   "decided": "2026-10-08",
+   "id": "D12-COUNTS_FOR_MATCHING",
+   "rule": "A trial's own typed per-arm counts (AACT posted results or a held primary span, verbatim) may be used for the G1 same-trial comparison on the comparator's measure; the served pool keeps its registered estimand. This parallels D7 (matching only): nothing served changes."
+  },
+  {
+   "applied_in": "PR #29 (1b1542ccc): files removed from the tree, ledgers marked; tests/test_d8_quarantine_main.py keeps them out. No history rewrite, no force-push.",
+   "by": "Mahmood",
+   "decided": "2026-10-08",
+   "id": "D8a-QUARANTINED_RECORDS_STAY_IN_HISTORY",
+   "rule": "The two recorded calls carrying ODYSSEY FH I/II full text (PMID 26330422, Europe PMC 'cc by-nc'), mc-2249c745cf51bbc0c6e38108a0d3c108 and mc-3c1d4445e0c6a23176402a4320e16ffd, stay quarantined: removed from main's tree and marked CALL_QUARANTINED_LICENCE / QUARANTINED_LICENCE in the ledgers (PR #29, 1b1542ccc). Main's history is NOT rewritten; the files remain in earlier commits."
+  },
+  {
+   "applied_in": "ALL-16 routes ledger (acq/k-gap a13479fa5, registry/route_attempts.json): CORE recorded as account only, not attempted; no script in this repository calls CORE.",
+   "by": "Mahmood",
+   "decided": "2026-10-08",
+   "id": "D9a-CORE_UNUSED",
+   "rule": "CORE (core.ac.uk) is not used as an open-source route for now: its API needs an account, which only Mahmood may create. No lane creates one or uses CORE until he does."
+  },
+  {
+   "applied_in": "scripts/g1_identity_links.py supported(): a link without a SEEN_AND_SIGNED ratified block never joins (plant tests/test_identity_links.py); registry/identity_links.json 33731544 ratified V10-06Q.",
+   "by": "Mahmood",
+   "decided": "2026-10-08",
+   "id": "D13-IDENTITY_LINKS_JOIN_ONLY_WHEN_SIGNED",
+   "rule": "An identity link (a comparator unit's report PMID joined to a registration we already pool, on two typed facts with spans: the report states exactly one NCT; its title acronym equals the registry acronym) joins a trial only once Mahmood has signed that link. The facts are what he signs over; no heuristic joins on its own. First signed link: PMID 33731544 (Tsutsui 2021) -> NCT02468232 (PARALLEL-HF)."
+  },
+  {
+   "applied_in": "PENDING: the binding lane types the Table 2 span (licence-checked held text) and the tracker names the comparator finding; no flip (iv-iron RESULT_AGREES is unmet for other reasons).",
+   "by": "Mahmood",
+   "decided": "2026-10-08",
+   "id": "D14-CONFIRM-HF_INCIDENCE_NUMERATOR_IS_PATIENTS",
+   "rule": "iv-iron-hfref-hosp, CONFIRM-HF Table 2 ('Hospitalizations due to worsening HF 10 10 (7.6) 32 25 (19.4)'; FCM n=150, placebo n=151): the incidence numerator (10 v 25) is PATIENTS with a first event; the comparator's 32 is an EVENT count, so the comparator row is a comparator error (the AFFIRM-AHF SECONDARY_WRONG class)."
+  },
+  {
+   "applied_in": "PENDING: the binding lane admits the typed own tuple (span verbatim in a licence-checked held text) through registry/g1_acquired/iv-iron-hfref-hosp.json; no flip.",
+   "by": "Mahmood",
+   "decided": "2026-10-08",
+   "id": "D15-EFFECT-HF_BOUND_ON_THE_FAS",
+   "rule": "iv-iron-hfref-hosp, EFFECT-HF: 'in 17 patients (11 patients on FCM and 6 on usual care)' is bound as 11/86 v 6/86 on the full analysis set (86 v 86) for G1 matching; the comparator's 13 v 13 are hospitalisations, not patients."
   }
  ],
  "schema": "g1_tracker_canonical_v1",
@@ -820,19 +862,17 @@
   },
   "denosumab-vertebral-fracture": {
    "N_comparator_trials": 2,
-   "N_eligible": 2,
-   "blockers": {
-    "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 1
-   },
+   "N_eligible": 1,
+   "blockers": {},
    "comparator_pmid": "32492050",
    "comparator_sourced": [],
-   "coverage_complete": false,
+   "coverage_complete": true,
    "discrepancy_findings": [],
-   "excluded_by_scope": 0,
-   "g1_status": "NOT_YET",
+   "excluded_by_scope": 1,
+   "g1_status": "G1_MATCHED",
    "g1r_reproduction": {
     "rows": 0,
-    "state": "NO_PRINTED_POOL"
+    "state": "NO_PER_TRIAL_ROWS"
    },
    "k_comparator_sourced": 0,
    "k_covered": 1,
@@ -844,10 +884,17 @@
    "matched_by_route_group": {
     "PRIMARY": 1
    },
-   "named_differences": [],
-   "open_gaps": [
-    "Bone 2008"
+   "named_differences": [
+    {
+     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+     "pmid": "18381571",
+     "rule_id": "PROTOCOL_TEXT:POPULATION",
+     "span": "Subjects included 332 postmenopausal women with lumbar spine BMD T-scores between -1.0 and -2.5.",
+     "span_source": "PMID 18381571 record abstract (held: cache/denosumab-vertebral-fracture/records.json or outputs/k_gap/member_records.json)",
+     "trial": "Bone 2008"
+    }
    ],
+   "open_gaps": [],
    "readers_agree_on_verdict": null,
    "same_trials_verdict": "AGREE",
    "secondary_single": [],
@@ -856,10 +903,8 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD",
-   "unmet": [
-    "ALL_ELIGIBLE_MATCHED"
-   ]
+   "top_blocker": null,
+   "unmet": []
   },
   "doac-vte-recurrence": {
    "N_comparator_trials": 5,
@@ -870,7 +915,7 @@
    "coverage_complete": true,
    "discrepancy_findings": [],
    "excluded_by_scope": 0,
-   "g1_status": "NOT_YET",
+   "g1_status": "G1_MATCHED",
    "g1r_reproduction": {
     "rows": 0,
     "state": "NO_PRINTED_POOL"
@@ -888,7 +933,7 @@
    "named_differences": [],
    "open_gaps": [],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "NO_SHARED_TRIAL",
+   "same_trials_verdict": "AGREE",
    "secondary_single": [],
    "slug": "doac-vte-recurrence",
    "source": {
@@ -896,9 +941,7 @@
     "commit": null
    },
    "top_blocker": null,
-   "unmet": [
-    "RESULT_AGREES"
-   ]
+   "unmet": []
   },
   "dpp4-mace-t2d": {
    "N_comparator_trials": 4,
@@ -3553,12 +3596,10 @@
   "sacubitril-valsartan-hfref": {
    "N_comparator_trials": 9,
    "N_eligible": 2,
-   "blockers": {
-    "SCREENER_ERROR:REGISTRY_STATES_BLINDING": 1
-   },
+   "blockers": {},
    "comparator_pmid": "36722326",
    "comparator_sourced": [],
-   "coverage_complete": false,
+   "coverage_complete": true,
    "discrepancy_findings": [],
    "excluded_by_scope": 7,
    "g1_status": "NOT_YET",
@@ -3567,14 +3608,14 @@
     "state": "NO_PER_TRIAL_ROWS"
    },
    "k_comparator_sourced": 0,
-   "k_covered": 1,
-   "k_independent": 1,
-   "k_matched": 1,
+   "k_covered": 2,
+   "k_independent": 2,
+   "k_matched": 2,
    "matched_by_route": {
-    "PRIMARY": 1
+    "PRIMARY": 2
    },
    "matched_by_route_group": {
-    "PRIMARY": 1
+    "PRIMARY": 2
    },
    "named_differences": [
     {
@@ -3634,9 +3675,7 @@
      "trial": "Solomon, 2019"
     }
    ],
-   "open_gaps": [
-    "Tsutsui, 2021"
-   ],
+   "open_gaps": [],
    "readers_agree_on_verdict": null,
    "same_trials_verdict": "NO_SHARED_TRIAL",
    "secondary_single": [],
@@ -3645,24 +3684,21 @@
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "SCREENER_ERROR:REGISTRY_STATES_BLINDING",
+   "top_blocker": null,
    "unmet": [
-    "ALL_ELIGIBLE_MATCHED",
     "RESULT_AGREES"
    ]
   },
   "semaglutide-obesity-mace": {
    "N_comparator_trials": 10,
-   "N_eligible": 2,
-   "blockers": {
-    "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD": 1
-   },
+   "N_eligible": 1,
+   "blockers": {},
    "comparator_pmid": "39345822",
    "comparator_sourced": [],
-   "coverage_complete": false,
+   "coverage_complete": true,
    "discrepancy_findings": [],
-   "excluded_by_scope": 8,
-   "g1_status": "NOT_YET",
+   "excluded_by_scope": 9,
+   "g1_status": "G1_MATCHED",
    "g1r_reproduction": {
     "control_basis": "POOL_PRINTED_IN_META_TEXT",
     "methods": [
@@ -3686,6 +3722,14 @@
     "PRIMARY": 1
    },
    "named_differences": [
+    {
+     "kind": "PROTOCOL_SCOPE_DIFFERENCE",
+     "pmid": "30122305",
+     "rule_id": "PROTOCOL_TEXT:INTERVENTION_DOSE_AND_REGIMEN",
+     "span": "All treatment doses were delivered once-daily via subcutaneous injections.",
+     "span_source": "PMID 30122305 record abstract (held: cache/semaglutide-obesity-mace/records.json or outputs/k_gap/member_records.json)",
+     "trial": "O‘Neil et al. 28 NCT02453711"
+    },
     {
      "kind": "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS",
      "pmid": null,
@@ -3751,22 +3795,17 @@
      "trial": "STEP 7 33"
     }
    ],
-   "open_gaps": [
-    "O‘Neil et al. 28 NCT02453711"
-   ],
+   "open_gaps": [],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "MEASURE_DIFFERENCE_SAME_CONCLUSION",
+   "same_trials_verdict": "AGREE",
    "secondary_single": [],
    "slug": "semaglutide-obesity-mace",
    "source": {
     "branch": "acq/k-gap",
     "commit": null
    },
-   "top_blocker": "INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD",
-   "unmet": [
-    "ALL_ELIGIBLE_MATCHED",
-    "RESULT_AGREES"
-   ]
+   "top_blocker": null,
+   "unmet": []
   },
   "semaglutide-obesity-weight": {
    "N_comparator_trials": 4,
@@ -4938,34 +4977,34 @@
  },
  "totals": {
   "COMPARATOR_SOURCED": 72,
-  "COVERAGE": 170,
-  "INDEPENDENTLY_CONFIRMED": 98,
+  "COVERAGE": 171,
+  "INDEPENDENTLY_CONFIRMED": 99,
   "N_comparator_trials": 320,
-  "N_eligible": 233,
-  "coverage_complete_topics": 19,
+  "N_eligible": 231,
+  "coverage_complete_topics": 22,
   "discrepancy_findings": 23,
-  "excluded_by_scope": 87,
+  "excluded_by_scope": 89,
   "g1r_reproduction": {
-   "NO_PER_TRIAL_ROWS": 7,
-   "NO_PRINTED_POOL": 3,
+   "NO_PER_TRIAL_ROWS": 8,
+   "NO_PRINTED_POOL": 2,
    "REPRODUCED": 22
   },
-  "k_matched": 98,
+  "k_matched": 99,
   "matched_by_route": {
-   "PRIMARY": 83,
+   "PRIMARY": 84,
    "SECONDARY_SINGLE": 8,
    "SWEEP_AACT_PRIMARY": 1,
    "SWEEP_SECONDARY_SINGLE": 3,
    "TWO_SOURCE": 3
   },
   "matched_by_route_group": {
-   "PRIMARY": 84,
+   "PRIMARY": 85,
    "SECONDARY_SINGLE": 11,
    "TWO_SOURCE": 3
   },
   "topics_by_status": {
-   "G1_MATCHED": 10,
-   "NOT_YET": 22
+   "G1_MATCHED": 13,
+   "NOT_YET": 19
   }
  }
 }

@@ -136,7 +136,12 @@ def test_a_text_that_is_not_openly_licensed_never_enters_a_prompt(monkeypatch):
     monkeypatch.setattr(ga, "pmc_licence", lambda pmid: "NOT_OPEN")
     ev, held = ga.evidence(t, CFG, "0")
     assert ev["full_text"]["state"] == "HELD_NOT_OPEN_LICENSED" and "text" not in ev["full_text"] and held["text"]
+    # D8 (8 Oct): the repo guard's 'CC' is not enough -- the article must be CC BY / CC0 (scripts/g1_licence.py)
+    import g1_licence
     monkeypatch.setattr(ga, "pmc_licence", lambda pmid: "CC")
+    monkeypatch.setattr(g1_licence, "licence", lambda p, offline=False: {"license": "cc by-nc", "open": False})
+    assert "text" not in ga.evidence(t, CFG, "0")[0]["full_text"]
+    monkeypatch.setattr(g1_licence, "licence", lambda p, offline=False: {"license": "cc by", "open": True})
     assert "text" in ga.evidence(t, CFG, "0")[0]["full_text"]
 
 

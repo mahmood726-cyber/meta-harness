@@ -151,6 +151,114 @@
    "quote": "sign off using a reproducible AI in harness",
    "relayed_by": "Dispatch chat, 7 Oct 2026",
    "applied_in": "assigned 8 Oct to the search lane (recorded dual-model RoB 2 / GRADE review plus adjudicator, disagreements on the page); NOT YET APPLIED"
+  },
+  {
+   "id": "D12-COUNTS_FOR_MATCHING",
+   "decided": "2026-10-08",
+   "by": "Mahmood",
+   "rule": "A trial's own typed per-arm counts (AACT posted results or a held primary span, verbatim) may be used for the G1 same-trial comparison on the comparator's measure; the served pool keeps its registered estimand. This parallels D7 (matching only): nothing served changes.",
+   "proposed_in": "lane_status/DISPATCH_CLOSE4_2026-10-08.md ('A decision Mahmood must make (V10 Q): counts for matching'); V10-02Q",
+   "quote": "approve d12",
+   "relayed_by": "Dispatch chat, 8 Oct 2026",
+   "applied_in": "scripts/g1_d12.py (verifies each binding at build: K1 against the AACT snapshot's own rows and group titles; K2 span verbatim in the trial's held abstract, counts as number tokens); registry/d12_counts_for_matching.json (binding lane's staged own-count bindings, imported with ref and sha256); scripts/g1_tracker.py d12_pairs (replaces only a same-trials MEASURE_DIFFERENCE pair, never our_value). Plant: tests/test_g1_d12.py (counts used for matching never enter a served pool).",
+   "served_change": "none"
+  },
+  {
+   "id": "D8a-QUARANTINED_RECORDS_STAY_IN_HISTORY",
+   "decided": "2026-10-08",
+   "by": "Mahmood",
+   "rule": "The two recorded calls carrying ODYSSEY FH I/II full text (PMID 26330422, Europe PMC 'cc by-nc'), mc-2249c745cf51bbc0c6e38108a0d3c108 and mc-3c1d4445e0c6a23176402a4320e16ffd, stay quarantined: removed from main's tree and marked CALL_QUARANTINED_LICENCE / QUARANTINED_LICENCE in the ledgers (PR #29, 1b1542ccc). Main's history is NOT rewritten; the files remain in earlier commits.",
+   "quote": "leave it",
+   "relayed_by": "Dispatch chat, 8 Oct 2026",
+   "applied_in": "PR #29 (1b1542ccc): files removed from the tree, ledgers marked; tests/test_d8_quarantine_main.py keeps them out. No history rewrite, no force-push.",
+   "served_change": "none"
+  },
+  {
+   "id": "D9a-CORE_UNUSED",
+   "decided": "2026-10-08",
+   "by": "Mahmood",
+   "rule": "CORE (core.ac.uk) is not used as an open-source route for now: its API needs an account, which only Mahmood may create. No lane creates one or uses CORE until he does.",
+   "quote": "(relayed) CORE stays unused for now: it needs an account that he must create himself",
+   "relayed_by": "Dispatch chat, 8 Oct 2026",
+   "applied_in": "ALL-16 routes ledger (acq/k-gap a13479fa5, registry/route_attempts.json): CORE recorded as account only, not attempted; no script in this repository calls CORE.",
+   "served_change": "none"
+  },
+  {
+   "id": "D13-IDENTITY_LINKS_JOIN_ONLY_WHEN_SIGNED",
+   "decided": "2026-10-08",
+   "by": "Mahmood",
+   "rule": "An identity link (a comparator unit's report PMID joined to a registration we already pool, on two typed facts with spans: the report states exactly one NCT; its title acronym equals the registry acronym) joins a trial only once Mahmood has signed that link. The facts are what he signs over; no heuristic joins on its own. First signed link: PMID 33731544 (Tsutsui 2021) -> NCT02468232 (PARALLEL-HF).",
+   "applied_in": "scripts/g1_identity_links.py supported(): a link without a SEEN_AND_SIGNED ratified block never joins (plant tests/test_identity_links.py); registry/identity_links.json 33731544 ratified V10-06Q.",
+   "served_change": "none",
+   "ratified": {
+    "state": "SEEN_AND_SIGNED",
+    "item": "V10-06Q",
+    "by": "Mahmood",
+    "quote": "yes all v10",
+    "when_utc": "2026-10-08T00:00:00Z",
+    "packet": "lane_status/v10_packet.signed_9086d538.md",
+    "packet_sha256": "9086d538fdb85c5901cb0222ed459f43264487b1886731fbf3cbf9ee669101ff",
+    "item_section_sha256": "dfc2487be1de16e4aa071ba73a21008ceb0f105e4f88f5ecb982ff1975688d54",
+    "how_it_reached_the_reviewer": "Dispatch relay of explicit assent to an itemised list (8 Oct 2026, verbatim: 'yes all v10'; covers V10-01, V10-03Q, V10-04Q, V10-05Q, V10-06Q). Mahmood was shown each item with its spans, its flip effect and the captain's recommendation before replying. The presented bytes are lane_status/v10_packet.signed_9086d538.md (sha256 9086d538fdb85c5901cb0222ed459f43264487b1886731fbf3cbf9ee669101ff); the live lane_status/v10_packet.md later moved to 95e42e2a... by an edit to its 'For information' block only (every item section byte-identical); dispatch directed recording against 9086d538 (option 1)."
+   }
+  },
+  {
+   "id": "D14-CONFIRM-HF_INCIDENCE_NUMERATOR_IS_PATIENTS",
+   "decided": "2026-10-08",
+   "by": "Mahmood",
+   "rule": "iv-iron-hfref-hosp, CONFIRM-HF Table 2 ('Hospitalizations due to worsening HF 10 10 (7.6) 32 25 (19.4)'; FCM n=150, placebo n=151): the incidence numerator (10 v 25) is PATIENTS with a first event; the comparator's 32 is an EVENT count, so the comparator row is a comparator error (the AFFIRM-AHF SECONDARY_WRONG class).",
+   "applied_in": "PENDING: the binding lane types the Table 2 span (licence-checked held text) and the tracker names the comparator finding; no flip (iv-iron RESULT_AGREES is unmet for other reasons).",
+   "served_change": "none",
+   "ratified": {
+    "state": "SEEN_AND_SIGNED",
+    "item": "V10-04Q",
+    "by": "Mahmood",
+    "quote": "yes all v10",
+    "when_utc": "2026-10-08T00:00:00Z",
+    "packet": "lane_status/v10_packet.signed_9086d538.md",
+    "packet_sha256": "9086d538fdb85c5901cb0222ed459f43264487b1886731fbf3cbf9ee669101ff",
+    "item_section_sha256": "618f05438a96e8bfc376fcef2ae91b72de1d2940d360d9ee553ae9e77b91512d",
+    "how_it_reached_the_reviewer": "Dispatch relay of explicit assent to an itemised list (8 Oct 2026, verbatim: 'yes all v10'; covers V10-01, V10-03Q, V10-04Q, V10-05Q, V10-06Q). Mahmood was shown each item with its spans, its flip effect and the captain's recommendation before replying. The presented bytes are lane_status/v10_packet.signed_9086d538.md (sha256 9086d538fdb85c5901cb0222ed459f43264487b1886731fbf3cbf9ee669101ff); the live lane_status/v10_packet.md later moved to 95e42e2a... by an edit to its 'For information' block only (every item section byte-identical); dispatch directed recording against 9086d538 (option 1)."
+   }
+  },
+  {
+   "id": "D15-EFFECT-HF_BOUND_ON_THE_FAS",
+   "decided": "2026-10-08",
+   "by": "Mahmood",
+   "rule": "iv-iron-hfref-hosp, EFFECT-HF: 'in 17 patients (11 patients on FCM and 6 on usual care)' is bound as 11/86 v 6/86 on the full analysis set (86 v 86) for G1 matching; the comparator's 13 v 13 are hospitalisations, not patients.",
+   "applied_in": "PENDING: the binding lane admits the typed own tuple (span verbatim in a licence-checked held text) through registry/g1_acquired/iv-iron-hfref-hosp.json; no flip.",
+   "served_change": "none",
+   "ratified": {
+    "state": "SEEN_AND_SIGNED",
+    "item": "V10-05Q",
+    "by": "Mahmood",
+    "quote": "yes all v10",
+    "when_utc": "2026-10-08T00:00:00Z",
+    "packet": "lane_status/v10_packet.signed_9086d538.md",
+    "packet_sha256": "9086d538fdb85c5901cb0222ed459f43264487b1886731fbf3cbf9ee669101ff",
+    "item_section_sha256": "8e54334601ff4e404491e6b280c9c8b99367b1f103e45d25f0715c4683a3f83b",
+    "how_it_reached_the_reviewer": "Dispatch relay of explicit assent to an itemised list (8 Oct 2026, verbatim: 'yes all v10'; covers V10-01, V10-03Q, V10-04Q, V10-05Q, V10-06Q). Mahmood was shown each item with its spans, its flip effect and the captain's recommendation before replying. The presented bytes are lane_status/v10_packet.signed_9086d538.md (sha256 9086d538fdb85c5901cb0222ed459f43264487b1886731fbf3cbf9ee669101ff); the live lane_status/v10_packet.md later moved to 95e42e2a... by an edit to its 'For information' block only (every item section byte-identical); dispatch directed recording against 9086d538 (option 1)."
+   }
+  },
+  {
+   "id": "D16-ENGAGE_CI_C_THEN_B",
+   "decided": "2026-10-08",
+   "by": "Mahmood",
+   "rule": "noac-vs-warfarin-af-stroke, ENGAGE AF-TIMI 48 (PMID 24251359, high-dose edoxaban, ITT, stroke or systemic embolism) is served with a 95% CI 0.745-1.016 converted from its printed 97.5% CI 0.73-1.04, against D7. Decision C then B. C: one recorded search pass of D8 open sources (FDA review, label, EMA EPAR, AACT, open copies), regex first then recorded AI, for a PRINTED 95% CI of that estimate; if one is found verbatim in a held span it replaces the converted CI through a before/after served-result notice for Mahmood's signature. B, only if C finds none: a narrow exception to D7 -- a CI printed at another level is admissible in a served pool only when it is multiplicity-adjusted, the SE follows exactly from the printed bounds, and the page states the conversion; the served number is unchanged.",
+   "quote": "c then b",
+   "applied_in": "C dispatched 8 Oct to the k-gap and binding lanes (lane_status/DISPATCH_V11_ENGAGE_C_2026-10-08.md); B NOT YET APPLIED (conditional on C finding no printed 95% CI).",
+   "served_change": "C: a signed notice if a printed CI is found; B: none",
+   "ratified": {
+    "state": "SEEN_AND_SIGNED",
+    "item": "V11-01Q",
+    "by": "Mahmood",
+    "quote": "c then b",
+    "when_utc": "2026-10-08T00:00:00Z",
+    "packet": "lane_status/v11_packet.md",
+    "packet_sha256": "dfba28a1c988f5244eb39b7fe4c3a9ad312c2c6697366c8076f47cf328490c2e",
+    "item_section_sha256": "be35d9b332c74889651755d445e12afca0e6608fb7846cf2933f45b3ceceefdd",
+    "how_it_reached_the_reviewer": "Dispatch relay, 8 Oct 2026. An earlier message read 'a b or c and then b'; dispatch asked Mahmood to confirm and his confirmed answer is, verbatim, 'c then b', against lane_status/v11_packet.md sha256 dfba28a1c988f5244eb39b7fe4c3a9ad312c2c6697366c8076f47cf328490c2e (re-verified unchanged by the captain before recording)."
+   }
   }
  ]
 }

@@ -994,8 +994,8 @@ def comparator_supplements(pmid: str, pmcid: str, hrefs: list, date: str, offlin
         return {"state": "NOT_CACHED_OFFLINE", "text": ""}
     if not pmcid or not hrefs:
         return {"state": "NO_SUPPLEMENTS", "text": ""}
-    # Routes, in order. NCBI's oa.fcgi answers 404 (retired; harness.fetch._pmc_oa_supplement_text swallows that and
-    # returns ''), and PMC's articles/instance/<id>/bin/<file> serves a JavaScript interstitial (bot protection; not
+    # Routes, in order. NCBI's oa.fcgi answers 404 (retired; harness.fetch._pmc_oa_supplement_text now records that as
+    # FETCH_FAILED:SUPPLEMENT, loudly), and PMC's articles/instance/<id>/bin/<file> serves a JavaScript interstitial (bot protection; not
     # circumvented). Europe PMC's REST supplementaryFiles endpoint serves every supplement of an OA article as one ZIP.
     url = f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/supplementaryFiles"
     try:

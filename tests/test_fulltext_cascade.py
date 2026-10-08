@@ -117,7 +117,12 @@ def test_stage_writes_outside_the_cache_so_served_pages_cannot_move(tmp_path):
     stage = tmp_path / "stage"
     led = fc.run("t", http, dry_run=False, extra_pmids=["33933206"], root=tmp_path, stage=stage)
     assert (stage / "t" / "ft_33933206.txt").read_bytes() == BODY
-    assert not (tmp_path / "cache").exists() and led["tally"][fc.FETCHED] == 1
+    # no TEXT reaches the cache (held texts feed served pages); the LEDGER does -- nothing in the build reads it, and
+    # the captain order of 8 Oct asks for cache/<slug>/fulltext_ledger.json on every run, staged or not
+    cached = sorted(p.name for p in (tmp_path / "cache" / "t").iterdir())
+    assert cached == ["fulltext_ledger.json"] and led["tally"][fc.FETCHED] == 1
+    on_disk = json.loads((tmp_path / "cache" / "t" / "fulltext_ledger.json").read_text(encoding="utf-8"))
+    assert on_disk["staged_to"] == str(stage) and on_disk["rows"][0]["written"].endswith("ft_33933206.txt")
 
 
 PDF = b"%PDF-1.7 RECOVERY tocilizumab report"

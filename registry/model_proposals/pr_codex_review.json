@@ -4269,6 +4269,215 @@
   "verdicts": {},
   "findings": []
  },
+ "doac-table1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-05a30898e5262e4fb3fbc58d363233b8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "fa639b807f14d2da89f2a4587f203173af90a1d1793753aeba6d8f2637682f17"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read / held_norm",
+    "severity": "P0",
+    "claim": "Commented-out XML rows become comparator results. The row regex scans inside XML comments, and held_norm also preserves their cell text, so the span check accepts obsolete counts.",
+    "failing_input": "from io import StringIO, BytesIO\nfrom unittest.mock import patch\nimport scripts.typed_comparator_rows as m\n\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\n\nraw = ('<table-wrap id=\"pone.0197583.t001\"><table>'\n       + tr(m.READERS['doac-vte-recurrence']['header'])\n       + tr(['VTE Studies'])\n       + '<!--' + tr(['Withdrawn', '2018', 'Drug A', '90/100', 'Drug B', '80/100', '60', '50']) + '-->'\n       + tr(['Current', '2018', 'Drug A', '10/100', 'Drug B', '20/100', '60', '50'])\n       + '</table></table-wrap>')\n\ndef held_open(path, mode='r', **kwargs):\n    return BytesIO(raw.encode('utf-8')) if 'b' in mode else StringIO(raw)\n\nwith patch('builtins.open', held_open):\n    print([(r['label'], r['events_t'], r['events_c']) for r in m.read('doac-vte-recurrence')['rows']])",
+    "expected": "[('Current', 10, 20)]",
+    "actual": "[('Withdrawn', 90, 80), ('Current', 10, 20)]. Confirmed by tracing the supplied regexes with this ASCII fixture in JavaScript; local Python execution was blocked.",
+    "id": "doac-table1:g1#1",
+    "record_id": "mc-05a30898e5262e4fb3fbc58d363233b8",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-eceff01d6b276bbf9bc375be96883863",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "e2a268a0d757f04d673c626e054f45ff6fbf572a951a03c6a2635ae14501a313"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The reader treats every numeric e/N cell as an event count, ignoring explicit table notes that identify the numerator as a percentage. The verbatim-span check still passes.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\nraw = ('<table-wrap id=\"' + cfg['table_id'] + '\"><table>'\n       + tr(cfg['header']) + tr(['VTE Studies'])\n       + tr(['Trial A', '2018', 'Drug A', '5/200', 'Warfarin', '10/200', '60', '40'])\n       + '</table><table-wrap-foot><p>Primary Events /Total N cells report event percentages followed by total N, not event counts.</p></table-wrap-foot></table-wrap>')\ndef fake_open(path, mode='r', **kwargs):\n    return io.BytesIO(raw.encode('utf-8')) if mode == 'rb' else io.StringIO(raw)\nwith patch.object(m, 'open', fake_open, create=True):\n    print(m.read(slug)['rows'][0])",
+    "expected": "Refuse extraction: the numerators are explicitly percentages, so they cannot populate events_t or events_c.",
+    "actual": "Returns a row containing events_t=5, n_t=200, events_c=10, n_c=200, measure='OR'; no refusal occurs.",
+    "id": "doac-table1-r2:g1#1",
+    "record_id": "mc-eceff01d6b276bbf9bc375be96883863",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The reader neither validates nor preserves denominator populations. It emits a paired comparator row even when the held table explicitly gives randomised and safety populations for opposite arms.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\nraw = ('<table-wrap id=\"' + cfg['table_id'] + '\"><table>'\n       + tr(cfg['header']) + tr(['VTE Studies'])\n       + tr(['Trial A', '2018', 'Drug A', '5/200', 'Warfarin', '6/180', '60', '40'])\n       + '</table><table-wrap-foot><p>Drug A events and Total N refer to the randomised population. Warfarin events and Total N refer to the safety population; 200 were randomised and 180 received treatment.</p></table-wrap-foot></table-wrap>')\ndef fake_open(path, mode='r', **kwargs):\n    return io.BytesIO(raw.encode('utf-8')) if mode == 'rb' else io.StringIO(raw)\nwith patch.object(m, 'open', fake_open, create=True):\n    print(m.read(slug)['rows'][0])",
+    "expected": "Refuse the paired comparison because its arms use incompatible denominator kinds.",
+    "actual": "Returns events_t=5, n_t=200, events_c=6, n_c=180, measure='OR', with no population qualification or error. The emitted span excludes the explanatory footnote.",
+    "id": "doac-table1-r2:g1#2",
+    "record_id": "mc-eceff01d6b276bbf9bc375be96883863",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4e21e385e5943e380b93518dfc255a1b",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "b18828dc4d7a50f22a4be5ba13aee82fcfe7c40ca517d82cc9a7bded38159078"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The note guard misses single-quoted or whitespace-separated ref-type attributes. When the referenced footnote is outside table-wrap, percentage estimates are accepted as event counts.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as t\nheader = ''.join('<th>' + h + '</th>' for h in t.READERS['doac-vte-recurrence']['header'])\nraw = '''<article><table-wrap id=\"pone.0197583.t001\"><caption><p>Primary outcomes<xref ref-type='table-fn' rid='n1'>a</xref></p></caption><table><tr>''' + header + '''</tr><tr><td>VTE Studies</td></tr><tr><td>Trial A</td><td>2018</td><td>DOAC</td><td>10/100</td><td>Warfarin</td><td>20/200</td><td>60</td><td>40</td></tr></table></table-wrap><fn-group><fn id=\"n1\"><p>The values before '/' are Kaplan-Meier percentages, not event counts.</p></fn></fn-group></article>'''\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: io.BytesIO(raw.encode()) if 'b' in mode else io.StringIO(raw)):\n    r = t.read('doac-vte-recurrence')['rows'][0]\n    print(r['events_t'], r['n_t'], r['events_c'], r['n_c'])",
+    "expected": "Refuse the table because it references a note redefining numerators as Kaplan-Meier percentages.",
+    "actual": "Returns a row and prints 10 100 20 200, treating the estimates as event counts. Traced from the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r3:g1#1",
+    "record_id": "mc-4e21e385e5943e380b93518dfc255a1b",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The reader ignores population qualifiers in the caption. An exact header match therefore permits randomised and safety denominators to be emitted together as comparable events/N rows.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as t\nheader = ''.join('<th>' + h + '</th>' for h in t.READERS['doac-vte-recurrence']['header'])\nraw = '''<article><table-wrap id=\"pone.0197583.t001\"><caption><p>Total N is the randomised population for the DOAC arm and the safety population for the comparator arm.</p></caption><table><tr>''' + header + '''</tr><tr><td>VTE Studies</td></tr><tr><td>Trial A</td><td>2018</td><td>DOAC</td><td>10/100</td><td>Warfarin</td><td>20/200</td><td>60</td><td>40</td></tr></table></table-wrap></article>'''\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: io.BytesIO(raw.encode()) if 'b' in mode else io.StringIO(raw)):\n    r = t.read('doac-vte-recurrence')['rows'][0]\n    print(r['events_t'], r['n_t'], r['events_c'], r['n_c'])",
+    "expected": "Refuse the row because the two denominators represent different populations.",
+    "actual": "Returns a row and prints 10 100 20 200, discarding the population distinction. Traced from the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r3:g1#2",
+    "record_id": "mc-4e21e385e5943e380b93518dfc255a1b",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b6438e17cf2b57e94dd06a6adabf28cf",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "43fce84a4dd277c72ae2ecb9d58941d403d17404d9ba27587786a45ded8a8b45"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "Population qualifiers in arm cells bypass the population safeguards. The reader emits comparable-looking n_t/n_c fields even when the held row explicitly identifies different denominator kinds.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\nraw = ('<table-wrap id=\"pone.0197583.t001\"><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(['Trial A', '2018', 'Drug (safety population)', '5/90', 'Warfarin (randomised population)', '8/100', '60', '50']) + '</table></table-wrap>')\nwith patch('builtins.open', side_effect=[io.StringIO(raw), io.BytesIO(raw.encode())]):\n    print(m.read(slug)['rows'])",
+    "expected": "Refuse the row because its treatment denominator is a safety population while its control denominator is a randomised population.",
+    "actual": "Returns a row with events_t=5, n_t=90, events_c=8, n_c=100 and measure='OR'. The population qualifiers survive only in intervention/comparator strings; no check rejects the incompatible denominators.",
+    "id": "doac-table1-r4:g1#1",
+    "record_id": "mc-b6438e17cf2b57e94dd06a6adabf28cf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The table-selection regex can match id=\"…\" inside another attribute's quoted value. An unrelated table preceding the requested table supplies the returned counts, despite all subsequent validation passing.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\ndef table(attrs, treatment, control):\n    return ('<table-wrap ' + attrs + '><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(['Trial A', '2018', 'Drug', treatment, 'Warfarin', control, '60', '50']) + '</table></table-wrap>')\nraw = '<article><body>' + table('id=\"obsolete\" specific-use=\\'superseded version of id=\"pone.0197583.t001\"\\'', '5/100', '8/100') + table('id=\"pone.0197583.t001\"', '15/100', '18/100') + '</body></article>'\nwith patch('builtins.open', side_effect=[io.StringIO(raw), io.BytesIO(raw.encode())]):\n    print(m.read(slug)['rows'])",
+    "expected": "Select the table whose actual id attribute is pone.0197583.t001 and return events_t=15, n_t=100, events_c=18, n_c=100.",
+    "actual": "Selects the table whose actual id is obsolete and returns events_t=5, n_t=100, events_c=8, n_c=100. Its caption, header and verbatim span pass every remaining check.",
+    "id": "doac-table1-r4:g1#2",
+    "record_id": "mc-b6438e17cf2b57e94dd06a6adabf28cf",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ce2e358f103e586750c4dbc74673e12e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "c0355da176c2becea78051ccf1d8a9910617b4bf46681fae5cb83d7b6ceda3f5"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "Explicit Kaplan–Meier percentages are returned as integer event counts. The e/N syntax check does not reject unit qualifiers elsewhere in the row.",
+    "failing_input": "from io import StringIO, BytesIO\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\ncfg = m.READERS['doac-vte-recurrence']\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\ncells = ['Trial A (numerators are Kaplan-Meier percentages)', '2018', 'Drug', '2/1000', 'Warfarin', '3/1200', '60', '40']\nraw = '<table-wrap id=\"' + cfg['table_id'] + '\"><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(cells) + '</table></table-wrap>'\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: BytesIO(raw.encode()) if 'b' in mode else StringIO(raw)):\n    print(m.read('doac-vte-recurrence')['rows'])",
+    "expected": "Refuse the row: Kaplan–Meier percentages cannot establish integer event counts.",
+    "actual": "Returns a row with events_t=2, n_t=1000, events_c=3, n_c=1200 and measure='OR'. Derived by tracing the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r5:g1#1",
+    "record_id": "mc-ce2e358f103e586750c4dbc74673e12e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The population-qualifier guard omits 'analysed' and 'randomised', allowing explicitly incompatible denominator kinds into the returned comparator row.",
+    "failing_input": "from io import StringIO, BytesIO\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\ncfg = m.READERS['doac-vte-recurrence']\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\ncells = ['Trial A', '2018', 'Drug (analysed)', '2/90', 'Warfarin (randomised)', '3/100', '60', '40']\nraw = '<table-wrap id=\"' + cfg['table_id'] + '\"><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(cells) + '</table></table-wrap>'\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: BytesIO(raw.encode()) if 'b' in mode else StringIO(raw)):\n    print(m.read('doac-vte-recurrence')['rows'])",
+    "expected": "Refuse the row because the treatment denominator is analysed and the comparator denominator is randomised.",
+    "actual": "Returns events_t=2, n_t=90, events_c=3, n_c=100 and measure='OR', accepting both denominator kinds without qualification. Derived by tracing the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r5:g1#2",
+    "record_id": "mc-ce2e358f103e586750c4dbc74673e12e",
+    "verdict": null
+   }
+  ]
+ },
+ "doac-table1-r6": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-57512d513ff008efc57a48da4802a60e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "129814c7e7740a8370401a0b89bbd6bdfd455f18b23523f115be0bd9605546c5"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
  "v9-apply": {
   "base": "origin/main",
   "head": "4d5967bcd",
@@ -4811,5 +5020,1332 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "fetch-loud-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-34207f91bf08c6757e8f575c7dd8b7a2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "604764f1c931dc7b6a55745f9ac4f4ee9ab5fab05270a5e57f5abceee07447e3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_fulltext",
+    "severity": "P2",
+    "claim": "An empty body takes precedence over a supplement failure, overwriting the failure with EMPTY_BODY. Consequently run_failed() returns False and the run-level failure aggregation misses the failed acquisition.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch as f\n\ndef failed_supplement(*args):\n    f.LAST_SUPPLEMENT_STATE['1'] = 'FETCH_FAILED:SUPPLEMENT:OSError: offline'\n    return ''\n\nwith patch.object(f, '_resolve_pmcid', return_value='1'), patch.object(f.http, 'get_text', return_value='<article/>'), patch.object(f._ft, 'parse_pmc_xml', return_value={'supplements': ['supp.csv']}), patch.object(f._ft, 'combined_text', return_value=''), patch.object(f, '_pmc_oa_supplement_text', side_effect=failed_supplement):\n    result = f._pmc_fulltext('123', with_supplements=True)\n    print((result, f.LAST_PMC_STATE['123'], f.run_failed('123')))",
+    "expected": "The supplement failure remains represented in LAST_PMC_STATE, and run_failed('123') returns True.",
+    "actual": "('', 'EMPTY_BODY', False)",
+    "id": "fetch-loud-r2:g1#1",
+    "record_id": "mc-34207f91bf08c6757e8f575c7dd8b7a2",
+    "verdict": null
+   },
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_fulltext",
+    "severity": "P2",
+    "claim": "strict=True does not raise on a requested supplement failure. The supplement helper catches the exception, and _pmc_fulltext records the failure but returns normally without applying its strict error contract.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch as f\n\ndef failed_supplement(*args):\n    f.LAST_SUPPLEMENT_STATE['1'] = 'FETCH_FAILED:SUPPLEMENT:OSError: offline'\n    return ''\n\nwith patch.object(f, '_resolve_pmcid', return_value='1'), patch.object(f.http, 'get_text', return_value='<article/>'), patch.object(f._ft, 'parse_pmc_xml', return_value={'supplements': ['supp.csv']}), patch.object(f._ft, 'combined_text', return_value='Body'), patch.object(f, '_pmc_oa_supplement_text', side_effect=failed_supplement):\n    print(f._pmc_fulltext('123', with_supplements=True, strict=True))",
+    "expected": "Raise PmcFetchError for the failed requested supplement.",
+    "actual": "Returns and prints 'Body'; no exception is raised. LAST_PMC_STATE['123'] becomes 'HELD_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT:OSError: offline'.",
+    "id": "fetch-loud-r2:g1#2",
+    "record_id": "mc-34207f91bf08c6757e8f575c7dd8b7a2",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-10c304054ee703a29c147358588320f2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "42150486ec62efe151b7264189fa18f023a7d2486cac82ca2a128793ec015dfb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/k_gap_counterfactual.py",
+    "function": "pmc_fulltext_cached",
+    "severity": "P2",
+    "claim": "The cache wrapper misclassifies a failed supplement fetch as FETCH_EMPTY when the article body is empty. It checks only the FETCH_FAILED prefix, whereas _pmc_fulltext also emits failure states beginning EMPTY_BODY_WITH_SUPPLEMENT_FAILURE.",
+    "failing_input": "In the uncached, empty-text branch: pmid='1', pmcid='2', and fetch.LAST_PMC_STATE['1']='EMPTY_BODY_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT:TimeoutError: timed out'. This is the state _pmc_fulltext produces when combined_text returns '' and a requested supplement times out.",
+    "expected": "idx['1']['state'] == 'FETCH_FAILED', consistent with fetch.run_failed('1') == True.",
+    "actual": "idx['1']['state'] == 'FETCH_EMPTY'. The failure remains in fetch_state, but the primary state incorrectly classifies it as empty content.",
+    "id": "fetch-loud-r3:g1#1",
+    "record_id": "mc-10c304054ee703a29c147358588320f2",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d535209a16feee9bb2fea6a805faac5b",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "64321470c79c064275ad661022d969b10364f6292615e8297f18b440c787bbd7"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "An OA service error without an archive link is classified as NO_OA_PACKAGE. Consequently, the caller does not mark a supplement failure, and strict=True cannot reject it.",
+    "failing_input": "For _pmc_oa_supplement_text('123', ['supp.csv']), supply this OA response body: <OA><error code=\"serverError\">Temporary backend failure</error></OA>",
+    "expected": "Return an empty string with LAST_SUPPLEMENT_STATE['123'] starting with FETCH_FAILED:SUPPLEMENT; propagate the failure through run_failed and strict mode.",
+    "actual": "Both archive-link searches fail, so the function returns an empty string with LAST_SUPPLEMENT_STATE['123'] = 'NO_OA_PACKAGE'. The caller ignores this as a failure and reports HELD if body text exists.",
+    "id": "fetch-loud-r4:g1#1",
+    "record_id": "mc-d535209a16feee9bb2fea6a805faac5b",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c0772b84e6630c1ace459c274fa10b9e",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "6f38219f2f9ce01a31f6dc663312bf300914e3c7b89d7d04dd000e7fb1ebc7f4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "The error regex requires double-quoted XML attributes. A valid service error using single quotes falls through to NO_OA_PACKAGE, misclassifying a failed request as absent supplementary material.",
+    "failing_input": "OA-service response text: <OA><error code='idDoesNotExist'>identifier does not exist</error></OA>",
+    "expected": "Return '' and record FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: idDoesNotExist identifier does not exist, with a warning.",
+    "actual": "Returns '' and records NO_OA_PACKAGE without warning: neither the package-link regex nor the error regex matches.",
+    "id": "fetch-loud-r5:g1#1",
+    "record_id": "mc-c0772b84e6630c1ace459c274fa10b9e",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r6": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-59f272c8512b5a877bbf94850caf38cb",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "ca5a290c0b305512be7daff91fd6b8da4820a9957f6b0d7918a612f9bc41a8fa"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "A malformed or unexpected OA-service response is silently classified as NO_OA_PACKAGE. Only an explicit idIsNotOpenAccess error establishes that absence; this fallback also prevents callers from detecting the failed acquisition.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nwith patch.object(fetch.http, 'get_text', return_value='<html><body>Service temporarily unavailable</body></html>'), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state and a warning because the response establishes neither a package nor legitimate absence.",
+    "actual": "'' NO_OA_PACKAGE, with no warning. Both regular-expression searches miss, so the new unconditional absence assignment executes. This follows directly from the supplied code; repository execution was unavailable.",
+    "id": "fetch-loud-r6:g1#1",
+    "record_id": "mc-59f272c8512b5a877bbf94850caf38cb",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r7": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3fd1fa7a6b5d90d7e0262b1c5b11fec9",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "521554c2f9265f744b643371fb337ea281638adb0b8de189589a450f3d61b432"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "The new absence check accepts records for a different PMCID. An unrelated response becomes NO_OA_PACKAGE instead of a typed fetch failure.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><records><record id=\"PMC2222\"/></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    print(repr(fetch._pmc_oa_supplement_text('1111', ['supp.csv'])))\n    print(fetch.LAST_SUPPLEMENT_STATE['1111'])",
+    "expected": "Returns ''; records FETCH_FAILED:SUPPLEMENT:... because no record establishes package availability for PMC1111.",
+    "actual": "Returns ''; records NO_OA_PACKAGE. The records branch never checks record IDs.",
+    "id": "fetch-loud-r7:g1#1",
+    "record_id": "mc-3fd1fa7a6b5d90d7e0262b1c5b11fec9",
+    "verdict": null
+   },
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "A package URL containing a query string is classified as package absence. Filtering hrefs with endswith('.tar.gz') discards the advertised package, and the records branch then reports NO_OA_PACKAGE.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><records><record id=\"PMC1111\"><link format=\"tgz\" href=\"https://example.org/package.tar.gz?download=1\"/></record></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'), patch.object(fetch.http, 'get', side_effect=RuntimeError('download attempted')) as download:\n    print(repr(fetch._pmc_oa_supplement_text('1111', ['supp.csv'])))\n    print(fetch.LAST_SUPPLEMENT_STATE['1111'], download.call_count)",
+    "expected": "Attempts the advertised package URL; this mocked download then produces FETCH_FAILED:SUPPLEMENT:RuntimeError: download attempted. An unhandled package URL must not establish absence.",
+    "actual": "Returns ''; records NO_OA_PACKAGE; download.call_count is 0.",
+    "id": "fetch-loud-r7:g1#2",
+    "record_id": "mc-3fd1fa7a6b5d90d7e0262b1c5b11fec9",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r8": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a98702b0533476d48bc5d23e1f1b9e12",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "214b4e3558687fea1616bb625f43cc1bcbece6b438088bcc73ed441755e14264"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "An advertised TGZ package with a missing download URL is classified as NO_OA_PACKAGE. The URL filter discards the malformed link before checking package presence, turning an invalid service response into confirmed absence.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><records><record id=\"PMC123\"><link format=\"tgz\"/></record></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Returns '' and records FETCH_FAILED:SUPPLEMENT:... because a package is advertised but its download URL is missing.",
+    "actual": "Returns '' and records NO_OA_PACKAGE without warning. The caller therefore does not recognize a supplement failure, including in strict mode.",
+    "id": "fetch-loud-r8:g1#1",
+    "record_id": "mc-a98702b0533476d48bc5d23e1f1b9e12",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r9": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-95a6399faebe85849cf56258ed976c45",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "bc3c72a1d0a66a0f03ca7dbfe0b4e33c55d83305833f3575136d4f5913ce74e0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "Only the first OA error is inspected. An idIsNotOpenAccess error masks a subsequent service failure, converting a failed response into confirmed package absence.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><error code=\"idIsNotOpenAccess\">Not open access</error><error code=\"serverError\">Request processing failed</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Returns '' with FETCH_FAILED:SUPPLEMENT:... and a warning because the response contains a service failure.",
+    "actual": "Returns '' with LAST_SUPPLEMENT_STATE['123'] == 'NO_OA_PACKAGE' and no warning; .find('.//error') ignores the second error.",
+    "id": "fetch-loud-r9:g1#1",
+    "record_id": "mc-95a6399faebe85849cf56258ed976c45",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r10": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-cb165c08055371730bb50a4ae32015c5",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "095f7ecf07dafbdcb99abf0bfce264c39fbff7cc669e70f7e92c21367da802d0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "OA service errors are ignored when a matching record advertises a usable package URL: error handling occurs only inside `if not tgz`. A failed response can therefore become NO_USABLE_SUPPLEMENT or HELD. This reproducer follows directly from the diff; execution was blocked by session policy.",
+    "failing_input": "import io, tarfile\nfrom unittest.mock import patch\nfrom harness import fetch as f\n\nbuf = io.BytesIO()\nwith tarfile.open(fileobj=buf, mode='w:gz'):\n    pass\noa = '<OA><error code=\"serviceUnavailable\">Temporary failure</error><records><record id=\"PMC1234567\"><link format=\"tgz\" href=\"https://example.org/package.tar.gz\"/></record></records></OA>'\nwith patch.object(f.http, 'get_text', return_value=oa), patch.object(f.http, 'get', return_value=buf.getvalue()), patch.object(f.time, 'sleep'):\n    result = f._pmc_oa_supplement_text('1234567', ['supp.csv'])\n    print(repr(result), f.LAST_SUPPLEMENT_STATE['1234567'])",
+    "expected": "Returns ''; LAST_SUPPLEMENT_STATE['1234567'] starts with FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR and records serviceUnavailable.",
+    "actual": "Returns ''; LAST_SUPPLEMENT_STATE['1234567'] is NO_USABLE_SUPPLEMENT. The service error is discarded without a warning.",
+    "id": "fetch-loud-r10:g1#1",
+    "record_id": "mc-cb165c08055371730bb50a4ae32015c5",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r11": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d4c1c450386ff6c9c5fbe6476cd5bfe8",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "0abbe37da859da50543480ef3db2c97767255f25d8c8ca26c321be39f7201044"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "Unexpected XML can be classified as confirmed package absence. The code searches descendants for matching records without validating the response envelope, so an unrelated document containing a matching record produces NO_OA_PACKAGE instead of a fetch failure.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nwith patch.object(fetch.http, 'get_text', return_value='<unexpected><record id=\"PMC1234567\"/></unexpected>'), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('1234567', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['1234567'])",
+    "expected": "Return ''; record FETCH_FAILED:SUPPLEMENT:OA_UNEXPECTED_RESPONSE and emit a warning because this is not an OA service response.",
+    "actual": "Returns ''; records NO_OA_PACKAGE without a warning because records is nonempty and err is None.",
+    "id": "fetch-loud-r11:g1#1",
+    "record_id": "mc-d4c1c450386ff6c9c5fbe6476cd5bfe8",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r12": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-eeb34215879f5bc3af729d8a3ebae74d",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "06d127ce60b493648c3f33963a9c9d59114990f97ce01f2c5e0fc5b0a0052315"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "Nested OA service errors are silently classified as confirmed package absence. findall(\"error\") checks only direct children, so an error inside a matching record escapes the failure check.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch as f\nxml = '<OA><records><record id=\"PMC123\"><error code=\"serverError\">Temporarily unavailable</error></record></records></OA>'\nwith patch.object(f.http, 'get_text', return_value=xml), patch.object(f.time, 'sleep'):\n    result = f._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(result, f.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return ''; record FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR or OA_UNEXPECTED_RESPONSE, since this response contains an error rather than evidence of absence.",
+    "actual": "Return ''; record NO_OA_PACKAGE without warning. The matching record satisfies the absence branch despite its nested error.",
+    "id": "fetch-loud-r12:g1#1",
+    "record_id": "mc-eeb34215879f5bc3af729d8a3ebae74d",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r13": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f14a5f0ba2d95ddf51577ede6cde830d",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "d73be61480c98cea7a2707ff03d68cb2f153a0d8f1250301f80b703b9fe29a1e"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "fetch-loud-r14": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-88e1ee522e52c53a5feb13edf355c400",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "5e58b79308f3266045f9b7eb0502e3bb53b59bd984a16682c3326256bf0764f6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "An idIsNotOpenAccess error for a different article is accepted as evidence that the requested article has no OA package. Record IDs are checked, but the article identified by an absence response is not.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC999\">oa.fcgi</request><error code=\"idIsNotOpenAccess\">identifier PMC999 is not Open Access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state: a response about PMC999 cannot establish absence for PMC123.",
+    "actual": "Returns an empty string and records LAST_SUPPLEMENT_STATE['123'] = 'NO_OA_PACKAGE'.",
+    "id": "fetch-loud-r14:g1#1",
+    "record_id": "mc-88e1ee522e52c53a5feb13edf355c400",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r15": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-87478c9c30be0f1fb2afcaa0c70badd6",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "87ac404d4ef6c93aae4d5c174a087966c4ac24226ce9d017d6736433750c3287"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "A matching request ID overrides an error explicitly naming a different article. The `about_this` OR condition classifies this contradictory response as confirmed absence instead of a failed response.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC123\"/><error code=\"idIsNotOpenAccess\">PMC456 is not open access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['table.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Returns ''; records FETCH_FAILED:SUPPLEMENT:... because the response explicitly attributes non-open-access status to PMC456, not PMC123.",
+    "actual": "Returns ''; records NO_OA_PACKAGE for PMC123. Derived directly from the supplied code; execution was blocked by environment policy.",
+    "id": "fetch-loud-r15:g1#1",
+    "record_id": "mc-87478c9c30be0f1fb2afcaa0c70badd6",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r16": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5c87b6d60268d0cfd189a813fec34bef",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "73284662d14401e4a115c88a7340073cee0620053b88e20650ded7caa2455bb2"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "The article-identity check examines only the first idIsNotOpenAccess error. Later errors naming another article are ignored, so a mismatched response is classified as confirmed absence despite the requirement that every named article match.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC123\"/><error code=\"idIsNotOpenAccess\">Not Open Access</error><error code=\"idIsNotOpenAccess\">Identifier PMC999 is not Open Access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return '' and record FETCH_FAILED:SUPPLEMENT:... because the response names PMC999 while the request is for PMC123.",
+    "actual": "Returns '' and records NO_OA_PACKAGE. Only the first error contributes identity tokens; the request supplies PMC123, making about_this True.",
+    "id": "fetch-loud-r16:g1#1",
+    "record_id": "mc-5c87b6d60268d0cfd189a813fec34bef",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r17": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4e2a9574322b95dafe5001cb7427e763",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "07030eeed7be9c7fdc537532d92aff7166b8e01e4ebecd6d422b181b48685374"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "The error-identity check ignores PMCIDs attached to labels. A response whose error names a different article is silently classified as NO_OA_PACKAGE because the matching request ID alone satisfies about_this.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC123\"/><error code=\"idIsNotOpenAccess\">Identifier=PMC456 is not Open Access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep', return_value=None):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return '' and record FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR because the error concerns PMC456, not the requested PMC123.",
+    "actual": "Returns '' and records NO_OA_PACKAGE. The whitespace token 'Identifier=PMC456' does not start with 'PMC', so it is discarded and named becomes {'PMC123'}.",
+    "id": "fetch-loud-r17:g1#1",
+    "record_id": "mc-4e2a9574322b95dafe5001cb7427e763",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r18": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-db995af1f6c1e440a3f71070889019bd",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "3515cef1d634db119a19e0516fd586a1f9aedfaf6e60cbe257631bc6d13ca443"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "Article validation examines only error.text, ignoring descendant text. A not-open-access error naming another article inside a child element is therefore silently classified as absence for the requested article.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC7\"/><error code=\"idIsNotOpenAccess\">Article <id>PMC8</id> is not open access.</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('7', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['7'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state and warning: the error names PMC8, contradicting the request for PMC7.",
+    "actual": "By direct code tracing (execution blocked): prints '' NO_OA_PACKAGE and emits no warning. error.text is only 'Article ', so PMC8 never enters the identity check.",
+    "id": "fetch-loud-r18:g1#1",
+    "record_id": "mc-db995af1f6c1e440a3f71070889019bd",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r19": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e27d55f6cc9660bcc0deaadbf931a01a",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "34da6508fd6140306f5f35c56c4c3989f898d8d99f29eccef860a45e42b848db"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "A not-open-access error nested inside another article's record is incorrectly attributed to the requested article. The identity check reads the request and error subtree but ignores the enclosing record's ID, turning an inconsistent response into confirmed absence.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC7\"/><records><record id=\"PMC8\"><error code=\"idIsNotOpenAccess\">Not open access</error></record></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('7', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['7'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state: the error concerns PMC8 and does not establish absence for PMC7.",
+    "actual": "Returns an empty string and records NO_OA_PACKAGE for PMC7, without warning.",
+    "id": "fetch-loud-r19:g1#1",
+    "record_id": "mc-e27d55f6cc9660bcc0deaadbf931a01a",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r20": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-39a7680723fdb5aad2ee966b667e9c90",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "1c6574da05994d288ceeb975b1c6795a33dee6bfe1a5d4d70a718f4cee0fb476"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "d12-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "c64042e8a432a213739b2011098cf405854f4d702340bf7e00c131676cba53b2"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K2), for_topic",
+    "severity": "P0",
+    "claim": "Integer percentages pass as death counts. Token membership does not check whether a number is a count, so percentage values enter the matching result.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\ntext = 'Each arm randomised 200 participants. Kaplan-Meier mortality estimates were 10% for treatment and 20% for control.'\nb = dict(slug='fixture', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=text, values=dict(events_t=10, n_t=200, events_c=20, n_c=200))\ntrials = [dict(label='T', family='PMID 1', in_our_pool=True)]\nwith patch.object(d, '_held_abstract', return_value=text):\n    out, refused = d.for_topic('fixture', trials, snap='', reg={'bindings': [b]})\nprint(out['T']['row'], refused)",
+    "expected": "Reject the binding: the held text supplies estimates, not per-arm death counts.",
+    "actual": "{'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 200} []",
+    "id": "d12-r1:g1#1",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K2), for_topic",
+    "severity": "P0",
+    "claim": "The verifier checks numbers independently and loses their arm associations. Swapped event counts pass even when the held text explicitly assigns each count to the opposite arm.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\ntext = 'Treatment: 10 deaths among 100 participants. Control: 20 deaths among 200 participants.'\nb = dict(slug='fixture', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=text, values=dict(events_t=20, n_t=100, events_c=10, n_c=200))\ntrials = [dict(label='T', family='PMID 1', in_our_pool=True)]\nwith patch.object(d, '_held_abstract', return_value=text):\n    out, refused = d.for_topic('fixture', trials, snap='', reg={'bindings': [b]})\nprint(out['T']['row'], refused)",
+    "expected": "Reject the supplied tuple. The supported tuple is events_t=10, n_t=100, events_c=20, n_c=200.",
+    "actual": "{'events_t': 20, 'n_t': 100, 'events_c': 10, 'n_c': 200} []",
+    "id": "d12-r1:g1#2",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K2), for_topic",
+    "severity": "P0",
+    "claim": "Denominator kinds are not validated. Death counts explicitly limited to safety populations can be combined with randomised denominators merely because those denominators occur in the span.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\ntext = 'Randomised populations: treatment 100, control 100. Safety populations: treatment 80, control 90. Deaths were collected only in the safety populations: treatment 8, control 9.'\nb = dict(slug='fixture', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=text, values=dict(events_t=8, n_t=100, events_c=9, n_c=100))\ntrials = [dict(label='T', family='PMID 1', in_our_pool=True)]\nwith patch.object(d, '_held_abstract', return_value=text):\n    out, refused = d.for_topic('fixture', trials, snap='', reg={'bindings': [b]})\nprint(out['T']['row'], refused)",
+    "expected": "Reject the mixed-denominator tuple. The stated safety counts have denominators 80 and 90.",
+    "actual": "{'events_t': 8, 'n_t': 100, 'events_c': 9, 'n_c': 100} []",
+    "id": "d12-r1:g1#3",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms, verify (K1)",
+    "severity": "P0",
+    "claim": "AACT measurements are converted with int(float(...)) without validating their parameter type or integrality. Fractional means are silently truncated and then certified as exact event counts.",
+    "failing_input": "from scripts import g1_d12 as d\na = d.Aact('fixture')\nbase = dict(nct_id='NCT00000001', outcome_id='1')\na._counts = [dict(base, ctgov_group_code=g, scope='Measure', count='100') for g in ('G1', 'G2')]\na._meas = [dict(base, ctgov_group_code=g, classification='', param_type='Mean', param_value=v) for g, v in [('G1', '12.9'), ('G2', '24.9')]]\na._groups = [dict(base, ctgov_group_code=g, title=t) for g, t in [('G1', 'Treatment'), ('G2', 'Control')]]\nb = dict(rule='K1', tuple_kind='COUNTS', own_tuple=True, source='AACT NCT00000001 outcome 1', ncts=['NCT00000001'], classification='unclassified', span='Treatment: 12 of 100 participants; Control: 24 of 100 participants', values=dict(events_t=12, n_t=100, events_c=24, n_c=100))\nprint(sorted(a.arms('NCT00000001', '1', 'unclassified').items()))\nprint(d.verify(b, a)[0])",
+    "expected": "Reject these measurements as event counts: the source contains fractional means 12.9 and 24.9, not counts 12 and 24.",
+    "actual": "[('G1', (12, 100)), ('G2', (24, 100))]\nTrue",
+    "id": "d12-r1:g1#4",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "for_topic, verify (K2)",
+    "severity": "P1",
+    "claim": "The identity join trusts the binding's asserted NCT list without checking the paper's evidence. Counts from a paper explicitly reporting one trial can therefore bind to a different trial.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\ntext = 'These results concern only trial NCT00000001. Treatment: 10 deaths among 100 participants. Control: 20 deaths among 100 participants.'\nb = dict(slug='fixture', pmid='1', ncts=['NCT00000002'], rule='K2', tuple_kind='COUNTS', own_tuple=True, span=text, values=dict(events_t=10, n_t=100, events_c=20, n_c=100))\ntrials = [dict(label='Other trial', family='NCT00000002', in_our_pool=True)]\nwith patch.object(d, '_held_abstract', return_value=text):\n    out, refused = d.for_topic('fixture', trials, snap='', reg={'bindings': [b]})\nprint(out['Other trial']['row'], refused)",
+    "expected": "Reject the identity binding: the held paper identifies NCT00000001 and supplies no evidence connecting its counts to NCT00000002.",
+    "actual": "{'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100} []",
+    "id": "d12-r1:g1#5",
+    "record_id": "mc-7d64d20a6519d0d2ac1d3b9364fbfb16",
+    "verdict": null
+   }
+  ]
+ },
+ "d12-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5b6c6960c831f4a7a189b3c15f070e43",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "f77341a20e48a982f4eecade6f00469b70710cd24c97273df419d14536682c6e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms",
+    "severity": "P0",
+    "claim": "Integral percentages are accepted as event counts because NUMBER accepts any units containing 'participant', including 'Percentage of participants'.",
+    "failing_input": "import scripts.g1_d12 as d\na = d.Aact('fixture')\nbase = dict(nct_id='NCT00000001', outcome_id='1')\na._counts = [dict(base, ctgov_group_code=g, scope='Measure', count='1000') for g in ['T', 'C']]\na._meas = [dict(base, ctgov_group_code=g, classification='', param_type='NUMBER', units='Percentage of participants', param_value=v) for g, v in [('T', '10'), ('C', '20')]]\nprint(sorted(a.arms('NCT00000001', '1', 'unclassified').items()))",
+    "expected": "[]; percentage measurements must not supply event counts.",
+    "actual": "[('C', (20, 1000)), ('T', (10, 1000))]; the percentage values become counts eligible for K1 verification.",
+    "id": "d12-r2:g1#1",
+    "record_id": "mc-5b6c6960c831f4a7a189b3c15f070e43",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify / arms_in_order",
+    "severity": "P0",
+    "claim": "The order of the first arm mentions does not establish which arm owns each count. An introductory sentence lets reversed treatment/control counts verify.",
+    "failing_input": "from unittest.mock import patch\nimport scripts.g1_d12 as d\ns = 'Drug was compared with placebo. In the placebo arm, 10 of 100 participants died; in the drug arm, 20 of 100 participants died.'\nb = dict(slug='mortality', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=s, values=dict(events_t=10, n_t=100, events_c=20, n_c=100))\nwith patch.object(d, '_held_abstract', return_value=s), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b)[0])",
+    "expected": "False; the text assigns 20 deaths to drug and 10 to placebo.",
+    "actual": "True; the reversed counts verify and are eligible for the comparison.",
+    "id": "d12-r2:g1#2",
+    "record_id": "mc-5b6c6960c831f4a7a189b3c15f070e43",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_tied / verify",
+    "severity": "P0",
+    "claim": "The denominator check uses startswith without a numeric boundary, so '10 of 1000' verifies a denominator of 100 when that number appears elsewhere.",
+    "failing_input": "from unittest.mock import patch\nimport scripts.g1_d12 as d\ns = 'Drug: 10 of 1000 participants died; placebo: 20 of 200 participants died. Recruitment involved 100 hospitals.'\nb = dict(slug='mortality', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=s, values=dict(events_t=10, n_t=100, events_c=20, n_c=200))\nwith patch.object(d, '_held_abstract', return_value=s), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b)[0])",
+    "expected": "False; the treatment denominator is 1000, and 100 counts hospitals.",
+    "actual": "True; treatment mortality is accepted as 10/100 instead of 10/1000.",
+    "id": "d12-r2:g1#3",
+    "record_id": "mc-5b6c6960c831f4a7a189b3c15f070e43",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify",
+    "severity": "P0",
+    "claim": "The abstract denominator fallback checks token presence and rounded percentage compatibility, allowing a randomised denominator to replace an explicitly stated safety denominator.",
+    "failing_input": "from unittest.mock import patch\nimport scripts.g1_d12 as d\ns = 'Deaths in the safety populations were drug 10 patients (10%) and placebo 20 patients (10%).'\nab = 'Randomised populations: drug 101; placebo 201. Safety populations: drug 100; placebo 200. ' + s\nb = dict(slug='mortality', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=s, n_source='abstract', values=dict(events_t=10, n_t=101, events_c=20, n_c=201))\nwith patch.object(d, '_held_abstract', return_value=ab), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b)[0])",
+    "expected": "False; the reported safety death counts have denominators 100 and 200, not the randomised populations.",
+    "actual": "True; both randomised denominators verify because their computed percentages round to 10%.",
+    "id": "d12-r2:g1#4",
+    "record_id": "mc-5b6c6960c831f4a7a189b3c15f070e43",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_pct_after / _tied",
+    "severity": "P0",
+    "claim": "Converting the printed percentage to float discards trailing-zero precision. A printed 10.0% is checked with integer-percent tolerance, admitting incompatible denominators.",
+    "failing_input": "from unittest.mock import patch\nimport scripts.g1_d12 as d\ns = 'Drug: 10 patients (10.0%) of 104; placebo: 20 patients (10.0%) of 200.'\nb = dict(slug='mortality', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=s, values=dict(events_t=10, n_t=104, events_c=20, n_c=200))\nwith patch.object(d, '_held_abstract', return_value=s), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b)[0])",
+    "expected": "False; 10/104 rounds to 9.6%, contradicting the printed 10.0%.",
+    "actual": "True; _tied treats 10.0% as having zero decimal places.",
+    "id": "d12-r2:g1#5",
+    "record_id": "mc-5b6c6960c831f4a7a189b3c15f070e43",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify",
+    "severity": "P0",
+    "claim": "K2 verifies count syntax without checking the endpoint. Counts explicitly describing nausea pass as mortality bindings and can replace the mortality comparison row.",
+    "failing_input": "from unittest.mock import patch\nimport scripts.g1_d12 as d\ns = 'Drug: 10 of 100 participants had nausea; placebo: 20 of 100 participants had nausea. No deaths occurred in either arm.'\nb = dict(slug='mortality', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, outcome_definition='all-cause mortality', span=s, values=dict(events_t=10, n_t=100, events_c=20, n_c=100))\nwith patch.object(d, '_held_abstract', return_value=s), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b)[0])",
+    "expected": "False; the proposed death counts describe nausea, while the text reports no deaths.",
+    "actual": "True; neither endpoint nor death semantics are checked. The tracker also constructs the replacement row with an empty outcome_definition.",
+    "id": "d12-r2:g1#6",
+    "record_id": "mc-5b6c6960c831f4a7a189b3c15f070e43",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "for_topic / verify",
+    "severity": "P1",
+    "claim": "A K2 binding with denominators in the span can join a trial through an unsupported NCT ID. Unlike K1 and the AACT denominator path, this path never checks the held paper's NCT evidence.",
+    "failing_input": "from unittest.mock import patch\nimport scripts.g1_d12 as d\ns = 'Drug: 10 of 100 participants died; placebo: 20 of 100 participants died.'\nb = dict(slug='mortality', pmid='1', label='paper A', ncts=['NCT00000002'], rule='K2', tuple_kind='COUNTS', own_tuple=True, span=s, values=dict(events_t=10, n_t=100, events_c=20, n_c=100))\ntrials = [dict(label='trial B', family='NCT00000002', in_our_pool=True)]\nwith patch.object(d, '_held_abstract', return_value=s), patch.object(d, '_held_nct', return_value=None), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    out, refused = d.for_topic('mortality', trials, snap='', reg={'bindings': [b]})\n    print(bool(out), refused)",
+    "expected": "An empty accepted mapping and a refusal: PMID 1 supplies no evidence connecting it to NCT00000002.",
+    "actual": "True []; paper A's counts are attached to trial B solely through the binding's asserted NCT list.",
+    "id": "d12-r2:g1#7",
+    "record_id": "mc-5b6c6960c831f4a7a189b3c15f070e43",
+    "verdict": null
+   }
+  ]
+ },
+ "d12-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "d5668568589f60474dc1f0c0af545956c5808c3e360e5aa2c43e3ff75bf59753"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify",
+    "severity": "P0",
+    "claim": "K2 never reads the independent audit record. A binding declaring CONFIRMED passes even when that record rejects it. Combined with first-mention arm ordering, this certifies reversed treatment/control death counts.",
+    "failing_input": "from scripts import g1_d12 as g\nfrom unittest.mock import patch, mock_open\nspan = 'Drug was compared with placebo. Deaths: placebo, 10 of 100 participants; drug, 20 of 100 participants.'\nb = dict(slug='s', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=span, values=dict(events_t=10, n_t=100, events_c=20, n_c=100), second_reader=dict(verdict='CONFIRMED', record_id='audit1'))\nwith patch.object(g, '_held_abstract', return_value=span), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(g.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data='{\"verdict\":\"REJECTED\",\"reason\":\"Treatment and control counts are reversed\"}')):\n    print(g.verify(b))",
+    "expected": "Reject the binding: the audit rejects it, and the text assigns 20 deaths to treatment and 10 to control.",
+    "actual": "(True, 'K2: PMID 1 held abstract span (events and Ns in the span, arms in order)'). The reversed tuple is eligible for the matching result.",
+    "id": "d12-r3:g1#1",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms",
+    "severity": "P0",
+    "claim": "The NUMBER units check accepts slash-denominated rates as participant counts. It excludes 'per ' but not equivalent '/100' notation.",
+    "failing_input": "from scripts import g1_d12 as g\na = g.Aact('fixture')\na._counts = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=k, scope='Measure', count='200') for k in ('T', 'C')]\na._meas = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=k, classification='', param_type='NUMBER', units='participants/100 participants', param_value=v) for k, v in [('T', '10'), ('C', '20')]]\nprint(a.arms('NCT00000001', '7', 'unclassified'))",
+    "expected": "{}: neither measurement is an absolute event count.",
+    "actual": "{'T': (10, 200), 'C': (20, 200)} (dictionary order may vary). Rates are returned as event counts for K1 verification.",
+    "id": "d12-r3:g1#2",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "for_topic",
+    "severity": "P1",
+    "claim": "K1 joins through every NCT listed in the binding, although verify authenticates only the source NCT. An additional, unverified NCT therefore attaches one trial's counts to another trial.",
+    "failing_input": "from scripts import g1_d12 as g\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nimport os\na = SimpleNamespace(snap='fixture', arms=lambda *args: {'T': (10, 100), 'C': (20, 100)}, group_title=lambda n, o, k: {'T': 'Drug', 'C': 'Placebo'}[k])\nb = dict(slug='s', pmid='1', label='Source trial', rule='K1', tuple_kind='COUNTS', own_tuple=True, source='AACT NCT00000001 outcome 7', ncts=['NCT00000001', 'NCT00000002'], classification='unclassified', span='Drug: 10 of 100 participants; Placebo: 20 of 100 participants', values=dict(events_t=10, n_t=100, events_c=20, n_c=100))\ntrials = [dict(label='Other trial', family='NCT00000002', in_our_pool=True)]\ncache = {(os.path.abspath('.'), frozenset({'7'})): a}\nwith patch.object(g, '_AACT_CACHE', cache), patch.object(g, '_held_nct', return_value='NCT00000001'), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    out, refused = g.for_topic('s', trials, snap='.', reg={'bindings': [b]})\n    print(out['Other trial']['row'], refused)",
+    "expected": "No binding for Other trial: the held report and AACT source establish only NCT00000001.",
+    "actual": "{'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100} [] — NCT00000001's counts are assigned to NCT00000002 without a refusal.",
+    "id": "d12-r3:g1#3",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify",
+    "severity": "P1",
+    "claim": "K2 rejects valid bindings whenever both arms have the same event count. Both count_positions calls find the same two occurrences, so the requirement that each list have length one cannot pass.",
+    "failing_input": "from scripts import g1_d12 as g\nfrom unittest.mock import patch\nspan = 'Drug: 10 of 100 participants died; placebo: 10 of 200 participants died.'\nb = dict(slug='s', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=span, values=dict(events_t=10, n_t=100, events_c=10, n_c=200), second_reader=dict(verdict='CONFIRMED', record_id='audit1'))\nwith patch.object(g, '_held_abstract', return_value=span), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(g.os.path, 'exists', return_value=True):\n    print(g.verify(b))",
+    "expected": "Accept the confirmed binding: each arm has an explicit, correctly assigned count and denominator.",
+    "actual": "(False, 'K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN').",
+    "id": "d12-r3:g1#4",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_whole",
+    "severity": "P2",
+    "claim": "Non-finite numeric strings escape the conversion guard and crash verification instead of being rejected as non-counts.",
+    "failing_input": "from scripts.g1_d12 import _whole\n_whole('NaN')",
+    "expected": "None, consistent with the function's contract for values that are not nonnegative whole numbers.",
+    "actual": "Raises ValueError: cannot convert float NaN to integer. The int(f) call occurs outside the try block.",
+    "id": "d12-r3:g1#5",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   }
+  ]
+ },
+ "d12-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "7892188719257c90182a90373e315aef0103f0f1b3e244674c8cec2434869926"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms / verify",
+    "severity": "P0",
+    "claim": "NUMBER measurements in participant-years are accepted as participant event counts. The substring test accepts 'participant-years', allowing exposure time to become verified event counts.",
+    "failing_input": "from scripts import g1_d12 as d\nfrom unittest.mock import patch\nnct = 'NCT00000001'\na = d.Aact('snapshot')\nrows = [('G1', 'Drug', '20'), ('G2', 'Placebo', '40')]\na._counts = [dict(nct_id=nct, outcome_id='1', ctgov_group_code=g, scope='Measure', count='100') for g, title, value in rows]\na._meas = [dict(nct_id=nct, outcome_id='1', ctgov_group_code=g, classification='', param_type='NUMBER', units='participant-years', param_value=value) for g, title, value in rows]\na._groups = [dict(nct_id=nct, outcome_id='1', ctgov_group_code=g, title=title) for g, title, value in rows]\nb = dict(rule='K1', tuple_kind='COUNTS', own_tuple=True, slug='demo', pmid='111', ncts=[nct], source='AACT NCT00000001 outcome 1', classification='unclassified', values=dict(events_t=20, n_t=100, events_c=40, n_c=100), span='Drug: 20 of 100 participants; Placebo: 40 of 100 participants')\nwith patch.object(d, '_held_nct', return_value=nct), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b, a))",
+    "expected": "Reject the binding: participant-years measure exposure time, not numbers of participants experiencing an event.",
+    "actual": "(True, \"K1: AACT snapshot NCT00000001 outcome 1 (unclassified): groups [('G1', (20, 100)), ('G2', (40, 100))]\")",
+    "id": "d12-r4:g1#1",
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K1 arm assignment)",
+    "severity": "P0",
+    "claim": "Double-dummy group titles permit swapped treatment/control counts. Each title contains both drug names, so checking only whether the desired term occurs certifies the reversed assignment.",
+    "failing_input": "from scripts import g1_d12 as d\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nnct = 'NCT00000001'\npairs = {'G1': (10, 100), 'G2': (20, 100)}\ntitles = {'G1': 'Drug plus placebo for Comparator', 'G2': 'Comparator plus placebo for Drug'}\na = SimpleNamespace(snap='snapshot', arms=lambda *args: pairs, group_title=lambda n, o, g: titles[g])\nb = dict(rule='K1', tuple_kind='COUNTS', own_tuple=True, slug='demo', pmid='111', ncts=[nct], source='AACT NCT00000001 outcome 1', classification='unclassified', values=dict(events_t=20, n_t=100, events_c=10, n_c=100), span='Drug plus placebo for Comparator: 10 of 100 participants; Comparator plus placebo for Drug: 20 of 100 participants')\nwith patch.object(d, '_held_nct', return_value=nct), patch.object(d, 'arm_terms', return_value=(['drug'], ['comparator'])):\n    print(d.verify(b, a))",
+    "expected": "Reject the swapped binding. The active Drug arm has 10/100 events and the active Comparator arm has 20/100; their risk ratio is 0.5.",
+    "actual": "Returns True with basis \"K1: AACT snapshot NCT00000001 outcome 1 (unclassified): groups [('G1', (10, 100)), ('G2', (20, 100))]\". The accepted binding instead supplies 20/100 versus 10/100, yielding a risk ratio of 2.",
+    "id": "d12-r4:g1#2",
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K1 equal tuples)",
+    "severity": "P1",
+    "claim": "Valid bindings with identical event counts and denominators in both arms are rejected. Both groups satisfy '(e_, n_) == (et, nt)', so the control group is incorrectly required to have a treatment title.",
+    "failing_input": "from scripts import g1_d12 as d\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nnct = 'NCT00000001'\npairs = {'G1': (10, 100), 'G2': (10, 100)}\ntitles = {'G1': 'Drug', 'G2': 'Placebo'}\na = SimpleNamespace(snap='snapshot', arms=lambda *args: pairs, group_title=lambda n, o, g: titles[g])\nb = dict(rule='K1', tuple_kind='COUNTS', own_tuple=True, slug='demo', pmid='111', ncts=[nct], source='AACT NCT00000001 outcome 1', classification='unclassified', values=dict(events_t=10, n_t=100, events_c=10, n_c=100), span='Drug: 10 of 100 participants; Placebo: 10 of 100 participants')\nwith patch.object(d, '_held_nct', return_value=nct), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b, a))",
+    "expected": "Accept the correctly labelled, source-matching binding with 10/100 events in each arm.",
+    "actual": "(False, 'K1_GROUP_TITLE_NOT_THE_BOUND_ARM:G2')",
+    "id": "d12-r4:g1#3",
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "reader_counts / verify (K2 second-reader gate)",
+    "severity": "P1",
+    "claim": "A recorded second-reader response for another paper satisfies the confirmation gate whenever its four numbers match. Neither the audited paper nor its input evidence is checked against the binding.",
+    "failing_input": "from scripts import g1_d12 as d\nfrom unittest.mock import patch, mock_open\nimport base64, json\nspan = 'Drug: 10 of 100 participants died; Placebo: 20 of 100 participants died.'\nvalues = dict(events_t=10, n_t=100, events_c=20, n_c=100)\nresponse = dict(state='REPORTED', pmid='999', **values)\nrecord = dict(state='RAN_OK', request=dict(pmid='999', abstract=span), response=dict(b64=base64.b64encode(json.dumps(response).encode()).decode()))\nb = dict(rule='K2', tuple_kind='COUNTS', own_tuple=True, slug='demo', pmid='111', values=values, span=span, second_reader=dict(verdict='CONFIRMED', record_id='audit-for-999'))\nwith patch.object(d, '_held_abstract', return_value=span), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(d.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data=json.dumps(record))):\n    print(d.verify(b))",
+    "expected": "Reject the confirmation: the recorded reader examined PMID 999, while this binding requires independent confirmation of PMID 111 and its evidence.",
+    "actual": "(True, 'K2: PMID 111 held abstract span (events and Ns in the span, arms in order)')",
+    "id": "d12-r4:g1#4",
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "verdict": null
+   }
+  ]
+ },
+ "d12-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "e3661888f037bae8d9a40e48a1699179ffb6600c315088dc9177db556dd019a3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K1)",
+    "severity": "P0",
+    "claim": "K1 certifies counts for a different endpoint. It checks the requested classification against itself but never checks that the outcome is mortality. Headache counts therefore become verified matching counts.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\nnct = 'NCT00000001'\na = d.Aact('snapshot')\na._counts = [dict(nct_id=nct, outcome_id='7', ctgov_group_code=g, scope='Measure', units='Participants', count='100') for g in ['T', 'C']]\na._meas = [dict(nct_id=nct, outcome_id='7', ctgov_group_code=g, classification='Headache', param_type='COUNT_OF_PARTICIPANTS', units='participants', param_value=e) for g,e in [('T','10'), ('C','20')]]\na._groups = [dict(nct_id=nct, outcome_id='7', ctgov_group_code=g, title=t) for g,t in [('T','Drug'), ('C','Placebo')]]\nb = dict(slug='mortality', pmid='1', tuple_kind='COUNTS', own_tuple=True, rule='K1', ncts=[nct], source='AACT NCT00000001 outcome 7', classification='Headache', values=dict(events_t=10, n_t=100, events_c=20, n_c=100), span='Drug: 10 of 100 participants; Placebo: 20 of 100 participants')\nwith patch.object(d, '_held_nct', return_value=nct), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b, a))",
+    "expected": "Reject the mortality binding because the source counts participants with headache; mortality endpoint evidence is absent.",
+    "actual": "(True, \"K1: AACT snapshot NCT00000001 outcome 7 (Headache): groups [('C', (20, 100)), ('T', (10, 100))]\")",
+    "id": "d12-r5:g1#1",
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms",
+    "severity": "P0",
+    "claim": "Measurement rows overwrite each other by group while category is ignored. Row order can produce treatment and control counts from different follow-up categories. K1 then accepts a binding matching this mixed pair without further category checks.",
+    "failing_input": "from scripts import g1_d12 as d\na = d.Aact('snapshot')\na._counts = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=g, scope='Measure', count='100') for g in ['T', 'C']]\na._meas = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=g, classification='Deaths', category=category, param_type='COUNT_OF_PARTICIPANTS', units='participants', param_value=e) for g,category,e in [('T','12 months','20'), ('C','6 months','5'), ('T','6 months','10'), ('C','12 months','40')]]\nprint(a.arms('NCT00000001', '7', 'Deaths'))",
+    "expected": "Refuse the ambiguous selection, or require a common category: six-month counts are T=10/C=5; twelve-month counts are T=20/C=40.",
+    "actual": "Returns a mapping equal to {'T': (10, 100), 'C': (40, 100)}, combining six-month treatment deaths with twelve-month control deaths.",
+    "id": "d12-r5:g1#2",
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms",
+    "severity": "P0",
+    "claim": "Denominator units are never checked. A later exposure denominator overwrites the participant denominator, allowing participant-years to become arm sample sizes in verified counts.",
+    "failing_input": "from scripts import g1_d12 as d\na = d.Aact('snapshot')\na._counts = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=g, scope='Measure', units=units, count=n) for units,n in [('Participants','50'), ('Participant-years','100')] for g in ['T', 'C']]\na._meas = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=g, classification='Deaths', param_type='COUNT_OF_PARTICIPANTS', units='participants', param_value=e) for g,e in [('T','10'), ('C','20')]]\nprint(a.arms('NCT00000001', '7', 'Deaths'))",
+    "expected": "Use the participant denominators, returning {'T': (10, 50), 'C': (20, 50)}, or explicitly refuse the ambiguity.",
+    "actual": "Returns a mapping equal to {'T': (10, 100), 'C': (20, 100)}. K1 has no subsequent denominator-unit check, so these exposure totals can be certified as participant Ns.",
+    "id": "d12-r5:g1#3",
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "int_tokens",
+    "severity": "P2",
+    "claim": "Normal scientific notation containing superscript digits crashes tokenization. str.isdigit() accepts superscript ², but int() cannot parse it. K2 calls this function without catching the exception.",
+    "failing_input": "from scripts.g1_d12 import int_tokens\nint_tokens('Dose: 5 mg/m².')",
+    "expected": "Return {5}, treating the superscript unit exponent as non-count text, without aborting verification.",
+    "actual": "Raises ValueError: invalid literal for int() with base 10: '²'.",
+    "id": "d12-r5:g1#4",
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "verdict": null
+   }
+  ]
+ },
+ "d12-r6": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-57b0c7c7aece834ca32ac1284cccdce1",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "c3d44497214957232c486120fdb752e8d1ed35d0dcfe70b2045ef2bf99719200"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms / verify",
+    "severity": "P0",
+    "claim": "K1 ignores measurement category. An outcome titled 'All-cause mortality' whose measurements count surviving participants passes verification with survivors used as deaths.",
+    "failing_input": "from scripts import g1_d12 as g\nfrom unittest.mock import patch\nnct = 'NCT00000001'\na = g.Aact('snapshot')\na._outcomes = {'1': {'nct_id': nct, 'title': 'All-cause mortality'}}\na._counts, a._meas, a._groups = [], [], []\nfor code, title, survivors in [('T', 'Drug', 90), ('C', 'Placebo', 80)]:\n    base = {'nct_id': nct, 'outcome_id': '1', 'ctgov_group_code': code}\n    a._counts.append(dict(base, scope='Measure', units='participants', count='100'))\n    a._meas.append(dict(base, classification='', category='Alive', param_type='COUNT_OF_PARTICIPANTS', units='participants', param_value=str(survivors)))\n    a._groups.append(dict(base, title=title))\nb = {'slug': 'mortality', 'pmid': '1', 'ncts': [nct], 'rule': 'K1', 'source': 'AACT NCT00000001 outcome 1', 'classification': 'unclassified', 'tuple_kind': 'COUNTS', 'own_tuple': True, 'values': {'events_t': 90, 'n_t': 100, 'events_c': 80, 'n_c': 100}, 'span': 'Drug: 90 of 100 participants; Placebo: 80 of 100 participants'}\nwith patch.object(g, '_held_nct', return_value=nct), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(g.verify(b, a, endpoint_ok=lambda title: title == 'All-cause mortality'))",
+    "expected": "Reject the binding: the measurement category is Alive, so 90 and 80 are not death counts.",
+    "actual": "(True, \"K1: AACT snapshot NCT00000001 outcome 1 (unclassified): groups [('C', (80, 100)), ('T', (90, 100))]\")",
+    "id": "d12-r6:g1#1",
+    "record_id": "mc-57b0c7c7aece834ca32ac1284cccdce1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "reader_counts / verify",
+    "severity": "P0",
+    "claim": "K2 accepts an independent reader's truthful extraction of another endpoint from the same paper. reader_counts checks paper identity and four numbers, but not the requested endpoint; verify ignores endpoint_ok for K2. Myocardial-infarction counts therefore pass a death-count binding.",
+    "failing_input": "import base64, json\nfrom unittest.mock import patch, mock_open\nfrom scripts import g1_d12 as g\nspan = 'Drug: 10 of 100 patients had myocardial infarction. Placebo: 20 of 100 patients had myocardial infarction.'\nvalues = {'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100}\nresponse = dict(values, state='REPORTED', outcome='myocardial infarction')\naudit = {'state': 'RAN_OK', 'input_digests': [{'ref': 'PMID 1'}], 'prompt': 'Extract myocardial-infarction counts from PMID 1.', 'response': {'b64': base64.b64encode(json.dumps(response).encode()).decode()}}\nb = {'slug': 'mortality', 'pmid': '1', 'rule': 'K2', 'tuple_kind': 'COUNTS', 'own_tuple': True, 'values': values, 'span': span, 'second_reader': {'verdict': 'CONFIRMED', 'record_id': 'mi-reader'}}\nwith patch.object(g, '_held_abstract', return_value=span), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(g.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data=json.dumps(audit))):\n    print(g.verify(b, endpoint_ok=lambda title: 'death' in title.lower()))",
+    "expected": "Reject the mortality binding: both the held span and the independent reader concern myocardial infarction, not deaths.",
+    "actual": "(True, 'K2: PMID 1 held abstract span (events and Ns in the span, arms in order)')",
+    "id": "d12-r6:g1#2",
+    "record_id": "mc-57b0c7c7aece834ca32ac1284cccdce1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_tied / verify",
+    "severity": "P0",
+    "claim": "An explicit denominator mismatch falls through to percentage matching. A nearby Kaplan–Meier percentage can consequently certify randomised denominators for counts explicitly reported with analysed denominators. The independent-reader number check does not prevent this acceptance.",
+    "failing_input": "import base64, json\nfrom unittest.mock import patch, mock_open\nfrom scripts import g1_d12 as g\nprint(g._tied('10 of 90 analysed patients died (10% Kaplan-Meier estimate)', 0, 10, 100))\nspan = 'Drug: 10 of 90 analysed patients died (10% Kaplan-Meier estimate). Placebo: 20 of 180 analysed patients died (10% Kaplan-Meier estimate). Randomised: 100 and 200.'\nvalues = {'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 200}\nresponse = dict(values, state='REPORTED')\naudit = {'state': 'RAN_OK', 'input_digests': [{'ref': 'PMID 1'}], 'response': {'b64': base64.b64encode(json.dumps(response).encode()).decode()}}\nb = {'slug': 'mortality', 'pmid': '1', 'rule': 'K2', 'tuple_kind': 'COUNTS', 'own_tuple': True, 'values': values, 'span': span, 'second_reader': {'verdict': 'CONFIRMED', 'record_id': 'reader'}}\nwith patch.object(g, '_held_abstract', return_value=span), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(g.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data=json.dumps(audit))):\n    print(g.verify(b))",
+    "expected": "_tied returns False and verify rejects the binding. The explicit count denominators are 90 and 180; Kaplan–Meier percentages cannot establish alternative count denominators of 100 and 200.",
+    "actual": "_tied returns True. verify returns (True, 'K2: PMID 1 held abstract span (events and Ns in the span, arms in order)').",
+    "id": "d12-r6:g1#3",
+    "record_id": "mc-57b0c7c7aece834ca32ac1284cccdce1",
+    "verdict": null
+   }
+  ]
+ },
+ "idlink-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3e57ba9a47db12c7b0587164260e8fcd",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "846c66a0e4a835a5a6c621539c02318351e813e3f91a060836dfce7dd817e483"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "join",
+    "severity": "P1",
+    "claim": "Accepts an identity link with zero supporting facts. The advertised two-fact evidence requirement is never checked; an unsupported PMID-to-NCT mapping becomes a PRIMARY, countable match.",
+    "failing_input": "from scripts.g1_identity_links import join\nt = {}\nx = {'in_our_pool': False, 'route': 'NO_ROW'}\nmatched = set()\nroutes = {'NO_ROW': 1}\nlinks = {'33731544': {'nct': 'NCT02468232', 'rules': []}}\nout = join([x], [t], {id(t): '33731544'}, {'NCT02468232': 'pool1'}, {'pool1'}, matched, routes, links=links)\nprint(len(out), x['in_our_pool'], x['route'], x['g1_countable'], matched, routes)",
+    "expected": "Reject the unsupported link or raise an evidence-validation error before mutating the match and route state.",
+    "actual": "1 True PRIMARY True {'pool1'} {'NO_ROW': 0, 'PRIMARY': 1}",
+    "id": "idlink-r1:g1#1",
+    "record_id": "mc-3e57ba9a47db12c7b0587164260e8fcd",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "load",
+    "severity": "P2",
+    "claim": "A missing identity-links artifact silently returns the same value as a successfully loaded empty artifact. The tracker consequently treats unavailable binding evidence as no matching links, without reporting the acquisition/configuration failure.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.g1_identity_links import load\nwith patch('scripts.g1_identity_links.os.path.exists', return_value=False):\n    print(load('missing-identity-links.json'))",
+    "expected": "Raise a missing-artifact error or return an explicit unavailable status that prevents normal classification.",
+    "actual": "{}; join() consumes this as an empty link mapping and returns no matches without an error.",
+    "id": "idlink-r1:g1#2",
+    "record_id": "mc-3e57ba9a47db12c7b0587164260e8fcd",
+    "verdict": null
+   }
+  ]
+ },
+ "idlink-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-113558120c8eace56fe764c001db2fc6",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "5a2245e1117757daa3f00fb2de0d6c6442146acc86674b0db4bb83d57dc2239f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported",
+    "severity": "P1",
+    "claim": "ONE_NCT_STATED_IN_OWN_REPORT is validated by substring membership, so a report explicitly registered to another trial can support the wrong binding. join() accepts that link when its target is pooled.",
+    "failing_input": "supported({'nct': 'NCT00000001', 'rules': [{'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': 'Our trial registration is NCT00000002. The previous ALPHA trial was NCT00000001.', 'text_sha256': __import__('hashlib').sha256(b'Our trial registration is NCT00000002. The previous ALPHA trial was NCT00000001.').hexdigest()}, {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'ALPHA', 'title': 'A successor to ALPHA'}]})",
+    "expected": "False: the span names two registrations and assigns the requested registration to a previous trial.",
+    "actual": "True: the requested NCT occurs anywhere in the span; uniqueness and attribution are not checked.",
+    "id": "idlink-r2:g1#1",
+    "record_id": "mc-113558120c8eace56fe764c001db2fc6",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported",
+    "severity": "P1",
+    "claim": "TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM never checks a registry acronym. Any nonempty title substring satisfies this supposedly independent identity fact, allowing join() to accept links without the required corroboration.",
+    "failing_input": "supported({'nct': 'NCT00000001', 'rules': [{'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': 'Trial registration: NCT00000001.', 'text_sha256': __import__('hashlib').sha256(b'Trial registration: NCT00000001.').hexdigest()}, {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'randomized', 'title': 'A randomized trial'}]})",
+    "expected": "False: no trial acronym or evidence of equality with the registry acronym is supplied.",
+    "actual": "True: 'randomized' is a nonempty substring of the supplied title, which is the entire acronym validation.",
+    "id": "idlink-r2:g1#2",
+    "record_id": "mc-113558120c8eace56fe764c001db2fc6",
+    "verdict": null
+   }
+  ]
+ },
+ "idlink-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b272e3087dfa839829447fe3dcb4a57e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "e5f68db0cf235b837b39d06e7395ae5bb957c02bd2176edb09cdd9a6b3549df9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported / join",
+    "severity": "P1",
+    "claim": "An NCT mentioned explicitly as another study passes the own-report identity check. Combined with that study's acronym in a comparison title, this incorrectly binds an unrelated report to the pooled trial.",
+    "failing_input": "import hashlib\nimport scripts.g1_identity_links as m\nspan = 'The previous PARALLEL-HF trial was registered as NCT02468232. Our unrelated observational cohort was not registered.'\nlk = {'nct': 'NCT02468232', 'rules': [{'rule': m.RULES[0], 'span': span, 'text_sha256': hashlib.sha256(span.encode()).hexdigest()}, {'rule': m.RULES[1], 'span': 'PARALLEL-HF', 'title': 'An unrelated observational cohort: comparison with PARALLEL-HF', 'registry_acronym': 'PARALLEL-HF', 'registry_acronym_source': 'AACT snap studies.txt NCT02468232 acronym'}]}\nt = {}\nx = {'in_our_pool': False, 'route': 'NO_ROW'}\nprint(m.supported(lk))\nm.join([x], [t], {id(t): '123'}, {'NCT02468232': 'pooled-trial'}, {'pooled-trial'}, set(), {'NO_ROW': 1}, links={'123': lk})\nprint(x['in_our_pool'], x['route'])",
+    "expected": "False; then False NO_ROW. The supplied text explicitly distinguishes this cohort from the registered trial.",
+    "actual": "True; then True PRIMARY. The NCT check only tests occurrence, and join marks the unrelated report g1_countable=True.",
+    "id": "idlink-r3:g1#1",
+    "record_id": "mc-b272e3087dfa839829447fe3dcb4a57e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "registry_acronym_from_aact",
+    "severity": "P2",
+    "claim": "A missing required acronym column silently becomes an absent acronym instead of a schema error. This makes a broken snapshot indistinguishable from a valid record with no registered acronym.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts.g1_identity_links import registry_acronym_from_aact\nwith patch('builtins.open', return_value=io.StringIO('nct_id|brief_title\\nNCT02468232|Example trial\\n')):\n    print(registry_acronym_from_aact('NCT02468232', 'snap'))",
+    "expected": "Raise an explicit schema error because studies.txt lacks the acronym column.",
+    "actual": "(None, 'AACT snap studies.txt NCT02468232 acronym')",
+    "id": "idlink-r3:g1#2",
+    "record_id": "mc-b272e3087dfa839829447fe3dcb4a57e",
+    "verdict": null
+   }
+  ]
+ },
+ "idlink-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b5593c8b8962c5b2306db502e7bc0528",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "010a0e2ac2761f582e2c2be4a9f05956ee7ca6c719e7ceaad837c81d7b13d736"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study",
+    "severity": "P1",
+    "claim": "A comparison phrase at the beginning of a title bypasses the comparison exclusion. The checked suffix includes a leading space, so 'compared with' does not match ' compared with'. This incorrectly classifies the referenced trial as the paper's own study.",
+    "failing_input": "title_names_own_study('Compared with the PARALLEL-HF trial: outcomes in an observational cohort', 'PARALLEL-HF')",
+    "expected": "False: the title explicitly describes comparison with another trial.",
+    "actual": "True.",
+    "id": "idlink-r4:g1#1",
+    "record_id": "mc-b5593c8b8962c5b2306db502e7bc0528",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study",
+    "severity": "P1",
+    "claim": "An own-study title beginning with 'The <ACRONYM> Study' is rejected because before.endswith(' the') requires a space before the initial article. Consequently, supported() rejects otherwise valid identity links with this title form.",
+    "failing_input": "title_names_own_study('The PARALLEL-HF Study: Results', 'PARALLEL-HF')",
+    "expected": "True: the title explicitly names its own study, matching the documented rule.",
+    "actual": "False.",
+    "id": "idlink-r4:g1#2",
+    "record_id": "mc-b5593c8b8962c5b2306db502e7bc0528",
+    "verdict": null
+   }
+  ]
+ },
+ "idlink-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d17104445981927a1e8a8df5036ec532",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "a3bf2ad09a30a029837cb1c860f80810588bf4a2ce048b103e3fa01436a95c20"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study / supported",
+    "severity": "P1",
+    "claim": "The comparison exclusion checks only words immediately preceding 'the'. Explicit comparisons with intervening words pass as own-study evidence, allowing a cited trial's registration to support the wrong paper.",
+    "failing_input": "from scripts.g1_identity_links import supported\nfrom hashlib import sha256\ntext = 'We compared our unregistered cohort with the ALPHA trial (NCT00000001).'\nlink = {'nct': 'NCT00000001', 'rules': [\n    {'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': text, 'text_sha256': sha256(text.encode()).hexdigest()},\n    {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'ALPHA', 'title': 'Outcomes compared with those of the ALPHA trial', 'registry_acronym': 'ALPHA', 'registry_acronym_source': 'AACT studies.txt NCT00000001 acronym'}\n]}\nprint(supported(link))",
+    "expected": "False: both spans describe the registered trial as an external comparator, not this paper's own study.",
+    "actual": "True. Removing 'the' leaves a prefix ending in 'those of', which evades every comparison suffix check.",
+    "id": "idlink-r5:g1#1",
+    "record_id": "mc-d17104445981927a1e8a8df5036ec532",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study / supported",
+    "severity": "P1",
+    "claim": "Missing word boundaries allow an acronym and the following 'trial' marker to be extracted from a single unrelated word. This fabricates title evidence for a trial binding.",
+    "failing_input": "from scripts.g1_identity_links import supported\nfrom hashlib import sha256\ntext = 'Our unregistered cohort used the A trial (NCT00000001) as background evidence.'\nlink = {'nct': 'NCT00000001', 'rules': [\n    {'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': text, 'text_sha256': sha256(text.encode()).hexdigest()},\n    {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'A', 'title': 'The Atrial Fibrillation study', 'registry_acronym': 'A', 'registry_acronym_source': 'AACT studies.txt NCT00000001 acronym'}\n]}\nprint(supported(link))",
+    "expected": "False: 'Atrial' does not name a study with acronym 'A'; the registration appears only as background evidence.",
+    "actual": "True. The predicate splits 'Atrial' into acronym 'A' and suffix 'trial', satisfying its own-study check.",
+    "id": "idlink-r5:g1#2",
+    "record_id": "mc-d17104445981927a1e8a8df5036ec532",
+    "verdict": null
+   }
+  ]
+ },
+ "v10-apply-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-774f9d57edffac2b93500ae51694739b",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "a962de7f7cb5c1f6bbb8b3b78b2ed0ed0589e6313817ee4c924ba6067928a045"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study / supported",
+    "severity": "P1",
+    "claim": "A title explicitly comparing an unregistered cohort against another trial passes the own-study gate. The comparison blacklist omits 'compared against', and the NCT check accepts a registration explicitly attributed to that other trial. Consequently, supported() approves a false identity link.",
+    "failing_input": "from scripts.g1_identity_links import supported\nlk = {\n    'nct': 'NCT02468232',\n    'ratified': {\n        'state': 'SEEN_AND_SIGNED', 'by': 'Mahmood', 'quote': 'Reviewed',\n        'packet_sha256': 'a' * 64, 'item_section_sha256': 'b' * 64\n    },\n    'rules': [\n        {'rule': 'ONE_NCT_STATED_IN_OWN_REPORT',\n         'span': 'Our cohort was unregistered; the external comparator was PARALLEL-HF (NCT02468232).',\n         'text_sha256': 'c' * 64},\n        {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM',\n         'span': 'PARALLEL-HF',\n         'title': 'An unregistered cohort compared against the PARALLEL-HF trial',\n         'registry_acronym': 'PARALLEL-HF',\n         'registry_acronym_source': 'AACT studies.txt NCT02468232 acronym'}\n    ]\n}\nprint(supported(lk))",
+    "expected": "False: both supplied spans identify PARALLEL-HF as an external comparator, not this report's own study.",
+    "actual": "True. With the linked registration present and unmatched in the pool, join() consequently marks the cohort in_our_pool=True, route='PRIMARY', and g1_countable=True.",
+    "id": "v10-apply-r1:g1#1",
+    "record_id": "mc-774f9d57edffac2b93500ae51694739b",
+    "verdict": null
+   }
+  ]
+ },
+ "v10-apply-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-024d4015dc9682c744e1bb4e0fbe8db3",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "ac45f9858a5b05ff6657dfe7bf67a36e3e1dbc9eddca8424358e41e381c1e298"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study",
+    "severity": "P1",
+    "claim": "Comparison titles pass the ownership gate when words intervene between the comparison phrase and 'the <acronym> trial'. This lets a reference to another trial support an identity link.",
+    "failing_input": "title_names_own_study('Outcomes compared with those of the ALPHA trial', 'ALPHA')",
+    "expected": "False: the title identifies ALPHA as the comparison trial.",
+    "actual": "True: the text immediately preceding 'the' ends with 'of', which is not among the rejected suffixes.",
+    "id": "v10-apply-r2:g1#1",
+    "record_id": "mc-024d4015dc9682c744e1bb4e0fbe8db3",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported",
+    "severity": "P1",
+    "claim": "The registration-evidence gate checks only identifier occurrence, so even an explicit denial of the proposed registration supports the link.",
+    "failing_input": "supported({'nct': 'NCT00000001', 'ratified': {'state': 'SEEN_AND_SIGNED', 'by': 'Mahmood', 'quote': 'Approved', 'packet_sha256': 'a' * 64, 'item_section_sha256': 'b' * 64}, 'rules': [{'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': 'The ALPHA trial was not registered as NCT00000001.', 'text_sha256': 'c' * 64}, {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'ALPHA', 'title': 'The ALPHA trial: results', 'registry_acronym': 'ALPHA', 'registry_acronym_source': 'AACT studies.txt NCT00000001 acronym'}]})",
+    "expected": "False: the held registration span explicitly denies this binding.",
+    "actual": "True: the singleton identifier matches, all remaining checks pass, and join() can consequently bind this report to the pooled NCT00000001 row.",
+    "id": "v10-apply-r2:g1#2",
+    "record_id": "mc-024d4015dc9682c744e1bb4e0fbe8db3",
+    "verdict": null
+   }
+  ]
  }
 }

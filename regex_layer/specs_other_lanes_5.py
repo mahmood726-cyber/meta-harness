@@ -107,16 +107,11 @@ SITE_SPECS: dict = {
     "fetch.py:_NCT_RE": {
         "kind": "search", "what": "an NCT number",
         "plants": {"accept": [("NCT01179048", None)], "refuse": ["NCT0117904", "NCT-01179048"]}},
-    "fetch.py:search:3348df34b8": {
-        "kind": "search", "what": "the PMC OA service's ftp:// .tar.gz package link",
-        "plants": {"accept": [('href="ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_package/ab/cd/PMC123.tar.gz"',
-                               ("ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_package/ab/cd/PMC123.tar.gz",))],
-                   "refuse": ['href="ftp://x/PMC123.pdf"', "ftp://x/a.tar.gz"]}},
-    "fetch.py:search:9d3135bb10": {
-        "kind": "search", "what": "the PMC OA service's https:// .tar.gz package link",
-        "plants": {"accept": [('href="https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC123.tar.gz"',
-                               ("https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC123.tar.gz",))],
-                   "refuse": ['href="https://x/PMC123.pdf"', "https://x/a.tar.gz"]}},
+    "fetch.py:match:5d94ca3ec6": {
+        "kind": "search", "what": "a usable absolute ftp/http(s) URL for an advertised PMC OA package (no whitespace)",
+        "plants": {"accept": [("ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_package/ab/cd/PMC123.tar.gz", ("ftp",)),
+                              ("https://x/p.tar.gz?sig=1", ("https",))],
+                   "refuse": ["/rel/p.tar.gz", "", "https://x/p q.tar.gz", "file:///p.tar.gz"]}},
     "fetch.py:findall:43a3a2d613": {
         "kind": "search", "what": "_uid_query_result: a PMID enumerated as N[uid]",
         "plants": {"accept": [("27633186[uid]", ("27633186",)), ("27633186 [UID]", ("27633186",))],

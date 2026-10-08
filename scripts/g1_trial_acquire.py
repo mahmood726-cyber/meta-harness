@@ -318,6 +318,24 @@ def pmc_licence(pmid):
     return pmc_copy(pmid)["licence"]
 
 
+def pmc_prompt_ok(pmid):
+    """D8 (8 Oct class audit): a PMC copy enters a prompt only when the repo guard says CC AND Europe PMC licenses the
+    article CC BY / CC0 (scripts/g1_licence.py). The repo guard alone accepts CC BY-NC / CC BY-NC-ND: 7 recorded prompts
+    carried such text."""
+    if pmc_licence(pmid) not in PROMPT_COPY:
+        return False
+    import g1_licence
+    return bool(g1_licence.licence(pmid).get("open"))
+
+
+UPW_PROMPT_OPEN = ("cc-by", "cc0", "public-domain", "pd")
+
+
+def upw_prompt_ok(ulic):
+    """An Unpaywall copy enters a prompt only under CC BY / CC0 / public domain -- never 'cc*' (cc-by-nc, cc-by-nd ...)."""
+    return str(ulic or "").lower() in UPW_PROMPT_OPEN
+
+
 def text_evidence(pmid, terms):
     """(whole text, shown text, sha256). Shown = whole when short; else windows centred on the outcome terms."""
     import k_gap_counterfactual as cfm
@@ -408,11 +426,11 @@ def evidence(t, cfg, comp):
           "eligibility_summary": cfg.get("eligibility_summary"),
           "aact": {n: {k: v for k, v in a.items() if k != "_reg"} for n, a in aact.items()},
           "full_text": ({"pmid": t["pmid"], "sha256": sha, "chars": len(whole), "shown_chars": len(shown), "text": shown}
-                        if whole and origin == "PMC" and pmc_licence(t["pmid"]) in PROMPT_COPY else
+                        if whole and origin == "PMC" and pmc_prompt_ok(t["pmid"]) else
                         # an Unpaywall copy is shown only under a CC licence; the DOI (not the PMID) names it, so the
                         # licence guard checks the DOI's Unpaywall licence
                         {"doi": doi, "licence": ulic, "sha256": sha, "chars": len(whole), "shown_chars": len(shown),
-                         "text": shown} if whole and origin == "UNPAYWALL" and str(ulic or "").startswith("cc") else
+                         "text": shown} if whole and origin == "UNPAYWALL" and upw_prompt_ok(ulic) else
                         {"state": "HELD_NOT_OPEN_LICENSED", "note": "held for the deterministic gates; never shown"}
                         if whole else {"state": "NO_OPEN_FULL_TEXT"}),
           "meta_rows": meta_evidence(t["slug"], t["label"])}
