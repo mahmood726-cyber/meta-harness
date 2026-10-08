@@ -355,6 +355,11 @@ def cmd_k3(run=False):
                 if (b["slug"], b["label"]) == (nb["slug"], nb["label"]):
                     b["k3"] = {"state": verdict, "record_id": rid, "model_verdict": resp.get("verdict"),
                                "why": (resp.get("why") or "")[:300]}
+                    if verdict == "ADMITTED":
+                        # the gate admitted an EFFECT (VERTIS-CV: AACT HR 0.70) -- not per-arm counts, so not a D12 binding
+                        b["k3"]["admitted_tuple_not_counts"] = {k: getattr(w, k, None) for k in ("measure", "effect",
+                                                                                                "lower", "upper")}
+                        b["k3"]["admitted_source"] = adm.get("source")
             print(it["slug"], it["label"], "K3", verdict, (resp.get("why") or "")[:120], flush=True)
     with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(data, fh, indent=1, ensure_ascii=False)
