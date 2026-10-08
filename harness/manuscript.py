@@ -222,7 +222,7 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
              f"style='max-width:100%;height:auto;font:12px system-ui'>"]
     nx = xpix(null)
     if nx is not None and lo_x <= (math.log(null) if is_ratio else null) <= hi_x:
-        parts.append(f"<line x1='{nx:.1f}' y1='{padT-6}' x2='{nx:.1f}' y2='{H-24}' stroke='#b0bec5' stroke-dasharray='3 3'/>")
+        parts.append(f"<line x1='{nx:.1f}' y1='{padT-6}' x2='{nx:.1f}' y2='{H-24}' stroke='#78909c' stroke-dasharray='3 3'/>")
     y = padT
     for lab, e, lo, hi in rows:
         cx = xpix(e)
@@ -242,7 +242,7 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
         parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>Pooled ({_e(_forest_k_phrase(prim))})</text>")
         pv = f"{_fmt(pooled[0])} [{_fmt(pooled[1])}, {_fmt(pooled[2])}]"
         parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(pv)}</text>")
-    parts.append(f"<text x='{padL}' y='{H-6}' fill='#78909c'>{_e(scale or 'effect')} ({'log scale, null=1' if is_ratio else 'null=0'})</text></svg>")
+    parts.append(f"<text x='{padL}' y='{H-6}' fill='#546e7a'>{_e(scale or 'effect')} ({'log scale, null=1' if is_ratio else 'null=0'})</text></svg>")
     return "".join(parts)
 
 

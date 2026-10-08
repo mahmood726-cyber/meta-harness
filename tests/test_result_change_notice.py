@@ -78,7 +78,7 @@ def test_conclusion_change_is_named():
 
 def test_PLANT_page_renders_the_notice_and_names_the_withdrawn_conclusion():
     r = dict(NEW, reproduction={"from_cache": True, "result_changes": [dict(GOOD, conclusion_changed=result_changes.conclusion_changed(BEFORE, AFTER, "MD"))]})
-    html = page._reproduction(r, False)
+    html = page._review_tabs.changes_tab(r)   # notices moved to the Changes & signatures tab (rapidmeta-v1), bytes unchanged
     assert "Result changed" in html and "-3.34" in html and "-3.1" in html and "NCT02417064" in html
     assert "withdrawn" in html.lower() and "includes the null" in html
 

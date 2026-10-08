@@ -443,3 +443,34 @@ def reproduce_additions(r: dict) -> str:
             f"replay reads is in the public repository: <a href='{REPO_URL}/archive/refs/heads/main.zip'>download the "
             "repository</a> (or clone it) and run the command above."))
     return "".join(out)
+
+
+# ------------------------------------------------------------------------------------------------------------ contract
+# the page tab ids that carry the required RapidMeta tabs (results and reproduce kept their legacy ids)
+REQUIRED_PAGE_TABS = ("protocol", "search", "screening", "included", "extraction", "riskofbias", "analysis", "outcomes",
+                      "comparator", "changes", "reproduction")
+_SECTION = re.compile(r'<section class="tab" id="tab-([a-z]+)"><h3 class="tabname">[^<]*</h3>(.*?)</section>(?=<section class="tab"|</main>)', re.S)
+
+
+def tab_contract_problems(page_html: str, neutral: bool = False) -> list[str]:
+    """The rapidmeta-v1 contract on one rendered page: every required tab present and non-empty, and a tab whose only
+    content is stated reasons is still non-empty (a reason is content; silence is not)."""
+    out = []
+    if f"<meta name='tab-contract' content='{TAB_CONTRACT}'>" not in page_html:
+        out.append("the page does not declare the tab contract")
+    tabs = {m.group(1): m.group(2) for m in _SECTION.finditer(page_html)}
+    need = [t for t in REQUIRED_PAGE_TABS if not (neutral and t in {"comparator", "included", "extraction", "analysis", "changes"})]
+    for t in need:
+        if t not in tabs:
+            out.append(f"tab {t} is missing")
+            continue
+        text = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", tabs[t]))).strip()
+        if not text:
+            out.append(f"tab {t} is empty and states no reason")
+    if not neutral:
+        for t in ("included", "extraction", "analysis", "changes"):
+            if t in tabs and 'class="tab-reason"' not in tabs[t] and "<table" not in tabs[t] and "<svg" not in tabs[t]:
+                out.append(f"tab {t} shows neither a table nor a stated reason")
+    if "id='sections-heading'" not in page_html or "role','tablist'" not in page_html:
+        out.append("the tab bar is not exposed as an accessible tablist under a section heading")
+    return out
