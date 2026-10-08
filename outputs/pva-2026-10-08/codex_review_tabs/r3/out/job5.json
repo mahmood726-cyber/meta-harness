@@ -1,0 +1,43 @@
+{
+  "topics_checked": [
+    "sglt2-hfref-hosp-cvdeath",
+    "sglt2-primary-prevention-hf",
+    "spironolactone-hfref-mortality",
+    "statins-primary-prevention-elderly",
+    "ticagrelor-vs-clopidogrel-acs"
+  ],
+  "findings": [
+    {
+      "slug": "statins-primary-prevention-elderly",
+      "kind": "MISLEADING",
+      "tab": "Comparison with published meta-analysis",
+      "title": "Comparator quantities described as unextracted despite recorded adoption",
+      "page_quote": "<dt>k</dt><dd>NOT EXTRACTED from held text</dd><dt>effect</dt><dd>NOT EXTRACTED from held text</dd><dt>ci</dt><dd>NOT EXTRACTED from held text</dd>",
+      "evidence": [
+        {
+          "file": "statins-primary-prevention-elderly/review.json",
+          "quote": "For primary prevention in the elderly, seven trials (21,781 patients in total), 29 , 35 – 40 identified a similar risk of cardiovascular events between patients on statins and the control group (OR: 0.88, 95% CI: 0.72–1.06; GRADE: moderate)."
+        }
+      ],
+      "why": "The panel's null fields are presented as evidence that extraction never occurred. However, comparator.reported contains the adopted estimate, confidence interval, and source span identifying seven trials.",
+      "fix": "Render the recorded adopted quantities, or explicitly say that these panel fields are unpopulated while the adopted result is recorded elsewhere in the review object.",
+      "confidence": "high"
+    },
+    {
+      "slug": "ticagrelor-vs-clopidogrel-acs",
+      "kind": "MISLEADING",
+      "tab": "Data extraction",
+      "title": "Refused-pool inputs described as pooled numbers",
+      "page_quote": "Every pooled number on this page, with the passage it was read from",
+      "evidence": [
+        {
+          "file": "ticagrelor-vs-clopidogrel-acs/review.json",
+          "quote": "\"detail\": \"k=2 pooled row refused because point estimates are on opposite sides of the null\""
+        }
+      ],
+      "why": "The table shows PLATO and PHILO individual effects, but its introduction calls them pooled numbers despite the primary synthesis being refused.",
+      "fix": "Describe these as recorded trial-level inputs and state that the synthesis is refused.",
+      "confidence": "high"
+    }
+  ]
+}

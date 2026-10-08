@@ -1,0 +1,119 @@
+{
+  "topics_checked": [
+    "melatonin-primary-insomnia-sol",
+    "metformin-pcos-ovulation",
+    "noac-vs-warfarin-af-stroke",
+    "omega3-cardiovascular-events",
+    "pcsk9-mace"
+  ],
+  "findings": [
+    {
+      "slug": "melatonin-primary-insomnia-sol",
+      "kind": "MISLEADING",
+      "tab": "Data extraction",
+      "title": "Recorded sample sizes render as blanks",
+      "page_quote": "-19.1 (SD 47.3, n ) vs -1.7 (SD 47.8, n )",
+      "evidence": [
+        {
+          "file": "melatonin-primary-insomnia-sol/review.json",
+          "quote": "\"nc1\": 137"
+        },
+        {
+          "file": "melatonin-primary-insomnia-sol/review.json",
+          "quote": "\"nc2\": 144"
+        }
+      ],
+      "why": "The value cell makes the sample sizes appear unavailable, although the trial row records both. The renderer reads n1/n2 instead of nc1/nc2.",
+      "fix": "Render the recorded continuous-outcome denominators: 137 and 144.",
+      "confidence": "high"
+    },
+    {
+      "slug": "melatonin-primary-insomnia-sol",
+      "kind": "MISLEADING",
+      "tab": "Results & conclusions",
+      "title": "Absence label incorrectly denies an outcome sentence",
+      "page_quote": "not in cached source -- no outcome sentence/effect found",
+      "evidence": [
+        {
+          "file": "melatonin-primary-insomnia-sol/review.json",
+          "quote": "However, melatonin had no significant effect on other objective sleep parameters including sleep latency, sleep efficiency, wake during the sleep and percent of N1, N3 and REM sleep."
+        }
+      ],
+      "why": "The label appears for PMID 33157425, whose recorded source explicitly discusses sleep latency. Missing poolable numerical inputs do not mean no outcome sentence was found.",
+      "fix": "State that the source mentions the outcome but provides no poolable effect with uncertainty or usable arm-level inputs.",
+      "confidence": "high"
+    },
+    {
+      "slug": "metformin-pcos-ovulation",
+      "kind": "UNSUPPORTED",
+      "tab": "Analysis",
+      "title": "Forest plot displays risk ratios on an odds-ratio axis",
+      "page_quote": "<text x='586' y='34.0' fill='#37474f'>1.67</text>",
+      "evidence": [
+        {
+          "file": "metformin-pcos-ovulation/review.json",
+          "quote": "\"effect_estimate\": 2.7777777777777772,\n            \"standard_error\": 0.7302967433402214,\n            \"estimand\": \"OR\""
+        }
+      ],
+      "why": "The plot labels its axis OR but displays 1.67 for PMID 19522426, its risk ratio. The recorded trial odds ratio is approximately 2.78. The other count-based trial markers likewise display risk ratios alongside an odds-ratio pooled estimate.",
+      "fix": "Draw trial markers and labels from the recorded study_effect values on the declared OR scale.",
+      "confidence": "high"
+    },
+    {
+      "slug": "metformin-pcos-ovulation",
+      "kind": "UNSUPPORTED",
+      "tab": "Results & conclusions",
+      "title": "Published-rate reconstructions are labeled AACT-derived",
+      "page_quote": "verified (AACT-derived, cross-checked)",
+      "evidence": [
+        {
+          "file": "metformin-pcos-ovulation/review.json",
+          "quote": "\"provenance\": \"published_rate\""
+        },
+        {
+          "file": "metformin-pcos-ovulation/review.json",
+          "quote": "arm counts recovered from the published rate + denominator (percentage round-trip matches the committed abstract)"
+        }
+      ],
+      "why": "For PMID 19522426 and PMID 16769748, the recorded verification concerns reconstruction from published abstract rates and denominators. It does not establish AACT derivation.",
+      "fix": "Label these rows as published-rate reconstructions verified against the committed abstract.",
+      "confidence": "high"
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "kind": "MISLEADING",
+      "tab": "Analysis",
+      "title": "Forest plot labels a relative-risk trial as HR",
+      "page_quote": "HR (log scale, null=1)",
+      "evidence": [
+        {
+          "file": "noac-vs-warfarin-af-stroke/review.json",
+          "quote": "\"effect\": 0.66,\n          \"ci_low\": 0.53,\n          \"ci_high\": 0.82,\n          \"scale\": \"RR\""
+        }
+      ],
+      "why": "The forest plot presents PMID 19717844's 0.66 estimate under a single HR axis label without identifying that row as RR. The review explicitly records RR.",
+      "fix": "Identify each trial's measure and disclose the mixed HR/RR presentation in the forest plot.",
+      "confidence": "high"
+    },
+    {
+      "slug": "pcsk9-mace",
+      "kind": "MISLEADING",
+      "tab": "Results & conclusions",
+      "title": "Composite description contradicts the selected FOURIER endpoint",
+      "page_quote": "pooled trials use each trial&#x27;s OWN primary composite",
+      "evidence": [
+        {
+          "file": "pcsk9-mace/review.json",
+          "quote": "ClinicalTrials.gov outcome measure #1: Time to Cardiovascular Death, Myocardial Infarction, or Stroke"
+        },
+        {
+          "file": "pcsk9-mace/review.json",
+          "quote": "the key secondary endpoint (composite of cardiovascular death, myocardial infarction, and stroke) was tested at a significance level of 0.05."
+        }
+      ],
+      "why": "The selected FOURIER result is its three-component secondary endpoint. The page instead describes all pooled inputs as primary composites and describes FOURIER's five-component primary endpoint elsewhere in the same tab.",
+      "fix": "Describe the selected three-component secondary FOURIER endpoint and reconcile the composite-heterogeneity and definition-audit wording with that selection.",
+      "confidence": "high"
+    }
+  ]
+}

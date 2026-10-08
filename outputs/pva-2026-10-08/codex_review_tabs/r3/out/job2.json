@@ -1,0 +1,67 @@
+{
+  "topics_checked": [
+    "empagliflozin-hfpef-hosp",
+    "esketamine-trd-madrs",
+    "finerenone-ckd-t2d-renal",
+    "glp1-ra-mace-t2d",
+    "iv-iron-hfref-hosp"
+  ],
+  "findings": [
+    {
+      "slug": "finerenone-ckd-t2d-renal",
+      "kind": "MISLEADING",
+      "tab": "Comparison with published meta-analysis",
+      "title": "Comparator extraction is labelled absent despite recorded, source-backed values",
+      "page_quote": "<dt>k</dt><dd>NOT EXTRACTED from held text</dd><dt>effect</dt><dd>NOT EXTRACTED from held text</dd><dt>ci</dt><dd>NOT EXTRACTED from held text</dd>",
+      "evidence": [
+        {
+          "file": "finerenone-ckd-t2d-renal/review.json",
+          "quote": "osite (kidney failure, a sustained decrease of at least 40% in the eGFR from baseline, or death from renal causes) [HR: 0.84, 95% CI 0.77-0.92, 2 : 0, I 2 : 0%). Finerenone was also associated with reduction in UACR (SMD: -0.49, 95% CI -0.53 to"
+        },
+        {
+          "file": "finerenone-ckd-t2d-renal/review.json",
+          "quote": "Comparator text says only two citations reported the conforming renal composite; those are FIDELIO-DKD and FIGARO-DKD, matching this pool."
+        }
+      ],
+      "why": "The comparator object records the renal-composite estimate, CI, two-trial membership and matching overlap, with located source spans. Empty comparator_panel fields are presented as absence of extraction across the review.",
+      "fix": "Render the source-backed comparator fields, or explicitly identify the panel fields as unpopulated while acknowledging the extraction recorded elsewhere in review.json.",
+      "confidence": "high"
+    },
+    {
+      "slug": "esketamine-trd-madrs",
+      "kind": "MISLEADING",
+      "tab": "Comparison with published meta-analysis",
+      "title": "Comparator enumeration statements contradict each other",
+      "page_quote": "Trial set NOT ENUMERATED; overlap unknown.",
+      "evidence": [
+        {
+          "file": "esketamine-trd-madrs/review.json",
+          "quote": "Registered comparator identity (adopted 2026-10-05, pre-registered selection rule 530da166a). Its trial set and pooled result are typed, with spans verified in held sources, in registry/comparator_selection/esketamine-trd-madrs.adoption.json and registry/comparator_enumerations/esketamine-trd-madrs.json."
+        }
+      ],
+      "why": "The same comparator panel says its trial set is typed and source-verified, then says it is not enumerated. An empty local panel list does not establish that no enumeration exists.",
+      "fix": "State that trial membership is not populated in this panel and point to the enumeration named by the recorded scope note.",
+      "confidence": "medium"
+    },
+    {
+      "slug": "iv-iron-hfref-hosp",
+      "kind": "MISLEADING",
+      "tab": "Results & conclusions",
+      "title": "Suppressed incompatible trials are described as pooled",
+      "page_quote": "k = 2: the 2 trial(s) named below were pooled;",
+      "evidence": [
+        {
+          "file": "iv-iron-hfref-hosp/review.json",
+          "quote": "\"suppressed_incompatible\": true"
+        },
+        {
+          "file": "iv-iron-hfref-hosp/review.json",
+          "quote": "pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately."
+        }
+      ],
+      "why": "The membership sentence implies a valid synthesis despite the recorded suppression and the adjacent explanation that these trials are shown individually.",
+      "fix": "For suppressed outcomes, describe the rows as individual trial estimates and state that they were not pooled into a served result.",
+      "confidence": "high"
+    }
+  ]
+}
