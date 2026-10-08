@@ -184,3 +184,10 @@ def test_PLANT_an_advertised_package_without_a_usable_url_is_a_failure(monkeypat
         monkeypatch.setattr(fetch.http, "get_text", lambda *a, _l=link, _i=i, **k: f"<OA><records><record id='PMC93{_i}'>{_l}</record></records></OA>")
         assert fetch._pmc_oa_supplement_text(f"93{i}", ["s.xlsx"]) == ""
         assert fetch.LAST_SUPPLEMENT_STATE[f"93{i}"].startswith("FETCH_FAILED:SUPPLEMENT:OA_MALFORMED_PACKAGE_LINK"), link
+
+
+def test_PLANT_a_later_service_error_is_not_masked_by_not_open_access(monkeypatch):
+    """codex fetch-loud-r9 #1: only the first <error> was inspected."""
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error code='idIsNotOpenAccess'>x</error><error code='internalError'>down</error></OA>")
+    assert fetch._pmc_oa_supplement_text("940", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["940"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: internalError")

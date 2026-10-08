@@ -185,7 +185,9 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:OA_UNPARSEABLE: {pe}"[:200]
             _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
-        err = oa_root.find(".//error")
+        errs = oa_root.findall(".//error")
+        # every error must be 'not open access' for absence; any other error anywhere in the reply is a failure (r9 #1)
+        err = next((e for e in errs if e.get("code") != "idIsNotOpenAccess"), errs[0] if errs else None)
         all_records = oa_root.findall(".//record")
         # only a record FOR THIS article counts (codex fetch-loud-r7 #1); a package is a link of format 'tgz' or whose
         # URL PATH ends .tar.gz -- a query string does not hide it (r7 #2)

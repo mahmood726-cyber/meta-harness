@@ -5263,5 +5263,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r9": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-95a6399faebe85849cf56258ed976c45",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "bc3c72a1d0a66a0f03ca7dbfe0b4e33c55d83305833f3575136d4f5913ce74e0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "Only the first OA error is inspected. An idIsNotOpenAccess error masks a subsequent service failure, converting a failed response into confirmed package absence.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><error code=\"idIsNotOpenAccess\">Not open access</error><error code=\"serverError\">Request processing failed</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Returns '' with FETCH_FAILED:SUPPLEMENT:... and a warning because the response contains a service failure.",
+    "actual": "Returns '' with LAST_SUPPLEMENT_STATE['123'] == 'NO_OA_PACKAGE' and no warning; .find('.//error') ignores the second error.",
+    "id": "fetch-loud-r9:g1#1",
+    "record_id": "mc-95a6399faebe85849cf56258ed976c45",
+    "verdict": null
+   }
+  ]
  }
 }
