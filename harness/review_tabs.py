@@ -139,16 +139,27 @@ def _ids(t: dict) -> tuple[str | None, str | None]:
     s = json.dumps({k: t.get(k) for k in ("id", "label", "pmid", "nct", "trial_family_id", "family_id", "registry_ids",
                                           "effect_source_id")})
     pm = re.search(r"PMID[ :]*(\d{6,9})", s) or re.search(r'"pmid": "?(\d{6,9})', s)
-    nct = re.search(r"NCT\d{8}", s)
-    return (pm.group(1) if pm else None), (nct.group(0) if nct else None)
+    reg = _REGISTRY.search(s)
+    return (pm.group(1) if pm else None), (reg.group(0) if reg else None)
 
 
 def _pmid_link(pm: str | None) -> str:
     return f"<a href='https://pubmed.ncbi.nlm.nih.gov/{_e(pm)}/'>PMID {_e(pm)}</a>" if pm else "--"
 
 
+_REGISTRY = re.compile(r"NCT\d{8}|ISRCTN\d{8}|ACTRN\d{14}|ChiCTR[\w-]{6,20}|EUCTR[\d-]{6,20}|20\d\d-\d{6}-\d\d|"
+                       r"DRKS\d{8}|JPRN-\w{6,20}|CTRI/\d{4}/\d+/\d+|IRCT\w{6,30}|NTR\d{3,6}|KCT\d{7}")
+
+
 def _nct_link(n: str | None) -> str:
-    return f"<a href='https://clinicaltrials.gov/study/{_e(n)}'>{_e(n)}</a>" if n else "--"
+    """A registry id, linked where the registry has a stable public URL; shown as text otherwise."""
+    if not n:
+        return "--"
+    if n.startswith("NCT"):
+        return f"<a href='https://clinicaltrials.gov/study/{_e(n)}'>{_e(n)}</a>"
+    if n.startswith("ISRCTN"):
+        return f"<a href='https://www.isrctn.com/{_e(n)}'>{_e(n)}</a>"
+    return _e(n)
 
 
 def included_tab(r: dict) -> str:
@@ -248,30 +259,35 @@ def extraction_rows(r: dict) -> list[dict]:
         if _gated(o):
             continue
         for ti, t in enumerate(o.get("trials") or []):
-            cls, why, recs = served_class(t, slug, o.get("name"), str(ROOT), reads)
-            rows.append({"anchor": f"x{oi}-{ti}", "outcome": o.get("name"), "trial": t.get("label"), "id": t.get("id"),
+            cls, why, recs = served_class(t, slug, o.get("name"), _GATE_ADMITTED, reads, str(ROOT))
+            rows.append({"anchor": f"x{oi}-{ti}", "outcome": o.get("name"), "state": outcome_state(o),
+                         "trial": t.get("label"), "id": t.get("id"),
                          "value": _value(t), "provenance": t.get("provenance"), "class": cls, "class_why": why,
                          "verified": t.get("verified"), "passage": passage(t), "passage_sha256": passage_sha256(t),
                          "records": recs})
     return rows
 
 
+def _GATE_ADMITTED(rid: str) -> bool:
+    """A served page has passed the provenance gate (scripts/provenance_census.py, a verify_all limb), which refuses any
+    row citing a record that is not in the tree; the page therefore never looks a record up itself."""
+    return True
+
+
 def _rec_link(rid: str) -> str:
-    for base in ("registry/model_calls", "evidence/model_calls"):
-        hits = list((ROOT / base).glob(f"**/{rid}.json"))
-        if hits:
-            return _src(hits[0].relative_to(ROOT).as_posix())
-    return f"<code>{_e(rid)}</code> (not found in the tree)"
+    return f"<code>{_e(rid)}</code>"
 
 
 def extraction_tab(r: dict) -> str:
     rows = extraction_rows(r)
     gated = [(o.get("name"), _gated(o)) for o in r.get("outcomes") or [] if _gated(o)]
-    out = ["<p>Every pooled number on this page, with the passage it was read from, the sha256 of that passage "
+    out = ["<p>Every extracted trial number of every outcome this page may show (whether that outcome is pooled, a "
+           "single trial, or refused is stated under the outcome name), with the passage it was read from, the sha256 of that passage "
            "(UTF-8; recompute it from the text shown), its provenance type as recorded on the row, and its provenance "
            "class as the provenance-census gate computes it (<code>harness/provenance_class.py</code>): "
            "<strong>EXTRACTOR</strong> = a deterministic regex/typed extractor over a held source; "
-           "<strong>RECORDED_MODEL_CALL</strong> = a recorded model call that replays offline (record ids linked); "
+           "<strong>RECORDED_MODEL_CALL</strong> = a recorded model call that replays offline (its record id is shown; the "
+           "audit pack links each record); "
            "<strong>HAND_ENTERED</strong> = entered outside the harness, bound to a held span, on the burn-down list "
            f"{_src('registry/provenance_hand_entered.json')}; <strong>UNTRACED</strong> = refused by the gate.</p>"]
     if rows:
@@ -280,7 +296,8 @@ def extraction_tab(r: dict) -> str:
             recs = "<br>".join(_rec_link(i) for i in x["records"]) or "--"
             ptxt = (f"<blockquote class='span'>{_e(x['passage'])}</blockquote>" if x["passage"] else
                     "<span class='tab-reason' data-element='source span'>no passage on this row</span>")
-            body.append(f"<tr id='{_e(x['anchor'])}'><td>{_e(x['outcome'])}</td><td>{_e(x['trial'])}</td><td>{x['value']}</td>"
+            body.append(f"<tr id='{_e(x['anchor'])}'><td>{_e(x['outcome'])}<br><span class='muted'>{_e(x['state'])}</span></td>"
+                        f"<td>{_e(x['trial'])}</td><td>{x['value']}</td>"
                         f"<td><code>{_e(x['provenance'])}</code><br><strong>{_e(x['class'])}</strong><br>"
                         f"<span class='muted'>{_e(x['class_why'])}</span></td><td>{_e(x['verified'])}</td>"
                         f"<td>{ptxt}<code class='digest'>sha256 {_e(x['passage_sha256'])}</code></td><td>{recs}</td></tr>")

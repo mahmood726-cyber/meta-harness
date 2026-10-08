@@ -28,8 +28,28 @@ OUT = os.path.join(ROOT, "outputs", "provenance_census.json")
 HAND_LIST = os.path.join(ROOT, "registry", "provenance_hand_entered.json")
 sys.path.insert(0, ROOT)
 from harness.provenance_class import (  # noqa: E402  (shared with the page's extraction tab)
-    EXTRACTOR_PROV, MC, _deterministic_basis, _records_in, classify_served, record_held)
+    EXTRACTOR_PROV, MC, _deterministic_basis, _records_in)
+from harness.provenance_class import classify_served as _classify_served  # noqa: E402
 from harness.provenance_class import served_class as _served_row_class  # noqa: E402
+
+
+_HELD = None
+
+
+def record_held(rid: str, root: str = ROOT) -> bool:
+    global _HELD
+    if _HELD is None or root != ROOT:
+        held = {os.path.basename(p)[:-5] for p in glob.glob(os.path.join(root, "registry", "model_calls", "mc-*.json"))}
+        held |= {os.path.basename(p)[:-5] for p in glob.glob(os.path.join(root, "evidence", "model_calls", "*", "mc-*.json"))}
+        if root != ROOT:
+            return rid in held
+        _HELD = held
+    return rid in _HELD
+
+
+def classify_served(t: dict, root: str = ROOT) -> tuple[str, str]:
+    """The census's classification of one served row: the shared rule with the census's own record-store lookup."""
+    return _classify_served(t, lambda rid: record_held(rid, root))
 
 
 def _j(p):
@@ -111,7 +131,7 @@ def census(root: str = ROOT) -> dict:
         for o in r.get("outcomes") or []:
             for t in o.get("trials") or []:
                 # classify, then the recorded-read conversion (harness/provenance_class.served_class: shared with the page)
-                cls, why, _recs = _served_row_class(t, slug, o.get("name"), root, reads)
+                cls, why, _recs = _served_row_class(t, slug, o.get("name"), lambda rid: record_held(rid, root), reads, root)
                 rid = str(t.get("family_report_id") or t.get("id") or "").replace("PMID ", "").strip()
                 served.append({"slug": slug, "outcome": o.get("name"), "id": t.get("id"), "class": cls, "why": why,
                                "identity": "HAND_NAMED" if rid in extra.get(slug, set()) else "SEARCHED"})
