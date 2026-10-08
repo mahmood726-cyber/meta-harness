@@ -164,14 +164,20 @@ def pmc_fulltext_cached(pmid, offline=False):
                 fh.write(txt)
             idx[pmid] = {"state": "HELD", "pmcid": pmcid, "bytes": len(txt.encode("utf-8")),
                          "sha256": hashlib.sha256(txt.encode("utf-8")).hexdigest(),
-                         "source": "harness.fetch._pmc_fulltext(with_supplements=True)"}
+                         "source": "harness.fetch._pmc_fulltext(with_supplements=True)",
+                         # a supplement that failed beside the held body is recorded, not lost
+                         "fetch_state": fetch.LAST_PMC_STATE.get(pmid)}
         elif fetch.LAST_PMC_STATE.get(pmid) == "PUBLISHER_DISALLOWS_XML":
             idx[pmid] = {"state": "PUBLISHER_DISALLOWS_XML", "pmcid": pmcid,
                          "note": "PMC efetch serves front matter only: 'The publisher of this article does not allow "
                                  "downloading of the full text in XML form.' Not an open machine-readable source"}
         else:
-            idx[pmid] = {"state": "FETCH_EMPTY", "pmcid": pmcid,
-                         "note": "PMCID exists but harness.fetch._pmc_fulltext returned '' (it swallows errors); not cached"}
+            # the fetch's TYPED outcome (harness.fetch.LAST_PMC_STATE): a FETCH_FAILED:<stage>:<error> is recorded as
+            # such and retried; EMPTY_BODY is a PMC record with no body -- never confused with 'no open full text'
+            st = fetch.LAST_PMC_STATE.get(pmid) or "UNKNOWN"
+            # harness.fetch.run_failed covers a failed supplement too (codex fetch-loud-r3 #1)
+            idx[pmid] = {"state": "FETCH_FAILED" if fetch.run_failed(pmid) else "FETCH_EMPTY", "pmcid": pmcid,
+                         "fetch_state": st, "note": "not cached; retried on the next run"}
     if os.path.exists(fp) and os.path.getsize(fp) == 0:
         os.remove(fp)
     # write ONLY this PMID's entry into the index as it is NOW (another writer may have added entries during the

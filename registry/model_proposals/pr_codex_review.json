@@ -5020,5 +5020,606 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "fetch-loud-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-34207f91bf08c6757e8f575c7dd8b7a2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "604764f1c931dc7b6a55745f9ac4f4ee9ab5fab05270a5e57f5abceee07447e3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_fulltext",
+    "severity": "P2",
+    "claim": "An empty body takes precedence over a supplement failure, overwriting the failure with EMPTY_BODY. Consequently run_failed() returns False and the run-level failure aggregation misses the failed acquisition.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch as f\n\ndef failed_supplement(*args):\n    f.LAST_SUPPLEMENT_STATE['1'] = 'FETCH_FAILED:SUPPLEMENT:OSError: offline'\n    return ''\n\nwith patch.object(f, '_resolve_pmcid', return_value='1'), patch.object(f.http, 'get_text', return_value='<article/>'), patch.object(f._ft, 'parse_pmc_xml', return_value={'supplements': ['supp.csv']}), patch.object(f._ft, 'combined_text', return_value=''), patch.object(f, '_pmc_oa_supplement_text', side_effect=failed_supplement):\n    result = f._pmc_fulltext('123', with_supplements=True)\n    print((result, f.LAST_PMC_STATE['123'], f.run_failed('123')))",
+    "expected": "The supplement failure remains represented in LAST_PMC_STATE, and run_failed('123') returns True.",
+    "actual": "('', 'EMPTY_BODY', False)",
+    "id": "fetch-loud-r2:g1#1",
+    "record_id": "mc-34207f91bf08c6757e8f575c7dd8b7a2",
+    "verdict": null
+   },
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_fulltext",
+    "severity": "P2",
+    "claim": "strict=True does not raise on a requested supplement failure. The supplement helper catches the exception, and _pmc_fulltext records the failure but returns normally without applying its strict error contract.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch as f\n\ndef failed_supplement(*args):\n    f.LAST_SUPPLEMENT_STATE['1'] = 'FETCH_FAILED:SUPPLEMENT:OSError: offline'\n    return ''\n\nwith patch.object(f, '_resolve_pmcid', return_value='1'), patch.object(f.http, 'get_text', return_value='<article/>'), patch.object(f._ft, 'parse_pmc_xml', return_value={'supplements': ['supp.csv']}), patch.object(f._ft, 'combined_text', return_value='Body'), patch.object(f, '_pmc_oa_supplement_text', side_effect=failed_supplement):\n    print(f._pmc_fulltext('123', with_supplements=True, strict=True))",
+    "expected": "Raise PmcFetchError for the failed requested supplement.",
+    "actual": "Returns and prints 'Body'; no exception is raised. LAST_PMC_STATE['123'] becomes 'HELD_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT:OSError: offline'.",
+    "id": "fetch-loud-r2:g1#2",
+    "record_id": "mc-34207f91bf08c6757e8f575c7dd8b7a2",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-10c304054ee703a29c147358588320f2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "42150486ec62efe151b7264189fa18f023a7d2486cac82ca2a128793ec015dfb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/k_gap_counterfactual.py",
+    "function": "pmc_fulltext_cached",
+    "severity": "P2",
+    "claim": "The cache wrapper misclassifies a failed supplement fetch as FETCH_EMPTY when the article body is empty. It checks only the FETCH_FAILED prefix, whereas _pmc_fulltext also emits failure states beginning EMPTY_BODY_WITH_SUPPLEMENT_FAILURE.",
+    "failing_input": "In the uncached, empty-text branch: pmid='1', pmcid='2', and fetch.LAST_PMC_STATE['1']='EMPTY_BODY_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT:TimeoutError: timed out'. This is the state _pmc_fulltext produces when combined_text returns '' and a requested supplement times out.",
+    "expected": "idx['1']['state'] == 'FETCH_FAILED', consistent with fetch.run_failed('1') == True.",
+    "actual": "idx['1']['state'] == 'FETCH_EMPTY'. The failure remains in fetch_state, but the primary state incorrectly classifies it as empty content.",
+    "id": "fetch-loud-r3:g1#1",
+    "record_id": "mc-10c304054ee703a29c147358588320f2",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d535209a16feee9bb2fea6a805faac5b",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "64321470c79c064275ad661022d969b10364f6292615e8297f18b440c787bbd7"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "An OA service error without an archive link is classified as NO_OA_PACKAGE. Consequently, the caller does not mark a supplement failure, and strict=True cannot reject it.",
+    "failing_input": "For _pmc_oa_supplement_text('123', ['supp.csv']), supply this OA response body: <OA><error code=\"serverError\">Temporary backend failure</error></OA>",
+    "expected": "Return an empty string with LAST_SUPPLEMENT_STATE['123'] starting with FETCH_FAILED:SUPPLEMENT; propagate the failure through run_failed and strict mode.",
+    "actual": "Both archive-link searches fail, so the function returns an empty string with LAST_SUPPLEMENT_STATE['123'] = 'NO_OA_PACKAGE'. The caller ignores this as a failure and reports HELD if body text exists.",
+    "id": "fetch-loud-r4:g1#1",
+    "record_id": "mc-d535209a16feee9bb2fea6a805faac5b",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c0772b84e6630c1ace459c274fa10b9e",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "6f38219f2f9ce01a31f6dc663312bf300914e3c7b89d7d04dd000e7fb1ebc7f4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "The error regex requires double-quoted XML attributes. A valid service error using single quotes falls through to NO_OA_PACKAGE, misclassifying a failed request as absent supplementary material.",
+    "failing_input": "OA-service response text: <OA><error code='idDoesNotExist'>identifier does not exist</error></OA>",
+    "expected": "Return '' and record FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: idDoesNotExist identifier does not exist, with a warning.",
+    "actual": "Returns '' and records NO_OA_PACKAGE without warning: neither the package-link regex nor the error regex matches.",
+    "id": "fetch-loud-r5:g1#1",
+    "record_id": "mc-c0772b84e6630c1ace459c274fa10b9e",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r6": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-59f272c8512b5a877bbf94850caf38cb",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "ca5a290c0b305512be7daff91fd6b8da4820a9957f6b0d7918a612f9bc41a8fa"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "A malformed or unexpected OA-service response is silently classified as NO_OA_PACKAGE. Only an explicit idIsNotOpenAccess error establishes that absence; this fallback also prevents callers from detecting the failed acquisition.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nwith patch.object(fetch.http, 'get_text', return_value='<html><body>Service temporarily unavailable</body></html>'), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state and a warning because the response establishes neither a package nor legitimate absence.",
+    "actual": "'' NO_OA_PACKAGE, with no warning. Both regular-expression searches miss, so the new unconditional absence assignment executes. This follows directly from the supplied code; repository execution was unavailable.",
+    "id": "fetch-loud-r6:g1#1",
+    "record_id": "mc-59f272c8512b5a877bbf94850caf38cb",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r7": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3fd1fa7a6b5d90d7e0262b1c5b11fec9",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "521554c2f9265f744b643371fb337ea281638adb0b8de189589a450f3d61b432"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "The new absence check accepts records for a different PMCID. An unrelated response becomes NO_OA_PACKAGE instead of a typed fetch failure.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><records><record id=\"PMC2222\"/></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    print(repr(fetch._pmc_oa_supplement_text('1111', ['supp.csv'])))\n    print(fetch.LAST_SUPPLEMENT_STATE['1111'])",
+    "expected": "Returns ''; records FETCH_FAILED:SUPPLEMENT:... because no record establishes package availability for PMC1111.",
+    "actual": "Returns ''; records NO_OA_PACKAGE. The records branch never checks record IDs.",
+    "id": "fetch-loud-r7:g1#1",
+    "record_id": "mc-3fd1fa7a6b5d90d7e0262b1c5b11fec9",
+    "verdict": null
+   },
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "A package URL containing a query string is classified as package absence. Filtering hrefs with endswith('.tar.gz') discards the advertised package, and the records branch then reports NO_OA_PACKAGE.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><records><record id=\"PMC1111\"><link format=\"tgz\" href=\"https://example.org/package.tar.gz?download=1\"/></record></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'), patch.object(fetch.http, 'get', side_effect=RuntimeError('download attempted')) as download:\n    print(repr(fetch._pmc_oa_supplement_text('1111', ['supp.csv'])))\n    print(fetch.LAST_SUPPLEMENT_STATE['1111'], download.call_count)",
+    "expected": "Attempts the advertised package URL; this mocked download then produces FETCH_FAILED:SUPPLEMENT:RuntimeError: download attempted. An unhandled package URL must not establish absence.",
+    "actual": "Returns ''; records NO_OA_PACKAGE; download.call_count is 0.",
+    "id": "fetch-loud-r7:g1#2",
+    "record_id": "mc-3fd1fa7a6b5d90d7e0262b1c5b11fec9",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r8": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a98702b0533476d48bc5d23e1f1b9e12",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "214b4e3558687fea1616bb625f43cc1bcbece6b438088bcc73ed441755e14264"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "An advertised TGZ package with a missing download URL is classified as NO_OA_PACKAGE. The URL filter discards the malformed link before checking package presence, turning an invalid service response into confirmed absence.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><records><record id=\"PMC123\"><link format=\"tgz\"/></record></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Returns '' and records FETCH_FAILED:SUPPLEMENT:... because a package is advertised but its download URL is missing.",
+    "actual": "Returns '' and records NO_OA_PACKAGE without warning. The caller therefore does not recognize a supplement failure, including in strict mode.",
+    "id": "fetch-loud-r8:g1#1",
+    "record_id": "mc-a98702b0533476d48bc5d23e1f1b9e12",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r9": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-95a6399faebe85849cf56258ed976c45",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "bc3c72a1d0a66a0f03ca7dbfe0b4e33c55d83305833f3575136d4f5913ce74e0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "Only the first OA error is inspected. An idIsNotOpenAccess error masks a subsequent service failure, converting a failed response into confirmed package absence.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><error code=\"idIsNotOpenAccess\">Not open access</error><error code=\"serverError\">Request processing failed</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Returns '' with FETCH_FAILED:SUPPLEMENT:... and a warning because the response contains a service failure.",
+    "actual": "Returns '' with LAST_SUPPLEMENT_STATE['123'] == 'NO_OA_PACKAGE' and no warning; .find('.//error') ignores the second error.",
+    "id": "fetch-loud-r9:g1#1",
+    "record_id": "mc-95a6399faebe85849cf56258ed976c45",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r10": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-cb165c08055371730bb50a4ae32015c5",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "095f7ecf07dafbdcb99abf0bfce264c39fbff7cc669e70f7e92c21367da802d0"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "OA service errors are ignored when a matching record advertises a usable package URL: error handling occurs only inside `if not tgz`. A failed response can therefore become NO_USABLE_SUPPLEMENT or HELD. This reproducer follows directly from the diff; execution was blocked by session policy.",
+    "failing_input": "import io, tarfile\nfrom unittest.mock import patch\nfrom harness import fetch as f\n\nbuf = io.BytesIO()\nwith tarfile.open(fileobj=buf, mode='w:gz'):\n    pass\noa = '<OA><error code=\"serviceUnavailable\">Temporary failure</error><records><record id=\"PMC1234567\"><link format=\"tgz\" href=\"https://example.org/package.tar.gz\"/></record></records></OA>'\nwith patch.object(f.http, 'get_text', return_value=oa), patch.object(f.http, 'get', return_value=buf.getvalue()), patch.object(f.time, 'sleep'):\n    result = f._pmc_oa_supplement_text('1234567', ['supp.csv'])\n    print(repr(result), f.LAST_SUPPLEMENT_STATE['1234567'])",
+    "expected": "Returns ''; LAST_SUPPLEMENT_STATE['1234567'] starts with FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR and records serviceUnavailable.",
+    "actual": "Returns ''; LAST_SUPPLEMENT_STATE['1234567'] is NO_USABLE_SUPPLEMENT. The service error is discarded without a warning.",
+    "id": "fetch-loud-r10:g1#1",
+    "record_id": "mc-cb165c08055371730bb50a4ae32015c5",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r11": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d4c1c450386ff6c9c5fbe6476cd5bfe8",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "0abbe37da859da50543480ef3db2c97767255f25d8c8ca26c321be39f7201044"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "Unexpected XML can be classified as confirmed package absence. The code searches descendants for matching records without validating the response envelope, so an unrelated document containing a matching record produces NO_OA_PACKAGE instead of a fetch failure.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nwith patch.object(fetch.http, 'get_text', return_value='<unexpected><record id=\"PMC1234567\"/></unexpected>'), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('1234567', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['1234567'])",
+    "expected": "Return ''; record FETCH_FAILED:SUPPLEMENT:OA_UNEXPECTED_RESPONSE and emit a warning because this is not an OA service response.",
+    "actual": "Returns ''; records NO_OA_PACKAGE without a warning because records is nonempty and err is None.",
+    "id": "fetch-loud-r11:g1#1",
+    "record_id": "mc-d4c1c450386ff6c9c5fbe6476cd5bfe8",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r12": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-eeb34215879f5bc3af729d8a3ebae74d",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "06d127ce60b493648c3f33963a9c9d59114990f97ce01f2c5e0fc5b0a0052315"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "Nested OA service errors are silently classified as confirmed package absence. findall(\"error\") checks only direct children, so an error inside a matching record escapes the failure check.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch as f\nxml = '<OA><records><record id=\"PMC123\"><error code=\"serverError\">Temporarily unavailable</error></record></records></OA>'\nwith patch.object(f.http, 'get_text', return_value=xml), patch.object(f.time, 'sleep'):\n    result = f._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(result, f.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return ''; record FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR or OA_UNEXPECTED_RESPONSE, since this response contains an error rather than evidence of absence.",
+    "actual": "Return ''; record NO_OA_PACKAGE without warning. The matching record satisfies the absence branch despite its nested error.",
+    "id": "fetch-loud-r12:g1#1",
+    "record_id": "mc-eeb34215879f5bc3af729d8a3ebae74d",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r13": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f14a5f0ba2d95ddf51577ede6cde830d",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "d73be61480c98cea7a2707ff03d68cb2f153a0d8f1250301f80b703b9fe29a1e"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "fetch-loud-r14": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-88e1ee522e52c53a5feb13edf355c400",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "5e58b79308f3266045f9b7eb0502e3bb53b59bd984a16682c3326256bf0764f6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "An idIsNotOpenAccess error for a different article is accepted as evidence that the requested article has no OA package. Record IDs are checked, but the article identified by an absence response is not.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC999\">oa.fcgi</request><error code=\"idIsNotOpenAccess\">identifier PMC999 is not Open Access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state: a response about PMC999 cannot establish absence for PMC123.",
+    "actual": "Returns an empty string and records LAST_SUPPLEMENT_STATE['123'] = 'NO_OA_PACKAGE'.",
+    "id": "fetch-loud-r14:g1#1",
+    "record_id": "mc-88e1ee522e52c53a5feb13edf355c400",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r15": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-87478c9c30be0f1fb2afcaa0c70badd6",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "87ac404d4ef6c93aae4d5c174a087966c4ac24226ce9d017d6736433750c3287"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "A matching request ID overrides an error explicitly naming a different article. The `about_this` OR condition classifies this contradictory response as confirmed absence instead of a failed response.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC123\"/><error code=\"idIsNotOpenAccess\">PMC456 is not open access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['table.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Returns ''; records FETCH_FAILED:SUPPLEMENT:... because the response explicitly attributes non-open-access status to PMC456, not PMC123.",
+    "actual": "Returns ''; records NO_OA_PACKAGE for PMC123. Derived directly from the supplied code; execution was blocked by environment policy.",
+    "id": "fetch-loud-r15:g1#1",
+    "record_id": "mc-87478c9c30be0f1fb2afcaa0c70badd6",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r16": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5c87b6d60268d0cfd189a813fec34bef",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "73284662d14401e4a115c88a7340073cee0620053b88e20650ded7caa2455bb2"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "The article-identity check examines only the first idIsNotOpenAccess error. Later errors naming another article are ignored, so a mismatched response is classified as confirmed absence despite the requirement that every named article match.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC123\"/><error code=\"idIsNotOpenAccess\">Not Open Access</error><error code=\"idIsNotOpenAccess\">Identifier PMC999 is not Open Access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return '' and record FETCH_FAILED:SUPPLEMENT:... because the response names PMC999 while the request is for PMC123.",
+    "actual": "Returns '' and records NO_OA_PACKAGE. Only the first error contributes identity tokens; the request supplies PMC123, making about_this True.",
+    "id": "fetch-loud-r16:g1#1",
+    "record_id": "mc-5c87b6d60268d0cfd189a813fec34bef",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r17": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4e2a9574322b95dafe5001cb7427e763",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "07030eeed7be9c7fdc537532d92aff7166b8e01e4ebecd6d422b181b48685374"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "The error-identity check ignores PMCIDs attached to labels. A response whose error names a different article is silently classified as NO_OA_PACKAGE because the matching request ID alone satisfies about_this.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC123\"/><error code=\"idIsNotOpenAccess\">Identifier=PMC456 is not Open Access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep', return_value=None):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return '' and record FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR because the error concerns PMC456, not the requested PMC123.",
+    "actual": "Returns '' and records NO_OA_PACKAGE. The whitespace token 'Identifier=PMC456' does not start with 'PMC', so it is discarded and named becomes {'PMC123'}.",
+    "id": "fetch-loud-r17:g1#1",
+    "record_id": "mc-4e2a9574322b95dafe5001cb7427e763",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r18": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-db995af1f6c1e440a3f71070889019bd",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "3515cef1d634db119a19e0516fd586a1f9aedfaf6e60cbe257631bc6d13ca443"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "Article validation examines only error.text, ignoring descendant text. A not-open-access error naming another article inside a child element is therefore silently classified as absence for the requested article.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC7\"/><error code=\"idIsNotOpenAccess\">Article <id>PMC8</id> is not open access.</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('7', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['7'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state and warning: the error names PMC8, contradicting the request for PMC7.",
+    "actual": "By direct code tracing (execution blocked): prints '' NO_OA_PACKAGE and emits no warning. error.text is only 'Article ', so PMC8 never enters the identity check.",
+    "id": "fetch-loud-r18:g1#1",
+    "record_id": "mc-db995af1f6c1e440a3f71070889019bd",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r19": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e27d55f6cc9660bcc0deaadbf931a01a",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "34da6508fd6140306f5f35c56c4c3989f898d8d99f29eccef860a45e42b848db"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "A not-open-access error nested inside another article's record is incorrectly attributed to the requested article. The identity check reads the request and error subtree but ignores the enclosing record's ID, turning an inconsistent response into confirmed absence.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC7\"/><records><record id=\"PMC8\"><error code=\"idIsNotOpenAccess\">Not open access</error></record></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('7', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['7'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state: the error concerns PMC8 and does not establish absence for PMC7.",
+    "actual": "Returns an empty string and records NO_OA_PACKAGE for PMC7, without warning.",
+    "id": "fetch-loud-r19:g1#1",
+    "record_id": "mc-e27d55f6cc9660bcc0deaadbf931a01a",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r20": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-39a7680723fdb5aad2ee966b667e9c90",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "1c6574da05994d288ceeb975b1c6795a33dee6bfe1a5d4d70a718f4cee0fb476"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }

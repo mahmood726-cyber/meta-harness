@@ -301,8 +301,11 @@ def run(slug: str, http: Http, dry_run: bool = False, extra_pmids=(), extra_ncts
         rows.append(dict(acquire(http, slug, pmid, dry_run, root, stage), why=tg[pmid]))
     tally = {s: sum(r["state"] == s for r in rows) for s in STATES}
     ledger = {"slug": slug, "run_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-              "dry_run": dry_run, "tally": tally, "rows": rows}
-    if not dry_run and stage is None:
+              "dry_run": dry_run, "staged_to": str(stage) if stage else None, "tally": tally, "rows": rows}
+    if not dry_run:
+        # the LEDGER is always written to the topic (staged or not: nothing in the build reads it); staged TEXTS stay in
+        # the stage until a topic lane admits them (captain order 8 Oct: a per-slug ledger on every run)
+        (root / "cache" / slug).mkdir(parents=True, exist_ok=True)
         (root / "cache" / slug / "fulltext_ledger.json").write_text(json.dumps(ledger, indent=1) + "\n",
                                                                    encoding="utf-8", newline="\n")
     return ledger
