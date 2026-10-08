@@ -224,3 +224,10 @@ def test_PLANT_a_not_open_access_reply_about_another_article_is_not_absence(monk
     monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error code='idIsNotOpenAccess'>not Open Access</error></OA>")
     assert fetch._pmc_oa_supplement_text("971", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["971"].startswith("FETCH_FAILED:SUPPLEMENT:")
+
+
+def test_PLANT_a_reply_naming_two_articles_is_not_absence(monkeypatch):
+    """codex fetch-loud-r15 #1: a matching <request id> overrode an error naming a different article."""
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><request id='PMC972'/><error code='idIsNotOpenAccess'>identifier PMC8 is not Open Access</error></OA>")
+    assert fetch._pmc_oa_supplement_text("972", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["972"].startswith("FETCH_FAILED:SUPPLEMENT:")

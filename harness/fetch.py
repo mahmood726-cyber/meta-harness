@@ -218,7 +218,11 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             req = oa_root.find("request")
             want = f"PMC{pmcid}".upper()
             err_tokens = [t.strip("'\".,;:()[]").upper() for t in ((err.text or "") if err is not None else "").split()]
-            about_this = (req is not None and (req.get("id") or "").upper() == want) or want in err_tokens
+            named = {t for t in err_tokens if t.startswith("PMC") and t[3:].isdigit()}
+            if req is not None and req.get("id"):
+                named.add(req.get("id").upper())
+            # every article the reply names must be this one, and it must name at least one (codex fetch-loud-r15 #1)
+            about_this = bool(named) and named == {want}
             if err is not None and err.get("code") == "idIsNotOpenAccess" and about_this:
                 # absence counts only when the reply names THIS article (its <request id> or the error text) (r14 #1)
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"

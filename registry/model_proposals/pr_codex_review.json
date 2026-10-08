@@ -5442,5 +5442,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r15": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-87478c9c30be0f1fb2afcaa0c70badd6",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "87ac404d4ef6c93aae4d5c174a087966c4ac24226ce9d017d6736433750c3287"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "A matching request ID overrides an error explicitly naming a different article. The `about_this` OR condition classifies this contradictory response as confirmed absence instead of a failed response.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC123\"/><error code=\"idIsNotOpenAccess\">PMC456 is not open access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['table.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Returns ''; records FETCH_FAILED:SUPPLEMENT:... because the response explicitly attributes non-open-access status to PMC456, not PMC123.",
+    "actual": "Returns ''; records NO_OA_PACKAGE for PMC123. Derived directly from the supplied code; execution was blocked by environment policy.",
+    "id": "fetch-loud-r15:g1#1",
+    "record_id": "mc-87478c9c30be0f1fb2afcaa0c70badd6",
+    "verdict": null
+   }
+  ]
  }
 }
