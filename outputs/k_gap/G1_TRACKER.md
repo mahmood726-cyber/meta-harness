@@ -18,7 +18,7 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 | corticosteroids-covid19-mortality | **NOT_YET** (unmet: ALL_ELIGIBLE_MATCHED, RESULT_AGREES, DIVERGENCES_NAMED) | 3 / 5 (1) | no | 2 / 5 | 2 / 5 | 0 of 5 | 0:  | 3 | 1 | 0 | 1 | 2 | {'NOT_COMPARABLE:RR_VS_OR': 1, 'DISAGREE': 1} | ONE_COMPARABLE_TRIAL | RR 0.83 (0.75 to 0.93) k=1 | OR 0.66 (0.53 to 0.82) | EXTRACTION:OUTCOME_NOT_IN_SOURCE | acq/k-gap |
 | dapagliflozin-hfpef-hosp | **G1_MATCHED** | 1 / 2 (0) | yes | 1 / 2 | 1 / 1 | 1 of 2 | 1: DECLARE-TIMI 58 (PROTOCOL_SCOPE_DIFFERENCE) | 0 | 1 | 0 | 1 | 0 | {'AGREE': 1} | ONE_SHARED_TRIAL | HR 0.82 (0.73 to 0.92) k=1 | HR 0.80 (0.74 to 0.86) | - | acq/k-gap |
 | denosumab-vertebral-fracture | **NOT_YET** (unmet: ALL_ELIGIBLE_MATCHED) | 1 / 2 (0) | no | 1 / 2 | 1 / 2 | 0 of 2 | 0:  | 1 | 1 | 0 | 0 | 1 | {'NOT_COMPARABLE:COUNTS_VS_EFFECT': 1} | ONE_SHARED_TRIAL | RR 0.32 (0.26 to 0.41) k=1 | not printed | INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD | acq/k-gap |
-| doac-vte-recurrence | **NOT_YET** (unmet: RESULT_AGREES) | 5 / 5 (0) | yes | 5 / 5 | 5 / 5 | 0 of 5 | 0:  | 0 | 5 | 0 | 0 | 0 | {'NOT_COMPARABLE:NO_COMPARATOR_ROW': 5} | NO_SHARED_TRIAL | HR 0.91 (0.75 to 1.10) k=6 | not printed | - | acq/k-gap |
+| doac-vte-recurrence | **NOT_YET** (unmet: RESULT_AGREES) | 5 / 5 (0) | yes | 5 / 5 | 5 / 5 | 0 of 5 | 0:  | 0 | 5 | 0 | 0 | 0 | {'NOT_COMPARABLE:HR_VS_OR': 4, 'NOT_COMPARABLE:RR_VS_OR': 1} | MEASURE_DIFFERENCE | HR 0.91 (0.75 to 1.10) k=6 | not printed | - | acq/k-gap |
 | dpp4-mace-t2d | **G1_MATCHED** | 4 / 4 (0) | yes | 4 / 4 | 4 / 4 | 0 of 4 | 0:  | 0 | 4 | 0 | 0 | 0 | {'AGREE': 3, 'AGREE_ON_POINT:COMPARATOR_ONE_SIDED_BOUND': 1} | HR 1.00 (0.94 to 1.07) vs 1.00 (0.94 to 1.07), k=3, PM: **AGREE** | HR 1.00 (0.90 to 1.11) k=4 | OR 1.00 (0.93 to 1.07) | - | acq/k-gap |
 | empagliflozin-hfpef-hosp | **G1_MATCHED** | 1 / 2 (0) | yes | 1 / 2 | 1 / 1 | 1 of 2 | 1: SOLOIST-WHF, 2021 (PROTOCOL_SCOPE_DIFFERENCE) | 0 | 1 | 0 | 1 | 0 | {'AGREE': 1} | ONE_SHARED_TRIAL | HR 0.79 (0.69 to 0.90) k=1 | HR 0.80 (0.74 to 0.87) | - | acq/k-gap |
 | esketamine-trd-madrs | **G1_MATCHED** | 3 / 3 (0) | yes | 3 / 3 | 3 / 3 | 0 of 3 | 0:  | 0 | 3 | 0 | 0 | 0 | {'NOT_COMPARABLE:COUNTS_VS_EFFECT': 3} | MD -4.08 (-6.18 to -1.99) vs -4.09 (-5.73 to -2.45), k=3, PM: **AGREE** | MD -3.34 (-6.07 to -0.62) k=4 | not printed | - | acq/k-gap |
@@ -218,11 +218,11 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 ## doac-vte-recurrence (comparator PMID 29795629)
 
 - DUAL FOREST READER: not read -- NO_JATS; OPEN_BUT_NOT_SCRIPT_READABLE
-- RE-COVER: **PRIMARY** - our held-source pool PMID 19966341 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- EINSTEIN-DVT: **PRIMARY** - our held-source pool PMID 21128814 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- AMPLIFY: **PRIMARY** - our held-source pool PMID 23808982 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Hokusai-VTE: **PRIMARY** - our held-source pool PMID 23991658 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- RE-COVER II: **PRIMARY** - our held-source pool PMID 24344086 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- RE-COVER: **PRIMARY** - our held-source pool PMID 19966341 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
+- EINSTEIN-DVT: **PRIMARY** - our held-source pool PMID 21128814 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
+- AMPLIFY: **PRIMARY** - our held-source pool PMID 23808982 (abstract); vs comparator row: NOT_COMPARABLE:RR_VS_OR
+- Hokusai-VTE: **PRIMARY** - our held-source pool PMID 23991658 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
+- RE-COVER II: **PRIMARY** - our held-source pool PMID 24344086 (abstract); vs comparator row: NOT_COMPARABLE:HR_VS_OR
 - pooled by us, not listed by the comparator: PMID 22449293 (2012; comparator 2018): NOT_EXPLAINED_BY_DATE
 
 ## dpp4-mace-t2d (comparator PMID 31462224)
