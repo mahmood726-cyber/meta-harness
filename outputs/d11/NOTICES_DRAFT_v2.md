@@ -1,0 +1,88 @@
+# DRAFT notices from the D11 sign-off -- UNSIGNED
+
+Each line is a proposed change to a served page. None is applied. Each needs Mahmood's signature before a rebuild carries it (we never sign for him).
+
+- [ ] corticosteroids-covid19-mortality::28-day all-cause mortality: GRADE certainty, served 'provisional' -> panel 'moderate'
+- [ ] dapagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] denosumab-vertebral-fracture::New vertebral fracture: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death): GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] dpp4-mace-t2d::3-point major adverse cardiovascular events: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] empagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events: GRADE certainty, served 'provisional' -> panel 'moderate'
+- [ ] iv-iron-hfref-hosp::Heart-failure hospitalization: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] sacubitril-valsartan-hfref::Composite cardiovascular death or heart-failure hospitalization: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] semaglutide-obesity-mace::3-point major adverse cardiovascular events: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] semaglutide-obesity-weight::Percent change in body weight: GRADE certainty, served 'provisional' -> panel 'moderate'
+- [ ] sglt2-ckd-progression::Trial-defined primary cardiorenal composite: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] sglt2-hfref-hosp-cvdeath::Composite cardiovascular death or hospitalisation for heart failure: GRADE certainty, served 'provisional' -> panel 'very_low'
+- [ ] sglt2-primary-prevention-hf::Hospitalization for heart failure: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] spironolactone-hfref-mortality::All-cause mortality: GRADE certainty, served 'provisional' -> panel 'very_low'
+- [ ] statins-primary-prevention-elderly::Major vascular events: GRADE certainty, served 'provisional' -> panel 'very_low'
+- [ ] tranexamic-acid-pph::Death due to bleeding: GRADE certainty, served 'provisional' -> panel 'low'
+- [ ] colchicine-recurrent-pericarditis::Recurrent pericarditis::21873705: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] colchicine-recurrent-pericarditis::Recurrent pericarditis::21873705: RoB 2 D4_outcome_measurement low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] corticosteroids-covid19-mortality::28-day all-cause mortality::32678530: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] dapagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::36027570: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] denosumab-vertebral-fracture::New vertebral fracture::19671655: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] denosumab-vertebral-fracture::New vertebral fracture::19671655: RoB 2 D4_outcome_measurement low -> high (recorded panel: D11_SIGNOFF.json)
+- [ ] doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::24344086: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::19966341: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::22449293: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::21128814: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::21128814: RoB 2 D2_deviations low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::23991658: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)::23808982: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] dpp4-mace-t2d::3-point major adverse cardiovascular events::23992601: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] dpp4-mace-t2d::3-point major adverse cardiovascular events::30418475: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] dpp4-mace-t2d::3-point major adverse cardiovascular events::28893244: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] dpp4-mace-t2d::3-point major adverse cardiovascular events::26052984: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] dpp4-mace-t2d::3-point major adverse cardiovascular events::26052984: RoB 2 D4_outcome_measurement low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] empagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::34449189: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] finerenone-ckd-t2d-renal::Kidney composite outcome::33264825: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] finerenone-ckd-t2d-renal::Kidney composite outcome::34449181: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::31185157: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::31185157: RoB 2 D4_outcome_measurement low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::27633186: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::27633186: RoB 2 D4_outcome_measurement low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::27295427: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::27295427: RoB 2 D4_outcome_measurement low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::34215025: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::31189511: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::31189511: RoB 2 D4_outcome_measurement low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::30291013: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::28910237: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] glp1-ra-mace-t2d::3-point major adverse cardiovascular events::40162642: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] iv-iron-hfref-hosp::Heart-failure hospitalization::40159390: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] iv-iron-hfref-hosp::Heart-failure hospitalization::25176939: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] noac-vs-warfarin-af-stroke::Stroke or systemic embolism::21830957: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] noac-vs-warfarin-af-stroke::Stroke or systemic embolism::19717844: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] noac-vs-warfarin-af-stroke::Stroke or systemic embolism::24251359: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] noac-vs-warfarin-af-stroke::Stroke or systemic embolism::21870978: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sacubitril-valsartan-hfref::Composite cardiovascular death or heart-failure hospitalization::25176015: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sacubitril-valsartan-hfref::Composite cardiovascular death or heart-failure hospitalization::25176015: RoB 2 D4_outcome_measurement low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sacubitril-valsartan-hfref::Composite cardiovascular death or heart-failure hospitalization::25176015: RoB 2 D5_selective_reporting some_concerns -> low (recorded panel: D11_SIGNOFF.json)
+- [ ] sacubitril-valsartan-hfref::Composite cardiovascular death or heart-failure hospitalization::NCT02468232: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] semaglutide-obesity-mace::3-point major adverse cardiovascular events::37952131: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] semaglutide-obesity-weight::Percent change in body weight::33625476: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] semaglutide-obesity-weight::Percent change in body weight::33567185: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-ckd-progression::Trial-defined primary cardiorenal composite::32970396: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-ckd-progression::Trial-defined primary cardiorenal composite::30990260: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-ckd-progression::Trial-defined primary cardiorenal composite::36331190: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-hfref-hosp-cvdeath::Composite cardiovascular death or hospitalisation for heart failure::31535829: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-hfref-hosp-cvdeath::Composite cardiovascular death or hospitalisation for heart failure::32865377: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-primary-prevention-hf::Hospitalization for heart failure::28605608: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-primary-prevention-hf::Hospitalization for heart failure::28605608: RoB 2 D5_selective_reporting low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-primary-prevention-hf::Hospitalization for heart failure::26378978: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-primary-prevention-hf::Hospitalization for heart failure::32966714: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-primary-prevention-hf::Hospitalization for heart failure::32966714: RoB 2 D4_outcome_measurement low -> high (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-primary-prevention-hf::Hospitalization for heart failure::30415602: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] sglt2-primary-prevention-hf::Hospitalization for heart failure::30415602: RoB 2 D5_selective_reporting some_concerns -> low (recorded panel: D11_SIGNOFF.json)
+- [ ] spironolactone-hfref-mortality::All-cause mortality::10471456: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] spironolactone-hfref-mortality::All-cause mortality::21073363: RoB 2 D1_randomisation low -> high (recorded panel: D11_SIGNOFF.json)
+- [ ] spironolactone-hfref-mortality::All-cause mortality::28824029: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] spironolactone-hfref-mortality::All-cause mortality::28824029: RoB 2 D5_selective_reporting some_concerns -> low (recorded panel: D11_SIGNOFF.json)
+- [ ] statins-primary-prevention-elderly::Major vascular events::20404379: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] statins-primary-prevention-elderly::Major vascular events::20404379: RoB 2 D4_outcome_measurement low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] statins-primary-prevention-elderly::Major vascular events::42670961: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] tranexamic-acid-pph::Death due to bleeding::28456509: RoB 2 D1_randomisation low -> some_concerns (recorded panel: D11_SIGNOFF.json)
+- [ ] tranexamic-acid-pph::Death due to bleeding::28456509: RoB 2 D5_selective_reporting some_concerns -> low (recorded panel: D11_SIGNOFF.json)

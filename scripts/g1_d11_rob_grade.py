@@ -239,12 +239,26 @@ DECISION RULES (apply them exactly):
      review question in a way the sources show; 0 otherwise.
   publication_bias: downgrade 1 only when a source shows unpublished completed trials of this question; 0 otherwise.
 """
+# v3 (8 Oct): three clarifications from the RoB 2 guidance, WRITTEN AFTER READING v2's outputs (stated, not hidden):
+# 7-9 of v2's 9 'high' verdicts were registry fields read as something they are not -- a per-role masking Boolean read as
+# an unblinded assessor in a double-blind trial, treatment discontinuation read as missing outcome data, and AACT's
+# known allocation error (EMPHASIS-HF 'NON_RANDOMIZED') preferred to the abstract's 'randomly assigned'.
+ROB_RULES_V3 = """
+CLARIFICATIONS (they take precedence over the rules above):
+  - When the registry and the trial's own report disagree on allocation or masking, the trial's own report wins (a
+    registry field is a data-entry summary; a published 'randomly assigned' / 'double-blind' describes the trial).
+  - A registry per-role masking flag that is false or empty does not show an unblinded assessor when the trial is
+    described as double-blind / placebo-controlled; judge D4 from the trial's description and the outcome's nature.
+  - Participant-flow withdrawals or treatment discontinuations are NOT missing outcome data: participants who stop the
+    drug usually stay in follow-up. Judge D3 from statements about outcome ascertainment (vital status, lost to
+    follow-up, complete follow-up); if none is given, D3 is some_concerns, not high.
+"""
 VERSION = 1
 
 
 def _instr(kind):
     if kind == "rob":
-        return ROB_INSTR + (ROB_RULES_V2 if VERSION >= 2 else "")
+        return ROB_INSTR + (ROB_RULES_V2 if VERSION >= 2 else "") + (ROB_RULES_V3 if VERSION >= 3 else "")
     return GRADE_INSTR + (GRADE_RULES_V2 if VERSION >= 2 else "")
 
 
@@ -490,7 +504,7 @@ def panel(kind, items, prompt_fn, adj_fn, shown_fn, workers, argv, live):
 
 
 def _sfx():
-    return "_v2" if VERSION >= 2 else ""
+    return f"_v{VERSION}" if VERSION >= 2 else ""
 
 
 def _seats():
@@ -518,7 +532,7 @@ RULE_DOMS = ("D1_randomisation", "D2_deviations", "D4_outcome_measurement", "D5_
 
 def main(argv):
     global VERSION
-    VERSION = 2 if "--v2" in argv else 1
+    VERSION = 3 if "--v3" in argv else 2 if "--v2" in argv else 1
     if "--build" in argv:
         return build()
     data = _j(ITEMS / "items.json")
