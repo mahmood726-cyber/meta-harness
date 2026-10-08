@@ -117,7 +117,8 @@ def title_names_own_study(title, acro):
         if before.endswith(" the") and (after.startswith("study") or after.startswith("trial")):
             # 'versus the X trial': the word before 'the' marks a comparison -> not its own study
             if not any(before[:-4].rstrip().endswith(w) for w in (" versus", " vs", " vs.", " compared with",
-                                                                   " compared to", " than", " like", " unlike")):
+                                                                   " compared to", " compared against", " against",
+                                                                   " than", " like", " unlike")):
                 return True
         i = low.find(a, i + 1)
     return False

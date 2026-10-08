@@ -6275,5 +6275,35 @@
     "verdict": null
    }
   ]
+ },
+ "v10-apply-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-774f9d57edffac2b93500ae51694739b",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "a962de7f7cb5c1f6bbb8b3b78b2ed0ed0589e6313817ee4c924ba6067928a045"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study / supported",
+    "severity": "P1",
+    "claim": "A title explicitly comparing an unregistered cohort against another trial passes the own-study gate. The comparison blacklist omits 'compared against', and the NCT check accepts a registration explicitly attributed to that other trial. Consequently, supported() approves a false identity link.",
+    "failing_input": "from scripts.g1_identity_links import supported\nlk = {\n    'nct': 'NCT02468232',\n    'ratified': {\n        'state': 'SEEN_AND_SIGNED', 'by': 'Mahmood', 'quote': 'Reviewed',\n        'packet_sha256': 'a' * 64, 'item_section_sha256': 'b' * 64\n    },\n    'rules': [\n        {'rule': 'ONE_NCT_STATED_IN_OWN_REPORT',\n         'span': 'Our cohort was unregistered; the external comparator was PARALLEL-HF (NCT02468232).',\n         'text_sha256': 'c' * 64},\n        {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM',\n         'span': 'PARALLEL-HF',\n         'title': 'An unregistered cohort compared against the PARALLEL-HF trial',\n         'registry_acronym': 'PARALLEL-HF',\n         'registry_acronym_source': 'AACT studies.txt NCT02468232 acronym'}\n    ]\n}\nprint(supported(lk))",
+    "expected": "False: both supplied spans identify PARALLEL-HF as an external comparator, not this report's own study.",
+    "actual": "True. With the linked registration present and unmatched in the pool, join() consequently marks the cohort in_our_pool=True, route='PRIMARY', and g1_countable=True.",
+    "id": "v10-apply-r1:g1#1",
+    "record_id": "mc-774f9d57edffac2b93500ae51694739b",
+    "verdict": null
+   }
+  ]
  }
 }

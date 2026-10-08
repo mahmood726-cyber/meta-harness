@@ -136,3 +136,10 @@ def test_PLANT_d13_an_unsigned_link_never_joins():
 def test_the_committed_link_is_signed_over_v10_06q():
     r = L.load()["33731544"]["ratified"]
     assert r["item"] == "V10-06Q" and r["quote"] == "yes all v10" and r["packet_sha256"].startswith("9086d538")
+
+
+def test_PLANT_v10_r1_compared_against_is_a_comparison():
+    """codex v10-apply-r1: 'compared against the X trial' passed the own-study title check."""
+    assert not L.title_names_own_study("A Japanese cohort compared against the PARALLEL-HF trial", "PARALLEL-HF")
+    assert not L.title_names_own_study("Outcomes against the PARALLEL-HF study", "PARALLEL-HF")
+    assert L.title_names_own_study("Results From the PARALLEL-HF Study.", "PARALLEL-HF")
