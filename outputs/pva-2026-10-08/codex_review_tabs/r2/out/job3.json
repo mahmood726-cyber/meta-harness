@@ -1,0 +1,79 @@
+{
+  "topics_checked": [
+    "melatonin-primary-insomnia-sol",
+    "metformin-pcos-ovulation",
+    "noac-vs-warfarin-af-stroke",
+    "omega3-cardiovascular-events",
+    "pcsk9-mace"
+  ],
+  "findings": [
+    {
+      "slug": "metformin-pcos-ovulation",
+      "kind": "MISLEADING",
+      "tab": "Results & conclusions",
+      "title": "Conclusion labels increased ovulation odds as harm",
+      "page_quote": "<th><code>direction</code></th><td>harm</td>",
+      "evidence": [
+        {
+          "file": "metformin-pcos-ovulation/review.json",
+          "quote": "\"name\": \"Ovulation with metformin added to clomifene\""
+        },
+        {
+          "file": "metformin-pcos-ovulation/review.json",
+          "quote": "\"estimate\": 2.0733"
+        },
+        {
+          "file": "metformin-pcos-ovulation/review.json",
+          "quote": "Metformin ARM WORSE than placebo (an S2 add-on-to-clomifene contrast; treatment-naive PCOS)."
+        }
+      ],
+      "why": "The table faithfully copies the claim field, but its clinical interpretation conflicts with the outcome orientation. The pooled OR exceeds one for ovulation; the source describes reduced ovulation as worse. Calling the opposite direction harm reverses that meaning. The interval crossing one does not establish either benefit or harm.",
+      "fix": "Flag the source claim's direction conflict and correct it upstream using outcome-specific benefit orientation; retain the uncertainty conveyed by the confidence interval.",
+      "confidence": "high"
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "kind": "MISLEADING",
+      "tab": "Data extraction / Protocol",
+      "title": "Served converted interval conflicts with the displayed D7 rule",
+      "page_quote": "<td>24251359</td><td>HR 0.87 (0.745 to 1.016)</td>",
+      "evidence": [
+        {
+          "file": "noac-vs-warfarin-af-stroke/review.json",
+          "quote": "CI CONVERTED: source reports HR 0.87 with a 97.5% CI 0.73-1.04 (multiplicity-adjusted for the two edoxaban doses); converted to a 95% CI 0.745-1.016"
+        },
+        {
+          "file": "registry/g1_decisions.json",
+          "quote": "is kept for MATCHING only (the G1 tracker may verify a trial with it) and NEVER enters a served pool: a served row's numbers must be printed verbatim in a held span."
+        }
+      ],
+      "why": "The new extraction table presents this converted interval as a pooled input while Protocol presents D7 as a decision in force. The review explicitly identifies the interval as re-expressed, which the displayed rule prohibits in a served pool.",
+      "fix": "Expose this rule-versus-served-data conflict explicitly until the source review is reconciled with D7 or a documented exception.",
+      "confidence": "high"
+    },
+    {
+      "slug": "omega3-cardiovascular-events",
+      "kind": "MISLEADING",
+      "tab": "Changes & signatures",
+      "title": "Applied notice implies a currently suppressed estimate is served",
+      "page_quote": "<td>Atrial fibrillation</td><td>applied</td>",
+      "evidence": [
+        {
+          "file": "omega3-cardiovascular-events/review.json",
+          "quote": "\"state\": \"HARMS_INCOMPLETE\""
+        },
+        {
+          "file": "omega3-cardiovascular-events/review.json",
+          "quote": "\"harms_synthesis_suppressed\": true"
+        },
+        {
+          "file": "omega3-cardiovascular-events/review.json",
+          "quote": "\"basis\": \"No quantitative safety conclusion while source-reporting trials remain unresolved\""
+        }
+      ],
+      "why": "The applied notice says an atrial-fibrillation estimate is now served. The current outcome is suppressed as HARMS_INCOMPLETE, and the new Analysis and Included studies tabs correctly describe it as withheld. Changes provides no current-state qualification to resolve this conflict.",
+      "fix": "Preserve the signed historical notice, but label its historical application separately from the current suppressed state and display the current gate reason beside it.",
+      "confidence": "high"
+    }
+  ]
+}

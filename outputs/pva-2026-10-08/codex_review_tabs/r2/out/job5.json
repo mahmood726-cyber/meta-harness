@@ -1,0 +1,75 @@
+{
+  "topics_checked": [
+    "sglt2-hfref-hosp-cvdeath",
+    "sglt2-primary-prevention-hf",
+    "spironolactone-hfref-mortality",
+    "statins-primary-prevention-elderly",
+    "ticagrelor-vs-clopidogrel-acs"
+  ],
+  "findings": [
+    {
+      "slug": "sglt2-primary-prevention-hf",
+      "kind": "UNSUPPORTED",
+      "tab": "Data extraction",
+      "title": "Recorded-model-call attribution lacks support in the supplied sources",
+      "page_quote": "recorded read mc-c2194c9cd2821519a5511c7fc372d95b agrees with the served value",
+      "evidence": [
+        {
+          "file": "sglt2-primary-prevention-hf/review.json",
+          "quote": "\"id\": \"PMID 30415602\",\n          \"effect\": 0.73,\n          \"ci_low\": 0.61,\n          \"ci_high\": 0.88,\n          \"scale\": \"HR\",\n          \"provenance\": \"fulltext_verified\""
+        }
+      ],
+      "why": "The row records fulltext_verified provenance, but the asserted call ID and its agreement are absent from every supplied review and registry file. The attribution therefore cannot be verified from the permitted content sources.",
+      "fix": "Record the call attribution and agreement evidence in review.json or a supplied named registry before rendering this claim.",
+      "confidence": "medium"
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "kind": "MISLEADING",
+      "tab": "Included studies",
+      "title": "J-EMPHASIS-HF registry identifier is incorrectly shown as missing",
+      "page_quote": "<tr><td>J-EMPHASIS-HF</td><td><a href='https://pubmed.ncbi.nlm.nih.gov/28824029/'>PMID 28824029</a></td><td>--</td><td>All-cause mortality [pooled]</td></tr>",
+      "evidence": [
+        {
+          "file": "spironolactone-hfref-mortality/review.json",
+          "quote": "\"outcome_effect_id\": \"spironolactone-hfref-mortality::All-cause mortality::PMID 28824029::PMID 28824029\",\n          \"family_identity_state\": \"REGISTRY_ANCHORED\",\n          \"family_id\": \"NCT01115855\""
+        }
+      ],
+      "why": "The Registry cell implies no recorded identifier, although the same trial row contains its registry-anchored family ID.",
+      "fix": "Read family_id when resolving registry identifiers and display NCT01115855.",
+      "confidence": "high"
+    },
+    {
+      "slug": "ticagrelor-vs-clopidogrel-acs",
+      "kind": "MISLEADING",
+      "tab": "Included studies",
+      "title": "PHILO registry identifier is incorrectly shown as missing",
+      "page_quote": "<tr><td>PHILO</td><td><a href='https://pubmed.ncbi.nlm.nih.gov/26376600/'>PMID 26376600</a></td><td>--</td>",
+      "evidence": [
+        {
+          "file": "ticagrelor-vs-clopidogrel-acs/review.json",
+          "quote": "\"outcome_effect_id\": \"ticagrelor-vs-clopidogrel-acs::Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke::PMID 26376600::PMID 26376600\",\n          \"family_identity_state\": \"REGISTRY_ANCHORED\",\n          \"family_id\": \"NCT01294462\""
+        }
+      ],
+      "why": "The Registry cell implies no recorded identifier, although the same trial row contains its registry-anchored family ID.",
+      "fix": "Read family_id when resolving registry identifiers and display NCT01294462.",
+      "confidence": "high"
+    },
+    {
+      "slug": "ticagrelor-vs-clopidogrel-acs",
+      "kind": "UNSUPPORTED",
+      "tab": "Data extraction",
+      "title": "Recorded-model-call attribution lacks support in the supplied sources",
+      "page_quote": "recorded read mc-4a328c9d967b90436cd45a745ea7bb97 agrees with the served value",
+      "evidence": [
+        {
+          "file": "ticagrelor-vs-clopidogrel-acs/review.json",
+          "quote": "\"id\": \"PMID 26376600\",\n          \"effect\": 1.47,\n          \"ci_low\": 0.88,\n          \"ci_high\": 2.44,\n          \"scale\": \"HR\",\n          \"provenance\": \"fulltext_verified\""
+        }
+      ],
+      "why": "The row records fulltext_verified provenance, but the asserted call ID and its agreement are absent from every supplied review and registry file. The attribution therefore cannot be verified from the permitted content sources.",
+      "fix": "Record the call attribution and agreement evidence in review.json or a supplied named registry before rendering this claim.",
+      "confidence": "medium"
+    }
+  ]
+}

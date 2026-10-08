@@ -107,7 +107,9 @@ def check(slug: str, page: str, review: dict, notices: list, decisions: list[str
             qshown = sum(1 for q in qs if flat(str(q))[:60] in txt)
             el[f"queries ({qshown}/{len(qs)})"] = bool(qs) and qshown == len(qs)
             el["dates"] = bool(DATE.search(txt))
-            el["counts"] = bool(re.search(r"\b\d+\s+(records?|results?|hits|identified|studies)\b", txt, re.I))
+            # data check: the search's recorded identification count is shown on the tab
+            n_rec = (review.get("search") or {}).get("n_records")
+            el["counts"] = (n_rec is not None and bool(re.search(r"(?<![\d.])" + re.escape(str(n_rec)) + r"(?![\d.])", txt)))
             # dedicated tab: identification count + a link to the one PRISMA flow (Screening); legacy page: the words
             el["PRISMA flow"] = (bool(re.search(r"id='search-prisma'.*?href='#tab-screening'", src, re.S)) if dedicated
                                  else ("PRISMA" in txt and bool(re.search(r"identified", txt, re.I))))
