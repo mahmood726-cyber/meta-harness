@@ -4754,5 +4754,40 @@
     "verdict": null
    }
   ]
+ },
+ "v9-apply-r13": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-59e7f022c55caa1916958d1b072060b8",
+    "state": "RAN_OK",
+    "files": [
+     "harness/pipeline.py",
+     "harness/served_pool_additions.py",
+     "scripts/build_served_pool_additions.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_fill_notices.py",
+     "scripts/g1_served_pool_notices.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "4624aa65658cc80e6e077a68e27e89355b52dfb0f412bf239fc3d924e32c2cbe"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_denominator_ledger.py",
+    "function": "_is_open_licence",
+    "severity": "P1",
+    "claim": "Valid open-licence names are classified as closed: normalization omits CC0's 'Universal' designation and CC BY's 'International Public License' suffix. Consequently, _licence_retirement's safeguard against retiring an openly licensed comparator misses these names.",
+    "failing_input": "[_is_open_licence('CC0 1.0 Universal'), _is_open_licence('Creative Commons Attribution 4.0 International Public License')]",
+    "expected": "[True, True]",
+    "actual": "[False, False]",
+    "id": "v9-apply-r13:g1#1",
+    "record_id": "mc-59e7f022c55caa1916958d1b072060b8",
+    "verdict": null
+   }
+  ]
  }
 }

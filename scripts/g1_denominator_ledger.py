@@ -146,16 +146,18 @@ def _is_open_licence(lic):
     """CC BY (any version, no NC/ND/SA qualifier), CC0 or public domain -- the licences rule criterion C1 accepts. Normalised
     so 'CC BY 4.0' / 'cc-by-4.0' / 'CC0 1.0' are open (codex v9-apply-r8 #1); 'cc by-nc' is not."""
     import re
-    u = re.search(r"creativecommons\.org/(licenses|publicdomain)/([a-z-]+)", str(lic or "").lower())
+    raw = str(lic or "").lower()
+    u = re.search(r"creativecommons\.org/(licenses|publicdomain)/([a-z-]+)", raw)
     if u:
         # a canonical licence URL is classified by its path (codex v9-apply-r12 #1)
         return (u.group(1), u.group(2)) in (("licenses", "by"), ("publicdomain", "zero"), ("publicdomain", "mark"))
-    s = re.sub(r"[\s_-]+", " ", str(lic or "").lower()).strip()
-    s = s.replace("creative commons attribution", "cc by").replace("creative commons zero", "cc0")
-    # version and 'International' / 'licen[cs]e' designations are not qualifiers (codex v9-apply-r11 #1)
-    s = re.sub(r"\s+(international|generic|unported)?\s*(licen[cs]e)?$", "", s).strip()
-    s = re.sub(r"\s+(international|generic|unported)$", "", s).strip()
-    return bool(re.fullmatch(r"cc by( \d+(\.\d+)?)?|cc ?0( \d+(\.\d+)?)?|cc zero|public domain|pd", s))
+    # FAIL-SAFE token test instead of an exact-name list (r8, r11, r13 each found another spelling: '4.0', 'International',
+    # 'Universal', 'Public License'): any restricting qualifier -> not open; otherwise any CC BY / attribution / CC0 /
+    # public-domain mention -> open. A misreading toward 'open' only REFUSES a licence retirement -- the safe direction.
+    s = re.sub(r"[\s_-]+", " ", raw).strip()
+    if re.search(r"\b(nc|nd|sa|non ?commercial|no ?deriv\w*|share ?alike)\b", s):
+        return False
+    return bool(re.search(r"\bcc ?by\b|\battribution\b|\bcc ?0\b|\bcc zero\b|\bcreative commons zero\b|\bpublic domain\b|^pd$", s))
 
 
 def _licence_entry(pmid):

@@ -68,3 +68,12 @@ def test_PLANT_a_cc_licence_url_is_classified_by_its_path():
         assert L._is_open_licence(u), u
     for u in ("https://creativecommons.org/licenses/by-nc/4.0/", "https://creativecommons.org/licenses/by-nc-nd/4.0/"):
         assert not L._is_open_licence(u), u
+
+
+def test_PLANT_cc0_universal_and_international_public_license_are_open():
+    """codex v9-apply-r13 #1: 'CC0 1.0 Universal' and 'CC BY 4.0 International Public License' read as non-open."""
+    for lic in ("CC0 1.0 Universal", "Creative Commons Attribution 4.0 International Public License",
+                "CC BY 4.0 International Public License"):
+        assert L._is_open_licence(lic), lic
+    for lic in ("CC BY-SA 4.0", "Creative Commons Attribution-NonCommercial 4.0", "all rights reserved", None, ""):
+        assert not L._is_open_licence(lic), lic
