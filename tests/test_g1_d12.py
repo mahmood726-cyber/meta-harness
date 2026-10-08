@@ -88,9 +88,15 @@ HELD = ("RESULTS: The outcome occurred in 59 of 2609 patients (2.3%) in the apix
         "(2.7%) in the conventional-therapy group.")
 
 
+REAL_READER = D.reader_counts
+
+
 @pytest.fixture(autouse=True)
 def _terms(monkeypatch):
     monkeypatch.setattr(D, "arm_terms", lambda slug: TERMS)
+    # synthetic bindings carry pmid "1": the reader stub states the synthetic counts (real records: REAL_READER)
+    monkeypatch.setattr(D, "reader_counts", lambda rid, pmid=None, nct=None: (59, 2609, 71, 2635)
+                        if rid == "mc-7948396356bf9b690759ec525d16a1c4" else None)
     monkeypatch.setattr(D, "_held_nct", lambda slug, pmid: "NCT00000001")
 
 
@@ -245,8 +251,8 @@ def test_PLANT_r2_k2_joins_by_its_pmid_only(monkeypatch):
 
 def test_PLANT_r3_1_the_record_is_read_not_the_label(monkeypatch):
     _held(monkeypatch, HELD)
-    assert D.reader_counts("mc-7948396356bf9b690759ec525d16a1c4") == (59, 2609, 71, 2635)   # AMPLIFY, as recorded
-    monkeypatch.setattr(D, "reader_counts", lambda rid: (71, 2635, 59, 2609))            # the record says the reverse
+    assert REAL_READER("mc-7948396356bf9b690759ec525d16a1c4", "23808982", "NCT00643201") == (59, 2609, 71, 2635)
+    monkeypatch.setattr(D, "reader_counts", lambda rid, **kw: (71, 2635, 59, 2609))            # the record says the reverse
     assert D.verify(_k2())[1].startswith("K2_SECOND_READER_RECORD_DOES_NOT_STATE_THESE_COUNTS")
 
 
@@ -267,9 +273,46 @@ def test_PLANT_r3_3_k1_joins_only_through_its_source_nct():
 def test_PLANT_r3_4_equal_counts_in_both_arms_verify(monkeypatch):
     t = _held(monkeypatch, "occurred in 30 of 1274 patients (2.4%) in the apixaban group, as compared with 30 of 1265 "
                            "(2.4%) in the conventional-therapy group")
-    monkeypatch.setattr(D, "reader_counts", lambda rid: (30, 1274, 30, 1265))
+    monkeypatch.setattr(D, "reader_counts", lambda rid, **kw: (30, 1274, 30, 1265))
     assert D.verify(_k2(span=t, values={"events_t": 30, "n_t": 1274, "events_c": 30, "n_c": 1265}))[0]
 
 
 def test_PLANT_r3_5_non_finite_values_are_not_counts():
     assert D._whole("nan") is None and D._whole("inf") is None and D._whole("-1") is None
+
+
+def test_PLANT_r4_1_units_are_an_allowlist(tmp_path):
+    for units in ("participant-years", "participants per 100 years", "Percentage of participants", "participants/100 PY"):
+        a = _snapshot(tmp_path)
+        a._meas = [dict(r, param_type="NUMBER", units=units) for r in a._meas]
+        assert a.arms("NCT00000001", "42", None) == {}, units
+    a = _snapshot(tmp_path)
+    a._meas = [dict(r, param_type="NUMBER", units="number or participants with an event") for r in a._meas]
+    assert len(a.arms("NCT00000001", "42", None)) == 2
+
+
+def test_PLANT_r4_2_a_double_dummy_title_is_refused_and_roles_come_from_titles(tmp_path):
+    a = _snapshot(tmp_path, titles=("Drug + placebo", "Placebo + drug placebo"))
+    k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42",
+             span="X | Drug + placebo: 59 of 2609 participants | Placebo + drug placebo: 71 of 2635 participants")
+    assert D.verify(k1, a)[1].startswith("K1_GROUP_ROLE_AMBIGUOUS")
+    # titles say OG000 is control: a binding claiming 59/2609 for treatment never verifies
+    a2 = _snapshot(tmp_path, titles=("Placebo", "Drug"))
+    k2 = dict(k1, span="X | Placebo: 59 of 2609 participants | Drug: 71 of 2635 participants")
+    assert D.verify(k2, a2)[1].startswith("K1_AACT_ROWS_DIFFER")
+
+
+def test_PLANT_r4_3_identical_arm_tuples_verify_by_role(tmp_path):
+    a = _snapshot(tmp_path)
+    a._meas = [dict(r, param_value="59") for r in a._meas]
+    a._counts = [dict(r, count="2609") for r in a._counts]
+    k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42",
+             values={"events_t": 59, "n_t": 2609, "events_c": 59, "n_c": 2609},
+             span="X | Drug: 59 of 2609 participants | Placebo: 59 of 2609 participants")
+    assert D.verify(k1, a)[0]
+
+
+def test_PLANT_r4_4_a_reader_record_about_another_paper_never_confirms():
+    assert REAL_READER("mc-7948396356bf9b690759ec525d16a1c4", "23808982", "NCT00643201") == (59, 2609, 71, 2635)
+    assert REAL_READER("mc-7948396356bf9b690759ec525d16a1c4", "21128814", None) is None
+    assert REAL_READER("mc-7948396356bf9b690759ec525d16a1c4", "23808982", "NCT00440193") is None

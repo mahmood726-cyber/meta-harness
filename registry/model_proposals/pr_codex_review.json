@@ -5879,5 +5879,71 @@
     "verdict": null
    }
   ]
+ },
+ "d12-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "7892188719257c90182a90373e315aef0103f0f1b3e244674c8cec2434869926"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms / verify",
+    "severity": "P0",
+    "claim": "NUMBER measurements in participant-years are accepted as participant event counts. The substring test accepts 'participant-years', allowing exposure time to become verified event counts.",
+    "failing_input": "from scripts import g1_d12 as d\nfrom unittest.mock import patch\nnct = 'NCT00000001'\na = d.Aact('snapshot')\nrows = [('G1', 'Drug', '20'), ('G2', 'Placebo', '40')]\na._counts = [dict(nct_id=nct, outcome_id='1', ctgov_group_code=g, scope='Measure', count='100') for g, title, value in rows]\na._meas = [dict(nct_id=nct, outcome_id='1', ctgov_group_code=g, classification='', param_type='NUMBER', units='participant-years', param_value=value) for g, title, value in rows]\na._groups = [dict(nct_id=nct, outcome_id='1', ctgov_group_code=g, title=title) for g, title, value in rows]\nb = dict(rule='K1', tuple_kind='COUNTS', own_tuple=True, slug='demo', pmid='111', ncts=[nct], source='AACT NCT00000001 outcome 1', classification='unclassified', values=dict(events_t=20, n_t=100, events_c=40, n_c=100), span='Drug: 20 of 100 participants; Placebo: 40 of 100 participants')\nwith patch.object(d, '_held_nct', return_value=nct), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b, a))",
+    "expected": "Reject the binding: participant-years measure exposure time, not numbers of participants experiencing an event.",
+    "actual": "(True, \"K1: AACT snapshot NCT00000001 outcome 1 (unclassified): groups [('G1', (20, 100)), ('G2', (40, 100))]\")",
+    "id": "d12-r4:g1#1",
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K1 arm assignment)",
+    "severity": "P0",
+    "claim": "Double-dummy group titles permit swapped treatment/control counts. Each title contains both drug names, so checking only whether the desired term occurs certifies the reversed assignment.",
+    "failing_input": "from scripts import g1_d12 as d\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nnct = 'NCT00000001'\npairs = {'G1': (10, 100), 'G2': (20, 100)}\ntitles = {'G1': 'Drug plus placebo for Comparator', 'G2': 'Comparator plus placebo for Drug'}\na = SimpleNamespace(snap='snapshot', arms=lambda *args: pairs, group_title=lambda n, o, g: titles[g])\nb = dict(rule='K1', tuple_kind='COUNTS', own_tuple=True, slug='demo', pmid='111', ncts=[nct], source='AACT NCT00000001 outcome 1', classification='unclassified', values=dict(events_t=20, n_t=100, events_c=10, n_c=100), span='Drug plus placebo for Comparator: 10 of 100 participants; Comparator plus placebo for Drug: 20 of 100 participants')\nwith patch.object(d, '_held_nct', return_value=nct), patch.object(d, 'arm_terms', return_value=(['drug'], ['comparator'])):\n    print(d.verify(b, a))",
+    "expected": "Reject the swapped binding. The active Drug arm has 10/100 events and the active Comparator arm has 20/100; their risk ratio is 0.5.",
+    "actual": "Returns True with basis \"K1: AACT snapshot NCT00000001 outcome 1 (unclassified): groups [('G1', (10, 100)), ('G2', (20, 100))]\". The accepted binding instead supplies 20/100 versus 10/100, yielding a risk ratio of 2.",
+    "id": "d12-r4:g1#2",
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K1 equal tuples)",
+    "severity": "P1",
+    "claim": "Valid bindings with identical event counts and denominators in both arms are rejected. Both groups satisfy '(e_, n_) == (et, nt)', so the control group is incorrectly required to have a treatment title.",
+    "failing_input": "from scripts import g1_d12 as d\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nnct = 'NCT00000001'\npairs = {'G1': (10, 100), 'G2': (10, 100)}\ntitles = {'G1': 'Drug', 'G2': 'Placebo'}\na = SimpleNamespace(snap='snapshot', arms=lambda *args: pairs, group_title=lambda n, o, g: titles[g])\nb = dict(rule='K1', tuple_kind='COUNTS', own_tuple=True, slug='demo', pmid='111', ncts=[nct], source='AACT NCT00000001 outcome 1', classification='unclassified', values=dict(events_t=10, n_t=100, events_c=10, n_c=100), span='Drug: 10 of 100 participants; Placebo: 10 of 100 participants')\nwith patch.object(d, '_held_nct', return_value=nct), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b, a))",
+    "expected": "Accept the correctly labelled, source-matching binding with 10/100 events in each arm.",
+    "actual": "(False, 'K1_GROUP_TITLE_NOT_THE_BOUND_ARM:G2')",
+    "id": "d12-r4:g1#3",
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "reader_counts / verify (K2 second-reader gate)",
+    "severity": "P1",
+    "claim": "A recorded second-reader response for another paper satisfies the confirmation gate whenever its four numbers match. Neither the audited paper nor its input evidence is checked against the binding.",
+    "failing_input": "from scripts import g1_d12 as d\nfrom unittest.mock import patch, mock_open\nimport base64, json\nspan = 'Drug: 10 of 100 participants died; Placebo: 20 of 100 participants died.'\nvalues = dict(events_t=10, n_t=100, events_c=20, n_c=100)\nresponse = dict(state='REPORTED', pmid='999', **values)\nrecord = dict(state='RAN_OK', request=dict(pmid='999', abstract=span), response=dict(b64=base64.b64encode(json.dumps(response).encode()).decode()))\nb = dict(rule='K2', tuple_kind='COUNTS', own_tuple=True, slug='demo', pmid='111', values=values, span=span, second_reader=dict(verdict='CONFIRMED', record_id='audit-for-999'))\nwith patch.object(d, '_held_abstract', return_value=span), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(d.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data=json.dumps(record))):\n    print(d.verify(b))",
+    "expected": "Reject the confirmation: the recorded reader examined PMID 999, while this binding requires independent confirmation of PMID 111 and its evidence.",
+    "actual": "(True, 'K2: PMID 111 held abstract span (events and Ns in the span, arms in order)')",
+    "id": "d12-r4:g1#4",
+    "record_id": "mc-0e062b50798ea0586ade718600c01744",
+    "verdict": null
+   }
+  ]
  }
 }

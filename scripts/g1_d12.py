@@ -92,7 +92,7 @@ def _held_nct(slug, pmid):
     return None
 
 
-def reader_counts(record_id):
+def reader_counts(record_id, pmid=None, nct=None):
     """(events_t, n_t, events_c, n_c) as the independent second reader's RECORDED response states them, or None."""
     import base64
     p = os.path.join(ROOT, "evidence", "model_calls", "audit", f"{record_id}.json")
@@ -105,6 +105,20 @@ def reader_counts(record_id):
         return None
     if r.get("state") != "RAN_OK" or resp.get("state") != "REPORTED":
         return None
+    if pmid is not None:
+        # the record must be ABOUT this paper (codex d12-r4 #4): one of its recorded inputs is this PMID's held text,
+        # and its prompt names the trial's registration when the binding states one
+        refs = [str(d.get("ref") or "") for d in r.get("input_digests") or []]
+        if not any(f"PMID {pmid}" == x or x.startswith(f"PMID {pmid} ") or f" PMID {pmid} " in f" {x} " for x in refs):
+            return None
+        if nct:
+            pr = r.get("prompt") or {}
+            try:
+                ptxt = base64.b64decode(pr.get("b64") or "").decode("utf-8") if isinstance(pr, dict) else str(pr)
+            except (ValueError, TypeError):
+                return None
+            if nct not in ptxt:
+                return None
     vals = tuple(_whole(resp.get(k)) for k in _VALUE_KEYS)
     return None if None in vals else vals
 
@@ -160,11 +174,9 @@ class Aact:
             if r["nct_id"] != nct or r["outcome_id"] != oid or (r.get("classification") or "") != cls:
                 continue
             pt, units = (r.get("param_type") or "").upper(), (r.get("units") or "").lower()
-            # NUMBER only with units that ARE participants -- never 'percentage of participants', a rate or a
-            # proportion (codex d12-r2 #1)
-            counted = "participant" in units and not any(w in units for w in ("percent", "%", "rate", "proportion", "per ",
-                                                                              "/"))
-            if not (pt == "COUNT_OF_PARTICIPANTS" or (pt == "NUMBER" and counted)):
+            # an ALLOWLIST of units that are a count of people, exactly -- never a substring test, which admitted
+            # 'percentage of participants', rates and 'participant-years' (codex d12-r2 #1, r3 #2, r4 #1)
+            if not (pt in ("COUNT_OF_PARTICIPANTS", "NUMBER") and " ".join(units.split()) in COUNT_UNITS):
                 continue
             e[r["ctgov_group_code"]] = r["param_value"]
         out = {}
@@ -173,6 +185,10 @@ class Aact:
             if ev is not None and nn is not None:
                 out[g] = (ev, nn)
         return out
+
+
+COUNT_UNITS = ("participants", "participant", "subjects", "patients", "number of participants",
+               "number or participants with an event", "number of participants with an event")
 
 
 def _whole(x):
@@ -298,23 +314,31 @@ def verify(b, aact=None):
         if aact is None:
             return False, "K1_NOT_VERIFIABLE:NO_AACT_SNAPSHOT"
         arms = aact.arms(nct, oid, b.get("classification"))
-        pairs = sorted(arms.values())
-        if len(arms) != 2 or pairs != sorted([(et, nt), (ec, nc)]):
+        if len(arms) != 2:
             return False, f"K1_AACT_ROWS_DIFFER:{sorted(arms.items())}"
-        # the span names each (events, N) pair with ITS OWN AACT group title: which arm is ours is the binding's mapping,
-        # and the span must state it exactly as AACT does (a swapped span never verifies)
+        # each group's ROLE is read from its own AACT title, never from its values (codex d12-r4 #2 #3): the treatment
+        # group's title names a treatment term and no control term, the control group's a control term and no treatment
+        # term. A title naming both (a double-dummy arm, 'Dabigatran + placebo warfarin') or neither is refused.
+        tr, co = arm_terms(b.get("slug"))
+        role = {}
+        for g in arms:
+            tt = _norm(aact.group_title(nct, oid, g))
+            is_t, is_c = _first(tt, tr) is not None, _first(tt, co) is not None
+            if is_t == is_c:
+                return False, f"K1_GROUP_ROLE_AMBIGUOUS:{g}"
+            role[g] = "t" if is_t else "c"
+        if sorted(role.values()) != ["c", "t"]:
+            return False, f"K1_NOT_ONE_TREATMENT_AND_ONE_CONTROL_GROUP:{role}"
+        g_t = next(g for g, r in role.items() if r == "t")
+        g_c = next(g for g, r in role.items() if r == "c")
+        if arms[g_t] != (et, nt) or arms[g_c] != (ec, nc):
+            return False, f"K1_AACT_ROWS_DIFFER:{sorted(arms.items())}"
+        # the span names each (events, N) pair with ITS OWN AACT group title
         span = b.get("span") or ""
         for g, (e_, n_) in arms.items():
             title = aact.group_title(nct, oid, g)
             if not title or f"{title}: {e_} of {n_} participants" not in span:
                 return False, f"K1_SPAN_DOES_NOT_STATE_AACT_GROUP:{g}"
-        # and the treatment pair's group title names a treatment term, the control pair's a control term
-        tr, co = arm_terms(b.get("slug"))
-        for g, (e_, n_) in arms.items():
-            tt = _norm(aact.group_title(nct, oid, g))
-            want = tr if (e_, n_) == (et, nt) else co
-            if _first(tt, want) is None:
-                return False, f"K1_GROUP_TITLE_NOT_THE_BOUND_ARM:{g}"
         return True, f"K1: AACT {os.path.basename(aact.snap)} {nct} outcome {oid} ({b.get('classification')}): " \
                      f"groups {sorted(arms.items())}"
     if rule == "K2":
@@ -347,7 +371,7 @@ def verify(b, aact=None):
         if not ok:
             return False, why
         # the RECORD is read, not the label (codex d12-r3 #1): its own response must state these four counts, arm for arm
-        got = reader_counts(sr["record_id"])
+        got = reader_counts(sr["record_id"], pmid=str(b.get("pmid")), nct=(b.get("ncts") or [None])[0])
         if got != (et, nt, ec, nc):
             return False, f"K2_SECOND_READER_RECORD_DOES_NOT_STATE_THESE_COUNTS:{got}"
         st = int_tokens(span)
