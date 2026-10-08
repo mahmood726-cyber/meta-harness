@@ -802,3 +802,32 @@ My 37031750 is a cross-check dissenter on GISSI-P.
 - **Budget:** codex meter primary_used=27.0 (5h window). Disk C: 12.6 GB
  F: 37.3 GB
  .
+
+## 2026-10-08 — gap-list share (forest): sglt2-ckd, sacubitril, tranexamic, melatonin, doac
+
+Regex first everywhere; no model call was needed for any of the five.
+
+- **doac-vte (29795629): DONE.** `scripts/g1_typed_table.py` reads the CC BY JATS Table 1 'VTE Studies' block by regex: RE-COVER 30/1274 v 27/1265, EINSTEIN-DVT 36/1731 v 51/1718, AMPLIFY 59/2609 v 71/2635, Hokusai-VTE 130/4118 v 146/4122, RE-COVER II 30/1279 v 28/1289.
+  - These match binding's gated enumeration spans (mc-0fd0244b) exactly, 5 of 5.
+  - The unchanged gate ACCEPTS them: the meta states random effects, τ² = 0, and DL/PM/REML give OR 0.881 (0.749–1.036) against the printed 0.88 (0.75–1.03).
+  - **For the reviewer:** the upper bound is 0.0058 away. That is inside the gate's allowance (printed rounding plus a half-unit row-rounding extra) but outside printed rounding alone, and typed counts carry no row rounding. M-H fixed gives 1.0350. The margin is recorded beside the verdict.
+  - **Merge-check** (local tracker run with a temporary pin, nothing committed): the tracker's `lane_comparator_rows` takes all 5 rows and each trial now carries its comparator row. The check also caught a bug in my reader: `acceptance.state` had stayed REFUSED, so the tracker dropped the rows. Fixed with a plant.
+  - **Still blocking RESULT_AGREES, not this lane's:**
+    - (a) the tracker's typed comparator result is empty (COMPARATOR_PRINTS_NO_RESULT_FOR_OUTCOME), although the meta's own text prints OR 0.88 (0.75–1.03) and the swap enumeration holds it typed: **captain/binding**;
+    - (b) our side is HRs without counts (MEASURE_DIFFERENCE): **binding, item (b)**.
+  - **Captain:** v2 needs a lane pin (`a1a14ba6` or later) for these rows to count.
+- **melatonin (35691474): DONE.** The comparator prints its pool only in supplementary Fig X2. `scripts/comparator_figure_result.py` writes `registry/comparator_results.json` from the ACCEPTED dual read of that figure: codex + agy agree (mc-51f2b4b8 + mc-750966a3), DL/PM/REML reproduce it, anchor PRINTED_IN_FIGURE_ONLY.
+  - Recorded: **MD −3.72 (−8.45, 1.01)**.
+  - Local tracker check: the blocker moves from COMPARATOR_PRINTS_NO_RESULT_FOR_OUTCOME to RESULT_DIFFERS:SAME_CONCLUSION_DIFFERENT_ESTIMATE (null included on both sides; gap 0.36 of the CI half-width).
+  - Still 0 of 2 matched (both trials screened out): binding/captain.
+- **sglt2-ckd (41203232): NOT OPEN, so not read.**
+  - Europe PMC supplementaryFiles answers "Article with id PMC12595549 is not open access".
+  - PMC's own permissions: "Copyright 2025 American Medical Association. All rights reserved, including those for text and data mining, AI training". The licence guard has it NOT_OPEN, and the held Europe PMC full text is an empty file.
+  - No eTable was fetched or read, by regex or by model. Per-trial comparator rows for this comparator are unreachable from open sources: captain (D8 OPEN_SOURCES_ONLY) / binding (swap).
+- **sacubitril (36722326): NO PER-TRIAL ROWS.** The NMA is CC BY-NC-ND (typed read allowed). Its held supplement `EHF2-10-1314-s001.docx` has exactly three items:
+  - Supplemental Table 1: ranking probabilities (rows are treatments);
+  - Supplemental Table 2: heterogeneity per outcome;
+  - Supplemental Figure 1: risk of bias.
+  - No trial is even named. The other held files are the main figures. RESULT_AGREES cannot be met against this comparator; a swap (binding) is the only route.
+- **tranexamic (39461793): WAITING on binding.** D10 has not settled the outcome: `topics/tranexamic-acid-pph.json` is still 'Death due to bleeding' with no amendment, and the protocol is unchanged. No read, by design; I'll read the figure once the outcome is amended.
+- **Budget:** codex primary_used=38.0 (5h window). 0 model calls today.
