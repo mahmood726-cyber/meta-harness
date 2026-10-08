@@ -5188,5 +5188,47 @@
     "verdict": null
    }
   ]
+ },
+ "idlink-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d17104445981927a1e8a8df5036ec532",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "a3bf2ad09a30a029837cb1c860f80810588bf4a2ce048b103e3fa01436a95c20"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study / supported",
+    "severity": "P1",
+    "claim": "The comparison exclusion checks only words immediately preceding 'the'. Explicit comparisons with intervening words pass as own-study evidence, allowing a cited trial's registration to support the wrong paper.",
+    "failing_input": "from scripts.g1_identity_links import supported\nfrom hashlib import sha256\ntext = 'We compared our unregistered cohort with the ALPHA trial (NCT00000001).'\nlink = {'nct': 'NCT00000001', 'rules': [\n    {'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': text, 'text_sha256': sha256(text.encode()).hexdigest()},\n    {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'ALPHA', 'title': 'Outcomes compared with those of the ALPHA trial', 'registry_acronym': 'ALPHA', 'registry_acronym_source': 'AACT studies.txt NCT00000001 acronym'}\n]}\nprint(supported(link))",
+    "expected": "False: both spans describe the registered trial as an external comparator, not this paper's own study.",
+    "actual": "True. Removing 'the' leaves a prefix ending in 'those of', which evades every comparison suffix check.",
+    "id": "idlink-r5:g1#1",
+    "record_id": "mc-d17104445981927a1e8a8df5036ec532",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study / supported",
+    "severity": "P1",
+    "claim": "Missing word boundaries allow an acronym and the following 'trial' marker to be extracted from a single unrelated word. This fabricates title evidence for a trial binding.",
+    "failing_input": "from scripts.g1_identity_links import supported\nfrom hashlib import sha256\ntext = 'Our unregistered cohort used the A trial (NCT00000001) as background evidence.'\nlink = {'nct': 'NCT00000001', 'rules': [\n    {'rule': 'ONE_NCT_STATED_IN_OWN_REPORT', 'span': text, 'text_sha256': sha256(text.encode()).hexdigest()},\n    {'rule': 'TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM', 'span': 'A', 'title': 'The Atrial Fibrillation study', 'registry_acronym': 'A', 'registry_acronym_source': 'AACT studies.txt NCT00000001 acronym'}\n]}\nprint(supported(link))",
+    "expected": "False: 'Atrial' does not name a study with acronym 'A'; the registration appears only as background evidence.",
+    "actual": "True. The predicate splits 'Atrial' into acronym 'A' and suffix 'trial', satisfying its own-study check.",
+    "id": "idlink-r5:g1#2",
+    "record_id": "mc-d17104445981927a1e8a8df5036ec532",
+    "verdict": null
+   }
+  ]
  }
 }
