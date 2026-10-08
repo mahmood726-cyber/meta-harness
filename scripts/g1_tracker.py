@@ -760,6 +760,61 @@ def reported_is_our_outcome(name, spec_name, keywords):
     return binding_verdict(spec_name, list(keywords or []), name, 2)["gate"] not in ("OUTCOME_NOT_NAMED", "ESTIMAND")
 
 
+D12_COUNTS = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "bindings_counts.json")
+D12_BASIS = ("D12 COUNTS_FOR_MATCHING (Mahmood approved, 8 Oct 2026): the trial's own typed per-arm counts stand for it in "
+             "the G1 same-trials comparison on the comparator's measure -- never in a served pool")
+
+
+def d12_verified(b):
+    """A staged own-trial count binding is usable under D12 only when typed DETERMINISTICALLY (K1 AACT posted counts,
+    K2 the trial's own abstract, K4 a regulatory table -- never a model read), 0 <= events <= N on both arms, and both
+    event counts PRINTED in its own span (re-checked here, never trusted)."""
+    v = (b or {}).get("values") or {}
+    if (b or {}).get("rule") not in ("K1", "K2", "K4"):
+        return False
+    if not all(isinstance(v.get(k), int) for k in ("events_t", "n_t", "events_c", "n_c")):
+        return False
+    if not (0 <= v["events_t"] <= v["n_t"] and 0 <= v["events_c"] <= v["n_c"] and v["n_t"] and v["n_c"]):
+        return False
+    # only a THOUSANDS separator inside a number is removed ('27 307', '8,582'); stripping every space glued '8.68 123'
+    # into '8.68123' and hid CANVAS's 123 (8 Oct)
+    span = re.sub(r"(?<![\d.])(\d{1,3})[   ,](\d{3})(?![\d.])", r"\1\2", str(b.get("span") or ""))
+    return all(re.search(rf"(?<!\d){v[k]}(?!\d)", span) for k in ("events_t", "events_c"))
+
+
+def d12_value(b, theirs_measure):
+    """Our side of the pair under D12: the counts on the comparator's COUNT measure (RR / OR); None for any other
+    measure (an HR is never re-expressed from counts)."""
+    m = (theirs_measure or "").upper()
+    if m not in ("RR", "OR") or not d12_verified(b):
+        return None
+    return dict({k: b["values"][k] for k in ("events_t", "n_t", "events_c", "n_c")}, measure=m)
+
+
+def d12_ours(x, d12, theirs):
+    """Our side of a same-trials pair for a MATCHED trial x: its D12 counts on the comparator's count measure when a
+    verified binding exists for its PMID (x['d12_counts'] records the basis and the served-value agreement), else its
+    served value. x['our_value'] is never changed. One helper for every site that pairs a matched trial (the pool loop,
+    the typed comparator rows, the same-trial-other-report path: CANVAS was paired there, 8 Oct)."""
+    b = (d12 or {}).get(str(x.get("family") or "").replace("PMID ", ""))
+    dv = d12_value(b, getattr(theirs, "measure", None)) if theirs is not None else None
+    if not dv:
+        return x.get("our_value")
+    x["d12_counts"] = {"values": {k: dv[k] for k in ("events_t", "n_t", "events_c", "n_c")}, "measure": dv["measure"],
+                       "rule": b.get("rule"), "source": b.get("source"), "span": (b.get("span") or "")[:400],
+                       "basis": D12_BASIS, "agreement_on_served_value": agreement(x.get("our_value"), theirs)}
+    return dv
+
+
+def d12_bindings(slug):
+    """{PMID: binding} of the verified staged counts for a topic (joined by the trial's PMID, never by label: the
+    tracker labels trials by the comparator's names)."""
+    if not os.path.exists(D12_COUNTS):
+        return {}
+    return {str(b.get("pmid")): b for b in (_j(D12_COUNTS).get("bindings") or [])
+            if b.get("slug") == slug and b.get("pmid") and d12_verified(b)}
+
+
 _PARAM_OF = {"HR": "hazard ratio", "RR": "risk ratio", "OR": "odds ratio", "MD": "mean difference"}
 
 
@@ -2048,8 +2103,9 @@ def apply_typed_comparator_rows(o):
         x["comparator_row_provenance"] = {"meta_pmid": theirs.meta_pmid, "location": theirs.location, "digest": theirs.source_digest,
                                           "read": "TYPED_COMPARATOR_ROW", "row_label": x["label"], "span": r["span"]}
         if is_matched(x) and x.get("our_value"):
-            x["agreement_with_comparator_row"] = agreement(x["our_value"], theirs)
-            pairs.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
+            ov = d12_ours(x, d12_bindings(o.get("slug")), theirs)
+            x["agreement_with_comparator_row"] = agreement(ov, theirs)
+            pairs.append((as_row(ov, x["label"], theirs.measure), theirs))
     method = (o.get("same_trials") or {}).get("method") or "PM"
     o["same_trials"] = dict(same_trials_compare(pairs, method) if pairs else {"state": "NO_SHARED_TRIAL"},
                             method_basis=f"typed comparator rows ({d['source']['path']}); {method}",
@@ -3512,6 +3568,7 @@ def topic(slug, T):
     cfg = _j(os.path.join(ROOT, "topics", slug + ".json"))
     spec_name = (cfg.get("primary_outcome") or {}).get("name") or ""
     kw_all = list((cfg.get("primary_outcome") or {}).get("keywords") or [])
+    d12 = d12_bindings(slug)                     # D12: verified own-trial counts, for MATCHING only (never served)
     trials, routes, pairs, matched_ids = [], Counter(), [], set()
     # COMPARATOR ROWS BY THE COMPARATOR'S OWN LABELS: a comparator trial with no identity of ours (no PMID/NCT resolved)
     # has no family, so its row in the comparator's own figure could never attach (metformin, 3 Oct: 'Ben Ayed 2009',
@@ -3562,11 +3619,14 @@ def topic(slug, T):
         if theirs is not None:
             used_rows.add(id(theirs))
         vrow = None                       # the verified non-pool row that enters the same-trials pair
+        d12v, d12b = None, None           # D12: our side of THIS pair as the trial's own counts (served value untouched)
         if in_pool:
             matched_ids.add(str(mine["id"]))
             route, basis = "PRIMARY", (mine.get("primary") or {}).get("source") or f"our pool {mine['id']}"
             if theirs and mine.get("primary"):
-                pairs.append((as_row(mine["primary"], t["label"], theirs.measure),
+                d12b = d12.get(str(mine["id"]).replace("PMID ", ""))
+                d12v = d12_value(d12b, theirs.measure)
+                pairs.append((as_row(d12v or mine["primary"], t["label"], theirs.measure),
                               trial_report_in_place_of(theirs, mine["primary"])))
         else:
             refusal = absent_by_id.get(str(mine["id"])) if mine else None
@@ -3623,7 +3683,12 @@ def topic(slug, T):
                        # a trial matched through a VERIFIED non-pool row is compared on that row -- the same row its
                        # same-trials pair uses (empagliflozin-hfpef EMPEROR-Preserved, meta 35338608 PRIMARY_VERIFIED,
                        # read NOT_IN_OUR_POOL while its pair was in the comparison)
-                       "agreement_with_comparator_row": agreement(mine and mine.get("primary"), theirs) if in_pool
+                       "d12_counts": ({"values": {k: d12v[k] for k in ("events_t", "n_t", "events_c", "n_c")},
+                                       "measure": d12v["measure"], "rule": d12b.get("rule"), "source": d12b.get("source"),
+                                       "span": (d12b.get("span") or "")[:400], "basis": D12_BASIS,
+                                       "agreement_on_served_value": agreement(mine and mine.get("primary"), theirs)}
+                                      if d12v else None),
+                       "agreement_with_comparator_row": agreement(d12v or (mine and mine.get("primary")), theirs) if in_pool
                        else (agreement(row_value(vrow), theirs) if vrow is not None else "NOT_IN_OUR_POOL"), "comparator_row_state": theirs.state if theirs else None,
                        "comparator_row_reasons": list(theirs.reasons or []) if theirs else [],
                        **({"enumeration": t["enumeration"]} if t.get("enumeration") else {})})
@@ -3696,8 +3761,9 @@ def topic(slug, T):
             theirs = sm.SecondaryRow(meta_pmid=comp, meta_doi="", location={}, source_digest="", provenance="COMPARATOR_ROW",
                                      trial_label=x["label"], measure=cr.get("measure") or "", outcome_definition="",
                                      **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")})
-            x["agreement_with_comparator_row"] = agreement(x["our_value"], theirs)
-            pairs.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
+            ov = d12_ours(x, d12, theirs)
+            x["agreement_with_comparator_row"] = agreement(ov, theirs)
+            pairs.append((as_row(ov, x["label"], theirs.measure), theirs))
         else:
             x["agreement_with_comparator_row"] = "NOT_COMPARABLE:NO_COMPARATOR_ROW"
     for k in [k for k, n in routes.items() if n <= 0]:

@@ -67,3 +67,27 @@ def test_the_generic_primary_outcome_phrase_counts_only_when_the_trial_defines_i
     assert b is None
     b, why = bc.abstract_counts(AMPLIFY, "doac-vte-recurrence")             # its definition names recurrent VTE
     assert b is not None
+
+
+def test_d12_counts_are_used_only_on_a_count_measure_and_only_when_they_verify():
+    # D12 COUNTS_FOR_MATCHING (Mahmood, 8 Oct): a trial's own typed per-arm counts may stand for it in the G1
+    # same-trials comparison on the comparator's measure -- never in a served pool
+    import g1_tracker as gt
+    b = {"rule": "K1", "pmid": "1", "values": {"events_t": 30, "n_t": 1274, "events_c": 27, "n_c": 1265},
+         "span": "... | Dabigatran 150 mg: 30 of 1274 participants | Warfarin: 27 of 1265 participants"}
+    assert gt.d12_verified(b)
+    assert gt.d12_value(b, "OR") == {"events_t": 30, "n_t": 1274, "events_c": 27, "n_c": 1265, "measure": "OR"}
+    assert gt.d12_value(b, "HR") is None                                   # never on a time-to-event measure
+    assert not gt.d12_verified(dict(b, values=dict(b["values"], events_t=3000)))     # events > N
+    assert not gt.d12_verified(dict(b, span="no numbers here"))                     # counts not printed in its span
+    assert not gt.d12_verified(dict(b, rule="K3"))                                  # a model read is not a D12 binding
+
+
+def test_d12_span_check_never_glues_neighbouring_numbers():
+    # CANVAS Table 30 row '120/4347 (2.8) 8.68 123/5795 (2.1) 5.50': stripping every space made '8.68123' and hid 123
+    import g1_tracker as gt
+    b = {"rule": "K4", "pmid": "28605608", "values": {"events_t": 123, "n_t": 5795, "events_c": 120, "n_c": 4347},
+         "span": "Table 30 || Placebo Canagliflozin || Pooled DIA3008 & DIA4003 120/4347 (2.8) 8.68 123/5795 (2.1) 5.50"}
+    assert gt.d12_verified(b)
+    assert gt.d12_verified(dict(b, values={"events_t": 159, "n_t": 27307, "events_c": 194, "n_c": 27097},
+                                span="Death due to bleeding | 159/27 307 | 194/27 097"))

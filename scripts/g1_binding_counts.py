@@ -282,33 +282,65 @@ def aact_n_of_primary(nct, slug):
     return (v[1], v[3], f"AACT {nct} outcome {oid} analysis denominators") if v else None
 
 
-def bind(slug, label, pmid, nct):
+def bind(slug, label, pmid, nct, more_ncts=(), names=()):
+    """K1 AACT -> K2 abstract -> K4 regulatory table. more_ncts: the other studies of a PROGRAM unit (the CANVAS Program
+    = CANVAS + CANVAS-R); names: the trial's acronyms for K4 captions."""
     recs = {r["id"]: r for r in _j(os.path.join(ROOT, "cache", slug, "records.json"))["records"]}
-    out = {"slug": slug, "label": label, "pmid": pmid, "ncts": [nct] if nct else [], "own_tuple": True, "tuple_kind": "COUNTS",
-           "outcome": topic(slug)["primary_outcome"]["name"]}
+    out = {"slug": slug, "label": label, "pmid": pmid, "ncts": [n for n in [nct, *more_ncts] if n], "own_tuple": True,
+           "tuple_kind": "COUNTS", "outcome": topic(slug)["primary_outcome"]["name"]}
     refusals = []
     if nct and pmid:
         import g1_trial_acquire as ta
         if not paper_names_nct(recs.get(pmid), nct, sorted(ta.registered_ncts(pmid))):
             return dict(out, state="NOT_BOUND", why=f"PAPER_DOES_NOT_NAME_{nct}", aact_refusals=[])
-    if nct:
+    if nct and not more_ncts:                     # a program unit is never one study's posted result
         b, refusals = aact_counts(nct, slug)
         if b:
             return dict(out, **b, refused_alternatives=refusals)
     ab = (recs.get(pmid) or {}).get("abstract") or ""
-    b, why = abstract_counts(ab, slug, aact_n_of_primary(nct, slug) if nct else None)
+    b, why = abstract_counts(ab, slug, aact_n_of_primary(nct, slug) if nct and not more_ncts else None)
     if b:
         return dict(out, **b, source=f"PMID {pmid} abstract", refused_alternatives=refusals)
-    return dict(out, state="NOT_BOUND", why=why, aact_refusals=refusals)
+    k4, why4 = k4_bind(slug, label, out["ncts"], list(names) or [label])
+    if k4:
+        return dict(out, **k4, refused_alternatives=refusals, k2_refusal=why)
+    return dict(out, state="NOT_BOUND", why=why, k4_refusal=why4, aact_refusals=refusals)
+
+
+def k4_bind(slug, label, ncts, names):
+    """K4 over EVERY held regulatory document (FDA / EMA text) naming the trial: one distinct tuple across them all."""
+    import g1_regulatory_source as rs
+    import g1_trial_acquire as ta
+    t = topic(slug)
+    spec = t["primary_outcome"]
+    codes = [sorted({c for x in v for c in re.findall(r"[A-Z]{2,}\d{3,}", x)}) for v in rs.study_codes(ncts).values()] \
+        if len(ncts) > 1 else []
+    if len(ncts) > 1 and (len(codes) != len(ncts) or not all(codes)):
+        return None, "PROGRAM_STUDY_CODES_UNRESOLVED"
+    _shown, held = rs.regulatory_evidence({"label": label, "ncts": ncts}, ta.outcome_row_terms(t), slug, names[0])
+    got = []
+    for url, h in sorted(held.items()):
+        r, _why = regulatory_table(h["text"], spec, t, names, codes)
+        if r:
+            got.append((url, h["record"], r))
+    uniq = {tuple(sorted(g[2]["values"].items())) for g in got}
+    if len(uniq) != 1:
+        return None, f"K4: {len(uniq)} distinct tuples over {len(held)} documents naming the trial"
+    url, rec, r = got[0]
+    return {"source_kind": "REGULATORY", "rule": "K4", "values": r["values"], "span": r["span"],
+            "source": f"{rec.get('agency')} {url} (doc sha256 {rec.get('doc_sha256')}; text sha256 {rec.get('text_sha256')}; "
+                      f"{rec.get('licence')})", "documents_agreeing": len(got),
+            "program_study_codes": codes or None}, None
 
 
 def main(args):
     data = _j(OUT) if os.path.exists(OUT) else {"bindings": [], "not_bound": []}
-    prefetch([(a.split("=", 1)[1].split(":") + [None, None, None])[2] for a in args])
+    prefetch([n for a in args for n in ((a.split("=", 1)[1].split(":") + [None, None, None])[2] or "").split("+") if n])
     for a in args:
         slug, rest = a.split("=", 1)
-        label, pmid, nct = (rest.split(":") + [None, None])[:3]
-        r = bind(slug, label, pmid or None, nct or None)
+        label, pmid, ncts, names = (rest.split(":") + [None, None, None])[:4]
+        nl = [n for n in (ncts or "").split("+") if n]
+        r = bind(slug, label, pmid or None, nl[0] if nl else None, nl[1:], [x for x in (names or "").split("|") if x])
         key = (slug, label)
         data["bindings"] = [b for b in data["bindings"] if (b["slug"], b["label"]) != key]
         data["not_bound"] = [b for b in data["not_bound"] if (b["slug"], b["label"]) != key]
@@ -320,6 +352,110 @@ def main(args):
     with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(data, fh, indent=1, ensure_ascii=False)
         fh.write("\n")
+
+
+# ---------------------------------------------------------------------------------------------------------------- K4
+_NN = re.compile(r"(?<![\d,])(\d[\d,]*)\s*/\s*(\d[\d,]*)\s*\(\s*(\d+(?:\.\d+)?)\s*%?\s*\)")
+_NP = re.compile(r"(?<![\d,./])(\d[\d,]*)\s*\(\s*(\d+(?:\.\d+)?)\s*%?\s*\)")
+_CAP = re.compile(r"Table\s+\d+\s*[:.]", re.I)
+_CODE = re.compile(r"\b[A-Z]{2,}\d{3,}\b")
+
+
+def brand_aliases(text, agents):
+    """Brand names the DOCUMENT itself defines for our agents: 'FARXIGA (dapagliflozin)' -> FARXIGA = dapagliflozin."""
+    out = []
+    for a in agents:
+        out += re.findall(r"\b([A-Z][A-Za-z]{3,})\s*®?\s*\(\s*" + re.escape(a) + r"\s*\)", text or "", re.I)
+    return sorted(set(out))
+
+
+def label_names_exactly(label, codes):
+    """codes: one list of study codes PER STUDY of the target (AACT id_information: 'DIA3008' and the sponsor 'CR016627'
+    are the same study). The row label's codes all belong to the target AND name every one of its studies -- the
+    program row 'Pooled DIA3008 & DIA4003' for the CANVAS Program, 'DIA3008' alone for CANVAS."""
+    found = set(_CODE.findall(label or ""))
+    allc = {c for g in codes for c in g}
+    return bool(found) and found <= allc and all(found & set(g) for g in codes)
+
+
+def _orient(header, interv, comp):
+    pi = [m.start() for m in re.finditer("|".join(re.escape(x) for x in interv), header, re.I)] if interv else []
+    pc = [m.start() for m in re.finditer("|".join(re.escape(x) for x in comp), header, re.I)] if comp else []
+    if not pi or not pc:
+        return None
+    return "IC" if min(pi) < min(pc) else "CI"
+
+
+def regulatory_table(text, spec, t, names, codes):
+    """K4 -- the trial's per-arm counts from a TABLE of a held regulatory document (FDA label / review: US-government
+    work), deterministically:
+      the table's caption names the trial (acronym, program name); exactly one of two shapes --
+        (a) rows 'x/N (p)': the outcome is the CAPTION's (binding_verdict), the row label names exactly the target's
+            study codes ('Pooled DIA3008 & DIA4003' for a program, 'DIA3008' for one study);
+        (b) per-arm 'N=' in the header and an 'n (%)' unit line, rows 'x (p)': the row LABEL is the outcome
+            (binding_verdict: a composite label is refused);
+      orientation from the header by OUR agents plus brand names the same document defines; every count
+      percent-corroborated; exactly one distinct tuple."""
+    import g1_tracker as gt
+    import g1_outcomes as go
+    kws = [k for k in spec.get("keywords") or [] if len(k) >= 4]
+    agents = go._intervention_terms(t)
+    interv = agents + brand_aliases(text, [a for a in agents if a.islower() and len(a) > 5])
+    comp = [x for x in (t.get("comparator_terms") or []) if x]
+    caps = [m.start() for m in _CAP.finditer(text or "")] + [len(text or "")]
+    cands, whys = [], []
+    for k in range(len(caps) - 1):
+        block = text[caps[k]:min(caps[k + 1], caps[k] + 4000)]
+        if not any(re.search(r"\b" + re.escape(n) + r"\b", block[:300], re.I) for n in names):
+            continue
+        lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
+        first = next((i for i, ln in enumerate(lines) if _NN.search(ln) or len(_NP.findall(ln)) >= 2), None)
+        if first is None:
+            continue
+        header = " ".join(lines[:first])
+        order = _orient(header, interv, comp)
+        if not order:
+            whys.append("ORIENTATION_UNREADABLE")
+            continue
+        caption = " ".join(lines[:3])
+        label_acc = []
+        for ln in lines:
+            nn = _NN.findall(ln)
+            npc = _NP.findall(ln) if not nn else []
+            if not nn and len(npc) < 2:
+                label_acc.append(ln)
+                continue
+            # the row's OWN text before its numbers; only a row with none takes the (at most two) lines above it
+            # ('Pooled DIA3008 & / DIA4003'), never a section heading glued onto a labelled row
+            prefix = ln[:(_NN.search(ln) or _NP.search(ln)).start()].strip()
+            label = prefix if prefix else " ".join(label_acc[-2:]).strip()
+            label_acc = []
+            if nn and len(nn) >= 2:                                          # shape (a)
+                if gt.binding_verdict(spec["name"], kws, caption, 2)["verdict"] != "BINDABLE":
+                    continue
+                if codes and not label_names_exactly(label, codes):
+                    continue
+                cells = [(_int(a), _int(b), p) for a, b, p in nn[:2]]
+            elif len(npc) >= 2 and re.search(r"\bn\s*\(\s*%\s*\)", header, re.I):   # shape (b)
+                if gt.binding_verdict(spec["name"], kws, label, 2)["verdict"] != "BINDABLE":
+                    continue
+                ns = [_int(x) for x in re.findall(r"\bN\s*=\s*([\d,]+)", header)][:2]
+                if len(ns) != 2:
+                    continue
+                cells = [(_int(npc[0][0]), ns[0], npc[0][1]), (_int(npc[1][0]), ns[1], npc[1][1])]
+            else:
+                continue
+            if not all(e is not None and n and _pct_ok(e, n, p) for e, n, p in cells):
+                whys.append(f"PERCENT_DOES_NOT_CORROBORATE: {label[:60]}")
+                continue
+            (et, nt, _), (ec, nc, _) = cells if order == "IC" else cells[::-1]
+            cands.append({"values": {"events_t": et, "n_t": nt, "events_c": ec, "n_c": nc},
+                          "span": f"{caption[:200]} || {header[-160:]} || {label} {ln}"[:700], "order": order})
+    uniq = {tuple(sorted(c["values"].items())) for c in cands}
+    if len(uniq) == 1:
+        return cands[0], None
+    return None, (f"AMBIGUOUS: {len(uniq)} distinct tuples" if uniq else
+                  (whys[0] if whys else "NO_TABLE_OF_THIS_TRIAL_WITH_ARM_COUNTS"))
 
 
 # ---------------------------------------------------------------------------------------------------------------- K3
