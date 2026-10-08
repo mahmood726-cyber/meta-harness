@@ -5104,5 +5104,47 @@
     "verdict": null
    }
   ]
+ },
+ "idlink-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b272e3087dfa839829447fe3dcb4a57e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "e5f68db0cf235b837b39d06e7395ae5bb957c02bd2176edb09cdd9a6b3549df9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "supported / join",
+    "severity": "P1",
+    "claim": "An NCT mentioned explicitly as another study passes the own-report identity check. Combined with that study's acronym in a comparison title, this incorrectly binds an unrelated report to the pooled trial.",
+    "failing_input": "import hashlib\nimport scripts.g1_identity_links as m\nspan = 'The previous PARALLEL-HF trial was registered as NCT02468232. Our unrelated observational cohort was not registered.'\nlk = {'nct': 'NCT02468232', 'rules': [{'rule': m.RULES[0], 'span': span, 'text_sha256': hashlib.sha256(span.encode()).hexdigest()}, {'rule': m.RULES[1], 'span': 'PARALLEL-HF', 'title': 'An unrelated observational cohort: comparison with PARALLEL-HF', 'registry_acronym': 'PARALLEL-HF', 'registry_acronym_source': 'AACT snap studies.txt NCT02468232 acronym'}]}\nt = {}\nx = {'in_our_pool': False, 'route': 'NO_ROW'}\nprint(m.supported(lk))\nm.join([x], [t], {id(t): '123'}, {'NCT02468232': 'pooled-trial'}, {'pooled-trial'}, set(), {'NO_ROW': 1}, links={'123': lk})\nprint(x['in_our_pool'], x['route'])",
+    "expected": "False; then False NO_ROW. The supplied text explicitly distinguishes this cohort from the registered trial.",
+    "actual": "True; then True PRIMARY. The NCT check only tests occurrence, and join marks the unrelated report g1_countable=True.",
+    "id": "idlink-r3:g1#1",
+    "record_id": "mc-b272e3087dfa839829447fe3dcb4a57e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "registry_acronym_from_aact",
+    "severity": "P2",
+    "claim": "A missing required acronym column silently becomes an absent acronym instead of a schema error. This makes a broken snapshot indistinguishable from a valid record with no registered acronym.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts.g1_identity_links import registry_acronym_from_aact\nwith patch('builtins.open', return_value=io.StringIO('nct_id|brief_title\\nNCT02468232|Example trial\\n')):\n    print(registry_acronym_from_aact('NCT02468232', 'snap'))",
+    "expected": "Raise an explicit schema error because studies.txt lacks the acronym column.",
+    "actual": "(None, 'AACT snap studies.txt NCT02468232 acronym')",
+    "id": "idlink-r3:g1#2",
+    "record_id": "mc-b272e3087dfa839829447fe3dcb4a57e",
+    "verdict": null
+   }
+  ]
  }
 }

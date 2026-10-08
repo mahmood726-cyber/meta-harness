@@ -56,7 +56,11 @@ def registry_acronym_from_aact(nct, snap):
     csv.field_size_limit(10 ** 9)
     p = os.path.join(snap, "studies.txt")
     with open(p, encoding="utf-8", newline="") as f:
-        for row in csv.DictReader(f, delimiter="|"):
+        rd = csv.DictReader(f, delimiter="|")
+        if not {"nct_id", "acronym"} <= set(rd.fieldnames or []):
+            # a broken snapshot is not 'no registered acronym' (codex idlink-r3 #2)
+            raise ValueError(f"{p}: studies.txt lacks nct_id/acronym columns ({(rd.fieldnames or [])[:8]})")
+        for row in rd:
             if row.get("nct_id") == nct:
                 return (row.get("acronym") or "").strip() or None, f"AACT {os.path.basename(snap)} studies.txt {nct} acronym"
     return None, f"AACT {os.path.basename(snap)} studies.txt: {nct} not found"
@@ -80,7 +84,31 @@ def supported(lk):
         return False
     span = acro.get("span")
     return (isinstance(span, str) and _fold(span) != "" and span in str(acro.get("title") or "")
-            and _fold(span) == _fold(acro.get("registry_acronym")) and bool(acro.get("registry_acronym_source")))
+            and _fold(span) == _fold(acro.get("registry_acronym")) and bool(acro.get("registry_acronym_source"))
+            and title_names_own_study(acro.get("title"), span))
+
+
+def title_names_own_study(title, acro):
+    """The title presents the acronym as ITS OWN study, not as a trial it compares with or cites (codex idlink-r3 #1):
+    'the <ACRO> study/trial' anywhere ('Results From the PARALLEL-HF Study'), or the title opens '<ACRO>:'. A title that
+    names it after 'versus' / 'compared with' / 'than' / 'like' / 'unlike' / 'vs' is never its own study. Plain scan."""
+    t = " ".join(str(title or "").split())
+    low, a = t.lower(), str(acro or "").lower()
+    if not a:
+        return False
+    if low.startswith(a + ":"):
+        return True
+    i = low.find(a)
+    while i >= 0:
+        before = low[:i].rstrip()
+        after = low[i + len(a):].lstrip(" ")
+        if before.endswith(" the") and (after.startswith("study") or after.startswith("trial")):
+            # 'versus the X trial': the word before 'the' marks a comparison -> not its own study
+            if not any(before[:-4].rstrip().endswith(w) for w in (" versus", " vs", " vs.", " compared with",
+                                                                   " compared to", " than", " like", " unlike")):
+                return True
+        i = low.find(a, i + 1)
+    return False
 
 
 def join(trials, comp_rows, rp, nct_pool, pooled_ids, matched_ids, routes, links=None):

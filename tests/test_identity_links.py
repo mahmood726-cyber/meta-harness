@@ -91,3 +91,21 @@ def test_PLANT_the_nct_fact_needs_exactly_this_registration_and_the_acronym_fact
     assert L.supported(good)
     assert L.nct_ids_in("x (NCT02468232). NCT0246823 NCT024682321 XNCT01111111 nct00000001") == {"NCT02468232",
                                                                                                 "NCT00000001"}
+
+
+def test_PLANT_a_title_comparing_with_another_trial_is_not_its_own_study_and_a_broken_snapshot_raises(tmp_path):
+    """codex idlink-r3: #1 another study's NCT + its acronym in a COMPARISON title bound an unrelated report;
+    #2 a snapshot without the acronym column read as 'no registered acronym'."""
+    import pytest
+    own = "Efficacy and Safety of Sacubitril/Valsartan ... - Results From the PARALLEL-HF Study."
+    assert L.title_names_own_study(own, "PARALLEL-HF")
+    assert L.title_names_own_study("PARALLEL-HF: a randomised trial", "PARALLEL-HF")
+    for t in ("Outcomes in Japan compared with the PARALLEL-HF trial", "Our cohort versus the PARALLEL-HF study",
+              "Sacubitril in Japan: lessons from PARALLEL-HF", "A PARALLEL-HF substudy"):
+        assert not L.title_names_own_study(t, "PARALLEL-HF"), t
+    lk = _link("NCT02468232", "PARALLEL-HF")
+    lk["rules"][1]["title"] = "Outcomes in Japan compared with the PARALLEL-HF trial"
+    assert not L.supported(lk)
+    (tmp_path / "studies.txt").write_text("nct_id|brief_title\nNCT02468232|x\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        L.registry_acronym_from_aact("NCT02468232", str(tmp_path))
