@@ -31,6 +31,12 @@ def _reason(element: str, text: str) -> str:
     return f'<p class="tab-reason" data-element="{_e(element)}"><strong>Not shown -- </strong>{text}</p>'
 
 
+def _unreadable(element: str, path: str) -> str:
+    """A registry the page needs could not be read: the state is UNKNOWN, never 'none recorded' (captain review g1#4)."""
+    return (f'<p class="tab-reason" data-element="{_e(element)}" data-state="UNKNOWN"><strong>UNKNOWN -- </strong>'
+            f"<code>{_e(path)}</code> could not be read when this page was built, so whether any record exists is not known.</p>")
+
+
 def _fmt(x: Any) -> str:
     if isinstance(x, bool) or x is None:
         return _e(x)
@@ -253,13 +259,18 @@ def extraction_rows(r: dict) -> list[dict]:
     """One row per pooled number (outcome x trial) that may be shown; the audit pack samples these rows."""
     from .provenance_class import recorded_reads, served_class
     reads = recorded_reads(str(ROOT))
+    held = _held_index()
     slug = r.get("slug") or ""
     rows = []
     for oi, o in enumerate(r.get("outcomes") or []):
         if _gated(o):
             continue
         for ti, t in enumerate(o.get("trials") or []):
-            cls, why, recs = served_class(t, slug, o.get("name"), _GATE_ADMITTED, reads, str(ROOT))
+            if held is None:
+                cls, why, recs = ("UNKNOWN", "registry/held_record_ids.json could not be read, so cited records cannot be "
+                                  "checked", [])
+            else:
+                cls, why, recs = served_class(t, slug, o.get("name"), held.__contains__, reads, str(ROOT))
             rows.append({"anchor": f"x{oi}-{ti}", "outcome": o.get("name"), "state": outcome_state(o),
                          "trial": t.get("label"), "id": t.get("id"),
                          "value": _value(t), "provenance": t.get("provenance"), "class": cls, "class_why": why,
@@ -268,10 +279,13 @@ def extraction_rows(r: dict) -> list[dict]:
     return rows
 
 
-def _GATE_ADMITTED(rid: str) -> bool:
-    """A served page has passed the provenance gate (scripts/provenance_census.py, a verify_all limb), which refuses any
-    row citing a record that is not in the tree; the page therefore never looks a record up itself."""
-    return True
+def _held_index():
+    """The committed index of held record ids (registry/held_record_ids.json). None when it cannot be read: the page then
+    states the class as UNKNOWN rather than assuming the record exists (captain review g1#3)."""
+    try:
+        return frozenset(_registry("held_record_ids.json")["ids"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
 
 
 def _rec_link(rid: str) -> str:
@@ -289,7 +303,8 @@ def extraction_tab(r: dict) -> str:
            "<strong>RECORDED_MODEL_CALL</strong> = a recorded model call that replays offline (its record id is shown; the "
            "audit pack links each record); "
            "<strong>HAND_ENTERED</strong> = entered outside the harness, bound to a held span, on the burn-down list "
-           f"{_src('registry/provenance_hand_entered.json')}; <strong>UNTRACED</strong> = refused by the gate.</p>"]
+           f"{_src('registry/provenance_hand_entered.json')}; <strong>UNTRACED</strong> = refused by the gate. A cited record "
+           f"is checked against the index of held records, {_src('registry/held_record_ids.json')}.</p>"]
     if rows:
         body = []
         for x in rows:
@@ -317,8 +332,10 @@ def extraction_tab(r: dict) -> str:
 def d11_status() -> str:
     try:
         d = next(x for x in _registry("g1_decisions.json").get("decisions") or [] if str(x.get("id")).startswith("D11"))
-    except (OSError, ValueError, StopIteration):
+    except StopIteration:
         return _reason("D11 reproducible-AI sign-off", "no D11 decision is recorded in registry/g1_decisions.json.")
+    except (OSError, ValueError):
+        return _unreadable("D11 reproducible-AI sign-off", "registry/g1_decisions.json")
     return ("<h4 id='d11-signoff'>D11: reproducible-AI sign-off of RoB 2 and GRADE</h4>"
             f"<p>Decision <code>{_e(d.get('id'))}</code> ({_e(d.get('decided'))}, {_e(d.get('by'))}): {_e(d.get('rule'))}</p>"
             + _reason("D11 reproducible-AI sign-off",
@@ -487,10 +504,12 @@ def changes_tab(r: dict) -> str:
                                                      "at this build. The absence of a notice is not evidence that the result "
                                                      "never changed: changes before the notice system, and pool notes, are in "
                                                      "the Reproduce tab."))
+    unreadable = []
     try:
         rein = [x for x in _registry("result_change_reinstatements.json").get("reinstatements") or [] if x.get("slug") == slug]
     except (OSError, ValueError):
         rein = []
+        unreadable.append("registry/result_change_reinstatements.json")
     if rein:
         out.append("<h4>Reinstatements</h4><table class='recs'><tr><th>Outcome</th><th>Trial</th><th>Notice</th>"
                    "<th>Reverses</th><th>Declared by</th></tr>"
@@ -501,13 +520,16 @@ def changes_tab(r: dict) -> str:
         sw = (_registry("comparator_switch_signatures.json").get("switches") or {}).get(slug)
     except (OSError, ValueError):
         sw = None
+        unreadable.append("registry/comparator_switch_signatures.json")
     if sw:
         out.append("<h4>Comparator switch (signed)</h4>"
                    f"<p>{_e(sw.get('item'))}: comparator PMID {_e(sw.get('from'))} &rarr; {_e(sw.get('to'))}, "
                    f"{_e(sw.get('state'))} by {_e(sw.get('by'))} at {_e(sw.get('when_utc'))} (packet sha256 "
                    f"<code>{_e(str(sw.get('packet_sha256'))[:16])}</code>). Source: {_src('registry/comparator_switch_signatures.json')}.</p>")
+    for f in unreadable:
+        out.append(_unreadable("withdrawals/reinstatements stated", f))
     wd = [n for n in notices if (P.result_changes_status(n) or {}).get("state") == "WITHDRAWN_BY_SIGNER"]
-    if not wd and not rein:
+    if not wd and not rein and not unreadable:
         out.append(_reason("withdrawals/reinstatements stated",
                            "no withdrawal by a signer and no reinstatement is recorded for this topic "
                            f"(docs/result_changes.json; {_src('registry/result_change_reinstatements.json')})."))

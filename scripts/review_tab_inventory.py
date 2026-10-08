@@ -41,6 +41,11 @@ HEX64 = re.compile(r"\b[0-9a-f]{64}\b")
 DATE = re.compile(r"\b20\d\d-\d\d-\d\d\b")
 
 
+def _whole(ident: str, txt: str) -> bool:
+    """ident appears in txt as a whole identifier (not as a prefix or suffix of a longer id)."""
+    return bool(re.search(r"(?<![\w-])" + re.escape(str(ident)) + r"(?![\w-])", txt))
+
+
 def flat(s: str) -> str:
     return re.sub(r"\s+", " ", H.unescape(re.sub(r"<[^>]+>", " ", s))).strip()
 
@@ -116,7 +121,7 @@ def check(slug: str, page: str, review: dict, notices: list, decisions: list[str
         elif tid == "screening":
             recs = ((review.get("screening") or {}).get("records") or [])
             ids = [str(r.get("id")) for r in recs if r.get("id")]
-            shown = sum(1 for i in ids if i in txt)
+            shown = sum(1 for i in ids if _whole(i, txt))   # g2#2: a whole identifier, never a prefix of a longer one
             el[f"every record ({shown}/{len(ids)})"] = bool(ids) and shown == len(ids)
             el["decision + rule"] = bool(re.search(r"\b(INCLUDE|X\d+|I\d+)\b", txt))
             el["span"] = bool(re.search(r"span|verbatim|“|\"", txt, re.I))
@@ -124,9 +129,10 @@ def check(slug: str, page: str, review: dict, notices: list, decisions: list[str
                 re.search(r"kappa|κ|agree", txt, re.I))
         elif tid == "included":
             tr = pooled_trials(review)
-            pairs = [ids_of(t) for t in tr]
-            uniq = {(p, n) for p, n in pairs}
-            shown = sum(1 for p, n in uniq if (p is None or p in txt) and (n is None or n in txt))
+            # g2#1: a trial with no PMID and no registry id is still a trial: it must be shown by its own label
+            uniq = {(ids_of(t)[0], ids_of(t)[1], None if any(ids_of(t)) else str(t.get("label") or t.get("id"))) for t in tr}
+            shown = sum(1 for p, n, lab in uniq if (p is None or _whole(p, txt)) and (n is None or _whole(n, txt))
+                        and (lab is None or _whole(lab, txt)))
             el[f"every pooled trial with PMID/NCT ({shown}/{len(uniq)})"] = bool(uniq) and shown == len(uniq)
         elif tid == "extraction":
             tr = pooled_trials(review, shown_only=True)   # every pooled row shown: effect, arm counts or means
