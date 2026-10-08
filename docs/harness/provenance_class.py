@@ -25,9 +25,9 @@ def _records_in(obj) -> list[str]:
 
 
 def classify_served(t: dict, held) -> tuple[str, str]:
-    """held(record_id) -> bool is supplied by the caller: the census checks the record store; a served page
-    passes a constant True because it has passed the provenance gate, which refuses any row citing a record
-    that is not in the tree (this module never names the store)."""
+    """held(record_id) -> bool is supplied by the caller: the census checks the record store; the page checks the
+    committed index of held record ids (registry/held_record_ids.json, kept equal to the store by a test). This module
+    never names the store."""
     prov = str(t.get("provenance") or "")
     if prov == "served_pool_signed_notice":
         adm = t.get("served_pool_admission") or {}
@@ -45,6 +45,10 @@ def classify_served(t: dict, held) -> tuple[str, str]:
     if prov in EXTRACTOR_PROV:
         if not str(t.get("source") or "").strip():
             return "UNTRACED", f"{prov} row with no source span"
+        # g1#1: an extractor row that ALSO cites a record must not bypass the missing-record check
+        missing = [i for i in _records_in(t) if not held(i)]
+        if missing:
+            return "UNTRACED", f"{prov} row cites record(s) not in the tree: {missing}"
         return "EXTRACTOR", prov
     ids = _records_in(t)
     if ids:
@@ -72,6 +76,19 @@ def recorded_reads(root: str = ROOT) -> dict:
         return json.load(fh).get("reads") or {}
 
 
+_SERVED_KEYS = ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high")
+
+
+def served_tuple(x: dict) -> tuple:
+    """The numbers a row serves, as recorded on a read's `served` snapshot (scripts/provenance_convert.py)."""
+    def num(v):
+        try:
+            return None if v is None else round(float(v), 6)
+        except (TypeError, ValueError):
+            return str(v)
+    return tuple(num(x.get(k)) for k in _SERVED_KEYS)
+
+
 def served_class(t: dict, slug: str, outcome_name: str, held, reads: dict | None = None, root: str = ROOT) -> tuple[str, str, list]:
     """The census's class for one served row: classify_served, then a HAND_ENTERED row converted by a recorded,
     replayable locator read (scripts/provenance_convert.py) whose gated numbers EQUAL the served value becomes
@@ -81,7 +98,9 @@ def served_class(t: dict, slug: str, outcome_name: str, held, reads: dict | None
     if cls == "HAND_ENTERED":
         reads = recorded_reads(root) if reads is None else reads
         rr = reads.get(f"{slug}|{str(t.get('id')).replace('PMID ', '').strip()}|{outcome_name}") or {}
-        if rr.get("state") == "AGREES" and rr.get("record_id") and held(rr["record_id"]):
+        # g1#2: the read upgrades the row only while the numbers it agreed with ARE the row's served numbers
+        if (rr.get("state") == "AGREES" and rr.get("record_id") and held(rr["record_id"])
+                and served_tuple(t) == served_tuple(rr.get("served") or {})):
             cls, why = "RECORDED_MODEL_CALL", f"recorded read {rr['record_id']} agrees with the served value"
             recs = sorted(set(recs) | {rr["record_id"]})
     return cls, why, recs
