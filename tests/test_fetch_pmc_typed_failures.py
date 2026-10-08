@@ -149,3 +149,14 @@ def test_PLANT_a_single_quoted_archive_link_is_followed_not_read_as_no_package(m
     assert fetch._pmc_oa_supplement_text("906", ["s.xlsx"]) == ""
     assert seen == ["https://ftp.ncbi.nlm.nih.gov/pub/pmc/x.tar.gz"]
     assert fetch.LAST_SUPPLEMENT_STATE["906"].startswith("FETCH_FAILED:SUPPLEMENT")
+
+
+def test_PLANT_absence_is_only_established_positively(monkeypatch):
+    """codex fetch-loud-r6 #1: a malformed or unexpected OA reply was silently classified NO_OA_PACKAGE."""
+    for i, reply in enumerate(["<html>Bad Gateway</html>", "<OA><records/></OA>", "not xml <<"]):
+        monkeypatch.setattr(fetch.http, "get_text", lambda *a, _r=reply, **k: _r)
+        assert fetch._pmc_oa_supplement_text(f"91{i}", ["s.xlsx"]) == ""
+        assert fetch.LAST_SUPPLEMENT_STATE[f"91{i}"].startswith("FETCH_FAILED:SUPPLEMENT:"), reply
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><records><record id='PMC1'><link format='pdf' href='https://x/y.pdf'/></record></records></OA>")
+    assert fetch._pmc_oa_supplement_text("919", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["919"] == "NO_OA_PACKAGE"

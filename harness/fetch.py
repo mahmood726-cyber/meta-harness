@@ -174,25 +174,32 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
     try:
         oa = http.get_text(PMC_OA, {"id": f"PMC{pmcid}"})
         time.sleep(0.34)
-        # either XML attribute quote style (codex fetch-loud-r5 #1)
-        m = (re.search(r"""href\s*=\s*(["'])(ftp://[^"']+\.tar\.gz)\1""", oa)
-             or re.search(r"""href\s*=\s*(["'])(https?://[^"']+\.tar\.gz)\1""", oa))
-        if not m:
-            # the OA service answers 'not in the open-access subset' with its own error code: that is NO_OA_PACKAGE; any
-            # OTHER error it returns -- including one with no readable code -- is a failed request, never read as
-            # 'no package' (codex fetch-loud-r4 #1, r5 #1)
-            err = re.search(r"<error\b([^>]*)>([^<]*)", oa)
-            code = None
-            if err:
-                cm = re.search(r"""\bcode\s*=\s*(["'])(.*?)\1""", err.group(1))
-                code = cm.group(2) if cm else "NO_CODE"
-            if err and code != "idIsNotOpenAccess":
-                LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: {code} {err.group(2)[:120]}"
-                _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
-                return ""
-            LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
+        # parse the OA reply as XML; absence of a package is established ONLY positively -- the service's own
+        # 'idIsNotOpenAccess' error, or a well-formed <record> for this id that lists no .tar.gz link. Anything else (a
+        # different error, a codeless error, unparseable or unexpected XML) is a FAILED request, never 'no package'
+        # (codex fetch-loud-r4 #1, r5 #1, r6 #1)
+        try:
+            oa_root = ET.fromstring(oa)
+        except ET.ParseError as pe:
+            LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:OA_UNPARSEABLE: {pe}"[:200]
+            _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
-        url = m.group(2).replace("ftp://ftp.ncbi.nlm.nih.gov", "https://ftp.ncbi.nlm.nih.gov")
+        err = oa_root.find(".//error")
+        records = oa_root.findall(".//record")
+        tgz = [ln.get("href", "") for r in records for ln in r.findall("link")
+               if ln.get("href", "").endswith(".tar.gz") and re.match(r"(ftp|https?)://", ln.get("href", ""))]
+        if not tgz:
+            if err is not None and err.get("code") == "idIsNotOpenAccess":
+                LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
+            elif err is None and records:
+                LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
+            else:
+                what = (f"OA_SERVICE_ERROR: {err.get('code') or 'NO_CODE'} {(err.text or '')[:120]}" if err is not None
+                        else "OA_UNEXPECTED_RESPONSE: no <record> and no <error>")
+                LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:{what}"
+                _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
+            return ""
+        url = tgz[0].replace("ftp://ftp.ncbi.nlm.nih.gov", "https://ftp.ncbi.nlm.nih.gov")
         tar_bytes = http.get(url)
         wanted = {h.rsplit("/", 1)[-1].lower() for h in hrefs}
         blocks = []

@@ -5156,5 +5156,36 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r6": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-59f272c8512b5a877bbf94850caf38cb",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "ca5a290c0b305512be7daff91fd6b8da4820a9957f6b0d7918a612f9bc41a8fa"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "A malformed or unexpected OA-service response is silently classified as NO_OA_PACKAGE. Only an explicit idIsNotOpenAccess error establishes that absence; this fallback also prevents callers from detecting the failed acquisition.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nwith patch.object(fetch.http, 'get_text', return_value='<html><body>Service temporarily unavailable</body></html>'), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state and a warning because the response establishes neither a package nor legitimate absence.",
+    "actual": "'' NO_OA_PACKAGE, with no warning. Both regular-expression searches miss, so the new unconditional absence assignment executes. This follows directly from the supplied code; repository execution was unavailable.",
+    "id": "fetch-loud-r6:g1#1",
+    "record_id": "mc-59f272c8512b5a877bbf94850caf38cb",
+    "verdict": null
+   }
+  ]
  }
 }
