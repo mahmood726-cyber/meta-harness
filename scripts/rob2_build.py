@@ -158,6 +158,9 @@ def main(argv):
                       indent=2, ensure_ascii=False)
             json.dump({"source": f"AACT {os.path.basename(aact.snapshot_dir())} + registry-vs-pooled (D5)",
                        "output_family": rob2.OUTPUT_FAMILY,
+                       # what this object was built FROM (8 Oct): a rebuilt review that renames the primary outcome or
+                       # changes its pooled trials makes it stale (rob2.staleness; tests/test_rob2_current.py)
+                       "input_set": rob2.input_set(json.load(open(f"{ROOT}/docs/reviews/{slug}/review.json", encoding="utf-8"))),
                        "rob_basis": {"output_family": rob2.OUTPUT_FAMILY,
                                      "assessed_domains": [rob2.DOMAIN_LABELS[d] for d in rob2.MACHINE_DOMAINS],
                                      "unassessed_domains": ["D3_missing_outcome_data"]},

@@ -274,6 +274,43 @@ def _d4(inputs: dict[str, Any]) -> dict[str, Any]:
     return _domain(d4, d4b, f"{OUTPUT_FAMILY}:D4:outcome_assessor_masking_v1", inputs)
 
 
+_TRIAL_DEFINED_PRIMARY = re.compile(
+    r"\btrial[- ](?:defined|reported|specific)\b.*\bprimary\b|\bprimary\b.*\btrial[- ](?:defined|reported|specific)\b"
+    r"|\beach trial'?s own primary\b", re.I)
+
+
+def input_set(review: dict[str, Any]) -> dict[str, Any]:
+    """What a rob2.json is built FROM: the review's primary outcome name and its pooled trials (scripts/rob2_build.py
+    reads exactly these). Recorded in the object so a rebuilt review that changes them makes the object stale."""
+    import hashlib
+    import json as _json
+    prim = next((o for o in (review or {}).get("outcomes") or [] if o.get("primary")), {}) or {}
+    obj = {"primary_outcome": prim.get("name"),
+           "pooled_trials": sorted(str(t.get("id", "")).replace("PMID ", "") for t in prim.get("trials") or [])}
+    obj["sha256"] = hashlib.sha256(_json.dumps(obj, sort_keys=True).encode("utf-8")).hexdigest()
+    return obj
+
+
+def staleness(review: dict[str, Any], rob_obj: dict[str, Any]) -> list[str]:
+    """Every reason the stored RoB object no longer describes the review it is served with ([] = current). A legacy
+    object without its input set cannot be shown current, so it is stale (fail closed)."""
+    stored = (rob_obj or {}).get("input_set")
+    if not stored:
+        return ["NO_INPUT_SET"]
+    now = input_set(review)
+    rated, pooled = set(((rob_obj or {}).get("trials") or {}).keys()), set(now["pooled_trials"])
+    out = []
+    if stored.get("primary_outcome") != now["primary_outcome"]:
+        out.append(f"PRIMARY_OUTCOME_RENAMED: {stored.get('primary_outcome')!r} -> {now['primary_outcome']!r}")
+    if rated - pooled:
+        out.append(f"RATED_NOT_POOLED: {sorted(rated - pooled)}")
+    if pooled - rated:
+        out.append(f"POOLED_NOT_RATED: {sorted(pooled - rated)}")
+    if not out and stored.get("sha256") != now["sha256"]:
+        out.append("INPUT_SET_CHANGED")
+    return out
+
+
 def derive_d5(
     registered_primaries: list[Any] | None,
     pooled_outcome: str,
@@ -300,6 +337,20 @@ def derive_d5(
             f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v2",
             inputs,
         )
+
+    # A pooled outcome DEFINED as each trial's own primary ('Trial-defined primary cardiorenal composite') is compared
+    # with THIS trial's registered primary: the generic label has no components to parse, and a fresh build had called
+    # CREDENCE's and DAPA-CKD's registered primaries 'unregistered' (RoB drift, 8 Oct; the D11 panel read D5 low for
+    # both). A label that does not say PRIMARY is not assumed to be the primary.
+    if primaries and _TRIAL_DEFINED_PRIMARY.search(pooled_outcome or ""):
+        rp = primaries[0]
+        inputs["comparison"] = {"registered_type": "primary", "registered_label": _outcome_label(rp), "matched": True,
+                                "method": "trial_defined_primary", "pooled_components": [],
+                                "registered_components": sorted(_component_set(_registered_text(rp))),
+                                "registered_text": _registered_text(rp)}
+        return _domain("low", ("the pooled outcome is defined as each trial's own primary outcome; this trial's "
+                               f"pre-registered primary is {_outcome_label(rp)!r}"),
+                       f"{OUTPUT_FAMILY}:D5:trial_defined_primary_v1", inputs)
 
     for rp in primaries:
         detail = _outcome_match_detail(pooled_outcome, rp, matches)
