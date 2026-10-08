@@ -10,7 +10,6 @@ import json
 import os
 import re
 import time
-import urllib.parse
 import xml.etree.ElementTree as ET
 
 _NCT_RE = re.compile(r"NCT\d{8}")
@@ -166,6 +165,27 @@ def _resolve_pmcid(pmid: str) -> str | None:
     return _select_pmc_link(d.get("linksets", [{}])[0].get("linksetdbs", []))
 
 
+def _url_path(url: str) -> str:
+    """The URL without its query string or fragment (plain string split; this module makes no network-library import)."""
+    return url.split("#", 1)[0].split("?", 1)[0]
+
+
+def _pmc_ids_in(text: str) -> set[str]:
+    """Every 'PMC<digits>' in the text, wherever it sits ('id=PMC7', '(PMC7)', 'PMC7.'), upper-cased; a 'PMC' run
+    preceded by a letter or digit (e.g. 'XPMC7') or followed by no digit is not an id. Plain scan, no regex."""
+    out, up, i = set(), text.upper(), 0
+    while True:
+        i = up.find("PMC", i)
+        if i < 0:
+            return out
+        j = i + 3
+        while j < len(up) and up[j].isdigit():
+            j += 1
+        if j > i + 3 and (i == 0 or not up[i - 1].isalnum()) and (j == len(up) or not up[j].isalnum()):
+            out.add(up[i:j])
+        i += 3
+
+
 def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
     """Download the PMC OA .tar.gz package and extract row-structured text from the supplementary
     spreadsheet/CSV files the article references (per-arm SD tables have hidden here). Best-effort;
@@ -203,7 +223,7 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
         # URL PATH ends .tar.gz -- a query string does not hide it (r7 #2)
         records = [r for r in all_records if (r.get("id") or "").upper() == f"PMC{pmcid}".upper()]
         advertised = [ln.get("href") or "" for r in records for ln in r.findall("link")
-                      if ln.get("format") == "tgz" or urllib.parse.urlsplit(ln.get("href") or "").path.endswith(".tar.gz")]
+                      if ln.get("format") == "tgz" or _url_path(ln.get("href") or "").endswith(".tar.gz")]
         tgz = [h for h in advertised if re.match(r"(ftp|https?)://\S+$", h)]
         if advertised and not tgz:
             # a package is advertised but no usable URL is given: a malformed reply, never absence (codex fetch-loud-r8 #1)
@@ -211,13 +231,21 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
         if not tgz:
-            if err is not None and err.get("code") == "idIsNotOpenAccess":
+            want = f"PMC{pmcid}".upper()
+            # absence is about THIS article only if every PMC id the WHOLE reply names -- any element's text or
+            # attribute, labelled or not, in the request, an error, a record or anywhere else -- is this one, and it
+            # names at least one (codex fetch-loud-r14..r19: a reply naming any other article is inconsistent, a failure)
+            named = _pmc_ids_in(" ".join([*oa_root.itertext(),
+                                          *(v for d in oa_root.iter() for v in d.attrib.values())]))
+            about_this = named == {want}
+            if err is not None and err.get("code") == "idIsNotOpenAccess" and about_this:
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
-            elif err is None and records:
+            elif err is None and records and about_this:
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
             else:
                 what = (f"OA_SERVICE_ERROR: {err.get('code') or 'NO_CODE'} {(err.text or '')[:120]}" if err is not None
-                        else f"OA_UNEXPECTED_RESPONSE: no <record> for PMC{pmcid} ({len(all_records)} other) and no <error>")
+                        else f"OA_UNEXPECTED_RESPONSE: {len(records)} record(s) for PMC{pmcid} of {len(all_records)}; "
+                             f"articles named {sorted(named)[:5]}")
                 LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:{what}"
                 _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
