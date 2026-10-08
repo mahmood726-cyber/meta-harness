@@ -18,6 +18,9 @@ Prompts that embed non-redistributable full text are written OUTSIDE the reposit
 AACT- and US-government-only prompts are committed under evidence/model_calls/audit.
 
     python scripts/g1_audit_primary.py SLUG ... [--run]   -> outputs/k_gap/g1_binding/audit_primary.json
+    python scripts/g1_audit_primary.py --staged-counts [--run] -> outputs/k_gap/g1_binding/audit_staged_counts.json
+      the same independent reader against the STAGED own-trial counts (bindings_counts.json; close-4, D12-gated): the
+      reader never sees them, so its answer is compared with them exactly as with a counted row
 """
 from __future__ import annotations
 
@@ -365,6 +368,17 @@ def compare(claim, ours, agents):
     return "NOT_COMPARABLE", "NO_OVERLAPPING_FIELDS"
 
 
+def staged_rows():
+    """{slug: [(trial dict, our value)]} from the STAGED own-trial counts: the trial carries its PMID family and its NCT
+    (as a registry candidate, so held_material reads its posted results); the value is the staged count tuple."""
+    out = {}
+    for b in _j(os.path.join(OUT, "bindings_counts.json")).get("bindings") or []:
+        x = {"label": b["label"], "family": f"PMID {b['pmid']}" if b.get("pmid") else None,
+             "registry_binding": {"candidates": [{"nct": n} for n in b.get("ncts") or []]}}
+        out.setdefault(b["slug"], []).append((x, dict(b["values"], measure="COUNTS")))
+    return out
+
+
 def main(argv):
     import g1_tracker  # noqa: F401  (import before the spy)
     run = "--run" in argv
@@ -373,7 +387,14 @@ def main(argv):
     T = _j(os.path.join(ROOT, "outputs", "k_gap", "k_gap_table.json"))
     items, states = [], {}
     per = {}
-    for s in slugs:
+    staged = "--staged-counts" in argv
+    if staged:
+        per = staged_rows()
+        slugs = sorted(per)
+        states = {s: "STAGED_COUNTS" for s in slugs}
+        for s in slugs:
+            print(s, "staged count rows", len(per[s]), flush=True)
+    for s in ([] if staged else slugs):
         o, rows = counted_rows(s, T)
         states[s], per[s] = (o.get("g1_status") or {}).get("state"), rows
         print(s, states[s], "counted PRIMARY rows", len(rows), flush=True)
@@ -461,7 +482,8 @@ def main(argv):
                               if it["ours"].get(k) is not None},
                      "reader": claim})
     out = {"n": len(rows), "tally": dict(tally), "findings": [x for x in rows if x["verdict"] == "DISAGREE"], "rows": rows}
-    with open(os.path.join(OUT, "audit_primary.json"), "w", encoding="utf-8", newline="\n") as fh:
+    with open(os.path.join(OUT, "audit_staged_counts.json" if staged else "audit_primary.json"), "w", encoding="utf-8",
+              newline="\n") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False)
     print(json.dumps({"n": out["n"], "tally": out["tally"]}))
     for x in rows:
