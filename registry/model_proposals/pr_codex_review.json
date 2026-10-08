@@ -5020,5 +5020,47 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "idlink-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3e57ba9a47db12c7b0587164260e8fcd",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "846c66a0e4a835a5a6c621539c02318351e813e3f91a060836dfce7dd817e483"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "join",
+    "severity": "P1",
+    "claim": "Accepts an identity link with zero supporting facts. The advertised two-fact evidence requirement is never checked; an unsupported PMID-to-NCT mapping becomes a PRIMARY, countable match.",
+    "failing_input": "from scripts.g1_identity_links import join\nt = {}\nx = {'in_our_pool': False, 'route': 'NO_ROW'}\nmatched = set()\nroutes = {'NO_ROW': 1}\nlinks = {'33731544': {'nct': 'NCT02468232', 'rules': []}}\nout = join([x], [t], {id(t): '33731544'}, {'NCT02468232': 'pool1'}, {'pool1'}, matched, routes, links=links)\nprint(len(out), x['in_our_pool'], x['route'], x['g1_countable'], matched, routes)",
+    "expected": "Reject the unsupported link or raise an evidence-validation error before mutating the match and route state.",
+    "actual": "1 True PRIMARY True {'pool1'} {'NO_ROW': 0, 'PRIMARY': 1}",
+    "id": "idlink-r1:g1#1",
+    "record_id": "mc-3e57ba9a47db12c7b0587164260e8fcd",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "load",
+    "severity": "P2",
+    "claim": "A missing identity-links artifact silently returns the same value as a successfully loaded empty artifact. The tracker consequently treats unavailable binding evidence as no matching links, without reporting the acquisition/configuration failure.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.g1_identity_links import load\nwith patch('scripts.g1_identity_links.os.path.exists', return_value=False):\n    print(load('missing-identity-links.json'))",
+    "expected": "Raise a missing-artifact error or return an explicit unavailable status that prevents normal classification.",
+    "actual": "{}; join() consumes this as an empty link mapping and returns no matches without an error.",
+    "id": "idlink-r1:g1#2",
+    "record_id": "mc-3e57ba9a47db12c7b0587164260e8fcd",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -19,9 +19,30 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LINKS = os.path.join(ROOT, "registry", "identity_links.json")
 
 
+RULES = ("ONE_NCT_STATED_IN_OWN_REPORT", "TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM")
+
+
 def load(path=None):
+    """The committed links. A MISSING file is an error, never 'no links' (codex idlink-r1 #2): the file is committed, so
+    its absence is a broken checkout, and reading it as empty would silently un-match every linked trial."""
     p = path or LINKS
-    return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}
+    if not os.path.exists(p):
+        raise FileNotFoundError(f"identity links not found: {os.path.relpath(p, ROOT)} (committed file missing)")
+    return json.load(open(p, encoding="utf-8"))
+
+
+def supported(lk):
+    """True only when the link carries BOTH typed facts, each with its span, and they agree with the link's NCT: the
+    report's own span states that NCT, and the acronym span sits in the recorded title (codex idlink-r1 #1)."""
+    if not isinstance(lk, dict) or not str(lk.get("nct") or "").startswith("NCT"):
+        return False
+    rules = {r.get("rule"): r for r in (lk.get("rules") or []) if isinstance(r, dict)}
+    if set(rules) != set(RULES) or len(lk.get("rules") or []) != 2:
+        return False
+    one, acro = rules[RULES[0]], rules[RULES[1]]
+    return (isinstance(one.get("span"), str) and lk["nct"] in one["span"] and len(str(one.get("text_sha256") or "")) == 64
+            and isinstance(acro.get("span"), str) and acro["span"].strip() != ""
+            and acro["span"] in str(acro.get("title") or ""))
 
 
 def join(trials, comp_rows, rp, nct_pool, pooled_ids, matched_ids, routes, links=None):
@@ -33,7 +54,7 @@ def join(trials, comp_rows, rp, nct_pool, pooled_ids, matched_ids, routes, links
     for x, t in zip(trials, comp_rows):
         p = rp.get(id(t))
         lk = links.get(str(p)) if p else None
-        if x.get("in_our_pool") or not lk or not lk.get("nct"):
+        if x.get("in_our_pool") or not lk or not supported(lk):
             continue
         via = nct_pool.get(lk["nct"])
         if not via or via not in pooled_ids or via in matched_ids:

@@ -22,13 +22,18 @@ def test_every_committed_link_rests_on_both_typed_facts_with_spans():
         assert len(rules["ONE_NCT_STATED_IN_OWN_REPORT"]["text_sha256"]) == 64
 
 
+def _link(nct, acro):
+    return {"nct": nct, "rules": [
+        {"rule": "ONE_NCT_STATED_IN_OWN_REPORT", "span": f"... Patients ({nct}). Study ...", "text_sha256": "a" * 64},
+        {"rule": "TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM", "span": acro, "title": f"Results From the {acro} Study."}]}
+
+
 def _unit(label, in_pool=False, route="NO_ROW"):
     return {"label": label, "in_our_pool": in_pool, "route": route}
 
 
 def test_a_link_joins_only_to_a_registration_already_pooled():
-    links = {"33731544": {"nct": "NCT02468232", "rules": [{"rule": "A"}, {"rule": "B"}]},
-             "999": {"nct": "NCT09999999", "rules": [{"rule": "A"}, {"rule": "B"}]}}
+    links = {"33731544": _link("NCT02468232", "PARALLEL-HF"), "999": _link("NCT09999999", "OTHER-HF")}
     trials = [_unit("Tsutsui, 2021"), _unit("Other"), _unit("Pooled", in_pool=True, route="PRIMARY")]
     rows = [object(), object(), object()]
     rp = {id(rows[0]): "33731544", id(rows[1]): "999", id(rows[2]): "33731544"}
@@ -45,3 +50,26 @@ def test_a_link_joins_only_to_a_registration_already_pooled():
     r2 = [object()]
     assert L.join(t2, r2, {id(r2[0]): "33731544"}, {"NCT02468232": "NCT02468232"}, {"NCT02468232"}, matched,
                   {"NO_ROW": 1}, links) == []
+
+
+def test_PLANT_a_link_without_both_supporting_facts_never_joins():
+    """codex idlink-r1 #1: join() accepted a PMID -> NCT link carrying zero supporting facts."""
+    good = _link("NCT02468232", "PARALLEL-HF")
+    bad = [{"nct": "NCT02468232", "rules": []},
+           {"nct": "NCT02468232", "rules": good["rules"][:1]},
+           {"nct": "NCT02468232", "rules": [good["rules"][0], dict(good["rules"][0])]},
+           {"nct": "NCT02468232", "rules": [dict(good["rules"][0], span="... (NCT01111111) ..."), good["rules"][1]]},
+           {"nct": "NCT02468232", "rules": [good["rules"][0], dict(good["rules"][1], span="OTHER")]}]
+    for lk in bad:
+        trials, rows = [_unit("Tsutsui, 2021")], [object()]
+        got = L.join(trials, rows, {id(rows[0]): "33731544"}, {"NCT02468232": "NCT02468232"}, {"NCT02468232"}, set(),
+                     {"NO_ROW": 1}, {"33731544": lk})
+        assert got == [] and not trials[0]["in_our_pool"], lk
+    assert L.supported(good)
+
+
+def test_PLANT_a_missing_links_file_is_an_error_not_no_links(tmp_path):
+    """codex idlink-r1 #2: a missing file read as an empty set of links."""
+    import pytest
+    with pytest.raises(FileNotFoundError):
+        L.load(str(tmp_path / "identity_links.json"))
