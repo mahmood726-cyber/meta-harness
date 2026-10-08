@@ -516,6 +516,14 @@ def _seats():
 
 # ---------------------------------------------------------------- derive
 
+def _raw(rows, d):
+    """(agree, n) of the two readers' verified verdicts on domain d -- beside kappa, which collapses when one verdict
+    dominates (GRADE inconsistency: 28/30 agree, kappa -0.03)."""
+    pr = [(r["reader_A"]["v"]["domains"].get(d), r["reader_B"]["v"]["domains"].get(d)) for r in rows
+          if r.get("reader_A") and r.get("reader_B")]
+    return sum(1 for a, b in pr if a == b), len(pr)
+
+
 def kappa(pairs, cats):
     pairs = [(a, b) for a, b in pairs if a in cats and b in cats]
     n = len(pairs)
@@ -656,6 +664,8 @@ def derive(data, rob_items, rob_rows, grade_items, grade_rows):
     out = {"schema": 1, "aact_snapshot": data["aact_snapshot"], "models": {"reader_A": MODEL_A, "reader_B": MODEL_B,
            "adjudicator": f"{MODEL_ADJ} (effort high)"}, "n_rob_items": len(rob_items), "n_grade_items": len(grade_items),
            "sensitivity": sens,
+           "raw_agreement_A_vs_B": {kind: {d: _raw(rows_, d) for d in doms} for kind, rows_, doms in
+                                    (("rob", rob_rows, DOMAINS), ("grade", grade_rows, GDOMAINS))},
            "rob": {"kappa_A_vs_B": kab, "kappa_final_vs_rule": k_rule, "agreement_final_vs_rule": agree_rule,
                    "rule_abstains": rule_abstains,
                    "overall_final": tally(rob_rows), "adjudicated": sum(1 for r in rob_rows if r.get("adjudicator")),
@@ -695,7 +705,9 @@ def render(o):
         ag = r["agreement_final_vs_rule"].get(d)
         vs = (f"{kr[0]} ({kr[1]}); raw agreement {ag['agree']}/{ag['decided']}; rule levels {ag['rule_levels']}"
               if kr else "rule does not rate this domain")
-        L.append(f"| {d} | {r['kappa_A_vs_B'][d][0]} ({r['kappa_A_vs_B'][d][1]}) | {vs} | {r['rule_abstains'].get(d, '-')} |")
+        ra = o["raw_agreement_A_vs_B"]["rob"][d]
+        L.append(f"| {d} | {r['kappa_A_vs_B'][d][0]} ({r['kappa_A_vs_B'][d][1]}); raw {ra[0]}/{ra[1]} | {vs} | "
+                 f"{r['rule_abstains'].get(d, '-')} |")
     sv = o["sensitivity"]
     L += ["", f"Adjudicator (same model family as reader A) sided with A {sv['adjudicator_sided_with']['A']}, with B "
               f"{sv['adjudicator_sided_with']['B']}, neither {sv['adjudicator_sided_with']['neither']}. Sensitivity -- RoB 2 overall "
@@ -706,7 +718,8 @@ def render(o):
           f"- kappa final vs the rule's ASSESSED domains: {g['kappa_final_vs_rule_assessed_domains']}.", "",
           "| Domain | kappa A vs B (n) |", "|---|---|"]
     for d in GDOMAINS:
-        L.append(f"| {d} | {g['kappa_A_vs_B'][d][0]} ({g['kappa_A_vs_B'][d][1]}) |")
+        ra = o["raw_agreement_A_vs_B"]["grade"][d]
+        L.append(f"| {d} | {g['kappa_A_vs_B'][d][0]} ({g['kappa_A_vs_B'][d][1]}); raw {ra[0]}/{ra[1]} |")
     fk = {}
     for f in o["findings"]:
         fk[f["kind"]] = fk.get(f["kind"], 0) + 1
