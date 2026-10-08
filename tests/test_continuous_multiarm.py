@@ -19,7 +19,9 @@ def test_esketamine_transform1_combined_arm_pooled():
     assert prim["result"]["scale"] == "MD" and prim["result"]["k"] == len(prim["trials"]) >= 1
     for t in prim["trials"]:
         assert t.get("mean1") is not None and t.get("sd1") is not None, f"{t.get('label')} pooled but not continuous"
-    t1 = next((t for t in prim["trials"] if str(t.get("label")) == "TRANSFORM-1"), None)
+    # by its trial identity, not one spelling of its label: since V9-02 it is served as NCT02417064, labelled
+    # 'Fedgchin 2019 (TRANSFORM-1)'
+    t1 = next((t for t in prim["trials"] if str(t.get("id")) == "NCT02417064" or "TRANSFORM-1" in str(t.get("label"))), None)
     if t1 is None:
         a = next((x for x in prim.get("declared_absent_trials") or [] if "NCT02417064" in str(x.get("id")) or str(x.get("label")) == "TRANSFORM-1"), None)
         assert a is not None, "TRANSFORM-1 neither pooled nor set aside"

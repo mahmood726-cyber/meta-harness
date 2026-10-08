@@ -44,9 +44,15 @@ def test_never_named_when_any_condition_fails():
     assert cm.not_an_included_trial(two, 6, UNIT, "REFERENCE_SEED", **KW) is None           # two different stated counts
 
 
+PRE_V9 = os.path.join(ROOT, "tests", "fixtures", "doac_tracker_pre_v9.json")
+
+
 def test_the_tracker_names_majeed_with_both_spans_and_keeps_the_denominator_honest():
+    """On the tracker as it stood against van Es 2014 (24963045), pinned from main 63dcc5beb: V9-03 (signed 'yes to
+    all', 7 Oct) replaced that comparator, so the live row no longer carries Majeed -- the mechanism is tested on the
+    pinned artefact, the new state below."""
     import g1_tracker as gt
-    o = json.load(open(os.path.join(gt.G1_DIR, SLUG + ".json"), encoding="utf-8"))
+    o = json.load(open(PRE_V9, encoding="utf-8"))
     d = next(d for d in o["named_differences"] if d["pmid"] == "24081972")
     # since acq 2bf32a5 the protocol route names it first (X1: an analysis across several trials is no trial's report);
     # this lane's comparator-membership gate is the second line, used only when nothing else names the unit
@@ -65,3 +71,13 @@ def test_pre_fix_majeed_was_an_unaudited_seventh_trial():
     base = json.loads(subprocess.check_output(["git", "show", f"752dc57bf7df13efc4f2acf5434893d313112c6c:outputs/k_gap/g1/{SLUG}.json"],
                                               cwd=ROOT))
     assert base["N_eligible"] == 7 and base["top_blocker"] == "SCREENED_OUT_UNAUDITED:X1"
+
+
+def test_after_v9_03_the_denominator_is_the_new_comparators_five_trials():
+    """V9-03: comparator 29795629 (CC BY), 5 enumerated trials, all matched and PRIMARY; RESULT_AGREES is the only unmet
+    criterion (no same-measure comparison yet). The retired comparator's rows are COMPARATOR_RETIRED in the ledger."""
+    import g1_tracker as gt
+    o = json.load(open(os.path.join(gt.G1_DIR, SLUG + ".json"), encoding="utf-8"))
+    assert o["comparator_pmid"] == "29795629"
+    assert o["N_eligible"] == 5 and o["k_matched"] == 5 and o["open_gaps"] == []
+    assert o["g1_status"]["unmet"] == ["RESULT_AGREES"]
