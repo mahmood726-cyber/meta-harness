@@ -182,17 +182,24 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
     for t in prim["trials"]:
         e, lo, hi = t.get("effect"), t.get("ci_low"), t.get("ci_high")
         if e is None and t.get("ai") is not None:
-            # 2x2 -> RR for display only (not a stored number; skip if incomputable)
+            # 2x2 -> the POOLED SCALE's own measure, for display only (not a stored number; skip if incomputable or if
+            # the scale is not a ratio of risks/odds): an OR pool shows ORs, an RR pool shows RRs
             try:
                 a, n1, c, n2 = t["ai"], t["n1i"], t["ci"], t["n2i"]
-                e = (a / n1) / (c / n2) if c and n2 and n1 else None
+                if scale == "OR":
+                    e = (a * (n2 - c)) / (c * (n1 - a)) if c and (n1 - a) else None
+                elif scale in ("RR", "IRR") or scale.startswith("MIXED"):
+                    e = (a / n1) / (c / n2) if c and n2 and n1 else None
+                else:
+                    e = None
             except (TypeError, ZeroDivisionError):
                 e = None
         if e is None and t.get("mean1") is not None:
             e = t["mean1"] - t["mean2"]
             lo = hi = None
         if e is not None:
-            rows.append((str(t.get("label")), e, lo, hi))
+            rs = str(t.get("scale") or "").upper()
+            rows.append((str(t.get("label")) + (f" ({rs})" if rs and rs != scale and t.get("effect") is not None else ""), e, lo, hi))
     if not rows:
         return ""
     pooled = (res.get("estimate"), res.get("ci_low"), res.get("ci_high"))
@@ -239,10 +246,12 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
         y += rowh // 2
         xc, xl, xh = xpix(pooled[0]), xpix(pooled[1]), xpix(pooled[2])
         parts.append(f"<polygon points='{xl:.1f},{y:.1f} {xc:.1f},{y-6:.1f} {xh:.1f},{y:.1f} {xc:.1f},{y+6:.1f}' fill='#b31412'/>")
-        parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>Pooled ({_e(_forest_k_phrase(prim))})</text>")
+        _lab = "Single trial (k = 1)" if res.get("k") == 1 else f"Pooled ({_forest_k_phrase(prim)})"
+        parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(_lab)}</text>")
         pv = f"{_fmt(pooled[0])} [{_fmt(pooled[1])}, {_fmt(pooled[2])}]"
         parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(pv)}</text>")
-    parts.append(f"<text x='{padL}' y='{H-6}' fill='#546e7a'>{_e(scale or 'effect')} ({'log scale, null=1' if is_ratio else 'null=0'})</text></svg>")
+    _axis = res.get("effect_label") or scale or "effect"
+    parts.append(f"<text x='{padL}' y='{H-6}' fill='#546e7a'>{_e(_axis)} ({'log scale, null=1' if is_ratio else 'null=0'})</text></svg>")
     return "".join(parts)
 
 
