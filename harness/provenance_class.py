@@ -20,30 +20,19 @@ EXTRACTOR_PROV = {"abstract", "pmc_fulltext", "pmc_fulltext_effect", "ctgov_resu
                   "pre_specified_dose"}
 
 
-_HELD = None
-
-
-def record_held(rid: str, root: str = ROOT) -> bool:
-    global _HELD
-    if _HELD is None or root != ROOT:
-        held = {os.path.basename(p)[:-5] for p in glob.glob(os.path.join(root, "registry", "model_calls", "mc-*.json"))}
-        held |= {os.path.basename(p)[:-5] for p in glob.glob(os.path.join(root, "evidence", "model_calls", "*", "mc-*.json"))}
-        if root != ROOT:
-            return rid in held
-        _HELD = held
-    return rid in _HELD
-
-
 def _records_in(obj) -> list[str]:
     return sorted(set(MC.findall(json.dumps(obj, ensure_ascii=False))))
 
 
-def classify_served(t: dict, root: str = ROOT) -> tuple[str, str]:
+def classify_served(t: dict, held) -> tuple[str, str]:
+    """held(record_id) -> bool is supplied by the caller: the census checks the record store; a served page
+    passes a constant True because it has passed the provenance gate, which refuses any row citing a record
+    that is not in the tree (this module never names the store)."""
     prov = str(t.get("provenance") or "")
     if prov == "served_pool_signed_notice":
         adm = t.get("served_pool_admission") or {}
         ids = _records_in(adm)
-        missing = [i for i in ids if not record_held(i, root)]
+        missing = [i for i in ids if not held(i)]
         if missing:
             return "UNTRACED", f"signed row cites record(s) not in the tree: {missing}"
         if ids:
@@ -59,7 +48,7 @@ def classify_served(t: dict, root: str = ROOT) -> tuple[str, str]:
         return "EXTRACTOR", prov
     ids = _records_in(t)
     if ids:
-        missing = [i for i in ids if not record_held(i, root)]
+        missing = [i for i in ids if not held(i)]
         return ("UNTRACED", f"cites record(s) not in the tree: {missing}") if missing else ("RECORDED_MODEL_CALL", str(ids))
     return "UNTRACED", f"provenance {prov!r} is not a known extractor and cites no record"
 
@@ -83,16 +72,16 @@ def recorded_reads(root: str = ROOT) -> dict:
         return json.load(fh).get("reads") or {}
 
 
-def served_class(t: dict, slug: str, outcome_name: str, root: str = ROOT, reads: dict | None = None) -> tuple[str, str, list]:
+def served_class(t: dict, slug: str, outcome_name: str, held, reads: dict | None = None, root: str = ROOT) -> tuple[str, str, list]:
     """The census's class for one served row: classify_served, then a HAND_ENTERED row converted by a recorded,
     replayable locator read (scripts/provenance_convert.py) whose gated numbers EQUAL the served value becomes
     RECORDED_MODEL_CALL. Returns (class, why, record ids the class rests on)."""
-    cls, why = classify_served(t, root)
+    cls, why = classify_served(t, held)
     recs = _records_in(t)
     if cls == "HAND_ENTERED":
         reads = recorded_reads(root) if reads is None else reads
         rr = reads.get(f"{slug}|{str(t.get('id')).replace('PMID ', '').strip()}|{outcome_name}") or {}
-        if rr.get("state") == "AGREES" and rr.get("record_id") and record_held(rr["record_id"], root):
+        if rr.get("state") == "AGREES" and rr.get("record_id") and held(rr["record_id"]):
             cls, why = "RECORDED_MODEL_CALL", f"recorded read {rr['record_id']} agrees with the served value"
             recs = sorted(set(recs) | {rr["record_id"]})
     return cls, why, recs

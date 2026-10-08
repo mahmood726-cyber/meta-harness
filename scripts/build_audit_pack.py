@@ -107,7 +107,8 @@ def policy_html() -> str:
     out = []
     for k in sorted(reg):
         if k.startswith(("D8", "D9")):
-            out.append(f"<p><strong><code>{e(k)}</code></strong>: {e(reg[k].get('rule'))}</p>")
+            out.append(f"<p><strong><code>{e(k)}</code></strong>: {e(reg[k].get('rule'))}<br><em>Enforcement as recorded "
+                       f"with the decision:</em> {e(reg[k].get('applied_in'))}</p>")
     return "".join(out)
 
 
@@ -128,14 +129,14 @@ it refers to is either served on this site or in the public repository <a href='
 <code>scripts/build_audit_pack.py</code> from committed files; nothing in it is typed by hand except this prose.</p>
 <ul>
 <li><a href='reviews.html'>The {len(revs)} reviews</a> ({len(revs) - n_ab} active, {n_ab} abandoned by decision), with pinned identities.</li>
-<li><a href='sample.html'>Extraction spot-check sample</a> ({min(SAMPLE_N, len(pop))} rows drawn at seed {SAMPLE_SEED} from the {len(pop)} pooled rows shown on the pages).</li>
+<li><a href='sample.html'>Extraction spot-check sample</a> ({min(SAMPLE_N, len(pop))} rows drawn at seed {SAMPLE_SEED} from the {len(pop)} extracted trial rows shown on the pages' Data extraction tabs).</li>
 <li>Per-review checklists: <code>checklist/&lt;slug&gt;.html</code>, linked from the review list.</li>
 <li><a href='findings_template.md'>Findings template</a> &middot; <a href='audit_pack.json'>audit_pack.json</a> (all of the above, machine-readable).</li>
 </ul>
 
 <h2 id='claims'>What the harness claims, and what it does not</h2>
-<p><strong>Claimed.</strong> Every served pooled number is computed by committed code from committed inputs, and every pooled
-row shows the passage it was read from. Each review page names a certificate (<code>CERTIFICATE.json</code>) whose digests
+<p><strong>Claimed.</strong> Every served pooled number is computed by committed code from committed inputs, and every
+extracted trial number shown on a page's Data extraction tab carries the passage it was read from. Each review page names a certificate (<code>CERTIFICATE.json</code>) whose digests
 cover the protocol, the search record, the screening ledger, the extraction objects, the analysis code and the rendered
 review; <code>scripts/reproduce_review.py &lt;slug&gt;</code> rebuilds the review offline from the committed cache and fails
 if any digest or the served page differs. Changes to a served result are published as notices, each countersigned on the
@@ -149,9 +150,11 @@ limitations.</p>
 
 <h2 id='replay'>How to replay any number</h2>
 <ol>
-<li>Open the review page, tab <em>Data extraction</em>. Each pooled number shows its source passage and
-<code>sha256</code> of that passage (UTF-8). Recompute the digest from the passage; compare the passage with the source
-record (the PMID links to PubMed; registry rows link to ClinicalTrials.gov).</li>
+<li>Open the review page, tab <em>Data extraction</em>. Each extracted trial number shows its source passage and
+<code>sha256</code> of that passage (UTF-8), and the outcome's served state (pooled, single trial, refused). Recompute the
+digest from the passage; compare the passage with the source record (the PMID links to PubMed; registry ids link to
+ClinicalTrials.gov or ISRCTN). Outcomes the gate withholds (incomplete harm ledgers, suppressed pools) are named with the
+reason instead of rows.</li>
 <li>For the pooled result: <pre>git clone {REPO}.git &amp;&amp; cd meta-harness
 python -m pip install --require-hashes -r docs/offline/requirements.lock
 python scripts/reproduce_review.py &lt;slug&gt;</pre> The replay compares <code>review_sha256</code> (listed per review in
@@ -162,7 +165,7 @@ python scripts/reproduce_review.py &lt;slug&gt;</pre> The replay compares <code>
 </ol>
 
 <h2 id='provenance'>Provenance types</h2>
-<p>Every pooled row carries a recorded <code>provenance</code> value (where the value was read: <code>abstract</code>,
+<p>Every extracted row carries a recorded <code>provenance</code> value (where the value was read: <code>abstract</code>,
 <code>ctgov_results</code>, <code>fulltext_verified</code>, ...) and a provenance class computed by the gate
 (<code>harness/provenance_class.py</code>, the same function the page uses):</p>
 <table><tr><th>Class</th><th>Rows shown on the pages</th></tr>{cnt}</table>
@@ -233,7 +236,7 @@ protocol commit <code>{e(v['protocol_sha'])}</code>.</p>
 <table><tr><th>#</th><th>Check</th><th>What to do</th><th>Result</th></tr>{items}</table>
 <h2>Screening sample (seed {SAMPLE_SEED}:{e(v['slug'])}, {SCREEN_PER_REVIEW} records)</h2>
 <table><tr><th>Record</th><th>Decision</th><th>Rule</th><th>Reason given</th></tr>{scr}</table>
-<h2>Extraction rows of this review (first 8 of {len(rows)}; all are on the page's Data extraction tab)</h2>
+<h2>Extraction rows of this review ({"first 8 of " + str(len(rows)) if len(rows) > 8 else "all " + str(len(rows))}; every row is on the page's Data extraction tab)</h2>
 <table><tr><th>Outcome / trial</th><th>Value</th><th>Class</th><th>Passage sha256</th></tr>{ext}</table>
 """)
 

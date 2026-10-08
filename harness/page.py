@@ -2945,9 +2945,6 @@ def _manuscript(r, neutral):
     return _manuscript_mod.render(r, neutral)
 
 
-_PRISMA_FLOW = re.compile(r"<h4>Study selection flow \(PRISMA 2020\)</h4>.*?</table>", re.S)
-
-
 def _with(base, extra):
     """A legacy tab renderer plus its rapidmeta-v1 additions (never on a neutral page)."""
     return lambda r, neutral: base(r, neutral) + ("" if neutral else extra(r))
@@ -2957,10 +2954,13 @@ def _search_tab(r, neutral):
     out = _search(r, neutral)
     if neutral:
         return out
-    flow = _PRISMA_FLOW.search(_screening(r, neutral))   # the same bytes the Screening tab shows
+    # the PRISMA flow is rendered ONCE, in Screening (the family-based flow; the report-based table there is kept as the
+    # superseded record) -- here the identification counts and a link to it, never a second copy of a superseded table
+    n_ident = (r.get("search") or {}).get("n_records")
     return (out + _review_tabs.search_additions(r)
-            + (flow.group(0) + "<p class='note'>The same flow, with every record's decision, is in the Screening tab.</p>"
-               if flow else _review_tabs._reason("PRISMA flow", "the Screening tab renders no PRISMA flow for this review.")))
+            + "<h4 id='search-prisma'>PRISMA 2020 flow</h4><p>Records identified by this search: <strong>"
+            + _e(n_ident) + "</strong>. The full flow -- identified, screened, excluded by rule, eligible, included -- counted "
+            "by trial family, is in the <a href='#tab-screening' onclick=\"show('screening',1);return false\">Screening tab</a>.</p>")
 
 
 def _overview_tab(r, neutral):
@@ -3026,7 +3026,7 @@ var bs=Array.prototype.slice.call(n.querySelectorAll('button'));
 bs.forEach(function(b,i){b.setAttribute('role','tab');b.id='tabbtn-'+b.dataset.t;b.setAttribute('aria-controls','tab-'+b.dataset.t);
 b.addEventListener('keydown',function(e){var j=null;if(e.key==='ArrowRight')j=(i+1)%bs.length;else if(e.key==='ArrowLeft')j=(i-1+bs.length)%bs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=bs.length-1;if(j!==null){e.preventDefault();bs[j].focus();show(bs[j].dataset.t);}});});
 document.querySelectorAll('.tab').forEach(function(t){t.setAttribute('role','tabpanel');t.setAttribute('aria-labelledby','tabbtn-'+t.id.slice(4));t.tabIndex=0;});
-var h=(location.hash.match(/^#tab-([a-z]+)$/)||[])[1],el=null;if(!h&&location.hash.length>1){el=document.getElementById(decodeURIComponent(location.hash.slice(1)));var p=el&&el.closest('.tab');if(p)h=p.id.slice(4);}if(!(h&&document.getElementById('tab-'+h)))h=bs.length?bs[0].dataset.t:null;if(h)show(h);if(el)el.scrollIntoView();})();"""
+function go(first){var h=(location.hash.match(/^#tab-([a-z]+)$/)||[])[1],el=null;if(!h&&location.hash.length>1){el=document.getElementById(decodeURIComponent(location.hash.slice(1)));var p=el&&el.closest('.tab');if(p)h=p.id.slice(4);}if(!(h&&document.getElementById('tab-'+h))){if(!first)return;h=bs.length?bs[0].dataset.t:null;}if(h)show(h);if(el){el.scrollIntoView();window.setTimeout(function(){el.scrollIntoView();},0);}}go(true);window.addEventListener('hashchange',function(){go(false);});window.addEventListener('load',function(){if(location.hash.length>1&&!/^#tab-/.test(location.hash))go(false);});})();"""
 
 
 

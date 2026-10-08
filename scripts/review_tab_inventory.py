@@ -108,7 +108,9 @@ def check(slug: str, page: str, review: dict, notices: list, decisions: list[str
             el[f"queries ({qshown}/{len(qs)})"] = bool(qs) and qshown == len(qs)
             el["dates"] = bool(DATE.search(txt))
             el["counts"] = bool(re.search(r"\b\d+\s+(records?|results?|hits|identified|studies)\b", txt, re.I))
-            el["PRISMA flow"] = "PRISMA" in txt and bool(re.search(r"identified", txt, re.I))
+            # dedicated tab: identification count + a link to the one PRISMA flow (Screening); legacy page: the words
+            el["PRISMA flow"] = (bool(re.search(r"id='search-prisma'.*?href='#tab-screening'", src, re.S)) if dedicated
+                                 else ("PRISMA" in txt and bool(re.search(r"identified", txt, re.I))))
         elif tid == "screening":
             recs = ((review.get("screening") or {}).get("records") or [])
             ids = [str(r.get("id")) for r in recs if r.get("id")]
