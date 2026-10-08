@@ -5474,5 +5474,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r16": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5c87b6d60268d0cfd189a813fec34bef",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "73284662d14401e4a115c88a7340073cee0620053b88e20650ded7caa2455bb2"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "The article-identity check examines only the first idIsNotOpenAccess error. Later errors naming another article are ignored, so a mismatched response is classified as confirmed absence despite the requirement that every named article match.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC123\"/><error code=\"idIsNotOpenAccess\">Not Open Access</error><error code=\"idIsNotOpenAccess\">Identifier PMC999 is not Open Access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return '' and record FETCH_FAILED:SUPPLEMENT:... because the response names PMC999 while the request is for PMC123.",
+    "actual": "Returns '' and records NO_OA_PACKAGE. Only the first error contributes identity tokens; the request supplies PMC123, making about_this True.",
+    "id": "fetch-loud-r16:g1#1",
+    "record_id": "mc-5c87b6d60268d0cfd189a813fec34bef",
+    "verdict": null
+   }
+  ]
  }
 }

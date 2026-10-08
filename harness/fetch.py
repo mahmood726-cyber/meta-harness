@@ -217,7 +217,8 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
         if not tgz:
             req = oa_root.find("request")
             want = f"PMC{pmcid}".upper()
-            err_tokens = [t.strip("'\".,;:()[]").upper() for t in ((err.text or "") if err is not None else "").split()]
+            # tokens from EVERY error in the reply, not only the first (codex fetch-loud-r16 #1)
+            err_tokens = [t.strip("'\".,;:()[]").upper() for e in errs for t in (e.text or "").split()]
             named = {t for t in err_tokens if t.startswith("PMC") and t[3:].isdigit()}
             if req is not None and req.get("id"):
                 named.add(req.get("id").upper())
