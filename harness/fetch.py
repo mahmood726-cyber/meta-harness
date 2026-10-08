@@ -234,7 +234,9 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             req = oa_root.find("request")
             want = f"PMC{pmcid}".upper()
             # every PMC id named anywhere in EVERY error's text, labelled or not (codex fetch-loud-r16 #1, r17 #1)
-            named = {x for e in errs for x in _pmc_ids_in(e.text or "")}
+            # all text AND attribute values of each error and its descendants, not only error.text (r18 #1)
+            named = {x for e in errs
+                     for x in _pmc_ids_in(" ".join([*e.itertext(), *(v for d in e.iter() for v in d.attrib.values())]))}
             if req is not None and req.get("id"):
                 named.add(req.get("id").upper())
             # every article the reply names must be this one, and it must name at least one (codex fetch-loud-r15 #1)

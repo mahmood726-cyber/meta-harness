@@ -246,3 +246,12 @@ def test_PLANT_a_labelled_id_naming_another_article_is_not_absence(monkeypatch):
     assert fetch._pmc_oa_supplement_text("974", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["974"].startswith("FETCH_FAILED:SUPPLEMENT:")
     assert fetch._pmc_ids_in("id=PMC7, (PMC12). XPMC9 PMC PMC3a") == {"PMC7", "PMC12"}
+
+
+def test_PLANT_an_id_inside_an_error_child_or_attribute_is_read(monkeypatch):
+    """codex fetch-loud-r18 #1: only error.text was read; a child element naming another article was missed."""
+    for i, body in enumerate(["<error code='idIsNotOpenAccess'>not OA: <id>PMC7</id></error>",
+                              "<error code='idIsNotOpenAccess' id='PMC7'>not Open Access</error>"]):
+        monkeypatch.setattr(fetch.http, "get_text", lambda *a, _b=body, _i=i, **k: f"<OA><request id='PMC98{_i}'/>{_b}</OA>")
+        assert fetch._pmc_oa_supplement_text(f"98{i}", ["s.xlsx"]) == ""
+        assert fetch.LAST_SUPPLEMENT_STATE[f"98{i}"].startswith("FETCH_FAILED:SUPPLEMENT:"), body

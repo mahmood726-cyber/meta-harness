@@ -5538,5 +5538,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r18": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-db995af1f6c1e440a3f71070889019bd",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "3515cef1d634db119a19e0516fd586a1f9aedfaf6e60cbe257631bc6d13ca443"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "Article validation examines only error.text, ignoring descendant text. A not-open-access error naming another article inside a child element is therefore silently classified as absence for the requested article.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC7\"/><error code=\"idIsNotOpenAccess\">Article <id>PMC8</id> is not open access.</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('7', ['supp.csv'])\n    print(repr(result), fetch.LAST_SUPPLEMENT_STATE['7'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state and warning: the error names PMC8, contradicting the request for PMC7.",
+    "actual": "By direct code tracing (execution blocked): prints '' NO_OA_PACKAGE and emits no warning. error.text is only 'Article ', so PMC8 never enters the identity check.",
+    "id": "fetch-loud-r18:g1#1",
+    "record_id": "mc-db995af1f6c1e440a3f71070889019bd",
+    "verdict": null
+   }
+  ]
  }
 }
