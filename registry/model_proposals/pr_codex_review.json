@@ -6347,5 +6347,108 @@
     "verdict": null
    }
   ]
+ },
+ "pva-tabs-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0c747a691ff9949223cf0860c91034c2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/index.py",
+     "harness/manuscript.py",
+     "harness/page.py",
+     "harness/provenance_class.py",
+     "harness/review_tabs.py"
+    ],
+    "prompt_sha256": "00645a526b0325f779cd9ba4a9daba0dc6f102d755d5d0ae369ffcfa5a6ecbd4"
+   },
+   "g2": {
+    "record_id": "mc-287e099264a6e08093a9e0b37f8377c4",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/build_audit_pack.py",
+     "scripts/provenance_census.py",
+     "scripts/review_tab_inventory.py"
+    ],
+    "prompt_sha256": "45a19d0fcd4c43dc084b9fca88fb3d8396be4b9ae83939773ea5f934ac7d517d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/provenance_class.py",
+    "function": "classify_served",
+    "severity": "P1",
+    "claim": "Extractor provenance bypasses the missing-record check. A row citing an unavailable model record is accepted despite the stated requirement to reject missing cited records.",
+    "failing_input": "from harness.provenance_class import classify_served\nrid = 'mc-' + '0' * 32\nt = {'provenance': 'abstract', 'source': 'Deaths: 1/10 versus 2/10.', 'record_id': rid}\nprint(classify_served(t, lambda _: False))",
+    "expected": "UNTRACED, identifying the unavailable cited record.",
+    "actual": "('EXTRACTOR', 'abstract'); held is never called.",
+    "id": "pva-tabs-r1:g1#1",
+    "record_id": "mc-0c747a691ff9949223cf0860c91034c2",
+    "verdict": null
+   },
+   {
+    "file": "harness/provenance_class.py",
+    "function": "served_class",
+    "severity": "P1",
+    "claim": "An AGREES entry is not bound to the served numbers. Changing a death count preserves RECORDED_MODEL_CALL classification because lookup uses only topic, trial ID and outcome.",
+    "failing_input": "from harness.provenance_class import served_class\nrid = 'mc-' + '0' * 32\nt = {'id': 'T1', 'provenance': 'manual_verified', 'source': 'Deaths: 1 of 10 versus 2 of 10.', 'ai': 1, 'n1i': 10, 'ci': 2, 'n2i': 10}\nreads = {'demo|T1|mortality': {'state': 'AGREES', 'record_id': rid}}\nprint(served_class(t, 'demo', 'mortality', lambda i: i == rid, reads=reads)[0])\nprint(served_class(dict(t, ai=9), 'demo', 'mortality', lambda i: i == rid, reads=reads)[0])",
+    "expected": "The changed row must not inherit verified agreement without checking its values against the recorded read; its source still states one death.",
+    "actual": "Both calls return RECORDED_MODEL_CALL. The changed count is never compared with the source, record or previously agreed values.",
+    "id": "pva-tabs-r1:g1#2",
+    "record_id": "mc-0c747a691ff9949223cf0860c91034c2",
+    "verdict": null
+   },
+   {
+    "file": "harness/review_tabs.py",
+    "function": "_GATE_ADMITTED / extraction_rows",
+    "severity": "P1",
+    "claim": "The extraction page replaces record-existence verification with unconditional True, so its provenance classification can contradict the census classifier for the same row.",
+    "failing_input": "from harness.provenance_class import served_class\nfrom harness.review_tabs import _GATE_ADMITTED\nrid = 'mc-' + '0' * 32\nt = {'provenance': 'model', 'record_id': rid}\n# Model an unavailable record, then use the callback extraction_rows supplies.\nprint(served_class(t, 'demo', 'mortality', lambda _: False, reads={})[0])\nprint(served_class(t, 'demo', 'mortality', _GATE_ADMITTED, reads={})[0])",
+    "expected": "Both classifications must be UNTRACED when the cited record is unavailable. Rendering must verify record availability or consume a verifiable admission result.",
+    "actual": "The first call returns UNTRACED; the page's callback produces RECORDED_MODEL_CALL without checking any record or gate result.",
+    "id": "pva-tabs-r1:g1#3",
+    "record_id": "mc-0c747a691ff9949223cf0860c91034c2",
+    "verdict": null
+   },
+   {
+    "file": "harness/review_tabs.py",
+    "function": "changes_tab / d11_status",
+    "severity": "P2",
+    "claim": "Registry read failures become affirmative statements that audit records do not exist, concealing an unknown audit state.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import review_tabs as rt\nwith patch.object(rt, '_registry', side_effect=OSError('permission denied')):\n    changes = rt.changes_tab({'slug': 'demo'})\n    signoff = rt.d11_status()\nprint('no withdrawal by a signer and no reinstatement is recorded for this topic' in changes)\nprint('no D11 decision is recorded' in signoff)",
+    "expected": "Propagate the read failure or explicitly report that registry contents could not be determined; neither absence assertion should appear.",
+    "actual": "Both expressions return True. An unreadable reinstatement registry becomes an empty list, and an unreadable decision registry is reported as containing no D11 decision.",
+    "id": "pva-tabs-r1:g1#4",
+    "record_id": "mc-0c747a691ff9949223cf0860c91034c2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/review_tab_inventory.py",
+    "function": "check (included branch)",
+    "severity": "P2",
+    "claim": "A trial without a recognized PMID or NCT makes the included-study check pass even when the tab is empty. ids_of returns (None, None), and both identifier-presence conditions become unconditionally true.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.review_tab_inventory import check\npage = \"<meta name='tab-contract' content='rapidmeta-v1'><main><section class=\\\"tab\\\" id=\\\"tab-included\\\"></section></main>\"\nreview = {'outcomes': [{'trials': [{'id': 'ISRCTN12345678'}]}]}\nwith patch('scripts.review_tab_inventory.withheld', return_value=False):\n    print(check('demo', page, review, [], [])['included'])",
+    "expected": "status='MISSING'; the empty tab does not show the trial, so its trial-presence element must be false.",
+    "actual": "{'status': 'COMPLETE', 'dedicated_tab': True, 'elements': {'every pooled trial with PMID/NCT (1/1)': True}, 'reasoned': []}",
+    "id": "pva-tabs-r1:g2#1",
+    "record_id": "mc-287e099264a6e08093a9e0b37f8377c4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/review_tab_inventory.py",
+    "function": "check (screening branch)",
+    "severity": "P2",
+    "claim": "Screening-record coverage uses substring membership instead of complete identifiers. Displaying one record therefore also counts a missing record whose ID is its prefix, falsely marking the screening tab COMPLETE.",
+    "failing_input": "from scripts.review_tab_inventory import check\npage = \"<meta name='tab-contract' content='rapidmeta-v1'><main><section class=\\\"tab\\\" id=\\\"tab-screening\\\">PMID 12345678 INCLUDE span dual reviewer agreement</section></main>\"\nreview = {'screening': {'records': [{'id': 'PMID 1234567'}, {'id': 'PMID 12345678'}]}}\nprint(check('demo', page, review, [], [])['screening'])",
+    "expected": "status='PRESENT'; 'every record (1/2)' should be false because PMID 1234567 is absent.",
+    "actual": "{'status': 'COMPLETE', 'dedicated_tab': True, 'elements': {'every record (2/2)': True, 'decision + rule': True, 'span': True, 'dual-reviewer agreement': True}, 'reasoned': []}",
+    "id": "pva-tabs-r1:g2#2",
+    "record_id": "mc-287e099264a6e08093a9e0b37f8377c4",
+    "verdict": null
+   }
+  ]
  }
 }
