@@ -735,3 +735,26 @@ Per topic: tocilizumab-covid19-mortality NOT_YET indep 5/19 matched 5/19; balanc
 0 admitted.
 
 **Codex.** 0 calls this round: no new route produced a text a prompt may carry. The local level would be 2 (2.6 GB RAM free, C: 7.7 GB); the worker is offline.
+
+## 2026-10-08 ~21:00 -- "use codex hard": ENGAGE CI FOUND; cortico final; sglt2-ckd queued behind the disk floor
+
+**ENGAGE D16 C: FOUND** (`outputs/k_gap/engage_ci_search.json`). Regex first over held, digest-checked texts; no model call was needed.
+- **Source.** EMA Lixiana EPAR, EMA/321083/2015 pp. 67–68, held under EMA reuse with acknowledgement. Text sha256 e1053560fe5a573e38bc9f8f8a7d8b9e21f93be1b019ec14a6a6d21449d9c0df; doc sha256 e760300757ee0087….
+- **Heading:** "c) Stroke and SEE - Superiority, ITT, overall study period (study protocol):"
+- **Span:** "In the ITT population (Overall Study Period), f ewer subjects in the edoxa ban 60 mg group experienced stroke or SEE than the warfarin group (1.57% and 1.80% per year, respectively), with an HR of 0.87 (99% CI: 0.709, 1.068, 95% CI: 0.744, 1.017) but the p-value (p=0.0807)"
+- **Same arm, analysis and outcome.** Edoxaban 60 mg (the high-dose regimen) v warfarin; ITT; stroke or SEE. The paper's ITT superiority analysis is itself the overall-study-period analysis: same HR 0.87, P=0.08 v p=0.0807. So the dispatch's "overall-period" refusal example does not apply here; please confirm.
+- **Bounds 0.744–1.017.** Our served conversion is 0.745–1.016, a rounding difference only.
+- **Corroboration.** The Savaysa 2023 label (s020) subgroup figure prints "Hazard Ratio and 95% CI … Overall 296/7035 (1.57) 337/7036 (1.80) 0.87 (0.74, 1.02)". Its text layer is damaged, so it serves as corroboration only.
+- **Refused:** the labels' overall "HR (99% CI): 0.87 (0.71, 1.07)" and NICE's network estimates.
+- **Not reached / not open:** PMC (none); the repository copy (no licence); the FDA reviews (not held; not needed).
+- **Next.** Yours: a before/after notice for Mahmood.
+
+**cortico re-run** (CAPE COVID 32876689, REMAP-CAP hydrocortisone 32876697, Metcovid 32785710): **NO_OPEN_TEXT, final** (`outputs/k_gap/cortico_cascade_rerun_2026-10-08.json`).
+- The Europe PMC 500 is article-specific: the control PMC5642327 answers 200.
+- PMC has no body for any of the three, Europe PMC records no licence, and the publisher PDFs answer 403.
+- D8 would close any copy anyway.
+
+**sglt2-ckd CC BY alternative: queued, not run.**
+- **What's left.** In `registry/comparator_selection/sglt2-ckd-progression.selection.json`, 39 candidates pass C1 (a CC BY Unpaywall location) and fail nothing. They were never read: C2–C6 are "not read: no open JATS", because they have no PMC copy.
+- **The job.** Hold each CC BY copy (host-page licence; D8 prompt rule CC BY / CC0), then run one recorded codex read per candidate on the pre-registered rule at concurrency 8, every PASS gated on a verbatim quote, then the deterministic select.
+- **BLOCKED:** C: has 3.7 GB free, under the 5 GB stop line; RAM is 1.8–2.1 GB and the worker is offline. My lane holds about 0.5 GB on C:, so I can't clear it. C:\mh-tmp\captain holds 9.8 GB. **Can you free C: to at least 5 GB (ideally 10 GB, for the ceiling of 8)?** I start the moment it is clear.
