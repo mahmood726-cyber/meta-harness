@@ -176,6 +176,13 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
         time.sleep(0.34)
         m = re.search(r'href="(ftp://[^"]+\.tar\.gz)"', oa) or re.search(r'href="(https?://[^"]+\.tar\.gz)"', oa)
         if not m:
+            # the OA service answers 'not in the open-access subset' with its own error code: that is NO_OA_PACKAGE; any
+            # OTHER error it returns is a failed request, never read as 'no package' (codex fetch-loud-r4 #1)
+            err = re.search(r'<error\b[^>]*code="([^"]*)"[^>]*>([^<]*)', oa)
+            if err and err.group(1) != "idIsNotOpenAccess":
+                LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: {err.group(1)} {err.group(2)[:120]}"
+                _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
+                return ""
             LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
             return ""
         url = m.group(1).replace("ftp://ftp.ncbi.nlm.nih.gov", "https://ftp.ncbi.nlm.nih.gov")

@@ -112,3 +112,13 @@ def test_PLANT_the_kgap_cache_records_a_supplement_failure_as_a_failure(monkeypa
     assert kc.pmc_fulltext_cached("891") == ""
     idx = _json.load(open(tmp_path / "fulltext_index.json", encoding="utf-8"))
     assert idx["891"]["state"] == "FETCH_FAILED"
+
+
+def test_PLANT_an_oa_service_error_is_a_failure_and_not_open_access_is_not(monkeypatch):
+    """codex fetch-loud-r4 #1: an OA service error with no archive link read as NO_OA_PACKAGE."""
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: '<OA><error code="internalError">Service unavailable</error></OA>')
+    assert fetch._pmc_oa_supplement_text("901", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["901"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: internalError")
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: '<OA><error code="idIsNotOpenAccess">identifier is not Open Access</error></OA>')
+    assert fetch._pmc_oa_supplement_text("902", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["902"] == "NO_OA_PACKAGE"

@@ -5094,5 +5094,36 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d535209a16feee9bb2fea6a805faac5b",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "64321470c79c064275ad661022d969b10364f6292615e8297f18b440c787bbd7"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "An OA service error without an archive link is classified as NO_OA_PACKAGE. Consequently, the caller does not mark a supplement failure, and strict=True cannot reject it.",
+    "failing_input": "For _pmc_oa_supplement_text('123', ['supp.csv']), supply this OA response body: <OA><error code=\"serverError\">Temporary backend failure</error></OA>",
+    "expected": "Return an empty string with LAST_SUPPLEMENT_STATE['123'] starting with FETCH_FAILED:SUPPLEMENT; propagate the failure through run_failed and strict mode.",
+    "actual": "Both archive-link searches fail, so the function returns an empty string with LAST_SUPPLEMENT_STATE['123'] = 'NO_OA_PACKAGE'. The caller ignores this as a failure and reports HELD if body text exists.",
+    "id": "fetch-loud-r4:g1#1",
+    "record_id": "mc-d535209a16feee9bb2fea6a805faac5b",
+    "verdict": null
+   }
+  ]
  }
 }
