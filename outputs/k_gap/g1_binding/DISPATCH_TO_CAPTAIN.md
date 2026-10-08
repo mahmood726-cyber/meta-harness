@@ -677,3 +677,14 @@ A count is never computed from either.
 - `g1_tracker.reported_is_our_outcome`: an unnamed served comparator result is now refused (unverifiable); none of the 28 served reviews has one, so nothing moves.
 - Counts binders and D10 code: 16 further fixes (clause-scoped keywords, denominator kinds, '1.00%' precision, rate units, PMID-NCT evidence, table-caption boundary, 'Non-HF' v 'HF', qualified SAE subsets, generic controls only for control comparators, negated subgroups, fatal v nonfatal).
 - **Replay (no model calls): nothing this lane produced moved** -- 12/12 D10 proposals identical at their commit's topics, 7/7 staged close-4 counts identical, D10 comparisons identical, SMART identical. 1181 g1 tests pass.
+
+---
+
+### Second-reader audit of the STAGED close-4 counts (a0b5ee97d) -- for D12
+
+An independent recorded reader saw each trial's AACT posted results and abstract, never the staged values (`g1_audit_primary.py --staged-counts`, 7 calls):
+- **CONFIRMED (3):** Hokusai-VTE 130/4118 v 146/4122; AMPLIFY 59/2609 v 71/2635; SELECT 569/8803 v 701/8801.
+- **Timepoint-explained (2): RE-COVER, RE-COVER II.** The reader took AACT "statistical analysis 1" (to the end of the post-treatment period, about day 224: 34 v 32 and 34 v 30). The staged counts are analysis 2, day 180. That is each trial's own published primary ("the 6-month incidence"; "during 6 months of treatment"), and the abstracts print exactly 30/1274 v 27/1265 and 30/1279 v 28/1289. So two primary sources agree with the staged counts, and the topic's timepoint is the acute-treatment follow-up. If you prefer the longest follow-up (day 224), the DOAC what-if changes. Say so and I will re-stage.
+- **Not comparable (2): EINSTEIN-DVT, EINSTEIN-PE.** The reader reported only the posted HR and percentages, so there is no counter-evidence.
+
+DOAC's D12 what-if (Table 1 identical, OR 0.881 both sides, AGREE) stands on these counts.
