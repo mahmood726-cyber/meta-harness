@@ -45,27 +45,32 @@ def load(path=None):
     return json.load(open(p, encoding="utf-8"))
 
 
+def _isd(c):
+    """ASCII digits only: superscripts and other scripts are digits to str.isdigit() but not to int() (codex d12-r5 #4)."""
+    return bool(c) and all(ch in "0123456789" for ch in c)
+
+
 def int_tokens(text):
     """Every whole number in the text as an int, digits bounded by non-digits ('1,274' and '1 274' read as 1274; a
     decimal's parts are not whole numbers). Plain scan, no regex."""
     out, s, i = set(), str(text or ""), 0
     while i < len(s):
-        if not s[i].isdigit() or (i > 0 and s[i - 1].isdigit()):
+        if not _isd(s[i]) or (i > 0 and _isd(s[i - 1])):
             i += 1
             continue
         j, digits = i, ""
         while j < len(s):
-            if s[j].isdigit():
+            if _isd(s[j]):
                 digits += s[j]
                 j += 1
                 continue
             grp = s[j + 1:j + 4]
-            if (s[j] in ",  " and len(grp) == 3 and grp.isdigit()
-                    and (j + 4 == len(s) or not s[j + 4].isdigit())):
+            if (s[j] in ",  " and len(grp) == 3 and _isd(grp)
+                    and (j + 4 == len(s) or not _isd(s[j + 4]))):
                 j += 1       # a thousands separator (comma or thin space) followed by exactly three digits
                 continue
             break
-        decimal = (i > 0 and s[i - 1] == ".") or (j < len(s) - 1 and s[j] == "." and s[j + 1].isdigit())
+        decimal = (i > 0 and s[i - 1] == ".") or (j < len(s) - 1 and s[j] == "." and _isd(s[j + 1]))
         if not decimal:
             out.add(int(digits))
         i = j
@@ -157,6 +162,19 @@ class Aact:
         self._counts = self._scan("outcome_counts.txt", ids)
         self._meas = self._scan("outcome_measurements.txt", ids)
         self._groups = self._scan("result_groups.txt", ids)
+        p = os.path.join(self.snap, "outcomes.txt")
+        self._outcomes = {}
+        with open(p, encoding="utf-8", newline="") as f:
+            rd = csv.DictReader(f, delimiter="|")
+            if not {"id", "nct_id", "title"} <= set(rd.fieldnames or []):
+                raise ValueError(f"{p}: missing id/nct_id/title columns")
+            for r in rd:
+                if r["id"] in ids:
+                    self._outcomes[r["id"]] = r
+
+    def outcome_title(self, nct, oid):
+        r = (self._outcomes or {}).get(oid)
+        return r.get("title") if r and r.get("nct_id") == nct else None
 
     def group_title(self, nct, oid, code):
         return next((r.get("title") for r in self._groups
@@ -167,9 +185,13 @@ class Aact:
         COUNT of participants is an event count (codex d12-r1 #4): param_type COUNT_OF_PARTICIPANTS, or NUMBER whose
         units name participants; the value must be a whole number. Anything else is not returned."""
         cls = "" if classification in (None, "", "unclassified") else classification
-        n = {r["ctgov_group_code"]: r["count"] for r in self._counts
-             if r["nct_id"] == nct and r["outcome_id"] == oid and r.get("scope") == "Measure"}
-        e = {}
+        # every row is collected per group; a group with MORE THAN ONE candidate row (several categories, or a second
+        # denominator such as participant-years) is ambiguous and the outcome is refused, never overwritten (r5 #2 #3)
+        n, e = {}, {}
+        for r in self._counts:
+            if r["nct_id"] == nct and r["outcome_id"] == oid and r.get("scope") == "Measure" and \
+                    " ".join((r.get("units") or "").lower().split()) in COUNT_UNITS:
+                n.setdefault(r["ctgov_group_code"], []).append(r["count"])
         for r in self._meas:
             if r["nct_id"] != nct or r["outcome_id"] != oid or (r.get("classification") or "") != cls:
                 continue
@@ -178,7 +200,11 @@ class Aact:
             # 'percentage of participants', rates and 'participant-years' (codex d12-r2 #1, r3 #2, r4 #1)
             if not (pt in ("COUNT_OF_PARTICIPANTS", "NUMBER") and " ".join(units.split()) in COUNT_UNITS):
                 continue
-            e[r["ctgov_group_code"]] = r["param_value"]
+            e.setdefault(r["ctgov_group_code"], []).append(r["param_value"])
+        if any(len(v) != 1 for v in list(n.values()) + list(e.values())):
+            return {}
+        n = {g: v[0] for g, v in n.items()}
+        e = {g: v[0] for g, v in e.items()}
         out = {}
         for g in set(n) & set(e):
             ev, nn = _whole(e[g]), _whole(n[g])
@@ -215,9 +241,9 @@ def count_positions(text, value):
         if i < 0:
             return out
         j = i + len(v)
-        left_ok = i == 0 or not (s[i - 1].isdigit() or s[i - 1] in ".,")
+        left_ok = i == 0 or not (_isd(s[i - 1]) or s[i - 1] in ".,")
         right = s[j:j + 14].lower()
-        right_ok = j == len(s) or not (s[j].isdigit() or (s[j] in ".," and s[j + 1:j + 2].isdigit()))
+        right_ok = j == len(s) or not (_isd(s[j]) or (s[j] in ".," and _isd(s[j + 1:j + 2])))
         if left_ok and right_ok and not right.lstrip().startswith("%") and \
                 any(right.lstrip(" [(").startswith(w) for w in _COUNT_NOUNS):
             out.append(i)
@@ -235,7 +261,7 @@ def _pct_after(text, pos, width=70):
     while j > 0 and seg[j - 1] == " ":
         j -= 1
     st = j
-    while st > 0 and (seg[st - 1].isdigit() or seg[st - 1] == "."):
+    while st > 0 and (_isd(seg[st - 1]) or seg[st - 1] == "."):
         st -= 1
     txt = seg[st:j]
     try:
@@ -250,7 +276,7 @@ def _tied(text, pos, e, n):
     s = str(text or "")[pos:pos + 40].replace(",", "")
     for pre in (f"{e} of {n}", f"{e}/{n}"):
         # a numeric boundary after the denominator: '10 of 1000' is never '10 of 100' (codex d12-r2 #3)
-        if s.startswith(pre) and not s[len(pre):len(pre) + 1].isdigit():
+        if s.startswith(pre) and not _isd(s[len(pre):len(pre) + 1]):
             return True
     got = _pct_after(text, pos)
     if got is None:
@@ -293,8 +319,9 @@ def arms_in_order(span, slug, pos_t, pos_c):
     return ((pos_t < pos_c) == (ft < fc)), "K2_COUNTS_NOT_IN_THE_ARMS_ORDER"
 
 
-def verify(b, aact=None):
-    """(True, basis) when the binding verifies under D12, else (False, why)."""
+def verify(b, aact=None, endpoint_ok=None):
+    """(True, basis) when the binding verifies under D12, else (False, why). endpoint_ok(title) -> bool: the topic's own
+    outcome gate (g1_tracker.binding_verdict), applied to a K1 outcome's registered title."""
     v = b.get("values") or {}
     if b.get("tuple_kind") != "COUNTS" or not b.get("own_tuple") or any(
             not isinstance(v.get(k), int) or isinstance(v.get(k), bool) for k in _VALUE_KEYS):
@@ -313,6 +340,12 @@ def verify(b, aact=None):
             return False, "K1_HELD_REPORT_DOES_NOT_CARRY_THIS_NCT"
         if aact is None:
             return False, "K1_NOT_VERIFIABLE:NO_AACT_SNAPSHOT"
+        # the AACT outcome must be OUR endpoint, by the tracker's own binding gate on its registered title (r5 #1)
+        otitle = aact.outcome_title(nct, oid)
+        if endpoint_ok is None:
+            return False, "K1_ENDPOINT_NOT_CHECKABLE"
+        if not otitle or not endpoint_ok(otitle):
+            return False, f"K1_OUTCOME_NOT_OUR_ENDPOINT:{(otitle or '')[:80]}"
         arms = aact.arms(nct, oid, b.get("classification"))
         if len(arms) != 2:
             return False, f"K1_AACT_ROWS_DIFFER:{sorted(arms.items())}"
@@ -401,7 +434,7 @@ def verify(b, aact=None):
 _AACT_CACHE = {}
 
 
-def for_topic(slug, trials, snap=None, reg=None):
+def for_topic(slug, trials, snap=None, reg=None, endpoint_ok=None):
     """{trial label: {'row': counts dict, 'basis': ..., 'binding': ...}} for this topic's MATCHED trials whose identity
     (family 'PMID n' or an NCT) is the binding's own, verified now; plus [refusals]. Identity, never the label, joins."""
     reg = load() if reg is None else reg
@@ -434,7 +467,7 @@ def for_topic(slug, trials, snap=None, reg=None):
         if len(xs) != 1:
             refused.append({"trial": b.get("label"), "why": f"IDENTITY:{len(xs)}_MATCHED_TRIALS"})
             continue
-        ok, why = verify(b, aact)
+        ok, why = verify(b, aact, endpoint_ok)
         if not ok:
             refused.append({"trial": b.get("label"), "why": why})
             continue

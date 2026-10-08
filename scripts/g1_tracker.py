@@ -425,7 +425,15 @@ def d12_for(slug, trials):
     """The verified D12 own-count bindings of this topic's matched trials (scripts/g1_d12.for_topic), keyed by our trial
     label, and the refusals. Imported here only: g1_d12 is a matching input, never a serving one."""
     import g1_d12
-    return g1_d12.for_topic(slug, trials)
+    cfg = json.load(open(os.path.join(ROOT, "topics", f"{slug}.json"), encoding="utf-8")) \
+        if os.path.exists(os.path.join(ROOT, "topics", f"{slug}.json")) else {}
+    spec = (cfg.get("primary_outcome") or {}).get("name") or ""
+    kw = list((cfg.get("primary_outcome") or {}).get("keywords") or [])
+
+    def endpoint_ok(title):
+        # the same outcome gate a registry binding passes: named by a topic keyword, not another composite
+        return bool(spec) and binding_verdict(spec, kw, title, 2)["gate"] not in ("OUTCOME_NOT_NAMED", "ESTIMAND")
+    return g1_d12.for_topic(slug, trials, endpoint_ok=endpoint_ok)
 
 
 def same_trials_core(pairs, method_label, participants_of=None):

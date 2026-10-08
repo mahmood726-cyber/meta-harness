@@ -127,20 +127,26 @@ def _snapshot(tmp_path, titles=("Drug", "Placebo")):
     (tmp_path / "result_groups.txt").write_text(
         "id|nct_id|ctgov_group_code|result_type|title|description|outcome_id\n"
         f"g0|NCT00000001|OG000|Outcome|{titles[0]}||42\ng1|NCT00000001|OG001|Outcome|{titles[1]}||42\n", encoding="utf-8")
+    (tmp_path / "outcomes.txt").write_text("id|nct_id|outcome_type|title\n42|NCT00000001|PRIMARY|Recurrent outcome events\n",
+                                           encoding="utf-8")
     a = D.Aact(str(tmp_path))
     a.load({"42"})
     return a
+
+
+def EP(title):
+    return "recurrent" in title.lower()
 
 
 def test_PLANT_k1_verifies_against_the_aact_rows_and_their_group_titles(tmp_path):
     a = _snapshot(tmp_path)
     k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42",
              span="X | unclassified | Drug: 59 of 2609 participants | Placebo: 71 of 2635 participants")
-    assert D.verify(k1, a)[0]
+    assert D.verify(k1, a, EP)[0]
     # the span states the arms the other way round from AACT -> never verifies
     swapped = dict(k1, span="X | unclassified | Placebo: 59 of 2609 participants | Drug: 71 of 2635 participants")
-    assert D.verify(swapped, a)[1].startswith("K1_SPAN_DOES_NOT_STATE_AACT_GROUP")
-    assert D.verify(dict(k1, values={"events_t": 60, "n_t": 2609, "events_c": 71, "n_c": 2635}), a)[1].startswith(
+    assert D.verify(swapped, a, EP)[1].startswith("K1_SPAN_DOES_NOT_STATE_AACT_GROUP")
+    assert D.verify(dict(k1, values={"events_t": 60, "n_t": 2609, "events_c": 71, "n_c": 2635}), a, EP)[1].startswith(
         "K1_AACT_ROWS_DIFFER")
 
 
@@ -211,9 +217,9 @@ def test_PLANT_r1_5_k1_needs_the_trials_own_report_to_carry_the_nct(tmp_path, mo
     a = _snapshot(tmp_path)
     k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42",
              span="X | unclassified | Drug: 59 of 2609 participants | Placebo: 71 of 2635 participants")
-    assert D.verify(k1, a)[0]
+    assert D.verify(k1, a, EP)[0]
     monkeypatch.setattr(D, "_held_nct", lambda slug, pmid: "NCT00000002")
-    assert D.verify(k1, a)[1] == "K1_HELD_REPORT_DOES_NOT_CARRY_THIS_NCT"
+    assert D.verify(k1, a, EP)[1] == "K1_HELD_REPORT_DOES_NOT_CARRY_THIS_NCT"
 
 
 def test_PLANT_k2_needs_the_independent_second_readers_confirmation(monkeypatch):
@@ -295,11 +301,11 @@ def test_PLANT_r4_2_a_double_dummy_title_is_refused_and_roles_come_from_titles(t
     a = _snapshot(tmp_path, titles=("Drug + placebo", "Placebo + drug placebo"))
     k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42",
              span="X | Drug + placebo: 59 of 2609 participants | Placebo + drug placebo: 71 of 2635 participants")
-    assert D.verify(k1, a)[1].startswith("K1_GROUP_ROLE_AMBIGUOUS")
+    assert D.verify(k1, a, EP)[1].startswith("K1_GROUP_ROLE_AMBIGUOUS")
     # titles say OG000 is control: a binding claiming 59/2609 for treatment never verifies
     a2 = _snapshot(tmp_path, titles=("Placebo", "Drug"))
     k2 = dict(k1, span="X | Placebo: 59 of 2609 participants | Drug: 71 of 2635 participants")
-    assert D.verify(k2, a2)[1].startswith("K1_AACT_ROWS_DIFFER")
+    assert D.verify(k2, a2, EP)[1].startswith("K1_AACT_ROWS_DIFFER")
 
 
 def test_PLANT_r4_3_identical_arm_tuples_verify_by_role(tmp_path):
@@ -309,10 +315,36 @@ def test_PLANT_r4_3_identical_arm_tuples_verify_by_role(tmp_path):
     k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42",
              values={"events_t": 59, "n_t": 2609, "events_c": 59, "n_c": 2609},
              span="X | Drug: 59 of 2609 participants | Placebo: 59 of 2609 participants")
-    assert D.verify(k1, a)[0]
+    assert D.verify(k1, a, EP)[0]
 
 
 def test_PLANT_r4_4_a_reader_record_about_another_paper_never_confirms():
     assert REAL_READER("mc-7948396356bf9b690759ec525d16a1c4", "23808982", "NCT00643201") == (59, 2609, 71, 2635)
     assert REAL_READER("mc-7948396356bf9b690759ec525d16a1c4", "21128814", None) is None
     assert REAL_READER("mc-7948396356bf9b690759ec525d16a1c4", "23808982", "NCT00440193") is None
+
+
+def test_PLANT_r5_1_k1_needs_our_endpoint(tmp_path):
+    a = _snapshot(tmp_path)
+    k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42",
+             span="X | Drug: 59 of 2609 participants | Placebo: 71 of 2635 participants")
+    assert D.verify(k1, a, EP)[0]
+    assert D.verify(k1, a, lambda t: "headache" in t.lower())[1].startswith("K1_OUTCOME_NOT_OUR_ENDPOINT")
+    assert D.verify(k1, a, None)[1] == "K1_ENDPOINT_NOT_CHECKABLE"
+
+
+def test_PLANT_r5_2_3_several_rows_per_group_are_refused_never_overwritten(tmp_path):
+    a = _snapshot(tmp_path)
+    a._meas = a._meas + [dict(a._meas[0], category="day 360", param_value="80")]
+    assert a.arms("NCT00000001", "42", None) == {}
+    b = _snapshot(tmp_path)
+    b._counts = b._counts + [dict(b._counts[0], units="Participants", count="5000")]
+    assert b.arms("NCT00000001", "42", None) == {}
+    c = _snapshot(tmp_path)
+    c._counts = c._counts + [dict(c._counts[0], units="participant-years", count="9000")]   # not a count unit: ignored
+    assert len(c.arms("NCT00000001", "42", None)) == 2
+
+
+def test_PLANT_r5_4_superscripts_do_not_crash_the_tokenizer():
+    assert D.int_tokens("10² cells, 59 of 2609") == {10, 59, 2609}
+    assert D.count_positions("2² of 59 events", 59) == [6]

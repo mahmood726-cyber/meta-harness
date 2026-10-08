@@ -5945,5 +5945,71 @@
     "verdict": null
    }
   ]
+ },
+ "d12-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "e3661888f037bae8d9a40e48a1699179ffb6600c315088dc9177db556dd019a3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify (K1)",
+    "severity": "P0",
+    "claim": "K1 certifies counts for a different endpoint. It checks the requested classification against itself but never checks that the outcome is mortality. Headache counts therefore become verified matching counts.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_d12 as d\nnct = 'NCT00000001'\na = d.Aact('snapshot')\na._counts = [dict(nct_id=nct, outcome_id='7', ctgov_group_code=g, scope='Measure', units='Participants', count='100') for g in ['T', 'C']]\na._meas = [dict(nct_id=nct, outcome_id='7', ctgov_group_code=g, classification='Headache', param_type='COUNT_OF_PARTICIPANTS', units='participants', param_value=e) for g,e in [('T','10'), ('C','20')]]\na._groups = [dict(nct_id=nct, outcome_id='7', ctgov_group_code=g, title=t) for g,t in [('T','Drug'), ('C','Placebo')]]\nb = dict(slug='mortality', pmid='1', tuple_kind='COUNTS', own_tuple=True, rule='K1', ncts=[nct], source='AACT NCT00000001 outcome 7', classification='Headache', values=dict(events_t=10, n_t=100, events_c=20, n_c=100), span='Drug: 10 of 100 participants; Placebo: 20 of 100 participants')\nwith patch.object(d, '_held_nct', return_value=nct), patch.object(d, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    print(d.verify(b, a))",
+    "expected": "Reject the mortality binding because the source counts participants with headache; mortality endpoint evidence is absent.",
+    "actual": "(True, \"K1: AACT snapshot NCT00000001 outcome 7 (Headache): groups [('C', (20, 100)), ('T', (10, 100))]\")",
+    "id": "d12-r5:g1#1",
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms",
+    "severity": "P0",
+    "claim": "Measurement rows overwrite each other by group while category is ignored. Row order can produce treatment and control counts from different follow-up categories. K1 then accepts a binding matching this mixed pair without further category checks.",
+    "failing_input": "from scripts import g1_d12 as d\na = d.Aact('snapshot')\na._counts = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=g, scope='Measure', count='100') for g in ['T', 'C']]\na._meas = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=g, classification='Deaths', category=category, param_type='COUNT_OF_PARTICIPANTS', units='participants', param_value=e) for g,category,e in [('T','12 months','20'), ('C','6 months','5'), ('T','6 months','10'), ('C','12 months','40')]]\nprint(a.arms('NCT00000001', '7', 'Deaths'))",
+    "expected": "Refuse the ambiguous selection, or require a common category: six-month counts are T=10/C=5; twelve-month counts are T=20/C=40.",
+    "actual": "Returns a mapping equal to {'T': (10, 100), 'C': (40, 100)}, combining six-month treatment deaths with twelve-month control deaths.",
+    "id": "d12-r5:g1#2",
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms",
+    "severity": "P0",
+    "claim": "Denominator units are never checked. A later exposure denominator overwrites the participant denominator, allowing participant-years to become arm sample sizes in verified counts.",
+    "failing_input": "from scripts import g1_d12 as d\na = d.Aact('snapshot')\na._counts = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=g, scope='Measure', units=units, count=n) for units,n in [('Participants','50'), ('Participant-years','100')] for g in ['T', 'C']]\na._meas = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=g, classification='Deaths', param_type='COUNT_OF_PARTICIPANTS', units='participants', param_value=e) for g,e in [('T','10'), ('C','20')]]\nprint(a.arms('NCT00000001', '7', 'Deaths'))",
+    "expected": "Use the participant denominators, returning {'T': (10, 50), 'C': (20, 50)}, or explicitly refuse the ambiguity.",
+    "actual": "Returns a mapping equal to {'T': (10, 100), 'C': (20, 100)}. K1 has no subsequent denominator-unit check, so these exposure totals can be certified as participant Ns.",
+    "id": "d12-r5:g1#3",
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "int_tokens",
+    "severity": "P2",
+    "claim": "Normal scientific notation containing superscript digits crashes tokenization. str.isdigit() accepts superscript ², but int() cannot parse it. K2 calls this function without catching the exception.",
+    "failing_input": "from scripts.g1_d12 import int_tokens\nint_tokens('Dose: 5 mg/m².')",
+    "expected": "Return {5}, treating the superscript unit exponent as non-count text, without aborting verification.",
+    "actual": "Raises ValueError: invalid literal for int() with base 10: '²'.",
+    "id": "d12-r5:g1#4",
+    "record_id": "mc-52d6cadd011cadd1db145a8415f538a8",
+    "verdict": null
+   }
+  ]
  }
 }
