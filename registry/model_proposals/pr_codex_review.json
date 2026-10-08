@@ -5506,5 +5506,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r17": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4e2a9574322b95dafe5001cb7427e763",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "07030eeed7be9c7fdc537532d92aff7166b8e01e4ebecd6d422b181b48685374"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "The error-identity check ignores PMCIDs attached to labels. A response whose error names a different article is silently classified as NO_OA_PACKAGE because the matching request ID alone satisfies about_this.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC123\"/><error code=\"idIsNotOpenAccess\">Identifier=PMC456 is not Open Access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep', return_value=None):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return '' and record FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR because the error concerns PMC456, not the requested PMC123.",
+    "actual": "Returns '' and records NO_OA_PACKAGE. The whitespace token 'Identifier=PMC456' does not start with 'PMC', so it is discarded and named becomes {'PMC123'}.",
+    "id": "fetch-loud-r17:g1#1",
+    "record_id": "mc-4e2a9574322b95dafe5001cb7427e763",
+    "verdict": null
+   }
+  ]
  }
 }

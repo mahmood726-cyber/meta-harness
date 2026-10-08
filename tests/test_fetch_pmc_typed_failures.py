@@ -238,3 +238,11 @@ def test_PLANT_a_later_error_naming_another_article_is_not_absence(monkeypatch):
     monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><request id='PMC973'/><error code='idIsNotOpenAccess'>identifier PMC973 is not Open Access</error><error code='idIsNotOpenAccess'>identifier PMC7 is not Open Access</error></OA>")
     assert fetch._pmc_oa_supplement_text("973", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["973"].startswith("FETCH_FAILED:SUPPLEMENT:")
+
+
+def test_PLANT_a_labelled_id_naming_another_article_is_not_absence(monkeypatch):
+    """codex fetch-loud-r17 #1: 'id=PMC7' in the error text was not read as naming an article."""
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><request id='PMC974'/><error code='idIsNotOpenAccess'>id=PMC7 is not Open Access</error></OA>")
+    assert fetch._pmc_oa_supplement_text("974", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["974"].startswith("FETCH_FAILED:SUPPLEMENT:")
+    assert fetch._pmc_ids_in("id=PMC7, (PMC12). XPMC9 PMC PMC3a") == {"PMC7", "PMC12"}

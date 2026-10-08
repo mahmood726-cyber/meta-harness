@@ -170,6 +170,22 @@ def _url_path(url: str) -> str:
     return url.split("#", 1)[0].split("?", 1)[0]
 
 
+def _pmc_ids_in(text: str) -> set[str]:
+    """Every 'PMC<digits>' in the text, wherever it sits ('id=PMC7', '(PMC7)', 'PMC7.'), upper-cased; a 'PMC' run
+    preceded by a letter or digit (e.g. 'XPMC7') or followed by no digit is not an id. Plain scan, no regex."""
+    out, up, i = set(), text.upper(), 0
+    while True:
+        i = up.find("PMC", i)
+        if i < 0:
+            return out
+        j = i + 3
+        while j < len(up) and up[j].isdigit():
+            j += 1
+        if j > i + 3 and (i == 0 or not up[i - 1].isalnum()) and (j == len(up) or not up[j].isalnum()):
+            out.add(up[i:j])
+        i += 3
+
+
 def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
     """Download the PMC OA .tar.gz package and extract row-structured text from the supplementary
     spreadsheet/CSV files the article references (per-arm SD tables have hidden here). Best-effort;
@@ -217,9 +233,8 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
         if not tgz:
             req = oa_root.find("request")
             want = f"PMC{pmcid}".upper()
-            # tokens from EVERY error in the reply, not only the first (codex fetch-loud-r16 #1)
-            err_tokens = [t.strip("'\".,;:()[]").upper() for e in errs for t in (e.text or "").split()]
-            named = {t for t in err_tokens if t.startswith("PMC") and t[3:].isdigit()}
+            # every PMC id named anywhere in EVERY error's text, labelled or not (codex fetch-loud-r16 #1, r17 #1)
+            named = {x for e in errs for x in _pmc_ids_in(e.text or "")}
             if req is not None and req.get("id"):
                 named.add(req.get("id").upper())
             # every article the reply names must be this one, and it must name at least one (codex fetch-loud-r15 #1)
