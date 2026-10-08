@@ -9,9 +9,10 @@ Source posture:
 * ISRCTN has an unauthenticated XML API and is parsed directly.
 * EU-CTR has a public search/results website; this adapter uses conservative
   public HTML parsing because no stable JSON API is exposed there.
-* ICTRP documents an XML web service, but WHO describes it as an agreed-partner
-  cost-recovery service; the adapter only probes the public HTML search page and
-  treats errors or unsupported markup as zero records for that source.
+* ICTRP is NOT queried (8 Oct): trialsearch.who.int/robots.txt disallows all agents and WHO describes its XML web
+  service and crawling service as agreed-partner services. The adapter reports ICTRP as NOT_RUN_ACCESS; ICTRP records
+  enter only from a person's export (scripts/g1_open_sources.py --ictrp-export). _parse_ictrp_html is kept for an
+  exported page.
 
 The module is side-effect-free and stdlib-only. Per-source failures do not raise
 from registry_multi(); use registry_multi_with_status() for diagnostics.
@@ -36,6 +37,9 @@ UA = "meta-harness/1.0 (registry-multi; mailto:meta-harness@example.org)"
 RAN_OK = "RAN_OK"
 RAN_ZERO = "RAN_ZERO"
 RAN_ERROR = "RAN_ERROR"
+NOT_RUN_ACCESS = "NOT_RUN_ACCESS"
+ICTRP_NOT_RUN = ("not queried: trialsearch.who.int robots.txt disallows all agents and WHO's web/crawling services are "
+                 "partner-only; open route = a person's Search Portal CSV/XML export or WHO's full-dataset request")
 
 REGISTRY_NOTES = {
     "ISRCTN": "Unauthenticated XML API at https://www.isrctn.com/api/query/format/who.",
@@ -204,10 +208,6 @@ def _parse_ictrp_html(html_text: str) -> list[dict[str, str]]:
     return _dedupe_records(records)
 
 
-def _ictrp_records(query: str) -> list[dict[str, str]]:
-    return _parse_ictrp_html(_get_text(_url(ICTRP_SEARCH, {"q": query})))
-
-
 def registry_multi_with_status(cond: str, intr: str) -> dict[str, object]:
     """Return records plus per-source status diagnostics.
 
@@ -220,10 +220,12 @@ def registry_multi_with_status(cond: str, intr: str) -> dict[str, object]:
     if not variants:
         return {"records": [], "registries": {}, "queries": []}
 
+    # ICTRP is never queried (8 Oct; plant tests/test_registry_multi_ictrp_access.py): its records enter only from a
+    # person's export
+    statuses["ICTRP"] = {"status": NOT_RUN_ACCESS, "n": 0, "note": ICTRP_NOT_RUN}
     sources = {
         "ISRCTN": _isrctn_records,
         "EU-CTR": _euctr_records,
-        "ICTRP": _ictrp_records,
     }
     for registry, search_fn in sources.items():
         source_records: list[dict[str, str]] = []
