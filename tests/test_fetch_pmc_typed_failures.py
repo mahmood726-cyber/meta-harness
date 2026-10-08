@@ -119,7 +119,7 @@ def test_PLANT_an_oa_service_error_is_a_failure_and_not_open_access_is_not(monke
     monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: '<OA><error code="internalError">Service unavailable</error></OA>')
     assert fetch._pmc_oa_supplement_text("901", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["901"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: internalError")
-    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: '<OA><error code="idIsNotOpenAccess">identifier is not Open Access</error></OA>')
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><request id='PMC902'/><error code='idIsNotOpenAccess'>identifier PMC902 is not Open Access</error></OA>")
     assert fetch._pmc_oa_supplement_text("902", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["902"] == "NO_OA_PACKAGE"
 
@@ -132,7 +132,7 @@ def test_PLANT_single_quoted_and_codeless_oa_errors_are_failures(monkeypatch):
     monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error>down</error></OA>")
     assert fetch._pmc_oa_supplement_text("904", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["904"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: NO_CODE")
-    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error code='idIsNotOpenAccess'>not OA</error></OA>")
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error code='idIsNotOpenAccess'>identifier 'PMC905' is not Open Access</error></OA>")
     assert fetch._pmc_oa_supplement_text("905", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["905"] == "NO_OA_PACKAGE"
 
@@ -214,3 +214,13 @@ def test_PLANT_a_nested_service_error_is_a_failure(monkeypatch):
     monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><records><record id='PMC960'><error code='internalError'>x</error></record></records></OA>")
     assert fetch._pmc_oa_supplement_text("960", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["960"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: internalError")
+
+
+def test_PLANT_a_not_open_access_reply_about_another_article_is_not_absence(monkeypatch):
+    """codex fetch-loud-r14 #1: an idIsNotOpenAccess reply for a different article was taken as this article's absence."""
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><request id='PMC9'/><error code='idIsNotOpenAccess'>identifier 'PMC9' is not Open Access</error></OA>")
+    assert fetch._pmc_oa_supplement_text("970", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["970"].startswith("FETCH_FAILED:SUPPLEMENT:")
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error code='idIsNotOpenAccess'>not Open Access</error></OA>")
+    assert fetch._pmc_oa_supplement_text("971", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["971"].startswith("FETCH_FAILED:SUPPLEMENT:")

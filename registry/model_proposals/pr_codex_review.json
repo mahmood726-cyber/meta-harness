@@ -5410,5 +5410,37 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "fetch-loud-r14": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-88e1ee522e52c53a5feb13edf355c400",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "5e58b79308f3266045f9b7eb0502e3bb53b59bd984a16682c3326256bf0764f6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "An idIsNotOpenAccess error for a different article is accepted as evidence that the requested article has no OA package. Record IDs are checked, but the article identified by an absence response is not.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC999\">oa.fcgi</request><error code=\"idIsNotOpenAccess\">identifier PMC999 is not Open Access</error></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('123', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['123'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state: a response about PMC999 cannot establish absence for PMC123.",
+    "actual": "Returns an empty string and records LAST_SUPPLEMENT_STATE['123'] = 'NO_OA_PACKAGE'.",
+    "id": "fetch-loud-r14:g1#1",
+    "record_id": "mc-88e1ee522e52c53a5feb13edf355c400",
+    "verdict": null
+   }
+  ]
  }
 }

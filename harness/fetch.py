@@ -215,7 +215,12 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
         if not tgz:
-            if err is not None and err.get("code") == "idIsNotOpenAccess":
+            req = oa_root.find("request")
+            want = f"PMC{pmcid}".upper()
+            err_tokens = [t.strip("'\".,;:()[]").upper() for t in ((err.text or "") if err is not None else "").split()]
+            about_this = (req is not None and (req.get("id") or "").upper() == want) or want in err_tokens
+            if err is not None and err.get("code") == "idIsNotOpenAccess" and about_this:
+                # absence counts only when the reply names THIS article (its <request id> or the error text) (r14 #1)
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
             elif err is None and records:
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
