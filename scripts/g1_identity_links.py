@@ -100,7 +100,7 @@ def title_names_own_study(title, acro):
         return True
     i = low.find(a)
     while i >= 0:
-        before = low[:i].rstrip()
+        before = " " + low[:i].rstrip()     # padded: a title that OPENS 'The X study' / 'Compared with the X' (r4 #1 #2)
         after = low[i + len(a):].lstrip(" ")
         if before.endswith(" the") and (after.startswith("study") or after.startswith("trial")):
             # 'versus the X trial': the word before 'the' marks a comparison -> not its own study

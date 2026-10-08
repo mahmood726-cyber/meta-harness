@@ -109,3 +109,10 @@ def test_PLANT_a_title_comparing_with_another_trial_is_not_its_own_study_and_a_b
     (tmp_path / "studies.txt").write_text("nct_id|brief_title\nNCT02468232|x\n", encoding="utf-8")
     with pytest.raises(ValueError):
         L.registry_acronym_from_aact("NCT02468232", str(tmp_path))
+
+
+def test_PLANT_titles_that_open_with_the_article_or_a_comparison():
+    """codex idlink-r4: #1 'Compared with the X trial: ...' at the title's start passed; #2 'The X Study: ...' failed."""
+    assert L.title_names_own_study("The PARALLEL-HF Study: sacubitril/valsartan in Japan", "PARALLEL-HF")
+    assert not L.title_names_own_study("Compared with the PARALLEL-HF trial: a cohort", "PARALLEL-HF")
+    assert not L.title_names_own_study("Versus the PARALLEL-HF study", "PARALLEL-HF")

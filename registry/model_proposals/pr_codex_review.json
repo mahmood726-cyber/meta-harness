@@ -5146,5 +5146,47 @@
     "verdict": null
    }
   ]
+ },
+ "idlink-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b5593c8b8962c5b2306db502e7bc0528",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_identity_links.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "010a0e2ac2761f582e2c2be4a9f05956ee7ca6c719e7ceaad837c81d7b13d736"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study",
+    "severity": "P1",
+    "claim": "A comparison phrase at the beginning of a title bypasses the comparison exclusion. The checked suffix includes a leading space, so 'compared with' does not match ' compared with'. This incorrectly classifies the referenced trial as the paper's own study.",
+    "failing_input": "title_names_own_study('Compared with the PARALLEL-HF trial: outcomes in an observational cohort', 'PARALLEL-HF')",
+    "expected": "False: the title explicitly describes comparison with another trial.",
+    "actual": "True.",
+    "id": "idlink-r4:g1#1",
+    "record_id": "mc-b5593c8b8962c5b2306db502e7bc0528",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_identity_links.py",
+    "function": "title_names_own_study",
+    "severity": "P1",
+    "claim": "An own-study title beginning with 'The <ACRONYM> Study' is rejected because before.endswith(' the') requires a space before the initial article. Consequently, supported() rejects otherwise valid identity links with this title form.",
+    "failing_input": "title_names_own_study('The PARALLEL-HF Study: Results', 'PARALLEL-HF')",
+    "expected": "True: the title explicitly names its own study, matching the documented rule.",
+    "actual": "False.",
+    "id": "idlink-r4:g1#2",
+    "record_id": "mc-b5593c8b8962c5b2306db502e7bc0528",
+    "verdict": null
+   }
+  ]
  }
 }
