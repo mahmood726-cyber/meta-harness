@@ -92,6 +92,23 @@ def _held_nct(slug, pmid):
     return None
 
 
+def reader_counts(record_id):
+    """(events_t, n_t, events_c, n_c) as the independent second reader's RECORDED response states them, or None."""
+    import base64
+    p = os.path.join(ROOT, "evidence", "model_calls", "audit", f"{record_id}.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        r = json.load(open(p, encoding="utf-8"))
+        resp = json.loads(base64.b64decode((r.get("response") or {}).get("b64") or "").decode("utf-8"))
+    except (ValueError, TypeError):
+        return None
+    if r.get("state") != "RAN_OK" or resp.get("state") != "REPORTED":
+        return None
+    vals = tuple(_whole(resp.get(k)) for k in _VALUE_KEYS)
+    return None if None in vals else vals
+
+
 def _aact_source(source):
     """(nct, outcome_id) from 'AACT ... NCT######## outcome ########', else (None, None). Plain token scan."""
     toks = str(source or "").replace("(", " ").replace(")", " ").split()
@@ -145,7 +162,8 @@ class Aact:
             pt, units = (r.get("param_type") or "").upper(), (r.get("units") or "").lower()
             # NUMBER only with units that ARE participants -- never 'percentage of participants', a rate or a
             # proportion (codex d12-r2 #1)
-            counted = "participant" in units and not any(w in units for w in ("percent", "%", "rate", "proportion", "per "))
+            counted = "participant" in units and not any(w in units for w in ("percent", "%", "rate", "proportion", "per ",
+                                                                              "/"))
             if not (pt == "COUNT_OF_PARTICIPANTS" or (pt == "NUMBER" and counted)):
                 continue
             e[r["ctgov_group_code"]] = r["param_value"]
@@ -159,9 +177,12 @@ class Aact:
 
 def _whole(x):
     """int(x) only when x is a whole number written as one ('30', '30.0'); else None (never truncated)."""
+    import math
     try:
         f = float(str(x).strip())
     except ValueError:
+        return None
+    if not math.isfinite(f):        # 'nan' / 'inf' are not counts (codex d12-r3 #5)
         return None
     return int(f) if f == int(f) and f >= 0 else None
 
@@ -302,14 +323,22 @@ def verify(b, aact=None):
         # necessary, not sufficient: a K2 binding is used only when the binding lane's INDEPENDENT recorded second
         # reader -- which never saw the staged values -- CONFIRMED these exact counts, and its record is held here.
         sr = b.get("second_reader") or {}
-        if sr.get("verdict") != "CONFIRMED" or not sr.get("record_id") or not os.path.exists(
-                os.path.join(ROOT, "evidence", "model_calls", "audit", f"{sr['record_id']}.json")):
+        if sr.get("verdict") != "CONFIRMED" or not sr.get("record_id"):
             return False, f"K2_NO_INDEPENDENT_CONFIRMATION:{sr.get('verdict') or 'NONE'}"
         ab = _held_abstract(b.get("slug"), b.get("pmid"))
         span = b.get("span") or ""
         if not ab or not span or span not in ab:
             return False, "K2_SPAN_NOT_VERBATIM_IN_HELD_ABSTRACT"
         pt, pc = count_positions(span, et), count_positions(span, ec)
+        if et == ec:
+            # both arms print the same count (codex d12-r3 #4): exactly two occurrences, owned in the arms' order
+            if len(pt) != 2:
+                return False, "K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN"
+            tr, co = arm_terms(b.get("slug"))
+            ft, fc = _first(_norm(span), tr), _first(_norm(span), co)
+            if ft is None or fc is None:
+                return False, "K2_ARM_TERMS_NOT_BOTH_IN_SPAN"
+            pt, pc = ([pt[0]], [pt[1]]) if ft < fc else ([pt[1]], [pt[0]])
         if len(pt) != 1 or len(pc) != 1 or pt[0] == pc[0]:
             return False, "K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN"
         if not (_tied(span, pt[0], et, nt) and _tied(span, pc[0], ec, nc)):
@@ -317,6 +346,10 @@ def verify(b, aact=None):
         ok, why = arms_in_order(span, b.get("slug"), pt[0], pc[0])
         if not ok:
             return False, why
+        # the RECORD is read, not the label (codex d12-r3 #1): its own response must state these four counts, arm for arm
+        got = reader_counts(sr["record_id"])
+        if got != (et, nt, ec, nc):
+            return False, f"K2_SECOND_READER_RECORD_DOES_NOT_STATE_THESE_COUNTS:{got}"
         st = int_tokens(span)
         if nt in st and nc in st:
             return True, f"K2: PMID {b['pmid']} held abstract span (events and Ns in the span, arms in order)"
@@ -370,7 +403,9 @@ def for_topic(slug, trials, snap=None, reg=None):
     for b in mine:
         # K1 may join through its NCT (the held report must carry it, verify()); K2 is the paper's own text, so it joins
         # by that paper's PMID only (codex d12-r2 #7)
-        ids = {f"PMID {b.get('pmid')}"} | (set(b.get("ncts") or []) if b.get("rule") == "K1" else set())
+        # K1 joins through its SOURCE NCT only -- the one verify() authenticates -- never another listed NCT (r3 #3)
+        src_nct = _aact_source(b.get("source"))[0] if b.get("rule") == "K1" else None
+        ids = {f"PMID {b.get('pmid')}"} | ({src_nct} if src_nct else set())
         xs = [x for x in trials if x.get("in_our_pool") and str(x.get("family")) in ids]
         if len(xs) != 1:
             refused.append({"trial": b.get("label"), "why": f"IDENTITY:{len(xs)}_MATCHED_TRIALS"})

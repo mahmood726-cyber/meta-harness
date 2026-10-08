@@ -217,7 +217,8 @@ def test_PLANT_k2_needs_the_independent_second_readers_confirmation(monkeypatch)
     assert D.verify(_k2())[0]
     for sr in ({"verdict": "NOT_COMPARABLE", "record_id": "mc-7948396356bf9b690759ec525d16a1c4"},
                {"verdict": "CONFIRMED", "record_id": "mc-0000000000000000000000000000dead"}, {}):
-        assert D.verify(_k2(second_reader=sr))[1].startswith("K2_NO_INDEPENDENT_CONFIRMATION"), sr
+        assert D.verify(_k2(second_reader=sr))[1].startswith(("K2_NO_INDEPENDENT_CONFIRMATION",
+                                                              "K2_SECOND_READER_RECORD_DOES_NOT_STATE_THESE_COUNTS:None")), sr
 
 
 def test_PLANT_r2_percentage_units_are_never_counts(tmp_path):
@@ -240,3 +241,35 @@ def test_PLANT_r2_k2_joins_by_its_pmid_only(monkeypatch):
     trials = [{"label": "Other report", "in_our_pool": True, "family": "NCT00000001"}]
     ok, refused = D.for_topic("s", trials, snap="", reg=reg)
     assert ok == {} and refused[0]["why"] == "IDENTITY:0_MATCHED_TRIALS"
+
+
+def test_PLANT_r3_1_the_record_is_read_not_the_label(monkeypatch):
+    _held(monkeypatch, HELD)
+    assert D.reader_counts("mc-7948396356bf9b690759ec525d16a1c4") == (59, 2609, 71, 2635)   # AMPLIFY, as recorded
+    monkeypatch.setattr(D, "reader_counts", lambda rid: (71, 2635, 59, 2609))            # the record says the reverse
+    assert D.verify(_k2())[1].startswith("K2_SECOND_READER_RECORD_DOES_NOT_STATE_THESE_COUNTS")
+
+
+def test_PLANT_r3_2_slash_rates_are_not_counts(tmp_path):
+    a = _snapshot(tmp_path)
+    a._meas = [dict(r, param_type="NUMBER", units="participants/100 patient-years") for r in a._meas]
+    assert a.arms("NCT00000001", "42", None) == {}
+
+
+def test_PLANT_r3_3_k1_joins_only_through_its_source_nct():
+    k1 = _k2(rule="K1", source="AACT AACT 2026-08-30 NCT00000001 outcome 42", ncts=["NCT00000001", "NCT00000009"],
+             pmid="77")
+    trials = [{"label": "Another trial", "in_our_pool": True, "family": "NCT00000009"}]
+    ok, refused = D.for_topic("s", trials, snap="", reg={"bindings": [k1]})
+    assert ok == {} and refused[0]["why"] == "IDENTITY:0_MATCHED_TRIALS"
+
+
+def test_PLANT_r3_4_equal_counts_in_both_arms_verify(monkeypatch):
+    t = _held(monkeypatch, "occurred in 30 of 1274 patients (2.4%) in the apixaban group, as compared with 30 of 1265 "
+                           "(2.4%) in the conventional-therapy group")
+    monkeypatch.setattr(D, "reader_counts", lambda rid: (30, 1274, 30, 1265))
+    assert D.verify(_k2(span=t, values={"events_t": 30, "n_t": 1274, "events_c": 30, "n_c": 1265}))[0]
+
+
+def test_PLANT_r3_5_non_finite_values_are_not_counts():
+    assert D._whole("nan") is None and D._whole("inf") is None and D._whole("-1") is None

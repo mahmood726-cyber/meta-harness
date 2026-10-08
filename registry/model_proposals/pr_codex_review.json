@@ -5801,5 +5801,83 @@
     "verdict": null
    }
   ]
+ },
+ "d12-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "d5668568589f60474dc1f0c0af545956c5808c3e360e5aa2c43e3ff75bf59753"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify",
+    "severity": "P0",
+    "claim": "K2 never reads the independent audit record. A binding declaring CONFIRMED passes even when that record rejects it. Combined with first-mention arm ordering, this certifies reversed treatment/control death counts.",
+    "failing_input": "from scripts import g1_d12 as g\nfrom unittest.mock import patch, mock_open\nspan = 'Drug was compared with placebo. Deaths: placebo, 10 of 100 participants; drug, 20 of 100 participants.'\nb = dict(slug='s', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=span, values=dict(events_t=10, n_t=100, events_c=20, n_c=100), second_reader=dict(verdict='CONFIRMED', record_id='audit1'))\nwith patch.object(g, '_held_abstract', return_value=span), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(g.os.path, 'exists', return_value=True), patch('builtins.open', mock_open(read_data='{\"verdict\":\"REJECTED\",\"reason\":\"Treatment and control counts are reversed\"}')):\n    print(g.verify(b))",
+    "expected": "Reject the binding: the audit rejects it, and the text assigns 20 deaths to treatment and 10 to control.",
+    "actual": "(True, 'K2: PMID 1 held abstract span (events and Ns in the span, arms in order)'). The reversed tuple is eligible for the matching result.",
+    "id": "d12-r3:g1#1",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "Aact.arms",
+    "severity": "P0",
+    "claim": "The NUMBER units check accepts slash-denominated rates as participant counts. It excludes 'per ' but not equivalent '/100' notation.",
+    "failing_input": "from scripts import g1_d12 as g\na = g.Aact('fixture')\na._counts = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=k, scope='Measure', count='200') for k in ('T', 'C')]\na._meas = [dict(nct_id='NCT00000001', outcome_id='7', ctgov_group_code=k, classification='', param_type='NUMBER', units='participants/100 participants', param_value=v) for k, v in [('T', '10'), ('C', '20')]]\nprint(a.arms('NCT00000001', '7', 'unclassified'))",
+    "expected": "{}: neither measurement is an absolute event count.",
+    "actual": "{'T': (10, 200), 'C': (20, 200)} (dictionary order may vary). Rates are returned as event counts for K1 verification.",
+    "id": "d12-r3:g1#2",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "for_topic",
+    "severity": "P1",
+    "claim": "K1 joins through every NCT listed in the binding, although verify authenticates only the source NCT. An additional, unverified NCT therefore attaches one trial's counts to another trial.",
+    "failing_input": "from scripts import g1_d12 as g\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nimport os\na = SimpleNamespace(snap='fixture', arms=lambda *args: {'T': (10, 100), 'C': (20, 100)}, group_title=lambda n, o, k: {'T': 'Drug', 'C': 'Placebo'}[k])\nb = dict(slug='s', pmid='1', label='Source trial', rule='K1', tuple_kind='COUNTS', own_tuple=True, source='AACT NCT00000001 outcome 7', ncts=['NCT00000001', 'NCT00000002'], classification='unclassified', span='Drug: 10 of 100 participants; Placebo: 20 of 100 participants', values=dict(events_t=10, n_t=100, events_c=20, n_c=100))\ntrials = [dict(label='Other trial', family='NCT00000002', in_our_pool=True)]\ncache = {(os.path.abspath('.'), frozenset({'7'})): a}\nwith patch.object(g, '_AACT_CACHE', cache), patch.object(g, '_held_nct', return_value='NCT00000001'), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])):\n    out, refused = g.for_topic('s', trials, snap='.', reg={'bindings': [b]})\n    print(out['Other trial']['row'], refused)",
+    "expected": "No binding for Other trial: the held report and AACT source establish only NCT00000001.",
+    "actual": "{'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100} [] — NCT00000001's counts are assigned to NCT00000002 without a refusal.",
+    "id": "d12-r3:g1#3",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify",
+    "severity": "P1",
+    "claim": "K2 rejects valid bindings whenever both arms have the same event count. Both count_positions calls find the same two occurrences, so the requirement that each list have length one cannot pass.",
+    "failing_input": "from scripts import g1_d12 as g\nfrom unittest.mock import patch\nspan = 'Drug: 10 of 100 participants died; placebo: 10 of 200 participants died.'\nb = dict(slug='s', pmid='1', rule='K2', tuple_kind='COUNTS', own_tuple=True, span=span, values=dict(events_t=10, n_t=100, events_c=10, n_c=200), second_reader=dict(verdict='CONFIRMED', record_id='audit1'))\nwith patch.object(g, '_held_abstract', return_value=span), patch.object(g, 'arm_terms', return_value=(['drug'], ['placebo'])), patch.object(g.os.path, 'exists', return_value=True):\n    print(g.verify(b))",
+    "expected": "Accept the confirmed binding: each arm has an explicit, correctly assigned count and denominator.",
+    "actual": "(False, 'K2_EVENT_COUNTS_NOT_WRITTEN_ONCE_AS_COUNTS_IN_SPAN').",
+    "id": "d12-r3:g1#4",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_whole",
+    "severity": "P2",
+    "claim": "Non-finite numeric strings escape the conversion guard and crash verification instead of being rejected as non-counts.",
+    "failing_input": "from scripts.g1_d12 import _whole\n_whole('NaN')",
+    "expected": "None, consistent with the function's contract for values that are not nonnegative whole numbers.",
+    "actual": "Raises ValueError: cannot convert float NaN to integer. The int(f) call occurs outside the try block.",
+    "id": "d12-r3:g1#5",
+    "record_id": "mc-b6b0c6b6a2f8a693f8f6ba5227238c04",
+    "verdict": null
+   }
+  ]
  }
 }
