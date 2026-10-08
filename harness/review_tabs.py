@@ -215,17 +215,19 @@ def passage_sha256(t: dict) -> str | None:
 
 def extraction_rows(r: dict) -> list[dict]:
     """One row per pooled number (outcome x trial) that may be shown; the audit pack samples these rows."""
-    from .provenance_class import _records_in, classify_served
+    from .provenance_class import recorded_reads, served_class
+    reads = recorded_reads(str(ROOT))
+    slug = r.get("slug") or ""
     rows = []
     for oi, o in enumerate(r.get("outcomes") or []):
         if _gated(o):
             continue
         for ti, t in enumerate(o.get("trials") or []):
-            cls, why = classify_served(t, str(ROOT))
+            cls, why, recs = served_class(t, slug, o.get("name"), str(ROOT), reads)
             rows.append({"anchor": f"x{oi}-{ti}", "outcome": o.get("name"), "trial": t.get("label"), "id": t.get("id"),
                          "value": _value(t), "provenance": t.get("provenance"), "class": cls, "class_why": why,
                          "verified": t.get("verified"), "passage": passage(t), "passage_sha256": passage_sha256(t),
-                         "records": _records_in(t)})
+                         "records": recs})
     return rows
 
 

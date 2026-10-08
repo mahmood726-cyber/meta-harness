@@ -29,6 +29,7 @@ HAND_LIST = os.path.join(ROOT, "registry", "provenance_hand_entered.json")
 sys.path.insert(0, ROOT)
 from harness.provenance_class import (  # noqa: E402  (shared with the page's extraction tab)
     EXTRACTOR_PROV, MC, _deterministic_basis, _records_in, classify_served, record_held)
+from harness.provenance_class import served_class as _served_row_class  # noqa: E402
 
 
 def _j(p):
@@ -99,8 +100,8 @@ def classify_tracker(t: dict, slug: str, served_class: dict, root: str = ROOT, l
 def census(root: str = ROOT) -> dict:
     served, served_class = [], {}
     extra = {}
-    rp = os.path.join(root, "registry", "provenance_recorded_reads.json")
-    reads = (_j(rp).get("reads") or {}) if os.path.exists(rp) else {}
+    from harness.provenance_class import recorded_reads
+    reads = recorded_reads(root)
     for p in sorted(glob.glob(os.path.join(root, "topics", "*.json"))):
         c = _j(p)
         extra[os.path.basename(p)[:-5]] = {str(x) for x in (c.get("extra_pmids") or [])}
@@ -109,13 +110,8 @@ def census(root: str = ROOT) -> dict:
         slug = r.get("slug") or os.path.basename(os.path.dirname(p))
         for o in r.get("outcomes") or []:
             for t in o.get("trials") or []:
-                cls, why = classify_served(t, root)
-                if cls == "HAND_ENTERED":
-                    # converted: a recorded, replayable locator read (scripts/provenance_convert.py) whose gated numbers
-                    # EQUAL the served value -- the value now rests on a recorded call, not on the hand entry
-                    rr = reads.get(f"{slug}|{str(t.get('id')).replace('PMID ', '').strip()}|{o.get('name')}") or {}
-                    if rr.get("state") == "AGREES" and rr.get("record_id") and record_held(rr["record_id"], root):
-                        cls, why = "RECORDED_MODEL_CALL", f"recorded read {rr['record_id']} agrees with the served value"
+                # classify, then the recorded-read conversion (harness/provenance_class.served_class: shared with the page)
+                cls, why, _recs = _served_row_class(t, slug, o.get("name"), root, reads)
                 rid = str(t.get("family_report_id") or t.get("id") or "").replace("PMID ", "").strip()
                 served.append({"slug": slug, "outcome": o.get("name"), "id": t.get("id"), "class": cls, "why": why,
                                "identity": "HAND_NAMED" if rid in extra.get(slug, set()) else "SEARCHED"})
