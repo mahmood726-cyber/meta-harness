@@ -4338,5 +4338,46 @@
     "verdict": null
    }
   ]
+ },
+ "doac-table1-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4e21e385e5943e380b93518dfc255a1b",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "b18828dc4d7a50f22a4be5ba13aee82fcfe7c40ca517d82cc9a7bded38159078"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The note guard misses single-quoted or whitespace-separated ref-type attributes. When the referenced footnote is outside table-wrap, percentage estimates are accepted as event counts.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as t\nheader = ''.join('<th>' + h + '</th>' for h in t.READERS['doac-vte-recurrence']['header'])\nraw = '''<article><table-wrap id=\"pone.0197583.t001\"><caption><p>Primary outcomes<xref ref-type='table-fn' rid='n1'>a</xref></p></caption><table><tr>''' + header + '''</tr><tr><td>VTE Studies</td></tr><tr><td>Trial A</td><td>2018</td><td>DOAC</td><td>10/100</td><td>Warfarin</td><td>20/200</td><td>60</td><td>40</td></tr></table></table-wrap><fn-group><fn id=\"n1\"><p>The values before '/' are Kaplan-Meier percentages, not event counts.</p></fn></fn-group></article>'''\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: io.BytesIO(raw.encode()) if 'b' in mode else io.StringIO(raw)):\n    r = t.read('doac-vte-recurrence')['rows'][0]\n    print(r['events_t'], r['n_t'], r['events_c'], r['n_c'])",
+    "expected": "Refuse the table because it references a note redefining numerators as Kaplan-Meier percentages.",
+    "actual": "Returns a row and prints 10 100 20 200, treating the estimates as event counts. Traced from the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r3:g1#1",
+    "record_id": "mc-4e21e385e5943e380b93518dfc255a1b",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The reader ignores population qualifiers in the caption. An exact header match therefore permits randomised and safety denominators to be emitted together as comparable events/N rows.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as t\nheader = ''.join('<th>' + h + '</th>' for h in t.READERS['doac-vte-recurrence']['header'])\nraw = '''<article><table-wrap id=\"pone.0197583.t001\"><caption><p>Total N is the randomised population for the DOAC arm and the safety population for the comparator arm.</p></caption><table><tr>''' + header + '''</tr><tr><td>VTE Studies</td></tr><tr><td>Trial A</td><td>2018</td><td>DOAC</td><td>10/100</td><td>Warfarin</td><td>20/200</td><td>60</td><td>40</td></tr></table></table-wrap></article>'''\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: io.BytesIO(raw.encode()) if 'b' in mode else io.StringIO(raw)):\n    r = t.read('doac-vte-recurrence')['rows'][0]\n    print(r['events_t'], r['n_t'], r['events_c'], r['n_c'])",
+    "expected": "Refuse the row because the two denominators represent different populations.",
+    "actual": "Returns a row and prints 10 100 20 200, discarding the population distinction. Traced from the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r3:g1#2",
+    "record_id": "mc-4e21e385e5943e380b93518dfc255a1b",
+    "verdict": null
+   }
+  ]
  }
 }

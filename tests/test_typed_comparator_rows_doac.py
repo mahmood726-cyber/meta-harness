@@ -63,3 +63,21 @@ def test_PLANT_a_table_with_notes_is_refused_whole(tmp_path, monkeypatch):
     monkeypatch.setattr(tcr, "ROOT", "")
     with pytest.raises(SystemExit):
         tcr.read(SLUG)
+
+
+def test_PLANT_any_xref_and_a_changed_caption_refuse(tmp_path, monkeypatch):
+    """codex doac-table1-r3: #1 a single-quoted / spaced table-fn xref escaped the note guard; #2 a population qualifier
+    in the caption was ignored. Now: any <xref> refuses, and the caption is pinned."""
+    import pytest
+    src = os.path.join(ROOT, tcr.READERS[SLUG]["source"])
+    raw = open(src, encoding="utf-8").read()
+    i = raw.index("RE-COVER II")
+    for mutated in (raw[:i] + "<xref ref-type = 'table-fn' rid='n1'>a</xref>" + raw[i:],
+                    raw.replace("primary efficacy outcomes of the Phase 3 trials included.",
+                                "primary efficacy outcomes of the Phase 3 trials included (safety population).", 1)):
+        p = tmp_path / "held.xml"
+        p.write_text(mutated, encoding="utf-8")
+        monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p)))
+        monkeypatch.setattr(tcr, "ROOT", "")
+        with pytest.raises(SystemExit):
+            tcr.read(SLUG)

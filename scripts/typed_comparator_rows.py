@@ -29,6 +29,7 @@ READERS = {
         "comparator_pmid": "29795629",
         "source": "cache/comparators/29795629/2026-10-07_kgap_jats.xml",
         "table_id": "pone.0197583.t001",
+        "caption": "Baseline characteristics and corresponding primary efficacy outcomes of the Phase 3 trials included.",
         "block": "VTE Studies",
         "header": ["Study", "Publication Year", "DOAC and dosing regimen", "Primary Events /Total N", "Comparator",
                    "Primary Events /Total N", "Age Years", "Women %"],
@@ -64,8 +65,14 @@ def read(slug):
         raise SystemExit(f"REFUSED: table {cfg['table_id']} not in {cfg['source']}")
     # a table whose notes could redefine its cells (a percentage numerator, a safety vs randomised population per arm) is
     # refused WHOLE: this reader has no way to apply a note, so it reads only note-free tables (codex doac-table1-r2 #1, #2)
-    if re.search(r"<table-wrap-foot\b|<fn\b|ref-type=\"table-fn\"", m.group(0)):
-        raise SystemExit(f"REFUSED: table {cfg['table_id']} carries notes; this reader reads only note-free tables")
+    # ANY cross-reference inside the table, whatever its attributes, can point at a note outside it (codex doac-table1-r3 #1)
+    if re.search(r"<table-wrap-foot\b|<fn\b|<xref\b", m.group(0)):
+        raise SystemExit(f"REFUSED: table {cfg['table_id']} carries notes or references; this reader reads only note-free tables")
+    # the caption is PINNED: a population or unit qualifier in it means a different table (codex doac-table1-r3 #2)
+    cap = re.search(r"<caption>(.*?)</caption>", m.group(0), re.S)
+    cap = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", cap.group(1))).split()) if cap else ""
+    if cap != cfg["caption"]:
+        raise SystemExit(f"REFUSED: caption {cap!r} is not the declared {cfg['caption']!r}")
     trs = [_cells(tr) for tr in re.findall(r"<tr\b.*?</tr>", m.group(0), re.S)]
     multi = [c for c in trs if len(c) > 1]
     if not multi or multi[0] != cfg["header"]:
