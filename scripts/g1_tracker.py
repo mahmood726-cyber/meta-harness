@@ -3718,6 +3718,21 @@ def topic(slug, T):
             pairs.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
         else:
             x["agreement_with_comparator_row"] = "NOT_COMPARABLE:NO_COMPARATOR_ROW"
+    # SAME TRIAL, IDENTITY LINK: the comparator cites a report whose PubMed record names no registration (Tsutsui 2021,
+    # 33731544 = PARALLEL-HF), joined to the registration we pool by two typed facts (registry/identity_links.json,
+    # scripts/g1_identity_links.py, k-gap 125802eb5); only ever to a registration already in our pool
+    import g1_identity_links as _idl
+    for x, via, _lk in _idl.join(trials, comp_rows, rp, nct_pool, pooled_ids, matched_ids, routes):
+        x["our_value"] = our_value_from_row(row_by_id[via]) if row_by_id.get(via) else None
+        cr = x.get("comparator_row")
+        if cr and x["our_value"]:
+            theirs = sm.SecondaryRow(meta_pmid=comp, meta_doi="", location={}, source_digest="", provenance="COMPARATOR_ROW",
+                                     trial_label=x["label"], measure=cr.get("measure") or "", outcome_definition="",
+                                     **{k: cr.get(k) for k in ("effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")})
+            x["agreement_with_comparator_row"] = agreement(x["our_value"], theirs)
+            pairs.append((as_row(x["our_value"], x["label"], theirs.measure), theirs))
+        else:
+            x["agreement_with_comparator_row"] = "NOT_COMPARABLE:NO_COMPARATOR_ROW"
     for k in [k for k, n in routes.items() if n <= 0]:
         del routes[k]
     for x, t in zip(trials, comp_rows):
