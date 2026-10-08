@@ -6427,5 +6427,97 @@
     "verdict": null
    }
   ]
+ },
+ "final5-binding-r1b": {
+  "base": "96921df40",
+  "head": "44cc3308d",
+  "runs": {
+   "g1": {
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "7768f9a429d5ed88dff53e0476f069ae163ac4eae724a8579a6619e4c46e9b40"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify_k5",
+    "severity": "P0",
+    "claim": "K5 admits integer percentages as event counts. _row_cells discards the percent context, and agreement between two text extractions does not establish that the selected cells are counts.",
+    "failing_input": "import tempfile, pathlib, hashlib\nfrom unittest.mock import patch\nfrom scripts import g1_d12 as m\ncap = 'Hospitalizations and deaths (full-analysis set)'\nhead = 'FCM ( n = 150) Placebo ( n = 151)'\nrow = 'Hospitalizations due to worsening HF (%) 10 25'\ntext = '\\n'.join([cap, head, row])\nwith tempfile.TemporaryDirectory() as root:\n    docs = []\n    for name, content in [('a.txt', text), ('b.txt', 'Independent extraction\\n' + text)]:\n        pathlib.Path(root, name).write_text(content, encoding='utf-8')\n        docs.append({'path': name, 'format': 'text', 'text_sha256': hashlib.sha256(content.encode()).hexdigest()})\n    b = {'slug': 'iv-iron-hfref-hosp', 'pmid': '25176939', 'values': {'events_t': 10, 'n_t': 150, 'events_c': 25, 'n_c': 151}, 'doc': docs[0], 'caption_span': cap, 'header_span': head, 'row_span': row, 'outcome_from': 'row', 'cells': {'events_t': 0, 'events_c': 1}, 'second_reader': {'kind': 'SECOND_EXTRACTION', 'doc': docs[1], 'row_span': row}}\n    with patch.object(m, 'ROOT', root):\n        print(m.verify_k5(b, lambda s: 'Hospitalizations due to worsening HF' in s)[0])",
+    "expected": "False: the row prints percentages, not participant counts.",
+    "actual": "True: 10/150 and 25/151 are accepted as counts.",
+    "id": "final5-binding-r1b:g1#1",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_readers.py",
+    "function": "gate",
+    "severity": "P0",
+    "claim": "The reader gate treats numeric token membership as count evidence, admitting percentages as counts even when the quote explicitly identifies them as percentages.",
+    "failing_input": "from scripts.g1_final5_readers import gate\nq = 'FCM (n=150), placebo (n=151): deaths were 10% and 25%, respectively.'\nprint(gate({'state': 'FOUND', 'quote': q, 'events_t': 10, 'n_t': 150, 'events_c': 25, 'n_c': 151, 'count_units': 'PARTICIPANTS', 'population': 'randomised', 'notes': ''}, q))",
+    "expected": "Reject the answer: neither death count is printed.",
+    "actual": "'GATED'",
+    "id": "final5-binding-r1b:g1#2",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "effect_hf_row",
+    "severity": "P0",
+    "claim": "The function admits safety-set hospitalisation numerators with denominators it explicitly binds as FAS. Its caveat acknowledges the population mismatch but does not prevent admission.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import g1_final5_typed as m\nt = ' '.join([\n    '26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care).',\n    'A total of 172 patients with HF were studied and received FCM (n=86) or standard of care (control group, n=86).',\n    'Two patients in the FCM arm did not have an efficacy assessment after baseline, and these 2 were excluded from the FAS.',\n    'All-cause mortality and hospitalization for worsening HF and other cardiovascular reasons were analyzed for the safety set.'\n])\nwith patch('builtins.open', side_effect=[io.StringIO(t), io.StringIO('{\"rows\": []}'), io.StringIO(t)]):\n    row, why = m.effect_hf_row()\nprint(row['verdict'], row['admitted']['value'], why)",
+    "expected": "Refuse admission until the numerators and denominators are sourced to the same analysis population.",
+    "actual": "ADMITTED {'measure': 'RR', 'effect': None, 'lower': None, 'upper': None, 'events_t': 11, 'n_t': 86, 'events_c': 6, 'n_c': 86} None",
+    "id": "final5-binding-r1b:g1#3",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "engage_aact",
+    "severity": "P1",
+    "claim": "FOUND does not require a warfarin comparator or the requested stroke/systemic-embolism endpoint. A high-dose-versus-low-dose analysis passes, as does an analysis of another PRIMARY endpoint.",
+    "failing_input": "import json\nfrom unittest.mock import patch, mock_open\nfrom scripts import g1_final5_typed as m\nd = {'tables': {\n    'outcomes.txt': [{'id': 1, 'outcome_type': 'PRIMARY', 'title': 'Stroke or systemic embolism', 'population': 'ITT'}],\n    'result_groups.txt': [{'id': 10, 'title': 'High Dose Edoxaban'}, {'id': 20, 'title': 'Low Dose Edoxaban'}],\n    'outcome_analysis_groups.txt': [{'outcome_analysis_id': 100, 'result_group_id': 10}, {'outcome_analysis_id': 100, 'result_group_id': 20}],\n    'outcome_analyses.txt': [{'id': 100, 'outcome_id': 1, 'param_type': 'Hazard Ratio', 'param_value': '0.8', 'ci_percent': '95', 'ci_lower_limit': '0.7', 'ci_upper_limit': '0.9'}]\n}}\nwith patch('builtins.open', mock_open(read_data=json.dumps(d))):\n    print(m.engage_aact()['result'])\nd['tables']['result_groups.txt'][1]['title'] = 'Warfarin'\nd['tables']['outcomes.txt'][0]['title'] = 'All-cause mortality'\nwith patch('builtins.open', mock_open(read_data=json.dumps(d))):\n    print(m.engage_aact()['result'])",
+    "expected": "NOT_FOUND for both inputs: the first compares the wrong arms; the second measures the wrong endpoint.",
+    "actual": "FOUND for both inputs, with an empty refusal-reason list for each analysis.",
+    "id": "final5-binding-r1b:g1#4",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "_finding_check / signed_comparator_findings",
+    "severity": "P1",
+    "claim": "A signed finding can reverse the meaning of patient and event columns and incorrectly classify the comparator as wrong. Verification checks numeric positions but never verifies the asserted finding against the row's labels.",
+    "failing_input": "import tempfile, pathlib, hashlib, json\nfrom scripts import g1_tracker as m\nrow = 'Patients with worsening HF: FCM 10, placebo 25; total hospitalizations: FCM 10, placebo 32 events.'\nwith tempfile.TemporaryDirectory() as root:\n    pathlib.Path(root, 'report.txt').write_text(row, encoding='utf-8')\n    e = {'slug': 'iv-iron-hfref-hosp', 'pmid': '25176939', 'state': 'SIGNED', 'decision': 'D-test', 'finding': 'COMPARATOR_COUNTS_ARE_EVENTS', 'doc': {'path': 'report.txt', 'format': 'text', 'text_sha256': hashlib.sha256(row.encode()).hexdigest()}, 'row_span': row, 'cells': {'comparator': {'events_t': 0, 'events_c': 1}, 'ours': {'events_t': 2, 'events_c': 3}}, 'comparator_counts': {'events_t': 10, 'events_c': 25}, 'our_counts': {'events_t': 10, 'events_c': 32}}\n    reg = pathlib.Path(root, 'findings.json')\n    reg.write_text(json.dumps({'findings': [e]}), encoding='utf-8')\n    x = {'family': 'PMID 25176939', 'comparator_row': {'events_t': 10, 'events_c': 25}, 'agreement_with_comparator_row': 'DISAGREE'}\n    print(m._finding_check(e, x, root))\n    m.signed_comparator_findings([x], 'iv-iron-hfref-hosp', reg=str(reg), root=root)\n    print(x['disagreement_side'].split(' (')[0])",
+    "expected": "Reject COMPARATOR_COUNTS_ARE_EVENTS: the comparator's 10 and 25 are explicitly patient counts; our 10 and 32 are event counts.",
+    "actual": "_finding_check returns None, and disagreement_side is classified SECONDARY_WRONG.",
+    "id": "final5-binding-r1b:g1#5",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The function unconditionally reports source-specific negative findings without reading any source. Missing or unreadable evidence is represented as confirmed absence of registry results and a specific publisher-fetch outcome.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_final5_typed as m\nwith patch('builtins.open', side_effect=FileNotFoundError('No held source files')):\n    r = m.codex_28d()\nprint(r['result'])\nprint(r['routes'][0]['outcome'])\nprint(r['routes'][2]['outcome'])",
+    "expected": "An explicit unavailable/uncheckable result, or a propagated source-access error; no assertions about registry contents or publisher behaviour without checking evidence.",
+    "actual": "NOT_FOUND; NO_POSTED_RESULTS (no outcomes rows for NCT04327401); FETCH_EMPTY (publisher withholds the XML); not CC, so no model reader in any case (D8). No source access is attempted.",
+    "id": "final5-binding-r1b:g1#6",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   }
+  ]
  }
 }

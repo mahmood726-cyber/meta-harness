@@ -10,7 +10,7 @@ import g1_final5_typed as T  # noqa: E402
 
 def _engage(tmp_path, groups):
     d = {"tables": {
-        "outcomes.txt": [{"id": "1", "outcome_type": "PRIMARY", "title": "Stroke or SEE", "population": "ITT set"}],
+        "outcomes.txt": [{"id": "1", "outcome_type": "PRIMARY", "title": "Stroke or systemic embolism (SEE)", "population": "ITT set"}],
         "result_groups.txt": [{"id": str(i), "title": g} for i, g in enumerate(groups, 10)],
         "outcome_analyses.txt": [{"id": "a", "outcome_id": "1", "param_type": "HR", "param_value": "0.87",
                                   "ci_percent": "95", "ci_lower_limit": "0.7", "ci_upper_limit": "1.0"}],
@@ -40,3 +40,15 @@ def test_PLANT_codex_absence_is_never_asserted_without_reading_the_evidence(tmp_
     monkeypatch.setenv("AACT_SNAPSHOT", str(tmp_path / "no-snapshot"))
     r = T.codex_28d()
     assert r["result"] == "NOT_CHECKED" and all(x["outcome"].startswith("NOT_CHECKED") for x in r["routes"])
+
+
+def test_PLANT_engage_another_primary_endpoint_is_not_stroke_or_see(tmp_path, monkeypatch):
+    # codex final5-binding-r1b g1#4: a PRIMARY analysis of another endpoint passed as the stroke/SEE result
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    _engage(tmp_path, ["High Dose Edoxaban/Placebo Warfarin", "Warfarin/Placebo Edoxaban"])
+    p = tmp_path / "outputs" / "k_gap" / "g1_binding" / "engage_aact_rows.json"
+    d = json.loads(p.read_text(encoding="utf-8"))
+    d["tables"]["outcomes.txt"][0]["title"] = "Major bleeding"
+    p.write_text(json.dumps(d), encoding="utf-8")
+    r = T.engage_aact()
+    assert r["result"] == "NOT_FOUND" and "NOT_STROKE_OR_SEE" in " ".join(r["analyses"][0]["why"])

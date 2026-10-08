@@ -2298,6 +2298,21 @@ def _finding_check(e, x, root):
     cr = x.get("comparator_row") or {}
     if any(cr.get(k) != (e.get("comparator_counts") or {}).get(k) for k in ("events_t", "events_c")):
         return "COMPARATOR_ROW_DOES_NOT_CARRY_THESE_NUMERATORS"
+    # what each measure IS, read from the document, never assumed from positions (codex final5-binding-r1b g1#5): for
+    # COMPARATOR_COUNTS_ARE_EVENTS the comparator's column is labelled as events / hospitalisations, ours as subjects /
+    # patients / participants, each span verbatim in the held document
+    if e.get("finding") == "COMPARATOR_COUNTS_ARE_EVENTS":
+        us = e.get("unit_spans") or {}
+        cu, ou = plain(str(us.get("comparator") or "")), plain(str(us.get("ours") or ""))
+        full = plain(raw)
+        if not cu or not ou or cu not in full or ou not in full:
+            return "UNIT_SPANS_NOT_VERBATIM"
+        people = re.compile(r"\b(?:subjects?|patients?|participants?)\b", re.I)
+        events = re.compile(r"\b(?:events?|hospitali[sz]ations|admissions)\b", re.I)
+        if not events.search(cu) or people.search(cu):
+            return "COMPARATOR_UNIT_IS_NOT_EVENTS"
+        if not people.search(ou):
+            return "OUR_UNIT_IS_NOT_PEOPLE"
     return None
 
 

@@ -15,8 +15,10 @@ sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 import g1_tracker as gt  # noqa: E402
 
 DOC = ("<caption>Table 2 Hospitalizations and deaths (full-analysis set)</caption><th>FCM ( n = 150)</th>"
-       "<th>Placebo ( n = 151)</th><td>Hospitalizations due to worsening HF</td><td>10</td><td>10 (7.6)</td>"
-       "<td>32</td><td>25 (19.4)</td>")
+       "<th>Placebo ( n = 151)</th><th>Total number of events</th><th>Incidence/100 patient-years at risk</th>"
+       "<td>Hospitalizations due to worsening HF</td><td>10</td><td>10 (7.6)</td>"
+       "<td>32</td><td>25 (19.4)</td><p>Incidence is computed using the number of subjects with the end-point/event.</p>")
+UNIT_OK = {"comparator": "Total number of events", "ours": "computed using the number of subjects with the end-point/event"}
 ROW = "Hospitalizations due to worsening HF 10 10 (7.6) 32 25 (19.4)"
 
 
@@ -27,7 +29,8 @@ def setup(tmp_path, signed=True, **kw):
          "doc": {"path": "doc.txt", "format": "xml",
                  "text_sha256": hashlib.sha256(DOC.encode("utf-8")).hexdigest()},
          "row_span": ROW, "cells": {"comparator": {"events_t": 0, "events_c": 3}, "ours": {"events_t": 1, "events_c": 4}},
-         "comparator_counts": {"events_t": 10, "events_c": 32}, "our_counts": {"events_t": 10, "events_c": 25}}
+         "comparator_counts": {"events_t": 10, "events_c": 32}, "our_counts": {"events_t": 10, "events_c": 25},
+         "unit_spans": UNIT_OK}
     e.update(kw)
     (tmp_path / "reg.json").write_text(json.dumps({"findings": [e]}), encoding="utf-8")
     return str(tmp_path / "reg.json")
@@ -71,3 +74,15 @@ def test_a_side_already_named_is_never_overwritten(tmp_path):
     x = dict(trial(), disagreement_side="COMPARATOR_ARMS_SWAPPED (...)")
     gt.signed_comparator_findings([x], "t", reg=setup(tmp_path), root=str(tmp_path))
     assert x["disagreement_side"] == "COMPARATOR_ARMS_SWAPPED (...)"
+
+
+
+def test_PLANT_the_column_meanings_are_verified_not_assumed(tmp_path):
+    # codex final5-binding-r1b g1#5: the check verified numeric POSITIONS only; a finding that swapped the columns'
+    # meanings (calling the patients' measure the comparator's 'events') still named the comparator wrong
+    swapped = {"comparator": UNIT_OK["ours"], "ours": UNIT_OK["comparator"]}
+    for units, ok in ((UNIT_OK, True), (swapped, False), ({"comparator": "Total number of events"}, False),
+                      ({"comparator": "Total number of events", "ours": "Total number of deaths"}, False)):
+        x = trial()
+        gt.signed_comparator_findings([x], "t", reg=setup(tmp_path, unit_spans=units), root=str(tmp_path))
+        assert bool(x.get("disagreement_side")) is ok, (units, x.get("comparator_finding_refused"))

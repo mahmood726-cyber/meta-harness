@@ -206,6 +206,8 @@ def comparator_findings():
                  "doc": doc(cfm), "row_span": "Hospitalizations due to worsening HF 10 10 (7.6) 32 25 (19.4)",
                  "cells": {"comparator": {"events_t": 0, "events_c": 3}, "ours": {"events_t": 1, "events_c": 4}},
                  "comparator_counts": {"events_t": 10, "events_c": 32}, "our_counts": {"events_t": 10, "events_c": 25},
+                 "unit_spans": {"comparator": "Total number of events",
+                                "ours": "computed using the number of subjects with the end-point/event"},
                  "note": "Table 2 (full-analysis set): 'Total number of events' 10 v 32; patients with an event 10 v 25"},
                 {"slug": "iv-iron-hfref-hosp", "pmid": "28701470", "label": "EFFECT-HF", "state": "PROPOSED",
                  "decision": "PROPOSED for V12 (not signed)", "finding": "COMPARATOR_COUNTS_ARE_EVENTS",
@@ -214,6 +216,8 @@ def comparator_findings():
                              "on usual care).",
                  "cells": {"comparator": {"events_t": 1, "events_c": 1}, "ours": {"events_t": 3, "events_c": 4}},
                  "comparator_counts": {"events_t": 13, "events_c": 13}, "our_counts": {"events_t": 11, "events_c": 6},
+                 "unit_spans": {"comparator": "A total of 58 hospitalizations occurred during the study",
+                                "ours": "in 17 patients (11 patients on FCM and 6 on usual care)"},
                  "note": "the comparator's 13 v 13 are the 26 worsening-HF HOSPITALISATIONS (13 in each group); the "
                          "patients are 11 v 6. Its 88 is the safety-set FCM N (FAS 86 + 2), not printed by the paper"}]}
 
@@ -232,6 +236,9 @@ def engage_aact():
         o = oc.get(a["outcome_id"], {})
         groups = sorted(g for g in ag.get(a["id"], []) if g)
         why = []
+        t_ = str(o.get("title") or "").lower()
+        if "stroke" not in t_ or not ("systemic embol" in t_ or "see" in t_.replace("(", " ").replace(")", " ").split()):
+            why.append(f"NOT_STROKE_OR_SEE ({str(o.get('title') or '')[:60]})")      # codex final5-binding-r1b g1#4
         if o.get("outcome_type") != "PRIMARY":
             why.append(f"NOT_THE_PRIMARY_OUTCOME ({o.get('outcome_type')}: {o.get('title', '')[:80]})")
         if not str(o.get("population") or "").startswith("ITT"):
