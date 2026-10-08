@@ -18,7 +18,8 @@ that builds or serves a pool (harness/, scripts/build_served_pool_additions.py, 
 imports it or reads its registry file (tests/test_g1_d12.py plants this), and the tracker never writes these counts into
 a trial's our_value.
 
-    python scripts/g1_d12.py import <bindings_counts.json> --ref <branch@commit>   -> registry/d12_counts_for_matching.json
+    python scripts/g1_d12.py import <bindings_counts.json> --ref <branch@commit> --audit <audit_staged_counts.json>
+        --audit-ref <branch@commit>   -> registry/d12_counts_for_matching.json
 """
 from __future__ import annotations
 
@@ -142,7 +143,10 @@ class Aact:
             if r["nct_id"] != nct or r["outcome_id"] != oid or (r.get("classification") or "") != cls:
                 continue
             pt, units = (r.get("param_type") or "").upper(), (r.get("units") or "").lower()
-            if not (pt == "COUNT_OF_PARTICIPANTS" or (pt == "NUMBER" and "participant" in units)):
+            # NUMBER only with units that ARE participants -- never 'percentage of participants', a rate or a
+            # proportion (codex d12-r2 #1)
+            counted = "participant" in units and not any(w in units for w in ("percent", "%", "rate", "proportion", "per "))
+            if not (pt == "COUNT_OF_PARTICIPANTS" or (pt == "NUMBER" and counted)):
                 continue
             e[r["ctgov_group_code"]] = r["param_value"]
         out = {}
@@ -184,7 +188,8 @@ def count_positions(text, value):
 
 
 def _pct_after(text, pos, width=70):
-    """The first 'x%' / 'x %' within `width` chars after pos, as a float, else None."""
+    """The first 'x%' / 'x %' within `width` chars after pos, as (value, printed decimals), else None. The decimals are
+    read from the printed digits, so '10.0%' keeps its one decimal (codex d12-r2 #5)."""
     seg = str(text or "")[pos:pos + width]
     k = seg.find("%")
     if k < 0:
@@ -195,8 +200,9 @@ def _pct_after(text, pos, width=70):
     st = j
     while st > 0 and (seg[st - 1].isdigit() or seg[st - 1] == "."):
         st -= 1
+    txt = seg[st:j]
     try:
-        return float(seg[st:j])
+        return float(txt), (len(txt.split(".")[1]) if "." in txt else 0)
     except ValueError:
         return None
 
@@ -205,13 +211,15 @@ def _tied(text, pos, e, n):
     """The count at pos is tied to ITS denominator (codex d12-r1 #3): written 'e of n' / 'e/n', or the first percentage
     after it equals 100*e/n at its printed precision."""
     s = str(text or "")[pos:pos + 40].replace(",", "")
-    if s.startswith(f"{e} of {n}") or s.startswith(f"{e}/{n}"):
-        return True
-    p = _pct_after(text, pos)
-    if p is None:
+    for pre in (f"{e} of {n}", f"{e}/{n}"):
+        # a numeric boundary after the denominator: '10 of 1000' is never '10 of 100' (codex d12-r2 #3)
+        if s.startswith(pre) and not s[len(pre):len(pre) + 1].isdigit():
+            return True
+    got = _pct_after(text, pos)
+    if got is None:
         return False
-    dec = len(str(p).split(".")[1]) if "." in str(p) and not str(p).endswith(".0") else 0
-    return abs(round(100.0 * e / n, dec) - p) < 1e-9 or abs(100.0 * e / n - p) <= 0.5 * 10 ** (-dec) + 1e-9
+    p, dec = got
+    return abs(100.0 * e / n - p) <= 0.5 * 10 ** (-dec) + 1e-9
 
 
 def _norm(t):
@@ -289,6 +297,14 @@ def verify(b, aact=None):
         return True, f"K1: AACT {os.path.basename(aact.snap)} {nct} outcome {oid} ({b.get('classification')}): " \
                      f"groups {sorted(arms.items())}"
     if rule == "K2":
+        # A free-text span's numbers cannot be certified as THIS endpoint, THIS population and THESE arms by syntax alone
+        # (codex d12-r1/r2: percentages, arm order, safety denominators, another endpoint). The checks below are
+        # necessary, not sufficient: a K2 binding is used only when the binding lane's INDEPENDENT recorded second
+        # reader -- which never saw the staged values -- CONFIRMED these exact counts, and its record is held here.
+        sr = b.get("second_reader") or {}
+        if sr.get("verdict") != "CONFIRMED" or not sr.get("record_id") or not os.path.exists(
+                os.path.join(ROOT, "evidence", "model_calls", "audit", f"{sr['record_id']}.json")):
+            return False, f"K2_NO_INDEPENDENT_CONFIRMATION:{sr.get('verdict') or 'NONE'}"
         ab = _held_abstract(b.get("slug"), b.get("pmid"))
         span = b.get("span") or ""
         if not ab or not span or span not in ab:
@@ -352,7 +368,9 @@ def for_topic(slug, trials, snap=None, reg=None):
         aact = _AACT_CACHE[key]
     out, refused = {}, []
     for b in mine:
-        ids = {f"PMID {b.get('pmid')}"} | set(b.get("ncts") or [])
+        # K1 may join through its NCT (the held report must carry it, verify()); K2 is the paper's own text, so it joins
+        # by that paper's PMID only (codex d12-r2 #7)
+        ids = {f"PMID {b.get('pmid')}"} | (set(b.get("ncts") or []) if b.get("rule") == "K1" else set())
         xs = [x for x in trials if x.get("in_our_pool") and str(x.get("family")) in ids]
         if len(xs) != 1:
             refused.append({"trial": b.get("label"), "why": f"IDENTITY:{len(xs)}_MATCHED_TRIALS"})
@@ -366,14 +384,25 @@ def for_topic(slug, trials, snap=None, reg=None):
     return out, refused
 
 
-def import_bindings(src_path, ref):
+def import_bindings(src_path, ref, audit_path=None, audit_ref=None):
     raw = open(src_path, "rb").read()
     d = json.loads(raw.decode("utf-8"))
     keep = [b for b in d.get("bindings") or [] if b.get("own_tuple") and b.get("tuple_kind") == "COUNTS"]
+    audit_sha = None
+    if audit_path:
+        araw = open(audit_path, "rb").read()
+        audit_sha = hashlib.sha256(araw).hexdigest()
+        rows = {(r.get("slug"), str(r.get("pmid"))): r for r in json.loads(araw.decode("utf-8")).get("rows") or []}
+        for b in keep:
+            r = rows.get((b.get("slug"), str(b.get("pmid"))))
+            if r:
+                b["second_reader"] = {"verdict": r.get("verdict"), "record_id": r.get("record_id"),
+                                      "source": f"{audit_ref}:outputs/k_gap/g1_binding/audit_staged_counts.json"}
     out = {"decision": DECISION,
            "rule": "Own-trial per-arm counts for the G1 same-trial comparison ONLY (scripts/g1_d12.py); never served.",
            "imported_from": {"ref": ref, "path": "outputs/k_gap/g1_binding/bindings_counts.json",
                              "sha256": hashlib.sha256(raw).hexdigest(), "bindings_kept": len(keep),
+                             "second_reader_audit": {"ref": audit_ref, "sha256": audit_sha} if audit_path else None,
                              "not_bound": [{k: x.get(k) for k in ("slug", "label", "pmid", "why")}
                                            for x in d.get("not_bound") or []]},
            "bindings": keep}
@@ -386,7 +415,8 @@ if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     a = sys.argv[1:]
     if a[:1] == ["import"] and "--ref" in a:
-        r = import_bindings(a[1], a[a.index("--ref") + 1])
+        r = import_bindings(a[1], a[a.index("--ref") + 1], a[a.index("--audit") + 1] if "--audit" in a else None,
+                            a[a.index("--audit-ref") + 1] if "--audit-ref" in a else None)
         print(f"wrote {os.path.relpath(REG, ROOT)}: {len(r['bindings'])} bindings from {r['imported_from']['ref']}")
     else:
         print(__doc__)

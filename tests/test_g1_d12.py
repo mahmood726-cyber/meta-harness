@@ -76,6 +76,7 @@ def test_PLANT_d12_replaces_only_the_comparison_pair_never_our_value():
 def _k2(**kw):
     b = {"slug": "s", "label": "T", "pmid": "1", "ncts": ["NCT00000001"], "own_tuple": True, "tuple_kind": "COUNTS",
          "rule": "K2", "values": {"events_t": 59, "n_t": 2609, "events_c": 71, "n_c": 2635},
+         "second_reader": {"verdict": "CONFIRMED", "record_id": "mc-7948396356bf9b690759ec525d16a1c4"},
          "span": "occurred in 59 of 2609 patients (2.3%) in the apixaban group, as compared with 71 of 2635 (2.7%) in the "
                  "conventional-therapy group"}
     b.update(kw)
@@ -207,3 +208,35 @@ def test_PLANT_r1_5_k1_needs_the_trials_own_report_to_carry_the_nct(tmp_path, mo
     assert D.verify(k1, a)[0]
     monkeypatch.setattr(D, "_held_nct", lambda slug, pmid: "NCT00000002")
     assert D.verify(k1, a)[1] == "K1_HELD_REPORT_DOES_NOT_CARRY_THIS_NCT"
+
+
+def test_PLANT_k2_needs_the_independent_second_readers_confirmation(monkeypatch):
+    """codex d12-r2 (#2 #4 #6): syntax cannot certify endpoint, population or arm ownership; a K2 span is used only with the
+    binding lane's recorded independent reader CONFIRMED, and that record held in evidence/model_calls/audit."""
+    _held(monkeypatch, HELD)
+    assert D.verify(_k2())[0]
+    for sr in ({"verdict": "NOT_COMPARABLE", "record_id": "mc-7948396356bf9b690759ec525d16a1c4"},
+               {"verdict": "CONFIRMED", "record_id": "mc-0000000000000000000000000000dead"}, {}):
+        assert D.verify(_k2(second_reader=sr))[1].startswith("K2_NO_INDEPENDENT_CONFIRMATION"), sr
+
+
+def test_PLANT_r2_percentage_units_are_never_counts(tmp_path):
+    a = _snapshot(tmp_path)
+    a._meas = [dict(r, param_type="NUMBER", units="Percentage of participants") for r in a._meas]
+    assert a.arms("NCT00000001", "42", None) == {}
+
+
+def test_PLANT_r2_a_denominator_needs_a_numeric_boundary_and_printed_precision():
+    assert D._tied("10 of 100 patients", 0, 10, 100)
+    assert not D._tied("10 of 1000 patients", 0, 10, 100)
+    # 10.0% printed with one decimal: 10/104 = 9.6% is not 10.0% (integer tolerance would have admitted it)
+    assert not D._tied("10 events (10.0%)", 0, 10, 104)
+    assert D._tied("10 events (10.0%)", 0, 10, 100) and D._tied("10 events (10%)", 0, 10, 104)
+
+
+def test_PLANT_r2_k2_joins_by_its_pmid_only(monkeypatch):
+    _held(monkeypatch, HELD)
+    reg = {"bindings": [_k2()]}
+    trials = [{"label": "Other report", "in_our_pool": True, "family": "NCT00000001"}]
+    ok, refused = D.for_topic("s", trials, snap="", reg=reg)
+    assert ok == {} and refused[0]["why"] == "IDENTITY:0_MATCHED_TRIALS"

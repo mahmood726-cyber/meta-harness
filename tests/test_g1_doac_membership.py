@@ -84,6 +84,9 @@ def test_after_v9_03_the_denominator_is_the_new_comparators_five_trials():
     assert o["N_eligible"] == 5 and o["k_matched"] == 5 and o["open_gaps"] == []
     assert o["g1_status"]["unmet"] == []
     used = o["same_trials"]["d12_counts_for_matching"]
-    assert sorted(u["trial"] for u in used) == ["AMPLIFY", "EINSTEIN-DVT", "Hokusai-VTE", "RE-COVER", "RE-COVER II"]
+    # EINSTEIN-DVT's K2 span has no independent confirmation (second reader NOT_COMPARABLE): it stays a named
+    # same-conclusion measure difference, never compared on unconfirmed counts
+    assert sorted(u["trial"] for u in used) == ["AMPLIFY", "Hokusai-VTE", "RE-COVER", "RE-COVER II"]
+    assert [m["trial"] for m in o["same_trials"]["measure_differences"]] == ["EINSTEIN-DVT"]
     assert all(u["served_value_unchanged"]["measure"] in ("HR", "RR") for u in used)
     assert o["same_trials"]["verdict"]["verdict"] == "AGREE"
