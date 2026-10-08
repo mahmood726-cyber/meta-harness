@@ -448,7 +448,154 @@ def verify(b, aact=None, endpoint_ok=None):
                              f"Ns AACT {nct} outcome {oid} counts"
             return False, f"K2_AACT_NS_DIFFER:{sorted(n.items())}"
         return False, "K2_NS_UNSOURCED"
+    if rule == "K5":
+        return verify_k5(b, endpoint_ok)
     return False, f"RULE_NOT_UNDER_D12:{rule}"
+
+
+# ---- K5: a held DOCUMENT's table row (binding lane, final-5, 8 Oct) -------------------------------------------------
+# K2 reads the held abstract only; CONFIRM-HF (Table 2) and RECOVERY's ventilated subgroup (supplementary Table S2)
+# print their counts only in a table. A K5 binding names the document (a committed CC text, or a LOCAL git-ignored copy
+# of a non-redistributable one, pinned by the sha256 of its text: absent or changed -> unused, as K1 without a snapshot),
+# the table's caption, header and row (each verbatim, in that order), which span names the outcome, and which cells of
+# the row hold the two counts. tests/test_g1_d12_k5.py plants every refusal.
+K5_TABLE_REACH = 6000      # caption -> header -> row must sit within one table's reach of each other
+
+
+def _plain(t, fmt="xml"):
+    """The rendered text a span is matched against, whitespace collapsed. Markup ('xml': a held JATS text) has its tags
+    stripped and entities decoded; a plain 'text' document (a PDF's extracted text) is matched AS PRINTED -- stripping
+    '<...>' there deleted RECOVERY's Table S2 between '(<0.5%)' and '>0.05' (8 Oct)."""
+    import html
+    import re
+    s = str(t or "")
+    if fmt == "xml":
+        s = html.unescape(re.sub(r"<[^>]+>", " ", s))
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _held_doc(doc):
+    """(plain text, None) for a held document whose text hashes to doc['text_sha256'], else (None, why)."""
+    p = os.path.join(ROOT, str((doc or {}).get("path") or ""))
+    if not (doc or {}).get("path") or not os.path.isfile(p):
+        return None, "K5_DOCUMENT_NOT_HELD"
+    raw = open(p, encoding="utf-8", errors="strict").read()
+    if hashlib.sha256(raw.encode("utf-8")).hexdigest() != doc.get("text_sha256"):
+        return None, "K5_DOCUMENT_CHANGED"
+    if doc.get("format") not in ("xml", "text"):
+        return None, "K5_DOCUMENT_FORMAT_UNDECLARED"
+    return _plain(raw, doc["format"]), None
+
+
+def _row_cells(row):
+    """The row's value tokens after its label: '10', '7.6', '95/324' (an 'e/N' cell is one token)."""
+    import re
+    m = re.search(r"\d", row)
+    return re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?:/\d+)?(?![\d.])", row[m.start():]) if m else []
+
+
+def _header_ns(header):
+    import re
+    return [int(x.replace(",", "")) for x in re.findall(r"\(\s*n\s*=\s*([\d,]+)\s*\)", header, re.I)]
+
+
+def verify_k5(b, endpoint_ok):
+    vals = b.get("values") or {}
+    et, nt, ec, nc = (_whole(vals.get(k)) for k in _VALUE_KEYS)
+    if None in (et, nt, ec, nc) or not (0 <= et <= nt and 0 <= ec <= nc):
+        return False, "K5_VALUES_NOT_COUNTS"
+    text, why = _held_doc(b.get("doc"))
+    if text is None:
+        return False, why
+    fmt = b["doc"]["format"]
+    spans = {k: _plain(b.get(k), fmt) for k in ("caption_span", "header_span", "row_span")}
+    for k, s in spans.items():
+        if len(s) < 12 or s not in text:
+            return False, f"K5_SPAN_NOT_VERBATIM:{k}"
+    # in table order, within one table's reach: the header follows its caption and the row follows its header
+    # EVERY occurrence of the caption is tried: a contents page repeats it far from its table (RECOVERY, 8 Oct)
+    placed, cp = False, text.find(spans["caption_span"])
+    while cp >= 0 and not placed:
+        hp = text.find(spans["header_span"], cp)
+        rp = text.find(spans["row_span"], hp) if hp >= 0 else -1
+        placed = hp >= 0 and rp >= 0 and hp - cp <= K5_TABLE_REACH and rp - hp <= K5_TABLE_REACH
+        cp = text.find(spans["caption_span"], cp + 1)
+    if not placed:
+        return False, "K5_SPANS_NOT_IN_TABLE_ORDER"
+    if endpoint_ok is None:
+        return False, "K5_ENDPOINT_NOT_CHECKABLE"
+    src = b.get("outcome_from")
+    if src not in ("row", "caption"):
+        return False, "K5_OUTCOME_SPAN_UNDECLARED"
+    if not endpoint_ok(spans["row_span"] if src == "row" else spans["caption_span"]):
+        return False, "K5_OUTCOME_NOT_OUR_ENDPOINT"
+    # arm order from the header's own arm terms
+    tr, co = arm_terms(b.get("slug"))
+    hn = _norm(spans["header_span"])
+    ft, fc = _first(hn, tr), _first(hn, co)
+    if ft is None or fc is None:
+        return False, "K5_ARM_TERMS_NOT_BOTH_IN_HEADER"
+    cells, idx = _row_cells(spans["row_span"]), b.get("cells") or {}
+    it, ic = idx.get("events_t"), idx.get("events_c")
+    if not (type(it) is int and type(ic) is int and 0 <= it < len(cells) and 0 <= ic < len(cells) and it != ic):
+        return False, "K5_CELLS_UNDECLARED"
+    if (it < ic) != (ft < fc):
+        return False, "K5_CELLS_NOT_IN_THE_HEADER_ARM_ORDER"
+    for cell, e, n in ((cells[it], et, nt), (cells[ic], ec, nc)):
+        if "/" in cell:
+            if cell != f"{e}/{n}":          # an e/N cell carries its OWN denominator
+                return False, f"K5_CELL_IS_NOT_THE_COUNT:{cell}"
+        elif cell != str(e):
+            return False, f"K5_CELL_IS_NOT_THE_COUNT:{cell}"
+    if "/" not in cells[it] or "/" not in cells[ic]:
+        want = [nt, nc] if ft < fc else [nc, nt]
+        if _header_ns(spans["header_span"]) != want:
+            return False, "K5_NS_NOT_THE_HEADER_NS_IN_ARM_ORDER"
+    ok, why = _k5_second_reader(b, text, (et, nt, ec, nc), spans["row_span"], fmt)
+    if not ok:
+        return False, why
+    return True, (f"K5: PMID {b.get('pmid')} held document {b['doc'].get('path')} (text sha256 "
+                  f"{b['doc'].get('text_sha256')[:12]}...), table row '{spans['row_span'][:60]}', {why}")
+
+
+def _k5_second_reader(b, text, want, row, fmt):
+    import base64
+    sr = b.get("second_reader") or {}
+    if sr.get("kind") == "RECORDED_READERS":
+        ids = [r for r in sr.get("record_ids") or [] if r]
+        if not ids:
+            return False, "K5_NO_SECOND_READER"
+        for rid in ids:
+            p = os.path.join(ROOT, str(sr.get("dir") or ""), f"{rid}.json")
+            try:
+                r = json.load(open(p, encoding="utf-8"))
+                resp = json.loads(base64.b64decode((r.get("response") or {}).get("b64") or "").decode("utf-8"))
+            except (OSError, ValueError, TypeError):
+                return False, f"K5_SECOND_READER_DIFFERS:{rid}:UNREADABLE"
+            refs = [str(d.get("ref") or "") for d in r.get("input_digests") or []]
+            if not any(x == f"PMID {b.get('pmid')}" or x.startswith(f"PMID {b.get('pmid')} ") for x in refs):
+                return False, f"K5_SECOND_READER_NOT_ABOUT_THIS_PAPER:{rid}"
+            got = tuple(_whole(resp.get(k)) for k in _VALUE_KEYS)
+            if r.get("state") != "RAN_OK" or resp.get("state") != "FOUND" or got != want:
+                return False, f"K5_SECOND_READER_DIFFERS:{rid}:{got}"
+            parts = [_plain(x, fmt) for x in str(resp.get("quote") or "").splitlines() if _plain(x, fmt)]
+            if not parts or any(len(x) < 20 or x not in text for x in parts):
+                return False, f"K5_SECOND_READER_QUOTE_NOT_IN_DOCUMENT:{rid}"
+        return True, f"second readers {', '.join(ids)} state the same counts"
+    if sr.get("kind") == "SECOND_EXTRACTION":
+        d1, d2 = b.get("doc") or {}, sr.get("doc") or {}
+        if d2.get("path") == d1.get("path") or d2.get("text_sha256") == d1.get("text_sha256"):
+            return False, "K5_SECOND_EXTRACTION_IS_THE_SAME_DOCUMENT"
+        t2, why = _held_doc(d2)
+        if t2 is None:
+            return False, why.replace("K5_", "K5_SECOND_EXTRACTION_")
+        r2 = _plain(sr.get("row_span"), d2.get("format"))
+        if len(r2) < 12 or r2 not in t2:
+            return False, "K5_SECOND_EXTRACTION_ROW_NOT_VERBATIM"
+        if _row_cells(r2)[:len(_row_cells(row))] != _row_cells(row):
+            return False, "K5_SECOND_READER_DIFFERS:SECOND_EXTRACTION_CELLS"
+        return True, f"second extraction {d2.get('path')} holds the same row cells"
+    return False, "K5_NO_SECOND_READER"
 
 
 _AACT_CACHE = {}

@@ -20,6 +20,7 @@ Nothing here is typed by hand; every number comes from committed artefacts or th
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import math
@@ -2260,6 +2261,73 @@ def side_from_trial_text(trials, slug):
             x["disagreement_side"] = side
 
 
+SIGNED_FINDINGS = os.path.join(ROOT, "registry", "g1_signed_comparator_findings.json")
+
+
+def _finding_check(e, x, root):
+    """None when the finding verifies at this build, else why: the held document hashes to its pin, the row span is
+    verbatim in it, the declared cells hold the comparator's numerators and ours, and the trial's comparator row
+    carries the comparator's numerators."""
+    import html as _html
+    doc = e.get("doc") or {}
+    p = os.path.join(root, str(doc.get("path") or ""))
+    if not doc.get("path") or not os.path.isfile(p):
+        return "DOCUMENT_NOT_HELD"
+    raw = open(p, encoding="utf-8").read()
+    if hashlib.sha256(raw.encode("utf-8")).hexdigest() != doc.get("text_sha256"):
+        return "DOCUMENT_CHANGED"
+    if doc.get("format") not in ("xml", "text"):
+        return "DOCUMENT_FORMAT_UNDECLARED"
+
+    def plain(t):
+        t = _html.unescape(re.sub(r"<[^>]+>", " ", t)) if doc["format"] == "xml" else t
+        return re.sub(r"\s+", " ", t).strip()
+    row = plain(str(e.get("row_span") or ""))
+    if len(row) < 12 or row not in plain(raw):
+        return "ROW_SPAN_NOT_VERBATIM"
+    m = re.search(r"\d", row)
+    cells = re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?![\d.])", row[m.start():]) if m else []
+    for side in ("comparator", "ours"):
+        want = e.get("comparator_counts" if side == "comparator" else "our_counts") or {}
+        for k in ("events_t", "events_c"):
+            i = ((e.get("cells") or {}).get(side) or {}).get(k)
+            if type(i) is not int or not 0 <= i < len(cells) or cells[i] != str(want.get(k)):
+                return f"CELL_NOT_{side.upper()}_{k}"
+    cr = x.get("comparator_row") or {}
+    if any(cr.get(k) != (e.get("comparator_counts") or {}).get(k) for k in ("events_t", "events_c")):
+        return "COMPARATOR_ROW_DOES_NOT_CARRY_THESE_NUMERATORS"
+    return None
+
+
+def signed_comparator_findings(trials, slug, reg=None, root=None):
+    """A typed comparator finding a SIGNED decision names (D14, V10-04Q: CONFIRM-HF's comparator 32 is the EVENT count;
+    the trial's patients are 10 v 25). Applied only when it verifies at this build; it names the side of an open
+    DISAGREE as SECONDARY_WRONG and never overwrites a side already named. An unsigned entry is listed as proposed
+    (comparator_finding_proposed) and changes nothing. tests/test_g1_signed_comparator_findings.py plants each case."""
+    reg, root = reg or SIGNED_FINDINGS, root or ROOT
+    if not os.path.exists(reg):
+        return
+    mine = [e for e in _j(reg).get("findings") or [] if e.get("slug") == slug]
+    for e in mine:
+        xs = [x for x in trials if str(x.get("family") or "") == f"PMID {e.get('pmid')}"]
+        if len(xs) != 1:
+            continue
+        x = xs[0]
+        why = _finding_check(e, x, root)
+        rec = {k: e.get(k) for k in ("state", "decision", "finding", "row_span", "comparator_counts", "our_counts")}
+        rec["source"] = (e.get("doc") or {}).get("path")
+        if why:
+            x["comparator_finding_refused"] = f"{e.get('decision')}: {why}"
+            continue
+        if e.get("state") != "SIGNED":
+            x["comparator_finding_proposed"] = rec
+            continue
+        x["comparator_finding"] = rec
+        if str(x.get("agreement_with_comparator_row") or "").startswith("DISAGREE") and not x.get("disagreement_side"):
+            x["disagreement_side"] = (f"SECONDARY_WRONG ({e.get('decision')}: {e.get('finding')}; the trial's own "
+                                      f"report row '{e.get('row_span')}')")
+
+
 def discrepancy_findings(o):
     """Typed DISCREPANCY FINDINGS (never a silent overwrite of either side): every trial where our own value (pool /
     primary) and the comparator's row DISAGREE, every comparator row our primary verification contradicted (MISMATCH),
@@ -2274,6 +2342,11 @@ def discrepancy_findings(o):
         if x.get("comparator_row_state") == sm.MISMATCH:
             out.append({"trial": x["label"], "kind": "COMPARATOR_ROW_CONTRADICTED_BY_PRIMARY",
                         "comparator_row": x.get("comparator_row"), "side": x.get("disagreement_side") or "UNRESOLVED"})
+        cf_ = x.get("comparator_finding")
+        if cf_:
+            out.append({"trial": x["label"], "kind": cf_.get("finding"), "decision": cf_.get("decision"),
+                        "comparator_counts": cf_.get("comparator_counts"), "our_counts": cf_.get("our_counts"),
+                        "span": cf_.get("row_span"), "side": "SECONDARY_WRONG (signed: " + str(cf_.get("decision")) + ")"})
         f = x.get("secondary_single_flag")
         if f:
             out.append({"trial": x["label"], "kind": "SECONDARY_META_CONTRADICTED_BY_PRIMARY", "meta": f.get("meta"),
@@ -3847,6 +3920,7 @@ def topic(slug, T):
     name_letter_units_by_comment_on(slug, cfg, trials, rev, comp_rows)
     acquired_merge(slug, trials, routes, pairs, comp)
     side_from_trial_text(trials, slug)
+    signed_comparator_findings(trials, slug)
     named = [{"trial": x["label"], **x["scope_difference"]} for x in trials if x.get("scope_difference")]
     open_gaps = [x["label"] for x in trials if not is_matched(x) and not x.get("scope_difference")]
     blockers = Counter(x["blocker"] for x in trials if x.get("blocker") and not is_matched(x))
