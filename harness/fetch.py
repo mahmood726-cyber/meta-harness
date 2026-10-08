@@ -10,6 +10,7 @@ import json
 import os
 import re
 import time
+import urllib.parse
 import xml.etree.ElementTree as ET
 
 _NCT_RE = re.compile(r"NCT\d{8}")
@@ -185,9 +186,13 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
         err = oa_root.find(".//error")
-        records = oa_root.findall(".//record")
+        all_records = oa_root.findall(".//record")
+        # only a record FOR THIS article counts (codex fetch-loud-r7 #1); a package is a link of format 'tgz' or whose
+        # URL PATH ends .tar.gz -- a query string does not hide it (r7 #2)
+        records = [r for r in all_records if (r.get("id") or "").upper() == f"PMC{pmcid}".upper()]
         tgz = [ln.get("href", "") for r in records for ln in r.findall("link")
-               if ln.get("href", "").endswith(".tar.gz") and re.match(r"(ftp|https?)://", ln.get("href", ""))]
+               if re.match(r"(ftp|https?)://", ln.get("href", ""))
+               and (ln.get("format") == "tgz" or urllib.parse.urlsplit(ln.get("href", "")).path.endswith(".tar.gz"))]
         if not tgz:
             if err is not None and err.get("code") == "idIsNotOpenAccess":
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
@@ -195,7 +200,7 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
             else:
                 what = (f"OA_SERVICE_ERROR: {err.get('code') or 'NO_CODE'} {(err.text or '')[:120]}" if err is not None
-                        else "OA_UNEXPECTED_RESPONSE: no <record> and no <error>")
+                        else f"OA_UNEXPECTED_RESPONSE: no <record> for PMC{pmcid} ({len(all_records)} other) and no <error>")
                 LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:{what}"
                 _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""

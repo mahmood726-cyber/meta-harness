@@ -5187,5 +5187,49 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r7": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3fd1fa7a6b5d90d7e0262b1c5b11fec9",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "521554c2f9265f744b643371fb337ea281638adb0b8de189589a450f3d61b432"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "The new absence check accepts records for a different PMCID. An unrelated response becomes NO_OA_PACKAGE instead of a typed fetch failure.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><records><record id=\"PMC2222\"/></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    print(repr(fetch._pmc_oa_supplement_text('1111', ['supp.csv'])))\n    print(fetch.LAST_SUPPLEMENT_STATE['1111'])",
+    "expected": "Returns ''; records FETCH_FAILED:SUPPLEMENT:... because no record establishes package availability for PMC1111.",
+    "actual": "Returns ''; records NO_OA_PACKAGE. The records branch never checks record IDs.",
+    "id": "fetch-loud-r7:g1#1",
+    "record_id": "mc-3fd1fa7a6b5d90d7e0262b1c5b11fec9",
+    "verdict": null
+   },
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "A package URL containing a query string is classified as package absence. Filtering hrefs with endswith('.tar.gz') discards the advertised package, and the records branch then reports NO_OA_PACKAGE.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><records><record id=\"PMC1111\"><link format=\"tgz\" href=\"https://example.org/package.tar.gz?download=1\"/></record></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'), patch.object(fetch.http, 'get', side_effect=RuntimeError('download attempted')) as download:\n    print(repr(fetch._pmc_oa_supplement_text('1111', ['supp.csv'])))\n    print(fetch.LAST_SUPPLEMENT_STATE['1111'], download.call_count)",
+    "expected": "Attempts the advertised package URL; this mocked download then produces FETCH_FAILED:SUPPLEMENT:RuntimeError: download attempted. An unhandled package URL must not establish absence.",
+    "actual": "Returns ''; records NO_OA_PACKAGE; download.call_count is 0.",
+    "id": "fetch-loud-r7:g1#2",
+    "record_id": "mc-3fd1fa7a6b5d90d7e0262b1c5b11fec9",
+    "verdict": null
+   }
+  ]
  }
 }

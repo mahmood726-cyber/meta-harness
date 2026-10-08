@@ -140,7 +140,7 @@ def test_PLANT_single_quoted_and_codeless_oa_errors_are_failures(monkeypatch):
 def test_PLANT_a_single_quoted_archive_link_is_followed_not_read_as_no_package(monkeypatch):
     """codex fetch-loud-r5 #1 (same class): a single-quoted href was missed and the package read as absent."""
     seen = []
-    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><record><link format='tgz' href='https://ftp.ncbi.nlm.nih.gov/pub/pmc/x.tar.gz'/></record></OA>")
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><record id='PMC906'><link format='tgz' href='https://ftp.ncbi.nlm.nih.gov/pub/pmc/x.tar.gz'/></record></OA>")
 
     def get(url, *a, **k):
         seen.append(url)
@@ -157,6 +157,22 @@ def test_PLANT_absence_is_only_established_positively(monkeypatch):
         monkeypatch.setattr(fetch.http, "get_text", lambda *a, _r=reply, **k: _r)
         assert fetch._pmc_oa_supplement_text(f"91{i}", ["s.xlsx"]) == ""
         assert fetch.LAST_SUPPLEMENT_STATE[f"91{i}"].startswith("FETCH_FAILED:SUPPLEMENT:"), reply
-    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><records><record id='PMC1'><link format='pdf' href='https://x/y.pdf'/></record></records></OA>")
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><records><record id='PMC919'><link format='pdf' href='https://x/y.pdf'/></record></records></OA>")
     assert fetch._pmc_oa_supplement_text("919", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["919"] == "NO_OA_PACKAGE"
+
+
+def test_PLANT_a_record_for_another_article_is_not_absence_and_a_query_string_hides_no_package(monkeypatch):
+    """codex fetch-loud-r7: #1 a record for a different PMCID read as NO_OA_PACKAGE; #2 '.tar.gz?x=1' read as absence."""
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><records><record id='PMC2'><link format='pdf' href='https://x/y.pdf'/></record></records></OA>")
+    assert fetch._pmc_oa_supplement_text("920", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["920"].startswith("FETCH_FAILED:SUPPLEMENT:OA_UNEXPECTED_RESPONSE")
+    seen = []
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><records><record id='PMC921'><link href='https://x/p.tar.gz?sig=1'/></record></records></OA>")
+
+    def get(url, *a, **k):
+        seen.append(url)
+        raise TimeoutError("t")
+    monkeypatch.setattr(fetch.http, "get", get)
+    assert fetch._pmc_oa_supplement_text("921", ["s.xlsx"]) == ""
+    assert seen == ["https://x/p.tar.gz?sig=1"]
