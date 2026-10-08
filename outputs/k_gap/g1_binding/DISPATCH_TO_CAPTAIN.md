@@ -589,3 +589,81 @@ The served extractors are yours (harness/extract, target_endpoint). I changed no
 - **Counts:** arm counts are read from ai/n1i/ci/n2i (my reader had dropped every count).
 - **g1_trial_acquire._num_in:** a (thin-)space thousands separator such as '10 033'.
 - **Tests:** 929 g1/licence/swap/comparator/outcome tests pass.
+
+---
+
+## CLOSE-4: binding share, counts STAGED (8 Oct, branch g1/binding-on-d0848a72 @ 48af986a1)
+
+Nothing below is used for matching until Mahmood signs D12 COUNTS_FOR_MATCHING. The counts are staged in `outputs/k_gap/g1_binding/bindings_counts.json` (`scripts/g1_binding_counts.py`):
+- **K1:** AACT posted participant counts. The title must pass binding_verdict; the timepoint is the treatment period; arms are mapped by our terms; denominators are posted.
+- **K2:** the trial's own abstract, percent-corroborated, with the arm named beside each number.
+- **K3:** recorded codex over open sources, through g1_trial_acquire's gates.
+
+The comparator's numbers are never an input.
+
+### 2. doac-vte-recurrence: all 6 trials staged. FLIP-READY ON D12.
+
+| trial | ours (DOAC v warfarin/VKA) | source |
+|---|---|---|
+| RE-COVER | 30/1274 v 27/1265 | AACT NCT00291330 outcome 258389495, "up to day 180" |
+| RE-COVER II | 30/1279 v 28/1289 | AACT NCT00680186 outcome 258441058, day 180 |
+| Hokusai-VTE | 130/4118 v 146/4122 | AACT NCT00986154 outcome 258387756 |
+| AMPLIFY | 59/2609 v 71/2635 | PMID 23808982 abstract |
+| EINSTEIN-DVT | 36/1731 v 51/1718 | PMID 21128814 abstract (N "1731 given rivaroxaban and 1718 given enoxaparin") |
+| EINSTEIN-PE | 50/2419 v 44/2413 | PMID 22449293 abstract events + AACT NCT00439777 posted N, percent-corroborated |
+
+- **What-if under D12 (not applied):** the 5 trials shared with comparator 29795629's Table 1 are identical to it, row for row. They were found without it. Pooled OR is 0.881 (0.700-1.108) on both sides, so result_verdict = AGREE. RESULT_AGREES would be met.
+- EINSTEIN-PE is ours, not in the comparator; it is already named.
+
+### 3. semaglutide-obesity-mace: SELECT staged
+
+- **SELECT:** 569/8803 v 701/8801, from AACT NCT03574597 outcome 258769011 (3-point MACE, the primary).
+- **What-if:** OR 0.7985 (0.712-0.896) v the comparator's 0.80 (0.71-0.90), AGREE.
+- **Not flip-ready alone:**
+  - ALL_ELIGIBLE_MATCHED still needs k-gap's O'Neil X-DOSE amendment;
+  - the comparator row's TIMEPOINT_NOT_STATED_BY_META refusal is unchanged.
+
+### 1. sglt2-primary-prevention-hf: NO per-arm HHF counts exist in any open source. It stays a named measure difference.
+
+**Your probe's "EMPA-REG and VERTIS-CV BINDABLE" is title binding only.** Their posted HHF rows are not counts:
+- EMPA-REG 258266632 posts a **percentage of participants** (4.1 / 2.6 / 2.8);
+- VERTIS-CV 258751223 posts **events per 100 person-years** (0.75 / 0.72 / 1.05).
+
+A count is never computed from either.
+
+**Other sources:**
+- CANVAS, CANVAS-R and DECLARE post the CV death or HHF composite only.
+- The abstracts print no HHF arm counts.
+- None of the four NEJM reports is open. CANVAS's Unpaywall "copy" is the King's College London repository landing page, which carries the abstract only.
+- 124 regulatory documents are now held for the topic (FDA 65 text, EMA 15, NICE 23). The typed reader finds no e/N row: labels print "212 (2.5)" with N only in the header.
+
+**K3, recorded (5 calls):**
+- EMPA-REG: REFUSED:AACT_MULTIPLE_TIME_FRAMES.
+- CANVAS and CANVAS-R: SOURCE_ABSENT.
+- VERTIS-CV: the gate admitted an **effect**, AACT HR 0.70 (0.539-0.902). It corroborates our served HR 0.70 (0.54-0.90) from an independent posted source, but it is not counts.
+- DECLARE: UNSURE. **Finding:** FDA review 202293Orig1s018 states "hospitalization for heart failure ... (HR 0.83; 95% CI 0.73, 0.95)". AACT assigns that exact estimate and CI to the composite CV death or HHF. The FDA text is not taken.
+
+### Also for V10
+
+- **tranexamic (D10 outcome binding).** Our primary "Death due to bleeding" binds to the comparator's own printed row:
+
+  > "Death due to bleeding | WOMAN, WOMAN-2, TRAAP, TRAAP-2 and TXA-MFMU | 159/27 307 | 194/27 097 | 0·81 (0·66–1·00)"
+
+  The orientation comes from its header ("Tranexamic acid group (n/N) | Placebo group (n/N)"). This is recorded in `registry/comparator_results.json` (`scripts/g1_comparator_table_result.py`).
+  - g1_tracker now **sets aside a served comparator result that is about another outcome**. reported[0] was the comparator's own primary, life-threatening bleeding. The set-aside is named in `comparator_reported_set_aside`, with a plant.
+  - The comparator prints no per-trial death-due-to-bleeding rows, so the WOMAN1 comparison is pooled (k=5) v our k=1. Four of their five trials are already named scope differences.
+- **CONFIRM-HF (iv-iron), a decision.** Table 2 (FCM n=150, placebo n=151) prints "Hospitalizations due to worsening HF 10 10 (7.6) 32 25 (19.4)".
+  - The header labels each arm's columns as "Total number of events" and "Incidence/100 patient-years at risk".
+  - Events 10 v 32 are labelled, and they are what the comparator pooled over the 150/151 participants. Patients with an event (10 v 25) appear only inside the incidence cell, with no "patients" label, so I have not bound them.
+  - Accept "the incidence numerator is patients with a first event"? If yes, the comparator's 32 is events (same class as AFFIRM-AHF's SECONDARY_WRONG).
+- **EFFECT-HF (iv-iron), a decision.** The text prints "26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care)".
+  - The comparator's 13 v 13 are hospitalisations, not patients.
+  - The safety-set N per arm is not printed: the FAS is 86 v 86, and the FCM administrations sum to 88. Not bound until the N is decided.
+- **cortico-covid.** Your fetch fix resolves the four silent failures to NO_BODY, so there is no text to bind from. They stay as they are.
+- **Fixes with plants that failed first:**
+  - K2 read the generic "primary outcome" as ours. For sglt2-pp ours is HHF and the trials' primary is MACE, so it now counts only when the trial's own definition names our outcome.
+  - Generic keywords ("hazard ratio") never name an outcome.
+  - AACT is read once per table, not about 90 times.
+  - Results-table rows need two arm cells, and a header that omits the row-label column is handled.
+- **Process note.** A stopped background run's python child survived and overwrote the staged file. It was restored from the commit and K3 replayed with no new calls; nothing was lost.
+- **Worker:** still unreachable, so everything ran here at 5.
