@@ -6347,5 +6347,85 @@
     "verdict": null
    }
   ]
+ },
+ "final5-binding-r1a": {
+  "base": "96921df40",
+  "head": "44cc3308d",
+  "runs": {
+   "g1": {
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "7768f9a429d5ed88dff53e0476f069ae163ac4eae724a8579a6619e4c46e9b40"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify_k5",
+    "severity": "P0",
+    "claim": "_row_cells removes percentage markers, allowing integer percentages to pass as event counts. A second extraction containing the same percentages also passes.",
+    "failing_input": "from scripts import g1_d12 as m\nfrom pathlib import Path\nfrom tempfile import TemporaryDirectory\nfrom unittest.mock import patch\nimport hashlib\n\ncaption = 'Table 1. All-cause mortality'\nheader = 'FCM ( n = 200) Placebo ( n = 200)'\nrow = 'All-cause deaths (%) 10% 20%'\ntext = '\\n'.join([caption, header, row])\nwith TemporaryDirectory() as root:\n    def document(name, content):\n        Path(root, name).write_text(content, encoding='utf-8')\n        return {'path': name, 'format': 'text', 'text_sha256': hashlib.sha256(content.encode()).hexdigest()}\n    d1 = document('first.txt', text)\n    d2 = document('second.txt', text + '\\nEnd of extraction.')\n    b = {'slug': 'iv-iron-hfref-hosp', 'pmid': '25176939',\n         'values': {'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 200},\n         'doc': d1, 'caption_span': caption, 'header_span': header, 'row_span': row,\n         'outcome_from': 'row', 'cells': {'events_t': 0, 'events_c': 1},\n         'second_reader': {'kind': 'SECOND_EXTRACTION', 'doc': d2, 'row_span': row}}\n    with patch.object(m, 'ROOT', root):\n        print(m.verify_k5(b, lambda s: 'deaths' in s)[0])",
+    "expected": "False: the selected cells print percentages, not counts.",
+    "actual": "True: 10 and 20 are accepted as death counts with denominators of 200.",
+    "id": "final5-binding-r1a:g1#1",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_readers.py",
+    "function": "gate",
+    "severity": "P0",
+    "claim": "Numeric token membership does not establish that a number is a count. The gate accepts explicitly labelled Kaplan–Meier percentages as participant counts.",
+    "failing_input": "from scripts.g1_final5_readers import gate\nq = 'FCM randomised n=100; placebo randomised n=100. Deaths at 28 days (Kaplan-Meier estimates): FCM 10%, placebo 20%.'\na = {'state': 'FOUND', 'quote': q, 'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100, 'count_units': 'PARTICIPANTS', 'population': 'randomised', 'notes': ''}\nprint(gate(a, q))",
+    "expected": "Reject the answer because the quoted event values are Kaplan–Meier percentages.",
+    "actual": "GATED",
+    "id": "final5-binding-r1a:g1#2",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "effect_hf_row",
+    "severity": "P0",
+    "claim": "The function admits safety-set event counts with FAS denominators. Its caveat acknowledges the population mismatch but does not prevent admission.",
+    "failing_input": "from scripts import g1_final5_typed as m\nfrom unittest.mock import patch\nimport io\n\nt = '''For the full analysis set: A total of 172 patients with HF were studied and received FCM (n=86) or standard of care (control group, n=86).\nTwo patients in the FCM arm did not have an efficacy assessment after baseline, and these 2 were excluded from the FAS.\nThe safety set contained 88 FCM patients and 86 control patients.\nAll-cause mortality and hospitalization for worsening HF and other cardiovascular reasons were analyzed for the safety set.\nThere were hospitalizations, 26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care).'''\ndef held(p, *args, **kwargs):\n    return io.StringIO('{\"rows\": []}' if str(p).endswith('final5_readers.json') else t)\nwith patch('builtins.open', side_effect=held):\n    r, why = m.effect_hf_row()\n    print(r['verdict'], r['admitted']['value'])",
+    "expected": "Reject the proposed FAS tuple: the text reports 11 and 6 patients in the safety population, whose denominators are 88 and 86.",
+    "actual": "ADMITTED {'measure': 'RR', 'effect': None, 'lower': None, 'upper': None, 'events_t': 11, 'n_t': 86, 'events_c': 6, 'n_c': 86}",
+    "id": "final5-binding-r1a:g1#3",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "engage_aact",
+    "severity": "P1",
+    "claim": "The comparison gate requires a high-dose edoxaban group but never requires warfarin. A high-dose versus low-dose analysis is classified as the requested high-dose versus warfarin result.",
+    "failing_input": "from scripts import g1_final5_typed as m\nfrom unittest.mock import patch, mock_open\nimport json\n\nd = {'tables': {\n    'outcomes.txt': [{'id': 1, 'outcome_type': 'PRIMARY', 'title': 'Stroke or systemic embolism', 'population': 'ITT'}],\n    'result_groups.txt': [{'id': 10, 'title': 'High Dose Edoxaban 60 mg'}, {'id': 11, 'title': 'Low Dose Edoxaban 30 mg'}],\n    'outcome_analysis_groups.txt': [{'outcome_analysis_id': 7, 'result_group_id': 10}, {'outcome_analysis_id': 7, 'result_group_id': 11}],\n    'outcome_analyses.txt': [{'id': 7, 'outcome_id': 1, 'param_type': 'Hazard Ratio', 'param_value': '0.90', 'ci_percent': '95', 'ci_lower_limit': '0.80', 'ci_upper_limit': '1.01'}]\n}}\nwith patch('builtins.open', mock_open(read_data=json.dumps(d))):\n    r = m.engage_aact()\n    print(r['result'], r['found'][0]['groups'], r['found'][0]['why'])",
+    "expected": "REFUSED: the analysis does not compare high-dose edoxaban with warfarin.",
+    "actual": "FOUND ['High Dose Edoxaban 60 mg', 'Low Dose Edoxaban 30 mg'] []",
+    "id": "final5-binding-r1a:g1#4",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The function reports evidence absence without reading any evidence. Missing holdings are therefore classified as a completed negative search, including assertions about registry rows and abstract contents.",
+    "failing_input": "from scripts import g1_final5_typed as m\nfrom tempfile import TemporaryDirectory\nfrom unittest.mock import patch\n\nwith TemporaryDirectory() as empty_root:\n    with patch.object(m, 'ROOT', empty_root):\n        r = m.codex_28d()\n        print(r['result'])\n        print(r['routes'][0]['outcome'])\n        print(r['routes'][1]['outcome'])",
+    "expected": "An unavailable/not-checked result or explicit error: no registry snapshot or held abstract exists to establish absence.",
+    "actual": "NOT_FOUND\nNO_POSTED_RESULTS (no outcomes rows for NCT04327401)\n28-day mortality named as a secondary outcome; no counts or percentages printed",
+    "id": "final5-binding-r1a:g1#5",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   }
+  ]
  }
 }

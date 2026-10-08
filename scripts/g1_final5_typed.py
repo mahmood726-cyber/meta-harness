@@ -238,6 +238,9 @@ def engage_aact():
             why.append(f"NOT_ITT ({str(o.get('population') or '')[:40]})")
         if not any(g.startswith("High Dose Edoxaban") for g in groups):
             why.append("NOT_HIGH_DOSE")
+        # the OTHER group must be warfarin: high dose v low dose is not the comparison (codex final5-binding-r1a g1#4)
+        if len(groups) != 2 or not any(g.startswith("Warfarin") for g in groups):
+            why.append("NOT_V_WARFARIN")
         if str(a.get("ci_percent")) not in ("95", "95.0"):
             why.append(f"CI_IS_{a.get('ci_percent')}%_NOT_95%")
         rows.append({"analysis_id": a["id"], "outcome_id": a["outcome_id"], "param": a["param_type"],
@@ -250,12 +253,43 @@ def engage_aact():
 
 
 def codex_28d():
-    return {"trial": "CoDEX", "pmid": "32876695", "nct": "NCT04327401", "result": "NOT_FOUND",
-            "routes": [{"route": "AACT 2026-08-30", "outcome": "NO_POSTED_RESULTS (no outcomes rows for NCT04327401)"},
-                       {"route": "held abstract (cache/corticosteroids-covid19-mortality/records.json)",
-                        "outcome": "28-day mortality named as a secondary outcome; no counts or percentages printed"},
-                       {"route": "PMC body PMC7489411", "outcome": "FETCH_EMPTY (publisher withholds the XML); not CC, "
-                                                                   "so no model reader in any case (D8)"}]}
+    """Each route is READ now; a route that cannot be read is NOT_CHECKED, and absence is claimed only when every route
+    was read (codex final5-binding-r1a g1#5: the routes were fixed strings)."""
+    nct, pmid, routes = "NCT04327401", "32876695", []
+    snap = os.environ.get("AACT_SNAPSHOT") or "F:/AACT-storage/AACT/2026-08-30"
+    op = os.path.join(snap, "outcomes.txt")
+    if os.path.isfile(op):
+        n = 0
+        with open(op, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if nct in line and line.split("|", 2)[1:2] == [nct]:
+                    n += 1
+        routes.append({"route": f"AACT {os.path.basename(snap.rstrip('/'))}",
+                       "outcome": "NO_POSTED_RESULTS" if n == 0 else f"POSTED_OUTCOMES:{n}"})
+    else:
+        routes.append({"route": "AACT", "outcome": "NOT_CHECKED (no snapshot)"})
+    rp = os.path.join(ROOT, "cache", "corticosteroids-covid19-mortality", "records.json")
+    ab = None
+    if os.path.isfile(rp):
+        ab = next((r.get("abstract") or "" for r in json.load(open(rp, encoding="utf-8")).get("records", [])
+                   if str(r.get("id")) == pmid), None)
+    if ab is None:
+        routes.append({"route": "held abstract", "outcome": "NOT_CHECKED (not held)"})
+    else:
+        sents = [s for s in re.split(r"(?<=[.;])\s+", ab) if re.search(r"mortality|death|died", s, re.I)
+                 and re.search(r"28", s)]
+        counts = [s for s in sents if re.search(r"(?<![\d.])\d+\s*(?:/|of)\s*\d+(?![\d.])|\d+(?:\.\d+)?\s*%", s)]
+        routes.append({"route": "held abstract", "outcome": (f"COUNTS_OR_PERCENTS_PRINTED:{counts[:2]}" if counts else
+                                                             "NO_COUNTS (28-day mortality sentences: "
+                                                             f"{len(sents)}, none with a count or a percentage)")})
+    fi = os.path.join(ROOT, "outputs", "k_gap", "fulltext_index.json")
+    st = (json.load(open(fi, encoding="utf-8")).get(pmid) or {}) if os.path.isfile(fi) else None
+    routes.append({"route": "PMC body", "outcome": f"{st.get('state')} ({st.get('copy_licence') or 'licence unread'})"
+                   if st else "NOT_CHECKED (no index entry)"})
+    oks = [r["outcome"] for r in routes]
+    res = ("NOT_CHECKED" if any(o.startswith("NOT_CHECKED") for o in oks) else
+           "CANDIDATE" if any(o.startswith(("POSTED", "COUNTS", "HELD")) for o in oks) else "NOT_FOUND")
+    return {"trial": "CoDEX", "pmid": pmid, "nct": nct, "result": res, "routes": routes}
 
 
 def main(argv):

@@ -488,10 +488,12 @@ def _held_doc(doc):
 
 
 def _row_cells(row):
-    """The row's value tokens after its label: '10', '7.6', '95/324' (an 'e/N' cell is one token)."""
+    """The row's value tokens after its label: '10', '7.6', '95/324' (an 'e/N' cell is one token). A percentage keeps its
+    sign ('10%', '10 %' -> '10%') so it can never equal a count (codex final5-binding-r1a g1#1)."""
     import re
     m = re.search(r"\d", row)
-    return re.findall(r"(?<![\d.])\d+(?:\.\d+)?(?:/\d+)?(?![\d.])", row[m.start():]) if m else []
+    toks = re.findall(r"(?<![\d.])(\d+(?:\.\d+)?(?:/\d+)?)(?![\d.])(\s*%)?", row[m.start():]) if m else []
+    return [t + ("%" if pct else "") for t, pct in toks]
 
 
 def _header_ns(header):

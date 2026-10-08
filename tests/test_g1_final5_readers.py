@@ -38,3 +38,10 @@ def test_a_trivial_fragment_is_not_a_passage():
     # a joined quote must not smuggle numbers in through a one-token 'passage' that happens to occur anywhere
     q = "Hospitalizations due to worsening HF 10 10 (7.6) 32 25 (19.4)\n150\n151"
     assert fr.gate(ans(q), SHOWN) == "QUOTE_NOT_VERBATIM"
+
+
+def test_PLANT_a_percentage_in_the_quote_is_not_a_count():
+    # codex final5-binding-r1a g1#2: Kaplan-Meier percentages '10%' / '20%' were gated as participant counts
+    q = "FCM randomised n=100; placebo randomised n=100. Deaths at 28 days (Kaplan-Meier estimates): FCM 10%, placebo 20%."
+    a = {"state": "FOUND", "quote": q, "events_t": 10, "n_t": 100, "events_c": 20, "n_c": 100}
+    assert fr.gate(a, q).startswith("NUMBER_NOT_IN_QUOTE:events_t,events_c")

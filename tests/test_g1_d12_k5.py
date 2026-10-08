@@ -206,3 +206,13 @@ def test_PLANT_k5_a_caption_repeated_in_a_table_of_contents_still_finds_its_tabl
                            "row_span": "Invasive mechanical ventilation 95/324 (29.3%) 283/683 (41.4%)"}}
     ok, why = D.verify(b, None, ep("co"))
     assert ok, why
+
+
+def test_PLANT_k5_a_percentage_cell_is_never_a_count(tmp_path, monkeypatch):
+    # codex final5-binding-r1a g1#1: '10% 20%' read as cells '10' / '20' and passed as death counts of n = 200
+    setup(tmp_path, monkeypatch)
+    doc = ("<caption>Table 2 Hospitalizations and deaths (full-analysis set)</caption><th>FCM ( n = 150)</th>"
+           "<th>Placebo ( n = 151)</th><td>Hospitalizations due to worsening HF</td><td>10%</td><td>25%</td>")
+    (tmp_path / "doc.txt").write_text(doc, encoding="utf-8")
+    b = k5(tmp_path, row_span="Hospitalizations due to worsening HF 10% 25%", cells={"events_t": 0, "events_c": 1})
+    assert D.verify(b, None, ep("iv"))[1].startswith("K5_CELL_IS_NOT_THE_COUNT")

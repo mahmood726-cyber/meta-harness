@@ -156,7 +156,9 @@ def gate(ans, shown):
     if not parts or any(len(p) < 20 or p not in shown for p in parts):
         return "QUOTE_NOT_VERBATIM"
     q = " ".join(parts)
-    toks = {int(x.replace(",", "")) for x in re.findall(r"(?<![\d.])\d{1,3}(?:,\d{3})+(?![\d.])|(?<![\d.,])\d+(?![\d.])", q)}
+    # a number followed by '%' is a percentage, never a count (codex final5-binding-r1a g1#2)
+    toks = {int(x.replace(",", "")) for x in re.findall(
+        r"(?<![\d.])\d{1,3}(?:,\d{3})+(?![\d.])(?!\s*%)|(?<![\d.,])\d+(?![\d.])(?!\s*%)", q)}
     miss = [k for k in ("events_t", "n_t", "events_c", "n_c") if ans.get(k) is not None and ans[k] not in toks]
     return f"NUMBER_NOT_IN_QUOTE:{','.join(miss)}" if miss else "GATED"
 
