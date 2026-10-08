@@ -4297,5 +4297,46 @@
     "verdict": null
    }
   ]
+ },
+ "doac-table1-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-eceff01d6b276bbf9bc375be96883863",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "e2a268a0d757f04d673c626e054f45ff6fbf572a951a03c6a2635ae14501a313"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The reader treats every numeric e/N cell as an event count, ignoring explicit table notes that identify the numerator as a percentage. The verbatim-span check still passes.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\nraw = ('<table-wrap id=\"' + cfg['table_id'] + '\"><table>'\n       + tr(cfg['header']) + tr(['VTE Studies'])\n       + tr(['Trial A', '2018', 'Drug A', '5/200', 'Warfarin', '10/200', '60', '40'])\n       + '</table><table-wrap-foot><p>Primary Events /Total N cells report event percentages followed by total N, not event counts.</p></table-wrap-foot></table-wrap>')\ndef fake_open(path, mode='r', **kwargs):\n    return io.BytesIO(raw.encode('utf-8')) if mode == 'rb' else io.StringIO(raw)\nwith patch.object(m, 'open', fake_open, create=True):\n    print(m.read(slug)['rows'][0])",
+    "expected": "Refuse extraction: the numerators are explicitly percentages, so they cannot populate events_t or events_c.",
+    "actual": "Returns a row containing events_t=5, n_t=200, events_c=10, n_c=200, measure='OR'; no refusal occurs.",
+    "id": "doac-table1-r2:g1#1",
+    "record_id": "mc-eceff01d6b276bbf9bc375be96883863",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The reader neither validates nor preserves denominator populations. It emits a paired comparator row even when the held table explicitly gives randomised and safety populations for opposite arms.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\nraw = ('<table-wrap id=\"' + cfg['table_id'] + '\"><table>'\n       + tr(cfg['header']) + tr(['VTE Studies'])\n       + tr(['Trial A', '2018', 'Drug A', '5/200', 'Warfarin', '6/180', '60', '40'])\n       + '</table><table-wrap-foot><p>Drug A events and Total N refer to the randomised population. Warfarin events and Total N refer to the safety population; 200 were randomised and 180 received treatment.</p></table-wrap-foot></table-wrap>')\ndef fake_open(path, mode='r', **kwargs):\n    return io.BytesIO(raw.encode('utf-8')) if mode == 'rb' else io.StringIO(raw)\nwith patch.object(m, 'open', fake_open, create=True):\n    print(m.read(slug)['rows'][0])",
+    "expected": "Refuse the paired comparison because its arms use incompatible denominator kinds.",
+    "actual": "Returns events_t=5, n_t=200, events_c=6, n_c=180, measure='OR', with no population qualification or error. The emitted span excludes the explanatory footnote.",
+    "id": "doac-table1-r2:g1#2",
+    "record_id": "mc-eceff01d6b276bbf9bc375be96883863",
+    "verdict": null
+   }
+  ]
  }
 }

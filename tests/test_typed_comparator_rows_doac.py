@@ -48,3 +48,18 @@ def test_PLANT_a_commented_out_row_is_never_read(tmp_path, monkeypatch):
     monkeypatch.setattr(tcr, "ROOT", "")
     d = tcr.read(SLUG)
     assert "FAKE-TRIAL" not in [r["label"] for r in d["rows"]] and len(d["rows"]) == 5
+
+
+def test_PLANT_a_table_with_notes_is_refused_whole(tmp_path, monkeypatch):
+    """codex doac-table1-r2: a note could make the numerator a percentage or give different populations per arm."""
+    import pytest
+    src = os.path.join(ROOT, tcr.READERS[SLUG]["source"])
+    raw = open(src, encoding="utf-8").read()
+    end = raw.index("</table-wrap>", raw.index('id="pone.0197583.t001"'))
+    p = tmp_path / "held.xml"
+    p.write_text(raw[:end] + "<table-wrap-foot><p>Events are % of the safety population.</p></table-wrap-foot>" + raw[end:],
+                 encoding="utf-8")
+    monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p)))
+    monkeypatch.setattr(tcr, "ROOT", "")
+    with pytest.raises(SystemExit):
+        tcr.read(SLUG)

@@ -62,6 +62,10 @@ def read(slug):
     m = re.search(r'<table-wrap\b[^>]*id="' + re.escape(cfg["table_id"]) + r'".*?</table-wrap>', _uncomment(raw), re.S)
     if not m:
         raise SystemExit(f"REFUSED: table {cfg['table_id']} not in {cfg['source']}")
+    # a table whose notes could redefine its cells (a percentage numerator, a safety vs randomised population per arm) is
+    # refused WHOLE: this reader has no way to apply a note, so it reads only note-free tables (codex doac-table1-r2 #1, #2)
+    if re.search(r"<table-wrap-foot\b|<fn\b|ref-type=\"table-fn\"", m.group(0)):
+        raise SystemExit(f"REFUSED: table {cfg['table_id']} carries notes; this reader reads only note-free tables")
     trs = [_cells(tr) for tr in re.findall(r"<tr\b.*?</tr>", m.group(0), re.S)]
     multi = [c for c in trs if len(c) > 1]
     if not multi or multi[0] != cfg["header"]:
