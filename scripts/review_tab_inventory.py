@@ -71,7 +71,8 @@ def pooled_trials(review: dict, shown_only: bool = False) -> list[dict]:
 
 def withheld(o: dict) -> bool:
     from harness import harms   # the gate's own rule (harness/gate.py check_harms_synthesis_gated)
-    return bool(harms.synthesis_incomplete(o) or (o.get("result") or {}).get("suppressed_incompatible"))
+    res = o.get("result") or {}
+    return bool(harms.synthesis_incomplete(o) or res.get("suppressed_incompatible") or res.get("harms_synthesis_suppressed"))
 
 
 def ids_of(t: dict) -> tuple[str | None, str | None]:
@@ -148,7 +149,7 @@ def check(slug: str, page: str, review: dict, notices: list, decisions: list[str
             el["conclusions"] = bool(re.search(r"conclusion|interpretation", txt, re.I))
         elif tid == "comparator":
             el["published meta-analysis named"] = bool(re.search(r"comparator|published meta", txt, re.I))
-            el["G1 panel"] = bool(re.search(r"comparator panel|G1", txt, re.I))
+            el["G1 panel"] = bool(re.search(r"comparator panel|\bG1\b", txt, re.I))
         elif tid == "changes":
             mine = [n for n in notices if n.get("slug") == slug]
             shown = sum(1 for n in mine if (n.get("outcome") or "") in txt and (n.get("when_utc") or "")[:10] in txt)

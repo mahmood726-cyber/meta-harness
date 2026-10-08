@@ -82,21 +82,23 @@ def status_banner(slug: str) -> str:
 
 
 # ------------------------------------------------------------------------------------------------------------ Protocol
-_AMEND = re.compile(r"^#{1,4}\s*(Amendment[^\n]*?(20\d\d-\d\d-\d\d)[^\n]*)$", re.M)
+_AMEND = re.compile(r"^#{1,4}\s*([^\n]*\bamendments?\b[^\n]*)$", re.M | re.I)
+_DATE = re.compile(r"20\d\d-\d\d-\d\d|\b\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* 20\d\d\b")
 
 
 def protocol_additions(r: dict) -> str:
     p = r.get("protocol") or {}
     text = p.get("text") or ""
     out = ["<h4 id='protocol-amendments'>Amendments (dated sections of the committed protocol text)</h4>"]
-    am = _AMEND.findall(text)
+    am = [(h.strip(), (_DATE.search(h).group(0) if _DATE.search(h) else "date not stated in the heading"))
+          for h in _AMEND.findall(text)]
     if am:
         out.append("<table class='recs'><tr><th>Date</th><th>Amendment heading (verbatim)</th></tr>"
                    + "".join(f"<tr><td>{_e(d)}</td><td>{_e(h)}</td></tr>" for h, d in am) + "</table>")
     else:
         out.append(_reason("amendments with dates",
                            f"the committed protocol text (sha <code>{_e(p.get('sha'))}</code>, committed {_e(p.get('committed_utc'))}) "
-                           "contains no dated <em>Amendment</em> section, so no amendment has been registered for this topic. "
+                           "contains no section headed as an amendment, so no amendment has been registered for this topic. "
                            "Corrections after registration appear as signed notices in the Changes &amp; signatures tab."))
     out.append(decisions_table())
     return "".join(out)
@@ -154,7 +156,7 @@ def included_tab(r: dict) -> str:
         for t in o.get("trials") or []:
             key = str(t.get("id") or t.get("label"))
             e = by.setdefault(key, {"t": t, "outcomes": []})
-            e["outcomes"].append(o.get("name"))
+            e["outcomes"].append(f"{o.get('name')} [{outcome_state(o)}]")
     absent: dict[str, list] = {}
     for o in r.get("outcomes") or []:
         for t in o.get("declared_absent_trials") or []:
@@ -166,10 +168,11 @@ def included_tab(r: dict) -> str:
         pm, nct = _ids(e["t"])
         rows.append(f"<tr><td>{_e(e['t'].get('label'))}</td><td>{_pmid_link(pm)}</td><td>{_nct_link(nct)}</td>"
                     f"<td>{_e('; '.join(dict.fromkeys(str(x) for x in e['outcomes'])))}</td></tr>")
-    out = ("<p>Every trial row that enters a pooled outcome of this review, with its identifiers as recorded on the row "
-           "(PMID from the row id or label; NCT from the row or its trial family). Identifiers link to PubMed and "
-           "ClinicalTrials.gov.</p><table class='recs' id='included-trials'><tr><th>Trial</th><th>PMID</th><th>Registry</th>"
-           f"<th>Pooled in</th></tr>{''.join(rows)}</table>")
+    out = ("<p>Every trial row recorded under an outcome of this review, with its identifiers as recorded on the row "
+           "(PMID from the row id or label; NCT from the row or its trial family) and, for each outcome, the served state of "
+           "that outcome's synthesis (pooled, single-trial, CI not served, no served estimate, or withheld by the gate). "
+           "Identifiers link to PubMed and ClinicalTrials.gov.</p><table class='recs' id='included-trials'><tr><th>Trial</th>"
+           f"<th>PMID</th><th>Registry</th><th>Outcomes [served state]</th></tr>{''.join(rows)}</table>")
     if absent:
         arows = "".join(f"<tr><td>{_e(k)}</td><td>{_e('; '.join(f'{n}: {s}' for n, s in v))}</td></tr>"
                         for k, v in sorted(absent.items()))
@@ -188,7 +191,26 @@ def _gated(o: dict) -> str | None:
         return "its harm-extraction ledger is incomplete, so its numbers are served only as the gated ledger in the Harms tab"
     if res.get("suppressed_incompatible"):
         return "its pool is suppressed as incompatible (see the Results tab)"
+    if res.get("harms_synthesis_suppressed"):
+        return "its harms synthesis is suppressed (see the Harms tab)"
     return None
+
+
+def outcome_state(o: dict) -> str:
+    """The served state of one outcome's synthesis, from the result object (never 'pooled' unless a pooled estimate is
+    served)."""
+    res = o.get("result") or {}
+    claim = res.get("claim") if isinstance(res.get("claim"), dict) else {}
+    g = _gated(o)
+    if g:
+        return "withheld: " + g
+    if res.get("estimate") is None:
+        return ("no served estimate" + (f" ({claim.get('state')}: {claim.get('refusal_code')})" if claim.get("state") else ""))
+    if res.get("k") == 1:
+        return "single-trial estimate (k = 1)"
+    if res.get("pooled_ci_refused"):
+        return f"pooled point estimate; CI not served ({(res.get('pooled_ci_refused') or {}).get('code')})"
+    return "pooled"
 
 
 def _value(t: dict) -> str:
@@ -198,8 +220,10 @@ def _value(t: dict) -> str:
     if t.get("ai") is not None:
         return f"{_fmt(t.get('ai'))}/{_fmt(t.get('n1i'))} vs {_fmt(t.get('ci'))}/{_fmt(t.get('n2i'))}"
     if t.get("mean1") is not None:
-        return (f"{_fmt(t.get('mean1'))} (SD {_fmt(t.get('sd1'))}, n {_fmt(t.get('n1'))}) vs "
-                f"{_fmt(t.get('mean2'))} (SD {_fmt(t.get('sd2'))}, n {_fmt(t.get('n2'))})")
+        n1 = t.get("nc1") if t.get("nc1") is not None else t.get("n1")
+        n2 = t.get("nc2") if t.get("nc2") is not None else t.get("n2")
+        return (f"{_fmt(t.get('mean1'))} (SD {_fmt(t.get('sd1'))}, n {_fmt(n1)}) vs "
+                f"{_fmt(t.get('mean2'))} (SD {_fmt(t.get('sd2'))}, n {_fmt(n2)})")
     return "--"
 
 
@@ -286,6 +310,11 @@ def d11_status() -> str:
 
 
 # ------------------------------------------------------------------------------------------------------------ Analysis
+def _stale(r: dict) -> str:
+    from . import grade
+    return grade.stale_heterogeneity(r)
+
+
 def _forest(o: dict) -> str:
     from . import manuscript
     return manuscript.forest_for(o, label=f"Forest plot: {o.get('name')}")
@@ -311,13 +340,30 @@ def analysis_tab(r: dict) -> str:
         out.append(f"<p class='method'><strong>Model:</strong> {_e(o.get('method'))}</p>")
         fp = _forest(o)
         out.append(fp or _reason("forest plot", "no row of this outcome has a displayable effect."))
-        out.append("<table class='kv'>"
-                   + "".join(f"<tr><th>{_e(k)}</th><td>{_fmt(v)}</td></tr>" for k, v in (
-                       ("k", res.get("k")), ("Pooled estimate", res.get("estimate")), ("95% CI", f"{_fmt(res.get('ci_low'))} to {_fmt(res.get('ci_high'))}"),
-                       ("tau-squared", res.get("tau2")), ("I-squared", res.get("i2")), ("Q", res.get("Q")),
-                       ("95% prediction interval", f"{_fmt(res.get('pi_low'))} to {_fmt(res.get('pi_high'))}"),
-                       ("Prediction-interval note", res.get("pi_note"))) if v is not None)
-                   + "</table>")
+        claim = res.get("claim") if isinstance(res.get("claim"), dict) else {}
+        stale = _stale(r) if o.get("primary") else ""
+        if res.get("estimate") is None:
+            out.append(_reason("pooled estimate", f"no estimate is served for this outcome: {_e(claim.get('state'))} "
+                                                  f"({_e(claim.get('refusal_code'))}) -- {_e(claim.get('basis'))}."))
+        else:
+            single = res.get("k") == 1
+            ref = res.get("pooled_ci_refused") or {}
+            ci = (f"{_fmt(res.get('ci_low'))} to {_fmt(res.get('ci_high'))}" if res.get("ci_low") is not None else
+                  f"not served -- {_e(ref.get('code'))}: {_e(ref.get('detail'))}" if ref else "not served")
+            rows = [("k", _fmt(res.get("k"))),
+                    ("Estimate (single trial, k = 1; not pooled)" if single else "Pooled estimate", _fmt(res.get("estimate"))),
+                    ("95% CI", ci)]
+            if not single:
+                q = (" (STALE: descriptive only, not interpretable)" if stale else "")
+                rows += [("tau-squared", _fmt(res.get("tau2")) + q), ("I-squared", _fmt(res.get("i2")) + q),
+                         ("Q", _fmt(res.get("Q")))]
+                if res.get("pi_low") is not None:
+                    rows.append(("95% prediction interval", f"{_fmt(res.get('pi_low'))} to {_fmt(res.get('pi_high'))}" + q))
+                if stale:
+                    rows.append(("Heterogeneity", _e(stale)))
+                elif res.get("pi_note"):
+                    rows.append(("Prediction-interval note", _e(res.get("pi_note"))))
+            out.append("<table class='kv'>" + "".join(f"<tr><th>{_e(k)}</th><td>{v}</td></tr>" for k, v in rows) + "</table>")
         loo = res.get("leave_one_out") or {}
         if loo.get("per_trial"):
             out.append("<p>Leave-one-out: " + _e(loo.get("note")) + "</p><table class='recs'><tr><th>Trial dropped</th>"
@@ -336,24 +382,34 @@ def analysis_tab(r: dict) -> str:
 
 
 # ------------------------------------------------------------------------------------------------ Results/conclusions
-_CLAIM_FIELDS = (("present", "A pooled claim is made"), ("significant", "95% CI excludes the null"),
-                 ("crosses_null", "95% CI crosses the null"), ("touches_null", "95% CI touches the null"),
-                 ("null", "Null value on this scale"), ("direction", "Direction of the point estimate"),
-                 ("state", "Claim state"), ("refusal_code", "Refusal code"), ("basis", "Basis"))
+_CLAIM_FIELDS = (  # the definitions are harness/claim.py derive()'s own docstring
+    ("present", "the pool produced a usable estimate (not absent / suppressed / incompatible)"),
+    ("significant", "present AND the 95% CI does not strictly cross the null (a limit exactly on the null is not a cross)"),
+    ("crosses_null", "strict cross: lower limit < null < upper limit"),
+    ("touches_null", "a CI limit sits exactly on the null (rounded-boundary case)"),
+    ("null", "the no-effect value on this scale"),
+    ("direction", "benefit / harm / none relative to the null (descriptive only)"),
+    ("state", "claim state"), ("refusal_code", "why no claim is made"), ("basis", "basis"))
 
 
 def conclusions(r: dict) -> str:
-    """The conclusion as the canonical claim object states it (harness/claim.py derives it; every surface is checked
-    against it by the gate). Rendered field by field: no sentence is composed here."""
+    """The conclusion as the canonical claim object states it (harness/claim.py derives it). Rendered field by field with
+    claim.py's own definitions; the claim check's coverage is stated from its recorded scope, never asserted."""
     prim = next((o for o in r.get("outcomes") or [] if o.get("primary")), None)
     claim = ((prim or {}).get("result") or {}).get("claim")
     if not isinstance(claim, dict):
         return _reason("conclusions", "the primary outcome carries no canonical claim object at this build.")
-    rows = "".join(f"<tr><th>{_e(lab)}</th><td>{_e(claim.get(k))}</td></tr>" for k, lab in _CLAIM_FIELDS if k in claim)
+    rows = "".join(f"<tr><th><code>{_e(k)}</code></th><td>{_e(claim.get(k))}</td><td class='muted'>{_e(d)}</td></tr>"
+                   for k, d in _CLAIM_FIELDS if k in claim)
+    scope = (((r.get("reproduction") or {}).get("claim_check") or {}).get("scope") or {})
+    nis = scope.get("not_in_scope")
+    cover = ("The claim check (<code>reproduction.claim_check</code>) compares the page's statements about the primary "
+             "result with this object; recorded as outside its scope: " + "; ".join(_e(x) for x in nis) + "."
+             if nis else "The claim check's scope is not recorded in this review object.")
     return ("<h4 id='conclusions'>Conclusion: the canonical claim object for the primary outcome</h4>"
-            "<p>The page's conclusion is this object, derived from the pooled result by <code>harness/claim.py</code>; "
-            "every other sentence on the page is checked against it. Certainty is stated in the Risk of bias &amp; GRADE "
-            f"tab.</p><table class='kv' id='claim-object'>{rows}</table>")
+            f"<p>The page's conclusion is this object, derived from the pooled result by <code>harness/claim.py</code>. {cover} "
+            "Certainty is stated in the Risk of bias &amp; GRADE tab.</p>"
+            f"<table class='kv' id='claim-object'><tr><th>Field</th><th>Value</th><th>Definition</th></tr>{rows}</table>")
 
 
 # ---------------------------------------------------------------------------------------------------------- Comparator
