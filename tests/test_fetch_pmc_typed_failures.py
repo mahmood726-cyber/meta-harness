@@ -93,3 +93,22 @@ def test_PLANT_a_supplement_failure_survives_an_empty_body_and_strict_raises_on_
         fetch._pmc_fulltext("890", with_supplements=True, strict=True)
     assert e.value.stage == "SUPPLEMENT"
     assert fetch.LAST_PMC_STATE["890"].startswith("HELD_WITH_SUPPLEMENT_FAILURE:")
+
+
+def test_PLANT_the_kgap_cache_records_a_supplement_failure_as_a_failure(monkeypatch, tmp_path):
+    """codex fetch-loud-r3 #1: EMPTY_BODY_WITH_SUPPLEMENT_FAILURE was recorded as FETCH_EMPTY by the k-gap cache."""
+    import json as _json
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    import k_gap_counterfactual as kc
+    monkeypatch.setattr(kc, "FT_DIR", str(tmp_path / "_ft"))
+    monkeypatch.setattr(kc, "OUT", str(tmp_path))
+    monkeypatch.setattr(kc, "committed_open_fulltext", lambda pmid, idx=None: None)
+    monkeypatch.setattr(fetch.http, "get_json", lambda *a, **k: {"records": [{"pmcid": "PMC43"}]})
+
+    def fake(pmid, with_supplements=False, strict=False):
+        fetch.LAST_PMC_STATE[pmid] = "EMPTY_BODY_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT:TimeoutError: x"
+        return ""
+    monkeypatch.setattr(fetch, "_pmc_fulltext", fake)
+    assert kc.pmc_fulltext_cached("891") == ""
+    idx = _json.load(open(tmp_path / "fulltext_index.json", encoding="utf-8"))
+    assert idx["891"]["state"] == "FETCH_FAILED"

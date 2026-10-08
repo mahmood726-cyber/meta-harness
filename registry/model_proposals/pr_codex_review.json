@@ -5020,5 +5020,79 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "fetch-loud-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-34207f91bf08c6757e8f575c7dd8b7a2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "604764f1c931dc7b6a55745f9ac4f4ee9ab5fab05270a5e57f5abceee07447e3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_fulltext",
+    "severity": "P2",
+    "claim": "An empty body takes precedence over a supplement failure, overwriting the failure with EMPTY_BODY. Consequently run_failed() returns False and the run-level failure aggregation misses the failed acquisition.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch as f\n\ndef failed_supplement(*args):\n    f.LAST_SUPPLEMENT_STATE['1'] = 'FETCH_FAILED:SUPPLEMENT:OSError: offline'\n    return ''\n\nwith patch.object(f, '_resolve_pmcid', return_value='1'), patch.object(f.http, 'get_text', return_value='<article/>'), patch.object(f._ft, 'parse_pmc_xml', return_value={'supplements': ['supp.csv']}), patch.object(f._ft, 'combined_text', return_value=''), patch.object(f, '_pmc_oa_supplement_text', side_effect=failed_supplement):\n    result = f._pmc_fulltext('123', with_supplements=True)\n    print((result, f.LAST_PMC_STATE['123'], f.run_failed('123')))",
+    "expected": "The supplement failure remains represented in LAST_PMC_STATE, and run_failed('123') returns True.",
+    "actual": "('', 'EMPTY_BODY', False)",
+    "id": "fetch-loud-r2:g1#1",
+    "record_id": "mc-34207f91bf08c6757e8f575c7dd8b7a2",
+    "verdict": null
+   },
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_fulltext",
+    "severity": "P2",
+    "claim": "strict=True does not raise on a requested supplement failure. The supplement helper catches the exception, and _pmc_fulltext records the failure but returns normally without applying its strict error contract.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch as f\n\ndef failed_supplement(*args):\n    f.LAST_SUPPLEMENT_STATE['1'] = 'FETCH_FAILED:SUPPLEMENT:OSError: offline'\n    return ''\n\nwith patch.object(f, '_resolve_pmcid', return_value='1'), patch.object(f.http, 'get_text', return_value='<article/>'), patch.object(f._ft, 'parse_pmc_xml', return_value={'supplements': ['supp.csv']}), patch.object(f._ft, 'combined_text', return_value='Body'), patch.object(f, '_pmc_oa_supplement_text', side_effect=failed_supplement):\n    print(f._pmc_fulltext('123', with_supplements=True, strict=True))",
+    "expected": "Raise PmcFetchError for the failed requested supplement.",
+    "actual": "Returns and prints 'Body'; no exception is raised. LAST_PMC_STATE['123'] becomes 'HELD_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT:OSError: offline'.",
+    "id": "fetch-loud-r2:g1#2",
+    "record_id": "mc-34207f91bf08c6757e8f575c7dd8b7a2",
+    "verdict": null
+   }
+  ]
+ },
+ "fetch-loud-r3": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-10c304054ee703a29c147358588320f2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "42150486ec62efe151b7264189fa18f023a7d2486cac82ca2a128793ec015dfb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/k_gap_counterfactual.py",
+    "function": "pmc_fulltext_cached",
+    "severity": "P2",
+    "claim": "The cache wrapper misclassifies a failed supplement fetch as FETCH_EMPTY when the article body is empty. It checks only the FETCH_FAILED prefix, whereas _pmc_fulltext also emits failure states beginning EMPTY_BODY_WITH_SUPPLEMENT_FAILURE.",
+    "failing_input": "In the uncached, empty-text branch: pmid='1', pmcid='2', and fetch.LAST_PMC_STATE['1']='EMPTY_BODY_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT:TimeoutError: timed out'. This is the state _pmc_fulltext produces when combined_text returns '' and a requested supplement times out.",
+    "expected": "idx['1']['state'] == 'FETCH_FAILED', consistent with fetch.run_failed('1') == True.",
+    "actual": "idx['1']['state'] == 'FETCH_EMPTY'. The failure remains in fetch_state, but the primary state incorrectly classifies it as empty content.",
+    "id": "fetch-loud-r3:g1#1",
+    "record_id": "mc-10c304054ee703a29c147358588320f2",
+    "verdict": null
+   }
+  ]
  }
 }
