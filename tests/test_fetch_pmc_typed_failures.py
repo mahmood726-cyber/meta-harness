@@ -255,3 +255,14 @@ def test_PLANT_an_id_inside_an_error_child_or_attribute_is_read(monkeypatch):
         monkeypatch.setattr(fetch.http, "get_text", lambda *a, _b=body, _i=i, **k: f"<OA><request id='PMC98{_i}'/>{_b}</OA>")
         assert fetch._pmc_oa_supplement_text(f"98{i}", ["s.xlsx"]) == ""
         assert fetch.LAST_SUPPLEMENT_STATE[f"98{i}"].startswith("FETCH_FAILED:SUPPLEMENT:"), body
+
+
+def test_PLANT_any_other_article_named_anywhere_in_the_reply_is_not_absence(monkeypatch):
+    """codex fetch-loud-r19 #1: a not-OA error nested in ANOTHER article's record was read as this article's absence.
+    Closed as a class: every PMC id the whole reply names must be this article."""
+    for i, body in enumerate(["<records><record id='PMC7'><error code='idIsNotOpenAccess'>not OA</error></record></records>",
+                              "<request id='PMC990'/><error code='idIsNotOpenAccess'>not OA</error><note ref='PMC7'/>",
+                              "<records><record id='PMC990'/><record id='PMC7'/></records>"]):
+        monkeypatch.setattr(fetch.http, "get_text", lambda *a, _b=body, **k: f"<OA>{_b}</OA>")
+        assert fetch._pmc_oa_supplement_text("990", ["s.xlsx"]) == ""
+        assert fetch.LAST_SUPPLEMENT_STATE["990"].startswith("FETCH_FAILED:SUPPLEMENT:"), body

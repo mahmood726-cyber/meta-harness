@@ -231,24 +231,21 @@ def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
             _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""
         if not tgz:
-            req = oa_root.find("request")
             want = f"PMC{pmcid}".upper()
-            # every PMC id named anywhere in EVERY error's text, labelled or not (codex fetch-loud-r16 #1, r17 #1)
-            # all text AND attribute values of each error and its descendants, not only error.text (r18 #1)
-            named = {x for e in errs
-                     for x in _pmc_ids_in(" ".join([*e.itertext(), *(v for d in e.iter() for v in d.attrib.values())]))}
-            if req is not None and req.get("id"):
-                named.add(req.get("id").upper())
-            # every article the reply names must be this one, and it must name at least one (codex fetch-loud-r15 #1)
-            about_this = bool(named) and named == {want}
+            # absence is about THIS article only if every PMC id the WHOLE reply names -- any element's text or
+            # attribute, labelled or not, in the request, an error, a record or anywhere else -- is this one, and it
+            # names at least one (codex fetch-loud-r14..r19: a reply naming any other article is inconsistent, a failure)
+            named = _pmc_ids_in(" ".join([*oa_root.itertext(),
+                                          *(v for d in oa_root.iter() for v in d.attrib.values())]))
+            about_this = named == {want}
             if err is not None and err.get("code") == "idIsNotOpenAccess" and about_this:
-                # absence counts only when the reply names THIS article (its <request id> or the error text) (r14 #1)
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
-            elif err is None and records:
+            elif err is None and records and about_this:
                 LAST_SUPPLEMENT_STATE[pmcid] = "NO_OA_PACKAGE"
             else:
                 what = (f"OA_SERVICE_ERROR: {err.get('code') or 'NO_CODE'} {(err.text or '')[:120]}" if err is not None
-                        else f"OA_UNEXPECTED_RESPONSE: no <record> for PMC{pmcid} ({len(all_records)} other) and no <error>")
+                        else f"OA_UNEXPECTED_RESPONSE: {len(records)} record(s) for PMC{pmcid} of {len(all_records)}; "
+                             f"articles named {sorted(named)[:5]}")
                 LAST_SUPPLEMENT_STATE[pmcid] = f"FETCH_FAILED:SUPPLEMENT:{what}"
                 _warn(f"PMC{pmcid}", LAST_SUPPLEMENT_STATE[pmcid])
             return ""

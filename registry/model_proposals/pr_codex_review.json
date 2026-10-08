@@ -5570,5 +5570,37 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r19": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e27d55f6cc9660bcc0deaadbf931a01a",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "kgap/k_gap.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "34da6508fd6140306f5f35c56c4c3989f898d8d99f29eccef860a45e42b848db"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P2",
+    "claim": "A not-open-access error nested inside another article's record is incorrectly attributed to the requested article. The identity check reads the request and error subtree but ignores the enclosing record's ID, turning an inconsistent response into confirmed absence.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import fetch\nxml = '<OA><request id=\"PMC7\"/><records><record id=\"PMC8\"><error code=\"idIsNotOpenAccess\">Not open access</error></record></records></OA>'\nwith patch.object(fetch.http, 'get_text', return_value=xml), patch.object(fetch.time, 'sleep'):\n    result = fetch._pmc_oa_supplement_text('7', ['supp.csv'])\nprint(repr(result), fetch.LAST_SUPPLEMENT_STATE['7'])",
+    "expected": "Return an empty string with a FETCH_FAILED:SUPPLEMENT state: the error concerns PMC8 and does not establish absence for PMC7.",
+    "actual": "Returns an empty string and records NO_OA_PACKAGE for PMC7, without warning.",
+    "id": "fetch-loud-r19:g1#1",
+    "record_id": "mc-e27d55f6cc9660bcc0deaadbf931a01a",
+    "verdict": null
+   }
+  ]
  }
 }
