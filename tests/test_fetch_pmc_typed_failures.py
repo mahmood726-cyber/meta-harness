@@ -78,3 +78,18 @@ def test_PLANT_a_failed_supplement_beside_a_held_body_is_a_failure_of_the_run(mo
     assert fetch._pmc_fulltext("888", with_supplements=True) == "Body text."
     assert fetch.LAST_PMC_STATE["888"].startswith("HELD_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT")
     assert fetch.run_failed("888")
+
+
+def test_PLANT_a_supplement_failure_survives_an_empty_body_and_strict_raises_on_it(monkeypatch):
+    """codex fetch-loud-r2: #1 EMPTY_BODY overwrote the supplement failure; #2 strict=True did not raise on it."""
+    monkeypatch.setattr(fetch, "_resolve_pmcid", lambda pmid: "43")
+    monkeypatch.setattr(fetch.http, "get_text", lambda url, *a, **k: "<article/>" if "efetch" in url else (_ for _ in ()).throw(TimeoutError("timed out")))
+    monkeypatch.setattr(fetch._ft, "parse_pmc_xml", lambda xml: {"supplements": ["s1.xlsx"]})
+    monkeypatch.setattr(fetch._ft, "combined_text", lambda parsed: "")
+    assert fetch._pmc_fulltext("889", with_supplements=True) == ""
+    assert fetch.LAST_PMC_STATE["889"].startswith("EMPTY_BODY_WITH_SUPPLEMENT_FAILURE:") and fetch.run_failed("889")
+    monkeypatch.setattr(fetch._ft, "combined_text", lambda parsed: "Body.")
+    with pytest.raises(fetch.PmcFetchError) as e:
+        fetch._pmc_fulltext("890", with_supplements=True, strict=True)
+    assert e.value.stage == "SUPPLEMENT"
+    assert fetch.LAST_PMC_STATE["890"].startswith("HELD_WITH_SUPPLEMENT_FAILURE:")

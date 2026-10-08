@@ -215,7 +215,7 @@ class PmcFetchError(RuntimeError):
 def run_failed(pmid: str) -> bool:
     """Did the last full-text fetch for this PMID FAIL anywhere (body or a requested supplement)?"""
     st = str(LAST_PMC_STATE.get(pmid) or "")
-    return st.startswith("FETCH_FAILED") or st.startswith("HELD_WITH_SUPPLEMENT_FAILURE")
+    return st.startswith("FETCH_FAILED") or "_WITH_SUPPLEMENT_FAILURE:" in st
 
 
 def _failed(stage: str, exc: BaseException) -> str:
@@ -260,11 +260,15 @@ def _pmc_fulltext(pmid: str, with_supplements: bool = False, strict: bool = Fals
                 text = (text + "\n\n=== SUPPLEMENTARY FILES ===\n" + sup).strip()
             st = LAST_SUPPLEMENT_STATE.get(pmcid) or ""
             sup_failed = st if st.startswith("FETCH_FAILED") else None
-        LAST_PMC_STATE[pmid] = ("EMPTY_BODY" if not text.strip() else
-                                # a requested supplement that FAILED beside a held body is a failure of the run (codex
-                                # fetch-loud #1); the body is still returned
-                                f"HELD_WITH_SUPPLEMENT_FAILURE:{sup_failed}" if sup_failed else "HELD")
+        base = "HELD" if text.strip() else "EMPTY_BODY"
+        # a requested supplement that FAILED is a failure of the run whatever the body did (codex fetch-loud #1, r2 #1);
+        # the body is still returned, and strict=True raises on it like any other failure (r2 #2)
+        LAST_PMC_STATE[pmid] = f"{base}_WITH_SUPPLEMENT_FAILURE:{sup_failed}" if sup_failed else base
+        if sup_failed and strict:
+            raise PmcFetchError(pmid, "SUPPLEMENT", RuntimeError(sup_failed))
         return text
+    except PmcFetchError:
+        raise                               # already typed and recorded (a strict supplement failure)
     except Exception as exc:  # noqa: BLE001 - the pipeline falls back to the abstract, but the failure is TYPED and LOUD
         LAST_PMC_STATE[pmid] = _failed(stage, exc)
         _warn(f"PMID {pmid}", LAST_PMC_STATE[pmid])
