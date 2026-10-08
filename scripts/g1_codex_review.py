@@ -81,7 +81,7 @@ def main(argv):
             ms.write_record(rec, REC_DIR)
             return gname, {"record_id": rec["record_id"], "state": rec["state"], "base": base,
                            "head": _git("rev-parse", "HEAD").strip(), "prompt_sha256": hashlib.sha256(p).hexdigest()}
-        with cf.ThreadPoolExecutor(max_workers=3) as ex:
+        with cf.ThreadPoolExecutor(max_workers=int(os.environ.get("G1_CODEX_CONCURRENCY", "5"))) as ex:
             for gname, r in ex.map(one, list(GROUPS)):
                 data["runs"][gname] = r
                 print(gname, r["state"], r["record_id"], flush=True)

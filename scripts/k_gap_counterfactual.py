@@ -215,7 +215,10 @@ def build(slug, extra_records=None, extra_fulltext=None, extra_ctgov=None):
     from harness.pipeline import build_review_core
     from harness.registration import protocol_sha
     config = _j(os.path.join(ROOT, "topics", slug + ".json"))
-    records = _j(os.path.join(ROOT, "cache", slug, "records.json"))
+    from harness import fetch as _fetch
+    # the same records the served build reads: records.json + a signed comparator's comparator_records.json overlay
+    records = _fetch._with_comparator_records(_j(os.path.join(ROOT, "cache", slug, "records.json")), config,
+                                              os.path.join(ROOT, "cache", slug))
     records = copy.deepcopy(records)
     if extra_records:
         have = {r.get("id") for r in records["records"]}

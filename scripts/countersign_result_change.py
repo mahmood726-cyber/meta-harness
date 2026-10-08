@@ -87,8 +87,9 @@ def sign(args):
     if args.batch:
         sig["batch_id"] = args.batch
     n["reviewer_countersignature"] = sig
-    json.dump(data, open(PATH, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
-    open(PATH, "a", encoding="utf-8").write("\n")
+    with open(PATH, "w", encoding="utf-8", newline="\n") as fh:     # LF on every OS (7 Oct: CRLF on Windows)
+        json.dump(data, fh, indent=1, ensure_ascii=False)
+        fh.write("\n")
     print(f"signed {n['slug']} / {n['outcome']}: {sig['state']} by {sig['by']} on {sig['when_utc']} over sha256 {sha[:12]}")
 
 

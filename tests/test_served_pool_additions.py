@@ -171,13 +171,17 @@ def test_committed_rows_are_carried_forward_when_the_tracker_shows_them_in_our_p
     assert sorted(a["slug"] for a in adds) == sorted(a["slug"] for a in reg)
 
 
-def test_a_held_signed_notice_is_shown_not_applied_and_never_admitted():
-    # V6-01 (TECOS) is held: applying it would also withdraw the served HHF estimate (HARMS_INCOMPLETE), a second served
-    # change the signer has not seen. The census marks it held; the page shows NOT APPLIED outside the signed block.
-    from harness import census, page
-    items = census._result_change_notices(ROOT, "dpp4-mace-t2d")
-    held = [n for n in items if n.get("entered_pool") == ["PMID 26052984"]]
-    assert held and held[0]["held"]["code"] == "SIGNED_CHANGE_HAS_AN_UNSHOWN_CONSEQUENCE"
-    assert page.result_changes_status(held[0])["state"] == "HELD"
-    reg = json.load(open(spa.REGISTER, encoding="utf-8"))
-    assert not any(a["slug"] == "dpp4-mace-t2d" for a in reg["additions"])
+def test_a_held_signed_notice_is_never_admitted_until_its_signer_lifts_it():
+    # V6-01 (TECOS) was held 6 Oct (an unshown HHF consequence) and lifted by Mahmood 7 Oct ('lift v6-01 and agree').
+    # The requirement, exercised with the real notice: while a hold applies the notice is excluded WHOLE; a signer's
+    # lift (by + verbatim quote) admits it at its signed numbers.
+    import build_served_pool_additions as b
+    hold = {"slug": "dpp4-mace-t2d", "id": "PMID 26052984", "code": "SIGNED_CHANGE_HAS_AN_UNSHOWN_CONSEQUENCE"}
+    adds, exc = b.build(holds=[hold])
+    assert not any(a["slug"] == "dpp4-mace-t2d" for a in adds)
+    assert any("dpp4-mace-t2d" in e["notice"] and "held" in e["why"] for e in exc)
+    lifted = dict(hold, final={"state": "LIFTED_BY_SIGNER", "by": "Mahmood", "quote": "lift v6-01 and agree"})
+    adds, _ = b.build(holds=[lifted])
+    row = next(a for a in adds if a["slug"] == "dpp4-mace-t2d")
+    assert row["after"] == {"k": 4, "estimate": 1.0007, "ci_low": 0.8998, "ci_high": 1.1129}
+

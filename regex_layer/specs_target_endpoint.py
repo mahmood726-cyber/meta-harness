@@ -163,4 +163,26 @@ SITE_SPECS: dict = {
         "plants": {"accept": [("Death fell. Stroke rose.", ["Death fell.", "Stroke rose."]),
                               ("Was it lower? Yes!  No.", ["Was it lower?", "Yes!", "No."])],
                    "refuse": ["HR 0.80 (95% CI 0.70-0.90)", "rate 0.87 per 100"]}},
+    # ---- the HHF VERB form (V8 groundwork, 6 Oct; SAVOR-TIMI 53 'were hospitalized for heart failure') ---------------
+    "target_endpoint.py:search:dd5374fdc1": {
+        "kind": "search", "what": "_components_from_text: HHF named in the verb form 'hospitalized for heart failure'",
+        "plants": {"accept": [("were hospitalized for heart failure", None), ("hospitalised due to worsening hf", None),
+                              ("hospitalized because of acute heart failure", None)],
+                   "refuse": ["patients hospitalized with heart failure", "heart failure was common",
+                              "hospitalized for pneumonia"]}},
+    "target_endpoint.py:search:87b0688b0c": {
+        "kind": "search", "what": "_components_from_text: the HHF verb form is PREDICATIVE (an event happened), not a description",
+        "plants": {"accept": [("more patients were hospitalized", None), ("was rehospitalized", None),
+                              ("had been hospitalized", None)],
+                   "refuse": ["patients hospitalized for heart failure", "hospitalization rates"]}},
+    "target_endpoint.py:search:a76d57a8e4": {
+        "kind": "search", "what": "_components_from_text: the HHF verb form is STATED WITH A RESULT (an effect, a % or vs)",
+        "plants": {"accept": [("hazard ratio, 1.27", None), ("3.5% vs. 2.8%", None), ("hr 0.65", None),
+                              ("placebo versus drug", None)],
+                   "refuse": ["patients hospitalized for heart failure", "the trial enrolled adults"]}},
+    "target_endpoint.py:search:8292d00421": {
+        "kind": "search", "what": "_components_from_text: an eligibility / enrolment sentence is never the HHF event (codex g1#1)",
+        "plants": {"accept": [("were eligible", None), ("enrolled patients", None), ("inclusion criteria", None),
+                              ("recruited from 30 sites", None)],
+                   "refuse": ["were hospitalized for heart failure", "hazard ratio 1.27"]}},
 }

@@ -1373,6 +1373,18 @@ def enumeration_units(slug: str, agents: list[str], comparator_pmid: str | None 
     held = held_norm(src)
     if not all(held_norm(None, line) in held for u in e.get("units") or [] for line in u["span"].split(" / ")):
         return []                                  # a span not in its held source refuses the whole enumeration
+    raw_held = open(src, encoding="utf-8", errors="replace").read()
+    for u in e.get("units") or []:
+        # identity re-checked, never trusted (codex review merge-08315be6e:g2#4): CONFIRMED only, and a PMID the held
+        # source itself prints for that reference number must be the unit's PMID
+        # typed identities only: CONFIRMED (reference -> PMID by exact title + first author + year) or
+        # COMPARATOR_REFERENCE_LIST_PMID, which counts only when that PMID is PRINTED in the held source itself
+        if not u.get("pmid") or u.get("identity") not in ("CONFIRMED", "COMPARATOR_REFERENCE_LIST_PMID") or                 (u.get("identity") == "COMPARATOR_REFERENCE_LIST_PMID" and str(u["pmid"]) not in raw_held):
+            return []
+        m_ = re.search(r"(?:Reference|Ref\.?|\[)\s*" + re.escape(str(u["ref"])) + r"\b[^\n]{0,400}?PMID:?\s*(\d{7,8})",
+                       raw_held, re.I)
+        if m_ and m_.group(1) != str(u["pmid"]):
+            return []
     agent_re = re.compile("|".join(re.escape(a) for a in agents), re.I) if agents else None
     out = []
     for u in e.get("units") or []:
@@ -1386,6 +1398,7 @@ def enumeration_units(slug: str, agents: list[str], comparator_pmid: str | None 
                     "agent_hit": bool(agent_re and agent_re.search(u["span"])), "drug_match": "DRUG_MATCH",
                     "design_stated": None, "ref": u["ref"], "source_sha256": e["source"]["sha256"],
                     "enumeration": {"scope": u["scope"], "rule_id": u.get("rule_id"), "span": u["span"],
+                                    "arms": u.get("arms"),
                                     "ref": u["ref"], "source": e["source"]["path"], "sha256": e["source"]["sha256"],
                                     "enumerated_from": e.get("enumerated_from")}})
     return out

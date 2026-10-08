@@ -1,0 +1,88 @@
+{
+ "slug": "corticosteroids-covid19-mortality",
+ "purpose": "PRE-REGISTERED selection rule for a replacement comparator meta (Mahmood 6 Oct: 'solve it through comparator swaps'). Committed BEFORE any candidate search; candidates are judged per criterion from their own text, and the pick follows from R0, the criteria and the tie-breaks alone. How our pool compares with any candidate is NOT an input.",
+ "protocol_reference": {
+  "file": "topics/corticosteroids-covid19-mortality.json",
+  "question": "In hospitalised adults with COVID-19, do systemic corticosteroids reduce 28-day all-cause mortality versus usual care or placebo?",
+  "eligibility": "RCT; hospitalised/severe COVID-19 by title or registry conditions; systemic corticosteroid vs usual care, standard care, no hydrocortisone, or placebo; P/I/C/design only.",
+  "intervention_terms": [
+   "dexamethasone",
+   "hydrocortisone",
+   "methylprednisolone",
+   "methylprednisolone pulse",
+   "prednisone",
+   "prednisolone",
+   "corticosteroid",
+   "corticosteroids",
+   "glucocorticoid",
+   "glucocorticoids",
+   "steroid",
+   "steroids"
+  ],
+  "comparator_terms": [
+   "placebo",
+   "usual care",
+   "standard care",
+   "standard therapy",
+   "standard treatment",
+   "no hydrocortisone"
+  ],
+  "primary_outcome": "28-day all-cause mortality",
+  "estimand": "OR",
+  "timepoint": "28 days",
+  "analysis_population": "intention-to-treat",
+  "current_comparator": "32876694"
+ },
+ "R0_current_comparator": {
+  "comparator_pmid": "32876694",
+  "test": "the current comparator is assessed against C1-C6 by the same procedure as every candidate. It is RETIRED only if it fails at least one criterion (reason = that criterion, span = its evidence); if it passes all six it is KEPT and the topic is NO_SWAP (the block is acquisition, not the comparator).",
+  "excluded_from_candidates_when_retired": true
+ },
+ "criteria": [
+  {
+   "id": "C1_OPEN_LICENCE",
+   "pass_if": "the meta's full text is held under CC BY or CC0 (Europe PMC licence field, else the Unpaywall location licence); any other licence, or free-to-read without a licence, fails (lane licence rule)"
+  },
+  {
+   "id": "C2_RCT_ONLY",
+   "pass_if": "the analysis pools randomised controlled trials only (its own eligibility / methods statement)"
+  },
+  {
+   "id": "C3_POPULATION",
+   "pass_if": "the pooled analysis is in the protocol's population: In hospitalised adults with COVID-19, do systemic corticosteroids reduce 28-day all-cause mortality versus usual care or placebo? (eligibility: RCT; hospitalised/severe COVID-19 by title or registry conditions; systemic corticosteroid vs usual care, standard care, no hydrocortisone, or placebo; P/I/C/design only.)"
+  },
+  {
+   "id": "C4_INTERVENTION_VS_COMPARATOR",
+   "pass_if": "the pooled comparison is dexamethasone / hydrocortisone / methylprednisolone / methylprednisolone pulse / prednisone / prednisolone versus placebo / usual care / standard care / standard therapy / standard treatment / no hydrocortisone"
+  },
+  {
+   "id": "C5_OUTCOME_AND_ESTIMAND",
+   "pass_if": "it pools 28-day all-cause mortality (protocol timepoint: 28 days) on the estimand family ratio (HR, RR or OR)"
+  },
+  {
+   "id": "C6_ROWS_AND_POOLED",
+   "pass_if": "it prints per-trial rows for that outcome (a table, or a forest plot with counts or effects, in the article or its own open supplement) AND a pooled result for it"
+  }
+ ],
+ "tie_breaks": [
+  {
+   "id": "T1_ESTIMAND_MATCH",
+   "order": "descending",
+   "score": "1 = OR; 0 = another ratio"
+  },
+  {
+   "id": "T2_MOST_RECENT",
+   "order": "descending",
+   "score": "publication year, then month"
+  },
+  {
+   "id": "T3_LARGEST_K",
+   "order": "descending",
+   "score": "number of trials in the pooled analysis of the protocol outcome"
+  }
+ ],
+ "if_none_pass": "NO_ACHIEVABLE_COMPARATOR: record the closest candidate and its single failing criterion; the topic keeps its current comparator; no criterion is relaxed after the search",
+ "selector": "scripts/g1_comparator_select.py (deterministic; reads this rule and the typed candidates file)",
+ "candidates_file": "registry/comparator_selection/corticosteroids-covid19-mortality.candidates.json",
+ "process": "scripts/g1_swap.py (rules -> search -> screen -> select); enumeration and acquisition follow the pick"
+}

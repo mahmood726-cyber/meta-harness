@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -267,9 +268,45 @@ def trial_totals(recs: dict[str, dict]) -> dict:
             "comparator_n": sum(n(r.get("N_comparator_trials")) for r in recs.values())}
 
 
-def matched_topics(recs: dict[str, dict]) -> list[str]:
-    return [s for s, r in recs.items()
-            if recompute(r)["matched"] and (r.get("g1_status") or {}).get("state") == "G1_MATCHED"]
+ABANDONED = Path("registry") / "g1_abandoned.json"
+ABANDON_RULE_SHA = "c3ee2f6224b62b0aa50312ace3ae1e634332efeb8e59684176aefce7fed28f1d"
+# THE DECISION ITSELF, pinned here: the ten Mahmood approved and his words (7 Oct, 'abandon ten'). The register must equal
+# this exactly -- the rule hash is public, so it alone never establishes approval (codex abandon-ten g1#1, reproduced).
+ABANDON_APPROVED = ("balanced-crystalloids-vs-saline-mortality", "ticagrelor-vs-clopidogrel-acs", "metformin-pcos-ovulation",
+                    "colchicine-secondary-cv-prevention", "probiotics-aad-prevention", "colchicine-postop-af",
+                    "pcsk9-mace", "corticosteroids-cap-mortality", "tocilizumab-covid19-mortality",
+                    "omega3-cardiovascular-events")
+ABANDON_WORDS = "abandon ten"
+
+
+def abandoned(root: Path = ROOT) -> dict[str, dict]:
+    """{slug: entry} of the topics ABANDONED_BY_DECISION (G1-ABANDON-v1; Mahmood 7 Oct, 'abandon ten'), from
+    registry/g1_abandoned.json (scripts/g1_abandon_apply.py). {} when no register is committed. A register naming any
+    other rule, or an entry in any other state, refuses: the page never counts against an unapproved list."""
+    p = root / ABANDONED
+    if not os.path.lexists(p):    # lexists: a dangling link is a broken register, not an absent one (codex r6 g1#2)
+        return {}
+    if not p.is_file():          # a path that exists but is not a file is a broken register, never 'none' (codex r4 g1#2)
+        raise ValueError(f"ABANDONED: {p} exists but is not a file")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    if d.get("rule_sha256") != ABANDON_RULE_SHA:
+        raise ValueError(f"ABANDONED: {p} names rule sha256 {str(d.get('rule_sha256'))[:12]}, not G1-ABANDON-v1")
+    out = {}
+    for t in d.get("topics") or []:
+        if t.get("state") != "ABANDONED_BY_DECISION" or (t.get("decision") or {}).get("words") != ABANDON_WORDS:
+            raise ValueError(f"ABANDONED: {t.get('slug')} is not ABANDONED_BY_DECISION with the decision's words")
+        out[t["slug"]] = dict(t, _register=d)
+    if sorted(out) != sorted(ABANDON_APPROVED) or len(d.get("topics") or []) != len(ABANDON_APPROVED):
+        raise ValueError(f"ABANDONED: the register is not exactly the approved ten (extra "
+                         f"{sorted(set(out) - set(ABANDON_APPROVED))}, missing {sorted(set(ABANDON_APPROVED) - set(out))})")
+    return out
+
+
+def matched_topics(recs: dict[str, dict], root: Path = ROOT) -> list[str]:
+    """Strictly matched topics. An ABANDONED_BY_DECISION topic never counts, whatever its tracker says."""
+    gone = abandoned(root)
+    return [s for s, r in recs.items() if s not in gone
+            and recompute(r)["matched"] and (r.get("g1_status") or {}).get("state") == "G1_MATCHED"]
 
 
 def k_matched(rec: dict) -> dict | None:
@@ -286,8 +323,9 @@ def k_matched(rec: dict) -> dict | None:
             "uncovered": [x["trial"].get("label") for x in elig if not x["covered"]]}
 
 
-def k_matched_topics(recs: dict[str, dict]) -> list[str]:
-    return [s for s, rec in recs.items() if (k_matched(rec) or {}).get("matched")]
+def k_matched_topics(recs: dict[str, dict], root: Path = ROOT) -> list[str]:
+    gone = abandoned(root)
+    return [s for s, rec in recs.items() if s not in gone and (k_matched(rec) or {}).get("matched")]
 
 
 def render(root: Path = ROOT) -> str:
@@ -296,12 +334,23 @@ def render(root: Path = ROOT) -> str:
     source = json.loads(src.read_text(encoding="utf-8")) if src.is_file() else {}
     summ = {s: recompute(r) for s, r in recs.items()}
     lane = {s: (r.get("g1_status") or {}).get("state") for s, r in recs.items()}
-    both = matched_topics(recs)
-    head = f"<p><strong>G1 MATCHED: {len(both)} of {len(recs)} topics</strong>"
-    if both:
-        head += " (" + ", ".join(_e(s) for s in both) + ")"
+    both = matched_topics(recs, root)
+    gone = {s: g for s, g in abandoned(root).items() if s in recs}
+    active = [s for s in recs if s not in gone]
+    # BOTH LINES (G1-ABANDON-v1, Mahmood 7 Oct): n of the active topics AND n of all topics. The all-topics line is
+    # never conditional -- abandonment narrows what is being attempted, it never shrinks the denominator out of sight.
+    if gone:
+        head = (f"<p><strong>G1 MATCHED: {len(both)} of {len(active)} active topics ({len(gone)} abandoned by decision, "
+                f"listed <a href='#abandoned'>below</a>)</strong>")
+        if both:
+            head += " (" + ", ".join(_e(s) for s in both) + ")"
+        head += f".</p><p class='hl'><strong>G1 MATCHED: {len(both)} of {len(recs)} all topics</strong>"
+    else:
+        head = f"<p><strong>G1 MATCHED: {len(both)} of {len(recs)} all topics</strong>"
+        if both:
+            head += " (" + ", ".join(_e(s) for s in both) + ")"
     # K MATCHED beside the strict count, never replacing it (Mahmood 5 Oct): k-wise only, comparator rows labelled
-    km = k_matched_topics(recs)
+    km = k_matched_topics(recs, root)
     km_lab = [f"{_e(s)} {k_matched(recs[s])['eligible']} of comparator N {_e(recs[s].get('N_comparator_trials'))}"
               + (f" [{k_matched(recs[s])['comparator_sourced']} comparator-sourced]"
                  if k_matched(recs[s])["comparator_sourced"] else "") for s in km]
@@ -378,6 +427,8 @@ def render(root: Path = ROOT) -> str:
         else:
             same = _e(st.get("state") or "not pooled")
         mine = "MATCHED" if r["matched"] else "NOT YET (" + ", ".join(c for c in CRITERIA if not r["criteria"][c]) + ")"
+        if s in gone:
+            mine = "ABANDONED_BY_DECISION (never counted; " + mine + ")"
         flag = "" if r["matched"] == (lane[s] == "G1_MATCHED") else " <span class='no'>(lane status disagrees)</span>"
         cls = "focus" if s in G1_FOCUS else ""
         ok = "ok" if s in both else "no"
@@ -410,6 +461,22 @@ def render(root: Path = ROOT) -> str:
             parts.append(f"<li><a href='#{_e(s)}'>{_e(s)}</a>: served comparator PMID {_e(sw['from'])}; the tracker is "
                          f"matched against PMID {_e(sw['to'])} (pre-registered replacement), which counts once Mahmood "
                          f"signs the switch (packet V8)</li>")
+        parts.append("</ul>")
+    if gone:
+        reg = next(iter(gone.values()))["_register"]
+        dc = reg.get("decision") or {}
+        parts.append(f"<h2 id='abandoned'>Abandoned by decision ({len(gone)} of {len(recs)} topics; still on this page, "
+                     f"never counted as matched)</h2><p class='muted'>{_e(dc.get('by'))}, {_e(dc.get('date'))}, verbatim: "
+                     f"&ldquo;{_e(dc.get('words'))}&rdquo; ({_e(dc.get('relayed'))}). Rule {_e(reg.get('rule_id'))} "
+                     f"(<code>{_e(reg.get('rule_path'))}</code>, sha256 <code>{_e(reg.get('rule_sha256'))}</code>, committed "
+                     f"at <code>{_e(str(reg.get('rule_commit'))[:8])}</code> before any score was computed): score "
+                     f"{_e(reg.get('score'))}; the ten highest are abandoned. Boundary: #10 "
+                     f"{_e(reg['boundary']['last_abandoned']['slug'])} U = {_e(reg['boundary']['last_abandoned']['U'])}, "
+                     f"#11 {_e(reg['boundary']['first_kept']['slug'])} U = {_e(reg['boundary']['first_kept']['U'])} (kept). "
+                     f"Nothing is deleted: pages, rows, findings and signed results stay served.</p><ul>")
+        for s, g in sorted(gone.items(), key=lambda kv: kv[1].get("rank") or 0):
+            parts.append(f"<li><a href='#{_e(s)}'>{_e(s)}</a>: {_e(g.get('reason'))}; closed: "
+                         f"{_e('; '.join(g.get('closed_trials') or []) or 'none')}</li>")
         parts.append("</ul>")
     dec_p = root / "registry" / "g1_decisions.json"
     decs = (json.loads(dec_p.read_text(encoding="utf-8")).get("decisions") or []) if dec_p.is_file() else []
@@ -506,7 +573,9 @@ def main(argv=None) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(want)
     recs = load()
-    print(f"wrote {OUT.as_posix()}: G1 MATCHED {len(matched_topics(recs))} of {len(recs)} topics")
+    _gone = abandoned()
+    print(f"wrote {OUT.as_posix()}: G1 MATCHED {len(matched_topics(recs))} of {len([s for s in recs if s not in _gone])} "
+          f"active topics; of {len(recs)} all topics")
     return 0
 
 

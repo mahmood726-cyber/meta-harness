@@ -705,12 +705,34 @@ def cache_path(slug: str) -> str:
     return os.path.join(ROOT, "cache", slug, "records.json")
 
 
+COMPARATOR_RECORDS = "comparator_records.json"
+_COMPARATOR_KEYS = ("comparator_pmid", "comparator_record", "comparator_oa", "comparator_fulltext")
+
+
+def _with_comparator_records(records: dict, config: dict, cache_dir: str) -> dict:
+    """records.json with the SIGNED replacement comparator's own records overlaid (cache/<slug>/comparator_records.json,
+    written by scripts/acquire_comparator_record.py, V8 7 Oct) -- only when that file names the configured comparator.
+    records.json, the search cache, is never rewritten for a comparator switch, so every digest of it stays valid; the
+    overlay file is pinned in the page certificate beside it. A file naming another comparator is not applied, and the
+    pipeline's comparator_records_problem then refuses a page whose held comparator records are not its comparator's."""
+    p = os.path.join(cache_dir, COMPARATOR_RECORDS)
+    if not os.path.exists(p) or not isinstance(records, dict):
+        return records
+    with open(p, encoding="utf-8") as f:
+        cr = json.load(f)
+    if str(cr.get("comparator_pmid") or "") != str(config.get("comparator_pmid") or ""):
+        return records
+    out = dict(records)
+    out.update({k: cr.get(k) for k in _COMPARATOR_KEYS})
+    return out
+
+
 def ensure(config: dict, now: str):
     """Fetch into the committed cache if absent; return the loaded records dict."""
     path = cache_path(config["slug"])
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            return _with_comparator_records(json.load(f), config, os.path.dirname(path))
     config = dict(config, _now=now)
     data = run(config)
     ledger = data.get("retrieval_ledger")

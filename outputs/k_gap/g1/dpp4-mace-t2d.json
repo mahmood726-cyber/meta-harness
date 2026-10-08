@@ -4,7 +4,7 @@
  "comparator_pmid": "31462224",
  "N_comparator_trials": 4,
  "k_matched": 4,
- "k_in_our_pool": 2,
+ "k_in_our_pool": 3,
  "N_eligible": 4,
  "named_differences": [],
  "open_gaps": [],
@@ -27,8 +27,27 @@
  "blockers": {},
  "top_blocker": null,
  "other_agent_units": [],
- "comparator_findings": [],
- "k_ours_total": 3,
+ "comparator_findings": [
+  {
+   "finding": "DECISION_EXCLUDED_FROM_SERVED_POOL",
+   "trial": "EXAMINE",
+   "decision": "D7-REEXPRESSED-CI-MATCHING-ONLY",
+   "gate": "D7-REEXPRESSED-CI-MATCHING-ONLY",
+   "detail": "in the comparator; verified for matching through the CI re-expressed from the FDA label's 98% to 95%; excluded from the served pool by D7",
+   "span": {
+    "text": "A confidence interval RE-EXPRESSED from another printed level (e.g. EXAMINE's FDA-label 98% CI 0.80-1.16 converted to 95% 0.8209-1.1227) is kept for MATCHING only (the G1 tracker may verify a trial with it) and NEVER enters a served pool: a served row's numbers must be printed verbatim in a held span. The served-pool register refuses such a row (build_served_pool_additions.pipeline_row: no verbatim span) and the notice generator excludes it as NOT_ADMISSIBLE_BY_REGISTER (g1_served_pool_notices.topic_notice; plant tests/test_served_pool_notice_admissible.py).",
+    "source": "registry/g1_decisions.json#D7-REEXPRESSED-CI-MATCHING-ONLY"
+   },
+   "signed": {
+    "item": "V9-01Q",
+    "by": "Mahmood",
+    "quote": "yes to all",
+    "when_utc": "2026-10-07T21:00:00Z",
+    "packet_sha256": "05d2db93987a0360b02bf178393650aa5777bf0720592d6d88f463c3ddf45b03"
+   }
+  }
+ ],
+ "k_ours_total": 4,
  "routes": {
   "PRIMARY": 4
  },
@@ -85,6 +104,7 @@
     "scope": "IN_SCOPE",
     "rule_id": null,
     "span": "SAVOR-TIMI 53 [ 26 ] 2013 NCT01107886 Saxagliptin vs. placebo",
+    "arms": null,
     "ref": null,
     "source": "cache/comparators/31462224/2026-09-28_kgap_jats.xml",
     "sha256": "a2d4fb780f112e7af84cfb0418a45a33bfac0c5e91d20d46275f2ab4bc4aacdc",
@@ -225,6 +245,7 @@
     "scope": "IN_SCOPE",
     "rule_id": null,
     "span": "EXAMINE [ 25 ] 2013 NCT00968708 Alogliptin vs. placebo",
+    "arms": null,
     "ref": null,
     "source": "cache/comparators/31462224/2026-09-28_kgap_jats.xml",
     "sha256": "a2d4fb780f112e7af84cfb0418a45a33bfac0c5e91d20d46275f2ab4bc4aacdc",
@@ -256,12 +277,12 @@
   {
    "label": "TECOS",
    "family": "PMID 26052984",
-   "in_our_pool": false,
+   "in_our_pool": true,
    "route": "PRIMARY",
-   "basis": "single PRIMARY source (2 Oct decision): AACT AACT AACT 2026-08-30 NCT00790205 outcome 258888999; model-read (record mc-157eeafcc07b39c4cae52b6d0d4ea7c7), gate-verified (g1/finish-line scripts/g1_trial_acquire.py)",
-   "our_refusal": "declared absent (estimand mismatch): TECOS's abstract reports its primary as a FOUR-point composite (cardiovascular death, nonfatal myocardial infarction, nonfatal stroke, OR hospitalization for unstable angina), HR 0.98 (0.88-1.09). Our ou",
-   "gap_class": "MEASURE_MISMATCH",
-   "absent_code": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
+   "basis": "our held-source pool PMID 26052984 (served_pool_signed_notice)",
+   "our_refusal": null,
+   "gap_class": "POOLED",
+   "absent_code": null,
    "comparator_row": {
     "effect": "0.99",
     "lower": "0.89",
@@ -295,138 +316,7 @@
     "events_c": null,
     "n_c": null
    },
-   "registry_binding": {
-    "state": "BINDABLE",
-    "candidates": [
-     {
-      "nct": "NCT00790205",
-      "outcome_id": "258888996",
-      "title": "Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population)",
-      "time_frame": "Up to 5 years",
-      "arms": [],
-      "analysis": {
-       "outcome_id": "258888996",
-       "param_type": "Hazard Ratio (HR)",
-       "param_value": "0.98",
-       "ci_lower": "0.88",
-       "ci_upper": "1.09",
-       "analysis_id": "129099285",
-       "groups": [
-        "839356413",
-        "839356414"
-       ],
-       "groups_description": ""
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": "ESTIMAND",
-      "verdict": "REFUSED",
-      "reason": "analysis set: the registry outcome is per-protocol ('Percentage of Participants With First Confirmed Cardiovascular (CV) Event of Major Adverse Cardiovascular Event (MACE) Plus (Per Protocol Population)'); the protocol's population is 'intention-to-treat'",
-      "named_by": [
-       "major adverse cardiovascular event",
-       "MACE"
-      ]
-     },
-     {
-      "nct": "NCT00790205",
-      "outcome_id": "258888997",
-      "title": "Percentage of Participants With First Confirmed CV Event of Major Adverse Cardiovascular Event (MACE) Plus (Intent to Treat Population)",
-      "time_frame": "Up to 5 years",
-      "arms": [],
-      "analysis": {
-       "outcome_id": "258888997",
-       "param_type": "Hazard Ratio (HR)",
-       "param_value": "0.98",
-       "ci_lower": "0.89",
-       "ci_upper": "1.08",
-       "analysis_id": "129099286",
-       "groups": [
-        "839356415",
-        "839356416"
-       ],
-       "groups_description": ""
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": "ESTIMAND",
-      "verdict": "REFUSED",
-      "reason": "extended composite: the registry outcome 'Percentage of Participants With First Confirmed CV Event of Major Adverse Cardiovascular Event (MACE) Plus (Intent to Treat Population)' extends the protocol's '3-point major adverse cardiovascular events'",
-      "named_by": [
-       "major adverse cardiovascular event",
-       "MACE"
-      ]
-     },
-     {
-      "nct": "NCT00790205",
-      "outcome_id": "258888998",
-      "title": "Percentage of Participants With First Confirmed CV Event of MACE (Per Protocol Population)",
-      "time_frame": "Up to 5 years",
-      "arms": [],
-      "analysis": {
-       "outcome_id": "258888998",
-       "param_type": "Hazard Ratio (HR)",
-       "param_value": "0.99",
-       "ci_lower": "0.89",
-       "ci_upper": "1.11",
-       "analysis_id": "129099287",
-       "groups": [
-        "839356417",
-        "839356418"
-       ],
-       "groups_description": ""
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": "ESTIMAND",
-      "verdict": "REFUSED",
-      "reason": "analysis set: the registry outcome is per-protocol ('Percentage of Participants With First Confirmed CV Event of MACE (Per Protocol Population)'); the protocol's population is 'intention-to-treat'",
-      "named_by": [
-       "MACE"
-      ]
-     },
-     {
-      "nct": "NCT00790205",
-      "outcome_id": "258888999",
-      "title": "Percentage of Participants With First Confirmed CV Event of MACE (Intent to Treat Population)",
-      "time_frame": "Up to 5 years",
-      "arms": [],
-      "analysis": {
-       "outcome_id": "258888999",
-       "param_type": "Hazard Ratio (HR)",
-       "param_value": "0.99",
-       "ci_lower": "0.89",
-       "ci_upper": "1.1",
-       "analysis_id": "129099288",
-       "groups": [
-        "839356419",
-        "839356420"
-       ],
-       "groups_description": ""
-      },
-      "snapshot": {
-       "id": "AACT 2026-08-30",
-       "digest": "0c1ca79b89dc92018d4ae698ae5694b1b844f9fb8ec4f1b7b2171ea461b18e1a",
-       "rules": 3
-      },
-      "gate": null,
-      "verdict": "BINDABLE",
-      "reason": null,
-      "named_by": [
-       "MACE"
-      ],
-      "basis": "POSTED_EFFECT_ON_PROTOCOL_ESTIMAND"
-     }
-    ]
-   },
+   "registry_binding": null,
    "g1_countable": true,
    "secondary_single": null,
    "agreement_with_comparator_row": "AGREE",
@@ -436,6 +326,7 @@
     "scope": "IN_SCOPE",
     "rule_id": null,
     "span": "TECOS [ 23 ] 2015 NCT00790205 Sitagliptin vs. placebo",
+    "arms": null,
     "ref": null,
     "source": "cache/comparators/31462224/2026-09-28_kgap_jats.xml",
     "sha256": "a2d4fb780f112e7af84cfb0418a45a33bfac0c5e91d20d46275f2ab4bc4aacdc",
@@ -446,22 +337,10 @@
    },
    "screen_eligibility": {
     "state": "ELIGIBLE",
-    "basis": "OUR_SCREEN_INCLUDE",
-    "pmid": "26052984",
-    "rule_id": "INCLUDE"
+    "basis": "POOLED"
    },
    "scope_difference": null,
    "blocker": null,
-   "matched_by": "ACQUIRED_PRIMARY",
-   "acquired": {
-    "kind": "AACT",
-    "source": "AACT AACT 2026-08-30 NCT00790205 outcome 258888999",
-    "span": "Percentage of Participants With First Confirmed CV Event of MACE (Intent to Treat Population) [Up to 5 years]: Hazard Ratio (HR) 0.99 (0.89, 1.1)",
-    "quote": "\"outcome_id\": \"258888999\",\n\"type\": \"SECONDARY\",\n\"title\": \"Percentage of Participants With First Confirmed CV Event of MACE (Intent to Treat Population)\",\n\"time_frame\": \"Up to 5 years\",\n\"detail\": {\n\"description\": \"CV composite endpoint of MACE which includes CV-related death, nonfatal MI, or nonfatal stroke.\",\n\"population\": \"Intent to treat population included all randomized participants who received study medication, provided consent, and did not have a major GCP deviation.\",\n\"units\": \"Percentage of participants\",\n\"units_analyzed\": \"\",\n\"param_type\": \"NUMBER\"\n},\n\"analysis_detail\": [\n{\n\"ci_n_sides\": \"TWO_SIDED\",\n\"ci_percent\": \"95.0\",\n\"method\": \"Cox proportional hazards model\",\n\"estimate_description\": \"\",\n\"groups_description\": \"\",\n\"param_type\": \"Hazard Ratio (HR)\",\n\"param_value\": \"0.99\",\n\"ci_lower_limit\": \"0.89\",\n\"ci_upper_limit\": \"1.1\"\n}",
-    "record_id": "mc-157eeafcc07b39c4cae52b6d0d4ea7c7",
-    "promoted_from": null,
-    "found_by": "identity"
-   },
    "coverage": "INDEPENDENT"
   },
   {
@@ -469,7 +348,7 @@
    "family": "PMID 30418475",
    "in_our_pool": true,
    "route": "PRIMARY",
-   "basis": "our held-source pool PMID 30418475 (fulltext_verified)",
+   "basis": "our held-source pool PMID 30418475 (abstract)",
    "our_refusal": null,
    "gap_class": "POOLED",
    "absent_code": null,
@@ -516,6 +395,7 @@
     "scope": "IN_SCOPE",
     "rule_id": null,
     "span": "CARMELINA [ 16 ] 2018 NCT01897532 Linagliptin vs. placebo",
+    "arms": null,
     "ref": null,
     "source": "cache/comparators/31462224/2026-09-28_kgap_jats.xml",
     "sha256": "a2d4fb780f112e7af84cfb0418a45a33bfac0c5e91d20d46275f2ab4bc4aacdc",
@@ -564,10 +444,10 @@
   "comparator_rows": "TYPED_COMPARATOR_ROW"
  },
  "ours": {
-  "k": 3,
-  "estimate": 1.0074,
-  "ci_low": 0.8391,
-  "ci_high": 1.2094,
+  "k": 4,
+  "estimate": 1.0007,
+  "ci_low": 0.8998,
+  "ci_high": 1.1129,
   "scale": "HR"
  },
  "comparator": {
@@ -586,7 +466,7 @@
   {
    "id": "PMID 28893244",
    "year": 2017,
-   "comparator_year": 2021,
+   "comparator_year": 2019,
    "why_not_in_comparator": "NOT_EXPLAINED_BY_DATE"
   }
  ],

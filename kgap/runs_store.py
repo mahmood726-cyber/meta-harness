@@ -6,6 +6,7 @@ registry/secondary_meta/runs/<topic>.json, where <topic> is the slug the key bel
 
     "<slug>::<meta_pmid>"            a forest-figure read            -> runs/<slug>.json
     "locate::<slug>::<trial_pmid>"   a primary-value locator call    -> runs/<slug>.json
+    "audit::<slug>::<trial label>"   an independent audit re-read    -> runs/<slug>.json
     anything else                    -> runs/_other.json
 
     load()                 every topic's runs merged into one dict (what the build has always taken)
@@ -25,7 +26,7 @@ _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 def topic_of(key: str) -> str:
     parts = str(key).split("::")
-    slug = parts[1] if parts[0] == "locate" and len(parts) > 2 else parts[0]
+    slug = parts[1] if parts[0] in ("locate", "audit", "swapscreen", "swapscreenA", "swapenum") and len(parts) > 2 else parts[0]
     return slug if (_SLUG.match(slug) and len(parts) > 1) else "_other"
 
 

@@ -2,7 +2,7 @@
 
 G1 MATCHED = every eligible comparator trial matched AND every matched trial verified (PRIMARY / TWO_SOURCE, never comparator-only) AND the result agrees on the same trials AND every divergence is named (rule / gate / side cited, with the source span establishing it).
 
-**COVERAGE 171 of 322 comparator trials (53%; 72 comparator-sourced)** | **INDEPENDENTLY CONFIRMED 99 of 322 (31%)** = PRIMARY + TWO_SOURCE + SECONDARY_SINGLE | COVERAGE_COMPLETE topics 19 | matched 99 of 234 eligible | 88 comparator trials excluded by named scope/estimand difference, each with rule ID + source span (listed per topic below) | matched by route: PRIMARY 85, TWO_SOURCE 3, SECONDARY_SINGLE 11 | G1-R (comparator's own rows reproduce its pool, NOT G1): NO_PER_TRIAL_ROWS 8, NO_PRINTED_POOL 2, REPRODUCED 22 | topics: G1_MATCHED 10, NOT_YET 22. Every G1_MATCHED row shows its excluded-by-scope count of the comparator's N.
+**COVERAGE 170 of 320 comparator trials (53%; 72 comparator-sourced)** | **INDEPENDENTLY CONFIRMED 98 of 320 (31%)** = PRIMARY + TWO_SOURCE + SECONDARY_SINGLE | COVERAGE_COMPLETE topics 19 | matched 98 of 233 eligible | 87 comparator trials excluded by named scope/estimand difference, each with rule ID + source span (listed per topic below) | matched by route: PRIMARY 84, TWO_SOURCE 3, SECONDARY_SINGLE 11 | G1-R (comparator's own rows reproduce its pool, NOT G1): NO_PER_TRIAL_ROWS 7, NO_PRINTED_POOL 3, REPRODUCED 22 | topics: G1_MATCHED 10, NOT_YET 22. Every G1_MATCHED row shows its excluded-by-scope count of the comparator's N.
 
 | topic | G1 status | COVERAGE / N (comparator-sourced) | coverage complete | INDEPENDENTLY CONFIRMED / N | matched / eligible | excluded by scope (of N) | named differences | open gaps | PRIMARY | TWO_SOURCE | UNVERIFIED | NO_ROW | per-trial vs comparator row | same trials (ours vs theirs) | ours | comparator | top blocker | source |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -18,10 +18,10 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 | corticosteroids-covid19-mortality | **NOT_YET** (unmet: ALL_ELIGIBLE_MATCHED, RESULT_AGREES, DIVERGENCES_NAMED) | 3 / 5 (1) | no | 2 / 5 | 2 / 5 | 0 of 5 | 0:  | 3 | 1 | 0 | 1 | 2 | {'NOT_COMPARABLE:RR_VS_OR': 1, 'DISAGREE': 1} | ONE_COMPARABLE_TRIAL | RR 0.83 (0.75 to 0.93) k=1 | OR 0.66 (0.53 to 0.82) | EXTRACTION:OUTCOME_NOT_IN_SOURCE | acq/k-gap |
 | dapagliflozin-hfpef-hosp | **G1_MATCHED** | 1 / 2 (0) | yes | 1 / 2 | 1 / 1 | 1 of 2 | 1: DECLARE-TIMI 58 (PROTOCOL_SCOPE_DIFFERENCE) | 0 | 1 | 0 | 1 | 0 | {'AGREE': 1} | ONE_SHARED_TRIAL | HR 0.82 (0.73 to 0.92) k=1 | HR 0.80 (0.74 to 0.86) | - | acq/k-gap |
 | denosumab-vertebral-fracture | **NOT_YET** (unmet: ALL_ELIGIBLE_MATCHED) | 1 / 2 (0) | no | 1 / 2 | 1 / 2 | 0 of 2 | 0:  | 1 | 1 | 0 | 0 | 1 | {'NOT_COMPARABLE:COUNTS_VS_EFFECT': 1} | ONE_SHARED_TRIAL | RR 0.32 (0.26 to 0.41) k=1 | not printed | INSUFFICIENT_RECORD:POPULATION_NOT_STATED_IN_RECORD | acq/k-gap |
-| doac-vte-recurrence | **NOT_YET** (unmet: RESULT_AGREES) | 6 / 7 (0) | yes | 6 / 7 | 6 / 6 | 1 of 7 | 1: Management and outcomes of major bleeding during treatment w (PROTOCOL_SCOPE_DIFFERENCE) | 0 | 6 | 0 | 0 | 1 | {'NOT_COMPARABLE:NO_COMPARATOR_ROW': 6} | MEASURE_DIFFERENCE | HR 0.91 (0.75 to 1.10) k=6 | RR 0.90 (0.77 to 1.06) | - | acq/k-gap |
-| dpp4-mace-t2d | **G1_MATCHED** | 4 / 4 (0) | yes | 4 / 4 | 4 / 4 | 0 of 4 | 0:  | 0 | 4 | 0 | 0 | 0 | {'AGREE': 3, 'AGREE_ON_POINT:COMPARATOR_ONE_SIDED_BOUND': 1} | HR 1.00 (0.94 to 1.07) vs 1.00 (0.94 to 1.07), k=3, PM: **AGREE** | HR 1.01 (0.84 to 1.21) k=3 | OR 1.00 (0.93 to 1.07) | - | acq/k-gap |
+| doac-vte-recurrence | **NOT_YET** (unmet: RESULT_AGREES) | 5 / 5 (0) | yes | 5 / 5 | 5 / 5 | 0 of 5 | 0:  | 0 | 5 | 0 | 0 | 0 | {'NOT_COMPARABLE:NO_COMPARATOR_ROW': 5} | NO_SHARED_TRIAL | HR 0.91 (0.75 to 1.10) k=6 | not printed | - | acq/k-gap |
+| dpp4-mace-t2d | **G1_MATCHED** | 4 / 4 (0) | yes | 4 / 4 | 4 / 4 | 0 of 4 | 0:  | 0 | 4 | 0 | 0 | 0 | {'AGREE': 3, 'AGREE_ON_POINT:COMPARATOR_ONE_SIDED_BOUND': 1} | HR 1.00 (0.94 to 1.07) vs 1.00 (0.94 to 1.07), k=3, PM: **AGREE** | HR 1.00 (0.90 to 1.11) k=4 | OR 1.00 (0.93 to 1.07) | - | acq/k-gap |
 | empagliflozin-hfpef-hosp | **G1_MATCHED** | 1 / 2 (0) | yes | 1 / 2 | 1 / 1 | 1 of 2 | 1: SOLOIST-WHF, 2021 (PROTOCOL_SCOPE_DIFFERENCE) | 0 | 1 | 0 | 1 | 0 | {'AGREE': 1} | ONE_SHARED_TRIAL | HR 0.79 (0.69 to 0.90) k=1 | HR 0.80 (0.74 to 0.87) | - | acq/k-gap |
-| esketamine-trd-madrs | **G1_MATCHED** | 3 / 3 (0) | yes | 3 / 3 | 3 / 3 | 0 of 3 | 0:  | 0 | 3 | 0 | 0 | 0 | {'NOT_COMPARABLE:COUNTS_VS_EFFECT': 3} | MD -4.08 (-6.18 to -1.99) vs -4.09 (-5.73 to -2.45), k=3, PM: **AGREE** | MD -3.10 (-7.33 to 1.13) k=3 | not printed | - | acq/k-gap |
+| esketamine-trd-madrs | **G1_MATCHED** | 3 / 3 (0) | yes | 3 / 3 | 3 / 3 | 0 of 3 | 0:  | 0 | 3 | 0 | 0 | 0 | {'NOT_COMPARABLE:COUNTS_VS_EFFECT': 3} | MD -4.08 (-6.18 to -1.99) vs -4.09 (-5.73 to -2.45), k=3, PM: **AGREE** | MD -3.34 (-6.07 to -0.62) k=4 | not printed | - | acq/k-gap |
 | finerenone-ckd-t2d-renal | **G1_MATCHED** | 2 / 4 (0) | yes | 2 / 4 | 2 / 2 | 2 of 4 | 2: Bakris et al. (15) (NOT_IN_COMPARATOR_OUTCOME_ANALYSIS), Katayama et al. (17) (NOT_IN_COMPARATOR_OUTCOME_ANALYSIS) | 0 | 2 | 0 | 0 | 2 | {'AGREE': 1, 'DISAGREE': 1} | HR 0.84 (0.77 to 0.92) vs 0.84 (0.77 to 0.92), k=2, FE: **AGREE** | HR 0.84 (no CI) k=2 | HR 0.84 (0.77 to 0.92) | - | acq/k-gap |
 | iv-iron-hfref-hosp | **NOT_YET** (unmet: ALL_ELIGIBLE_MATCHED, RESULT_AGREES) | 5 / 5 (2) | yes | 3 / 5 | 3 / 5 | 0 of 5 | 0:  | 2 | 2 | 0 | 2 | 0 | {'AGREE': 1, 'DISAGREE': 1, 'NOT_COMPARABLE:HR_VS_OR': 1} | OR 0.81 (0.67 to 0.97) vs 0.70 (0.44 to 1.09), k=2, PM: **DIFFERENT_CONCLUSION** | not printed k=2 | OR 0.59 (0.40 to 0.88) | NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE | acq/k-gap |
 | melatonin-primary-insomnia-sol | **NOT_YET** (unmet: ALL_ELIGIBLE_MATCHED, RESULT_AGREES, DIVERGENCES_NAMED) | 0 / 2 (0) | no | 0 / 2 | 0 / 2 | 0 of 2 | 0:  | 2 | 0 | 0 | 0 | 0 | {} | MD -3.78 (-11.81 to 4.26) vs -2.76 (-5.56 to 0.04), k=3, PM: **SAME_CONCLUSION_DIFFERENT_ESTIMATE** | MD -17.40 (-28.52 to -6.28) k=1 | not printed | INSUFFICIENT_RECORD:COMPARATOR_NOT_STATED | acq/k-gap |
@@ -215,26 +215,25 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Cummings 2009 (FREEDOM): **PRIMARY** - our held-source pool PMID 19671655 (abstract); vs comparator row: NOT_COMPARABLE:COUNTS_VS_EFFECT
 - COMPARATOR FINDING COMPARATOR_STATED_K_ABOVE_ENUMERATED_N: (the comparator set) -- comparator row None (check the comparator's own trial table: a trial missing from our enumeration, or a wrong count in the comparator)
 
-## doac-vte-recurrence (comparator PMID 24963045)
+## doac-vte-recurrence (comparator PMID 29795629)
 
 - DUAL FOREST READER: not read -- NO_JATS; OPEN_BUT_NOT_SCRIPT_READABLE
-- Dabigatran versus warfarin in the treatment of acute venous : **PRIMARY** - our held-source pool PMID 19966341 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Treatment of acute venous thromboembolism with dabigatran or: **PRIMARY** - our held-source pool PMID 24344086 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Edoxaban versus warfarin for the treatment of symptomatic ve: **PRIMARY** - our held-source pool PMID 23991658 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Oral apixaban for the treatment of acute venous thromboembol: **PRIMARY** - our held-source pool PMID 23808982 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Oral rivaroxaban for symptomatic venous thromboembolism.: **PRIMARY** - our held-source pool PMID 21128814 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Oral rivaroxaban for the treatment of symptomatic pulmonary : **PRIMARY** - our held-source pool PMID 22449293 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
-- Management and outcomes of major bleeding during treatment w: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 24081972: SCREENED_OUT X1: not a randomized controlled trial (record: 24081972).
-- NAMED PROTOCOL_SCOPE_DIFFERENCE: Management and outcomes of major bleeding during treatment w -- rule X1 (not a randomized controlled trial (record: 24081972).); protocol rule protocol design: randomised controlled trials only (harness/screen.py X1); SPAN [PMID 24081972 record abstract (held: cache/doac-vte-recurrence/records.json or outputs/k_gap/member_records.json)]: "METHODS AND RESULTS: Two independent investigators reviewed bleeding reports from 1034 individuals with 1121 major bleeds enrolled in 5 phase III trials comparing dabigatran with warfarin in 27 419 patients treated for 6 to 36 months."; registered eligibility: RCT; adults with acute symptomatic VTE (DVT and/or PE) by title/registry conditions; DOAC (dabigatran, rivaroxaban, apixaban, or edoxaban) vs warfarin / VKA / conventional anticoagulant therapy; P/I/C/design only. Exclude cancer-only, thrombophilia-only, pediatric, extended/secondary-prevention, and placebo/aspirin comparator trials.
+- RE-COVER: **PRIMARY** - our held-source pool PMID 19966341 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- EINSTEIN-DVT: **PRIMARY** - our held-source pool PMID 21128814 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- AMPLIFY: **PRIMARY** - our held-source pool PMID 23808982 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Hokusai-VTE: **PRIMARY** - our held-source pool PMID 23991658 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- RE-COVER II: **PRIMARY** - our held-source pool PMID 24344086 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- pooled by us, not listed by the comparator: PMID 22449293 (2012; comparator 2018): NOT_EXPLAINED_BY_DATE
 
 ## dpp4-mace-t2d (comparator PMID 31462224)
 
 - DUAL FOREST READER: not read -- REFUSED_BEFORE_READING:NO_TOPIC_OUTCOME_PANEL: the comparator's only forest figure (panels A-F: MI, stroke, HHF, unstable angina, revascularisation, CV mortality) has no 3-point MACE panel
 - SAVOR-TIMI 53: **PRIMARY** - our held-source pool PMID 23992601 (abstract); vs comparator row: AGREE
 - EXAMINE: **PRIMARY** - single source: effect + two-sided 98% CI verbatim (level printed); re-expressed at 95% (NDA022271 022271s015lbl.pdf (held cache/regulatory/NDA022271/2026-10-05_022271s015lbl_section.txt)); the trial's own tuple (reading lane proposal, gated); vs comparator row: AGREE_ON_POINT:COMPARATOR_ONE_SIDED_BOUND; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- TECOS: **PRIMARY** - single PRIMARY source (2 Oct decision): AACT AACT AACT 2026-08-30 NCT00790205 outcome 258888999; model-read (record mc-157eeafcc07b39c4cae52b6d0d4ea7c7), gate-verified (g1/finish-line scripts/g1_trial_acquire.py); vs comparator row: AGREE; our refusal: declared absent (estimand mismatch): TECOS's abstract reports its primary as a FOUR-point composite (cardiovascular death, nonfatal myocardial infarction, nonfatal stroke, OR hospitalization for unstable angina), HR 0.98 (0.88-1.09). Our ou
-- CARMELINA: **PRIMARY** - our held-source pool PMID 30418475 (fulltext_verified); vs comparator row: AGREE
-- pooled by us, not listed by the comparator: PMID 28893244 (2017; comparator 2021): NOT_EXPLAINED_BY_DATE
+- TECOS: **PRIMARY** - our held-source pool PMID 26052984 (served_pool_signed_notice); vs comparator row: AGREE
+- CARMELINA: **PRIMARY** - our held-source pool PMID 30418475 (abstract); vs comparator row: AGREE
+- COMPARATOR FINDING DECISION_EXCLUDED_FROM_SERVED_POOL: EXAMINE -- comparator row None; in the comparator; verified for matching through the CI re-expressed from the FDA label's 98% to 95%; excluded from the served pool by D7
+- pooled by us, not listed by the comparator: PMID 28893244 (2017; comparator 2019): NOT_EXPLAINED_BY_DATE
 
 ## empagliflozin-hfpef-hosp (comparator PMID 37773799)
 
@@ -246,17 +245,17 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 ## esketamine-trd-madrs (comparator PMID 37377288)
 
 - DUAL FOREST READER (codex + agy) f4: **ACCEPTED** -- 4 comparator rows; printed pool reproduced by ['DL']
-- Fedgchin 2019 (TRANSFORM-1): **PRIMARY** - single PRIMARY source: per-arm mean/SD/N verbatim in the trial's posted results; 2 intervention arm(s) combined (Cochrane Handbook 6.5.2.10) (AACT AACT 2026-08-30 NCT02417064 outcome 258346928); the trial's own tuple (reading lane proposal, gated); vs comparator row: NOT_COMPARABLE:COUNTS_VS_EFFECT; our refusal: SEEDED PMID 31290965: DECLARED_ABSENT KNOWN_REPORTED_NOT_YET_EXTRACTED
+- Fedgchin 2019 (TRANSFORM-1): **PRIMARY** - our held-source pool NCT02417064 (served_pool_signed_notice); vs comparator row: NOT_COMPARABLE:COUNTS_VS_EFFECT
 - Popova 2019 (TRANSFORM-2): **PRIMARY** - our held-source pool PMID 31109201 (ctgov_results); vs comparator row: NOT_COMPARABLE:COUNTS_VS_EFFECT
 - Ochs-Ross 2020 (TRANSFORM-3): **PRIMARY** - our held-source pool NCT02422186 (ctgov_results); vs comparator row: NOT_COMPARABLE:COUNTS_VS_EFFECT; comparator row finding: [{'finding': 'JOINED_BY_UNIQUE_SURNAME_WITHIN_COMPARATOR', 'detail': "row 'Ochs-Ross et al. 2019' <-> unit 'Ochs-Ross 2020 (TRANSFORM-3)'"}]
 - COMPARATOR FINDING JOINED_BY_UNIQUE_SURNAME_WITHIN_COMPARATOR: Ochs-Ross 2020 (TRANSFORM-3) -- comparator row {'effect': '-3.70', 'lower': '-7.43', 'upper': '0.03', 'events_t': None, 'n_t': 63, 'events_c': None, 'n_c': 66, 'measure': 'MD'}; row 'Ochs-Ross et al. 2019' <-> unit 'Ochs-Ross 2020 (TRANSFORM-3)'
-- pooled by us, not listed by the comparator: PMID 37025256 (2023; comparator 2026): NOT_EXPLAINED_BY_DATE
+- pooled by us, not listed by the comparator: PMID 37025256 (2023; comparator 2023): NOT_EXPLAINED_BY_DATE
 
 ## finerenone-ckd-t2d-renal (comparator PMID 36742404)
 
 - DUAL FOREST READER (codex + agy) f2: **ACCEPTED** -- 2 comparator rows; printed pool reproduced by ['DL', 'FE', 'PM', 'REML']
 - Bakris et al. (15): **NO_ROW** - ACQUISITION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
-- Bakris et al. (16): **PRIMARY** - our held-source pool PMID 33264825 (fulltext_verified); vs comparator row: AGREE
+- Bakris et al. (16): **PRIMARY** - our held-source pool PMID 33264825 (abstract); vs comparator row: AGREE
 - Katayama et al. (17): **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract
 - Pitt et al. (18): **PRIMARY** - our held-source pool PMID 34449181 (abstract); vs comparator row: DISAGREE; side: SECONDARY_WRONG (primary numbers are in the primary's own span)
 - NAMED NOT_IN_COMPARATOR_OUTCOME_ANALYSIS: Bakris et al. (15) -- rule G1-OUTCOME-SET (G1 matches the comparator's result for this outcome); SPAN [comparator PMID 36742404 figure f2 panel A (recorded read mc-f40f9208be80faa7c4f046746acd0f47)]: "comparator PMID 36742404 figure f2 panel A (recorded read mc-f40f9208be80faa7c4f046746acd0f47): rows ['FIDELIO-DKD', 'FIGARO-DKD']; positive control reproduced (['FE', 'DL', 'PM']) against its printed pooled result (POOL_PRINTED_IN_META_TEXT)"
@@ -498,10 +497,10 @@ G1 MATCHED = every eligible comparator trial matched AND every matched trial ver
 - Dapagliflozin and Cardiovascular Outcomes in Type 2 Diabetes: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 30415602: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic 
 - Empagliflozin after Acute Myocardial Infarction.: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 38587237: SCREENED_OUT X2: wrong population: title/conditions mention 'myocardial infarction'.
 - Canagliflozin and Cardiovascular and Renal Events in Type 2 : **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 28605608: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic 
-- Empagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 36331190 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Empagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 36331190 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Dapagliflozin in Myocardial Infarction without Diabetes or H: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 38320489: SCREENED_OUT X2: wrong population: title/conditions mention 'myocardial infarction'.
 - Dapagliflozin in Heart Failure with Mildly Reduced or Preser: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 36027570: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure'.
-- Dapagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 32970396 (fulltext_verified); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
+- Dapagliflozin in Patients with Chronic Kidney Disease.: **PRIMARY** - our held-source pool PMID 32970396 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Effect of Empagliflozin on the Clinical Stability of Patient: **NO_ROW** - IDENTIFICATION; vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 33081531: SCREENED_OUT X2: wrong population: title/conditions mention 'heart failure'.
 - Canagliflozin and Renal Outcomes in Type 2 Diabetes and Neph: **PRIMARY** - our held-source pool PMID 30990260 (abstract); vs comparator row: NOT_COMPARABLE:NO_COMPARATOR_ROW
 - Empagliflozin, Cardiovascular Outcomes, and Mortality in Typ: **NO_ROW** - IDENTIFICATION (secondary refused: ['MEASURE_SMD_IS_NOT_ESTIMAND_HR', 'OUTCOME_NOT_THE_TOPICS']); vs comparator row: NOT_IN_OUR_POOL; our refusal: SEEDED PMID 26378978: SCREENED_OUT X2: population not on-topic: title/conditions do not mention any of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic 

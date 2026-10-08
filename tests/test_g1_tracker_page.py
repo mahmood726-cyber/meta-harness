@@ -65,7 +65,7 @@ def test_PLANT_a_lane_matched_status_the_recomputation_refutes_is_not_counted(tm
     rec = _rec([_t("A", "TWO_SOURCE")])  # the lane says G1_MATCHED; the pair is unknown, so it is not verified
     (tmp_path / g1.SRC / "glp1-ra-mace-t2d.json").write_text(json.dumps(rec), encoding="utf-8")
     page = g1.render(tmp_path)
-    assert "G1 MATCHED: 0 of 1 topics" in page and "lane status disagrees" in page
+    assert "G1 MATCHED: 0 of 1 all topics" in page and "lane status disagrees" in page
 
 
 def test_the_committed_page_is_current():

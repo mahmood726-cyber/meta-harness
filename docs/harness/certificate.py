@@ -204,6 +204,9 @@ def compute(slug, review, protocol_sha):
         "search_query_sha256": _hash(queries),
         "retrieved_corpus_sha256": corpus_sha,
         "records_file_sha256": _hash(records),
+        # a SIGNED replacement comparator's own records (fetch.ensure overlays them on records.json; V8, 7 Oct)
+        "comparator_records_sha256": (_hash(_json(cache / "comparator_records.json"))
+                                      if (cache / "comparator_records.json").exists() else NOT_PRESENT),
         "retrieval_ledger_sha256": _hash(ledger),
         "screening_ledger_sha256": _hash(review["screening"]),
         "extraction_objects_sha256": _hash(extraction),
@@ -222,6 +225,8 @@ def compute(slug, review, protocol_sha):
             "search_query_sha256": "canonical ordered [{source_id, query}] from retrieval_ledger.json; query strings verbatim",
             "retrieved_corpus_sha256": "canonical records.json['records']; equals retrieval_ledger.json snapshot.records_sha256",
             "records_file_sha256": "canonical entire cache/<slug>/records.json",
+            "comparator_records_sha256": "canonical entire cache/<slug>/comparator_records.json (a signed replacement "
+                                         "comparator's own record, OA status and full text), else NOT_PRESENT",
             "retrieval_ledger_sha256": "canonical entire retrieval_ledger.json (including any raw-index digest)",
             "screening_ledger_sha256": "canonical review.json['screening']",
             "extraction_objects_sha256": "canonical ref-to-JSON map: " + ", ".join(extraction),

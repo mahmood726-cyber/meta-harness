@@ -109,7 +109,9 @@ def test_no_served_page_loses_a_downgrade():
         slug = path.parent.name
         before = json.loads(subprocess.check_output(['git', 'show', 'HEAD:' + path.as_posix()]))
         config = json.loads(Path('topics', slug + '.json').read_text(encoding='utf-8'))
-        records = json.loads(Path('cache', slug, 'records.json').read_text(encoding='utf-8'))
+        from harness import fetch as _fetch   # records.json + a signed comparator's overlay, as the served build reads
+        records = _fetch._with_comparator_records(json.loads(Path('cache', slug, 'records.json').read_text(encoding='utf-8')),
+                                                  config, str(Path('cache', slug)))
         after = build_review_core(slug, config, records, protocol_sha(slug))
         # Missing is not favourable: a page may carry no rating ONLY because its result is explicitly withdrawn
         # (a withdrawn result has no certainty to rate). A rating that vanishes without a withdrawal, or a
