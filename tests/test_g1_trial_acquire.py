@@ -136,8 +136,15 @@ def test_a_text_that_is_not_openly_licensed_never_enters_a_prompt(monkeypatch):
     monkeypatch.setattr(ga, "pmc_licence", lambda pmid: "NOT_OPEN")
     ev, held = ga.evidence(t, CFG, "0")
     assert ev["full_text"]["state"] == "HELD_NOT_OPEN_LICENSED" and "text" not in ev["full_text"] and held["text"]
+    # D8 (7 Oct): a CC copy is shown only when the ARTICLE's licence is CC BY / CC0 (g1_licence); CC BY-NC is held for
+    # the deterministic gates only
     monkeypatch.setattr(ga, "pmc_licence", lambda pmid: "CC")
+    import g1_licence as gl
+    monkeypatch.setattr(gl, "repo_open", lambda pmid, kind, offline=False: True)
+    monkeypatch.setattr(gl, "licence", lambda pmid, offline=False: {"license": "cc by", "open": True})
     assert "text" in ga.evidence(t, CFG, "0")[0]["full_text"]
+    monkeypatch.setattr(gl, "licence", lambda pmid, offline=False: {"license": "cc by-nc", "open": False})
+    assert ga.evidence(t, CFG, "0")[0]["full_text"]["state"] == "HELD_NOT_PROMPTABLE_D8"
 
 
 def test_the_deterministic_table_reader_refuses_an_ambiguous_table():

@@ -272,6 +272,25 @@ OPEN_COPY = ("CC", "PMC_AUTHOR_MANUSCRIPT")      # copies the DETERMINISTIC read
 PROMPT_COPY = ("CC",)                           # copies a model may be shown (the prompt is stored in a public record)
 
 
+def d8_promptable(pmid, origin, copy_licence=None):
+    """D8 OPEN_SOURCES_ONLY (registry/g1_decisions.json, 7 Oct), PROMPT side: a held full text enters a recorded prompt (a
+    committed, public record: redistribution) only when scripts/g1_licence.py keeps it -- the ARTICLE's Europe PMC licence
+    is CC BY / CC0 AND the repo guard marks the held copy open; an open-location copy also needs its own host-page
+    licence CC BY / CC0. An unknown licence is closed. READER side, D8 is 'no paywalled text, even by a regex reader':
+    the deterministic readers take only a legitimately open copy (OPEN_COPY: a CC copy or a PMC author manuscript),
+    which already excludes free-to-read copies with no licence (bronze)."""
+    import g1_licence as gl
+    if not pmid or not origin:
+        return False
+    try:
+        if origin == "OPEN_LOCATION":
+            return str(copy_licence or "") in ("cc-by", "cc0") and bool(gl.licence(str(pmid)).get("open"))
+        kept, _ = gl.gate(str(pmid), [({"PMC": "PMC_OA", "UNPAYWALL": "UNPAYWALL"}.get(origin, "HELD_CACHE_FT"), "")])
+        return bool(kept)
+    except Exception:  # noqa: BLE001 - a licence that cannot be read is closed, never assumed open
+        return False
+
+
 def pmc_copy(pmid):
     """Which copy of the trial's text we hold, and under what terms: {pmcid, url, licence, statement}. licence is
       CC                     a Creative Commons licence in the PMC permissions (redistributable: may enter a prompt)
@@ -432,21 +451,27 @@ def evidence(t, cfg, comp):
             t["ncts_from"] = f"stated in the trial's own report ({origin} text sha256 {sha})"
     aact = aact_evidence(t["ncts"])
     po = cfg.get("primary_outcome") or {}
+    d8 = bool(whole) and d8_promptable(t["pmid"], origin, ulic)
     ev = {"trial": t["label"], "pmid": t["pmid"], "ncts": t["ncts"],
           "outcome": {k: po.get(k) for k in ("name", "keywords", "estimand", "timepoint", "population")},
           "protocol_include": cfg.get("include"), "protocol_arm_object": cfg.get("arm_object"),
           "eligibility_summary": cfg.get("eligibility_summary"),
           "aact": {n: {k: v for k, v in a.items() if k != "_reg"} for n, a in aact.items()},
           "full_text": ({"pmid": t["pmid"], "sha256": sha, "chars": len(whole), "shown_chars": len(shown), "text": shown}
-                        if whole and origin == "PMC" and pmc_licence(t["pmid"]) in PROMPT_COPY else
+                        if d8 and origin == "PMC" and pmc_licence(t["pmid"]) in PROMPT_COPY else
                         # an Unpaywall copy is shown only under a CC licence; the DOI (not the PMID) names it, so the
                         # licence guard checks the DOI's Unpaywall licence
                         {"doi": doi, "licence": ulic, "sha256": sha, "chars": len(whole), "shown_chars": len(shown),
-                         "text": shown} if whole and origin == "UNPAYWALL" and str(ulic or "").startswith("cc") else
+                         "text": shown} if d8 and origin == "UNPAYWALL" and str(ulic or "").startswith("cc") else
                         # an open-location copy: CC on its HOST page (registry/open_sources.json; the guard reads it)
                         {"doi": doi, "licence": ulic, "copy_url": ourl, "sha256": sha, "chars": len(whole),
                          "shown_chars": len(shown), "text": shown}
-                        if whole and origin == "OPEN_LOCATION" and str(ulic or "").startswith("cc") else
+                        if d8 and origin == "OPEN_LOCATION" and str(ulic or "").startswith("cc") else
+                        # open under the copy rule but not CC BY / CC0 (D8): read by the deterministic gates only
+                        {"state": "HELD_NOT_PROMPTABLE_D8", "note": "an open copy held for the deterministic gates; its "
+                                                                    "article licence is not CC BY / CC0, so never shown"}
+                        if whole and ((origin == "PMC" and pmc_licence(t["pmid"]) in PROMPT_COPY) or
+                                      (origin != "PMC" and str(ulic or "").startswith("cc"))) else
                         {"state": "HELD_NOT_OPEN_LICENSED", "note": "held for the deterministic gates; never shown"}
                         if whole else {"state": "NO_OPEN_FULL_TEXT"}),
           "meta_rows": meta_evidence(t["slug"], t["label"])}
@@ -460,7 +485,7 @@ def evidence(t, cfg, comp):
         euctr = {"_error": {"why": str(exc)[:160]}}
     return ev, {"aact": aact, "text": whole, "sha": sha, "terms": terms, "comp": comp, "pmid": t["pmid"], "reg": reg_held,
                 "slug": t["slug"], "text_origin": origin if whole else None, "doi": doi, "doi_licence": ulic,
-                "text_url": ourl, "euctr": euctr}
+                "text_url": ourl, "euctr": euctr, "d8_prompt": d8}
 
 
 def regulatory_evidence(t, terms):
@@ -587,8 +612,9 @@ def table_tuple(text, terms, timepoint=None):
     return cands[0] if len(uniq) == 1 else None
 
 
-def gate(resp, held, cfg, slug):
-    """ADMITTED (with basis) or REFUSED:<gate> for one model answer, against the held sources."""
+def gate(resp, held, cfg, slug, deterministic=False):
+    """ADMITTED (with basis) or REFUSED:<gate> for one model answer, against the held sources. deterministic=True: the
+    answer is a regex reading (extractor_proposal), held to every gate below except the PROMPT side of D8."""
     import g1_tracker as gt
     from harness import secondary_meta as sm
     po = cfg.get("primary_outcome") or {}
@@ -622,6 +648,10 @@ def gate(resp, held, cfg, slug):
                           n_c=resp["n_c"] if counts else None)
     if src == "PMC_TEXT":
         q = _ws(resp["quote"])
+        if not deterministic and held.get("text") and "d8_prompt" in held and not held["d8_prompt"]:
+            # D8: a model answer can rest only on text a prompt may carry (CC BY / CC0 article); an answer from a text that
+            # was shown under the older any-CC rule rests on a record D8 now quarantines
+            return "REFUSED:TEXT_NOT_PROMPTABLE_UNDER_D8", None
         if not held["text"] or not q or q not in _ws(held["text"]):
             return "REFUSED:QUOTE_NOT_VERBATIM_IN_WHOLE_TEXT", None
         nums_ok = (all(_num_in(resp[k], q) for k in ("events_t", "n_t", "events_c", "n_c")) if counts else True) and \
@@ -823,7 +853,7 @@ def extractor_proposal(t, cfg, held):
             "upper": _printed(ex.get("ci_high"), quote) if eff else None}
     if eff and None in (resp["effect"], resp["lower"], resp["upper"]):
         return None, None
-    v, adm = gate(resp, held, cfg, t["slug"])
+    v, adm = gate(resp, held, cfg, t["slug"], deterministic=True)
     if v == "ADMITTED":
         xsha = hashlib.sha256(open(os.path.join(ROOT, "harness", "extract.py"), "rb").read()).hexdigest()
         adm.update(kind="TEXT_EXTRACTOR", source=adm["source"] + " (read deterministically: harness.extract."
