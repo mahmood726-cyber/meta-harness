@@ -14,6 +14,24 @@ import typed_comparator_rows as tcr  # noqa: E402
 SLUG = "doac-vte-recurrence"
 
 
+def _sha(p):
+    import hashlib
+    return hashlib.sha256(open(p, "rb").read()).hexdigest()
+
+
+def test_PLANT_any_other_bytes_than_the_declared_file_refuse(tmp_path, monkeypatch):
+    """codex doac-table1 r1-r5: each round built a hypothetical table variant. The reader is declared for one file's
+    exact bytes; any other file is refused before any parsing."""
+    import pytest
+    src = os.path.join(ROOT, tcr.READERS[SLUG]["source"])
+    p = tmp_path / "held.xml"
+    p.write_text(open(src, encoding="utf-8").read() + " ", encoding="utf-8")
+    monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p)))
+    monkeypatch.setattr(tcr, "ROOT", "")
+    with pytest.raises(SystemExit):
+        tcr.read(SLUG)
+
+
 def test_PLANT_the_reader_reproduces_the_committed_rows_and_the_tracker_accepts_them():
     d = tcr.read(SLUG)
     committed = json.load(open(os.path.join(ROOT, "registry", "comparator_rows", f"{SLUG}.json"), encoding="utf-8"))
@@ -43,7 +61,7 @@ def test_PLANT_a_commented_out_row_is_never_read(tmp_path, monkeypatch):
     fake = "<!-- <tr><td>FAKE-TRIAL</td><td>2015</td><td>X</td><td>1/10</td><td>Warfarin</td><td>2/10</td><td>50</td><td>40</td></tr> -->"
     p = tmp_path / "held.xml"
     p.write_text(raw[:tr] + fake + raw[tr:], encoding="utf-8")
-    cfg = dict(tcr.READERS[SLUG], source=str(p))
+    cfg = dict(tcr.READERS[SLUG], source=str(p), source_sha256=_sha(p))
     monkeypatch.setitem(tcr.READERS, SLUG, cfg)
     monkeypatch.setattr(tcr, "ROOT", "")
     d = tcr.read(SLUG)
@@ -59,7 +77,7 @@ def test_PLANT_a_table_with_notes_is_refused_whole(tmp_path, monkeypatch):
     p = tmp_path / "held.xml"
     p.write_text(raw[:end] + "<table-wrap-foot><p>Events are % of the safety population.</p></table-wrap-foot>" + raw[end:],
                  encoding="utf-8")
-    monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p)))
+    monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p), source_sha256=_sha(p)))
     monkeypatch.setattr(tcr, "ROOT", "")
     with pytest.raises(SystemExit):
         tcr.read(SLUG)
@@ -77,7 +95,7 @@ def test_PLANT_any_xref_and_a_changed_caption_refuse(tmp_path, monkeypatch):
                                 "primary efficacy outcomes of the Phase 3 trials included (safety population).", 1)):
         p = tmp_path / "held.xml"
         p.write_text(mutated, encoding="utf-8")
-        monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p)))
+        monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p), source_sha256=_sha(p)))
         monkeypatch.setattr(tcr, "ROOT", "")
         with pytest.raises(SystemExit):
             tcr.read(SLUG)
@@ -97,7 +115,7 @@ def test_PLANT_population_qualifiers_in_cells_and_ids_inside_other_attributes_re
                     raw[:k] + decoy + raw[k:]):
         p = tmp_path / "held.xml"
         p.write_text(mutated, encoding="utf-8")
-        monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p)))
+        monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p), source_sha256=_sha(p)))
         monkeypatch.setattr(tcr, "ROOT", "")
         if mutated is not raw and "safety population" in mutated:
             with pytest.raises(SystemExit):

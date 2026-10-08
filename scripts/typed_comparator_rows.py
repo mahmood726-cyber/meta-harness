@@ -28,6 +28,10 @@ READERS = {
     "doac-vte-recurrence": {
         "comparator_pmid": "29795629",
         "source": "cache/comparators/29795629/2026-10-07_kgap_jats.xml",
+        # the reader is DECLARED for these exact bytes (inspected and planted when it was written): any other file --
+        # a re-fetch, an edited copy -- is refused, so a table shape this reader was not checked against is never read
+        # (codex doac-table1 r1-r5 each built a hypothetical table variant; the phrase guards below stay as depth)
+        "source_sha256": "8b53a00236898479fc408018d9ccf4be297b886608c8f2d92e25bb1a39218d20",
         "table_id": "pone.0197583.t001",
         "caption": "Baseline characteristics and corresponding primary efficacy outcomes of the Phase 3 trials included.",
         "block": "VTE Studies",
@@ -60,6 +64,8 @@ def read(slug):
     path = os.path.join(ROOT, cfg["source"])
     raw = open(path, encoding="utf-8", errors="replace").read()
     sha = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    if sha != cfg["source_sha256"]:
+        raise SystemExit(f"REFUSED: {cfg['source']} sha256 {sha[:12]} is not the declared {cfg['source_sha256'][:12]}")
     # the table is the ONE <table-wrap> whose parsed id attribute equals the declared id -- never an id="..." found inside
     # another attribute's value (codex doac-table1-r4 #2)
     body = _uncomment(raw)
@@ -111,7 +117,8 @@ def read(slug):
             raise SystemExit(f"REFUSED: events/N cells not 'e/N' in row {c}")
         # a population / analysis-set qualifier anywhere in the row makes its denominators incomparable (codex
         # doac-table1-r4 #1): refused whole
-        if re.search(r"popul|safety|per[- ]?protocol|\bITT\b|intention|\btreated\b|modified|\bmITT\b|as[- ]treated",
+        if re.search(r"popul|safety|per[- ]?protocol|\bITT\b|intention|\btreated\b|modified|\bmITT\b|as[- ]treated"
+                     r"|analy[sz]ed|randomi[sz]ed|kaplan|\bKM\b|%",
                      " ".join(c), re.I):
             raise SystemExit(f"REFUSED: population qualifier in row {c}")
         span = " ".join(c)

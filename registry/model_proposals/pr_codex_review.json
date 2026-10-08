@@ -4420,5 +4420,46 @@
     "verdict": null
    }
   ]
+ },
+ "doac-table1-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ce2e358f103e586750c4dbc74673e12e",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "c0355da176c2becea78051ccf1d8a9910617b4bf46681fae5cb83d7b6ceda3f5"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "Explicit Kaplan–Meier percentages are returned as integer event counts. The e/N syntax check does not reject unit qualifiers elsewhere in the row.",
+    "failing_input": "from io import StringIO, BytesIO\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\ncfg = m.READERS['doac-vte-recurrence']\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\ncells = ['Trial A (numerators are Kaplan-Meier percentages)', '2018', 'Drug', '2/1000', 'Warfarin', '3/1200', '60', '40']\nraw = '<table-wrap id=\"' + cfg['table_id'] + '\"><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(cells) + '</table></table-wrap>'\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: BytesIO(raw.encode()) if 'b' in mode else StringIO(raw)):\n    print(m.read('doac-vte-recurrence')['rows'])",
+    "expected": "Refuse the row: Kaplan–Meier percentages cannot establish integer event counts.",
+    "actual": "Returns a row with events_t=2, n_t=1000, events_c=3, n_c=1200 and measure='OR'. Derived by tracing the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r5:g1#1",
+    "record_id": "mc-ce2e358f103e586750c4dbc74673e12e",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The population-qualifier guard omits 'analysed' and 'randomised', allowing explicitly incompatible denominator kinds into the returned comparator row.",
+    "failing_input": "from io import StringIO, BytesIO\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\ncfg = m.READERS['doac-vte-recurrence']\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\ncells = ['Trial A', '2018', 'Drug (analysed)', '2/90', 'Warfarin (randomised)', '3/100', '60', '40']\nraw = '<table-wrap id=\"' + cfg['table_id'] + '\"><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(cells) + '</table></table-wrap>'\nwith patch('builtins.open', side_effect=lambda path, mode='r', **kw: BytesIO(raw.encode()) if 'b' in mode else StringIO(raw)):\n    print(m.read('doac-vte-recurrence')['rows'])",
+    "expected": "Refuse the row because the treatment denominator is analysed and the comparator denominator is randomised.",
+    "actual": "Returns events_t=2, n_t=90, events_c=3, n_c=100 and measure='OR', accepting both denominator kinds without qualification. Derived by tracing the supplied code; local Python execution was blocked.",
+    "id": "doac-table1-r5:g1#2",
+    "record_id": "mc-ce2e358f103e586750c4dbc74673e12e",
+    "verdict": null
+   }
+  ]
  }
 }
