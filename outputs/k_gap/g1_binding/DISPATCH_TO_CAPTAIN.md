@@ -421,3 +421,32 @@ result OUR_ROWS_INCOMPLETE (0 of 7 verified count rows).
 - The regulatory binder: R1–R4.
 
 Commits: 6ef2a9eee, then the melatonin commit. g1 + k_gap suites: 278 pass. Nothing landed; no served number changed.
+
+## Final-5, binding lane: "use codex hard" (2026-10-08 23:14 GMTDT, g1/final5-binding @ 2eb4cff58, cut from main 96921df40; FOR V11/V12)
+Codex ran 8 recorded readers at concurrency 8 plus 3 review passes (r1a, r1b, and r2 running now). Every call is licence-guarded at call time; no non-CC text was shown to a model. Regex and table typing come first, and the recorded readers are independent second readers. Tests (subset): 1510 passed, 3 xfailed. The shared outputs were restored after the local recounts. **No served number changes.**
+
+**Flip-relevant (local recount on this branch):**
+- **corticosteroids-covid19-mortality: RESULT_AGREES is now MET.**
+  - RECOVERY's own supplementary appendix, Table S2 (28-day mortality, ventilated subgroup), prints **95/324 v 283/683**. This is exactly the comparator's RECOVERY row.
+  - It enters the same-trials comparison under D12 through a new kind, **K5** (a held document's table row). Same trials: OR 0.586 (0.442-0.779) v 0.59 (0.44-0.78), AGREE, BENEFIT. D2 share 1007/1263 = 79.7%, which passes.
+  - Pristine main today: unmet ALL_ELIGIBLE_MATCHED + RESULT_AGREES. **What remains is ALL_ELIGIBLE_MATCHED only**: k-gap's CAPE COVID, REMAP-CAP hydrocortisone and Metcovid. Cortico flips once those 3 are matched or named.
+  - Licence: the appendix is the PMC OA COVID licence (NEJM), **not CC**. It is held locally, git-ignored (outputs/k_gap/_supp/), pinned by pdf sha256 ba84d546..., and never in a prompt. Two PDF engines (poppler -raw, MuPDF) hold the identical row. **The captain's regenerating machine needs the local copy** (python scripts/g1_final5_typed.py --fetch). Without it, K5 is unused and fails closed, and cortico reverts to RESULT_AGREES unmet.
+- **iv-iron-hfref-hosp: no flip possible** (FAIR-HF has no open source).
+  - **D14 applied:** CONFIRM-HF Table 2 (CC BY) gives 10/150 v 25/151 patients (events 10 v 32). It enters as K5 matching counts with 2 recorded readers. The signed finding COMPARATOR_COUNTS_ARE_EVENTS is named in the tracker, verified at build, including verbatim unit spans.
+  - **D15 applied:** EFFECT-HF 11/86 v 6/86 admitted in registry/g1_acquired as an own tuple. iv-iron same trials move from DIFFERENT_CONCLUSION to SAME_CONCLUSION_DIFFERENT_ESTIMATE (k=4, OR 0.775 v 0.610).
+  - **But DIVERGENCES_NAMED becomes unmet:** EFFECT-HF is now a matched DISAGREE against the comparator's 13/88 v 13/86.
+
+**Decisions needed (V12 questions, typed and ready):**
+1. **D15 conflict (P0 from both codex review passes; both recorded readers raised it too).** The paper states "All-cause mortality and hospitalization for worsening HF and other cardiovascular reasons were analyzed for the safety set". The 11 v 6 are safety-set patients; the safety set is the FAS (86) plus 2 FCM patients, and its N is not printed. D15 as signed binds the FAS denominators 86/86. It is applied as signed and the caveat is carried on the row. **Re-present D15 with this caveat?**
+2. **EFFECT-HF comparator side:** the comparator's 13 v 13 are the 26 worsening-HF **hospitalisations** ("26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care)"), the same class as D14. Its 88 is the safety-set FCM N. It is staged as PROPOSED in registry/g1_signed_comparator_findings.json; signing it closes iv-iron DIVERGENCES_NAMED.
+3. **CANVAS side (sglt2-pp):** the comparator's cited report, Radholm 2018 (CC BY; text plus Figures 1-2, read by 2 recorded readers), prints **no per-arm HHF counts**, only 5.5 v 8.7 per 1000 patient-years and HR 0.67. The comparator's 87/117 appear in no held source; 123/120 are in FDA review Table 30. The existing side rule cannot name a side. The rule-scope question (may it read a held regulatory report?) stands. Main's D12 has no K4 kind, so on main CANVAS stays a measure difference.
+
+**NOT_FOUND, reported for the captain's ledger:**
+- **ENGAGE (D16 C, AACT route): NOT_FOUND.** The ITT primary (outcome 258761856, high dose v warfarin) is posted as HR 0.87 with a **99%** CI (0.709-1.068). The 97.5% CIs are mITT/PP non-inferiority analyses. The 95% CIs belong to secondary outcomes (e.g. stroke/SEE/CV death 0.87, 0.786-0.959: a different outcome, REFUSED). Per-analysis ledger: outputs/k_gap/g1_binding/final5_typed.json items.ENGAGE (k-gap holds the FDA/EMA/open-copy routes for outputs/k_gap/engage_ci_search.json).
+- **CoDEX 28-day: NOT_FOUND,** every route read: AACT has no posted results; the held abstract's 28-day mortality sentences give no counts or percentages; PMC body FETCH_EMPTY and not open.
+
+**Codex review:** r1a (5) and r1b (6) on 44cc3308d. Every finding was reproduced. Fixed with plants that failed first: K5 percentage cells, reader-gate percentages, ENGAGE arm and endpoint checks, CoDEX routes now read, signed-finding column meanings. The D15 conflict goes to Mahmood (above). r2 on the fixes is running.
+
+**For the captain, outside this range:**
+- (a) cache/corticosteroids-covid19-mortality/ft_32678530.txt, the RECOVERY NEJM full text (fulltext_index copy_licence NOT_OPEN), is **tracked on main**. This looks like a non-CC full text committed (D8 / "only excerpts, CC BY/CC0 or US-gov"). Not touched here.
+- (b) The older binding range (g1/binding-on-d0848a72: tranexamic D10 binding, held D10 amendments) still needs its rebase PR; that is next on this lane.
