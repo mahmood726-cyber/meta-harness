@@ -81,3 +81,26 @@ def test_PLANT_any_xref_and_a_changed_caption_refuse(tmp_path, monkeypatch):
         monkeypatch.setattr(tcr, "ROOT", "")
         with pytest.raises(SystemExit):
             tcr.read(SLUG)
+
+
+def test_PLANT_population_qualifiers_in_cells_and_ids_inside_other_attributes_refuse(tmp_path, monkeypatch):
+    """codex doac-table1-r4: #1 a population qualifier in an arm cell; #2 id="..." inside another attribute's value
+    selected an unrelated earlier table."""
+    import pytest
+    src = os.path.join(ROOT, tcr.READERS[SLUG]["source"])
+    raw = open(src, encoding="utf-8").read()
+    decoy = ('<table-wrap id="decoy" title=\'x id="pone.0197583.t001"\'><caption><p>x</p></caption>'
+             '<table><tr><td>a</td></tr></table></table-wrap>')
+    k = raw.index("<table-wrap")
+    for mutated in (raw.replace(">Enoxaparin followed by VKA<",
+                                ">Enoxaparin followed by VKA (safety population)<", 1),
+                    raw[:k] + decoy + raw[k:]):
+        p = tmp_path / "held.xml"
+        p.write_text(mutated, encoding="utf-8")
+        monkeypatch.setitem(tcr.READERS, SLUG, dict(tcr.READERS[SLUG], source=str(p)))
+        monkeypatch.setattr(tcr, "ROOT", "")
+        if mutated is not raw and "safety population" in mutated:
+            with pytest.raises(SystemExit):
+                tcr.read(SLUG)
+        else:
+            assert len(tcr.read(SLUG)["rows"]) == 5          # the decoy's quoted id is never the table's id

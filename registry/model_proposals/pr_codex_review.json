@@ -4379,5 +4379,46 @@
     "verdict": null
    }
   ]
+ },
+ "doac-table1-r4": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b6438e17cf2b57e94dd06a6adabf28cf",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/typed_comparator_rows.py"
+    ],
+    "prompt_sha256": "43fce84a4dd277c72ae2ecb9d58941d403d17404d9ba27587786a45ded8a8b45"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "Population qualifiers in arm cells bypass the population safeguards. The reader emits comparable-looking n_t/n_c fields even when the held row explicitly identifies different denominator kinds.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\nraw = ('<table-wrap id=\"pone.0197583.t001\"><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(['Trial A', '2018', 'Drug (safety population)', '5/90', 'Warfarin (randomised population)', '8/100', '60', '50']) + '</table></table-wrap>')\nwith patch('builtins.open', side_effect=[io.StringIO(raw), io.BytesIO(raw.encode())]):\n    print(m.read(slug)['rows'])",
+    "expected": "Refuse the row because its treatment denominator is a safety population while its control denominator is a randomised population.",
+    "actual": "Returns a row with events_t=5, n_t=90, events_c=8, n_c=100 and measure='OR'. The population qualifiers survive only in intervention/comparator strings; no check rejects the incompatible denominators.",
+    "id": "doac-table1-r4:g1#1",
+    "record_id": "mc-b6438e17cf2b57e94dd06a6adabf28cf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/typed_comparator_rows.py",
+    "function": "read",
+    "severity": "P0",
+    "claim": "The table-selection regex can match id=\"…\" inside another attribute's quoted value. An unrelated table preceding the requested table supplies the returned counts, despite all subsequent validation passing.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import typed_comparator_rows as m\nslug = 'doac-vte-recurrence'\ncfg = m.READERS[slug]\ndef tr(cells):\n    return '<tr>' + ''.join('<td>' + c + '</td>' for c in cells) + '</tr>'\ndef table(attrs, treatment, control):\n    return ('<table-wrap ' + attrs + '><caption>' + cfg['caption'] + '</caption><table>' + tr(cfg['header']) + tr(['VTE Studies']) + tr(['Trial A', '2018', 'Drug', treatment, 'Warfarin', control, '60', '50']) + '</table></table-wrap>')\nraw = '<article><body>' + table('id=\"obsolete\" specific-use=\\'superseded version of id=\"pone.0197583.t001\"\\'', '5/100', '8/100') + table('id=\"pone.0197583.t001\"', '15/100', '18/100') + '</body></article>'\nwith patch('builtins.open', side_effect=[io.StringIO(raw), io.BytesIO(raw.encode())]):\n    print(m.read(slug)['rows'])",
+    "expected": "Select the table whose actual id attribute is pone.0197583.t001 and return events_t=15, n_t=100, events_c=18, n_c=100.",
+    "actual": "Selects the table whose actual id is obsolete and returns events_t=5, n_t=100, events_c=8, n_c=100. Its caption, header and verbatim span pass every remaining check.",
+    "id": "doac-table1-r4:g1#2",
+    "record_id": "mc-b6438e17cf2b57e94dd06a6adabf28cf",
+    "verdict": null
+   }
+  ]
  }
 }

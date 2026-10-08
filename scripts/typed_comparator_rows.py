@@ -60,9 +60,26 @@ def read(slug):
     path = os.path.join(ROOT, cfg["source"])
     raw = open(path, encoding="utf-8", errors="replace").read()
     sha = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    m = re.search(r'<table-wrap\b[^>]*id="' + re.escape(cfg["table_id"]) + r'".*?</table-wrap>', _uncomment(raw), re.S)
-    if not m:
-        raise SystemExit(f"REFUSED: table {cfg['table_id']} not in {cfg['source']}")
+    # the table is the ONE <table-wrap> whose parsed id attribute equals the declared id -- never an id="..." found inside
+    # another attribute's value (codex doac-table1-r4 #2)
+    body = _uncomment(raw)
+    attr = re.compile(r"""([\w:.-]+)\s*=\s*("[^"]*"|'[^']*')""")
+    hits = []
+    for t in re.finditer(r"<table-wrap\b([^>]*)>", body):
+        ids = [v[1:-1] for k, v in attr.findall(t.group(1)) if k == "id"]
+        if ids == [cfg["table_id"]]:
+            end = body.find("</table-wrap>", t.end())
+            hits.append(body[t.start(): end + len("</table-wrap>")] if end >= 0 else None)
+    if len(hits) != 1 or not hits[0]:
+        raise SystemExit(f"REFUSED: {len(hits)} tables with id {cfg['table_id']} in {cfg['source']} (need exactly 1)")
+
+    class _M:
+        def __init__(self, s):
+            self.s = s
+
+        def group(self, _=0):
+            return self.s
+    m = _M(hits[0])
     # a table whose notes could redefine its cells (a percentage numerator, a safety vs randomised population per arm) is
     # refused WHOLE: this reader has no way to apply a note, so it reads only note-free tables (codex doac-table1-r2 #1, #2)
     # ANY cross-reference inside the table, whatever its attributes, can point at a note outside it (codex doac-table1-r3 #1)
@@ -92,6 +109,11 @@ def read(slug):
         ec = re.fullmatch(r"(\d+)\s*/\s*(\d+)", c[5])
         if not et or not ec:
             raise SystemExit(f"REFUSED: events/N cells not 'e/N' in row {c}")
+        # a population / analysis-set qualifier anywhere in the row makes its denominators incomparable (codex
+        # doac-table1-r4 #1): refused whole
+        if re.search(r"popul|safety|per[- ]?protocol|\bITT\b|intention|\btreated\b|modified|\bmITT\b|as[- ]treated",
+                     " ".join(c), re.I):
+            raise SystemExit(f"REFUSED: population qualifier in row {c}")
         span = " ".join(c)
         if span not in held:
             raise SystemExit(f"REFUSED: row span not verbatim in the held text: {span!r}")
