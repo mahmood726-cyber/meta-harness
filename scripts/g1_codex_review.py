@@ -3,7 +3,9 @@ Each group of files is sent inline (the diff since a base commit, plus the full 
 the reviewer returns findings, each with a CONCRETE failing input. A finding is a PROPOSAL: it is accepted only after
 it is reproduced on that input in this repository (scripts/g1_codex_review.py --show lists them for that).
 
-    python scripts/g1_codex_review.py --run [--base <sha>]   (recorded calls, concurrency 3)
+    python scripts/g1_codex_review.py --run [--base <sha>] [--group NAME=file1,file2 ...]   (recorded calls)
+      --group replaces the default groups for this run (a lane range is named on the command line, never by editing
+      GROUPS -- the lane rule on hard-coded target lists)
     python scripts/g1_codex_review.py --show                 (replay the records; print the findings)
 Writes registry/model_proposals/g1_codex_review.json.
 """
@@ -43,7 +45,9 @@ INSTR = """You are an adversarial reviewer of research-harness code that extract
 reports and registries, binds papers to trials, classifies screening exclusions, and screens records for RCT status.
 Correctness standards: a number must come from held text by rule; a percentage or Kaplan-Meier estimate is never a
 count; denominator kinds (randomised / analysed / safety) are never mixed; a paper binds to a trial only on its own
-evidence; a gate that can only pass is a defect; silent fallbacks that turn failure into "absent" are defects.
+evidence; a gate that can only pass is a defect; silent fallbacks that turn failure into "absent" are defects; an
+outcome or comparator result is bound to the topic's registered outcome only on its own evidence (another outcome's
+number served under our outcome's name is a P0); a check that cannot verify must refuse, never pass.
 
 Review the code below. Report only REAL defects you can demonstrate: for each, give the file, the function, a severity
 (P0 wrong number reaches a result / P1 wrong classification or binding / P2 robustness), the claim, a CONCRETE failing
@@ -68,13 +72,19 @@ def prompt(group, base):
 
 def main(argv):
     base = argv[argv.index("--base") + 1] if "--base" in argv else BASE
+    picked = [argv[i + 1] for i, a in enumerate(argv) if a == "--group" and i + 1 < len(argv)]
+    if picked:
+        GROUPS.clear()
+        for g in picked:
+            name, files = g.split("=", 1)
+            GROUPS[name] = [f for f in files.split(",") if f]
     data = json.load(open(PROP, encoding="utf-8")) if os.path.exists(PROP) else {"runs": {}}
     if "--run" in argv:
         def one(gname):
             p = prompt(gname, base)
             rec = mcl.call(p, schema=SCHEMA, model=MODEL, effort=EFFORT,
                            caller={"file": "scripts/g1_codex_review.py", "line": "main",
-                                   "purpose": f"G1 lane cross-vendor code review: {gname} (g1/tocilizumab lane)"},
+                                   "purpose": f"G1 lane cross-vendor code review: {gname} (base {base})"},
                            input_digests=[{"ref": f, "sha256": hashlib.sha256(open(os.path.join(ROOT, f), "rb").read()).hexdigest(),
                                            "what": "reviewed file"} for f in GROUPS[gname]],
                            timeout_s=1800)
