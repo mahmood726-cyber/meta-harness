@@ -5,10 +5,10 @@ found by codex (gpt-6-astra, read-only, recorded) while it reviewed the new tabs
 gate against the rendered page and the review's own `review.json`. "Re-checked" = I verified the contradiction against
 the data myself, not only the quote.
 
-## Served-number decision needed (Mahmood)
+## Served number: DECIDED by D16 (Mahmood, 8 Oct, "c then b"), in progress
 | # | topic | what | re-checked |
 |---|---|---|---|
-| H1 | noac-vs-warfarin-af-stroke | The PRIMARY pool serves ENGAGE AF-TIMI 48 as HR 0.87 (0.745-1.016), a 95% CI **converted** from the paper's 97.5% CI 0.73-1.04 (provenance `pre_specified_dose`). Decision **D7** (Mahmood, 7 Oct) says a re-expressed CI is for matching only and "NEVER enters a served pool"; D7 was applied to new pool additions and notices, not to this existing row. Enforcing D7 here changes a served primary number. | yes |
+| H1 | noac-vs-warfarin-af-stroke | The PRIMARY pool serves ENGAGE AF-TIMI 48 as HR 0.87 (0.745-1.016), a 95% CI **converted** from the paper's 97.5% CI 0.73-1.04 (provenance `pre_specified_dose`). Decision **D7** (Mahmood, 7 Oct) says a re-expressed CI is for matching only and "NEVER enters a served pool"; D7 was applied to new pool additions and notices, not to this existing row. Enforcing D7 here changes a served primary number. **D16-ENGAGE_CI_C_THEN_B:** C = one recorded open-source search for a PRINTED 95% CI (dispatched 8 Oct); B (not yet applied) only if C finds none. | yes |
 
 ## Served wording that contradicts the review object (legacy tabs)
 | # | topic | tab | page says | the object says | re-checked |
@@ -28,7 +28,6 @@ the data myself, not only the quote.
 | H14 | tocilizumab-covid19-mortality, tranexamic-acid-pph | Search | funnel row "unknown -> 0 -> 0" | state RAN_UNRECORDED: yields never recorded; zeros render as measured | span |
 | H15 | empagliflozin-hfpef-hosp | Changes (signed notice text) | "a pooled estimate is now served" | k = 1 single-trial estimate. Inside a SIGNED block: the bytes cannot change; a successor notice would be needed | span |
 | H16 | metformin-pcos-ovulation (all higher-is-better outcomes) | Conclusions | claim `direction` = "harm" for an ovulation OR > 1 | harness/claim.py defines benefit as < 1 for every ratio; it does not reverse for higher-is-better outcomes. The new tab now states claim.py's definition; the field itself is the defect | yes |
-
 | H17 | finerenone-ckd-t2d-renal, statins-primary-prevention-elderly | Comparison (panel) | k / effect / ci "NOT EXTRACTED from held text" | `comparator.reported` holds the adopted estimate, CI and a located span (finerenone HR 0.84, 0.77-0.92; statins seven trials) -- the panel fields are empty, the extraction exists | span (round 3) |
 | H18 | esketamine-trd-madrs | Comparison (panel) | "Trial set NOT ENUMERATED; overlap unknown." | the same panel says the adopted comparator's trial set and pooled result are typed, with spans verified | span (round 3) |
 | H19 | iv-iron-hfref-hosp | Results | "k = 2: the 2 trial(s) named below were pooled" | `suppressed_incompatible: true` (HR first event + incidence rate ratio) -- same family as H13 | span (round 3) |
