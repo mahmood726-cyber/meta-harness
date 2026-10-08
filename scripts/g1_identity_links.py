@@ -27,7 +27,7 @@ def load(path=None):
     its absence is a broken checkout, and reading it as empty would silently un-match every linked trial."""
     p = path or LINKS
     if not os.path.exists(p):
-        raise FileNotFoundError(f"identity links not found: {os.path.relpath(p, ROOT)} (committed file missing)")
+        raise FileNotFoundError(f"identity links not found: {p} (committed file missing; relpath raises across drives)")
     return json.load(open(p, encoding="utf-8"))
 
 
@@ -66,6 +66,14 @@ def registry_acronym_from_aact(nct, snap):
     return None, f"AACT {os.path.basename(snap)} studies.txt: {nct} not found"
 
 
+def signed(lk):
+    """The link carries Mahmood's signature: a SEEN_AND_SIGNED ratified block naming its item, his words and the packet
+    and item-section sha256 it was signed over (D13)."""
+    r = (lk or {}).get("ratified") or {}
+    return (r.get("state") == "SEEN_AND_SIGNED" and r.get("by") == "Mahmood" and bool(r.get("quote"))
+            and len(str(r.get("packet_sha256") or "")) == 64 and len(str(r.get("item_section_sha256") or "")) == 64)
+
+
 def supported(lk):
     """True only when the link carries BOTH typed facts, each with its span, and they agree with the link's NCT
     (codex idlink-r1 #1, r2 #1 #2):
@@ -74,6 +82,10 @@ def supported(lk):
       TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM -- the acronym span sits in the recorded PubMed title AND equals (folded) the
         REGISTRY's acronym for that NCT, recorded with its source (registry_acronym / registry_acronym_source)."""
     if not isinstance(lk, dict) or not str(lk.get("nct") or "").startswith("NCT"):
+        return False
+    # D13 (V10-06Q, signed 8 Oct 2026): a link joins only once Mahmood has signed it -- the two facts below are what he
+    # signs over; no heuristic joins on its own
+    if not signed(lk):
         return False
     rules = {r.get("rule"): r for r in (lk.get("rules") or []) if isinstance(r, dict)}
     if set(rules) != set(RULES) or len(lk.get("rules") or []) != 2:

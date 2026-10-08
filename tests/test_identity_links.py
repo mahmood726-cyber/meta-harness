@@ -26,7 +26,9 @@ def _link(nct, acro):
     return {"nct": nct, "rules": [
         {"rule": "ONE_NCT_STATED_IN_OWN_REPORT", "span": f"... Patients ({nct}). Study ...", "text_sha256": "a" * 64},
         {"rule": "TITLE_ACRONYM_EQUALS_REGISTRY_ACRONYM", "span": acro, "title": f"Results From the {acro} Study.",
-         "registry_acronym": acro, "registry_acronym_source": "AACT test studies.txt"}]}
+         "registry_acronym": acro, "registry_acronym_source": "AACT test studies.txt"}],
+            "ratified": {"state": "SEEN_AND_SIGNED", "by": "Mahmood", "quote": "q", "packet_sha256": "a" * 64,
+                         "item_section_sha256": "b" * 64}}
 
 
 def _unit(label, in_pool=False, route="NO_ROW"):
@@ -116,3 +118,21 @@ def test_PLANT_titles_that_open_with_the_article_or_a_comparison():
     assert L.title_names_own_study("The PARALLEL-HF Study: sacubitril/valsartan in Japan", "PARALLEL-HF")
     assert not L.title_names_own_study("Compared with the PARALLEL-HF trial: a cohort", "PARALLEL-HF")
     assert not L.title_names_own_study("Versus the PARALLEL-HF study", "PARALLEL-HF")
+
+
+def test_PLANT_d13_an_unsigned_link_never_joins():
+    """D13 (V10-06Q, signed 8 Oct): identity links join only once Mahmood has signed them."""
+    good = _link("NCT02468232", "PARALLEL-HF")
+    assert L.supported(good)
+    for bad in ({k: v for k, v in good.items() if k != "ratified"},
+                dict(good, ratified=dict(good["ratified"], state="PROPOSED")),
+                dict(good, ratified=dict(good["ratified"], packet_sha256="short"))):
+        trials, rows = [_unit("Tsutsui, 2021")], [object()]
+        assert not L.supported(bad)
+        assert L.join(trials, rows, {id(rows[0]): "33731544"}, {"NCT02468232": "NCT02468232"}, {"NCT02468232"}, set(),
+                      {"NO_ROW": 1}, {"33731544": bad}) == []
+
+
+def test_the_committed_link_is_signed_over_v10_06q():
+    r = L.load()["33731544"]["ratified"]
+    assert r["item"] == "V10-06Q" and r["quote"] == "yes all v10" and r["packet_sha256"].startswith("9086d538")
