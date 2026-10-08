@@ -545,7 +545,9 @@ def verify_k5(b, endpoint_ok):
     # final5-binding-r3 g1#1)
     import re as _re
     lab = _re.split(r"\d", spans["row_span"], maxsplit=1)[0]
-    if "%" in lab or _re.search(r"\bper ?cent", lab, _re.I):
+    # ... but 'n (%)' / 'no. (%)' / 'number (%)' declares counts WITH percentages (codex final5-binding-r4 g1#1)
+    if (("%" in lab or _re.search(r"\bper ?cent", lab, _re.I))
+            and not _re.search(r"\b(?:n|no\.?|number|events?|patients?)\s*\(\s*%\s*\)", lab, _re.I)):
         return False, "K5_ROW_IS_PERCENTAGES"
     cells, idx = _row_cells(spans["row_span"]), b.get("cells") or {}
     it, ic = idx.get("events_t"), idx.get("events_c")

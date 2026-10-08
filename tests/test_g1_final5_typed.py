@@ -97,3 +97,12 @@ def test_PLANT_codex_patients_assessed_is_not_a_death_count(tmp_path, monkeypatc
     monkeypatch.setenv("AACT_SNAPSHOT", _held(tmp_path, "At day 28, 200 patients were assessed for mortality.",
                                               {"state": "FETCH_EMPTY", "copy_licence": "NOT_OPEN"}))
     assert T.codex_28d()["result"] == "NOT_FOUND"
+
+
+def test_PLANT_codex_mortality_before_the_number_is_a_candidate(tmp_path, monkeypatch):
+    # codex final5-binding-r4 g1#3
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    monkeypatch.setenv("AACT_SNAPSHOT", _held(tmp_path, "At 28 days, mortality occurred in 45 patients in the treatment "
+                                                        "arm and 40 patients in the control arm.",
+                                              {"state": "FETCH_EMPTY", "copy_licence": "NOT_OPEN"}))
+    assert T.codex_28d()["result"] == "CANDIDATE"

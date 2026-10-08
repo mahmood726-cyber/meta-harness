@@ -232,3 +232,14 @@ def test_PLANT_k5_a_row_labelled_as_percentages_holds_no_counts(tmp_path, monkey
     b = k5(tmp_path, doc={"path": "doc.txt", "format": "xml", "text_sha256": sha(tmp_path / "doc.txt")},
            row_span="Hospitalizations due to worsening HF (%) 10 10 (7.6) 32 25 (19.4)")
     assert D.verify(b, None, ep("iv"))[1] == "K5_ROW_IS_PERCENTAGES"
+
+
+def test_k5_a_count_and_percentage_row_label_n_pct_still_reads_its_counts(tmp_path, monkeypatch):
+    # codex final5-binding-r4 g1#1: 'Deaths, n (%)' declares counts WITH percentages; only a percent-only label refuses
+    setup(tmp_path, monkeypatch)
+    doc = DOC.replace("<td>Hospitalizations due to worsening HF</td>",
+                      "<td>Hospitalizations due to worsening HF, n (%)</td>")
+    (tmp_path / "doc.txt").write_text(doc, encoding="utf-8")
+    b = k5(tmp_path, doc={"path": "doc.txt", "format": "xml", "text_sha256": sha(tmp_path / "doc.txt")},
+           row_span="Hospitalizations due to worsening HF, n (%) 10 10 (7.6) 32 25 (19.4)")
+    assert D.verify(b, None, ep("iv"))[1] != "K5_ROW_IS_PERCENTAGES"

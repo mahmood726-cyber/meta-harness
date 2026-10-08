@@ -290,7 +290,9 @@ def codex_28d():
         cnt = re.compile(r"(?<![\d.])\d+\s*(?:/|of)\s*\d+(?![\d.])|\d+(?:[.,]\d+)?\s*%|"
                          r"(?<![\d.,-])\d+\s+(?:deaths|died|deceased)\b|"
                          # people counted only when THEY died in the same clause (codex final5-binding-r3 g1#2)
-                         r"(?<![\d.,-])\d+\s+(?:patients|participants)\b[^.;]{0,80}?\b(?:died|deaths?|deceased)\b",
+                         r"(?<![\d.,-])\d+\s+(?:patients|participants)\b[^.;]{0,80}?\b(?:died|deaths?|deceased)\b|"
+                         # ... or the death named first ('mortality occurred in 45 patients'; r4 g1#3)
+                         r"\b(?:died|deaths?|deceased|mortality occurred)\b[^.;]{0,40}?\bin\s+\d+\s+(?:patients|participants)\b",
                          re.I)
         counts = [s for s in sents if cnt.search(s)]
         routes.append({"route": "held abstract", "outcome": (f"COUNTS_OR_PERCENTS_PRINTED:{counts[:2]}" if counts else

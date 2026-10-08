@@ -6631,5 +6631,60 @@
     "verdict": null
    }
   ]
+ },
+ "final5-binding-r4": {
+  "base": "636e94cbe",
+  "head": "d6aeb0e92",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6cc939186a66fa60dc593d0adc229eaf",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "6dacac1a5eed1abf71b7a24b2ca9606271c628a296bd8a9fb0ffaaa30b55cc6c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify_k5",
+    "severity": "P1",
+    "claim": "The new guard rejects count-and-percentage rows because their labels contain %, even when explicit integer counts are present.",
+    "failing_input": "At the added guard: spans['row_span'] = 'Deaths, n (%) 12 (20%) 15 (25%)'.",
+    "expected": "Continue validating the explicit counts 12 and 15; exclude the percentage cells.",
+    "actual": "Returns (False, 'K5_ROW_IS_PERCENTAGES') because lab is 'Deaths, n (%) '.",
+    "id": "final5-binding-r4:g1#1",
+    "record_id": "mc-6cc939186a66fa60dc593d0adc229eaf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "_finding_check",
+    "severity": "P1",
+    "claim": "The new guard incorrectly classifies mixed count-and-percentage rows as percentage-only evidence.",
+    "failing_input": "At the added guard: row = 'Deaths, n (%) 12 (20%) 15 (25%)', with the row present verbatim in plain(raw).",
+    "expected": "Continue validating the integer count cells rather than rejecting the row based on its mixed-unit label.",
+    "actual": "Returns 'ROW_IS_PERCENTAGES' because the prefix before the first digit contains %.",
+    "id": "final5-binding-r4:g1#2",
+    "record_id": "mc-6cc939186a66fa60dc593d0adc229eaf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The replacement regex misses explicit mortality counts when the mortality wording precedes the number, regressing previously detected evidence.",
+    "failing_input": "sents = ['At 28 days, mortality occurred in 45 patients in the treatment arm and 40 patients in the control arm.']",
+    "expected": "The sentence belongs in counts and produces a COUNTS_OR_PERCENTS_PRINTED outcome.",
+    "actual": "cnt.search returns None, leaving counts empty and selecting the NO_COUNTS outcome. The previous regex matched '45 patients'.",
+    "id": "final5-binding-r4:g1#3",
+    "record_id": "mc-6cc939186a66fa60dc593d0adc229eaf",
+    "verdict": null
+   }
+  ]
  }
 }
