@@ -173,7 +173,7 @@
       }
     ],
     "config_sha256": "ec8c2bf7318bb4c56b58b040ec696951f3cdea23120e22dcc0f0a097fda2ddd3",
-    "analysis_code_sha256": "698c7a76debaea9969c462b40cbfb6f44a6e50507c0eac8b31a19d07217014ac",
+    "analysis_code_sha256": "e29cc20b527e5ed6bd05f893e3db782403a1d09c5b4a28fcac18075fb6645528",
     "analysis_code_blobs": {
       "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
       "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -220,28 +220,30 @@
       "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
       "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
       "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
-      "harness/index.py": "6ee03f69de1debbe5d828962b1f8d95cc6c20507",
+      "harness/index.py": "299c17a2e385fa600cffef20b671567197f6b30f",
       "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
       "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
       "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
       "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
       "harness/limitations.py": "355fcb0bdd1961e84e4dc422db30546d44ef3bf3",
       "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-      "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
+      "harness/manuscript.py": "15b17feef78c8492abec0989242c9ec4455dbb2d",
       "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
       "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-      "harness/page.py": "b0475d07074b25e5b3684648f56edd8b261831ab",
+      "harness/page.py": "394234d25fce6c6298b3c7c1fb2bc6d74b154f52",
       "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
       "harness/pipeline.py": "1462a6445e92bf15d140b3d4b8af1ebdeaaff7f2",
       "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
       "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
       "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
       "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
+      "harness/provenance_class.py": "befbacbc1d8bd4a4f98a5808e8991bd6d06e2b09",
       "harness/reason_audit.py": "6950b0298265ef47e7ef83a44622a715bfe54d9e",
       "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
       "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
       "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
       "harness/result_changes.py": "3e649a68f6aa1464292930ffc4550d97cfe9a6de",
+      "harness/review_tabs.py": "d236fcea7cd2588190431b38a7816424328cd65a",
       "harness/rob2.py": "0b66b00267ac6c2b138174cc38644b3bf7a955d9",
       "harness/rob_sensitivity.py": "9fb571fc055f4d2ae559c7ee34efc7cf7ee22724",
       "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
@@ -275,7 +277,7 @@
         "harness/certificate.py",
         "scripts/reproduce_review.py"
       ],
-      "covers": "87 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+      "covers": "89 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
       "declared_but_absent": [
         "harness/effect_type.py"
       ],
@@ -310,7 +312,7 @@
       "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
       "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
     },
-    "manuscript_sha256": "42e8290e22711c3e925a6f2b535c830aaa7e81b595815f2dc359a9714c51fc9e",
+    "manuscript_sha256": "6b2f88ce749f55d41e32e8d2a725bba27bde1c877ba65a84ca8891ef34548456",
     "review_sha256": "e6ee5e700c0ad1b7e6966b5874f62118ad3822bdba0819b7dcde550707d28d23",
     "hash_inputs": {
       "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
@@ -332,9 +334,9 @@
       "review_sha256": "canonical review core (excludes reproduction)",
       "release_sha256": "canonical entire certificate excluding only release_sha256"
     },
-    "release_sha256": "c6d5cdf445b900917afdb1fca9de31651990fd593b9d979c34afe983c2823069"
+    "release_sha256": "a8a2edcdd45336ba42b96c9fbcaff5713b5c74407d8b1243ec12ceff86d72315"
   },
-  "html_sha256": "07f1614574da80cb8d942ef611f36891976b1de0f8750503ed9e735febd54bb7",
+  "html_sha256": "5b4c2675e6c46fea7afa97634fbdccaedffe453dc29f7ea0e11f7f17b20e9e59",
   "checks": [
     {
       "check": "render is deterministic",
