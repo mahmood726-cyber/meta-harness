@@ -752,10 +752,11 @@ def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False, anal
 
 def reported_is_our_outcome(name, spec_name, keywords):
     """Is a served comparator result (review.comparator.reported[i]) about OUR primary outcome? The binding gates on its
-    outcome name (OUTCOME_NOT_NAMED / ESTIMAND); an unnamed result is not refused. Tranexamic, 8 Oct: reported[0] was
-    the comparator's OWN primary 'Life-threatening postpartum bleeding', compared as if it were 'Death due to bleeding'."""
+    outcome name (OUTCOME_NOT_NAMED / ESTIMAND). Tranexamic, 8 Oct: reported[0] was the comparator's OWN primary
+    'Life-threatening postpartum bleeding', compared as if it were 'Death due to bleeding'. An UNNAMED result cannot be
+    verified and is refused (codex review 8 Oct gates#1; no served review carries one today, so nothing moves)."""
     if not name:
-        return True
+        return False
     return binding_verdict(spec_name, list(keywords or []), name, 2)["gate"] not in ("OUTCOME_NOT_NAMED", "ESTIMAND")
 
 

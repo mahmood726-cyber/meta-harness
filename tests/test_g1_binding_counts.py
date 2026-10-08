@@ -48,7 +48,7 @@ def test_a_served_comparator_result_for_another_outcome_is_not_our_comparison():
     assert gt.reported_is_our_outcome("Death due to bleeding", "Death due to bleeding", tx_kw)
     assert gt.reported_is_our_outcome("Recurrent VTE", "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or "
                                       "VTE-related death)", ["recurrent VTE", "recurrent venous thromboembolism"])
-    assert gt.reported_is_our_outcome(None, "Death due to bleeding", tx_kw)      # an UNNAMED served result is not refused
+    assert not gt.reported_is_our_outcome(None, "Death due to bleeding", tx_kw)  # an UNNAMED result cannot be verified
 
 
 def test_only_a_results_row_with_two_arm_cells_is_the_comparators_result():

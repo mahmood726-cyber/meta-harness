@@ -112,6 +112,18 @@ def _sentences(text):
                 yield s
 
 
+_CLAUSE_CUT = re.compile(r";|, but |, whereas |, while |, and |\. ", re.I)
+
+
+def clause_of(s, start, end):
+    """The clause that prints a number: from the last ';' / ', but' / ', whereas' / ', while' / ', and' before it, to the
+    number (codex review 8 Oct d10#1 / #4: 'All-cause mortality was not reported, but aspirin reduced bleeding (RR 0.70'
+    was labelled mortality; 'Denosumab was not evaluated, but risedronate ... (RR 0.80' passed as denosumab's)."""
+    head = s[:start]
+    cut = max((m.end() for m in _CLAUSE_CUT.finditer(head)), default=0)
+    return s[cut:end]
+
+
 def regex_inventory(text):
     """[{family, measure, estimate, lower, upper, span}] for every sentence printing a ratio / mean difference with an
     interval, labelled by the fixed families; plus the methods' named secondary outcomes. Matching runs on a 1:1
@@ -122,13 +134,14 @@ def regex_inventory(text):
         for m in EFFECT.finditer(n):
             a, b = (0, len(s)) if len(s) <= 400 else (max(0, m.start() - 250), m.end() + 60)
             span = s[a:b]
-            fam = "ALL_CAUSE_MORTALITY" if MORT.search(span) else "HARM" if HARM.search(span) else "OTHER"
+            clause = clause_of(s, m.start(), m.end())
+            fam = "ALL_CAUSE_MORTALITY" if MORT.search(clause) else "HARM" if HARM.search(clause) else "OTHER"
             key = (fam, m.group("e"), m.group("l"), m.group("u"))
             if key in seen:
                 continue
             seen.add(key)
             hits.append({"family": fam, "measure": m.group("m"), "estimate": _num(m.group("e")),
-                         "lower": _num(m.group("l")), "upper": _num(m.group("u")), "span": span})
+                         "lower": _num(m.group("l")), "upper": _num(m.group("u")), "span": span, "clause": clause})
     secs = [{"span": m.group(0)[:500], "list": m.group("list").strip()} for s in _sentences(text)
             for m in SECONDARY.finditer(s)]
     return hits, secs
@@ -261,12 +274,24 @@ def _words(t):
     return {w for w in re.findall(r"[a-z][a-z0-9-]{2,}", (t or "").lower()) if w not in _STOP}
 
 
+def negation_differs(a, b):
+    """One name negates a word the other asserts: 'nonfatal' / 'non-fatal' v 'fatal' (codex review 8 Oct d10#8)."""
+    def neg(ws):
+        return {re.sub(r"^non-?", "", w) for w in ws if re.match(r"^non-?\w{3,}", w)}
+    na, nb = neg(a), neg(b)
+    # only a CONTRADICTION: one name negates a word the other asserts. A word negated on one side and absent on the other
+    # is not one (DOAC's composite primary names both 'nonfatal PE' and 'fatal PE')
+    return bool((na & b) or (nb & a))
+
+
 def is_our_primary(name, t):
     """The candidate IS our primary outcome: its words overlap our primary's name by >= half of either, or it contains
     one of our primary's specific keywords (>= 8 characters)."""
     po = t["primary_outcome"]
     a, b = _words(name), _words(po["name"])
     # Jaccard >= 0.5: one shared word ('death' in 'Death within 24 h' v 'Death due to bleeding') is not identity (7 Oct)
+    if negation_differs(a, b):
+        return False
     if a and b and len(a & b) / len(a | b) >= 0.5:
         return True
     return any(len(k) >= 8 and k.lower() in (name or "").lower() for k in po.get("keywords") or [])
@@ -276,10 +301,15 @@ def linked_to(name, t):
     """An outcome already declared in topics/<slug>.json (secondary or harm) that the candidate names -> its name."""
     low = (name or "").lower()
     for o in (t.get("secondary_outcomes") or []) + (t.get("harm_outcomes") or []):
-        if o["name"].lower() in low or low in o["name"].lower() or \
+        if _phrase_in(o["name"].lower(), low) or _phrase_in(low, o["name"].lower()) or \
                 any(len(k) >= 6 and k.lower() == low for k in o.get("keywords") or []):
             return o["name"]
     return None
+
+
+def _phrase_in(needle, hay):
+    """A whole phrase, not negated by a 'non' / 'non-' / 'no ' prefix (codex review 8 Oct d10#2)."""
+    return bool(needle) and bool(re.search(r"(?<![\w-])(?<!non-)(?<!non )(?<!no )" + re.escape(needle) + r"(?![\w-])", hay))
 
 
 def _population_score(quote, t):
@@ -318,7 +348,8 @@ def candidates(inv, t):
              "estimate": h["estimate"], "lower": h["lower"], "upper": h["upper"], "k": None, "timepoint": None,
              "quote": h["span"], "basis": "R1 regex over the held comparator text", "prespecified": False}
         # a regex span has no typed contrast: it must at least NAME our intervention
-        (out.append(c) if named.search(h["span"]) else excluded.append(dict(c, excluded="SPAN_DOES_NOT_NAME_OUR_INTERVENTION")))
+        (out.append(c) if named.search(h.get("clause") or h["span"]) else
+         excluded.append(dict(c, excluded="CLAUSE_DOES_NOT_NAME_OUR_INTERVENTION")))
     return out, excluded
 
 
@@ -342,6 +373,9 @@ def _intervention_terms(t):
 
 
 def _term_re(terms):
+    terms = [x for x in terms if x]
+    if not terms:
+        return re.compile(r"(?!x)x")              # matches nothing (codex review 8 Oct d10#6: '' matched every boundary)
     return re.compile(r"\b(" + "|".join(re.escape(x) for x in sorted(set(terms), key=len, reverse=True)) + r")", re.I)
 
 
@@ -361,8 +395,12 @@ def contrast_is_ours(contrast, t, class_level_printed=True):
     """The result's own contrast names OUR intervention (an agent, a term or the class) AND our comparator (its terms or
     a generic control). A network meta-analysis's 'risedronate vs placebo' is not denosumab's result (7 Oct)."""
     c = contrast or ""
-    if not (_term_re(_intervention_terms(t)).search(c) and
-            _term_re([x for x in (t.get("comparator_terms") or []) if len(x) >= 3] + GENERIC_CONTROL).search(c)):
+    comp = [x for x in (t.get("comparator_terms") or []) if len(x) >= 3]
+    # a generic control is OUR comparator only when our comparator is itself a control (codex review 8 Oct d10#5:
+    # 'aspirin versus placebo' passed for an aspirin-versus-clopidogrel topic)
+    if any(_term_re(GENERIC_CONTROL).search(x) for x in comp):
+        comp = comp + GENERIC_CONTROL
+    if not (_term_re(_intervention_terms(t)).search(c) and _term_re(comp).search(c)):
         return False
     # a CLASS topic (>= 2 agents) whose comparator prints class-level results: the result must be the class's, never one
     # agent's split ('canagliflozin vs placebo' inside an SGLT2-inhibitor meta, 7 Oct). A comparator that pools ONE
@@ -379,6 +417,12 @@ def population_is_ours(population, t):
     """The whole analysis (null), or a subgroup whose words overlap our protocol question / eligibility."""
     if not population:
         return True
+    ours = f"{t.get('question') or ''} {t.get('eligibility_summary') or ''}"
+    neg = re.compile(r"\b(?:without|excluding|non-?|no|not)\s+(\w+)", re.I)
+    ours_neg = {w.lower() for w in neg.findall(ours)}
+    # 'Adults without diabetes' shares 'diabetes' with 'adults with diabetes' -- and contradicts it (codex review 8 Oct)
+    if any(w.lower() in _words(ours) and w.lower() not in ours_neg for w in neg.findall(population)):
+        return False
     return bool(_words(population) & (_words(t.get("question")) | _words(t.get("eligibility_summary"))))
 
 
@@ -667,6 +711,12 @@ def _aact_rows(name, nct):
     return list(aa._rows(name, {nct}))
 
 
+def is_total_sae(name):
+    """'(Incidence of) serious adverse events' -- never a qualified subset ('Cardiac serious adverse events'), which the
+    AACT 'Total, serious adverse events' row does not measure (codex review 8 Oct d10#3)."""
+    return bool(re.fullmatch(r"(?:total |any |all )?serious adverse events?", _LEAD.sub("", (name or "").strip().lower())))
+
+
 def aact_typed(nct, outcome_name, spec, t):
     """Typed AACT rungs for one (trial, outcome): TC reported_event_totals (all-cause mortality / serious adverse
     events), TD a reported_events term equal to one of the outcome's keywords. -> (row or None, [refusals])."""
@@ -677,7 +727,7 @@ def aact_typed(nct, outcome_name, spec, t):
     refusals = []
     kws = [k.lower() for k in spec.get("keywords") or []]
     is_mort = any(MORT.search(k) for k in kws) or bool(MORT.search(outcome_name))
-    is_sae = bool(re.search(r"\bserious adverse events?\b", outcome_name, re.I))
+    is_sae = is_total_sae(outcome_name)
     if is_mort or is_sae:
         cls = "Total, all-cause mortality" if is_mort else "Total, serious adverse events"
         rows = [r for r in _aact_rows("reported_event_totals.txt", nct) if r.get("classification") == cls]

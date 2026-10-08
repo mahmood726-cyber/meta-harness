@@ -143,12 +143,15 @@ def test_a_text_that_is_not_openly_licensed_never_enters_a_prompt(monkeypatch):
 def test_the_deterministic_table_reader_refuses_an_ambiguous_table():
     text = ("Outcome | A (N = 100) | B (N = 100)\nDeath at 30 days — no. (%) | 10 (10.0) | 20 (20.0)\n"
             "Death at 90 days — no. (%) | 15 (15.0) | 25 (25.0)\n")
-    assert ga.table_tuple(text, ["death"], None) is None                       # two rows, no timepoint to choose
-    assert ga.table_tuple(text, ["death"], "90 days")[1]["events_t"] == 15
+    # the header's arms are named by OUR terms (codex review 8 Oct gates#4: an unnamed column order is never assumed)
+    assert ga.table_tuple(text, ["death"], "90 days") is None                  # 'A' / 'B' name no arm of ours
+    assert ga.table_tuple(text, ["death"], None, ["A"], ["B"]) is None         # two rows, no timepoint to choose
+    assert ga.table_tuple(text, ["death"], "90 days", ["A"], ["B"])[1]["events_t"] == 15
 
 
 def test_plant_a_table_row_from_a_copy_not_open_is_refused_not_kept(tmp_path, monkeypatch):
-    text = ("Outcome | Balanced (N = 7942) | Saline (N = 7860)\n"
+    # the REAL SMART header wording (PMC5846085): the arms are named, so the reader can orient them (codex review 8 Oct)
+    text = ("Outcome | Balanced Crystalloids (N = 7942) | Saline (N = 7860)\n"
             "In-hospital death before 30 days — no. (%) | 818 (10.3) | 875 (11.1)\n")
     prop = tmp_path / "prop.json"
     prop.write_text(json.dumps({"runs": {"x|SMART": {"slug": "balanced-crystalloids-vs-saline-mortality", "label": "SMART",

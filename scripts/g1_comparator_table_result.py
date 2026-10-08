@@ -41,6 +41,34 @@ def _f(s):
     return float(s.replace("·", "."))
 
 
+_CAPTION = re.compile(r"^\s*(?:Table|Figure|Fig\.?)\s*\d", re.I)
+
+
+def header_above(lines, i):
+    """The nearest header above row i with two 'n/N' arm columns, never across a table / figure caption: a row of the
+    NEXT table must not take the previous table's header (codex review 8 Oct counts#6 -- its arm order could be the
+    reverse)."""
+    for j in range(i - 1, max(i - 40, -1), -1):
+        if _CAPTION.search(lines[j]):
+            return None
+        if len(re.findall(r"\(n/N\)", lines[j])) == 2:
+            return j
+    return None
+
+
+def aligned(rc, arms, est_col):
+    """[(arm_t, arm_c, estimate) matches] for each column offset (0 or 1) at which every index exists in the row AND all
+    three cells parse (codex review 8 Oct counts#7: offset 1 indexed past a four-cell row)."""
+    fits = []
+    for off in (0, 1):
+        idx = (arms[0] + off, arms[1] + off, est_col + off)
+        if max(idx) < len(rc):
+            a, b, e = _EN.match(rc[idx[0]]), _EN.match(rc[idx[1]]), _EST.match(rc[idx[2]])
+            if a and b and e:
+                fits.append((a, b, e))
+    return fits
+
+
 def is_result_row(line):
     """A RESULTS row prints two 'e/N' arm cells (a trial-characteristics row naming the outcome -- 'Diagnosis of
     postpartum haemorrhage at baseline | Yes | No' -- is not one)."""
@@ -66,7 +94,7 @@ def table_result(slug):
     if len(rows) != 1:
         return None, f"T1_ROW: {len(rows)} rows name the outcome"
     i = rows[0]
-    hdr = next((j for j in range(i - 1, max(i - 40, -1), -1) if len(re.findall(r"\(n/N\)", lines[j])) == 2), None)
+    hdr = header_above(lines, i)
     if hdr is None:
         return None, "T2_HEADER: no header with two n/N columns"
     hc = [c.strip() for c in lines[hdr].split("|")]
@@ -82,12 +110,7 @@ def table_result(slug):
     # a header may omit the row-label column ('Contributing trials | Tranexamic acid group (n/N) | ...' over rows that
     # begin with the outcome name): the column offset is the one -- 0 or 1 -- at which BOTH arm cells and the estimate
     # cell parse; zero or two such offsets refuse
-    fits = []
-    for off in (0, 1):
-        if len(rc) > est_col + off:
-            a, b, e = _EN.match(rc[arms[0] + off]), _EN.match(rc[arms[1] + off]), _EST.match(rc[est_col + off])
-            if a and b and e:
-                fits.append((a, b, e))
+    fits = aligned(rc, arms, est_col)
     if len(fits) != 1:
         return None, f"T3_CELLS: {len(fits)} column alignments parse"
     a, b, e = fits[0]

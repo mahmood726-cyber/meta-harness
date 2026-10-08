@@ -62,11 +62,27 @@ def topic(slug):
 
 
 def _int(x):
+    import math
     try:
         f = float(str(x).replace(",", ""))
     except (TypeError, ValueError):
         return None
-    return int(f) if f == int(f) and f >= 0 else None
+    # NaN / Infinity are not counts (codex review 8 Oct counts#8: int() raised on them)
+    return int(f) if math.isfinite(f) and f == int(f) and f >= 0 else None
+
+
+def people_count_units(units):
+    """Units of a COUNT of people: a people word and no rate / proportion / per-time marker ('Participants/100
+    patient-years' passed the old blacklist: codex review 8 Oct counts#4)."""
+    u = units or ""
+    return bool(PEOPLE.search(u)) and not re.search(r"percent|proportion|\brate\b|\bper\b|/|year|incidence|%|mean|"
+                                                     r"median|days?\b|weeks?\b|months?\b", u, re.I)
+
+
+def paper_names_nct(rec, nct, registered):
+    """The paper binds to this NCT only on its own evidence: its record's NCT, or the PMID's own registrations
+    (codex review 8 Oct counts#5: a PMID was attached to another trial's posted counts unchecked)."""
+    return bool(nct) and (nct == (rec or {}).get("nct") or nct in (registered or []))
 
 
 # ---------------------------------------------------------------------------------------------------------------- K1
@@ -83,11 +99,11 @@ def aact_counts(nct, slug):
     titles = {(r["outcome_id"], r["ctgov_group_code"]): r.get("title") for r in _rows("result_groups.txt", nct)
               if (r.get("result_type") or "").lower() == "outcome"}
     ns = {(r["outcome_id"], r["ctgov_group_code"]): _int(r.get("count")) for r in _rows("outcome_counts.txt", nct)
-          if (r.get("scope") or "").lower() == "measure" and PEOPLE.search(r.get("units") or "")}
+          if (r.get("scope") or "").lower() == "measure" and people_count_units(r.get("units"))}
     meas = {}
     for r in _rows("outcome_measurements.txt", nct):
         if r["outcome_id"] in outs and (r.get("param_type") or "").upper() in ("NUMBER", "COUNT_OF_PARTICIPANTS") and \
-                PEOPLE.search(r.get("units") or "") and not re.search(r"percent|proportion|rate|per 100", r.get("units") or "", re.I):
+                people_count_units(r.get("units")):
             meas.setdefault(r["outcome_id"], []).append(r)
     refusals, cands = [], []
     for oid, rows in meas.items():
@@ -136,7 +152,14 @@ _NGIVEN = r"(?<![\d.,])(\d[\d,]*)\s+(?:were\s+)?(?:given|assigned to|randomi[sz]
 
 
 def _pct_ok(x, n, p):
-    return n > 0 and abs(100.0 * x / n - p) <= 0.5 * 10 ** (-len(str(p).split(".")[1]) if "." in str(p) else 0) + 1e-9
+    """x/n rounds to the PRINTED percentage p (a string: '1.00' carries two decimals -- a float dropped them and
+    widened the tolerance tenfold, codex review 8 Oct counts#3)."""
+    ps = str(p)
+    dec = len(ps.split(".")[1]) if "." in ps else 0
+    return n > 0 and abs(100.0 * x / n - float(ps)) <= 0.5 * 10 ** (-dec) + 1e-9
+
+
+_KIND = re.compile(r"randomi[sz]ed|analy[sz]ed|safety|evaluable|treated|per[- ]protocol", re.I)
 
 
 def names_our_outcome(text, kws):
@@ -171,12 +194,16 @@ def abstract_counts(abstract, slug, aact_n=None):
            re.finditer(r"primary (?:efficacy )?(?:outcome|end ?point) (?:was|were|for both studies was)\s+([^.]{5,300})",
                        abstract or "", re.I)):
         kws += ["primary efficacy outcome", "primary outcome"]
-    for s in sents:
-        if not any(k in s.lower() for k in kws):
+    # the numbers must sit in the SAME ';'-clause as our outcome's words, AFTER them (codex review 8 Oct counts#1:
+    # 'All-cause mortality was not reported; stroke occurred in 10 of 100 ...' bound stroke counts as mortality)
+    clauses = [c for s0 in sents for c in s0.split(";")]
+    for s in clauses:
+        kp = [s.lower().find(k) for k in kws if k in s.lower()]
+        if not kp:
             continue
         hits = []
         for m in _XN.finditer(s):
-            x, n, p = _int(m.group(1)), _int(m.group(2)), float(m.group(3))
+            x, n, p = _int(m.group(1)), _int(m.group(2)), m.group(3)
             if x is None or n is None or not _pct_ok(x, n, p):
                 continue
             hits.append((m, x, n, p))
@@ -184,11 +211,16 @@ def abstract_counts(abstract, slug, aact_n=None):
         if len(hits) != 2:
             hits, mode = [], "EVENTS_PLUS_N"
             for m in _XE.finditer(s):
-                x, p = _int(m.group(1)), float(m.group(2))
+                x, p = _int(m.group(1)), m.group(2)
                 if x is not None:
                     hits.append((m, x, None, p))
-        if len(hits) != 2:
+        if len(hits) != 2 or hits[0][0].start() < min(kp):
             continue
+        if mode == "X_OF_N":
+            # one denominator KIND for both arms (codex review 8 Oct counts#2: 'randomised' 100 v 'analysed' 80)
+            kinds = [{k.lower()[:5] for k in _KIND.findall(s[m.start():m.end() + 30])} for m, *_ in hits]
+            if kinds[0] != kinds[1]:
+                return None, f"DENOMINATOR_KINDS_DIFFER: {sorted(kinds[0])} v {sorted(kinds[1])}"
         roles = []
         for m, *_ in hits:
             # the arm named INSIDE the match ('51 events with enoxaparin-vitamin K antagonist [3.0%') or right after it,
@@ -255,6 +287,10 @@ def bind(slug, label, pmid, nct):
     out = {"slug": slug, "label": label, "pmid": pmid, "ncts": [nct] if nct else [], "own_tuple": True, "tuple_kind": "COUNTS",
            "outcome": topic(slug)["primary_outcome"]["name"]}
     refusals = []
+    if nct and pmid:
+        import g1_trial_acquire as ta
+        if not paper_names_nct(recs.get(pmid), nct, sorted(ta.registered_ncts(pmid))):
+            return dict(out, state="NOT_BOUND", why=f"PAPER_DOES_NOT_NAME_{nct}", aact_refusals=[])
     if nct:
         b, refusals = aact_counts(nct, slug)
         if b:

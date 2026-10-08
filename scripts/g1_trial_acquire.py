@@ -366,8 +366,8 @@ def unpaywall_evidence(pmid, terms):
     try:
         u = k_gap.unpaywall_text(doi, os.path.join(ROOT, "outputs", "k_gap", "_upw"),
                                  os.path.join(ROOT, "outputs", "k_gap", "unpaywall_text_index.json"), offline=False)
-    except Exception:  # noqa: BLE001 - no copy is a result, never a guess
-        return "", "", None, doi, None
+    except Exception as exc:  # noqa: BLE001 - a retrieval FAILURE is not an absent copy (codex review 8 Oct gates#9)
+        raise RuntimeError(f"UNPAYWALL_RETRIEVAL_ERROR: {type(exc).__name__}: {str(exc)[:160]}") from exc
     t = u.get("text") or ""
     if len(t) < 3000:
         return "", "", None, doi, None
@@ -515,13 +515,65 @@ def typed_match_table(quote, resp, terms):
 _TABLE_HEAD = re.compile(r"^[^\n]*\(\s*[Nn]\s*=\s*[\d,]+\s*\)[^\n]*\(\s*[Nn]\s*=\s*[\d,]+\s*\)[^\n]*$", re.M)
 
 
-def table_tuple(text, terms, timepoint=None):
+_NOT_A_COUNT_ROW = re.compile(r"kaplan|\bk-?m\b|estimate|cumulative incidence|\brate\b|standard error|\bse\b|per \d|"
+                              r"hazard|incidence/", re.I)
+_COMPOSITE_LABEL = re.compile(r"\b(?:or|and/or)\b|/|\+", re.I)
+_NOT_RANDOMISED = re.compile(r"safety|per[- ]protocol|as[- ]treated|on[- ]treatment|evaluable|completers?", re.I)
+_TIME = re.compile(r"\b(\d+)\s*(?:-|\s)?(days?|weeks?|months?|years?|d|wk|mo|yr)\b", re.I)
+
+
+def label_time_ok(label, timepoint):
+    """A row label naming a time is admissible only inside the protocol's timepoint: a number it names, inside a range it
+    names ('28-90 day'), or the same in-hospital window ('In-hospital death before 30 days' under '28-90 day or
+    in-hospital': SMART). A label naming no time is not refused here; a protocol with no number refuses nothing."""
+    times = [int(m.group(1)) for m in _TIME.finditer(label or "")]
+    tp = str(timepoint or "")
+    nums = [int(x) for x in re.findall(r"\d+", tp)]
+    if not times or not nums:
+        return True
+    if re.search(r"in[- ]hospital", tp, re.I) and re.search(r"in[- ]hospital", label or "", re.I):
+        return True
+    rng = re.search(r"(\d+)\s*[-–]\s*(\d+)", tp)
+    lo, hi = (int(rng.group(1)), int(rng.group(2))) if rng else (None, None)
+    return any(t in nums or (lo is not None and lo <= t <= hi) for t in times)
+
+
+def _header_order(head, interv_terms, comp_terms):
+    """'IC' / 'CI' from the two '(N = n)' column labels of the header, each named by OUR terms; else None (codex review
+    8 Oct gates#4: column 1 was always taken as the intervention, even under 'Placebo (N = 100) | Drug (N = 100)')."""
+    cols = [c for c in (head or "").split("|") if _COL_N.search(c)][:2]
+    if len(cols) != 2 or not interv_terms or not comp_terms:
+        return None
+    iv = re.compile("|".join(re.escape(t) for t in interv_terms if t), re.I)
+    cv = re.compile("|".join(re.escape(t) for t in comp_terms if t), re.I)
+    roles = ["I" if (iv.search(c) and not cv.search(c)) else "C" if (cv.search(c) and not iv.search(c)) else "?"
+             for c in cols]
+    return "".join(roles) if "".join(roles) in ("IC", "CI") else None
+
+
+def arm_terms(cfg):
+    """(intervention terms, comparator terms) of a topic: its terms, agents (list or {agent: aliases}) and class terms."""
+    import g1_outcomes as go
+    return go._intervention_terms(cfg), [t for t in (cfg.get("comparator_terms") or []) if t]
+
+
+def table_tuple(text, terms, timepoint=None, interv_terms=None, comp_terms=None):
     """DETERMINISTIC: the outcome's row in a table of the trial's own held text (no model; for a text that may not be
     shown to one). A table = a header line with two arm Ns + the following '|' rows; a candidate row names an outcome
     term and passes typed_match_table (percent-corroborated). One candidate -> its tuple; several -> the one whose label
-    names the protocol's timepoint number, else None (ambiguous is never a pick)."""
+    names the protocol's timepoint number, else None (ambiguous is never a pick).
+    Codex review 8 Oct (gates#2-#7), each refused: a composite label ('Death or hospitalisation'); a row whose label says
+    it is an estimate / rate ('Kaplan-Meier estimate %'); a header whose arm order our terms cannot read; a label naming
+    a timepoint other than the protocol's; a header naming a non-randomised population ('Safety population'); two
+    candidates that differ in ANY of events or denominators."""
     cands = []
+    tnum = re.search(r"\d+", str(timepoint or ""))
     for h in _TABLE_HEAD.finditer(text or ""):
+        if _NOT_RANDOMISED.search(h.group(0)):
+            continue
+        order = _header_order(h.group(0), interv_terms, comp_terms)
+        if not order:
+            continue
         ns = [int(x.replace(",", "")) for x in _COL_N.findall(h.group(0))][:2]
         block = [h.group(0)]
         gap = 0
@@ -535,18 +587,22 @@ def table_tuple(text, terms, timepoint=None):
                 break
         for line in block[1:]:
             cells = _CELL.findall(line)
-            if len(cells) < 2:
+            label = line.split("|")[0]
+            if len(cells) < 2 or _NOT_A_COUNT_ROW.search(label) or \
+                    (_COMPOSITE_LABEL.search(label) and not any(_COMPOSITE_LABEL.search(t) for t in terms)):
                 continue
+            if not label_time_ok(label, timepoint):
+                continue                               # a labelled timepoint outside the protocol's
             r = {"events_t": int(cells[0][0].replace(",", "")), "n_t": ns[0],
                  "events_c": int(cells[1][0].replace(",", "")), "n_c": ns[1]}
             m = typed_match_table(block[0] + "\n" + line, r, terms)
             if m:
-                cands.append((line.split("|")[0].strip(), r, block[0] + "\n" + line))
-    if len(cands) > 1 and timepoint:
-        num = re.search(r"\d+", str(timepoint))
-        if num:
-            cands = [c for c in cands if re.search(r"\b" + num.group(0) + r"\b", c[0])] or cands
-    uniq = {(c[1]["events_t"], c[1]["events_c"]) for c in cands}
+                if order == "CI":                      # the header names the control first: swap, never assume
+                    r = {"events_t": r["events_c"], "n_t": r["n_c"], "events_c": r["events_t"], "n_c": r["n_t"]}
+                cands.append((label.strip(), r, block[0] + "\n" + line))
+    if len(cands) > 1 and timepoint and tnum:
+        cands = [c for c in cands if re.search(r"\b" + tnum.group(0) + r"\b", c[0])] or cands
+    uniq = {(c[1]["events_t"], c[1]["n_t"], c[1]["events_c"], c[1]["n_c"]) for c in cands}
     return cands[0] if len(uniq) == 1 else None
 
 
@@ -584,6 +640,10 @@ def gate(resp, held, cfg, slug):
                           n_t=resp["n_t"] if counts else None, events_c=resp["events_c"] if counts else None,
                           n_c=resp["n_c"] if counts else None)
     if src == "PMC_TEXT":
+        # the text read IS the held paper (codex review 8 Oct gates#8: source_ref '111' was admitted on PMID 222's text)
+        ref = str(resp.get("source_ref") or "").replace("PMID", "").strip()
+        if held.get("pmid") and ref != str(held["pmid"]):
+            return "REFUSED:SOURCE_REF_IS_NOT_THE_HELD_PAPER", None
         q = _ws(resp["quote"])
         if not held["text"] or not q or q not in _ws(held["text"]):
             return "REFUSED:QUOTE_NOT_VERBATIM_IN_WHOLE_TEXT", None
@@ -727,7 +787,7 @@ def typed_first(t, cfg, held):
         else:
             ok, copy = str(held.get("doi_licence") or "").startswith("cc"), {"doi": held.get("doi"),
                                                                             "licence": held.get("doi_licence")}
-        tt = table_tuple(held["text"], terms, po.get("timepoint")) if ok else None
+        tt = table_tuple(held["text"], terms, po.get("timepoint"), *arm_terms(cfg)) if ok else None
         if tt and not posted_population_short(t["slug"], t["pmid"], tt[1]["n_t"] + tt[1]["n_c"]):
             return "ADMITTED", {"kind": "TEXT_TABLE", "source": f"{held.get('text_origin')} held full text sha256 "
                                                                 f"{held['sha']} (read deterministically: table_tuple)",
@@ -869,7 +929,8 @@ def replay(slugs, ref):
         if verdict != "ADMITTED" and held["text"]:
             # the trial's OWN held text, read DETERMINISTICALLY (no model): its outcome table row under the arm Ns. The
             # route for a text that may not be shown to a model (SMART: an NIH author manuscript, not CC-licensed)
-            tt = table_tuple(held["text"], outcome_row_terms(cfg), (cfg.get("primary_outcome") or {}).get("timepoint"))
+            tt = table_tuple(held["text"], outcome_row_terms(cfg), (cfg.get("primary_outcome") or {}).get("timepoint"),
+                             *arm_terms(cfg))
             copy = pmc_copy(r["pmid"]) if tt else None
             if tt and copy["licence"] not in OPEN_COPY:
                 # the row is read from a copy that is not legitimately open: refused, never kept
