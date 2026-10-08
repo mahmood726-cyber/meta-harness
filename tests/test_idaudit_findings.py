@@ -92,6 +92,10 @@ def label_registration_contradictions(trials):
             continue
         acrs = [_n(re.sub(r"\bNCT\d{8}\b", "", a)) for a in k_gap.identity_tokens(r["label"])["acronyms"]]
         acrs = [a for a in acrs if len(a) >= 4]
+        # the whole short label too: identity_tokens reads 'RE-COVER' as the acronym 'COVER' (it drops 'RE-'), which
+        # neither prefixes 'RECOVERI' nor appears in an acronym-free title -- a false contradiction on the V9-03 labels
+        if acrs and len(_n(r["label"])) >= 4:
+            acrs.append(_n(r["label"]))
         for nct in r["ncts"]:
             st = (r.get("study") or {}).get(nct) or {}
             reg = _n(st.get("acronym"))

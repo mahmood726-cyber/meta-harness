@@ -73,11 +73,13 @@ def test_the_denominator_reasons_are_the_ones_audited():
         kinds[r["kind"]] = kinds.get(r["kind"], 0) + 1
     # OTHER_AGENT 2 (5 Oct): + VERTIS-CV (dapagliflozin), an ertugliflozin trial scoped by k-gap's identity chain;
     # 4 since 17eb3a55 (SOLOIST-WHF, SCORED: IDENTITY_CHAIN_REGISTRY). COMPARATOR_RETIRED 57 since the 5 Oct comparator
-    # swaps (statins 27, melatonin 19, esketamine 6, dpp4 5); the new comparators' rows come back in as 'added'.
-    assert kinds == {"COMPARATOR_RETIRED": 57, "DUPLICATE_UNIT": 1, "OTHER_AGENT": 4, "NOT_IN_COMPARATOR_TABLE": 2,
+    # swaps (statins 27, melatonin 19, esketamine 6, dpp4 5); 64 since V9-03 (doac 7: van Es 2014 retired for its
+    # licence, span from the recorded licence probe); the new comparators' rows come back in as 'added'.
+    assert kinds == {"COMPARATOR_RETIRED": 64, "DUPLICATE_UNIT": 1, "OTHER_AGENT": 4, "NOT_IN_COMPARATOR_TABLE": 2,
                      "RELABELLED": 1}
     assert {r["slug"] for r in LED["removed"] if r["kind"] == "COMPARATOR_RETIRED"} == {
-        "statins-primary-prevention-elderly", "melatonin-primary-insomnia-sol", "esketamine-trd-madrs", "dpp4-mace-t2d"}
+        "statins-primary-prevention-elderly", "melatonin-primary-insomnia-sol", "esketamine-trd-madrs", "dpp4-mace-t2d",
+        "doac-vte-recurrence"}
     assert all(r["rule_id"].startswith("COMPARATOR_RETIRED:") and r["retired_comparator_pmid"] != r["replaced_by"]
                for r in LED["removed"] if r["kind"] == "COMPARATOR_RETIRED")
     vc = next(r for r in LED["removed"] if r["label"] == "VERTIS-CV")
@@ -94,7 +96,7 @@ def test_the_tracker_artefact_itself_carries_every_removal_with_rule_and_span():
     assert dl.tracker_problems(LED) == []
     src = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "G1_SOURCE.json"), encoding="utf-8"))
     assert src["denominator"]["baseline_N"] == 367 and src["denominator"]["current_N"] == LED["current"]["N"]
-    assert src["denominator"]["by_kind"]["COMPARATOR_RETIRED"] == 57
+    assert src["denominator"]["by_kind"]["COMPARATOR_RETIRED"] == 64             # + doac 7 (V9-03)
 
 
 def test_PLANT_a_tracker_removal_without_rule_or_span_is_refused(tmp_path, monkeypatch):

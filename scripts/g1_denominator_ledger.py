@@ -139,6 +139,56 @@ ADOPT = os.path.join(ROOT, "registry", "comparator_selection", "{slug}.adoption.
 ENUM = os.path.join(ROOT, "registry", "comparator_enumerations", "{slug}.json")
 
 
+LICENCES = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "licences.json")
+
+
+def _is_open_licence(lic):
+    """CC BY (any version, no NC/ND/SA qualifier), CC0 or public domain -- the licences rule criterion C1 accepts. Normalised
+    so 'CC BY 4.0' / 'cc-by-4.0' / 'CC0 1.0' are open (codex v9-apply-r8 #1); 'cc by-nc' is not."""
+    import re
+    raw = str(lic or "").lower()
+    u = re.search(r"creativecommons\.org/(licenses|publicdomain)/([a-z-]+)", raw)
+    if u:
+        # a canonical licence URL is classified by its path (codex v9-apply-r12 #1)
+        return (u.group(1), u.group(2)) in (("licenses", "by"), ("publicdomain", "zero"), ("publicdomain", "mark"))
+    # FAIL-SAFE token test instead of an exact-name list (r8, r11, r13 each found another spelling: '4.0', 'International',
+    # 'Universal', 'Public License'): any restricting qualifier -> not open; otherwise any CC BY / attribution / CC0 /
+    # public-domain mention -> open. A misreading toward 'open' only REFUSES a licence retirement -- the safe direction.
+    s = re.sub(r"[\s_-]+", " ", raw).strip()
+    if re.search(r"\b(nc|nd|sa|non ?commercial|no ?deriv\w*|share ?alike)\b", s):
+        return False
+    return bool(re.search(r"\bcc ?by\b|\battribution\b|\bcc ?0\b|\bcc zero\b|\bcreative commons zero\b|\bpublic domain\b|^pd$", s))
+
+
+def _licence_entry(pmid):
+    """The recorded licence probe's entry for a PMID ({license, open, pmcid, state}), or None."""
+    if not os.path.exists(LICENCES):
+        return None
+    return _j(LICENCES).get(str(pmid))
+
+
+def _licence_retirement(r, a):
+    """V9-03: a comparator retired ONLY for its licence (R0 C1_OPEN_LICENCE) has no open text to quote -- that is the
+    reason it was retired. Its span is the recorded licence probe's VERBATIM entry for the retired PMID
+    (outputs/k_gap/g1_binding/licences.json, sha256 recorded), which must say LOOKED_UP, not open, and carry no CC BY /
+    CC0 licence. Anything else: None (the removal then stays a ledger problem)."""
+    import re
+    pmid = str(r.get("comparator_pmid") or "")
+    e = _licence_entry(pmid)
+    # a complete probe only: 'open' explicitly false and the 'license' field present (codex v9-apply-r7 #2 -- missing
+    # fields are unknown status, not a closed licence)
+    if not e or e.get("state") != "LOOKED_UP" or e.get("open") is not False or "license" not in e \
+            or _is_open_licence(e.get("license")):
+        return None
+    raw = open(LICENCES, encoding="utf-8").read()
+    m = re.search(r'"' + re.escape(pmid) + r'"\s*:\s*\{[^{}]*\}', raw)     # any JSON spacing (codex v9-apply-r9 #2)
+    if not m:
+        return None
+    return {"retired_pmid": pmid, "reason_code": r["reason_code"], "new_pmid": a["comparator_pmid"],
+            "span": {"text": m.group(0), "parts": [m.group(0)],
+                     "source": os.path.relpath(LICENCES, ROOT).replace(os.sep, "/"), "source_sha256": _sha(LICENCES)}}
+
+
 def retired_comparator(slug, cur_pmid):
     """A COMPARATOR REPLACEMENT recorded for this topic (registry/comparator_selection/<slug>.adoption.json): the topic's
     current comparator is the adopted one, and the old one is retired with a reason code and spans copied VERBATIM from
@@ -150,6 +200,8 @@ def retired_comparator(slug, cur_pmid):
     if str(a.get("comparator_pmid")) != str(cur_pmid) or not a.get("retired"):
         return None
     r = a["retired"]
+    if not r.get("spans") and str(r.get("reason_code") or "").startswith("R0:C1_OPEN_LICENCE"):
+        return _licence_retirement(r, a)
     src = os.path.join(ROOT, (r.get("source") or {}).get("path") or "")
     if not os.path.isfile(src) or _sha(src) != r["source"].get("sha256"):
         return None

@@ -14,11 +14,27 @@ sys.path.insert(0, ROOT)
 import g1_reconcile as rc  # noqa: E402
 from harness import event_total_check as ec  # noqa: E402
 
+import pytest  # noqa: E402
+
+PRE_V9 = os.path.join(ROOT, "tests", "fixtures", "doac_tracker_pre_v9.json")
+
+
+@pytest.fixture
+def pre_v9(monkeypatch):
+    """The doac tracker row as it stood against van Es 2014 (24963045), pinned from main 63dcc5beb. V9-03 (signed 'yes
+    to all', 7 Oct) replaced that comparator; the reconciliation mechanisms are tested on the pinned artefact."""
+    real = rc._j
+
+    def j(p):
+        return real(PRE_V9) if os.path.normpath(p).endswith(os.path.join("g1", "doac-vte-recurrence.json")) else real(p)
+    monkeypatch.setattr(rc, "_j", j)
+
+
 COMP = ("Recurrent VTE occurred in 2.0% of DOAC recipients compared with 2.2% in VKA recipients (relative risk [RR] "
         "0.90, 95% confidence interval [CI] 0.77-1.06).")
 
 
-def test_the_trials_report_more_events_than_the_comparators_rates_can_hold():
+def test_the_trials_report_more_events_than_the_comparators_rates_can_hold(pre_v9):
     r = rc.reconcile("doac-vte-recurrence")["comparator_conclusion"]["whole_pool"]["event_total_check"]
     assert r["state"] == "EVENTS_INCOMPATIBLE_WITH_COMPARATOR_RATES"
     assert r["trial_events_total"] == 702 and r["comparator_max_events"] == 608.0
@@ -35,7 +51,7 @@ def test_event_check_is_consistent_or_not_decidable_otherwise():
     assert ec.check(COMP, ["recurrent VTE"], None, t)["state"] == "NOT_DECIDABLE"      # no stated total
 
 
-def test_reconcile_classes_on_a_whole_pool_topic():
+def test_reconcile_classes_on_a_whole_pool_topic(pre_v9):
     r = rc.reconcile("doac-vte-recurrence")
     cls = sorted({t["cls"] for t in r["trials"]})
     assert cls[0] == "MATCHED_NO_COMPARATOR_ROW" and len(cls) == 2                      # never DISAGREE / UNCLASSIFIED
@@ -52,8 +68,7 @@ def test_a_full_text_scope_verdict_survives_a_clone_without_the_body():
 def test_the_tracker_carries_why_doac_vte_cannot_agree():
     # 6 / 6 eligible matched; RESULT_AGREES unmet. The tracker row itself says why: different measures, AND the
     # comparator's printed rates cannot hold the trials' own primary-outcome events -- it counted a different outcome
-    import g1_tracker as gt
-    o = json.load(open(os.path.join(gt.G1_DIR, "doac-vte-recurrence.json"), encoding="utf-8"))
+    o = json.load(open(PRE_V9, encoding="utf-8"))                    # pinned: the van Es 2014 comparison (pre V9-03)
     assert o["N_eligible"] == 6 and o["k_matched"] == 6 and o["g1_status"]["unmet"] == ["RESULT_AGREES"]
     oc = o["same_trials"]["outcome_check"]
     # state renamed by the ratified HR/RR class (f34580f9): WHOLE_POOL_MEASURE_DIFFERS -> MEASURE_DIFFERENCE + basis; a

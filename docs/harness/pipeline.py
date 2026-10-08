@@ -1576,8 +1576,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     from . import served_pool_additions as _spa
     _signed_rows = _spa.admitted_rows(slug, spec.get("name"))
     if _signed_rows:
-        _have = {str(t.get("id")) for t in trials}
-        trials = trials + [r for r in _signed_rows if spec.get("withdrawn") or str(r.get("id")) not in _have]
+        # a signed row replaces the pipeline's own row of the same trial (V9-02; harness.served_pool_additions)
+        trials = _spa.merge_signed(trials, _signed_rows, withdrawn=bool(spec.get("withdrawn")))
     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
     absent.extend(_inadmissible)
     if spec.get("withdrawn"):
