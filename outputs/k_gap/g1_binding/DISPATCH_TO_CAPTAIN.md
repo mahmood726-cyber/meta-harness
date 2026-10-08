@@ -491,3 +491,101 @@ These show the closest candidate and what it failed (ties broken by most recent)
 - The NC-licence policy gap.
 - fulltext_index entries without a pmcid never verify.
 - A request for a CT.gov declared-ref form.
+
+---
+
+## D10 multi-outcome: 12 active topics (8 Oct, branch g1/binding-on-d0848a72 @ 0e5fb4b0c)
+
+**Order of work (each step committed and pushed before the next):**
+1. The rule was committed before any inventory: a40e00850.
+2. Comparator outcome inventories and deterministic proposals: 10878e620.
+3. **Dated protocol amendments: f70d28ff8, registered BEFORE any extraction.**
+4. Extraction, the recorded rung and comparisons: a7935a7d7 to 4e1626e3d.
+
+**What was used:**
+- 104 recorded codex calls: 24 for the inventory, 80 for extraction. All pass record_licence.
+- All calls ran locally at concurrency 5. The worker (100.80.183.43) has been unreachable since about 12:40 on 7 Oct (ssh connect timeout); nothing ran there.
+
+### Amendments: 17 new outcomes in 6 topics, plus 4 links (`protocols/<slug>.md` "Amendment 2026-10-07 (D10 …)" and `topics/<slug>.json`)
+
+These moved protocol_sha for the 6 topics, so the served build needs your rebuild.
+
+| topic | new outcomes (family) | linked to an already-registered outcome |
+|---|---|---|
+| iv-iron | total deaths (P1); serious adverse events (P2); non-HF hospitalizations, CV hospitalization or death composite, 6MWT distance (P3) | - |
+| tranexamic | death within 24 h (P1); MI, stroke, sepsis, seizures (P2) | Thromboembolic events |
+| sglt2-ppHF | death from any cause (P1); MACE, cardiovascular death (P3) | - |
+| doac-vte | total mortality (P1); net clinical benefit (P3) | - |
+| statins | all-cause mortality (P1) | - |
+| colchicine-pericarditis | drug withdrawals (P2) | Adverse events (gastrointestinal) |
+
+**Nothing admissible under the rule** (each exclusion is recorded with its reason in the topic's proposal.json):
+- corticosteroids: the comparator splits results by steroid; its class mortality is our primary.
+- sacubitril: nothing beyond the primary is printed with a CI in the abstract we may read.
+- semaglutide: the comparator is a GLP-1 / GIP-GLP-1 class meta, not semaglutide.
+- melatonin: the copy is not CC; neither the abstract nor the held text gives a pooled non-primary result.
+- sglt2-ckd: subgroups only.
+- denosumab: a network meta-analysis whose denosumab results are secondary-prevention only (the same reason R0 gave, C3).
+
+### Results: our pool vs the comparator's printed pool, on its measure (comparison.json per topic)
+
+The comparator printed a pooled result only, so the trial sets can differ; both k values are given.
+
+| topic / outcome | ours | comparator | verdict | our rows |
+|---|---|---|---|---|
+| iv-iron / Total deaths | k=2 of 9, OR 0.97 (0.37-2.51) | OR 0.85 (0.70-1.03) | SAME_CONCLUSION_DIFFERENT_ESTIMATE | AFFIRM-AHF CT.gov structured 98/558 v 96/550 (ladder); HEART-FID AACT 'Total, all-cause mortality' 354/1532 v 367/1533 (typed) |
+| iv-iron / Serious adverse events | k=2 of 9, OR 0.91 (0.14-6.07) | OR 0.73 (0.49-1.10) | SAME_CONCLUSION_DIFFERENT_ESTIMATE | AFFIRM-AHF abstract 250/559 v 282/551 (ladder); HEART-FID AACT 'Total, serious adverse events' 413/1532 v 401/1533 (typed) |
+| statins / All-cause mortality | k=1 of 5, HR 0.80 (0.62-1.04) | OR 0.94 (0.76-1.16) | MEASURE_DIFFERENCE_SAME_CONCLUSION (never converted) | JUPITER ≥70 years, abstract (ladder) |
+| sglt2-ppHF / Death from any cause | k=1 of 7, RR 0.90 (0.69-1.19) | RR 0.77 (0.59-1.01) | SAME_CONCLUSION_DIFFERENT_ESTIMATE | CANVAS AACT totals 134/2886 v 74/1441 (typed; the two canagliflozin doses summed, the control counted once) |
+| the other 13 outcomes | - | printed | NO_ROWS | no open source holds them (see below) |
+| iv-iron / 6MWT | - | MD 14.03 | MEASURE_DIFFERENCE_NOT_POOLABLE | only an LS-mean ± SE row |
+
+**Why 13 outcomes are NO_ROWS** (recorded per trial in acquired.json):
+- The trial reports are non-CC journal articles, so their full text is never shown to a model.
+- AACT 'Total, all-cause mortality' rows for pre-2017 results carry no counts.
+- The posted effects are HRs where the registered measure is the comparator's OR/RR.
+- Recorded-rung verdicts:
+  - SOURCE_ABSENT 65
+  - NO_OPEN_SOURCE 22
+  - gate refusals 12: AACT arms, a typed match not found beside the outcome terms, a quote not verbatim
+  - UNSURE 2
+
+### BLOCKER before you rebuild these 6 topics: the served ladder mis-binds four new-outcome rows
+
+The served pipeline would put another outcome's number under the new outcome's name. My comparison sets these rows aside by name (`g1_outcomes.ladder_misbound`, 6 plants), but the served build does not:
+
+1. **iv-iron "Non-HF hospitalizations" gets AFFIRM-AHF's CT.gov "HF Hospitalisations" HR 0.73 (0.59-0.92).** The structured target-endpoint binding loses the negation; binding_verdict refuses it (OUTCOME_NOT_NAMED).
+2. **sglt2-ppHF "Death from any cause" gets DECLARE's RENAL HR 0.76 (0.67-0.87).** That effect is printed in the clause before "death from any cause occurred in 6.2% and 6.6%".
+3. **iv-iron "Serious adverse events" includes IRONMAN's "cardiac serious adverse events" 200 v 243**, a qualified subset.
+4. **statins "All-cause mortality" gets STAREE's composite "death from any cause, dementia, or persistent physical disability" HR 0.94.** The stored source sentence is cut before the HR, so its clause cannot even be checked.
+
+Classes:
+- (1) the structured-title binder accepts a title naming no keyword of the outcome;
+- (2) the abstract extractor takes an effect from a clause that does not name the outcome;
+- (3) a qualified subset;
+- (4) a composite list.
+
+The served extractors are yours (harness/extract, target_endpoint). I changed nothing there, because any fix moves other topics' served numbers. The four sentences above are ready-made plants.
+
+### For V9 / notices (all for Mahmood's signature; nothing landed, nothing served by this lane)
+
+- **New served outcomes.** After a rebuild with the four mis-bindings fixed or refused:
+  - iv-iron Total deaths (AFFIRM-AHF row) and SAE (AFFIRM-AHF row);
+  - statins All-cause mortality (JUPITER ≥70 row).
+
+  Each is a new pooled claim, "a pooled estimate is now served where none was served before". Derive them with derive_outcome_notices after the rebuild.
+- **Proposed served-pool additions** (typed rows from AACT, read deterministically; they need the signed-addition route):
+  - HEART-FID deaths 354/1532 v 367/1533 and SAE 413/1532 v 401/1533 (NCT03037931);
+  - CANVAS deaths 134/2886 v 74/1441 (NCT01032629, doses summed).
+- **New harm outcomes** (iv-iron SAE; tranexamic MI, stroke, sepsis, seizures; colchicine drug withdrawals) face gate.check_harms_complete. Trials whose source mentions a harm without a poolable value need typed refusals (the held_harms_adjudication style) before they serve.
+- **Ratchet gap (from the pipeline map).** honest_ratchet.compare_results loops over BASE outcomes only, so a new outcome passes the ratchet unchecked. Completeness is enforced only by signing_packet.completeness_problems.
+
+### Lane fixes made along the way (each with a plant that failed first)
+
+- **Inventory (R1 regex):** middle-dot decimals, the PDF '¼' standing for '=', bracketed abbreviations, CI without 95%.
+- **Pooled gate:** a middle dot between digits is a decimal point (all 21 tranexamic claims had been refused).
+- **Inventory v2:** every result now carries its contrast and population (v1 had proposed risedronate's and canagliflozin-only results).
+- **Proposal filters:** a class topic needs the class result, not one agent's split; a single-agent comparator is the whole analysis; our-primary identity uses Jaccard.
+- **Counts:** arm counts are read from ai/n1i/ci/n2i (my reader had dropped every count).
+- **g1_trial_acquire._num_in:** a (thin-)space thousands separator such as '10 033'.
+- **Tests:** 929 g1/licence/swap/comparator/outcome tests pass.
