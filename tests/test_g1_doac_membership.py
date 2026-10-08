@@ -75,9 +75,15 @@ def test_pre_fix_majeed_was_an_unaudited_seventh_trial():
 
 def test_after_v9_03_the_denominator_is_the_new_comparators_five_trials():
     """V9-03: comparator 29795629 (CC BY), 5 enumerated trials, all matched and PRIMARY; RESULT_AGREES is the only unmet
-    criterion (no same-measure comparison yet). The retired comparator's rows are COMPARATOR_RETIRED in the ledger."""
+    criterion (no same-measure comparison yet). The retired comparator's rows are COMPARATOR_RETIRED in the ledger.
+    Restated 8 Oct (D12 COUNTS_FOR_MATCHING, "approve d12"): the same-trials comparison is now made on the comparator's
+    OR from each trial's OWN verified counts, so RESULT_AGREES is met and nothing is unmet; our served HRs are unchanged."""
     import g1_tracker as gt
     o = json.load(open(os.path.join(gt.G1_DIR, SLUG + ".json"), encoding="utf-8"))
     assert o["comparator_pmid"] == "29795629"
     assert o["N_eligible"] == 5 and o["k_matched"] == 5 and o["open_gaps"] == []
-    assert o["g1_status"]["unmet"] == ["RESULT_AGREES"]
+    assert o["g1_status"]["unmet"] == []
+    used = o["same_trials"]["d12_counts_for_matching"]
+    assert sorted(u["trial"] for u in used) == ["AMPLIFY", "EINSTEIN-DVT", "Hokusai-VTE", "RE-COVER", "RE-COVER II"]
+    assert all(u["served_value_unchanged"]["measure"] in ("HR", "RR") for u in used)
+    assert o["same_trials"]["verdict"]["verdict"] == "AGREE"
