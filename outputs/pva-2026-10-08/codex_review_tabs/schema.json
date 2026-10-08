@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["topics_checked", "findings"],
+  "properties": {
+    "topics_checked": {"type": "array", "items": {"type": "string"}},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slug", "kind", "tab", "title", "page_quote", "evidence", "why", "fix", "confidence"],
+        "properties": {
+          "slug": {"type": "string"},
+          "kind": {"type": "string", "enum": ["UNSUPPORTED", "FALSE_REASON", "MISLEADING", "ACCESSIBILITY"]},
+          "tab": {"type": "string"},
+          "title": {"type": "string"},
+          "page_quote": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+                       "required": ["file", "quote"], "properties": {"file": {"type": "string"}, "quote": {"type": "string"}}}},
+          "why": {"type": "string"},
+          "fix": {"type": "string"},
+          "confidence": {"type": "string", "enum": ["high", "medium", "low"]}
+        }
+      }
+    }
+  }
+}

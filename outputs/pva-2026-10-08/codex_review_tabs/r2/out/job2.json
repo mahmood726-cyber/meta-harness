@@ -1,0 +1,67 @@
+{
+  "topics_checked": [
+    "empagliflozin-hfpef-hosp",
+    "esketamine-trd-madrs",
+    "finerenone-ckd-t2d-renal",
+    "glp1-ra-mace-t2d",
+    "iv-iron-hfref-hosp"
+  ],
+  "findings": [
+    {
+      "slug": "empagliflozin-hfpef-hosp",
+      "kind": "MISLEADING",
+      "tab": "Changes & signatures",
+      "title": "Single-trial estimate still described as pooled",
+      "page_quote": "Conclusion changed: a pooled estimate is now served where none was served before: a new claim, not a continuation.",
+      "evidence": [
+        {
+          "file": "empagliflozin-hfpef-hosp/review.json",
+          "quote": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1)."
+        }
+      ],
+      "why": "The change notice calls the currently served estimate pooled, whereas the review explicitly identifies it as a single trial's reported effect. The round-one wording issue remains in this tab.",
+      "fix": "Preserve the signed notice bytes and add an adjacent clarification that the served estimate is single-trial, not pooled.",
+      "confidence": "high"
+    },
+    {
+      "slug": "finerenone-ckd-t2d-renal",
+      "kind": "MISLEADING",
+      "tab": "Results & conclusions",
+      "title": "Claim-check coverage asserted despite zero result claims checked",
+      "page_quote": "The claim check (<code>reproduction.claim_check</code>) compares the page's statements about the primary result with this object;",
+      "evidence": [
+        {
+          "file": "finerenone-ckd-t2d-renal/review.json",
+          "quote": "\"claims_checked\": 0"
+        },
+        {
+          "file": "finerenone-ckd-t2d-renal/review.json",
+          "quote": "\"outcome_result\": 0"
+        }
+      ],
+      "why": "The wording implies that the displayed primary-result claim was checked. The recorded check reports zero claims checked and zero outcome-result coverage.",
+      "fix": "Render the recorded coverage counts and state that no primary outcome-result claim was checked at this build.",
+      "confidence": "high"
+    },
+    {
+      "slug": "iv-iron-hfref-hosp",
+      "kind": "MISLEADING",
+      "tab": "Results & conclusions",
+      "title": "Strand checks presented as checking the primary claim object",
+      "page_quote": "The claim check (<code>reproduction.claim_check</code>) compares the page's statements about the primary result with this object;",
+      "evidence": [
+        {
+          "file": "iv-iron-hfref-hosp/review.json",
+          "quote": "\"outcome_result\": 0"
+        },
+        {
+          "file": "iv-iron-hfref-hosp/review.json",
+          "quote": "\"strand_pool\": 4"
+        }
+      ],
+      "why": "The recorded result checks cover four strand pools and zero outcome results. The text instead attributes checking to the displayed primary outcome claim object.",
+      "fix": "Describe the recorded strand-pool coverage explicitly and avoid asserting that the primary outcome claim object was checked.",
+      "confidence": "high"
+    }
+  ]
+}
