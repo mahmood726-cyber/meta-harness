@@ -146,6 +146,15 @@ def items():
     return out
 
 
+_NUM = re.compile(r"(?<![\d.,])(\d{1,3}(?:,\d{3})+(?![\d])|\d+)((?:[.,]\d+)?)(\s*%)?")
+
+
+def count_tokens(q):
+    """The whole numbers a quote prints AS numbers that can be counts: '1,274' is 1274; a decimal ('7.6', decimal comma
+    '0,5') or a percentage ('10%', '0,5 %') is never a count (codex final5-binding-r1a g1#2, r2 g1#1)."""
+    return {int(m.group(1).replace(",", "")) for m in _NUM.finditer(q or "") if not m.group(2) and not m.group(3)}
+
+
 def gate(ans, shown):
     """FOUND counts only if the quote is verbatim in the SAME bytes shown and every reported count is a token of it."""
     if ans.get("state") != "FOUND":
@@ -156,9 +165,7 @@ def gate(ans, shown):
     if not parts or any(len(p) < 20 or p not in shown for p in parts):
         return "QUOTE_NOT_VERBATIM"
     q = " ".join(parts)
-    # a number followed by '%' is a percentage, never a count (codex final5-binding-r1a g1#2)
-    toks = {int(x.replace(",", "")) for x in re.findall(
-        r"(?<![\d.])\d{1,3}(?:,\d{3})+(?![\d.])(?!\s*%)|(?<![\d.,])\d+(?![\d.])(?!\s*%)", q)}
+    toks = count_tokens(q)
     miss = [k for k in ("events_t", "n_t", "events_c", "n_c") if ans.get(k) is not None and ans[k] not in toks]
     return f"NUMBER_NOT_IN_QUOTE:{','.join(miss)}" if miss else "GATED"
 

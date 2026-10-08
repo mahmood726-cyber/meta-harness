@@ -6519,5 +6519,73 @@
     "verdict": null
    }
   ]
+ },
+ "final5-binding-r2": {
+  "base": "44cc3308d",
+  "head": "2eb4cff58",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "c85551ed3fd609f933c729fd2c2e0ea5a48a73818af572f7d584576df70e22da"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_final5_readers.py",
+    "function": "gate",
+    "severity": "P0",
+    "claim": "The percentage filter accepts the integer prefix of a decimal-comma percentage as a death count.",
+    "failing_input": "At the changed numeric-check block, use q = 'Mortality was 0,5% versus 0,8% in groups of 100 participants.' and ans = {'events_t': 0, 'events_c': 0, 'n_t': 100, 'n_c': 100}. The supplied regex can be run directly with re.findall(pattern, q).",
+    "expected": "Reject both event counts: the quote contains percentages, not zero-death counts.",
+    "actual": "The regex matches ['0', '0', '100']; toks is {0, 100}, miss is [], and the numeric-check block returns 'GATED'.",
+    "id": "final5-binding-r2:g1#1",
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "Explicit per-arm death counts in ordinary prose are classified as absent because the detector only recognizes fractions and percentages.",
+    "failing_input": "Call codex_28d() with outcomes.txt containing only 'id|nct_id\\n'; records.json containing {\"records\":[{\"id\":\"32876695\",\"abstract\":\"At 28 days, 45 patients died in the dexamethasone group and 50 patients died in the control group.\"}]}; and fulltext_index.json containing {\"32876695\":{\"state\":\"FETCH_EMPTY\"}}.",
+    "expected": "The abstract route identifies the printed death counts and prevents a NOT_FOUND result.",
+    "actual": "The abstract route returns 'NO_COUNTS (28-day mortality sentences: 1, none with a count or a percentage)' and the overall result is 'NOT_FOUND'.",
+    "id": "final5-binding-r2:g1#2",
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "A missing abstract field is silently converted to empty text and reported as checked evidence of absence.",
+    "failing_input": "Call codex_28d() with outcomes.txt containing only 'id|nct_id\\n'; records.json containing {\"records\":[{\"id\":\"32876695\"}]}; and fulltext_index.json containing {\"32876695\":{\"state\":\"FETCH_EMPTY\"}}.",
+    "expected": "The held-abstract route is NOT_CHECKED because no abstract is held; the overall result is NOT_CHECKED.",
+    "actual": "r.get('abstract') or '' supplies empty text. The abstract route returns 'NO_COUNTS (28-day mortality sentences: 0, none with a count or a percentage)' and the overall result is 'NOT_FOUND'.",
+    "id": "final5-binding-r2:g1#3",
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "An index entry with no retrieval state counts as a completed PMC check, allowing missing evidence to produce NOT_FOUND.",
+    "failing_input": "Call codex_28d() with outcomes.txt containing only 'id|nct_id\\n'; records.json containing {\"records\":[{\"id\":\"32876695\",\"abstract\":\"Mortality at 28 days was not reported.\"}]}; and fulltext_index.json containing {\"32876695\":{\"copy_licence\":\"CC-BY\"}}.",
+    "expected": "The PMC route and overall result are NOT_CHECKED: a licence alone establishes neither a body read nor absence of counts.",
+    "actual": "The PMC route returns 'None (CC-BY)'. Because this does not start with NOT_CHECKED, POSTED, COUNTS, or HELD, the overall result is 'NOT_FOUND'.",
+    "id": "final5-binding-r2:g1#4",
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "verdict": null
+   }
+  ]
  }
 }

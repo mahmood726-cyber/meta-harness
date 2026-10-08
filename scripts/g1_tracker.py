@@ -2286,9 +2286,10 @@ def _finding_check(e, x, root):
     if len(row) < 12 or row not in plain(raw):
         return "ROW_SPAN_NOT_VERBATIM"
     m = re.search(r"\d", row)
-    # a percentage keeps its sign so it never equals a count (codex final5-binding-r1a g1#1)
-    cells = [t + ("%" if p else "") for t, p in
-             re.findall(r"(?<![\d.])(\d+(?:\.\d+)?)(?![\d.])(\s*%)?", row[m.start():])] if m else []
+    # a percentage keeps its sign and a decimal comma its comma, so neither equals a count; a thousands separator is read
+    # away (codex final5-binding-r1a g1#1, r2 g1#1; the same tokeniser as g1_d12._row_cells)
+    cells = [(n.replace(",", "") if not d else n) + d + ("%" if p else "") for n, d, p in
+             re.findall(r"(?<![\d.,])(\d{1,3}(?:,\d{3})+(?!\d)|\d+)((?:[.,]\d+)?)(\s*%)?", row[m.start():])] if m else []
     for side in ("comparator", "ours"):
         want = e.get("comparator_counts" if side == "comparator" else "our_counts") or {}
         for k in ("events_t", "events_c"):

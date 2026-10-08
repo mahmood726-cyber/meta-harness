@@ -52,3 +52,40 @@ def test_PLANT_engage_another_primary_endpoint_is_not_stroke_or_see(tmp_path, mo
     p.write_text(json.dumps(d), encoding="utf-8")
     r = T.engage_aact()
     assert r["result"] == "NOT_FOUND" and "NOT_STROKE_OR_SEE" in " ".join(r["analyses"][0]["why"])
+
+
+def _held(tmp_path, abstract, idx_entry):
+    c = tmp_path / "cache" / "corticosteroids-covid19-mortality"
+    c.mkdir(parents=True)
+    rec = {"id": "32876695"} if abstract is None else {"id": "32876695", "abstract": abstract}
+    (c / "records.json").write_text(json.dumps({"records": [rec]}), encoding="utf-8")
+    o = tmp_path / "outputs" / "k_gap"
+    o.mkdir(parents=True, exist_ok=True)
+    (o / "fulltext_index.json").write_text(json.dumps({"32876695": idx_entry} if idx_entry else {}), encoding="utf-8")
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    (snap / "outcomes.txt").write_text("id|nct_id|title\n1|NCT99999999|x\n", encoding="utf-8")
+    return str(snap)
+
+
+def test_PLANT_codex_prose_counts_are_a_candidate_not_absence(tmp_path, monkeypatch):
+    # codex final5-binding-r2 g1#2: '45 patients in the dexamethasone group died' was read as 'no counts'
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    monkeypatch.setenv("AACT_SNAPSHOT", _held(tmp_path, "By day 28, 45 patients in the dexamethasone group and 50 in the "
+                                                        "standard care group had died (mortality at 28 days).",
+                                              {"state": "FETCH_EMPTY", "copy_licence": "NOT_OPEN"}))
+    assert T.codex_28d()["result"] == "CANDIDATE"
+
+
+def test_PLANT_codex_a_missing_abstract_or_stateless_index_is_not_checked(tmp_path, monkeypatch):
+    # codex final5-binding-r2 g1#3 / g1#4
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    monkeypatch.setenv("AACT_SNAPSHOT", _held(tmp_path, None, {"state": "FETCH_EMPTY"}))
+    assert T.codex_28d()["result"] == "NOT_CHECKED"
+
+
+def test_PLANT_codex_an_index_entry_without_a_retrieval_state_is_not_checked(tmp_path, monkeypatch):
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    monkeypatch.setenv("AACT_SNAPSHOT", _held(tmp_path, "The primary outcome was ventilator-free days.",
+                                              {"copy_licence": "CC"}))
+    assert T.codex_28d()["result"] == "NOT_CHECKED"

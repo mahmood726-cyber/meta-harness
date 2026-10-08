@@ -45,3 +45,10 @@ def test_PLANT_a_percentage_in_the_quote_is_not_a_count():
     q = "FCM randomised n=100; placebo randomised n=100. Deaths at 28 days (Kaplan-Meier estimates): FCM 10%, placebo 20%."
     a = {"state": "FOUND", "quote": q, "events_t": 10, "n_t": 100, "events_c": 20, "n_c": 100}
     assert fr.gate(a, q).startswith("NUMBER_NOT_IN_QUOTE:events_t,events_c")
+
+
+def test_PLANT_a_decimal_comma_percentage_is_not_a_count():
+    # codex final5-binding-r2 g1#1: '0,5%' left its integer part '0' as a 'count'
+    q = "FCM n=100 and placebo n=100 were randomised. Deaths: FCM 0,5% and placebo 0,7% at 28 days."
+    a = {"state": "FOUND", "quote": q, "events_t": 0, "n_t": 100, "events_c": 0, "n_c": 100}
+    assert fr.gate(a, q).startswith("NUMBER_NOT_IN_QUOTE:events_t,events_c")

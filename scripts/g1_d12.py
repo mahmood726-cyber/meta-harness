@@ -489,11 +489,15 @@ def _held_doc(doc):
 
 def _row_cells(row):
     """The row's value tokens after its label: '10', '7.6', '95/324' (an 'e/N' cell is one token). A percentage keeps its
-    sign ('10%', '10 %' -> '10%') so it can never equal a count (codex final5-binding-r1a g1#1)."""
+    sign ('10%', '10 %' -> '10%') and a decimal comma its comma ('0,5%'), so neither can ever equal a count (codex
+    final5-binding-r1a g1#1, r2 g1#1). A thousands separator is read away ('1,274' -> '1274')."""
     import re
     m = re.search(r"\d", row)
-    toks = re.findall(r"(?<![\d.])(\d+(?:\.\d+)?(?:/\d+)?)(?![\d.])(\s*%)?", row[m.start():]) if m else []
-    return [t + ("%" if pct else "") for t, pct in toks]
+    out = []
+    for n, dec, den, pct in (re.findall(r"(?<![\d.,])(\d{1,3}(?:,\d{3})+(?!\d)|\d+)((?:[.,]\d+)?)((?:/\d+)?)(\s*%)?",
+                                        row[m.start():]) if m else []):
+        out.append((n.replace(",", "") if not dec else n) + dec + den + ("%" if pct else ""))
+    return out
 
 
 def _header_ns(header):

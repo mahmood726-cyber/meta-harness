@@ -278,24 +278,33 @@ def codex_28d():
     rp = os.path.join(ROOT, "cache", "corticosteroids-covid19-mortality", "records.json")
     ab = None
     if os.path.isfile(rp):
-        ab = next((r.get("abstract") or "" for r in json.load(open(rp, encoding="utf-8")).get("records", [])
+        ab = next((r.get("abstract") for r in json.load(open(rp, encoding="utf-8")).get("records", [])
                    if str(r.get("id")) == pmid), None)
-    if ab is None:
-        routes.append({"route": "held abstract", "outcome": "NOT_CHECKED (not held)"})
+    if not (ab or "").strip():
+        # no record, or a record with no abstract: nothing was read (codex final5-binding-r2 g1#3)
+        routes.append({"route": "held abstract", "outcome": "NOT_CHECKED (no abstract held)"})
     else:
         sents = [s for s in re.split(r"(?<=[.;])\s+", ab) if re.search(r"mortality|death|died", s, re.I)
                  and re.search(r"28", s)]
-        counts = [s for s in sents if re.search(r"(?<![\d.])\d+\s*(?:/|of)\s*\d+(?![\d.])|\d+(?:\.\d+)?\s*%", s)]
+        # a count written as a fraction, 'e of N', a percentage, or in prose ('45 patients ... died') (r2 g1#2)
+        cnt = re.compile(r"(?<![\d.])\d+\s*(?:/|of)\s*\d+(?![\d.])|\d+(?:[.,]\d+)?\s*%|"
+                         r"(?<![\d.,-])\d+\s+(?:patients|participants|deaths|died|deceased)\b", re.I)
+        counts = [s for s in sents if cnt.search(s)]
         routes.append({"route": "held abstract", "outcome": (f"COUNTS_OR_PERCENTS_PRINTED:{counts[:2]}" if counts else
                                                              "NO_COUNTS (28-day mortality sentences: "
                                                              f"{len(sents)}, none with a count or a percentage)")})
     fi = os.path.join(ROOT, "outputs", "k_gap", "fulltext_index.json")
     st = (json.load(open(fi, encoding="utf-8")).get(pmid) or {}) if os.path.isfile(fi) else None
-    routes.append({"route": "PMC body", "outcome": f"{st.get('state')} ({st.get('copy_licence') or 'licence unread'})"
-                   if st else "NOT_CHECKED (no index entry)"})
+    # only a recorded retrieval OUTCOME is a check: an entry with a licence but no state read nothing (r2 g1#4); a HELD
+    # body is a candidate to read, never an absence
+    absent = ("FETCH_EMPTY", "NO_PMCID", "PUBLISHER_DISALLOWS_XML")
+    s_ = (st or {}).get("state")
+    routes.append({"route": "PMC body", "outcome": (f"{s_} ({st.get('copy_licence') or 'licence unread'})" if s_ in absent
+                                                    else f"HELD_BODY_UNREAD ({st.get('copy_licence')})" if s_ == "HELD"
+                                                    else f"NOT_CHECKED (index state {s_!r})")})
     oks = [r["outcome"] for r in routes]
     res = ("NOT_CHECKED" if any(o.startswith("NOT_CHECKED") for o in oks) else
-           "CANDIDATE" if any(o.startswith(("POSTED", "COUNTS", "HELD")) for o in oks) else "NOT_FOUND")
+           "CANDIDATE" if any(o.startswith(("POSTED", "COUNTS", "HELD_BODY")) for o in oks) else "NOT_FOUND")
     return {"trial": "CoDEX", "pmid": pmid, "nct": nct, "result": res, "routes": routes}
 
 
