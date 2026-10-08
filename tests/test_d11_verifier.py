@@ -74,3 +74,25 @@ def test_the_adjudicator_is_verified_against_its_own_items_sources(monkeypatch):
     monkeypatch.setattr(G, "_load", lambda name: (None, recs[name]))
     rows = G.panel("rob", items, pf, af, lambda it: {it["src"]: texts[it["src"]]}, 1, [], False)
     assert rows[0]["final"]["D1_randomisation"] == "low", rows[0]["adjudicator"]["v"]
+
+
+def test_v2_a_disputed_domain_needs_both_adjudicators_to_agree(monkeypatch):
+    # memo 5 option b (approved 8 Oct): two adjudicators from different model families; disagreement stays UNRESOLVED
+    monkeypatch.setattr(G, "VERSION", 2)
+    items = [{"item_id": "t1", "slug": "s", "src": "pubmed:1"}]
+    text = {"pubmed:1": "randomly assigned by a central computer system"}
+
+    def claim(d1, q):
+        return _rob(D1_randomisation={"judgement": d1, "source": "pubmed:1", "quote": q})
+    recs = {"A1": claim("low", "randomly assigned"), "B1": claim("some_concerns", "central computer"),
+            "ADJUDICATOR SEAT 1 of 2.\nADJ1": claim("low", "central computer system"),
+            "ADJUDICATOR SEAT 2 of 2.\nADJ1": claim("some_concerns", "randomly assigned")}
+    pf = lambda it, r="A": ((r + "1").encode(), [])  # noqa: E731
+    af = lambda it, ca, cb, dis: (b"ADJ1", [])  # noqa: E731
+    monkeypatch.setattr(G, "_index", lambda: {G._sha(k.encode()): k for k in recs})
+    monkeypatch.setattr(G, "_load", lambda name: (None, recs[name]))
+    rows = G.panel("rob", items, pf, af, lambda it: text, 1, [], False)
+    assert rows[0]["final"]["D1_randomisation"] == "UNRESOLVED"
+    recs["ADJUDICATOR SEAT 2 of 2.\nADJ1"] = claim("low", "randomly assigned")
+    rows = G.panel("rob", items, pf, af, lambda it: text, 1, [], False)
+    assert rows[0]["final"]["D1_randomisation"] == "low"

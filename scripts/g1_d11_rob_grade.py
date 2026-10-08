@@ -200,6 +200,54 @@ Judge from the sources only. Return only the JSON object.
 """
 
 
+# v2 (8 Oct, memo 5 option b, approved): WRITTEN DECISION RULES per domain -- in v1 the readers agreed at kappa
+# 0.00-0.37 because each supplied its own threshold for the same text (one read 'randomised' as low, the other asked for
+# concealment) -- and TWO adjudicators from different model families; a disputed domain is accepted only when both agree.
+ROB_RULES_V2 = """
+DECISION RULES (apply them exactly; they replace your own thresholds):
+  D1 low: a source states how the sequence was generated (computer / random number table / central / block or stratified
+     randomisation by a central system) AND that allocation was concealed (central, web or telephone (IVRS/IWRS)
+     assignment, pharmacy-controlled, sealed opaque envelopes, or a double-dummy / identical placebo supplied by sponsor
+     with central allocation). some_concerns: randomisation is stated but concealment is not described. high: allocation
+     was not random, alternating, or concealment was broken. A registry 'Allocation: RANDOMIZED' alone is some_concerns.
+  D2 low: participants AND carers/personnel were blinded (double-blind, placebo-controlled, or masking roles listing the
+     subject and the caregiver/investigator). some_concerns: open-label or blinding of personnel not stated, with no
+     reported deviations. high: open-label AND deviations from the intended intervention are reported as frequent or
+     unbalanced.
+  D3 low: outcome data for THIS outcome are available for >= 95% of randomised participants, or the outcome is death /
+     a registry-verified event with complete follow-up stated. some_concerns: 5-20% missing, or completeness not
+     reported. high: > 20% missing, or missingness that differs between arms for reasons related to the outcome.
+  D4 low: the outcome assessor was blinded, OR the outcome is death from any cause. some_concerns: assessor blinding not
+     stated and the outcome needs judgement. high: an unblinded assessor judged a subjective outcome.
+  D5 low: THIS outcome appears among the trial's registered primary or secondary outcomes AND registration
+     (first submitted) precedes the primary completion date. some_concerns: the outcome is not registered, or the record
+     was first submitted after the primary completion date. high: a source shows the reported result was selected
+     from several (e.g. a changed primary outcome).
+  cannot_tell only when no source addresses the domain at all.
+"""
+
+GRADE_RULES_V2 = """
+DECISION RULES (apply them exactly):
+  risk_of_bias: downgrade 1 when trials carrying most of the information (most participants) are 'some_concerns' or
+     worse; 2 when most are 'high'; 0 when most are 'low'.
+  inconsistency: 0 for one trial; otherwise downgrade 1 when I2 >= 50% AND the trials' confidence intervals do not all
+     overlap or the prediction interval crosses no effect while the pooled estimate does not; 2 only for opposite,
+     non-overlapping effects.
+  imprecision: downgrade 1 when the 95% CI crosses no effect OR crosses a 25% relative effect (ratio 0.75 or 1.25; for a
+     mean difference, half a standard deviation); 2 when it crosses both no effect and an appreciable benefit and harm.
+  indirectness: downgrade 1 only when the trials' population, intervention, comparator or outcome differ from the
+     review question in a way the sources show; 0 otherwise.
+  publication_bias: downgrade 1 only when a source shows unpublished completed trials of this question; 0 otherwise.
+"""
+VERSION = 1
+
+
+def _instr(kind):
+    if kind == "rob":
+        return ROB_INSTR + (ROB_RULES_V2 if VERSION >= 2 else "")
+    return GRADE_INSTR + (GRADE_RULES_V2 if VERSION >= 2 else "")
+
+
 def _schema(kind):
     if kind == "rob":
         dom = {"type": "object", "additionalProperties": False, "required": ["judgement", "quote", "source"],
@@ -225,7 +273,7 @@ def _review_question(slug):
 
 
 def rob_prompt(it, srcs, reader="A"):
-    body = [ROB_INSTR, "=== REVIEW ===", _review_question(it["slug"]), "", "=== OUTCOME ===",
+    body = [_instr("rob"), "=== REVIEW ===", _review_question(it["slug"]), "", "=== OUTCOME ===",
             f"Outcome: {it['outcome']} (estimand {it['estimand']}; timepoint {it['timepoint']})", "", ]
     dig = [{"ref": f"topics/{it['slug']}.json + pico.json", "sha256": _sha((ROOT / "topics" / f"{it['slug']}.json").read_bytes()),
             "what": "review question and PICO"}]
@@ -271,7 +319,7 @@ def grade_srcs(it, rob_final, srcs):
 
 
 def grade_prompt(it, gs, reader="A"):
-    body = [GRADE_INSTR, "=== REVIEW ===", _review_question(it["slug"]), "", "=== OUTCOME ===",
+    body = [_instr("grade"), "=== REVIEW ===", _review_question(it["slug"]), "", "=== OUTCOME ===",
             f"Outcome: {it['outcome']} ({it['kind']}; estimand {it['estimand']}; timepoint {it['timepoint']})", ""]
     dig = [{"ref": f"docs/reviews/{it['slug']}/review.json", "sha256": _sha((ROOT / "docs" / "reviews" / it["slug"] / "review.json").read_bytes()),
             "what": "served outcome: pooled result and per-trial effects"}]
@@ -407,15 +455,17 @@ def panel(kind, items, prompt_fn, adj_fn, shown_fn, workers, argv, live):
         a, b = row["reader_A"]["v"]["domains"], row["reader_B"]["v"]["domains"]
         row["disputed"] = [d for d in doms if a.get(d) != b.get(d) or a.get(d) == "UNVERIFIED"]
         if row["disputed"]:
-            pb, dg = adj_fn(it, row["reader_A"]["claim"], row["reader_B"]["claim"], row["disputed"])
-            name = idx.get(_sha(pb))
-            if name:
-                _, claim = _load(name)
-                # THIS item's sources (a stale loop variable verified every adjudicator against the last item's;
-                # plant tests/test_d11_verifier.py::test_the_adjudicator_is_verified_against_its_own_items_sources)
-                row["adjudicator"] = {"record": name, "v": verify(kind, claim, shown_fn(it))}
-            elif live and it in _shard(items, argv):
-                todo.append((pb, dg, MODEL_ADJ, kind, f"D11 {kind} adjudicator, {it['item_id']}", "high"))
+            base_pb, dg = adj_fn(it, row["reader_A"]["claim"], row["reader_B"]["claim"], row["disputed"])
+            for key, model, seat in _seats():
+                pb = (seat.encode("utf-8") + base_pb) if seat else base_pb
+                name = idx.get(_sha(pb))
+                if name:
+                    _, claim = _load(name)
+                    # THIS item's sources (a stale loop variable verified every adjudicator against the last item's;
+                    # plant tests/test_d11_verifier.py::test_the_adjudicator_is_verified_against_its_own_items_sources)
+                    row[key] = {"record": name, "model": model, "v": verify(kind, claim, shown_fn(it))}
+                elif live and it in _shard(items, argv):
+                    todo.append((pb, dg, model, kind, f"D11 {kind} {key}, {it['item_id']}", "high"))
     if live and todo:
         print(f"{kind} adjudicator: {len(todo)} calls", flush=True)
         _batch(todo, workers)
@@ -424,18 +474,30 @@ def panel(kind, items, prompt_fn, adj_fn, shown_fn, workers, argv, live):
         if not (row.get("reader_A") and row.get("reader_B")):
             continue
         a, b = row["reader_A"]["v"]["domains"], row["reader_B"]["v"]["domains"]
-        adj = ((row.get("adjudicator") or {}).get("v") or {}).get("domains") or {}
+        adjs = [((row.get(key) or {}).get("v") or {}).get("domains") or {} for key, _, _ in _seats()]
         fin = {}
         for d in doms:
+            votes = [x.get(d) for x in adjs]
             if d not in row["disputed"]:
                 fin[d] = a[d]
-            elif adj.get(d) not in (None, "UNVERIFIED"):
-                fin[d] = adj[d]
+            elif all(v not in (None, "UNVERIFIED") for v in votes) and len(set(votes)) == 1:
+                fin[d] = votes[0]                  # v2: accepted only when BOTH adjudicators (two families) agree
             else:
                 fin[d] = "UNRESOLVED"
         row["final"] = fin
         row["final_overall"] = rob_overall(fin) if kind == "rob" else certainty(fin)
     return rows
+
+
+def _sfx():
+    return "_v2" if VERSION >= 2 else ""
+
+
+def _seats():
+    """(row key, model, prompt header): v1 one adjudicator (reader A's family); v2 two, one per model family."""
+    if VERSION >= 2:
+        return [("adjudicator", MODEL_ADJ, "ADJUDICATOR SEAT 1 of 2.\n"), ("adjudicator_2", MODEL_B, "ADJUDICATOR SEAT 2 of 2.\n")]
+    return [("adjudicator", MODEL_ADJ, "")]
 
 
 # ---------------------------------------------------------------- derive
@@ -455,6 +517,8 @@ RULE_DOMS = ("D1_randomisation", "D2_deviations", "D4_outcome_measurement", "D5_
 
 
 def main(argv):
+    global VERSION
+    VERSION = 2 if "--v2" in argv else 1
     if "--build" in argv:
         return build()
     data = _j(ITEMS / "items.json")
@@ -593,9 +657,9 @@ def derive(data, rob_items, rob_rows, grade_items, grade_rows):
                          for x in "AB" if r.get(f"reader_{x}")} for r in rob_rows],
            "grade_rows": [{k: v for k, v in r.items()} | {f"reader_{x}": {"record": r[f"reader_{x}"]["record"], "v": r[f"reader_{x}"]["v"]}
                            for x in "AB" if r.get(f"reader_{x}")} for r in grade_rows]}
-    json.dump(out, open(OUT / "D11_SIGNOFF.json", "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
-    open(OUT / "D11_SIGNOFF.md", "w", encoding="utf-8", newline="\n").write(render(out))
-    open(OUT / "NOTICES_DRAFT.md", "w", encoding="utf-8", newline="\n").write(render_notices(out))
+    json.dump(out, open(OUT / f"D11_SIGNOFF{_sfx()}.json", "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
+    open(OUT / f"D11_SIGNOFF{_sfx()}.md", "w", encoding="utf-8", newline="\n").write(render(out))
+    open(OUT / f"NOTICES_DRAFT{_sfx()}.md", "w", encoding="utf-8", newline="\n").write(render_notices(out))
     print(json.dumps({k: out[k] for k in ("n_rob_items", "n_grade_items", "rob", "grade")}, indent=1)[:3000])
     print(len(findings), "findings;", len(notices), "draft notices")
 
