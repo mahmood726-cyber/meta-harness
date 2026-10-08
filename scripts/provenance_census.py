@@ -26,69 +26,14 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "outputs", "provenance_census.json")
 HAND_LIST = os.path.join(ROOT, "registry", "provenance_hand_entered.json")
-MC = re.compile(r"mc-[0-9a-f]{32}")
-EXTRACTOR_PROV = {"abstract", "pmc_fulltext", "pmc_fulltext_effect", "ctgov_results", "aact_verified", "published_rate",
-                  "pre_specified_dose"}
+sys.path.insert(0, ROOT)
+from harness.provenance_class import (  # noqa: E402  (shared with the page's extraction tab)
+    EXTRACTOR_PROV, MC, _deterministic_basis, _records_in, classify_served, record_held)
 
 
 def _j(p):
     with open(p, encoding="utf-8") as fh:
         return json.load(fh)
-
-
-_HELD = None
-
-
-def record_held(rid: str, root: str = ROOT) -> bool:
-    global _HELD
-    if _HELD is None or root != ROOT:
-        held = {os.path.basename(p)[:-5] for p in glob.glob(os.path.join(root, "registry", "model_calls", "mc-*.json"))}
-        held |= {os.path.basename(p)[:-5] for p in glob.glob(os.path.join(root, "evidence", "model_calls", "*", "mc-*.json"))}
-        if root != ROOT:
-            return rid in held
-        _HELD = held
-    return rid in _HELD
-
-
-def _records_in(obj) -> list[str]:
-    return sorted(set(MC.findall(json.dumps(obj, ensure_ascii=False))))
-
-
-def classify_served(t: dict, root: str = ROOT) -> tuple[str, str]:
-    prov = str(t.get("provenance") or "")
-    if prov == "served_pool_signed_notice":
-        adm = t.get("served_pool_admission") or {}
-        ids = _records_in(adm)
-        missing = [i for i in ids if not record_held(i, root)]
-        if missing:
-            return "UNTRACED", f"signed row cites record(s) not in the tree: {missing}"
-        if ids:
-            return "RECORDED_MODEL_CALL", f"signed row: {ids}"
-        if t.get("source") and _deterministic_basis(json.dumps(adm)):
-            return "EXTRACTOR", f"signed row: {adm.get('basis')}"
-        return "UNTRACED", "signed row with neither a record nor a typed registry source"
-    if "_verified" in prov:
-        return "HAND_ENTERED", f"verified input ({prov}), bound to a held span"
-    if prov in EXTRACTOR_PROV:
-        if not str(t.get("source") or "").strip():
-            return "UNTRACED", f"{prov} row with no source span"
-        return "EXTRACTOR", prov
-    ids = _records_in(t)
-    if ids:
-        missing = [i for i in ids if not record_held(i, root)]
-        return ("UNTRACED", f"cites record(s) not in the tree: {missing}") if missing else ("RECORDED_MODEL_CALL", str(ids))
-    return "UNTRACED", f"provenance {prov!r} is not a known extractor and cites no record"
-
-
-_DET = re.compile(r"(?<![A-Za-z])AACT(?![A-Za-z])|PRIMARY_TEXT|\bTEXT\b|trial's own text|states the counts|"
-                  r"supplementary table \(sha256 [0-9a-f]+\), row|TYPED_(?:TABLE|COMPARATOR_ROW)|"
-                  r"verbatim \(level printed\)|NDA\d+")
-
-
-def _deterministic_basis(b: str) -> bool:
-    """A basis naming a deterministic source of the value: the trial's own held text or registry (AACT), a typed table
-    read over held bytes (sha256 + row), or a verbatim span of a held regulatory document."""
-    return bool(_DET.search(b or ""))
 
 
 def _sweep_records(slug: str, label: str, root: str) -> tuple[list[str], bool]:
