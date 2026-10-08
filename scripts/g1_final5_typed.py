@@ -288,7 +288,10 @@ def codex_28d():
                  and re.search(r"28", s)]
         # a count written as a fraction, 'e of N', a percentage, or in prose ('45 patients ... died') (r2 g1#2)
         cnt = re.compile(r"(?<![\d.])\d+\s*(?:/|of)\s*\d+(?![\d.])|\d+(?:[.,]\d+)?\s*%|"
-                         r"(?<![\d.,-])\d+\s+(?:patients|participants|deaths|died|deceased)\b", re.I)
+                         r"(?<![\d.,-])\d+\s+(?:deaths|died|deceased)\b|"
+                         # people counted only when THEY died in the same clause (codex final5-binding-r3 g1#2)
+                         r"(?<![\d.,-])\d+\s+(?:patients|participants)\b[^.;]{0,80}?\b(?:died|deaths?|deceased)\b",
+                         re.I)
         counts = [s for s in sents if cnt.search(s)]
         routes.append({"route": "held abstract", "outcome": (f"COUNTS_OR_PERCENTS_PRINTED:{counts[:2]}" if counts else
                                                              "NO_COUNTS (28-day mortality sentences: "

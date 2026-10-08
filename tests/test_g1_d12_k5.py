@@ -221,3 +221,14 @@ def test_PLANT_k5_a_percentage_cell_is_never_a_count(tmp_path, monkeypatch):
 def test_PLANT_k5_a_decimal_comma_percentage_cell_is_not_a_count():
     # codex final5-binding-r2 g1#1: '0,5%' split into the count '0' and the percentage '5%'
     assert D._row_cells("Deaths 0,5% 0,7%") == ["0,5%", "0,7%"]
+
+
+def test_PLANT_k5_a_row_labelled_as_percentages_holds_no_counts(tmp_path, monkeypatch):
+    # codex final5-binding-r3 g1#1: 'Mortality (%) 12,345 23,456' -- decimal commas read as thousands separators. The row
+    # label declares percentages, so none of its cells is a count, whatever its separators
+    setup(tmp_path, monkeypatch)
+    doc = DOC.replace("<td>Hospitalizations due to worsening HF</td>", "<td>Hospitalizations due to worsening HF (%)</td>")
+    (tmp_path / "doc.txt").write_text(doc, encoding="utf-8")
+    b = k5(tmp_path, doc={"path": "doc.txt", "format": "xml", "text_sha256": sha(tmp_path / "doc.txt")},
+           row_span="Hospitalizations due to worsening HF (%) 10 10 (7.6) 32 25 (19.4)")
+    assert D.verify(b, None, ep("iv"))[1] == "K5_ROW_IS_PERCENTAGES"

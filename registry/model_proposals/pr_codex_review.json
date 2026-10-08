@@ -6587,5 +6587,49 @@
     "verdict": null
    }
   ]
+ },
+ "final5-binding-r3": {
+  "base": "2eb4cff58",
+  "head": "636e94cbe",
+  "runs": {
+   "g1": {
+    "record_id": "mc-027cad3b812429cabd5ba9e380803d51",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "4027c9165e50b5ef5889f5d404060ad642b2e134c5bc98839fafaab26488e426"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_row_cells",
+    "severity": "P0",
+    "claim": "The thousands-separator alternative converts decimal-comma percentages with three fractional digits into integer count tokens. The same ambiguity exists in the new tokenizers in g1_final5_readers.py and g1_tracker.py.",
+    "failing_input": "_row_cells('Mortality (%) 12,345 23,456')",
+    "expected": "Preserve the decimal-comma values as non-count tokens; neither value supports an integer death count.",
+    "actual": "['12345', '23456'] — the decimal commas disappear, producing tokens indistinguishable from integer counts.",
+    "id": "final5-binding-r3:g1#1",
+    "record_id": "mc-027cad3b812429cabd5ba9e380803d51",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The new prose alternative treats a number of patients assessed as a printed mortality count. It does not require that those patients died, so an abstract without death counts can become a candidate.",
+    "failing_input": "Use this exact held abstract for the matching record: 'At day 28, 200 patients were assessed for mortality.'",
+    "expected": "Held-abstract outcome: 'NO_COUNTS (28-day mortality sentences: 1, none with a count or a percentage)'.",
+    "actual": "Held-abstract outcome: \"COUNTS_OR_PERCENTS_PRINTED:['At day 28, 200 patients were assessed for mortality.']\". When the other routes record absence, the overall result becomes CANDIDATE instead of NOT_FOUND.",
+    "id": "final5-binding-r3:g1#2",
+    "record_id": "mc-027cad3b812429cabd5ba9e380803d51",
+    "verdict": null
+   }
+  ]
  }
 }

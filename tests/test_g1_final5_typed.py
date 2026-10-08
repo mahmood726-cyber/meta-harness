@@ -89,3 +89,11 @@ def test_PLANT_codex_an_index_entry_without_a_retrieval_state_is_not_checked(tmp
     monkeypatch.setenv("AACT_SNAPSHOT", _held(tmp_path, "The primary outcome was ventilator-free days.",
                                               {"copy_licence": "CC"}))
     assert T.codex_28d()["result"] == "NOT_CHECKED"
+
+
+def test_PLANT_codex_patients_assessed_is_not_a_death_count(tmp_path, monkeypatch):
+    # codex final5-binding-r3 g1#2
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    monkeypatch.setenv("AACT_SNAPSHOT", _held(tmp_path, "At day 28, 200 patients were assessed for mortality.",
+                                              {"state": "FETCH_EMPTY", "copy_licence": "NOT_OPEN"}))
+    assert T.codex_28d()["result"] == "NOT_FOUND"

@@ -541,6 +541,12 @@ def verify_k5(b, endpoint_ok):
     ft, fc = _first(hn, tr), _first(hn, co)
     if ft is None or fc is None:
         return False, "K5_ARM_TERMS_NOT_BOTH_IN_HEADER"
+    # a row whose LABEL declares percentages holds no counts, whatever its separators ('Mortality (%) 12,345'; codex
+    # final5-binding-r3 g1#1)
+    import re as _re
+    lab = _re.split(r"\d", spans["row_span"], maxsplit=1)[0]
+    if "%" in lab or _re.search(r"\bper ?cent", lab, _re.I):
+        return False, "K5_ROW_IS_PERCENTAGES"
     cells, idx = _row_cells(spans["row_span"]), b.get("cells") or {}
     it, ic = idx.get("events_t"), idx.get("events_c")
     if not (type(it) is int and type(ic) is int and 0 <= it < len(cells) and 0 <= ic < len(cells) and it != ic):
