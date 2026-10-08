@@ -122,3 +122,30 @@ def test_PLANT_an_oa_service_error_is_a_failure_and_not_open_access_is_not(monke
     monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: '<OA><error code="idIsNotOpenAccess">identifier is not Open Access</error></OA>')
     assert fetch._pmc_oa_supplement_text("902", ["s.xlsx"]) == ""
     assert fetch.LAST_SUPPLEMENT_STATE["902"] == "NO_OA_PACKAGE"
+
+
+def test_PLANT_single_quoted_and_codeless_oa_errors_are_failures(monkeypatch):
+    """codex fetch-loud-r5 #1: a single-quoted error attribute fell through to NO_OA_PACKAGE."""
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error code='internalError'>down</error></OA>")
+    assert fetch._pmc_oa_supplement_text("903", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["903"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: internalError")
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error>down</error></OA>")
+    assert fetch._pmc_oa_supplement_text("904", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["904"].startswith("FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: NO_CODE")
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><error code='idIsNotOpenAccess'>not OA</error></OA>")
+    assert fetch._pmc_oa_supplement_text("905", ["s.xlsx"]) == ""
+    assert fetch.LAST_SUPPLEMENT_STATE["905"] == "NO_OA_PACKAGE"
+
+
+def test_PLANT_a_single_quoted_archive_link_is_followed_not_read_as_no_package(monkeypatch):
+    """codex fetch-loud-r5 #1 (same class): a single-quoted href was missed and the package read as absent."""
+    seen = []
+    monkeypatch.setattr(fetch.http, "get_text", lambda *a, **k: "<OA><record><link format='tgz' href='https://ftp.ncbi.nlm.nih.gov/pub/pmc/x.tar.gz'/></record></OA>")
+
+    def get(url, *a, **k):
+        seen.append(url)
+        raise TimeoutError("timed out")
+    monkeypatch.setattr(fetch.http, "get", get)
+    assert fetch._pmc_oa_supplement_text("906", ["s.xlsx"]) == ""
+    assert seen == ["https://ftp.ncbi.nlm.nih.gov/pub/pmc/x.tar.gz"]
+    assert fetch.LAST_SUPPLEMENT_STATE["906"].startswith("FETCH_FAILED:SUPPLEMENT")

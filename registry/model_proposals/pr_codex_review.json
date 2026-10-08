@@ -5125,5 +5125,36 @@
     "verdict": null
    }
   ]
+ },
+ "fetch-loud-r5": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c0772b84e6630c1ace459c274fa10b9e",
+    "state": "RAN_OK",
+    "files": [
+     "harness/fetch.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/k_gap_counterfactual.py"
+    ],
+    "prompt_sha256": "6f38219f2f9ce01a31f6dc663312bf300914e3c7b89d7d04dd000e7fb1ebc7f4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/fetch.py",
+    "function": "_pmc_oa_supplement_text",
+    "severity": "P1",
+    "claim": "The error regex requires double-quoted XML attributes. A valid service error using single quotes falls through to NO_OA_PACKAGE, misclassifying a failed request as absent supplementary material.",
+    "failing_input": "OA-service response text: <OA><error code='idDoesNotExist'>identifier does not exist</error></OA>",
+    "expected": "Return '' and record FETCH_FAILED:SUPPLEMENT:OA_SERVICE_ERROR: idDoesNotExist identifier does not exist, with a warning.",
+    "actual": "Returns '' and records NO_OA_PACKAGE without warning: neither the package-link regex nor the error regex matches.",
+    "id": "fetch-loud-r5:g1#1",
+    "record_id": "mc-c0772b84e6630c1ace459c274fa10b9e",
+    "verdict": null
+   }
+  ]
  }
 }
