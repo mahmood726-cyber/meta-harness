@@ -741,8 +741,11 @@ def _arm_ns(abstract, interv_terms, comp_terms):
                         # prose arm size with the NOUN OPTIONAL and 'were' allowed: "264 received
                         # high-flow", "2762 were assigned to the colchicine group".
                         rf"(\d+)\s+(?:patients?\s+|participants?\s+|adults?\s+|subjects?\s+)?(?:were\s+|had\s+been\s+)?(?:received|assigned|allocated|randomi[sz]ed)(?:\s+to)?\s+(?:the\s+)?{tl}",
-                        # ELLIPSIS: a second arm sharing the verb — "... and 2760 to the placebo group".
-                        rf"(\d+)\s+to\s+(?:the\s+)?{tl}",
+                        # ELLIPSIS: a second arm sharing the verb — "... and 2760 to the placebo group", or with the
+                        # infinitive kept — RECOVERY: "2104 patients were assigned to receive dexamethasone and 4321 to
+                        # receive usual care" (V12-11Q: its comparator N was missed, so its verbatim counts never reached
+                        # the OR the protocol registers).
+                        rf"(\d+)\s+to\s+(?:receive\s+)?(?:the\s+)?{tl}",
                         rf"(?:received|assigned to|randomi[sz]ed to)[^.]{{0,15}}?{tl}[^.]{{0,15}}?\(\s*(\d+)\)",
                         # BARE ADJACENCY (last resort): "... and 263 conventional oxygen therapy" — an
                         # arm size given as "N <arm label>" with the shared verb elided. Safe because
