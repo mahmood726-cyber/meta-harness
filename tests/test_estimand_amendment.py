@@ -29,7 +29,8 @@ def test_every_amended_topic_outcome_carries_its_history():
                     h = o["estimand_history"][-1]
                     assert h["declared"] != o["estimand"] and h["amended_to"] == o["estimand"] and h["post_hoc"] is True
                     amended += 1
-    assert amended == 11, amended
+    # 10, not 11: denosumab New vertebral fracture is HELD (its published effect is an RR; V13-03Q premise error)
+    assert amended == 10, amended
 
 
 def test_PLANT_a_non_post_hoc_amendment_does_not_claim_results_were_seen():
