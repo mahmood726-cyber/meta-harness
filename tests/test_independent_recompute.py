@@ -106,3 +106,16 @@ def test_PLANT_codex_r4_rate_as_or_hidden_bad_effect_negative_time_and_incomplet
     part = {"ai": 1, "n1i": 10, "ci": 1}
     assert irc.recompute_outcome({"method": "Single included trial own effect", "trials": [part],
                                   "result": {"scale": "RR", "estimate": 1, "ci_low": 0.1, "ci_high": 10}})["state"] == "NOT_RECOMPUTABLE"
+
+
+def test_PLANT_codex_r5_conflicting_labels_fractional_counts_and_k1_overflow():
+    row = {"measure": "RR", "scale": "MD", "effect": 2, "ci_low": 1, "ci_high": 3}
+    assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [row, row],
+                                  "result": {"scale": "RR", "estimate": 7.3891}})["state"] != "AGREE"
+    frac = {"ai": 12.5, "n1i": 100, "ci": 25, "n2i": 100}
+    assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [frac, frac],
+                                  "result": {"scale": "RR", "estimate": 0.5}})["state"] != "AGREE"
+    big = {"effect": 1e200, "ci_low": 1e-200, "ci_high": 1e201}
+    r = irc.recompute_outcome({"method": "Single included trial own effect", "trials": [big],
+                               "result": {"scale": "RR", "estimate": 1e200, "ci_low": 1e-200, "ci_high": 1e201}})
+    assert r["state"] == "AGREE", r

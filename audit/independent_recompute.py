@@ -96,6 +96,8 @@ def study_y_v(row, outcome_scale):
             raise ValueError("a rate tuple needs non-negative events and positive person-time")
     if counts:
         a, n1c, c, n2c = counts
+        if not all(float(x).is_integer() for x in counts):
+            raise ValueError("2x2 counts must be whole numbers")   # codex ext-audit-r5 P0
         if not (0 <= a <= n1c and 0 <= c <= n2c and n1c > 0 and n2c > 0):
             raise ValueError(f"impossible 2x2: {a}/{n1c} v {c}/{n2c}")
     if eff:
@@ -186,6 +188,9 @@ def recompute_outcome(o):
         return {"state": "NOT_RECOMPUTABLE", "why": "declared method is neither PM + HKSJ nor single-trial: " + method[:80]}
     allowed = COMPATIBLE.get(_scale_class(scale), set())
     for t in trials:
+        if t.get("measure") and t.get("scale") and _scale_class(t["measure"]) != _scale_class(t["scale"]):
+            return {"state": "DISAGREE", "why": f"a trial row carries contradictory labels measure={t['measure']} "
+                                                f"scale={t['scale']}"}      # codex ext-audit-r5 P0
         m = t.get("measure") or t.get("scale")
         if m and _scale_class(m) not in allowed:
             return {"state": "DISAGREE", "why": f"a trial row on {m} sits in an outcome served as {scale} (incompatible measures)"}
@@ -197,13 +202,18 @@ def recompute_outcome(o):
         return {"state": "NOT_RECOMPUTABLE", "why": "no trial tuples served"}
     if not all(_finite(y, v) and v > 0 for y, v in yv):
         return {"state": "DISAGREE", "why": "a served trial tuple gives a non-finite effect or non-positive variance"}
-    mu, lo, hi = pool([y for y, _ in yv], [v for _, v in yv])
-    back = (lambda x: x) if _is_md(scale) else math.exp
-    est, cl, ch = back(mu), back(lo), back(hi)
     if len(trials) == 1 and trials[0].get("effect") is not None and trials[0].get("ci_low") is not None:
-        # declared: the single trial's OWN effect -- a reported effect + CI is served verbatim, never re-derived
+        # declared: the single trial's OWN effect -- a reported effect + CI is served verbatim, never re-derived (and
+        # never pushed through exp() first, which can overflow on a valid tuple -- codex ext-audit-r5 P2)
         t0 = trials[0]
         est, cl, ch = t0["effect"], t0["ci_low"], t0["ci_high"]
+    else:
+        mu, lo, hi = pool([y for y, _ in yv], [v for _, v in yv])
+        try:
+            back = (lambda x: x) if _is_md(scale) else math.exp
+            est, cl, ch = back(mu), back(lo), back(hi)
+        except OverflowError:
+            return {"state": "DISAGREE", "why": "the recomputed pool overflows on the ratio scale"}
     compared = {"estimate": (est, res.get("estimate"))}
     if (res.get("ci_low") is None) != (res.get("ci_high") is None):
         return {"state": "DISAGREE", "why": "the served interval has one bound only (withholding needs both absent)"}

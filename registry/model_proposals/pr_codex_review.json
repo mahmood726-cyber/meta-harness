@@ -6619,5 +6619,61 @@
     "verdict": null
    }
   ]
+ },
+ "ext-audit-r5": {
+  "base": "2be4df9a51511d97727a1989b9ecce328159e624",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7cdda2a92550a83811a4f6c6a5a0bcd8",
+    "state": "RAN_OK",
+    "files": [
+     "audit/independent_recompute.py",
+     "scripts/pr_codex_review.py",
+     "scripts/verify_all.py",
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "e5ef2969c96c2e414deb72ead59c053b9b3e7c4d02808476f469922f16e540d3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "recompute_outcome / study_y_v",
+    "severity": "P0",
+    "claim": "Conflicting measure and scale fields bypass compatibility validation. Validation uses measure, but effect transformation uses scale, allowing a raw value to be exponentiated and certified as a ratio.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'measure': 'RR', 'scale': 'MD', 'effect': 2, 'ci_low': 1, 'ci_high': 3}\nrecompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [row, row], 'result': {'scale': 'RR', 'estimate': 7.3891}})",
+    "expected": "Reject the contradictory row metadata. If these are RR effects, their pooled estimate is 2, not exp(2).",
+    "actual": "Returns state='AGREE', with recomputed estimate 7.389056.",
+    "id": "ext-audit-r5:g1#1",
+    "record_id": "mc-7cdda2a92550a83811a4f6c6a5a0bcd8",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v",
+    "severity": "P0",
+    "claim": "The 2x2 validator accepts fractional event counts and denominators. Consequently, non-count values can enter pooling and receive an AGREE verdict.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'ai': 12.5, 'n1i': 100, 'ci': 25, 'n2i': 100}\nrecompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [row, row], 'result': {'scale': 'RR', 'estimate': 0.5}})",
+    "expected": "Reject the non-integer death count; return NOT_RECOMPUTABLE rather than certify a count-derived result.",
+    "actual": "Returns state='AGREE', with recomputed estimate 0.5.",
+    "id": "ext-audit-r5:g1#2",
+    "record_id": "mc-7cdda2a92550a83811a4f6c6a5a0bcd8",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "recompute_outcome",
+    "severity": "P2",
+    "claim": "The function exponentiates a reconstructed single-study interval before substituting the reported interval. This can crash on finite, valid reported tuples whose own interval should be returned verbatim.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrecompute_outcome({'method': 'Single included trial own effect', 'trials': [{'effect': 1e200, 'ci_low': 1e-200, 'ci_high': 1e201}], 'result': {'scale': 'RR', 'estimate': 1e200, 'ci_low': 1e-200, 'ci_high': 1e201}})",
+    "expected": "Return AGREE using the finite reported estimate and bounds, as the single-trial rule specifies.",
+    "actual": "Raises OverflowError: math range error while exponentiating the reconstructed upper log bound (approximately 922.185), before reaching the reported-interval override.",
+    "id": "ext-audit-r5:g1#3",
+    "record_id": "mc-7cdda2a92550a83811a4f6c6a5a0bcd8",
+    "verdict": null
+   }
+  ]
  }
 }
