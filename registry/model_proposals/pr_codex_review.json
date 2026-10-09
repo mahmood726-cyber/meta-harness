@@ -6731,5 +6731,400 @@
     "verdict": null
    }
   ]
+ },
+ "final5-binding-r1a": {
+  "base": "96921df40",
+  "head": "44cc3308d",
+  "runs": {
+   "g1": {
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "7768f9a429d5ed88dff53e0476f069ae163ac4eae724a8579a6619e4c46e9b40"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify_k5",
+    "severity": "P0",
+    "claim": "_row_cells removes percentage markers, allowing integer percentages to pass as event counts. A second extraction containing the same percentages also passes.",
+    "failing_input": "from scripts import g1_d12 as m\nfrom pathlib import Path\nfrom tempfile import TemporaryDirectory\nfrom unittest.mock import patch\nimport hashlib\n\ncaption = 'Table 1. All-cause mortality'\nheader = 'FCM ( n = 200) Placebo ( n = 200)'\nrow = 'All-cause deaths (%) 10% 20%'\ntext = '\\n'.join([caption, header, row])\nwith TemporaryDirectory() as root:\n    def document(name, content):\n        Path(root, name).write_text(content, encoding='utf-8')\n        return {'path': name, 'format': 'text', 'text_sha256': hashlib.sha256(content.encode()).hexdigest()}\n    d1 = document('first.txt', text)\n    d2 = document('second.txt', text + '\\nEnd of extraction.')\n    b = {'slug': 'iv-iron-hfref-hosp', 'pmid': '25176939',\n         'values': {'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 200},\n         'doc': d1, 'caption_span': caption, 'header_span': header, 'row_span': row,\n         'outcome_from': 'row', 'cells': {'events_t': 0, 'events_c': 1},\n         'second_reader': {'kind': 'SECOND_EXTRACTION', 'doc': d2, 'row_span': row}}\n    with patch.object(m, 'ROOT', root):\n        print(m.verify_k5(b, lambda s: 'deaths' in s)[0])",
+    "expected": "False: the selected cells print percentages, not counts.",
+    "actual": "True: 10 and 20 are accepted as death counts with denominators of 200.",
+    "id": "final5-binding-r1a:g1#1",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_readers.py",
+    "function": "gate",
+    "severity": "P0",
+    "claim": "Numeric token membership does not establish that a number is a count. The gate accepts explicitly labelled Kaplan–Meier percentages as participant counts.",
+    "failing_input": "from scripts.g1_final5_readers import gate\nq = 'FCM randomised n=100; placebo randomised n=100. Deaths at 28 days (Kaplan-Meier estimates): FCM 10%, placebo 20%.'\na = {'state': 'FOUND', 'quote': q, 'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 100, 'count_units': 'PARTICIPANTS', 'population': 'randomised', 'notes': ''}\nprint(gate(a, q))",
+    "expected": "Reject the answer because the quoted event values are Kaplan–Meier percentages.",
+    "actual": "GATED",
+    "id": "final5-binding-r1a:g1#2",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "effect_hf_row",
+    "severity": "P0",
+    "claim": "The function admits safety-set event counts with FAS denominators. Its caveat acknowledges the population mismatch but does not prevent admission.",
+    "failing_input": "from scripts import g1_final5_typed as m\nfrom unittest.mock import patch\nimport io\n\nt = '''For the full analysis set: A total of 172 patients with HF were studied and received FCM (n=86) or standard of care (control group, n=86).\nTwo patients in the FCM arm did not have an efficacy assessment after baseline, and these 2 were excluded from the FAS.\nThe safety set contained 88 FCM patients and 86 control patients.\nAll-cause mortality and hospitalization for worsening HF and other cardiovascular reasons were analyzed for the safety set.\nThere were hospitalizations, 26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care).'''\ndef held(p, *args, **kwargs):\n    return io.StringIO('{\"rows\": []}' if str(p).endswith('final5_readers.json') else t)\nwith patch('builtins.open', side_effect=held):\n    r, why = m.effect_hf_row()\n    print(r['verdict'], r['admitted']['value'])",
+    "expected": "Reject the proposed FAS tuple: the text reports 11 and 6 patients in the safety population, whose denominators are 88 and 86.",
+    "actual": "ADMITTED {'measure': 'RR', 'effect': None, 'lower': None, 'upper': None, 'events_t': 11, 'n_t': 86, 'events_c': 6, 'n_c': 86}",
+    "id": "final5-binding-r1a:g1#3",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "engage_aact",
+    "severity": "P1",
+    "claim": "The comparison gate requires a high-dose edoxaban group but never requires warfarin. A high-dose versus low-dose analysis is classified as the requested high-dose versus warfarin result.",
+    "failing_input": "from scripts import g1_final5_typed as m\nfrom unittest.mock import patch, mock_open\nimport json\n\nd = {'tables': {\n    'outcomes.txt': [{'id': 1, 'outcome_type': 'PRIMARY', 'title': 'Stroke or systemic embolism', 'population': 'ITT'}],\n    'result_groups.txt': [{'id': 10, 'title': 'High Dose Edoxaban 60 mg'}, {'id': 11, 'title': 'Low Dose Edoxaban 30 mg'}],\n    'outcome_analysis_groups.txt': [{'outcome_analysis_id': 7, 'result_group_id': 10}, {'outcome_analysis_id': 7, 'result_group_id': 11}],\n    'outcome_analyses.txt': [{'id': 7, 'outcome_id': 1, 'param_type': 'Hazard Ratio', 'param_value': '0.90', 'ci_percent': '95', 'ci_lower_limit': '0.80', 'ci_upper_limit': '1.01'}]\n}}\nwith patch('builtins.open', mock_open(read_data=json.dumps(d))):\n    r = m.engage_aact()\n    print(r['result'], r['found'][0]['groups'], r['found'][0]['why'])",
+    "expected": "REFUSED: the analysis does not compare high-dose edoxaban with warfarin.",
+    "actual": "FOUND ['High Dose Edoxaban 60 mg', 'Low Dose Edoxaban 30 mg'] []",
+    "id": "final5-binding-r1a:g1#4",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The function reports evidence absence without reading any evidence. Missing holdings are therefore classified as a completed negative search, including assertions about registry rows and abstract contents.",
+    "failing_input": "from scripts import g1_final5_typed as m\nfrom tempfile import TemporaryDirectory\nfrom unittest.mock import patch\n\nwith TemporaryDirectory() as empty_root:\n    with patch.object(m, 'ROOT', empty_root):\n        r = m.codex_28d()\n        print(r['result'])\n        print(r['routes'][0]['outcome'])\n        print(r['routes'][1]['outcome'])",
+    "expected": "An unavailable/not-checked result or explicit error: no registry snapshot or held abstract exists to establish absence.",
+    "actual": "NOT_FOUND\nNO_POSTED_RESULTS (no outcomes rows for NCT04327401)\n28-day mortality named as a secondary outcome; no counts or percentages printed",
+    "id": "final5-binding-r1a:g1#5",
+    "record_id": "mc-8042e5f2d3e5b2d4842b2702ff1265b4",
+    "verdict": null
+   }
+  ]
+ },
+ "final5-binding-r1b": {
+  "base": "96921df40",
+  "head": "44cc3308d",
+  "runs": {
+   "g1": {
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "7768f9a429d5ed88dff53e0476f069ae163ac4eae724a8579a6619e4c46e9b40"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify_k5",
+    "severity": "P0",
+    "claim": "K5 admits integer percentages as event counts. _row_cells discards the percent context, and agreement between two text extractions does not establish that the selected cells are counts.",
+    "failing_input": "import tempfile, pathlib, hashlib\nfrom unittest.mock import patch\nfrom scripts import g1_d12 as m\ncap = 'Hospitalizations and deaths (full-analysis set)'\nhead = 'FCM ( n = 150) Placebo ( n = 151)'\nrow = 'Hospitalizations due to worsening HF (%) 10 25'\ntext = '\\n'.join([cap, head, row])\nwith tempfile.TemporaryDirectory() as root:\n    docs = []\n    for name, content in [('a.txt', text), ('b.txt', 'Independent extraction\\n' + text)]:\n        pathlib.Path(root, name).write_text(content, encoding='utf-8')\n        docs.append({'path': name, 'format': 'text', 'text_sha256': hashlib.sha256(content.encode()).hexdigest()})\n    b = {'slug': 'iv-iron-hfref-hosp', 'pmid': '25176939', 'values': {'events_t': 10, 'n_t': 150, 'events_c': 25, 'n_c': 151}, 'doc': docs[0], 'caption_span': cap, 'header_span': head, 'row_span': row, 'outcome_from': 'row', 'cells': {'events_t': 0, 'events_c': 1}, 'second_reader': {'kind': 'SECOND_EXTRACTION', 'doc': docs[1], 'row_span': row}}\n    with patch.object(m, 'ROOT', root):\n        print(m.verify_k5(b, lambda s: 'Hospitalizations due to worsening HF' in s)[0])",
+    "expected": "False: the row prints percentages, not participant counts.",
+    "actual": "True: 10/150 and 25/151 are accepted as counts.",
+    "id": "final5-binding-r1b:g1#1",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_readers.py",
+    "function": "gate",
+    "severity": "P0",
+    "claim": "The reader gate treats numeric token membership as count evidence, admitting percentages as counts even when the quote explicitly identifies them as percentages.",
+    "failing_input": "from scripts.g1_final5_readers import gate\nq = 'FCM (n=150), placebo (n=151): deaths were 10% and 25%, respectively.'\nprint(gate({'state': 'FOUND', 'quote': q, 'events_t': 10, 'n_t': 150, 'events_c': 25, 'n_c': 151, 'count_units': 'PARTICIPANTS', 'population': 'randomised', 'notes': ''}, q))",
+    "expected": "Reject the answer: neither death count is printed.",
+    "actual": "'GATED'",
+    "id": "final5-binding-r1b:g1#2",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "effect_hf_row",
+    "severity": "P0",
+    "claim": "The function admits safety-set hospitalisation numerators with denominators it explicitly binds as FAS. Its caveat acknowledges the population mismatch but does not prevent admission.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import g1_final5_typed as m\nt = ' '.join([\n    '26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care).',\n    'A total of 172 patients with HF were studied and received FCM (n=86) or standard of care (control group, n=86).',\n    'Two patients in the FCM arm did not have an efficacy assessment after baseline, and these 2 were excluded from the FAS.',\n    'All-cause mortality and hospitalization for worsening HF and other cardiovascular reasons were analyzed for the safety set.'\n])\nwith patch('builtins.open', side_effect=[io.StringIO(t), io.StringIO('{\"rows\": []}'), io.StringIO(t)]):\n    row, why = m.effect_hf_row()\nprint(row['verdict'], row['admitted']['value'], why)",
+    "expected": "Refuse admission until the numerators and denominators are sourced to the same analysis population.",
+    "actual": "ADMITTED {'measure': 'RR', 'effect': None, 'lower': None, 'upper': None, 'events_t': 11, 'n_t': 86, 'events_c': 6, 'n_c': 86} None",
+    "id": "final5-binding-r1b:g1#3",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "engage_aact",
+    "severity": "P1",
+    "claim": "FOUND does not require a warfarin comparator or the requested stroke/systemic-embolism endpoint. A high-dose-versus-low-dose analysis passes, as does an analysis of another PRIMARY endpoint.",
+    "failing_input": "import json\nfrom unittest.mock import patch, mock_open\nfrom scripts import g1_final5_typed as m\nd = {'tables': {\n    'outcomes.txt': [{'id': 1, 'outcome_type': 'PRIMARY', 'title': 'Stroke or systemic embolism', 'population': 'ITT'}],\n    'result_groups.txt': [{'id': 10, 'title': 'High Dose Edoxaban'}, {'id': 20, 'title': 'Low Dose Edoxaban'}],\n    'outcome_analysis_groups.txt': [{'outcome_analysis_id': 100, 'result_group_id': 10}, {'outcome_analysis_id': 100, 'result_group_id': 20}],\n    'outcome_analyses.txt': [{'id': 100, 'outcome_id': 1, 'param_type': 'Hazard Ratio', 'param_value': '0.8', 'ci_percent': '95', 'ci_lower_limit': '0.7', 'ci_upper_limit': '0.9'}]\n}}\nwith patch('builtins.open', mock_open(read_data=json.dumps(d))):\n    print(m.engage_aact()['result'])\nd['tables']['result_groups.txt'][1]['title'] = 'Warfarin'\nd['tables']['outcomes.txt'][0]['title'] = 'All-cause mortality'\nwith patch('builtins.open', mock_open(read_data=json.dumps(d))):\n    print(m.engage_aact()['result'])",
+    "expected": "NOT_FOUND for both inputs: the first compares the wrong arms; the second measures the wrong endpoint.",
+    "actual": "FOUND for both inputs, with an empty refusal-reason list for each analysis.",
+    "id": "final5-binding-r1b:g1#4",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "_finding_check / signed_comparator_findings",
+    "severity": "P1",
+    "claim": "A signed finding can reverse the meaning of patient and event columns and incorrectly classify the comparator as wrong. Verification checks numeric positions but never verifies the asserted finding against the row's labels.",
+    "failing_input": "import tempfile, pathlib, hashlib, json\nfrom scripts import g1_tracker as m\nrow = 'Patients with worsening HF: FCM 10, placebo 25; total hospitalizations: FCM 10, placebo 32 events.'\nwith tempfile.TemporaryDirectory() as root:\n    pathlib.Path(root, 'report.txt').write_text(row, encoding='utf-8')\n    e = {'slug': 'iv-iron-hfref-hosp', 'pmid': '25176939', 'state': 'SIGNED', 'decision': 'D-test', 'finding': 'COMPARATOR_COUNTS_ARE_EVENTS', 'doc': {'path': 'report.txt', 'format': 'text', 'text_sha256': hashlib.sha256(row.encode()).hexdigest()}, 'row_span': row, 'cells': {'comparator': {'events_t': 0, 'events_c': 1}, 'ours': {'events_t': 2, 'events_c': 3}}, 'comparator_counts': {'events_t': 10, 'events_c': 25}, 'our_counts': {'events_t': 10, 'events_c': 32}}\n    reg = pathlib.Path(root, 'findings.json')\n    reg.write_text(json.dumps({'findings': [e]}), encoding='utf-8')\n    x = {'family': 'PMID 25176939', 'comparator_row': {'events_t': 10, 'events_c': 25}, 'agreement_with_comparator_row': 'DISAGREE'}\n    print(m._finding_check(e, x, root))\n    m.signed_comparator_findings([x], 'iv-iron-hfref-hosp', reg=str(reg), root=root)\n    print(x['disagreement_side'].split(' (')[0])",
+    "expected": "Reject COMPARATOR_COUNTS_ARE_EVENTS: the comparator's 10 and 25 are explicitly patient counts; our 10 and 32 are event counts.",
+    "actual": "_finding_check returns None, and disagreement_side is classified SECONDARY_WRONG.",
+    "id": "final5-binding-r1b:g1#5",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The function unconditionally reports source-specific negative findings without reading any source. Missing or unreadable evidence is represented as confirmed absence of registry results and a specific publisher-fetch outcome.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import g1_final5_typed as m\nwith patch('builtins.open', side_effect=FileNotFoundError('No held source files')):\n    r = m.codex_28d()\nprint(r['result'])\nprint(r['routes'][0]['outcome'])\nprint(r['routes'][2]['outcome'])",
+    "expected": "An explicit unavailable/uncheckable result, or a propagated source-access error; no assertions about registry contents or publisher behaviour without checking evidence.",
+    "actual": "NOT_FOUND; NO_POSTED_RESULTS (no outcomes rows for NCT04327401); FETCH_EMPTY (publisher withholds the XML); not CC, so no model reader in any case (D8). No source access is attempted.",
+    "id": "final5-binding-r1b:g1#6",
+    "record_id": "mc-da016a8450a2043be0fd1da3aad3b208",
+    "verdict": null
+   }
+  ]
+ },
+ "final5-binding-r2": {
+  "base": "44cc3308d",
+  "head": "2eb4cff58",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "c85551ed3fd609f933c729fd2c2e0ea5a48a73818af572f7d584576df70e22da"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_final5_readers.py",
+    "function": "gate",
+    "severity": "P0",
+    "claim": "The percentage filter accepts the integer prefix of a decimal-comma percentage as a death count.",
+    "failing_input": "At the changed numeric-check block, use q = 'Mortality was 0,5% versus 0,8% in groups of 100 participants.' and ans = {'events_t': 0, 'events_c': 0, 'n_t': 100, 'n_c': 100}. The supplied regex can be run directly with re.findall(pattern, q).",
+    "expected": "Reject both event counts: the quote contains percentages, not zero-death counts.",
+    "actual": "The regex matches ['0', '0', '100']; toks is {0, 100}, miss is [], and the numeric-check block returns 'GATED'.",
+    "id": "final5-binding-r2:g1#1",
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "Explicit per-arm death counts in ordinary prose are classified as absent because the detector only recognizes fractions and percentages.",
+    "failing_input": "Call codex_28d() with outcomes.txt containing only 'id|nct_id\\n'; records.json containing {\"records\":[{\"id\":\"32876695\",\"abstract\":\"At 28 days, 45 patients died in the dexamethasone group and 50 patients died in the control group.\"}]}; and fulltext_index.json containing {\"32876695\":{\"state\":\"FETCH_EMPTY\"}}.",
+    "expected": "The abstract route identifies the printed death counts and prevents a NOT_FOUND result.",
+    "actual": "The abstract route returns 'NO_COUNTS (28-day mortality sentences: 1, none with a count or a percentage)' and the overall result is 'NOT_FOUND'.",
+    "id": "final5-binding-r2:g1#2",
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "A missing abstract field is silently converted to empty text and reported as checked evidence of absence.",
+    "failing_input": "Call codex_28d() with outcomes.txt containing only 'id|nct_id\\n'; records.json containing {\"records\":[{\"id\":\"32876695\"}]}; and fulltext_index.json containing {\"32876695\":{\"state\":\"FETCH_EMPTY\"}}.",
+    "expected": "The held-abstract route is NOT_CHECKED because no abstract is held; the overall result is NOT_CHECKED.",
+    "actual": "r.get('abstract') or '' supplies empty text. The abstract route returns 'NO_COUNTS (28-day mortality sentences: 0, none with a count or a percentage)' and the overall result is 'NOT_FOUND'.",
+    "id": "final5-binding-r2:g1#3",
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "An index entry with no retrieval state counts as a completed PMC check, allowing missing evidence to produce NOT_FOUND.",
+    "failing_input": "Call codex_28d() with outcomes.txt containing only 'id|nct_id\\n'; records.json containing {\"records\":[{\"id\":\"32876695\",\"abstract\":\"Mortality at 28 days was not reported.\"}]}; and fulltext_index.json containing {\"32876695\":{\"copy_licence\":\"CC-BY\"}}.",
+    "expected": "The PMC route and overall result are NOT_CHECKED: a licence alone establishes neither a body read nor absence of counts.",
+    "actual": "The PMC route returns 'None (CC-BY)'. Because this does not start with NOT_CHECKED, POSTED, COUNTS, or HELD, the overall result is 'NOT_FOUND'.",
+    "id": "final5-binding-r2:g1#4",
+    "record_id": "mc-3f46a28e4dc3ef2bc8b1f695eac8c992",
+    "verdict": null
+   }
+  ]
+ },
+ "final5-binding-r3": {
+  "base": "2eb4cff58",
+  "head": "636e94cbe",
+  "runs": {
+   "g1": {
+    "record_id": "mc-027cad3b812429cabd5ba9e380803d51",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "4027c9165e50b5ef5889f5d404060ad642b2e134c5bc98839fafaab26488e426"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_row_cells",
+    "severity": "P0",
+    "claim": "The thousands-separator alternative converts decimal-comma percentages with three fractional digits into integer count tokens. The same ambiguity exists in the new tokenizers in g1_final5_readers.py and g1_tracker.py.",
+    "failing_input": "_row_cells('Mortality (%) 12,345 23,456')",
+    "expected": "Preserve the decimal-comma values as non-count tokens; neither value supports an integer death count.",
+    "actual": "['12345', '23456'] — the decimal commas disappear, producing tokens indistinguishable from integer counts.",
+    "id": "final5-binding-r3:g1#1",
+    "record_id": "mc-027cad3b812429cabd5ba9e380803d51",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The new prose alternative treats a number of patients assessed as a printed mortality count. It does not require that those patients died, so an abstract without death counts can become a candidate.",
+    "failing_input": "Use this exact held abstract for the matching record: 'At day 28, 200 patients were assessed for mortality.'",
+    "expected": "Held-abstract outcome: 'NO_COUNTS (28-day mortality sentences: 1, none with a count or a percentage)'.",
+    "actual": "Held-abstract outcome: \"COUNTS_OR_PERCENTS_PRINTED:['At day 28, 200 patients were assessed for mortality.']\". When the other routes record absence, the overall result becomes CANDIDATE instead of NOT_FOUND.",
+    "id": "final5-binding-r3:g1#2",
+    "record_id": "mc-027cad3b812429cabd5ba9e380803d51",
+    "verdict": null
+   }
+  ]
+ },
+ "final5-binding-r4": {
+  "base": "636e94cbe",
+  "head": "d6aeb0e92",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6cc939186a66fa60dc593d0adc229eaf",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "6dacac1a5eed1abf71b7a24b2ca9606271c628a296bd8a9fb0ffaaa30b55cc6c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify_k5",
+    "severity": "P1",
+    "claim": "The new guard rejects count-and-percentage rows because their labels contain %, even when explicit integer counts are present.",
+    "failing_input": "At the added guard: spans['row_span'] = 'Deaths, n (%) 12 (20%) 15 (25%)'.",
+    "expected": "Continue validating the explicit counts 12 and 15; exclude the percentage cells.",
+    "actual": "Returns (False, 'K5_ROW_IS_PERCENTAGES') because lab is 'Deaths, n (%) '.",
+    "id": "final5-binding-r4:g1#1",
+    "record_id": "mc-6cc939186a66fa60dc593d0adc229eaf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "_finding_check",
+    "severity": "P1",
+    "claim": "The new guard incorrectly classifies mixed count-and-percentage rows as percentage-only evidence.",
+    "failing_input": "At the added guard: row = 'Deaths, n (%) 12 (20%) 15 (25%)', with the row present verbatim in plain(raw).",
+    "expected": "Continue validating the integer count cells rather than rejecting the row based on its mixed-unit label.",
+    "actual": "Returns 'ROW_IS_PERCENTAGES' because the prefix before the first digit contains %.",
+    "id": "final5-binding-r4:g1#2",
+    "record_id": "mc-6cc939186a66fa60dc593d0adc229eaf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The replacement regex misses explicit mortality counts when the mortality wording precedes the number, regressing previously detected evidence.",
+    "failing_input": "sents = ['At 28 days, mortality occurred in 45 patients in the treatment arm and 40 patients in the control arm.']",
+    "expected": "The sentence belongs in counts and produces a COUNTS_OR_PERCENTS_PRINTED outcome.",
+    "actual": "cnt.search returns None, leaving counts empty and selecting the NO_COUNTS outcome. The previous regex matched '45 patients'.",
+    "id": "final5-binding-r4:g1#3",
+    "record_id": "mc-6cc939186a66fa60dc593d0adc229eaf",
+    "verdict": null
+   }
+  ]
+ },
+ "final5-binding-v12-r1": {
+  "base": "26b2579d5",
+  "head": "5c0bb13cc",
+  "runs": {
+   "g1": {
+    "record_id": "mc-61453a1c96f4b827b642bedbb1cbbc44",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "0e5bf4c320877a4678684ff4b335a32c34366798fdd17ef0f33d785a26745608"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_declares_percent_units / verify_k5",
+    "severity": "P1",
+    "claim": "The new table-wide check rejects explicit count-with-percentage captions because it treats any occurrence of 'percentage' as declaring percentage-only values.",
+    "failing_input": "_declares_percent_units('Values are numbers of patients (percentages in parentheses).')",
+    "expected": "False: this caption explicitly describes patient counts accompanied by percentages.",
+    "actual": "True; verify_k5 consequently returns (False, 'K5_TABLE_IS_PERCENTAGES') for this caption, even when the selected cells contain valid counts.",
+    "id": "final5-binding-v12-r1:g1#1",
+    "record_id": "mc-61453a1c96f4b827b642bedbb1cbbc44",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "engage_aact",
+    "severity": "P1",
+    "claim": "The wider-composite check mistakes a competing-risk description for an additional endpoint component.",
+    "failing_input": "Outcome record: {'title': 'Stroke or systemic embolism, with death as a competing risk', 'outcome_type': 'PRIMARY', 'population': 'ITT'}",
+    "expected": "Pass the endpoint-width check: death is described as a competing risk, not part of the stroke/systemic-embolism composite.",
+    "actual": "Appends 'NOT_STROKE_OR_SEE:WIDER_COMPOSITE (stroke or systemic embolism, with death as a competing risk)' to why.",
+    "id": "final5-binding-v12-r1:g1#2",
+    "record_id": "mc-61453a1c96f4b827b642bedbb1cbbc44",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The added death-count regex accepts the integer prefix of a decimal duration. Its time-unit exclusion does not see past the decimal point.",
+    "failing_input": "Held sentence: 'Median time to death was 28.5 days.' Apply the added regex alternative: re.search(r'\\b(?:deaths?|died)\\s+(?:was|were|totall?ed|numbered|:)\\s*\\d+\\b(?!\\s*(?:%|-?\\s*days?|weeks?|months?|years?))', 'Median time to death was 28.5 days.', re.I).group(0)",
+    "expected": "No count match: 28.5 days is a duration, not a death count or percentage.",
+    "actual": "Matches 'death was 28', causing the sentence to qualify for COUNTS_OR_PERCENTS_PRINTED.",
+    "id": "final5-binding-v12-r1:g1#3",
+    "record_id": "mc-61453a1c96f4b827b642bedbb1cbbc44",
+    "verdict": null
+   }
+  ]
  }
 }
