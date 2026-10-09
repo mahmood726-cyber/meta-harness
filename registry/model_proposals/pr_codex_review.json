@@ -6593,5 +6593,62 @@
     "verdict": null
    }
   ]
+ },
+ "v13-04-r1": {
+  "base": "32f915fcd8d4fdf7ed8d83838bae745b28bfca7f",
+  "head": "038d84f2b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-91eda417fcbb77acb0d527554c4c508a",
+    "state": "RAN_OK",
+    "files": [
+     "harness/removed_texts.py",
+     "scripts/classify_tracked_fulltexts.py",
+     "scripts/fulltext_cascade.py",
+     "scripts/lane_fulltext.py",
+     "scripts/v13_04_prescreen.py"
+    ],
+    "prompt_sha256": "642bf43ac7ede0c76bb5839acce8c3687c67eecda9e94dd921dab80705d8a411"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/classify_tracked_fulltexts.py",
+    "function": "main",
+    "severity": "P1",
+    "claim": "Reclassification overwrites the central removal ledger, erasing the tombstones that prevent removed texts from being downloaded again.",
+    "failing_input": "Set registry/tracked_fulltext_licences.json to {\"rows\":[{\"slug\":\"s\",\"pmid\":\"1\",\"state\":\"REMOVED_FROM_TREE_D8\"}]}. Have no topic ledger and no tracked fulltexts. Call removed_texts.is_removed('s','1'), then classify_tracked_fulltexts.main(['--offline']), then removed_texts.is_removed('s','1').",
+    "expected": "Both is_removed calls return True; reclassification preserves signed removal records.",
+    "actual": "The first call returns True. main overwrites the registry with an empty rows list. The second call returns False, disabling both acquisition guards for that text.",
+    "id": "v13-04-r1:g1#1",
+    "record_id": "mc-91eda417fcbb77acb0d527554c4c508a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/v13_04_prescreen.py",
+    "function": "run_slug",
+    "severity": "P2",
+    "claim": "Cleanup discards unrelated tracked edits and deletes unrelated untracked files, including when the build fails.",
+    "failing_input": "In the repository at ROOT, commit notes.txt containing 'old\\n', cache/s/ft_1.txt containing 'held\\n', and scripts/build_topic.py containing 'import sys; sys.exit(1)\\n'. Change notes.txt to 'new\\n' and create untracked docs/draft.txt containing 'draft\\n'. Call run_slug('s', ['cache/s/ft_1.txt']).",
+    "expected": "Return the build failure and restore the candidate text while preserving notes.txt and docs/draft.txt.",
+    "actual": "Returns (1, '', None), but git checkout resets notes.txt to 'old\\n' and git clean deletes docs/draft.txt.",
+    "id": "v13-04-r1:g1#2",
+    "record_id": "mc-91eda417fcbb77acb0d527554c4c508a",
+    "verdict": null
+   },
+   {
+    "file": "scripts/v13_04_prescreen.py",
+    "function": "run_slug",
+    "severity": "P2",
+    "claim": "Candidate deletion is not protected by exception-safe restoration; a missing later candidate leaves earlier candidates deleted.",
+    "failing_input": "Have a tracked, existing cache/s/ft_1.txt and an absent cache/s/ft_2.txt. Call run_slug('s', ['cache/s/ft_1.txt', 'cache/s/ft_2.txt']).",
+    "expected": "Report the missing candidate while preserving or restoring ft_1.txt.",
+    "actual": "Deletes ft_1.txt, then raises FileNotFoundError for ft_2.txt. Neither restoration command runs, leaving ft_1.txt deleted.",
+    "id": "v13-04-r1:g1#3",
+    "record_id": "mc-91eda417fcbb77acb0d527554c4c508a",
+    "verdict": null
+   }
+  ]
  }
 }
