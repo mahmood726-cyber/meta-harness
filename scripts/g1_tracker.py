@@ -3184,13 +3184,23 @@ _STATED_K = re.compile(r"(?<!phase )(?<!phase)\b(\d+|two|three|four|five|six|sev
                        r"(?:clinical\s+)?(?:trials|studies|RCTs)\b", re.I)
 
 
+_SCREENING = re.compile(r"\b(?:screened|identified|retrieved|assessed|excluded|records?|searched|potentially|"
+                        r"full[- ]text|reviewed for eligibility)\b", re.I)
+
+
 def stated_k_from_text(t):
-    """(k, matched text) for the FIRST stated trial count in a comparator abstract, else (None, None)."""
-    m = _STATED_K.search(t or "")
-    if not m:
-        return None, None
-    w = m.group(1).lower()
-    return (int(w) if w.isdigit() else _NUMW[w]), m.group(0)
+    """(k, matched text) for the FIRST stated INCLUDED trial count in a comparator abstract, else (None, None). A count
+    in a screening / identification clause ('Of 20 studies screened', '312 studies identified', '48 studies were
+    assessed') is skipped -- it is the search funnel, never the pooled set (codex r5-2-stated-k-r1 #1)."""
+    t = t or ""
+    for m in _STATED_K.finditer(t):
+        after = re.split(r"[,;.]", t[m.end():], maxsplit=1)[0][:80]
+        before = re.split(r"[,;.]", t[:m.start()])[-1][-80:]          # the same clause, either side of the count
+        if _SCREENING.search(after) or _SCREENING.search(before):
+            continue
+        w = m.group(1).lower()
+        return (int(w) if w.isdigit() else _NUMW[w]), m.group(0)
+    return None, None
 
 
 def comparator_stated_k(comp):

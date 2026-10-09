@@ -25,3 +25,10 @@ def test_PLANT_studies_and_rcts_are_trials_too():
 def test_a_plain_stated_count_still_reads():
     assert k("3 randomized trials were pooled") == 3
     assert k("6 phase 3 trials including a total of 27,023 patients") == 6
+
+
+def test_PLANT_r1_1_a_screening_count_never_overrides_the_included_count():
+    # codex r5-2-stated-k-r1 #1 (P0): '20 studies screened' was read before '4 randomized controlled trials were included'
+    assert k("Of 20 studies screened, 4 randomized controlled trials were included.") == 4
+    assert k("We identified 312 studies, of which 9 RCTs met the inclusion criteria.") == 9
+    assert k("A total of 48 studies were assessed for eligibility") is None
