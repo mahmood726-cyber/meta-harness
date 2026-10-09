@@ -88,10 +88,12 @@ def study_y_v(row, outcome_scale):
     means, rate, counts, eff = (_present(row, f) for f in (MEANS, RATE, COUNTS, EFFECT))
     if means:
         m1, s1, n1, m2, s2, n2 = means
-        if min(s1, s2) <= 0 or min(n1, n2) < 1:
-            raise ValueError("arm means need positive SDs and arm sizes")
+        if min(s1, s2) < 0 or s1 + s2 <= 0 or min(n1, n2) < 1:     # codex ext-audit-r6 P2: one zero-SD arm is valid
+            raise ValueError("arm means need non-negative SDs (not both zero) and arm sizes")
     if rate:
         e1, t1, e2, t2 = rate
+        if not (float(e1).is_integer() and float(e2).is_integer()):
+            raise ValueError("rate events must be whole numbers")   # codex ext-audit-r6 P0
         if min(e1, e2) < 0 or min(t1, t2) <= 0:
             raise ValueError("a rate tuple needs non-negative events and positive person-time")
     if counts:
@@ -209,11 +211,16 @@ def recompute_outcome(o):
         est, cl, ch = t0["effect"], t0["ci_low"], t0["ci_high"]
     else:
         mu, lo, hi = pool([y for y, _ in yv], [v for _, v in yv])
-        try:
-            back = (lambda x: x) if _is_md(scale) else math.exp
-            est, cl, ch = back(mu), back(lo), back(hi)
-        except OverflowError:
-            return {"state": "DISAGREE", "why": "the recomputed pool overflows on the ratio scale"}
+        back = (lambda x: x) if _is_md(scale) else math.exp
+
+        def _bt(x):
+            try:
+                return back(x)
+            except OverflowError:
+                return math.inf          # compared only if the served value exists; inf never agrees
+        # only back-transform what is compared: at k=2 the interval is withheld (codex ext-audit-r6 P2)
+        est = _bt(mu)
+        cl, ch = (_bt(lo), _bt(hi)) if res.get("ci_low") is not None or res.get("ci_high") is not None or len(trials) != 2             else (None, None)
     compared = {"estimate": (est, res.get("estimate"))}
     if (res.get("ci_low") is None) != (res.get("ci_high") is None):
         return {"state": "DISAGREE", "why": "the served interval has one bound only (withholding needs both absent)"}

@@ -119,3 +119,16 @@ def test_PLANT_codex_r5_conflicting_labels_fractional_counts_and_k1_overflow():
     r = irc.recompute_outcome({"method": "Single included trial own effect", "trials": [big],
                                "result": {"scale": "RR", "estimate": 1e200, "ci_low": 1e-200, "ci_high": 1e201}})
     assert r["state"] == "AGREE", r
+
+
+def test_PLANT_codex_r6_fractional_rate_events_zero_sd_arm_and_unused_k2_interval():
+    r = irc.recompute_outcome({"method": "Paule-Mandel HKSJ",
+                               "trials": [{"e1i": 12.5, "t1i": 100, "e2i": 25, "t2i": 100}, {"e1i": 10, "t1i": 100, "e2i": 20, "t2i": 100}],
+                               "result": {"scale": "IRR", "estimate": 0.5}})
+    assert r["state"] == "NOT_RECOMPUTABLE"
+    assert irc.study_y_v({"mean1": 1, "sd1": 0, "nc1": 10, "mean2": 2, "sd2": 1, "nc2": 10}, "MD") == (-1.0, 0.1)
+    r = irc.recompute_outcome({"method": "Paule-Mandel HKSJ",
+                               "trials": [{"effect": 1e-100, "ci_low": 5e-101, "ci_high": 2e-100},
+                                          {"effect": 1e100, "ci_low": 5e99, "ci_high": 2e100}],
+                               "result": {"scale": "RR", "estimate": 1.0}})
+    assert r["state"] == "AGREE", r

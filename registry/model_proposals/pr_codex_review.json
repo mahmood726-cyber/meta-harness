@@ -6675,5 +6675,61 @@
     "verdict": null
    }
   ]
+ },
+ "ext-audit-r6": {
+  "base": "2be4df9a51511d97727a1989b9ecce328159e624",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d4525f11e6a90a4343ca22940ec3f0d6",
+    "state": "RAN_OK",
+    "files": [
+     "audit/independent_recompute.py",
+     "scripts/pr_codex_review.py",
+     "scripts/verify_all.py",
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "60b82aaa1bdf68978337d54ad704527f04d0ab57efd25c08d2201595339a0516"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v",
+    "severity": "P0",
+    "claim": "RATE tuples accept fractional event counts, allowing an invalid event count to pass the independent result gate. Only COUNTS tuples enforce whole numbers.",
+    "failing_input": "recompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [{'e1i': 12.5, 't1i': 100, 'e2i': 25, 't2i': 100}, {'e1i': 10, 't1i': 100, 'e2i': 20, 't2i': 100}], 'result': {'scale': 'IRR', 'estimate': 0.5}})",
+    "expected": "Reject the first tuple as NOT_RECOMPUTABLE because 12.5 is not a whole event count.",
+    "actual": "Returns AGREE with k=2, estimate comparison (0.5, 0.5), and no mismatches.",
+    "id": "ext-audit-r6:g1#1",
+    "record_id": "mc-d4525f11e6a90a4343ca22940ec3f0d6",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v",
+    "severity": "P2",
+    "claim": "Rejects a valid mean-difference tuple when one arm has zero SD, even though the other arm contributes positive sampling variance.",
+    "failing_input": "study_y_v({'mean1': 1, 'sd1': 0, 'nc1': 10, 'mean2': 2, 'sd2': 1, 'nc2': 10}, 'MD')",
+    "expected": "Returns (-1.0, 0.1): mean difference -1 and variance 0**2/10 + 1**2/10.",
+    "actual": "Raises ValueError('arm means need positive SDs and arm sizes'); recompute_outcome consequently reports NOT_RECOMPUTABLE.",
+    "id": "ext-audit-r6:g1#2",
+    "record_id": "mc-d4525f11e6a90a4343ca22940ec3f0d6",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "recompute_outcome",
+    "severity": "P2",
+    "claim": "At k=2, exponentiates the withheld confidence interval before comparing the point estimate. Overflow in that unused interval incorrectly fails a matching finite estimate.",
+    "failing_input": "recompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [{'effect': 1e-100, 'ci_low': 5e-101, 'ci_high': 2e-100}, {'effect': 1e100, 'ci_low': 5e99, 'ci_high': 2e100}], 'result': {'scale': 'RR', 'estimate': 1.0}})",
+    "expected": "AGREE: the pooled estimate is 1.0, and both served CI bounds are legitimately withheld at k=2.",
+    "actual": "Returns {'state': 'DISAGREE', 'why': 'the recomputed pool overflows on the ratio scale'}.",
+    "id": "ext-audit-r6:g1#3",
+    "record_id": "mc-d4525f11e6a90a4343ca22940ec3f0d6",
+    "verdict": null
+   }
+  ]
  }
 }
