@@ -285,7 +285,8 @@ def _eligible_not_pooled(core, id_nct=None):
     for r in ((core.get("screening") or {}).get("records") or []):
         if r.get("decision") != "include":
             continue
-        if r.get("completeness_state") in {"eligible+ongoing", "eligible+not_yet_recruiting"}:
+        # not yet expected to report: ongoing, not yet recruiting, or SUSPENDED (halted, may resume; R9-2)
+        if r.get("completeness_state") in {"eligible+ongoing", "eligible+not_yet_recruiting", "eligible+suspended"}:
             continue
         if r.get("publication_role") in identity_mod.NON_TRIAL_PUBLICATION_ROLES:
             continue

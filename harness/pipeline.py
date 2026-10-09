@@ -1074,28 +1074,47 @@ def _clean_record_id(value):
 
 _ONGOING_STATUS = {"RECRUITING", "ACTIVE_NOT_RECRUITING", "ENROLLING_BY_INVITATION", "APPROVED_FOR_MARKETING"}
 _NOT_YET_STATUS = {"NOT_YET_RECRUITING"}
-_COMPLETED_STATUS = {"COMPLETED", "TERMINATED", "WITHDRAWN", "SUSPENDED", "UNKNOWN"}
+# ENDED statuses only (R9-2, 9 Oct): SUSPENDED (halted, may resume) and UNKNOWN (status not verified for 2+ years) are
+# NOT completed, and were counted as completed until then
+_COMPLETED_STATUS = {"COMPLETED", "TERMINATED", "WITHDRAWN"}
 
 
 def _completeness_for_record(rec, dates):
-    rid = str((rec or {}).get("id") or "")
+    """The trial's lifecycle from its VERIFIED registry overall_status (the AACT snapshot first, then the record's own
+    registry fields), with both completions kept as the registry gives them -- WHICH completion (primary v study) and
+    its TYPE (ACTUAL v ESTIMATED/ANTICIPATED). A publication with no verified registry status is published, never
+    'completed' by inference from the record's path (R9-2)."""
     nct = screen._nct_id(rec or {})
-    d = dates.get(nct or "") if nct else {}
-    status = str((d or {}).get("overall_status") or (rec or {}).get("overall_status") or (rec or {}).get("status") or "").upper()
-    has_results = bool((rec or {}).get("has_results") or (d or {}).get("results_first_posted_date"))
+    d = (dates.get(nct or "") if nct else {}) or {}
+    status = str(d.get("overall_status") or (rec or {}).get("overall_status") or (rec or {}).get("status") or "").upper()
+    has_results = bool((rec or {}).get("has_results") or d.get("results_first_posted_date"))
+    published = (rec or {}).get("id_type") == "pmid"
     if status in _NOT_YET_STATUS:
         state = "eligible+not_yet_recruiting"
     elif status in _ONGOING_STATUS:
         state = "eligible+ongoing"
-    elif (rec or {}).get("id_type") == "pmid" or status in _COMPLETED_STATUS or has_results:
-        state = "eligible+completed+results_available" if (has_results or (rec or {}).get("id_type") == "pmid") else "eligible+completed+results_unavailable"
+    elif status == "SUSPENDED":
+        state = "eligible+suspended"
+    elif status in _COMPLETED_STATUS:
+        state = ("eligible+completed+results_available" if (has_results or published)
+                 else "eligible+completed+results_unavailable")
+    elif status == "UNKNOWN":
+        state = "eligible+status_unknown"
+    elif has_results:
+        state = "eligible+completed+results_available"          # posted results: the registry itself says it ended
+    elif published:
+        state = "eligible+published+registry_status_unverified"
     else:
-        state = "eligible+completed+results_unavailable"
+        state = "eligible+status_unknown"
     return {
         "completeness_state": state,
         "registry_status": status or None,
-        "results_first_posted_date": (d or {}).get("results_first_posted_date") or None,
-        "completion_date": (d or {}).get("completion_date") or None,
+        "results_first_posted_date": d.get("results_first_posted_date") or None,
+        "completion_date": d.get("completion_date") or None,
+        "completion_date_type": d.get("completion_date_type") or ("TYPE_NOT_RECORDED" if d.get("completion_date") else None),
+        "primary_completion_date": d.get("primary_completion_date") or None,
+        "primary_completion_date_type": d.get("primary_completion_date_type") or (
+            "TYPE_NOT_RECORDED" if d.get("primary_completion_date") else None),
         "completeness_basis": "CT.gov status/results dates from local AACT snapshot" if nct and d else "publication record / committed cache metadata",
     }
 

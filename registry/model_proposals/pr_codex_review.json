@@ -6731,5 +6731,49 @@
     "verdict": null
    }
   ]
+ },
+ "r9-2-lifecycle-r1": {
+  "base": "beb73a487",
+  "head": "44929e1b3",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d3561b8bccda9d9dac1e46dd9ba831ee",
+    "state": "RAN_OK",
+    "files": [
+     "harness/aact.py",
+     "harness/invalidation.py",
+     "harness/pipeline.py",
+     "scripts/r9_2_lifecycle_sweep.py"
+    ],
+    "prompt_sha256": "35f54543bdf40e03b3c0c905e2abcfd51e5619ca58855dfbc0372fe3a5cbdd8d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/r9_2_lifecycle_sweep.py",
+    "function": "main",
+    "severity": "P1",
+    "claim": "A cache-load failure is silently converted into missing registry evidence, producing an unsupported lifecycle correction attributed to R9-2. The output does not record the failure.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness import aact_cache, pipeline, screen\nfrom scripts import r9_2_lifecycle_sweep as s\nreview = {'screening': {'records': [{'id': 'paper', 'completeness_state': 'eligible+ongoing'}]}}\nrecords = [{'id': 'paper', 'id_type': 'pmid'}]\nwith patch.object(s.os, 'listdir', return_value=['topic']), patch.object(s.os.path, 'exists', return_value=True), patch('builtins.open', mock_open()), patch.object(s.json, 'load', side_effect=[review, records]), patch.object(pipeline, '_dedup', side_effect=lambda x: x), patch.object(pipeline, '_clean_record_id', side_effect=lambda x: x), patch.object(screen, '_nct_id', return_value=None), patch.object(aact_cache, 'load', side_effect=ValueError('corrupt cache')):\n    s.main()",
+    "expected": "Propagate the cache error or explicitly mark the topic unverifiable; do not assert a corrected lifecycle based on failed evidence loading.",
+    "actual": "The exception is swallowed. The report asserts eligible+ongoing -> eligible+published+registry_status_unverified with cause R9-2_RULE; total_changed=1 and changed_by_r9_2_rule=1, with no cache-error indication. Derived directly from the supplied code; local execution was blocked.",
+    "id": "r9-2-lifecycle-r1:g1#1",
+    "record_id": "mc-d3561b8bccda9d9dac1e46dd9ba831ee",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r9_2_lifecycle_sweep.py",
+    "function": "main",
+    "severity": "P2",
+    "claim": "Served annotations without matching cached records are silently skipped but still included in 'annotated', allowing an entirely unverified topic to report zero changes without any coverage failure.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness import aact_cache, pipeline\nfrom scripts import r9_2_lifecycle_sweep as s\nreview = {'screening': {'records': [{'id': 'missing-paper', 'completeness_state': 'eligible+completed+results_available'}]}}\nwith patch.object(s.os, 'listdir', return_value=['topic']), patch.object(s.os.path, 'exists', return_value=True), patch('builtins.open', mock_open()), patch.object(s.json, 'load', side_effect=[review, []]), patch.object(pipeline, '_dedup', side_effect=lambda x: x), patch.object(pipeline, '_clean_record_id', side_effect=lambda x: x), patch.object(aact_cache, 'load', return_value={}):\n    s.main()",
+    "expected": "Report missing-paper as unmatched/unverifiable, or fail the sweep, distinguishing unchecked annotations from checked annotations with no changes.",
+    "actual": "The topic reports annotated=1, changed=0, changed_by_r9_2_rule=0 and rows=[]; total_changed=0 and topics_changed=0. No unmatched-record warning or error is emitted. Derived directly from the supplied code; local execution was blocked.",
+    "id": "r9-2-lifecycle-r1:g1#2",
+    "record_id": "mc-d3561b8bccda9d9dac1e46dd9ba831ee",
+    "verdict": null
+   }
+  ]
  }
 }
