@@ -4,11 +4,11 @@
   "question": "In adults at cardiovascular risk, do marine omega-3 fatty acid supplements reduce major vascular events versus placebo/control? (Double-blind placebo-controlled RCTs.)",
   "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
-    "sha": "13c0136f93aa1d9c52aabf01cc34ef2cc27a677d",
+    "sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['cardiovascular', 'vascular', 'coronary', 'myocardial infarction', 'heart failure', 'atherosclerosis', 'diabetes', 'dysglycemia', 'hypertriglyceridemia', 'dyslipidemia', 'cholesterol', 'ischemic', 'ischaemic']; and none of ['depression', 'depressive', 'pregnancy', 'macular', 'eye disease', 'osteoarthritis', 'crohn', 'inflammatory bowel', 'dementia', 'alzheimer', 'iga nephropathy', 'arrhythmia recurrence']; randomised intervention is one of ['omega-3', 'omega 3', 'n-3 fatty', 'n 3 fatty', 'marine n-3', 'fish oil', 'icosapent', 'eicosapentaenoic', 'docosahexaenoic', 'polyunsaturated fatty acid'] (named in title/conditions); a comparator among ['placebo', 'control', 'corn oil', 'olive oil', 'mineral oil', 'usual care', 'standard']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - marine omega-3 fatty acids for major cardiovascular events\n\n**Registration.** The commit that adds this file is the registration of this review; its\nSHA is embedded in the page's Protocol tab and its Reproducibility tab. Committed BEFORE\nthe synthesis is run.\n\n## PICO\n- **P** - adults at cardiovascular risk, including established cardiovascular disease,\n  diabetes or dysglycemia, prior myocardial infarction, heart failure, coronary disease,\n  dyslipidemia, hypertriglyceridemia, or other title-level cardiovascular-risk populations.\n- **I** - marine omega-3 fatty acid supplementation, including EPA, DHA, EPA+DHA, fish oil,\n  omega-3 carboxylic acids, or icosapent ethyl.\n- **C** - placebo or inert control, including corn oil, olive oil, mineral oil, or usual-care\n  control where the randomized comparison is otherwise eligible.\n- **O (primary)** - major vascular events / MACE.\n- **O (harms)** - atrial fibrillation; bleeding.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), omega-3 vs placebo/control. Published ratio effects with\n  95% CI are poolable when arm counts are not abstract-extractable.\n- **Population** - intention-to-treat as randomized.\n- **Timepoint** - trial end / longest randomized follow-up reported in the abstract.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomized controlled trial;\n- **I2** - adult cardiovascular-risk population, judged from title or registry conditions;\n- **I3** - marine omega-3 fatty acid supplement vs placebo/control;\n- **design** - double-blind, placebo-controlled or blinded inert-control RCT.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, subgroup-only report);\n- **X2** - wrong population (for example depression, pregnancy, eye disease, dementia,\n  inflammatory bowel disease, osteoarthritis, or atrial-fibrillation recurrence);\n- **X3** - wrong intervention/comparison (no randomized marine omega-3-vs-control contrast);\n- **X-DESIGN** - not double-blind and placebo/inert-control;\n- **X5** - off-topic: a primary trial of another topic/disease in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports major vascular events\n> / MACE, or gives a 2x2 vs only an effect+CI, is recorded as target-result status at\n> extraction - never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: two deterministic title-word query blocks covering VITAL, ASCEND, REDUCE-IT,\n  STRENGTH, Alpha Omega, ORIGIN, Risk and Prevention, GISSI-HF, and related omega-3\n  cardiovascular trial records.\n- ClinicalTrials.gov: condition \"cardiovascular disease\", intervention \"omega-3 fatty acids\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study\nonly if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1\n(<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nLi et al., *Medicine (Baltimore)* 2022, \"Effects of omega-3 fatty acid on major\ncardiovascular outcomes: A systematic review and meta-analysis\" (PMID 35905212, PMCID\nPMC9333496, DOI 10.1097/MD.0000000000029556; Unpaywall is_oa=true). It reports major\ncardiovascular events RR 0.94 (95% CI 0.89-1.00) over 28 randomized controlled trials.\nNo comparator harm effect is declared because the fetched comparator abstract/PMC text\ndoes not expose atrial-fibrillation or bleeding effects.\n\n## Controls\n- **Positive** - the search must recover and include landmark double-blind omega-3 trials:\n  REDUCE-IT (PMID 30415628), STRENGTH (PMID 33190147), and ORIGIN omega-3 (PMID 22686415).\n- **Negative** - Grenyer et al. fish oil for major depression (PMID 17659823; a different\n  disease area) must be recovered and EXCLUDED as wrong population.\n",
+    "text": "# Protocol - marine omega-3 fatty acids for major cardiovascular events\n\n**Registration.** The commit that adds this file is the registration of this review; its\nSHA is embedded in the page's Protocol tab and its Reproducibility tab. Committed BEFORE\nthe synthesis is run.\n\n## PICO\n- **P** - adults at cardiovascular risk, including established cardiovascular disease,\n  diabetes or dysglycemia, prior myocardial infarction, heart failure, coronary disease,\n  dyslipidemia, hypertriglyceridemia, or other title-level cardiovascular-risk populations.\n- **I** - marine omega-3 fatty acid supplementation, including EPA, DHA, EPA+DHA, fish oil,\n  omega-3 carboxylic acids, or icosapent ethyl.\n- **C** - placebo or inert control, including corn oil, olive oil, mineral oil, or usual-care\n  control where the randomized comparison is otherwise eligible.\n- **O (primary)** - major vascular events / MACE.\n- **O (harms)** - atrial fibrillation; bleeding.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), omega-3 vs placebo/control. Published ratio effects with\n  95% CI are poolable when arm counts are not abstract-extractable.\n- **Population** - intention-to-treat as randomized.\n- **Timepoint** - trial end / longest randomized follow-up reported in the abstract.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomized controlled trial;\n- **I2** - adult cardiovascular-risk population, judged from title or registry conditions;\n- **I3** - marine omega-3 fatty acid supplement vs placebo/control;\n- **design** - double-blind, placebo-controlled or blinded inert-control RCT.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, subgroup-only report);\n- **X2** - wrong population (for example depression, pregnancy, eye disease, dementia,\n  inflammatory bowel disease, osteoarthritis, or atrial-fibrillation recurrence);\n- **X3** - wrong intervention/comparison (no randomized marine omega-3-vs-control contrast);\n- **X-DESIGN** - not double-blind and placebo/inert-control;\n- **X5** - off-topic: a primary trial of another topic/disease in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports major vascular events\n> / MACE, or gives a 2x2 vs only an effect+CI, is recorded as target-result status at\n> extraction - never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: two deterministic title-word query blocks covering VITAL, ASCEND, REDUCE-IT,\n  STRENGTH, Alpha Omega, ORIGIN, Risk and Prevention, GISSI-HF, and related omega-3\n  cardiovascular trial records.\n- ClinicalTrials.gov: condition \"cardiovascular disease\", intervention \"omega-3 fatty acids\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study\nonly if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1\n(<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nLi et al., *Medicine (Baltimore)* 2022, \"Effects of omega-3 fatty acid on major\ncardiovascular outcomes: A systematic review and meta-analysis\" (PMID 35905212, PMCID\nPMC9333496, DOI 10.1097/MD.0000000000029556; Unpaywall is_oa=true). It reports major\ncardiovascular events RR 0.94 (95% CI 0.89-1.00) over 28 randomized controlled trials.\nNo comparator harm effect is declared because the fetched comparator abstract/PMC text\ndoes not expose atrial-fibrillation or bleeding effects.\n\n## Controls\n- **Positive** - the search must recover and include landmark double-blind omega-3 trials:\n  REDUCE-IT (PMID 30415628), STRENGTH (PMID 33190147), and ORIGIN omega-3 (PMID 22686415).\n- **Negative** - Grenyer et al. fish oil for major depression (PMID 17659823; a different\n  disease area) must be recovered and EXCLUDED as wrong population.\n\n## Amendment 2026-10-09 (estimand RR -> HR, post hoc; V13-03Q)\n**Status: POST HOC.** This amendment was made after the results were seen and is signed by Mahmood (V13-03Q, option A, 9 Oct 2026: 'sign v13' / 'yes to all recommended'; packet lane_status/v13_packet.md sha256 d9842124e80997c0a72ab3c7dca687fe8a0c86c2e21e84f6207f4d44e0f99ace). The original declaration above is kept unchanged.\n\n- **Major vascular events / MACE.** Declared estimand: RR. Amended to: HR (time to first event).\n- **Reason.** For these time-to-first-event outcomes the trials print a hazard ratio, which the review already served under the source hierarchy; the declaration is brought into line with what is served. No served number changes.\n",
     "target_endpoint_selection": {
       "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
       "results_known_at_rule_time": true
@@ -2247,13 +2247,13 @@
       "name": "Major vascular events / MACE",
       "kind": "efficacy",
       "primary": true,
-      "estimand": "RR",
+      "estimand": "HR",
       "population": "intention-to-treat",
       "timepoint": "trial end / longest randomized follow-up",
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "served_estimand": "HR",
       "estimand_decision": {
-        "declared_estimand": "RR",
+        "declared_estimand": "HR",
         "decision": "time_to_first_event",
         "target_scale": "HR",
         "target_class": "FIRST_EVENT_RATIO",
@@ -2261,7 +2261,7 @@
           "HR",
           "RR"
         ],
-        "served_scale_changed": true,
+        "served_scale_changed": false,
         "reason": "published HR exists for the target outcome",
         "rule": "prefer published HR; keep reconstruction only when no HR exists"
       },
@@ -2341,19 +2341,6 @@
               "endpoint_binding_reason": "result sentence names an endpoint; 1 candidate definition in the held text; selected"
             },
             {
-              "candidate_id": "abstract:reconstruction:1",
-              "source_type": "abstract",
-              "source_kind": "reconstruction",
-              "target_endpoint_class": "NEAR_MATCH",
-              "extra_components": [
-                "coronary revascularization",
-                "unstable angina"
-              ],
-              "source_rank_kind": "reconstruction",
-              "endpoint_binding": "named_endpoint_resolved_to_definition_span",
-              "endpoint_binding_reason": "result sentence names an endpoint; 1 candidate definition in the held text; selected"
-            },
-            {
               "candidate_id": "ctgov:0",
               "source_type": "ctgov_results",
               "source_kind": "registry_published_effect",
@@ -2380,6 +2367,21 @@
                 "unstable angina"
               ],
               "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:1",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "The Composite of MACE in the Subgroup of Participants With Established CV Disease(CVD) at Baseline",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "coronary revascularization",
+                "unstable angina"
+              ],
+              "source_rank_kind": "registry_published_effect",
               "endpoint_binding": "registry_outcome_measure",
               "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
             }
@@ -3462,7 +3464,7 @@
           "ci_low": 0.64,
           "ci_high": 1.56,
           "scale": "HR",
-          "source": "abstract effect+CI (HR): Based on the main effects analysis, we did not find any statistically significant benefit of any of the three interventions with regard to the risk of MACE: omega-3 versus no omega-3 (adjusted hazard ",
+          "source": "abstract source-reported HR (registered estimand): Based on the main effects analysis, we did not find any statistically significant benefit of any of the three interventions with regard to the risk of MACE: omega-3 versus no omega-3 (adjusted hazard ",
           "provenance": "pmc_fulltext",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
@@ -3527,7 +3529,7 @@
             },
             "source_provenance": {
               "source": "pmc_fulltext",
-              "span": "abstract effect+CI (HR): Based on the main effects analysis, we did not find any statistically significant benefit of any of the three interventions with regard to the risk of MACE: omega-3 versus no omega-3 (adjusted hazard "
+              "span": "abstract source-reported HR (registered estimand): Based on the main effects analysis, we did not find any statistically significant benefit of any of the three interventions with regard to the risk of MACE: omega-3 versus no omega-3 (adjusted hazard "
             },
             "design_action": {
               "action": "ALLOW_WITH_LABEL",
@@ -4159,6 +4161,15 @@
             "input_set_version": "1b9b4cfcdd686c572e76fbfa286428d756cac921bcfbbf08453ec2ce3c400d90"
           },
           "claim_kind": "membership_state"
+        }
+      ],
+      "estimand_history": [
+        {
+          "until": "2026-10-09",
+          "declared": "RR",
+          "amended_to": "HR",
+          "post_hoc": true,
+          "changed_by": "V13-03Q (A), signed by Mahmood 9 Oct 2026 ('sign v13' / 'yes to all recommended'), packet v13_packet.md d9842124...; external audit review 4 / scale sweep: the trials' published HR was already served"
         }
       ],
       "membership": {
@@ -8698,6 +8709,12 @@
   "protocol_config": {
     "divergences": [
       {
+        "code": "ESTIMAND_DIVERGENCE",
+        "dimension": "estimand",
+        "prose": "RR",
+        "config": "HR"
+      },
+      {
         "code": "DESIGN_MASKING_ANDOR",
         "dimension": "design",
         "prose": "double-blind AND placebo-controlled",
@@ -8710,13 +8727,19 @@
       "agreed_dimensions": [],
       "divergences": [
         {
+          "code": "ESTIMAND_DIVERGENCE",
+          "dimension": "estimand",
+          "prose": "RR",
+          "config": "HR"
+        },
+        {
           "code": "DESIGN_MASKING_ANDOR",
           "dimension": "design",
           "prose": "double-blind AND placebo-controlled",
           "config": "double-blind OR placebo-controlled"
         }
       ],
-      "sentence": "1 protocol/config divergence(s) disclosed; declared == enforced is not asserted"
+      "sentence": "2 protocol/config divergence(s) disclosed; declared == enforced is not asserted"
     }
   },
   "identifier_scope": {
@@ -124617,8 +124640,9 @@
         "surface": "reporting/prisma_item_5",
         "source_path": "/protocol_config/divergences",
         "asserted_equal": false,
-        "divergence_count": 1,
+        "divergence_count": 2,
         "divergence_codes": [
+          "ESTIMAND_DIVERGENCE",
           "DESIGN_MASKING_ANDOR"
         ],
         "claim_id": "2eb93d01c8ed8224"
@@ -124692,14 +124716,14 @@
   ],
   "reproduction": {
     "failures": 0,
-    "protocol_sha": "13c0136f93aa1d9c52aabf01cc34ef2cc27a677d",
-    "review_sha256": "77701d059d3e841cadac37451695161a496f8d79aed74d285d6068b4f5cd4a45",
+    "protocol_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
+    "review_sha256": "b960702fde2f19b4a8bc1b9b12170079f212d5530f28995d669deaf5cbd689dd",
     "from_cache": true,
     "preregistration": {
-      "prospective": false,
-      "sha": null,
-      "kind": "no protocol-only commit -- protocol first committed inside a build",
-      "build_sha": "13c0136f93aa1d9c52aabf01cc34ef2cc27a677d"
+      "prospective": true,
+      "sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
+      "kind": "protocol-file (earliest, protocol-only)",
+      "build_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52"
     },
     "parity": {
       "slug": "omega3-cardiovascular-events",
@@ -124920,8 +124944,8 @@
     "certificate": {
       "schema_version": 1,
       "slug": "omega3-cardiovascular-events",
-      "protocol_sha": "13c0136f93aa1d9c52aabf01cc34ef2cc27a677d",
-      "protocol_text_sha256": "40e155fbbfa1454a902adab4b208b3c1cd97a64df2544e001f9c64fb335bca5f",
+      "protocol_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
+      "protocol_text_sha256": "0a09fdceeae5cf38e568a4544cb0a579d33495eea997be382e08da75db973797",
       "search_query_sha256": "ad1899a885cb95e81933986660b85d4267d326e5e0b291f4113a1ad13bd0c0a9",
       "retrieved_corpus_sha256": "f40d316972c0eb04443d084ed1c4411264eb4a504d64d3f8be632a467f60dd64",
       "records_file_sha256": "ec27238d4cb6431dbf5e9337bd7515b60d66de1ec63bee42b152bdc82a84ba7f",
@@ -124957,8 +124981,8 @@
           "sha256": "3d685d1e10b105a0cc4b6a523d0e31a8c7848ad9ff37258096263ae41cdf6a91"
         }
       ],
-      "config_sha256": "912651fd38418a34e16d2aa9a2a87b0f2b55ba1c4122195e58dbf0c6c9d94147",
-      "analysis_code_sha256": "41f7fdd40209b45ceecf6ad6157fc8b5206e4eb822481f0e2a9795f0a54801c6",
+      "config_sha256": "a9e6ec3f5781d76821bf1a8e18ad40aab903f394dda342c0a302612a663edec5",
+      "analysis_code_sha256": "1c1386104bbd81e97bd32fba56dcba56865aa6ae9eaa990248ea1058f2a1a2ad",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -124983,7 +125007,7 @@
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
         "harness/consumer_consistency.py": "191dab38f85d1a06b3557ce1c51263f0b8909a47",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
-        "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
+        "harness/design_key.py": "473ce31ac965a338d1283d807c49e803aefe4ae6",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
@@ -125016,9 +125040,9 @@
         "harness/manuscript.py": "15b17feef78c8492abec0989242c9ec4455dbb2d",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "9fcc9974357c421ebeb2ef841bc2a753dfb9197e",
+        "harness/page.py": "c1010f2bd6a565170d4f107d798fa56e714fc5cb",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "832cd73b870f6ec523ce0481f843c60c608747b3",
+        "harness/pipeline.py": "a984c08b3d8415b25df996c9c6f4b6a7870c7912",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -125098,8 +125122,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "42700dbd733e20f458bac848cc40cecfd08f6e004e2fe01055631d5154f21135",
-      "review_sha256": "77701d059d3e841cadac37451695161a496f8d79aed74d285d6068b4f5cd4a45",
+      "manuscript_sha256": "34654a13aee3724578b52ed20f229faa4bac692376d927eb9f3ca6a7b86a7037",
+      "review_sha256": "b960702fde2f19b4a8bc1b9b12170079f212d5530f28995d669deaf5cbd689dd",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/omega3-cardiovascular-events.md UTF-8 text, universal newlines",
@@ -125120,7 +125144,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "8aa2813c7bb29a09978a9e871f2ac452e564dea4aad94c392f70ae04f697d595"
+      "release_sha256": "cdc36e7a5b0cdd1200eed5484fee0bc7c8f91df750b2012f1b661c4be8f01e69"
     }
   }
 }

@@ -4,11 +4,11 @@
   "question": "In adults with heart failure with reduced ejection fraction, do SGLT2 inhibitors reduce the composite of cardiovascular death or hospitalisation for heart failure versus placebo? (Double-blind placebo-controlled RCTs.)",
   "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
-    "sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
+    "sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure', 'HFrEF', 'reduced ejection fraction']; and none of ['preserved ejection fraction', 'HFpEF', 'mildly reduced', 'diabetes', 'diabetic', 'diabete', 'type 2 diabetes', 'chronic kidney disease', 'kidney disease', 'myocardial infarction'] as the entry condition when the required population is absent; randomised intervention is one of ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - SGLT2 inhibitors for cardiovascular death or heart-failure hospitalisation in HFrEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced ejection fraction (HFrEF).\n- **I** - an SGLT2 inhibitor, specifically dapagliflozin or empagliflozin, added to recommended therapy.\n- **C** - placebo added to recommended therapy.\n- **O (primary)** - composite cardiovascular death or hospitalisation for heart failure.\n- **O (harms)** - volume depletion or hypotension; diabetic ketoacidosis.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR) when arm counts are extractable, or published HR/RR with 95% CI when that is the source-reported poolable input.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest randomised follow-up reported for the composite endpoint.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - adult HFrEF / reduced-ejection-fraction heart-failure population, judged from title or registry conditions;\n- **I3** - dapagliflozin or empagliflozin versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or post-hoc analysis not indexed as an RCT);\n- **X2** - wrong population (e.g. HFpEF, mildly reduced/preserved EF, diabetes-only, CKD-only, post-MI, or other non-HFrEF population);\n- **X3** - wrong intervention/comparison (no eligible SGLT2-inhibitor-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled in the machine-readable record;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports the composite\n> endpoint, or gives a 2x2 vs only an effect+CI, is recorded as *target-result status* at\n> extraction - never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: UID-anchored queries for the DAPA-HF and EMPEROR-Reduced primary reports, plus the resolved open-access comparator.\n- ClinicalTrials.gov: condition \"HFrEF\", intervention \"SGLT2 inhibitor\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study only if\nit has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nLi et al., *ESC Heart Failure* 2022, \"Sodium-glucose cotransporter 2 inhibitors in heart\nfailure with reduced or preserved ejection fraction: a meta-analysis\" (PMID 35112512,\nDOI 10.1002/ehf2.13805; Unpaywall is_oa=true; PMC8934917 available). The comparator's\nLVEF <=40% subgroup reports the assigned HFrEF composite endpoint.\n\n## Controls\n- **Positive** - the search must recover the canonical HFrEF SGLT2 inhibitor trials:\n  DAPA-HF and EMPEROR-Reduced.\n- **Negative** - EMPA-REG OUTCOME (empagliflozin, double-blind, placebo-controlled, but\n  type 2 diabetes rather than HFrEF) must be recovered and EXCLUDED.\n",
+    "text": "# Protocol - SGLT2 inhibitors for cardiovascular death or heart-failure hospitalisation in HFrEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced ejection fraction (HFrEF).\n- **I** - an SGLT2 inhibitor, specifically dapagliflozin or empagliflozin, added to recommended therapy.\n- **C** - placebo added to recommended therapy.\n- **O (primary)** - composite cardiovascular death or hospitalisation for heart failure.\n- **O (harms)** - volume depletion or hypotension; diabetic ketoacidosis.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR) when arm counts are extractable, or published HR/RR with 95% CI when that is the source-reported poolable input.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest randomised follow-up reported for the composite endpoint.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - adult HFrEF / reduced-ejection-fraction heart-failure population, judged from title or registry conditions;\n- **I3** - dapagliflozin or empagliflozin versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or post-hoc analysis not indexed as an RCT);\n- **X2** - wrong population (e.g. HFpEF, mildly reduced/preserved EF, diabetes-only, CKD-only, post-MI, or other non-HFrEF population);\n- **X3** - wrong intervention/comparison (no eligible SGLT2-inhibitor-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled in the machine-readable record;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports the composite\n> endpoint, or gives a 2x2 vs only an effect+CI, is recorded as *target-result status* at\n> extraction - never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: UID-anchored queries for the DAPA-HF and EMPEROR-Reduced primary reports, plus the resolved open-access comparator.\n- ClinicalTrials.gov: condition \"HFrEF\", intervention \"SGLT2 inhibitor\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study only if\nit has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nLi et al., *ESC Heart Failure* 2022, \"Sodium-glucose cotransporter 2 inhibitors in heart\nfailure with reduced or preserved ejection fraction: a meta-analysis\" (PMID 35112512,\nDOI 10.1002/ehf2.13805; Unpaywall is_oa=true; PMC8934917 available). The comparator's\nLVEF <=40% subgroup reports the assigned HFrEF composite endpoint.\n\n## Controls\n- **Positive** - the search must recover the canonical HFrEF SGLT2 inhibitor trials:\n  DAPA-HF and EMPEROR-Reduced.\n- **Negative** - EMPA-REG OUTCOME (empagliflozin, double-blind, placebo-controlled, but\n  type 2 diabetes rather than HFrEF) must be recovered and EXCLUDED.\n\n## Amendment 2026-10-09 (estimand RR -> HR, post hoc; V13-03Q)\n**Status: POST HOC.** This amendment was made after the results were seen and is signed by Mahmood (V13-03Q, option A, 9 Oct 2026: 'sign v13' / 'yes to all recommended'; packet lane_status/v13_packet.md sha256 d9842124e80997c0a72ab3c7dca687fe8a0c86c2e21e84f6207f4d44e0f99ace). The original declaration above is kept unchanged.\n\n- **Composite cardiovascular death or hospitalisation for heart failure.** Declared estimand: RR. Amended to: HR (time to first event).\n- **Reason.** For these time-to-first-event outcomes the trials print a hazard ratio, which the review already served under the source hierarchy; the declaration is brought into line with what is served. No served number changes.\n",
     "target_endpoint_selection": {
       "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
       "results_known_at_rule_time": true
@@ -667,20 +667,20 @@
       "name": "Composite cardiovascular death or hospitalisation for heart failure",
       "kind": "efficacy",
       "primary": true,
-      "estimand": "RR",
+      "estimand": "HR",
       "population": "intention-to-treat",
       "timepoint": "trial end",
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "served_estimand": "HR",
       "estimand_decision": {
-        "declared_estimand": "RR",
+        "declared_estimand": "HR",
         "decision": "time_to_first_event",
         "target_scale": "HR",
         "target_class": "FIRST_EVENT_RATIO",
         "published_candidate_scales": [
           "HR"
         ],
-        "served_scale_changed": true,
+        "served_scale_changed": false,
         "reason": "published HR exists for the target outcome",
         "rule": "prefer published HR; keep reconstruction only when no HR exists"
       },
@@ -753,18 +753,6 @@
                 "urgent heart failure visit"
               ],
               "source_rank_kind": "published_target_effect",
-              "endpoint_binding": "named_endpoint_resolved_to_definition_span",
-              "endpoint_binding_reason": "result sentence names an endpoint; 1 candidate definition in the held text; selected"
-            },
-            {
-              "candidate_id": "abstract:reconstruction:1",
-              "source_type": "abstract",
-              "source_kind": "reconstruction",
-              "target_endpoint_class": "NEAR_MATCH",
-              "extra_components": [
-                "urgent heart failure visit"
-              ],
-              "source_rank_kind": "reconstruction",
               "endpoint_binding": "named_endpoint_resolved_to_definition_span",
               "endpoint_binding_reason": "result sentence names an endpoint; 1 candidate definition in the held text; selected"
             },
@@ -1201,6 +1189,15 @@
             "input_set_version": "d7bd647a469878cb0205df24ba13a121e6617449e334ecd8eafab95e9e03280b"
           },
           "claim_kind": "membership_state"
+        }
+      ],
+      "estimand_history": [
+        {
+          "until": "2026-10-09",
+          "declared": "RR",
+          "amended_to": "HR",
+          "post_hoc": true,
+          "changed_by": "V13-03Q (A), signed by Mahmood 9 Oct 2026 ('sign v13' / 'yes to all recommended'), packet v13_packet.md d9842124...; external audit review 4 / scale sweep: the trials' published HR was already served"
         }
       ],
       "membership": {
@@ -2743,6 +2740,12 @@
   "protocol_config": {
     "divergences": [
       {
+        "code": "ESTIMAND_DIVERGENCE",
+        "dimension": "estimand",
+        "prose": "RR",
+        "config": "HR"
+      },
+      {
         "code": "ESTIMAND_PREFERENCE_UNDECLARED",
         "dimension": "estimand_preference",
         "prose": "protocol permits crude count reconstruction and published time-to-event effects",
@@ -2773,6 +2776,12 @@
       "agreed_dimensions": [],
       "divergences": [
         {
+          "code": "ESTIMAND_DIVERGENCE",
+          "dimension": "estimand",
+          "prose": "RR",
+          "config": "HR"
+        },
+        {
           "code": "ESTIMAND_PREFERENCE_UNDECLARED",
           "dimension": "estimand_preference",
           "prose": "protocol permits crude count reconstruction and published time-to-event effects",
@@ -2797,7 +2806,7 @@
           "config": "ertugliflozin"
         }
       ],
-      "sentence": "4 protocol/config divergence(s) disclosed; declared == enforced is not asserted"
+      "sentence": "5 protocol/config divergence(s) disclosed; declared == enforced is not asserted"
     }
   },
   "identifier_scope": {
@@ -31493,8 +31502,9 @@
         "surface": "reporting/prisma_item_5",
         "source_path": "/protocol_config/divergences",
         "asserted_equal": false,
-        "divergence_count": 3,
+        "divergence_count": 4,
         "divergence_codes": [
+          "ESTIMAND_DIVERGENCE",
           "ESTIMAND_PREFERENCE_UNDECLARED",
           "DESIGN_MASKING_ANDOR",
           "INTERVENTION_AGENT_PROSE_DIVERGENCE"
@@ -31570,14 +31580,14 @@
   ],
   "reproduction": {
     "failures": 0,
-    "protocol_sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
-    "review_sha256": "57e56790d978ea3d9bde6bc86021e9c6fb17d284d8eae5e8072c2398375f5127",
+    "protocol_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
+    "review_sha256": "d2bc60215b088ba8533d24b13012ab87814ca6358982d8f6d54bffbb3b2c61fe",
     "from_cache": true,
     "preregistration": {
-      "prospective": false,
-      "sha": null,
-      "kind": "no protocol-only commit -- protocol first committed inside a build",
-      "build_sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6"
+      "prospective": true,
+      "sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
+      "kind": "protocol-file (earliest, protocol-only)",
+      "build_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52"
     },
     "parity": {
       "slug": "sglt2-hfref-hosp-cvdeath",
@@ -31705,8 +31715,8 @@
     "certificate": {
       "schema_version": 1,
       "slug": "sglt2-hfref-hosp-cvdeath",
-      "protocol_sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
-      "protocol_text_sha256": "6696437250e1810f3ca18b9d805031a806ccca1c1364bd4cc0bb08242787ab27",
+      "protocol_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
+      "protocol_text_sha256": "2b9dca5f0b9c6459778f02c699926165b09e3c4810ca0e9b9c23d61dc07234ba",
       "search_query_sha256": "8500d323c9b27bbfefe0f51cc7b5a9a32bf462f7fdbded92427a997926daa0c2",
       "retrieved_corpus_sha256": "056f66b4ee5d662da89d29419256ab672b960aede660d2ef1e9d0ecb75e85477",
       "records_file_sha256": "86b2a5f2cc247a234c321652a35d7ec5e790bbad9eca8c5a00483f158986c22f",
@@ -31726,8 +31736,8 @@
           "sha256": "7513125a73a6b4d6064fe73266b50c8576a2a37cc58c865e872069acf0f67c74"
         }
       ],
-      "config_sha256": "de45e05fcbb805e25f88dc3e2d9269dbca49b2d50c27b40ea0a1e99ab696b076",
-      "analysis_code_sha256": "41f7fdd40209b45ceecf6ad6157fc8b5206e4eb822481f0e2a9795f0a54801c6",
+      "config_sha256": "72687657f3b142cc5c224c23de903e823e27d33772ece45807d516ee0d68a942",
+      "analysis_code_sha256": "1c1386104bbd81e97bd32fba56dcba56865aa6ae9eaa990248ea1058f2a1a2ad",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -31752,7 +31762,7 @@
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
         "harness/consumer_consistency.py": "191dab38f85d1a06b3557ce1c51263f0b8909a47",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
-        "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
+        "harness/design_key.py": "473ce31ac965a338d1283d807c49e803aefe4ae6",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
@@ -31785,9 +31795,9 @@
         "harness/manuscript.py": "15b17feef78c8492abec0989242c9ec4455dbb2d",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "9fcc9974357c421ebeb2ef841bc2a753dfb9197e",
+        "harness/page.py": "c1010f2bd6a565170d4f107d798fa56e714fc5cb",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "832cd73b870f6ec523ce0481f843c60c608747b3",
+        "harness/pipeline.py": "a984c08b3d8415b25df996c9c6f4b6a7870c7912",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -31867,8 +31877,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "a0793cc2911ae1f5d9a755b480ae9f51840ff1dd3edd2e5ad3682df52d9c075d",
-      "review_sha256": "57e56790d978ea3d9bde6bc86021e9c6fb17d284d8eae5e8072c2398375f5127",
+      "manuscript_sha256": "cd1026003932f3bbdc8707ec31769de57b0f9fcaa2dc4db6a2eab502b198b254",
+      "review_sha256": "d2bc60215b088ba8533d24b13012ab87814ca6358982d8f6d54bffbb3b2c61fe",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/sglt2-hfref-hosp-cvdeath.md UTF-8 text, universal newlines",
@@ -31889,7 +31899,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "d1efe33341d8b88aaddc35a20da18140ca8c8ff48d47369a256540e09ea127be"
+      "release_sha256": "89637658237dcba1b013d4b699eacf4ae768cdfc4ba0bc23b75e3511f4c29779"
     }
   }
 }
