@@ -205,6 +205,9 @@ class PoolResult:
 
 # The one token that certifies an interval as engine-produced. Bump the version if the method changes.
 CI_PROVENANCE = "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1"
+# k=1: nothing is pooled -- the interval is the single trial's Wald z interval (no tau2, no HKSJ, no t on 0 df). Stamped
+# by pool() so the gate still knows the engine produced it, but naming the method actually used.
+CI_PROVENANCE_K1 = "synth.pool:single-trial-Wald-z(k=1):v1"
 
 
 def _wmean(yi, vi, tau2):
@@ -314,7 +317,7 @@ def pool(studies: Sequence[Study], scale: str = "RR", alpha: float = 0.05,
         Q=Q, estimate=bt(mu),
         per_study=[(s.label, y, v) for s, (y, v) in zip(studies, yv)],
         ci_low_fixed=bt(ci_low_fixed), ci_high_fixed=bt(ci_high_fixed), estimate_fixed=bt(mu0),
-        ci_provenance=CI_PROVENANCE,
+        ci_provenance=CI_PROVENANCE if k > 1 else CI_PROVENANCE_K1,
     )
 
 
