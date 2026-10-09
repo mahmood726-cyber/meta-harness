@@ -28,7 +28,8 @@ def served(review):
 
 
 def tree_clean():
-    return git("status", "--porcelain", "--untracked-files=all").stdout.strip() == ""
+    r = git("status", "--porcelain", "--untracked-files=all")
+    return r.returncode == 0 and r.stdout.strip() == ""      # a status that could not run is never "clean" (codex r2 P2)
 
 
 def run_slug(slug, files):
