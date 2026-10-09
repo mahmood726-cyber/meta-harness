@@ -41,3 +41,20 @@ The comparator restricts itself to phase 3 trials: its title is "...evidence fro
 - Unless each trial is NAMED with a typed reason, doac's ALL_ELIGIBLE_MATCHED fails and the topic drops from G1_MATCHED.
 - Proposed reason: NOT_IN_COMPARATOR_SCOPE:PHASE_3_ONLY, citing the comparator's own title span. XENITH might instead be NOT_IN_OUTCOME_ANALYSIS (n=10, biomarker endpoint). Captain to rule (V14).
 - 23 doac DISAGREE records need a third read or a ruling. They include J-EINSTEIN 25717286 (Japanese phase 3, NCT01516814/NCT01516840): reader A said NOT_DECIDABLE_FROM_RECORD, reader B MEETS_ALL. If eligible it is a fourth unnamed trial for doac.
+
+## 2026-10-10 ~00:40 -- noac-vs-warfarin-af-stroke dual screen (221 records after trial-identity dedup; 442 recorded calls)
+
+Result: ELIGIBLE 41, EXCLUDED 171, DISAGREE 9 (outputs/k_gap/concept/_dual_a_noac.json). **Nothing applied; no G1 count computed as final.**
+
+The 41 are mostly NOAC-v-VKA RCTs whose endpoints are not stroke/SEE. Examples:
+- cognition: 36284318, NCT03061006, NCT03839355, NCT04073316;
+- plaque progression: 39122204, NCT02090075;
+- kidney function: NCT03789695 (RE-ELECT);
+- biomarkers: NCT03490994, 32577819;
+- phase-2 dose finding: 20694273, 22664798, NCT00787150, NCT00973323, NCT01227629;
+- probably a translated report of RE-LY: 19845524 (its record carries no NCT, so identity dedup could not catch it).
+
+So noac is NOT outcome-intrinsic. The same flood B-prime prevented for GLP-1 would happen here: under the literal rule, noac's ALL_ELIGIBLE_MATCHED cannot hold.
+
+- **Moved to (b):** the literal universe is reported in the V14 question, not applied.
+- **Plausibly in a stroke/SEE analysis** (if the captain wants a typed endpoint-axis rule): J-ROCKET AF 22664783, ROCKET AF China 23929423, RIVER 33196155, RENAL-AF NCT02942407, AXADIA NCT02933697, and the Japanese/Asian phase 2 safety trials.

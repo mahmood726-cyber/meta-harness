@@ -544,3 +544,13 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
   - J-EINSTEIN 25717286 is among the 23 DISAGREE.
 - **Fixed:** concept dedup now works at trial identity (comparator units, plus the PMIDs and NCTs of held records). It caught 11 already-held trial records in doac and esketamine and 54 in noac.
 - **Running:** the noac dual screen, 221 records (442 calls, 2 workers; RAM 2.9 GB).
+
+### 2026-10-10 ~00:40 addendum -- noac moved to (b)
+- **noac dual screen:** ELIGIBLE 41, EXCLUDED 171, DISAGREE 9.
+  - Most of the 41 are NOAC-v-VKA RCTs with non-stroke endpoints: cognition, plaque, kidney function, biomarkers, phase-2 dosing.
+  - So the "outcome-intrinsic" premise fails for noac. It is moved to (b) and nothing is applied (details in `v14_g1_impact.md`).
+  - doac is marginal for the same reason (XENITH: biomarker endpoint).
+- **Ruling needed:** should (a)/(b) be replaced by a typed endpoint-axis rule (B-prime style) for every outcome topic? The evidence so far says yes.
+- **Paging:**
+  - Europe PMC paging works: sema-weight retrieved 9,142 of 9,143, with the 1 missing recorded as `recall_limit`.
+  - noac's search predates the fix (5,000 of 14,392); it is queued for the paged re-run.
