@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import subprocess
 import sys
@@ -61,6 +62,27 @@ CHECKS = [
 ]
 
 
+def _signed_items():
+    """Every SEEN_AND_SIGNED packet item recorded in registry/v*_signatures.json."""
+    import glob
+    out = set()
+    for f in glob.glob(os.path.join(ROOT, "registry", "v*_signatures.json")):
+        d = json.load(open(f, encoding="utf-8"))
+        for item, rec in (d.get("items") or {}).items():
+            if isinstance(rec, dict) and rec.get("state") == "SEEN_AND_SIGNED":
+                out.add(item)
+    return out
+
+
+def _valid_supersession(entry, served_value, signed):
+    """codex ext-audit-r1 P0: a supersession excuses a disagreement only if it names a SEEN_AND_SIGNED item and pins the
+    exact served value it excuses (so a later drift fails again). A bare label excuses nothing."""
+    if not entry or entry.get("signed_item") not in signed:
+        return False
+    pinned = entry.get("served")
+    return served_value is not None and isinstance(pinned, (int, float)) and abs(float(pinned) - float(served_value)) <= 1e-9
+
+
 def _dig(obj, path):
     for p in path:
         obj = obj[p]
@@ -91,6 +113,7 @@ def run():
     if os.path.exists(sp):
         superseded = {s["check"]: s for s in json.load(open(sp, encoding="utf-8")).get("superseded") or []}
     rows, bad = [], 0
+    signed = _signed_items()
     for script, args, aud_json, compares in CHECKS:
         for f in [script] + ([aud_json] if aud_json else []):
             got = hashlib.sha256(open(os.path.join(EXT, f), "rb").read()).hexdigest()
@@ -106,9 +129,11 @@ def run():
                                cwd=td, env=dict(os.environ, PYTHONIOENCODING="utf-8"), timeout=600)
             if p.returncode != 0:
                 key = f"{script} run"
-                v = "SUPERSEDED" if key in superseded else "FAIL"
+                ent = superseded.get(key)
+                v = "SUPERSEDED" if (ent and ent.get("signed_item") in signed) else "FAIL"
                 rows.append({"check": key, "verdict": v,
-                             "detail": (superseded.get(key) or {}).get("signed_by") or (p.stderr or p.stdout)[-600:]})
+                             "detail": (f"superseded by {ent['signed_item']}" if v == "SUPERSEDED" else "")
+                             + (p.stderr or p.stdout)[-600:]})
                 bad += v == "FAIL"
                 continue
             out = json.load(open(out_path, encoding="utf-8")) if "{out}" in " ".join(args) else json.loads(p.stdout)
@@ -120,10 +145,11 @@ def run():
         for label, slug, outcome, field, path in compares:
             aud = float(_dig(out, path))
             srv = _served(slug, outcome).get(field)
-            ok = srv is not None and abs(aud - float(srv)) <= TOL
-            v = "PASS" if ok else ("SUPERSEDED" if label in superseded else "FAIL")
+            ok = srv is not None and math.isfinite(aud) and abs(aud - float(srv)) <= TOL
+            sup_ok = _valid_supersession(superseded.get(label), srv, signed)
+            v = "PASS" if ok else ("SUPERSEDED" if sup_ok else "FAIL")
             rows.append({"check": label, "verdict": v, "auditor": round(aud, 6), "served": srv,
-                         "detail": (superseded.get(label) or {}).get("signed_by", "")})
+                         "detail": f"superseded by {superseded[label]['signed_item']}" if v == "SUPERSEDED" else ""})
             bad += v == "FAIL"
     return rows, bad
 

@@ -6347,5 +6347,73 @@
     "verdict": null
    }
   ]
+ },
+ "ext-audit-r1": {
+  "base": "2be4df9a51511d97727a1989b9ecce328159e624",
+  "head": "d93e2908b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-81fc1d7ead86b14f3f3ddcc34f4bb505",
+    "state": "RAN_OK",
+    "files": [
+     "audit/independent_recompute.py",
+     "scripts/pr_codex_review.py",
+     "scripts/verify_all.py",
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "8275464d3f7ec7d90a777779e530dc98baa63f7d073fc2a3c31172fcf589896b"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "recompute_outcome",
+    "severity": "P0",
+    "claim": "Non-finite recomputed values pass the mismatch check because abs(NaN - served) > TOL is false. This can certify an arbitrary finite served estimate.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrecompute_outcome({'method': 'Single included trial: own effect', 'trials': [{'effect': float('nan'), 'ci_low': 0.5, 'ci_high': 2}], 'result': {'scale': 'RR', 'estimate': 999, 'ci_low': 0.5, 'ci_high': 2}})",
+    "expected": "Reject the non-finite trial effect; never certify estimate 999.",
+    "actual": "Returns state='AGREE', mismatch={}, and compared['estimate']=(nan, 999).",
+    "id": "ext-audit-r1:g1#1",
+    "record_id": "mc-81fc1d7ead86b14f3f3ddcc34f4bb505",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "main",
+    "severity": "P1",
+    "claim": "NOT_RECOMPUTABLE outcomes do not affect the exit status. Consequently, verify_all.limb_independent_recompute reports PASS even when a served estimate has no supporting trial tuples.",
+    "failing_input": "from unittest.mock import patch\nfrom audit import independent_recompute as m\no = {'method': 'Paule-Mandel HKSJ', 'trials': [], 'result': {'scale': 'RR', 'estimate': 999}}\nwith patch.object(m, 'run', return_value=[m.recompute_outcome(o)]):\n    print(m.main(['--json']))",
+    "expected": "An incomplete verification must not produce a successful audit gate; return a nonzero status or propagate an explicit non-passing state.",
+    "actual": "Prints a NOT_RECOMPUTABLE row with why='no trial tuples served', then returns 0. The enclosing verification limb maps that status to PASS.",
+    "id": "ext-audit-r1:g1#2",
+    "record_id": "mc-81fc1d7ead86b14f3f3ddcc34f4bb505",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v / recompute_outcome",
+    "severity": "P0",
+    "claim": "Every non-OR count estimand defaults to RR, and every non-MD outcome is exponentiated. A risk difference can therefore be certified using the risk ratio as its value.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'ai': 20, 'n1i': 100, 'ci': 10, 'n2i': 100}\nrecompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [dict(row), dict(row)], 'result': {'scale': 'RD', 'estimate': 2}})",
+    "expected": "The risk difference is 0.1 for both studies. Reject the served estimate 2, or return NOT_RECOMPUTABLE if RD is unsupported.",
+    "actual": "Returns state='AGREE', scale='RD', compared={'estimate': (2.0, 2)}, mismatch={}.",
+    "id": "ext-audit-r1:g1#3",
+    "record_id": "mc-81fc1d7ead86b14f3f3ddcc34f4bb505",
+    "verdict": null
+   },
+   {
+    "file": "scripts/verify_external_audit.py",
+    "function": "run",
+    "severity": "P0",
+    "claim": "A supersession requires only a matching check label. Neither signed_by nor evidence tying the supersession to the current served value is required, so an unsigned entry authorizes an arbitrary numerical discrepancy.",
+    "failing_input": "import hashlib, io, os\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nfrom scripts import verify_external_audit as a\nbody = b'print(1)\\n'\nfiles = {'SHA256SUMS': hashlib.sha256(body).hexdigest() + '  auditor.py\\n', 'superseded.json': '{\"superseded\":[{\"check\":\"estimate\"}]}'}\ndef fake_open(path, mode='r', **kwargs):\n    return io.BytesIO(body) if 'b' in mode else io.StringIO(files[os.path.basename(path)])\nchecks = [('auditor.py', [], None, [('estimate', 'trial', None, 'estimate', ('estimate',))])]\nwith patch.object(a, 'CHECKS', checks), patch('builtins.open', side_effect=fake_open), patch.object(a.os.path, 'exists', return_value=True), patch.object(a.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout='{\"estimate\":1.0}', stderr='')), patch.object(a, '_served', return_value={'estimate': 999}):\n    print(a.run())",
+    "expected": "FAIL with a nonzero failure count: the served value 999 disagrees with 1.0 and no signed supersession was supplied.",
+    "actual": "Returns ([{'check': 'estimate', 'verdict': 'SUPERSEDED', 'auditor': 1.0, 'served': 999, 'detail': ''}], 0), which produces a successful exit status.",
+    "id": "ext-audit-r1:g1#4",
+    "record_id": "mc-81fc1d7ead86b14f3f3ddcc34f4bb505",
+    "verdict": null
+   }
+  ]
  }
 }

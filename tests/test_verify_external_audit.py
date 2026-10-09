@@ -47,3 +47,25 @@ def test_PLANT_auditor_scripts_are_never_sent_to_a_model_but_our_audit_code_is()
     import pr_codex_review as prc
     assert prc._ok_file("audit/independent_recompute.py") and not prc._ok_file("audit/external/review05_recalculation.py")
     assert not prc._ok_file("docs/x.py") and prc._ok_file("scripts/verify_external_audit.py")
+
+
+def test_PLANT_an_unsigned_supersession_never_excuses_a_disagreement(monkeypatch, tmp_path):
+    """codex ext-audit-r1 P0: a supersession must name a SEEN_AND_SIGNED item and pin the served value it excuses."""
+    import json as _json
+    import shutil
+    ext = tmp_path / "external"
+    shutil.copytree(vea.EXT, ext)
+    real = vea._served
+    def drifted(slug, outcome=None):
+        res = dict(real(slug, outcome))
+        if slug == "doac-vte-recurrence":
+            res["estimate"] = 0.95
+        return res
+    monkeypatch.setattr(vea, "EXT", str(ext))
+    monkeypatch.setattr(vea, "_served", drifted)
+    for bad in ({"check": "doac primary estimate"},
+                {"check": "doac primary estimate", "signed_item": "V99-01", "served": 0.95},
+                {"check": "doac primary estimate", "signed_item": "V13-01", "served": 0.94}):
+        (ext / "superseded.json").write_text(_json.dumps({"superseded": [bad]}), encoding="utf-8")
+        rows, bad_n = vea.run()
+        assert any(r["check"] == "doac primary estimate" and r["verdict"] == "FAIL" for r in rows), bad

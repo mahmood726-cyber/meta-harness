@@ -40,3 +40,25 @@ def test_PLANT_a_k1_counts_row_is_recomputed_on_its_own_measure():
     assert irc.recompute_outcome(o)["state"] == "AGREE"
     o["result"]["scale"] = "RR"      # the same counts read as a risk ratio is a different number: must disagree
     assert irc.recompute_outcome(o)["state"] == "DISAGREE"
+
+
+def test_PLANT_a_non_finite_input_never_certifies_a_served_number():
+    """codex ext-audit-r1 P0: abs(NaN - served) > TOL is False, so NaN agreed with anything."""
+    o = {"method": "Single included trial that reported this outcome - the estimate is that trial's own effect",
+         "trials": [{"effect": float("nan"), "ci_low": 0.5, "ci_high": 2}],
+         "result": {"scale": "RR", "estimate": 999, "ci_low": 0.5, "ci_high": 2}}
+    assert irc.recompute_outcome(o)["state"] != "AGREE"
+
+
+def test_PLANT_an_unsupported_measure_is_not_read_as_a_ratio():
+    """codex ext-audit-r1 P0: a risk difference was exponentiated as if it were a log RR."""
+    row = {"ai": 20, "n1i": 100, "ci": 10, "n2i": 100}
+    o = {"method": "Paule-Mandel HKSJ", "trials": [dict(row), dict(row)], "result": {"scale": "RD", "estimate": 2}}
+    assert irc.recompute_outcome(o)["state"] == "NOT_RECOMPUTABLE"
+
+
+def test_PLANT_not_recomputable_fails_the_gate(monkeypatch):
+    """codex ext-audit-r1 P1: an incomplete verification must not exit 0."""
+    o = {"method": "Paule-Mandel HKSJ", "trials": [], "result": {"scale": "RR", "estimate": 999}}
+    monkeypatch.setattr(irc, "run", lambda root=None: [dict(slug="s", outcome="o", **irc.recompute_outcome(o))])
+    assert irc.main([]) == 1

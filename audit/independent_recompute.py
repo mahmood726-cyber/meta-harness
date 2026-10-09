@@ -37,6 +37,20 @@ def _is_md(scale):
     return s.startswith("MD") or s.startswith("SMD") or "MEAN DIFFERENCE" in s
 
 
+RATIO = {"RR", "OR", "HR", "IRR"}
+
+
+def _supported(scale):
+    """Only the measures the declared method names: log ratios (RR/OR/HR/IRR) and mean differences. Anything else (a risk
+    difference, an unlabelled scale) is NOT_RECOMPUTABLE -- never read as a ratio (codex ext-audit-r1 P0)."""
+    s = str(scale or "").upper().strip()
+    return _is_md(s) or s in RATIO
+
+
+def _finite(*xs):
+    return all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) for x in xs)
+
+
 def study_y_v(row, outcome_scale):
     """(y, v) for one served trial tuple, or raises ValueError naming why it cannot be rebuilt."""
     g = row.get
@@ -53,7 +67,11 @@ def study_y_v(row, outcome_scale):
         a, n1, c, n2 = (float(g(k)) for k in ("ai", "n1i", "ci", "n2i"))
         if min(a, c, n1 - a, n2 - c) == 0:
             a, c, n1, n2 = a + 0.5, c + 0.5, n1 + 1, n2 + 1
-        measure = str(g("measure") or g("scale") or outcome_scale or "RR").upper()
+        measure = str(g("measure") or g("scale") or outcome_scale or "").upper()
+        if measure in ("HR", "IRR"):
+            measure = "RR"          # a first-event / rate outcome's 2x2 row is a reconstructed risk ratio
+        if measure not in ("RR", "OR"):
+            raise ValueError(f"a 2x2 row on measure {measure or '<none>'} is not a log ratio this check rebuilds")
         if measure == "OR":
             b, d = n1 - a, n2 - c
             return math.log(a * d / (b * c)), 1 / a + 1 / b + 1 / c + 1 / d
@@ -106,6 +124,8 @@ def pool(y, v):
 def recompute_outcome(o):
     res = o.get("result") or {}
     scale = res.get("scale") or o.get("served_estimand") or o.get("estimand")
+    if not _supported(scale):
+        return {"state": "NOT_RECOMPUTABLE", "why": f"served scale {scale!r} is not a measure the declared method names"}
     method = str(o.get("method") or "")
     trials = o.get("trials") or []
     single = method.startswith("Single included trial") and "own effect" in method
@@ -119,6 +139,8 @@ def recompute_outcome(o):
         return {"state": "NOT_RECOMPUTABLE", "why": str(exc)}
     if not yv:
         return {"state": "NOT_RECOMPUTABLE", "why": "no trial tuples served"}
+    if not all(_finite(y, v) and v > 0 for y, v in yv):
+        return {"state": "DISAGREE", "why": "a served trial tuple gives a non-finite effect or non-positive variance"}
     mu, lo, hi = pool([y for y, _ in yv], [v for _, v in yv])
     back = (lambda x: x) if _is_md(scale) else math.exp
     est, cl, ch = back(mu), back(lo), back(hi)
@@ -133,7 +155,9 @@ def recompute_outcome(o):
     elif len(trials) != 2:
         return {"state": "DISAGREE", "why": f"served CI absent at k={len(trials)} (only k=2 withholds it)",
                 "recomputed": {"estimate": est, "ci_low": cl, "ci_high": ch}}
-    bad = {f: (round(a, 6), b) for f, (a, b) in compared.items() if b is None or abs(a - float(b)) > TOL}
+    # fail closed: a non-finite side never agrees (abs(nan - x) > TOL is False -- codex ext-audit-r1 P0)
+    bad = {f: (a, b) for f, (a, b) in compared.items()
+           if not _finite(a) or not _finite(b) or not abs(float(a) - float(b)) <= TOL}
     return {"state": "DISAGREE" if bad else "AGREE", "k": len(trials), "scale": scale,
             "compared": {f: (round(a, 6), b) for f, (a, b) in compared.items()}, "mismatch": bad}
 
@@ -162,7 +186,8 @@ def main(argv=None):
                       f"{r.get('compared') or r.get('recomputed') or ''}")
         n = {s: sum(1 for r in rows if r["state"] == s) for s in ("AGREE", "DISAGREE", "NOT_RECOMPUTABLE")}
         print(f"INDEPENDENT-RECOMPUTE: {len(rows)} served pooled outcomes: {n}")
-    return 1 if any(r["state"] == "DISAGREE" for r in rows) else 0
+    # fail closed: an outcome this check could not rebuild is unverified, not passed (codex ext-audit-r1 P1)
+    return 1 if (not rows or any(r["state"] != "AGREE" for r in rows)) else 0
 
 
 if __name__ == "__main__":
