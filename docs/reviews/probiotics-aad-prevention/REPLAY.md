@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `c4c06b9e4c0617affbdbfb7fdcdee44847d658b93b13bbbd3012846ba3ae0317` |
-| html_sha256 (served page bytes) | `1a1308745f6bbc3c8bb37ac6a61d1027daf0394c101c56c7f57e60ab843c3b99` |
-| release_sha256 (certificate) | `75a732c1819562ef262ce78c9f0546801037fb59ee8ed336c9afa81a2cf1cef1` |
+| review_sha256 (canonical review core) | `209a3b8833c429b59bab48a7bb7fae26d02ce9dd9f1e8cf0eab8d8c2411bea0c` |
+| html_sha256 (served page bytes) | `3cd2c345ffe0e437b08950ea4bc9b2ba7d9428c8822e478f0eb0e9a2d4b531cf` |
+| release_sha256 (certificate) | `84bef11c74f386c39f91b7b4660816627e5afa4e0faf1d3bf36f41417164a925` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `038d84f2b42691a06f1b30c9c1ebaa80e5270782` |
+| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,18 +38,26 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/probiotics-aad-prevention/aact_inputs.json` | `5726a5226491a681d489f3969d48e761631fadc789bea1413f84ab428fafacb6` |
 | `cache/probiotics-aad-prevention/comparator_fulltext.txt` | `58ffaef583553f34f0e6aa525b65418d22deb031395287d642ab9cd82805d957` |
+| `cache/probiotics-aad-prevention/ft_18026577.txt` | `2aade0ceebb2d4406bc91fe54ec801f2f02c1cef8ec74e9bf9d37ac141bd0b44` |
 | `cache/probiotics-aad-prevention/ft_21165295.txt` | `4a83ee3dbf9df85006b748186ed92bfa96df59208919b48379e15cc74ea631eb` |
 | `cache/probiotics-aad-prevention/ft_22371721.txt` | `75a745b822d9da2d0c98ffa14aca62cf5503d26b0fbe1ec5deab67c4adb44577` |
 | `cache/probiotics-aad-prevention/ft_22559011.txt` | `8e97dd35b444b8e55c38925bda0f1070e094c2e849796da83039ab4e9f409f90` |
 | `cache/probiotics-aad-prevention/ft_26973849.txt` | `e3ccc8bd2ce25729943d11525bc0c9a2d365f83166854fb68cccf7bf857471c6` |
+| `cache/probiotics-aad-prevention/ft_28057659.txt` | `f3e80256176f1b28c8f3778b2af5749ee0d62b51ab8626a2510225b6407b2efe` |
 | `cache/probiotics-aad-prevention/ft_30912409.txt` | `7ee16467da5c59cceee91af055bbef1ac64328cee7271b575f9fa2ffdb5c72d4` |
 | `cache/probiotics-aad-prevention/ft_34541475.txt` | `bc87cf16947b7fc3c8f9200f5c3f368e2638127fc6870ae040a1f6a2cd8595d3` |
+| `cache/probiotics-aad-prevention/ft_34585011.txt` | `d16bf78e0efb089d189a3b99fe0f0119fa8438cd020f9b4de46c26180f7fe0d8` |
+| `cache/probiotics-aad-prevention/ft_35727573.txt` | `9bea7e082bea650ebfe219787f1e644e7b5016b0dc44f653b5ef98f76f371762` |
 | `cache/probiotics-aad-prevention/ft_38258024.txt` | `59b9a0448594c36d9a6881835a5a8602fcce00aa50b2a9c5ff6de1e6612ef8f8` |
+| `cache/probiotics-aad-prevention/ft_39429834.txt` | `6f8848d0499ecd5e369fcbb7f48a3c88c42b641dcdce3f7414e43adff2a2a05a` |
+| `cache/probiotics-aad-prevention/ft_39467682.txt` | `8eaa1f90ba32310b6ec704d503d499f72a85a8979388ea802d231820c0a36027` |
 | `cache/probiotics-aad-prevention/ft_39497860.txt` | `d53141dafd064a8864497d8b10f947353d05a820a32ee03d4df38c300726fe2f` |
 | `cache/probiotics-aad-prevention/ft_39529939.txt` | `ec2753dffb8a8ea154ef21a57c92a78e5bd81a612e5ba25e1a3a22998bd4a0d8` |
+| `cache/probiotics-aad-prevention/ft_39935568.txt` | `6dae1910095a2118a8edf4e7f5638a7b82dd310330802d7ef2d4eb62ce1754d3` |
 | `cache/probiotics-aad-prevention/ft_40488914.txt` | `bb965d652f4e624d0479a74da86ae05fa8d1b41040abf3d80584bb6675a241a6` |
 | `cache/probiotics-aad-prevention/ft_40548185.txt` | `cfd2e5ef12674f53541e1a2f36492462117ab89e50fa10591f74cf7db85f863e` |
 | `cache/probiotics-aad-prevention/ft_41699149.txt` | `bc67c3a26088db3d4eb3417c3d58513b13c5d6df1f5eb78350d9860bcca2d080` |
+| `cache/probiotics-aad-prevention/ft_42608299.txt` | `04cbd0e368d900f66ce54748eaa47697b43b019bb121f0d16abc5800b8539086` |
 
 Recorded judgments live under `cache/probiotics-aad-prevention/`; their object digest is
 `cc01d7d82478a1a7d6b9b49984fb905839c9eeee4ca0371dfc684145620e2751`. Acquisitions live under `docs/acquisitions/probiotics-aad-prevention/`.

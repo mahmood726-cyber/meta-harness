@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `d5404018972940b9fb486883cc3acfd356232d0c318888ae975462f2dda6c83e` |
-| html_sha256 (served page bytes) | `0c29e7e3695d50a9ed7cf800cbe5079d32dca0fc9527a26c2902c4b51dcc22aa` |
-| release_sha256 (certificate) | `45f054b5b80f0e0ce6fe5716bf7a193f2d9bc445f5fa0c4753dcdfe99ab585bc` |
+| review_sha256 (canonical review core) | `12c65a017ff3ac5a6fc0a4961ebc08ace1e0acda7ddb19044ec81096ef51e760` |
+| html_sha256 (served page bytes) | `1dc2e16a9edbb4011d9a7a4e336da8d758be6a32a13a45de66b855cc7464663f` |
+| release_sha256 (certificate) | `715c5e61f46463a6b1fec3bb971f3acc4039b7377a1e680e12312935bb914539` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `38478f5e060a9d63bcb073cb652d0e6f70d27c58` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `038d84f2b42691a06f1b30c9c1ebaa80e5270782` |
+| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,8 +38,12 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/tocilizumab-covid19-mortality/aact_inputs.json` | `63bde63ff4f15b40fac91ea1f8b3d1fead24f848aedc926544ee3ea36188c638` |
 | `cache/tocilizumab-covid19-mortality/comparator_fulltext.txt` | `564736a442af1890537e813ecf5f2a45210b406a7afae3d6a08d0b0ffb89497a` |
+| `cache/tocilizumab-covid19-mortality/ft_33080005.txt` | `dd96c45157e464a7abd506ea2634e3cc9e17130962d759198e888e52e49c4805` |
+| `cache/tocilizumab-covid19-mortality/ft_33080017.txt` | `49986b4c5e80aa197be9d3cffd06abeca1add646cb07f43b50b803a7da558aad` |
 | `cache/tocilizumab-covid19-mortality/ft_33085857.txt` | `4ee6f464c9d2152a1fafeab2132cd66d2527bcd07f729ad0b38cff68bb492ede` |
+| `cache/tocilizumab-covid19-mortality/ft_33332779.txt` | `f0c4eaf77d0946b561876e01fbfa575913cd467b0e57d83e335af00b69e75e09` |
 | `cache/tocilizumab-covid19-mortality/ft_33472855.txt` | `0dc9ad786490338cc8d736d9694242d4ef6666990559711db1558d06e80ace6f` |
+| `cache/tocilizumab-covid19-mortality/ft_33631066.txt` | `63794bb87969ab245d51d1497201131c6b72259dc377f352244e8809b3557483` |
 | `cache/tocilizumab-covid19-mortality/ft_34609549.txt` | `40257ce1fcd5c8257876c3091ab8a19b31f91b65cce2afe1ce5787ffea9f5875` |
 | `cache/tocilizumab-covid19-mortality/ft_38157348.txt` | `41516ff6a6fc1cf15bc453953f373495ee9f35e62bc759727047e9c677447cf5` |
 | `cache/tocilizumab-covid19-mortality/ft_40232661.txt` | `b144ad15007e34e55a4b25a521c9573721a74dc17dd3fa9ebe2972b6cfeddb0d` |

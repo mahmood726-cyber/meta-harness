@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `fc73230d5f37200f7af3d7a4fdf87a67456a4d73078d984b42d96c4b303f4990` |
-| html_sha256 (served page bytes) | `904068c00d08c712cc255aa4f639b52bbe4445fb0a6b53f0c7d2a2572a1eb2e9` |
-| release_sha256 (certificate) | `d7b76ad0825218e7bd81b28110978d40d0ae7d23765acc0e41a32f0559269699` |
+| review_sha256 (canonical review core) | `d167d80af5c455d11074f2cfdee5a564e3cfbc5ee63bc9fb68dd651dc4dcdf2c` |
+| html_sha256 (served page bytes) | `1cf30ffe85f155100ab0f286184ccd34ee187d03c3a5a52e070b7694c4704ea4` |
+| release_sha256 (certificate) | `146e8c1f675f2388084d70b4fe5fc89bd13b2310fd16492b0d6e943d6338ee00` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `146edbf724354bd40134ccaeae7719aebdf9f5f8` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `038d84f2b42691a06f1b30c9c1ebaa80e5270782` |
+| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -39,7 +39,9 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/comparators/35691474/2026-10-05_repository_mmc1.txt` | `dc37c6f89ec03f7ec488266b4fe1254f0c7f35f2ece78c24d7ba11604d1baaa7` |
 | `cache/melatonin-primary-insomnia-sol/aact_inputs.json` | `e65ac7358432997fc96a87854e59c9a863c6b2caaff0c5ebfc4aa356b3306496` |
 | `cache/melatonin-primary-insomnia-sol/comparator_fulltext.txt` | `1a0b83a7aa25c0dfcd2935033c36a6e73d6985fcc9b9a8b127f7fd4e852e3fad` |
+| `cache/melatonin-primary-insomnia-sol/ft_12790159.txt` | `77c8b7be1f77d8e2b4f68408fffbb6b61b3b4e3cfe9ab8c6101acaea31a6070a` |
 | `cache/melatonin-primary-insomnia-sol/ft_20712869.txt` | `3bda8d1d186a3c061e938d9f3dca57e4e02b23c1c268edaecf617d37657a7e26` |
+| `cache/melatonin-primary-insomnia-sol/ft_22346363.txt` | `93bd3eb8f27d4ce025ac66dfbce3d8d9be756fb39832b43f404302288a7d3f87` |
 | `cache/melatonin-primary-insomnia-sol/ft_27559258.txt` | `60ef9e782ac3e476a81916f3d7b74ed223d6d4d3f2bb07f279e6fa0278ed7119` |
 
 Recorded judgments live under `cache/melatonin-primary-insomnia-sol/`; their object digest is

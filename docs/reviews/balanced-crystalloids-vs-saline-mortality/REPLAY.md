@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `5c9407de58b06400421a0602a1ccbd2ba4a25ed50626a60bdc3416301ebb2f40` |
-| html_sha256 (served page bytes) | `6b6675192bc83592c5f24c5e20ebeb593f412cedf944bef87222b1cb5b3700cf` |
-| release_sha256 (certificate) | `34f3ea13e693e2f2679310368355702de9c4ba22beb7e5b90184d19a408bef30` |
+| review_sha256 (canonical review core) | `a0f3903f8ccfa3a6f77b6648f625aca24b4d1153b8587162c01897d8f49a1d84` |
+| html_sha256 (served page bytes) | `cf5d7434b7d2983660e1d8754c94fc2f21b76d8683855ad695e3d093cc2e721b` |
+| release_sha256 (certificate) | `22a60ab9cccf3c16af3cb49b18926b49fc631255b32dfce6c1e8583760990f18` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `c5bd23301ce74e2177741c0caad5e4b02efbdd52` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `038d84f2b42691a06f1b30c9c1ebaa80e5270782` |
+| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,6 +38,7 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/balanced-crystalloids-vs-saline-mortality/aact_inputs.json` | `ae03935de97b77a7f5cf040d0f86dc0dd3934f85385df8f80c1eafd7d9ec36da` |
 | `cache/balanced-crystalloids-vs-saline-mortality/comparator_fulltext.txt` | `d49ee735ce7d94b2da0ec89ffcf30dfde140b9064408882040266f290b84aa54` |
+| `cache/balanced-crystalloids-vs-saline-mortality/ft_29485925.txt` | `a7b7242ed896d486adefaa2ab1426cf5a6722f1c57c80d4e65755e591d89f02d` |
 
 Recorded judgments live under `cache/balanced-crystalloids-vs-saline-mortality/`; their object digest is
 `747d7020a4ab1d669809944aecd6be5c15b532708f2cae625ab050b4e706ce66`. Acquisitions live under `docs/acquisitions/balanced-crystalloids-vs-saline-mortality/`.

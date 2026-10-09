@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `6407f9f10e7214c4058d14f7a19f2196087f43062dcfe51eba36d16023fcf075` |
-| html_sha256 (served page bytes) | `824ae461d2c111aca3f31ff346d2c48c93408b485c1da9d4b5f848017a4be06c` |
-| release_sha256 (certificate) | `36fc0b5943c666ac6c9a0ee0f8b96f65bd323a9e534355b275295c6706096e61` |
+| review_sha256 (canonical review core) | `32a77c2ba42db17c5e534ed1b95492f88e3911c3eaffac0d30f8c9e4e5a7ed7f` |
+| html_sha256 (served page bytes) | `aae630c88a06d74176bb329dc240df64d66784ba384088cea655cba4b17d22ff` |
+| release_sha256 (certificate) | `cafafabef3361423490117bab0de5cfc750f40b1a530669eb783d78636d15ac4` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `c5bd23301ce74e2177741c0caad5e4b02efbdd52` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `038d84f2b42691a06f1b30c9c1ebaa80e5270782` |
+| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,7 +38,9 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/omega3-cardiovascular-events/aact_inputs.json` | `a953d92f42f4f71054db5cce50fac45095286b688cca6cf14d5faad1ba6c019e` |
 | `cache/omega3-cardiovascular-events/comparator_fulltext.txt` | `23dfbf63b077300a373d69304b47618be1eb8096c0a8e5b4909157084c251b1c` |
+| `cache/omega3-cardiovascular-events/ft_21115589.txt` | `b72d4d186492cce21374a97751e627c01bb8a6f7bc253663f1f22519208a0512` |
 | `cache/omega3-cardiovascular-events/ft_30415637.txt` | `a85aa6ec3d820598cbfa4965d8ed18c506c44f0ad8bdc673f76be258af93224a` |
+| `cache/omega3-cardiovascular-events/ft_33190147.txt` | `4eb0ef6a09441f70fe3f962555b48d54fbe1c4d29ff233f2a348bab65aa6f15f` |
 | `cache/omega3-cardiovascular-events/ft_38199870.txt` | `3d685d1e10b105a0cc4b6a523d0e31a8c7848ad9ff37258096263ae41cdf6a91` |
 
 Recorded judgments live under `cache/omega3-cardiovascular-events/`; their object digest is
