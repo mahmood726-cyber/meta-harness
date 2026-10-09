@@ -6530,5 +6530,38 @@
     "verdict": null
    }
   ]
+ },
+ "v13-apply-r2": {
+  "base": "2f86b85c3",
+  "head": "e6febaf37",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0b53ce1a2bca7538dbbb2254f51e94e3",
+    "state": "RAN_OK",
+    "files": [
+     "harness/census.py",
+     "harness/limitations.py",
+     "harness/page.py",
+     "harness/registration.py",
+     "harness/synth.py"
+    ],
+    "prompt_sha256": "0a284c1ca219af67c6732955b887033e5bcd234a0973f778e4dfa7956372c1ef"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/registration.py",
+    "function": "_batch_precedes",
+    "severity": "P2",
+    "claim": "Git execution failures silently become False, indistinguishable from a successful ancestry check showing non-ancestry. The caller can consequently report registration as non-prospective when chronology could not be checked. Nonzero Git error codes are similarly swallowed.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.registration import _batch_precedes\nwith patch('harness.registration.subprocess.run', side_effect=FileNotFoundError('git unavailable')):\n    print(_batch_precedes('a' * 40, 'b' * 40))",
+    "expected": "Propagate the execution error or explicitly report chronology as unverified; reserve False for a completed ancestry check returning Git exit code 1.",
+    "actual": "Returns and prints False without any error or diagnostic.",
+    "id": "v13-apply-r2:g1#1",
+    "record_id": "mc-0b53ce1a2bca7538dbbb2254f51e94e3",
+    "verdict": null
+   }
+  ]
  }
 }
