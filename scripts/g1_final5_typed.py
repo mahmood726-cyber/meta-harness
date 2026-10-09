@@ -142,53 +142,32 @@ def confirm_hf_binding():
                         "150/151; with D12 for the matching use"}, None
 
 
+V12_02Q = ("V12-02Q (choice B, Mahmood 9 Oct 'yes all as recommended', packet ae88366b...): EFFECT-HF left UNBOUND -- "
+           "the 11 v 6 are safety-set patients and the safety-set N is not printed, so there are no verbatim "
+           "denominators. Supersedes D15's 11/86 v 6/86 FAS binding.")
+
+
 def effect_hf_row():
-    """D15 (V10-05Q, signed): EFFECT-HF 11/86 v 6/86 on the FAS, as an own tuple for registry/g1_acquired. Every span is
-    verbatim in the held CC BY text. The analysis-set caveat both recorded readers raised is carried on the row."""
-    path = "cache/iv-iron-hfref-hosp/ft_28701470.txt"
-    t = _plain(open(os.path.join(ROOT, path), encoding="utf-8").read())
-    spans = {"events": "26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care).",
-             "n": "A total of 172 patients with HF were studied and received FCM (n=86) or standard of care (control group, n=86).",
-             "fas": "Two patients in the FCM arm did not have an efficacy assessment after baseline, and these 2 were "
-                    "excluded from the FAS.",
-             "analysed_on": "All-cause mortality and hospitalization for worsening HF and other cardiovascular reasons "
-                            "were analyzed for the safety set."}
-    miss = [k for k, s in spans.items() if s not in t]
-    if miss:
-        return None, f"SPANS_NOT_VERBATIM:{miss}"
-    led = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "final5_readers.json"), encoding="utf-8"))
-    readers = {r["record_id"]: r["verdict"] for r in led["rows"] if r["label"] == "EFFECT-HF"}
-    v = {"measure": "RR", "effect": None, "lower": None, "upper": None, "events_t": 11, "n_t": 86, "events_c": 6, "n_c": 86}
-    return {"label": "EFFECT-HF [21]", "pmid": "28701470", "ncts": ["NCT01394562"], "verdict": "ADMITTED",
-            "decision": "D15 (V10-05Q, Mahmood 'yes all v10', packet sha256 9086d538...): bind 11/86 v 6/86 on the FAS",
-            "admitted": {"kind": "HELD_TEXT_TYPED (D15)",
-                         "source": f"PMID 28701470 PMC5642327 (CC BY 4.0), held text {path} (text sha256 "
-                                   f"{_sha_text(os.path.join(ROOT, path))})",
-                         "span": spans["events"], "quote": spans["n"],
-                         "fas_span": spans["fas"],
-                         "analysis_set_caveat": (
-                             "The paper states '" + spans["analysed_on"] + "' The safety set adds the 2 FCM patients "
-                             "the FAS excludes; its FCM N is not printed. D15 (signed) binds the FAS denominators. Both "
-                             "recorded readers raised this (final5::EFFECT-HF::A/B)."),
-                         "time_frame": "24 weeks", "comparator_counts_check": None, "value": v,
-                         "reader_records": readers},
-            "typed_by": "scripts/g1_final5_typed.py (binding lane, g1/final5-binding)"}, None
+    """D15 bound EFFECT-HF 11/86 v 6/86 on the FAS; V12-02Q (B) superseded it. No row is ever produced again."""
+    return None, V12_02Q
 
 
-def apply_d15(row):
+def unbind_effect_hf():
+    """V12-02Q: the acquisition ledger's EFFECT-HF row returns to main's pre-D15 row (not admitted), marked with the
+    decision. Only that row changes."""
     p = os.path.join(ROOT, "registry", "g1_acquired", "iv-iron-hfref-hosp.json")
     raw = open(p, encoding="utf-8").read()
     d = json.loads(raw)
-    rows = d["rows"]
-    i = [k for k, r in enumerate(rows) if r.get("label") == "EFFECT-HF [21]"]
+    i = [k for k, r in enumerate(d["rows"]) if r.get("label") == "EFFECT-HF [21]"]
     if len(i) != 1:
         raise SystemExit(f"EFFECT-HF rows in the acquisition ledger: {len(i)}")
-    prev = rows[i[0]]
-    if prev.get("verdict") != "ADMITTED":
-        row = dict(row, superseded={k: prev.get(k) for k in ("record_id", "verdict", "model") if k in prev})
-    else:
-        row = dict(row, superseded=prev.get("superseded"))
-    rows[i[0]] = row
+    r = d["rows"][i[0]]
+    if r.get("verdict") == "ADMITTED":
+        prev = r.get("superseded") or {}
+        r = {k: v for k, v in r.items() if k not in ("verdict", "decision", "admitted", "typed_by", "superseded")}
+        r.update({k: prev[k] for k in ("record_id", "verdict", "model") if k in prev})
+    r["unbound_by"] = V12_02Q
+    d["rows"][i[0]] = r
     with open(p, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(json.dumps(d, indent=1, ensure_ascii=False) + ("\n" if raw.endswith("\n") else ""))
 
@@ -209,8 +188,10 @@ def comparator_findings():
                  "unit_spans": {"comparator": "Total number of events",
                                 "ours": "computed using the number of subjects with the end-point/event"},
                  "note": "Table 2 (full-analysis set): 'Total number of events' 10 v 32; patients with an event 10 v 25"},
-                {"slug": "iv-iron-hfref-hosp", "pmid": "28701470", "label": "EFFECT-HF", "state": "PROPOSED",
-                 "decision": "PROPOSED for V12 (not signed)", "finding": "COMPARATOR_COUNTS_ARE_EVENTS",
+                {"slug": "iv-iron-hfref-hosp", "pmid": "28701470", "label": "EFFECT-HF", "state": "SIGNED",
+                 "decision": "V12-03Q (sign)", "finding": "COMPARATOR_COUNTS_ARE_EVENTS",
+                 "signed": "Mahmood 'yes all as recommended' (9 Oct), registry/v12_signatures.json, packet "
+                           "ae88366bf626bc1eebbb60dd02324e7f8ae0b248e4ee995f3ff7de86f5b92933, item section 0ef88d69...",
                  "doc": doc(eff),
                  "row_span": "26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 "
                              "on usual care).",
@@ -321,8 +302,8 @@ def main(argv):
     out["items"]["CONFIRM-HF"] = b2 or {"state": "NOT_STAGED", "why": w2}
     b3, w3 = effect_hf_row()
     out["items"]["EFFECT-HF"] = (b3 or {}).get("admitted", {}).get("value") and b3 or {"state": "NOT_STAGED", "why": w3}
-    if b3 and "--apply-d15" in argv:
-        apply_d15(b3)
+    if "--apply-v12-02q" in argv:
+        unbind_effect_hf()
     if "--write-findings" in argv:
         with open(os.path.join(ROOT, "registry", "g1_signed_comparator_findings.json"), "w", encoding="utf-8",
                   newline="\n") as fh:
