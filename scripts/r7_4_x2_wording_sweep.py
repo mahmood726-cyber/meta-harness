@@ -23,7 +23,8 @@ OUT = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "r7_4_x2_wording_swee
 
 def x2_text(md):
     """The protocol's X2 rule text (a line naming X2 and its continuation), or None."""
-    m = re.search(r"\bX2\b[^\n]*(?:\n(?!\s*[-*]?\s*\**X\d)[^\n]+){0,3}", md)
+    # a continuation line ends at any line naming another rule (list item '- X3', table row '| X3 |', '**X3**')
+    m = re.search(r"\bX2\b[^\n]*(?:\n(?![^\n]*\bX(?:[013-9]|\d\d)\b)[^\n]+){0,3}", md)
     return re.sub(r"\s+", " ", m.group(0)) if m else None
 
 
@@ -32,9 +33,11 @@ def classify(term, x2):
     x = (x2 or "").lower()
     if not x2:
         return "NO_PROTOCOL_X2"
-    if not re.search(r"(?<![a-z])" + re.escape(t) + r"(?![a-z])", x):
+    hits = list(re.finditer(r"(?<![a-z])" + re.escape(t) + r"(?![a-z])", x))
+    if not hits:
         return "NOT_IN_PROTOCOL_X2"
-    if re.search(re.escape(t) + r"[- ]only\b|\bonly\s+" + re.escape(t) + r"|" + re.escape(t) + r"\s+alone\b", x):
+    # BROADER only when EVERY occurrence of the term is qualified ('diabetes-only', 'only diabetes', 'diabetes alone')
+    if all(re.match(r"[- ]only\b|\s+alone\b", x[h.end():]) or re.search(r"\bonly\s+$", x[:h.start()]) for h in hits):
         return "CONFIG_BROADER_THAN_PROTOCOL"
     return "MATCHES_PROTOCOL"
 

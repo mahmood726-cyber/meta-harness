@@ -66,3 +66,19 @@ def test_PLANT_x2_sweep_flags_a_bare_config_term_the_protocol_qualifies():
     assert sw.classify("HFrEF", x2) == "MATCHES_PROTOCOL"
     assert sw.classify("pregnan", x2) == "NOT_IN_PROTOCOL_X2"
     assert sw.classify("diabetes", None) == "NO_PROTOCOL_X2"
+
+
+def test_PLANT_r1_an_unnamed_registered_drug_cannot_establish_another_agent(tmp_path):
+    s = snap(tmp_path, [("NCT04", "DRUG", ""), ("NCT04", "DRUG", "Sotagliflozin")])
+    assert gt.verified_agent_identity(T({"label": "U", "ncts": ["NCT04"]}), AGENTS, s)["trials"][0]["drug"] == "AGENT_UNCONFIRMED"
+    s = snap(tmp_path, [("NCT05", "DRUG", "  ")])
+    assert gt.verified_agent_identity(T({"label": "V", "ncts": ["NCT05"]}), AGENTS, s)["trials"][0]["drug"] == "AGENT_UNCONFIRMED"
+
+
+def test_PLANT_r1_x2_text_stops_at_another_rules_table_row_and_qualifiers_need_boundaries():
+    import r7_4_x2_wording_sweep as sw
+    x2 = sw.x2_text("| X2 | Wrong population: children. |\n| X3 | Wrong intervention: diabetes drugs. |")
+    assert "X3" not in x2 and sw.classify("diabetes", x2) == "NOT_IN_PROTOCOL_X2"
+    assert sw.classify("diabetes", "X2: Exclude diabetes; also exclude prediabetes-only cohorts.") == "MATCHES_PROTOCOL"
+    assert sw.classify("diabetes", "X2: exclude diabetes; and diabetes-only cohorts") == "MATCHES_PROTOCOL"
+    assert sw.classify("diabetes", "X2: only diabetes populations") == "CONFIG_BROADER_THAN_PROTOCOL"

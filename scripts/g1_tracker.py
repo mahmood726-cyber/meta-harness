@@ -3020,11 +3020,17 @@ def verified_agent_identity(T, agents=None, snap=None, class_topics=None):
     for t in T["trials"]:
         if t.get("drug") != "AGENT_UNCONFIRMED" or not t.get("ncts"):
             continue
-        names = [n for nct in t["ncts"] for n in reg.get(nct, []) if not re.search(r"placebo|sham|matching", n, re.I)]
+        names = [n.strip() for nct in t["ncts"] for n in reg.get(nct, [])
+                 if not re.search(r"placebo|sham|matching", n, re.I)]
+        unnamed = any(not n for n in names)
+        names = [n for n in names if n]
         if not names:
             continue
         mine = agents.get(t["slug"]) or []
         hit = any(re.search(r"(?<![a-z])" + re.escape(a) + r"(?![a-z])", n.lower()) for a in mine for n in names)
+        if unnamed and not hit:
+            # an UNNAMED registered drug row could be the topic's agent: it cannot establish a different agent
+            continue
         basis = f"REGISTRY_INTERVENTIONS:{','.join(t['ncts'])}:{sorted(set(names))[:4]}"
         if not hit and t["slug"] in classes:
             # a CLASS topic ('SGLT2 inhibitors'): whether an unlisted molecule (sotagliflozin, dual SGLT1/2) belongs is

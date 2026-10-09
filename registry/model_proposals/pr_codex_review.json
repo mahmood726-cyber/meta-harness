@@ -6731,5 +6731,59 @@
     "verdict": null
    }
   ]
+ },
+ "r7-4-r1": {
+  "base": "beb73a487",
+  "head": "767992ad7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-adebfcdb292d347542cebdb4ed925adf",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "cef101dd13378ea204891d3059998eeaf5006fa14f4a13d65b155875357ccb3e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "An empty registry intervention name is treated as evidence of a different agent. The list [''] passes the nonempty-names check, so missing identity evidence becomes OTHER_AGENT.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts.g1_tracker import verified_agent_identity\nT = {'trials': [{'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001'], 'slug': 'empagliflozin'}]}\n# Synthetic registry fixture:\ndata = 'nct_id|intervention_type|name\\nNCT00000001|drug|\\n'\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', mock_open(read_data=data)):\n    result = verified_agent_identity(T, agents={'empagliflozin': ['empagliflozin']}, snap='fixture', class_topics=set())\n    print(result['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED: an unnamed drug cannot establish a different agent.",
+    "actual": "OTHER_AGENT",
+    "id": "r7-4-r1:g1#1",
+    "record_id": "mc-adebfcdb292d347542cebdb4ed925adf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "Markdown table rows are not recognized as exclusion-rule boundaries. The extractor absorbs X3 into X2, allowing another rule's terms to be incorrectly certified as population exclusions.",
+    "failing_input": "classify('diabetes', x2_text('| X2 | Wrong population: children. |\\n| X3 | Wrong intervention: diabetes drugs. |'))",
+    "expected": "NOT_IN_PROTOCOL_X2",
+    "actual": "MATCHES_PROTOCOL; x2_text returns 'X2 | Wrong population: children. | | X3 | Wrong intervention: diabetes drugs. |'.",
+    "id": "r7-4-r1:g1#2",
+    "record_id": "mc-adebfcdb292d347542cebdb4ed925adf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "The qualifier regex lacks the term boundaries used by the preceding presence check. It mistakes 'prediabetes-only' for a qualification of 'diabetes', even when diabetes is separately excluded without qualification.",
+    "failing_input": "classify('diabetes', 'X2: Exclude diabetes; also exclude prediabetes-only cohorts.')",
+    "expected": "MATCHES_PROTOCOL",
+    "actual": "CONFIG_BROADER_THAN_PROTOCOL",
+    "id": "r7-4-r1:g1#3",
+    "record_id": "mc-adebfcdb292d347542cebdb4ed925adf",
+    "verdict": null
+   }
+  ]
  }
 }
