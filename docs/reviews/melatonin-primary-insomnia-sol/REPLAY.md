@@ -25,7 +25,7 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `146edbf724354bd40134ccaeae7719aebdf9f5f8` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `0c05e884888a191855775fb7a337f38bf445b3ae` |
+| recorded generating commit | `9b6daab0788c707c0e1a915c90682519d1d63962` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
