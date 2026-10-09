@@ -78,8 +78,12 @@ def _abstracts(pmids):
         pm = re.search(r"<PMID[^>]*>(\d+)", art).group(1)
         ab = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", " ".join(
             re.findall(r"<AbstractText[^>]*>(.*?)</AbstractText>", art, re.S))))).strip()
-        out[pm] = {"abstract": ab, "sha256": hashlib.sha256(ab.encode("utf-8")).hexdigest(),
-                   "ncts": sorted(set(re.findall(r"NCT\d{8}", art)))}
+        # the trial's identifiers come from the article ITSELF -- its databank accession numbers and its own abstract --
+        # never from its reference list or linked comments (codex r6-dpp4-hf-r1 #3: a cited paper's NCT satisfied it)
+        own = re.sub(r"<ReferenceList>.*?</ReferenceList>|<CommentsCorrectionsList>.*?</CommentsCorrectionsList>", " ",
+                     art, flags=re.S)
+        ids = re.findall(r"<AccessionNumber>(NCT\d{8})</AccessionNumber>", own) + re.findall(r"NCT\d{8}", ab)
+        out[pm] = {"abstract": ab, "sha256": hashlib.sha256(ab.encode("utf-8")).hexdigest(), "ncts": sorted(set(ids))}
     return out
 
 
@@ -113,11 +117,17 @@ def gate(a, ab, t):
         return f"NUMBER_NOT_IN_QUOTE:{miss}"
     # agreement is about OUR clause: the reader's quote must overlap the binding's own span, so a matching number tuple
     # from another endpoint, subgroup or composite never counts as confirmation (cf. codex review10-r1 #2)
-    q, sp = " ".join(parts), re.sub(r"\s+", " ", t["span"])
-    if not (q in sp or sp in q or any(len(x) >= 40 and x in sp for x in parts)):
+    # EVERY quoted passage must lie inside our span, or contain it (codex r6-dpp4-hf-r1 #2: one 40-character overlap let
+    # a second line carrying another endpoint's numbers through)
+    sp = re.sub(r"\s+", " ", t["span"])
+    if not all(x.rstrip(".") in sp or sp in x for x in parts):
         return "GATED_OTHER_CLAUSE"
     v = t["value"]
     same = (a["hr"], a["lower"], a["upper"]) == (v["effect"], v["lower"], v["upper"])
+    # the counts take part too: a reader that reverses the arms does not agree (codex r6-dpp4-hf-r1 #1)
+    for k in ("events_t", "n_t", "events_c", "n_c"):
+        if a.get(k) is not None and v.get(k) is not None and a[k] != v[k]:
+            same = False
     return "GATED_AGREES" if same else "GATED_DIFFERS"
 
 

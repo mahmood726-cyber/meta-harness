@@ -36,3 +36,33 @@ def test_PLANT_a_reader_quoting_another_clause_never_confirms():
 def test_PLANT_examine_is_never_staged():
     ex = [t for t in H.TARGETS if t["label"] == "EXAMINE"][0]
     assert ex["state"] == "REFUSED_DEFINITION"
+
+
+# ------------------------------------------------------------------------------------------- codex r6-dpp4-hf-r1
+def test_PLANT_r1_1_swapped_arm_counts_never_agree():
+    t = H.TARGETS[0]
+    a = dict(state="FOUND", quote=t["span"], hr=0.60, lower=0.35, upper=1.05, events_t=33, n_t=2100, events_c=20, n_c=2092)
+    assert H.gate(a, t["span"], t) == "GATED_DIFFERS"
+    ok = dict(a, events_t=20, n_t=2092, events_c=33, n_c=2100)
+    assert H.gate(ok, t["span"], t) == "GATED_AGREES"
+
+
+def test_PLANT_r1_2_every_quoted_passage_must_be_our_clause():
+    t = H.TARGETS[0]
+    other = "All-cause mortality had an HR of 0.60 (95% CI 0.35, 1.05)."
+    ab = t["span"] + " " + other
+    a = dict(state="FOUND", quote="The hHF outcome occurred in 20/2092 patients\n" + other, hr=0.60, lower=0.35,
+             upper=1.05, events_t=None, n_t=None, events_c=None, n_c=None)
+    assert H.gate(a, ab, t) == "GATED_OTHER_CLAUSE"
+
+
+def test_PLANT_r1_3_a_cited_papers_nct_never_identifies_the_trial(monkeypatch):
+    from harness import http
+    t = H.TARGETS[0]
+    xml = ("<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>28893244</PMID><Article><Abstract><AbstractText>"
+           + t["span"] + "</AbstractText></Abstract></Article></MedlineCitation><PubmedData><ReferenceList><Reference>"
+           "<Citation>Another trial NCT01703208.</Citation></Reference></ReferenceList></PubmedData></PubmedArticle>"
+           "</PubmedArticleSet>")
+    monkeypatch.setattr(http, "get_text", lambda *a, **k: xml)
+    ab = H._abstracts(["28893244"])["28893244"]
+    assert "NCT01703208" not in ab["ncts"] and H.verify(t, ab) == "ABSTRACT_DOES_NOT_CARRY_THE_TRIAL_NCT"
