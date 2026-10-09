@@ -70,6 +70,19 @@ def _log_all(path: str) -> list[str]:
         return []
 
 
+def _batch_precedes(batch_sha: str, first_sha: str) -> bool:
+    """True iff the preregistration batch commit is an ancestor of the protocol's first commit. Fails closed: a check
+    that could not run (git missing, bad object) raises instead of answering False (codex v13-apply-r2 P2)."""
+    try:
+        p = subprocess.run(["git", "-C", ROOT, "merge-base", "--is-ancestor", batch_sha, first_sha], capture_output=True)
+    except OSError as exc:
+        raise RuntimeError(f"preregistration chronology could not be checked: {exc}") from exc
+    if p.returncode not in (0, 1):
+        raise RuntimeError(f"preregistration chronology could not be checked: git exit {p.returncode}: "
+                           f"{(p.stderr or b'').decode('utf-8', 'replace').strip()[:200]}")
+    return p.returncode == 0
+
+
 def build_sha(slug: str) -> str | None:
     """The commit that produced the current review artifact (most recent protocols/<slug>.md commit, or the
     preregistration batch). The replay anchor -- NOT a proof of prospective registration."""
@@ -83,16 +96,21 @@ def preregistration_sha(slug: str) -> dict:
     listed there and that batch is protocol-only. If neither exists, prospective is False (the protocol
     first entered the repo inside a build commit) -- reported honestly, never claimed."""
     bsha = build_sha(slug)
-    for sha in reversed(_log_all(f"protocols/{slug}.md")):  # oldest first
-        if not is_build_commit(sha):
-            return {"prospective": True, "sha": sha, "kind": "protocol-file (earliest, protocol-only)",
-                    "build_sha": bsha}
+    # ONLY the protocol's FIRST commit can show it preceded synthesis. A later protocol-only commit is an AMENDMENT
+    # (e.g. V13-03Q's dated post-hoc estimand amendment) and must never be reported as a prospective registration --
+    # walking every commit for the first non-build one did exactly that.
+    history = _log_all(f"protocols/{slug}.md")
+    first = history[-1] if history else None
+    if first and not is_build_commit(first):
+        return {"prospective": True, "sha": first, "kind": "protocol-file (earliest, protocol-only)",
+                "build_sha": bsha}
     try:
         prereg_text = open(os.path.join(ROOT, PREREG), encoding="utf-8").read()
     except OSError:
         prereg_text = ""
     batch = _git_log(PREREG)
-    if slug in prereg_text and batch and not is_build_commit(batch):
+    # the batch registers the topic only if it is protocol-only AND precedes the protocol's first (build) commit
+    if slug in prereg_text and batch and not is_build_commit(batch) and (not first or _batch_precedes(batch, first)):
         return {"prospective": True, "sha": batch, "kind": "PREREGISTRATION_v2 batch (protocol-only)",
                 "build_sha": bsha}
     return {"prospective": False, "sha": None,

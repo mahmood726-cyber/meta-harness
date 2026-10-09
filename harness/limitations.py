@@ -1124,6 +1124,17 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
                 ["/protocol_config/compliance", "/protocol_config/divergences", "/protocol_config/agreed_dimensions"],
                 _page.protocol_compliance_not_established_html(),
             )
+        elif _pcs["state"] == "DISCLOSED_DIVERGENCE":
+            # a found disagreement is a limitation with its own block -- never quieter than "nothing compared"
+            add(
+                "reproduction:protocol-config-divergence",
+                LimitationKind.PROTOCOL_COMPLIANCE,
+                Severity.QUALIFIES_CLAIM,
+                "declared == enforced (protocol/config compliance)",
+                "DISCLOSED_DIVERGENCE",
+                ["/protocol_config/compliance", "/protocol_config/divergences"],
+                _page.protocol_divergence_disclosed_html(_pcs["divergences"]),
+            )
         add(
             "reproduction:round-2-retraction",
             LimitationKind.REPRODUCTION_RETRACTION,

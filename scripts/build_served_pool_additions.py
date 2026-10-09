@@ -291,6 +291,21 @@ def hold_applies(h):
     return not (f.get("state") == "LIFTED_BY_SIGNER" and str(f.get("by") or "").strip() and str(f.get("quote") or "").strip())
 
 
+def _signed_chain(n, notices):
+    """Later SIGNED (and applied) result-change notices for n's slug/outcome, linked before==after from n's 'after';
+    [] if none. Each link must be signed by the reviewer -- an unsigned change never carries a signed admission."""
+    chain, cur = [], n
+    while True:
+        nxt = [m for m in notices if m.get("slug") == n["slug"] and m.get("outcome") == n["outcome"]
+               and str(m.get("when_utc") or "") > str(cur.get("when_utc") or "")
+               and (m.get("reviewer_countersignature") or {}).get("state") in rc.SIGNED_STATES and not rc.not_applied(m)
+               and rc._same(m.get("before") or {}, cur.get("after") or {})]
+        if not nxt:
+            return chain
+        cur = min(nxt, key=lambda m: str(m.get("when_utc") or ""))   # the chronologically NEXT signed link (codex r3 P2)
+        chain.append(cur)
+
+
 def build(notices=None, holds=None):
     notices = rc.load() if notices is None else notices
     holds = json.load(open(HOLDS, encoding="utf-8"))["holds"] if holds is None else holds
@@ -311,6 +326,20 @@ def build(notices=None, holds=None):
         prim = fn.served(slug)
         if not prim or prim.get("name") != n["outcome"]:
             excluded.append({"notice": tag, "why": "served primary outcome is not the notice's outcome"})
+            continue
+        # A LATER signed change to this outcome (e.g. V13-02Q re-expressing the pool on its registered OR) makes this notice
+        # impossible to re-derive from today's rows. Keep the signed admission only when a chain of later SIGNED notices for
+        # the same outcome links this notice's 'after' to the result served now, and its rows are the committed ones.
+        chain = _signed_chain(n, notices)
+        prev_rows = next((e for e in _committed() if e.get("slug") == slug and e.get("outcome") == n["outcome"]
+                          and e.get("notice_when_utc") == n["when_utc"]
+                          and sorted(r.get("id") for r in e.get("rows") or []) == sorted(ent)), None)
+        if chain and prev_rows and rc._same(chain[-1]["after"], rc.result_tuple(prim.get("result") or {})):
+            adds.append({"slug": slug, "outcome": n["outcome"], "notice_when_utc": n["when_utc"],
+                         "rendered_sha256": sig["rendered_sha256"], "signature_state": sig["state"],
+                         "batch_id": sig.get("batch_id"), "before": n["before"], "after": n["after"],
+                         "rows": [dict(r) for r in prev_rows["rows"]],
+                         "carried_by_signed_chain": [m["when_utc"] for m in chain]})
             continue
         scale = ((prim.get("result") or {}).get("scale") or prim.get("estimand") or "").upper()
         base = dict(prim, trials=[t for t in prim.get("trials") or [] if str(t.get("id")) not in ent])

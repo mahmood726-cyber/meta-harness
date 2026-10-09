@@ -171,6 +171,31 @@ def limb_leak_scan():
     return PASS, _append_target(target_line, "no served aggregate publishes a pooled statistic for a suppressed-state topic")
 
 
+def limb_external_audit():
+    paths = [os.path.join("scripts", "verify_external_audit.py"), os.path.join("audit", "external", "SHA256SUMS"),
+             *_target_review_objects()]
+    target_line, err = _target("verify_all.limb_external_audit", paths)
+    if err:
+        return NOEXEC, target_line
+    # The external auditors' own scripts, unmodified, re-run against what is served now: an independent second
+    # implementation, so a drift in our pool fails here even if every internal check agrees with itself.
+    rc, out = _run([sys.executable, os.path.join("scripts", "verify_external_audit.py")])
+    tail = "\n".join(out.strip().splitlines()[-25:])
+    return (PASS if rc == 0 else REFUSED), _append_target(target_line, tail)
+
+
+def limb_independent_recompute():
+    paths = [os.path.join("audit", "independent_recompute.py"), *_target_review_objects()]
+    target_line, err = _target("verify_all.limb_independent_recompute", paths)
+    if err:
+        return NOEXEC, target_line
+    # A second implementation (never imports harness/synth): every served pooled outcome recomputed from its served
+    # tuples and declared method. Any disagreement refuses; the reviewer decides before anything is changed.
+    rc, out = _run([sys.executable, os.path.join("audit", "independent_recompute.py")])
+    tail = "\n".join(out.strip().splitlines()[-25:])
+    return (PASS if rc == 0 else REFUSED), _append_target(target_line, tail)
+
+
 def limb_heldout():
     paths = ["registry/heldout_sealed.json", "docs/search_recall_regression_corpus.json", "harness/acquisition.py"]
     target_line, err = _target("verify_all.limb_heldout", paths)
@@ -302,6 +327,9 @@ LIMBS = [
     ("index currency (generated == committed docs/index.html)", limb_index_currency),
     ("served-artefact leak scan (docs/*.json)", limb_leak_scan),
     ("held-out leak detector (registry/heldout_sealed.json)", limb_heldout),
+    ("external audit scripts re-run against the served numbers (audit/external/, unmodified)", limb_external_audit),
+    ("independent recompute of every served pooled outcome (audit/independent_recompute.py, no harness import)",
+     limb_independent_recompute),
     ("search completeness (search_v2 measurement current; every state explicit; no zero from an exit code)", limb_search_completeness),
     ("fix-state discipline (registry/fixes.json)", limb_fixstate),
     ("honest-state ratchet (no page may get quieter)", limb_honest_ratchet),

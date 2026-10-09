@@ -1,0 +1,92 @@
+"""The external-audit limb must be able to FAIL: a served number drifting from the auditor's independent arithmetic, or an
+edited auditor script, is refused (a check that can only pass is not a check)."""
+import importlib.util
+import os
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_spec = importlib.util.spec_from_file_location("vea", os.path.join(ROOT, "scripts", "verify_external_audit.py"))
+vea = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(vea)
+
+
+def test_the_committed_corpus_agrees_with_every_external_audit_script():
+    rows, bad = vea.run()
+    assert bad == 0, [r for r in rows if r["verdict"] == "FAIL"]
+    assert len(rows) >= 15
+
+
+def test_PLANT_a_served_number_that_drifts_is_refused(monkeypatch):
+    real = vea._served
+    def drifted(slug, outcome=None):
+        res = dict(real(slug, outcome))
+        if slug == "doac-vte-recurrence":
+            res["estimate"] = res["estimate"] + 0.001
+        return res
+    monkeypatch.setattr(vea, "_served", drifted)
+    rows, bad = vea.run()
+    assert bad >= 1 and any(r["check"] == "doac primary estimate" and r["verdict"] == "FAIL" for r in rows)
+
+
+def test_PLANT_an_edited_auditor_script_is_refused_and_never_run(monkeypatch, tmp_path):
+    import shutil
+    ext = tmp_path / "external"
+    shutil.copytree(vea.EXT, ext)
+    p = ext / "review05_recalculation.py"
+    p.write_bytes(p.read_bytes().replace(b"0.9091", b"0.9092"))
+    monkeypatch.setattr(vea, "EXT", str(ext))
+    rows, bad = vea.run()
+    assert any(r["check"] == "review05_recalculation.py bytes" and r["verdict"] == "FAIL" for r in rows)
+    assert not any(r["check"].startswith("doac primary") for r in rows)
+
+
+def test_PLANT_auditor_scripts_are_never_sent_to_a_model_but_our_audit_code_is():
+    """D8: audit/external/ quotes held source passages (some non-CC) -- the codex PR reviewer must never send them,
+    while our own audit/ code (the independent recompute) must be reviewed."""
+    import sys
+    sys.path[:0] = [os.path.join(ROOT, "scripts"), ROOT]
+    import pr_codex_review as prc
+    assert prc._ok_file("audit/independent_recompute.py") and not prc._ok_file("audit/external/review05_recalculation.py")
+    assert not prc._ok_file("docs/x.py") and prc._ok_file("scripts/verify_external_audit.py")
+
+
+def test_PLANT_an_unsigned_supersession_never_excuses_a_disagreement(monkeypatch, tmp_path):
+    """codex ext-audit-r1 P0: a supersession must name a SEEN_AND_SIGNED item and pin the served value it excuses."""
+    import json as _json
+    import shutil
+    ext = tmp_path / "external"
+    shutil.copytree(vea.EXT, ext)
+    real = vea._served
+    def drifted(slug, outcome=None):
+        res = dict(real(slug, outcome))
+        if slug == "doac-vte-recurrence":
+            res["estimate"] = 0.95
+        return res
+    monkeypatch.setattr(vea, "EXT", str(ext))
+    monkeypatch.setattr(vea, "_served", drifted)
+    for bad in ({"check": "doac primary estimate"},
+                {"check": "doac primary estimate", "signed_item": "V99-01", "served": 0.95},
+                {"check": "doac primary estimate", "signed_item": "V13-01", "served": 0.94}):
+        (ext / "superseded.json").write_text(_json.dumps({"superseded": [bad]}), encoding="utf-8")
+        rows, bad_n = vea.run()
+        assert any(r["check"] == "doac primary estimate" and r["verdict"] == "FAIL" for r in rows), bad
+
+
+def test_PLANT_a_script_run_supersession_must_pin_served_values_and_the_expected_failure(monkeypatch, tmp_path):
+    """codex ext-audit-r2 P0: a signed item alone excused any later failure of the script and skipped every comparison."""
+    import json as _json
+    import shutil
+    ext = tmp_path / "external"
+    shutil.copytree(vea.EXT, ext)
+    p = ext / "review05_recalculation.py"
+    body = p.read_bytes().replace(b"assert abs(primary[\"estimate\"] - 0.9091)", b"assert abs(primary[\"estimate\"] - 0.5)")
+    p.write_bytes(body)
+    sums = (ext / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
+    import hashlib
+    sums = [(hashlib.sha256(body).hexdigest() + " *review05_recalculation.py") if l.endswith("review05_recalculation.py") else l for l in sums]
+    (ext / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
+    monkeypatch.setattr(vea, "EXT", str(ext))
+    monkeypatch.setattr(vea, "_signed_items", lambda: {"V13-01"})
+    (ext / "superseded.json").write_text(_json.dumps({"superseded": [
+        {"check": "review05_recalculation.py run", "signed_item": "V13-01"}]}), encoding="utf-8")
+    rows, bad = vea.run()
+    assert any(r["check"] == "review05_recalculation.py run" and r["verdict"] == "FAIL" for r in rows)
