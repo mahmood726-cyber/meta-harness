@@ -1,0 +1,154 @@
+{
+ "caller": {
+  "file": "scripts/g1_dual_screen.py",
+  "line": "reader A",
+  "purpose": "evidence completeness: dual screen glp1-ra-mace-t2d / 19737980 (reader A; acq/k-gap lane)"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a12275-98a1-7071-887f-255d2485be04"
+  },
+  "lane_log": "registry/model_calls/lane_log/unattributed.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "outside_workdir_reads": 0,
+  "stderr_bytes": 3288,
+  "stderr_sha256": "ca9198046ec3e340d166ffeddd3e1c21e247f650e62be6e7adb8a2d46c83e1b0",
+  "stdout_bytes": 0,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "tokens_used": null,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "f63802c1c8a71af0e6ab895b25b5b44be3cb59746081b9ea3f8e6a3d48133167"
+ },
+ "error": "client exited 143:  for QT correction were used: QTci, as the primary endpoint, and QTciL, QTcF, and QTcB as secondary endpoints. The upper bound of the 1-sided 95% confidence interval for time-matched, baseline-corrected, placebo-subtracted QTc intervals was <10 ms for all 4 correction methods. Moxifloxacin (400 mg) increased QTc intervals by 10.6 to 12.3 ms at 2 hours. There was no concentration-exposure dependency on QTc interval changes by liraglutide and no QTc thresholds above 500 ms or QTc increases >60 ms. The authors conclude that liraglutide caused no clinically relevant increases in the QTc interval.\n",
+ "input_digests": [
+  {
+   "ref": "record 19737980 (PubMed abstract or CT.gov registry)",
+   "sha256": "c7b080819e0052b966f3432af8dc0ce6aab57c45fa5a8cdffaf3bf5169fa7330",
+   "what": "one bibliographic / registry record + the registered eligibility"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "bb2c1fc7ec17849560e66c6d8a06aefedf17b7d33fca96b67613165c4fec01a6",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-6-astra",
+  "id_requested": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "decision": {
+     "enum": [
+      "INCLUDE",
+      "EXCLUDE",
+      "UNCLEAR"
+     ],
+     "type": "string"
+    },
+    "quote": {
+     "type": "string"
+    },
+    "rule": {
+     "enum": [
+      "MEETS_ALL",
+      "NOT_RCT",
+      "POPULATION",
+      "INTERVENTION",
+      "COMPARATOR",
+      "DESIGN",
+      "DUPLICATE_OR_SECONDARY_REPORT",
+      "NOT_DECIDABLE_FROM_RECORD"
+     ],
+     "type": "string"
+    },
+    "why": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "decision",
+    "rule",
+    "quote",
+    "why"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "timeout_s": 1200,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "WW91IHNjcmVlbiBPTkUgcmVjb3JkIChhIFB1Yk1lZCBhYnN0cmFjdCBvciBhIENsaW5pY2FsVHJpYWxzLmdvdiByZWdpc3RyYXRpb24pIGFnYWluc3QgYSBzeXN0ZW1hdGljIHJldmlldydzClJFR0lTVEVSRUQgZWxpZ2liaWxpdHksIGJlbG93LiBVc2Ugb25seSB0aGUgcmVjb3JkOyBubyBtZW1vcnkgb2YgdGhlIHRyaWFsLgpJTkNMVURFIG9ubHkgaWYgdGhlIHJlY29yZCBzaG93cyBBTEwgb2Y6IGEgcmFuZG9taXNlZCBjb250cm9sbGVkIHRyaWFsOyB0aGUgcmV2aWV3J3MgcG9wdWxhdGlvbjsgdGhlIHJldmlldydzCmludGVydmVudGlvbiBhcyBhIHJhbmRvbWlzZWQgYXJtOyB0aGUgcmV2aWV3J3MgY29tcGFyYXRvciAoYSBwbGFjZWJvIGFybSBjb3VudHMgYXMgcGxhY2VibzsgJ3BsYWNlYm8gZm9yIFgnIC8gJ21hdGNoaW5nCnBsYWNlYm8nIGlzIGEgcGxhY2VibyBhcm0sIG5vdCBhbiBYIGFybTsgYSBkZXZlbG9wbWVudCBjb2RlIG9mIHRoZSBkcnVnIGlzIHRoZSBkcnVnKTsgdGhlIHJlcXVpcmVkIGRlc2lnbi4KRVhDTFVERSBpZiB0aGUgcmVjb3JkIHNob3dzIG9uZSBjcml0ZXJpb24gaXMgTk9UIG1ldCAobmFtZSBpdCBpbiAncnVsZScpLiBBIHNlY29uZGFyeS9zdWItc3R1ZHkvZGVzaWduIHBhcGVyIG9mIGEgdHJpYWwgaXMKRFVQTElDQVRFX09SX1NFQ09OREFSWV9SRVBPUlQuIFVOQ0xFQVIgaWYgdGhlIHJlY29yZCBjYW5ub3QgZGVjaWRlLgoncXVvdGUnIG11c3QgYmUgY29waWVkIENIQVJBQ1RFUiBGT1IgQ0hBUkFDVEVSIGZyb20gdGhlIHJlY29yZDogdGhlIHBhc3NhZ2UgdGhhdCBkZWNpZGVzIChmb3IgSU5DTFVERSwgdGhlIHBhc3NhZ2UgbmFtaW5nCnRoZSByYW5kb21pc2VkIGNvbXBhcmlzb24pLgoKPT09IFJFR0lTVEVSRUQgRUxJR0lCSUxJVFkgPT09ClFVRVNUSU9OOiBJbiBhZHVsdHMgd2l0aCB0eXBlIDIgZGlhYmV0ZXMsIGRvIEdMUC0xIHJlY2VwdG9yIGFnb25pc3RzIHJlZHVjZSAzLXBvaW50IG1ham9yIGFkdmVyc2UgY2FyZGlvdmFzY3VsYXIgZXZlbnRzIHZlcnN1cyBwbGFjZWJvPyAoRG91YmxlLWJsaW5kIHBsYWNlYm8tY29udHJvbGxlZCBSQ1RzLikKRUxJR0lCSUxJVFk6IFJDVDsgYWR1bHRzIHdpdGggdHlwZSAyIGRpYWJldGVzIGJ5IHRpdGxlL3JlZ2lzdHJ5IGNvbmRpdGlvbnM7IEdMUC0xIHJlY2VwdG9yIGFnb25pc3QgdnMgcGxhY2VibzsgZG91YmxlLWJsaW5kIHBsYWNlYm8tY29udHJvbGxlZCBDViBvdXRjb21lIHRyaWFsLiBQL0kvQy9kZXNpZ24gb25seS4KUE9QVUxBVElPTiB0ZXJtczogWyd0eXBlIDIgZGlhYmV0ZXMnLCAndHlwZSAyIGRpYWJldGljJywgJ3R5cGUgMiBkaWFiZXRlcyBtZWxsaXR1cycsICdkaWFiZXRlcyBtZWxsaXR1cywgdHlwZSAyJywgJ3QyZCcsICd0MmRtJ107IGV4Y2x1ZGVkIHBvcHVsYXRpb25zOiBbJ3dpdGhvdXQgZGlhYmV0ZXMnLCAnbm8gZGlhYmV0ZXMnLCAnb2Jlc2l0eSB3aXRob3V0IGRpYWJldGVzJywgJ292ZXJ3ZWlnaHQgb3Igb2Jlc2l0eSBidXQgd2l0aG91dCBkaWFiZXRlcycsICd0eXBlIDEgZGlhYmV0ZXMnLCAnZ2VzdGF0aW9uYWwgZGlhYmV0ZXMnXQpJTlRFUlZFTlRJT046IFsnbGlyYWdsdXRpZGUnLCAnc2VtYWdsdXRpZGUnLCAnZHVsYWdsdXRpZGUnLCAnYWxiaWdsdXRpZGUnLCAnZWZwZWdsZW5hdGlkZScsICdleGVuYXRpZGUnLCAnbGl4aXNlbmF0aWRlJ107IGV4Y2x1ZGVkIGZvcm1zOiBOb25lCkNPTVBBUkFUT1I6IFsncGxhY2VibyddCkRFU0lHTjogcmFuZG9taXNlZAoKPT09IFJFQ09SRCA9PT0KVElUTEU6IEFic2VuY2Ugb2YgUVRjIHByb2xvbmdhdGlvbiBpbiBhIHRob3JvdWdoIFFUIHN0dWR5IHdpdGggc3ViY3V0YW5lb3VzIGxpcmFnbHV0aWRlLCBhIG9uY2UtZGFpbHkgaHVtYW4gR0xQLTEgYW5hbG9nIGZvciB0cmVhdG1lbnQgb2YgdHlwZSAyIGRpYWJldGVzLgpQVUJMSUNBVElPTiBUWVBFUzogSm91cm5hbCBBcnRpY2xlOyBSYW5kb21pemVkIENvbnRyb2xsZWQgVHJpYWw7IFJlc2VhcmNoIFN1cHBvcnQsIE5vbi1VLlMuIEdvdid0CkFCU1RSQUNUIC8gU1VNTUFSWTogVGhlIG9iamVjdGl2ZSBvZiB0aGlzIHN0dWR5IHdhcyB0byBlc3RhYmxpc2ggZWZmZWN0cyBvZiBsaXJhZ2x1dGlkZSBvbiB0aGUgUVRjIGludGVydmFsLiBJbiB0aGlzIHJhbmRvbWl6ZWQsIHBsYWNlYm8tY29udHJvbGxlZCwgZG91YmxlLWJsaW5kIGNyb3Nzb3ZlciBzdHVkeSwgNTEgaGVhbHRoeSBwYXJ0aWNpcGFudHMgd2VyZSBhZG1pbmlzdGVyZWQgcGxhY2VibywgMC42LCAxLjIsIGFuZCAxLjggbWcgbGlyYWdsdXRpZGUgb25jZSBkYWlseSBmb3IgNyBkYXlzIGVhY2guIEVsZWN0cm9jYXJkaW9ncmFtcyB3ZXJlIHJlY29yZGVkIHBlcmlvZGljYWxseSBvdmVyIDI0IGhvdXJzIGF0IHRoZSBlbmQgb2YgcGxhY2VibyBhbmQgaGlnaGVzdCBkb3NpbmcgcGVyaW9kcy4gRm91ciBkaWZmZXJlbnQgbW9kZWxzIGZvciBRVCBjb3JyZWN0aW9uIHdlcmUgdXNlZDogUVRjaSwgYXMgdGhlIHByaW1hcnkgZW5kcG9pbnQsIGFuZCBRVGNpTCwgUVRjRiwgYW5kIFFUY0IgYXMgc2Vjb25kYXJ5IGVuZHBvaW50cy4gVGhlIHVwcGVyIGJvdW5kIG9mIHRoZSAxLXNpZGVkIDk1JSBjb25maWRlbmNlIGludGVydmFsIGZvciB0aW1lLW1hdGNoZWQsIGJhc2VsaW5lLWNvcnJlY3RlZCwgcGxhY2Viby1zdWJ0cmFjdGVkIFFUYyBpbnRlcnZhbHMgd2FzIDwxMCBtcyBmb3IgYWxsIDQgY29ycmVjdGlvbiBtZXRob2RzLiBNb3hpZmxveGFjaW4gKDQwMCBtZykgaW5jcmVhc2VkIFFUYyBpbnRlcnZhbHMgYnkgMTAuNiB0byAxMi4zIG1zIGF0IDIgaG91cnMuIFRoZXJlIHdhcyBubyBjb25jZW50cmF0aW9uLWV4cG9zdXJlIGRlcGVuZGVuY3kgb24gUVRjIGludGVydmFsIGNoYW5nZXMgYnkgbGlyYWdsdXRpZGUgYW5kIG5vIFFUYyB0aHJlc2hvbGRzIGFib3ZlIDUwMCBtcyBvciBRVGMgaW5jcmVhc2VzID42MCBtcy4gVGhlIGF1dGhvcnMgY29uY2x1ZGUgdGhhdCBsaXJhZ2x1dGlkZSBjYXVzZWQgbm8gY2xpbmljYWxseSByZWxldmFudCBpbmNyZWFzZXMgaW4gdGhlIFFUYyBpbnRlcnZhbC4=",
+  "bytes": 3032,
+  "sha256": "3226fe29b7643d575de2d9fad0e2a28a83b0ff62aa0d2050f47e131d7a75085a"
+ },
+ "record_id": "mc-c84157c833db173aa5ceb8b8d0704b59",
+ "request_utc": "2026-10-09T20:58:13Z",
+ "response": {
+  "b64": "",
+  "bytes": 0,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "response_utc": "2026-10-09T20:58:20Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_ERROR"
+}
