@@ -1,0 +1,80 @@
+{
+  "topics_checked": [
+    "tocilizumab-covid19-mortality",
+    "tranexamic-acid-pph"
+  ],
+  "findings": [
+    {
+      "slug": "tocilizumab-covid19-mortality",
+      "kind": "MISLEADING",
+      "tab": "Comparison with published meta-analysis",
+      "title": "Scope-match statement contradicts the recorded scope limitation",
+      "page_quote": "Intervention level: topic is class-level, comparator is class-level (match: True)",
+      "evidence": [
+        {
+          "file": "tocilizumab-covid19-mortality/review.json",
+          "quote": "pools the IL-6-antagonist CLASS (tocilizumab + sarilumab), a broader PICO than this tocilizumab-only topic."
+        }
+      ],
+      "why": "The page presents a class-level match although the review's scope note explicitly distinguishes this single-agent topic from the broader comparator.",
+      "fix": "Resolve the conflicting scope fields and render the recorded single-agent versus class-level limitation.",
+      "confidence": "high"
+    },
+    {
+      "slug": "tocilizumab-covid19-mortality",
+      "kind": "MISLEADING",
+      "tab": "Comparison with published meta-analysis",
+      "title": "COVACTA count-availability statement contradicts the admitted trial row",
+      "page_quote": "COVACTA gives mortality as a RATE only (19.7% vs 19.4%, no per-arm counts)",
+      "evidence": [
+        {
+          "file": "tocilizumab-covid19-mortality/review.json",
+          "quote": "\"label\": \"COVACTA\""
+        },
+        {
+          "file": "tocilizumab-covid19-mortality/review.json",
+          "quote": "\"ai\": 58,"
+        },
+        {
+          "file": "tocilizumab-covid19-mortality/review.json",
+          "quote": "\"n1i\": 294,"
+        },
+        {
+          "file": "tocilizumab-covid19-mortality/review.json",
+          "quote": "\"ci\": 28,"
+        },
+        {
+          "file": "tocilizumab-covid19-mortality/review.json",
+          "quote": "\"n2i\": 144,"
+        }
+      ],
+      "why": "The current COVACTA row contains mortality counts of 58/294 versus 28/144. The comparator narrative incorrectly describes those counts as unavailable.",
+      "fix": "Update the source narrative to reflect the admitted COVACTA counts and current pool.",
+      "confidence": "high"
+    },
+    {
+      "slug": "tranexamic-acid-pph",
+      "kind": "MISLEADING",
+      "tab": "Results & conclusions",
+      "title": "Conclusion incorrectly labels significance as exclusion of the null",
+      "page_quote": "<th>95% CI excludes the null</th><td>True</td>",
+      "evidence": [
+        {
+          "file": "tranexamic-acid-pph/review.json",
+          "quote": "\"ci_high\": 1.0"
+        },
+        {
+          "file": "tranexamic-acid-pph/review.json",
+          "quote": "\"touches_null\": true"
+        },
+        {
+          "file": "tranexamic-acid-pph/review.json",
+          "quote": "\"null\": 1.0"
+        }
+      ],
+      "why": "The recorded interval touches the null at 1.0. A significance flag cannot accurately be presented as saying that this displayed interval excludes the null.",
+      "fix": "Label the significance field accurately and render interval exclusion separately, preserving the recorded touches-null state.",
+      "confidence": "high"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "topics_checked": [
+    "tocilizumab-covid19-mortality",
+    "tranexamic-acid-pph"
+  ],
+  "findings": [
+    {
+      "slug": "tocilizumab-covid19-mortality",
+      "kind": "MISLEADING",
+      "tab": "Search",
+      "title": "Unrecorded query yields displayed as zero",
+      "page_quote": "<td>unknown -&gt; 0 -&gt; 0</td>",
+      "evidence": [
+        {
+          "file": "tocilizumab-covid19-mortality/review.json",
+          "quote": "\"state\": \"RAN_UNRECORDED\""
+        }
+      ],
+      "why": "The fetched and retained columns imply measured zero yields for unrecorded queries. The adjacent explanation explicitly says their yields were never recorded and neither a count nor a zero can be shown. Although the stored funnel contains zeros, presenting them as observed yields contradicts that qualification.",
+      "fix": "Display fetched and retained yields as unknown when the source state is RAN_UNRECORDED.",
+      "confidence": "high"
+    },
+    {
+      "slug": "tranexamic-acid-pph",
+      "kind": "MISLEADING",
+      "tab": "Search",
+      "title": "Unrecorded query yields displayed as zero",
+      "page_quote": "<td>unknown -&gt; 0 -&gt; 0</td>",
+      "evidence": [
+        {
+          "file": "tranexamic-acid-pph/review.json",
+          "quote": "\"state\": \"RAN_UNRECORDED\""
+        }
+      ],
+      "why": "The fetched and retained columns imply measured zero yields for unrecorded queries. The adjacent explanation explicitly says their yields were never recorded and neither a count nor a zero can be shown. Although the stored funnel contains zeros, presenting them as observed yields contradicts that qualification.",
+      "fix": "Display fetched and retained yields as unknown when the source state is RAN_UNRECORDED.",
+      "confidence": "high"
+    },
+    {
+      "slug": "tranexamic-acid-pph",
+      "kind": "MISLEADING",
+      "tab": "Results & conclusions",
+      "title": "Single-trial result still described as pooled",
+      "page_quote": "k = 1: the 1 trial(s) named below were pooled;",
+      "evidence": [
+        {
+          "file": "tranexamic-acid-pph/review.json",
+          "quote": "k=1: point estimate and 95% CI are the single trial's reported values, verbatim."
+        }
+      ],
+      "why": "The round-one wording issue remains in the Results membership paragraph, despite the corrected single-trial labels elsewhere. This is a reported trial estimate, not a pooled estimate.",
+      "fix": "Use single-trial wording in the membership paragraph and associated conclusion definitions when k equals 1.",
+      "confidence": "high"
+    },
+    {
+      "slug": "tranexamic-acid-pph",
+      "kind": "MISLEADING",
+      "tab": "Comparison with published meta-analysis",
+      "title": "Same-question label conceals recorded treatment-versus-prevention mismatch",
+      "page_quote": "<strong>✓ same question.</strong> Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "evidence": [
+        {
+          "file": "tranexamic-acid-pph/review.json",
+          "quote": "1/5. Gap = WOMAN-2 / TRAAP / TRAAP-2 / TXA-MFMU. Reachable (all found in PubMed) but EXCLUDED BY SCOPE, not a search failure: every one tests PROPHYLACTIC tranexamic acid around delivery to PREVENT PPH, whereas this review pools TREATMENT of clinically diagnosed PPH (the WOMAN trial estimand). A prophylaxis-vs-treatment PICO mismatch; the comparator mixes the two."
+        }
+      ],
+      "why": "The label follows the coarse scope flags but omits the explicit mismatch recorded in reproduction.parity.reason. Readers are told the questions match even though the comparator combines prevention and treatment, while this review addresses treatment.",
+      "fix": "Qualify the scope label with the recorded prevention-versus-treatment mismatch and describe the comparison as partial.",
+      "confidence": "high"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "real", "class", "root_cause_file", "root_cause_code", "fields_touched", "fix", "plant", "evidence"],
+        "properties": {
+          "id": {"type": "string"},
+          "real": {"type": "boolean"},
+          "class": {"type": "string", "enum": ["PRESENTATION", "SERVED", "NOT_A_DEFECT"]},
+          "root_cause_file": {"type": "string"},
+          "root_cause_code": {"type": "string"},
+          "fields_touched": {"type": "string"},
+          "fix": {"type": "string"},
+          "plant": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+                       "required": ["file", "quote"], "properties": {"file": {"type": "string"}, "quote": {"type": "string"}}}}
+        }
+      }
+    }
+  }
+}

@@ -1277,7 +1277,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             eligibility_refusals[d["id"]] = _refusals
         candidate_index[d["id"]] = cands
         all_effect_candidates.extend(cands)
-    estimand_decision = source_hierarchy_mod.estimand_decision(spec, all_effect_candidates)
+    from . import estimand_contract as _econ
+    estimand_decision = source_hierarchy_mod.estimand_decision(
+        spec, all_effect_candidates, contract=_econ.signed(slug, spec.get("name")))
     selector_estimand = estimand_decision.get("target_scale") or spec.get("estimand") or "RR"
     for d in included:
         rec = rec_by_id.get(d["id"], {})

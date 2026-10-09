@@ -37,6 +37,8 @@ UNRESOLVED_SUBPROCESS = {
                                                      "agy_runner)",
     ("reproducible_ai/model_call_live.py", "[_agy_exe(), '--version']"): "agy --version (client version for the record)",
     ("scripts/build_search_benchmark.py", "cmd"): "python scripts/measure_search_recall.py (the `commands` list)",
+    ("scripts/verify_external_audit.py", "argv"): "python audit/external/<auditor script> (sys.executable + a CHECKS entry; "
+                                                  "the auditors' own arithmetic, no model)",
     ("scripts/g1_remote_codex.py", "[os.path.join(GIT_BIN, 'ssh.exe'), *SSH_OPTS, PEER, cmd]"):
         "ssh (Git for Windows) to the worker, which runs the SAME recorded codex calls (reproducible_ai.model_call_live); "
         "records are copied back and committed like local ones",
@@ -48,6 +50,12 @@ UNRESOLVED_SUBPROCESS = {
     ("scripts/verify_all.py", "cmd"): "python -m pytest / python scripts/... (_run([sys.executable, ...]) callers)",
     ("tests/test_certificate_code_closure.py", "args"): "python scripts/audit_certificate_stdlib.py",
     ("tests/test_gate_scorecard.py", "cmd"): "git init / add / commit on a fixture repo",
+    ("outputs/pva-2026-10-08/codex_review_tabs/run_jobs.py", "[CODEX, 'exec', '-s', 'read-only', '--skip-git-repo-check', "):
+        "codex exec (read-only) -- the pva review-tabs rendering review, 3 rounds x 7 jobs; every call recorded in "
+        "r*/calls.jsonl (prompt/input/output sha256). A review lane's notes: no served page or build reads its outputs",
+    ("outputs/pva-2026-10-09/codex_handover/run_jobs.py", "[CODEX, 'exec', '-s', 'read-only', '--skip-git-repo-check', "):
+        "codex exec (read-only) -- the pva handover classification + adversarial diff review (H2-H19, A1); every call "
+        "recorded in calls.jsonl (prompt/input/output sha256). A review lane's notes: no served page or build reads them",
 }
 
 # committed model outputs -> what reads them and what they can change

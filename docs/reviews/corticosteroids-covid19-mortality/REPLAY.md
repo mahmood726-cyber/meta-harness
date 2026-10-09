@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `0a5affa0cd885fb564369a4c02d019d162f1c4bf26daa7243084b34434691990` |
-| html_sha256 (served page bytes) | `d3fe91f88390340812564ffec54573a4230d33bdec937a1bb892231c918f25af` |
-| release_sha256 (certificate) | `dd96fad67cd0057492d6a4396570d58af316147c1a78fc0a4c9d5995f2260fa4` |
+| review_sha256 (canonical review core) | `45edd7d877da0d252b323e1c43bf8a0a4fad502df89dcbbb5990c37454982615` |
+| html_sha256 (served page bytes) | `c3ee33e9bb4aec510739a921fa0695e98a10e8085bacf710a29dc689df7821a3` |
+| release_sha256 (certificate) | `4b4925f806c48b12856d5ed9328596d97eea9bbdc28739ae52ea8e05d48bc18c` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `dce99b4135d953e0363d519ff078bc6e1311289c` |
-| analysis code | 87 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `aa911bbdcb96a5a52d6e63b0abbeecffa1c860bd` |
+| analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
+| recorded generating commit | `8e80912495c6a7285a1e2228c21029475a26edd1` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,7 +38,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/corticosteroids-covid19-mortality/aact_inputs.json` | `cf62f89a21daf22174f9baf857dc50d036321241b6c0e4a76607fb96e1c4fbfa` |
 | `cache/corticosteroids-covid19-mortality/comparator_fulltext.txt` | `c4af947077a8e0521f209f3a00ab83471e38e606294c7ded770c90e28c240ec9` |
-| `cache/corticosteroids-covid19-mortality/ft_32678530.txt` | `9b432353a5e8d57fce6dfec263d0dfa134412754a1153f9988037528b8bc3db1` |
 
 Recorded judgments live under `cache/corticosteroids-covid19-mortality/`; their object digest is
 `f4aedcd14c315200f6592ababa928a1069a1d8aa15973cc6dcbdc4b03b204033`. Acquisitions live under `docs/acquisitions/corticosteroids-covid19-mortality/`.

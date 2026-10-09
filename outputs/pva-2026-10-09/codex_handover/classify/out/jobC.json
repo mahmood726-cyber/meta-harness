@@ -1,0 +1,100 @@
+{
+  "items": [
+    {
+      "id": "H6",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/pipeline.py",
+      "root_cause_code": "build_review_core, line 2346: comparator_scope_note = config.get(\"comparator_scope_note\")\nLine 2440: **({\"comparator_scope_note\": comparator_scope_note} if comparator_scope_note else {}),\nharness/page.py, _comparator, lines 2136–2137: if r.get(\"comparator_scope_note\"):\n            body += f\"<p><strong>Comparator resolution.</strong> {_e(r.get('comparator_scope_note'))}</p>\"",
+      "fields_touched": "review.json /comparator_scope_note changes. The stale literal is copied from config, not authored by the renderer. Outcomes, results, trials, claims, comparator_panel, limitations and registry files need no change.",
+      "fix": "Correct the source config before build_review_core: config['comparator_scope_note'] = config['comparator_scope_note'].replace('van Es et al. 2014 (PMID 24963045) is a scope-matched open-access pooled analysis of the six phase-3 acute symptomatic VTE DOAC-vs-VKA trials and reports recurrent VTE including VTE-related death as RR 0.90 (0.77-1.06).', 'The adopted comparator is PMID 29795629. PMID 24963045 was retired after C1_OPEN_LICENCE failed.'). Rebuild the stored note and page; do not merely hide it in HTML.",
+      "plant": "Use the committed doac-vte-recurrence review, whose comparator_panel[0]['id'] is '29795629'. After rebuilding, assert 'is a scope-matched open-access pooled analysis' not in review['comparator_scope_note'] and '29795629' in review['comparator_scope_note']. The current stored note fails.",
+      "evidence": [
+        {
+          "file": "reviews/doac-vte-recurrence/review.json",
+          "quote": "van Es et al. 2014 (PMID 24963045) is a scope-matched open-access pooled analysis"
+        },
+        {
+          "file": "reviews/doac-vte-recurrence/review.json",
+          "quote": "Efficacy and safety of direct oral anticoagulants approved for cardiovascular indications: Systematic review and meta-analysis. PMID 29795629"
+        },
+        {
+          "file": "reviews/doac-vte-recurrence/review.json",
+          "quote": "C1_OPEN_LICENCE FAIL: no CC BY / CC0 licence (Europe PMC none; Unpaywall bronze)"
+        }
+      ]
+    },
+    {
+      "id": "H7",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/pipeline.py",
+      "root_cause_code": "build_review_core, lines 2346–2347: comparator_scope_note = config.get(\"comparator_scope_note\")\n    if (primary.get(\"result\") or {}).get(\"design_refusal\"):\nLine 2440: **({\"comparator_scope_note\": comparator_scope_note} if comparator_scope_note else {}),",
+      "fields_touched": "review.json /comparator_scope_note changes. The refresh branch handles design_refusal, not the current pool_refused direction conflict. Trials, result, claim, comparator objects, limitations and registry files need no change.",
+      "fix": "Replace the stale opening in the source config: config['comparator_scope_note'] = 'PARADIGM-HF and PARALLEL-HF both have extracted primary-outcome estimates. The two-trial pooled row is refused: DIRECTION_CONFLICT_K2. Separately, ' + config['comparator_scope_note'].split('Separately, ', 1)[1]. Rebuild the review and page.",
+      "plant": "Use the committed sacubitril-valsartan-hfref primary outcome: two trials, PARALLEL-HF effect 1.0881, result.pool_refused.code == 'DIRECTION_CONFLICT_K2'. Assert the rebuilt note includes 'PARALLEL-HF' and 'DIRECTION_CONFLICT_K2' and excludes 'only EXTRACTABLE'. Current code preserves the contradictory note.",
+      "evidence": [
+        {
+          "file": "reviews/sacubitril-valsartan-hfref/review.json",
+          "quote": "k=1 CONTRIBUTING, not a complete-evidence claim: PARADIGM-HF supplies the only EXTRACTABLE primary-outcome estimate here"
+        },
+        {
+          "file": "reviews/sacubitril-valsartan-hfref/review.json",
+          "quote": "ClinicalTrials.gov results (structured target endpoint): outcome 'Exposure-adjusted Incident Rate (EAIR) of CEC Confirmed Composite Endpoints' HR 1.0881 (95% CI 0.6501 to 1.8212)"
+        },
+        {
+          "file": "reviews/sacubitril-valsartan-hfref/review.json",
+          "quote": "k=2 pooled row refused because point estimates are on opposite sides of the null"
+        }
+      ]
+    },
+    {
+      "id": "H8",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/pipeline.py",
+      "root_cause_code": "build_review_core, line 2346: comparator_scope_note = config.get(\"comparator_scope_note\")\nLine 2440: **({\"comparator_scope_note\": comparator_scope_note} if comparator_scope_note else {}),\nharness/page.py, _comparator, line 2137: body += f\"<p><strong>Comparator resolution.</strong> {_e(r.get('comparator_scope_note'))}</p>\"",
+      "fields_touched": "review.json /comparator_scope_note changes. COVACTA already has ai=58, n1i=294, ci=28, n2i=144; those fields and all served estimates remain unchanged. No registry or limitation change is needed.",
+      "fix": "Replace the stale extraction paragraph, including its dependent k≈1 assertion: config['comparator_scope_note'] = config['comparator_scope_note'].split('(3) REACH/EXTRACTION:', 1)[0] + '(3) REACH/EXTRACTION: the current primary outcome includes RECOVERY, COVACTA and TOCIBRAS. COVACTA has committed day-28 mortality counts of 58/294 versus 28/144.'. Rebuild the review and page.",
+      "plant": "Use the committed tocilizumab-covid19-mortality review. Assert the rebuilt note contains '58/294' and '28/144', excludes 'COVACTA gives mortality as a RATE only', and excludes 'verifiable-count k is ~1'. The current note fails all these checks.",
+      "evidence": [
+        {
+          "file": "reviews/tocilizumab-covid19-mortality/review.json",
+          "quote": "COVACTA gives mortality as a RATE only (19.7% vs 19.4%, no per-arm counts)"
+        },
+        {
+          "file": "reviews/tocilizumab-covid19-mortality/review.json",
+          "quote": "Tocilizumab (N=294) ... Placebo (N=144) ... Death at day 28 — no. (%) 58 (19.7) 28 (19.4)"
+        }
+      ]
+    },
+    {
+      "id": "H9",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/scope.py",
+      "root_cause_code": "assess, lines 34–40:\n    topic_is_class = _has_class(\" \".join(topic_terms)) or _has_any(\" \".join(topic_terms), class_terms)\n    comparator_is_class = _has_class(comparator_title) or _has_any(comparator_title, class_terms)\n    iv_level_match = not (comparator_is_class and not topic_is_class)\n    pop = _has_any((comparator_title or \"\") + \" \" + (comparator_abstract or \"\"), inc.get(\"population_any\") or [])\n    valid = bool(iv_level_match and pop)\n    if valid:\n        note = \"same-question comparator (matching intervention level and population)\"\nharness/page.py, _comparator, lines 2112–2113:\n        if sc.get(\"scope_valid\"):\n            v = \"✓ same question\"",
+      "fields_touched": "review.json /comparator/scope/scope_valid and /comparator/scope/note must change; tocilizumab also needs corrected topic_is_class and intervention_level_match. TXA and colchicine may retain intervention_level_match=true: the same drug does not establish the same population, design or outcome. No served number or registry edit is necessary.",
+      "fix": "Use source-backed eligibility assessments rather than search-term class inference and population keyword overlap. Minimal explicit-input correction in assess: topic_is_class = config['topic_is_class']; iv_level_match = topic_is_class == comparator_is_class; valid = bool(iv_level_match and pop and config.get('comparator_pico_design_match') is True). Set topic_is_class=False for these single-agent topics; record comparator_pico_design_match=False with the documented mismatch reason and return that reason as note. Missing full-scope assessment must not produce 'same-question'.",
+      "plant": "assess({'intervention_terms':['tocilizumab','IL-6 receptor antagonists'], 'include':{'population_any':['COVID-19']}, 'topic_is_class':False, 'comparator_pico_design_match':False}, 'IL-6 antagonists for COVID-19') must return scope_valid=False and intervention_level_match=False. Current code returns both True. Also test single-agent TXA/postpartum and colchicine/pericarditis inputs with comparator_pico_design_match=False: scope_valid must be False while intervention_level_match may remain True.",
+      "evidence": [
+        {
+          "file": "reviews/tocilizumab-covid19-mortality/review.json",
+          "quote": "the committed comparator (PMID 34228774) pools the IL-6-antagonist CLASS (tocilizumab + sarilumab), a broader PICO than this tocilizumab-only topic."
+        },
+        {
+          "file": "reviews/colchicine-recurrent-pericarditis/review.json",
+          "quote": "The 2012 Heart meta-analysis (PMID 22442198) is a RELATED, BROADER comparator, not a same-scope one: it pooled more trials including open-label studies and mixed primary/secondary prevention (first-attack and recurrent) populations, whereas this review pools double-blind recurrence-outcome trials."
+        },
+        {
+          "file": "reviews/tranexamic-acid-pph/index.html",
+          "quote": "<strong>✓ same question.</strong> Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True."
+        },
+        {
+          "file": "reviews/tranexamic-acid-pph/review.json",
+          "quote": "\"outcome\": \"Life-threatening postpartum bleeding\""
+        }
+      ]
+    }
+  ]
+}

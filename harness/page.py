@@ -21,6 +21,7 @@ from pathlib import Path as _Path
 from typing import Any
 
 from . import manuscript as _manuscript_mod
+from . import review_tabs as _review_tabs
 from . import grade as _grade_mod
 from . import rob_sensitivity as _rob_sensitivity_mod
 from . import claimgraph as _claimgraph_mod
@@ -30,21 +31,26 @@ from . import rob2 as _rob2_mod
 from . import funding as _funding_mod
 from . import scope_identity as _scope_identity_mod
 
-TABS = [
+TABS = [   # the RapidMeta tab contract (rapidmeta-v1, harness/review_tabs.py; tests/test_review_tabs.py)
     ("overview", "Overview"),
     ("protocol", "Protocol"),
     ("search", "Search"),
     ("screening", "Screening"),
-    ("outcomes", "Results"),
+    ("included", "Included studies"),
+    ("extraction", "Data extraction"),
+    ("riskofbias", "Risk of bias & GRADE"),
+    ("analysis", "Analysis"),
+    ("outcomes", "Results & conclusions"),
     ("harms", "Harms"),
-    ("comparator", "Comparator"),
-    ("riskofbias", "Risk of bias"),
+    ("comparator", "Comparison with published meta-analysis"),
+    ("changes", "Changes & signatures"),
+    ("reproduction", "Reproduce"),
     ("manuscript", "Manuscript"),
     ("reporting", "Reporting (PRISMA)"),
-    ("reproduction", "Reproducibility"),
     ("verify", "Verify this page"),
 ]
-NEUTRAL_DROP = {"comparator", "verify"}   # a neutral page names no verifier and carries no certificate
+# a neutral (blind) page names no verifier, carries no certificate, and none of the harness's own provenance tabs
+NEUTRAL_DROP = {"comparator", "verify", "included", "extraction", "analysis", "changes"}
 KNOWN_ITEM_RETRIEVAL_LABEL = "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH"
 TITLE_SEEDED_RETRIEVAL_LABEL = "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH"
 HAND_WRITTEN_KEYWORD_SEARCH_LABEL = "HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH"
@@ -101,7 +107,7 @@ def _unrenderable_block(obj: dict[str, Any]) -> str:
 # statement about the TRIAL). The other states are statements about US (extraction/retrieval) or a
 # deliberate refusal of a number that WAS found — none is evidence the outcome does not exist.
 _ABSENCE_STATE_LABEL = {
-    "OUTCOME_NOT_IN_SOURCE": "not in cached source -- no outcome sentence/effect found",
+    "OUTCOME_NOT_IN_SOURCE": "no poolable effect or arm counts found in the cached source (the outcome may be mentioned)",
     "NO_OUTCOME_DATA_IN_SOURCE": "declared absent — no outcome data in the retrieved source",
     "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": "excluded on evidence -- effect present but wrong estimand class",
     "COUNTS_PRESENT_NOT_CORROBORATED": "not extracted -- arm counts present but percentage corroboration failed",
@@ -402,7 +408,7 @@ _ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same 
 
 
 
-def _known_missing_sensitivity_panel(o: dict) -> str:
+def _known_missing_sensitivity_panel(o: dict, heading_level: int = 3) -> str:
     kms = o.get("known_missing_sensitivity") or {}
     if not kms:
         return ""
@@ -476,8 +482,8 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
     demo = kms.get("membership_demonstration")
     if demo:
         metrics = ("k", "estimate", "ci_low", "ci_high", "tau2", "i2", "pi_low", "pi_high")
-        combined_html += ("<section class='membership-demonstration'><h4>DEMONSTRATION: "
-                          f"{_e(demo['state'])}</h4>"
+        combined_html += (f"<section class='membership-demonstration'><h{min(heading_level + 1, 6)}>DEMONSTRATION: "
+                          f"{_e(demo['state'])}</h{min(heading_level + 1, 6)}>"
                           f"<p>under the PROPOSED adjudication -- not a result; the primary k={_e(demo['primary']['k'])} pool is unchanged</p>"
                           "<p>Paule-Mandel tau²; HKSJ on t with k-1 df, log scale. I² is a percentage.</p>"
                           "<table><tr><th>Metric</th><th>Primary</th><th>Primary plus proposed ELIXA</th></tr>")
@@ -493,7 +499,7 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
         combined_html += "</table></section>"
     return (
         "<div class='kms-panel' id='known-missing-sensitivity'>"
-        f"<h3>{_e(kms.get('heading') or 'Known eligible trials not in this pool, and what they would do')}</h3>"
+        f"<h{heading_level}>{_e(kms.get('heading') or 'Known eligible trials not in this pool, and what they would do')}</h{heading_level}>"
         f"<p><strong>Panel conclusion effect: {_e(kms.get('headline_conclusion_effect') or 'NOT_COMPUTABLE')}.</strong> "
         "These rows are SENSITIVITY only; they do not replace the primary pool.</p>"
         + combined_html + comp +
@@ -778,6 +784,10 @@ def _overview(r, neutral):
             inc_counts = _included_unit_counts(r)
             count_noun = "trial family" if has_units else "trial"
             recon = None
+            _pst = _review_tabs.outcome_state(prim)
+            _pooled = ("were pooled" if _pst.startswith(("pooled", "pooled point"))
+                       else "supplied the estimate (a single trial, not pooled)" if _pst.startswith("single-trial")
+                       else f"have extracted values, but no pooled estimate is served ({_pst})")
             if inc_counts["trials"] is not None and k is not None and isinstance(k, int):
                 scope_identity = r.get("scope_identity") or {}
                 scoped = _scope_identity_mod.requires_qualification(scope_identity)
@@ -788,19 +798,19 @@ def _overview(r, neutral):
                     else:
                         prefix = f"{_identity_mod.count_phrase(inc_counts, count_noun)} met P/I/C/design (screening)"
                     recon = (f"{prefix}; {k} reported this "
-                             f"outcome with an extractable number and were pooled; the remaining "
+                             f"outcome with an extractable number and {_e(_pooled)}; the remaining "
                              f"{_identity_mod.count_phrase(absent_counts, count_noun)} are listed as declared-absent in Results (they were "
                              f"included but reported no poolable value for this outcome).")
                 else:
                     if scoped:
                         recon = _scope_identity_mod.qualification_text(scope_identity, inc_counts["trials"])
                     elif has_units:
-                        recon = (f"all {_identity_mod.count_phrase(inc_counts, count_noun)} reported this outcome and were "
-                                 f"pooled (screening count = k).")
+                        recon = (f"all {_identity_mod.count_phrase(inc_counts, count_noun)} reported this outcome and "
+                                 f"{_e(_pooled)} (screening count = k).")
                     else:
                         label = "trial" if inc_counts["trials"] == 1 else "trials"
-                        recon = (f"all {inc_counts['trials']} screened-in {label} reported this outcome and were "
-                                 f"pooled (screening count = k).")
+                        recon = (f"all {inc_counts['trials']} screened-in {label} reported this outcome and "
+                                 f"{_e(_pooled)} (screening count = k).")
             dc = prim.get("design_consumption") or res.get("design_consumption") or {}
             rows = [
                 ("Outcome", prim.get("name")),
@@ -1427,7 +1437,7 @@ def _trial_inputs(o):
         if vst == "verified":
             src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified against source</span><br>" + _e(t.get("source"))
         elif vst == "verified_handchecked":
-            src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified (AACT-derived, cross-checked)</span><br>" + _e(t.get("source"))
+            src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified (hand-checked against the held source; basis on hover)</span><br>" + _e(t.get("source"))
         elif vst == "not-yet":
             src = "<span class='vno' title='" + _e(t.get("verify_basis", "")) + "'>⚠ NOT YET verified against source</span><br>" + _e(t.get("source"))
         else:
@@ -1811,7 +1821,7 @@ def _outcome_block(o, show_inputs=True, review=None):
         ])
         body += _kv([(k, v) for k, v in rows if v is not None])
         if o.get("primary"):
-            body += _known_missing_sensitivity_panel(o)
+            body += _known_missing_sensitivity_panel(o, heading_level=5)   # inside an outcome block (h4), A1
         # COMPATIBILITY KEY: the explicit contract that lets these trials be pooled -- the six
         # dimensions they must share. Rendered so a reader can see the pool is not a mix of
         # different quantities; the randomised-contrast fraction discloses how many are parser-
@@ -1934,8 +1944,13 @@ def _outcome_block(o, show_inputs=True, review=None):
                                                            "trial family")
                 if unitized else f"{n_abs} further screened-in trial(s)"
             )
-            body += (f"<p class='note'>k = {_k_display(o)}: the {n_pool} trial(s) named below were "
-                     f"pooled; {absent_display} had no poolable value for this "
+            _st = _review_tabs.outcome_state(o)
+            _lead = (f"the {n_pool} trial(s) named below were pooled" if _st.startswith(("pooled", "pooled point"))
+                     else f"the trial named below supplies the estimate (single trial, not pooled)"
+                     if _st.startswith("single-trial")
+                     else f"the {n_pool} trial(s) named below have extracted values, but no pooled estimate is served "
+                          f"({_st})")
+            body += (f"<p class='note'>k = {_k_display(o)}: {_e(_lead)}; {absent_display} had no poolable value for this "
                      f"outcome and are listed below with an explicit <em>absence/refusal state</em>. These "
                      f"typed states distinguish source silence from effect-present estimand mismatches, "
                      f"uncorroborated counts, multi-arm/timepoint/population mismatches, missing cached "
@@ -2333,16 +2348,12 @@ def _reproduction(r, neutral):
     # RESULT CHANGED (docs/result_changes.json): a served pooled result that moved is stated with the previous
     # number, the new one, the rows that left or entered, and why; a reversal of significance is a withdrawal of
     # the previous conclusion and is named as such. A page never re-renders a changed number quietly.
-    for _n in rep.get("result_changes") or []:
-        # a notice the signer WITHDREW, or one SUPERSEDED by a later signed notice, stays on the record with its
-        # signature -- marked NOT APPLIED by a banner OUTSIDE the signed block (the block's bytes, which the signature
-        # hashes, never change)
-        _st = result_changes_status(_n)
-        if _st:
-            body += ("<p class='absent' data-result-change-status='" + _e(_st["state"]) + "'><strong>NOT APPLIED -- "
-                     + _e(_st["text"]) + "</strong> The notice below is kept as signed, for the record; the served "
-                     "result does not include it.</p>")
-        body += result_change_block(_n)
+    # RESULT CHANGED notices (docs/result_changes.json) are rendered in the "Changes & signatures" tab
+    # (harness/review_tabs.changes_tab), byte-identical to the signed blocks; here only the count and the pointer.
+    if _rc_list := (rep.get("result_changes") or []):
+        body += (f"<p class='note' id='result-changes-pointer'>{len(_rc_list)} result-change notice(s) with their "
+                 "countersignatures: see the <a href='#tab-changes' onclick=\"show('changes',1);return false\">Changes &amp; "
+                 "signatures</a> tab.</p>")
     # PARITY vs the published comparator (measurement snapshot, outside the core hash): our pooled k
     # vs the COMPARABLE same-scope comparator k, with a named reason for any difference — including
     # where the comparator's extra trials are out-of-scope, double-counted substudies, observational,
@@ -2943,10 +2954,42 @@ def _manuscript(r, neutral):
     return _manuscript_mod.render(r, neutral)
 
 
-_R = {"overview": _overview, "protocol": _protocol, "search": _search,
-      "screening": _screening, "outcomes": _outcomes, "harms": _harms, "riskofbias": _riskofbias,
+def _with(base, extra):
+    """A legacy tab renderer plus its rapidmeta-v1 additions (never on a neutral page)."""
+    return lambda r, neutral: base(r, neutral) + ("" if neutral else extra(r))
+
+
+def _search_tab(r, neutral):
+    out = _search(r, neutral)
+    if neutral:
+        return out
+    # the PRISMA flow is rendered ONCE, in Screening (the family-based flow; the report-based table there is kept as the
+    # superseded record) -- here the identification counts and a link to it, never a second copy of a superseded table
+    n_ident = (r.get("search") or {}).get("n_records")
+    return (out + _review_tabs.search_additions(r)
+            + "<h4 id='search-prisma'>PRISMA 2020 flow</h4><p>Records identified by this search: <strong>"
+            + _e(n_ident) + "</strong>. The full flow -- identified, screened, excluded by rule, eligible, included -- counted "
+            "by trial family, is in the <a href='#tab-screening' onclick=\"show('screening',1);return false\">Screening tab</a>.</p>")
+
+
+def _overview_tab(r, neutral):
+    return ("" if neutral else _review_tabs.status_banner(r.get("slug") or "")) + _overview(r, neutral)
+
+
+def _reproduction_tab(r, neutral):
+    return _reproduction(r, neutral) + ("" if neutral else _review_tabs.reproduce_additions(r))
+
+
+_R = {"overview": _overview_tab, "protocol": _with(_protocol, _review_tabs.protocol_additions), "search": _search_tab,
+      "screening": _screening, "included": lambda r, n: _review_tabs.included_tab(r),
+      "extraction": lambda r, n: _review_tabs.extraction_tab(r),
+      "riskofbias": _with(_riskofbias, lambda r: _review_tabs.d11_status()),
+      "analysis": lambda r, n: _review_tabs.analysis_tab(r),
+      "outcomes": _with(_outcomes, _review_tabs.conclusions), "harms": _harms,
       "manuscript": _manuscript,
-      "comparator": _comparator, "reproduction": _reproduction, "reporting": _reporting}
+      "comparator": _with(_comparator, _review_tabs.comparator_additions),
+      "changes": lambda r, n: _review_tabs.changes_tab(r),
+      "reproduction": _reproduction_tab, "reporting": _reporting}
 
 _CSS = """
 *{box-sizing:border-box}body{font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif;margin:0;color:#12232e;background:#f7f8fa}
@@ -2974,12 +3017,25 @@ table.recs th,table.recs td,table.arms th,table.arms td{border:1px solid #dbe3e8
 .note{color:#4a5b66;font-size:12.5px;margin:6px 0;font-style:italic}
 .q{font-size:16px;color:#2a4b5c}pre{background:#0f1c24;color:#d6e6f2;padding:10px;overflow:auto;border-radius:6px;font-size:12px;white-space:pre-wrap}
 h2{margin-top:0}h4{margin:16px 0 4px}
+.tab-reason{background:#f3f5f7;border-left:4px solid #5b6b75;padding:8px 12px;margin:10px 0;color:#2b3a44;font-size:13px}
+.topic-status{padding:8px 12px;margin:0 0 12px;border-radius:6px;font-size:13.5px}
+.topic-status.active{background:#eaf6ee;border:1px solid #8cc7a0;color:#1b4d2c}
+.topic-status.abandoned{background:#fdecea;border:1px solid #e3a49c;color:#7a1f14}
+blockquote.span{margin:4px 0;padding:4px 8px;border-left:3px solid #9fb3c8;background:#f7f9fb;font-size:12.5px}
+code.digest{display:block;font-size:11px;color:#3d4f5a;overflow-wrap:anywhere}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+nav button:focus-visible,.tab:focus-visible{outline:3px solid #ffbf47;outline-offset:2px}
 """
 _JS = """document.documentElement.className='js';
 function show(id,byClick){document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.id==='tab-'+id)});
-document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('active',b.dataset.t===id)});
+document.querySelectorAll('nav button').forEach(function(b){var on=b.dataset.t===id;b.classList.toggle('active',on);b.setAttribute('aria-selected',on?'true':'false');b.tabIndex=on?0:-1;});
 if(byClick){var n=document.querySelector('nav');if(n)window.scrollTo(0,n.getBoundingClientRect().top+window.pageYOffset);}}
-(function(){var f=document.querySelector('nav button');if(f)show(f.dataset.t);})();"""
+(function(){var n=document.querySelector('nav');if(!n)return;n.setAttribute('role','tablist');n.setAttribute('aria-labelledby','sections-heading');
+var bs=Array.prototype.slice.call(n.querySelectorAll('button'));
+bs.forEach(function(b,i){b.setAttribute('role','tab');b.id='tabbtn-'+b.dataset.t;b.setAttribute('aria-controls','tab-'+b.dataset.t);
+b.addEventListener('keydown',function(e){var j=null;if(e.key==='ArrowRight')j=(i+1)%bs.length;else if(e.key==='ArrowLeft')j=(i-1+bs.length)%bs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=bs.length-1;if(j!==null){e.preventDefault();bs[j].focus();show(bs[j].dataset.t);}});});
+document.querySelectorAll('.tab').forEach(function(t){t.setAttribute('role','tabpanel');t.setAttribute('aria-labelledby','tabbtn-'+t.id.slice(4));t.tabIndex=0;});
+function go(first){var h=(location.hash.match(/^#tab-([a-z]+)$/)||[])[1],el=null;if(!h&&location.hash.length>1){el=document.getElementById(decodeURIComponent(location.hash.slice(1)));var p=el&&el.closest('.tab');if(p)h=p.id.slice(4);}if(!(h&&document.getElementById('tab-'+h))){if(!first)return;h=bs.length?bs[0].dataset.t:null;}if(h)show(h);if(el){el.scrollIntoView();window.setTimeout(function(){el.scrollIntoView();},0);}}go(true);window.addEventListener('hashchange',function(){go(false);});window.addEventListener('load',function(){if(location.hash.length>1&&!/^#tab-/.test(location.hash))go(false);});})();"""
 
 
 
@@ -3224,6 +3280,7 @@ def render_page(review: dict, neutral: bool = False) -> str:
                 "a different version of this page.</div>")
     return ("<!doctype html><html lang=en><head><meta charset=utf-8>"
             "<meta name=viewport content='width=device-width,initial-scale=1'>"
-            f"<title>{title}</title><style>{_CSS}</style></head><body>"
+            f"<title>{title}</title><meta name='tab-contract' content='{_review_tabs.TAB_CONTRACT}'><style>{_CSS}</style></head><body>"
             f"<header><h1>{title}</h1><div class=sub>{sub}</div>{_pin}</header>"
-            f"{verify_line}<nav>{nav}</nav><main>{body}</main><script>{_JS}</script></body></html>")
+            f"{verify_line}<h2 class='sr-only' id='sections-heading'>Review sections</h2><nav>{nav}</nav><main>{body}</main>"
+            f"<script>{_JS}</script></body></html>")

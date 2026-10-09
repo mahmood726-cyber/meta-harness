@@ -78,7 +78,7 @@ def test_conclusion_change_is_named():
 
 def test_PLANT_page_renders_the_notice_and_names_the_withdrawn_conclusion():
     r = dict(NEW, reproduction={"from_cache": True, "result_changes": [dict(GOOD, conclusion_changed=result_changes.conclusion_changed(BEFORE, AFTER, "MD"))]})
-    html = page._reproduction(r, False)
+    html = page._review_tabs.changes_tab(r)   # notices moved to the Changes & signatures tab (rapidmeta-v1), bytes unchanged
     assert "Result changed" in html and "-3.34" in html and "-3.1" in html and "NCT02417064" in html
     assert "withdrawn" in html.lower() and "includes the null" in html
 
@@ -231,6 +231,7 @@ def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
     IS_WRONG = "was the WRONG QUANTITY for this outcome, and is asserted wrong"
     ENTERED = "Entering trials are new evidence, not a correction"
     LIFTED = "a new claim on the page, not a correction of a served number"
+    PRINTED = "a value printed for the same analysis replaces a re-expressed one"
     notices = result_changes.load()
     for n in notices:
         where = (n["slug"], n["outcome"])
@@ -258,6 +259,14 @@ def test_PLANT_every_committed_notice_states_which_claim_it_is_making():
             assert IS_WRONG not in reason or substituted, (where, "new evidence must not assert the old number wrong")
             for tid in n["entered_pool"]:
                 assert f"{tid} entered the pool contributing" in reason, (where, tid)
+        elif PRINTED in reason:
+            # A PRINTED VALUE REPLACES A RE-EXPRESSED ONE (V12-01, ENGAGE, 9 Oct): the served number was a re-expression
+            # (a CI converted from another printed level) that D7 does not admit; it is replaced by the value PRINTED for
+            # the same analysis. The old number is not the wrong quantity (asserting that would be false) -- it was
+            # inadmissible. Its claim is the replacement, and it must name D7 and must not assert the old number wrong.
+            assert IS_WRONG not in reason, (where, "a printed replacement must not assert the old number wrong")
+            assert "D7" in reason, (where, "a printed replacement must name the rule that made the old number inadmissible")
+            assert not (n.get("left_pool") or n.get("entered_pool")), (where, "a printed replacement moves no trial")
         elif "was withheld on the served page" in reason:
             # A LIFTED SUPPRESSION (omega3 AF, 2026-10-01): the estimate existed and was withheld; serving it is a new
             # claim, and asserts nothing about any served number.
@@ -461,3 +470,19 @@ def test_PLANT_asserted_wrong_in_any_case_refuses():
                reason="eligible evidence awaiting adjudication; the numbers are not asserted wrong; denominators ASSERTED WRONG.")
     back = _n("2026-10-06T00:00:00Z", entered=["T1"])
     assert notice_kinds.reversed_setasides(back, [aside, back], declared={"T1": "2026-09-20T00:00:00Z"}) is None
+
+
+def test_PLANT_a_printed_replacement_cannot_assert_the_old_number_wrong_or_skip_D7(monkeypatch):
+    """The printed-replacement kind (V12-01): planted notices that assert the old number wrong, or omit D7, must fail."""
+    import pytest
+    base = {"slug": "s", "outcome": "o", "left_pool": [], "entered_pool": [], "before": {"estimate": 1.0},
+            "after": {"estimate": 1.0}}
+    ok = dict(base, reason="PRINTED CI: a value printed for the same analysis replaces a re-expressed one (D7).")
+    bad_wrong = dict(base, reason=ok["reason"] + " It was the WRONG QUANTITY for this outcome, and is asserted wrong.")
+    bad_no_d7 = dict(base, reason="PRINTED CI: a value printed for the same analysis replaces a re-expressed one.")
+    monkeypatch.setattr(result_changes, "load", lambda *a, **k: [ok])
+    test_PLANT_every_committed_notice_states_which_claim_it_is_making()
+    for bad in (bad_wrong, bad_no_d7):
+        monkeypatch.setattr(result_changes, "load", lambda *a, _b=bad, **k: [_b])
+        with pytest.raises(AssertionError):
+            test_PLANT_every_committed_notice_states_which_claim_it_is_making()
