@@ -69,3 +69,24 @@ def test_PLANT_an_unsigned_supersession_never_excuses_a_disagreement(monkeypatch
         (ext / "superseded.json").write_text(_json.dumps({"superseded": [bad]}), encoding="utf-8")
         rows, bad_n = vea.run()
         assert any(r["check"] == "doac primary estimate" and r["verdict"] == "FAIL" for r in rows), bad
+
+
+def test_PLANT_a_script_run_supersession_must_pin_served_values_and_the_expected_failure(monkeypatch, tmp_path):
+    """codex ext-audit-r2 P0: a signed item alone excused any later failure of the script and skipped every comparison."""
+    import json as _json
+    import shutil
+    ext = tmp_path / "external"
+    shutil.copytree(vea.EXT, ext)
+    p = ext / "review05_recalculation.py"
+    body = p.read_bytes().replace(b"assert abs(primary[\"estimate\"] - 0.9091)", b"assert abs(primary[\"estimate\"] - 0.5)")
+    p.write_bytes(body)
+    sums = (ext / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
+    import hashlib
+    sums = [(hashlib.sha256(body).hexdigest() + " *review05_recalculation.py") if l.endswith("review05_recalculation.py") else l for l in sums]
+    (ext / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
+    monkeypatch.setattr(vea, "EXT", str(ext))
+    monkeypatch.setattr(vea, "_signed_items", lambda: {"V13-01"})
+    (ext / "superseded.json").write_text(_json.dumps({"superseded": [
+        {"check": "review05_recalculation.py run", "signed_item": "V13-01"}]}), encoding="utf-8")
+    rows, bad = vea.run()
+    assert any(r["check"] == "review05_recalculation.py run" and r["verdict"] == "FAIL" for r in rows)

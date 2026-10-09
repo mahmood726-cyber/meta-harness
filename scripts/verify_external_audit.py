@@ -130,7 +130,17 @@ def run():
             if p.returncode != 0:
                 key = f"{script} run"
                 ent = superseded.get(key)
-                v = "SUPERSEDED" if (ent and ent.get("signed_item") in signed) else "FAIL"
+                # codex ext-audit-r2 P0: a script failing its own assertion after a SIGNED served change is excused only
+                # when the entry (a) names a SEEN_AND_SIGNED item, (b) names the expected failure text, found in this
+                # run's output, and (c) pins the served value of EVERY comparison this script makes, all still current.
+                pins = (ent or {}).get("served") if isinstance((ent or {}).get("served"), dict) else {}
+                expect = (ent or {}).get("failure_contains")
+                v = "FAIL"
+                if (ent and ent.get("signed_item") in signed and expect and expect in (p.stderr + p.stdout)
+                        and compares and all(_valid_supersession({"signed_item": ent["signed_item"], "served": pins.get(lbl)},
+                                                                 _served(sl, oc).get(fd), signed)
+                                             for lbl, sl, oc, fd, _ in compares)):
+                    v = "SUPERSEDED"
                 rows.append({"check": key, "verdict": v,
                              "detail": (f"superseded by {ent['signed_item']}" if v == "SUPERSEDED" else "")
                              + (p.stderr or p.stdout)[-600:]})

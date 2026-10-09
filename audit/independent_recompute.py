@@ -33,18 +33,26 @@ TOL = 1.5e-4
 
 
 def _is_md(scale):
-    s = str(scale or "").upper()
-    return s.startswith("MD") or s.startswith("SMD") or "MEAN DIFFERENCE" in s
+    s = str(scale or "").upper().strip()
+    return s == "MD" or s.startswith("MD ") or s.startswith("MD(") or s == "MEAN DIFFERENCE"
 
 
 RATIO = {"RR", "OR", "HR", "IRR"}
+# Which explicit row measures may sit inside an outcome of a given served scale. RR and HR share the first-event ratio class
+# (the source hierarchy serves a published HR beside a counts RR); an OR, an IRR or an MD row must match exactly.
+COMPATIBLE = {"RR": {"RR", "HR"}, "HR": {"RR", "HR"}, "OR": {"OR"}, "IRR": {"IRR"}, "MD": {"MD"}}
 
 
 def _supported(scale):
-    """Only the measures the declared method names: log ratios (RR/OR/HR/IRR) and mean differences. Anything else (a risk
-    difference, an unlabelled scale) is NOT_RECOMPUTABLE -- never read as a ratio (codex ext-audit-r1 P0)."""
+    """Only the measures the declared method names and this check rebuilds: log ratios (RR/OR/HR/IRR) and the RAW mean
+    difference. A standardised mean difference, a risk difference or an unlabelled scale is NOT_RECOMPUTABLE -- never read
+    as a ratio or as a raw MD (codex ext-audit-r1/r2 P0)."""
     s = str(scale or "").upper().strip()
     return _is_md(s) or s in RATIO
+
+
+def _scale_class(scale):
+    return "MD" if _is_md(scale) else str(scale or "").upper().strip()
 
 
 def _finite(*xs):
@@ -133,6 +141,11 @@ def recompute_outcome(o):
         return {"state": "DISAGREE", "why": f"declared single-trial method but {len(trials)} trial tuples served"}
     if not single and ("Paule-Mandel" not in method or "HKSJ" not in method):
         return {"state": "NOT_RECOMPUTABLE", "why": "declared method is neither PM + HKSJ nor single-trial: " + method[:80]}
+    allowed = COMPATIBLE.get(_scale_class(scale), set())
+    for t in trials:
+        m = t.get("measure") or t.get("scale")
+        if m and _scale_class(m) not in allowed:
+            return {"state": "DISAGREE", "why": f"a trial row on {m} sits in an outcome served as {scale} (incompatible measures)"}
     try:
         yv = [study_y_v(t, scale) for t in trials]
     except ValueError as exc:
@@ -149,6 +162,8 @@ def recompute_outcome(o):
         t0 = trials[0]
         est, cl, ch = t0["effect"], t0["ci_low"], t0["ci_high"]
     compared = {"estimate": (est, res.get("estimate"))}
+    if (res.get("ci_low") is None) != (res.get("ci_high") is None):
+        return {"state": "DISAGREE", "why": "the served interval has one bound only (withholding needs both absent)"}
     if res.get("ci_low") is not None and res.get("ci_high") is not None:
         compared["ci_low"] = (cl, res["ci_low"])
         compared["ci_high"] = (ch, res["ci_high"])

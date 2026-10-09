@@ -62,3 +62,16 @@ def test_PLANT_not_recomputable_fails_the_gate(monkeypatch):
     o = {"method": "Paule-Mandel HKSJ", "trials": [], "result": {"scale": "RR", "estimate": 999}}
     monkeypatch.setattr(irc, "run", lambda root=None: [dict(slug="s", outcome="o", **irc.recompute_outcome(o))])
     assert irc.main([]) == 1
+
+
+def test_PLANT_codex_r2_measure_mismatch_smd_and_partial_ci_never_agree():
+    """codex ext-audit-r2: an OR row under an RR outcome; SMD read as a raw MD; a k=2 interval with one bound served."""
+    row = {"ai": 20, "n1i": 100, "ci": 10, "n2i": 100, "measure": "OR"}
+    assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [row, row],
+                                  "result": {"scale": "RR", "estimate": 2.25}})["state"] != "AGREE"
+    md = {"mean1": 2, "mean2": 0, "sd1": 10, "sd2": 10, "nc1": 100, "nc2": 100}
+    assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [md, md],
+                                  "result": {"scale": "SMD", "estimate": 2.0}})["state"] != "AGREE"
+    eff = {"effect": 1.0, "ci_low": 0.5, "ci_high": 2.0}
+    assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [eff, eff],
+                                  "result": {"scale": "RR", "estimate": 1.0, "ci_low": 999.0, "ci_high": None}})["state"] == "DISAGREE"

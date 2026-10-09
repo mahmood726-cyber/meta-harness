@@ -6415,5 +6415,73 @@
     "verdict": null
    }
   ]
+ },
+ "ext-audit-r2": {
+  "base": "2be4df9a51511d97727a1989b9ecce328159e624",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3b3aa993559ab32cd9c0e623707afb5c",
+    "state": "RAN_OK",
+    "files": [
+     "audit/independent_recompute.py",
+     "scripts/pr_codex_review.py",
+     "scripts/verify_all.py",
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "36bfc4c0e2a47441525318fde3caef49aaf44fe51850fb34016af5389431b3f1"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v / recompute_outcome",
+    "severity": "P0",
+    "claim": "A row's measure controls its calculation, but the outcome's scale controls the result label. Consequently, an odds ratio can be certified as a risk ratio without detecting the incompatible scales.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'ai': 20, 'n1i': 100, 'ci': 10, 'n2i': 100, 'measure': 'OR'}\nprint(recompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [row, row], 'result': {'scale': 'RR', 'estimate': 2.25}}))",
+    "expected": "Reject the incompatible measures or recompute RR = 2.0 and report DISAGREE with the served 2.25.",
+    "actual": "Returns state='AGREE', scale='RR', compared={'estimate': (2.25, 2.25)}, mismatch={}. The accepted number is an odds ratio.",
+    "id": "ext-audit-r2:g1#1",
+    "record_id": "mc-3b3aa993559ab32cd9c0e623707afb5c",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v",
+    "severity": "P0",
+    "claim": "SMD is explicitly accepted as supported, but arm means are converted to an unstandardized mean difference and its variance. This certifies a raw difference as a standardized effect.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'mean1': 2, 'mean2': 0, 'sd1': 10, 'sd2': 10, 'nc1': 100, 'nc2': 100}\nprint(recompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [row, row], 'result': {'scale': 'SMD', 'estimate': 2.0}}))",
+    "expected": "Reject the unsupported SMD reconstruction or report DISAGREE. The uncorrected standardized difference is 0.2; a small-sample correction does not make it 2.0.",
+    "actual": "Returns state='AGREE', scale='SMD', compared={'estimate': (2.0, 2.0)}, mismatch={}. Each study uses the raw difference 2 and variance 2.",
+    "id": "ext-audit-r2:g1#2",
+    "record_id": "mc-3b3aa993559ab32cd9c0e623707afb5c",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "recompute_outcome",
+    "severity": "P0",
+    "claim": "At k=2, a partially populated confidence interval is treated as withheld. A supplied erroneous endpoint is silently excluded from comparison.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'effect': 1.0, 'ci_low': 0.5, 'ci_high': 2.0}\nprint(recompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [row, row], 'result': {'scale': 'RR', 'estimate': 1.0, 'ci_low': 999.0, 'ci_high': None}}))",
+    "expected": "Return DISAGREE for the malformed served interval. Withholding an interval requires both endpoints to be absent.",
+    "actual": "Returns state='AGREE', compared={'estimate': (1.0, 1.0)}, mismatch={}; the served lower bound 999.0 is never checked.",
+    "id": "ext-audit-r2:g1#3",
+    "record_id": "mc-3b3aa993559ab32cd9c0e623707afb5c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/verify_external_audit.py",
+    "function": "run",
+    "severity": "P0",
+    "claim": "A script-level supersession excuses every subsequent nonzero exit solely by signed-item membership. Unlike numeric supersessions, it pins no served value, and the following continue skips all served comparisons. A new failure therefore passes even when current served values have drifted.",
+    "failing_input": "import io, json\nfrom types import SimpleNamespace\nfrom unittest.mock import patch\nimport scripts.verify_external_audit as m\npayload = b'pass\\n'\nhandles = [io.StringIO(m.hashlib.sha256(payload).hexdigest() + '  auditor.py\\n'), io.StringIO(json.dumps({'superseded': [{'check': 'auditor.py run', 'signed_item': 'S'}]})), io.BytesIO(payload)]\nchecks = [('auditor.py', [], None, [('estimate', 'example', None, 'estimate', ('estimate',))])]\nwith patch.object(m, 'CHECKS', checks), patch.object(m, '_signed_items', return_value={'S'}), patch.object(m.os.path, 'exists', return_value=True), patch('builtins.open', side_effect=handles), patch.object(m.tempfile, 'TemporaryDirectory') as td, patch.object(m.subprocess, 'run', return_value=SimpleNamespace(returncode=1, stderr='new failure', stdout='')), patch.object(m, '_served', return_value={'estimate': 999.0}) as served:\n    td.return_value.__enter__.return_value = 'unused'\n    rows, bad = m.run()\n    print(rows, bad, served.call_count)",
+    "expected": "The unexplained new execution failure must produce FAIL and a nonzero failure count; an old supersession without any pinned current value cannot verify the current results.",
+    "actual": "Returns one SUPERSEDED row with detail='superseded by Snew failure', bad=0, and served.call_count=0. main consequently treats this run as successful.",
+    "id": "ext-audit-r2:g1#4",
+    "record_id": "mc-3b3aa993559ab32cd9c0e623707afb5c",
+    "verdict": null
+   }
+  ]
  }
 }
