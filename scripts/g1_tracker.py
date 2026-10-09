@@ -3177,8 +3177,30 @@ def name_reference_seeds_outside_membership(slug, comp, trials, T):
         x["blocker"] = None
 
 
-_STATED_K = re.compile(r"\b(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:phase\s*(?:3|III)\s+|"
-                       r"randomi[sz]ed\s+(?:controlled\s+)?|placebo-controlled\s+|eligible\s+)*(?:clinical\s+)?trials\b", re.I)
+# R5-2 (9 Oct): 'Phase 3' is a phase, never a count -- Makam's 'data from Phase 3 randomized trials' was read as k = 3.
+# The number must not follow 'phase' (as _KTRIALS already required); 'studies' and 'RCTs' count as trials too.
+_STATED_K = re.compile(r"(?<!phase )(?<!phase)\b(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
+                       r"(?:phase\s*(?:3|III)\s+|randomi[sz]ed\s+(?:controlled\s+)?|placebo-controlled\s+|eligible\s+)*"
+                       r"(?:clinical\s+)?(?:trials|studies|RCTs)\b", re.I)
+
+
+_SCREENING = re.compile(r"\b(?:screened|identified|retrieved|assessed|excluded|records?|searched|potentially|"
+                        r"full[- ]text|reviewed for eligibility)\b", re.I)
+
+
+def stated_k_from_text(t):
+    """(k, matched text) for the FIRST stated INCLUDED trial count in a comparator abstract, else (None, None). A count
+    in a screening / identification clause ('Of 20 studies screened', '312 studies identified', '48 studies were
+    assessed') is skipped -- it is the search funnel, never the pooled set (codex r5-2-stated-k-r1 #1)."""
+    t = t or ""
+    for m in _STATED_K.finditer(t):
+        after = re.split(r"[,;.]", t[m.end():], maxsplit=1)[0][:80]
+        before = re.split(r"[,;.]", t[:m.start()])[-1][-80:]          # the same clause, either side of the count
+        if _SCREENING.search(after) or _SCREENING.search(before):
+            continue
+        w = m.group(1).lower()
+        return (int(w) if w.isdigit() else _NUMW[w]), m.group(0)
+    return None, None
 
 
 def comparator_stated_k(comp):
@@ -3192,11 +3214,10 @@ def comparator_stated_k(comp):
         x = open(fp, encoding="utf-8", errors="replace").read()
         ab = " ".join(re.findall(r"<(?:Abstract|abstract)[^>]*>.*?</(?:Abstract|abstract)>", x, re.S))
         t = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", ab)))
-        m = _STATED_K.search(t)
-        if m:
-            w = m.group(1).lower()
-            return (int(w) if w.isdigit() else _NUMW[w]), {"field": "comparator abstract", "text": m.group(0),
-                                                           "source": os.path.relpath(fp, ROOT).replace(os.sep, "/")}
+        k, txt = stated_k_from_text(t)
+        if k is not None:
+            return k, {"field": "comparator abstract", "text": txt,
+                       "source": os.path.relpath(fp, ROOT).replace(os.sep, "/")}
     return None, None
 
 
@@ -3928,7 +3949,9 @@ def topic(slug, T):
                                                                                      "SAME_CONCLUSION_DIFFERENT")):
         out["same_trials"]["attribution"] = verdict_attribution(pairs, method, trials)
     sk, sspan = comparator_stated_k(comp)
-    out["comparator_stated_k"] = {"k": sk, "span": sspan}
+    # validated against the comparator's ENUMERATED set: a stated k that differs is shown as such, never silently used
+    out["comparator_stated_k"] = {"k": sk, "span": sspan, "enumerated": out["N_comparator_trials"],
+                                  "agrees_with_enumerated": (sk == out["N_comparator_trials"]) if sk is not None else None}
     if sk is not None and sk > out["N_comparator_trials"]:
         # the comparator's own abstract states MORE trials than its enumerated list holds. Either our enumeration missed
         # a trial (dpp4: '6 trials'; CAROLINA is in its references, absent from ours) or the comparator's count is wrong
