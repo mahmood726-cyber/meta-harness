@@ -545,7 +545,17 @@ def reproduce_additions(r: dict) -> str:
            f"python scripts/reproduce_review.py {_e(slug)}</pre>"
            "<p>The replay rebuilds this review from the committed protocol and cache, offline, and compares every "
            "digest in <a href='CERTIFICATE.json'>CERTIFICATE.json</a> and the served page bytes. The certificate's "
-           "digests are listed in the Verify this page tab.</p>"]
+           "digests are listed in the Verify this page tab.</p>"
+           "<h4 id='zip-replay'>From a downloaded zip (no git)</h4>"
+           f"<p>The repository zip (<a href='{REPO_URL}/archive/refs/heads/main.zip'>main.zip</a>) has no git history, "
+           "so <code>reproduce_review.py</code> stops with &ldquo;not a git repository&rdquo;. Unpack it and run the "
+           "offline replay instead:</p>"
+           "<pre>cd meta-harness-main\n"
+           "python -m pip install --require-hashes -r docs/offline/requirements.lock\n"
+           f"python scripts/replay_offline.py {_e(slug)}</pre>"
+           "<p>It runs the same replay with networking denied, reading each held document from the unpacked files and "
+           "checking its sha256 against the certificate instead of asking git "
+           f"(<a href='{REPO_URL}/blob/main/docs/offline/REPLAY.md'>docs/offline/REPLAY.md</a>).</p>"]
     if (ROOT / "docs" / "reviews" / slug / "BUNDLE.json").is_file():
         out.append("<h4 id='bundle'>Evidence bundle</h4><p><a href='BUNDLE.json'>BUNDLE.json</a> (verification API: "
                    "per pooled row the source, span, endpoint, effect, decision and admission objects; check it with "
@@ -556,7 +566,7 @@ def reproduce_additions(r: dict) -> str:
             f"no evidence bundle has been built for this topic: <code>docs/acquisitions/{_e(slug)}/</code> holds no "
             "PubMed acquisition objects, and scripts/build_bundle.py refuses to build without them. Everything the "
             f"replay reads is in the public repository: <a href='{REPO_URL}/archive/refs/heads/main.zip'>download the "
-            "repository</a> (or clone it) and run the command above."))
+            "repository</a> and run the zip replay above, or clone it and run the one-command replay."))
     return "".join(out)
 
 
