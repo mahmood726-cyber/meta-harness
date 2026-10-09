@@ -87,6 +87,9 @@ def text_sha256(text):
 
 # --------------------------------------------------------------------------------------------- discovery and holding
 
+DISCOVERY_ERRORS = {}          # agent -> [failed openFDA searches] of the latest fda_review_urls(agent) call
+
+
 def fda_review_urls(agent):
     """drugs@FDA documents for an INN: NDA/BLA application_docs typed 'Review' (a TOC page followed to its PDFs) or
     'Label' (section 14, Clinical Studies, prints the pivotal trials' results)."""
@@ -95,10 +98,14 @@ def fda_review_urls(agent):
     # two typed searches: the openFDA generic name, and the application's OWN active ingredient -- some applications
     # carry no openfda block (KERENDIA NDA215341: finerenone was never discovered by the first; R9-4, 9 Oct)
     results, seen = [], set()
+    DISCOVERY_ERRORS.pop(agent, None)
     for q in (f'openfda.generic_name:"{agent}"', f'products.active_ingredients.name:"{agent.upper()}"'):
         try:
             d = http.get_json("https://api.fda.gov/drug/drugsfda.json", {"search": q, "limit": "50"}, tries=2)
-        except Exception:  # noqa: BLE001 - no application for this INN under this search is a result
+        except Exception as exc:  # noqa: BLE001 - openFDA's 404 'No matches found!' is a result; anything else is
+            # a FAILED search, recorded so it is never read as 'no applications' (codex r9-4-label-r1 #7)
+            if "NOT_FOUND" not in str(exc) and "No matches found" not in str(exc) and "404" not in str(exc):
+                DISCOVERY_ERRORS.setdefault(agent, []).append(f"{q}: {type(exc).__name__}: {str(exc)[:160]}")
             continue
         for r in d.get("results", []):
             if r.get("application_number") not in seen:

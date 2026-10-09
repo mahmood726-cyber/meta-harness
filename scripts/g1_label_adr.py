@@ -31,7 +31,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 OUT = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "label_adr.json")
 REACH = 4000
-_CAP = re.compile(r"Table\s+(\d+)\s*[:.]\s*Adverse\s+reactions?\b(.{0,400}?)(?=\n\s*\n|Reference ID|$)", re.I | re.S)
+# the table HEAD only: its caption is cut from the text up to the arm header (codex r9-4-label-r1 #5: a lookahead for a
+# blank line found no table at all when none followed within 400 characters)
+_CAP = re.compile(r"Table\s+(\d+)\s*[:.]\s*Adverse\s+reactions?\b", re.I)
 _CELL = r"(\d{1,3}(?:,\d{3})*|\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%?\s*\)"
 
 
@@ -53,32 +55,58 @@ def _pct_ok(n, N, p):
     return abs(100.0 * n / N - float(p)) <= 0.5 * 10 ** (-dec) + 1e-9
 
 
+_HEADER = re.compile(r"([A-Za-z][A-Za-z \-]{1,40}?)\s*N\s*=\s*([\d,]+)\s*n\s*\(%\)\s*([A-Za-z][A-Za-z \-]{1,40}?)\s*N\s*="
+                     r"\s*([\d,]+)\s*n\s*\(%\)", re.I)
+_NEXT_TABLE = re.compile(r"\bTable\s+\d+\s*[:.]", re.I)
+_TRIAL_SHAPED = re.compile(r"\b[A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]{2,})+\b|\b[A-Z]{4,}\b")
+_NOT_SAFETY = re.compile(r"\brandomi[sz]ed\b|\bintent(?:ion)?[- ]to[- ]treat\b|\bITT\b|\bfull analysis\b", re.I)
+
+
 def tables(text, cfg, names):
     """[(proposal | None, why, context)] for every adverse-reaction table in a label's text. names: {registered
-    acronym (upper case): trial PMID} for the topic's pivotal trials (trial_names)."""
+    acronym (upper case): trial PMID} for the topic's pivotal trials (trial_names).
+    Codex r9-4-label-r1: a table's rows end at the NEXT table (#1); a caption naming any other trial-shaped name refuses
+    the table (#2); a caption / header stating a randomised or ITT set is not the safety contract (#3); the caption ends
+    where the arm header begins, blank line or not (#5); a zero N is a recorded refusal (#6)."""
     agents = [a.lower() for v in (cfg.get("intervention_agents") or {}).values() for a in v] or \
         [a.lower() for a in cfg.get("intervention_terms") or []]
     brand = brand_of(text, agents)
     trt = set(agents) | ({brand} if brand else set())
     ctl = {c.lower() for c in cfg.get("comparator_terms") or []}
-    trials = names
     out = []
-    for m in _CAP.finditer(text):
-        cap = _ws(m.group(0))
-        named = [k for k in trials if re.search(r"(?<![A-Z0-9])" + re.escape(k) + r"(?![A-Z0-9])", cap.upper())]
+    starts = [m.start() for m in _CAP.finditer(text)]
+    for i, st in enumerate(starts):
+        m = _CAP.match(text, st)
+        nxt = _NEXT_TABLE.search(text, m.end())
+        end = min(st + REACH, nxt.start() if nxt else len(text))
+        span = _ws(text[st:end])
+        hm = _HEADER.search(span)
+        # the arm name is the LAST word before 'N =': the lazy group may start inside the caption ('...ALPHA-ONE a|nd
+        # GAMMA-THREE ... Kerendia N =') -- the caption runs up to that word (codex r9-4-label-r1 #2)
+        cut = (hm.start(1) + hm.group(1).rstrip().rfind(" ") + 1) if hm else len(span)
+        cap = _ws(span[:cut])[:600]
         ctx = {"table": m.group(1), "caption": cap}
-        if re.search(r"\bpool", cap, re.I) or len(named) != 1:
-            out.append((None, "NOT_ONE_TRIAL" + (":POOLED" if re.search(r"\bpool", cap, re.I) else f":{named}"), ctx))
+        named = [k for k in names if re.search(r"(?<![A-Z0-9])" + re.escape(k) + r"(?![A-Z0-9])", cap.upper())]
+        others = {t for t in _TRIAL_SHAPED.findall(cap) if t.upper() not in names
+                  and t.lower() not in trt and t.upper() not in ("FDA", "TABLE")}
+        if re.search(r"\bpool", cap, re.I):
+            out.append((None, "NOT_ONE_TRIAL:POOLED", ctx))
             continue
-        win = text[m.end():m.end() + REACH]
-        hm = re.search(r"([A-Za-z][A-Za-z \-]{1,40}?)\s*N\s*=\s*([\d,]+)\s*n\s*\(%\)\s*([A-Za-z][A-Za-z \-]{1,40}?)\s*N\s*="
-                       r"\s*([\d,]+)\s*n\s*\(%\)", _ws(win), re.I)
+        if len(named) != 1 or others:
+            out.append((None, f"NOT_ONE_TRIAL:{named}" + (f"+OTHERS:{sorted(others)}" if others else ""), ctx))
+            continue
         if not hm:
             out.append((None, "NO_ARM_HEADER_WITH_N", ctx))
             continue
+        if _NOT_SAFETY.search(cap) or _NOT_SAFETY.search(hm.group(0)):
+            out.append((None, "POPULATION_NOT_SAFETY", ctx))
+            continue
         a1, n1, a2, n2 = hm.group(1).strip().lower(), int(hm.group(2).replace(",", "")), hm.group(3).strip().lower(), \
             int(hm.group(4).replace(",", ""))
-        last = lambda s: s.split()[-1] if s.split() else s  # noqa: E731 -- 'Adverse reactions Kerendia' -> arm 'kerendia'
+        if n1 <= 0 or n2 <= 0:
+            out.append((None, "INVALID_DENOMINATOR", ctx))
+            continue
+        last = lambda s_: s_.split()[-1] if s_.split() else s_  # noqa: E731 -- 'Adverse reactions Kerendia' -> 'kerendia'
         r1, r2 = last(a1), last(a2)
         if r1 in trt and r2 in ctl:
             orient = "TC"
@@ -87,8 +115,8 @@ def tables(text, cfg, names):
         else:
             out.append((None, f"ARMS_NOT_ORIENTED:{r1}|{r2}", ctx))
             continue
-        ctx.update(trial=named[0], pmid=trials[named[0]], header=hm.group(0), brand=brand)
-        body = _ws(win)[hm.end():]
+        ctx.update(trial=named[0], pmid=names[named[0]], header=hm.group(0), brand=brand)
+        body = span[hm.end():]                       # rows of THIS table only: span ends at the next table
         rows = re.findall(r"([A-Z][A-Za-z ,/\-]{2,60}?)\s+" + _CELL + r"\s+" + _CELL, body)
         out.append(({"rows": rows, "n": (n1, n2), "orient": orient}, None, ctx))
     return out
@@ -151,6 +179,32 @@ def trial_names(slugs, snap=None):
                 if len(acr) >= 4:
                     out[slug][acr] = pm
     return out
+
+
+def hold_labels(slug, cfg, per_agent=12):
+    """Hold a topic's FDA LABELS only (typed discovery by the topic's agents; never a review, never an ANDA), with the
+    same record shape and digest discipline as g1_regulatory_source.hold_topic. Returns the records written."""
+    import g1_regulatory_source as rs
+    import g1_trial_acquire as ga
+    import k_gap_regulatory_probe as rp
+    cur = rs._load(rs.SOURCES)
+    held = []
+    for a in rs.topic_agents(cfg):
+        urls = [u for u in rs.fda_review_urls(a) if "/label/" in u][:per_agent]
+        for u in urls:
+            if not ga.disk_ok():
+                return held
+            if (cur.get(u) or {}).get("state") == "TEXT" and slug in (cur[u].get("topics") or []):
+                continue
+            txt, rec = rp.fetch_text(u)
+            r = {"url": u, "agency": rs.agency_of(u), "licence": rs.licence_from_text(u, txt), "state": rec.get("state"),
+                 "doc_sha256": rec.get("sha256"), "bytes": rec.get("bytes"),
+                 "text_sha256": rs.text_sha256(txt) if txt else None, "text_chars": len(txt or ""),
+                 "topics": sorted(set((cur.get(u) or {}).get("topics") or []) | {slug})}
+            cur[u] = r
+            held.append(r)
+    rs._dump(rs.SOURCES, cur)
+    return held
 
 
 def held_labels(slug):
@@ -224,6 +278,8 @@ def reader_gate(ans, shown):
     if not parts or any(len(x) < 12 or x not in shown for x in parts):
         return "QUOTE_NOT_VERBATIM"
     q = " ".join(parts)
+    # the '(p)' after a count in an 'n (%)' cell is a percentage, integer or not (codex r9-4-label-r1 #4)
+    q = re.sub(r"(?<=\d)\s*\(\s*\d+(?:\.\d+)?\s*%?\s*\)", " ", q)
     toks = {int(m.group(1).replace(",", "")) for m in
             re.finditer(r"(?<![\d.,])(\d{1,3}(?:,\d{3})+(?!\d)|\d+)((?:[.,]\d+)?)(\s*%)?", q)
             if not m.group(2) and not m.group(3)}
@@ -291,6 +347,12 @@ def readers(res, run=False, workers=8):
 def main(argv):
     slugs = sorted(f[:-5] for f in os.listdir(os.path.join(ROOT, "topics")) if f.endswith(".json")) \
         if "--sweep" in argv else [a for a in argv if not a.startswith("--")]
+    if "--hold" in argv:
+        for s in slugs:
+            cfg = json.load(open(os.path.join(ROOT, "topics", f"{s}.json"), encoding="utf-8"))
+            if cfg.get("harm_outcomes"):
+                h = hold_labels(s, cfg)
+                print("HELD", s, len(h), sum(1 for r in h if r["state"] == "TEXT"), flush=True)
     res = run(slugs)
     readers(res, run="--readers" in argv)
     with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
