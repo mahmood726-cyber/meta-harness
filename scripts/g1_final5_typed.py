@@ -226,7 +226,8 @@ def engage_aact():
         t_ = str(o.get("title") or "").lower()
         if "stroke" not in t_ or not ("systemic embol" in t_ or "see" in t_.replace("(", " ").replace(")", " ").split()):
             why.append(f"NOT_STROKE_OR_SEE ({str(o.get('title') or '')[:60]})")      # codex final5-binding-r1b g1#4
-        elif re.search(r"death|mortality|myocardial|bleed|hospitali", t_):
+        elif re.search(r"death|mortality|myocardial|bleed|hospitali",
+                       re.sub(r"\bwith\s+death\s+as\s+a\s+competing\s+risk\b", " ", t_)):   # v12-r1 g1#2
             # a WIDER composite that contains stroke/SEE is another endpoint (captain final5-binding-captain g1#4)
             why.append(f"NOT_STROKE_OR_SEE:WIDER_COMPOSITE ({str(o.get('title') or '')[:60]})")
         if o.get("outcome_type") != "PRIMARY":
@@ -285,7 +286,9 @@ def codex_28d():
                          r"\b(?:died|deaths?|deceased|mortality occurred)\b[^.;]{0,40}?\bin\s+\d+\s+(?:patients|participants)\b|"
                          # ... or 'the number of deaths was 45' (captain final5-binding-captain g1#5); a time ('28 days')
                          # is never a count
-                         r"\b(?:deaths?|died)\s+(?:was|were|totall?ed|numbered|:)\s*\d+\b(?!\s*(?:%|-?\s*days?|weeks?|months?|years?))",
+                         # a decimal ('28.5 days') is never a count (v12-r1 g1#3)
+                         r"\b(?:deaths?|died)\s+(?:was|were|totall?ed|numbered|:)\s*\d+\b(?![.,]\d)"
+                         r"(?!\s*(?:%|-?\s*days?|weeks?|months?|years?))",
                          re.I)
         counts = [s for s in sents if cnt.search(s)]
         routes.append({"route": "held abstract", "outcome": (f"COUNTS_OR_PERCENTS_PRINTED:{counts[:2]}" if counts else

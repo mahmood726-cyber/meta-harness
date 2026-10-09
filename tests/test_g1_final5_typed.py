@@ -126,3 +126,22 @@ def test_PLANT_codex_the_number_of_deaths_was_is_a_candidate(tmp_path, monkeypat
                                                         "50 with usual care.",
                                               {"state": "PUBLISHER_DISALLOWS_XML"}))
     assert T.codex_28d()["result"] == "CANDIDATE"
+
+
+def test_PLANT_engage_death_as_a_competing_risk_is_not_a_component(tmp_path, monkeypatch):
+    # codex final5-binding-v12-r1 g1#2
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    _engage(tmp_path, ["High Dose Edoxaban/Placebo Warfarin", "Warfarin/Placebo Edoxaban"])
+    p = tmp_path / "outputs" / "k_gap" / "g1_binding" / "engage_aact_rows.json"
+    d = json.loads(p.read_text(encoding="utf-8"))
+    d["tables"]["outcomes.txt"][0]["title"] = "Stroke or systemic embolism, with death as a competing risk"
+    p.write_text(json.dumps(d), encoding="utf-8")
+    assert T.engage_aact()["result"] == "FOUND"
+
+
+def test_PLANT_codex_a_decimal_duration_is_not_a_count(tmp_path, monkeypatch):
+    # codex final5-binding-v12-r1 g1#3
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    monkeypatch.setenv("AACT_SNAPSHOT", _held(tmp_path, "Mortality at 28 days was reported; median time to death was "
+                                                        "28.5 days.", {"state": "PUBLISHER_DISALLOWS_XML"}))
+    assert T.codex_28d()["result"] == "NOT_FOUND"

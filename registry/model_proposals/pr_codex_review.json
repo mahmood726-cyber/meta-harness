@@ -7070,5 +7070,61 @@
     "verdict": null
    }
   ]
+ },
+ "final5-binding-v12-r1": {
+  "base": "26b2579d5",
+  "head": "5c0bb13cc",
+  "runs": {
+   "g1": {
+    "record_id": "mc-61453a1c96f4b827b642bedbb1cbbc44",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "0e5bf4c320877a4678684ff4b335a32c34366798fdd17ef0f33d785a26745608"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "_declares_percent_units / verify_k5",
+    "severity": "P1",
+    "claim": "The new table-wide check rejects explicit count-with-percentage captions because it treats any occurrence of 'percentage' as declaring percentage-only values.",
+    "failing_input": "_declares_percent_units('Values are numbers of patients (percentages in parentheses).')",
+    "expected": "False: this caption explicitly describes patient counts accompanied by percentages.",
+    "actual": "True; verify_k5 consequently returns (False, 'K5_TABLE_IS_PERCENTAGES') for this caption, even when the selected cells contain valid counts.",
+    "id": "final5-binding-v12-r1:g1#1",
+    "record_id": "mc-61453a1c96f4b827b642bedbb1cbbc44",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "engage_aact",
+    "severity": "P1",
+    "claim": "The wider-composite check mistakes a competing-risk description for an additional endpoint component.",
+    "failing_input": "Outcome record: {'title': 'Stroke or systemic embolism, with death as a competing risk', 'outcome_type': 'PRIMARY', 'population': 'ITT'}",
+    "expected": "Pass the endpoint-width check: death is described as a competing risk, not part of the stroke/systemic-embolism composite.",
+    "actual": "Appends 'NOT_STROKE_OR_SEE:WIDER_COMPOSITE (stroke or systemic embolism, with death as a competing risk)' to why.",
+    "id": "final5-binding-v12-r1:g1#2",
+    "record_id": "mc-61453a1c96f4b827b642bedbb1cbbc44",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "The added death-count regex accepts the integer prefix of a decimal duration. Its time-unit exclusion does not see past the decimal point.",
+    "failing_input": "Held sentence: 'Median time to death was 28.5 days.' Apply the added regex alternative: re.search(r'\\b(?:deaths?|died)\\s+(?:was|were|totall?ed|numbered|:)\\s*\\d+\\b(?!\\s*(?:%|-?\\s*days?|weeks?|months?|years?))', 'Median time to death was 28.5 days.', re.I).group(0)",
+    "expected": "No count match: 28.5 days is a duration, not a death count or percentage.",
+    "actual": "Matches 'death was 28', causing the sentence to qualify for COUNTS_OR_PERCENTS_PRINTED.",
+    "id": "final5-binding-v12-r1:g1#3",
+    "record_id": "mc-61453a1c96f4b827b642bedbb1cbbc44",
+    "verdict": null
+   }
+  ]
  }
 }

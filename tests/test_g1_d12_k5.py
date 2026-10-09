@@ -267,3 +267,9 @@ def test_PLANT_k5_a_caption_or_header_declaring_percent_units_holds_no_counts(tm
     # a header's '95% CI' is not a unit declaration
     assert D._declares_percent_units("Dexamethasone (n=2104) Usual care (n=4321) RR (95% CI) p") is False
     assert D._declares_percent_units("Deaths, n (%)") is False
+
+
+def test_PLANT_k5_a_caption_naming_counts_and_percentages_is_not_percent_only():
+    # codex final5-binding-v12-r1 g1#1
+    assert D._declares_percent_units("Values are numbers of patients (percentages in parentheses).") is False
+    assert D._declares_percent_units("Table 1. All-cause mortality (%)") is True

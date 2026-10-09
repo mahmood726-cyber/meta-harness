@@ -506,6 +506,8 @@ def _declares_percent_units(text):
     import re
     t = str(text or "")
     t = re.sub(r"\b(?:n|no\.?|number|events?|patients?)\s*\(\s*%\s*\)", " ", t, flags=re.I)
+    if re.search(r"\bnumbers?\s+of\s+(?:patients|participants|subjects|events)\b", t, re.I):
+        return False          # 'numbers of patients (percentages in parentheses)': counts WITH % (v12-r1 g1#1)
     return bool(re.search(r"\(\s*%\s*\)|\bper ?cent(?:ages?)?\b", t, re.I))
 
 
