@@ -125,6 +125,13 @@
    "decided": "2026-10-08",
    "id": "D15-EFFECT-HF_BOUND_ON_THE_FAS",
    "rule": "iv-iron-hfref-hosp, EFFECT-HF: 'in 17 patients (11 patients on FCM and 6 on usual care)' is bound as 11/86 v 6/86 on the full analysis set (86 v 86) for G1 matching; the comparator's 13 v 13 are hospitalisations, not patients."
+  },
+  {
+   "applied_in": "C dispatched 8 Oct to the k-gap and binding lanes (lane_status/DISPATCH_V11_ENGAGE_C_2026-10-08.md); B NOT YET APPLIED (conditional on C finding no printed 95% CI).",
+   "by": "Mahmood",
+   "decided": "2026-10-08",
+   "id": "D16-ENGAGE_CI_C_THEN_B",
+   "rule": "noac-vs-warfarin-af-stroke, ENGAGE AF-TIMI 48 (PMID 24251359, high-dose edoxaban, ITT, stroke or systemic embolism) is served with a 95% CI 0.745-1.016 converted from its printed 97.5% CI 0.73-1.04, against D7. Decision C then B. C: one recorded search pass of D8 open sources (FDA review, label, EMA EPAR, AACT, open copies), regex first then recorded AI, for a PRINTED 95% CI of that estimate; if one is found verbatim in a held span it replaces the converted CI through a before/after served-result notice for Mahmood's signature. B, only if C finds none: a narrow exception to D7 -- a CI printed at another level is admissible in a served pool only when it is multiplicity-adjusted, the SE follows exactly from the printed bounds, and the page states the conversion; the served number is unchanged."
   }
  ],
  "schema": "g1_tracker_canonical_v1",
@@ -767,7 +774,7 @@
     "Methylprednisolone as Adjunctive Therapy for Patients Hospit"
    ],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "ONE_TRIAL_MINORITY_SHARE",
+   "same_trials_verdict": "AGREE",
    "secondary_single": [
     {
      "control": {
@@ -800,7 +807,6 @@
    "top_blocker": "EXTRACTION:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
-    "RESULT_AGREES",
     "DIVERGENCES_NAMED"
    ]
   },
@@ -1290,7 +1296,6 @@
    "N_comparator_trials": 5,
    "N_eligible": 5,
    "blockers": {
-    "EXTRACTION:OUTCOME_NOT_IN_SOURCE": 1,
     "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE": 1
    },
    "comparator_pmid": "39727669",
@@ -1317,29 +1322,6 @@
      "n_t": 305,
      "trial": "FAIR-HF [20]",
      "upper": "1.04"
-    },
-    {
-     "effect": "0.97",
-     "events_c": 13,
-     "events_t": 13,
-     "from": {
-      "digest": "75ce83549017b398f82619ad2c52f730d0907c344452158a5e7dff10a3b28ac3",
-      "location": {
-       "id": "diseases-12-00339-f003",
-       "kind": "figure",
-       "panel": null,
-       "row_label": "van Veldhuisen et al. 2017"
-      },
-      "meta_pmid": "39727669",
-      "read": "MODEL_PROPOSAL_DUAL:mc-0c1c4f448cda373693c4459d8724c26e+mc-bad469684ba6aee08c1e9ef5c42a6085",
-      "row_label": "van Veldhuisen et al. 2017"
-     },
-     "lower": "0.42",
-     "measure": "OR",
-     "n_c": 86,
-     "n_t": 88,
-     "trial": "EFFECT-HF [21]",
-     "upper": "2.24"
     }
    ],
    "coverage_complete": true,
@@ -1370,6 +1352,48 @@
      "ours_source": "single PRIMARY source (2 Oct decision): AACT AACT AACT 2026-08-30 NCT02937454 outcome 258897606; model-read (record mc-7da72a1f84e4ceaa1be1122eb6f96297), gate-verified (g1/finish-line scripts/g1_trial",
      "side": "SECONDARY_WRONG (the comparator's counts ['217', '294'] are the posted 'HF Hospitalisations' measurements in ['Events'], not participants; NCT02937454 outcome 258897602)",
      "trial": "AFFIRM-AHF [10]"
+    },
+    {
+     "comparator_counts": {
+      "events_c": 32,
+      "events_t": 10
+     },
+     "decision": "D14 (V10-04Q)",
+     "kind": "COMPARATOR_COUNTS_ARE_EVENTS",
+     "our_counts": {
+      "events_c": 25,
+      "events_t": 10
+     },
+     "side": "SECONDARY_WRONG (signed: D14 (V10-04Q))",
+     "span": "Hospitalizations due to worsening HF 10 10 (7.6) 32 25 (19.4)",
+     "trial": "CONFIRM-HF [2]"
+    },
+    {
+     "comparator_row": {
+      "effect": "0.97",
+      "events_c": 13,
+      "events_t": 13,
+      "lower": "0.42",
+      "measure": "OR",
+      "n_c": 86,
+      "n_t": 88,
+      "upper": "2.24"
+     },
+     "detail": "DISAGREE",
+     "kind": "OURS_VS_COMPARATOR_ROW",
+     "ours": {
+      "effect": null,
+      "events_c": 6,
+      "events_t": 11,
+      "lower": null,
+      "measure": "RR",
+      "n_c": 86,
+      "n_t": 86,
+      "upper": null
+     },
+     "ours_source": "single PRIMARY source (2 Oct decision): HELD_TEXT_TYPED (D15) PMID 28701470 PMC5642327 (CC BY 4.0), held text cache/iv-iron-hfref-hosp/ft_28701470.txt (text sha256 fa0cdc8754a39145c29880bf2ea1afc1dbc0",
+     "side": "UNRESOLVED",
+     "trial": "EFFECT-HF [21]"
     }
    ],
    "excluded_by_scope": 0,
@@ -1388,24 +1412,23 @@
     "state": "REPRODUCED",
     "where": "figure diseases-12-00339-f003 (g1/forest-reader de51fef34, dual-model)"
    },
-   "k_comparator_sourced": 2,
+   "k_comparator_sourced": 1,
    "k_covered": 5,
-   "k_independent": 3,
-   "k_matched": 3,
+   "k_independent": 4,
+   "k_matched": 4,
    "matched_by_route": {
-    "PRIMARY": 2,
+    "PRIMARY": 3,
     "SWEEP_AACT_PRIMARY": 1
    },
    "matched_by_route_group": {
-    "PRIMARY": 3
+    "PRIMARY": 4
    },
    "named_differences": [],
    "open_gaps": [
-    "FAIR-HF [20]",
-    "EFFECT-HF [21]"
+    "FAIR-HF [20]"
    ],
    "readers_agree_on_verdict": null,
-   "same_trials_verdict": "DIFFERENT_CONCLUSION",
+   "same_trials_verdict": "SAME_CONCLUSION_DIFFERENT_ESTIMATE",
    "secondary_single": [],
    "slug": "iv-iron-hfref-hosp",
    "source": {
@@ -1415,7 +1438,8 @@
    "top_blocker": "NO_OPEN_SOURCE:OUTCOME_NOT_IN_SOURCE",
    "unmet": [
     "ALL_ELIGIBLE_MATCHED",
-    "RESULT_AGREES"
+    "RESULT_AGREES",
+    "DIVERGENCES_NAMED"
    ]
   },
   "melatonin-primary-insomnia-sol": {
@@ -4976,29 +5000,29 @@
   }
  },
  "totals": {
-  "COMPARATOR_SOURCED": 72,
+  "COMPARATOR_SOURCED": 71,
   "COVERAGE": 171,
-  "INDEPENDENTLY_CONFIRMED": 99,
+  "INDEPENDENTLY_CONFIRMED": 100,
   "N_comparator_trials": 320,
   "N_eligible": 231,
   "coverage_complete_topics": 22,
-  "discrepancy_findings": 23,
+  "discrepancy_findings": 25,
   "excluded_by_scope": 89,
   "g1r_reproduction": {
    "NO_PER_TRIAL_ROWS": 8,
    "NO_PRINTED_POOL": 2,
    "REPRODUCED": 22
   },
-  "k_matched": 99,
+  "k_matched": 100,
   "matched_by_route": {
-   "PRIMARY": 84,
+   "PRIMARY": 85,
    "SECONDARY_SINGLE": 8,
    "SWEEP_AACT_PRIMARY": 1,
    "SWEEP_SECONDARY_SINGLE": 3,
    "TWO_SOURCE": 3
   },
   "matched_by_route_group": {
-   "PRIMARY": 85,
+   "PRIMARY": 86,
    "SECONDARY_SINGLE": 11,
    "TWO_SOURCE": 3
   },
