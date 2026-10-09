@@ -47,20 +47,23 @@ def main():
             continue
         review = json.load(open(rp, encoding="utf-8"))
         recs = {pipeline._clean_record_id(r.get("id")): r for r in pipeline._dedup(json.load(open(cp, encoding="utf-8")))}
-        try:
-            dates = (aact_cache.load(slug) or {}).get("values", {}).get("study_dates", {})
-        except Exception:  # noqa: BLE001 - no cache: the record's own fields only, recorded
-            dates = {}
         # only the pipeline's own lifecycle vocabulary: a topic-config label ('target outcome absent by design ...',
         # screen_entry.completeness_state) is set first and never overridden by the pipeline (setdefault)
         own = lambda r: str(r.get("completeness_state") or "").startswith("eligible+")  # noqa: E731
         rows = [r for r in (review.get("screening") or {}).get("records") or [] if own(r)]
         for o in review.get("outcomes") or []:
             rows += [r for r in o.get("declared_absent_trials") or [] if own(r)]
-        changes, rule = [], []
+        try:
+            dates = (aact_cache.load(slug) or {}).get("values", {}).get("study_dates", {})
+        except Exception as exc:  # noqa: BLE001 - a failed load is NOT 'no registry evidence' (codex r9-2-lifecycle-r1 #1)
+            res[slug] = {"state": f"UNVERIFIED:CACHE_LOAD_FAILED:{type(exc).__name__}", "annotated": len(rows),
+                         "changed": 0, "changed_by_r9_2_rule": 0, "unchecked": [r.get("id") for r in rows], "rows": []}
+            continue
+        changes, rule, unchecked = [], [], []
         for r in rows:
             rec = recs.get(pipeline._clean_record_id(r.get("id")))
             if not rec:
+                unchecked.append(r.get("id"))       # counted, never silently skipped (codex r9-2-lifecycle-r1 #2)
                 continue
             new = pipeline._completeness_for_record(rec, dates)["completeness_state"]
             old = old_state(rec, dates, screen)
@@ -71,17 +74,22 @@ def main():
                 rule.append((old, new))
         by_rule.update(f"{a} -> {b}" for a, b in rule)
         c = Counter((x["served"], x["corrected"]) for x in changes)
-        res[slug] = {"annotated": len(rows), "changed": len(changes), "changed_by_r9_2_rule": len(rule),
+        res[slug] = {"state": "CHECKED" if not unchecked else "PARTIAL", "annotated": len(rows),
+                     "checked": len(rows) - len(unchecked), "unchecked": unchecked, "changed": len(changes),
+                     "changed_by_r9_2_rule": len(rule),
                      "by_transition": {f"{a} -> {b}": n for (a, b), n in sorted(c.items())}, "rows": changes}
         total.update({f"{a} -> {b}": n for (a, b), n in c.items()})
     out = {"topics": res, "total_changed": sum(t["changed"] for t in res.values()),
+           "unverified_topics": [s for s, t in res.items() if str(t["state"]).startswith("UNVERIFIED")],
+           "unchecked_annotations": sum(len(t["unchecked"]) for t in res.values()),
            "changed_by_r9_2_rule": sum(t["changed_by_r9_2_rule"] for t in res.values()), "by_rule_transition": dict(by_rule),
            "topics_changed": sum(1 for t in res.values() if t["changed"]), "by_transition": dict(total)}
     with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False)
     print(json.dumps({k: out[k] for k in ("total_changed", "topics_changed", "by_transition", "changed_by_r9_2_rule",
-                                          "by_rule_transition")}, indent=1))
+                                          "by_rule_transition", "unverified_topics", "unchecked_annotations")}, indent=1))
     print({s: t["changed"] for s, t in res.items() if t["changed"]})
+    return out
 
 
 if __name__ == "__main__":

@@ -52,3 +52,37 @@ def test_PLANT_aact_study_dates_never_folds_primary_completion_into_completion(t
     d = aact.study_dates(["NCT07026539"])["NCT07026539"]
     assert d["completion_date"] in (None, "") and d["primary_completion_date"] == "2026-12-31"
     assert d["primary_completion_date_type"] == "ESTIMATED"
+
+
+# ---------------------------------------------------------------------------------------- codex r9-2-lifecycle-r1
+def _topic(tmp_path, monkeypatch, ids):
+    import json as _j
+    import r9_2_lifecycle_sweep as SW
+    monkeypatch.setattr(SW, "ROOT", str(tmp_path))
+    monkeypatch.setattr(SW, "OUT", str(tmp_path / "out.json"))
+    (tmp_path / "docs" / "reviews" / "t").mkdir(parents=True)
+    (tmp_path / "cache" / "t").mkdir(parents=True)
+    (tmp_path / "docs" / "reviews" / "t" / "review.json").write_text(_j.dumps({"screening": {"records": [
+        {"id": i, "completeness_state": "eligible+ongoing"} for i in ids]}}), encoding="utf-8")
+    (tmp_path / "cache" / "t" / "records.json").write_text(_j.dumps({"records": [
+        {"id": "NCT1", "nct": "NCT1", "id_type": "nct"}]}), encoding="utf-8")
+    return SW
+
+
+def test_PLANT_r1_1_a_cache_that_fails_to_load_marks_the_topic_unverified(tmp_path, monkeypatch):
+    from harness import aact_cache
+    SW = _topic(tmp_path, monkeypatch, ["NCT1"])
+
+    def boom(slug):
+        raise OSError("disk")
+    monkeypatch.setattr(aact_cache, "load", boom)
+    out = SW.main()
+    assert out["topics"]["t"]["state"].startswith("UNVERIFIED:CACHE_LOAD_FAILED") and out["topics"]["t"]["changed"] == 0
+
+
+def test_PLANT_r1_2_annotations_without_a_cached_record_are_counted_as_unchecked(tmp_path, monkeypatch):
+    from harness import aact_cache
+    SW = _topic(tmp_path, monkeypatch, ["NCT1", "NCT404"])
+    monkeypatch.setattr(aact_cache, "load", lambda slug: {"values": {"study_dates": {"NCT1": {"overall_status": "RECRUITING"}}}})
+    out = SW.main()
+    assert out["topics"]["t"]["annotated"] == 2 and out["topics"]["t"]["unchecked"] == ["NCT404"]
