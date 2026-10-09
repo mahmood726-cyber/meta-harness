@@ -20,6 +20,24 @@ sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 OUT = os.path.join(ROOT, "outputs", "k_gap", "concept")
 
 
+def held_trials(slug):
+    """TRIAL identities already held for the topic: comparator-enumerated units (PMIDs + NCTs) and the NCTs of the topic's
+    own held records (a record's registration, not just its id). Concept dedup by record id alone let TRANSFORM-1
+    (31290965, a comparator unit) come back as 'new'."""
+    ids = set()
+    p = os.path.join(ROOT, "registry", "comparator_enumerations", f"{slug}.json")
+    if os.path.exists(p):
+        for u in json.load(open(p, encoding="utf-8")).get("units") or []:
+            ids |= {str(u.get("pmid") or "")} | set(u.get("ncts") or [])
+    p = os.path.join(ROOT, "cache", slug, "records.json")
+    if os.path.exists(p):
+        d = json.load(open(p, encoding="utf-8"))
+        for r in (d.get("records") or []) + (d.get("ctgov") or []):
+            ids |= {str(r.get("id") or ""), str(r.get("nct") or "")}
+    ids.discard("")
+    return ids
+
+
 def run(slug):
     from harness import screen, served_comparator as sc
     import g1_shadow_rescreen as sh
@@ -53,8 +71,19 @@ def run(slug):
            "writer": "scripts/g1_concept_screen.py"}
     json.dump(out, open(os.path.join(OUT, f"{slug}.screen.json"), "w", encoding="utf-8", newline="\n"), indent=1,
               ensure_ascii=False)
+    held = held_trials(slug)
+    already = {}
+    for d in inc:
+        r = byid.get(d["id"]) or {}
+        own = {str(d["id"])} | set(re.findall(r"NCT\d{8}", json.dumps(r)))
+        hit = sorted(own & held)
+        if hit:
+            already[d["id"]] = hit
+    out["already_held_trial"] = already            # a new RECORD of a trial already held is not a new trial
+    json.dump(out, open(os.path.join(OUT, f"{slug}.screen.json"), "w", encoding="utf-8", newline="\n"), indent=1,
+              ensure_ascii=False)
     items = [{"key": f"concept::{slug}::{d['id']}", "slug": slug, "record": byid[d["id"]], "origin": "concept_search"}
-             for d in inc if d["id"] in byid]
+             for d in inc if d["id"] in byid and d["id"] not in already]
     json.dump(items, open(os.path.join(OUT, f"{slug}.dual_items.json"), "w", encoding="utf-8", newline="\n"), indent=1,
               ensure_ascii=False)
     return out

@@ -528,3 +528,19 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
 **Hygiene:** `registry/model_calls/lane_log/unattributed.jsonl` carries a line from main that already existed and that the leak gate flags (a codex client read of two files outside the work dir). I have not committed it; it's on main for you.
 
 **sglt2-ckd:** 13 stage-A survivors still need a D8 ruling for a full read; their only CC BY evidence is Unpaywall plus the host page.
+
+### 2026-10-09 ~23:50 addendum -- (a)-topic dual screen, doac + esketamine (V14; nothing applied)
+- **Result:** 92 records gave ELIGIBLE 5, EXCLUDED 64, DISAGREE 23. Per-trial G1 effects are in `v14_g1_impact.md`.
+- **esketamine: no G1 change.**
+  - TRANSFORM-1 was already a comparator unit; it showed up because dedup compared record ids.
+  - NCT03852160 is WITHDRAWN with 0 enrolled. Proposed name: WITHDRAWN_NO_PARTICIPANTS.
+- **doac: G1_MATCHED at risk.**
+  - Three eligible trials sit outside comparator 29795629, which covers phase-3 trials only:
+    - BOTTICELLI 18541000 (phase 2);
+    - 31455473 (2019, rivaroxaban v warfarin);
+    - XENITH NCT02506985 (terminated, n=10).
+  - Our protocol has no phase restriction.
+  - Ruling needed: name these NOT_IN_COMPARATOR_SCOPE:PHASE_3_ONLY (from the comparator's own title), or doac leaves G1_MATCHED.
+  - J-EINSTEIN 25717286 is among the 23 DISAGREE.
+- **Fixed:** concept dedup now works at trial identity (comparator units, plus the PMIDs and NCTs of held records). It caught 11 already-held trial records in doac and esketamine and 54 in noac.
+- **Running:** the noac dual screen, 221 records (442 calls, 2 workers; RAM 2.9 GB).

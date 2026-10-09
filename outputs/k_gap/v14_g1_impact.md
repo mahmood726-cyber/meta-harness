@@ -18,3 +18,26 @@ Strict status is computed with render_g1_tracker.recompute on main's tracker fil
 Ledgers: outputs/k_gap/v14_targets_acquired.json (typed, AACT snapshot 2026-08-30 + digest), outputs/k_gap/rescreen/,
 outputs/k_gap/concept/. DISAGREE flips (5) need a captain call: 4 dpp4 (INDORSE, NCT00918879, NCT02192853, NCT02792400)
 and colchicine-secondary NCT03376698.
+
+## 2026-10-09 ~23:45 -- concept-search dual screen, (a) topics doac + esketamine (verbatim-protocol prompt; 184 recorded calls)
+
+Result: 92 regex-included concept records -> ELIGIBLE 5, EXCLUDED 64, DISAGREE 23 (ledger outputs/k_gap/concept/_dual_a_doac_esketamine.json).
+G1 effect computed per trial BEFORE applying. **Nothing is applied.**
+
+**esketamine-trd-madrs (G1_MATCHED 3/3): no change.**
+- 31290965 TRANSFORM-1 is ALREADY in the comparator set (37377288) and matched.
+  - It came back as "new" because concept dedup is by record id, not by trial identity.
+  - Defect noted: identity-level dedup is needed before newly-eligible counts are trusted.
+- NCT03852160 is CT.gov WITHDRAWN, enrollment 0 ACTUAL ("a new study has replaced 5413541TRD3011").
+  - Eligible on design, but it has no participants to pool.
+  - Proposed name: WITHDRAWN_NO_PARTICIPANTS. With that name, no ALL_ELIGIBLE_MATCHED change.
+
+**doac-vte-recurrence (G1_MATCHED 5/5): AT RISK.** Three new eligible trials are outside comparator 29795629's set of 5:
+- 18541000 BOTTICELLI DVT (J Thromb Haemost 2008). Apixaban dose-ranging, phase 2, 84-91 days. A known recall miss, now found.
+- 31455473 (J Coll Physicians Surg Pak 2019). Open-label RCT, rivaroxaban v warfarin in DVT.
+- NCT02506985 XENITH. Rivaroxaban v heparin-warfarin after catheter-directed thrombolysis for PE. TERMINATED at n=10; has posted results; primary outcome is biomarkers.
+
+The comparator restricts itself to phase 3 trials: its title is "...evidence from phase 3 trials" (protocol line 70). Our protocol's eligibility has no phase restriction.
+- Unless each trial is NAMED with a typed reason, doac's ALL_ELIGIBLE_MATCHED fails and the topic drops from G1_MATCHED.
+- Proposed reason: NOT_IN_COMPARATOR_SCOPE:PHASE_3_ONLY, citing the comparator's own title span. XENITH might instead be NOT_IN_OUTCOME_ANALYSIS (n=10, biomarker endpoint). Captain to rule (V14).
+- 23 doac DISAGREE records need a third read or a ruling. They include J-EINSTEIN 25717286 (Japanese phase 3, NCT01516814/NCT01516840): reader A said NOT_DECIDABLE_FROM_RECORD, reader B MEETS_ALL. If eligible it is a fourth unnamed trial for doac.
