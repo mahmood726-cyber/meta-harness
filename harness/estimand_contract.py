@@ -10,23 +10,31 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REG = os.path.join(ROOT, "registry", "estimand_contract.json")
 
 
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+
+
 def _load(path: str | None = None) -> list[dict[str, Any]]:
+    """Fails closed: a missing registry raises (codex gate-v12-11-r1 P2) -- losing the file must not silently serve
+    every outcome without its signed contract."""
     p = path or REG
     if not os.path.exists(p):
-        return []
+        raise FileNotFoundError(f"effect-measure contract registry missing: {p}")
     return list((json.load(open(p, encoding="utf-8")) or {}).get("contracts") or [])
 
 
 def _signed(entry: dict[str, Any]) -> bool:
     r = entry.get("ratified") or {}
     return (r.get("state") == "SEEN_AND_SIGNED" and r.get("by") == "Mahmood" and bool(r.get("quote"))
-            and len(str(r.get("packet_sha256") or "")) == 64 and len(str(r.get("item_section_sha256") or "")) == 64)
+            and bool(r.get("item"))
+            and bool(_SHA256.fullmatch(str(r.get("packet_sha256") or "")))
+            and bool(_SHA256.fullmatch(str(r.get("item_section_sha256") or ""))))
 
 
 def signed(slug: str | None, outcome: str | None, *, path: str | None = None) -> dict[str, Any] | None:

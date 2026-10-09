@@ -51,3 +51,20 @@ def test_PLANT_the_comparator_arm_n_is_read_through_an_infinitive_ellipsis():
     assert extract._arm_ns(ab, ["dexamethasone"], ["usual care"]) == {"i": 2104, "c": 4321}
     r = extract.extract_trial(ab, ["died", "mortality"], ["dexamethasone"], ["usual care"], estimand="OR")
     assert (r["ai"], r["n1i"], r["ci"], r["n2i"]) == (482, 2104, 1110, 4321)
+
+
+def test_PLANT_a_ratification_with_non_hex_digests_or_no_item_is_not_signed(tmp_path):
+    """codex gate-v12-11-r1 P1: the digest check tested only length and the packet item could be absent."""
+    p = tmp_path / "c.json"
+    base = {"slug": "s", "outcome": "o", "declared": "OR"}
+    for bad in (dict(SIGNED, packet_sha256="z" * 64), dict(SIGNED, item_section_sha256="Z" * 64),
+                {k: v for k, v in SIGNED.items() if k != "item"}):
+        p.write_text(json.dumps({"contracts": [dict(base, ratified=bad)]}), encoding="utf-8")
+        assert ec.signed("s", "o", path=str(p)) is None, bad
+
+
+def test_PLANT_a_missing_contract_registry_fails_closed(tmp_path):
+    """codex gate-v12-11-r1 P2: a lost registry silently disabled every signed contract."""
+    import pytest
+    with pytest.raises(FileNotFoundError):
+        ec.signed("s", "o", path=str(tmp_path / "absent.json"))
