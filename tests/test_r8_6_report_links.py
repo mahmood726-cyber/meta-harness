@@ -67,3 +67,35 @@ def test_PLANT_a_look_alike_cohort_a_pooled_paper_and_a_non_trial_paper_link_not
 def test_an_upper_case_registered_acronym_in_a_trial_reports_title_still_links():
     assert link("The effect of intravenous ferric carboxymaltose on quality of life: results from AFFIRM-AHF.") == "NCT02937454"
     assert link(T3["title"]) == "NCT02422186"
+
+
+# ---------------------------------------------------------------------------------------- codex r8-6-links-r1
+ONE = {"NCT00000001": {"raw": {"studies": [{"acronym": "SELECT"}]}}}
+
+
+def test_PLANT_r1_1_an_acronym_continued_by_a_hyphenated_token_is_another_word():
+    om = {"NCT00000001": {"raw": {"studies": [{"acronym": "OMEGA"}]}}}
+    assert tf.acronym_title_link({"title": "Effects of OMEGA-3 supplementation: a randomized trial", "pubtypes": RCT}, om)[0] is None
+
+
+def test_PLANT_r1_2_an_ordinary_abbreviation_is_not_another_trial():
+    assert tf.acronym_title_link({"title": "SELECT: a randomized trial in patients with COPD", "pubtypes": RCT}, ONE)[0] \
+        == "NCT00000001"
+
+
+def test_PLANT_r1_3_the_same_acronym_twice_is_still_one_trial():
+    assert tf.acronym_title_link({"title": "SELECT: primary results of the SELECT randomized trial", "pubtypes": RCT},
+                                 ONE)[0] == "NCT00000001"
+
+
+def test_pooled_wording_still_refuses_with_plain_capital_trial_names():
+    assert tf.acronym_title_link({"title": "Kidney outcomes in the SELECT, FLOW, and SOUL trials", "pubtypes": RCT},
+                                 ONE)[0] is None
+
+
+def test_PLANT_r1_4_a_paper_either_route_ties_to_two_families_is_multi_parent():
+    import r8_6_report_links as S
+    held = {"123": {}}
+    assert S.classify("123", "NCT00000001", held, {"123": {"NCT00000001", "NCT00000002"}}, {}) == "MULTI_PARENT"
+    assert S.classify("123", "NCT00000001", held, {"123": {"NCT00000001"}}, {}) == "STALE_REGISTRY"
+    assert S.classify("9", "NCT00000001", held, {}, {}) == "NOT_HELD"

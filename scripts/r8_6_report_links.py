@@ -26,6 +26,16 @@ sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 OUT = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "r8_6_report_links.json")
 
 
+def classify(p, n, held, pmid_ncts, links):
+    """The kind of one linked report: parents counted over BOTH routes (AACT and the PubMed DataBank) -- a paper either
+    route ties to 2+ registry families is MULTI_PARENT (codex r8-6-links-r1 #4: only AACT parents were counted)."""
+    if p not in held:
+        return "NOT_HELD"
+    if len(pmid_ncts.get(p) or {n}) > 1:
+        return "MULTI_PARENT"
+    return "LINKED_IN_REGISTRY" if p in links else "STALE_REGISTRY"
+
+
 def main():
     from harness import aact, http, fetch, trial_family as tf
     from harness.family_compact import read_registry
@@ -54,7 +64,7 @@ def main():
         for p in ps:
             pmid_ncts.setdefault(p, set()).add(n)
     si = {}
-    for n in want:
+    for n in want:  # noqa: B007
         try:
             time.sleep(0.35)
             q = http.get_json(f"{fetch.EUTILS}/esearch.fcgi", {"db": "pubmed", "term": f"{n}[si]", "retmode": "json",
@@ -62,6 +72,9 @@ def main():
             si[n] = q["esearchresult"]["idlist"]
         except Exception as exc:  # noqa: BLE001 - a failed search is recorded, never read as 'no report'
             si[n] = f"NOT_CHECKED:{type(exc).__name__}"
+    for n, ps in si.items():
+        for p in ps if isinstance(ps, list) else []:
+            pmid_ncts.setdefault(p, set()).add(n)
     res = {}
     for slug in sorted(reg_only):
         held, reg = recs_by[slug], regs[slug]
@@ -71,14 +84,7 @@ def main():
         for n in reg_only[slug]:
             cands = set(by_nct.get(n) or []) | (set(si[n]) if isinstance(si.get(n), list) else set())
             for p in sorted(cands):
-                if p not in held:
-                    kind = "NOT_HELD"
-                elif len(pmid_ncts.get(p, {n})) > 1:
-                    kind = "MULTI_PARENT"
-                elif p not in links:
-                    kind = "STALE_REGISTRY"
-                else:
-                    kind = "LINKED_IN_REGISTRY"
+                kind = classify(p, n, held, pmid_ncts, links)
                 rows.append({"nct": n, "pmid": p, "kind": kind,
                              "routes": [x for x, ok in (("AACT", p in (by_nct.get(n) or [])),
                                                         ("PUBMED_SI", isinstance(si.get(n), list) and p in si[n])) if ok]})

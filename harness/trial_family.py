@@ -533,17 +533,28 @@ def acronym_title_link(rec, index):
         acr = ((held.get('raw', {}).get('studies') or [{}])[0].get('acronym') or '').strip()
         if len(acr) < 5:
             continue
-        for m in re.finditer(r'(?<![A-Za-z0-9])' + re.escape(acr) + r'(?![A-Za-z0-9])', title, re.I):
+        # not continued by '-<alnum>': 'OMEGA-3' is another word, not the trial OMEGA (codex r8-6-links-r1 #1)
+        for m in re.finditer(r'(?<![A-Za-z0-9])' + re.escape(acr) + r'(?!-?[A-Za-z0-9])', title, re.I):
             if m.group() != m.group().upper() or re.match(r'\s*-?\s*like\b', title[m.end():], re.I):
                 continue
             hits.append((n, acr, m.span()))
     if len({n for n, _a, _s in hits}) != 1:
         return None, (f'TITLE_NAMES_{len({n for n, _a, _s in hits})}_REGISTERED_ACRONYMS' if hits
                       else 'NO_REGISTERED_ACRONYM_IN_TITLE')
-    n, acr, (a0, a1) = hits[0]
-    rest = title[:a0] + ' ' + title[a1:]
-    others = [t for t in re.findall(r'(?<![A-Za-z0-9])[A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]+)*(?![A-Za-z0-9])', rest)
-              if len(t) >= 4 and t not in {'COVID', 'COVID-19', 'HFREF', 'HFPEF'}]
+    n, acr = hits[0][0], hits[0][1]
+    # a pooled / multi-trial paper names its trials in plain capitals too ('the SELECT, FLOW, and SOUL trials')
+    if re.search(r'\bpooled\b|\btrials\b|meta-?analys', title, re.I):
+        return None, 'TITLE_DESCRIBES_SEVERAL_TRIALS'
+    rest = title
+    for _n, _a, (a0, a1) in sorted(hits, key=lambda h: -h[2][0]):      # every occurrence of THIS acronym (r1 #3)
+        rest = rest[:a0] + ' ' + rest[a1:]
+    # another TRIAL-shaped name (hyphen or digit: 'EMPA-REG', 'DECLARE-TIMI 58') or another registered acronym vetoes;
+    # an ordinary abbreviation ('COPD', 'HFrEF') does not (codex r8-6-links-r1 #2)
+    registered = {((h.get('raw', {}).get('studies') or [{}])[0].get('acronym') or '').strip().upper()
+                  for h in index.values()} - {'', acr.upper()}
+    others = [t for t in re.findall(r'(?<![A-Za-z0-9])[A-Z][A-Z0-9]{1,}(?:-[A-Z0-9]+)+(?![A-Za-z0-9])', rest)
+              if t not in {'COVID-19', 'SARS-COV-2'}]
+    others += [a for a in registered if len(a) >= 5 and re.search(r'(?<![A-Za-z0-9])' + re.escape(a) + r'(?!-?[A-Za-z0-9])', rest)]
     if others:
         return None, f'TITLE_NAMES_OTHER_TRIALS:{others[:3]}'
     return n, {'source': 'registered acronym in report title (AACT.studies.acronym)', 'acronym': acr, 'nct_id': n,
