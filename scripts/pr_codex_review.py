@@ -25,7 +25,10 @@ import g1_codex_review as base_review  # noqa: E402
 
 PROP = os.path.join(ROOT, "registry", "model_proposals", "pr_codex_review.json")
 REC_DIR = os.path.join(ROOT, ms.RECORD_DIR)
-CODE_DIRS = ("scripts/", "harness/", "reproducible_ai/", "kgap/")
+CODE_DIRS = ("scripts/", "harness/", "reproducible_ai/", "kgap/", "audit/")
+# audit/external/ holds the external auditors' scripts, kept unmodified and quoting held source passages (some non-CC):
+# never sent to a model (D8), and not ours to review.
+NEVER_SENT = ("audit/external/",)
 GROUP_CHARS = 60000
 
 
@@ -33,10 +36,15 @@ def _git(*a):
     return subprocess.run(["git", *a], cwd=ROOT, capture_output=True, check=True, stdin=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
 
 
+def _ok_file(f):
+    """A code file a model may review: ours, under CODE_DIRS, never docs/ and never NEVER_SENT."""
+    return f.endswith(".py") and f.startswith(CODE_DIRS) and not f.startswith(("docs/",) + NEVER_SENT)
+
+
 def groups(base, head):
     """[(group name, [(file, diff text)])]: every changed code file's diff, packed into groups of <= GROUP_CHARS."""
     files = [f for f in _git("diff", "--name-only", f"{base}..{head}").split()
-             if f.endswith(".py") and f.startswith(CODE_DIRS) and not f.startswith("docs/")]
+             if _ok_file(f)]
     out, cur, size = [], [], 0
     for f in files:
         d = _git("diff", f"{base}..{head}", "--", f)
