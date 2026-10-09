@@ -71,12 +71,16 @@ def _log_all(path: str) -> list[str]:
 
 
 def _batch_precedes(batch_sha: str, first_sha: str) -> bool:
-    """True iff the preregistration batch commit is an ancestor of the protocol's first commit."""
+    """True iff the preregistration batch commit is an ancestor of the protocol's first commit. Fails closed: a check
+    that could not run (git missing, bad object) raises instead of answering False (codex v13-apply-r2 P2)."""
     try:
-        return subprocess.run(["git", "-C", ROOT, "merge-base", "--is-ancestor", batch_sha, first_sha],
-                              capture_output=True).returncode == 0
-    except OSError:
-        return False
+        p = subprocess.run(["git", "-C", ROOT, "merge-base", "--is-ancestor", batch_sha, first_sha], capture_output=True)
+    except OSError as exc:
+        raise RuntimeError(f"preregistration chronology could not be checked: {exc}") from exc
+    if p.returncode not in (0, 1):
+        raise RuntimeError(f"preregistration chronology could not be checked: git exit {p.returncode}: "
+                           f"{(p.stderr or b'').decode('utf-8', 'replace').strip()[:200]}")
+    return p.returncode == 0
 
 
 def build_sha(slug: str) -> str | None:

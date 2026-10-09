@@ -32,3 +32,20 @@ def test_the_batch_counts_only_when_it_precedes_the_first_protocol_commit(monkey
     assert reg.preregistration_sha("t")["prospective"] is True
     _fake(monkeypatch, ["build1"], builds={"build1"}, batch="batch_late", prereg_text="t")
     assert reg.preregistration_sha("t")["prospective"] is False
+
+
+def test_PLANT_a_git_failure_is_not_reported_as_non_ancestry(monkeypatch):
+    """codex v13-apply-r2 P2: an ancestry check that could not run must not return a verdict."""
+    import subprocess
+    import pytest
+
+    def boom(*a, **k):
+        raise FileNotFoundError("git unavailable")
+    monkeypatch.setattr(reg.subprocess, "run", boom)
+    with pytest.raises(RuntimeError):
+        reg._batch_precedes("a" * 40, "b" * 40)
+    monkeypatch.setattr(reg.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 128, b"", b"fatal: bad object"))
+    with pytest.raises(RuntimeError):
+        reg._batch_precedes("a" * 40, "b" * 40)
+    monkeypatch.setattr(reg.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 1, b"", b""))
+    assert reg._batch_precedes("a" * 40, "b" * 40) is False
