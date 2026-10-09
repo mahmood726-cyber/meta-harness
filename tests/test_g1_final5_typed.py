@@ -106,3 +106,23 @@ def test_PLANT_codex_mortality_before_the_number_is_a_candidate(tmp_path, monkey
                                                         "arm and 40 patients in the control arm.",
                                               {"state": "FETCH_EMPTY", "copy_licence": "NOT_OPEN"}))
     assert T.codex_28d()["result"] == "CANDIDATE"
+
+
+def test_PLANT_engage_a_wider_composite_is_not_stroke_or_see(tmp_path, monkeypatch):
+    # captain codex final5-binding-captain g1#4
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    _engage(tmp_path, ["High Dose Edoxaban/Placebo Warfarin", "Warfarin/Placebo Edoxaban"])
+    p = tmp_path / "outputs" / "k_gap" / "g1_binding" / "engage_aact_rows.json"
+    d = json.loads(p.read_text(encoding="utf-8"))
+    d["tables"]["outcomes.txt"][0]["title"] = "Stroke, Systemic Embolism, or Cardiovascular Death"
+    p.write_text(json.dumps(d), encoding="utf-8")
+    assert T.engage_aact()["result"] == "NOT_FOUND"
+
+
+def test_PLANT_codex_the_number_of_deaths_was_is_a_candidate(tmp_path, monkeypatch):
+    # captain codex final5-binding-captain g1#5
+    monkeypatch.setattr(T, "ROOT", str(tmp_path))
+    monkeypatch.setenv("AACT_SNAPSHOT", _held(tmp_path, "At 28 days, the number of deaths was 45 with dexamethasone and "
+                                                        "50 with usual care.",
+                                              {"state": "PUBLISHER_DISALLOWS_XML"}))
+    assert T.codex_28d()["result"] == "CANDIDATE"

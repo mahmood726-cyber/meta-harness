@@ -500,6 +500,15 @@ def _row_cells(row):
     return out
 
 
+def _declares_percent_units(text):
+    """True when a caption / header declares its values as percentages: '(%)' or the word percent / percentage. Not a
+    '95% CI', and not 'n (%)' / 'no. (%)' / 'number (%)' (counts WITH percentages)."""
+    import re
+    t = str(text or "")
+    t = re.sub(r"\b(?:n|no\.?|number|events?|patients?)\s*\(\s*%\s*\)", " ", t, flags=re.I)
+    return bool(re.search(r"\(\s*%\s*\)|\bper ?cent(?:ages?)?\b", t, re.I))
+
+
 def _header_ns(header):
     import re
     return [int(x.replace(",", "")) for x in re.findall(r"\(\s*n\s*=\s*([\d,]+)\s*\)", header, re.I)]
@@ -549,6 +558,9 @@ def verify_k5(b, endpoint_ok):
     if (("%" in lab or _re.search(r"\bper ?cent", lab, _re.I))
             and not _re.search(r"\b(?:n|no\.?|number|events?|patients?)\s*\(\s*%\s*\)", lab, _re.I)):
         return False, "K5_ROW_IS_PERCENTAGES"
+    # the caption or header may declare the table's unit too (captain codex final5-binding-captain g1#3)
+    if _declares_percent_units(spans["caption_span"]) or _declares_percent_units(spans["header_span"]):
+        return False, "K5_TABLE_IS_PERCENTAGES"
     cells, idx = _row_cells(spans["row_span"]), b.get("cells") or {}
     it, ic = idx.get("events_t"), idx.get("events_c")
     if not (type(it) is int and type(ic) is int and 0 <= it < len(cells) and 0 <= ic < len(cells) and it != ic):

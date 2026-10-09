@@ -16,9 +16,14 @@ import g1_tracker as gt  # noqa: E402
 
 DOC = ("<caption>Table 2 Hospitalizations and deaths (full-analysis set)</caption><th>FCM ( n = 150)</th>"
        "<th>Placebo ( n = 151)</th><th>Total number of events</th><th>Incidence/100 patient-years at risk</th>"
+       "<th>Total number of events</th><th>Incidence/100 patient- years at risk</th>"
        "<td>Hospitalizations due to worsening HF</td><td>10</td><td>10 (7.6)</td>"
-       "<td>32</td><td>25 (19.4)</td><p>Incidence is computed using the number of subjects with the end-point/event.</p>")
-UNIT_OK = {"comparator": "Total number of events", "ours": "computed using the number of subjects with the end-point/event"}
+       "<td>32</td><td>25 (19.4)</td><p>Incidence/100 patient-years at risk are computed using the number of subjects "
+       "with the end-point/event.</p>")
+UNIT_OK = {"comparator": "Total number of events",
+           "ours": "Incidence/100 patient-years at risk are computed using the number of subjects with the end-point/event"}
+COLS = ["Total number of events", "Incidence/100 patient-years at risk", "Total number of events",
+        "Incidence/100 patient- years at risk"]
 ROW = "Hospitalizations due to worsening HF 10 10 (7.6) 32 25 (19.4)"
 
 
@@ -30,7 +35,7 @@ def setup(tmp_path, signed=True, **kw):
                  "text_sha256": hashlib.sha256(DOC.encode("utf-8")).hexdigest()},
          "row_span": ROW, "cells": {"comparator": {"events_t": 0, "events_c": 3}, "ours": {"events_t": 1, "events_c": 4}},
          "comparator_counts": {"events_t": 10, "events_c": 32}, "our_counts": {"events_t": 10, "events_c": 25},
-         "unit_spans": UNIT_OK}
+         "unit_spans": UNIT_OK, "shape": "table", "columns": COLS, "cell_columns": [0, 1, 1, 2, 3, 3]}
     e.update(kw)
     (tmp_path / "reg.json").write_text(json.dumps({"findings": [e]}), encoding="utf-8")
     return str(tmp_path / "reg.json")
@@ -86,3 +91,35 @@ def test_PLANT_the_column_meanings_are_verified_not_assumed(tmp_path):
         x = trial()
         gt.signed_comparator_findings([x], "t", reg=setup(tmp_path, unit_spans=units), root=str(tmp_path))
         assert bool(x.get("disagreement_side")) is ok, (units, x.get("comparator_finding_refused"))
+
+
+def test_PLANT_a_table_finding_ties_each_selected_cell_to_its_column_label(tmp_path):
+    # captain codex final5-binding-captain g1#6: unit spans were checked anywhere in the document, never against the
+    # selected cells -- a finding that called the PATIENTS' cells the comparator's 'events' verified
+    row = "Hospitalizations due to worsening HF 12 10 32 25"
+    doc = ("FCM ( n = 150) Placebo ( n = 151) Number of patients with an event Total number of events "
+           "Number of patients with an event Total number of events\n" + row)
+    (tmp_path / "doc.txt").write_text(doc, encoding="utf-8")
+    cols = ["Number of patients with an event", "Total number of events",
+            "Number of patients with an event", "Total number of events"]
+    e = {"slug": "t", "pmid": "1", "label": "X", "state": "SIGNED", "decision": "D14 (V10-04Q)",
+         "finding": "COMPARATOR_COUNTS_ARE_EVENTS", "shape": "table",
+         "doc": {"path": "doc.txt", "format": "text", "text_sha256": hashlib.sha256(doc.encode("utf-8")).hexdigest()},
+         "row_span": row, "columns": cols, "cell_columns": [0, 1, 2, 3],
+         # the FALSE claim: comparator = cells 0 and 2 (patients), ours = cells 1 and 3 (events)
+         "cells": {"comparator": {"events_t": 0, "events_c": 2}, "ours": {"events_t": 1, "events_c": 3}},
+         "comparator_counts": {"events_t": 12, "events_c": 32}, "our_counts": {"events_t": 10, "events_c": 25},
+         "unit_spans": {"comparator": "Total number of events", "ours": "Number of patients with an event"}}
+    (tmp_path / "reg.json").write_text(json.dumps({"findings": [e]}), encoding="utf-8")
+    x = {"label": "X", "family": "PMID 1", "agreement_with_comparator_row": "DISAGREE",
+         "comparator_row": {"events_t": 12, "n_t": 150, "events_c": 32, "n_c": 151}}
+    gt.signed_comparator_findings([x], "t", reg=str(tmp_path / "reg.json"), root=str(tmp_path))
+    assert x.get("disagreement_side") is None and "COLUMN" in x["comparator_finding_refused"]
+
+
+def test_PLANT_a_prose_finding_must_match_the_signed_wording(tmp_path):
+    # prose has no columns: the unit claim rests on the signature, so the signature's words must carry these numbers
+    reg = setup(tmp_path, shape="prose", decision="V12-03Q (sign)")
+    x = trial()
+    gt.signed_comparator_findings([x], "t", reg=reg, root=str(tmp_path))   # V12-03Q's wording is '13 v 13', not '10 v 32'
+    assert x.get("disagreement_side") is None and "SIGNATURE" in x["comparator_finding_refused"]

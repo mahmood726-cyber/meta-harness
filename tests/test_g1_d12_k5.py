@@ -243,3 +243,27 @@ def test_k5_a_count_and_percentage_row_label_n_pct_still_reads_its_counts(tmp_pa
     b = k5(tmp_path, doc={"path": "doc.txt", "format": "xml", "text_sha256": sha(tmp_path / "doc.txt")},
            row_span="Hospitalizations due to worsening HF, n (%) 10 10 (7.6) 32 25 (19.4)")
     assert D.verify(b, None, ep("iv"))[1] != "K5_ROW_IS_PERCENTAGES"
+
+
+def test_PLANT_k5_a_caption_or_header_declaring_percent_units_holds_no_counts(tmp_path, monkeypatch):
+    # captain codex final5-binding-captain g1#3: 'Table 1. All-cause mortality (%)' passed 10 / 20 as counts
+    setup(tmp_path, monkeypatch)
+    sub = SUB.replace("on 28-day mortality, by respiratory support", "on 28-day mortality (%), by respiratory support")
+    sub = sub.replace("95/324\n(29.3%)\n283/683", "95/324\n(29.3%)\n283/683")
+    (tmp_path / "sub_raw.txt").write_text(sub, encoding="utf-8")
+    (tmp_path / "sub_layout.txt").write_text(sub.replace("\n", "   "), encoding="utf-8")
+    b = {"rule": "K5", "tuple_kind": "COUNTS", "own_tuple": True, "slug": "co", "pmid": "2", "label": "RECOVERY",
+         "values": {"events_t": 95, "n_t": 324, "events_c": 283, "n_c": 683},
+         "doc": {"path": "sub_raw.txt", "format": "text", "text_sha256": sha(tmp_path / "sub_raw.txt")},
+         "caption_span": "Table S2: effect of allocation to dexamethasone on 28-day mortality (%), by respiratory support",
+         "header_span": "Dexamethasone (n=2104) Usual care (n=4321)",
+         "row_span": "Invasive mechanical ventilation 95/324 (29.3%) 283/683 (41.4%)",
+         "outcome_from": "caption", "cells": {"events_t": 0, "events_c": 2},
+         "second_reader": {"kind": "SECOND_EXTRACTION",
+                           "doc": {"path": "sub_layout.txt", "format": "text",
+                                   "text_sha256": sha(tmp_path / "sub_layout.txt")},
+                           "row_span": "Invasive mechanical ventilation 95/324 (29.3%) 283/683 (41.4%)"}}
+    assert D.verify(b, None, ep("co"))[1] == "K5_TABLE_IS_PERCENTAGES"
+    # a header's '95% CI' is not a unit declaration
+    assert D._declares_percent_units("Dexamethasone (n=2104) Usual care (n=4321) RR (95% CI) p") is False
+    assert D._declares_percent_units("Deaths, n (%)") is False

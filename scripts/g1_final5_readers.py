@@ -152,7 +152,10 @@ _NUM = re.compile(r"(?<![\d.,])(\d{1,3}(?:,\d{3})+(?![\d])|\d+)((?:[.,]\d+)?)(\s
 def count_tokens(q):
     """The whole numbers a quote prints AS numbers that can be counts: '1,274' is 1274; a decimal ('7.6', decimal comma
     '0,5') or a percentage ('10%', '0,5 %') is never a count (codex final5-binding-r1a g1#2, r2 g1#1)."""
-    return {int(m.group(1).replace(",", "")) for m in _NUM.finditer(q or "") if not m.group(2) and not m.group(3)}
+    q = q or ""
+    # ... nor a number written with the WORD percent ('10 percent'; captain codex final5-binding-captain g1#2)
+    return {int(m.group(1).replace(",", "")) for m in _NUM.finditer(q) if not m.group(2) and not m.group(3)
+            and not re.match(r"\s*(?:per ?cent|pct)\b", q[m.end():], re.I)}
 
 
 def gate(ans, shown):

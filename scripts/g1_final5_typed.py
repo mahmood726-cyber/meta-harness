@@ -186,7 +186,12 @@ def comparator_findings():
                  "cells": {"comparator": {"events_t": 0, "events_c": 3}, "ours": {"events_t": 1, "events_c": 4}},
                  "comparator_counts": {"events_t": 10, "events_c": 32}, "our_counts": {"events_t": 10, "events_c": 25},
                  "unit_spans": {"comparator": "Total number of events",
-                                "ours": "computed using the number of subjects with the end-point/event"},
+                                "ours": "Incidence/100 patient-years at risk are computed using the number of subjects "
+                                        "with the end-point/event"},
+                 "shape": "table",
+                 "columns": ["Total number of events", "Incidence/100 patient-years at risk", "Total number of events",
+                             "Incidence/100 patient- years at risk"],
+                 "cell_columns": [0, 1, 1, 2, 3, 3],
                  "note": "Table 2 (full-analysis set): 'Total number of events' 10 v 32; patients with an event 10 v 25"},
                 {"slug": "iv-iron-hfref-hosp", "pmid": "28701470", "label": "EFFECT-HF", "state": "SIGNED",
                  "decision": "V12-03Q (sign)", "finding": "COMPARATOR_COUNTS_ARE_EVENTS",
@@ -199,6 +204,7 @@ def comparator_findings():
                  "comparator_counts": {"events_t": 13, "events_c": 13}, "our_counts": {"events_t": 11, "events_c": 6},
                  "unit_spans": {"comparator": "A total of 58 hospitalizations occurred during the study",
                                 "ours": "in 17 patients (11 patients on FCM and 6 on usual care)"},
+                 "shape": "prose",
                  "note": "the comparator's 13 v 13 are the 26 worsening-HF HOSPITALISATIONS (13 in each group); the "
                          "patients are 11 v 6. Its 88 is the safety-set FCM N (FAS 86 + 2), not printed by the paper"}]}
 
@@ -220,6 +226,9 @@ def engage_aact():
         t_ = str(o.get("title") or "").lower()
         if "stroke" not in t_ or not ("systemic embol" in t_ or "see" in t_.replace("(", " ").replace(")", " ").split()):
             why.append(f"NOT_STROKE_OR_SEE ({str(o.get('title') or '')[:60]})")      # codex final5-binding-r1b g1#4
+        elif re.search(r"death|mortality|myocardial|bleed|hospitali", t_):
+            # a WIDER composite that contains stroke/SEE is another endpoint (captain final5-binding-captain g1#4)
+            why.append(f"NOT_STROKE_OR_SEE:WIDER_COMPOSITE ({str(o.get('title') or '')[:60]})")
         if o.get("outcome_type") != "PRIMARY":
             why.append(f"NOT_THE_PRIMARY_OUTCOME ({o.get('outcome_type')}: {o.get('title', '')[:80]})")
         if not str(o.get("population") or "").startswith("ITT"):
@@ -273,7 +282,10 @@ def codex_28d():
                          # people counted only when THEY died in the same clause (codex final5-binding-r3 g1#2)
                          r"(?<![\d.,-])\d+\s+(?:patients|participants)\b[^.;]{0,80}?\b(?:died|deaths?|deceased)\b|"
                          # ... or the death named first ('mortality occurred in 45 patients'; r4 g1#3)
-                         r"\b(?:died|deaths?|deceased|mortality occurred)\b[^.;]{0,40}?\bin\s+\d+\s+(?:patients|participants)\b",
+                         r"\b(?:died|deaths?|deceased|mortality occurred)\b[^.;]{0,40}?\bin\s+\d+\s+(?:patients|participants)\b|"
+                         # ... or 'the number of deaths was 45' (captain final5-binding-captain g1#5); a time ('28 days')
+                         # is never a count
+                         r"\b(?:deaths?|died)\s+(?:was|were|totall?ed|numbered|:)\s*\d+\b(?!\s*(?:%|-?\s*days?|weeks?|months?|years?))",
                          re.I)
         counts = [s for s in sents if cnt.search(s)]
         routes.append({"route": "held abstract", "outcome": (f"COUNTS_OR_PERCENTS_PRINTED:{counts[:2]}" if counts else

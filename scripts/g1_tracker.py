@@ -2318,6 +2318,33 @@ def _finding_check(e, x, root):
             return "COMPARATOR_UNIT_IS_NOT_EVENTS"
         if not people.search(ou):
             return "OUR_UNIT_IS_NOT_PEOPLE"
+        # the units must belong to the SELECTED cells, not merely occur in the document (captain codex
+        # final5-binding-captain g1#6)
+        if e.get("shape") == "table":
+            cols = [plain(str(c)) for c in e.get("columns") or []]
+            cc = e.get("cell_columns") or []
+            if not cols or " ".join(cols) not in full or len(cc) != len(cells) or \
+                    any(type(k) is not int or not 0 <= k < len(cols) for k in cc):
+                return "COLUMNS_NOT_THE_TABLE_HEADER"
+            key = lambda s: re.sub(r"\s+", "", s).lower()  # noqa: E731 -- 'patient- years' prints split in a header
+            for k in ("events_t", "events_c"):
+                lab = cols[cc[e["cells"]["comparator"][k]]]
+                if not events.search(lab) or people.search(lab):
+                    return f"COMPARATOR_CELL_COLUMN_IS_NOT_EVENTS:{lab}"
+                lab = cols[cc[e["cells"]["ours"][k]]]
+                if not people.search(lab) and not (key(lab) in key(ou) and people.search(ou)):
+                    return f"OUR_CELL_COLUMN_IS_NOT_PEOPLE:{lab}"
+        elif e.get("shape") == "prose":
+            # prose has no columns: the unit claim rests on the SIGNATURE, whose own words must carry these numbers
+            item = str(e.get("decision") or "").split()[0] if e.get("decision") else ""
+            sp = os.path.join(root, "registry", "v12_signatures.json")
+            sig = ((_j(sp).get("items") or {}).get(item) or {}) if os.path.exists(sp) else {}
+            c = e.get("comparator_counts") or {}
+            if sig.get("state") != "SEEN_AND_SIGNED" or sig.get("choice") != "sign" or \
+                    f"{c.get('events_t')} v {c.get('events_c')}" not in str(sig.get("decision") or ""):
+                return "PROSE_UNITS_NOT_STATED_BY_THE_SIGNATURE"
+        else:
+            return "FINDING_SHAPE_UNDECLARED"
     return None
 
 

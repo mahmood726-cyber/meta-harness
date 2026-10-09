@@ -52,3 +52,10 @@ def test_PLANT_a_decimal_comma_percentage_is_not_a_count():
     q = "FCM n=100 and placebo n=100 were randomised. Deaths: FCM 0,5% and placebo 0,7% at 28 days."
     a = {"state": "FOUND", "quote": q, "events_t": 0, "n_t": 100, "events_c": 0, "n_c": 100}
     assert fr.gate(a, q).startswith("NUMBER_NOT_IN_QUOTE:events_t,events_c")
+
+
+def test_PLANT_the_word_percent_is_a_percentage_not_a_count():
+    # captain codex final5-binding-captain g1#2
+    q = "Mortality was 10 percent with FCM and 20 percent with placebo; each arm randomised 200 patients."
+    a = {"state": "FOUND", "quote": q, "events_t": 10, "n_t": 200, "events_c": 20, "n_c": 200}
+    assert fr.gate(a, q).startswith("NUMBER_NOT_IN_QUOTE:events_t,events_c")
