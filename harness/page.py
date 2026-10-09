@@ -2503,6 +2503,9 @@ def _reproduction(r, neutral):
                      "(a conformance check derived from the config it certifies cannot fail). "
                      f"<strong>{len(pcd)} divergence(s)</strong> — each is a defect to resolve or a dated "
                      f"amendment to declare, never a silent widening:<ul>{_rows}</ul></p>")
+            # the limitation object's own block: a page that FOUND a divergence is never quieter than one that
+            # compared nothing (the NOT_ESTABLISHED branch below prints its block the same way)
+            body += protocol_divergence_disclosed_html(protocol_compliance_state(r)["divergences"] or pcd)
         else:
             _pcs = protocol_compliance_state(r)
             if _pcs["state"] == "ESTABLISHED":
