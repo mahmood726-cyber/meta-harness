@@ -67,6 +67,11 @@ def build(live: str, notes: str, live_check: str) -> str:
     decisions = [d["id"] for d in j(live, "registry/g1_decisions.json")["decisions"]]
     notices = j(live, "docs/result_changes.json")["notices"]
     reads = j(live, "registry/provenance_recorded_reads.json").get("reads") or {}
+    # the held-record index AT THE LIVE COMMIT (what the served page checked against); unreadable -> UNKNOWN rows
+    try:
+        held = frozenset(j(live, "registry/held_record_ids.json")["ids"])
+    except (subprocess.CalledProcessError, ValueError, KeyError):
+        held = None
     order = [s for s in slugs if s not in abandoned] + [s for s in slugs if s in abandoned]
     lc_raw = Path(live_check).read_bytes()
     lc = json.loads(lc_raw)
@@ -145,7 +150,7 @@ the evidence (quote the source, with its link), and severity: **changes a served
             shown = "all elements" if not missing else "; ".join(parts)
             where = (f"{label} tab" if v.get("dedicated_tab") else LIVE_TAB[tid])
             out.append(f"| ☐ | {label} | {where} | {md(shown)} |")
-        rows = [x for x in _rows(r, slug, reads)]
+        rows = [x for x in _rows(r, slug, reads, held)]
         rng = random.Random(f"{SEED}:{slug}")
         pick = sorted(rng.sample(range(len(rows)), min(N_EXTRACT, len(rows))))
         out.append(f"\n**Extraction sample** ({len(pick)} of {len(rows)} shown rows; seed `{SEED}:{slug}`)\n")
@@ -195,13 +200,16 @@ the evidence (quote the source, with its link), and severity: **changes a served
     return "\n".join(out).rstrip() + "\n"
 
 
-def _rows(r, slug, reads):
+def _rows(r, slug, reads, held):
     rows = []
     for oi, o in enumerate(r.get("outcomes") or []):
         if T._gated(o):
             continue
         for ti, t in enumerate(o.get("trials") or []):
-            cls, why, recs = served_class(t, slug, o.get("name"), T._GATE_ADMITTED, reads, str(ROOT))
+            if held is None:
+                cls = "UNKNOWN"
+            else:
+                cls, why, recs = served_class(t, slug, o.get("name"), held.__contains__, reads, str(ROOT))
             rows.append({"anchor": f"x{oi}-{ti}", "outcome": o.get("name"), "trial": t.get("label"), "id": t.get("id"), "value": T._value(t),
                          "provenance": t.get("provenance"), "class": cls, "state": T.outcome_state(o),
                          "passage": T.passage(t), "passage_sha256": T.passage_sha256(t)})
