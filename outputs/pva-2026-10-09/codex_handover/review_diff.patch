@@ -1,0 +1,112 @@
+diff --git a/harness/comparator_panel.py b/harness/comparator_panel.py
+index 3043c752a..c6cee574f 100644
+--- a/harness/comparator_panel.py
++++ b/harness/comparator_panel.py
+@@ -200,7 +200,7 @@ def render(review):
+         for key in FACTS:
+             f = c.get(key)
+             value = (f"{esc(f['value'])} (characters {f['span']['start']}–{f['span']['end']}: {esc(f['span']['quote'])})"
+-                     if f else "NOT EXTRACTED from held text")
++                     if f else "not populated in this panel (see the comparator's reported results)")
+             parts.append(f"<dt>{esc(key)}</dt><dd>{value}</dd>")
+         parts.append("</dl>")
+         if c.get("trial_set"):
+@@ -212,6 +212,6 @@ def render(review):
+             if high_overlap(c, review):
+                 parts.append("<p>" + esc(adjudication(c) or "Overlapping evidence sets: agreement is sensitivity to analytic membership.") + "</p>")
+         else:
+-            parts.append("<p>Trial set NOT ENUMERATED; overlap unknown.</p>")
++            parts.append("<p>Trial membership is not populated in this panel; overlap is not computed here.</p>")
+         parts.append("</article>")
+     return "".join(parts)
+diff --git a/harness/page.py b/harness/page.py
+index 394234d25..5579cd8d3 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -107,7 +107,7 @@ def _unrenderable_block(obj: dict[str, Any]) -> str:
+ # statement about the TRIAL). The other states are statements about US (extraction/retrieval) or a
+ # deliberate refusal of a number that WAS found — none is evidence the outcome does not exist.
+ _ABSENCE_STATE_LABEL = {
+-    "OUTCOME_NOT_IN_SOURCE": "not in cached source -- no outcome sentence/effect found",
++    "OUTCOME_NOT_IN_SOURCE": "no poolable effect or arm counts found in the cached source (the outcome may be mentioned)",
+     "NO_OUTCOME_DATA_IN_SOURCE": "declared absent — no outcome data in the retrieved source",
+     "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": "excluded on evidence -- effect present but wrong estimand class",
+     "COUNTS_PRESENT_NOT_CORROBORATED": "not extracted -- arm counts present but percentage corroboration failed",
+@@ -408,7 +408,7 @@ _ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same
+ 
+ 
+ 
+-def _known_missing_sensitivity_panel(o: dict) -> str:
++def _known_missing_sensitivity_panel(o: dict, heading_level: int = 3) -> str:
+     kms = o.get("known_missing_sensitivity") or {}
+     if not kms:
+         return ""
+@@ -482,8 +482,8 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
+     demo = kms.get("membership_demonstration")
+     if demo:
+         metrics = ("k", "estimate", "ci_low", "ci_high", "tau2", "i2", "pi_low", "pi_high")
+-        combined_html += ("<section class='membership-demonstration'><h4>DEMONSTRATION: "
+-                          f"{_e(demo['state'])}</h4>"
++        combined_html += (f"<section class='membership-demonstration'><h{min(heading_level + 1, 6)}>DEMONSTRATION: "
++                          f"{_e(demo['state'])}</h{min(heading_level + 1, 6)}>"
+                           f"<p>under the PROPOSED adjudication -- not a result; the primary k={_e(demo['primary']['k'])} pool is unchanged</p>"
+                           "<p>Paule-Mandel tau²; HKSJ on t with k-1 df, log scale. I² is a percentage.</p>"
+                           "<table><tr><th>Metric</th><th>Primary</th><th>Primary plus proposed ELIXA</th></tr>")
+@@ -499,7 +499,7 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
+         combined_html += "</table></section>"
+     return (
+         "<div class='kms-panel' id='known-missing-sensitivity'>"
+-        f"<h3>{_e(kms.get('heading') or 'Known eligible trials not in this pool, and what they would do')}</h3>"
++        f"<h{heading_level}>{_e(kms.get('heading') or 'Known eligible trials not in this pool, and what they would do')}</h{heading_level}>"
+         f"<p><strong>Panel conclusion effect: {_e(kms.get('headline_conclusion_effect') or 'NOT_COMPUTABLE')}.</strong> "
+         "These rows are SENSITIVITY only; they do not replace the primary pool.</p>"
+         + combined_html + comp +
+@@ -1433,7 +1433,7 @@ def _trial_inputs(o):
+         if vst == "verified":
+             src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified against source</span><br>" + _e(t.get("source"))
+         elif vst == "verified_handchecked":
+-            src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified (AACT-derived, cross-checked)</span><br>" + _e(t.get("source"))
++            src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified (hand-checked against the held source; basis on hover)</span><br>" + _e(t.get("source"))
+         elif vst == "not-yet":
+             src = "<span class='vno' title='" + _e(t.get("verify_basis", "")) + "'>⚠ NOT YET verified against source</span><br>" + _e(t.get("source"))
+         else:
+@@ -1817,7 +1817,7 @@ def _outcome_block(o, show_inputs=True, review=None):
+         ])
+         body += _kv([(k, v) for k, v in rows if v is not None])
+         if o.get("primary"):
+-            body += _known_missing_sensitivity_panel(o)
++            body += _known_missing_sensitivity_panel(o, heading_level=5)   # inside an outcome block (h4), A1
+         # COMPATIBILITY KEY: the explicit contract that lets these trials be pooled -- the six
+         # dimensions they must share. Rendered so a reader can see the pool is not a mix of
+         # different quantities; the randomised-contrast fraction discloses how many are parser-
+@@ -1940,8 +1940,13 @@ def _outcome_block(o, show_inputs=True, review=None):
+                                                            "trial family")
+                 if unitized else f"{n_abs} further screened-in trial(s)"
+             )
+-            body += (f"<p class='note'>k = {_k_display(o)}: the {n_pool} trial(s) named below were "
+-                     f"pooled; {absent_display} had no poolable value for this "
++            _st = _review_tabs.outcome_state(o)
++            _lead = (f"the {n_pool} trial(s) named below were pooled" if _st.startswith(("pooled", "pooled point"))
++                     else f"the trial named below supplies the estimate (single trial, not pooled)"
++                     if _st.startswith("single-trial")
++                     else f"the {n_pool} trial(s) named below have extracted values, but no pooled estimate is served "
++                          f"({_st})")
++            body += (f"<p class='note'>k = {_k_display(o)}: {_e(_lead)}; {absent_display} had no poolable value for this "
+                      f"outcome and are listed below with an explicit <em>absence/refusal state</em>. These "
+                      f"typed states distinguish source silence from effect-present estimand mismatches, "
+                      f"uncorroborated counts, multi-arm/timepoint/population mismatches, missing cached "
+diff --git a/tests/test_membership_consistency.py b/tests/test_membership_consistency.py
+index 44d96200a..8feadb4fd 100644
+--- a/tests/test_membership_consistency.py
++++ b/tests/test_membership_consistency.py
+@@ -67,7 +67,9 @@ def test_rebuilt_esketamine_membership_is_consistent_and_parity_row_current():
+     ).read()
+     assert "STALE_VS_MEMBERSHIP" not in html
+     assert "Comparator panel" in html
+-    assert "Trial set NOT ENUMERATED; overlap unknown." in html
++    # requirement: the panel makes no overlap claim for an unpopulated trial set (wording changed, H18 of the
++    # review-tabs handover: 'NOT ENUMERATED' contradicted the panel's own typed comparator identity)
++    assert "Trial membership is not populated in this panel; overlap is not computed here." in html
+     assert "Our pooled <em>k</em> = <strong>4</strong> vs the comparator <em>k</em> = <strong>4</strong>" not in html
+     assert "We pool 2" not in html
+     assert "The 2 gap trials (TRANSFORM-1 and the phase-2 dose-finding)" not in html

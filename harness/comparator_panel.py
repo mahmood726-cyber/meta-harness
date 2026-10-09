@@ -200,7 +200,7 @@ def render(review):
         for key in FACTS:
             f = c.get(key)
             value = (f"{esc(f['value'])} (characters {f['span']['start']}–{f['span']['end']}: {esc(f['span']['quote'])})"
-                     if f else "NOT EXTRACTED from held text")
+                     if f else "not populated in this panel (see the comparator's reported results)")
             parts.append(f"<dt>{esc(key)}</dt><dd>{value}</dd>")
         parts.append("</dl>")
         if c.get("trial_set"):
@@ -212,6 +212,6 @@ def render(review):
             if high_overlap(c, review):
                 parts.append("<p>" + esc(adjudication(c) or "Overlapping evidence sets: agreement is sensitivity to analytic membership.") + "</p>")
         else:
-            parts.append("<p>Trial set NOT ENUMERATED; overlap unknown.</p>")
+            parts.append("<p>Trial membership is not populated in this panel; overlap is not computed here.</p>")
         parts.append("</article>")
     return "".join(parts)
