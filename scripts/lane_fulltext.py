@@ -6,6 +6,8 @@ full text for. Writes scratchpad/fulltext_fetch.json (OUT-first)."""
 import json, os, sys, io, time, glob, urllib.request, urllib.parse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from harness import removed_texts  # noqa: E402  (V13-04Q write guard)
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 OUT = os.path.join(ROOT, "scratchpad", "fulltext_fetch.json")
 json.dump({"status": "STARTED"}, open(OUT, "w", encoding="utf-8"))
@@ -58,6 +60,9 @@ for slug, pids in targets.items():
     for pid in pids:
         total += 1
         dest = os.path.join(ROOT, "cache", slug, f"ft_{pid}.txt")
+        if removed_texts.is_removed(slug, pid, root=ROOT):   # V13-04Q: never write back a text removed under D8
+            skipped += 1
+            continue
         if os.path.exists(dest):
             skipped += 1
             continue

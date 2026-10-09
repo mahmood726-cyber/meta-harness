@@ -235,6 +235,9 @@ def acquire(http: Http, slug: str, pmid: str, dry_run: bool, root: Path = ROOT, 
     held = root / "cache" / slug / f"ft_{pmid}.txt"
     base = (stage / slug) if stage else (root / "cache" / slug)
     row = {"pmid": pmid, "routes": []}
+    from harness import removed_texts
+    if removed_texts.is_removed(slug, pmid, root=str(root)):
+        return dict(row, state=REMOVED_FROM_TREE_D8)    # V13-04Q: taken out of the tree by a signed licence decision
     if held.is_file():
         return dict(row, state=HELD, sha256=hashlib.sha256(held.read_bytes()).hexdigest())
     ident = dict(ident if ident is not None else identifiers(slug, pmid, root))
