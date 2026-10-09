@@ -699,7 +699,7 @@
     }
    ],
    "gate_id": "gate.check_access_claim_supported",
-   "what_it_refuses": "NOT_RUN-as-paywalled (audit 22): a review must not assert a full-text ACCESS OUTCOME \u2014 that full text was re-tested/confirmed, or is publisher-blocked / access-blocked / paywalled \u2014 when the PMC full-text adapter did not run.",
+   "what_it_refuses": "NOT_RUN-as-paywalled (audit 22): a review must not assert a full-text ACCESS OUTCOME — that full text was re-tested/confirmed, or is publisher-blocked / access-blocked / paywalled — when the PMC full-text adapter did not run.",
    "where": "harness/gate.py:check_access_claim_supported"
   },
   {
@@ -783,7 +783,7 @@
     }
    ],
    "gate_id": "gate.check_cache_tracked",
-   "what_it_refuses": "A page replays from its committed cache, so that cache MUST be git-tracked \u2014 an untracked cache means a fresh clone cannot reproduce the page (this silently broke empagliflozin: the page looked fine, but its cache/<slug>/records.json was never committed).",
+   "what_it_refuses": "A page replays from its committed cache, so that cache MUST be git-tracked — an untracked cache means a fresh clone cannot reproduce the page (this silently broke empagliflozin: the page looked fine, but its cache/<slug>/records.json was never committed).",
    "where": "harness/gate.py:check_cache_tracked"
   },
   {
@@ -1446,7 +1446,7 @@
     }
    ],
    "gate_id": "gate.check_method_matches_scale",
-   "what_it_refuses": "The declared analysis-method string must match the scale ACTUALLY pooled \u2014 recomputed here independently via synth.method_text so the check cannot be a constant compared to itself (the melatonin cold-audit class: a mean-difference outcome was labelled with the log-ratio method, and the old declared==served limb compared one METHOD constant to itself and could never fire).",
+   "what_it_refuses": "The declared analysis-method string must match the scale ACTUALLY pooled — recomputed here independently via synth.method_text so the check cannot be a constant compared to itself (the melatonin cold-audit class: a mean-difference outcome was labelled with the log-ratio method, and the old declared==served limb compared one METHOD constant to itself and could never fire).",
    "where": "harness/gate.py:check_method_matches_scale"
   },
   {
@@ -1800,7 +1800,7 @@
     }
    ],
    "gate_id": "gate.check_preregistration_not_build",
-   "what_it_refuses": "A page that CLAIMS prospective registration (reproduction.preregistration.prospective) must cite a PROTOCOL-ONLY commit \u2014 one that contains no fetched cache, extracted review, blind pages or index.",
+   "what_it_refuses": "A page that CLAIMS prospective registration (reproduction.preregistration.prospective) must cite a PROTOCOL-ONLY commit — one that contains no fetched cache, extracted review, blind pages or index.",
    "where": "harness/gate.py:check_preregistration_not_build"
   },
   {
@@ -1908,7 +1908,7 @@
     }
    ],
    "gate_id": "gate.check_primary_result",
-   "what_it_refuses": "A page whose PRIMARY outcome has no pooled result cannot make its central claim and must not publish (this is what a k=0 decline looks like \u2014 the gate refuses it here rather than relying on a human to notice and not commit it).",
+   "what_it_refuses": "A page whose PRIMARY outcome has no pooled result cannot make its central claim and must not publish (this is what a k=0 decline looks like — the gate refuses it here rather than relying on a human to notice and not commit it).",
    "where": "harness/gate.py:check_primary_result"
   },
   {
@@ -3652,6 +3652,114 @@
    "gate_id": "verify_all.limb_provenance",
    "what_it_refuses": "provenance gate (every served value / tracker row: extractor or recorded call; none UNTRACED)",
    "where": "scripts/verify_all.py:limb_provenance"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "e930896a012a09ea4eaac51dd3c562315317b1435f643bdef5bcab7d7d4bcde5",
+      "evidence": [
+       "tests/test_verify_external_audit.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-external-audit-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_verify_external_audit.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "a served pooled number drifting from the external auditor's independent arithmetic; an edited auditor script",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_external_audit"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-external-audit-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "New gate (9 Oct 2026): only plant validations so far; no dated production refusal yet.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_external_audit"
+    }
+   ],
+   "gate_id": "verify_all.limb_external_audit",
+   "what_it_refuses": "external audit scripts re-run against the served numbers (audit/external/, unmodified)",
+   "where": "scripts/verify_all.py:limb_external_audit"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "e930896a012a09ea4eaac51dd3c562315317b1435f643bdef5bcab7d7d4bcde5",
+      "evidence": [
+       "tests/test_independent_recompute.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-independent-recompute-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_independent_recompute.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "a served pooled estimate/CI that a second, harness-free implementation does not reproduce from the served tuples",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_independent_recompute"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-independent-recompute-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "New gate (9 Oct 2026): only plant validations so far; no dated production refusal yet.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_independent_recompute"
+    }
+   ],
+   "gate_id": "verify_all.limb_independent_recompute",
+   "what_it_refuses": "independent recompute of every served pooled outcome (audit/independent_recompute.py, no harness import)",
+   "where": "scripts/verify_all.py:limb_independent_recompute"
   }
  ],
  "generated_utc": null,
