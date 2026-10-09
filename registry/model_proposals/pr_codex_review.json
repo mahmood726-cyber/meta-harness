@@ -6487,5 +6487,48 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "v13-apply-r1": {
+  "base": "2be4df9a51511d97727a1989b9ecce328159e624",
+  "head": "g1/v13-apply-2026-10-09",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5712113368725657e33fee98ed3243b9",
+    "state": "RAN_OK",
+    "files": [
+     "harness/design_key.py",
+     "harness/page.py",
+     "harness/pipeline.py"
+    ],
+    "prompt_sha256": "09ebab9b16ae14ff10b0e9081541a6959e456fe5e8a571d755b4829ed73ee61d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/design_key.py",
+    "function": "_printed_rr_is_rrr_of_counts / select_estimator_by_source_hierarchy",
+    "severity": "P0",
+    "claim": "Numerical coincidence reclassifies an explicitly reported adjusted RR as a mislabeled risk reduction, causing the selector to discard it in favor of crude counts. The rule never checks the report's wording or whether the estimate is adjusted.",
+    "failing_input": "_printed_rr_is_rrr_of_counts({'scale':'RR','derivation':'reported','effect':0.49,'ci_low':0.24,'ci_high':0.65,'quote':'The covariate-adjusted risk ratio was 0.49 (bootstrap 95% CI 0.24–0.65). Unadjusted events were 26/120 versus 51/120.'}, {'ai':26,'n1i':120,'ci':51,'n2i':120})",
+    "expected": "False: the held text explicitly identifies an adjusted risk ratio; resemblance to the complement of the crude RR does not establish mislabeling.",
+    "actual": "True. The crude RR is 0.5098039216 and its reflected interval is approximately [0.240369, 0.657860], satisfying every tolerance. The selector consequently excludes this reported candidate from published_target and retains the reconstruction when it is the only reported target candidate.",
+    "id": "v13-apply-r1:g1#1",
+    "record_id": "mc-5712113368725657e33fee98ed3243b9",
+    "verdict": null
+   },
+   {
+    "file": "harness/page.py",
+    "function": "_estimand_amendment_text",
+    "severity": "P1",
+    "claim": "An amendment explicitly marked non-post-hoc is nevertheless described as occurring after the results were seen.",
+    "failing_input": "_estimand_amendment_text({'estimand_history':[{'post_hoc':False,'declared':'RR','amended_to':'OR','until':'2026-01-01','changed_by':'protocol committee'}]})",
+    "expected": "Describe the amendment without asserting that results had already been seen.",
+    "actual": "amended: the protocol declared RR; amended to OR on 2026-01-01 after the results were seen (protocol committee). The original declaration is kept; no served number changed.",
+    "id": "v13-apply-r1:g1#2",
+    "record_id": "mc-5712113368725657e33fee98ed3243b9",
+    "verdict": null
+   }
+  ]
  }
 }
