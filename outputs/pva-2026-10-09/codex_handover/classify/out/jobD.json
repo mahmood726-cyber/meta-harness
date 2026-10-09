@@ -1,0 +1,108 @@
+{
+  "items": [
+    {
+      "id": "H10",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/extract.py",
+      "root_cause_code": "composite_heterogeneity(), lines 630 and 667, unconditionally describes heterogeneous composites as primary:\nreturn (\"pooled trials use each trial's OWN primary composite; component sets differ across trials\"\n\n_build_outcome(), harness/pipeline.py:1934-1936, persists the text:\n_ch = extract.composite_heterogeneity(spec.get(\"name\", \"\"), _ch_srcs)\nif _ch:\n    out[\"result\"][\"composite_heterogeneity\"] = _ch",
+      "fields_touched": "Changes reviews/pcsk9-mace/review.json outcomes[0].result.composite_heterogeneity. Thus SERVED even without changing pooled estimates. The minimal wording correction needs no registry or docs_result_changes.json changes.",
+      "fix": "In both return branches, replace \"pooled trials use each trial's OWN primary composite; component sets differ across trials\" with \"pooled trials contribute selected composite endpoints; component sets differ across trials\". The existing endpoint-definition annotations also require reconciliation with the selected endpoints before treating the entire disclosure as validated.",
+      "plant": "Call composite_heterogeneity('MACE', [{'endpoint_definition': 'CV_DEATH | MI | STROKE', 'registry_type': 'SECONDARY'}, {'endpoint_definition': 'CHD_DEATH | MI | STROKE | UNSTABLE_ANGINA'}]). Assert the disclosure contains 'selected composite endpoints' and excludes 'OWN primary composite'. Current function was exercised read-only and produces the incorrect primary assertion.",
+      "evidence": [
+        {
+          "file": "reviews/pcsk9-mace/review.json",
+          "quote": "\"registry_type\": \"SECONDARY\""
+        },
+        {
+          "file": "reviews/pcsk9-mace/review.json",
+          "quote": "\"source\": \"ClinicalTrials.gov results (structured target endpoint): outcome 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke' HR 0.8 (95% CI 0.73 to 0.88)\""
+        },
+        {
+          "file": "reviews/pcsk9-mace/review.json",
+          "quote": "\"composite_heterogeneity\": \"pooled trials use each trial's OWN primary composite; component sets differ across trials (endpoint definitions: CHD_DEATH | MI | ISCHEMIC_STROKE | UNSTABLE_ANGINA_HOSPITALIZATION; CV_DEATH | MI | STROKE | UNSTABLE_ANGINA_HOSPITALIZATION | CORONARY_REVASCULARIZATION) -- the pooled estimate mixes composite definitions (disclosed, not adjusted)\""
+        }
+      ]
+    },
+    {
+      "id": "H11",
+      "real": true,
+      "class": "PRESENTATION",
+      "root_cause_file": "harness/page.py",
+      "root_cause_code": "_trial_inputs(), lines 1435-1436, assumes every handchecked input is AACT-derived:\nelif vst == \"verified_handchecked\":\n    src = \"<span class='vok' title='\" + _e(t.get(\"verify_basis\", \"\")) + \"'>✓ verified (AACT-derived, cross-checked)</span><br>\" + _e(t.get(\"source\"))",
+      "fields_touched": "HTML badge only. Existing trials[].provenance, verified, verify_basis and source already support the correction. All review.json outcomes/result/trials/claim/comparator*/limitations objects, every registry file, and docs_result_changes.json remain byte-identical; no served number changes.",
+      "fix": "Replace the badge text '✓ verified (AACT-derived, cross-checked)' with '✓ verified (hand-checked)'; retain the existing verify_basis tooltip and source text.",
+      "plant": "Render each committed primary-outcome trial with id 'PMID 19522426' or 'PMID 16769748' through _trial_inputs({'trials': [t]}). Assert 'verified (hand-checked)' is present and 'AACT-derived' is absent. Both currently render the incorrect AACT badge in read-only checks.",
+      "evidence": [
+        {
+          "file": "reviews/metformin-pcos-ovulation/review.json",
+          "quote": "\"provenance\": \"published_rate\""
+        },
+        {
+          "file": "reviews/metformin-pcos-ovulation/review.json",
+          "quote": "\"verified\": \"verified_handchecked\""
+        },
+        {
+          "file": "reviews/metformin-pcos-ovulation/review.json",
+          "quote": "\"verify_basis\": \"arm counts recovered from the published rate + denominator (percentage round-trip matches the committed abstract)\""
+        }
+      ]
+    },
+    {
+      "id": "H12",
+      "real": true,
+      "class": "PRESENTATION",
+      "root_cause_file": "harness/page.py",
+      "root_cause_code": "_ABSENCE_STATE_LABEL, line 110:\n\"OUTCOME_NOT_IN_SOURCE\": \"not in cached source -- no outcome sentence/effect found\",\n\n_absent_label(), lines 144-145:\nif state and state in _ABSENCE_STATE_LABEL:\n    return _ABSENCE_STATE_LABEL[state]",
+      "fields_touched": "HTML absence label only. outcomes[0].declared_absent_trials already stores the matching source_span and the accurate reason/state_basis. No review.json field, registry/result_changes record, or served number needs changing.",
+      "fix": "Set _ABSENCE_STATE_LABEL['OUTCOME_NOT_IN_SOURCE'] = 'no poolable effect+CI or corroborated arm counts found in the cached source'. This covers both branches in absence.py:397-411, including the branch where an outcome sentence exists.",
+      "plant": "Load the committed declared_absent_trials row with label '33157425'; call _absent_label(t['reason'], t['state']). Assert the result describes missing poolable values and does not contain 'no outcome sentence'. The current call was exercised read-only and returns the false sentence-absence label.",
+      "evidence": [
+        {
+          "file": "reviews/melatonin-primary-insomnia-sol/review.json",
+          "quote": "\"reason\": \"no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract\""
+        },
+        {
+          "file": "reviews/melatonin-primary-insomnia-sol/review.json",
+          "quote": "\"source_span\": \"However, melatonin had no significant effect on other objective sleep parameters including sleep latency, sleep efficiency, wake during the sleep and percent of N1, N3 and REM sleep.\""
+        },
+        {
+          "file": "harness/absence.py",
+          "quote": "\"state_basis\": _basis(OUTCOME_NOT_IN_SOURCE, span, \"outcome sentence has no poolable effect+CI or corroborated arm counts\"),"
+        }
+      ]
+    },
+    {
+      "id": "H14",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/page.py",
+      "root_cause_code": "_retrieval_html(), lines 243-246, renders funnel counts without consulting source state:\nfunnel = src.get(\"funnel\") or {}\nflow = (f\"{_retrieval_value(funnel.get('hits'))} -&gt; \"\n        f\"{_retrieval_value(funnel.get('fetched'))} -&gt; \"\n        f\"{_retrieval_value(funnel.get('retained'))}\")\n\n_retrieval_value(), lines 168-169:\ndef _retrieval_value(x: Any) -> str:\n    return \"unknown\" if x is None else _e(x)",
+      "fields_touched": "The minimal renderer fix leaves review.json and every registry/result_changes file byte-identical, but changes served fetched/retained numbers from 0 to unknown. Therefore SERVED under the explicit served-number criterion.",
+      "fix": "Immediately after constructing flow, add:\nif src.get('state') == 'RAN_UNRECORDED':\n    flow = 'unknown -&gt; unknown -&gt; unknown'\nThis does not mutate the committed funnel or convert genuinely observed RAN_ZERO counts.",
+      "plant": "Pass _retrieval_html({'sources': [{'state': 'RAN_UNRECORDED', 'funnel': {'hits': None, 'fetched': 0, 'retained': 0}}]}). Assert the funnel cell contains 'unknown -&gt; unknown -&gt; unknown' and excludes 'unknown -&gt; 0 -&gt; 0'. Read-only checks reproduced three incorrect rows on each named committed page. Add a RAN_ZERO control asserting measured zeros remain visible.",
+      "evidence": [
+        {
+          "file": "reviews/tocilizumab-covid19-mortality/review.json",
+          "quote": "\"state\": \"RAN_UNRECORDED\""
+        },
+        {
+          "file": "reviews/tranexamic-acid-pph/review.json",
+          "quote": "\"fetched\": 0,\n            \"retained\": 0,"
+        },
+        {
+          "file": "harness/page.py",
+          "quote": "return (\"<strong>RAN_UNRECORDED</strong>: attempted by a pre-ledger fetch; its yield was never recorded, so \"\n                \"neither a count nor a zero can be shown (legacy only — a live run may not carry this state)\")"
+        },
+        {
+          "file": "reviews/tocilizumab-covid19-mortality/index.html",
+          "quote": "unknown -&gt; 0 -&gt; 0"
+        },
+        {
+          "file": "reviews/tranexamic-acid-pph/index.html",
+          "quote": "unknown -&gt; 0 -&gt; 0"
+        }
+      ]
+    }
+  ]
+}

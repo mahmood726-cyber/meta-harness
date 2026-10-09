@@ -1,0 +1,84 @@
+{
+  "items": [
+    {
+      "id": "H3",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/page.py; harness/limitations.py",
+      "root_cause_code": "page.py::_reproduction, lines 2417–2423, incorrectly equates zero checkable claims with no pooling:\n        n_chk = cc.get(\"claims_checked\") or 0\n        _zero = (\"<div class='absent'><strong>No checkable pooled claim (Claims checked: 0).</strong> \"\n                 \"Nothing was pooled on this page, so the canonical-claim contradiction gate has nothing \"\n                 \"to check here — this is a limitation, not a clean result.</div>\" if n_chk == 0 else \"\")\nlimitations.py::build_limitations, lines 1102–1112, stores the same error:\n        if _claim_check_count(review) == 0:\n                \"Nothing was pooled on this page, so the canonical-claim contradiction gate has nothing \"\n                \"to check here &mdash; this is a limitation, not a clean result.</div>\",",
+      "fields_touched": "Changes limitations[limitation_id ending ':reproduction:claim-check-zero'].rendered_text and .text_sha256 in both reviews, plus rendered HTML. Outcomes, results, trials, claims, comparator objects, served numbers and registry/result_changes records need no change. In-memory validation confirmed those two limitation fields change.",
+      "fix": "In both functions replace the string literal \"Nothing was pooled on this page, so the canonical-claim contradiction gate has nothing \" with \"No checkable canonical claim was available to the contradiction gate; this does not imply that no point estimate was pooled. The gate has nothing \". Preserve the zero-coverage warning and claim refusal.",
+      "plant": "Use the committed finerenone-ckd-t2d-renal and semaglutide-obesity-weight reviews: claims_checked=0 with k=2 and estimates 0.8407 and -11.4732. Assert 'Nothing was pooled' is absent from page._reproduction(review, False) and the claim-check-zero object returned by limitations.build_limitations(review). Both assertions fail currently and passed with the proposed in-memory replacements; no files were written.",
+      "evidence": [
+        {
+          "file": "reviews/finerenone-ckd-t2d-renal/review.json",
+          "quote": "\"estimate\": 0.8407"
+        },
+        {
+          "file": "reviews/semaglutide-obesity-weight/review.json",
+          "quote": "\"estimate\": -11.4732"
+        },
+        {
+          "file": "reviews/finerenone-ckd-t2d-renal/review.json",
+          "quote": "\"rendered_text\": \"<div class='absent'><strong>No checkable pooled claim (Claims checked: 0).</strong> Nothing was pooled on this page, so the canonical-claim contradiction gate has nothing to check here &mdash; this is a limitation, not a clean result.</div>\""
+        },
+        {
+          "file": "harness/limitations.py",
+          "quote": "        \"rendered_text\": rendered,\n        \"text_sha256\": _sha256(rendered),"
+        },
+        {
+          "file": "harness/claim.py",
+          "quote": "                \"basis\": \"no significance/null-crossing claim is emitted for a refused k=2 HKSJ CI\"}"
+        }
+      ]
+    },
+    {
+      "id": "H13",
+      "real": true,
+      "class": "PRESENTATION",
+      "root_cause_file": "harness/page.py",
+      "root_cause_code": "_outcome_block, lines 1930–1944: the note depends on trial/absence counts, without checking single-trial status.\n    n_pool = len(o.get(\"trials\") or [])\n    n_abs = len(o.get(\"declared_absent_trials\") or [])\n    if show_inputs and (n_pool or n_abs):\n        if n_abs and n_pool:\n            body += (f\"<p class='note'>k = {_k_display(o)}: the {n_pool} trial(s) named below were \"\n                     f\"pooled; {absent_display} had no poolable value for this \"",
+      "fields_touched": "Only rendered HTML wording. Every review.json field, including outcomes/result/trials/claim/comparator*/limitations, and every registry/result_changes file can remain byte-identical. No served number changes; the incorrect sentence is absent from review.json.",
+      "fix": "Replace the two opening f-strings with:\n            body += (f\"<p class='note'>k = {_k_display(o)}: the {n_pool} trial(s) named below have \"\n                     f\"extracted estimates; {absent_display} had no poolable value for this \"\nKeep the remaining note unchanged. This also fixes H19 without inferring pooling from extracted-row counts.",
+      "plant": "Pass reviews/tranexamic-acid-pph/review.json outcomes[0] to page._outcome_block(o, show_inputs=True, review=review): k=1, one extracted trial, three declared-absent trials. Assert 'trial(s) named below were pooled' is absent and 'trial(s) named below have extracted estimates;' is present. Current code fails; the in-memory fix passed, with an exact wording-only HTML delta and unchanged input object.",
+      "evidence": [
+        {
+          "file": "reviews/tranexamic-acid-pph/review.json",
+          "quote": "\"ci_note\": \"k=1: point estimate and 95% CI are the single trial's reported values, verbatim.\""
+        },
+        {
+          "file": "reviews/tranexamic-acid-pph/index.html",
+          "quote": "k = 1: the 1 trial(s) named below were pooled;"
+        },
+        {
+          "file": "harness/pipeline.py",
+          "quote": "            res[\"ci_provenance\"] = \"source-reported-CI:k=1-verbatim\"  # not engine-pooled; the trial's own CI"
+        }
+      ]
+    },
+    {
+      "id": "H19",
+      "real": true,
+      "class": "PRESENTATION",
+      "root_cause_file": "harness/page.py",
+      "root_cause_code": "_outcome_block renders suppression but subsequently appends the unconditional pooling note at lines 1943–1944:\n    elif res.get(\"suppressed_incompatible\"):\n        body += _suppressed_block(res)\n            body += (f\"<p class='note'>k = {_k_display(o)}: the {n_pool} trial(s) named below were \"\n                     f\"pooled; {absent_display} had no poolable value for this \"",
+      "fields_touched": "Only rendered HTML wording. outcomes[0].result.suppressed_incompatible remains true; all outcomes/result/trials/claim/comparator*/limitations fields and registry/result_changes files remain byte-identical. No served number changes; the incorrect sentence is absent from review.json.",
+      "fix": "Apply the same shared renderer replacement as H13:\n            body += (f\"<p class='note'>k = {_k_display(o)}: the {n_pool} trial(s) named below have \"\n                     f\"extracted estimates; {absent_display} had no poolable value for this \"\nRetain the existing suppression block.",
+      "plant": "Pass reviews/iv-iron-hfref-hosp/review.json outcomes[0] to page._outcome_block(o, show_inputs=True, review=review): suppressed_incompatible=true, k=2, two extracted trials and seven declared-absent trials. Assert the pooling sentence is absent and the extracted-estimates sentence is present. Current code fails; the in-memory fix passed. The entire HTML delta was that wording replacement, preserving suppression text and every number; the input object was unchanged.",
+      "evidence": [
+        {
+          "file": "reviews/iv-iron-hfref-hosp/review.json",
+          "quote": "\"suppressed_incompatible\": true"
+        },
+        {
+          "file": "reviews/iv-iron-hfref-hosp/review.json",
+          "quote": "\"scale\": \"INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO)\""
+        },
+        {
+          "file": "reviews/iv-iron-hfref-hosp/index.html",
+          "quote": "k = 2: the 2 trial(s) named below were pooled;"
+        }
+      ]
+    }
+  ]
+}

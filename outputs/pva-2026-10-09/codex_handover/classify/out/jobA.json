@@ -1,0 +1,108 @@
+{
+  "items": [
+    {
+      "id": "H2",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/page.py; harness/limitations.py",
+      "root_cause_code": "page.py::_riskofbias, lines 2822–2825:\n        n_ns_ft = sum(1 for f in fund if f.get(\"status\") == \"none_stated_in_held_text\"\n                      and (f.get(\"scanned\") or \"\").startswith(\"full text\"))\n        n_ns_ab = sum(1 for f in fund if f.get(\"status\") == \"none_stated_in_held_text\"\n                      and not (f.get(\"scanned\") or \"\").startswith(\"full text\"))\nlimitations.py::_funding_block, lines 575–578, repeats this status-only predicate. The committed rows instead carry funding_state and legacy type strings.",
+      "fields_touched": "limitations[limitation_id='topic:dpp4-mace-t2d:riskofbias:funding-coi'].rendered_text changes; displayed absence counts change from 0/0 to 1/1. Funding source rows, outcomes, result, trials, claim, comparator objects and registry files need no change. Therefore this cannot be PRESENTATION.",
+      "fix": "In both counters, replace the status-only condition with a shared predicate: def no_statement(f): return f.get('status') == 'none_stated_in_held_text' or f.get('funding_state') == 'NOT_STATED_IN_RETRIEVED_SOURCE' or f.get('type') in {'not stated (full text scanned)', 'not stated (abstract only - full text not retrieved)'}. Retain the full-text test; require an explicit abstract scan for the abstract count rather than treating every non-full-text value as abstract. Regenerate the funding limitation.",
+      "plant": "Use the committed dpp4-mace-t2d funding rows. Assert both page._riskofbias(r, False) and limitations._funding_block(r['funding']) contain '1 with no funding statement' and 'and 1 where only the'. Current _funding_block was executed read-only and emits 0 instead. The corrected predicate counts one row in each category.",
+      "evidence": [
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"type\": \"not stated (full text scanned)\""
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"type\": \"not stated (abstract only - full text not retrieved)\""
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"funding_state\": \"NOT_STATED_IN_RETRIEVED_SOURCE\""
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available"
+        },
+        {
+          "file": "harness/limitations.py",
+          "quote": "            _funding_block(fund),"
+        }
+      ]
+    },
+    {
+      "id": "H4",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/known_missing.py",
+      "root_cause_code": "_missing_candidates, lines 204–212, admits historical signals without checking current pool membership:\n    for x in signals.get(\"known_eligible_missing\") or []:\n        key = str(x.get(\"trial\") or \"\").strip()\n        if key and key not in seen:\n            seen.add(key)\n            out.append({\n                \"trial\": key,\n                \"why_eligible\": x.get(\"note\") or f\"known_eligible_missing via {x.get('mechanism')}\",\n                \"note\": x.get(\"note\") or \"\",\n            })\n_source_value, lines 183–184, then labels the unresolved descriptive alias absent:\n    if not rec:\n        out[\"verify_basis\"] = \"named trial is not present in the committed topic cache\"\nbuild, line 295, persists the panel:\n    primary[\"known_missing_sensitivity\"] = panel",
+      "fields_touched": "outcomes[primary=true].known_missing_sensitivity.rows loses the erroneous TECOS row. Primary trials, result and claim need no change; registry files need no change. The stored outcome object changes, making this SERVED.",
+      "fix": "Resolve candidate identities before accepting missing signals and exclude IDs already in primary['trials']. For this legacy alias, match the unique label before the explanatory parenthesis ('TECOS') to the current trial label, yielding PMID 26052984; use explicit normalized IDs/report_ids where supplied and refuse ambiguous alias matches. Apply the same membership exclusion to declared_absent_trials. Clear primary.pop('known_missing_sensitivity', None) before rebuilding so an empty candidate set cannot retain a stale panel.",
+      "plant": "Use the committed review with signals={'known_eligible_missing':[{'trial':'TECOS (3-point MACE from primary publication)','note':'test'}]}. Assert _missing_candidates returns no TECOS candidate while retaining unrelated absent trials. Executing the current function returned {'trial': 'TECOS (3-point MACE from primary publication)', 'why_eligible': 'test', 'note': 'test'}. Also seed an old panel with only TECOS and verify rebuilding removes it when no missing candidates remain.",
+      "evidence": [
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"trial_key\": \"TECOS (3-point MACE from primary publication)\""
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"verify_basis\": \"named trial is not present in the committed topic cache\""
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"value_status\": \"NOT_IN_COMMITTED_SOURCE\""
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"provenance\": \"served_pool_signed_notice\""
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"label\": \"TECOS\""
+        },
+        {
+          "file": "harness/pipeline.py",
+          "quote": "    known_missing_mod.build(review, _inv_sig, rec_by_id, records)"
+        }
+      ]
+    },
+    {
+      "id": "H5",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/page.py; harness/review_tabs.py",
+      "root_cause_code": "page.py::result_changes_status, lines 2240–2242, treats stored hold metadata as current without a resolution check:\n    hd = n.get(\"held\") or {}\n    if hd.get(\"code\"):\n        return {\"state\": \"HELD\", \"text\": f\"held ({hd.get('code')}): {hd.get('why')}\"}\nreview_tabs.py::changes_tab, lines 498–500, turns that into a categorical current-result assertion:\n                out.append(\"<p class='absent' data-result-change-status='\" + _e(st[\"state\"]) + \"'><strong>NOT APPLIED -- \"\n                           + _e(st[\"text\"]) + \"</strong> The notice below is kept as signed, for the record; the served \"\n                           \"result does not include it.</p>\")\nThese are the exact text-producing functions. The hold's original writer is not established by the supplied harness files.",
+      "fields_touched": "reproduction.result_changes[the 2026-10-05 primary-MACE notice].held needs explicit resolution metadata. This is substantive notice state, not exempt reproduction/certificate code identity. Record the resolution in the authoritative notice history and regenerate its review copy. Preserve signed notice bytes, countersignature, outcomes, trials, result and claim. Thus SERVED.",
+      "fix": "Preserve the historical hold and add held.resolution with state='OVERTAKEN', a source-backed reason and the matching signed admission/HHF-notice references. In result_changes_status, check that resolution before returning HELD. In changes_tab, render OVERTAKEN as historical hold resolved, without the 'NOT APPLIED' or 'served result does not include it' assertions. Do not infer resolution merely from matching numbers or rewrite the signed block.",
+      "plant": "Use the committed primary-MACE notice, its held metadata, the served TECOS row and the signed HHF notice dated 2026-10-06. Add the verified resolution metadata in memory. Assert result_changes_status returns OVERTAKEN and changes_tab does not label that notice HELD or assert its result is excluded. Current result_changes_status was executed read-only and returns HELD; it ignores resolution metadata.",
+      "evidence": [
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"code\": \"SIGNED_CHANGE_HAS_AN_UNSHOWN_CONSEQUENCE\""
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "Held until both are presented together (next packet)."
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/index.html",
+          "quote": "The notice below is kept as signed, for the record; the served result does not include it."
+        },
+        {
+          "file": "docs_result_changes.json",
+          "quote": "PMID 26052984 entered the pool contributing HR 0.99 (0.89 to 1.1)"
+        },
+        {
+          "file": "reviews/dpp4-mace-t2d/review.json",
+          "quote": "\"provenance\": \"served_pool_signed_notice\""
+        },
+        {
+          "file": "docs_result_changes.json",
+          "quote": "so SAVOR-TIMI 53's held abstract row HR 1.27 (1.07-1.51) is admitted."
+        }
+      ]
+    }
+  ]
+}
