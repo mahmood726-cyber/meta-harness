@@ -6347,5 +6347,51 @@
     "verdict": null
    }
   ]
+ },
+ "pr36-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-05b2575aa0790ba12da03a339b2521c3",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/build_auditor_md.py"
+    ],
+    "prompt_sha256": "15bffca8aa8ca045b1733b548bdddcf4d889e7af67833760be04226ed9685c17"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_auditor_md.py",
+    "function": "build",
+    "severity": "P2",
+    "claim": "The new held-index fallback does not handle invalid JSON value types. A null IDs field aborts the build instead of producing UNKNOWN rows.",
+    "failing_input": "registry/held_record_ids.json at the supplied live commit contains exactly: {\"ids\": null}",
+    "expected": "Treat the unusable held index as unavailable: set held = None and classify extraction rows as UNKNOWN.",
+    "actual": "frozenset(None) raises TypeError: 'NoneType' object is not iterable. The exception handler does not catch TypeError, so build aborts.",
+    "id": "pr36-r1:g1#1",
+    "record_id": "mc-05b2575aa0790ba12da03a339b2521c3",
+    "verdict": null
+   }
+  ]
+ },
+ "pr37-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e95a42fc90312421bbb40e54e65aa6c9",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_panel.py",
+     "harness/page.py"
+    ],
+    "prompt_sha256": "bbf2cccc58969d0ca6d84fd53706fa354d0610494b9848958d45cad4567ab0df"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }
