@@ -89,3 +89,20 @@ def test_PLANT_codex_r3_tuple_kind_impossible_counts_reversed_ci_and_large_units
     assert irc.recompute_outcome({"method": "Single included trial own effect", "trials": [rev],
                                   "result": {"scale": "RR", "estimate": 1, "ci_low": 2, "ci_high": 0.5}})["state"] != "AGREE"
     assert abs(irc.paule_mandel([-20000, 20000], [1, 1]) - 799999999) < 1.0
+
+
+def test_PLANT_codex_r4_rate_as_or_hidden_bad_effect_negative_time_and_incomplete_tuple():
+    """codex ext-audit-r4: a rate tuple under an OR outcome; a reversed reported CI beside valid counts; negative person-time;
+    an incomplete 2x2 (which used to raise and abort the whole run)."""
+    rate = {"measure": "OR", "e1i": 20, "t1i": 100, "e2i": 10, "t2i": 100}
+    assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [rate, rate],
+                                  "result": {"scale": "OR", "estimate": 2}})["state"] != "AGREE"
+    both = {"ai": 10, "n1i": 100, "ci": 20, "n2i": 100, "effect": 5, "ci_low": 10, "ci_high": 1}
+    assert irc.recompute_outcome({"method": "Single included trial own effect", "trials": [both],
+                                  "result": {"scale": "RR", "estimate": 5, "ci_low": 10, "ci_high": 1}})["state"] != "AGREE"
+    neg = {"e1i": 20, "t1i": -100, "e2i": 10, "t2i": -100}
+    assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [neg, neg],
+                                  "result": {"scale": "IRR", "estimate": 2}})["state"] != "AGREE"
+    part = {"ai": 1, "n1i": 10, "ci": 1}
+    assert irc.recompute_outcome({"method": "Single included trial own effect", "trials": [part],
+                                  "result": {"scale": "RR", "estimate": 1, "ci_low": 0.1, "ci_high": 10}})["state"] == "NOT_RECOMPUTABLE"

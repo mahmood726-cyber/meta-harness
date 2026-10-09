@@ -59,45 +59,77 @@ def _finite(*xs):
     return all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) for x in xs)
 
 
+MEANS = ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2")
+RATE = ("e1i", "t1i", "e2i", "t2i")
+COUNTS = ("ai", "n1i", "ci", "n2i")
+EFFECT = ("effect", "ci_low", "ci_high")
+# which tuple kinds may rebuild an outcome of each served scale class (codex ext-audit-r3/r4 P0)
+KIND_FOR_SCALE = {"MD": {"MEANS", "EFFECT"}, "IRR": {"RATE", "EFFECT"}, "RR": {"COUNTS", "EFFECT"},
+                  "HR": {"COUNTS", "EFFECT"}, "OR": {"COUNTS", "EFFECT"}}
+
+
+def _present(row, fields):
+    vals = [row.get(f) for f in fields]
+    if all(v is None for v in vals):
+        return None
+    if any(v is None for v in vals) or not _finite(*vals):
+        raise ValueError(f"incomplete or non-finite {'/'.join(fields)} tuple")
+    return [float(v) for v in vals]
+
+
 def study_y_v(row, outcome_scale):
-    """(y, v) for one served trial tuple, or raises ValueError naming why it cannot be rebuilt."""
+    """(y, v) for one served trial tuple, or raises ValueError naming why it cannot be rebuilt. EVERY tuple kind present on
+    the row is validated (a malformed reported effect is never hidden behind valid counts), the kind used must be one that
+    can rebuild the outcome's served scale, and the precedence is means -> rate -> counts -> reported effect."""
     g = row.get
     if g("design_adjustment") or (g("design") or {}).get("design_adjustment"):
         raise ValueError("design-adjusted variance is not carried in the served tuple")
-    if g("mean1") is not None and g("sd1") is not None and g("nc1"):
-        # the TUPLE KIND must match the outcome (codex ext-audit-r3 P0): arm means build a raw MD only
-        if not _is_md(outcome_scale):
-            raise ValueError(f"arm means cannot rebuild an outcome served as {outcome_scale}")
-        return g("mean1") - g("mean2"), g("sd1") ** 2 / g("nc1") + g("sd2") ** 2 / g("nc2")
-    if _is_md(outcome_scale) and g("effect") is None:
-        raise ValueError("a count or rate tuple cannot rebuild a mean difference")
-    if g("e1i") is not None and g("t1i") and g("e2i") is not None and g("t2i"):
-        e1, e2 = float(g("e1i")), float(g("e2i"))
+    oc = _scale_class(outcome_scale)
+    means, rate, counts, eff = (_present(row, f) for f in (MEANS, RATE, COUNTS, EFFECT))
+    if means:
+        m1, s1, n1, m2, s2, n2 = means
+        if min(s1, s2) <= 0 or min(n1, n2) < 1:
+            raise ValueError("arm means need positive SDs and arm sizes")
+    if rate:
+        e1, t1, e2, t2 = rate
+        if min(e1, e2) < 0 or min(t1, t2) <= 0:
+            raise ValueError("a rate tuple needs non-negative events and positive person-time")
+    if counts:
+        a, n1c, c, n2c = counts
+        if not (0 <= a <= n1c and 0 <= c <= n2c and n1c > 0 and n2c > 0):
+            raise ValueError(f"impossible 2x2: {a}/{n1c} v {c}/{n2c}")
+    if eff:
+        pt, lo, hi = eff
+        if not (lo <= pt <= hi) or lo == hi:
+            raise ValueError("reported interval is reversed, degenerate or excludes its own point")
+        if not _is_md(g("scale") or outcome_scale) and lo <= 0:
+            raise ValueError("a ratio effect must be positive")
+    kind = "MEANS" if means else "RATE" if rate else "COUNTS" if counts else "EFFECT" if eff else None
+    if kind is None:
+        raise ValueError("no effect+CI, 2x2, rate or arm-means tuple")
+    if kind not in KIND_FOR_SCALE.get(oc, set()):
+        raise ValueError(f"a {kind} tuple cannot rebuild an outcome served as {outcome_scale}")
+    if kind == "MEANS":
+        return m1 - m2, s1 ** 2 / n1 + s2 ** 2 / n2
+    if kind == "RATE":
         if min(e1, e2) == 0:
             e1, e2 = e1 + 0.5, e2 + 0.5
-        return math.log((e1 / g("t1i")) / (e2 / g("t2i"))), 1 / e1 + 1 / e2
-    if g("ai") is not None and g("n1i"):
-        a, n1, c, n2 = (float(g(k)) for k in ("ai", "n1i", "ci", "n2i"))
-        if not (0 <= a <= n1 and 0 <= c <= n2 and n1 > 0 and n2 > 0):
-            raise ValueError(f"impossible 2x2: {a}/{n1} v {c}/{n2}")   # codex ext-audit-r3 P0
-        if min(a, c, n1 - a, n2 - c) == 0:
-            a, c, n1, n2 = a + 0.5, c + 0.5, n1 + 1, n2 + 1
-        measure = str(g("measure") or g("scale") or outcome_scale or "").upper()
+        return math.log((e1 / t1) / (e2 / t2)), 1 / e1 + 1 / e2
+    if kind == "COUNTS":
+        measure = str(g("measure") or g("scale") or oc).upper()
         if measure in ("HR", "IRR"):
-            measure = "RR"          # a first-event / rate outcome's 2x2 row is a reconstructed risk ratio
-        if measure not in ("RR", "OR"):
-            raise ValueError(f"a 2x2 row on measure {measure or '<none>'} is not a log ratio this check rebuilds")
+            measure = "RR"          # a first-event outcome's 2x2 row is a reconstructed risk ratio
+        if measure not in ("RR", "OR") or (oc == "OR") != (measure == "OR"):
+            raise ValueError(f"a 2x2 row on {measure} cannot rebuild an outcome served as {outcome_scale}")
+        if min(a, c, n1c - a, n2c - c) == 0:
+            a, c, n1c, n2c = a + 0.5, c + 0.5, n1c + 1, n2c + 1
         if measure == "OR":
-            b, d = n1 - a, n2 - c
+            b, d = n1c - a, n2c - c
             return math.log(a * d / (b * c)), 1 / a + 1 / b + 1 / c + 1 / d
-        return math.log((a / n1) / (c / n2)), 1 / a - 1 / n1 + 1 / c - 1 / n2
-    if g("effect") is not None and g("ci_low") is not None and g("ci_high") is not None:
-        if not (g("ci_low") <= g("effect") <= g("ci_high")) or g("ci_low") == g("ci_high"):
-            raise ValueError("reported interval is reversed, degenerate or excludes its own point")   # codex ext-audit-r3 P0
-        if _is_md(g("scale") or outcome_scale):
-            return float(g("effect")), ((g("ci_high") - g("ci_low")) / (2 * Z)) ** 2
-        return math.log(g("effect")), ((math.log(g("ci_high")) - math.log(g("ci_low"))) / (2 * Z)) ** 2
-    raise ValueError("no effect+CI, 2x2, rate or arm-means tuple")
+        return math.log((a / n1c) / (c / n2c)), 1 / a - 1 / n1c + 1 / c - 1 / n2c
+    if _is_md(g("scale") or outcome_scale):
+        return pt, ((hi - lo) / (2 * Z)) ** 2
+    return math.log(pt), ((math.log(hi) - math.log(lo)) / (2 * Z)) ** 2
 
 
 def paule_mandel(y, v):
@@ -159,7 +191,7 @@ def recompute_outcome(o):
             return {"state": "DISAGREE", "why": f"a trial row on {m} sits in an outcome served as {scale} (incompatible measures)"}
     try:
         yv = [study_y_v(t, scale) for t in trials]
-    except ValueError as exc:
+    except (ValueError, TypeError, ZeroDivisionError) as exc:
         return {"state": "NOT_RECOMPUTABLE", "why": str(exc)}
     if not yv:
         return {"state": "NOT_RECOMPUTABLE", "why": "no trial tuples served"}

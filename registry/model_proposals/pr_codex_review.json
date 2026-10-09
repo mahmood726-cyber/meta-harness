@@ -6551,5 +6551,73 @@
     "verdict": null
    }
   ]
+ },
+ "ext-audit-r4": {
+  "base": "2be4df9a51511d97727a1989b9ecce328159e624",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-39ec140486fa4f8a8e5212ea50d424b6",
+    "state": "RAN_OK",
+    "files": [
+     "audit/independent_recompute.py",
+     "scripts/pr_codex_review.py",
+     "scripts/verify_all.py",
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "25aed48e732b9babc77dcc7fdd992d92298aca08403d7c1074fadec258b4b9a6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v",
+    "severity": "P0",
+    "claim": "The person-time branch computes an incidence-rate ratio without checking the outcome scale. Consequently, the gate certifies that rate ratio as an odds ratio, even with an explicit OR row label.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'measure': 'OR', 'e1i': 20, 't1i': 100, 'e2i': 10, 't2i': 100}\nprint(recompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [row, row], 'result': {'scale': 'OR', 'estimate': 2}}))",
+    "expected": "NOT_RECOMPUTABLE: event counts and person-time cannot reconstruct an odds ratio.",
+    "actual": "{'state': 'AGREE', 'k': 2, 'scale': 'OR', 'compared': {'estimate': (2.0, 2)}, 'mismatch': {}}",
+    "id": "ext-audit-r4:g1#1",
+    "record_id": "mc-39ec140486fa4f8a8e5212ea50d424b6",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "recompute_outcome",
+    "severity": "P0",
+    "claim": "When a single trial contains both counts and a reported effect, study_y_v validates only the counts. The subsequent override copies the unvalidated reported effect and interval, allowing a reversed interval to pass.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nprint(recompute_outcome({'method': 'Single included trial own effect', 'trials': [{'ai': 10, 'n1i': 100, 'ci': 20, 'n2i': 100, 'effect': 5, 'ci_low': 10, 'ci_high': 1}], 'result': {'scale': 'RR', 'estimate': 5, 'ci_low': 10, 'ci_high': 1}}))",
+    "expected": "NOT_RECOMPUTABLE: the reported interval is reversed and excludes its point estimate, matching the existing effect-and-CI validation.",
+    "actual": "{'state': 'AGREE', 'k': 1, 'scale': 'RR', 'compared': {'estimate': (5, 5), 'ci_low': (10, 10), 'ci_high': (1, 1)}, 'mismatch': {}}",
+    "id": "ext-audit-r4:g1#2",
+    "record_id": "mc-39ec140486fa4f8a8e5212ea50d424b6",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v",
+    "severity": "P0",
+    "claim": "Person-time denominators are checked only for truthiness. Two negative denominators cancel in the ratio, producing a finite estimate and positive variance that the gate accepts.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'e1i': 20, 't1i': -100, 'e2i': 10, 't2i': -100}\nprint(recompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [row, row], 'result': {'scale': 'IRR', 'estimate': 2}}))",
+    "expected": "NOT_RECOMPUTABLE: person-time denominators must be positive.",
+    "actual": "{'state': 'AGREE', 'k': 2, 'scale': 'IRR', 'compared': {'estimate': (2.0, 2)}, 'mismatch': {}}",
+    "id": "ext-audit-r4:g1#3",
+    "record_id": "mc-39ec140486fa4f8a8e5212ea50d424b6",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v / recompute_outcome",
+    "severity": "P2",
+    "claim": "An incomplete count tuple raises an uncaught TypeError instead of producing NOT_RECOMPUTABLE. Through run(), this aborts the entire audit and prevents reporting subsequent outcomes.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nprint(recompute_outcome({'method': 'Single included trial own effect', 'trials': [{'ai': 1, 'n1i': 10, 'ci': 1}], 'result': {'scale': 'RR', 'estimate': 1, 'ci_low': 0.1, 'ci_high': 10}}))",
+    "expected": "NOT_RECOMPUTABLE with a reason identifying the missing n2i denominator.",
+    "actual": "Raises TypeError: float() argument must be a string or a real number, not 'NoneType'; no verdict is returned.",
+    "id": "ext-audit-r4:g1#4",
+    "record_id": "mc-39ec140486fa4f8a8e5212ea50d424b6",
+    "verdict": null
+   }
+  ]
  }
 }
