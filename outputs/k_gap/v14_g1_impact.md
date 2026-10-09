@@ -58,3 +58,12 @@ So noac is NOT outcome-intrinsic. The same flood B-prime prevented for GLP-1 wou
 
 - **Moved to (b):** the literal universe is reported in the V14 question, not applied.
 - **Plausibly in a stroke/SEE analysis** (if the captain wants a typed endpoint-axis rule): J-ROCKET AF 22664783, ROCKET AF China 23929423, RIVER 33196155, RENAL-AF NCT02942407, AXADIA NCT02933697, and the Japanese/Asian phase 2 safety trials.
+
+## 2026-10-10 ~01:30 -- semaglutide-obesity-weight dual screen (66 records after identity dedup; 132 recorded calls)
+
+Result: ELIGIBLE 1, EXCLUDED 40, DISAGREE 25 (outputs/k_gap/concept/_dual_a_semaglutide_weight.json).
+- **STEP 5** (36216945; NCT03693430; Garvey 2022, 2-year) is a recall miss: it is not in our pool and not in comparator 42536519's set.
+  - Its CT.gov posted results give the body-weight change at **Week 104 only** (primary: "Percentage Change From Baseline (Week 0) to Week 104 in Body Weight").
+  - Under protocol line 18 ("If an otherwise eligible trial does not report the Week-68 percent body-weight change ... it is declared absent rather than substituted with another endpoint or timepoint"), STEP 5 is ELIGIBLE with its OUTCOME DECLARED ABSENT.
+  - **G1 effect (not applied):** semaglutide-obesity-weight is G1_MATCHED (2/2 eligible matched; O'Neil and Rubino named). A fourth eligible trial outside the comparator keeps ALL_ELIGIBLE_MATCHED only if it is named. Proposed name: OUTCOME_ABSENT_AT_PROTOCOL_TIMEPOINT (Week 104 only; span = the posted primary title). No pooled number changes.
+- The 25 DISAGREE records need a third read or a ruling before any is counted.
