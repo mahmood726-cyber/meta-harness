@@ -33,17 +33,31 @@ def _ws(s):
     return re.sub(r"\s+", " ", s or "").strip()
 
 
+_COMP = {"death": re.compile(r"(?:non-?fatal )?(?:cv|cardiovascular) death|death (?:from|due to) cardiovascular causes"),
+         "mi": re.compile(r"(?:non-?fatal )?(?:myocardial infarction|mi)"),
+         "stroke": re.compile(r"(?:non-?fatal )?stroke")}
+_FIRST = re.compile(r"(?:cv|cardiovascular) death|death (?:from|due to) cardiovascular causes|myocardial infarction|\bmi\b|"
+                    r"\bstroke\b", re.I)
+
+
 def three_point(definition, result_clause):
-    """(hr, lo, hi) when the DEFINITION names exactly CV death + (non-fatal) MI + (non-fatal) stroke and nothing more,
-    and the result clause prints one HR with its CI; else (None, why)."""
-    d = definition.lower()
-    have = [bool(re.search(r"(?:cv|cardiovascular) death", d)), bool(re.search(r"myocardial infarction|\bmi\b", d)),
-            bool(re.search(r"stroke", d))]
-    extra = re.search(r"unstable angina|heart failure|revasculari[sz]ation|hospitali[sz]ation|all-cause|any cause", d)
-    if not all(have):
+    """(hr, lo, hi) when the DEFINITION names exactly CV death + (non-fatal) MI + (non-fatal) stroke and NOTHING else --
+    a whitelist: every listed item must be one of the three (codex review10-r1 #1: a blacklist let 'resuscitated cardiac
+    arrest' through) -- and the result clause prints one HR inside its CI; else (None, why)."""
+    d = re.sub(r"\([^)]*\)", " ", definition.lower())
+    m = _FIRST.search(d)
+    if not m:
         return None, "DEFINITION_NOT_THREE_COMPONENTS"
-    if extra:
-        return None, f"DEFINITION_HAS_A_FOURTH_COMPONENT:{extra.group(0)}"
+    d = re.split(r";|\bhr\b|hazard ratio|\bgave\b|\bwas\b|\bwere\b", d[m.start():])[0]
+    items = [x.strip(" .:-") for x in re.split(r",|\s+or\s+|\s+and\s+|/", d) if x.strip(" .:-")]
+    seen = set()
+    for it in items:
+        k = next((k for k, rx in _COMP.items() if rx.fullmatch(it)), None)
+        if k is None:
+            return None, f"DEFINITION_HAS_A_FOURTH_COMPONENT:{it[:60]}"
+        seen.add(k)
+    if seen != set(_COMP):
+        return None, "DEFINITION_NOT_THREE_COMPONENTS"
     hits = _HR.findall(result_clause)
     if len(hits) != 1:
         return None, f"RESULT_CLAUSE_HRS:{len(hits)}"
@@ -51,6 +65,60 @@ def three_point(definition, result_clause):
     if not lo <= hr <= hi:
         return None, "HR_NOT_INSIDE_ITS_CI"
     return (hr, lo, hi), None
+
+
+def reader_verdict(a, txt):
+    """(gate, agrees) for a FLOW reader: quote verbatim, the HR and CI printed in it, AND the quote is FLOW's own overall
+    3-point result clause -- a matching tuple from another endpoint never agrees (codex review10-r1 #2)."""
+    if a.get("state") != "FOUND":
+        return "NOT_REPORTED_BY_READER", False
+    parts = [_ws(x) for x in str(a.get("quote") or "").splitlines() if _ws(x)]
+    if not parts or any(len(x) < 20 or x not in txt for x in parts):
+        return "QUOTE_NOT_VERBATIM", False
+    q = " ".join(parts)
+    miss = [kk for kk in ("hr", "lower", "upper") if a.get(kk) is None or f"{a[kk]:.2f}" not in q]
+    if miss:
+        return f"NUMBER_NOT_IN_QUOTE:{miss}", False
+    res = _ws(FLOW_RES).rstrip(".")
+    if not all(x.rstrip(".") in res or res in x for x in parts):
+        return "GATED_OTHER_CLAUSE", False
+    return "GATED", (a.get("hr"), a.get("lower"), a.get("upper")) == (0.82, 0.68, 0.98)
+
+
+def ema_three_point_clauses(text):
+    """Sentences naming ELIXA (or in a window after it) whose own definition passes three_point (codex review10-r1 #3:
+    the EMA route had bypassed it)."""
+    out = []
+    for m in re.finditer(r"ELIXA", text):
+        win = text[m.start():m.start() + 900]
+        for sent in re.split(r"(?<=[.])\s+(?=[A-Z])", win):
+            if _HR.search(sent):
+                got, _why = three_point(sent, sent)
+                if got:
+                    out.append(sent[:300])
+    return list(dict.fromkeys(out))
+
+
+def label_primary(t):
+    """The ADLYXIN label's primary-endpoint table: its own definition and HR, classified by three_point."""
+    m = re.search(r"Table \d+: Analysis of the Primary C(?:ardiovascular|V) Endpoint \(time to the first occurrence of "
+                  r"the composite of ([^)]{20,200})\).{0,400}?Primary composite CV event.{0,200}?(\d\.\d\d) \((\d\.\d\d), "
+                  r"(\d\.\d\d)\)", t, re.I)
+    if not m:
+        return None
+    got, why = three_point(m.group(1), f"HR {m.group(2)} ({m.group(3)}-{m.group(4)})")
+    return {"definition": m.group(1), "hr": [float(m.group(2)), float(m.group(3)), float(m.group(4))],
+            "three_point": bool(got), "why": why}
+
+
+def four_point_of(d):
+    """The label HR only when its definition is NOT 3-point (codex review10-r1 #4)."""
+    return d["hr"] if d and not d["three_point"] and str(d.get("why") or "").startswith("DEFINITION_HAS_A_FOURTH") else None
+
+
+def doc_route_outcome(text, agency):
+    """An unreadable held document is NOT_CHECKED -- never read as absence (codex review10-r1 #5)."""
+    return f"NOT_CHECKED ({agency} held text unreadable or digest changed)" if not text else "READ"
 
 
 def flow():
@@ -86,23 +154,24 @@ def elixa():
     else:
         routes.append({"route": "AACT", "outcome": "NOT_CHECKED (no snapshot)"})
     src = json.load(open(rs.SOURCES, encoding="utf-8"))
-    lbl, comp4 = None, None
+    lbl, comp4, unread = None, None, []
     for u, r in sorted(src.items()):
         if SLUG not in (r.get("topics") or []) or r.get("state") != "TEXT" or "208471" not in u or "/label/" not in u:
             continue
-        t = _ws(rs.doc_text(u) or "")
-        m = re.search(r"Table \d+: Analysis of the Primary C(?:ardiovascular|V) Endpoint \(time to the first occurrence of "
-                      r"the composite of ([^)]{20,200})\).{0,400}?Primary composite CV event.{0,200}?(\d\.\d\d) \((\d\.\d\d), "
-                      r"(\d\.\d\d)\)", t, re.I)
-        if m:
-            got, why = three_point(m.group(1), f"HR {m.group(2)} ({m.group(3)}-{m.group(4)})")
-            lbl = {"url": u, "doc_sha256": r.get("doc_sha256"), "definition": m.group(1),
-                   "hr": [float(m.group(2)), float(m.group(3)), float(m.group(4))], "three_point": bool(got), "why": why}
-            comp4 = lbl["hr"]
+        raw = rs.doc_text(u)
+        if doc_route_outcome(raw, "FDA") != "READ":
+            unread.append(u)
+            continue
+        d = label_primary(_ws(raw))
+        if d:
+            lbl = dict(d, url=u, doc_sha256=r.get("doc_sha256"))
+            comp4 = four_point_of(d)
             break
     routes.append({"route": "FDA ADLYXIN label (NDA208471) Table 12", "outcome":
                    (f"FOUR_POINT_PRIMARY_ONLY: '{lbl['definition']}' HR {lbl['hr']} ({lbl['why']})" if lbl and
-                    not lbl["three_point"] else ("THREE_POINT" if lbl else "NOT_FOUND_IN_HELD_LABELS")), "detail": lbl})
+                    not lbl["three_point"] else ("THREE_POINT" if lbl else
+                                                 (f"NOT_CHECKED ({len(unread)} held labels unreadable)" if unread
+                                                  else "NOT_FOUND_IN_HELD_LABELS"))), "detail": lbl})
     try:
         from harness import http
         d = http.get_json("https://api.fda.gov/drug/drugsfda.json", {"search": "application_number:NDA208471"}, tries=2)
@@ -118,16 +187,17 @@ def elixa():
             routes.append({"route": "openFDA NDA208471", "outcome": f"NOT_CHECKED ({type(exc).__name__})"})
     ema = [u for u, r in src.items() if SLUG in (r.get("topics") or []) and r.get("agency") == "EMA"
            and r.get("state") == "TEXT"]
-    ema_3p = []
+    ema_3p, ema_unread = [], []
     for u in ema:
-        t = _ws(rs.doc_text(u) or "")
-        if "ELIXA" in t:
-            for m in re.finditer(r"ELIXA.{0,600}?(?:CV death, non[- ]?fatal (?:MI|myocardial infarction),? and (?:non[- ]?fatal )?stroke)"
-                                 r".{0,200}?HR[^0-9]{0,20}(\d\.\d\d)", t):
-                ema_3p.append((u, m.group(0)[-300:]))
+        raw = rs.doc_text(u)
+        if doc_route_outcome(raw, "EMA") != "READ":
+            ema_unread.append(u)
+            continue
+        ema_3p += [(u, c) for c in ema_three_point_clauses(_ws(raw))]
     routes.append({"route": f"EMA EPARs held ({len(ema)})", "outcome": "ELIXA_THREE_POINT_CLAUSE" if ema_3p else
-                   "NO_ELIXA_THREE_POINT_CLAUSE (the Lyxumia EPAR's MACE HR 1.25 (0.67-2.35) is a pre-ELIXA phase 3 "
-                   "meta-analysis)", "candidates": ema_3p[:3]})
+                   (f"NOT_CHECKED ({len(ema_unread)} held EPARs unreadable)" if ema_unread else
+                    "NO_ELIXA_THREE_POINT_CLAUSE (the Lyxumia EPAR's MACE HR 1.25 (0.67-2.35) is a pre-ELIXA phase 3 "
+                    "meta-analysis)"), "candidates": ema_3p[:3]})
     found = [r for r in routes if r["outcome"].startswith(("THREE_POINT", "ELIXA_THREE_POINT"))]
     res = "CANDIDATE" if found else ("NOT_CHECKED" if any(r["outcome"].startswith("NOT_CHECKED") for r in routes)
                                      else "NOT_FOUND")
@@ -162,16 +232,6 @@ def flow_readers(run=False):
     prev = json.load(open(led, encoding="utf-8")) if os.path.exists(led) else {}
     out = {}
 
-    def gate(a):
-        if a.get("state") != "FOUND":
-            return "NOT_REPORTED_BY_READER"
-        parts = [_ws(x) for x in str(a.get("quote") or "").splitlines() if _ws(x)]
-        if not parts or any(len(x) < 20 or x not in txt for x in parts):
-            return "QUOTE_NOT_VERBATIM"
-        q = " ".join(parts)
-        miss = [kk for kk in ("hr", "lower", "upper") if a.get(kk) is None or f"{a[kk]:.2f}" not in q]
-        return f"NUMBER_NOT_IN_QUOTE:{miss}" if miss else "GATED"
-
     def one(who):
         p = (f"{RINSTR[who]}\n\n<<<TEXT PMID 39211948 PMC OA full text (CC BY)\n{txt}\nTEXT>>>\n").encode("utf-8")
         ps = hashlib.sha256(p).hexdigest()
@@ -191,9 +251,8 @@ def flow_readers(run=False):
         else:
             return who, {"state": "NOT_RUN"}
         a = json.loads(ms.replay(rec).decode("utf-8")) if rec.get("state") == "RAN_OK" else {}
-        g = gate(a) if a else "RAN_ERROR"
-        return who, {"record_id": rec["record_id"], "prompt_sha256": ps, "gate": g, "answer": a,
-                     "agrees": g == "GATED" and (a.get("hr"), a.get("lower"), a.get("upper")) == (0.82, 0.68, 0.98)}
+        g, agrees = reader_verdict(a, txt) if a else ("RAN_ERROR", False)
+        return who, {"record_id": rec["record_id"], "prompt_sha256": ps, "gate": g, "answer": a, "agrees": agrees}
     with cf.ThreadPoolExecutor(max_workers=2) as ex:
         for who, r in ex.map(one, ("A", "B")):
             out[who] = r
