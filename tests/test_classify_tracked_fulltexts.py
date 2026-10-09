@@ -21,3 +21,17 @@ def test_the_committed_ledger_covers_every_tracked_fulltext():
     led = {r["file"] for r in d["rows"]}
     tracked = {r["file"] for r in ctf.tracked_fulltexts()}
     assert tracked <= led, sorted(tracked - led)[:5]
+
+
+def test_PLANT_reclassifying_never_erases_a_removal_tombstone(monkeypatch, tmp_path):
+    """codex v13-04-r1 P1: re-running the classifier rewrote the ledger from tracked files only, so a removed (no longer
+    tracked) text lost its REMOVED_FROM_TREE_D8 row -- and with it the guard that stops it being downloaded again."""
+    import json
+    out = tmp_path / "led.json"
+    out.write_text(json.dumps({"rows": [{"slug": "s", "pmid": "1", "file": "cache/s/ft_1.txt",
+                                         "state": "REMOVED_FROM_TREE_D8", "verdict": "NOT_CC"}]}), encoding="utf-8")
+    monkeypatch.setattr(ctf, "OUT", str(out))
+    monkeypatch.setattr(ctf, "classify", lambda offline=False, root=None: [])
+    ctf.main(["--offline"])
+    rows = json.loads(out.read_text(encoding="utf-8"))["rows"]
+    assert any(r["pmid"] == "1" and r["state"] == "REMOVED_FROM_TREE_D8" for r in rows)

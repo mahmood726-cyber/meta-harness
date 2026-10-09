@@ -65,6 +65,15 @@ def classify(offline=False, root=ROOT):
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     rows = classify(offline="--offline" in argv)
+    # carry forward every recorded decision (codex v13-04-r1 P1): a removed text is no longer tracked, so a fresh classification
+    # cannot see it -- its REMOVED_FROM_TREE_D8 tombstone (the re-acquisition guard) and any RETAINED decision must survive
+    prev = (json.load(open(OUT, encoding="utf-8")) or {}).get("rows") or [] if os.path.exists(OUT) else []
+    seen = {r["file"] for r in rows}
+    decided = {r["file"]: r for r in prev if r.get("state")}
+    for r in rows:
+        if r["file"] in decided:
+            r.update({k: v for k, v in decided[r["file"]].items() if k not in r or k in ("state",) or k.startswith(("held_", "removed_", "retained_"))})
+    rows += [r for f, r in decided.items() if f not in seen]
     tally = {}
     for r in rows:
         tally[r["verdict"]] = tally.get(r["verdict"], 0) + 1

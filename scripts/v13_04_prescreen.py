@@ -27,17 +27,28 @@ def served(review):
     return out
 
 
+def tree_clean():
+    return git("status", "--porcelain", "--untracked-files=all").stdout.strip() == ""
+
+
 def run_slug(slug, files):
-    for f in files:
-        os.remove(os.path.join(ROOT, f))
-    p = subprocess.run([sys.executable, "scripts/build_topic.py", slug, "--now", "2026-09-11"], cwd=ROOT, env=ENV,
-                       capture_output=True, text=True, encoding="utf-8", errors="replace")
-    after = None
-    if p.returncode == 0:
-        after = served(json.load(open(os.path.join(ROOT, "docs", "reviews", slug, "review.json"), encoding="utf-8")))
-    git("checkout", "-q", "--", ".")
-    git("clean", "-fdq", "docs", "outputs", "registry/build_deps")
-    return p.returncode, (p.stderr or p.stdout)[-400:], after
+    """Delete the candidates, rebuild, read the served numbers, and ALWAYS restore (codex v13-04-r1 P2). Every candidate must
+    exist before anything is deleted; the caller guarantees a clean tree, so restoring the whole tree touches nothing else."""
+    missing = [f for f in files if not os.path.exists(os.path.join(ROOT, f))]
+    if missing:
+        return 2, f"candidate(s) missing: {missing}", None
+    try:
+        for f in files:
+            os.remove(os.path.join(ROOT, f))
+        p = subprocess.run([sys.executable, "scripts/build_topic.py", slug, "--now", "2026-09-11"], cwd=ROOT, env=ENV,
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
+        after = None
+        if p.returncode == 0:
+            after = served(json.load(open(os.path.join(ROOT, "docs", "reviews", slug, "review.json"), encoding="utf-8")))
+        return p.returncode, (p.stderr or p.stdout)[-400:], after
+    finally:
+        git("checkout", "-q", "--", ".")
+        git("clean", "-fdq", "docs", "outputs", "registry/build_deps")
 
 
 def diff(before, after):
@@ -51,6 +62,8 @@ def diff(before, after):
 
 
 def main():
+    if not tree_clean():
+        sys.exit("refusing: the tree is not clean -- the pre-screen restores by checkout and would discard unrelated work")
     led = json.load(open(os.path.join(ROOT, "registry", "tracked_fulltext_licences.json"), encoding="utf-8"))
     cand = {}
     for r in led["rows"]:
