@@ -516,6 +516,51 @@ def protocol_requirements(root, slug, config):
         'population':'type 2 diabetes' if 'in adults with type 2 diabetes' in line else None,
         'span':{'source':f'protocols/{slug}.md','quote':line}})
 
+def acronym_title_link(rec, index):
+    """(nct, evidence) when the report's TITLE prints, word-bounded, exactly ONE held family's REGISTERED acronym (AACT
+    studies.acronym, at least 5 characters); else (None, why). Never read from the abstract: a title names the report's
+    own trial, an abstract may name others (R8-6, 9 Oct)."""
+    title = str(rec.get('title') or '')
+    # the first sweep (9 Oct) linked 'Enhanced Recovery After Surgery' to RECOVERY, 'Omega-3' to OMEGA, a 'SELECT-Like
+    # Obesity Cohort' and a SELECT/FLOW/SOUL pooled paper to SELECT, and a registry cohort to PARADIGM-HF -- so: the
+    # title must print the acronym IN CAPITALS (as trial acronyms are printed), not as '<ACRONYM>-like', with no other
+    # trial-shaped acronym beside it, and the record must be typed by PubMed as a trial report
+    types = ' '.join(rec.get('pubtypes') or [])
+    if not re.search(r'Randomized Controlled Trial|Clinical Trial', types):
+        return None, 'NOT_A_TRIAL_REPORT_BY_PUBLICATION_TYPE'
+    hits = []
+    for n, held in index.items():
+        acr = ((held.get('raw', {}).get('studies') or [{}])[0].get('acronym') or '').strip()
+        if len(acr) < 5:
+            continue
+        # not continued by '-<alnum>': 'OMEGA-3' is another word, not the trial OMEGA (codex r8-6-links-r1 #1)
+        for m in re.finditer(r'(?<![A-Za-z0-9])' + re.escape(acr) + r'(?!-?[A-Za-z0-9])', title, re.I):
+            if m.group() != m.group().upper() or re.match(r'\s*-?\s*like\b', title[m.end():], re.I):
+                continue
+            hits.append((n, acr, m.span()))
+    if len({n for n, _a, _s in hits}) != 1:
+        return None, (f'TITLE_NAMES_{len({n for n, _a, _s in hits})}_REGISTERED_ACRONYMS' if hits
+                      else 'NO_REGISTERED_ACRONYM_IN_TITLE')
+    n, acr = hits[0][0], hits[0][1]
+    # a pooled / multi-trial paper names its trials in plain capitals too ('the SELECT, FLOW, and SOUL trials')
+    if re.search(r'\bpooled\b|\btrials\b|meta-?analys', title, re.I):
+        return None, 'TITLE_DESCRIBES_SEVERAL_TRIALS'
+    rest = title
+    for _n, _a, (a0, a1) in sorted(hits, key=lambda h: -h[2][0]):      # every occurrence of THIS acronym (r1 #3)
+        rest = rest[:a0] + ' ' + rest[a1:]
+    # another TRIAL-shaped name (hyphen or digit: 'EMPA-REG', 'DECLARE-TIMI 58') or another registered acronym vetoes;
+    # an ordinary abbreviation ('COPD', 'HFrEF') does not (codex r8-6-links-r1 #2)
+    registered = {((h.get('raw', {}).get('studies') or [{}])[0].get('acronym') or '').strip().upper()
+                  for h in index.values()} - {'', acr.upper()}
+    others = [t for t in re.findall(r'(?<![A-Za-z0-9])[A-Z][A-Z0-9]{1,}(?:-[A-Z0-9]+)+(?![A-Za-z0-9])', rest)
+              if t not in {'COVID-19', 'SARS-COV-2'}]
+    others += [a for a in registered if len(a) >= 5 and re.search(r'(?<![A-Za-z0-9])' + re.escape(a) + r'(?!-?[A-Za-z0-9])', rest)]
+    if others:
+        return None, f'TITLE_NAMES_OTHER_TRIALS:{others[:3]}'
+    return n, {'source': 'registered acronym in report title (AACT.studies.acronym)', 'acronym': acr, 'nct_id': n,
+               'quote': title}
+
+
 def prepare(root, slug, records, config, ledger=None):
     """Read held family ingredients; registry collection is an explicit offline step."""
     root = Path(root)
@@ -550,6 +595,13 @@ def prepare(root, slug, records, config, ledger=None):
             r['mentioned_registry_ids'] = registry_ids(r)
             r['family_parent_evidence'] = primary_links[0]
             r['nct'] = primary_links[0]['nct_id']
+        # R8-6: a report with NO identifier of its own and NO AACT reference row joins the family whose REGISTERED
+        # acronym its TITLE prints (TRANSFORM-3, PMID 31734084 -> NCT02422186); never over a held identifier or link
+        if not r.get('nct') and not registry_ids(r) and not links:
+            n, ev = acronym_title_link(r, index)
+            if n:
+                r['nct'] = n
+                r['identity_source'] = ev
         matches = []
         if not r.get('nct') and not any(n.upper().startswith('NCT') for n in registry_ids(r)):
             for n, held in index.items():
