@@ -30,3 +30,9 @@ def test_every_amended_topic_outcome_carries_its_history():
                     assert h["declared"] != o["estimand"] and h["amended_to"] == o["estimand"] and h["post_hoc"] is True
                     amended += 1
     assert amended == 11, amended
+
+
+def test_PLANT_a_non_post_hoc_amendment_does_not_claim_results_were_seen():
+    """codex v13-apply-r1 P1."""
+    txt = page._estimand_amendment_text({"estimand_history": [dict(HIST[0], post_hoc=False, changed_by="protocol committee")]})
+    assert "results were seen" not in txt and "post hoc" not in txt.lower()

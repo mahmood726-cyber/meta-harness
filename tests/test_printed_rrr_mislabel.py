@@ -25,3 +25,14 @@ def test_near_half_is_ambiguous_and_the_rule_does_not_fire():
     half = dict(COUNTS, ai=60, ci=120, n1i=240, n2i=240)          # RR 0.5 = 1 - RR
     chosen = dk.select_estimator_by_source_hierarchy(half, [dict(PRINTED_RRR, effect=0.5, ci_low=0.38, ci_high=0.66)], "RR")
     assert chosen.get("effect") == 0.5
+
+
+def test_PLANT_an_adjusted_rr_that_resembles_the_counts_rrr_is_kept():
+    """codex v13-apply-r1 P0: numerical coincidence alone must not reclassify an explicitly ADJUSTED ratio."""
+    adj = dict(PRINTED_RRR, source=("The covariate-adjusted risk ratio was 0.49 (bootstrap 95% CI 0.24-0.65). "
+                                    "Unadjusted events were 26/120 versus 51/120."))
+    assert not dk._printed_rr_is_rrr_of_counts(adj, COUNTS)
+    corp2 = dict(PRINTED_RRR, source=("abstract effect+CI (RR): The proportion of patients who had recurrent pericarditis was "
+                                      "26 (21.6%) of 120 in the colchicine group and 51 (42.5%) of 120 in the placebo group "
+                                      "(relative risk 0.49; 95% CI 0.24-0.65; p=0.0009"))
+    assert dk._printed_rr_is_rrr_of_counts(corp2, COUNTS)

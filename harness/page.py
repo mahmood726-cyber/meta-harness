@@ -1303,9 +1303,11 @@ def _estimand_amendment_text(o):
     if not hist:
         return None
     h = hist[-1]
-    when = "POST HOC" if h.get("post_hoc") else "amended"
-    return (f"{when}: the protocol declared {h.get('declared')}; amended to {h.get('amended_to')} on {h.get('until')} "
-            f"after the results were seen ({h.get('changed_by')}). The original declaration is kept; no served number changed.")
+    if h.get("post_hoc"):
+        return (f"POST HOC: the protocol declared {h.get('declared')}; amended to {h.get('amended_to')} on {h.get('until')} "
+                f"after the results were seen ({h.get('changed_by')}). The original declaration is kept; no served number changed.")
+    return (f"Amended: the protocol declared {h.get('declared')}; amended to {h.get('amended_to')} on {h.get('until')} "
+            f"({h.get('changed_by')}). The original declaration is kept.")
 
 def _estimand_decision_text(o):
     d = o.get("estimand_decision") or {}

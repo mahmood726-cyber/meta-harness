@@ -261,6 +261,9 @@ def _candidate_summary(candidate: dict[str, Any], chosen: dict[str, Any], declar
     return {k: v for k, v in row.items() if v is not None}
 
 
+_ADJUSTED_WORDING = re.compile(r"\b(?:adjusted|covariate|multivariable|multivariate|bootstrap|model(?:l)?ed|stratified|weighted|propensity)\b", re.I)
+
+
 def _printed_rr_is_rrr_of_counts(candidate: dict[str, Any], counts: dict[str, Any]) -> bool:
     """V13-01 (signed 9 Oct): True when a printed RR is numerically the relative risk REDUCTION of the same trial's
     verbatim 2x2 counts -- CORP-2 prints 'relative risk 0.49; 95% CI 0.24-0.65' beside 26/120 v 51/120, whose RR is
@@ -268,6 +271,11 @@ def _printed_rr_is_rrr_of_counts(candidate: dict[str, Any], counts: dict[str, An
     NOT match RR(counts), and both CI bounds must match the reflected interval. Near RR 0.5 the two readings coincide,
     so the rule cannot decide and does not fire."""
     if str(candidate.get("scale") or "").upper() != "RR" or not _is_reported_effect(candidate):
+        return False
+    # codex v13-apply-r1 P0: an effect the source itself calls adjusted / model-based is a different estimand whose
+    # resemblance to 1 - crude RR is coincidence, never evidence of a mislabel. Only an unqualified printed ratio qualifies.
+    wording = " ".join(str(candidate.get(k) or "") for k in ("source", "quote", "source_span"))
+    if _ADJUSTED_WORDING.search(wording):
         return False
     a, n1, c, n2 = (counts.get(k) for k in ("ai", "n1i", "ci", "n2i"))
     if not all(isinstance(x, (int, float)) for x in (a, n1, c, n2)) or min(a, c) <= 0 or min(n1 - a, n2 - c) < 0             or not (n1 > 0 and n2 > 0):
