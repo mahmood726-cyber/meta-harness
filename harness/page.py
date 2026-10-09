@@ -1296,6 +1296,17 @@ def _common_effect_label(o):
     return "Common-effect CI (k=2 sensitivity)"
 
 
+
+def _estimand_amendment_text(o):
+    """V13-03Q: a signed estimand amendment is shown beside the estimand as POST HOC, with the original declaration."""
+    hist = o.get("estimand_history") or []
+    if not hist:
+        return None
+    h = hist[-1]
+    when = "POST HOC" if h.get("post_hoc") else "amended"
+    return (f"{when}: the protocol declared {h.get('declared')}; amended to {h.get('amended_to')} on {h.get('until')} "
+            f"after the results were seen ({h.get('changed_by')}). The original declaration is kept; no served number changed.")
+
 def _estimand_decision_text(o):
     d = o.get("estimand_decision") or {}
     if not d:
@@ -1775,6 +1786,7 @@ def _outcome_block(o, show_inputs=True, review=None):
             # Method prose, and a row reading "Estimand RR" beside a pooled HR is the defect this fixes.
             ("Estimand", res.get("scale") or o.get("estimand")),
             ("Estimand decision", _estimand_decision_text(o)),
+            ("Estimand amendment", _estimand_amendment_text(o)),
             # The authoritative compatibility contract is the Compatibility key block below (compat.py,
             # the shipped gate). The only estmeasure verdict surfaced here is the INCOMPATIBLE warning;
             # the old "reported labels differ … SAME compatibility class (RR/OR/HR)" sentence was a

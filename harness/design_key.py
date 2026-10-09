@@ -261,6 +261,26 @@ def _candidate_summary(candidate: dict[str, Any], chosen: dict[str, Any], declar
     return {k: v for k, v in row.items() if v is not None}
 
 
+def _printed_rr_is_rrr_of_counts(candidate: dict[str, Any], counts: dict[str, Any]) -> bool:
+    """V13-01 (signed 9 Oct): True when a printed RR is numerically the relative risk REDUCTION of the same trial's
+    verbatim 2x2 counts -- CORP-2 prints 'relative risk 0.49; 95% CI 0.24-0.65' beside 26/120 v 51/120, whose RR is
+    0.5098 (0.3421-0.7596) and 1 - RR 0.49 (0.24-0.66). The point must match 1 - RR(counts) within printed rounding and
+    NOT match RR(counts), and both CI bounds must match the reflected interval. Near RR 0.5 the two readings coincide,
+    so the rule cannot decide and does not fire."""
+    if str(candidate.get("scale") or "").upper() != "RR" or not _is_reported_effect(candidate):
+        return False
+    a, n1, c, n2 = (counts.get(k) for k in ("ai", "n1i", "ci", "n2i"))
+    if not all(isinstance(x, (int, float)) for x in (a, n1, c, n2)) or min(a, c) <= 0 or min(n1 - a, n2 - c) < 0             or not (n1 > 0 and n2 > 0):
+        return False
+    rr = (a / n1) / (c / n2)
+    se = math.sqrt(max(1 / a - 1 / n1 + 1 / c - 1 / n2, 0.0))
+    lo, hi = math.exp(math.log(rr) - 1.959963984540054 * se), math.exp(math.log(rr) + 1.959963984540054 * se)
+    pt, clo, chi = float(candidate["effect"]), float(candidate["ci_low"]), float(candidate["ci_high"])
+    if abs(pt - rr) <= 0.01:
+        return False                       # consistent with the counts as printed (incl. the RR ~ 0.5 ambiguity)
+    return (abs((1 - pt) - rr) <= 0.006 and abs(clo - (1 - hi)) <= 0.02 and abs(chi - (1 - lo)) <= 0.02)
+
+
 def select_estimator_by_source_hierarchy(
     selected: dict[str, Any],
     candidates: list[dict[str, Any]] | None,
@@ -289,9 +309,14 @@ def select_estimator_by_source_hierarchy(
             pool.append(cc)
 
     declared_class = _declared_estimand_class(declared_estimand)
+    rrr_mislabelled = [
+        cand for cand in pool
+        if current.get("ai") is not None and _printed_rr_is_rrr_of_counts(cand, current)
+    ]
     published_target = [
         cand for cand in pool
         if _is_reported_effect(cand) and _candidate_estimand_class(cand) == declared_class
+        and not any(cand is m for m in rrr_mislabelled)
     ]
     current_is_reconstructed = _is_reconstructed_derivation(current.get("derivation"))
     if current_is_reconstructed and published_target:
@@ -301,6 +326,8 @@ def select_estimator_by_source_hierarchy(
         chosen = current
         if current.get("derivation") == "reported":
             rule = "KEEP_REPORTED_EFFECT"
+        elif rrr_mislabelled and current_is_reconstructed:
+            rule = "KEEP_RECONSTRUCTION_PRINTED_RR_IS_RRR"
         elif any(_is_reported_effect(cand) for cand in pool[1:]):
             rule = "KEEP_RECONSTRUCTION_EFFECT_CLASS_MISMATCH"
         elif current_is_reconstructed:
@@ -322,6 +349,11 @@ def select_estimator_by_source_hierarchy(
         for cand in pool
         if not _same_candidate(cand, chosen)
     ]
+    for cand, summ in zip([c for c in pool if not _same_candidate(c, chosen)], chosen["alternatives"]):
+        if any(cand is m for m in rrr_mislabelled):
+            summ["not_selected_reason"] = "PRINTED_RR_IS_RRR_OF_COUNTS"
+            summ["not_selected_detail"] = ("the printed 'relative risk' equals 1 - RR of the trial's own verbatim counts "
+                                           "(a relative risk reduction); served from the counts (V13-01)")
     return chosen
 
 

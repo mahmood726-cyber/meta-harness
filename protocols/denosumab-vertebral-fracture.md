@@ -38,3 +38,11 @@ The comparator is Wei et al., "Efficacy and safety of pharmacologic therapies fo
 ## Controls
 - Positive control: FREEDOM, PMID 19671655.
 - Negative control: denosumab in men receiving androgen-deprivation therapy for prostate cancer, PMID 19671656.
+
+## Amendment 2026-10-09 (estimand RR -> HR, post hoc; V13-03Q)
+**Status: POST HOC.** This amendment was made after the results were seen and is signed by Mahmood (V13-03Q, option A, 9 Oct 2026: 'sign v13' / 'yes to all recommended'; packet lane_status/v13_packet.md sha256 d9842124e80997c0a72ab3c7dca687fe8a0c86c2e21e84f6207f4d44e0f99ace). The original declaration above is kept unchanged.
+
+- **New vertebral fracture.** Declared estimand: RR. Amended to: HR (time to first event).
+- **Nonvertebral fracture.** Declared estimand: RR. Amended to: HR (time to first event).
+- **Hip fracture.** Declared estimand: RR. Amended to: HR (time to first event).
+- **Reason.** For these time-to-first-event outcomes the trials print a hazard ratio, which the review already served under the source hierarchy; the declaration is brought into line with what is served. No served number changes.
