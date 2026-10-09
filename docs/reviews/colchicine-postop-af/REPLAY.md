@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `1846a816ec6c7ad2ad387261dc279ce88c7759239c27c950321852dfab89ebfa` |
-| html_sha256 (served page bytes) | `e181fb33ba5d39c87395751317ea6dc33a631305d9093bbd1663606b9f61aa1e` |
-| release_sha256 (certificate) | `ace13ee23465214c0e9219ff41847376413870daec87617998eece9281dfc43c` |
+| review_sha256 (canonical review core) | `7ee5143fae174a9ac48aa7cd0a4f9b56623b2a426065eea6d232e30309d9aafc` |
+| html_sha256 (served page bytes) | `8a36976c12a1abf1daca977be1ef683068215dcd638c905b70a3cc563dce3b6a` |
+| release_sha256 (certificate) | `8ea00b81ca74370b20efb96c4e820bfbe54e4050e69dfaf7cfdc3ca18b4a6437` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `c63024689a3e8c94f310bf9c7aa332a5c6d8c825` |
+| recorded generating commit | `038d84f2b42691a06f1b30c9c1ebaa80e5270782` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -39,7 +39,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/colchicine-postop-af/aact_inputs.json` | `91929e9ed7324ee3b6be148cdb6aec6b11d86a5b4e4554fb6db603db9c92d805` |
 | `cache/colchicine-postop-af/comparator_fulltext.txt` | `6a7760af7cd873c1bd1a54cc15172c9987dfcd6b0a6bd847acfcf831ee914e9c` |
 | `cache/colchicine-postop-af/ft_27223641.txt` | `25981c8eb7aec5684034785a60fbe922976c47e1c2192b4e9a5a74906543f51a` |
-| `cache/colchicine-postop-af/ft_42132185.txt` | `5f97fbf19df841fe3fff946895473f971f399f2772293fd384b50ea8e0ba6975` |
 
 Recorded judgments live under `cache/colchicine-postop-af/`; their object digest is
 `64cff16b17c01b76e9c702e942d985fe6b8b04885de05530f7f658520eeca204`. Acquisitions live under `docs/acquisitions/colchicine-postop-af/`.

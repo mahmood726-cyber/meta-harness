@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `74bcd11aca37192e5ca1286547eadaecabaccacc1d4f0915018acb535db42da7` |
-| html_sha256 (served page bytes) | `299f15c0410a2ae40d42885951f11caeb4f2f7ca7d5f72cf649d7f52cfbabad9` |
-| release_sha256 (certificate) | `2a64c1a0322208f14b4600c51280bae05622e391f386ba58a192e6d5aee4bf1a` |
+| review_sha256 (canonical review core) | `5cb312091b3179e12e89aecbd1c2b9338b70676317d8d371d86839d6e633b430` |
+| html_sha256 (served page bytes) | `b86c8d8fa5a3258914eaefa844e7a57f545335a1265560f2730af82f19635944` |
+| release_sha256 (certificate) | `87ec3a7a6664e63d17626e06b97816d2978f92a67281ff05f7fb4fd6add9779e` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `c5bd23301ce74e2177741c0caad5e4b02efbdd52` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `c63024689a3e8c94f310bf9c7aa332a5c6d8c825` |
+| recorded generating commit | `038d84f2b42691a06f1b30c9c1ebaa80e5270782` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -40,8 +40,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/iv-iron-hfref-hosp/comparator_fulltext.txt` | `1ad28889226f9ad0726ec30f61a2c0fce6fe70f44bde9f0f509601aafb5373b7` |
 | `cache/iv-iron-hfref-hosp/ft_25176939.txt` | `d48233c8949acc1f9a838fa71854bd3cf39e50119b0f1dc84389ce351dbf91cc` |
 | `cache/iv-iron-hfref-hosp/ft_28701470.txt` | `fa0cdc8754a39145c29880bf2ea1afc1dbc074db3e8944fb7742a6aa3332940f` |
-| `cache/iv-iron-hfref-hosp/ft_34080008.txt` | `73c4c2033e0b290daff83d7d777bf876dae3ad41e2c563a7e06bb5815ac327b3` |
-| `cache/iv-iron-hfref-hosp/ft_40159390.txt` | `fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661` |
 
 Recorded judgments live under `cache/iv-iron-hfref-hosp/`; their object digest is
 `cbdaf860d5b4de2179678ccc96cab3e6835897273673e662d0903e3734b2edda`. Acquisitions live under `docs/acquisitions/iv-iron-hfref-hosp/`.

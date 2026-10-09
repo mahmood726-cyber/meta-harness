@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `e82ee4b086c5f3854bc2421f0a461ba6d728308beb475f38db56d9597608563a` |
-| html_sha256 (served page bytes) | `c62b894306bf5922020ed96c53ff82674bf2d1d3c653b54319be7aa443d8df50` |
-| release_sha256 (certificate) | `7be6f9a6460ed01e49956ca6c84a44ee29634871fe95ca951604f959dff14327` |
+| review_sha256 (canonical review core) | `754532d670ccb2d4007494dbea0adc5e5b1d4fb9795bf3be02bba3162c21adcc` |
+| html_sha256 (served page bytes) | `a47a2904cdc308ebffd87f4cf5683fc322ee44141b48e57ef2b72fb8544788c5` |
+| release_sha256 (certificate) | `dfeb2c8040c891c86edd7a6168d8683f8312def5015fbe569319954daa134be9` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `b10c53d3783facb7e630219f0bb447fe6e22843e` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `c63024689a3e8c94f310bf9c7aa332a5c6d8c825` |
+| recorded generating commit | `038d84f2b42691a06f1b30c9c1ebaa80e5270782` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -39,7 +39,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/glp1-ra-mace-t2d/aact_inputs.json` | `8aec1c466649588c71e7728572abefd8cc218c7303d6c6b0b6bef9e1b5e4ffd5` |
 | `cache/glp1-ra-mace-t2d/comparator_fulltext.txt` | `121cdc10e190b0b431ce0b0a6c9c073930be685cd6f5c9e2271af91c4db312fe` |
 | `cache/glp1-ra-mace-t2d/ft_27295427.txt` | `ded4c69e559446cef815ae8e2362600a39121c758bead7aefc9babd9f779f7db` |
-| `cache/glp1-ra-mace-t2d/ft_28910237.txt` | `9f474e106015e4baf4c65922739d6dc0075de967ee80e43665106db06ad01563` |
 | `outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt` | `448150daf6667013259e6e4c741aba8a60153af651d5d04886455d3b8e595c22` |
 | `outputs/handover/glp1_regulatory/208471Orig1s000StatR.pdf.txt` | `952b8088e14b457d97364f13bb0f9407803bf875faed5fa30d995972e2687a26` |
 | `outputs/handover/glp1_regulatory/209637s025lbl.pdf.txt` | `8882f70933720c2ae710adfe512e8c1cf3a24968f3d7153ece6184af186d068f` |

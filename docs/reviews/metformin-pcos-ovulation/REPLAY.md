@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `dba63cb4954548c8b1ce23c87cca09805867c22dd33d9a60655bdefc9e6785dd` |
-| html_sha256 (served page bytes) | `8ccaca0f7f7293c275872551d0bf4af426f7045a537645477b8955475a107343` |
-| release_sha256 (certificate) | `499de095df7fb92cf08b82fae4ee0dc0b8f7635a439f806bdab3652986f4931c` |
+| review_sha256 (canonical review core) | `a3260367cd22c4509a3aa110f16984029f30fddda1813565475bcda1f03b2d99` |
+| html_sha256 (served page bytes) | `6806e48e4815b73187c0b5f27671a4ac0395c7ce0bb80ba5785e04a743ba9fcf` |
+| release_sha256 (certificate) | `308c9d8d7bdca1d94f3b17336fe6f43a105339e1784d3bb4985a7262f16f78d5` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `c63024689a3e8c94f310bf9c7aa332a5c6d8c825` |
+| recorded generating commit | `038d84f2b42691a06f1b30c9c1ebaa80e5270782` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,8 +38,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/metformin-pcos-ovulation/aact_inputs.json` | `57ad8236f86b8f3b2b1dac0cb3f67bd585953b5441a2a76711509d84f3853139` |
 | `cache/metformin-pcos-ovulation/comparator_fulltext.txt` | `e09bc23f48f9f4d7fbc7475473049b9971aa2e39af5a2eddb6967b437fa58614` |
-| `cache/metformin-pcos-ovulation/ft_11994052.txt` | `ba2b1f9f7fec5104ab1e8c37d8eec4c993ff687f178cb306237206effedce549` |
-| `cache/metformin-pcos-ovulation/ft_16769748.txt` | `08bbe0d815eb0a9ffe659f923872c825011408c6fa977a9b35cb2902c93e28a4` |
 
 Recorded judgments live under `cache/metformin-pcos-ovulation/`; their object digest is
 `9470edcf1b077c25bdac59d12cd372178213f7490372b012eb3796b39b492c52`. Acquisitions live under `docs/acquisitions/metformin-pcos-ovulation/`.
