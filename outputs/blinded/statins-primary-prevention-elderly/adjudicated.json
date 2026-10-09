@@ -4,10 +4,11 @@
  "commit": "beb73a487faf36becf350064fee22a9eef81436c",
  "models": {
   "codex": "RAN_OK",
-  "gemini": "GEMINI_UNAVAILABLE"
+  "gemini": "RAN_OK"
  },
  "reviewed": true,
  "status": "REVIEWED",
+ "schema_violations": {},
  "findings": [
   {
    "id": "codex#1",
@@ -29,6 +30,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -54,10 +56,68 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
-   "agreed_by": [
-    "codex"
+   "agreed_with": [
+    "gemini#2"
    ],
-   "status": "CONFIRMED_TYPED"
+   "agreed_by": [
+    "codex",
+    "gemini"
+   ],
+   "status": "CONFIRMED_2MODEL"
+  },
+  {
+   "id": "gemini#1",
+   "model": "gemini",
+   "tab": "Data extraction",
+   "page_quote": "abstract effect+CI (HR): After a median of 5.9 years, a primary cardiovascular event had occurred in 297 participants (10.9 events per 1000 person-years) in the atorvastatin group and in 412 participants (15.5 events per 1000",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/42670961/",
+    "quote": "After a median of 5.9 years, a primary cardiovascular event had occurred in 297 participants (10.9 events per 1000 person-years) in the atorvastatin group and in 412 participants (15.5 events per 1000 person-years) in the placebo group (hazard ratio, 0.70; 95% CI, 0.61 to 0.82; P<0.001)."
+   },
+   "severity": "record",
+   "claim": "The recorded provenance span for the extracted hazard ratio is truncated and does not actually contain the extracted effect size and confidence interval.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [],
+   "source_url_matches": false,
+   "typed_check": "spans",
+   "typed_check_passed": false,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "UNCONFIRMED",
+   "why_unconfirmed": "source quote not in any open source shown"
+  },
+  {
+   "id": "gemini#2",
+   "model": "gemini",
+   "tab": "Results & conclusions",
+   "page_quote": "42670961 Muscle symptoms/myopathy REFUSED_ON_EVIDENCE REASON_FALSE_VALUE_HELD",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/42670961/",
+    "quote": "Serious adverse events occurred in 131 participants (2.7%) in the atorvastatin group and in 129 (2.7%) in the placebo group, with musculoskeletal, hepatobiliary, and diabetes-related adverse events occurring more commonly in the atorvastatin group."
+   },
+   "severity": "record",
+   "claim": "The reason-code audit incorrectly flags the refusal reason as FALSE (REASON_FALSE_VALUE_HELD) even though the quoted abstract text matches the stated reason that musculoskeletal events were described within aggregate serious adverse events.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 42670961 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [
+    "codex#2"
+   ],
+   "agreed_by": [
+    "codex",
+    "gemini"
+   ],
+   "status": "CONFIRMED_2MODEL"
   }
  ],
  "screening": [
@@ -105,6 +165,51 @@
    "reason": "The source title/abstract and condition values are not supplied, so the page's assertion of an atrial-fibrillation population cannot be independently checked.",
    "quote": "",
    "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "20404379",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly describes a randomized, double-blind, placebo-controlled trial of rosuvastatin in persons 70 years or older.",
+   "quote": "DESIGN: Secondary analysis of JUPITER (Justification for the Use of statins in Prevention: an Intervention Trial Evaluating Rosuvastatin), a randomized, double-blind, placebo-controlled trial.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "42670961",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract describes a double-blind, randomized, placebo-controlled trial of atorvastatin in adults at least 70 years of age.",
+   "quote": "Community-dwelling adults at least 70 years of age with no history of cardiovascular disease, diabetes, or dementia were randomly assigned in a 1:1 ratio to receive atorvastatin at a dose of 40 mg once daily or identical placebo.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "NCT01304641",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "The record's title and abstract are not provided in the open primary sources section to verify the decision.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "NCT05361421",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "The record's title and abstract are not provided in the open primary sources section to verify the decision.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "NCT04111419",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "The record's title and abstract are not provided in the open primary sources section to verify the decision.",
+   "quote": "",
+   "quote_found_in_record": false
   }
  ],
  "numeric_models": {
@@ -120,6 +225,20 @@
     "served_ci_high": 0,
     "agrees": false,
     "note": "Paule-Mandel tau²=0; Q≈0.69012; variance floor=1; pooled log-scale SE≈0.067185; t(1)≈12.706205. The point estimate agrees. Both served CI limits are actually null, deliberately withheld under K2_SINGLE_DF, so full estimate-and-CI agreement cannot be established. The zero entries represent unavailable limits solely because this output schema permits numbers but not null; they are not served values."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Major vascular events",
+    "k": 2,
+    "recomputed_estimate": 0.6803,
+    "recomputed_ci_low": 0.2897,
+    "recomputed_ci_high": 1.5975,
+    "served_estimate": 0.6803,
+    "served_ci_low": null,
+    "served_ci_high": null,
+    "agrees": false,
+    "note": "The served confidence intervals are null due to the K2_SINGLE_DF refusal rule, while the recomputed HKSJ CI evaluates to [0.2897, 1.5975]."
    }
   ]
  },
@@ -145,10 +264,17 @@
     "outcome": "Major vascular events",
     "state": "NOT_ASSESSABLE"
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "Major vascular events",
+    "state": "NOT_ASSESSABLE"
+   }
   ]
  },
  "models_numbers_agree": {
-  "codex": "-"
+  "codex": "-",
+  "gemini": "-"
  },
  "dropped_by_licence": [
   {

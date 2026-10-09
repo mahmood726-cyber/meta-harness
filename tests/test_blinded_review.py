@@ -135,3 +135,48 @@ def test_agreement_tolerance_follows_the_served_rounding():
              recomputed_ci_low=0.007128, recomputed_ci_high=51.5861)
     assert B.model_numeric_state(c) == "AGREES"
     assert B.model_numeric_state(dict(c, recomputed_estimate=0.62)) == "DIFFERS"
+
+
+def _guard_job(pmid):
+    return {"slug": "x", "n": 1, "url": "u", "commit": "c" * 40, "page_sha256": "p", "pack_section": "s", "tuples": [],
+            "page_text": "page", "sources": [{"ref": f"held open text PMID {pmid} (HELD_CACHE_FT)", "sha256": "a" * 64,
+                                                "url": f"https://europepmc.org/article/MED/{pmid}", "kind": "FULLTEXT",
+                                                "text": "A trial sentence of full text. " * 400}]}
+
+
+def test_the_call_time_licence_guard_sees_every_source_block():
+    """9 Oct: sources outside <<<TEXT ... TEXT>>> were invisible to the guard; a non-open full text must now be caught."""
+    job = _guard_job("99999999")                              # no open copy recorded for this PMID
+    assert B.guard_problems(job, B.build_prompt(job)), "the guard did not see a non-open full-text block"
+
+
+def test_two_models_agree_across_loose_tab_names_and_are_listed_once(tmp_path, monkeypatch):
+    monkeypatch.setattr(B, "OUT", str(tmp_path))
+    d = _job(tmp_path)
+    resp = lambda tab: {"findings": [_finding(tab=tab, severity="changes_wording", served_value="", source_value="")],
+                        "numeric_checks": [], "screening_sample": []}
+    (d / "codex.json").write_text(json.dumps({"state": "RAN_OK", "response": resp("Data extraction")}), encoding="utf-8")
+    (d / "gemini.json").write_text(json.dumps({"state": "RAN_OK", "response": resp("Data extraction tab")}), encoding="utf-8")
+    fs = B.adjudicate("t")["findings"]
+    assert {f["status"] for f in fs} == {"CONFIRMED_2MODEL"}
+    import argparse
+    out = tmp_path / "h.md"
+    B.cmd_handover(argparse.Namespace(out=str(out), header="# h"))
+    assert out.read_text(encoding="utf-8").count("- **99. t**") == 1        # the pair is ONE handover item
+
+
+def test_a_quota_with_an_hours_long_reset_is_named_not_retried():
+    e = 'client exited 3: error: Individual quota reached. Please upgrade your subscription. Resets in 4h31m28s.'
+    assert B.quota_reset(e) == "4h31m28s"
+    assert B.quota_reset("client exited 1: rate limited, try again") is None
+
+
+def test_items_missing_schema_keys_are_dropped_and_counted_not_guessed(tmp_path, monkeypatch):
+    monkeypatch.setattr(B, "OUT", str(tmp_path))
+    d = _job(tmp_path)
+    resp = {"findings": [_finding()], "numeric_checks": [{"outcome": "x", "k": 2}],
+            "screening_sample": [{"nct_id": "NCT1", "agrees_with_abstract": True}]}
+    (d / "gemini.json").write_text(json.dumps({"state": "RAN_OK", "response": resp}), encoding="utf-8")
+    r = B.adjudicate("t")
+    assert r["schema_violations"] == {"gemini": {"numeric_checks": 1, "screening_sample": 1}}
+    assert r["screening"] == [] and len(r["findings"]) == 1

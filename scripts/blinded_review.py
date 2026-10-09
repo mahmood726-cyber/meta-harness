@@ -319,8 +319,31 @@ def build_prompt(job: dict) -> bytes:
              json.dumps(job["tuples"], ensure_ascii=False, indent=1),
              "\n\n##### PAGE TEXT (as served) #####\n", job["page_text"], "\n\n##### OPEN PRIMARY SOURCES #####\n"]
     for s in job["sources"]:
-        parts.append(f"\n=== SOURCE {s['url']}  [{s['kind']}; {s['ref']}] ===\n{s['text']}\n")
+        # <<<TEXT ... TEXT>>> is the block the call-time licence guard (reproducible_ai.record_licence) reads: a source
+        # outside it is invisible to the guard (9 Oct: the first codex run's blocks were, and only the pre-filter held)
+        # Full text is what the guard licenses; abstracts and AACT/CT.gov are always open under D8 and are not
+        # licensable text in the guard's sense (it would refuse a large AACT block as "no declared source").
+        body = f"<<<TEXT\n{s['text']}\nTEXT>>>" if s["kind"] in ("FULLTEXT", "COMPARATOR_FULLTEXT") else s["text"]
+        parts.append(f"\n=== SOURCE {s['url']}  [{s['kind']}; {s['ref']}] ===\n{body}\n")
     return "".join(parts).encode("utf-8")
+
+
+def guard_problems(job: dict, prompt: bytes) -> list:
+    """What the call-time licence guard would say about this prompt (empty = it would send)."""
+    import base64
+    from reproducible_ai import record_licence
+    return record_licence.record_problems({"record_id": "pre-call", "input_digests": input_digests(job),
+                                           "prompt": {"b64": base64.b64encode(prompt).decode("ascii")}})
+
+
+def input_digests(job: dict) -> list:
+    slug = job["slug"]
+    d = [{"ref": f"docs/reviews/{slug}/index.html@{job['commit'][:12]} (rendered text)",
+          "sha256": job.get("page_sha256", ""), "what": "served page bytes (live, byte-identical)"},
+         {"ref": f"AUDITOR_PACK.md section 2.{job.get('n')}",
+          "sha256": hashlib.sha256(job["pack_section"].encode("utf-8")).hexdigest(), "what": "audit-pack section"}]
+    return d + [{"ref": s["ref"], "sha256": s.get("sha256", ""), "what": f"open source ({s['kind']}) {s['url']}"}
+                for s in job["sources"]]
 
 
 def cmd_prepare(a):
@@ -342,7 +365,11 @@ def cmd_prepare(a):
                "sources": shown, "dropped_by_licence": dropped,
                "recompute": [recompute(o) for o in review.get("outcomes") or []]}
         p = build_prompt(job)
+        probs = guard_problems(job, p)
+        if probs:
+            raise SystemExit(f"REFUSED by the licence guard (D8), {slug}: {probs[:3]}")
         job["prompt_sha256"], job["prompt_chars"] = hashlib.sha256(p).hexdigest(), len(p.decode("utf-8"))
+        job["prompt_format"] = "v2-guarded-blocks"
         d = os.path.join(OUT, slug)
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, "input.json"), "w", encoding="utf-8", newline="\n") as fh:
@@ -361,17 +388,20 @@ def _slugs():
                   for s in os.listdir(OUT) if os.path.exists(os.path.join(OUT, s, "input.json")))
 
 
+def quota_reset(error) -> str | None:
+    """'Resets in 4h31m28s' from a quota error (9 Oct: Gemini's individual quota; 4 retries per topic at 30-240 s
+    were spent against a 4.5 h reset). The run stops retrying and records when to come back."""
+    m = re.search(r"[Rr]esets in ((?:\d+h)?(?:\d+m)?(?:\d+s)?)", str(error or ""))
+    return m.group(1) if m and m.group(1) else None
+
+
 def run_one(slug: str, model: str, retries: int = 3) -> dict:
     from reproducible_ai import model_call_live as mcl
     from reproducible_ai import model_source as ms
     job = _load_job(slug)
     prompt = build_prompt(job)
     assert hashlib.sha256(prompt).hexdigest() == job["prompt_sha256"], "prompt drifted from the prepared input"
-    digests = [{"ref": f"docs/reviews/{slug}/index.html@{job['commit'][:12]} (rendered text)",
-                "sha256": job["page_sha256"], "what": "served page bytes (live, byte-identical)"},
-               {"ref": f"AUDITOR_PACK.md section 2.{job['n']}",
-                "sha256": hashlib.sha256(job["pack_section"].encode("utf-8")).hexdigest(), "what": "audit-pack section"}]
-    digests += [{"ref": s["ref"], "sha256": s["sha256"], "what": f"open source ({s['kind']}) {s['url']}"} for s in job["sources"]]
+    digests = input_digests(job)
     caller = {"file": "scripts/blinded_review.py", "line": "run_one", "lane": "pva",
               "purpose": f"blinded review {slug} at {job['commit'][:12]} ({model})"}
     attempts = []
@@ -380,18 +410,27 @@ def run_one(slug: str, model: str, retries: int = 3) -> dict:
             rec = mcl.call(prompt, schema=SCHEMA, model=MODEL, effort=EFFORT, caller=caller, input_digests=digests,
                            timeout_s=3600)
         elif model == "agy-gemini":
-            rec = mcl.agy_call(prompt + b"\n\nAnswer with ONE JSON object matching this schema:\n" +
-                               json.dumps(SCHEMA).encode(), schema=SCHEMA, caller=caller, input_digests=digests,
-                               timeout_s=3600)
+            # agy takes the prompt on its command line (~32k chars on Windows), so the input goes as work-dir parts with
+            # canaries (model_call_live.agy_call chunk_chars); the answer must list every canary in parts_read.
+            schema = json.loads(json.dumps(SCHEMA))
+            schema["required"].append("parts_read")
+            schema["properties"]["parts_read"] = {"type": "array", "items": {"type": "string"}}
+            rec = mcl.agy_call(prompt + b"\n\nAnswer with ONE JSON object matching this schema (and nothing else):\n" +
+                               json.dumps(schema).encode(), schema=schema, caller=caller, input_digests=digests,
+                               timeout_s=3600, chunk_chars=60000)
         else:
             raise SystemExit(f"unknown model {model}")
         ms.write_record(rec, os.path.join(ROOT, ms.RECORD_DIR))
         attempts.append({"record_id": rec["record_id"], "state": rec["state"], "error": rec.get("error")})
-        if rec["state"] == "RAN_OK" or not re.search(r"rate|429|quota|overload|temporar", str(rec.get("error")), re.I):
+        if rec["state"] == "RAN_OK" or not re.search(r"rate|429|quota|exhaust|overload|temporar|capacity", str(rec.get("error")), re.I):
+            break
+        if quota_reset(rec.get("error")):       # a quota with an hours-long reset: retrying in seconds only burns calls
             break
         time.sleep(30 * 2 ** n)
     out = {"model": model, "slug": slug, "commit": job["commit"], "prompt_sha256": job["prompt_sha256"],
            "attempts": attempts, "state": attempts[-1]["state"]}
+    if out["state"] != "RAN_OK" and quota_reset(attempts[-1].get("error")):
+        out["state"], out["quota_resets_in"] = "QUOTA_EXHAUSTED", quota_reset(attempts[-1].get("error"))
     if out["state"] == "RAN_OK":
         raw = ms.replay(ms.load_record(os.path.join(ROOT, ms.RECORD_DIR, attempts[-1]["record_id"] + ".json")))
         out["output_sha256"] = hashlib.sha256(raw).hexdigest()
@@ -446,7 +485,19 @@ def adjudicate(slug: str) -> dict:
         p = os.path.join(OUT, slug, f"{name}.json")
         models[name] = json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {"state": "NOT_RUN"}
     ran = [m for m, r in models.items() if r.get("state") == "RAN_OK"]
-    reviewed = bool(ran)       # a topic no model reviewed has NO findings count -- never a clean 0
+    reviewed = bool(ran)
+    # agy is not schema-constrained (no --json-schema; see model_call_live): an item missing a required key is DROPPED
+    # and counted, never guessed at (9 Oct: Gemini answered noac's screening with its own keys {nct_id, agrees_with_abstract})
+    violations = {}
+    for m in ran:
+        resp = models[m]["response"] = dict(models[m].get("response") or {})
+        for part, spec in SCHEMA["properties"].items():
+            need = spec["items"]["required"]
+            items_ = [x for x in resp.get(part) or [] if isinstance(x, dict)]
+            keep = [x for x in items_ if all(k in x for k in need)]
+            if len(keep) != len(resp.get(part) or []):
+                violations.setdefault(m, {})[part] = len(resp.get(part) or []) - len(keep)
+            resp[part] = keep       # a topic no model reviewed has NO findings count -- never a clean 0
     items = []
     for m in ran:
         for i, f in enumerate(models[m]["response"].get("findings") or []):
@@ -466,10 +517,13 @@ def adjudicate(slug: str) -> dict:
             it["typed_check"] = "spans+number" if checks else "spans"
             it["typed_check_passed"] = it["page_quote_found"] and bool(it["source_quote_found_in"]) and all(ok for _, ok in checks)
             items.append(it)
+    def same_tab(a, b):          # models name tabs loosely ("Data extraction" / "Data extraction tab")
+        a, b = norm(a).replace(" tab", ""), norm(b).replace(" tab", "")
+        return bool(a and b) and (a in b or b in a)
     for it in items:
-        it["agreed_by"] = sorted({o["model"] for o in items if o["model"] != it["model"] and
-                                  norm(o.get("tab", "")) == norm(it.get("tab", "")) and
-                                  _overlap(o.get("page_quote", ""), it.get("page_quote", ""))} | {it["model"]})
+        it["agreed_with"] = [o["id"] for o in items if o["model"] != it["model"] and same_tab(o.get("tab", ""), it.get("tab", ""))
+                             and _overlap(o.get("page_quote", ""), it.get("page_quote", ""))]
+        it["agreed_by"] = sorted({o["model"] for o in items if o["id"] in it["agreed_with"]} | {it["model"]})
         if len(it["agreed_by"]) >= 2:
             it["status"] = "CONFIRMED_2MODEL"
         elif it["typed_check_passed"]:
@@ -489,7 +543,7 @@ def adjudicate(slug: str) -> dict:
     det = job["recompute"]
     det_states = [r["status"] for r in det if r["status"] in ("AGREES", "DIFFERS")]
     out = {"slug": slug, "n": job["n"], "commit": job["commit"], "models": {m: models[m].get("state") for m in models},
-           "reviewed": reviewed, "status": "REVIEWED" if reviewed else "NO_MODEL_RAN",
+           "reviewed": reviewed, "status": "REVIEWED" if reviewed else "NO_MODEL_RAN", "schema_violations": violations,
            "findings": items, "screening": screening, "numeric_models": numeric, "numeric_deterministic": det,
            "numbers_agree": ("-" if not det_states else "y" if all(s == "AGREES" for s in det_states) else "n"),
            "models_numeric_states": {m: [dict(outcome=c.get("outcome"), state=model_numeric_state(c)) for c in v]
@@ -543,6 +597,52 @@ def cmd_summary(a):
     print("wrote", a.out)
 
 
+def cmd_handover(a):
+    """The Captain's packet: confirmed findings by class. A two-model finding is listed ONCE (its pair named); a
+    manual check (outputs/blinded/manual_checks.json) overrides a finding's class and says what was checked."""
+    mp = os.path.join(OUT, "manual_checks.json")
+    manual = json.load(open(mp, encoding="utf-8")) if os.path.exists(mp) else {}
+    by = {k: [] for k in SEVERITIES}
+    scr, seen, models_run = [], set(), set()
+    for n, s in _slugs():
+        r = json.load(open(os.path.join(OUT, s, "adjudicated.json"), encoding="utf-8"))
+        models_run |= {m for m, st in r["models"].items() if st == "RAN_OK"}
+        for f in r["findings"]:
+            key = f"{s}#{f['id']}"
+            if key in seen:
+                continue
+            m = manual.get(key)
+            if not (f["status"].startswith("CONFIRMED") or m):
+                continue
+            seen |= {key} | {f"{s}#{x}" for x in f.get("agreed_with", [])}
+            pair = [x for x in r["findings"] if x["id"] in f.get("agreed_with", [])]
+            by[m["class"] if m else f["severity"]].append((n, s, f, m, pair))
+        scr += [(n, s, x) for x in r["screening"] if x.get("verdict") == "DISAGREE"]
+    def line(n, s, f, m, pair):
+        ev = f["source_evidence"]
+        if m:
+            basis = f"MANUALLY VERIFIED ({m['checked']}): {m['note']}"
+        elif f["status"] == "CONFIRMED_2MODEL":
+            basis = "TWO MODELS (" + ", ".join(f"{x['model']} {x['id']}: \"{x['claim'][:160]}\"" for x in pair) + ")"
+        else:
+            basis = "single model + typed check (" + f["typed_check"] + "): quotes verbatim in the bytes shown; the claim is the model's"
+        return (f"- **{n}. {s}** [{f['tab']}] ({f['status']}) {f['claim']}\n  - page: \"{f['page_quote']}\"\n"
+                f"  - source {ev.get('url')}: \"{ev.get('quote')}\"\n  - basis: {basis} ({f['id']})\n")
+    out = [a.header + "\n\n"]
+    for k in SEVERITIES:
+        two = [x for x in by[k] if x[2]["status"] == "CONFIRMED_2MODEL"]
+        out.append(f"\n## {k}: {len(by[k])} ({len(two)} two-model)\n\n")
+        for x in sorted(by[k], key=lambda x: (x[2]["status"] != "CONFIRMED_2MODEL", x[0], x[2]["id"])):
+            out.append(line(*x))
+    out.append(f"\n## Screening sample: a model DISAGREES with the served decision: {len(scr)}\n\n")
+    for n, s, x in scr:
+        out.append(f"- **{n}. {s}** ({x['model']}) record `{x['record']}` (served: {x['served_decision']}): {x['reason']} "
+                   f"-- quote in record: {x['quote_found_in_record']} \"{x['quote']}\"\n")
+    with open(a.out, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("".join(out))
+    print("wrote", a.out, {k: len(v) for k, v in by.items()}, "screening", len(scr), "models", sorted(models_run))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -559,12 +659,15 @@ def main(argv=None):
     p.add_argument("--model", required=True)
     p.add_argument("--reason", required=True)
     sub.add_parser("adjudicate")
+    p = sub.add_parser("handover")
+    p.add_argument("--out", required=True)
+    p.add_argument("--header", default="# Blinded-review findings for the Captain, by class")
     p = sub.add_parser("summary")
     p.add_argument("--out", required=True)
     p.add_argument("--header", default="# Blinded reviews")
     a = ap.parse_args(argv)
     {"prepare": cmd_prepare, "run": cmd_run, "unavailable": cmd_unavailable, "adjudicate": cmd_adjudicate,
-     "summary": cmd_summary}[a.cmd](a)
+     "summary": cmd_summary, "handover": cmd_handover}[a.cmd](a)
 
 
 if __name__ == "__main__":

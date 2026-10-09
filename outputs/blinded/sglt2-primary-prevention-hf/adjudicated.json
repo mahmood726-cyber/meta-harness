@@ -4,10 +4,11 @@
  "commit": "beb73a487faf36becf350064fee22a9eef81436c",
  "models": {
   "codex": "RAN_OK",
-  "gemini": "GEMINI_UNAVAILABLE"
+  "gemini": "RAN_OK"
  },
  "reviewed": true,
  "status": "REVIEWED",
+ "schema_violations": {},
  "findings": [
   {
    "id": "codex#1",
@@ -29,6 +30,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -54,10 +56,86 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
    "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "gemini#1",
+   "model": "gemini",
+   "tab": "Overview",
+   "page_quote": "28605608 (PMID 28605608)",
+   "source_evidence": {
+    "url": "review.json at the pinned commit",
+    "quote": "PMID 29526832 abstract: Overall, cardiovascular death or hospitalized HF was reduced in those treated with canagliflozin compared with placebo"
+   },
+   "severity": "record",
+   "claim": "The pooled trial is labelled as PMID 28605608, but the source evidence quote is drawn from PMID 29526832.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [],
+   "source_url_matches": false,
+   "typed_check": "spans",
+   "typed_check_passed": false,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "UNCONFIRMED",
+   "why_unconfirmed": "source quote not in any open source shown"
+  },
+  {
+   "id": "gemini#2",
+   "model": "gemini",
+   "tab": "Overview",
+   "page_quote": "32966714 (PMID 32966714)",
+   "source_evidence": {
+    "url": "review.json at the pinned commit",
+    "quote": "PMID 33026243 abstract: Overall, ertugliflozin reduced risk for first HHF"
+   },
+   "severity": "record",
+   "claim": "The pooled trial is labelled as PMID 32966714, but the source evidence quote is drawn from PMID 33026243.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [],
+   "source_url_matches": false,
+   "typed_check": "spans",
+   "typed_check_passed": false,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "UNCONFIRMED",
+   "why_unconfirmed": "source quote not in any open source shown"
+  },
+  {
+   "id": "gemini#3",
+   "model": "gemini",
+   "tab": "Overview",
+   "page_quote": "pooled in primary 3 of 95.",
+   "source_evidence": {
+    "url": "review.json at the pinned commit",
+    "quote": "\"k\": 4"
+   },
+   "severity": "changes_number",
+   "claim": "The text states that 3 trial families were pooled in the primary outcome, but the served pool data contains 4 trials.",
+   "served_value": "3",
+   "source_value": "4",
+   "page_quote_found": true,
+   "source_quote_found_in": [],
+   "source_url_matches": false,
+   "typed_check": "spans+number",
+   "typed_check_passed": false,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "UNCONFIRMED",
+   "why_unconfirmed": "source quote not in any open source shown"
   }
  ],
  "screening": [
@@ -105,6 +183,51 @@
    "reason": "No independent title/abstract or registry conditions are supplied for this record. The AACT block contains dates, sponsors and arm information; the page's own truncated screening excerpt cannot independently validate its decision.",
    "quote": "",
    "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "22517736",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "Record title and abstract are not shown.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "30652541",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "Record title and abstract are not shown.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "24336217",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "Record title and abstract are not shown.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "23573151",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "Record title and abstract are not shown.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "NCT03190798",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "Record title and abstract are not shown.",
+   "quote": "",
+   "quote_found_in_record": false
   }
  ],
  "numeric_models": {
@@ -120,6 +243,20 @@
     "served_ci_high": 0.8397,
     "agrees": true,
     "note": "Approximate manual recomputation from the four supplied HR/CI tuples: Q=0.60138<3, so Paule-Mandel tau²=0 and the HKSJ variance factor is floored at 1. Log pooled estimate≈−0.362915, SE≈0.059143; t(3)=3.182446. All values agree at served rounding."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Hospitalization for heart failure",
+    "k": 4,
+    "recomputed_estimate": 0.6956,
+    "recomputed_ci_low": 0.5763,
+    "recomputed_ci_high": 0.8397,
+    "served_estimate": 0.6956,
+    "served_ci_low": 0.5763,
+    "served_ci_high": 0.8397,
+    "agrees": true,
+    "note": "Recomputed pool perfectly matches the served pool rounding"
    }
   ]
  },
@@ -167,10 +304,17 @@
     "outcome": "Hospitalization for heart failure",
     "state": "AGREES"
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "Hospitalization for heart failure",
+    "state": "AGREES"
+   }
   ]
  },
  "models_numbers_agree": {
-  "codex": "y"
+  "codex": "y",
+  "gemini": "y"
  },
  "dropped_by_licence": [
   {

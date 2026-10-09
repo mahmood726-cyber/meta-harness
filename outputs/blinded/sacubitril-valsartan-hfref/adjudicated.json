@@ -4,10 +4,11 @@
  "commit": "beb73a487faf36becf350064fee22a9eef81436c",
  "models": {
   "codex": "RAN_OK",
-  "gemini": "GEMINI_UNAVAILABLE"
+  "gemini": "RAN_OK"
  },
  "reviewed": true,
  "status": "REVIEWED",
+ "schema_violations": {},
  "findings": [
   {
    "id": "codex#1",
@@ -29,6 +30,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -54,6 +56,7 @@
    "source_url_matches": false,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -79,6 +82,7 @@
    "source_url_matches": false,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -104,6 +108,7 @@
    "source_url_matches": false,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -155,6 +160,51 @@
    "reason": "The title identifies a clinical practice guideline, not an RCT.",
    "quote": "2016 ESC Guidelines for the diagnosis and treatment of acute and chronic heart failure",
    "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "25176015",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly states it is a double-blind trial randomly assigning HFrEF patients to LCZ696 or enalapril.",
+   "quote": "In this double-blind trial, we randomly assigned 8442 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less to receive either LCZ696 (at a dose of 200 mg twice daily) or enalapril",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "40689605",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a meta-analysis, not a randomized controlled trial.",
+   "quote": "Meta-analysis of randomized controlled trials (RCTs)",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "40100325",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a longitudinal cohort study based on a nationwide database, not a randomized controlled trial.",
+   "quote": "We investigated the effectiveness of submaximal doses of sacubitril/valsartan in a real-world cohort.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "36315602",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a critical reanalysis/review of mechanisms, not a primary randomized controlled trial.",
+   "quote": "A substantial body of evidence indicates that this characteristic pattern of responses can be explained",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "27206819",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a clinical guidelines document from the European Society of Cardiology, not a randomized controlled trial.",
+   "quote": "",
+   "quote_found_in_record": false
   }
  ],
  "numeric_models": {
@@ -171,6 +221,20 @@
     "agrees": true,
     "note": "Comparison is exclusively with the page's explicitly quarantined audit-only calculation. The served tuple's pooled estimate and CI are null because pooling was refused. Recalculation gives Paule–Mandel tau² approximately 0.01177; HKSJ uses variance factor 1 and t with 1 df. The quarantined values agree at their printed rounding."
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+    "k": 2,
+    "recomputed_estimate": 0.8366,
+    "recomputed_ci_low": 0.2108,
+    "recomputed_ci_high": 3.3201,
+    "served_estimate": 0.84,
+    "served_ci_low": 0.21,
+    "served_ci_high": 3.32,
+    "agrees": true,
+    "note": "Recomputed PM tau^2 = 0.01177 and HKSJ CI. The served pool in the JSON is null due to direction conflict, but the page text provides the quarantined values 0.84 [0.21, 3.32], which agree perfectly with the recomputed results using a variance floor factor of 1.0 (Q_tau2)."
+   }
   ]
  },
  "numeric_deterministic": [
@@ -186,10 +250,17 @@
     "outcome": "Composite cardiovascular death or heart-failure hospitalization",
     "state": "AGREES"
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+    "state": "AGREES"
+   }
   ]
  },
  "models_numbers_agree": {
-  "codex": "y"
+  "codex": "y",
+  "gemini": "y"
  },
  "dropped_by_licence": [
   {

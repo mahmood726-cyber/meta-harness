@@ -4,10 +4,11 @@
  "commit": "beb73a487faf36becf350064fee22a9eef81436c",
  "models": {
   "codex": "RAN_OK",
-  "gemini": "GEMINI_UNAVAILABLE"
+  "gemini": "RAN_OK"
  },
  "reviewed": true,
  "status": "REVIEWED",
+ "schema_violations": {},
  "findings": [
   {
    "id": "codex#1",
@@ -29,6 +30,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -54,6 +56,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -79,6 +82,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -104,10 +108,38 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
    "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "gemini#1",
+   "model": "gemini",
+   "tab": "Risk of bias & GRADE",
+   "page_quote": "Including an industry drug-supply tie in an otherwise independently funded trial: 0 of 1 known (6 unknown) pooled trials are industry-funded or industry-tied",
+   "source_evidence": {
+    "url": "https://clinicaltrials.gov/ (AACT posted results; cite the NCT id)",
+    "quote": "\"agency_class\": \"INDUSTRY\",\n            \"lead_or_collaborator\": \"collaborator\",\n            \"name\": \"Baxter Healthcare Corporation\""
+   },
+   "severity": "changes_number",
+   "claim": "The page states 0 of 1 known pooled trials are industry-tied, but the AACT data for NCT02721654 (PLUS) explicitly lists Baxter Healthcare Corporation as an industry collaborator.",
+   "served_value": "0",
+   "source_value": "1",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "cache/balanced-crystalloids-vs-saline-mortality/aact_inputs.json"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans+number",
+   "typed_check_passed": false,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "UNCONFIRMED",
+   "why_unconfirmed": "number check failed (served/source values not both quoted, or equal)"
   }
  ],
  "screening": [
@@ -155,6 +187,51 @@
    "reason": "No source title or abstract is supplied. The structured AACT intervention fields alone do not permit the requested title/abstract screening assessment.",
    "quote": "",
    "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "29770681",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "The record has no abstract text shown in the source block, only a title, so it cannot be independently determined whether it is an RCT based solely on the provided text.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "26444692",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly states it is a double-blind, cluster randomized trial in the ICU comparing a buffered crystalloid with saline.",
+   "quote": "To determine the effect of a buffered crystalloid compared with saline on renal complications in patients admitted to the intensive care unit (ICU). DESIGN AND SETTING: Double-blind, cluster randomized",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "FENICE II · NCT06394947",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "The record text/abstract is not shown in the open primary sources section.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "SMART-SURG · NCT02547779",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "The record text/abstract is not shown in the open primary sources section.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "FFAKI · NCT02458157",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "The record text/abstract is not shown in the open primary sources section.",
+   "quote": "",
+   "quote_found_in_record": false
   }
  ],
  "numeric_models": {
@@ -170,6 +247,20 @@
     "served_ci_high": 0,
     "agrees": false,
     "note": "The served CI limits are null, not zero; zero entries here are schema placeholders only. Strict effect-and-CI replay is unavailable because PLUS has null effect and CI fields. Supplementing those fields from the supplied counts gives RR=(530/2433)/(530/2413), with log variance 1/530-1/2433+1/530-1/2413. Combining this reconstructed RR with the BaSICS HR and CI gives PM tau²=0, Q≈0.1097 and the displayed recomputed HKSJ interval using the variance floor and t(1). The point estimate agrees. Full-triplet agreement cannot be established because the served interval was deliberately withheld under K2_SINGLE_DF; false does not indicate a conflicting served interval."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Mortality",
+    "k": 2,
+    "recomputed_estimate": 0.9774,
+    "recomputed_ci_low": 0.6521,
+    "recomputed_ci_high": 1.465,
+    "served_estimate": 0.9774,
+    "served_ci_low": null,
+    "served_ci_high": null,
+    "agrees": false,
+    "note": "The point estimate agrees (0.9774). The served CI is null (refused due to single degree of freedom per the K2_SINGLE_DF rule), whereas the recomputed HKSJ CI limits are 0.6521 to 1.4650."
    }
   ]
  },
@@ -195,10 +286,17 @@
     "outcome": "Mortality",
     "state": "NOT_ASSESSABLE"
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "Mortality",
+    "state": "NOT_ASSESSABLE"
+   }
   ]
  },
  "models_numbers_agree": {
-  "codex": "-"
+  "codex": "-",
+  "gemini": "-"
  },
  "dropped_by_licence": [
   {

@@ -4,10 +4,11 @@
  "commit": "beb73a487faf36becf350064fee22a9eef81436c",
  "models": {
   "codex": "RAN_OK",
-  "gemini": "GEMINI_UNAVAILABLE"
+  "gemini": "RAN_OK"
  },
  "reviewed": true,
  "status": "REVIEWED",
+ "schema_violations": {},
  "findings": [
   {
    "id": "codex#1",
@@ -29,6 +30,7 @@
    "source_url_matches": false,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -54,6 +56,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -79,6 +82,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -104,6 +108,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -155,6 +160,51 @@
    "reason": "The record's source title and abstract are absent. The AACT arm text mentions CHF treatment, but does not independently establish the title/conditions criterion used for exclusion.",
    "quote": "",
    "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "NCT07344922",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The record describes a randomized, double-blind, placebo-controlled study of dapagliflozin in diabetic nephropathy (a form of CKD).",
+   "quote": "The trial will be a randomized, double blind, placebo-controlled study.",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "DapaBalci-Leap · NCT05884866",
+   "served_decision": "exclude",
+   "verdict": "DISAGREE",
+   "reason": "The abstract indicates dapagliflozin is evaluated alone and in combination compared to balcinrenone alone, not as background therapy in all arms.",
+   "quote": "dapagliflozin alone or in combination with balcinrenone, compared to balcinrenone alone",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "NCT07084038",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record contains no indication of randomization, blinding, or control groups, appearing to be mechanistic rather than an RCT.",
+   "quote": "To test the hypothesis that SGLT2i offers renoprotection by reducing the energy demand of proximal tubular cells",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "ADIPO-CKD · NCT07309094",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly states that this is an observational study, which fails the requirement for a randomized controlled trial.",
+   "quote": "The goal of this observational study is to evaluate the effects of different pharmacological interventions",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "gemini",
+   "record": "NCT04778787",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The trial targets a population with heart failure, which is explicitly excluded by the population criteria.",
+   "quote": "Treatment of Heart Failure and Congestion (DAPA-RESIST)",
+   "quote_found_in_record": false
   }
  ],
  "numeric_models": {
@@ -170,6 +220,20 @@
     "served_ci_high": 0.844,
     "agrees": true,
     "note": "Manual log-scale recomputation gives Paule–Mandel tau² approximately 0.00134, pooled log HR approximately -0.38039, and SE approximately 0.04899. With the variance factor floored at 1 and t(2) approximately 4.30265, the estimate and CI agree within 0.002."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Trial-defined primary cardiorenal composite",
+    "k": 3,
+    "recomputed_estimate": 0.6836,
+    "recomputed_ci_low": 0.5537,
+    "recomputed_ci_high": 0.844,
+    "served_estimate": 0.6836,
+    "served_ci_low": 0.5537,
+    "served_ci_high": 0.844,
+    "agrees": true,
+    "note": "Recomputed using Paule-Mandel tau^2 = 0.00134 and Hartung-Knapp interval on log HR; matches served values exactly."
    }
   ]
  },
@@ -209,10 +273,17 @@
     "outcome": "Trial-defined primary cardiorenal composite",
     "state": "AGREES"
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "Trial-defined primary cardiorenal composite",
+    "state": "AGREES"
+   }
   ]
  },
  "models_numbers_agree": {
-  "codex": "y"
+  "codex": "y",
+  "gemini": "y"
  },
  "dropped_by_licence": [
   {

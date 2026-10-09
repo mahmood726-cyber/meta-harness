@@ -4,10 +4,11 @@
  "commit": "beb73a487faf36becf350064fee22a9eef81436c",
  "models": {
   "codex": "RAN_OK",
-  "gemini": "GEMINI_UNAVAILABLE"
+  "gemini": "RAN_OK"
  },
  "reviewed": true,
  "status": "REVIEWED",
+ "schema_violations": {},
  "findings": [
   {
    "id": "codex#1",
@@ -29,6 +30,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -54,10 +56,15 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
-   "agreed_by": [
-    "codex"
+   "agreed_with": [
+    "gemini#1",
+    "gemini#2"
    ],
-   "status": "CONFIRMED_TYPED"
+   "agreed_by": [
+    "codex",
+    "gemini"
+   ],
+   "status": "CONFIRMED_2MODEL"
   },
   {
    "id": "codex#3",
@@ -79,6 +86,7 @@
    "source_url_matches": true,
    "typed_check": "spans+number",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -104,6 +112,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -129,10 +138,69 @@
    "source_url_matches": false,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
    "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "gemini#1",
+   "model": "gemini",
+   "tab": "Results & conclusions",
+   "page_quote": "endpoint definition: primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure;",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/21073363/",
+    "quote": "A total of 12.5% of patients receiving eplerenone and 15.5% of those receiving placebo died (hazard ratio, 0.76; 95% CI, 0.62 to 0.93; P=0.008);"
+   },
+   "severity": "changes_wording",
+   "claim": "The page incorrectly bounds the endpoint definition to the trial's composite primary outcome, while the extracted hazard ratio applies to all-cause mortality.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 21073363 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [
+    "codex#2"
+   ],
+   "agreed_by": [
+    "codex",
+    "gemini"
+   ],
+   "status": "CONFIRMED_2MODEL"
+  },
+  {
+   "id": "gemini#2",
+   "model": "gemini",
+   "tab": "Results & conclusions",
+   "page_quote": "endpoint definition: primary endpoint was a composite of death from cardiovascular causes or hospitalization for HF;",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/28824029/",
+    "quote": "A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died."
+   },
+   "severity": "changes_wording",
+   "claim": "The page incorrectly lists the composite primary endpoint as the endpoint definition for this row, although the pooled effect is for all-cause mortality.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 28824029 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [
+    "codex#2"
+   ],
+   "agreed_by": [
+    "codex",
+    "gemini"
+   ],
+   "status": "CONFIRMED_2MODEL"
   }
  ],
  "screening": [
@@ -180,6 +248,51 @@
    "reason": "The record describes a review of readmission prevention strategies.",
    "quote": "This review aims to evaluate the primary factors associated with HF readmissions and discuss evidence-based strategies to reduce these rates.",
    "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "42110180",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a review, not a randomized controlled trial.",
+   "quote": "This review synthesizes key clinical evidence",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "41521906",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a retrospective observational study.",
+   "quote": "A Retrospective Observational Study in a Tertiary Center.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "41232664",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a review describing progress.",
+   "quote": "This review describes the progress made to date",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "40145139",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a narrative review.",
+   "quote": "This narrative review considers the historical randomized clinical trial evidence",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "40869719",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a review of readmission strategies.",
+   "quote": "This review aims to evaluate the primary factors",
+   "quote_found_in_record": true
   }
  ],
  "numeric_models": {
@@ -195,6 +308,20 @@
     "served_ci_high": 2.629,
     "agrees": true,
     "note": "Manual recomputation from the three supplied effect/CI tuples: Paule-Mandel tau² approximately 0.15607, pooled log effect approximately -0.132491, HKSJ SE approximately 0.255444, and t critical value 4.302653 with 2 df. The variance floor is 1. Arithmetic agreement does not establish equivalence of RR and HR."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "All-cause mortality",
+    "k": 3,
+    "recomputed_estimate": 0.8759,
+    "recomputed_ci_low": 0.2918,
+    "recomputed_ci_high": 2.629,
+    "served_estimate": 0.8759,
+    "served_ci_low": 0.2918,
+    "served_ci_high": 2.629,
+    "agrees": true,
+    "note": "Recomputed values perfectly match the served pool values."
    }
   ]
  },
@@ -234,10 +361,17 @@
     "outcome": "All-cause mortality",
     "state": "AGREES"
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "All-cause mortality",
+    "state": "AGREES"
+   }
   ]
  },
  "models_numbers_agree": {
-  "codex": "y"
+  "codex": "y",
+  "gemini": "y"
  },
  "dropped_by_licence": [
   {

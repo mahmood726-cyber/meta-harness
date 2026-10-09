@@ -4,10 +4,11 @@
  "commit": "beb73a487faf36becf350064fee22a9eef81436c",
  "models": {
   "codex": "RAN_OK",
-  "gemini": "GEMINI_UNAVAILABLE"
+  "gemini": "RAN_OK"
  },
  "reviewed": true,
  "status": "REVIEWED",
+ "schema_violations": {},
  "findings": [
   {
    "id": "codex#1",
@@ -29,6 +30,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -54,6 +56,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -79,6 +82,7 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
@@ -104,10 +108,63 @@
    "source_url_matches": false,
    "typed_check": "spans",
    "typed_check_passed": true,
+   "agreed_with": [],
    "agreed_by": [
     "codex"
    ],
    "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "gemini#1",
+   "model": "gemini",
+   "tab": "Results & conclusions",
+   "page_quote": "the primary outcome is reported by trials that could not be pooled (33197395, 36347265, 37632463) — the pooled k is known-incomplete",
+   "source_evidence": {
+    "url": "PMID 33197395",
+    "quote": "217 total heart failure hospitalisations occurred in the ferric carboxymaltose group and 294 occurred in the placebo group"
+   },
+   "severity": "changes_number",
+   "claim": "The page states the primary outcome (HF hospitalization) was reported by trial 33197395 (AFFIRM-AHF) but could not be pooled. However, the abstract explicitly contains arm counts for heart failure hospitalizations which can be pooled.",
+   "served_value": "not pooled",
+   "source_value": "217 vs 294",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 33197395 (ABSTRACT)"
+   ],
+   "source_url_matches": false,
+   "typed_check": "spans+number",
+   "typed_check_passed": false,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "UNCONFIRMED",
+   "why_unconfirmed": "number check failed (served/source values not both quoted, or equal)"
+  },
+  {
+   "id": "gemini#2",
+   "model": "gemini",
+   "tab": "Results & conclusions",
+   "page_quote": "the primary outcome is reported by trials that could not be pooled (33197395, 36347265, 37632463) — the pooled k is known-incomplete",
+   "source_evidence": {
+    "url": "PMID 36347265",
+    "quote": "336 primary endpoints ... occurred in the ferric derisomaltose group and 411 ... occurred in the usual care group"
+   },
+   "severity": "changes_number",
+   "claim": "The page claims trial 36347265 (IRONMAN) could not be pooled for the primary outcome. However, the source abstract includes both arm counts and rates for the primary endpoint.",
+   "served_value": "not pooled",
+   "source_value": "336 vs 411",
+   "page_quote_found": true,
+   "source_quote_found_in": [],
+   "source_url_matches": false,
+   "typed_check": "spans+number",
+   "typed_check_passed": false,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "UNCONFIRMED",
+   "why_unconfirmed": "source quote not in any open source shown"
   }
  ],
  "screening": [
@@ -155,6 +212,51 @@
    "reason": "The title and abstract support inclusion at screening as a randomized iron-sucrose versus no-treatment trial in symptomatic heart failure with iron deficiency; the abstract does not specify an ejection-fraction threshold.",
    "quote": "Effect of intravenous iron sucrose on exercise tolerance in anemic and nonanemic patients with symptomatic chronic heart failure and iron deficiency FERRIC-HF: a randomized, controlled, observer-blinded trial.",
    "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "32565444",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly studies patients with 'chronic obstructive pulmonary disease' (COPD), matching the exclusion rule X2 (wrong population).",
+   "quote": "chronic obstructive pulmonary disease",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "36673114",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is an 'Overview' (review) rather than a randomized controlled trial, matching exclusion X1.",
+   "quote": "An Overview",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "33586856",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The abstract describes a 'systematic review and meta-analysis', not a primary RCT, matching exclusion X1.",
+   "quote": "systematic review and meta-analysis",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "33197395",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract states it is a 'multicentre, double-blind, randomised trial' studying ferric carboxymaltose vs placebo in heart failure.",
+   "quote": "AFFIRM-AHF was a multicentre, double-blind, randomised trial",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "18191732",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly describes randomizing patients with CHF to receive iron sucrose or a control.",
+   "quote": "We randomized 35 patients with CHF",
+   "quote_found_in_record": true
   }
  ],
  "numeric_models": {
@@ -170,6 +272,20 @@
     "served_ci_high": 51.59,
     "agrees": true,
     "note": "These served comparison values are the page's explicitly INVALID hypothetical calculation, which agrees at its displayed rounding. The served tuple's actual estimate and CI are null, so no usable pooled estimate has numerical agreement to assess. Mechanical log-scale PM/HKSJ recomputation gives tau² approximately 0.177979 and uses t with 1 df; combining this HR and IRR remains substantively invalid."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Heart-failure hospitalization",
+    "k": 2,
+    "recomputed_estimate": 0.6064,
+    "recomputed_ci_low": 0.0002,
+    "recomputed_ci_high": 1763.4,
+    "served_estimate": 0,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "Served values were null (represented here as 0 to satisfy schema constraints). Recomputed estimate on ratio scale is 0.6064, 95% CI 0.0002 to 1763.4."
    }
   ]
  },
@@ -194,10 +310,17 @@
     "outcome": "Heart-failure hospitalization",
     "state": "AGREES"
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "Heart-failure hospitalization",
+    "state": "NOT_ASSESSABLE"
+   }
   ]
  },
  "models_numbers_agree": {
-  "codex": "y"
+  "codex": "y",
+  "gemini": "-"
  },
  "dropped_by_licence": [
   {
