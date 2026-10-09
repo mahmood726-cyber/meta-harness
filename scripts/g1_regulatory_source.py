@@ -92,13 +92,20 @@ def fda_review_urls(agent):
     'Label' (section 14, Clinical Studies, prints the pivotal trials' results)."""
     from harness import http
     import k_gap_regulatory_probe as rp
-    try:
-        d = http.get_json("https://api.fda.gov/drug/drugsfda.json",
-                          {"search": f'openfda.generic_name:"{agent}"', "limit": "50"}, tries=2)
-    except Exception:  # noqa: BLE001 - no application for this INN is a result
-        return []
+    # two typed searches: the openFDA generic name, and the application's OWN active ingredient -- some applications
+    # carry no openfda block (KERENDIA NDA215341: finerenone was never discovered by the first; R9-4, 9 Oct)
+    results, seen = [], set()
+    for q in (f'openfda.generic_name:"{agent}"', f'products.active_ingredients.name:"{agent.upper()}"'):
+        try:
+            d = http.get_json("https://api.fda.gov/drug/drugsfda.json", {"search": q, "limit": "50"}, tries=2)
+        except Exception:  # noqa: BLE001 - no application for this INN under this search is a result
+            continue
+        for r in d.get("results", []):
+            if r.get("application_number") not in seen:
+                seen.add(r.get("application_number"))
+                results.append(r)
     subs = []
-    for r in d.get("results", []):
+    for r in results:
         if not str(r.get("application_number") or "").upper().startswith(("NDA", "BLA")):
             continue
         for s in r.get("submissions", []):
