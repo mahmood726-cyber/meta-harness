@@ -65,3 +65,20 @@ def test_strand_pools_carry_engine_token():
     for s in d.get("strands", []):
         if s.get("pool"):
             assert s["pool"].get("ci_provenance") == CI_PROVENANCE, s["strand"]
+
+
+def test_PLANT_a_single_trial_interval_is_not_stamped_with_the_pooling_method():
+    """At k=1 pool() returns the single trial's Wald (z) interval -- there is no tau2, no HKSJ and no t(k-1) (df 0).
+    It used to stamp the PM+HKSJ t(k-1) token anyway, so 15 served k=1 outcomes named a method they did not use.
+    The k=1 token must say what was done, be accepted by the interval gate, and leave every number unchanged."""
+    from harness.synth import CI_PROVENANCE_K1
+    from harness import census
+    one = [Study(label="a", effect=0.8, ci_low=0.6, ci_high=1.06)]
+    r = pool(one, scale="RR")
+    assert r.ci_provenance == CI_PROVENANCE_K1 != CI_PROVENANCE
+    assert "HKSJ" not in r.ci_provenance and "t(k-1)" not in r.ci_provenance
+    import math
+    se = (math.log(1.06) - math.log(0.6)) / (2 * 1.959963984540054)
+    assert abs(r.ci_low - math.exp(math.log(0.8) - 1.959963984540054 * se)) < 1e-12   # numbers unchanged: z interval
+    assert census._interval_provenance_check({"outcomes": [{"name": "o", "result": {
+        "k": 1, "ci_low": r.ci_low, "ci_high": r.ci_high, "ci_provenance": r.ci_provenance}}]}) == []

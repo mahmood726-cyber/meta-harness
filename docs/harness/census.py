@@ -31,12 +31,12 @@ from . import membership
 from . import proposition
 from . import propositions
 from . import parity_relation
-from .synth import CI_PROVENANCE
+from .synth import CI_PROVENANCE, CI_PROVENANCE_K1
 
-# Provenances a RENDERED interval may legitimately carry: the canonical engine token, or a single
-# trial's own reported CI printed verbatim at k=1 (not a pool). Anything else is an inference-layer
+# Provenances a RENDERED interval may legitimately carry: the canonical engine token, the engine's k=1 token (a single
+# trial's Wald interval computed by pool()), or a single trial's own reported CI printed verbatim at k=1 (not a pool). Anything else is an inference-layer
 # bypass and the build refuses it.
-_VALID_CI_PROVENANCE = {CI_PROVENANCE, "source-reported-CI:k=1-verbatim"}
+_VALID_CI_PROVENANCE = {CI_PROVENANCE, CI_PROVENANCE_K1, "source-reported-CI:k=1-verbatim"}
 
 
 def _interval_provenance_check(core: dict) -> list:
