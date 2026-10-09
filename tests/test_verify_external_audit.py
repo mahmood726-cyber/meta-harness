@@ -37,3 +37,13 @@ def test_PLANT_an_edited_auditor_script_is_refused_and_never_run(monkeypatch, tm
     rows, bad = vea.run()
     assert any(r["check"] == "review05_recalculation.py bytes" and r["verdict"] == "FAIL" for r in rows)
     assert not any(r["check"].startswith("doac primary") for r in rows)
+
+
+def test_PLANT_auditor_scripts_are_never_sent_to_a_model_but_our_audit_code_is():
+    """D8: audit/external/ quotes held source passages (some non-CC) -- the codex PR reviewer must never send them,
+    while our own audit/ code (the independent recompute) must be reviewed."""
+    import sys
+    sys.path[:0] = [os.path.join(ROOT, "scripts"), ROOT]
+    import pr_codex_review as prc
+    assert prc._ok_file("audit/independent_recompute.py") and not prc._ok_file("audit/external/review05_recalculation.py")
+    assert not prc._ok_file("docs/x.py") and prc._ok_file("scripts/verify_external_audit.py")
