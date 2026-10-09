@@ -46,7 +46,9 @@ UA = {"User-Agent": "meta-harness/1.0 (research; fulltext cascade)"}
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 EPMC_FT = "https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML"
 HELD, FETCHED, NOT_IN_PMC, NO_BODY, FETCH_FAILED = "HELD", "FETCHED", "NOT_IN_PMC", "NO_BODY", "FETCH_FAILED"
-STATES = (HELD, FETCHED, NOT_IN_PMC, NO_BODY, FETCH_FAILED)
+# a text taken OUT of the tree by a signed D8 decision (V12-08Q): carried forward from the previous ledger, never re-acquired
+REMOVED_FROM_TREE_D8 = "REMOVED_FROM_TREE_D8"
+STATES = (HELD, FETCHED, NOT_IN_PMC, NO_BODY, FETCH_FAILED, REMOVED_FROM_TREE_D8)
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
 
@@ -293,8 +295,16 @@ def run(slug: str, http: Http, dry_run: bool = False, extra_pmids=(), extra_ncts
                 tg.setdefault(p, []).append(f"registration {nct} (PubMed secondary id)")
         except FetchFailed as exc:
             tg.setdefault(f"NCT:{nct}", []).append(f"FETCH_FAILED resolving {nct}: {exc}")
+    prev = root / "cache" / slug / "fulltext_ledger.json"
+    removed = {}
+    if prev.is_file():
+        removed = {str(r.get("pmid")): r for r in (json.loads(prev.read_text(encoding="utf-8")).get("rows") or [])
+                   if r.get("state") == REMOVED_FROM_TREE_D8}
     rows = []
-    for pmid in sorted(tg):
+    for pmid in sorted(set(tg) | set(removed)):
+        if pmid in removed:
+            rows.append(removed[pmid])
+            continue
         if not pmid.isdigit():
             rows.append({"pmid": pmid, "state": FETCH_FAILED, "why": tg[pmid]})
             continue
