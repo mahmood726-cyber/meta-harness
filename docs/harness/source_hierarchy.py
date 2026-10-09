@@ -274,14 +274,23 @@ def span_effect_candidates(spec: dict[str, Any], selected: dict[str, Any],
     return candidates
 
 
-def estimand_decision(spec: dict[str, Any], candidates: list[dict[str, Any]]) -> dict[str, Any]:
+def estimand_decision(spec: dict[str, Any], candidates: list[dict[str, Any]],
+                      contract: dict[str, Any] | None = None) -> dict[str, Any]:
     declared = _norm_scale(spec.get("estimand") or "RR")
     scales = [_norm_scale(c.get("scale")) for c in candidates if c.get("effect") is not None]
     has_hr = "HR" in scales
     has_rr = "RR" in scales
     has_or = "OR" in scales
 
-    if declared in {"MD", "SMD"}:
+    signed_declared = bool(contract) and _norm_scale(contract.get("declared") or "") == declared
+    if signed_declared and declared == "OR":
+        # the SIGNED effect-measure contract (harness/estimand_contract.py): the registered OR is served, reconstructed
+        # from verified counts where no OR is printed -- never the scale of whichever effect happens to be published
+        item = (contract.get("ratified") or {}).get("item")
+        decision, target = "odds", "OR"
+        reason = (f"declared odds-ratio estimand held by the signed effect-measure contract ({item}): served from the "
+                  "printed OR or from verified counts, never relabelled from another published scale")
+    elif declared in {"MD", "SMD"}:
         decision, target = "continuous", declared
         reason = "declared continuous estimand"
     elif declared == "OR" and (has_rr or has_hr) and not has_or:
