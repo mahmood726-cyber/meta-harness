@@ -552,7 +552,7 @@ def main(argv=None):
     p.add_argument("--first", type=int, default=11)
     p.add_argument("--last", type=int, default=32)
     p = sub.add_parser("run")
-    p.add_argument("--model", choices=["codex", "agy-gemini"], required=True)
+    p.add_argument("--model", choices=("agy-gemini", "codex"), required=True)
     p.add_argument("--workers", type=int, default=8)
     p.add_argument("--only", default="")
     p = sub.add_parser("unavailable")

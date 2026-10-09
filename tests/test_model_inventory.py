@@ -26,6 +26,8 @@ MODEL_CALL_SITES = {
     #  reproducible_ai.model_call_live and is no longer a call site of its own.)
     ("tests/test_no_model_call_in_pinned_path.py", "argv head 'codex'"): "a planted argv in a test fixture",
     ("tests/test_g1_forest_reader.py", "argv head 'agy'"): "the fake agy runner's argv in a plant (no process is run)",
+    ("tests/test_agy_call_logging.py", "argv head 'agy'"): "the fake agy runner's argv in the logging plant (no process "
+                                                           "is run)",
 }
 
 # (file, argv expression) -> what it runs. A subprocess whose program is not a literal cannot be classified by reading
