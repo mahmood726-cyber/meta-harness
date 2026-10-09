@@ -37,6 +37,8 @@ UNRESOLVED_SUBPROCESS = {
                                                      "agy_runner)",
     ("reproducible_ai/model_call_live.py", "[_agy_exe(), '--version']"): "agy --version (client version for the record)",
     ("scripts/build_search_benchmark.py", "cmd"): "python scripts/measure_search_recall.py (the `commands` list)",
+    ("scripts/verify_external_audit.py", "argv"): "python audit/external/<auditor script> (sys.executable + a CHECKS entry; "
+                                                  "the auditors' own arithmetic, no model)",
     ("scripts/g1_remote_codex.py", "[os.path.join(GIT_BIN, 'ssh.exe'), *SSH_OPTS, PEER, cmd]"):
         "ssh (Git for Windows) to the worker, which runs the SAME recorded codex calls (reproducible_ai.model_call_live); "
         "records are copied back and committed like local ones",
