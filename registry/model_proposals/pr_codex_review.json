@@ -6833,5 +6833,82 @@
     "verdict": null
    }
   ]
+ },
+ "review10-r1": {
+  "base": "074f6f3c9",
+  "head": "36f807213",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6af2e4e24bb1bb4722ac845f2ec72d39",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_review10.py"
+    ],
+    "prompt_sha256": "5649d1116ca7c26c78356ce6ce66d05fb892933893b1bf994a6b70e9572245bf"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_review10.py",
+    "function": "three_point",
+    "severity": "P1",
+    "claim": "The fourth-component blacklist accepts composites containing additional components outside that blacklist.",
+    "failing_input": "three_point('CV death, non-fatal MI, non-fatal stroke, or resuscitated cardiac arrest', 'HR 0.82 (95% CI 0.68–0.98)')",
+    "expected": "Reject the four-component definition: return (None, reason).",
+    "actual": "Returns ((0.82, 0.68, 0.98), None), classifying the four-component endpoint as three-point MACE.",
+    "id": "review10-r1:g1#1",
+    "record_id": "mc-6af2e4e24bb1bb4722ac845f2ec72d39",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_review10.py",
+    "function": "flow_readers.gate / flow_readers.one",
+    "severity": "P1",
+    "claim": "An unrelated endpoint passes the reader gate and counts as agreement. The gate never checks the definition, endpoint, or population; agreement only compares the numeric tuple.",
+    "failing_input": "Set held txt to 'In the renal subgroup, kidney failure had HR 0.82 (95% CI 0.68–0.98).'. Supply a successful reader answer: {\"state\":\"FOUND\",\"quote\":\"In the renal subgroup, kidney failure had HR 0.82 (95% CI 0.68–0.98).\",\"hr\":0.82,\"lower\":0.68,\"upper\":0.98,\"definition\":\"kidney failure\"}.",
+    "expected": "Reject this answer as evidence for overall-population three-point MACE; agrees must be false.",
+    "actual": "gate returns 'GATED', and one records agrees=true.",
+    "id": "review10-r1:g1#2",
+    "record_id": "mc-6af2e4e24bb1bb4722ac845f2ec72d39",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_review10.py",
+    "function": "elixa (EMA candidate discovery)",
+    "severity": "P1",
+    "claim": "The EMA route labels an explicitly four-component primary endpoint as a three-point clause because it bypasses three_point() and allows extra components between 'stroke' and 'HR'.",
+    "failing_input": "Call elixa() with rs.SOURCES containing {\"https://example.org/epar\":{\"topics\":[\"glp1-ra-mace-t2d\"],\"agency\":\"EMA\",\"state\":\"TEXT\"}}; rs.doc_text returns 'ELIXA: The primary composite comprised CV death, non-fatal MI, and non-fatal stroke or hospitalisation for unstable angina; HR 1.02 (95% CI 0.89-1.17).'; os.path.isfile returns false; http.get_json returns {\"results\":[]}.",
+    "expected": "No three-point candidate from this passage. With the AACT snapshot unavailable, overall result should remain NOT_CHECKED.",
+    "actual": "The EMA route reports 'ELIXA_THREE_POINT_CLAUSE', includes the four-point passage as a candidate, and sets result='CANDIDATE'.",
+    "id": "review10-r1:g1#3",
+    "record_id": "mc-6af2e4e24bb1bb4722ac845f2ec72d39",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_review10.py",
+    "function": "elixa / main",
+    "severity": "P1",
+    "claim": "Every matched FDA endpoint is assigned to four_point_hr, including endpoints that pass three_point(). main then uses that value to accuse a matching comparator of pooling a four-point endpoint.",
+    "failing_input": "Use FDA source URL 'https://example.org/208471/label/test.pdf' with record {\"topics\":[\"glp1-ra-mace-t2d\"],\"state\":\"TEXT\"}. Its doc_text is 'Table 12: Analysis of the Primary CV Endpoint (time to the first occurrence of the composite of CV death, non-fatal MI and non-fatal stroke). Primary composite CV event 0.90 (0.80, 1.00)'. Other routes have no candidates. For main, use an ELIXA comparator_row {\"effect\":0.90,\"lower\":0.80,\"upper\":1.00}.",
+    "expected": "The label is classified as three-point; four_point_hr is null, and no COMPARATOR_ROW_IS_THE_FOUR_POINT_PRIMARY finding is emitted.",
+    "actual": "elixa returns four_point_hr=[0.9,0.8,1.0] despite detail.three_point=true. main emits COMPARATOR_ROW_IS_THE_FOUR_POINT_PRIMARY for the matching comparator.",
+    "id": "review10-r1:g1#4",
+    "record_id": "mc-6af2e4e24bb1bb4722ac845f2ec72d39",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_review10.py",
+    "function": "elixa (held document reads)",
+    "severity": "P1",
+    "claim": "A failed held-text read is silently converted into checked absence through 'rs.doc_text(u) or \"\"'. This can produce NOT_FOUND even though an eligible document was never read.",
+    "failing_input": "Call elixa() with an available AACT outcomes file containing 'nct_id|title\\nNCT01147250|CV death\\n'; rs.SOURCES contains {\"https://example.org/epar\":{\"topics\":[\"glp1-ra-mace-t2d\"],\"agency\":\"EMA\",\"state\":\"TEXT\"}}; rs.doc_text('https://example.org/epar') returns None; http.get_json returns {\"results\":[]}.",
+    "expected": "Record the unavailable EMA text as NOT_CHECKED and return result='NOT_CHECKED'.",
+    "actual": "The EMA route reports NO_ELIXA_THREE_POINT_CLAUSE, and the overall result is 'NOT_FOUND'.",
+    "id": "review10-r1:g1#5",
+    "record_id": "mc-6af2e4e24bb1bb4722ac845f2ec72d39",
+    "verdict": null
+   }
+  ]
  }
 }
