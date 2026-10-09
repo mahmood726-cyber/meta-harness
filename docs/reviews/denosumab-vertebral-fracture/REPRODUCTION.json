@@ -1,13 +1,13 @@
 {
   "failures": 0,
-  "protocol_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
-  "review_sha256": "d593b7f26edf538b87b8110c396d2f52c8c215f9bf1601049a76210a9a1faf61",
+  "protocol_sha": "6338148b6cd6d59588057e123fd2e07fd00f37dc",
+  "review_sha256": "4ce5bbe7c48c9a4d382a1f6bcbc990e5982a5fb64660657ecc3ba677d60dce07",
   "from_cache": true,
   "preregistration": {
     "prospective": true,
     "sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
     "kind": "protocol-file (earliest, protocol-only)",
-    "build_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52"
+    "build_sha": "6338148b6cd6d59588057e123fd2e07fd00f37dc"
   },
   "parity": {
     "slug": "denosumab-vertebral-fracture",
@@ -34,13 +34,41 @@
     },
     "hand_status": "NOT_ENUMERABLE",
     "hand_status_stale": true,
-    "input_set_version": "100c9b437dc7cafa70f0bedefee3385c0403244d25a8e8d668dc0a8934c1d920",
-    "claim_id": "1048aa32fad077e0",
+    "input_set_version": "aeef4759ee037f82775c4c66cf0a03542ada04b98003567d186ea4c2958f35b5",
+    "claim_id": "b60d0af479d94f5e",
     "depends_on": {
-      "input_set_version": "100c9b437dc7cafa70f0bedefee3385c0403244d25a8e8d668dc0a8934c1d920"
+      "input_set_version": "aeef4759ee037f82775c4c66cf0a03542ada04b98003567d186ea4c2958f35b5"
     },
     "claim_kind": "parity"
   },
+  "result_changes": [
+    {
+      "slug": "denosumab-vertebral-fracture",
+      "outcome": "New vertebral fracture",
+      "before": {
+        "k": 1,
+        "estimate": 0.32,
+        "ci_low": 0.26,
+        "ci_high": 0.41
+      },
+      "after": {
+        "k": 1,
+        "estimate": 0.8,
+        "ci_low": 0.67,
+        "ci_high": 0.95
+      },
+      "left_pool": [],
+      "entered_pool": [],
+      "reason": "PMID 19671655 stayed in the pool but now contributes a different number: RR 0.32 (0.26 to 0.41) -> HR 0.8 (0.67 to 0.95) (estimator selection KEEP_REPORTED_EFFECT -> KEEP_REPORTED_EFFECT; source reported -> reported). This is not a set-aside: the previously served number was the WRONG QUANTITY for this outcome, and is asserted wrong. The trial stays in the pool and contributes the quantity the outcome declares, read from the same held document.",
+      "by": "Claude Opus 5.5 (captain lane)",
+      "when_utc": "2026-10-09T17:16:59Z",
+      "reviewer_countersignature": {
+        "state": "OPEN",
+        "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+      },
+      "conclusion_changed": null
+    }
+  ],
   "dual": {
     "agree": 0,
     "reconcile": 3,
@@ -117,8 +145,8 @@
   "certificate": {
     "schema_version": 1,
     "slug": "denosumab-vertebral-fracture",
-    "protocol_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
-    "protocol_text_sha256": "5a15c167cd1f5a6112c9b9f60c2a6400a176794c8020c12a55d922c27653b17c",
+    "protocol_sha": "6338148b6cd6d59588057e123fd2e07fd00f37dc",
+    "protocol_text_sha256": "61641955a18a81531ea5364a2b3c6446528ae4c7a073b7898815199a80d0def0",
     "search_query_sha256": "89fe3d415be25d6cdb94a1abcdd2d91c3f1c36d090c27dadea096df6f4004fde",
     "retrieved_corpus_sha256": "32165834d09dd2ab4e71fae5a92967fcc91c88733bbc681629fecd2d3925a16a",
     "records_file_sha256": "5fe9b795b1605ee2d298ebd1e2e3a3e8ea4a2a18ea531063e6481c5cda4d78c4",
@@ -138,7 +166,7 @@
         "sha256": "26fdb09699f4fd1a0e91bc91da6c85a53b66753f936768ee33e648655b727d31"
       }
     ],
-    "config_sha256": "385c2e3a456d7f7b0f7876af33f145b1058f56ed1d6c3f09ecbb84f48261371c",
+    "config_sha256": "271a127af373b56020cb725bb9e79407f1c8ec948929a754e00789130b3f55bc",
     "analysis_code_sha256": "1c1386104bbd81e97bd32fba56dcba56865aa6ae9eaa990248ea1058f2a1a2ad",
     "analysis_code_blobs": {
       "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
@@ -279,8 +307,8 @@
       "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
       "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
     },
-    "manuscript_sha256": "5a36884bc439a145fd9ed70a581717eec081aab9efc2e22bc5b827c1bce1ddb8",
-    "review_sha256": "d593b7f26edf538b87b8110c396d2f52c8c215f9bf1601049a76210a9a1faf61",
+    "manuscript_sha256": "0076ce09e430b69d8ae64fa42f7ce3ea39220c5c55ec7267dafe9976f425755c",
+    "review_sha256": "4ce5bbe7c48c9a4d382a1f6bcbc990e5982a5fb64660657ecc3ba677d60dce07",
     "hash_inputs": {
       "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
       "protocol_text_sha256": "protocols/denosumab-vertebral-fracture.md UTF-8 text, universal newlines",
@@ -301,9 +329,9 @@
       "review_sha256": "canonical review core (excludes reproduction)",
       "release_sha256": "canonical entire certificate excluding only release_sha256"
     },
-    "release_sha256": "c94de88c7f033dd91d2795862b63630fb11820819fdc122e9e132c850025aa11"
+    "release_sha256": "278957627cb54ecad8bee930309bea4e1987473326b73fb5779a3bc06904cb9a"
   },
-  "html_sha256": "b1f524ff85813e926aeb234f27e6a593a08c0ac38d44046b9a3382bec115819e",
+  "html_sha256": "11217df4ebfb36786f5bf49acc8971407fbf405e7e2d7d8c702c0fcca2c8714d",
   "checks": [
     {
       "check": "render is deterministic",
