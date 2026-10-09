@@ -212,3 +212,14 @@ def test_PLANT_a_chain_that_does_not_reach_the_served_result_carries_nothing(mon
     monkeypatch.setattr(b.fn, "served", drifted)
     adds, exc = b.build()
     assert not any(a["slug"] == "tocilizumab-covid19-mortality" for a in adds)
+
+
+def test_PLANT_a_recurring_result_takes_the_chronologically_next_link(monkeypatch):
+    """codex v13-apply-r3 P2: A->B->A->B->C stopped at the first link because two later notices matched B."""
+    import build_served_pool_additions as b
+    ns = [dict(slug="demo", outcome="m", when_utc=f"2026-10-0{i + 1}T00:00:00Z", before={"e": x}, after={"e": y},
+               reviewer_countersignature={"state": "SIGNED"}) for i, (x, y) in enumerate([(1, 2), (2, 1), (1, 2), (2, 3)])]
+    monkeypatch.setattr(b.rc, "SIGNED_STATES", {"SIGNED"})
+    monkeypatch.setattr(b.rc, "not_applied", lambda n: False)
+    monkeypatch.setattr(b.rc, "_same", lambda x, y: x == y)
+    assert b._signed_chain(ns[0], ns) == ns[1:]

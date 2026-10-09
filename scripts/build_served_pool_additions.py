@@ -300,9 +300,9 @@ def _signed_chain(n, notices):
                and str(m.get("when_utc") or "") > str(cur.get("when_utc") or "")
                and (m.get("reviewer_countersignature") or {}).get("state") in rc.SIGNED_STATES and not rc.not_applied(m)
                and rc._same(m.get("before") or {}, cur.get("after") or {})]
-        if len(nxt) != 1:
+        if not nxt:
             return chain
-        cur = nxt[0]
+        cur = min(nxt, key=lambda m: str(m.get("when_utc") or ""))   # the chronologically NEXT signed link (codex r3 P2)
         chain.append(cur)
 
 
