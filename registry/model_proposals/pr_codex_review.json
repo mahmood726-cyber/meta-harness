@@ -6409,5 +6409,50 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "gate-v12-11-r1": {
+  "base": "0bdc5e3c729f0f0a53efd26ea34673705f8b8ed9",
+  "head": "e871d198b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1711516d15c6bf8fd339c92a6d0e30dc",
+    "state": "RAN_OK",
+    "files": [
+     "harness/estimand_contract.py",
+     "harness/extract.py",
+     "harness/pipeline.py",
+     "harness/source_hierarchy.py",
+     "scripts/fulltext_cascade.py"
+    ],
+    "prompt_sha256": "515ebbeab6dd7bd496bac751518dd5e289fe41befc0c9eef4f726ef33c57943b"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/estimand_contract.py",
+    "function": "_signed",
+    "severity": "P1",
+    "claim": "Malformed ratification records pass as signed: hash validation checks only length, accepting non-hexadecimal strings, and the required packet item can be absent.",
+    "failing_input": "_signed({'ratified': {'state': 'SEEN_AND_SIGNED', 'by': 'Mahmood', 'quote': 'approved', 'packet_sha256': 'z' * 64, 'item_section_sha256': 'z' * 64}})",
+    "expected": "False: neither value is a valid SHA-256 digest, and no packet item is identified.",
+    "actual": "True, directly from the shown predicate. A matching registry entry therefore passes signed() and can activate the OR override.",
+    "id": "gate-v12-11-r1:g1#1",
+    "record_id": "mc-1711516d15c6bf8fd339c92a6d0e30dc",
+    "verdict": null
+   },
+   {
+    "file": "harness/estimand_contract.py",
+    "function": "_load / signed",
+    "severity": "P2",
+    "claim": "A missing contract registry silently becomes an absent contract. Losing the registry disables its estimand restrictions instead of surfacing a configuration failure.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.estimand_contract import signed\nwith patch('harness.estimand_contract.os.path.exists', return_value=False):\n    print(signed('corticosteroids', 'mortality', path='missing-contracts.json'))",
+    "expected": "An explicit missing-registry error, preventing selection from proceeding as though the registry was successfully checked.",
+    "actual": "None: _load returns [], so signed reports no contract and the pipeline proceeds with its existing fallback policy. This follows directly from the shown branches.",
+    "id": "gate-v12-11-r1:g1#2",
+    "record_id": "mc-1711516d15c6bf8fd339c92a6d0e30dc",
+    "verdict": null
+   }
+  ]
  }
 }
