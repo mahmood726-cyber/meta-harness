@@ -107,7 +107,7 @@ def _unrenderable_block(obj: dict[str, Any]) -> str:
 # statement about the TRIAL). The other states are statements about US (extraction/retrieval) or a
 # deliberate refusal of a number that WAS found — none is evidence the outcome does not exist.
 _ABSENCE_STATE_LABEL = {
-    "OUTCOME_NOT_IN_SOURCE": "not in cached source -- no outcome sentence/effect found",
+    "OUTCOME_NOT_IN_SOURCE": "no poolable effect or arm counts found in the cached source (the outcome may be mentioned)",
     "NO_OUTCOME_DATA_IN_SOURCE": "declared absent — no outcome data in the retrieved source",
     "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": "excluded on evidence -- effect present but wrong estimand class",
     "COUNTS_PRESENT_NOT_CORROBORATED": "not extracted -- arm counts present but percentage corroboration failed",
@@ -408,7 +408,7 @@ _ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same 
 
 
 
-def _known_missing_sensitivity_panel(o: dict) -> str:
+def _known_missing_sensitivity_panel(o: dict, heading_level: int = 3) -> str:
     kms = o.get("known_missing_sensitivity") or {}
     if not kms:
         return ""
@@ -482,8 +482,8 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
     demo = kms.get("membership_demonstration")
     if demo:
         metrics = ("k", "estimate", "ci_low", "ci_high", "tau2", "i2", "pi_low", "pi_high")
-        combined_html += ("<section class='membership-demonstration'><h4>DEMONSTRATION: "
-                          f"{_e(demo['state'])}</h4>"
+        combined_html += (f"<section class='membership-demonstration'><h{min(heading_level + 1, 6)}>DEMONSTRATION: "
+                          f"{_e(demo['state'])}</h{min(heading_level + 1, 6)}>"
                           f"<p>under the PROPOSED adjudication -- not a result; the primary k={_e(demo['primary']['k'])} pool is unchanged</p>"
                           "<p>Paule-Mandel tau²; HKSJ on t with k-1 df, log scale. I² is a percentage.</p>"
                           "<table><tr><th>Metric</th><th>Primary</th><th>Primary plus proposed ELIXA</th></tr>")
@@ -499,7 +499,7 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
         combined_html += "</table></section>"
     return (
         "<div class='kms-panel' id='known-missing-sensitivity'>"
-        f"<h3>{_e(kms.get('heading') or 'Known eligible trials not in this pool, and what they would do')}</h3>"
+        f"<h{heading_level}>{_e(kms.get('heading') or 'Known eligible trials not in this pool, and what they would do')}</h{heading_level}>"
         f"<p><strong>Panel conclusion effect: {_e(kms.get('headline_conclusion_effect') or 'NOT_COMPUTABLE')}.</strong> "
         "These rows are SENSITIVITY only; they do not replace the primary pool.</p>"
         + combined_html + comp +
@@ -784,6 +784,10 @@ def _overview(r, neutral):
             inc_counts = _included_unit_counts(r)
             count_noun = "trial family" if has_units else "trial"
             recon = None
+            _pst = _review_tabs.outcome_state(prim)
+            _pooled = ("were pooled" if _pst.startswith(("pooled", "pooled point"))
+                       else "supplied the estimate (a single trial, not pooled)" if _pst.startswith("single-trial")
+                       else f"have extracted values, but no pooled estimate is served ({_pst})")
             if inc_counts["trials"] is not None and k is not None and isinstance(k, int):
                 scope_identity = r.get("scope_identity") or {}
                 scoped = _scope_identity_mod.requires_qualification(scope_identity)
@@ -794,19 +798,19 @@ def _overview(r, neutral):
                     else:
                         prefix = f"{_identity_mod.count_phrase(inc_counts, count_noun)} met P/I/C/design (screening)"
                     recon = (f"{prefix}; {k} reported this "
-                             f"outcome with an extractable number and were pooled; the remaining "
+                             f"outcome with an extractable number and {_e(_pooled)}; the remaining "
                              f"{_identity_mod.count_phrase(absent_counts, count_noun)} are listed as declared-absent in Results (they were "
                              f"included but reported no poolable value for this outcome).")
                 else:
                     if scoped:
                         recon = _scope_identity_mod.qualification_text(scope_identity, inc_counts["trials"])
                     elif has_units:
-                        recon = (f"all {_identity_mod.count_phrase(inc_counts, count_noun)} reported this outcome and were "
-                                 f"pooled (screening count = k).")
+                        recon = (f"all {_identity_mod.count_phrase(inc_counts, count_noun)} reported this outcome and "
+                                 f"{_e(_pooled)} (screening count = k).")
                     else:
                         label = "trial" if inc_counts["trials"] == 1 else "trials"
-                        recon = (f"all {inc_counts['trials']} screened-in {label} reported this outcome and were "
-                                 f"pooled (screening count = k).")
+                        recon = (f"all {inc_counts['trials']} screened-in {label} reported this outcome and "
+                                 f"{_e(_pooled)} (screening count = k).")
             dc = prim.get("design_consumption") or res.get("design_consumption") or {}
             rows = [
                 ("Outcome", prim.get("name")),
@@ -1433,7 +1437,7 @@ def _trial_inputs(o):
         if vst == "verified":
             src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified against source</span><br>" + _e(t.get("source"))
         elif vst == "verified_handchecked":
-            src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified (AACT-derived, cross-checked)</span><br>" + _e(t.get("source"))
+            src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified (hand-checked against the held source; basis on hover)</span><br>" + _e(t.get("source"))
         elif vst == "not-yet":
             src = "<span class='vno' title='" + _e(t.get("verify_basis", "")) + "'>⚠ NOT YET verified against source</span><br>" + _e(t.get("source"))
         else:
@@ -1817,7 +1821,7 @@ def _outcome_block(o, show_inputs=True, review=None):
         ])
         body += _kv([(k, v) for k, v in rows if v is not None])
         if o.get("primary"):
-            body += _known_missing_sensitivity_panel(o)
+            body += _known_missing_sensitivity_panel(o, heading_level=5)   # inside an outcome block (h4), A1
         # COMPATIBILITY KEY: the explicit contract that lets these trials be pooled -- the six
         # dimensions they must share. Rendered so a reader can see the pool is not a mix of
         # different quantities; the randomised-contrast fraction discloses how many are parser-
@@ -1940,8 +1944,13 @@ def _outcome_block(o, show_inputs=True, review=None):
                                                            "trial family")
                 if unitized else f"{n_abs} further screened-in trial(s)"
             )
-            body += (f"<p class='note'>k = {_k_display(o)}: the {n_pool} trial(s) named below were "
-                     f"pooled; {absent_display} had no poolable value for this "
+            _st = _review_tabs.outcome_state(o)
+            _lead = (f"the {n_pool} trial(s) named below were pooled" if _st.startswith(("pooled", "pooled point"))
+                     else f"the trial named below supplies the estimate (single trial, not pooled)"
+                     if _st.startswith("single-trial")
+                     else f"the {n_pool} trial(s) named below have extracted values, but no pooled estimate is served "
+                          f"({_st})")
+            body += (f"<p class='note'>k = {_k_display(o)}: {_e(_lead)}; {absent_display} had no poolable value for this "
                      f"outcome and are listed below with an explicit <em>absence/refusal state</em>. These "
                      f"typed states distinguish source silence from effect-present estimand mismatches, "
                      f"uncorroborated counts, multi-arm/timepoint/population mismatches, missing cached "

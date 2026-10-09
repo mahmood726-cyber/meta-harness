@@ -51,6 +51,9 @@ UNRESOLVED_SUBPROCESS = {
     ("outputs/pva-2026-10-08/codex_review_tabs/run_jobs.py", "[CODEX, 'exec', '-s', 'read-only', '--skip-git-repo-check', "):
         "codex exec (read-only) -- the pva review-tabs rendering review, 3 rounds x 7 jobs; every call recorded in "
         "r*/calls.jsonl (prompt/input/output sha256). A review lane's notes: no served page or build reads its outputs",
+    ("outputs/pva-2026-10-09/codex_handover/run_jobs.py", "[CODEX, 'exec', '-s', 'read-only', '--skip-git-repo-check', "):
+        "codex exec (read-only) -- the pva handover classification + adversarial diff review (H2-H19, A1); every call "
+        "recorded in calls.jsonl (prompt/input/output sha256). A review lane's notes: no served page or build reads them",
 }
 
 # committed model outputs -> what reads them and what they can change

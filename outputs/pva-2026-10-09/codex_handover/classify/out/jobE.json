@@ -1,0 +1,128 @@
+{
+  "items": [
+    {
+      "id": "H15",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/result_changes.py",
+      "root_cause_code": "conclusion_changed(), lines 78–79:\n    if before.get(\"estimate\") is None and after.get(\"estimate\") is not None:\n        return \"a pooled estimate is now served where none was served before: a new claim, not a continuation\"",
+      "fields_touched": "A signed successor/correction changes docs_result_changes.json and its reviewer_countersignature.rendered_sha256. Outcomes, estimates and trial membership need not change. The sentence is derived by census._result_change_notices(), lines 128–129, rather than stored verbatim in the source notice.",
+      "fix": "For new notices, use kind = 'single-trial' if after.get('k') == 1 else 'pooled'; return f'a {kind} estimate is now served where none was served before: a new claim, not a continuation'. Version the wording so historical signed blocks retain their exact bytes; issue a separately countersigned correction/successor rather than silently regenerating historical signatures.",
+      "plant": "before={'k':0,'estimate':None}; after={'k':1,'estimate':0.79,'ci_low':0.69,'ci_high':0.9}; scale='HR'. Require new-version conclusion_changed to say 'single-trial estimate'. Current function returns 'pooled estimate' (reproduced). Also require historical signed-block hashes to remain unchanged.",
+      "evidence": [
+        {
+          "file": "reviews/empagliflozin-hfpef-hosp/index.html",
+          "quote": "Now: k = 1, 0.79 (0.69 to 0.90). <strong>Conclusion changed: a pooled estimate is now served where none was served before: a new claim, not a continuation.</strong>"
+        },
+        {
+          "file": "docs_result_changes.json",
+          "quote": "\"rendered_sha256\": \"9aa0336c4b75225dcc61539026f1d4bce9fa9de405bd30cf4f76c93259c26db3\""
+        },
+        {
+          "file": "harness/result_changes.py",
+          "quote": "    if sig[\"rendered_sha256\"] != rendered_sha256(block_html):"
+        }
+      ]
+    },
+    {
+      "id": "H16",
+      "real": true,
+      "class": "SERVED",
+      "root_cause_file": "harness/claim.py",
+      "root_cause_code": "derive(), lines 101–106:\n    direction = \"none\"\n    if est is not None:\n        if est < null - _EPS:\n            direction = \"benefit\"\n        elif est > null + _EPS:\n            direction = \"harm\"",
+      "fields_touched": "outcomes[0].result.claim.direction changes from harm to benefit for metformin ovulation. Explicit outcome-polarity metadata and corresponding comparator claims also require consistent propagation. Numerical estimates and intervals remain unchanged.",
+      "fix": "Add explicit, source-backed benefit_when ('higher'/'lower') to derive and its callers. Compute delta = (est - null) * (1 if benefit_when == 'higher' else -1); direction = 'benefit' if delta > _EPS else 'harm' if delta < -_EPS else 'none'. For missing polarity, return direction=None rather than assuming lower is beneficial. Update the direction definition accordingly.",
+      "plant": "Use the committed metformin primary result (OR 2.0733, CI 0.0922–46.6008) with benefit_when='higher': require direction='benefit', significant=False and crosses_null=True. Current derive returns harm (reproduced). Include higher/lower polarity controls on both ratio and difference scales.",
+      "evidence": [
+        {
+          "file": "reviews/metformin-pcos-ovulation/review.json",
+          "quote": "\"name\": \"Ovulation with metformin added to clomifene\""
+        },
+        {
+          "file": "reviews/metformin-pcos-ovulation/review.json",
+          "quote": "\"estimate\": 2.0733,"
+        },
+        {
+          "file": "reviews/metformin-pcos-ovulation/review.json",
+          "quote": "\"direction\": \"harm\","
+        },
+        {
+          "file": "harness/pipeline.py",
+          "quote": "            _o[\"result\"][\"claim\"] = claim_mod.derive(_o[\"result\"])"
+        }
+      ]
+    },
+    {
+      "id": "H17",
+      "real": true,
+      "class": "PRESENTATION",
+      "root_cause_file": "harness/comparator_panel.py",
+      "root_cause_code": "render(), lines 200–204:\n        for key in FACTS:\n            f = c.get(key)\n            value = (f\"{esc(f['value'])} (characters {f['span']['start']}–{f['span']['end']}: {esc(f['span']['quote'])})\"\n                     if f else \"NOT EXTRACTED from held text\")\n            parts.append(f\"<dt>{esc(key)}</dt><dd>{value}</dd>\")",
+      "fields_touched": "For the minimal wording correction, only HTML changes: replace the inference about source extraction with a statement about the empty panel fields. outcomes, result, trials, claim, comparator*, limitations, every registry file and all served numbers remain byte-identical. Populating comparator_panel.k/effect/ci would instead be SERVED.",
+      "fix": "Replace the fallback literal with 'Not populated in this panel; see reported comparator results and source records.'. An empty panel field does not establish that extraction is absent elsewhere.",
+      "plant": "Render the committed finerenone and statins reviews. Require the scoped fallback and absence of 'NOT EXTRACTED from held text', while preserving comparator.reported, all panel fields and numeric output. Current rendering fails; the literal replacement passed in memory without mutating either review.",
+      "evidence": [
+        {
+          "file": "reviews/finerenone-ckd-t2d-renal/review.json",
+          "quote": "\"effect\": null,"
+        },
+        {
+          "file": "reviews/finerenone-ckd-t2d-renal/review.json",
+          "quote": "\"field\": \"reported[0].estimate\""
+        },
+        {
+          "file": "reviews/finerenone-ckd-t2d-renal/review.json",
+          "quote": "\"value\": 0.84,"
+        },
+        {
+          "file": "reviews/statins-primary-prevention-elderly/review.json",
+          "quote": "\"span\": \"For primary prevention in the elderly, seven trials (21,781 patients in total), 29 , 35 – 40 identified a similar risk of cardiovascular events between patients on statins and the control group (OR: 0.88, 95% CI: 0.72–1.06; GRADE: moderate).\","
+        }
+      ]
+    },
+    {
+      "id": "H18",
+      "real": true,
+      "class": "PRESENTATION",
+      "root_cause_file": "harness/comparator_panel.py",
+      "root_cause_code": "render(), lines 206 and 214–215:\n        if c.get(\"trial_set\"):\n        else:\n            parts.append(\"<p>Trial set NOT ENUMERATED; overlap unknown.</p>\")",
+      "fields_touched": "Only the renderer's blanket absence statement changes. comparator_panel[0].trial_set, overlaps, scope_note, every other review field, registries and served numbers remain byte-identical. Hydrating trial_set or computing new overlap numbers would instead be SERVED.",
+      "fix": "Replace the else-branch text with '<p>Trial membership is not populated in this panel; overlap is not computed here.</p>'. This resolves the contradiction without asserting that the cited external enumeration was independently verified; those cited files are absent from this extract.",
+      "plant": "Render the committed esketamine review, whose panel has trial_set=[] and a scope_note identifying typed enumeration records. Require scoped panel-absence wording instead of 'Trial set NOT ENUMERATED; overlap unknown.'. Current code fails; the replacement passed in memory with the review unchanged.",
+      "evidence": [
+        {
+          "file": "reviews/esketamine-trd-madrs/review.json",
+          "quote": "\"trial_set\": [],"
+        },
+        {
+          "file": "reviews/esketamine-trd-madrs/review.json",
+          "quote": "\"scope_note\": \"Registered comparator identity (adopted 2026-10-05, pre-registered selection rule 530da166a). Its trial set and pooled result are typed, with spans verified in held sources, in registry/comparator_selection/esketamine-trd-madrs.adoption.json and registry/comparator_enumerations/esketamine-trd-madrs.json.\","
+        }
+      ]
+    },
+    {
+      "id": "A1",
+      "real": true,
+      "class": "PRESENTATION",
+      "root_cause_file": "harness/page.py",
+      "root_cause_code": "_known_missing_sensitivity_panel(), line 502:\n        f\"<h3>{_e(kms.get('heading') or 'Known eligible trials not in this pool, and what they would do')}</h3>\"\n_outcome_block(), line 1820:\n            body += _known_missing_sensitivity_panel(o)\n_outcome_block(), line 1832:\n            body += \"<h5>Compatibility key (pooling contract)</h5>\" + _kv([",
+      "fields_touched": "Only HTML heading tags change. All review.json fields, limitations, registry records and served numbers remain byte-identical. The alleged six-topic scope is unsupported: the exact h3→h5 transition occurs on dpp4 and empagliflozin; the other four supplied pages use h4→h5.",
+      "fix": "Give _known_missing_sensitivity_panel a heading_level=3 parameter; render its heading at that level and its DEMONSTRATION subheading at heading_level+1. In _outcome_block call _known_missing_sensitivity_panel(o, heading_level=5). Keep the overview's existing default. Do not globally demote the compatibility heading.",
+      "plant": "Render the committed dpp4 and empagliflozin primary outcome blocks and parse their heading sequence: require no increase exceeding one level before 'Compatibility key (pooling contract)'. Current served HTML fails both; the context-aware sensitivity heading makes the compatibility heading a sibling h5. Retain the other four pages as controls.",
+      "evidence": [
+        {
+          "file": "reviews/dpp4-mace-t2d/index.html",
+          "quote": "<h3>Known eligible trials not in this pool, and what they would do</h3>"
+        },
+        {
+          "file": "reviews/empagliflozin-hfpef-hosp/index.html",
+          "quote": "<h5>Compatibility key (pooling contract)</h5>"
+        },
+        {
+          "file": "reviews/esketamine-trd-madrs/index.html",
+          "quote": "<h4>Observed-case Day-28 raw change-score MADRS MD (primary)</h4>"
+        }
+      ]
+    }
+  ]
+}
