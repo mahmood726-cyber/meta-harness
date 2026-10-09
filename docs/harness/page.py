@@ -1370,6 +1370,16 @@ def protocol_compliance_not_established_html() -> str:
             "list establishes nothing; declared == enforced is not asserted until the checks exist.</div>")
 
 
+def protocol_divergence_disclosed_html(divergences) -> str:
+    """The ONE rendering of the DISCLOSED_DIVERGENCE state as a limitation block: a page that found a protocol/config
+    disagreement must not be quieter than one that compared nothing (honest ratchet, V13-03Q render)."""
+    items = "; ".join(f"{_e(d.get('code'))} ({_e(d.get('dimension'))}): prose says {_e(d.get('prose'))}, "
+                      f"config enforces {_e(d.get('config'))}" for d in divergences)
+    return (f"<div class='absent'><strong>Protocol/config DIVERGENCE disclosed ({len(divergences)}).</strong> The prose "
+            f"protocol and the executable config disagree: {items}. Declared == enforced is not asserted; each is a "
+            "defect to resolve or a dated amendment to declare.</div>")
+
+
 def _eligibility_chain_block(r):
     ec = r.get("eligibility_chain") or {}
     if not ec:
