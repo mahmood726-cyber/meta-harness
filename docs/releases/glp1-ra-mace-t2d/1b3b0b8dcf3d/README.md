@@ -1,3 +1,5 @@
+> **HISTORICAL (pinned 1b3b0b8dc, 24 Sep)** -- this archive is not the current harness. It freezes one review (glp1-ra-mace-t2d) as served at commit 1b3b0b8dc on 24 Sep 2026, before the version-1 work; it is kept as a record and still verifies as itself. For the current harness, clone https://github.com/mahmood726-cyber/meta-harness (or download https://github.com/mahmood726-cyber/meta-harness/archive/refs/heads/main.zip and use `python scripts/replay_offline.py <slug>`). The zip, SHA256SUMS and RELEASE.json below are unchanged; only this note was added (9 Oct 2026).
+
 # Frozen release archive: glp1-ra-mace-t2d at 1b3b0b8dcf3d
 
 This archive freezes the bytes served for the `glp1-ra-mace-t2d` review at commit `1b3b0b8dcf3df8cf305686e2953ef0d58db5051d` (tree `02b3d5c716a295b1177fe7162e4fd87ba7b7f4f0`). Release status: **PRE-RELEASE**. the review is served under a PRE-RELEASE label (registry/release_status.json); this archive freezes what was served at the commit above and is NOT a version-1 release.
