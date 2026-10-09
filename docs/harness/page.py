@@ -1296,6 +1296,19 @@ def _common_effect_label(o):
     return "Common-effect CI (k=2 sensitivity)"
 
 
+
+def _estimand_amendment_text(o):
+    """V13-03Q: a signed estimand amendment is shown beside the estimand as POST HOC, with the original declaration."""
+    hist = o.get("estimand_history") or []
+    if not hist:
+        return None
+    h = hist[-1]
+    if h.get("post_hoc"):
+        return (f"POST HOC: the protocol declared {h.get('declared')}; amended to {h.get('amended_to')} on {h.get('until')} "
+                f"after the results were seen ({h.get('changed_by')}). The original declaration is kept; no served number changed.")
+    return (f"Amended: the protocol declared {h.get('declared')}; amended to {h.get('amended_to')} on {h.get('until')} "
+            f"({h.get('changed_by')}). The original declaration is kept.")
+
 def _estimand_decision_text(o):
     d = o.get("estimand_decision") or {}
     if not d:
@@ -1355,6 +1368,16 @@ def protocol_compliance_not_established_html() -> str:
     return ("<div class='absent'><strong>Protocol/config compliance NOT ESTABLISHED.</strong> No dimension of the "
             "prose protocol was compared with the executable config on this page, so the empty divergence "
             "list establishes nothing; declared == enforced is not asserted until the checks exist.</div>")
+
+
+def protocol_divergence_disclosed_html(divergences) -> str:
+    """The ONE rendering of the DISCLOSED_DIVERGENCE state as a limitation block: a page that found a protocol/config
+    disagreement must not be quieter than one that compared nothing (honest ratchet, V13-03Q render)."""
+    items = "; ".join(f"{_e(d.get('code'))} ({_e(d.get('dimension'))}): prose says {_e(d.get('prose'))}, "
+                      f"config enforces {_e(d.get('config'))}" for d in divergences)
+    return (f"<div class='absent'><strong>Protocol/config DIVERGENCE disclosed ({len(divergences)}).</strong> The prose "
+            f"protocol and the executable config disagree: {items}. Declared == enforced is not asserted; each is a "
+            "defect to resolve or a dated amendment to declare.</div>")
 
 
 def _eligibility_chain_block(r):
@@ -1775,6 +1798,7 @@ def _outcome_block(o, show_inputs=True, review=None):
             # Method prose, and a row reading "Estimand RR" beside a pooled HR is the defect this fixes.
             ("Estimand", res.get("scale") or o.get("estimand")),
             ("Estimand decision", _estimand_decision_text(o)),
+            ("Estimand amendment", _estimand_amendment_text(o)),
             # The authoritative compatibility contract is the Compatibility key block below (compat.py,
             # the shipped gate). The only estmeasure verdict surfaced here is the INCOMPATIBLE warning;
             # the old "reported labels differ … SAME compatibility class (RR/OR/HR)" sentence was a
@@ -2479,6 +2503,9 @@ def _reproduction(r, neutral):
                      "(a conformance check derived from the config it certifies cannot fail). "
                      f"<strong>{len(pcd)} divergence(s)</strong> — each is a defect to resolve or a dated "
                      f"amendment to declare, never a silent widening:<ul>{_rows}</ul></p>")
+            # the limitation object's own block: a page that FOUND a divergence is never quieter than one that
+            # compared nothing (the NOT_ESTABLISHED branch below prints its block the same way)
+            body += protocol_divergence_disclosed_html(protocol_compliance_state(r)["divergences"] or pcd)
         else:
             _pcs = protocol_compliance_state(r)
             if _pcs["state"] == "ESTABLISHED":

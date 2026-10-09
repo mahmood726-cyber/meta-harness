@@ -85,14 +85,16 @@ def test_tocilizumab_estimand_decision_controls_served_scale_and_renders():
     review = _load("docs/reviews/tocilizumab-covid19-mortality/review.json")
     outcome = _primary(review)
     decision = outcome["estimand_decision"]
+    # V13-02Q (signed 9 Oct): a signed effect-measure contract holds the registered OR, so the decision serves OR
+    # (before: RR, the only published scale). The requirement is unchanged: the decision controls the served scale and renders.
     assert outcome["estimand"] == "OR"
-    assert outcome["served_estimand"] == "RR"
-    assert decision["decision"] == "cumulative_risk_at_trial_end"
-    assert decision["target_scale"] == outcome["result"]["scale"] == "RR"
+    assert outcome["served_estimand"] == "OR"
+    assert decision["decision"] == "odds" and "V13-02Q" in decision["reason"]
+    assert decision["target_scale"] == outcome["result"]["scale"] == "OR"
     html = render_page(review)
     assert "Estimand decision" in html
     assert "declared OR" in html
-    assert "Target scale RR" in html
+    assert "Target scale OR" in html
 
 
 def _one_trial(abstract, estimand="RR"):

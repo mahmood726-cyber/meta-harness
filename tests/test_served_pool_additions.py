@@ -185,3 +185,41 @@ def test_a_held_signed_notice_is_never_admitted_until_its_signer_lifts_it():
     row = next(a for a in adds if a["slug"] == "dpp4-mace-t2d")
     assert row["after"] == {"k": 4, "estimate": 1.0007, "ci_low": 0.8998, "ci_high": 1.1129}
 
+
+
+def test_PLANT_a_signed_admission_is_carried_by_a_later_signed_chain_to_the_served_result():
+    """V13-02Q (signed) re-expressed tocilizumab's served pool as an OR. The V6-05 admission (COVACTA, TOCIBRAS; signed
+    under RR) can no longer be re-derived from today's rows, so the generator dropped it -- regenerating the register would
+    have silently removed two trials from a served pool. A signed admission is kept when a chain of LATER SIGNED notices for
+    the same outcome links its 'after' to what is served now; a chain that does not reach the served result carries nothing."""
+    import build_served_pool_additions as b
+    adds, exc = b.build()
+    toci = [a for a in adds if a["slug"] == "tocilizumab-covid19-mortality"]
+    assert len(toci) == 1 and sorted(r["id"] for r in toci[0]["rows"]) == ["NCT04320615", "NCT04403685"]
+    assert toci[0].get("carried_by_signed_chain"), toci[0]
+    assert not any("tocilizumab" in e["notice"] for e in exc), exc
+
+
+def test_PLANT_a_chain_that_does_not_reach_the_served_result_carries_nothing(monkeypatch):
+    import build_served_pool_additions as b
+    real = b.fn.served
+
+    def drifted(slug):
+        p = real(slug)
+        if slug == "tocilizumab-covid19-mortality" and p:
+            p = dict(p, result=dict(p.get("result") or {}, estimate=9.99))
+        return p
+    monkeypatch.setattr(b.fn, "served", drifted)
+    adds, exc = b.build()
+    assert not any(a["slug"] == "tocilizumab-covid19-mortality" for a in adds)
+
+
+def test_PLANT_a_recurring_result_takes_the_chronologically_next_link(monkeypatch):
+    """codex v13-apply-r3 P2: A->B->A->B->C stopped at the first link because two later notices matched B."""
+    import build_served_pool_additions as b
+    ns = [dict(slug="demo", outcome="m", when_utc=f"2026-10-0{i + 1}T00:00:00Z", before={"e": x}, after={"e": y},
+               reviewer_countersignature={"state": "SIGNED"}) for i, (x, y) in enumerate([(1, 2), (2, 1), (1, 2), (2, 3)])]
+    monkeypatch.setattr(b.rc, "SIGNED_STATES", {"SIGNED"})
+    monkeypatch.setattr(b.rc, "not_applied", lambda n: False)
+    monkeypatch.setattr(b.rc, "_same", lambda x, y: x == y)
+    assert b._signed_chain(ns[0], ns) == ns[1:]

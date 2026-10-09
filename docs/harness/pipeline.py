@@ -1751,6 +1751,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    if spec.get("estimand_history"):
+        out["estimand_history"] = spec["estimand_history"]   # V13-03Q: a signed, post-hoc estimand amendment
     if spec.get("component_compat_key"):
         out["component_compat_key"] = True
     if design_refusals:

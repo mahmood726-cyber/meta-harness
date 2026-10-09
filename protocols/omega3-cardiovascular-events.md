@@ -66,3 +66,9 @@ does not expose atrial-fibrillation or bleeding effects.
   REDUCE-IT (PMID 30415628), STRENGTH (PMID 33190147), and ORIGIN omega-3 (PMID 22686415).
 - **Negative** - Grenyer et al. fish oil for major depression (PMID 17659823; a different
   disease area) must be recovered and EXCLUDED as wrong population.
+
+## Amendment 2026-10-09 (estimand RR -> HR, post hoc; V13-03Q)
+**Status: POST HOC.** This amendment was made after the results were seen and is signed by Mahmood (V13-03Q, option A, 9 Oct 2026: 'sign v13' / 'yes to all recommended'; packet lane_status/v13_packet.md sha256 d9842124e80997c0a72ab3c7dca687fe8a0c86c2e21e84f6207f4d44e0f99ace). The original declaration above is kept unchanged.
+
+- **Major vascular events / MACE.** Declared estimand: RR. Amended to: HR (time to first event).
+- **Reason.** For these time-to-first-event outcomes the trials print a hazard ratio, which the review already served under the source hierarchy; the declaration is brought into line with what is served. No served number changes.
