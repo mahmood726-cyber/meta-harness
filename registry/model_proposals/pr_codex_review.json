@@ -6347,5 +6347,37 @@
     "verdict": null
    }
   ]
+ },
+ "pr35-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f397b8460f5b148e9cadb739c77bd3fc",
+    "state": "RAN_OK",
+    "files": [
+     "harness/provenance_class.py",
+     "harness/review_tabs.py",
+     "scripts/provenance_census.py",
+     "scripts/review_tab_inventory.py"
+    ],
+    "prompt_sha256": "dc8437832f723452f406521463b14c7c1e1c9b131733f6311c30dd4b8d318c3d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/review_tab_inventory.py",
+    "function": "_whole / check (screening branch)",
+    "severity": "P1",
+    "claim": "The completeness check can credit a missing DOI record when only a longer DOI appears. The boundary expression permits periods and slashes, which can be part of DOI identifiers.",
+    "failing_input": "_whole('10.1000/182', '10.1000/182.1')",
+    "expected": "False: the text contains a different identifier. A screening record with id '10.1000/182' must remain unaccounted for.",
+    "actual": "True. The screening branch consequently counts that record as shown; with this as its sole required ID, the 'every record (1/1)' check passes.",
+    "id": "pr35-r1:g1#1",
+    "record_id": "mc-f397b8460f5b148e9cadb739c77bd3fc",
+    "verdict": null
+   }
+  ]
  }
 }
