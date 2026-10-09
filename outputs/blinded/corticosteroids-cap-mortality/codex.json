@@ -1,0 +1,142 @@
+{
+ "model": "codex",
+ "slug": "corticosteroids-cap-mortality",
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "prompt_sha256": "f1d46ef75d2437444beaee6a4c54aefa27c89ad878bd7714a773871575ab6a84",
+ "attempts": [
+  {
+   "record_id": "mc-3516807e3dacaae163041bae74ef7ad6",
+   "state": "RAN_OK",
+   "error": null
+  }
+ ],
+ "state": "RAN_OK",
+ "output_sha256": "c39d645ff3185723007ac7c9a9002ac8becc7cbaca60fa6a985485d25a4635e7",
+ "response": {
+  "findings": [
+   {
+    "tab": "Results & conclusions",
+    "page_quote": "compatibility row fields: endpoint definition: All-cause mortality; follow-up window: 14 days; analysis set: intention-to-treat",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/36942789/",
+     "quote": "The primary outcome was death at 28 days."
+    },
+    "severity": "changes_wording",
+    "claim": "The CAPE COD mortality row incorrectly labels follow-up as 14 days. That duration concerns treatment tapering; the extracted mortality endpoint is at 28 days.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Results & conclusions",
+    "page_quote": "compatibility row fields: endpoint definition: primary outcome was treatment failure",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/25688779/",
+     "quote": "In-hospital mortality was a secondary outcome and adverse events were assessed."
+    },
+    "severity": "changes_wording",
+    "claim": "The compatibility metadata assigns the treatment-failure composite definition to the extracted mortality result. The pooled 6 versus 9 deaths concern the separate in-hospital mortality endpoint.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Harms",
+    "page_quote": "compatibility row fields: endpoint definition: primary outcome was length of hospital stay in all enrolled patients",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/21636122/",
+     "quote": "67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls"
+    },
+    "severity": "changes_wording",
+    "claim": "The hyperglycaemia row incorrectly uses length of hospital stay as its endpoint definition. The extracted counts describe hyperglycaemia.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Risk of bias & GRADE",
+    "page_quote": "PMID 21636122 not stated (abstract only - full text not retrieved)",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/21636122/",
+     "quote": "FUNDING: None."
+    },
+    "severity": "changes_wording",
+    "claim": "Funding is classified as unstated despite an explicit funding statement in the supplied abstract.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Results & conclusions",
+    "page_quote": "33446608 PMID 33446608 not extracted -- arm counts present but percentage corroboration failed",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/33446608/",
+     "quote": "The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups."
+    },
+    "severity": "changes_wording",
+    "claim": "The mortality refusal incorrectly says mortality arm counts are present but fail corroboration. The quoted counts concern ICU admissions; mortality is reported qualitatively without counts.",
+    "served_value": "",
+    "source_value": ""
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "All-cause mortality",
+    "k": 2,
+    "recomputed_estimate": 0.545804,
+    "recomputed_ci_low": 0.036063,
+    "recomputed_ci_high": 8.260531,
+    "served_estimate": 0.5458,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "The served CI limits are null, not zero; numeric zero fields are placeholders required by the output representation. Full estimate-and-CI agreement cannot be assessed. Both per-trial effect/CI tuples are also null, so the requested CI-based reconstruction is unavailable. As an alternative, the supplied counts (25/400 versus 47/395; 6/61 versus 9/59) give log-RR variances using 1/events_treatment - 1/n_treatment + 1/events_control - 1/n_control. PM tau²=0, Q≈0.13983, variance floor=1, and t(1)≈12.706205 give the displayed recomputation. The point estimate agrees; the page explicitly withholds the pooled CI under K2_SINGLE_DF."
+   },
+   {
+    "outcome": "Hyperglycaemia",
+    "k": 4,
+    "recomputed_estimate": 0,
+    "recomputed_ci_low": 0,
+    "recomputed_ci_high": 0,
+    "served_estimate": 0,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "Not numerically assessable: all zero numeric fields are placeholders, not estimates. The served pool estimate and CI limits are null, and three per-trial effect/CI tuples are null. The remaining reported effect is an OR, while the count-derived rows use RR. The page explicitly suppresses this incompatible pool; no valid common-estimand pooled result or numerical agreement can be established without an additional conversion."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "39636194",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "A systematic review and meta-analysis, not a primary randomized trial.",
+    "quote": "This systematic review and meta-analysis aimed to evaluate the effectiveness and safety of adjunct systemic corticosteroid therapy"
+   },
+   {
+    "record": "41541042",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "A single-patient case report, not a randomized trial.",
+    "quote": "We describe the case of a previously healthy 22-year-old male athlete"
+   },
+   {
+    "record": "42387624",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "A review synthesizing existing evidence, not a randomized trial.",
+    "quote": "This review synthesizes data from guidelines, translational research, and clinical trials"
+   },
+   {
+    "record": "40055601",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "The population is septic shock rather than specifically hospitalized CAP, supporting X2. It is also a retrospective comparison of two corticosteroids.",
+    "quote": "We conducted a retrospective cohort study on adults with septic shock using the MIMIC-IV v3.0 database."
+   },
+   {
+    "record": "37356085",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "A narrative review, not a randomized trial.",
+    "quote": "This narrative review examined the indications of CSs in some respiratory diseases"
+   }
+  ]
+ }
+}

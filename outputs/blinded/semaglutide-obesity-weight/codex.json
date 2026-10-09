@@ -1,0 +1,142 @@
+{
+ "model": "codex",
+ "slug": "semaglutide-obesity-weight",
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "prompt_sha256": "e8c326312682995147309fcdda5a33d6dcfd593bf263595a298f18507a5522cb",
+ "attempts": [
+  {
+   "record_id": "mc-3af5b19a5d0e475bcba3c4f8426c1cdf",
+   "state": "RAN_OK",
+   "error": null
+  }
+ ],
+ "state": "RAN_OK",
+ "output_sha256": "677c0f6f351af325adba0a3500b5a04988d3d7d1f466f20d94368237a2a78411",
+ "response": {
+  "findings": [
+   {
+    "tab": "Comparison with published meta-analysis",
+    "page_quote": "Legacy comparator extraction, theirs_k: not stated in the comparator abstract/full text.",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/42536519/",
+     "quote": "Four randomized controlled trials involving 3613 participants met the eligibility criteria."
+    },
+    "severity": "changes_wording",
+    "claim": "The comparator abstract explicitly states that four trials were included. Its trial count is unextracted on the page, not unstated in the source.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Screening",
+    "page_quote": "wrong population: title/conditions mention '7·2 mg'.",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/40961952/",
+     "quote": "in adults with BMI 30 kg/m2 or greater, without diabetes."
+    },
+    "severity": "changes_wording",
+    "claim": "The stated exclusion reason mislabels an intervention dose as a population mismatch. The source describes adults with obesity without diabetes, although the page's explicit title-based dose exclusion rule does exclude this record.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Screening",
+    "page_quote": "NCT07731256 nct include INCLUDE UNRECORDED NCT07731256 primary eligible+completed+results_unavailable",
+    "source_evidence": {
+     "url": "https://clinicaltrials.gov/",
+     "quote": "\"NCT07731256\": {\n        \"start_date\": \"2027-02-01\",\n        \"completion_date\": \"2031-09-01\",\n        \"study_first_submitted_date\": \"2026-06-28\",\n        \"results_first_posted_date\": \"\",\n        \"overall_status\": \"NOT_YET_RECRUITING\"\n      }"
+    },
+    "severity": "record",
+    "claim": "NCT07731256 is incorrectly labelled completed. The supplied registry snapshot identifies it as not yet recruiting.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Data extraction",
+    "page_quote": "for an estimated treatment difference of -12.4 percentage poin sha256",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/33567185/",
+     "quote": "for an estimated treatment difference of -12.4 percentage points (95% confidence interval [CI], -13.4 to -11.5; P<0.001)."
+    },
+    "severity": "record",
+    "claim": "The displayed and digested extraction passage for PMID 33567185 is truncated before the confidence interval. The served interval is correct, but its purported supporting passage omits both limits.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Harms",
+    "page_quote": "span: More participants in the semaglutide group than in the placebo group achieved weight reductions of 5% or more (1047 participants [86.4%] vs.",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/33567185/",
+     "quote": "More participants in the semaglutide group than in the placebo group discontinued treatment owing to gastrointestinal events (59 [4.5%] vs. 5 [0.8%])."
+    },
+    "severity": "record",
+    "claim": "The evidence span attached to the gastrointestinal-event refusal for PMID 33567185 concerns weight-loss efficacy. The source contains the relevant discontinuation passage, which should support this refusal instead.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Risk of bias & GRADE",
+    "page_quote": "PMID 33625476 not stated (abstract only - full text not retrieved) — abstract abstract :",
+    "source_evidence": {
+     "url": "https://clinicaltrials.gov/",
+     "quote": "\"NCT03611582\": {\n        \"sponsors\": [\n          {\n            \"agency_class\": \"INDUSTRY\",\n            \"lead_or_collaborator\": \"lead\",\n            \"name\": \"Novo Nordisk A/S\"\n          }\n        ],"
+    },
+    "severity": "record",
+    "claim": "The STEP 3 funding row omits available registry sponsorship evidence despite the panel promising to display it. The abstract's silence can remain labelled, but the registry identifies Novo Nordisk A/S as the industry lead sponsor.",
+    "served_value": "",
+    "source_value": ""
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "Percent change in body weight",
+    "k": 2,
+    "recomputed_estimate": -11.473186,
+    "recomputed_ci_low": -24.722567,
+    "recomputed_ci_high": 1.776194,
+    "served_estimate": -11.4732,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "Calculated on the additive MD scale: SEs are 3.4/3.919928 and 1.9/3.919928; PM tau² = 1.711372; residual Q = 1; HKSJ variance factor = 1; t(1,0.975) = 12.706205. The point estimate agrees. Both served CI limits are null, explicitly withheld under K2_SINGLE_DF, so agreement of all three quantities cannot be established. The numeric zeros in the served_ci fields are schema placeholders for unavailable limits, not served values or evidence of a numerical discrepancy."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "41211586",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "This is a systematic review, not an individual randomized trial.",
+    "quote": "This systematic review aimed to assess the efficacy and safety of GLP-1 RAs"
+   },
+   {
+    "record": "40961952",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "The exclusion follows the explicit protocol rule excluding titles mentioning 7·2 mg. Its population rationale is mislabelled, and the abstract also describes a randomized 2·4 mg arm.",
+    "quote": "Once-weekly semaglutide 7·2 mg in adults with obesity (STEP UP): a randomised, controlled, phase 3b trial."
+   },
+   {
+    "record": "42536519",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "This record reports a systematic review and meta-analysis rather than an individual randomized trial.",
+    "quote": "A systematic review and meta-analysis was conducted according to PRISMA 2020 guidelines."
+   },
+   {
+    "record": "42220875",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "This is a systematic review synthesizing other studies.",
+    "quote": "This systematic review aimed to synthesize available evidence"
+   },
+   {
+    "record": "NCT05579249",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "No source title or abstract is supplied for this record. Registry dates, hashes and an arm index do not provide the requested title/abstract screening evidence.",
+    "quote": ""
+   }
+  ]
+ }
+}

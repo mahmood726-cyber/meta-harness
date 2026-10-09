@@ -1,0 +1,118 @@
+{
+ "model": "codex",
+ "slug": "sacubitril-valsartan-hfref",
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "prompt_sha256": "3e93d1bbf992293f9081655745afe29b579a3006944971355defb710c90a0c7b",
+ "attempts": [
+  {
+   "record_id": "mc-ced5851fb40db3561e7bf59b1dc4800b",
+   "state": "RAN_OK",
+   "error": null
+  }
+ ],
+ "state": "RAN_OK",
+ "output_sha256": "5f362f3549ffd26935ff18cb4da018f4f093cea1eeea3b4e9725068ba1e217e5",
+ "response": {
+  "findings": [
+   {
+    "tab": "Reproduce",
+    "page_quote": "ambiguous source attribution (all-cause vs CV-death sentence)",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/25176015/",
+     "quote": "of these patients, 558 (13.3%) and 693 (16.5%), respectively, died from cardiovascular causes (hazard ratio, 0.80; 95% CI, 0.71 to 0.89; P<0.001)."
+    },
+    "severity": "changes_wording",
+    "claim": "The refusal reason describes source attribution as ambiguous, although the abstract explicitly binds HR 0.80 (0.71–0.89) to cardiovascular death. The reported extractor binding error should be distinguished from ambiguity in the source.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Risk of bias & GRADE",
+    "page_quote": "NCT02468232 source not retrieved — :",
+    "source_evidence": {
+     "url": "https://clinicaltrials.gov/",
+     "quote": "\"NCT02468232\": {\n        \"sponsors\": [\n          {\n            \"agency_class\": \"INDUSTRY\",\n            \"lead_or_collaborator\": \"lead\",\n            \"name\": \"Novartis Pharmaceuticals\"\n          }\n        ],"
+    },
+    "severity": "record",
+    "claim": "PARALLEL-HF's registry sponsor is omitted despite being present in the supplied AACT source. The sponsor column should identify Novartis Pharmaceuticals as the industry lead sponsor; this does not independently establish a publication funding statement.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Screening",
+    "page_quote": "ANSWER-HF · NCT04853758 nct include INCLUDE UNRECORDED NCT04853758 primary eligible+completed+results_unavailable",
+    "source_evidence": {
+     "url": "https://clinicaltrials.gov/",
+     "quote": "\"NCT04853758\": {\n        \"start_date\": \"2021-05-06\",\n        \"completion_date\": \"2024-12-01\",\n        \"study_first_submitted_date\": \"2021-04-06\",\n        \"results_first_posted_date\": \"\",\n        \"overall_status\": \"UNKNOWN\"\n      }"
+    },
+    "severity": "changes_wording",
+    "claim": "ANSWER-HF is labelled completed, but the supplied registry snapshot records its overall status as UNKNOWN. A populated completion-date field does not establish completed status.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Screening",
+    "page_quote": "PRESENT-HF · NCT05487261 nct include INCLUDE UNRECORDED NCT05487261 primary eligible+completed+results_unavailable",
+    "source_evidence": {
+     "url": "https://clinicaltrials.gov/",
+     "quote": "\"NCT05487261\": {\n        \"start_date\": \"2022-12-13\",\n        \"completion_date\": \"2025-11-30\",\n        \"study_first_submitted_date\": \"2022-07-26\",\n        \"results_first_posted_date\": \"\",\n        \"overall_status\": \"UNKNOWN\"\n      }"
+    },
+    "severity": "changes_wording",
+    "claim": "PRESENT-HF is labelled completed, although the supplied registry snapshot records its overall status as UNKNOWN.",
+    "served_value": "",
+    "source_value": ""
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+    "k": 2,
+    "recomputed_estimate": 0.8366,
+    "recomputed_ci_low": 0.2108,
+    "recomputed_ci_high": 3.3204,
+    "served_estimate": 0.84,
+    "served_ci_low": 0.21,
+    "served_ci_high": 3.32,
+    "agrees": true,
+    "note": "Comparison is exclusively with the page's explicitly quarantined audit-only calculation. The served tuple's pooled estimate and CI are null because pooling was refused. Recalculation gives Paule–Mandel tau² approximately 0.01177; HKSJ uses variance factor 1 and t with 1 df. The quarantined values agree at their printed rounding."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "25176015",
+    "served_decision": "include",
+    "verdict": "AGREE",
+    "reason": "The abstract establishes randomized, double-blind LCZ696 versus enalapril treatment in reduced-ejection-fraction heart failure.",
+    "quote": "In this double-blind trial, we randomly assigned 8442 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less to receive either LCZ696"
+   },
+   {
+    "record": "40689605",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "This is a meta-analysis of RCTs, not an individual randomized trial.",
+    "quote": "Angiotensin-neprilysin inhibition in acute decompensated heart failure: a meta-analysis of randomized controlled trials."
+   },
+   {
+    "record": "40100325",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "The record describes an observational cohort comparing prescribed doses, not randomized allocation.",
+    "quote": "Clinical outcomes according to the average daily dose of sacubitril/valsartan: a nationwide longitudinal cohort study."
+   },
+   {
+    "record": "36315602",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "The title and abstract describe a mechanistic evidence reanalysis, not a report of a randomized intervention comparison.",
+    "quote": "Critical Reanalysis of the Mechanisms Underlying the Cardiorenal Benefits of SGLT2 Inhibitors and Reaffirmation of the Nutrient Deprivation Signaling/Autophagy Hypothesis."
+   },
+   {
+    "record": "27206819",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "The title identifies a clinical practice guideline, not an RCT.",
+    "quote": "2016 ESC Guidelines for the diagnosis and treatment of acute and chronic heart failure"
+   }
+  ]
+ }
+}

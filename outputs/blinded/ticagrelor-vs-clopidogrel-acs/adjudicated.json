@@ -1,0 +1,150 @@
+{
+ "slug": "ticagrelor-vs-clopidogrel-acs",
+ "n": 31,
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "models": {
+  "codex": "RAN_OK",
+  "gemini": "GEMINI_UNAVAILABLE"
+ },
+ "reviewed": true,
+ "status": "REVIEWED",
+ "findings": [
+  {
+   "id": "codex#1",
+   "model": "codex",
+   "tab": "Risk of bias & GRADE",
+   "page_quote": "the registry sponsor is shown as a second source when available",
+   "source_evidence": {
+    "url": "https://clinicaltrials.gov/",
+    "quote": "\"NCT00391872\": {\n        \"sponsors\": [\n          {\n            \"agency_class\": \"INDUSTRY\",\n            \"lead_or_collaborator\": \"lead\",\n            \"name\": \"AstraZeneca\"\n          }\n        ],"
+   },
+   "severity": "record",
+   "claim": "The PLATO disclosure omits the available registry sponsor despite promising to show it. The supplied AACT source identifies AstraZeneca as the industry lead sponsor of NCT00391872; this establishes sponsorship without requiring an inference about publication funding.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "cache/ticagrelor-vs-clopidogrel-acs/aact_inputs.json"
+   ],
+   "source_url_matches": false,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  }
+ ],
+ "screening": [
+  {
+   "model": "codex",
+   "record": "19717846",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract establishes a double-blind randomized comparison of ticagrelor and clopidogrel in ACS.",
+   "quote": "In this multicenter, double-blind, randomized trial, we compared ticagrelor (180-mg loading dose, 90 mg twice daily thereafter) and clopidogrel (300-to-600-mg loading dose, 75 mg daily thereafter)",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "17980250",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract establishes the eligible population, treatments and double-blind randomized design; multiple doses do not invalidate screening eligibility.",
+   "quote": "A total of 990 patients with NSTE-ACS, treated with aspirin and standard therapy for ACS, were randomized in a 1:1:1 double-blind fashion to receive either twice-daily AZD6140 90 mg, AZD6140 180 mg, or clopidogrel 300-mg loading dose plus 75 mg once daily for up to 12 weeks.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "26440227",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The population has stable coronary artery disease, outside the registered ACS population.",
+   "quote": "Platelet inhibition with ticagrelor versus clopidogrel in Hispanic patients with stable coronary artery disease with or without diabetes mellitus.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "22789884",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly describes a single-blind study, supporting X-DESIGN. Its randomized comparator is also prasugrel.",
+   "quote": "In a prospective, single-center, single-blind study",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "20828843",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "This record reports an indirect-comparison meta-analysis, not an individual randomized trial.",
+   "quote": "We performed an adjusted indirect meta-analysis comparing prasugrel vs. ticagrelor for acute coronary syndromes (ACSs).",
+   "quote_found_in_record": true
+  }
+ ],
+ "numeric_models": {
+  "codex": [
+   {
+    "outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
+    "k": 2,
+    "recomputed_estimate": 1.0479,
+    "recomputed_ci_low": 0.0324,
+    "recomputed_ci_high": 33.8921,
+    "served_estimate": 1.05,
+    "served_ci_low": 0.03,
+    "served_ci_high": 33.89,
+    "agrees": true,
+    "note": "Paule-Mandel tau² is approximately 0.121711. Comparison here is with the page's explicitly quarantined audit-only result, which agrees to its displayed rounding. The served tuple's estimate and CI are null because the primary pool was refused; these numbers are not an active pooled claim."
+   },
+   {
+    "outcome": "Major bleeding",
+    "k": 2,
+    "recomputed_estimate": 1.1658,
+    "recomputed_ci_low": 0.1271,
+    "recomputed_ci_high": 10.6927,
+    "served_estimate": 1.1658,
+    "served_ci_low": 0.1271,
+    "served_ci_high": 10.6927,
+    "agrees": false,
+    "note": "A valid comparison cannot be completed from the requested per-trial effect-and-CI inputs: PLATO's effect, CI and scale are null, and both served pooled CI limits are null. The displayed recomputation is only a conditional reconstruction using RR=(961/9235)/(929/9186) and its binomial log-RR variance alongside PHILO's HR; it is not a reproducible HR-only pool. The CI values in the served_ci fields are reconstruction values, not actually served limits."
+   }
+  ]
+ },
+ "numeric_deterministic": [
+  {
+   "outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
+   "status": "NO_POOL_SERVED"
+  },
+  {
+   "outcome": "Major bleeding",
+   "status": "CANNOT_RECOMPUTE",
+   "why": "served k=2 but 1 trial rows carry a numeric effect and CI"
+  },
+  {
+   "outcome": "Dyspnea",
+   "status": "NO_POOL_SERVED"
+  }
+ ],
+ "numbers_agree": "-",
+ "models_numeric_states": {
+  "codex": [
+   {
+    "outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
+    "state": "AGREES"
+   },
+   {
+    "outcome": "Major bleeding",
+    "state": "AGREES"
+   }
+  ]
+ },
+ "models_numbers_agree": {
+  "codex": "y"
+ },
+ "dropped_by_licence": [
+  {
+   "ref": "cache/ticagrelor-vs-clopidogrel-acs/comparator_fulltext.txt",
+   "why": "comparator licence [('comparator 28545073 text', 'CC')] is not CC BY / CC0 (D8)"
+  }
+ ]
+}

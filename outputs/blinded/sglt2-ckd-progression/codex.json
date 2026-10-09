@@ -1,0 +1,118 @@
+{
+ "model": "codex",
+ "slug": "sglt2-ckd-progression",
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "prompt_sha256": "bedd468347196b3ce874a18d5b1b221f616c5d430d8f1a737781c2b9b1f5733f",
+ "attempts": [
+  {
+   "record_id": "mc-773385ccd4a917fe819cfb65db30f224",
+   "state": "RAN_OK",
+   "error": null
+  }
+ ],
+ "state": "RAN_OK",
+ "output_sha256": "e273de9c9c0cb5c1d59d5e59c3934afdcfd810600c7a89c1e0ebd8aac9a630a8",
+ "response": {
+  "findings": [
+   {
+    "tab": "Screening",
+    "page_quote": "EMPA-CKD · NCT07060417 nct include INCLUDE UNRECORDED NCT07060417 primary eligible+completed+results_unavailable",
+    "source_evidence": {
+     "url": "https://clinicaltrials.gov/",
+     "quote": "\"NCT07060417\": {\n        \"start_date\": \"2026-10-01\",\n        \"completion_date\": \"2029-09-30\",\n        \"study_first_submitted_date\": \"2025-07-01\",\n        \"results_first_posted_date\": \"\",\n        \"overall_status\": \"NOT_YET_RECRUITING\"\n      }"
+    },
+    "severity": "changes_wording",
+    "claim": "NCT07060417 is labelled completed, whereas the supplied AACT snapshot says NOT_YET_RECRUITING and lists completion in 2029. Its absence of results should not be described as missing results from a completed trial.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Results & conclusions",
+    "page_quote": "reported: 0.71 (HR), 95% CI 0.55-0.92; source_hierarchy_lower_precedence.",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/32970396/",
+     "quote": "the hazard ratio for the composite of death from cardiovascular causes or hospitalization for heart failure was 0.71 (95% CI, 0.55 to 0.92; P = 0.009)"
+    },
+    "severity": "record",
+    "claim": "This alternative's attached passage describes the renal composite with HR 0.56, but its displayed tuple belongs to cardiovascular death or hospitalization for heart failure. The tuple is real; its passage attribution is incorrect.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Results & conclusions",
+    "page_quote": "reported: 0.68 (HR), 95% CI 0.54-0.86; source_hierarchy_lower_precedence.",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/30990260/",
+     "quote": "the relative risk of end-stage kidney disease was lower by 32% (hazard ratio, 0.68; 95% CI, 0.54 to 0.86; P = 0.002)"
+    },
+    "severity": "record",
+    "claim": "This alternative is attached to a passage about the renal-specific composite with HR 0.66. Its displayed HR 0.68 instead concerns end-stage kidney disease alone, so the supporting passage is misassigned.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Harms",
+    "page_quote": "endpoint 36331190 primary outcome was a composite of progression of kidney disease",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/36331190/",
+     "quote": "The primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1.73 m2, a sustained decrease in eGFR of ≥40% from baseline, or death from renal causes) or death from cardiovascular causes."
+    },
+    "severity": "changes_wording",
+    "claim": "The ketoacidosis compatibility table assigns the trial's primary kidney/cardiovascular composite as the harm's endpoint definition. The source explicitly identifies that definition as the primary efficacy outcome.",
+    "served_value": "",
+    "source_value": ""
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "Trial-defined primary cardiorenal composite",
+    "k": 3,
+    "recomputed_estimate": 0.6836,
+    "recomputed_ci_low": 0.5537,
+    "recomputed_ci_high": 0.844,
+    "served_estimate": 0.6836,
+    "served_ci_low": 0.5537,
+    "served_ci_high": 0.844,
+    "agrees": true,
+    "note": "Manual log-scale recomputation gives Paule–Mandel tau² approximately 0.00134, pooled log HR approximately -0.38039, and SE approximately 0.04899. With the variance factor floored at 1 and t(2) approximately 4.30265, the estimate and CI agree within 0.002."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "NCT07344922",
+    "served_decision": "include",
+    "verdict": "CANNOT_TELL",
+    "reason": "The source blocks do not supply this record's title or abstract; the page's eligibility assertions cannot independently establish the decision.",
+    "quote": ""
+   },
+   {
+    "record": "DapaBalci-Leap · NCT05884866",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "No source title or abstract is supplied. The AACT arm index alone does not establish the full randomized comparison or support the stated background-therapy exclusion.",
+    "quote": ""
+   },
+   {
+    "record": "NCT07084038",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "No title, abstract, or source study-design description is supplied to establish that this is not an RCT.",
+    "quote": ""
+   },
+   {
+    "record": "ADIPO-CKD · NCT07309094",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "The supplied source metadata lack the title, abstract, and allocation information needed to verify the non-RCT exclusion.",
+    "quote": ""
+   },
+   {
+    "record": "NCT04778787",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "The record's source title and abstract are absent. The AACT arm text mentions CHF treatment, but does not independently establish the title/conditions criterion used for exclusion.",
+    "quote": ""
+   }
+  ]
+ }
+}

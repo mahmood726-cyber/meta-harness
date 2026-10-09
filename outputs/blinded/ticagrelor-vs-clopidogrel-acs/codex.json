@@ -1,0 +1,94 @@
+{
+ "model": "codex",
+ "slug": "ticagrelor-vs-clopidogrel-acs",
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "prompt_sha256": "3a2950f4d8cd45b5f143d8508d2834b637ff4d877e3cd7dbec43a3a332080c31",
+ "attempts": [
+  {
+   "record_id": "mc-ea060a363054e6d2db3fc927b27f7040",
+   "state": "RAN_OK",
+   "error": null
+  }
+ ],
+ "state": "RAN_OK",
+ "output_sha256": "a88cfe72a59206c9865ef8a98960efe84e8e6ebc284add80f8e33c8e15279dce",
+ "response": {
+  "findings": [
+   {
+    "tab": "Risk of bias & GRADE",
+    "page_quote": "the registry sponsor is shown as a second source when available",
+    "source_evidence": {
+     "url": "https://clinicaltrials.gov/",
+     "quote": "\"NCT00391872\": {\n        \"sponsors\": [\n          {\n            \"agency_class\": \"INDUSTRY\",\n            \"lead_or_collaborator\": \"lead\",\n            \"name\": \"AstraZeneca\"\n          }\n        ],"
+    },
+    "severity": "record",
+    "claim": "The PLATO disclosure omits the available registry sponsor despite promising to show it. The supplied AACT source identifies AstraZeneca as the industry lead sponsor of NCT00391872; this establishes sponsorship without requiring an inference about publication funding.",
+    "served_value": "",
+    "source_value": ""
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
+    "k": 2,
+    "recomputed_estimate": 1.0479,
+    "recomputed_ci_low": 0.0324,
+    "recomputed_ci_high": 33.8921,
+    "served_estimate": 1.05,
+    "served_ci_low": 0.03,
+    "served_ci_high": 33.89,
+    "agrees": true,
+    "note": "Paule-Mandel tau² is approximately 0.121711. Comparison here is with the page's explicitly quarantined audit-only result, which agrees to its displayed rounding. The served tuple's estimate and CI are null because the primary pool was refused; these numbers are not an active pooled claim."
+   },
+   {
+    "outcome": "Major bleeding",
+    "k": 2,
+    "recomputed_estimate": 1.1658,
+    "recomputed_ci_low": 0.1271,
+    "recomputed_ci_high": 10.6927,
+    "served_estimate": 1.1658,
+    "served_ci_low": 0.1271,
+    "served_ci_high": 10.6927,
+    "agrees": false,
+    "note": "A valid comparison cannot be completed from the requested per-trial effect-and-CI inputs: PLATO's effect, CI and scale are null, and both served pooled CI limits are null. The displayed recomputation is only a conditional reconstruction using RR=(961/9235)/(929/9186) and its binomial log-RR variance alongside PHILO's HR; it is not a reproducible HR-only pool. The CI values in the served_ci fields are reconstruction values, not actually served limits."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "19717846",
+    "served_decision": "include",
+    "verdict": "AGREE",
+    "reason": "The abstract establishes a double-blind randomized comparison of ticagrelor and clopidogrel in ACS.",
+    "quote": "In this multicenter, double-blind, randomized trial, we compared ticagrelor (180-mg loading dose, 90 mg twice daily thereafter) and clopidogrel (300-to-600-mg loading dose, 75 mg daily thereafter)"
+   },
+   {
+    "record": "17980250",
+    "served_decision": "include",
+    "verdict": "AGREE",
+    "reason": "The abstract establishes the eligible population, treatments and double-blind randomized design; multiple doses do not invalidate screening eligibility.",
+    "quote": "A total of 990 patients with NSTE-ACS, treated with aspirin and standard therapy for ACS, were randomized in a 1:1:1 double-blind fashion to receive either twice-daily AZD6140 90 mg, AZD6140 180 mg, or clopidogrel 300-mg loading dose plus 75 mg once daily for up to 12 weeks."
+   },
+   {
+    "record": "26440227",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "The population has stable coronary artery disease, outside the registered ACS population.",
+    "quote": "Platelet inhibition with ticagrelor versus clopidogrel in Hispanic patients with stable coronary artery disease with or without diabetes mellitus."
+   },
+   {
+    "record": "22789884",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "The abstract explicitly describes a single-blind study, supporting X-DESIGN. Its randomized comparator is also prasugrel.",
+    "quote": "In a prospective, single-center, single-blind study"
+   },
+   {
+    "record": "20828843",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "This record reports an indirect-comparison meta-analysis, not an individual randomized trial.",
+    "quote": "We performed an adjusted indirect meta-analysis comparing prasugrel vs. ticagrelor for acute coronary syndromes (ACSs)."
+   }
+  ]
+ }
+}

@@ -1,0 +1,159 @@
+{
+ "slug": "statins-primary-prevention-elderly",
+ "n": 21,
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "models": {
+  "codex": "RAN_OK",
+  "gemini": "GEMINI_UNAVAILABLE"
+ },
+ "reviewed": true,
+ "status": "REVIEWED",
+ "findings": [
+  {
+   "id": "codex#1",
+   "model": "codex",
+   "tab": "Results & conclusions",
+   "page_quote": "Analysis population intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/20404379/",
+    "quote": "Effect estimates from this exploratory analysis with age cut-point chosen after trial completion should be viewed in the context of the overall trial results."
+   },
+   "severity": "changes_wording",
+   "claim": "The JUPITER age subgroup is incorrectly described as pre-specified. The source explicitly states that the age cut-point was chosen after trial completion.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 20404379 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "codex#2",
+   "model": "codex",
+   "tab": "Results & conclusions",
+   "page_quote": "42670961 Muscle symptoms/myopathy REFUSED_ON_EVIDENCE REASON_FALSE_VALUE_HELD",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/42670961/",
+    "quote": "Serious adverse events occurred in 131 participants (2.7%) in the atorvastatin group and in 129 (2.7%) in the placebo group, with musculoskeletal, hepatobiliary, and diabetes-related adverse events occurring more commonly in the atorvastatin group."
+   },
+   "severity": "changes_wording",
+   "claim": "The reason-code audit incorrectly labels the refusal as false because an outcome-specific value is held; the same error appears for new-onset diabetes. The quoted numbers describe aggregate serious adverse events, while neither registered harm has specific counts or an effect with CI in this abstract.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 42670961 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  }
+ ],
+ "screening": [
+  {
+   "model": "codex",
+   "record": "20404379",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "This is an older-adult analysis of randomized rosuvastatin versus placebo in participants without cardiovascular disease. The exploratory age cut does not remove the randomized treatment comparison.",
+   "quote": "INTERVENTION: Participants were randomly assigned in a 1:1 ratio to receive 20 mg of rosuvastatin daily or placebo.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "42670961",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract directly establishes the eligible age, primary-prevention population, randomized statin intervention, and placebo comparator.",
+   "quote": "Community-dwelling adults at least 70 years of age with no history of cardiovascular disease, diabetes, or dementia were randomly assigned in a 1:1 ratio to receive atorvastatin at a dose of 40 mg once daily or identical placebo.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "NCT01304641",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "No source title/abstract or allocation field is supplied. The AACT identifiers, dates, sponsors, and arm names cannot establish whether allocation was randomized.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "codex",
+   "record": "NCT05361421",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "The source title/abstract is not supplied. Generic targeting-group names do not establish the actual randomized drug comparison.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "codex",
+   "record": "NCT04111419",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "The source title/abstract and condition values are not supplied, so the page's assertion of an atrial-fibrillation population cannot be independently checked.",
+   "quote": "",
+   "quote_found_in_record": false
+  }
+ ],
+ "numeric_models": {
+  "codex": [
+   {
+    "outcome": "Major vascular events",
+    "k": 2,
+    "recomputed_estimate": 0.680288,
+    "recomputed_ci_low": 0.289701,
+    "recomputed_ci_high": 1.59748,
+    "served_estimate": 0.6803,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "Paule-Mandel tau²=0; Q≈0.69012; variance floor=1; pooled log-scale SE≈0.067185; t(1)≈12.706205. The point estimate agrees. Both served CI limits are actually null, deliberately withheld under K2_SINGLE_DF, so full estimate-and-CI agreement cannot be established. The zero entries represent unavailable limits solely because this output schema permits numbers but not null; they are not served values."
+   }
+  ]
+ },
+ "numeric_deterministic": [
+  {
+   "outcome": "Major vascular events",
+   "status": "CANNOT_RECOMPUTE",
+   "why": "served pool has no CI"
+  },
+  {
+   "outcome": "Muscle symptoms/myopathy",
+   "status": "NO_POOL_SERVED"
+  },
+  {
+   "outcome": "New-onset diabetes",
+   "status": "NO_POOL_SERVED"
+  }
+ ],
+ "numbers_agree": "-",
+ "models_numeric_states": {
+  "codex": [
+   {
+    "outcome": "Major vascular events",
+    "state": "NOT_ASSESSABLE"
+   }
+  ]
+ },
+ "models_numbers_agree": {
+  "codex": "-"
+ },
+ "dropped_by_licence": [
+  {
+   "ref": "cache/statins-primary-prevention-elderly/comparator_fulltext.txt",
+   "why": "comparator licence [('comparator 32529863 text', 'CC')] is not CC BY / CC0 (D8)"
+  }
+ ]
+}

@@ -1,0 +1,159 @@
+{
+ "slug": "sglt2-hfref-hosp-cvdeath",
+ "n": 18,
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "models": {
+  "codex": "RAN_OK",
+  "gemini": "GEMINI_UNAVAILABLE"
+ },
+ "reviewed": true,
+ "status": "REVIEWED",
+ "findings": [
+  {
+   "id": "codex#1",
+   "model": "codex",
+   "tab": "Comparison with published meta-analysis",
+   "page_quote": "Legacy comparator extraction, theirs_k: not stated in the comparator abstract/full text.",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/35112512/",
+    "quote": "Four randomized controlled trials (DAPA HF, EMPEROR-Preserved, EMPEROR-Reduced, and SOLOIST-WHF) were included"
+   },
+   "severity": "changes_wording",
+   "claim": "The comparator abstract explicitly states its overall trial count and names the trials. An unextracted HFrEF-subgroup count should be distinguished from a claim that the comparator states no trial count.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 35112512 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "codex#2",
+   "model": "codex",
+   "tab": "Reproduce",
+   "page_quote": "2 identical, 0 same-result-different-statistic, 0 conflict; 0 not stated in the abstract",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/31535829/",
+    "quote": "hazard ratio, 0.74; 95% confidence interval [CI], 0.65 to 0.85"
+   },
+   "severity": "record",
+   "claim": "The abstract-verification provenance does not support the current DAPA-HF input: the served registry HR is 0.75, whereas its abstract reports 0.74 for the broader primary endpoint. This is a verification-provenance defect, not evidence that the registry-based HR is incorrect.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 31535829 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  }
+ ],
+ "screening": [
+  {
+   "model": "codex",
+   "record": "35112512",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record describes a meta-analysis, not a primary randomized trial.",
+   "quote": "We conducted a meta-analysis of randomized controlled trials",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "NCT04304560",
+   "served_decision": "include",
+   "verdict": "CANNOT_TELL",
+   "reason": "No independent title/abstract is supplied. The AACT excerpt contains dates and arm information but does not establish all eligibility criteria.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "codex",
+   "record": "ERTU-SODIUM · NCT05152940",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "No independent title/abstract is supplied; the page's own screening explanation cannot independently validate its decision.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "codex",
+   "record": "NCT07803471",
+   "served_decision": "exclude",
+   "verdict": "CANNOT_TELL",
+   "reason": "No title/abstract or informative study-design record is supplied. Missing evidence does not establish that the study is nonrandomized.",
+   "quote": "",
+   "quote_found_in_record": false
+  },
+  {
+   "model": "codex",
+   "record": "NCT04385589",
+   "served_decision": "include",
+   "verdict": "CANNOT_TELL",
+   "reason": "No independent title/abstract is supplied. The AACT arm index alone cannot establish HFrEF eligibility, randomization, blinding and placebo control.",
+   "quote": "",
+   "quote_found_in_record": false
+  }
+ ],
+ "numeric_models": {
+  "codex": [
+   {
+    "outcome": "Composite cardiovascular death or hospitalisation for heart failure",
+    "k": 2,
+    "recomputed_estimate": 0.75,
+    "recomputed_ci_low": 0.4003,
+    "recomputed_ci_high": 1.4052,
+    "served_estimate": 0.75,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "The served CI limits are null, not zero; numeric schema fields cannot represent null, so the zero entries are placeholders only. Both log effects are identical, giving Q=0, Paule-Mandel tau²=0 and variance factor=1. Pooled SE≈0.049413; t(1)≈12.706205. The estimate agrees. Full interval agreement cannot be established because the page explicitly withholds its pooled CI under K2_SINGLE_DF; this is not a demonstrated numerical discrepancy."
+   }
+  ]
+ },
+ "numeric_deterministic": [
+  {
+   "outcome": "Composite cardiovascular death or hospitalisation for heart failure",
+   "status": "CANNOT_RECOMPUTE",
+   "why": "served pool has no CI"
+  },
+  {
+   "outcome": "Volume depletion or hypotension",
+   "status": "NO_POOL_SERVED"
+  },
+  {
+   "outcome": "Diabetic ketoacidosis",
+   "status": "NO_POOL_SERVED"
+  }
+ ],
+ "numbers_agree": "-",
+ "models_numeric_states": {
+  "codex": [
+   {
+    "outcome": "Composite cardiovascular death or hospitalisation for heart failure",
+    "state": "NOT_ASSESSABLE"
+   }
+  ]
+ },
+ "models_numbers_agree": {
+  "codex": "-"
+ },
+ "dropped_by_licence": [
+  {
+   "ref": "cache/sglt2-hfref-hosp-cvdeath/comparator_fulltext.txt",
+   "why": "comparator licence [('comparator 35112512 text', 'CC')] is not CC BY / CC0 (D8)"
+  }
+ ]
+}
