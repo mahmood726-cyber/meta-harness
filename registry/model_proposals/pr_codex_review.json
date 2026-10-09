@@ -6686,5 +6686,97 @@
     "verdict": null
    }
   ]
+ },
+ "final5-binding-captain": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-cb11f3341fb21e8ddc22f22122d20792",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_d12.py",
+     "scripts/g1_final5_readers.py",
+     "scripts/g1_final5_typed.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "d87243afe68fae3467a659f4d193e9069a2df3dc8f2f32748f940589f8c7d523"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "effect_hf_row",
+    "severity": "P0",
+    "claim": "Safety-set event counts are admitted with hardcoded FAS denominators. The caveat records the population mismatch but does not prevent admission.",
+    "failing_input": "from io import StringIO\nfrom unittest.mock import patch\nfrom scripts import g1_final5_typed as m\ntext = ' '.join([\n '26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care).',\n 'A total of 172 patients with HF were studied and received FCM (n=86) or standard of care (control group, n=86).',\n 'Two patients in the FCM arm did not have an efficacy assessment after baseline, and these 2 were excluded from the FAS.',\n 'All-cause mortality and hospitalization for worsening HF and other cardiovascular reasons were analyzed for the safety set.',\n 'The safety set comprised 88 patients receiving FCM and 86 receiving standard of care.'\n])\nwith patch('builtins.open', side_effect=[StringIO(text), StringIO('{\"rows\": []}'), StringIO(text)]):\n row, why = m.effect_hf_row()\n v = row['admitted']['value']\n print(row['verdict'], v['events_t'], v['n_t'], v['events_c'], v['n_c'])",
+    "expected": "Refuse the mismatched 11/86 tuple. A sourced safety-set admission from this input would be 11/88 versus 6/86.",
+    "actual": "ADMITTED 11 86 6 86",
+    "id": "final5-binding-captain:g1#1",
+    "record_id": "mc-cb11f3341fb21e8ddc22f22122d20792",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_readers.py",
+    "function": "gate",
+    "severity": "P0",
+    "claim": "The gate accepts percentages written with the word 'percent' as participant counts. Numeric token membership does not establish count units.",
+    "failing_input": "from scripts.g1_final5_readers import gate\nq = 'Mortality was 10 percent with FCM and 20 percent with placebo; each arm randomised 200 patients.'\nans = {'state': 'FOUND', 'quote': q, 'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 200, 'count_units': 'PARTICIPANTS', 'population': 'randomised', 'notes': ''}\nprint(gate(ans, q))",
+    "expected": "Reject: 10 and 20 are explicitly percentages, and the quote supplies no death counts.",
+    "actual": "GATED",
+    "id": "final5-binding-captain:g1#2",
+    "record_id": "mc-cb11f3341fb21e8ddc22f22122d20792",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_d12.py",
+    "function": "verify_k5",
+    "severity": "P0",
+    "claim": "Percentage detection examines only the row label. A table declaring percentage units in its caption passes as counts, including the second-extraction check.",
+    "failing_input": "import hashlib\nimport tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nfrom scripts import g1_d12 as m\ncap = 'Table 1. All-cause mortality (%)'\nhead = 'Dexamethasone (n=2104) Usual care (n=4321)'\nrow = 'All-cause mortality 10 20'\ntext = '\\n'.join([cap, head, row])\nwith tempfile.TemporaryDirectory() as <outside-workdir>/n docs = []\n for name, raw in [('a.txt', text), ('b.txt', text + '\\n')]:\n  Path(d, name).write_text(raw, encoding='utf-8')\n  docs.append({'path': name, 'format': 'text', 'text_sha256': hashlib.sha256(raw.encode('utf-8')).hexdigest()})\n b = {'slug': 'corticosteroids-covid19-mortality', 'pmid': '32678530', 'values': {'events_t': 10, 'n_t': 2104, 'events_c': 20, 'n_c': 4321}, 'doc': docs[0], 'caption_span': cap, 'header_span': head, 'row_span': row, 'outcome_from': 'caption', 'cells': {'events_t': 0, 'events_c': 1}, 'second_reader': {'kind': 'SECOND_EXTRACTION', 'doc': docs[1], 'row_span': row}}\n with patch.object(m, 'ROOT', d):\n  print(m.verify_k5(b, lambda s: 'mortality' in s.lower())[0])",
+    "expected": "False: the caption explicitly identifies 10 and 20 as percentages.",
+    "actual": "True",
+    "id": "final5-binding-captain:g1#3",
+    "record_id": "mc-cb11f3341fb21e8ddc22f22122d20792",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "engage_aact",
+    "severity": "P1",
+    "claim": "The endpoint check accepts a broader composite containing cardiovascular death as the requested stroke-or-systemic-embolism endpoint.",
+    "failing_input": "import json\nfrom unittest.mock import patch, mock_open\nfrom scripts import g1_final5_typed as m\nd = {'tables': {\n 'outcomes.txt': [{'id': 1, 'title': 'Stroke, Systemic Embolism, or Cardiovascular Death', 'outcome_type': 'PRIMARY', 'population': 'ITT'}],\n 'result_groups.txt': [{'id': 1, 'title': 'High Dose Edoxaban'}, {'id': 2, 'title': 'Warfarin'}],\n 'outcome_analysis_groups.txt': [{'outcome_analysis_id': 1, 'result_group_id': 1}, {'outcome_analysis_id': 1, 'result_group_id': 2}],\n 'outcome_analyses.txt': [{'id': 1, 'outcome_id': 1, 'param_type': 'Hazard Ratio', 'param_value': 0.8, 'ci_percent': 95, 'ci_lower_limit': 0.7, 'ci_upper_limit': 0.9}]\n}}\nwith patch('builtins.open', mock_open(read_data=json.dumps(d))):\n result = m.engage_aact()\n print(result['result'], result['analyses'][0]['why'])",
+    "expected": "REFUSED for the analysis and NOT_FOUND overall: the reported composite includes an additional endpoint.",
+    "actual": "FOUND []",
+    "id": "final5-binding-captain:g1#4",
+    "record_id": "mc-cb11f3341fb21e8ddc22f22122d20792",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_final5_typed.py",
+    "function": "codex_28d",
+    "severity": "P1",
+    "claim": "An unsupported prose construction is silently treated as absence of counts. Explicit per-arm deaths written as 'the number of deaths was' produce NOT_FOUND.",
+    "failing_input": "import json\nfrom io import StringIO\nfrom unittest.mock import patch\nfrom scripts import g1_final5_typed as m\nabstract = 'At 28 days, the number of deaths was 45 with dexamethasone and 50 with usual care.'\nfiles = [\n StringIO('id|nct_id\\n'),\n StringIO(json.dumps({'records': [{'id': '32876695', 'abstract': abstract}]})),\n StringIO(json.dumps({'32876695': {'state': 'PUBLISHER_DISALLOWS_XML'}}))\n]\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', side_effect=files):\n result = m.codex_28d()\n print(result['result'])\n print(result['routes'][1]['outcome'])",
+    "expected": "CANDIDATE: the abstract explicitly prints 45 and 50 deaths. Failure to recognise the construction must not establish absence.",
+    "actual": "NOT_FOUND\nNO_COUNTS (28-day mortality sentences: 1, none with a count or a percentage)",
+    "id": "final5-binding-captain:g1#5",
+    "record_id": "mc-cb11f3341fb21e8ddc22f22122d20792",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "_finding_check",
+    "severity": "P1",
+    "claim": "Unit spans are checked for presence anywhere in the document, without connecting them to the selected columns. This validates a false finding that correct patient counts are event counts.",
+    "failing_input": "import hashlib\nfrom unittest.mock import patch, mock_open\nfrom scripts import g1_tracker as m\nrow = 'Hospitalizations due to worsening HF 12 10 32 25'\ntext = 'FCM: Total number of events | Number of patients with an event; Placebo: Total number of events | Number of patients with an event.\\n' + row\ne = {\n 'doc': {'path': 'table.txt', 'format': 'text', 'text_sha256': hashlib.sha256(text.encode('utf-8')).hexdigest()},\n 'row_span': row,\n 'finding': 'COMPARATOR_COUNTS_ARE_EVENTS',\n 'cells': {'comparator': {'events_t': 1, 'events_c': 3}, 'ours': {'events_t': 0, 'events_c': 2}},\n 'comparator_counts': {'events_t': 10, 'events_c': 25},\n 'our_counts': {'events_t': 12, 'events_c': 32},\n 'unit_spans': {'comparator': 'Total number of events', 'ours': 'Number of patients with an event'}\n}\nx = {'comparator_row': {'events_t': 10, 'events_c': 25}}\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', mock_open(read_data=text)):\n print(m._finding_check(e, x, '.'))",
+    "expected": "Reject: the selected comparator cells contain patients, while the selected 'ours' cells contain events—the opposite of the finding.",
+    "actual": "None, meaning the false finding verifies and can be applied by signed_comparator_findings.",
+    "id": "final5-binding-captain:g1#6",
+    "record_id": "mc-cb11f3341fb21e8ddc22f22122d20792",
+    "verdict": null
+   }
+  ]
  }
 }
