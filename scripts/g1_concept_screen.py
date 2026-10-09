@@ -38,7 +38,11 @@ def run(slug):
             fx.append("F1b")
         fixes[r["id"]] = fx
         recs2.append(r2)
-    dec = screen.run(copy.deepcopy(recs2), cfg2)["decisions"]
+    restore = sh.f6_patch(screen)                       # F6: a self-described RCT is an RCT (J-EINSTEIN)
+    try:
+        dec = screen.run(copy.deepcopy(recs2), cfg2)["decisions"]
+    finally:
+        restore()
     byid = {r["id"]: r for r in recs}
     inc = [d for d in dec if d["decision"] == "include"]
     out = {"slug": slug, "n_records": len(recs), "overlay": applied,

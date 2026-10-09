@@ -33,7 +33,9 @@ import urllib.parse
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 OUT = os.path.join(ROOT, "outputs", "k_gap", "concept")
-CAP = 5000
+CAP = 5000                 # PubMed esearch retmax ceiling; CT.gov pages
+EPMC_CAP = 60000           # Europe PMC is PAGED (cursorMark) to its own count up to this; beyond it TRUNCATED + recall_limit
+EUCTR_PAGES = 40           # EU CTR result pages per term (20 each) -- beyond it TRUNCATED + recall_limit
 RCT_PM = "(randomized controlled trial[pt] OR randomized[tiab] OR randomised[tiab] OR placebo[tiab])"
 KNOWN_MISSES = {"doac-vte-recurrence": ["BOTTICELLI", "J-EINSTEIN"], "finerenone-ckd-t2d-renal": ["41351003", "NCT05887817"]}
 
@@ -133,29 +135,48 @@ def europepmc(ints, pops):
         page = (d.get("resultList") or {}).get("result") or []
         ids += [(r.get("pmid") or f"{r.get('source')}:{r.get('id')}") for r in page]
         nxt = d.get("nextCursorMark")
-        if not page or not nxt or nxt == cursor or len(ids) >= CAP:
+        if not page or not nxt or nxt == cursor or len(ids) >= EPMC_CAP:
             break
         cursor = nxt
-    return {"source": "EUROPEPMC", "query": q, "run_utc": now(),
-            "state": "COMPLETE" if n is None or len(ids) >= n else "TRUNCATED", "hits": n, "ids": ids, "pages_sha256": shas}
+    out = {"source": "EUROPEPMC", "query": q, "run_utc": now(),
+           "state": "COMPLETE" if n is None or len(ids) >= n else "TRUNCATED", "hits": n, "ids": ids, "pages_sha256": shas}
+    if out["state"] == "TRUNCATED":   # a KNOWN RECALL LIMIT, recorded -- never silent
+        out["recall_limit"] = {"retrieved": len(ids), "source_count": n, "cap": EPMC_CAP,
+                               "unretrieved": (n or 0) - len(ids)}
+    return out
 
 
 def euctr(ints):
     import g1_open_sources as osrc
     out_ids, shas, n = set(), [], 0
+    per_term = {}
     for t in [x for x in ints if " " not in x or len(x) > 6][:6]:
-        st, _ct, b, _u = osrc.fetch("https://www.clinicaltrialsregister.eu/ctr-search/search?query="
-                                    + urllib.parse.quote(t), timeout=90)
-        shas.append(hashlib.sha256(b or b"").hexdigest())
-        if st != 200:
-            continue
-        page = b.decode("utf-8", "replace")
-        m = re.search(r"(\d[\d,]*)\s+result\(s\) found", page)
-        n += int(m.group(1).replace(",", "")) if m else 0
-        out_ids |= set(re.findall(r"EudraCT Number:</span>\s*(\d{4}-\d{6}-\d{2})", page))
-    return {"source": "EUCTR", "query": ints[:6], "run_utc": now(),
-            "state": "FIRST_PAGE_ONLY" if n > len(out_ids) else "COMPLETE", "hits": n, "ids": sorted(out_ids),
-            "pages_sha256": shas, "note": "the register pages 20 per page; ids are the first page per term"}
+        got, tn = set(), 0
+        for pg in range(1, EUCTR_PAGES + 1):     # PAGED, 20 per page, to the term's own count (bounded, polite)
+            st, _ct, b, _u = osrc.fetch("https://www.clinicaltrialsregister.eu/ctr-search/search?query="
+                                        + urllib.parse.quote(t) + f"&page={pg}", timeout=90)
+            shas.append(hashlib.sha256(b or b"").hexdigest())
+            if st != 200:
+                break
+            page = b.decode("utf-8", "replace")
+            if pg == 1:
+                m = re.search(r"(\d[\d,]*)\s+result\(s\) found", page)
+                tn = int(m.group(1).replace(",", "")) if m else 0
+            new = set(re.findall(r"EudraCT Number:</span>\s*(\d{4}-\d{6}-\d{2})", page)) - got
+            got |= new
+            if not new or len(got) >= tn:
+                break
+            time.sleep(0.5)
+        per_term[t] = {"hits": tn, "retrieved": len(got)}
+        n += tn
+        out_ids |= got
+    short = {t: v for t, v in per_term.items() if v["retrieved"] < v["hits"]}
+    out = {"source": "EUCTR", "query": ints[:6], "run_utc": now(), "state": "TRUNCATED" if short else "COMPLETE",
+           "hits": n, "ids": sorted(out_ids), "per_term": per_term, "pages_sha256": shas,
+           "note": f"paged 20 per page, at most {EUCTR_PAGES} pages per term; hits summed over terms (overlapping)"}
+    if short:
+        out["recall_limit"] = {"terms_short": short, "cap_pages": EUCTR_PAGES}
+    return out
 
 
 def held_ids(slug, ref_tracker=True):

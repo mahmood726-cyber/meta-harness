@@ -40,9 +40,9 @@ SCHEMA = {"type": "object", "additionalProperties": False, "required": ["decisio
                          "quote": {"type": "string"}, "why": {"type": "string"}}}
 INSTR = """You screen ONE record (a PubMed abstract or a ClinicalTrials.gov registration) against a systematic review's
 REGISTERED eligibility, below. Use only the record; no memory of the trial.
-INCLUDE only if the record shows ALL of: a randomised controlled trial; the review's population; the review's
-intervention as a randomised arm; the review's comparator (a placebo arm counts as placebo; 'placebo for X' / 'matching
-placebo' is a placebo arm, not an X arm; a development code of the drug is the drug); the required design.
+Apply the protocol text EXACTLY as written, including any criterion on how the outcome was specified or ascertained.
+INCLUDE only if the record shows EVERY criterion of that text is met (reading the arms this way: a placebo arm counts as
+placebo; 'placebo for X' / 'matching placebo' is a placebo arm, not an X arm; a development code of the drug is the drug).
 EXCLUDE if the record shows one criterion is NOT met (name it in 'rule'). A secondary/sub-study/design paper of a trial is
 DUPLICATE_OR_SECONDARY_REPORT. UNCLEAR if the record cannot decide.
 'quote' must be copied CHARACTER FOR CHARACTER from the record: the passage that decides (for INCLUDE, the passage naming
@@ -88,15 +88,27 @@ def record_text(rec):
     return "\n".join(parts)
 
 
+def protocol_eligibility_text(slug):
+    """The REGISTERED protocol's own eligibility text, VERBATIM (protocols/<slug>.md): the PICO block, the Eligibility
+    section, and every dated amendment's eligibility clause (a later amendment governs: GLP-1 'B-prime' 16 Sep). Never a
+    summary of the config -- the reader applies the protocol as written."""
+    md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
+    secs = re.split(r"(?m)^(?=## )", md)
+    keep = [s for s in secs if re.match(r"## (?:PICO|Eligibility)", s)]
+    for s in secs:
+        if s.startswith("## Amendment"):
+            head = s.splitlines()[0]
+            elig = [l for l in s.splitlines() if re.search(r"(?i)\beligib|\bquestion\b|\bestimand\b", l)]
+            if elig:
+                keep.append(head + "\n" + "\n".join(elig))
+    return "\n\n".join(x.strip() for x in keep)
+
+
 def protocol(slug):
     from harness import served_comparator as sc
     c = sc.served_config(slug, json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8")))
-    inc = c.get("include") or {}
-    return (f"QUESTION: {c.get('question') or c.get('title')}\nELIGIBILITY: {c.get('eligibility_summary')}\n"
-            f"POPULATION terms: {inc.get('population_any')}; excluded populations: {inc.get('population_none')}\n"
-            f"INTERVENTION: {inc.get('intervention_any')}; excluded forms: {inc.get('intervention_none')}\n"
-            f"COMPARATOR: {inc.get('comparator_any')}\nDESIGN: "
-            f"{'double-blind or placebo-controlled' if inc.get('design_double_blind') else 'randomised'}")
+    return (f"QUESTION: {c.get('question') or c.get('title')}\n\nTHE REGISTERED PROTOCOL'S ELIGIBILITY, VERBATIM "
+            f"(a dated amendment governs the text before it):\n{protocol_eligibility_text(slug)}")
 
 
 def prompt_for(it):
@@ -178,7 +190,7 @@ def main(argv):
             ms.write_record(rec, REC_DIR)
             return k, rec, psha
         pending, running = list(calls), {}
-        with cf.ThreadPoolExecutor(max_workers=8) as ex:
+        with cf.ThreadPoolExecutor(max_workers=int(next((a.split("=", 1)[1] for a in argv if a.startswith("--workers=")), "2"))) as ex:
             while pending or running:
                 lv = level()
                 while pending and len(running) < lv:

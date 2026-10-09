@@ -92,6 +92,24 @@ POP_SYNONYMS = {
     "community-acquired pneumonia": ["community acquired pneumonia", "pneumonia, community-acquired"],
 }
 
+# F6 SELF_DESCRIBED_RCT: the trial's OWN abstract names its design ('We conducted an open-label, randomized trial that
+# compared ...' -- J-EINSTEIN 25717286, PubMed type 'Journal Article' only, read X1 'not an RCT'). Self-reference
+# ('we', 'this', 'the present') or 'were randomly assigned / randomized' is required; the screen's negation guard holds.
+_F6 = re.compile(r"\b(?:we|this|the present|the current)\b[^.]{0,80}?(?<!non-)(?<!non )(?<!not )\brandomi[sz]ed\b"
+                 r"[^.]{0,40}?\b(?:trial|study)\b|\b(?:were|was|been)\s+(?:randomly\s+(?:assigned|allocated)|randomi[sz]ed)\b",
+                 re.I)
+
+
+def f6_patch(screen):
+    """Context: screen._body_says_rct also accepts F6. Returns a restore() function."""
+    orig = screen._body_says_rct
+
+    def patched(rec):
+        return orig(rec) or bool(_F6.search(rec.get("abstract", "") or ""))
+    screen._body_says_rct = patched
+    return lambda: setattr(screen, "_body_says_rct", orig)
+
+
 _PLACEBO_FOR = re.compile(r"\b(?:matching\s+)?placebo\s+(?:for|to|of|matching|matched to)\s+[A-Za-z0-9/\- ]{2,60}"
                           r"|\bmatching\s+placebo\b(?:\s*\([^)]{0,60}\))?"
                           r"|\b[A-Za-z][A-Za-z0-9\-]{3,40}[- ]placebo\b", re.I)

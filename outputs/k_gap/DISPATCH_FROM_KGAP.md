@@ -487,3 +487,44 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
    - 5 Oct: it read a private workbook during a forest read (read-only sandboxes allow reads).
    - Committed logs no longer keep tool output (fixed and planted).
    - The calls themselves should run with user-level client instructions disabled, or in a sandbox with no access outside the work dir. That is a harness-wide setting, so it is not changed by this lane.
+
+---
+
+## 2026-10-09 23:00 -- evidence-completeness sprint, round 2 (to the Captain; V14)
+
+**V14 QUESTION (blocking; no CVOT-style topic is screened to eligible until answered):** `outputs/k_gap/v14_question_eligibility_axis.md`.
+- **GLP-1:** B-prime line 78 (verbatim in the doc) literally admits every trial with prospectively specified, systematically ascertained 3-point MACE, which includes glycaemic phase 3 trials with FDA-2008 safety adjudication. Line 79 names SUSTAIN-1, PIONEER-1, AWARD-8 and others as outside ("B-prime yields the intended small universe"). Which governs?
+- **The other 21 active topics:** each protocol says "Eligibility is NOT on the outcome axis" (quoted per topic in the doc). Read literally, every RCT of the drug in the population is eligible.
+  - The literal-rule universe so far (new records the regex includes): glp1 635, dpp4 530, noac 275, doac 87, denosumab 35, finerenone 34, dapa 12, empa 11, esketamine 5.
+  - Proposed split:
+    - (a) outcome intrinsic to every eligible trial: dual screen decides;
+    - (b) CVOT/event-style: reported, not screened, until you rule (B-prime-style amendment or the literal universe).
+  - dpp4 has GLP-1's old search-vs-eligibility mismatch (its search is UID queries for the 5 CVOTs) and no amendment.
+
+**VOID:** the first GLP-1 dual run (~1,124 calls) used a PICO-only prompt; it was stopped and none of its verdicts is used. The dual prompt now quotes the protocol's eligibility text and amendments verbatim.
+
+**Re-screen flips (all 32; 11 of 796):** eligible by dual codex SAK NCT05138575, ARTS-DN Japan NCT01968668, Circadin NCT00816673. These change no G1 ALL_ELIGIBLE_MATCHED (`v14_g1_impact.md`).
+- **DISAGREE (need a ruling or a third read):**
+  - dpp4: NCT02192853, NCT02406443 (INDORSE), NCT00918879, NCT02792400;
+  - colchicine: NCT03376698.
+- These ran with the earlier summarised prompt; they will be re-read with the verbatim prompt.
+
+**Acquired for V14 (`v14_targets_acquired.json`):**
+- FLOW 3P-MACE 212/1767 v 254/1766.
+- Omarigliptin HHF 20/2092 v 33/2100, HR 0.60 (0.35-1.05).
+- FREEDOM SAE: placebo 972/3876 v denosumab 1004/3886.
+- FIDELIO hyperkalaemia: AACT other-AE 422/2827 v 212/2831, serious 42 v 12; label ADR 516 v 255, which is your R9-4 figure.
+- ELIXA 3-point: no open typed source.
+- DETERMINE / EMPERIAL: report another endpoint.
+- CARMELINA hHF: your verified 209/3494 v 226/3485 stands; AACT has no post.
+
+**Abridged abstracts (census, 1,661 PubMed records):**
+- OMNeON 28893244: 1,138 v 2,167 chars; loses HHF 0.60 (0.35-1.05).
+- SOUL 40162642: oral semaglutide CVOT; 1,180 v 2,283 chars.
+- Full abstracts are preserved in outputs/k_gap/abstract_census/. The served cache is not rewritten; replacing it is your call.
+
+**Recall limits:** Europe PMC had been capped at 5,000 (glp1 17,749; dpp4 12,230; doac 11,971; empa 7,822; dapa 7,491), and EU CTR was first-page only. Both now page to the source's own count, and any shortfall is written as `recall_limit`. This also bears on R8-5's cap reconciliation.
+
+**Hygiene:** `registry/model_calls/lane_log/unattributed.jsonl` carries a line from main that already existed and that the leak gate flags (a codex client read of two files outside the work dir). I have not committed it; it's on main for you.
+
+**sglt2-ckd:** 13 stage-A survivors still need a D8 ruling for a full read; their only CC BY evidence is Unpaywall plus the host page.
