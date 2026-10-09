@@ -6483,5 +6483,73 @@
     "verdict": null
    }
   ]
+ },
+ "ext-audit-r3": {
+  "base": "2be4df9a51511d97727a1989b9ecce328159e624",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5551bc82e080ee9673a8cea1ff620eb5",
+    "state": "RAN_OK",
+    "files": [
+     "audit/independent_recompute.py",
+     "scripts/pr_codex_review.py",
+     "scripts/verify_all.py",
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "72cfca03c82baa4a982d8e1fa64011e44c946cc1d0f213261d643cf26f8107d7"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v / recompute_outcome",
+    "severity": "P0",
+    "claim": "Arm-means tuples bypass measure compatibility checks when the row has no measure label. A raw mean difference is then exponentiated and accepted as a risk ratio.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'mean1': 1, 'mean2': 0, 'sd1': 1, 'sd2': 1, 'nc1': 10, 'nc2': 10}\nrecompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [row, row], 'result': {'scale': 'RR', 'estimate': 2.7183}})",
+    "expected": "Reject the incompatible tuple: arm means cannot reconstruct an RR.",
+    "actual": "Returns state='AGREE', with recomputed estimate=2.718282 and mismatch={}.",
+    "id": "ext-audit-r3:g1#1",
+    "record_id": "mc-5551bc82e080ee9673a8cea1ff620eb5",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v / recompute_outcome",
+    "severity": "P0",
+    "claim": "The 2x2 branch accepts event counts exceeding their arm denominators. Checking the resulting variance is insufficient: impossible counts can yield positive variance and pass the audit.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrow = {'ai': 12, 'n1i': 10, 'ci': 1, 'n2i': 10}\nrecompute_outcome({'method': 'Paule-Mandel HKSJ', 'trials': [row, row], 'result': {'scale': 'RR', 'estimate': 12}})",
+    "expected": "Reject the tuple because 12 events exceed the 10 participants in arm 1.",
+    "actual": "Returns state='AGREE', with recomputed estimate=12.0 and mismatch={}. The invalid tuple produces variance=0.8833333333333333.",
+    "id": "ext-audit-r3:g1#2",
+    "record_id": "mc-5551bc82e080ee9673a8cea1ff620eb5",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "study_y_v / recompute_outcome",
+    "severity": "P0",
+    "claim": "Reversed confidence bounds pass verification. Squaring the CI width conceals the reversal, and the single-study override copies the invalid interval directly into the comparison.",
+    "failing_input": "from audit.independent_recompute import recompute_outcome\nrecompute_outcome({'method': 'Single included trial own effect', 'trials': [{'effect': 1, 'ci_low': 2, 'ci_high': 0.5}], 'result': {'scale': 'RR', 'estimate': 1, 'ci_low': 2, 'ci_high': 0.5}})",
+    "expected": "Return DISAGREE because ci_low exceeds ci_high.",
+    "actual": "Returns state='AGREE', comparing estimate=1, ci_low=2, ci_high=0.5, with mismatch={}.",
+    "id": "ext-audit-r3:g1#3",
+    "record_id": "mc-5551bc82e080ee9673a8cea1ff620eb5",
+    "verdict": null
+   },
+   {
+    "file": "audit/independent_recompute.py",
+    "function": "paule_mandel",
+    "severity": "P2",
+    "claim": "The absolute 1e8 bracketing cap rejects valid mean-difference data in sufficiently large units. Its uncaught ArithmeticError terminates the entire audit.",
+    "failing_input": "from audit.independent_recompute import paule_mandel\npaule_mandel([-20000, 20000], [1, 1])",
+    "expected": "Return tau_squared approximately 799999999, the solution of 800000000 / (1 + tau_squared) = 1.",
+    "actual": "Raises ArithmeticError('PM root not bracketed') when the upper bracket reaches 134217728.",
+    "id": "ext-audit-r3:g1#4",
+    "record_id": "mc-5551bc82e080ee9673a8cea1ff620eb5",
+    "verdict": null
+   }
+  ]
  }
 }

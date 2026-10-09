@@ -75,3 +75,17 @@ def test_PLANT_codex_r2_measure_mismatch_smd_and_partial_ci_never_agree():
     eff = {"effect": 1.0, "ci_low": 0.5, "ci_high": 2.0}
     assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [eff, eff],
                                   "result": {"scale": "RR", "estimate": 1.0, "ci_low": 999.0, "ci_high": None}})["state"] == "DISAGREE"
+
+
+def test_PLANT_codex_r3_tuple_kind_impossible_counts_reversed_ci_and_large_units():
+    """codex ext-audit-r3: an arm-means row under a ratio outcome; events > arm size; reversed CI bounds; PM on large-unit MDs."""
+    md = {"mean1": 1, "mean2": 0, "sd1": 1, "sd2": 1, "nc1": 10, "nc2": 10}
+    assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [md, md],
+                                  "result": {"scale": "RR", "estimate": 2.7183}})["state"] != "AGREE"
+    bad = {"ai": 12, "n1i": 10, "ci": 1, "n2i": 10}
+    assert irc.recompute_outcome({"method": "Paule-Mandel HKSJ", "trials": [bad, bad],
+                                  "result": {"scale": "RR", "estimate": 12}})["state"] != "AGREE"
+    rev = {"effect": 1, "ci_low": 2, "ci_high": 0.5}
+    assert irc.recompute_outcome({"method": "Single included trial own effect", "trials": [rev],
+                                  "result": {"scale": "RR", "estimate": 1, "ci_low": 2, "ci_high": 0.5}})["state"] != "AGREE"
+    assert abs(irc.paule_mandel([-20000, 20000], [1, 1]) - 799999999) < 1.0

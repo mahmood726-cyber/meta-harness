@@ -65,7 +65,12 @@ def study_y_v(row, outcome_scale):
     if g("design_adjustment") or (g("design") or {}).get("design_adjustment"):
         raise ValueError("design-adjusted variance is not carried in the served tuple")
     if g("mean1") is not None and g("sd1") is not None and g("nc1"):
+        # the TUPLE KIND must match the outcome (codex ext-audit-r3 P0): arm means build a raw MD only
+        if not _is_md(outcome_scale):
+            raise ValueError(f"arm means cannot rebuild an outcome served as {outcome_scale}")
         return g("mean1") - g("mean2"), g("sd1") ** 2 / g("nc1") + g("sd2") ** 2 / g("nc2")
+    if _is_md(outcome_scale) and g("effect") is None:
+        raise ValueError("a count or rate tuple cannot rebuild a mean difference")
     if g("e1i") is not None and g("t1i") and g("e2i") is not None and g("t2i"):
         e1, e2 = float(g("e1i")), float(g("e2i"))
         if min(e1, e2) == 0:
@@ -73,6 +78,8 @@ def study_y_v(row, outcome_scale):
         return math.log((e1 / g("t1i")) / (e2 / g("t2i"))), 1 / e1 + 1 / e2
     if g("ai") is not None and g("n1i"):
         a, n1, c, n2 = (float(g(k)) for k in ("ai", "n1i", "ci", "n2i"))
+        if not (0 <= a <= n1 and 0 <= c <= n2 and n1 > 0 and n2 > 0):
+            raise ValueError(f"impossible 2x2: {a}/{n1} v {c}/{n2}")   # codex ext-audit-r3 P0
         if min(a, c, n1 - a, n2 - c) == 0:
             a, c, n1, n2 = a + 0.5, c + 0.5, n1 + 1, n2 + 1
         measure = str(g("measure") or g("scale") or outcome_scale or "").upper()
@@ -85,6 +92,8 @@ def study_y_v(row, outcome_scale):
             return math.log(a * d / (b * c)), 1 / a + 1 / b + 1 / c + 1 / d
         return math.log((a / n1) / (c / n2)), 1 / a - 1 / n1 + 1 / c - 1 / n2
     if g("effect") is not None and g("ci_low") is not None and g("ci_high") is not None:
+        if not (g("ci_low") <= g("effect") <= g("ci_high")) or g("ci_low") == g("ci_high"):
+            raise ValueError("reported interval is reversed, degenerate or excludes its own point")   # codex ext-audit-r3 P0
         if _is_md(g("scale") or outcome_scale):
             return float(g("effect")), ((g("ci_high") - g("ci_low")) / (2 * Z)) ** 2
         return math.log(g("effect")), ((math.log(g("ci_high")) - math.log(g("ci_low"))) / (2 * Z)) ** 2
@@ -101,10 +110,12 @@ def paule_mandel(y, v):
 
     if k < 2 or q_gen(0.0) <= k - 1:
         return 0.0
-    lo, hi = 0.0, 1.0
+    # bracket relative to the data's own scale (codex ext-audit-r3 P2: an absolute cap failed large-unit MDs)
+    spread = max(y) - min(y)
+    lo, hi = 0.0, max(1.0, spread * spread)
     while q_gen(hi) > k - 1:
         hi *= 2.0
-        if hi > 1e8:
+        if not math.isfinite(hi) or hi > 1e6 * max(1.0, spread * spread):
             raise ArithmeticError("PM root not bracketed")
     for _ in range(200):
         mid = (lo + hi) / 2
