@@ -151,3 +151,21 @@ def test_registry_results_status_is_logged_beside_the_text_routes(tmp_path):
 def test_all_routes_failing_by_request_is_FETCH_FAILED(tmp_path):
     http = Fake([("elink", fc.FetchFailed("HTTP 503 after 4 tries"))])
     assert fc.acquire(http, "t", "3", dry_run=True, root=tmp_path, ident={})["state"] == fc.FETCH_FAILED
+
+
+def test_PLANT_a_text_removed_from_the_tree_under_D8_is_never_refetched_and_its_record_survives(tmp_path):
+    """V12-08Q (signed 9 Oct): the non-CC NEJM RECOVERY text was removed from the tree. The cascade rewrites the ledger on
+    every run and re-acquires any PMID whose file is absent, so without this the next run would fetch the text back into
+    the cache and drop the removal record."""
+    d = tmp_path / "cache" / "t"
+    d.mkdir(parents=True)
+    removed = {"pmid": "7", "routes": [], "state": fc.REMOVED_FROM_TREE_D8, "sha256": "9" * 64,
+               "removed": {"by": "V12-08Q", "pmcid": "PMC1"}}
+    (d / "fulltext_ledger.json").write_text(json.dumps({"slug": "t", "rows": [removed]}), encoding="utf-8")
+    http = Fake([("elink", _elink("1")), ("efetch", BODY), ("fullTextXML", BODY)])
+    led = fc.run("t", http, dry_run=False, extra_pmids=["7"], root=tmp_path)
+    assert http.calls == [] and not (d / "ft_7.txt").exists()
+    row = [r for r in led["rows"] if r["pmid"] == "7"][0]
+    assert row["state"] == fc.REMOVED_FROM_TREE_D8 and row["removed"]["by"] == "V12-08Q"
+    on_disk = json.loads((d / "fulltext_ledger.json").read_text(encoding="utf-8"))
+    assert on_disk["rows"][0]["removed"]["pmcid"] == "PMC1" and on_disk["tally"][fc.REMOVED_FROM_TREE_D8] == 1
