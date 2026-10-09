@@ -6563,5 +6563,35 @@
     "verdict": null
    }
   ]
+ },
+ "v13-apply-r3": {
+  "base": "7ff2a3c58",
+  "head": "g1/v13-apply-2026-10-09",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b6dcacc2980826c25e7a501417bb9d63",
+    "state": "RAN_OK",
+    "files": [
+     "harness/page.py",
+     "scripts/build_served_pool_additions.py"
+    ],
+    "prompt_sha256": "5a765d3577489a2e312f2a4a43fc1b24cb91b6429df00c25e94382e9f3ff6181"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/build_served_pool_additions.py",
+    "function": "_signed_chain",
+    "severity": "P2",
+    "claim": "Searching all future notices treats a later recurrence of a result as an ambiguous successor. A fully signed, applied history A→B→A→B→C incorrectly returns no chain, bypassing the carry-forward branch.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import build_served_pool_additions as b\n\nnotices = [dict(slug='demo', outcome='mortality', when_utc=f'2026-10-0{i+1}T00:00:00Z', before={'effect': x}, after={'effect': y}, reviewer_countersignature={'state': 'SIGNED'}) for i, (x, y) in enumerate([(1, 2), (2, 1), (1, 2), (2, 3)])]\n# Isolate chain traversal: exact result equality; all notices signed and applied.\nwith patch.object(b.rc, 'SIGNED_STATES', {'SIGNED'}), patch.object(b.rc, 'not_applied', return_value=False), patch.object(b.rc, '_same', side_effect=lambda x, y: x == y):\n    print(b._signed_chain(notices[0], notices))",
+    "expected": "notices[1:] — the three consecutive signed changes linking the initial after-result to the final result.",
+    "actual": "[] — both the October 2 and October 4 notices match the initial after-result, so len(nxt) is 2 and traversal stops immediately.",
+    "id": "v13-apply-r3:g1#1",
+    "record_id": "mc-b6dcacc2980826c25e7a501417bb9d63",
+    "verdict": null
+   }
+  ]
  }
 }
