@@ -1,4 +1,4 @@
-# V14 question -- the eligibility axis of each active topic (k-gap, 2026-10-09)
+# V14 question -- the eligibility axis of each active topic (k-gap, 2026-10-10)
 
 Writer: scripts/g1_v14_axis_question.py. Every quotation below is VERBATIM from protocols/<slug>.md.
 
@@ -21,7 +21,7 @@ Literal universe = concept-search records NOT already held that the regex screen
 | topic | split | new records | literal-rule includes | search state |
 |---|---|---|---|---|
 | doac-vte-recurrence | a (at risk: phase-2 / biomarker trials admitted) | 5895 | 87 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
-| noac-vs-warfarin-af-stroke | b (moved 10 Oct: dual screen admitted 41 incl. cognition / plaque / biomarker trials) | 6387 | 275 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
+| noac-vs-warfarin-af-stroke | b (moved 9 Oct: dual screen admitted 41 incl. cognition / plaque / biomarker trials) | 6387 | 275 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
 | tranexamic-acid-pph | a | pending | pending | queued |
 | corticosteroids-covid19-mortality | a | pending | pending | queued |
 | colchicine-recurrent-pericarditis | a | pending | pending | queued |
@@ -31,7 +31,7 @@ Literal universe = concept-search records NOT already held that the regex screen
 | glp1-ra-mace-t2d | b (B-prime amendment) | 7282 | 635 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
 | dpp4-mace-t2d | b | 6674 | 530 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
 | semaglutide-obesity-mace | b | 9111 | 19 | all COMPLETE |
-| sglt2-hfref-hosp-cvdeath | b | pending | pending | queued |
+| sglt2-hfref-hosp-cvdeath | b | 18277 | 181 | all COMPLETE |
 | dapagliflozin-hfpef-hosp | b | 5113 | 12 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
 | empagliflozin-hfpef-hosp | b | 5151 | 11 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
 | finerenone-ckd-t2d-renal | b | 2029 | 34 | EUCTR FIRST_PAGE_ONLY |

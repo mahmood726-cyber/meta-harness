@@ -19,7 +19,7 @@ Ledgers: outputs/k_gap/v14_targets_acquired.json (typed, AACT snapshot 2026-08-3
 outputs/k_gap/concept/. DISAGREE flips (5) need a captain call: 4 dpp4 (INDORSE, NCT00918879, NCT02192853, NCT02792400)
 and colchicine-secondary NCT03376698.
 
-## 2026-10-09 ~23:45 -- concept-search dual screen, (a) topics doac + esketamine (verbatim-protocol prompt; 184 recorded calls)
+## 2026-10-09 ~23:35 -- concept-search dual screen, (a) topics doac + esketamine (verbatim-protocol prompt; 184 recorded calls)
 
 Result: 92 regex-included concept records -> ELIGIBLE 5, EXCLUDED 64, DISAGREE 23 (ledger outputs/k_gap/concept/_dual_a_doac_esketamine.json).
 G1 effect computed per trial BEFORE applying. **Nothing is applied.**
@@ -42,7 +42,7 @@ The comparator restricts itself to phase 3 trials: its title is "...evidence fro
 - Proposed reason: NOT_IN_COMPARATOR_SCOPE:PHASE_3_ONLY, citing the comparator's own title span. XENITH might instead be NOT_IN_OUTCOME_ANALYSIS (n=10, biomarker endpoint). Captain to rule (V14).
 - 23 doac DISAGREE records need a third read or a ruling. They include J-EINSTEIN 25717286 (Japanese phase 3, NCT01516814/NCT01516840): reader A said NOT_DECIDABLE_FROM_RECORD, reader B MEETS_ALL. If eligible it is a fourth unnamed trial for doac.
 
-## 2026-10-10 ~00:40 -- noac-vs-warfarin-af-stroke dual screen (221 records after trial-identity dedup; 442 recorded calls)
+## 2026-10-09 ~23:55 -- noac-vs-warfarin-af-stroke dual screen (221 records after trial-identity dedup; 442 recorded calls)
 
 Result: ELIGIBLE 41, EXCLUDED 171, DISAGREE 9 (outputs/k_gap/concept/_dual_a_noac.json). **Nothing applied; no G1 count computed as final.**
 
@@ -59,7 +59,7 @@ So noac is NOT outcome-intrinsic. The same flood B-prime prevented for GLP-1 wou
 - **Moved to (b):** the literal universe is reported in the V14 question, not applied.
 - **Plausibly in a stroke/SEE analysis** (if the captain wants a typed endpoint-axis rule): J-ROCKET AF 22664783, ROCKET AF China 23929423, RIVER 33196155, RENAL-AF NCT02942407, AXADIA NCT02933697, and the Japanese/Asian phase 2 safety trials.
 
-## 2026-10-10 ~01:30 -- semaglutide-obesity-weight dual screen (66 records after identity dedup; 132 recorded calls)
+## 2026-10-10 ~00:00 -- semaglutide-obesity-weight dual screen (66 records after identity dedup; 132 recorded calls)
 
 Result: ELIGIBLE 1, EXCLUDED 40, DISAGREE 25 (outputs/k_gap/concept/_dual_a_semaglutide_weight.json).
 - **STEP 5** (36216945; NCT03693430; Garvey 2022, 2-year) is a recall miss: it is not in our pool and not in comparator 42536519's set.

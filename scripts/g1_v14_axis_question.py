@@ -21,7 +21,7 @@ CON = os.path.join(ROOT, "outputs", "k_gap", "concept")
 # P/I/C rule admits, so a recorded dual screen can decide eligibility; (b) CVOT/event-style -- the literal rule admits every
 # trial of the drug in the population, most of which never ascertained the outcome, so the universe is a V14 question.
 SPLIT = {
-    "doac-vte-recurrence": "a (at risk: phase-2 / biomarker trials admitted)", "noac-vs-warfarin-af-stroke": "b (moved 10 Oct: dual screen admitted 41 incl. cognition / plaque / biomarker trials)", "tranexamic-acid-pph": "a",
+    "doac-vte-recurrence": "a (at risk: phase-2 / biomarker trials admitted)", "noac-vs-warfarin-af-stroke": "b (moved 9 Oct: dual screen admitted 41 incl. cognition / plaque / biomarker trials)", "tranexamic-acid-pph": "a",
     "corticosteroids-covid19-mortality": "a", "colchicine-recurrent-pericarditis": "a",
     "melatonin-primary-insomnia-sol": "a", "esketamine-trd-madrs": "a", "semaglutide-obesity-weight": "a",
     "glp1-ra-mace-t2d": "b (B-prime amendment)", "dpp4-mace-t2d": "b", "semaglutide-obesity-mace": "b",

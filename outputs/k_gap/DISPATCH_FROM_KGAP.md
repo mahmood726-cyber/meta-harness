@@ -529,7 +529,7 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
 
 **sglt2-ckd:** 13 stage-A survivors still need a D8 ruling for a full read; their only CC BY evidence is Unpaywall plus the host page.
 
-### 2026-10-09 ~23:50 addendum -- (a)-topic dual screen, doac + esketamine (V14; nothing applied)
+### 2026-10-09 ~23:35 addendum -- (a)-topic dual screen, doac + esketamine (V14; nothing applied)
 - **Result:** 92 records gave ELIGIBLE 5, EXCLUDED 64, DISAGREE 23. Per-trial G1 effects are in `v14_g1_impact.md`.
 - **esketamine: no G1 change.**
   - TRANSFORM-1 was already a comparator unit; it showed up because dedup compared record ids.
@@ -545,7 +545,7 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
 - **Fixed:** concept dedup now works at trial identity (comparator units, plus the PMIDs and NCTs of held records). It caught 11 already-held trial records in doac and esketamine and 54 in noac.
 - **Running:** the noac dual screen, 221 records (442 calls, 2 workers; RAM 2.9 GB).
 
-### 2026-10-10 ~00:40 addendum -- noac moved to (b)
+### 2026-10-09 ~23:55 addendum -- noac moved to (b)
 - **noac dual screen:** ELIGIBLE 41, EXCLUDED 171, DISAGREE 9.
   - Most of the 41 are NOAC-v-VKA RCTs with non-stroke endpoints: cognition, plaque, kidney function, biomarkers, phase-2 dosing.
   - So the "outcome-intrinsic" premise fails for noac. It is moved to (b) and nothing is applied (details in `v14_g1_impact.md`).
