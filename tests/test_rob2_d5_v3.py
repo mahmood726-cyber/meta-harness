@@ -64,10 +64,14 @@ def test_PLANT_r25_colcot_primary_by_role_never_its_cardiac_arrest_secondary():
     prim = [{"measure": "First Event of Cardiovascular Death, Resuscitated Cardiac Arrest, Acute Myocardial "
                         "Infarction, Stroke, or Urgent Hospitalization for Angina Requiring Coronary Revascularization"}]
     sec = [{"measure": "First Event of Cardiovascular Death, Resuscitated Cardiac Arrest, Acute MI or Stroke."}]
-    sel = {"pooled_outcome": "Major adverse cardiovascular events", "registered_title": None, "role": "primary",
-           "our_terms": ["colchicine"], "other_factor_terms": []}
+    # the topic's own outcome is TRIAL-DEFINED (colchicine-secondary-cv-prevention): COLCOT's primary is the outcome
+    sel = {"pooled_outcome": "Trial-defined major coronary/cardiovascular composite", "registered_title": None,
+           "role": "primary", "our_terms": ["colchicine"], "other_factor_terms": []}
     d = rob2.derive_d5_v3(prim, sec, sel)
     assert d["level"] == "low" and d["inputs"]["comparison"]["method"] == "role_primary"
+    # a SPECIFIC 3-point MACE outcome is not COLCOT's 5-component primary, whatever the role (rob2-r1 #1)
+    assert rob2.derive_d5_v3(prim, sec, dict(sel, pooled_outcome="3-point major adverse cardiovascular events"))[
+        "level"] != "low"
     # and 3-point MACE is NOT the cardiac-arrest secondary (v2 dropped 'resuscitated cardiac arrest')
     assert rob2.outcome_match_v3("Major adverse cardiovascular events", sec[0])["matched"] is False
 
@@ -97,3 +101,44 @@ def test_PLANT_one_other_active_intervention_is_a_comparator_not_a_factor(monkey
                                                        ("SYNERGY Stent", "DEVICE"), ("Placebo", "DRUG")]})
     assert rb.factor_terms("t", ["NCT1"])[1] == []                     # heparin alone: background, not a factor
     assert rb.factor_terms("t", ["NCT2"])[1] == ["Colchicine", "SYNERGY Stent", "Spironolactone"]
+
+
+def test_PLANT_r1_role_primary_never_low_on_an_explicit_mismatch_unless_the_outcome_is_trial_defined():
+    d = rob2.derive_d5_v3([{"title": "Change in systolic blood pressure"}], [],
+                          {"pooled_outcome": "All-cause mortality", "role": "primary"})
+    assert d["level"] == "some concerns"
+    d = rob2.derive_d5_v3([{"title": "Change in systolic blood pressure"}], [],
+                          {"pooled_outcome": "Trial-defined primary composite", "role": "primary"})
+    assert d["level"] == "low"
+
+
+def test_PLANT_r1_an_urgent_visit_is_the_hf_component_only_for_heart_failure():
+    assert rob2.outcome_match_v3("Urgent asthma visit", {"title": "Urgent migraine visit"})["matched"] is False
+    assert "URGENT_HF_VISIT" in rob2._component_set_v3("urgent visit resulting in intravenous therapy for heart failure")
+
+
+def test_PLANT_r1_an_ordinary_word_of_another_factors_name_is_not_that_factor():
+    assert rob2.factor_filter([{"title": "Cardiac death"}], ["colchicine"], ["Cardiac resynchronization therapy"]) == \
+        ([{"title": "Cardiac death"}], [])
+    kept, out = rob2.factor_filter([{"title": "MACE for SYNERGY Stent"}], ["colchicine"],
+                                   ["SYNERGY Bioabsorbable Polymer Drug-Eluting Stent"])
+    assert kept == [] and len(out) == 1
+
+
+def test_PLANT_r1_a_negated_or_exploratory_primary_phrase_is_no_role():
+    import rob2_build as rb
+    assert rb.role_from_source("No primary outcome was prespecified; all-cause mortality was exploratory.") is None
+    assert rb.role_from_source("This was not a primary endpoint analysis.") is None
+    assert rb.role_from_source("A primary-outcome event occurred in 322 of 3528 patients") == "primary"
+    assert rb.role_from_source("The primary end point occurred in 5.5% of the patients") == "primary"
+
+
+def test_PLANT_r1_a_not_established_comparison_earns_no_low_by_role():
+    # J-EMPHASIS-shaped: the topic is all-cause mortality; the single registered primary is a CV composite whose
+    # description holds an unrecognised event -> identity not established, never low by role
+    prim = [{"measure": "Number of Participants With First Occurrence of Cardiovascular (CV) Mortality or "
+                        "Hospitalization Due to Heart Failure (HF)",
+             "description": "Composite of cardiovascular death, hospitalization for heart failure or peripheral "
+                            "amputation"}]
+    d = rob2.derive_d5_v3(prim, [], {"pooled_outcome": "All-cause mortality", "role": "primary"})
+    assert d["level"] != "low"

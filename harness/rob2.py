@@ -285,7 +285,10 @@ def _d4(inputs: dict[str, Any]) -> dict[str, Any]:
 _CARDIO = {"CV_DEATH", "NONFATAL_MI", "NONFATAL_STROKE", "HF_HOSPITALISATION", "UNSTABLE_ANGINA", "REVASCULARISATION",
            "URGENT_HF_VISIT", "CARDIAC_ARREST", "HF_EVENT_UNSPECIFIED", "ALL_CAUSE_MORTALITY"}
 _V3_EXTRA = (
-    ("URGENT_HF_VISIT", r"\burgent\b.{0,30}\bvisit\b"),
+    # an urgent visit FOR HEART FAILURE only (rob2-r1 #2: 'urgent asthma visit' is not this component)
+    ("URGENT_HF_VISIT", r"\burgent\b[^.;]{0,30}\bvisit\b[^.;]{0,50}\b(?:heart\s+failure|hf)\b|"
+                        r"\b(?:heart\s+failure|hf)\b[^.;]{0,20}\burgent\b[^.;]{0,20}\bvisit\b|"
+                        r"\burgent\s+(?:heart\s+failure|hf)\s+visit\b"),
     ("CARDIAC_ARREST", r"\bcardiac\s+arrests?\b"),
     ("HF_EVENT_UNSPECIFIED", r"\b(?:new|worsening)\b.{0,15}\bheart\s+failure\b|\bheart\s+failure\s+events?\b"),
     ("CV_DEATH", r"\bdeath\s+from\s+(?:cardio)?vascular\s+causes?\b"),
@@ -364,11 +367,19 @@ def _names_any(text: str, terms: list[str]) -> bool:
 def factor_filter(outcomes: list[dict[str, str]], our_terms: list[str], other_terms: list[str]):
     """Factorial trials (CLEAR: colchicine x spironolactone x stent): a registered outcome that names ANOTHER factor's
     intervention and not ours belongs to that factor -- (kept, excluded)."""
-    # another factor is recognised by its DISTINCTIVE words ('SYNERGY Bioabsorbable Polymer Drug-Eluting Stent' is named
-    # 'SYNERGY Stent' in its outcome), never by generic ones
-    generic = {"drug", "drugs", "placebo", "matching", "therapy", "treatment", "dose", "oral", "tablet", "tablets",
-               "injection", "polymer", "standard", "care", "group", "arm", "daily"}
-    tokens = sorted({w for t in other_terms for w in re.findall(r"[a-z][a-z0-9-]{3,}", t.lower()) if w not in generic})
+    # another factor is recognised by its NAME: the full intervention name, a one-word name ('Spironolactone'), or a
+    # brand token written in capitals ('SYNERGY' of 'SYNERGY Bioabsorbable Polymer Drug-Eluting Stent', named 'SYNERGY
+    # Stent' in its outcome) -- never an ordinary word of a multi-word name ('cardiac' of 'Cardiac resynchronization
+    # therapy' does not make 'Cardiac death' that factor's outcome; rob2-r1 #3)
+    tokens = set()
+    for t in other_terms:
+        t = t.strip()
+        tokens.add(t)
+        words = re.findall(r"[A-Za-z][A-Za-z0-9-]*", t)
+        if len(words) == 1:
+            tokens.add(words[0])
+        tokens |= {w for w in words if len(w) >= 4 and w.isupper()}
+    tokens = sorted(tokens)
     kept, excluded = [], []
     for o in outcomes:
         txt = _registered_text(o)
@@ -397,12 +408,16 @@ def derive_d5_v3(registered_primaries, registered_secondaries, selected: dict[st
         return _domain("not_assessable", "no registered primary or secondary outcome available for this trial" +
                        (" after setting aside other factors' outcomes" if (xp or xs) else ""), V3_RULE, inputs)
     if role == "primary" and not selected.get("registered_title") and len(prim) == 1:
-        # the selected result is stated, in its own source, as THE primary end point; one registered primary remains
+        # the selected result is stated, in its own source, as THE primary end point; one registered primary remains.
+        # Low only when that primary is not an explicit MISMATCH with the outcome -- or the topic outcome is declared
+        # trial-defined ('Trial-defined major coronary composite': each trial's own primary IS the outcome) (rob2-r1 #1)
         d = outcome_match_v3(text, prim[0], matches)
-        inputs["comparison"] = dict(d, method="role_primary", registered_type="primary",
-                                    registered_label=_outcome_label(prim[0]))
-        return _domain("low", "the selected result is the trial's primary end point, its registered primary "
-                       f"{_outcome_label(prim[0])!r}{aside}", V3_RULE, inputs)
+        trial_defined = bool(re.search(r"\btrial[- ]defined\b", text, re.I))
+        if d["matched"] is True or trial_defined:         # 'not established' (None) earns no low either
+            inputs["comparison"] = dict(d, method="role_primary", registered_type="primary",
+                                        registered_label=_outcome_label(prim[0]), trial_defined_outcome=trial_defined)
+            return _domain("low", "the selected result is the trial's primary end point, its registered primary "
+                           f"{_outcome_label(prim[0])!r}{aside}", V3_RULE, inputs)
     pending = []
     for kind, outs in (("primary", prim), ("secondary", sec)):
         for o in outs:

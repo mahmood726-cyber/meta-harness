@@ -45,16 +45,22 @@ def selected_endpoints(slug):
         title = str(t.get("registry_title") or "") or None          # the registered outcome the row is bound to
         src = re.sub(r"^[^:]{0,80}\((?:registered estimand|target endpoint)\):\s*", "", str(t.get("source") or ""))
         rt = str(t.get("registry_type") or "").lower()
-        if rt in ("primary", "secondary"):
-            role = rt
-        elif re.search(r"\bprimary[\s-]+(?:composite\s+)?(?:end\s*-?\s*point|outcome)", src, re.I):   # 'primary-outcome'
-            role = "primary"
-        elif re.search(r"\bsecondary\s+(?:end\s*-?\s*point|outcome)", src, re.I):
-            role = "secondary"
-        else:
-            role = None
-        out[pid] = (title, role)
+        out[pid] = (title, rt if rt in ("primary", "secondary") else role_from_source(src))
     return out
+
+
+def role_from_source(src):
+    """'primary' / 'secondary' when the selected result's own clause REPORTS it as that endpoint ('A primary-outcome
+    event occurred in ...', 'The primary end point occurred ...'); None when the phrase is negated or the clause calls
+    the result exploratory / post hoc ('No primary outcome was prespecified; ... was exploratory'; rob2-r1 #4)."""
+    if re.search(r"\b(?:exploratory|post[- ]hoc|not\s+prespecified|unplanned)\b", src, re.I):
+        return None
+    for kind in ("primary", "secondary"):
+        for m in re.finditer(r"\b" + kind + r"[\s-]+(?:composite\s+)?(?:end\s*-?\s*point|outcome)", src, re.I):
+            if not re.search(r"\b(?:no|not|without|non|neither|nor)\b[\w\s,-]{0,25}$", src[max(0, m.start() - 30):m.start()],
+                             re.I):
+                return kind
+    return None
 
 
 def factor_terms(slug, ncts):
