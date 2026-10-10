@@ -6983,5 +6983,71 @@
     "verdict": null
    }
   ]
+ },
+ "r7-4-r5": {
+  "base": "beb73a487",
+  "head": "50d5d7702",
+  "runs": {
+   "g1": {
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "685ea30e5abb39ee53f2833647b1b083a263254dbe9d41a3e444cb2bf09dfe23"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "Splitting combination names before resolving placebo scope turns a placebo component into an active drug and falsely establishes DRUG_MATCH.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts.g1_tracker import verified_agent_identity\nT = {'trials': [{'slug': 'metformin', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001']}]}\n# Synthetic registry fixture containing only a placebo intervention.\ndata = 'nct_id|intervention_type|name\\nNCT00000001|drug|Placebo for the combination of empagliflozin and metformin\\n'\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', mock_open(read_data=data)):\n    result = verified_agent_identity(T, agents={'metformin': ['metformin']}, snap='snapshot', class_topics=set())\n    print(result['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED: the sole intervention names a placebo for a combination, providing no active-drug evidence.",
+    "actual": "DRUG_MATCH: active() discards the placebo-prefixed fragment but retains 'metformin'.",
+    "id": "r7-4-r5:g1#1",
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The inline fallback accepts a bold cross-reference as an X2 definition, allowing nonexistent protocol evidence to clear a configuration term.",
+    "failing_input": "x2 = x2_text('See **X2** for diabetes exclusions.')\nprint(x2)\nprint(classify('diabetes', x2))",
+    "expected": "None, followed by NO_PROTOCOL_X2.",
+    "actual": "'**X2** for diabetes exclusions.', followed by MATCHES_PROTOCOL.",
+    "id": "r7-4-r5:g1#2",
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "When a line starts with an X2 definition, the primary regex consumes subsequent inline rules. Terms belonging to X3 are consequently classified as X2 evidence.",
+    "failing_input": "x2 = x2_text('- **X2**: Exclude asthma-only populations; **X3**: Exclude diabetes.')\nprint(classify('diabetes', x2))",
+    "expected": "NOT_IN_PROTOCOL_X2; extraction should stop before **X3**.",
+    "actual": "MATCHES_PROTOCOL; the extracted X2 text includes the entire X3 definition.",
+    "id": "r7-4-r5:g1#3",
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "An explicit 'do not exclude' exception counts as an unqualified exclusion occurrence, masking a configuration that is broader than its protocol.",
+    "failing_input": "classify('diabetes', '- X2: Exclude diabetes-only populations; do not exclude HF trials with diabetes.')",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL: the exclusion applies only to diabetes-only populations, and the second clause explicitly protects HF trials with diabetes.",
+    "actual": "MATCHES_PROTOCOL: the protected occurrence of 'diabetes' prevents the all-occurrences-qualified check from succeeding.",
+    "id": "r7-4-r5:g1#4",
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "verdict": null
+   }
+  ]
  }
 }

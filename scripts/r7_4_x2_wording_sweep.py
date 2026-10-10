@@ -31,9 +31,13 @@ def x2_text(md):
     m = re.search(r"(?m)^[ \t>*|#-]*(?:\d+[.)]\s*)?\**X2\b\**\s*[:|*‐-—-][^\n]*" + cont, md)
     if not m:
         # an INLINE bold definition ('- Exclude: **X1** not RCT; **X2** wrong population (...); **X3** ...') runs to
-        # the next bold rule or a blank line
-        m = re.search(r"\*\*X2\*\*(?:(?!\*\*X\d)(?!\n\s*\n)[\s\S])*", md)
-    return re.sub(r"\s+", " ", m.group(0)) if m else None
+        # the next bold rule or a blank line; a bold cross-reference ('See **X2** for ...') is not one
+        m = next((mm for mm in re.finditer(r"\*\*X2\*\*(?:(?!\*\*X\d)(?!\n\s*\n)[\s\S])*", md)
+                  if not re.search(r"\b(?:see|per|under|in|as\s+in|cf\.?)\s*$", md[:mm.start()], re.I)), None)
+    if not m:
+        return None
+    # either way the rule ends where the next rule's bold label starts on the same line ('**X2**: ...; **X3**: ...')
+    return re.sub(r"\s+", " ", re.split(r"\*\*X(?:[013-9]|\d\d)\b", m.group(0))[0])
 
 
 def _dash(s):
@@ -48,9 +52,10 @@ def classify(term, x2):
         return "NO_PROTOCOL_X2"
     # a sentence that declares a population ELIGIBLE ('trials with HF and diabetes are eligible') is not exclusion
     # wording: its mentions neither match nor clear the config term
-    sents = [s for s in re.split(r"(?<=[.;])\s+", x)
+    sents = [s for s in re.split(r"(?<=[.;,])\s+", x)
              if not (re.search(r"\b(?:are|is|remain|be)\s+(?:eligible|included|allowed|permitted)\b", s)
-                     and not re.search(r"\b(?:not|never)\s+eligible\b|\bineligible\b|\bexclud", s))]
+                     and not re.search(r"\b(?:not|never)\s+eligible\b|\bineligible\b|\bexclud", s))
+             and not re.search(r"\b(?:do|does|should|must)\s+not\s+exclude\b|\bnot\s+(?:be\s+)?excluded\b", s)]
     x = " ".join(sents)
     hits = list(re.finditer(r"(?<![a-z])" + re.escape(t) + r"(?![a-z])", x))
     if not hits:

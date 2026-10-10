@@ -3030,13 +3030,16 @@ def verified_agent_identity(T, agents=None, snap=None, class_topics=None):
         if not mine:
             # no topic-agent definition: an empty lookup cannot establish a different agent
             continue
-        # a name is split at combination connectors ('empagliflozin plus matching placebo'); any PART naming a
-        # placebo/sham/vehicle is a placebo, whatever drug or dose it is named for ('placebo for empagliflozin 10 mg',
-        # 'empagliflozin 10 mg placebo'); only the remaining parts are active. Doses and dosage forms are not agents.
+        # a registered name that mentions a placebo/sham/vehicle/dummy at all is evidence of NOTHING -- neither the
+        # topic agent nor another one ('placebo for empagliflozin 10 mg', 'empagliflozin plus matching placebo'):
+        # parsing which part is active is not attempted (fail closed; the active drug has its own row when registered)
         def active(n):
-            parts = re.split(r"\s+(?:plus|with|and|in\s+combination\s+with)\s+|\s*\+\s*", n.lower())
-            return " | ".join(p for p in parts if not re.search(r"\b(?:placebos?|sham|vehicle|dummy)\b", p))
+            return "" if re.search(r"\b(?:placebos?|sham|vehicle|dummy)\b", n.lower()) else n.lower()
         act = [active(n) for n in allnames]
+        # ... but a placebo-mentioning name that NAMES the topic agent means the agent may be in the trial: it blocks
+        # OTHER_AGENT (never establishes DRUG_MATCH)
+        placebo_names_agent = any(not a and re.search(r"(?<![a-z])" + re.escape(g.lower()) + r"(?![a-z])", n.lower())
+                                  for n, a in zip(allnames, act) for g in mine)
         hit = any(re.search(r"(?<![a-z])" + re.escape(a.lower()) + r"(?![a-z])", n) for a in mine for n in act)
         names = [n for n, a in zip(allnames, act) if n and re.sub(
             r"\b\d+(?:\.\d+)?\s*(?:mg|g|mcg|ug|µg|ml|iu|units?|%|mmol)?\b|\b(?:tablets?|capsules?|oral|injection|"
@@ -3044,7 +3047,7 @@ def verified_agent_identity(T, agents=None, snap=None, class_topics=None):
         missing = [n for n in t["ncts"] if not reg.get(n)]
         if not names:
             continue
-        if (unnamed or missing) and not hit:
+        if (unnamed or missing or placebo_names_agent) and not hit:
             # an UNNAMED registered drug row, or a listed NCT with no registered drug rows, could be the topic's agent:
             # incomplete identity evidence cannot establish a different agent
             continue

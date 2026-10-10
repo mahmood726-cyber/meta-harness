@@ -84,9 +84,11 @@ def test_PLANT_r1_x2_text_stops_at_another_rules_table_row_and_qualifiers_need_b
     assert sw.classify("diabetes", "X2: only diabetes populations") == "CONFIG_BROADER_THAN_PROTOCOL"
 
 
-def test_PLANT_r2_topic_agent_inside_a_placebo_named_row_still_matches(tmp_path):
+def test_PLANT_r2_topic_agent_inside_a_placebo_named_row_blocks_other_agent(tmp_path):
+    # r5 superseded r2's DRUG_MATCH expectation: a placebo-mentioning name establishes nothing, but naming the topic
+    # agent means it may be in the trial -- so never OTHER_AGENT
     s = snap(tmp_path, [("NCT06", "DRUG", "empagliflozin plus matching placebo"), ("NCT06", "DRUG", "dapagliflozin")])
-    assert gt.verified_agent_identity(T({"label": "W", "ncts": ["NCT06"]}), AGENTS, s)["trials"][0]["drug"] == "DRUG_MATCH"
+    assert gt.verified_agent_identity(T({"label": "W", "ncts": ["NCT06"]}), AGENTS, s)["trials"][0]["drug"] == "AGENT_UNCONFIRMED"
     s = snap(tmp_path, [("NCT07", "DRUG", "Matching Placebo Tablets"), ("NCT07", "DRUG", "Sotagliflozin")])
     assert gt.verified_agent_identity(T({"label": "W", "ncts": ["NCT07"]}), AGENTS, s)["trials"][0]["drug"] == "OTHER_AGENT"
 
@@ -115,9 +117,11 @@ def test_PLANT_r3_a_placebo_named_for_the_topic_drug_is_not_the_topic_drug(tmp_p
                             "Empagliflozin matching placebo"]):
         s = snap(tmp_path, [(f"NCT1{i}", "DRUG", pl), (f"NCT1{i}", "DRUG", "Sotagliflozin")])
         u = gt.verified_agent_identity(T({"label": "P", "ncts": [f"NCT1{i}"]}), AGENTS, s)["trials"][0]
-        assert u["drug"] == "OTHER_AGENT", pl
+        assert u["drug"] == "AGENT_UNCONFIRMED", pl  # never DRUG_MATCH from a placebo; never OTHER_AGENT either
     s = snap(tmp_path, [("NCT20", "DRUG", "Empagliflozin with matching placebo")])
-    assert gt.verified_agent_identity(T({"label": "Q", "ncts": ["NCT20"]}), AGENTS, s)["trials"][0]["drug"] == "DRUG_MATCH"
+    assert gt.verified_agent_identity(T({"label": "Q", "ncts": ["NCT20"]}), AGENTS, s)["trials"][0]["drug"] != "OTHER_AGENT"
+    s = snap(tmp_path, [("NCT21", "DRUG", "Placebo"), ("NCT21", "DRUG", "Sotagliflozin")])
+    assert gt.verified_agent_identity(T({"label": "R", "ncts": ["NCT21"]}), AGENTS, s)["trials"][0]["drug"] == "OTHER_AGENT"
 
 
 def test_PLANT_r3_numbered_definitions_and_long_rules_are_read_whole():
@@ -135,8 +139,8 @@ def test_PLANT_r4_dose_bearing_placebo_names_are_placebos(tmp_path):
         s = snap(tmp_path, [(f"NCT3{i}", "DRUG", pl)])
         u = gt.verified_agent_identity(T({"label": "P", "ncts": [f"NCT3{i}"]}), AGENTS, s)["trials"][0]
         assert u["drug"] == "AGENT_UNCONFIRMED", pl
-    s = snap(tmp_path, [("NCT32", "DRUG", "Empagliflozin 10 mg plus matching placebo")])
-    assert gt.verified_agent_identity(T({"label": "Q", "ncts": ["NCT32"]}), AGENTS, s)["trials"][0]["drug"] == "DRUG_MATCH"
+    s = snap(tmp_path, [("NCT32", "DRUG", "Empagliflozin 10 mg plus matching placebo"), ("NCT32", "DRUG", "Linagliptin")])
+    assert gt.verified_agent_identity(T({"label": "Q", "ncts": ["NCT32"]}), AGENTS, s)["trials"][0]["drug"] != "OTHER_AGENT"
 
 
 def test_PLANT_r4_a_listed_nct_without_registered_drugs_blocks_other_agent(tmp_path):
@@ -159,3 +163,20 @@ def test_PLANT_r4_inline_bold_definition_is_read_to_the_next_rule():
     x2 = sw.x2_text("- Exclude: **X1** not RCT; **X2** wrong population (diabetes-only,\n  children); **X3** wrong drug "
                     "(diabetes drugs).")
     assert "X3" not in x2 and sw.classify("diabetes", x2) == "CONFIG_BROADER_THAN_PROTOCOL"
+
+
+def test_PLANT_r5_any_placebo_mention_is_evidence_of_nothing(tmp_path):
+    # combination names are never parsed: 'placebo and metformin' does not establish metformin, nor another agent
+    s = snap(tmp_path, [("NCT50", "DRUG", "Placebo and empagliflozin-matching tablets")])
+    assert gt.verified_agent_identity(T({"label": "P", "ncts": ["NCT50"]}), AGENTS, s)["trials"][0]["drug"] == "AGENT_UNCONFIRMED"
+    s = snap(tmp_path, [("NCT51", "DRUG", "Sotagliflozin plus placebo"), ("NCT51", "DRUG", "Empagliflozin")])
+    assert gt.verified_agent_identity(T({"label": "Q", "ncts": ["NCT51"]}), AGENTS, s)["trials"][0]["drug"] == "DRUG_MATCH"
+
+
+def test_PLANT_r5_bold_cross_reference_is_no_rule_and_same_line_rules_are_split():
+    import r7_4_x2_wording_sweep as sw
+    assert sw.x2_text("See **X2** for diabetes exclusions.") is None
+    assert sw.classify("diabetes", sw.x2_text("- **X2**: Exclude asthma-only populations; **X3**: Exclude diabetes.")) \
+        == "NOT_IN_PROTOCOL_X2"
+    assert sw.classify("diabetes", "- X2: Exclude diabetes-only populations; do not exclude HF trials with diabetes.") \
+        == "CONFIG_BROADER_THAN_PROTOCOL"
