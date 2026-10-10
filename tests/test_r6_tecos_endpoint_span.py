@@ -83,3 +83,21 @@ def test_PLANT_r1_plurals_explicit_lists_and_secondary_endpoints():
     cfg2 = {"primary_outcome": {"name": "cardiovascular death or myocardial infarction"}}
     x = unit("Primary endpoint: cardiovascular death or myocardial infarction. Secondary endpoint: stroke.")
     assert gt.endpoint_wording_adjudication([x], cfg2) == 0 and x["agreement_with_comparator_row"] == "AGREE"
+
+
+def test_PLANT_r2_negation_secondary_markers_and_unrecognised_components():
+    cfg = {"primary_outcome": {"name": "3-point MACE"}}
+    x = unit("Primary endpoint: cardiovascular death, MI, or stroke; hospitalization for heart failure was not part of "
+             "this composite.")
+    assert gt.endpoint_wording_adjudication([x], cfg) == 0 and x["agreement_with_comparator_row"] == "AGREE"
+    x = unit("Primary endpoint: cardiovascular death, MI, or stroke. Secondary efficacy endpoint: hospitalization for "
+             "heart failure.", agreement="DISAGREE")
+    assert gt.endpoint_wording_adjudication([x], cfg) == 0 and x["agreement_with_comparator_row"] == "DISAGREE"
+    # '4-point' over three recognised components: one is unrecognised -> not adjudicated (never 'same as 3-point')
+    assert gt.endpoint_components("4-point MACE (cardiovascular death, MI, stroke, or resuscitated sudden death)") is None
+    # a recognised fourth component makes it a different endpoint
+    x = unit("4-point MACE (cardiovascular death, MI, stroke, or resuscitated cardiac arrest)", agreement="DISAGREE")
+    assert gt.endpoint_wording_adjudication([x], cfg) == 1
+    assert x["agreement_with_comparator_row"] == "NOT_COMPARABLE:COMPARATOR_ROW_IS_A_DIFFERENT_ENDPOINT"
+    # the TECOS span still adjudicates (nonfatal is not a negation)
+    assert gt.endpoint_components(SPAN_4PT) == {"CV_DEATH", "MI", "STROKE", "UNSTABLE_ANGINA"}

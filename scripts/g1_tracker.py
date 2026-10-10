@@ -2865,6 +2865,7 @@ _ENDPOINT_PARTS = (
     ("HF_HOSPITALISATION", r"\b(?:hospitali[sz]ations?|admissions?)\s+for\s+heart\s+failure\b|\bheart\s+failure\s+"
                            r"hospitali[sz]ations?\b|\bHHF\b"),
     ("REVASCULARISATION", r"\brevasculari[sz]ations?\b"),
+    ("CARDIAC_ARREST", r"\b(?:resuscitated\s+)?cardiac\s+arrests?\b"),
 )
 _POINT_MACE = {3: {"CV_DEATH", "MI", "STROKE"}, 4: {"CV_DEATH", "MI", "STROKE", "UNSTABLE_ANGINA"}}
 
@@ -2874,14 +2875,21 @@ def endpoint_components(text):
     'three-point MACE' / '4-point MACE' expand to their standard components ONLY when the text lists no components of
     its own (an explicit list always wins: '4-point MACE (CV death, MI, stroke, or hospitalisation for heart failure)');
     otherwise >= 2 named components are needed (a single word -- 'stroke' -- is not an endpoint definition). Only the
-    FIRST endpoint definition is read: text from a 'secondary endpoint/outcome' marker on is another endpoint."""
-    t = re.split(r"\bsecondary\s+(?:end\s*-?points?|outcomes?)\b", str(text or ""), maxsplit=1, flags=re.I)[0]
-    parts = frozenset(k for k, rx in _ENDPOINT_PARTS if re.search(rx, t, re.I))
+    FIRST endpoint definition is read: text from a 'secondary (efficacy / safety ...) endpoint/outcome' marker on is
+    another endpoint. A component named only in a NEGATED clause ('HHF was not part of this composite') is not one. An
+    'N-point' label over fewer than N recognised components holds an unrecognised component: undeterminable (None)."""
+    t = re.split(r"\bsecondary\s+(?:\w+\s+){0,2}(?:end\s*-?points?|outcomes?)\b", str(text or ""), maxsplit=1,
+                 flags=re.I)[0]
+    clauses = [c for c in re.split(r"[;.]|,\s*(?=\w+\s+(?:was|were|is)\b)", t)
+               if not re.search(r"\b(?:not|excluding|except|without|no)\b", c, re.I)]
+    kept = " ; ".join(clauses)
+    parts = frozenset(k for k, rx in _ENDPOINT_PARTS if re.search(rx, kept, re.I))
+    m = re.search(r"\b(3|three|4|four|5|five)[- ]point\s+(?:MACE|major\s+adverse\s+cardiovascular\s+events?)\b", t, re.I)
+    n = {"3": 3, "three": 3, "4": 4, "four": 4, "5": 5, "five": 5}[m.group(1).lower()] if m else None
     if len(parts) >= 2:
-        return parts
-    m = re.search(r"\b(3|three|4|four)[- ]point\s+(?:MACE|major\s+adverse\s+cardiovascular\s+events?)\b", t, re.I)
-    if m:
-        return frozenset(_POINT_MACE[3 if m.group(1).lower() in ("3", "three") else 4])
+        return None if (n and len(parts) < n) else parts
+    if n in _POINT_MACE:
+        return frozenset(_POINT_MACE[n])
     return None
 
 
