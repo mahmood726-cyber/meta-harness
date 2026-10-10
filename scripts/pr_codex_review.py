@@ -4,6 +4,8 @@ text) is sent in groups as RECORDED calls (reproducible_ai.model_call_live: lice
 apply). Each finding needs a CONCRETE failing input; a finding is a PROPOSAL, accepted only once it is reproduced here.
 
     python scripts/pr_codex_review.py --run --name <tag> --base <sha> --head <sha>   (concurrency 5)
+    python scripts/pr_codex_review.py --run --reader agy --name <tag>-agy --base <sha> --head <sha>
+        the same code-only groups read by agy routed to Gemini (second model family; recorded by mcl.agy_call)
     python scripts/pr_codex_review.py --show [--name <tag>]
 Writes registry/model_proposals/pr_codex_review.json ({name: {runs, findings}}).
 """
@@ -65,6 +67,9 @@ def main(argv):
     data = json.load(open(PROP, encoding="utf-8")) if os.path.exists(PROP) else {}
     if "--run" in argv:
         base, head = argv[argv.index("--base") + 1], argv[argv.index("--head") + 1]
+        reader = argv[argv.index("--reader") + 1] if "--reader" in argv else "codex"
+        if reader not in ("codex", "agy"):
+            raise SystemExit(f"unknown reader {reader}")
         gs = groups(base, head)
         entry = data.setdefault(name, {"base": base, "head": head, "runs": {}, "verdicts": {}})
         entry.update(base=base, head=head)
@@ -72,17 +77,20 @@ def main(argv):
         def one(g):
             gname, files = g
             p = prompt(files)
-            rec = mcl.call(p, schema=base_review.SCHEMA, model=base_review.MODEL, effort=base_review.EFFORT,
-                           caller={"file": "scripts/pr_codex_review.py", "line": "main", "lane": "captain",
-                                   "purpose": f"codex review of merged range {name} {base[:9]}..{head[:9]} ({gname})"},
-                           input_digests=[{"ref": f"git diff {base[:12]}..{head[:12]} -- {f}",
-                                           "sha256": hashlib.sha256(d.encode("utf-8")).hexdigest(), "what": "reviewed diff"}
-                                          for f, d in files],
-                           timeout_s=1800)
+            caller = {"file": "scripts/pr_codex_review.py", "line": "main", "lane": "captain",
+                      "purpose": f"{reader} review of merged range {name} {base[:9]}..{head[:9]} ({gname})"}
+            digests = [{"ref": f"git diff {base[:12]}..{head[:12]} -- {f}",
+                        "sha256": hashlib.sha256(d.encode("utf-8")).hexdigest(), "what": "reviewed diff"} for f, d in files]
+            if reader == "agy":
+                rec = mcl.agy_call(p, schema=base_review.SCHEMA, caller=caller, input_digests=digests, timeout_s=1800)
+            else:
+                rec = mcl.call(p, schema=base_review.SCHEMA, model=base_review.MODEL, effort=base_review.EFFORT,
+                               caller=caller, input_digests=digests, timeout_s=1800)
             ms.write_record(rec, REC_DIR)
-            return gname, {"record_id": rec["record_id"], "state": rec["state"], "files": [f for f, _ in files],
+            return gname, {"record_id": rec["record_id"], "state": rec["state"], "reader": reader,
+                           "files": [f for f, _ in files],
                            "prompt_sha256": hashlib.sha256(p).hexdigest()}
-        with cf.ThreadPoolExecutor(max_workers=5) as ex:
+        with cf.ThreadPoolExecutor(max_workers=5 if reader == "codex" else 2) as ex:
             for gname, r in ex.map(one, gs):
                 entry["runs"][gname] = r
                 print(name, gname, r["state"], r["record_id"], flush=True)
