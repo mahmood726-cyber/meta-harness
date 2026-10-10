@@ -206,3 +206,25 @@ The contrast is valid per the ruling: empagliflozin + KCl v placebo-for-empaglif
 - Under (ii), none: no new eligible trial; GLP-1 stays G1_MATCHED.
 - Under (i), uncountable from open records; it would at least add the LITERAL_ONLY-tagged trials outside comparator 34526024. GLP-1 would leave G1_MATCHED unless every one is named.
 - Recommendation: (ii), as already operated.
+
+## K-9. screen.py placebo-of-X + structural-False fix -- PR #65 (code + plants + 32-topic sweep; nothing applied)
+
+**Sweep** (served screen re-run on each topic's own inputs): 5 decisions change, all X-CONTRAST -> INCLUDE. Table: outputs/k_gap/screen_placebo_of_x_sweep.md.
+
+**G1 effect of each**, stated before applying:
+
+| topic | trial | G1 effect |
+|---|---|---|
+| finerenone | ARTS-DN Japan NCT01968668 | None: already named NOT_IN_COMPARATOR_OUTCOME_ANALYSIS. |
+| melatonin | Circadin NCT00816673 | None: topic is NOT_YET. Reconcile count 1 -> 2 (= review 12). |
+| colchicine-secondary | NCT03376698 | None: abandoned topic. |
+| empagliflozin-hfpef | SAK NCT05138575 | AT RISK unless named TARGET_RESULT_ABSENT (K-3). |
+| esketamine | NCT01998958 (intranasal esketamine dose-finding) | RESOLVED BY A TYPED SPAN (below): excluded; esketamine stays G1_MATCHED. |
+
+**esketamine NCT01998958, the span:**
+- Source: the primary report PubMed 29282469, linked to NCT01998958 by its PubMed Secondary Source ID (esearch NCT01998958[si] -> 33128208, 29282469); abstract record sha256 14c14d56a0fb…
+- It states: "Participants continued their existing antidepressant treatment during the study."
+- The protocol requires "intranasal esketamine, added to a newly-initiated oral antidepressant" (protocols/esketamine-trd-madrs.md line 5; line 12: "The randomized intervention is intranasal esketamine plus an oral antidepressant").
+- So the trial fails the intervention criterion: X3, wrong intervention context, with that span.
+- With the exclusion recorded, esketamine stays G1_MATCHED (3/3). Without it, the fix alone would admit the trial and esketamine would leave G1_MATCHED.
+- The CT.gov registration (sha256 d8fdc435…) says only "Adjunctive to Oral Antidepressant Therapy", which is not decisive by itself.
