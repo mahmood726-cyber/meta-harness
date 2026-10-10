@@ -20,6 +20,21 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness"
+# The published downloadable release (Mahmood, 10 Oct: "publish now"; DOI pending, v1.0.1). ONE definition, used by the
+# index and every Reproduce tab. The asset name is what e156-ecosystem-starter's install-meta-harness fetch expects.
+RELEASE = {"tag": "v1.0.0", "commit": "cdd81860a29f", "asset": "meta-harness-v1.0.0.zip", "sums": "SHA256SUMS",
+           "url": REPO_URL + "/releases/tag/v1.0.0", "doi": None}
+
+
+def download_link_html() -> str:
+    r = RELEASE
+    doi = (f"DOI <a href='https://doi.org/{_e(r['doi'])}'>{_e(r['doi'])}</a>" if r.get("doi")
+           else "DOI pending (v1.0.1)")
+    return (f"<p class='download-link'><strong>Download the harness:</strong> <a href='{r['url']}'>release {r['tag']}</a> "
+            f"(<code>{r['asset']}</code> + <code>{r['sums']}</code>; the repository at commit <code>{r['commit']}</code>; "
+            f"{doi}). Check the zip against <code>{r['sums']}</code>, then replay offline with "
+            "<code>python scripts/replay_offline.py &lt;slug&gt;</code>. This site follows <code>main</code> and can be "
+            "newer than the release.</p>")
 TAB_CONTRACT = "rapidmeta-v1"
 
 
@@ -539,7 +554,8 @@ def changes_tab(r: dict) -> str:
 # ------------------------------------------------------------------------------------------------------------ Reproduce
 def reproduce_additions(r: dict) -> str:
     slug = r.get("slug") or ""
-    out = ["<h4 id='one-command'>One-command replay</h4>"
+    out = [download_link_html(),
+           "<h4 id='one-command'>One-command replay</h4>"
            f"<pre>git clone {REPO_URL}.git &amp;&amp; cd meta-harness\n"
            "python -m pip install --require-hashes -r docs/offline/requirements.lock\n"
            f"python scripts/reproduce_review.py {_e(slug)}</pre>"
