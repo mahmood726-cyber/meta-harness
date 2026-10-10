@@ -42,3 +42,10 @@ def test_ownership_classifies_the_hhf_result_exact():
     tup = {"kind": "effect", "effect": 0.9, "ci_low": 0.74, "ci_high": 1.08, "scale": "HR"}
     out = hb._ownership(SPEC, cand, SENTENCE, tup)
     assert out["target_endpoint_class"] == te.EXACT_TARGET, out
+
+
+def test_enclosing_parenthesis_with_two_results_splits():
+    """codex v14-apply-r1 g1#1: an ENCLOSING parenthesis holding two results is two results, not one."""
+    s = ("Results (death decreased (HR 0.70; 95% CI 0.60-0.80), whereas stroke was unchanged "
+         "(HR 1.00; 95% CI 0.90-1.10)).")
+    assert [m.group(0) for m in hb._result_parens(s)] == ["(HR 0.70; 95% CI 0.60-0.80)", "(HR 1.00; 95% CI 0.90-1.10)"]
