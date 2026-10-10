@@ -6809,5 +6809,95 @@
     "verdict": null
    }
   ]
+ },
+ "r8-4-r2": {
+  "base": "cdd81860a",
+  "head": "17a8c514b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r8_4_search_dates.py"
+    ],
+    "prompt_sha256": "9b22f1e17094e1a618f894742e746b8c3c038d660c8d27af23eaeff543883c77"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/r8__4_search_dates.py",
+    "function": "search_end",
+    "severity": "P1",
+    "claim": "A publication-window date in a later clause overrides the explicitly stated search cutoff.",
+    "failing_input": "search_end('We searched PubMed through December 2020 and included studies published in March 2022.')",
+    "expected": "date='2020-12', precision='month'.",
+    "actual": "date='2022-03', precision='month'. The publication clause passes the trailing 'in' check and is selected as the latest date.",
+    "id": "r8-4-r2:g1#1",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "searched_registry",
+    "severity": "P1",
+    "claim": "Splitting at commas loses negation governing a registry example, falsely enabling registry-posting dates in build().",
+    "failing_input": "searched_registry(['We searched PubMed but did not search trial registries, including ClinicalTrials.gov.'])",
+    "expected": "False.",
+    "actual": "True: the fragment ' including ClinicalTrials.gov.' contains no negation.",
+    "id": "r8-4-r2:g1#2",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "searched_registry",
+    "severity": "P1",
+    "claim": "Review registration in PROSPERO is mistaken for searching a trial registry.",
+    "failing_input": "searched_registry(['We searched PubMed and registered the review in the PROSPERO registry.'])",
+    "expected": "False: only PubMed was searched.",
+    "actual": "True: the search keyword and generic 'registry' match suffice.",
+    "id": "r8-4-r2:g1#3",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "pubmed_dates",
+    "severity": "P1",
+    "claim": "A year-only publication date is discarded when an indexing date shares its year, introducing unsupported month precision and potentially a false exclusion explanation.",
+    "failing_input": "d = pubmed_dates('<PubmedArticleSet><PubmedArticle><MedlineCitation><Article><Journal><JournalIssue><PubDate><Year>2020</Year></PubDate></JournalIssue></Journal></Article></MedlineCitation><PubmedData><History><PubMedPubDate PubStatus=\"entrez\"><Year>2020</Year><Month>12</Month><Day>01</Day></PubMedPubDate></History></PubmedData></PubmedArticle></PubmedArticleSet>'); (d['first_public'], classify(d['first_public'], {'date': '2020-06', 'precision': 'month'}, None))",
+    "expected": "('2020', 'SAME_PERIOD_AS_SEARCH_END'): the publication month is unknown.",
+    "actual": "('2020-12-01', 'AFTER_COMPARATOR_SEARCH_END').",
+    "id": "r8-4-r2:g1#4",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "results_posted",
+    "severity": "P1",
+    "claim": "A requested trial missing from the snapshot silently becomes absence of posted results. build() can consequently classify by publication alone despite unavailable registry evidence.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport scripts.r8_4_search_dates as m\nwith patch.object(m.os.path, 'isfile', return_value=True), patch('builtins.open', mock_open(read_data='nct_id|results_first_posted_date\\n')):\n    print(m.results_posted({'NCT00000001'}, snap='fixture'))",
+    "expected": "An explicit missing-record failure or unknown status for NCT00000001.",
+    "actual": "{}; indistinguishable from a present trial whose results-posting field is empty.",
+    "id": "r8-4-r2:g1#5",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "build",
+    "severity": "P1",
+    "claim": "Unavailable comparator text is silently classified as SEARCH_END_NOT_STATED, although no comparator evidence was available to inspect.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport scripts.r8_4_search_dates as m\nwith patch.multiple(m, targets=lambda: [('topic', '1', ['PMID 2'])], _pm=lambda p: None if p == '1' else {'first_public': '2023-03', 'basis': 'JournalIssue/PubDate', 'abstract': ''}, fulltext_for=lambda *args: []), patch('builtins.open', mock_open(read_data='{\"records\": []}')):\n    print(m.build()['trials']['topic|PMID 2']['why_not_in_comparator'])",
+    "expected": "An explicit unavailable-comparator-evidence status or failure.",
+    "actual": "'SEARCH_END_NOT_STATED'.",
+    "id": "r8-4-r2:g1#6",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   }
+  ]
  }
 }

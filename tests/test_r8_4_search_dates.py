@@ -1,6 +1,7 @@
 """R8-4: 'why is our trial absent from the comparator' is decided by the comparator's SEARCH END date against the
 trial's first public date, never by years. Chen 2023 (esketamine) was published in March 2023, after a December 2022
 search end, and was labelled NOT_EXPLAINED_BY_DATE because 2023 == 2023. Synthetic texts; dates typed by regex."""
+import json
 import os
 import sys
 
@@ -92,8 +93,8 @@ def test_PLANT_r1_publication_and_enrolment_clauses_never_supply_the_search_end(
 
 
 def test_PLANT_r1_a_negated_registry_is_not_searched():
-    assert r.searched_registry(["We searched PubMed through December 2020. We did not search ClinicalTrials.gov."]) is False
-    assert r.searched_registry(["We searched PubMed and ClinicalTrials.gov through December 2020."]) is True
+    assert r.searched_registry(["We searched PubMed through December 2020. We did not search ClinicalTrials.gov."]) is None
+    assert "ClinicalTrials.gov" in r.searched_registry(["We searched PubMed and ClinicalTrials.gov through December 2020."])
 
 
 def test_PLANT_r1_a_missing_aact_snapshot_fails_closed(tmp_path):
@@ -111,3 +112,51 @@ def test_PLANT_r1_a_year_only_issue_date_before_the_indexing_date_is_first_publi
     d = r.pubmed_dates(xml)
     assert d["first_public"] == "2020"
     assert r.classify(d["first_public"], {"date": "2020-12", "precision": "month"}, None) == "SAME_PERIOD_AS_SEARCH_END"
+
+
+def test_PLANT_r2_a_bare_in_date_is_not_a_search_end():
+    assert r.search_end("We searched PubMed through December 2020 and included studies published in March "
+                        "2022.")["date"] == "2020-12"
+
+
+def test_PLANT_r2_registry_negation_and_prospero():
+    assert r.searched_registry(["We searched PubMed but did not search trial registries, including "
+                                "ClinicalTrials.gov."]) is None
+    assert r.searched_registry(["We searched PubMed and registered the review in the PROSPERO registry."]) is None
+
+
+def test_PLANT_r2_a_year_only_publication_date_sharing_the_indexing_year_keeps_year_precision():
+    xml = ("<PubmedArticleSet><PubmedArticle><MedlineCitation><Article><Journal><JournalIssue><PubDate><Year>2020</Year>"
+           "</PubDate></JournalIssue></Journal></Article></MedlineCitation><PubmedData><History>"
+           "<PubMedPubDate PubStatus=\"entrez\"><Year>2020</Year><Month>12</Month><Day>01</Day></PubMedPubDate>"
+           "</History></PubmedData></PubmedArticle></PubmedArticleSet>")
+    d = r.pubmed_dates(xml)
+    assert d["first_public"] == "2020"
+    assert r.classify(d["first_public"], {"date": "2020-06", "precision": "month"}, None) == "SAME_PERIOD_AS_SEARCH_END"
+
+
+def test_PLANT_r2_an_nct_absent_from_the_snapshot_is_unchecked_not_unposted(tmp_path):
+    (tmp_path / "studies.txt").write_text("nct_id|results_first_posted_date\nNCT01|\nNCT02|2020-01-02\n", encoding="utf-8")
+    got = r.results_posted({"NCT01", "NCT02", "NCT03"}, snap=str(tmp_path))
+    assert got == {"NCT01": "", "NCT02": "2020-01-02"} and "NCT03" not in got
+
+
+def test_PLANT_r2_unavailable_evidence_is_never_a_verdict(monkeypatch, tmp_path):
+    monkeypatch.setattr(r, "targets", lambda: [("topic", "1", ["PMID 2", "PMID 3"]), ("topic2", "4", ["PMID 5"])])
+    monkeypatch.setattr(r, "ROOT", str(tmp_path))
+    for s, recs in (("topic", [{"id": "2", "nct": "NCT09"}, {"id": "3"}]), ("topic2", [{"id": "5"}])):
+        (tmp_path / "cache" / s).mkdir(parents=True)
+        (tmp_path / "cache" / s / "records.json").write_text(json.dumps({"records": recs}), encoding="utf-8")
+    pms = {"4": {"first_public": "2022-01", "basis": "x", "abstract": "We searched PubMed and ClinicalTrials.gov "
+                 "until December 2020."},
+           "2": {"first_public": "2023-03", "basis": "x", "abstract": ""},
+           "3": {"first_public": "2023-03", "basis": "x", "abstract": ""},
+           "5": {"first_public": "2023-03", "basis": "x", "abstract": ""}}
+    monkeypatch.setattr(r, "_pm", lambda p: pms.get(p))
+    monkeypatch.setattr(r, "fulltext_for", lambda *a: [])
+    monkeypatch.setattr(r, "results_posted", lambda ncts, snap=None: {})
+    out = r.build()["trials"]
+    # comparator 1 has no PubMed record and no full text: nothing was inspected
+    assert out["topic|PMID 2"]["why_not_in_comparator"] == "COMPARATOR_TEXT_UNAVAILABLE"
+    assert out["topic|PMID 3"]["why_not_in_comparator"] == "COMPARATOR_TEXT_UNAVAILABLE"
+    assert out["topic2|PMID 5"]["why_not_in_comparator"] == "AFTER_COMPARATOR_SEARCH_END"

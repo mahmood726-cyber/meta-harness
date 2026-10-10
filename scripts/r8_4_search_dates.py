@@ -42,7 +42,8 @@ _SEARCH = re.compile(r"\b(?:search(?:ed|es|ing)?|databases?|medline|pubmed|embas
                      r"central|web\s+of\s+science|scopus|cinahl|clinicaltrials\.gov)\b", re.I)
 _TO = re.compile(r"\b(?:to|until|till|through|thru|up\s+to|before|ending|end(?:ed)?\s+(?:on|in)?)\b|[-\u2010-\u2015]",
                  re.I)
-_REGISTRY = re.compile(r"\bclinical\s*trials?\.gov\b|\bictrp\b|\btrials?\s+regist|\bregistr(?:y|ies)\b", re.I)
+_REGISTRY = re.compile(r"\bclinical\s*trials?\.gov\b|\bictrp\b|\b(?:clinical\s+)?trials?\s+regist(?:ry|ries|er)\b|"
+                       r"\bclinicaltrialsregister\.eu\b|\beu\s+ctr\b", re.I)
 # a sentence about follow-up, enrolment or publication windows of the TRIALS is not the search period
 _NOT_SEARCH = re.compile(r"\b(?:enrol(?:l)?(?:ed|ment)|follow(?:ed)?[- ]up|recruit|randomi[sz]ed\s+between|"
                          r"registered\s+(?:with|in|at)\s+prospero|prospero\s*(?:id|registration|number|:))\b", re.I)
@@ -85,7 +86,8 @@ def search_end(text):
             pre = s[max(0, m.start() - 40):m.start()]
             if _not_search_clause(s, m.start()):
                 continue
-            if not _TO.search(pre) and not re.search(r"\b(?:on|in|as\s+of)\s*$", pre, re.I):
+            # 'searched on 12 May 2021' / 'as of'; a bare 'in March 2022' is too often a publication window
+            if not _TO.search(pre) and not re.search(r"\b(?:on|as\s+of)\s*$", pre, re.I):
                 continue
             y, mo = int(m.group(4)), MONTHS[m.group(2).lower()[:3]]
             if not 1980 <= y <= 2100:
@@ -128,16 +130,18 @@ _NEGATED = re.compile(r"\b(?:not|no|never|nor|without|excluding|except)\b", re.I
 
 
 def searched_registry(texts):
-    """True when a search sentence names a trial registry in a clause that does not negate it ('We did not search
-    ClinicalTrials.gov' -> False)."""
+    """The first search sentence that names a TRIAL registry (ClinicalTrials.gov, ICTRP, 'trial registries' -- never
+    PROSPERO or a bare 'registry') with no negation anywhere before the mention in that sentence ('did not search
+    trial registries, including ClinicalTrials.gov' -> None). Returns the sentence (the evidence span, recorded) or
+    None."""
     for t in texts:
         for s in _sentences(t):
             if not _SEARCH.search(s):
                 continue
-            for c in re.split(r"[;,]|\bbut\b|\bwhile\b|\bwhereas\b", s):
-                if _REGISTRY.search(c) and not _NEGATED.search(c):
-                    return True
-    return False
+            for m in _REGISTRY.finditer(s):
+                if not _NEGATED.search(s[:m.start()]):
+                    return s[:300]
+    return None
 
 
 def _txt(el):
@@ -186,7 +190,8 @@ def pubmed_dates(xml):
     best = min(full, key=lambda c: (c[0][0], c[0][1], c[0][2] or 99)) if full else None
     # a YEAR-only date earlier than every full date ('PubDate 2020', entrez 2021-02) is the first public date, at year
     # precision -- discarding it would date the report later than it was
-    if yonly and (best is None or min(c[0][0] for c in yonly) < best[0][0]):
+    # (also when it shares the full date's year: the month is then not known -- 'PubDate 2020', entrez 2020-12)
+    if yonly and (best is None or min(c[0][0] for c in yonly) <= best[0][0]):
         (y, _, _), basis = min(yonly, key=lambda c: c[0][0])
         return {"first_public": f"{y:04d}", "basis": basis, "abstract": _abstract(art)}
     (y, mo, d), basis = best
@@ -224,8 +229,9 @@ def results_posted(ncts, snap=None):
         if "results_first_posted_date" not in (rd.fieldnames or []):
             raise ValueError(f"{p}: lacks results_first_posted_date")
         for r in rd:
-            if r["nct_id"] in ncts and r.get("results_first_posted_date"):
-                out[r["nct_id"]] = r["results_first_posted_date"][:10]
+            if r["nct_id"] in ncts:
+                # '' = in the snapshot with no results posted; an NCT ABSENT from the result was never checked
+                out[r["nct_id"]] = (r.get("results_first_posted_date") or "")[:10]
     return out
 
 
@@ -334,9 +340,10 @@ def build():
                         src = path
                         break
             texts = ([pm["abstract"]] if pm else []) + [t for _, t in fulltext_for(comp, slug)]
-            reg_searched = searched_registry(texts)
+            reg_span = searched_registry(texts)
             comps[comp] = {"comparator_first_public": pm and pm["first_public"], "first_public_basis": pm and pm["basis"],
-                           "searched_trial_registry": reg_searched,
+                           "comparator_text_available": bool(texts),
+                           "searched_trial_registry": bool(reg_span), "registry_span": reg_span,
                            "search_end": end and end["date"], "precision": end and end["precision"],
                            "span": end and end["span"], "source": src, "topics": []}
         comps[comp]["topics"].append(slug)
@@ -352,14 +359,20 @@ def build():
                 cands.append((posted[n], f"AACT results_first_posted_date {n}"))
             fp = min(cands) if cands else (None, None)
             end = {"date": comps[comp]["search_end"], "precision": comps[comp]["precision"]} if comps[comp]["search_end"] else None
+            # evidence that could not be checked is never a verdict: no comparator text at all, or a registry-searching
+            # comparator and an NCT the snapshot does not hold
+            unchecked = ("COMPARATOR_TEXT_UNAVAILABLE" if not comps[comp]["comparator_text_available"]
+                         else "REGISTRY_NOT_IN_SNAPSHOT" if (n and comps[comp]["searched_trial_registry"]
+                                                             and n not in posted) else None)
             trials[f"{slug}|{i}"] = {"slug": slug, "id": i, "comparator": comp, "first_public": fp[0], "basis": fp[1],
                                      "published": pm and pm["first_public"], "nct": n,
                                      # the verdict on the PUBLICATION date alone, beside the registry-inclusive one:
                                      # they differ when the registry posted results before the search end
                                      "why_by_publication_only": classify(pm and pm["first_public"], end,
                                                                          comps[comp]["comparator_first_public"]),
-                                     "registry_results_posted": posted.get(n) if n else None,
-                                     "why_not_in_comparator": classify(fp[0], end, comps[comp]["comparator_first_public"])}
+                                     "registry_results_posted": (posted.get(n) or None) if n else None,
+                                     "why_not_in_comparator": unchecked or classify(fp[0], end,
+                                                                                    comps[comp]["comparator_first_public"])}
     return {"rule": "R8-4: first public date (earliest of PubMed electronic/entrez/issue and registry results "
                     "posting) against the comparator's stated search end; never the year",
             "comparators": comps, "trials": trials}
