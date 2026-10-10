@@ -24,11 +24,19 @@ ALLOW = os.path.join(ROOT, "registry", "ast_literal_allowlist.json")
 _KEYS = {"ai", "bi", "ci", "di", "n1i", "n2i", "events_t", "events_c", "n_t", "n_c", "effect", "ci_low", "ci_high",
          "estimate", "lower", "upper", "hr", "rr", "or", "e1i", "e2i", "t1i", "t2i", "mean1", "mean2", "sd1", "sd2"}
 _EFFECT_TEXT = re.compile(r"\b\d+[.·]\d{1,3}\s*\(\s*\d+[.·]\d{1,3}\s*[-–,]\s*\d+[.·]\d{1,3}\s*\)")
-_COUNT_TEXT = re.compile(r"\b\d{1,5}\s*/\s*\d{2,3}(?:[ ,]\d{3})?\b")
+# denominators: 2-6 ungrouped digits or digit-grouped thousands (codex copps-r1#3: '20/1000' was missed)
+_COUNT_TEXT = re.compile(r"\b\d{1,5}\s*/\s*(?:\d{1,3}(?:[ ,]\d{3})+|\d{2,6})\b")
 
 
-def _is_num(node):
-    return isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool)
+def _num(node):
+    """The numeric value of a literal, including a negated one (-0.35 is UnaryOp(USub, Constant)); else None."""
+    sign = 1
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
+        sign = -1 if isinstance(node.op, ast.USub) else 1
+        node = node.operand
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+        return sign * node.value
+    return None
 
 
 def sweep_source(src: str, path: str) -> list[dict]:
@@ -43,10 +51,11 @@ def sweep_source(src: str, path: str) -> list[dict]:
             continue
         if isinstance(node, ast.Dict):
             for k, v in zip(node.keys, node.values):
-                if isinstance(k, ast.Constant) and isinstance(k.value, str) and k.value.lower() in _KEYS and _is_num(v) \
-                        and v.value not in (0, 1, None):
+                val = _num(v)
+                if isinstance(k, ast.Constant) and isinstance(k.value, str) and k.value.lower() in _KEYS \
+                        and val is not None and val not in (0, 1):
                     out.append({"file": path, "line": v.lineno, "kind": "COUNT_OR_EFFECT_KEY",
-                                "key": k.value, "value": v.value})
+                                "key": k.value, "value": val})
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
             s = node.value
             if _EFFECT_TEXT.search(s):

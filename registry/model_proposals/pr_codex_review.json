@@ -6731,5 +6731,61 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r1": {
+  "base": "630e622bf",
+  "head": "abd867812",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6994afc387058f0510ded7f6d53cde70",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "c835d16deb1ad3a614709ab292f1ec12ff50fd284eb60797b532cfdd00f38a6c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "The 80-character slice can cut through the upper confidence bound. The regex accepts the remaining numeric prefix, silently returning a different number.",
+    "failing_input": "reported_value_at('OR' + ' 1.65, 95% CI 1.35 to ' + ' ' * 55 + '2.03)', 'OR')",
+    "expected": "{'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.03}, or None if the complete bound cannot be parsed.",
+    "actual": "{'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.0}",
+    "id": "copps-r1:g1#1",
+    "record_id": "mc-6994afc387058f0510ded7f6d53cde70",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source / _is_num",
+    "severity": "P2",
+    "claim": "Negative literal effects evade detection because Python represents them as UnaryOp nodes, whereas _is_num accepts only Constant nodes. An entirely hardcoded log-effect and interval therefore produce no findings.",
+    "failing_input": "sweep_source('row = {\"estimate\": -0.35, \"ci_low\": -0.60, \"ci_high\": -0.10}', 'harness/example.py')",
+    "expected": "Three COUNT_OR_EFFECT_KEY findings for estimate, ci_low, and ci_high.",
+    "actual": "[]",
+    "id": "copps-r1:g1#2",
+    "record_id": "mc-6994afc387058f0510ded7f6d53cde70",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The count-pair regex misses ungrouped denominators with four or more digits, allowing ordinary hardcoded trial-count strings through the sweep.",
+    "failing_input": "sweep_source('counts = \"20/1000 versus 30/1000\"', 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding.",
+    "actual": "[]",
+    "id": "copps-r1:g1#3",
+    "record_id": "mc-6994afc387058f0510ded7f6d53cde70",
+    "verdict": null
+   }
+  ]
  }
 }

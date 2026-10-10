@@ -286,8 +286,11 @@ def _field_from_profile(slug: str, key: str, text: str, default_status: str = "N
     return value
 
 
-_RATIO_AT = re.compile(r"\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*%\s*(?:CI|confidence interval)\s*,?\s*"
-                       r"(\d+(?:\.\d+)?)\s*(?:to|-|–)\s*(\d+(?:\.\d+)?)", re.I)
+# matched on the WHOLE text at the anchor (no slice: a slice can cut a bound to its prefix, codex copps-r1#1), with
+# bounded whitespace and a terminator so a number is read whole or not at all
+_RATIO_AT = re.compile(r"[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3},[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}%[ \t]{0,3}"
+                       r"(?:CI|confidence interval)[ \t]{0,3},?[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}(?:to|-|–)[ \t]{0,3}"
+                       r"(\d+(?:\.\d+)?)(?![\d.])", re.I)
 
 
 def reported_value_at(text: str, anchor: str) -> dict | None:
@@ -296,7 +299,7 @@ def reported_value_at(text: str, anchor: str) -> dict | None:
     i = (text or "").find(anchor)
     if i < 0:
         return None
-    m = _RATIO_AT.match(text[i + len(anchor):i + len(anchor) + 80])
+    m = _RATIO_AT.match(text, i + len(anchor))
     if not m:
         return None
     return {"estimate": float(m.group(1)), "ci_level": float(m.group(2)), "ci_low": float(m.group(3)),

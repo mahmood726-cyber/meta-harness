@@ -71,3 +71,20 @@ def test_metformin_overrides_are_read_from_the_comparator_text():
 def test_PLANT_an_anchor_without_numbers_gives_no_override():
     assert csp.reported_value_at("The combined group may have higher rates of ovulation (OR not estimable)",
                                  "The combined group may have higher rates of ovulation (OR") is None
+
+
+def test_PLANT_codex_r1_1_a_bound_split_by_padding_is_never_truncated():
+    text = "OR" + " 1.65, 95% CI 1.35 to " + " " * 55 + "2.03)"
+    assert csp.reported_value_at(text, "OR") is None
+    assert csp.reported_value_at("OR 1.65, 95% CI 1.35 to 2.03123", "OR")["ci_high"] == 2.03123   # read whole
+
+
+def test_PLANT_codex_r1_2_negative_literals_are_flagged():
+    hits = sweep.sweep_source('row = {"estimate": -0.35, "ci_low": -0.60, "ci_high": -0.10}', "harness/x.py")
+    assert sorted(h["key"] for h in hits) == ["ci_high", "ci_low", "estimate"]
+    assert {h["value"] for h in hits} == {-0.35, -0.6, -0.1}
+
+
+def test_PLANT_codex_r1_3_four_digit_denominators_are_flagged():
+    hits = sweep.sweep_source('counts = "20/1000 versus 30/1000"', "harness/x.py")
+    assert [h["kind"] for h in hits] == ["COUNT_PAIR_TEXT"]
