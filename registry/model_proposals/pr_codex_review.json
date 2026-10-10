@@ -6731,5 +6731,59 @@
     "verdict": null
    }
   ]
+ },
+ "canon-r1": {
+  "base": "630e622bf",
+  "head": "9fead77d7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0455eb1bee4e73109a4e91ddce53bbec",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/canonical_effect_type.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "2f06aea4113e677ed63509cedd44c44a154554877f1515b9f2315163120a8ce5"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/canonical_effect_type.py",
+    "function": "own_text_cox",
+    "severity": "P1",
+    "claim": "Co-occurrence of Cox and relative risk does not establish that Cox produced the primary estimate. This accepts methods explicitly assigning Cox only to secondary outcomes, allowing the primary RR to be reclassified as HR.",
+    "failing_input": "own_text_cox('The primary outcome relative risk was estimated using a log-binomial model, and Cox regression was used only for secondary survival outcomes.')",
+    "expected": "None: the primary relative risk explicitly comes from a log-binomial model.",
+    "actual": "Returns 'The primary outcome relative risk was estimated using a log-binomial model, and Cox regression was used only for secondary survival outcomes.'; evidence() treats this as ESTABLISHED_HR.",
+    "id": "canon-r1:g1#1",
+    "record_id": "mc-0455eb1bee4e73109a4e91ddce53bbec",
+    "verdict": null
+   },
+   {
+    "file": "scripts/canonical_effect_type.py",
+    "function": "label_time_to_event",
+    "severity": "P1",
+    "claim": "The primary-endpoint prefix in _TTE is optional, so a secondary time-to-event endpoint can establish HR for a primary endpoint that is not time-to-event.",
+    "failing_input": "label_time_to_event(\"ALPHA's primary endpoint was response at week 12; the secondary endpoint was time to death, analysed using hazard ratios.\", 'ALPHA')",
+    "expected": "None: only the secondary endpoint supplies time-to-event and hazard-ratio evidence.",
+    "actual": "Returns \"ALPHA's primary endpoint was response at week 12; the secondary endpoint was time to death ... point was time to death, analysed using hazard ratios.\"; evidence() treats this as ESTABLISHED_HR.",
+    "id": "canon-r1:g1#2",
+    "record_id": "mc-0455eb1bee4e73109a4e91ddce53bbec",
+    "verdict": null
+   },
+   {
+    "file": "scripts/canonical_effect_type.py",
+    "function": "label_time_to_event",
+    "severity": "P1",
+    "claim": "The 2,500-character window crosses trial boundaries. The acronym check succeeds on the initial mention even when all qualifying methods belong explicitly to another trial.",
+    "failing_input": "label_time_to_event(\"ALPHA assessed response at week 12. BETA's primary endpoint was time to death and hazard ratios were estimated with Cox regression.\", 'ALPHA')",
+    "expected": "None: the time-to-event endpoint and hazard ratios belong to BETA, not ALPHA.",
+    "actual": "Returns \"ALPHA assessed response at week 12. BETA's primary endpoint was time to death and hazard ratios were estimated with Cox regression ... primary endpoint was time to death and hazard ratios were estimated with Cox regression.\"; evidence() establishes HR for ALPHA using BETA's methods.",
+    "id": "canon-r1:g1#3",
+    "record_id": "mc-0455eb1bee4e73109a4e91ddce53bbec",
+    "verdict": null
+   }
+  ]
  }
 }
