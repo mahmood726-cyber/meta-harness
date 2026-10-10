@@ -364,7 +364,14 @@ _IS_RESULT = re.compile(r"\d[\s\S]*(?:95\s*%|CI)")
 
 
 def _result_parens(text: str) -> list:
-    return [m for m in _PAREN.finditer(text) if _IS_RESULT.search(m.group(0))]
+    out = []
+    for m in _PAREN.finditer(text):
+        if not _IS_RESULT.search(m.group(0)):
+            continue
+        # an ENCLOSING parenthesis that holds two or more results is those results, not one (codex v14-apply-r1 g1#1)
+        inner = [x for x in _PAREN.finditer(text, m.start() + 1, m.end() - 1) if _IS_RESULT.search(x.group(0))]
+        out.extend(inner if len(inner) >= 2 else [m])
+    return out
 
 
 _LEADING_JOIN = re.compile(r"^\s*(?:[,;]\s*)?(?:as was|as were|and|whereas|while|but)\b\s*", flags=re.I)
