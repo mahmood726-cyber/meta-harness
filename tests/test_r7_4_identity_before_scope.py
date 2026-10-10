@@ -180,3 +180,14 @@ def test_PLANT_r5_bold_cross_reference_is_no_rule_and_same_line_rules_are_split(
         == "NOT_IN_PROTOCOL_X2"
     assert sw.classify("diabetes", "- X2: Exclude diabetes-only populations; do not exclude HF trials with diabetes.") \
         == "CONFIG_BROADER_THAN_PROTOCOL"
+
+
+def test_PLANT_r6_agent_names_are_bounded_by_digits_too(tmp_path):
+    s = snap(tmp_path, [("NCT60", "DRUG", "Vitamin B12")])
+    t = gt.verified_agent_identity(T({"label": "V", "ncts": ["NCT60"]}), {"t": ["vitamin b1"]}, s)
+    assert t["trials"][0]["drug"] == "OTHER_AGENT"
+
+
+def test_PLANT_r6_a_dose_only_drug_row_makes_identity_evidence_incomplete(tmp_path):
+    s = snap(tmp_path, [("NCT61", "DRUG", "10 mg tablets"), ("NCT61", "DRUG", "Sotagliflozin")])
+    assert gt.verified_agent_identity(T({"label": "D", "ncts": ["NCT61"]}), AGENTS, s)["trials"][0]["drug"] == "AGENT_UNCONFIRMED"

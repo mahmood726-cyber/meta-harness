@@ -84,7 +84,13 @@ def main():
         res[slug] = {"protocol_x2": x2, "terms": rows,
                      "broader": [r["term"] for r in rows if r["kind"] == "CONFIG_BROADER_THAN_PROTOCOL"],
                      "not_in_protocol": [r["term"] for r in rows if r["kind"] == "NOT_IN_PROTOCOL_X2"]}
-    out = {"totals": tot, "topics": res}
+    out = {"status": ("SCREENING_AID for captain adjudication, never a verdict: free-text protocol wording parsed by "
+                      "regex. Known limits (codex review r7-4-r6, not patched -- six review rounds did not converge): "
+                      "a cross-reference to another rule inside an X2 continuation line truncates X2; an eligibility "
+                      "clause joined to an exclusion by 'but' counts as exclusion wording; a bold cross-reference with "
+                      "wording other than see/per/under/in/as in/cf. ('Refer to **X2**') is read as a definition. Each "
+                      "CONFIG_BROADER_THAN_PROTOCOL row must be read against the protocol before any config change."),
+           "totals": tot, "topics": res}
     with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1, ensure_ascii=False)
     print(json.dumps(tot, indent=1))

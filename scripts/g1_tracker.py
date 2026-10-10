@@ -3038,18 +3038,23 @@ def verified_agent_identity(T, agents=None, snap=None, class_topics=None):
         act = [active(n) for n in allnames]
         # ... but a placebo-mentioning name that NAMES the topic agent means the agent may be in the trial: it blocks
         # OTHER_AGENT (never establishes DRUG_MATCH)
-        placebo_names_agent = any(not a and re.search(r"(?<![a-z])" + re.escape(g.lower()) + r"(?![a-z])", n.lower())
-                                  for n, a in zip(allnames, act) for g in mine)
-        hit = any(re.search(r"(?<![a-z])" + re.escape(a.lower()) + r"(?![a-z])", n) for a in mine for n in act)
-        names = [n for n, a in zip(allnames, act) if n and re.sub(
-            r"\b\d+(?:\.\d+)?\s*(?:mg|g|mcg|ug|µg|ml|iu|units?|%|mmol)?\b|\b(?:tablets?|capsules?|oral|injection|"
-            r"solution|dose|daily|once|twice|of|for|to)\b|[^a-z]", "", a)]
+        # an agent name is bounded by non-alphanumerics: 'vitamin b1' is not found in 'vitamin b12'
+        def names_agent(text, g):
+            return re.search(r"(?<![a-z0-9])" + re.escape(g.lower()) + r"(?![a-z0-9])", text)
+        placebo_names_agent = any(not a and names_agent(n.lower(), g) for n, a in zip(allnames, act) for g in mine)
+        hit = any(names_agent(n, g) for g in mine for n in act)
+        named = [(n, a, re.sub(r"\b\d+(?:\.\d+)?\s*(?:mg|g|mcg|ug|µg|ml|iu|units?|%|mmol)?\b|\b(?:tablets?|capsules?|"
+                               r"oral|injection|solution|dose|daily|once|twice|of|for|to)\b|[^a-z]", "", a))
+                 for n, a in zip(allnames, act) if n and a]
+        names = [n for n, a, core in named if core]
+        # a drug row with no agent word left ('10 mg tablets') is UNIDENTIFIED, like an unnamed row
+        dose_only = any(not core for _, _, core in named)
         missing = [n for n in t["ncts"] if not reg.get(n)]
         if not names:
             continue
-        if (unnamed or missing or placebo_names_agent) and not hit:
-            # an UNNAMED registered drug row, or a listed NCT with no registered drug rows, could be the topic's agent:
-            # incomplete identity evidence cannot establish a different agent
+        if (unnamed or dose_only or missing or placebo_names_agent) and not hit:
+            # an UNNAMED or dose-only registered drug row, or a listed NCT with no registered drug rows, could be the
+            # topic's agent: incomplete identity evidence cannot establish a different agent
             continue
         basis = f"REGISTRY_INTERVENTIONS:{','.join(t['ncts'])}:{sorted(set(names))[:4]}"
         if not hit and t["slug"] in classes:

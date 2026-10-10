@@ -7049,5 +7049,83 @@
     "verdict": null
    }
   ]
+ },
+ "r7-4-r6": {
+  "base": "beb73a487",
+  "head": "dabece0e9",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "39c1c9588fa04e1b3baf19d9c3794190fd307a9d229150bfe258dcb24c46a1d9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "Agent matching permits adjacent digits, so vitamin B12 incorrectly establishes a match for vitamin B1.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts.g1_tracker import verified_agent_identity\nT = {'trials': [{'slug': 'test', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['fixture']}]}\ncsv = 'nct_id|intervention_type|name\\nfixture|drug|vitamin B12\\n'\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', return_value=io.StringIO(csv)):\n    result = verified_agent_identity(T, agents={'test': ['vitamin B1']}, snap='fixture', class_topics=set())\nprint(result['trials'][0]['drug'])",
+    "expected": "OTHER_AGENT: vitamin B12 is not vitamin B1.",
+    "actual": "DRUG_MATCH: (?![a-z]) accepts the trailing digit 2.",
+    "id": "r7-4-r6:g1#1",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "A dose-only drug row is discarded without marking identity evidence incomplete. Another named drug then establishes OTHER_AGENT even though the unidentified row could contain the topic agent.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts.g1_tracker import verified_agent_identity\nT = {'trials': [{'slug': 'test', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['fixture']}]}\ncsv = 'nct_id|intervention_type|name\\nfixture|drug|metformin\\nfixture|drug|10 mg\\n'\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', return_value=io.StringIO(csv)):\n    result = verified_agent_identity(T, agents={'test': ['empagliflozin']}, snap='fixture', class_topics=set())\nprint(result['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED: the second registered drug has no identifiable molecule.",
+    "actual": "OTHER_AGENT: '10 mg' disappears from names, but neither unnamed nor missing detects the incomplete identity.",
+    "id": "r7-4-r6:g1#2",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "Mentioning another rule in an X2 continuation line truncates X2, even when the mention is merely a cross-reference.",
+    "failing_input": "md = '- X2: Wrong population:\\n  Exclude diabetes-only cohorts (see X3 for intervention exclusions).\\n- X3: Wrong intervention.'\nx = x2_text(md)\nprint(x)\nprint(classify('diabetes', x))",
+    "expected": "The extracted X2 includes its diabetes-only exclusion; classification is CONFIG_BROADER_THAN_PROTOCOL.",
+    "actual": "x2_text returns '- X2: Wrong population:'; classification is NOT_IN_PROTOCOL_X2.",
+    "id": "r7-4-r6:g1#3",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "An eligibility clause joined to an exclusion by 'but' contributes an unqualified term occurrence, incorrectly clearing an overly broad configuration.",
+    "failing_input": "classify('diabetes', '- X2: Exclude diabetes-only populations but trials with HF and diabetes are eligible.')",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL: only diabetes-only populations are excluded; HF with diabetes is explicitly eligible.",
+    "actual": "MATCHES_PROTOCOL: 'Exclude' prevents removal of the whole sentence, and the eligible population's diabetes mention defeats the all-occurrences qualification check.",
+    "id": "r7-4-r6:g1#4",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The inline fallback treats a bold cross-reference as an X2 definition unless its preceding wording matches a small blacklist. This can report protocol agreement without any held X2 definition.",
+    "failing_input": "x = x2_text('Refer to **X2** for diabetes exclusions.')\nprint(x)\nprint(classify('diabetes', x))",
+    "expected": "x2_text returns None; classification is NO_PROTOCOL_X2.",
+    "actual": "x2_text returns '**X2** for diabetes exclusions.'; classification is MATCHES_PROTOCOL.",
+    "id": "r7-4-r6:g1#5",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   }
+  ]
  }
 }
