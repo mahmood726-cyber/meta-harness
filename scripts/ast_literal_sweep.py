@@ -24,8 +24,9 @@ ALLOW = os.path.join(ROOT, "registry", "ast_literal_allowlist.json")
 _KEYS = {"ai", "bi", "ci", "di", "n1i", "n2i", "events_t", "events_c", "n_t", "n_c", "effect", "ci_low", "ci_high",
          "estimate", "lower", "upper", "hr", "rr", "or", "e1i", "e2i", "t1i", "t2i", "mean1", "mean2", "sd1", "sd2"}
 _EFFECT_TEXT = re.compile(r"\b\d+[.·]\d{1,3}\s*\(\s*\d+[.·]\d{1,3}\s*[-–,]\s*\d+[.·]\d{1,3}\s*\)")
-# denominators: 2-6 ungrouped digits or digit-grouped thousands (codex copps-r1#3: '20/1000' was missed)
-_COUNT_TEXT = re.compile(r"\b\d{1,5}\s*/\s*(?:\d{1,3}(?:[ ,]\d{3})+|\d{2,6})\b")
+# denominators: 1-6 ungrouped digits or digit-grouped thousands (codex copps-r1#3 '20/1000', r5#4 '2/8')
+# and never part of a decimal ('0.75/1.25' GRADE thresholds are not the count 75/1)
+_COUNT_TEXT = re.compile(r"(?<![\d.])\d{1,5}\s*/\s*(?:\d{1,3}(?:[ ,]\d{3})+|\d{1,6})\b(?!\.\d)")
 
 
 def _num(node):
@@ -49,13 +50,20 @@ def sweep_source(src: str, path: str) -> list[dict]:
     for node in ast.walk(tree):
         if id(node) in docs:
             continue
+        # a field set by a dict literal OR by a keyword argument of any call -- dict(ai=20), Study(ai=20, ...)
+        # (codex copps-r5#3)
+        pairs = []
         if isinstance(node, ast.Dict):
-            for k, v in zip(node.keys, node.values):
-                val = _num(v)
-                if isinstance(k, ast.Constant) and isinstance(k.value, str) and k.value.lower() in _KEYS \
-                        and val is not None:          # 0 and 1 are real arm counts too (codex copps-r2#2)
-                    out.append({"file": path, "line": v.lineno, "kind": "COUNT_OR_EFFECT_KEY",
-                                "key": k.value, "value": val})
+            pairs = [(k.value, v) for k, v in zip(node.keys, node.values)
+                     if isinstance(k, ast.Constant) and isinstance(k.value, str)]
+        elif isinstance(node, ast.Call):
+            pairs = [(kw.arg, kw.value) for kw in node.keywords if kw.arg]
+        for name, v in pairs:
+            val = _num(v)
+            if name.lower() in _KEYS and val is not None:     # 0 and 1 are real arm counts too (codex copps-r2#2)
+                out.append({"file": path, "line": v.lineno, "kind": "COUNT_OR_EFFECT_KEY", "key": name, "value": val})
+        if isinstance(node, ast.Dict) or isinstance(node, ast.Call):
+            continue
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
             s = node.value
             # every effect tuple AND every count pair is reported: one allowlisted finding never hides another in the

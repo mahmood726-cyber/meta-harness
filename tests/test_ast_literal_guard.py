@@ -135,3 +135,32 @@ def test_PLANT_codex_r4_2_an_effect_tuple_does_not_hide_counts_in_the_same_strin
     hits = sweep.sweep_source('summary = "RR 0.91 (0.74-1.11); deaths 20/169 vs 35/167"', "harness/x.py")
     assert [(h["kind"], h["value"]) for h in hits] == [("EFFECT_TUPLE_TEXT", "0.91 (0.74-1.11)"),
                                                        ("COUNT_PAIR_TEXT", "20/169"), ("COUNT_PAIR_TEXT", "35/167")]
+
+
+def test_PLANT_codex_r5_1_a_times_ten_bound_is_refused():
+    a = "The combined group may have higher rates of ovulation (OR"
+    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03 × 10^1)", a) is None
+    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03 x 10^1)", a) is None
+
+
+def test_PLANT_codex_r5_2_ready_needs_both_effects_not_a_dose_label():
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY},
+                        {"id": "24251359", "title": "",
+                         "abstract": "30 mg low-dose edoxaban (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34)"}]}
+    out = si._noac_lower_dose_status(rows)
+    assert [a["trial"] for a in out["available_lower_dose_rows"]] == ["RE-LY"]
+    assert out["status"] != "READY_TO_COMPUTE"
+
+
+def test_PLANT_codex_r5_3_dict_call_counts_are_flagged():
+    hits = sweep.sweep_source("row = dict(ai=20, n1i=169, ci=35, n2i=167)", "harness/x.py")
+    assert sorted(h["key"] for h in hits) == ["ai", "ci", "n1i", "n2i"]
+
+
+def test_PLANT_codex_r5_4_single_digit_denominators_are_flagged():
+    hits = sweep.sweep_source('result = "Deaths: 2/8 versus 1/8"', "harness/x.py")
+    assert [h["value"] for h in hits] == ["2/8", "1/8"]
+
+
+def test_decimal_thresholds_are_not_counts():
+    assert sweep.sweep_source('b = "GRADE default thresholds 0.75/1.25"', "harness/x.py") == []
