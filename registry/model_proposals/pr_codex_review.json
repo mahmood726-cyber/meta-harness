@@ -6787,5 +6787,61 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r2": {
+  "base": "630e622bf",
+  "head": "a3ae92196",
+  "runs": {
+   "g1": {
+    "record_id": "mc-84ca1539b680d00366f0aecce605de39",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "6b9bd75da9089f1e96c4e132b1b3b0decd946d1f18a26a600b40d5c3e9638a21"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "The upper-bound terminator permits an exponent suffix, so a scientific-notation bound is silently truncated and can enter a reported override.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 1.65, 95% CI 1.35 to 2.03e1)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "Either parse ci_high as 20.3 or return None for unsupported notation.",
+    "actual": "Returns {'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.03}.",
+    "id": "copps-r2:g1#1",
+    "record_id": "mc-84ca1539b680d00366f0aecce605de39",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The unconditional exemption for numeric values 0 and 1 hides hardcoded zero-event and one-event trial arms, despite those being count fields covered by the sweep.",
+    "failing_input": "sweep_source(\"trial = {'ai': 1, 'ci': 0}\", 'harness/example.py')",
+    "expected": "COUNT_OR_EFFECT_KEY findings for ai=1 and ci=0 unless explicitly allowlisted.",
+    "actual": "Returns [].",
+    "id": "copps-r2:g1#2",
+    "record_id": "mc-84ca1539b680d00366f0aecce605de39",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The date/URL exclusion suppresses entire string literals containing genuine counts. Its unanchored date pattern also treats ordinary four-digit event counts as dates.",
+    "failing_input": "sweep_source('result = \"1000/2000\"', 'harness/example.py'); sweep_source('result = \"Deaths: 20/169 versus 35/167; source https://example.org/trial\"', 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding for 1000/2000 in the first call and at least 20/169 in the second.",
+    "actual": "Both calls return []. The first matches the date exclusion; the second is suppressed merely because the string also contains a URL.",
+    "id": "copps-r2:g1#3",
+    "record_id": "mc-84ca1539b680d00366f0aecce605de39",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -88,3 +88,22 @@ def test_PLANT_codex_r1_2_negative_literals_are_flagged():
 def test_PLANT_codex_r1_3_four_digit_denominators_are_flagged():
     hits = sweep.sweep_source('counts = "20/1000 versus 30/1000"', "harness/x.py")
     assert [h["kind"] for h in hits] == ["COUNT_PAIR_TEXT"]
+
+
+def test_PLANT_codex_r2_1_an_exponent_bound_is_never_truncated():
+    a = "The combined group may have higher rates of ovulation (OR"
+    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03e1)", a) is None
+
+
+def test_PLANT_codex_r2_2_zero_and_one_event_arms_are_flagged():
+    hits = sweep.sweep_source("trial = {'ai': 1, 'ci': 0}", "harness/x.py")
+    assert sorted((h["key"], h["value"]) for h in hits) == [("ai", 1), ("ci", 0)]
+
+
+def test_PLANT_codex_r2_3_counts_beside_a_url_or_four_digit_counts_are_flagged():
+    assert [h["value"] for h in sweep.sweep_source('result = "1000/2000"', "harness/x.py")] == ["1000/2000"]
+    hits = sweep.sweep_source('r = "Deaths: 20/169 versus 35/167; source https://example.org/trial/12/345"', "harness/x.py")
+    assert "20/169" in [h["value"] for h in hits]
+    # a URL path and a year/month are still not counts
+    assert sweep.sweep_source('u = "https://example.org/trial/12/345"', "harness/x.py") == []
+    assert sweep.sweep_source('d = "accessed 2024/09"', "harness/x.py") == []

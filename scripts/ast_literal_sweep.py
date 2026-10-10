@@ -53,7 +53,7 @@ def sweep_source(src: str, path: str) -> list[dict]:
             for k, v in zip(node.keys, node.values):
                 val = _num(v)
                 if isinstance(k, ast.Constant) and isinstance(k.value, str) and k.value.lower() in _KEYS \
-                        and val is not None and val not in (0, 1):
+                        and val is not None:          # 0 and 1 are real arm counts too (codex copps-r2#2)
                     out.append({"file": path, "line": v.lineno, "kind": "COUNT_OR_EFFECT_KEY",
                                 "key": k.value, "value": val})
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
@@ -61,11 +61,18 @@ def sweep_source(src: str, path: str) -> list[dict]:
             if _EFFECT_TEXT.search(s):
                 out.append({"file": path, "line": node.lineno, "kind": "EFFECT_TUPLE_TEXT",
                             "value": _EFFECT_TEXT.search(s).group(0)})
-            elif _COUNT_TEXT.search(s) and not re.search(r"https?://|\d{4}/\d{2}|/\d+/", s):
-                m = _COUNT_TEXT.search(s)
-                a, b = (int(x.replace(" ", "").replace(",", "")) for x in m.group(0).split("/"))
-                if not (a <= 31 and b <= 12) and not re.match(r"\d+\s*/\s*0\d", m.group(0)):   # a date is not a count
+            else:
+                # each match is judged on its own context, never the whole string (codex copps-r2#3): a URL path or a
+                # year/month is not a count; a count beside a URL still is
+                urls = [m.span() for m in re.finditer(r"https?://\S+", s)]
+                for m in _COUNT_TEXT.finditer(s):
+                    if any(a <= m.start() < b for a, b in urls):
+                        continue
+                    a, b = (int(x.replace(" ", "").replace(",", "")) for x in m.group(0).split("/"))
+                    if (a <= 31 and b <= 12) or (1900 <= a <= 2100 and b <= 12) or re.match(r"\d+\s*/\s*0\d", m.group(0)):
+                        continue                                     # a date is not a count
                     out.append({"file": path, "line": node.lineno, "kind": "COUNT_PAIR_TEXT", "value": m.group(0)})
+                    break
     return out
 
 
