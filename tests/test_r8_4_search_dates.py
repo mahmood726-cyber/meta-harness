@@ -78,3 +78,36 @@ def test_PLANT_the_tracker_reads_the_typed_dates_for_THIS_comparator_only():
     assert d[1]["why_not_in_comparator"] == "DATES_NOT_RECORDED"
     assert d[2]["why_not_in_comparator"] == "DATES_NOT_RECORDED"
     assert not any(x["why_not_in_comparator"] in ("PUBLISHED_AFTER_COMPARATOR", "NOT_EXPLAINED_BY_DATE") for x in d)
+
+
+def test_PLANT_r1_a_later_search_update_stated_by_year_outranks_an_earlier_month():
+    e = r.search_end("PubMed was searched through December 2020. Searches were updated from inception to 2022.")
+    assert e["date"] == "2022" and r.classify("2022-06-01", e, None) == "SAME_PERIOD_AS_SEARCH_END"
+
+
+def test_PLANT_r1_publication_and_enrolment_clauses_never_supply_the_search_end():
+    assert r.search_end("PubMed was searched through December 2020, and the review was published in March "
+                        "2022.")["date"] == "2020-12"
+    assert r.search_end("PubMed was searched and patients were enrolled from 2018 to 2022.") is None
+
+
+def test_PLANT_r1_a_negated_registry_is_not_searched():
+    assert r.searched_registry(["We searched PubMed through December 2020. We did not search ClinicalTrials.gov."]) is False
+    assert r.searched_registry(["We searched PubMed and ClinicalTrials.gov through December 2020."]) is True
+
+
+def test_PLANT_r1_a_missing_aact_snapshot_fails_closed(tmp_path):
+    import pytest
+    with pytest.raises(FileNotFoundError):
+        r.results_posted({"NCT01"}, snap=str(tmp_path))
+    assert r.results_posted(set(), snap=str(tmp_path)) == {}
+
+
+def test_PLANT_r1_a_year_only_issue_date_before_the_indexing_date_is_first_public():
+    xml = ("<PubmedArticleSet><PubmedArticle><MedlineCitation><Article><Journal><JournalIssue><PubDate><Year>2020</Year>"
+           "</PubDate></JournalIssue></Journal></Article></MedlineCitation><PubmedData><History>"
+           "<PubMedPubDate PubStatus=\"entrez\"><Year>2021</Year><Month>2</Month><Day>1</Day></PubMedPubDate>"
+           "</History></PubmedData></PubmedArticle></PubmedArticleSet>")
+    d = r.pubmed_dates(xml)
+    assert d["first_public"] == "2020"
+    assert r.classify(d["first_public"], {"date": "2020-12", "precision": "month"}, None) == "SAME_PERIOD_AS_SEARCH_END"

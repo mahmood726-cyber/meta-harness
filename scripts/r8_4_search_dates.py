@@ -59,6 +59,19 @@ def _clause_before(s, start):
     return pre[cut:]
 
 
+# the review's OWN publication/acceptance in the date's clause ('and the review was published in March 2022')
+_OWN_PUBLICATION = re.compile(r"\b(?:review|meta-analys[ie]s|article|manuscript|paper|study|protocol)\s+(?:was|is|has\s+"
+                              r"been|were)\s+(?:first\s+)?(?:published|accepted|submitted|posted|registered|updated)\b",
+                              re.I)
+
+
+def _not_search_clause(s, at):
+    """True when the date at offset `at` sits in a clause about enrolment, follow-up, PROSPERO registration or the
+    review's own publication -- one rule for every date shape (month, numeric, year-only)."""
+    c = _clause_before(s, at)
+    return bool(_NOT_SEARCH.search(c) or _OWN_PUBLICATION.search(c))
+
+
 def search_end(text):
     """(YYYY-MM or YYYY, precision, span) for the latest date in a sentence about the literature search that is
     reached by a 'to/until/through' connector, or None. Year-only ('inception to 2022') gives year precision. A date
@@ -70,7 +83,7 @@ def search_end(text):
             continue
         for m in _DATE.finditer(s):
             pre = s[max(0, m.start() - 40):m.start()]
-            if _NOT_SEARCH.search(_clause_before(s, m.start())):
+            if _not_search_clause(s, m.start()):
                 continue
             if not _TO.search(pre) and not re.search(r"\b(?:on|in|as\s+of)\s*$", pre, re.I):
                 continue
@@ -84,7 +97,7 @@ def search_end(text):
         # equal), 'before 2022.4.20' (Y.M.D)
         for m in re.finditer(r"\b(\d{4})[./-](\d{1,2})[./-](\d{1,2})\b|\b(\d{1,2})[./](\d{1,2})[./](\d{4})\b", s):
             pre = s[max(0, m.start() - 40):m.start()]
-            if not _TO.search(pre) or _NOT_SEARCH.search(_clause_before(s, m.start())):
+            if not _TO.search(pre) or _not_search_clause(s, m.start()):
                 continue
             if m.group(1):
                 y, mo = int(m.group(1)), int(m.group(2))
@@ -96,16 +109,35 @@ def search_end(text):
             key, prec = ((y, mo), "month") if mo else ((y, 12), "year")
             if best is None or key > best[0]:
                 best = (key, prec, s[max(0, m.start() - 120):m.end() + 10].strip())
-        if best is None:
-            for m in re.finditer(r"\b(?:(?:inception|start)\s+(?:to|until|through)|(?:from|during|between)\s+(?:19|20)"
-                                 r"\d{2}\s*(?:to|until|through|and|-|–))\s*(\d{4})\b", s, re.I):
-                y = int(m.group(1))
-                if 1980 <= y <= 2100 and (best is None or (y, 12) > best[0]):
-                    best = ((y, 12), "year", s[max(0, m.start() - 120):m.end() + 10].strip())
+        # year-only windows ('inception to 2022', 'during 2007 to 2015') are ALWAYS candidates: a later updated search
+        # stated by year outranks an earlier month-dated one
+        for m in re.finditer(r"\b(?:(?:inception|start)\s+(?:to|until|through)|(?:from|during|between)\s+(?:19|20)"
+                             r"\d{2}\s*(?:to|until|through|and|-|–))\s*(\d{4})\b(?!\s*[./-]\d)", s, re.I):
+            y = int(m.group(1))
+            if _not_search_clause(s, m.end(1)):
+                continue
+            if 1980 <= y <= 2100 and (best is None or (y, 12) > best[0]):
+                best = ((y, 12), "year", s[max(0, m.start() - 120):m.end() + 10].strip())
     if not best:
         return None
     (y, mo), prec, span = best
     return {"date": f"{y:04d}-{mo:02d}" if prec == "month" else f"{y:04d}", "precision": prec, "span": span[:200]}
+
+
+_NEGATED = re.compile(r"\b(?:not|no|never|nor|without|excluding|except)\b", re.I)
+
+
+def searched_registry(texts):
+    """True when a search sentence names a trial registry in a clause that does not negate it ('We did not search
+    ClinicalTrials.gov' -> False)."""
+    for t in texts:
+        for s in _sentences(t):
+            if not _SEARCH.search(s):
+                continue
+            for c in re.split(r"[;,]|\bbut\b|\bwhile\b|\bwhereas\b", s):
+                if _REGISTRY.search(c) and not _NEGATED.search(c):
+                    return True
+    return False
 
 
 def _txt(el):
@@ -147,10 +179,17 @@ def pubmed_dates(xml):
     v = _ymd(art.find(".//JournalIssue/PubDate"))
     if v:
         cands.append((v, "JournalIssue/PubDate"))
-    full = [c for c in cands if c[0][1]]
-    if not full:
+    if not cands:
         return {"first_public": None, "basis": None, "abstract": _abstract(art)}
-    (y, mo, d), basis = min(full, key=lambda c: (c[0][0], c[0][1], c[0][2] or 99))
+    full = [c for c in cands if c[0][1]]
+    yonly = [c for c in cands if not c[0][1]]
+    best = min(full, key=lambda c: (c[0][0], c[0][1], c[0][2] or 99)) if full else None
+    # a YEAR-only date earlier than every full date ('PubDate 2020', entrez 2021-02) is the first public date, at year
+    # precision -- discarding it would date the report later than it was
+    if yonly and (best is None or min(c[0][0] for c in yonly) < best[0][0]):
+        (y, _, _), basis = min(yonly, key=lambda c: c[0][0])
+        return {"first_public": f"{y:04d}", "basis": basis, "abstract": _abstract(art)}
+    (y, mo, d), basis = best
     return {"first_public": f"{y:04d}-{mo:02d}" + (f"-{d:02d}" if d else ""), "basis": basis, "abstract": _abstract(art)}
 
 
@@ -173,8 +212,11 @@ def fulltext_for(pmid, slug=None):
 def results_posted(ncts, snap=None):
     snap = snap or os.environ.get("AACT_SNAPSHOT") or "F:/AACT-storage/AACT/2026-08-30"
     p = os.path.join(snap, "studies.txt")
-    if not ncts or not os.path.isfile(p):
+    if not ncts:
         return {}
+    if not os.path.isfile(p):
+        # registry evidence that could not be checked is never 'no results posted'
+        raise FileNotFoundError(f"{p}: AACT snapshot needed for registry results dates of {sorted(ncts)[:5]}")
     csv.field_size_limit(10 ** 9)
     out = {}
     with open(p, encoding="utf-8", newline="") as fh:
@@ -199,13 +241,15 @@ def classify(first_public, end, comparator_public):
     ty, tm = _ym(first_public)
     if end:
         ey, em = _ym(end["date"])
-        if end["precision"] == "year" or em is None:
+        if end["precision"] == "year" or em is None or tm is None:
             return ("AFTER_COMPARATOR_SEARCH_END" if ty > ey else "NOT_EXPLAINED_BY_DATE" if ty < ey
                     else "SAME_PERIOD_AS_SEARCH_END")
         return ("AFTER_COMPARATOR_SEARCH_END" if (ty, tm) > (ey, em) else "NOT_EXPLAINED_BY_DATE" if (ty, tm) < (ey, em)
                 else "SAME_PERIOD_AS_SEARCH_END")
-    if comparator_public and (ty, tm) > _ym(comparator_public)[:2]:
-        return "PUBLISHED_AFTER_COMPARATOR"
+    if comparator_public:
+        cy, cm = _ym(comparator_public)
+        if ty > cy or (ty == cy and tm and cm and tm > cm):
+            return "PUBLISHED_AFTER_COMPARATOR"
     return "SEARCH_END_NOT_STATED"
 
 
@@ -290,7 +334,7 @@ def build():
                         src = path
                         break
             texts = ([pm["abstract"]] if pm else []) + [t for _, t in fulltext_for(comp, slug)]
-            reg_searched = any(_REGISTRY.search(s) for t in texts for s in _sentences(t) if _SEARCH.search(s))
+            reg_searched = searched_registry(texts)
             comps[comp] = {"comparator_first_public": pm and pm["first_public"], "first_public_basis": pm and pm["basis"],
                            "searched_trial_registry": reg_searched,
                            "search_end": end and end["date"], "precision": end and end["precision"],
