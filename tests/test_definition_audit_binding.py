@@ -68,3 +68,39 @@ def test_the_committed_audit_file_is_bound_and_the_named_rows_are_stale_on_the_s
               "omega3-cardiovascular-events::Major vascular events / MACE::30415628",          # REDUCE-IT
               "pcsk9-mace::Major adverse cardiovascular events::28304224"):                    # FOURIER
         assert states[k] == B.AUDIT_ROW_STALE, k
+
+
+
+def _bind_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("bind_da", ROOT / "scripts" / "bind_definition_audit.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_PLANT_a_recorded_judgment_is_never_overwritten_by_rebinding(monkeypatch):
+    """codex pva-defaudit-r1 P1: a later wording edit must not re-bind a row to a newer served version."""
+    m = _bind_module()
+    recorded = {"commit": "aaaaaaaaaaaa", **B.trial_fingerprint(_trial(effect=0.85))}
+    doc = {"by_row": {"topic::MACE::111": {"detail": "edited wording", "resolution": "R", "judged": dict(recorded)}}}
+    monkeypatch.setattr(m, "_git", lambda *a: (_ for _ in ()).throw(AssertionError("history must not be read")))
+    assert m.bound(doc)["by_row"]["topic::MACE::111"]["judged"] == recorded
+
+
+def test_PLANT_a_git_failure_is_not_read_as_an_absent_trial(monkeypatch):
+    """codex pva-defaudit-r1 P2: only a missing review path is NOT_FOUND; any other git failure raises."""
+    import subprocess
+    import pytest
+    m = _bind_module()
+    doc = {"by_row": {"topic::MACE::111": {"detail": "d", "resolution": "R"}}}
+
+    def fake(*a):
+        if a[0] == "log":
+            return b"a" * 40
+        if a[0] == "show" and a[1].endswith("definition_audit.json"):
+            return json.dumps({"by_row": {"topic::MACE::111": {"detail": "d", "resolution": "R"}}}).encode()
+        raise subprocess.CalledProcessError(128, ["git", *a])
+    monkeypatch.setattr(m, "_git", fake)
+    with pytest.raises(subprocess.CalledProcessError):
+        m.bound(doc)
