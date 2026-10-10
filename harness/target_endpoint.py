@@ -190,7 +190,8 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
     'MACE' / '3-point MACE' with no enumerated components expands to the canonical 3-point set; a
     RESULT span is read with expansion OFF so that 'MACE occurred in ... (HR ...)' resolves to the
     abstract's definition sentence instead of asserting a component set the sentence never states."""
-    s = _fold(text)
+    # an excluded component ('excluding stroke') is not a named one (codex p0-r1 #5)
+    s = components_mod.strip_exclusions(_fold(text))
     comps: set[str] = set()
     if ("coronary heart disease death" in s or "death from coronary heart disease" in s
             or re.search(r"\bchd\b.{0,30}death|death.{0,30}\bchd\b", s)):

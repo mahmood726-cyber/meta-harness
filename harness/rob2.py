@@ -100,7 +100,8 @@ def _outcome_label(row: dict[str, Any]) -> str:
 
 
 def _component_set(text: str) -> frozenset[str]:
-    s = _norm_text(text).lower()
+    # an excluded component ('excluding stroke') is not a named one (codex p0-r1 #5)
+    s = components_mod.strip_exclusions(_norm_text(text).lower())
     if not s:
         return frozenset()
     comps: set[str] = set()

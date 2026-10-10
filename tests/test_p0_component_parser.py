@@ -66,3 +66,38 @@ def test_extraction_bare_mace_still_expands_and_a_population_sentence_grows_noth
     assert te._components_from_text("major adverse cardiovascular events") == {"cardiovascular death",
                                                                              "myocardial infarction", "stroke"}
     assert te._components_from_text("Diabetes was defined as HbA1c of 6.5% or higher or use of insulin.") == set()
+
+
+# ---------------------------------------------------------------- codex p0-r1 (each failed on 59bbb9f99)
+from harness import components as C  # noqa: E402
+
+
+def test_four_point_label_does_not_override_an_enumerated_fourth_component():
+    p = C.components("4-point MACE defined as cardiovascular death, myocardial infarction, stroke, and coronary revascularization.")
+    assert p.components == {"cardiovascular death", "myocardial infarction", "stroke", "coronary revascularization"}
+    assert p.unknown == []
+
+
+def test_plain_includes_is_an_enumeration_cue():
+    p = C.components("MACE includes cardiovascular death, myocardial infarction, stroke, and cardiac interventions.")
+    assert p.enumerated and p.unknown == ["cardiac interventions"]
+
+
+def test_a_long_parenthetical_does_not_hide_later_items():
+    p = C.components("MACE defined as cardiovascular death, myocardial infarction (fatal or nonfatal), stroke, and cardiac "
+                     "interventions.")
+    assert p.unknown == ["cardiac interventions"]
+
+
+def test_an_unrelated_renal_condition_is_not_a_known_component():
+    p = C.components("MACE defined as cardiovascular death, myocardial infarction, stroke, and renal artery stenosis.")
+    assert p.unknown == ["renal artery stenosis"]
+
+
+def test_an_excluded_component_is_not_named():
+    p = C.components("MACE defined as cardiovascular death and myocardial infarction, excluding stroke.")
+    assert p.components == {"cardiovascular death", "myocardial infarction"}
+    assert "NONFATAL_STROKE" not in rob2._component_set("MACE defined as cardiovascular death and myocardial infarction, "
+                                                         "excluding stroke.")
+    assert "stroke" not in te._components_from_text("MACE defined as cardiovascular death and myocardial infarction, "
+                                                    "excluding stroke.")

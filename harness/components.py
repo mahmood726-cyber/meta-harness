@@ -35,18 +35,20 @@ ROB2_NAME = {
 
 # an enumeration cue: what follows lists the composite's components
 _ENUM_CUE = re.compile(r"\b(?:composite of|composite outcome of|composite end ?point of|comprised|comprising|consisting of|"
-                       r"defined as|which included|include[sd]?(?=\s*:))\b\s*:?\s*", re.I)
+                       r"defined as|which included|include[sd]?|including)\b\s*:?\s*", re.I)
 _ITEM_SPLIT = re.compile(r"\s*(?:,|;|\bor\b|\band\b|/)\s*", re.I)
 _ITEM_NOISE = re.compile(r"^(?:the|a|an|any|first|occurrence of|time to(?: the)? first(?: occurrence of)?|either|fatal|"
                          r"non-?fatal|nonfatal|respectively|whichever (?:came|occurred) first)\b\s*", re.I)
 # a fragment that only qualifies a component and names none of its own
 _QUALIFIER_ONLY = re.compile(r"^(?:fatal|non-?fatal|nonfatal|urgent|emergent|elective|any|first|other|all|whichever .*|respectively|"
-                             r"time to first occurrence|death|excluding .*)$", re.I)
+                             r"time to first occurrence|death|excluding .*|(?:the )?time from .*|.*any component of .*|"
+                             # a scope phrase ('in the efficacy analysis', 'in the') names no component
+                             r"in the\b.*)$", re.I)
 _OTHER_KNOWN = re.compile(
-    r"all[- ]cause (?:death|mortality)|death from any cause|\bdeath\b|mortality|"
+    r"all[- ]cause (?:death|mortality)|death from any cause|^death$|^mortality$|"
     r"heart failure death|death from heart failure|urgent (?:heart failure |hf )?visit|"
     r"kidney failure|end[- ]stage (?:kidney|renal)|\besrd\b|\beskd\b|dialysis|kidney transplant|renal replacement|"
-    r"egfr|\bgfr\b|serum creatinine|renal death|renal causes|kidney|renal|"
+    r"egfr|\bgfr\b|serum creatinine|renal death|renal causes|"
     r"venous thromboembolism|\bvte\b|deep[- ]vein thrombosis|\bdvt\b|pulmonary embolism|\bpe\b|"
     r"madrs|montgomery|recurrent events?|heart failure|\bhf\b|cardiac arrest|vascular causes|cardiovascular causes|"
     # 'death from cardiovascular or undetermined causes' (AMPLITUDE-O): the split orphans 'undetermined causes', which the standard
@@ -116,27 +118,41 @@ def _item_known(item: str) -> bool:
 
 def enumerated_items(s: str) -> list[str]:
     """The items listed after each enumeration cue, up to the clause end ('.', a bracket, a result word) or the next cue.
-    A short parenthetical abbreviation ('cardiovascular (CV) death') is removed first, so it does not cut its own item; a
-    registry title and description joined without a stop ('Composite of CV Events CV events include: ...') are two segments."""
-    s = re.sub(r"\s*\([^()]{1,12}\)", "", s)
+    Parenthetical groups are removed first ('cardiovascular (CV) death', 'myocardial infarction (fatal or nonfatal)'), so a
+    qualifier never cuts the list and hides later items (codex p0-r1 #3); a registry title and description joined without a
+    stop ('Composite of CV Events CV events include: ...') are two segments."""
+    s = re.sub(r"\s*\([^()]*\)", "", strip_exclusions(s))
     items: list[str] = []
     # only a sentence that names a COMPOSITE enumerates its components: a registry description's other 'defined as' clauses
     # (censoring: 'defined as the latest of the dates of assessments ...') are not component lists
-    for sent in re.split(r"(?<=\.)\s+", s):
+    # sentences, including two glued without a space ('...respectively.at 12 months': PHILO)
+    for sent in re.split(r"(?<=\.)\s+|(?<=[a-z]{2}\.)(?=[a-z])", s):
         if not _COMPOSITE_CONTEXT.search(sent):
             continue
         cues = list(_ENUM_CUE.finditer(sent))
         for i, m in enumerate(cues):
             tail = sent[m.end():cues[i + 1].start()] if i + 1 < len(cues) else sent[m.end():]
-            end = re.search(r"\.(?:\s|$)|[)\]]|\(|\bvs\b|\bversus\b|\boccurred\b|\bwas reported\b|\bwere\b|\bwas\b", tail)
+            # the list ends at the clause end, a result word, or a relative / temporal clause ('..., which was assessed in
+            # the intention-to-treat population': REWIND)
+            end = re.search(r"\.(?:\s|$)|[)\]]|\(|\bvs\b|\bversus\b|\boccurred\b|\bwas reported\b|\bwere\b|\bwas\b|"
+                            r"\bwhich\b|\bthat\b|\bassessed\b|\badjudicated\b|\bamong\b|\bduring\b|\bwithin\b|\bbut\b|"
+                            r"\bin (?:patients|participants|subjects)\b|\b(?:patients|participants) with\b", tail)
             seg = tail[:end.start()] if end else tail
             items += [x for x in _ITEM_SPLIT.split(seg) if x and x.strip(" .")]
     return items
 
 
+_EXCLUSION = re.compile(r"\b(?:excluding|except(?: for)?|other than|not including)\b[^,.;)]*")
+
+
+def strip_exclusions(s: str) -> str:
+    """Remove 'excluding X' / 'except X' clauses: an excluded component is not a named one (codex p0-r1 #5)."""
+    return _EXCLUSION.sub(" ", s or "")
+
+
 def components(text: str | None, expand_generic: bool = True) -> Parsed:
     s = _fold(text)
-    out = Parsed(components=known(s))
+    out = Parsed(components=known(strip_exclusions(s)))
     items = enumerated_items(s)
     if items:
         out.enumerated = True
@@ -151,6 +167,7 @@ def components(text: str | None, expand_generic: bool = True) -> Parsed:
     if expand_generic and generic and (three_point or (not out.components and not out.enumerated)):
         out.components |= set(THREE_POINT)
         out.expanded_generic = True
-    if expand_generic and generic and re.search(r"\b(?:4|four)[- ]?point\b", s):
+    # '4-point' implies unstable angina only when nothing is enumerated (an enumerated fourth component wins: codex p0-r1 #1)
+    if expand_generic and generic and not out.enumerated and re.search(r"\b(?:4|four)[- ]?point\b", s):
         out.components.add("unstable angina")
     return out
