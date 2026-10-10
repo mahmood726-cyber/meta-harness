@@ -195,8 +195,9 @@ def _derive_endpoint(
     # name with a stated basis -- the safe direction.
     rules = [
         (r"AAD\s*=\s*[^:;.]{8,120}", _AAD_SUBJECT),
-        (r"diarrh?oe?a\s*\([^)]{10,180}\)", _AAD_SUBJECT),
-        (r"diarrh?oe?a caused by Clostridium difficile or otherwise unexplained diarrh?oe?a", _AAD_SUBJECT),
+        # 'diarrho?ea' matches diarrhoea AND diarrhea (the old 'diarrh?oe?a' required the o; codex harms-r6#2)
+        (r"diarrho?ea\s*\([^)]{10,180}\)", _AAD_SUBJECT),
+        (r"diarrho?ea caused by Clostridium difficile or otherwise unexplained diarrho?ea", _AAD_SUBJECT),
         (r"primary (?:efficacy )?(?:measure|outcome|end point|endpoint) was a composite of [^.]{20,240}", _PRIMARY),
         (r"primary (?:outcome|end point|endpoint) was [^.]{20,240}", _PRIMARY),
         (r"serious vascular event \([^)]{10,180}\)", _PRIMARY),
@@ -212,20 +213,22 @@ def _derive_endpoint(
         if subject is _PRIMARY:
             applies = bool(outcome.get("primary"))
         else:
-            applies = bool(re.search(subject, str(outcome.get("name") or ""), re.I))
+            # the outcome's whole name must BE the subject: 'AAD-related hospital admission' is not AAD (harms-r6#1)
+            applies = bool(re.fullmatch(subject, str(outcome.get("name") or "").strip(), re.I))
         if applies:
             return _derived(value, "committed source text", _short_span(text, m))
         refused = refused or value
     name = outcome.get("name")
     if name:
-        basis = ("outcome.name (the trial's primary-endpoint definition defines the primary outcome only)"
-                 if refused else "outcome.name")
+        basis = ("outcome.name (the definition in the source applies to another outcome: a primary-endpoint sentence "
+                 "defines the primary outcome only)" if refused else "outcome.name")
         return _derived(str(name), basis, str(name))
     return _derived(None, "underivable", "")
 
 
 _PRIMARY = object()                                         # the rule's sentence defines the primary outcome only
-_AAD_SUBJECT = r"diarrh?oe?a|\bAAD\b"                       # ... defines only an outcome named as diarrhoea / AAD
+# ... defines only an outcome whose WHOLE name is diarrhoea / AAD (either spelling)
+_AAD_SUBJECT = r"(?:antibiotic[- ]associated\s+)?diarrho?ea(?:\s*\(AAD\))?|AAD"
 
 
 def _derive_population_age(trial: dict[str, Any], rec: dict[str, Any] | None) -> dict[str, Any]:

@@ -51,7 +51,7 @@ def test_PLANT_a_harm_row_never_inherits_the_efficacy_primary_definition():
     got = _endpoint({"name": "New renal-replacement therapy", "kind": "harm"}, "35041780", PLUS)
     assert "death" not in (got["value"] or "").lower(), got
     assert got["value"] == "New renal-replacement therapy"
-    assert "defines the primary outcome only" in got["source"]
+    assert "another outcome" in got["source"]
 
 
 def test_the_primary_outcome_still_gets_its_primary_definition():
@@ -130,3 +130,10 @@ def test_PLANT_a_known_reported_row_stays_extraction_debt_not_a_refusal():
     # (harms_incomplete), never 'not reported' and never a resolved refusal (r13 'reported, extraction unresolved')
     got = _state(AKI, harms.KNOWN_REPORTED_NOT_YET_EXTRACTED, "reported; not yet extracted")
     assert got["harm_absence_state"] == harms.KNOWN_REPORTED_NOT_YET_EXTRACTED
+
+
+def test_PLANT_codex_harms_r6_the_subject_gate_is_a_full_name_match_in_either_spelling():
+    text = "AAD = antibiotic-associated diarrhoea with at least three loose stools daily."
+    got = _endpoint({"name": "AAD-related hospital admission", "primary": False}, "3", text)
+    assert got["value"] == "AAD-related hospital admission" and "another outcome" in got["source"]
+    assert _endpoint({"name": "Antibiotic-associated diarrhea", "primary": False}, "3", text)["value"].startswith("AAD =")

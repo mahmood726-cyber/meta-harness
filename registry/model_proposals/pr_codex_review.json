@@ -6953,5 +6953,47 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r6": {
+  "base": "fca8cff07",
+  "head": "1a6368d6a",
+  "runs": {
+   "g1": {
+    "record_id": "mc-912009916f3ae5a75c238a09b6ae9b67",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "5a7b0a08c047569ad4e2d7f72cf62db628a9a02102bafd89df8c1c8f47b1bb95"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The new subject gate accepts any outcome containing AAD, incorrectly assigning a diarrhoea definition to a distinct outcome such as hospital admission.",
+    "failing_input": "No audit override; text = 'AAD = antibiotic-associated diarrhoea with at least three loose stools daily.'; outcome = {'name': 'AAD-related hospital admission', 'primary': False}.",
+    "expected": "Retain 'AAD-related hospital admission': the text defines AAD, not admission attributable to AAD.",
+    "actual": "Selects 'AAD = antibiotic-associated diarrhoea with at least three loose stools daily' with basis 'committed source text'.",
+    "id": "harms-r6:g1#1",
+    "record_id": "mc-912009916f3ae5a75c238a09b6ae9b67",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P2",
+    "claim": "The new outcome-name filter requires an 'o' in diarrhoea, so the standard American spelling 'diarrhea' prevents an applicable AAD definition from being extracted.",
+    "failing_input": "No audit override; text = 'AAD = antibiotic-associated diarrhoea with at least three loose stools daily.'; outcome = {'name': 'Antibiotic-associated diarrhea', 'primary': False}.",
+    "expected": "Select the source's AAD definition, including its stool-frequency criterion.",
+    "actual": "Returns only 'Antibiotic-associated diarrhea', with the misleading basis 'outcome.name (the trial\\'s primary-endpoint definition defines the primary outcome only)'.",
+    "id": "harms-r6:g1#2",
+    "record_id": "mc-912009916f3ae5a75c238a09b6ae9b67",
+    "verdict": null
+   }
+  ]
  }
 }
