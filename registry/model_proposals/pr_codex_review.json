@@ -7067,5 +7067,49 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r7": {
+  "base": "630e622bf",
+  "head": "383f51aa8",
+  "runs": {
+   "g1": {
+    "record_id": "mc-af8c7e11b74505dbb93e3c43980c0750",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "7b701bc76ec1bd06f7af7408fa8ad6558354bb4e29040bc7e3df43ea88865216"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Tuple-unpacked assignments bypass detection of hardcoded count fields. Assignment targets are inspected only when the target itself is a Subscript; nested targets are skipped.",
+    "failing_input": "sweep_source(\"row = {}\\nrow['ai'], row['n1i'] = 20, 169\\n\", 'harness/example.py')",
+    "expected": "Two COUNT_OR_EFFECT_KEY findings: ai=20 and n1i=169.",
+    "actual": "[]",
+    "id": "copps-r7:g1#1",
+    "record_id": "mc-af8c7e11b74505dbb93e3c43980c0750",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Hardcoded effect tuples with negative confidence bounds escape detection because _EFFECT_TEXT accepts only unsigned bounds.",
+    "failing_input": "sweep_source(\"summary = 'SMD -0.35 (-0.50–-0.20)'\\n\", 'harness/example.py')",
+    "expected": "An EFFECT_TUPLE_TEXT finding for -0.35 (-0.50–-0.20).",
+    "actual": "[]",
+    "id": "copps-r7:g1#2",
+    "record_id": "mc-af8c7e11b74505dbb93e3c43980c0750",
+    "verdict": null
+   }
+  ]
  }
 }

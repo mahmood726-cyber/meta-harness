@@ -23,7 +23,8 @@ OUT = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "ast_literal_sweep.js
 ALLOW = os.path.join(ROOT, "registry", "ast_literal_allowlist.json")
 _KEYS = {"ai", "bi", "ci", "di", "n1i", "n2i", "events_t", "events_c", "n_t", "n_c", "effect", "ci_low", "ci_high",
          "estimate", "lower", "upper", "hr", "rr", "or", "e1i", "e2i", "t1i", "t2i", "mean1", "mean2", "sd1", "sd2"}
-_EFFECT_TEXT = re.compile(r"\b\d+[.·]\d{1,3}\s*\(\s*\d+[.·]\d{1,3}\s*[-–,]\s*\d+[.·]\d{1,3}\s*\)")
+# signed values too: 'SMD -0.35 (-0.50–-0.20)' (codex copps-r7#2)
+_EFFECT_TEXT = re.compile(r"(?<![\w.])[-−]?\d+[.·]\d{1,3}\s*\(\s*[-−]?\d+[.·]\d{1,3}\s*(?:[-–,]|to)\s*[-−]?\d+[.·]\d{1,3}\s*\)")
 # denominators: 1-6 ungrouped digits or digit-grouped thousands (codex copps-r1#3 '20/1000', r5#4 '2/8')
 # and never part of a decimal ('0.75/1.25' GRADE thresholds are not the count 75/1)
 _COUNT_TEXT = re.compile(r"(?<![\d.])\d{1,5}\s*/\s*(?:\d{1,3}(?:[ ,]\d{3})+|\d{1,6})\b(?!\.\d)")
@@ -61,9 +62,16 @@ def sweep_source(src: str, path: str) -> list[dict]:
         elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
             # row['ai'] = 20 (codex copps-r6#2)
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            pairs = [(t.slice.value, node.value) for t in targets
-                     if isinstance(t, ast.Subscript) and isinstance(t.slice, ast.Constant)
-                     and isinstance(t.slice.value, str) and node.value is not None]
+            for t in targets:
+                # row['ai'], row['n1i'] = 20, 169 -- unpack a tuple target against a tuple value (codex copps-r7#1)
+                if isinstance(t, (ast.Tuple, ast.List)) and isinstance(node.value, (ast.Tuple, ast.List)) \
+                        and len(t.elts) == len(node.value.elts):
+                    tv = list(zip(t.elts, node.value.elts))
+                else:
+                    tv = [(t, node.value)]
+                pairs += [(tt.slice.value, vv) for tt, vv in tv
+                          if isinstance(tt, ast.Subscript) and isinstance(tt.slice, ast.Constant)
+                          and isinstance(tt.slice.value, str) and vv is not None]
         for name, v in pairs:
             val = _num(v)
             if name.lower() in _KEYS and val is not None:     # 0 and 1 are real arm counts too (codex copps-r2#2)

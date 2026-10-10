@@ -189,3 +189,13 @@ def test_PLANT_codex_r6_3_leading_zero_denominator_without_a_year_is_a_count():
 
 def test_an_iso_date_path_fragment_is_not_a_count():
     assert sweep.sweep_source("p = 'evidence/gate-authority-2026-09-14/03-refusal-p'", "harness/x.py") == []
+
+
+def test_PLANT_codex_r7_1_tuple_unpacked_subscripts_are_flagged():
+    hits = sweep.sweep_source("row = {}\nrow['ai'], row['n1i'] = 20, 169\n", "harness/x.py")
+    assert sorted((h["key"], h["value"]) for h in hits) == [("ai", 20), ("n1i", 169)]
+
+
+def test_PLANT_codex_r7_2_signed_effect_tuples_are_flagged():
+    hits = sweep.sweep_source("summary = 'SMD -0.35 (-0.50–-0.20)'\n", "harness/x.py")
+    assert [h["kind"] for h in hits] == ["EFFECT_TUPLE_TEXT"]
