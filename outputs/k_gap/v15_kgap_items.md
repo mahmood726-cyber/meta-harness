@@ -97,3 +97,59 @@ The contrast is valid per the ruling: empagliflozin + KCl v placebo-for-empaglif
 - empagliflozin-hfpef is G1_MATCHED today (N 2, eligible 1, k 1).
 - SAK eligible and outside comparator 37773799 makes ALL_ELIGIBLE_MATCHED fail unless it is named.
 - Proposed name: TARGET_RESULT_ABSENT (recruiting, no results, primary is exercise endurance at 6 weeks). With the name, the topic stays G1_MATCHED. No pooled number moves.
+
+## K-4. Acquisitions: STEP 3/8, PROSPER subgroup, EMPHASIS-HF lab K, JUPITER >=70 muscle, COPPS Table 3 (typed; D8)
+
+**Method.** Ledger: outputs/k_gap/v15_acquisitions_agent.json (26 spans). Every span was re-verified by code as an exact substring of the fetched bytes it cites: 26/26 OK. Raw fetches are held with their sha256 in the ledger. Only open sources were read: PubMed, CT.gov, CC BY PMC, FDA. No paywalled primary paper was read.
+
+**Results by target:**
+
+- **STEP 3 (NCT03611582): FOUND, CT.gov posted MEAN (SD), "Baseline (week 0) to week 68".** Analysis sets: FAS 407 v 204.
+
+  | period | semaglutide 2.4 mg | placebo |
+  |---|---|---|
+  | in-trial | n 373, -16.5 (10.1) | n 189, -5.8 (7.7) |
+  | on-treatment | n 334, -17.6 (9.6) | n 164, -6.1 (7.6) |
+
+  STEP 3 is Wadden 2021, already matched for sema-weight. The question is whether the served row uses the in-trial (treatment-policy) period.
+- **STEP 8 (NCT04074161): FOUND, but only "Pooled Placebo".** Semaglutide 2.4 mg n 117, -16.4 (10.5); pooled placebo n 78, -1.6 (8.6); liraglutide n 117, -6.4 (7.7). The pool combines the semaglutide-matched and liraglutide-matched placebos, so no semaglutide-placebo-only result is posted.
+  - Question: is the pooled placebo an admissible comparator for sema v placebo?
+  - G1 effect if eligible: STEP 8 is outside comparator 42536519's set, so it needs a name or match.
+- **PROSPER predefined no-prior-vascular-disease subgroup: PARTIAL.**
+  - The primary abstract has the whole trial only: HR 0.85 (0.74-0.97).
+  - HR 0.94 (0.77-1.15) appears only in two third-party CC BY reviews (PMC8667269, PMC11588824).
+  - No open primary source shows the subgroup was PREDEFINED. The only "pre-defined subgroups" span is the PROSPER group's 2013 extended follow-up (a different analysis).
+  - Recommendation: labelled sensitivity at most; not admissible as a primary-sourced row.
+- **EMPHASIS-HF lab K > 5.5: claimed counts 158/1336 v 96/1340 NOT FOUND in any open source.** The abstract has percentages only: 11.8% v 7.2%.
+  - CT.gov has investigator-reported AE "Hyperkalaemia": non-serious 95/1360 v 43/1369 (May 2010 cut-off), serious 16/1360 v 7/1369. These are a different endpoint, not lab-measured.
+  - Proposal: SOURCE_ABSENT for lab K counts. The AE rows are only admissible as investigator-reported hyperkalaemia, labelled as such.
+- **JUPITER >=70 muscle symptoms: SOURCE_ABSENT.**
+  - The brief's PMID 20733113 is wrong; the Glynn paper is PMID 20404379.
+  - Its abstract has no muscle data. The PMC copy is not CC. CT.gov AEs are not age-stratified.
+  - The FDA S-016 Medical Review is a scanned PDF. OCR is the one remaining lead.
+- **COPPS POAF (22090167) Table 3: SOURCE_ABSENT for primary per-arm counts.**
+  - The abstract has 336 patients and 12.0% v 22.0% only.
+  - The harness's inferred 20/169 v 37/167 gives **11.8% and 22.2%, which do NOT round to the abstract's 12.0% and 22.0%**. The inferred split is inconsistent with its own source, which supports binding's "refuse" option (review 24).
+  - One third-party CC BY meta-analysis table (PMC9937735) prints 20/169 v 37/167. That is not independent of the same inference.
+  - The auditor's 35 placebo events are in no open source.
+
+## K-5. Family-eligibility reconcile count (reviews 7, 12, 13; outputs/k_gap/family_reconcile.md; source = served review.json on main 630e622bf)
+
+**Rule:** ELIGIBLE iff at least 1 family record is INCLUDED by the record-level screen AND the structural family screen says ELIGIBLE.
+
+**Reproduces the reviewers' figures where checked:**
+- noac 12 -> 7;
+- tranexamic 5 -> 2.
+
+**Melatonin 3 -> 1, not the reviewer's 2.** The difference is Circadin NCT00816673: it is structurally ELIGIBLE, but its record is X3'd by the placebo-of-X screen defect. After the screen.py fix (K-gap item 1) it becomes 2, matching the reviewer. empagliflozin SAK NCT05138575 behaves the same way.
+
+**Large drops:**
+- glp1 145 -> 8: structural-only families with no included record (the B-prime universe);
+- sema-weight 20 -> 6;
+- sacubitril 7 -> 1;
+- sglt2-pp 7 -> 2;
+- dpp4 7 -> 4.
+
+**Open rule question:** families with an included record but structural state UNKNOWN (e.g. EMPEROR-Preserved NCT03057951) are counted NOT eligible by this rule. The alternative, "eligible unless a trial-level exclusion is PROVEN", would count them. The Captain picks the rule; the per-family table carries both.
+
+**G1 effect:** G1 compares trial units, not family counts, so this count moves no G1 status by itself. It changes the disclosed "eligible families" figure on every page (a wording/served-count change for V15).
