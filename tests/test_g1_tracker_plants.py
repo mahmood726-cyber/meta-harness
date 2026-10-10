@@ -330,3 +330,32 @@ def test_a_secondary_registry_outcome_in_its_own_wording_is_a_binding_candidate(
     assert gt.binding_candidate("Mortality Rate at Day 28", kws, is_primary=False)
     assert gt.binding_candidate("Time to Clinical Improvement", kws, is_primary=True)        # primary: always examined
     assert not gt.binding_candidate("Time to Clinical Improvement", kws, is_primary=False)
+
+
+def _seed_out(state, n, k_matched=3):
+    return {"comparator_set": {"state": state}, "N_comparator_trials": n, "k_matched": k_matched,
+            "k_matched_of_comparator_N": f"{k_matched} of {n}", "comparator_findings": []}
+
+
+def test_PLANT_r17_reference_seed_candidates_never_count_as_the_comparator_N():
+    """Review 17: sglt2-ckd's comparator set came only from reference seeds (12 candidates, incl. DAPA-MI and EMPACT-MI,
+    which the comparator excluded); its own abstract says '10 randomized trials'. N is the comparator's stated count,
+    the candidates are disclosed separately, and the gap is a named finding."""
+    span = {"field": "comparator abstract", "text": "10 randomized trials"}
+    o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 12), 10, span, "41203232")
+    assert o["N_comparator_trials"] == 10 and o["N_candidates"] == 12
+    assert o["N_comparator_trials_basis"] == "COMPARATOR_STATED_K"
+    assert o["k_matched_of_comparator_N"] == "3 of 10"
+    f = [x for x in o["comparator_findings"] if x["finding"] == "COMPARATOR_STATED_K_BELOW_SEED_CANDIDATES"]
+    assert len(f) == 1 and f[0]["stated_k"] == 10 and f[0]["seed_candidates"] == 12 and f[0]["span"] == span
+
+
+def test_r17_enumerated_sets_and_a_higher_stated_k_leave_N_alone():
+    # an enumerated set (table / supplement) keeps N = the enumerated units; only its basis is recorded
+    o = gt.seed_candidate_n(_seed_out("TABLE_ENUMERATED", 8), 7, {"text": "7 trials"}, "x")
+    assert o["N_comparator_trials"] == 8 and o["N_comparator_trials_basis"] == "TABLE_ENUMERATED"
+    assert "N_candidates" not in o and not o["comparator_findings"]
+    # seed candidates BELOW the stated k (cortico-covid: 5 seeds, '7 randomized clinical trials'): N is never inflated
+    # here -- the existing COMPARATOR_STATED_K_ABOVE_ENUMERATED_N finding covers that direction
+    o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 5), 7, {"text": "7 randomized clinical trials"}, "y")
+    assert o["N_comparator_trials"] == 5 and o["N_candidates"] == 5 and not o["comparator_findings"]

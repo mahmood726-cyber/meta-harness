@@ -3200,6 +3200,34 @@ def comparator_stated_k(comp):
     return None, None
 
 
+def seed_candidate_n(out, sk, sspan, comp):
+    """Review 17: the comparator denominator is the comparator's INCLUDED set, never its reference-seed CANDIDATES.
+    When the set was resolved only from reference seeds (state REFERENCE_SEED_CANDIDATES), len(trials) is a candidate
+    superset (sglt2-ckd: 12 seeds incl. DAPA-MI / EMPACT-MI, which the comparator excluded; its own abstract says '10
+    randomized trials'). Then:
+      - the candidate count is kept and disclosed as N_candidates;
+      - if the comparator's OWN abstract states k BELOW the candidates, N_comparator_trials = that stated k (basis
+        COMPARATOR_STATED_K) and a finding names the gap: which candidates fall outside is NOT resolved here (it needs
+        the comparator's own list, read only from an open text);
+      - a candidate is never counted in N just because it is a seed.
+    Every other state keeps N = the enumerated set (basis = its state). Mutates and returns `out`."""
+    state = (out.get("comparator_set") or {}).get("state")
+    out["N_comparator_trials_basis"] = state or "UNSTATED"
+    if state != "REFERENCE_SEED_CANDIDATES":
+        return out
+    out["N_candidates"] = out["N_comparator_trials"]
+    if sk is not None and sk < out["N_comparator_trials"]:
+        out["comparator_findings"] = (out.get("comparator_findings") or []) + [{
+            "finding": "COMPARATOR_STATED_K_BELOW_SEED_CANDIDATES", "trial": "(the comparator set)", "comparator": comp,
+            "stated_k": sk, "seed_candidates": out["N_comparator_trials"], "span": sspan,
+            "basis": "reference-seed candidates are a superset of the comparator's included set; N is the comparator's own "
+                     "stated count; which candidates are outside is unresolved until its own list is read from an open text"}]
+        out["N_comparator_trials"] = sk
+        out["N_comparator_trials_basis"] = "COMPARATOR_STATED_K"
+        out["k_matched_of_comparator_N"] = f"{out['k_matched']} of {sk}"
+    return out
+
+
 def refresh_same_trials_after_bindings(o, pairs, method, comp):
     """The per-trial same-trials comparison is built in topic() BEFORE the binding hooks run, so a trial that a binding
     newly matched (route flipped to PRIMARY / SECONDARY_SINGLE, our_value set) was never in it: RESULT_AGREES was then
@@ -3937,6 +3965,7 @@ def topic(slug, T):
                                            "comparator": comp, "stated_k": sk, "enumerated_N": out["N_comparator_trials"],
                                            "span": sspan, "basis": "check the comparator's own trial table: a trial "
                                            "missing from our enumeration, or a wrong count in the comparator"})
+    seed_candidate_n(out, sk, sspan, comp)
     out["comparator_findings"] = (out.get("comparator_findings") or []) + \
         comparator_unadjusted_cluster_findings(trials, comp, slug) + decision_named_divergences(slug, trials)
     _abs = _j(os.path.join(OUT, "comparator_abstracts.json")) if os.path.exists(os.path.join(OUT, "comparator_abstracts.json")) else {}
