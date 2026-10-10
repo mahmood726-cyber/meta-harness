@@ -263,6 +263,149 @@ def find_value_in_sources(
     return None
 
 
+# --- ONE target-aware value predicate (reviews 16 + 23): shared by audit_reason_row and unextracted.audit_pair.
+# A held sentence is a value FOR THE TARGET only if it names the OUTCOME (never a population / setting word such as
+# 'ICU', never a bare 'primary outcome' phrase) and carries a numeric result; a sentence that states a timepoint outside
+# the protocol window is an explicit TIMEPOINT MISMATCH, which takes precedence over a generic 'value held'. A candidate
+# overturns a refusal only when it overcomes THAT refusal (a value present does not answer an estimand, population,
+# multi-arm or engine refusal; only an in-window value answers a timepoint refusal).
+TARGET_MATCH = "MATCH"
+TARGET_TIMEPOINT_MISMATCH = "TIMEPOINT_MISMATCH"
+_ROLE_PHRASE = re.compile(r"^\s*(?:the\s+)?(?:primary|secondary)\s+(?:outcome|end\s*-?\s*point|endpoint)s?\s*$", re.I)
+_IDENTITY_STOP = {"with", "from", "after", "during", "rate", "rates", "total", "number", "change", "percent",
+                  "percentage", "proportion", "incidence", "occurrence", "event", "events", "patients", "participants",
+                  "risk", "adverse", "outcome", "outcomes", "primary", "secondary", "trial", "study"}
+_DEATH_WORDS = ("mortality", "death", "deaths", "died", "dead")
+# overcome by a value FOR THE TARGET: the refusal claims the value is absent / not reported / not retrieved
+_OVERCOMABLE = {absence.OUTCOME_NOT_IN_SOURCE, absence.OUTCOME_NOT_REPORTED, absence.SOURCE_NOT_RETRIEVED,
+                "OUTCOME_NOT_REPORTED", "NOT_REPORTED", ""}
+
+
+def _content_words(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z]{4,}", (text or "").lower()) if w not in _IDENTITY_STOP}
+
+
+def identity_terms(keywords: list[str], outcome_name: str | None) -> list[str]:
+    """The keywords that name the OUTCOME: they share a content word with its name (death/mortality are one family);
+    a population / setting term ('ICU', 'critically ill') or a bare role phrase never does."""
+    name = outcome_name or ""
+    nw = _content_words(name)
+    if nw & set(_DEATH_WORDS):
+        nw |= set(_DEATH_WORDS)
+    out = [name] if name else []
+    for k in keywords or []:
+        if not k or _ROLE_PHRASE.match(str(k)):
+            continue
+        if _content_words(str(k)) & nw or _is_abbreviation_of(str(k), name):
+            out.append(str(k))
+    return out
+
+
+def _is_abbreviation_of(k: str, name: str) -> bool:
+    """'POAF' of 'Postoperative atrial fibrillation': a short single token whose letters run, in order, through the
+    name and start with its first letter, each name word supplying at least one ('ICU' of 'Mortality' does not)."""
+    k = k.strip().lower()
+    words = re.findall(r"[a-z]+", (name or "").lower())
+    if not (2 <= len(k) <= 6) or not k.isalpha() or not words or k[0] != words[0][0]:
+        return False
+    i = 0
+    for w in words:                      # every name word must contribute its first letter, in order
+        if i >= len(k) or k[i] != w[0]:
+            return False
+        i += 1
+        while i < len(k) and k[i] in w[1:] and (len(k) - i) > (len(words) - words.index(w) - 1):
+            i += 1
+    return i == len(k)
+
+
+_CITATION = re.compile(r"\[\s*\d{1,3}(?:\s*[,–-]\s*\d{1,3})*\s*\]|\bet\s+al\b", re.I)
+
+
+def _names_target(sentence: str, terms: list[str]) -> bool:
+    """absence._matches_term, also across a dropped space ('bodyweight' names 'body weight')."""
+    if absence._matches_term(sentence, terms):
+        return True
+    from . import lexicon
+    squashed = lexicon.fold(sentence).replace("-", " ").replace(" ", "")
+    return any(" " in t and t.replace(" ", "") in squashed for t in terms)
+
+
+def target_window_weeks(spec: dict[str, Any] | None) -> tuple[float, float] | None:
+    """The protocol timepoint window in weeks: timepoint_weeks +/- timepoint_tolerance_weeks (pipeline's own rule), else
+    a stated day range ('28-90 day'), else None (no window: timepoints are not judged)."""
+    spec = spec or {}
+    tw = spec.get("timepoint_weeks")
+    if tw is not None:
+        tol = spec.get("timepoint_tolerance_weeks", 8) or 0
+        return float(tw) - tol, float(tw) + tol
+    m = re.search(r"(\d+)\s*(?:-|to|–)\s*(\d+)\s*-?\s*days?\b", str(spec.get("timepoint") or ""), re.I)
+    if m:
+        return int(m.group(1)) / 7.0, int(m.group(2)) / 7.0
+    return None
+
+
+def sentence_weeks(sentence: str) -> list[float]:
+    """Every timepoint a sentence states, in weeks ('week 68', '44 weeks', '26 wk', '90 days', '6 months')."""
+    s = (sentence or "").lower()
+    out = []
+    for m in re.finditer(r"\bweek\s*(\d+)\b|\b(\d+)[\s-]*(weeks?|wks?|days?|months?|years?)\b", s):
+        if m.group(1):
+            out.append(float(m.group(1)))
+            continue
+        n, u = float(m.group(2)), m.group(3)
+        out.append(n if u.startswith("w") else n / 7.0 if u.startswith("d") else n * 4.345 if u.startswith("m")
+                   else n * 52.18)
+    return out
+
+
+def target_value_match(sources: list[dict[str, str]], spec: dict[str, Any] | None,
+                       outcome_name: str | None) -> dict[str, str] | None:
+    """The first held sentence that is a value FOR THE TARGET (state MATCH, at_target_timepoint when it states an
+    in-window timepoint), else the first that names the outcome at an OUT-of-window timepoint (state
+    TIMEPOINT_MISMATCH), else None."""
+    spec = spec or {}
+    terms = absence._terms(identity_terms(spec.get("keywords") or [], outcome_name))
+    window = target_window_weeks(spec)
+    mismatch = None
+    for src in sources or []:
+        text = _plain(src.get("text") or "")
+        for sent in extract._sentences(text):
+            sent = norm_space(sent)
+            if not terms or not _names_target(sent, terms) or not _has_numeric_outcome(sent):
+                continue
+            if len(sent) > 600 or _CITATION.search(sent):
+                # a table chunk or a sentence citing references reports OTHER studies, never this trial's own
+                # result (40825340: another article's summary table of SELECT et al., '[ 9 ]')
+                continue
+            ws = sentence_weeks(sent)
+            out = {"source_id": src.get("source_id") or "held_source", "source_kind": src.get("source_kind") or "held",
+                   "span": clip(sent)}
+            if window and ws and not any(window[0] - 1e-9 <= w <= window[1] + 1e-9 for w in ws):
+                mismatch = mismatch or dict(out, state=TARGET_TIMEPOINT_MISMATCH, stated_weeks=ws,
+                                            window_weeks=[round(window[0], 2), round(window[1], 2)])
+                continue
+            value = _normalised_value(sent, text)
+            return dict(out, state=TARGET_MATCH, at_target_timepoint=bool(window and ws),
+                        **({"value_text": value} if value else {}))
+    return mismatch
+
+
+def overcomes(code: str, row: dict[str, Any] | None, match: dict[str, Any] | None) -> bool:
+    """Does a target match overcome THIS refusal? Only an absence claim is answered by a value; a timepoint refusal
+    only by an in-window value; an estimand / population / multi-arm / engine / evidence refusal never by a bare value."""
+    if not match or match.get("state") != TARGET_MATCH:
+        return False
+    reason = ((row or {}).get("reason") or "").lower()
+    if code == absence.TIMEPOINT_MISMATCH or "timepoint mismatch" in reason:
+        return bool(match.get("at_target_timepoint"))
+    if (row or {}).get("absent_kind") == "refused_on_evidence":
+        return False
+    if code == absence.COUNTS_PRESENT_NOT_CORROBORATED:
+        # the refusal says no PERCENTAGE-CORROBORATED arm counts were found: a target sentence printing them answers it
+        return bool(_COUNT_WITH_PERCENT.search(extract._norm(match.get("span") or "")))
+    return code in _OVERCOMABLE
+
+
 def _expects_value(code: str, row: dict[str, Any]) -> bool:
     reason = (row.get("reason") or "").lower()
     return (
@@ -296,8 +439,10 @@ def audit_reason_row(
             "detail": "no held source",
             "stated_reason_code": code,
         }
-    found = find_value_in_sources(sources, spec.get("keywords") or [], outcome.get("name"))
-    if found:
+    # ONE target-aware predicate (r16 + r23): a candidate overturns the refusal only if it is a value FOR THE TARGET
+    # (outcome identity + timepoint) AND overcomes this specific refusal; otherwise the refusal stands
+    found = target_value_match(sources, spec, outcome.get("name"))
+    if found and overcomes(code, row, found):
         return {
             "verdict": REASON_FALSE_VALUE_HELD,
             "detail": f"{REASON_FALSE_VALUE_HELD}({found['source_id']}, \"{found['span']}\")",
@@ -307,6 +452,15 @@ def audit_reason_row(
             "source_span": found["span"],
             "source_contains": found["span"],
             **({"value_text": found["value_text"]} if found.get("value_text") else {}),
+        }
+    if found:
+        return {
+            "verdict": REASON_TRUE,
+            "detail": (f"held {found['state'].lower().replace('_', ' ')} candidate ({found['source_id']}) does not "
+                       f"overcome the stated refusal {code or 'UNSPECIFIED'}: the refusal stands"),
+            "stated_reason_code": code,
+            "candidate_state": found["state"],
+            "source_span": found["span"],
         }
     if _expects_value(code, row) or _source_not_retrieved_wrong(code, sources):
         return {
