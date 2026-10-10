@@ -67,3 +67,20 @@ Result: ELIGIBLE 1, EXCLUDED 40, DISAGREE 25 (outputs/k_gap/concept/_dual_a_sema
   - Under protocol line 18 ("If an otherwise eligible trial does not report the Week-68 percent body-weight change ... it is declared absent rather than substituted with another endpoint or timepoint"), STEP 5 is ELIGIBLE with its OUTCOME DECLARED ABSENT.
   - **G1 effect (not applied):** semaglutide-obesity-weight is G1_MATCHED (2/2 eligible matched; O'Neil and Rubino named). A fourth eligible trial outside the comparator keeps ALL_ELIGIBLE_MATCHED only if it is named. Proposed name: OUTCOME_ABSENT_AT_PROTOCOL_TIMEPOINT (Week 104 only; span = the posted primary title). No pooled number changes.
 - The 25 DISAGREE records need a third read or a ruling before any is counted.
+
+## 2026-10-10 ~02:40 -- (a) dual screens: tranexamic-acid-pph, corticosteroids-covid19-mortality, colchicine-recurrent-pericarditis
+
+- **tranexamic** (6 records after identity dedup): ELIGIBLE 0, EXCLUDED 4, DISAGREE 2. No G1 effect (topic already NOT_YET on RESULT_AGREES).
+- **colchicine-pericarditis:** 0 regex includes, so nothing to read. The two near-misses were checked by hand: 30683494 is a first-episode trial with no placebo arm; 26507416 is a Cochrane Corner.
+- **cortico-covid** (24 records): ELIGIBLE 9, EXCLUDED 15. By trial identity that is **7 distinct trials with participants**:
+  - 32943404: methylprednisolone pulse, severe COVID (2020).
+  - 35295605: methylprednisolone pulses, no respiratory failure (2022).
+  - 35361632 = NCT04673162: high-dose methylprednisolone, double-blind, 260 participants. The record pair joins on the paper's stated registration.
+  - 39086948 (NCT04836780): early dexamethasone, no hypoxaemic respiratory failure (2024).
+  - 42079491: extended-duration dexamethasone, Canada (2025).
+  - NCT04244591: COMPLETED, 80 participants, no posted results, no RESULT reference.
+  - NCT04438980: COMPLETED, 72 participants, no posted results, no RESULT reference.
+  - Not counted: NCT04360876 is WITHDRAWN, 0 enrolled (proposed name WITHDRAWN_NO_PARTICIPANTS).
+- **G1 effect (not applied):** cortico-covid is already NOT_YET (unmet ALL_ELIGIBLE_MATCHED, RESULT_AGREES, DIVERGENCES_NAMED). The 7 trials widen the eligible-not-matched gap but do not change the status.
+  - Most post-date or fall outside the comparator's set. Each needs either a NOT_IN_COMPARATOR reason (date / population) or acquisition.
+  - The two no-results registrations need a report search (open routes) before an OUTCOME_ABSENT name.
