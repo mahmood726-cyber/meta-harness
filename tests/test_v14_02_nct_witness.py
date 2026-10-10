@@ -19,3 +19,19 @@ def test_databank_accession_is_a_witness():
 
 def test_reference_list_mention_is_not_a_witness():
     assert v.nct_witness(ART.format(bank=""), "NCT01897532") is None
+
+
+def test_abstract_mention_must_be_the_exact_identifier():
+    """codex v14-apply-r3 g1#1: NCT017032080 is not NCT01703208."""
+    art = "<PubmedArticle><Abstract><AbstractText>Trial registration: NCT017032080.</AbstractText></Abstract></PubmedArticle>"
+    assert v.nct_witness(art, "NCT01703208") is None
+
+
+def test_offline_refuses_unverified_manifest_identity():
+    """codex v14-apply-r3 g1#2: offline mode never accepts a basis it cannot check against the recorded evidence."""
+    good = {"nct": "NCT01703208", "nct_basis": "databank accession number",
+            "nct_evidence": "<AccessionNumber>NCT01703208</AccessionNumber>"}
+    assert v.offline_identity_ok(good, "NCT01703208")
+    assert not v.offline_identity_ok(dict(good, nct="NCT00000000"), "NCT01703208")
+    assert not v.offline_identity_ok(dict(good, nct_basis="unverified"), "NCT01703208")
+    assert not v.offline_identity_ok(dict(good, nct_evidence="no identifier here"), "NCT01703208")

@@ -44,16 +44,39 @@ def normalise(xml_article: str) -> str:
         re.findall(r"<AbstractText[^>]*>(.*?)</AbstractText>", xml_article, re.S))))).strip()
 
 
-def nct_witness(xml_article: str, nct: str):
-    """Where the article ITSELF names the trial: its databank accession numbers or its own abstract -- never its
-    reference list or linked comments (the lane's rule, codex r6-dpp4-hf-r1 #3). None when it does not."""
+_BASES = ("databank accession number", "the article's own abstract")
+
+
+def _exact(nct: str) -> str:
+    return r"(?<![0-9A-Za-z])" + re.escape(nct) + r"(?![0-9A-Za-z])"
+
+
+def witness(xml_article: str, nct: str):
+    """(basis, evidence) where the article ITSELF names the trial: its databank accession numbers or its own abstract --
+    never its reference list or linked comments (the lane's rule, codex r6-dpp4-hf-r1 #3); the identifier must match
+    exactly (codex v14-apply-r3 g1#1: NCT017032080 is not NCT01703208). None when it does not."""
     own = re.sub(r"<ReferenceList>.*?</ReferenceList>|<CommentsCorrectionsList>.*?</CommentsCorrectionsList>", " ",
                  xml_article, flags=re.S)
-    if nct in re.findall(r"<AccessionNumber>(NCT\d{8})</AccessionNumber>", own):
-        return "databank accession number"
-    if nct in normalise(own):
-        return "the article's own abstract"
+    m = re.search(r"<AccessionNumber>" + re.escape(nct) + r"</AccessionNumber>", own)
+    if m:
+        return _BASES[0], m.group(0)
+    ab = normalise(own)
+    m = re.search(_exact(nct), ab)
+    if m:
+        return _BASES[1], ab[max(0, m.start() - 80):m.end() + 20]
     return None
+
+
+def nct_witness(xml_article: str, nct: str):
+    w = witness(xml_article, nct)
+    return w[0] if w else None
+
+
+def offline_identity_ok(doc: dict, nct: str) -> bool:
+    """Offline, the recorded identity is accepted only when it is THIS trial's, its basis is a known witness kind, and
+    its recorded evidence carries the exact identifier (codex v14-apply-r3 g1#2)."""
+    return (doc.get("nct") == nct and doc.get("nct_basis") in _BASES
+            and bool(re.search(_exact(nct), str(doc.get("nct_evidence") or ""))))
 
 
 def fetch(pmids):
@@ -95,14 +118,18 @@ def main(argv):
         if span not in text:
             raise SystemExit(f"REFUSED {pmid}: signed clause not in its own abstract")
         # the trial identity is verified against the article itself (agy v14-apply-r1-agy #2), never trusted
-        basis = (manifest["documents"].get(f"pubmed_{pmid}.txt") or {}).get("nct_basis") if offline else nct_witness(art, nct)
-        if not basis:
+        if offline:
+            doc = manifest["documents"].get(f"pubmed_{pmid}.txt") or {}
+            w = (doc.get("nct_basis"), doc.get("nct_evidence")) if offline_identity_ok(doc, nct) else None
+        else:
+            w = witness(art, nct)
+        if not w:
             raise SystemExit(f"REFUSED {pmid}: the article does not itself name {nct} (databank accession or abstract)")
         if not offline:
             with open(path, "w", encoding="utf-8", newline="") as f:
                 f.write(text)
             manifest["documents"][f"pubmed_{pmid}.txt"] = {
-                "pmid": pmid, "nct": nct, "nct_basis": basis, "source": url + f"?db=pubmed&id={pmid}&retmode=xml",
+                "pmid": pmid, "nct": nct, "nct_basis": w[0], "nct_evidence": w[1], "source": url + f"?db=pubmed&id={pmid}&retmode=xml",
                 "normalisation": "AbstractText elements joined by a space, tags stripped, HTML-unescaped, whitespace collapsed",
                 "sha256": sha, "retrieved_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "held_for": f"{ITEM} {SLUG} '{OUTCOME}'"}
