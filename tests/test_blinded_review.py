@@ -180,3 +180,19 @@ def test_items_missing_schema_keys_are_dropped_and_counted_not_guessed(tmp_path,
     r = B.adjudicate("t")
     assert r["schema_violations"] == {"gemini": {"numeric_checks": 1, "screening_sample": 1}}
     assert r["screening"] == [] and len(r["findings"]) == 1
+
+
+def test_a_finding_refuted_by_hand_is_listed_as_refuted_never_as_a_defect(tmp_path, monkeypatch):
+    """10 Oct: a typed-confirmed number claim (STRENGTH 1.05 vs 0.99) was refuted by hand: different endpoints."""
+    monkeypatch.setattr(B, "OUT", str(tmp_path))
+    d = _job(tmp_path)
+    (d / "gemini.json").write_text(json.dumps({"state": "RAN_OK", "response": {"findings": [_finding()],
+                                   "numeric_checks": [], "screening_sample": []}}), encoding="utf-8")
+    B.adjudicate("t")
+    (tmp_path / "manual_checks.json").write_text(json.dumps({"t#gemini#1": {"class": "changes_number",
+        "verdict": "NOT_A_DEFECT", "checked": "by hand", "note": "different endpoint"}}), encoding="utf-8")
+    import argparse
+    out = tmp_path / "h.md"
+    B.cmd_handover(argparse.Namespace(out=str(out), header="# h"))
+    txt = out.read_text(encoding="utf-8")
+    assert "## changes_number: 0" in txt and "REFUTED (not handed over as defects): 1" in txt

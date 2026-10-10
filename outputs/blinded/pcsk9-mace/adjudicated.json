@@ -4,7 +4,7 @@
  "commit": "beb73a487faf36becf350064fee22a9eef81436c",
  "models": {
   "codex": "RAN_OK",
-  "gemini": "QUOTA_EXHAUSTED"
+  "gemini": "RAN_OK"
  },
  "reviewed": true,
  "status": "REVIEWED",
@@ -113,6 +113,32 @@
     "codex"
    ],
    "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "gemini#1",
+   "model": "gemini",
+   "tab": "Results & conclusions",
+   "page_quote": "confidence interval [CI], 0.78 to second source",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/30403574/",
+    "quote": "hazard ratio, 0.85; 95% confidence interval [CI], 0.78 to 0.93; P<0.001"
+   },
+   "severity": "record",
+   "claim": "The verbatim quote from the abstract is abruptly truncated before the upper confidence interval limit and incorrectly concatenated with the label for the second source.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 30403574 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "CONFIRMED_TYPED"
   }
  ],
  "screening": [
@@ -160,6 +186,51 @@
    "reason": "The abstract supports the broad ASCVD/high-risk population and the required intervention, comparator, and randomized blinded design.",
    "quote": "We conducted an international, double-blind, randomized, placebo-controlled trial of evolocumab in patients with atherosclerosis or diabetes and without a previous myocardial infarction or stroke who had a low-density lipoprotein cholesterol level of at least 90 mg per deciliter.",
    "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "28504611",
+   "served_decision": "exclude",
+   "verdict": "DISAGREE",
+   "reason": "The provided text only contains the title and no abstract; it lacks sufficient information to conclude that the study is not a randomized controlled trial.",
+   "quote": "Evolocumab and clinical outcomes in patients with cardiovascular disease.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "30403574",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly states it is a multicenter, randomized, double-blind, placebo-controlled trial testing alirocumab versus placebo.",
+   "quote": "We conducted a multicenter, randomized, double-blind, placebo-controlled trial",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "33264825",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The text states the trial involves patients with chronic kidney disease, directly matching the exclusion reason X2.",
+   "quote": "Effect of Finerenone on Chronic Kidney Disease Outcomes in Type 2 Diabetes.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "36531722",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The text identifies the study as a meta-analysis reviewing RCTs, which confirms it is not a primary randomized controlled trial itself.",
+   "quote": "A meta-analysis focusing on the number needed to treat.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "41211925",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract confirms it is a double-blind, randomized, placebo-controlled trial of evolocumab in eligible patients.",
+   "quote": "We conducted an international, double-blind, randomized, placebo-controlled trial of evolocumab ... Patients were randomly assigned in a 1:1 ratio to receive evolocumab ... or placebo.",
+   "quote_found_in_record": false
   }
  ],
  "numeric_models": {
@@ -175,6 +246,20 @@
     "served_ci_high": 0,
     "agrees": false,
     "note": "Paule-Mandel tau²=0; Q≈0.85749; HKSJ variance factor=1; t(1)≈12.706205. The point estimate agrees. Both served CI limits are actually null, explicitly withheld under K2_SINGLE_DF; the numeric schema cannot represent null, so the zero fields are placeholders, not served limits. Full estimate-and-CI agreement cannot be established; false does not indicate a contradictory served interval."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Major adverse cardiovascular events",
+    "k": 2,
+    "recomputed_estimate": 0.8261,
+    "recomputed_ci_low": 0.5455,
+    "recomputed_ci_high": 1.2512,
+    "served_estimate": 0.8261,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "Recomputed CI is [0.5455, 1.2512]. The served CI limits are null due to K2_SINGLE_DF refusal; using 0 here to satisfy the schema's number type requirement."
    }
   ]
  },
@@ -200,10 +285,17 @@
     "outcome": "Major adverse cardiovascular events",
     "state": "NOT_ASSESSABLE"
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "Major adverse cardiovascular events",
+    "state": "NOT_ASSESSABLE"
+   }
   ]
  },
  "models_numbers_agree": {
-  "codex": "-"
+  "codex": "-",
+  "gemini": "-"
  },
  "dropped_by_licence": [
   {

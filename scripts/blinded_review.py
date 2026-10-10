@@ -603,7 +603,7 @@ def cmd_handover(a):
     mp = os.path.join(OUT, "manual_checks.json")
     manual = json.load(open(mp, encoding="utf-8")) if os.path.exists(mp) else {}
     by = {k: [] for k in SEVERITIES}
-    scr, seen, models_run = [], set(), set()
+    scr, seen, models_run, rejected = [], set(), set(), []
     for n, s in _slugs():
         r = json.load(open(os.path.join(OUT, s, "adjudicated.json"), encoding="utf-8"))
         models_run |= {m for m, st in r["models"].items() if st == "RAN_OK"}
@@ -612,6 +612,10 @@ def cmd_handover(a):
             if key in seen:
                 continue
             m = manual.get(key)
+            if m and m.get("verdict") == "NOT_A_DEFECT":     # checked by hand and refuted: never handed over as a defect
+                rejected.append((n, s, f, m))
+                seen.add(key)
+                continue
             if not (f["status"].startswith("CONFIRMED") or m):
                 continue
             seen |= {key} | {f"{s}#{x}" for x in f.get("agreed_with", [])}
@@ -634,6 +638,10 @@ def cmd_handover(a):
         out.append(f"\n## {k}: {len(by[k])} ({len(two)} two-model)\n\n")
         for x in sorted(by[k], key=lambda x: (x[2]["status"] != "CONFIRMED_2MODEL", x[0], x[2]["id"])):
             out.append(line(*x))
+    out.append(f"\n## Checked by hand and REFUTED (not handed over as defects): {len(rejected)}\n\n")
+    for n, s, f, m in rejected:
+        out.append(f"- **{n}. {s}** [{f['tab']}] ({f['model']} {f['id']}, {f['status']}) {f['claim']}\n"
+                   f"  - why refuted ({m['checked']}): {m['note']}\n")
     out.append(f"\n## Screening sample: a model DISAGREES with the served decision: {len(scr)}\n\n")
     for n, s, x in scr:
         out.append(f"- **{n}. {s}** ({x['model']}) record `{x['record']}` (served: {x['served_decision']}): {x['reason']} "

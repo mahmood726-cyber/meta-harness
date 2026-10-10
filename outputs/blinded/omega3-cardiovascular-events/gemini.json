@@ -5,26 +5,87 @@
  "prompt_sha256": "68bc2e8824cc9a511b59f59430fb9e6079ef7996eef4109a73e96cacef4c25f7",
  "attempts": [
   {
-   "record_id": "mc-2c5626114575dc44e4342d6d386d1d17",
-   "state": "RAN_ERROR",
-   "error": "client exited 3: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 4h29m48s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 4h29m48s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"error_code\":429,\"code_kind\":\"http\",\"retryable\":true,\"error_id\":\"fba32e00-5404-4fbe-85e5-0152430bfb32-1\"}\n"
-  },
-  {
-   "record_id": "mc-9d83ea92411e13148a75a9c2fdf2e715",
-   "state": "RAN_ERROR",
-   "error": "client exited 3: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 4h29m4s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 4h29m4s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"error_code\":429,\"code_kind\":\"http\",\"retryable\":true,\"error_id\":\"aa194233-63d1-4dee-9676-5959eeab06e8-1\"}\n"
-  },
-  {
-   "record_id": "mc-90cbbd5a157f16f5dbcce4c0359416f5",
-   "state": "RAN_ERROR",
-   "error": "client exited 3: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 4h27m30s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 4h27m30s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"error_code\":429,\"code_kind\":\"http\",\"retryable\":true,\"error_id\":\"cd69b09d-eb0b-465c-9ef5-9db919728fad-1\"}\n"
-  },
-  {
-   "record_id": "mc-a6815b99f8364819c71e3f66ecf9e16a",
-   "state": "RAN_ERROR",
-   "error": "client exited 3: error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 4h24m53s.\nAGY_ERROR: {\"short_error\":\"RESOURCE_EXHAUSTED (code 429): Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 4h24m53s.\",\"status\":\"RESOURCE_EXHAUSTED\",\"error_code\":429,\"code_kind\":\"http\",\"retryable\":true,\"error_id\":\"73776f2d-ce4c-49c9-816b-c78372b34963-1\"}\n"
+   "record_id": "mc-ed63923e91b6c3f3ff78245657fa1a48",
+   "state": "RAN_OK",
+   "error": null
   }
  ],
- "state": "QUOTA_EXHAUSTED",
- "quota_resets_in": "4h24m53s"
+ "state": "RAN_OK",
+ "output_sha256": "4d1317c01148cd2dc37cc8dd42635b5e0aa8ca9a2fb5992c56cb87b9685edcb6",
+ "response": {
+  "findings": [
+   {
+    "tab": "Analysis",
+    "page_quote": "33190147 1.05 [0.93, 1.19]",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/33190147/",
+     "quote": "hazard ratio, 0.99 [95% CI, 0.90-1.09]"
+    },
+    "severity": "changes_number",
+    "claim": "The served hazard ratio and CI for 33190147 do not match the published hazard ratio.",
+    "served_value": "1.05 [0.93, 1.19]",
+    "source_value": "0.99 [0.90, 1.09]"
+   },
+   {
+    "tab": "Analysis",
+    "page_quote": "Pooled (k=6)",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/30146932/",
+     "quote": "The primary outcome was a first serious vascular event ... rate ratio, 0.97; 95% confidence interval [CI], 0.87 to 1.08"
+    },
+    "severity": "record",
+    "claim": "Trial 30146932 is missing from the Major vascular events / MACE analysis pool.",
+    "served_value": "k=6 (omits 30146932)",
+    "source_value": "Trial 30146932 reports serious vascular event HR 0.97 [0.87, 1.08]"
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "Major vascular events / MACE",
+    "k": 6,
+    "recomputed_estimate": 0.9386,
+    "recomputed_ci_low": 0.8026,
+    "recomputed_ci_high": 1.0977,
+    "served_estimate": 0.9386,
+    "served_ci_low": 0.8026,
+    "served_ci_high": 1.098,
+    "agrees": true,
+    "note": "Recomputed HKSJ using Paule-Mandel tau^2; matches served values."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "23351824",
+    "served_decision": "OUTCOME_NOT_IN_SOURCE",
+    "verdict": "AGREE",
+    "reason": "The abstract for PMID 23351824 does not report MACE or major vascular events; it only discusses n-3 PUFA levels, inflammatory markers, and total mortality.",
+    "quote": "Low EPA levels are inversely related to total mortality in patients with chronic heart failure."
+   },
+   {
+    "record": "20929341",
+    "served_decision": "OUTCOME_NOT_IN_SOURCE",
+    "verdict": "AGREE",
+    "reason": "The abstract mentions adverse events generally but does not explicitly report rates for bleeding or atrial fibrillation (the harm outcomes being evaluated for refusal).",
+    "quote": "The rate of adverse events did not differ significantly among the study groups."
+   },
+   {
+    "record": "38199870",
+    "served_decision": "OUTCOME_NOT_IN_SOURCE",
+    "verdict": "AGREE",
+    "reason": "The abstract does not report bleeding or atrial fibrillation outcomes.",
+    "quote": "treatment with omega-3, vitamin D3, and/or SHEP had no benefit on MACE prevention. Only omega-3 supplementation changed lipid biomarkers, but with mixed effects."
+   }
+  ],
+  "parts_read": [
+   "CANARY-5d09faf684e4",
+   "CANARY-0f255a9a8a09",
+   "CANARY-48f8c923544c",
+   "CANARY-386878ba5d11",
+   "CANARY-e0a5d4c452d9",
+   "CANARY-ed40f1ca6f57",
+   "CANARY-a6aa9addf560",
+   "CANARY-38db08ee8fcb",
+   "CANARY-58001ca5e9da"
+  ]
+ }
 }

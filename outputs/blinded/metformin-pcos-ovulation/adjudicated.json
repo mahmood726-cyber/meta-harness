@@ -4,7 +4,7 @@
  "commit": "beb73a487faf36becf350064fee22a9eef81436c",
  "models": {
   "codex": "RAN_OK",
-  "gemini": "QUOTA_EXHAUSTED"
+  "gemini": "RAN_OK"
  },
  "reviewed": true,
  "status": "REVIEWED",
@@ -30,11 +30,14 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
-   "agreed_with": [],
-   "agreed_by": [
-    "codex"
+   "agreed_with": [
+    "gemini#1"
    ],
-   "status": "CONFIRMED_TYPED"
+   "agreed_by": [
+    "codex",
+    "gemini"
+   ],
+   "status": "CONFIRMED_2MODEL"
   },
   {
    "id": "codex#2",
@@ -56,11 +59,14 @@
    "source_url_matches": true,
    "typed_check": "spans",
    "typed_check_passed": true,
-   "agreed_with": [],
-   "agreed_by": [
-    "codex"
+   "agreed_with": [
+    "gemini#2"
    ],
-   "status": "CONFIRMED_TYPED"
+   "agreed_by": [
+    "codex",
+    "gemini"
+   ],
+   "status": "CONFIRMED_2MODEL"
   },
   {
    "id": "codex#3",
@@ -140,6 +146,64 @@
     "codex"
    ],
    "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "gemini#1",
+   "model": "gemini",
+   "tab": "Screening",
+   "page_quote": "19552904 pmid exclude X3 legacy_unrecorded#1 PMID:19552904 primary no eligible comparator (none of ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']).",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/19552904/",
+    "quote": "Thirty-seven women with CC-resistant PCOS were randomly assigned to be pretreated with 500 mg of metformin or placebo"
+   },
+   "severity": "record",
+   "claim": "Record 19552904 was incorrectly excluded for lacking an eligible placebo comparator, despite the abstract explicitly stating patients were assigned to metformin or placebo.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 19552904 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [
+    "codex#1"
+   ],
+   "agreed_by": [
+    "codex",
+    "gemini"
+   ],
+   "status": "CONFIRMED_2MODEL"
+  },
+  {
+   "id": "gemini#2",
+   "model": "gemini",
+   "tab": "Screening",
+   "page_quote": "17287476 pmid exclude X3 legacy_unrecorded#1 NCT00068861 primary no eligible comparator (none of ['placebo group', 'placebo-controlled', 'placebo controlled', 'placebo-treated', 'placebo alone']).",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/17287476/",
+    "quote": "We randomly assigned 626 infertile women with the polycystic ovary syndrome to receive clomiphene citrate plus placebo, extended-release metformin plus placebo, or a combination of metformin and clomiphene for up to 6 months."
+   },
+   "severity": "record",
+   "claim": "Record 17287476 was incorrectly excluded for lacking an eligible placebo comparator, despite the abstract explicitly stating patients received clomiphene citrate plus placebo, extended-release metformin plus placebo, or a combination.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 17287476 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [
+    "codex#2"
+   ],
+   "agreed_by": [
+    "codex",
+    "gemini"
+   ],
+   "status": "CONFIRMED_2MODEL"
   }
  ],
  "screening": [
@@ -187,6 +251,51 @@
    "reason": "This is a systematic review, not a primary randomized trial.",
    "quote": "Effects of physical exercise on menstrual symptoms in polycystic ovary syndrome: a systematic review.",
    "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "28118681",
+   "served_decision": "exclude X1",
+   "verdict": "AGREE",
+   "reason": "It is a Cochrane review, not a primary RCT.",
+   "quote": "We included five RCTs...",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "19692630",
+   "served_decision": "exclude X-DESIGN",
+   "verdict": "AGREE",
+   "reason": "Mentions metformin crossover but not ovulation induction/clomiphene.",
+   "quote": "To determine whether metformin, when given to women with polycystic ovary syndrome (PCOS), promotes folliculogenesis...",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "19552904",
+   "served_decision": "exclude X3",
+   "verdict": "DISAGREE",
+   "reason": "Excluded for no placebo, but abstract explicitly says 'metformin or placebo'.",
+   "quote": "randomly assigned to be pretreated with 500 mg of metformin or placebo 3 times per day",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "42002670",
+   "served_decision": "exclude X1",
+   "verdict": "AGREE",
+   "reason": "It is a systematic review.",
+   "quote": "This systematic review was registered in PROSPERO (CRD420251009235).",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "17287476",
+   "served_decision": "exclude X3",
+   "verdict": "DISAGREE",
+   "reason": "Excluded for no placebo, but abstract explicitly mentions placebo arms.",
+   "quote": "We randomly assigned 626 infertile women with the polycystic ovary syndrome to receive clomiphene citrate plus placebo, extended-release metformin plus placebo, or a combination of metformin and clomiphene for up to 6 months.",
+   "quote_found_in_record": true
   }
  ],
  "numeric_models": {
@@ -202,6 +311,20 @@
     "served_ci_high": 46.6008,
     "agrees": true,
     "note": "The supplied per-trial effect and CI fields are null, so direct CI-based recomputation is unavailable. Reconstructed ORs from the supplied counts are 2.7777778, 0.6926829 and 8.25, with log variances 0.5333333333, 0.0825296290 and 0.7853535354. Using their implied Wald intervals gives Paule–Mandel tau² approximately 1.15872145, residual Q=2, HKSJ variance factor 1 and t(2)=4.30265273. The count-based reconstruction agrees with the served pool."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Ovulation with metformin added to clomifene",
+    "k": 3,
+    "recomputed_estimate": 2.0733,
+    "recomputed_ci_low": 0.0922,
+    "recomputed_ci_high": 46.6001,
+    "served_estimate": 2.0733,
+    "served_ci_low": 0.0922,
+    "served_ci_high": 46.6008,
+    "agrees": true,
+    "note": "Recomputed values agree with served values within the permitted 0.002 tolerance."
    }
   ]
  },
@@ -227,10 +350,17 @@
     "outcome": "Ovulation with metformin added to clomifene",
     "state": "AGREES"
    }
+  ],
+  "gemini": [
+   {
+    "outcome": "Ovulation with metformin added to clomifene",
+    "state": "AGREES"
+   }
   ]
  },
  "models_numbers_agree": {
-  "codex": "y"
+  "codex": "y",
+  "gemini": "y"
  },
  "dropped_by_licence": [
   {
