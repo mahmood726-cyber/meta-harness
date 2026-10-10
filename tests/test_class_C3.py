@@ -48,3 +48,21 @@ def test_sweep_no_served_k1_review_is_described_as_pooled_and_k2plus_still_is():
         assert "Trials pooled (k)" not in html, r["slug"]
     for r in k2:                                                                       # control: unchanged
         assert "Trials pooled (k)" in page.render_overview(r), r["slug"]
+
+
+
+def test_PLANT_k2_with_the_ci_not_served_is_not_described_as_having_one():
+    s = manuscript._pooling_method_sentence({"k": 2, "ci_low": None})
+    assert "not served" in s and "only the pooled point estimate" in s
+    assert "not served" not in manuscript._pooling_method_sentence({"k": 2, "ci_low": 0.7, "ci_high": 1.1})   # control
+    r = {"invalidation": {"reasons": [{"code": "eligible_declared_absent"}]},
+         "outcomes": [{"primary": True, "result": {"k": 2, "ci_low": None}}]}
+    st = grade.stale_heterogeneity(r)
+    assert "prediction interval are descriptive" not in st and "no prediction interval is estimated" in st
+
+
+def test_sweep_served_k2_pools_without_a_ci_say_so():
+    k2 = [r for r in REVIEWS if _k(r) == 2 and (next(o for o in r["outcomes"] if o.get("primary")).get("result") or {}).get("ci_low") is None]
+    assert k2                                                           # the denominator is not empty
+    for r in k2:
+        assert "only the pooled point estimate is reported" in manuscript.render(r), r["slug"]

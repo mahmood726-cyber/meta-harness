@@ -64,6 +64,10 @@ def stale_heterogeneity(review):
     if (prim.get("result") or {}).get("k") == 1:   # C3: one trial -- no pooled membership, no heterogeneity to qualify
         absent = f"{n} eligible families absent" if n is not None else "eligible families absent; count not established"
         return f"STALE: single-trial evidence known incomplete ({absent}); with one trial there is no between-trial heterogeneity to interpret."
+    _pres = prim.get("result") or {}
+    if _pres.get("k") == 2 and _pres.get("ci_low") is None:   # K2: no PI is estimated and the CI is not served
+        return (f"STALE: pooled membership known incomplete ({count}); with k = 2, tau^2 and I^2 are descriptive only, "
+                "no prediction interval is estimated and the pooled CI is not served.")
     return f"STALE: pooled membership known incomplete ({count}); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
 
 

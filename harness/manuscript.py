@@ -271,8 +271,12 @@ def _pooling_method_sentence(res):
         return ("With a single trial (k = 1) nothing was pooled: the result is that trial's estimate with "
                 + ("its reported 95% CI, verbatim" if reported else "a 95% CI reconstructed from its own data (no reported CI was used)")
                 + "; no random-effects model, heterogeneity or prediction interval applies.")
-    return ("Pooling used random effects "
+    base = ("Pooling used random effects "
             "(Paule-Mandel &tau;&sup2; with a Hartung-Knapp interval on t with k&minus;1 df; log scale for ratios).")
+    if (res or {}).get("k") == 2 and (res or {}).get("ci_low") is None:
+        # K2: the registered interval uses t on 1 df and is not served; never imply a pooled CI was reported
+        base += " At k = 2 that interval uses t on 1 df and is not served: only the pooled point estimate is reported."
+    return base
 
 
 def _eligibility_rule_sentence(review):
