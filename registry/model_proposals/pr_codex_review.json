@@ -6899,5 +6899,83 @@
     "verdict": null
    }
   ]
+ },
+ "r8-4-r3": {
+  "base": "cdd81860a",
+  "head": "9b00f67f0",
+  "runs": {
+   "g1": {
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r8_4_search_dates.py"
+    ],
+    "prompt_sha256": "08f3fe592f2718d0fb150f62eaa406d05a728d987babd2e0672331c7f1d8c4fd"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "searched_registry",
+    "severity": "P1",
+    "claim": "Negation after the registry name is ignored, so an explicitly unsearched registry is treated as searched. build() then permits its posting dates to affect classifications.",
+    "failing_input": "searched_registry(['ClinicalTrials.gov was not searched.'])",
+    "expected": "None",
+    "actual": "'ClinicalTrials.gov was not searched.'",
+    "id": "r8-4-r3:g1#1",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "searched_registry",
+    "severity": "P1",
+    "claim": "Mentioning ClinicalTrials.gov itself satisfies _SEARCH, even when the sentence provides no evidence of searching the registry.",
+    "failing_input": "searched_registry(['ClinicalTrials.gov supplied trial identifiers.'])",
+    "expected": "None",
+    "actual": "'ClinicalTrials.gov supplied trial identifiers.'",
+    "id": "r8-4-r3:g1#2",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "search_end",
+    "severity": "P1",
+    "claim": "The publication exclusion recognizes only limited passive constructions. An active manuscript-submission clause replaces the actual search cutoff with the submission date.",
+    "failing_input": "search_end('We searched PubMed through March 2021 and submitted the manuscript on 1 December 2023.')",
+    "expected": "A search-end record with date='2021-03' and precision='month'.",
+    "actual": "A search-end record with date='2023-12' and precision='month'.",
+    "id": "r8-4-r3:g1#3",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "search_end",
+    "severity": "P1",
+    "claim": "Negated searches supply accepted cutoff dates, allowing downstream classifications to rely on a search explicitly denied by the held text.",
+    "failing_input": "search_end('PubMed was not searched through December 2022.')",
+    "expected": "None",
+    "actual": "{'date': '2022-12', 'precision': 'month', 'span': 'PubMed was not searched through December 2022.'}",
+    "id": "r8-4-r3:g1#4",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "build",
+    "severity": "P1",
+    "claim": "A PubMed record with an empty abstract creates texts=[''], whose truthiness incorrectly passes the comparator-text gate. Missing evidence becomes a publication-based verdict instead of COMPARATOR_TEXT_UNAVAILABLE.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts import r8_4_search_dates as m\nwith patch.object(m, 'targets', return_value=[('s', '2', ['PMID 1'])]), patch('builtins.open', mock_open(read_data='{\"records\":[]}')), patch.object(m, '_pm', side_effect=lambda p: {'first_public': '2020-01' if p == '2' else '2021-01', 'basis': 'fixture', 'abstract': ''}), patch.object(m, 'fulltext_for', return_value=[]):\n    result = m.build()\n    print(result['comparators']['2']['comparator_text_available'])\n    print(result['trials']['s|PMID 1']['why_not_in_comparator'])",
+    "expected": "False\nCOMPARATOR_TEXT_UNAVAILABLE",
+    "actual": "True\nPUBLISHED_AFTER_COMPARATOR",
+    "id": "r8-4-r3:g1#5",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   }
+  ]
  }
 }

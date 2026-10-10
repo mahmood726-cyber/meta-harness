@@ -46,7 +46,9 @@ _REGISTRY = re.compile(r"\bclinical\s*trials?\.gov\b|\bictrp\b|\b(?:clinical\s+)
                        r"\bclinicaltrialsregister\.eu\b|\beu\s+ctr\b", re.I)
 # a sentence about follow-up, enrolment or publication windows of the TRIALS is not the search period
 _NOT_SEARCH = re.compile(r"\b(?:enrol(?:l)?(?:ed|ment)|follow(?:ed)?[- ]up|recruit|randomi[sz]ed\s+between|"
-                         r"registered\s+(?:with|in|at)\s+prospero|prospero\s*(?:id|registration|number|:))\b", re.I)
+                         r"registered\s+(?:with|in|at)\s+prospero|prospero\s*(?:id|registration|number|:)|"
+                         # a reference-list access date ('Retrieved from http://handbook-5-1... Accessed Nov 7, 2017')
+                         r"accessed|retrieved\s+from|https?://)\b", re.I)
 
 
 def _sentences(text):
@@ -62,8 +64,23 @@ def _clause_before(s, start):
 
 # the review's OWN publication/acceptance in the date's clause ('and the review was published in March 2022')
 _OWN_PUBLICATION = re.compile(r"\b(?:review|meta-analys[ie]s|article|manuscript|paper|study|protocol)\s+(?:was|is|has\s+"
-                              r"been|were)\s+(?:first\s+)?(?:published|accepted|submitted|posted|registered|updated)\b",
-                              re.I)
+                              r"been|were)\s+(?:first\s+)?(?:published|accepted|submitted|posted|registered|updated)\b|"
+                              # active voice: '... and submitted the manuscript on 1 December 2023'
+                              r"\b(?:submitted|accepted|published|posted|registered)\s+(?:the|this|our)\s+(?:review|"
+                              r"meta-analys[ie]s|article|manuscript|paper|study|protocol)\b", re.I)
+# a search sentence is evidence only when a SEARCH word other than a registry's own name is present ('ClinicalTrials.gov
+# supplied trial identifiers' is not a search) and nothing in it is negated ('PubMed was not searched through ...')
+_SEARCH_VERB = re.compile(r"\b(?:search(?:ed|es|ing)?|databases?|medline|pubmed|embase|cochrane\s+(?:library|central)|"
+                          r"central|web\s+of\s+science|scopus|cinahl)\b", re.I)
+
+
+# negated SEARCHING only -- 'with no language restrictions' in a search sentence is not a negated search
+_NEG_SEARCH = re.compile(r"\b(?:not|never)\s+(?:\w+\s+){0,2}search(?:ed|es|ing)?\b|\bwithout\s+searching\b|"
+                         r"\bno\s+(?:\w+\s+){0,2}search(?:es)?\s+(?:was|were)\b", re.I)
+
+
+def _search_sentence(s):
+    return bool(_SEARCH_VERB.search(s)) and not _NEG_SEARCH.search(s)
 
 
 def _not_search_clause(s, at):
@@ -80,7 +97,7 @@ def search_end(text):
     ('registered in PROSPERO in May 2021 and databases were searched up to April 2021' -> April 2021)."""
     best = None
     for s in _sentences(text):
-        if not _SEARCH.search(s):
+        if not _search_sentence(s):
             continue
         for m in _DATE.finditer(s):
             pre = s[max(0, m.start() - 40):m.start()]
@@ -131,15 +148,16 @@ _NEGATED = re.compile(r"\b(?:not|no|never|nor|without|excluding|except)\b", re.I
 
 def searched_registry(texts):
     """The first search sentence that names a TRIAL registry (ClinicalTrials.gov, ICTRP, 'trial registries' -- never
-    PROSPERO or a bare 'registry') with no negation anywhere before the mention in that sentence ('did not search
-    trial registries, including ClinicalTrials.gov' -> None). Returns the sentence (the evidence span, recorded) or
+    PROSPERO or a bare 'registry') in a sentence whose searching is not negated ('did not search trial registries,
+    including ClinicalTrials.gov' / 'ClinicalTrials.gov was not searched' -> None) and that does not except the
+    registry just before it ('excluding ClinicalTrials.gov'). Returns the sentence (the evidence span, recorded) or
     None."""
     for t in texts:
         for s in _sentences(t):
-            if not _SEARCH.search(s):
+            if not _search_sentence(s):
                 continue
             for m in _REGISTRY.finditer(s):
-                if not _NEGATED.search(s[:m.start()]):
+                if not re.search(r"\b(?:not|nor|except|excluding|other\s+than)\b[^.;]{0,40}$", s[:m.start()], re.I):
                     return s[:300]
     return None
 
@@ -339,7 +357,9 @@ def build():
                     if end:
                         src = path
                         break
-            texts = ([pm["abstract"]] if pm else []) + [t for _, t in fulltext_for(comp, slug)]
+            # an EMPTY abstract is no text: only non-blank texts count as comparator evidence
+            texts = [t for t in ([pm["abstract"]] if pm else []) + [t for _, t in fulltext_for(comp, slug)]
+                     if t and t.strip()]
             reg_span = searched_registry(texts)
             comps[comp] = {"comparator_first_public": pm and pm["first_public"], "first_public_basis": pm and pm["basis"],
                            "comparator_text_available": bool(texts),

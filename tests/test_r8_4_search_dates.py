@@ -160,3 +160,36 @@ def test_PLANT_r2_unavailable_evidence_is_never_a_verdict(monkeypatch, tmp_path)
     assert out["topic|PMID 2"]["why_not_in_comparator"] == "COMPARATOR_TEXT_UNAVAILABLE"
     assert out["topic|PMID 3"]["why_not_in_comparator"] == "COMPARATOR_TEXT_UNAVAILABLE"
     assert out["topic2|PMID 5"]["why_not_in_comparator"] == "AFTER_COMPARATOR_SEARCH_END"
+
+
+def test_PLANT_r3_negated_searching_voids_the_sentence_but_no_restrictions_does_not():
+    assert r.searched_registry(["ClinicalTrials.gov was not searched."]) is None
+    assert r.searched_registry(["ClinicalTrials.gov supplied trial identifiers."]) is None
+    assert r.search_end("PubMed was not searched through December 2022.") is None
+    assert r.search_end("We searched PubMed with no language restrictions up to May 2021.")["date"] == "2021-05"
+    assert r.searched_registry(["We searched PubMed and ClinicalTrials.gov with no language restrictions."])
+
+
+def test_PLANT_r3_an_active_voice_submission_is_not_the_search_end():
+    assert r.search_end("We searched PubMed through March 2021 and submitted the manuscript on 1 December "
+                        "2023.")["date"] == "2021-03"
+
+
+def test_PLANT_r3_an_empty_abstract_is_no_comparator_text(monkeypatch, tmp_path):
+    monkeypatch.setattr(r, "targets", lambda: [("s", "2", ["PMID 1"])])
+    monkeypatch.setattr(r, "ROOT", str(tmp_path))
+    (tmp_path / "cache" / "s").mkdir(parents=True)
+    (tmp_path / "cache" / "s" / "records.json").write_text(json.dumps({"records": []}), encoding="utf-8")
+    monkeypatch.setattr(r, "_pm", lambda p: {"first_public": "2020-01" if p == "2" else "2023-03", "basis": "x",
+                                             "abstract": "   "})
+    monkeypatch.setattr(r, "fulltext_for", lambda *a: [])
+    monkeypatch.setattr(r, "results_posted", lambda ncts, snap=None: {})
+    assert r.build()["trials"]["s|PMID 1"]["why_not_in_comparator"] == "COMPARATOR_TEXT_UNAVAILABLE"
+
+
+def test_PLANT_r3_a_reference_list_access_date_is_not_a_search_end():
+    # 29795629's own reference list: a URL hyphen read as 'to' gave 2017-11 instead of its July 2016 search end
+    text = ("We searched PubMed (including MEDLINE) and Scopus (including Embase) databases and Cochrane libraries for "
+            "randomized trials published from inception of the databases through July 2016. Retrieved from "
+            "http://handbook-5-1.cochrane.org/ Accessed November 7, 2017. 34 Holst")
+    assert r.search_end(text)["date"] == "2016-07"
