@@ -7,6 +7,7 @@ interpolated from a committed object field, so the manuscript cannot state a num
 A gate limb (harness.gate.check_manuscript_numbers) enforces this by extracting every risky numeral from the
 rendered manuscript and refusing any that is not in object_numerals(review)."""
 from __future__ import annotations
+from .estmeasure import display_measure, display_effect_label
 from . import grade as _grade_mod
 
 import html as _html
@@ -272,7 +273,7 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
         _lab = "Single trial (k = 1)" if res.get("k") == 1 else f"Pooled ({_forest_k_phrase(prim)})"
         parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(_lab)}</text>")
         parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(_fmt(pooled[0]))} (CI not served)</text>")
-    _axis = res.get("effect_label") or scale or "effect"
+    _axis = display_effect_label(res) or display_measure(res, scale or "effect")
     parts.append(f"<text x='{padL}' y='{H-6}' fill='#546e7a'>{_e(_axis)} ({'log scale, null=1' if is_ratio else 'null=0'})</text></svg>")
     if any_derived:
         parts.append("<p class='note'>\u2020 No 95% CI is stored for this row; the whisker is the per-study 95% CI computed "
@@ -326,7 +327,7 @@ def render(review, neutral: bool = False) -> str:
     scr = review.get("screening") or {}
     n_screened = len(scr.get("records", []) or [])
     k = res.get("k")
-    scale = res.get("scale") or prim.get("estimand") or "effect"
+    scale = _e(display_measure(res, prim.get("estimand") or "effect"))
     est = _fmt(res.get("estimate"))
     lo, hi = _fmt(res.get("ci_low")), _fmt(res.get("ci_high"))
     g = review.get("grade") or {}
