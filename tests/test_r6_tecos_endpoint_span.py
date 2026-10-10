@@ -70,3 +70,16 @@ def test_PLANT_adjudication_runs_after_every_comparator_row_and_span_is_attached
     src = inspect.getsource(gt.topic)
     assert src.index("apply_typed_comparator_rows(out)") < src.index("endpoint_wording_adjudication(out")
     assert src.index("endpoint_wording_adjudication(out") < src.index('out["g1_status"] = g1_status(out)')
+
+
+def test_PLANT_r1_plurals_explicit_lists_and_secondary_endpoints():
+    cfg = {"primary_outcome": {"name": "cardiovascular death, myocardial infarction, or stroke"}}
+    x = unit("cardiovascular deaths, myocardial infarction, or stroke")
+    assert gt.endpoint_wording_adjudication([x], cfg) == 0 and x["agreement_with_comparator_row"] == "AGREE"
+    cfg4 = {"primary_outcome": {"name": "cardiovascular death, myocardial infarction, stroke, or hospitalisation for "
+                                        "heart failure"}}
+    x = unit("4-point MACE (cardiovascular death, myocardial infarction, stroke, or hospitalisation for heart failure)")
+    assert gt.endpoint_wording_adjudication([x], cfg4) == 0 and x["agreement_with_comparator_row"] == "AGREE"
+    cfg2 = {"primary_outcome": {"name": "cardiovascular death or myocardial infarction"}}
+    x = unit("Primary endpoint: cardiovascular death or myocardial infarction. Secondary endpoint: stroke.")
+    assert gt.endpoint_wording_adjudication([x], cfg2) == 0 and x["agreement_with_comparator_row"] == "AGREE"

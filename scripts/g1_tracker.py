@@ -2856,8 +2856,9 @@ def decision_named_divergences(slug, trials, reg=None, decisions=None):
 
 
 _ENDPOINT_PARTS = (
-    ("CV_DEATH", r"\b(?:cardiovascular|cv)\s+(?:death|mortality)\b|\bdeath\s+(?:from|due\s+to)\s+cardiovascular\s+causes?\b"),
-    ("ALL_CAUSE_DEATH", r"\ball[- ]cause\s+(?:death|mortality)\b|\bdeath\s+from\s+any\s+cause\b"),
+    ("CV_DEATH", r"\b(?:cardiovascular|cv)\s+(?:deaths?|mortality)\b|\bdeaths?\s+(?:from|due\s+to)\s+cardiovascular\s+"
+                 r"causes?\b"),
+    ("ALL_CAUSE_DEATH", r"\ball[- ]cause\s+(?:deaths?|mortality)\b|\bdeaths?\s+from\s+any\s+cause\b"),
     ("MI", r"\bmyocardial\s+infarctions?\b|\bMI\b"),
     ("STROKE", r"\bstrokes?\b"),
     ("UNSTABLE_ANGINA", r"\bunstable\s+angina\b"),
@@ -2870,14 +2871,18 @@ _POINT_MACE = {3: {"CV_DEATH", "MI", "STROKE"}, 4: {"CV_DEATH", "MI", "STROKE", 
 
 def endpoint_components(text):
     """The composite's components named in a text (frozenset), or None when it names no composite. '3-point MACE' /
-    'three-point MACE' / '4-point MACE' expand to their standard components; otherwise >= 2 named components are
-    needed for the text to define a composite (a single word -- 'stroke' -- is not an endpoint definition)."""
-    t = str(text or "")
+    'three-point MACE' / '4-point MACE' expand to their standard components ONLY when the text lists no components of
+    its own (an explicit list always wins: '4-point MACE (CV death, MI, stroke, or hospitalisation for heart failure)');
+    otherwise >= 2 named components are needed (a single word -- 'stroke' -- is not an endpoint definition). Only the
+    FIRST endpoint definition is read: text from a 'secondary endpoint/outcome' marker on is another endpoint."""
+    t = re.split(r"\bsecondary\s+(?:end\s*-?points?|outcomes?)\b", str(text or ""), maxsplit=1, flags=re.I)[0]
+    parts = frozenset(k for k, rx in _ENDPOINT_PARTS if re.search(rx, t, re.I))
+    if len(parts) >= 2:
+        return parts
     m = re.search(r"\b(3|three|4|four)[- ]point\s+(?:MACE|major\s+adverse\s+cardiovascular\s+events?)\b", t, re.I)
     if m:
         return frozenset(_POINT_MACE[3 if m.group(1).lower() in ("3", "three") else 4])
-    parts = frozenset(k for k, rx in _ENDPOINT_PARTS if re.search(rx, t, re.I))
-    return parts if len(parts) >= 2 else None
+    return None
 
 
 def endpoint_wording_adjudication(trials, cfg):
