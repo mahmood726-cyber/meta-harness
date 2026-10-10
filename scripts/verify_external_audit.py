@@ -67,7 +67,7 @@ CHECKS = [
 # scripts write their results next to themselves -- never into the committed bytes), with UTF-8 mode on (review 16
 # writes text without an encoding, which is cp1252 on Windows). The regenerated output must equal the auditor's committed
 # one except for the named version-report paths; the pooled numbers must equal the served ones (or a SIGNED supersession).
-# Reviews 11, 17 and 22-25 arrived as reports only (no executable bundle): nothing to run.
+# Reviews 11, 17 and 22-24 arrived as reports only (no executable bundle; r22's was mentioned, not attached).
 # (dir, script, auditor output file, ignored output paths, [(label, slug, outcome, served field, path)])
 BUNDLES = [
     ("review10", "review10_check_topic10.py", ("calculation_results.json", "review10_calculation_results.json"), [], [
@@ -110,6 +110,11 @@ BUNDLES = [
     ]),
     ("review21", "audit_topic21.py", "results.json", [("runtime",), ("output",)], [
         ("statins MVE estimate (r21)", "statins-primary-prevention-elderly", None, "estimate", ("current_two_inputs", "estimate")),
+    ]),
+    ("review25", "audit.py", "results.json", [], [
+        ("colchicine secondary estimate (r25)", "colchicine-secondary-cv-prevention", None, "estimate", ("pooled", "estimate")),
+        ("colchicine secondary CI low (r25)", "colchicine-secondary-cv-prevention", None, "ci_low", ("pooled", "lower")),
+        ("colchicine secondary CI high (r25)", "colchicine-secondary-cv-prevention", None, "ci_high", ("pooled", "upper")),
     ]),
 ]
 

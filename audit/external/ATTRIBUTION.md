@@ -28,8 +28,9 @@ reported to the reviewer before anything else is changed.
 | review19/ | 19 | sglt2-primary-prevention-hf | pooled HR and floored HKSJ CI |
 | review20/ | 20 | spironolactone-hfref-mortality | PM + HKSJ pool and CI |
 | review21/ | 21 | statins-primary-prevention-elderly | two-input pooled estimate |
+| review25/ | 25 | colchicine-secondary-cv-prevention (ABANDONED) | PM + HKSJ pool and CI. Unpacked from the received zip `colchicine_secondary_cv_topic25_audit_2026-10-10.zip` (sha256 `65f1a7521f9e727fe158a6b2008257192453de5347eab601ffe07c1d6fea47b3`), files unmodified |
 
-Reviews 11, 17 and 22-25 were received as written reports only (no executable bundle); there is nothing to run.
+Reviews 11, 17 and 22-24 were received as written reports only (no executable bundle; review 22's bundle was mentioned but not attached); there is nothing to run.
 
 The auditors state their own scope in each script: these are independent arithmetic and digest checks, not harness replays.
 
