@@ -6731,5 +6731,401 @@
     "verdict": null
    }
   ]
+ },
+ "r7-4-r1": {
+  "base": "beb73a487",
+  "head": "767992ad7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-adebfcdb292d347542cebdb4ed925adf",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "cef101dd13378ea204891d3059998eeaf5006fa14f4a13d65b155875357ccb3e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "An empty registry intervention name is treated as evidence of a different agent. The list [''] passes the nonempty-names check, so missing identity evidence becomes OTHER_AGENT.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts.g1_tracker import verified_agent_identity\nT = {'trials': [{'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001'], 'slug': 'empagliflozin'}]}\n# Synthetic registry fixture:\ndata = 'nct_id|intervention_type|name\\nNCT00000001|drug|\\n'\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', mock_open(read_data=data)):\n    result = verified_agent_identity(T, agents={'empagliflozin': ['empagliflozin']}, snap='fixture', class_topics=set())\n    print(result['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED: an unnamed drug cannot establish a different agent.",
+    "actual": "OTHER_AGENT",
+    "id": "r7-4-r1:g1#1",
+    "record_id": "mc-adebfcdb292d347542cebdb4ed925adf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "Markdown table rows are not recognized as exclusion-rule boundaries. The extractor absorbs X3 into X2, allowing another rule's terms to be incorrectly certified as population exclusions.",
+    "failing_input": "classify('diabetes', x2_text('| X2 | Wrong population: children. |\\n| X3 | Wrong intervention: diabetes drugs. |'))",
+    "expected": "NOT_IN_PROTOCOL_X2",
+    "actual": "MATCHES_PROTOCOL; x2_text returns 'X2 | Wrong population: children. | | X3 | Wrong intervention: diabetes drugs. |'.",
+    "id": "r7-4-r1:g1#2",
+    "record_id": "mc-adebfcdb292d347542cebdb4ed925adf",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "The qualifier regex lacks the term boundaries used by the preceding presence check. It mistakes 'prediabetes-only' for a qualification of 'diabetes', even when diabetes is separately excluded without qualification.",
+    "failing_input": "classify('diabetes', 'X2: Exclude diabetes; also exclude prediabetes-only cohorts.')",
+    "expected": "MATCHES_PROTOCOL",
+    "actual": "CONFIG_BROADER_THAN_PROTOCOL",
+    "id": "r7-4-r1:g1#3",
+    "record_id": "mc-adebfcdb292d347542cebdb4ed925adf",
+    "verdict": null
+   }
+  ]
+ },
+ "r7-4-r2": {
+  "base": "beb73a487",
+  "head": "6ddfd7c57",
+  "runs": {
+   "g1": {
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "a2dd6d702f17d8dd513b19e972c80c71ff79893733083e4ebf458654526e0a6e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "The placebo filter discards whole intervention names containing 'placebo' or 'matching', including active-drug combinations. This can incorrectly classify the topic drug as OTHER_AGENT.",
+    "failing_input": "Synthetic fixture: fixture/interventions.txt contains 'nct_id|intervention_type|name\\nNCT00000001|DRUG|empagliflozin plus matching placebo\\nNCT00000001|DRUG|dapagliflozin\\n'. Call verified_agent_identity({'trials':[{'slug':'empagliflozin','drug':'AGENT_UNCONFIRMED','ncts':['NCT00000001']}]}, agents={'empagliflozin':['empagliflozin']}, snap='fixture', class_topics=set()).",
+    "expected": "trials[0]['drug'] == 'DRUG_MATCH': the registered active intervention explicitly includes empagliflozin.",
+    "actual": "trials[0]['drug'] == 'OTHER_AGENT'; the empagliflozin row is discarded before matching.",
+    "id": "r7-4-r2:g1#1",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "Missing topic-agent definitions are treated as evidence that every registered drug is a different agent.",
+    "failing_input": "Synthetic fixture: fixture/interventions.txt contains 'nct_id|intervention_type|name\\nNCT00000001|DRUG|empagliflozin\\n'. Call verified_agent_identity({'trials':[{'slug':'empagliflozin','drug':'AGENT_UNCONFIRMED','ncts':['NCT00000001']}]}, agents={}, snap='fixture', class_topics=set()).",
+    "expected": "Retain AGENT_UNCONFIRMED or report missing topic-agent configuration; an empty lookup cannot establish OTHER_AGENT.",
+    "actual": "trials[0]['drug'] == 'OTHER_AGENT', with REGISTRY_INTERVENTIONS recorded as its basis.",
+    "id": "r7-4-r2:g1#2",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P2",
+    "claim": "Missing required snapshot columns silently become absent drug evidence instead of a schema failure.",
+    "failing_input": "Synthetic fixture: fixture/interventions.txt contains 'nct_id|type|name\\nNCT00000001|DRUG|empagliflozin\\n'. Call verified_agent_identity({'trials':[{'slug':'empagliflozin','drug':'AGENT_UNCONFIRMED','ncts':['NCT00000001']}]}, agents={'empagliflozin':['empagliflozin']}, snap='fixture', class_topics=set()).",
+    "expected": "An explicit schema error identifying the missing intervention_type column.",
+    "actual": "Returns an unchanged trial with AGENT_UNCONFIRMED and no error or diagnostic, indistinguishable from a valid snapshot containing no drug rows.",
+    "id": "r7-4-r2:g1#3",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The first mention of X2 is accepted as the rule definition, so an introductory cross-reference hides the actual exclusion rule.",
+    "failing_input": "classify('diabetes', x2_text('See X2 for population exclusions.\\n\\n- X2: diabetes-only\\n- X3: wrong intervention'))",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL, using the actual X2 rule 'diabetes-only'.",
+    "actual": "NOT_IN_PROTOCOL_X2; x2_text returns 'X2 for population exclusions.'.",
+    "id": "r7-4-r2:g1#4",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "A nonbreaking hyphen in 'diabetes-only' defeats qualifier detection and incorrectly certifies the bare exclusion term as matching the protocol.",
+    "failing_input": "classify('diabetes', 'X2: diabetes\\u2011only')",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL.",
+    "actual": "MATCHES_PROTOCOL.",
+    "id": "r7-4-r2:g1#5",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   }
+  ]
+ },
+ "r7-4-r3": {
+  "base": "beb73a487",
+  "head": "aa5b6f5f7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b4af9e243a774d0176df746876b9ebc7",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "518040c66fc2d60822ee146105d65cba5028e8f6580c9b2e23f35ae21833010b"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "A placebo named for the topic drug establishes DRUG_MATCH even when the only active drug is a different agent. The topic-name match does not distinguish active interventions from named placebos.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import g1_tracker as g\nT = {'trials': [{'slug': 'empagliflozin', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001']}]}\nrows = 'nct_id|intervention_type|name\\nNCT00000001|drug|Placebo for empagliflozin\\nNCT00000001|drug|Sotagliflozin\\n'\nwith patch.object(g.os.path, 'isfile', return_value=True), patch('builtins.open', return_value=io.StringIO(rows)):\n    result = g.verified_agent_identity(T, agents={'empagliflozin': ['empagliflozin']}, snap='fixture', class_topics=set())\nprint(result['trials'][0]['drug'])",
+    "expected": "OTHER_AGENT: the synthetic registry fixture contains sotagliflozin and a placebo, with no active empagliflozin intervention.",
+    "actual": "DRUG_MATCH",
+    "id": "r7-4-r3:g1#1",
+    "record_id": "mc-b4af9e243a774d0176df746876b9ebc7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "A numbered Markdown definition is not recognized by the definition regex, so the fallback selects an earlier cross-reference and falsely clears an overbroad exclusion.",
+    "failing_input": "from scripts.r7_4_x2_wording_sweep import x2_text, classify\nmd = 'See X2 for diabetes exclusions.\\n\\n2. **X2**: Exclude diabetes-only populations.'\nprint(x2_text(md))\nprint(classify('diabetes', x2_text(md)))",
+    "expected": "Extract the numbered X2 definition; classify returns CONFIG_BROADER_THAN_PROTOCOL.",
+    "actual": "x2_text returns 'X2 for diabetes exclusions.'; classify returns MATCHES_PROTOCOL.",
+    "id": "r7-4-r3:g1#2",
+    "record_id": "mc-b4af9e243a774d0176df746876b9ebc7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The three-continuation-line cap silently drops exclusions from longer X2 rules, reporting an explicitly present term as absent.",
+    "failing_input": "from scripts.r7_4_x2_wording_sweep import x2_text, classify\nmd = '- X2: Exclude the following populations:\\n  - children;\\n  - pregnant patients;\\n  - healthy volunteers;\\n  - diabetes-only populations.\\n- X3: Wrong intervention.'\nprint(classify('diabetes', x2_text(md)))",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL: diabetes-only populations are explicitly excluded within X2.",
+    "actual": "NOT_IN_PROTOCOL_X2",
+    "id": "r7-4-r3:g1#3",
+    "record_id": "mc-b4af9e243a774d0176df746876b9ebc7",
+    "verdict": null
+   }
+  ]
+ },
+ "r7-4-r4": {
+  "base": "beb73a487",
+  "head": "51015506e",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "c793b16fb04fc03533d18fc33fcca134ac213419379423e80ad2396654a2a885"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity / active",
+    "severity": "P1",
+    "claim": "Placebo stripping mishandles dose-bearing names, allowing placebo evidence to establish an active drug identity or an OTHER_AGENT exclusion.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts import g1_tracker as g\nT = {'trials': [{'slug': 'empagliflozin', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001']}]}\nfor name in ['Empagliflozin 10 mg placebo', 'Placebo for empagliflozin 10 mg']:\n    data = 'nct_id|intervention_type|name\\nNCT00000001|drug|' + name + '\\n'\n    with patch.object(g.os.path, 'isfile', return_value=True), patch('builtins.open', mock_open(read_data=data)):\n        print(g.verified_agent_identity(T, agents={'empagliflozin': ['empagliflozin']}, snap='snapshot', class_topics=set())['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED for both synthetic placebo-only records.",
+    "actual": "DRUG_MATCH, then OTHER_AGENT. The first substitution leaves 'empagliflozin 10  '; the second case leaves '  10 mg', whose 'mg' is treated as active-agent evidence.",
+    "id": "r7-4-r4:g1#1",
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "Missing registry evidence for one listed NCT is silently discarded. A different drug under another NCT then establishes OTHER_AGENT despite incomplete identity evidence.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts import g1_tracker as g\nT = {'trials': [{'slug': 'empagliflozin', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001', 'NCT00000002']}]}\ndata = 'nct_id|intervention_type|name\\nNCT00000001|drug|sotagliflozin\\n'\nwith patch.object(g.os.path, 'isfile', return_value=True), patch('builtins.open', mock_open(read_data=data)):\n    print(g.verified_agent_identity(T, agents={'empagliflozin': ['empagliflozin']}, snap='snapshot', class_topics=set())['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED: the synthetic snapshot contains no intervention evidence for NCT00000002.",
+    "actual": "OTHER_AGENT. reg.get(nct, []) removes the missing NCT from consideration, and the unnamed-row safeguard does not detect missing rows.",
+    "id": "r7-4-r4:g1#2",
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The fallback treats an X2 cross-reference as an exclusion definition, producing a protocol match when no X2 rule is provided.",
+    "failing_input": "from scripts.r7_4_x2_wording_sweep import x2_text, classify\nx2 = x2_text('See X2 for diabetes exclusions.')\nprint(repr(x2), classify('diabetes', x2))",
+    "expected": "None and NO_PROTOCOL_X2: a cross-reference supplies no exclusion rule.",
+    "actual": "'X2 for diabetes exclusions.' and MATCHES_PROTOCOL.",
+    "id": "r7-4-r4:g1#3",
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "An explicit eligibility exception suppresses the broader-than-protocol warning because every mention, including permitted populations, is treated as potential exclusion evidence.",
+    "failing_input": "from scripts.r7_4_x2_wording_sweep import classify\nprint(classify('diabetes', '- X2: Exclude diabetes-only trials. Trials with heart failure and diabetes are eligible.'))",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL: excluding every diabetes mention would also exclude the expressly eligible heart-failure population.",
+    "actual": "MATCHES_PROTOCOL because the occurrence in the eligibility sentence is unqualified.",
+    "id": "r7-4-r4:g1#4",
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "verdict": null
+   }
+  ]
+ },
+ "r7-4-r5": {
+  "base": "beb73a487",
+  "head": "50d5d7702",
+  "runs": {
+   "g1": {
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "685ea30e5abb39ee53f2833647b1b083a263254dbe9d41a3e444cb2bf09dfe23"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "Splitting combination names before resolving placebo scope turns a placebo component into an active drug and falsely establishes DRUG_MATCH.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts.g1_tracker import verified_agent_identity\nT = {'trials': [{'slug': 'metformin', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001']}]}\n# Synthetic registry fixture containing only a placebo intervention.\ndata = 'nct_id|intervention_type|name\\nNCT00000001|drug|Placebo for the combination of empagliflozin and metformin\\n'\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', mock_open(read_data=data)):\n    result = verified_agent_identity(T, agents={'metformin': ['metformin']}, snap='snapshot', class_topics=set())\n    print(result['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED: the sole intervention names a placebo for a combination, providing no active-drug evidence.",
+    "actual": "DRUG_MATCH: active() discards the placebo-prefixed fragment but retains 'metformin'.",
+    "id": "r7-4-r5:g1#1",
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The inline fallback accepts a bold cross-reference as an X2 definition, allowing nonexistent protocol evidence to clear a configuration term.",
+    "failing_input": "x2 = x2_text('See **X2** for diabetes exclusions.')\nprint(x2)\nprint(classify('diabetes', x2))",
+    "expected": "None, followed by NO_PROTOCOL_X2.",
+    "actual": "'**X2** for diabetes exclusions.', followed by MATCHES_PROTOCOL.",
+    "id": "r7-4-r5:g1#2",
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "When a line starts with an X2 definition, the primary regex consumes subsequent inline rules. Terms belonging to X3 are consequently classified as X2 evidence.",
+    "failing_input": "x2 = x2_text('- **X2**: Exclude asthma-only populations; **X3**: Exclude diabetes.')\nprint(classify('diabetes', x2))",
+    "expected": "NOT_IN_PROTOCOL_X2; extraction should stop before **X3**.",
+    "actual": "MATCHES_PROTOCOL; the extracted X2 text includes the entire X3 definition.",
+    "id": "r7-4-r5:g1#3",
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "An explicit 'do not exclude' exception counts as an unqualified exclusion occurrence, masking a configuration that is broader than its protocol.",
+    "failing_input": "classify('diabetes', '- X2: Exclude diabetes-only populations; do not exclude HF trials with diabetes.')",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL: the exclusion applies only to diabetes-only populations, and the second clause explicitly protects HF trials with diabetes.",
+    "actual": "MATCHES_PROTOCOL: the protected occurrence of 'diabetes' prevents the all-occurrences-qualified check from succeeding.",
+    "id": "r7-4-r5:g1#4",
+    "record_id": "mc-79d303fefa4e50cb1089237ea7d06014",
+    "verdict": null
+   }
+  ]
+ },
+ "r7-4-r6": {
+  "base": "beb73a487",
+  "head": "dabece0e9",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "39c1c9588fa04e1b3baf19d9c3794190fd307a9d229150bfe258dcb24c46a1d9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "Agent matching permits adjacent digits, so vitamin B12 incorrectly establishes a match for vitamin B1.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts.g1_tracker import verified_agent_identity\nT = {'trials': [{'slug': 'test', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['fixture']}]}\ncsv = 'nct_id|intervention_type|name\\nfixture|drug|vitamin B12\\n'\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', return_value=io.StringIO(csv)):\n    result = verified_agent_identity(T, agents={'test': ['vitamin B1']}, snap='fixture', class_topics=set())\nprint(result['trials'][0]['drug'])",
+    "expected": "OTHER_AGENT: vitamin B12 is not vitamin B1.",
+    "actual": "DRUG_MATCH: (?![a-z]) accepts the trailing digit 2.",
+    "id": "r7-4-r6:g1#1",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "A dose-only drug row is discarded without marking identity evidence incomplete. Another named drug then establishes OTHER_AGENT even though the unidentified row could contain the topic agent.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts.g1_tracker import verified_agent_identity\nT = {'trials': [{'slug': 'test', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['fixture']}]}\ncsv = 'nct_id|intervention_type|name\\nfixture|drug|metformin\\nfixture|drug|10 mg\\n'\nwith patch('os.path.isfile', return_value=True), patch('builtins.open', return_value=io.StringIO(csv)):\n    result = verified_agent_identity(T, agents={'test': ['empagliflozin']}, snap='fixture', class_topics=set())\nprint(result['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED: the second registered drug has no identifiable molecule.",
+    "actual": "OTHER_AGENT: '10 mg' disappears from names, but neither unnamed nor missing detects the incomplete identity.",
+    "id": "r7-4-r6:g1#2",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "Mentioning another rule in an X2 continuation line truncates X2, even when the mention is merely a cross-reference.",
+    "failing_input": "md = '- X2: Wrong population:\\n  Exclude diabetes-only cohorts (see X3 for intervention exclusions).\\n- X3: Wrong intervention.'\nx = x2_text(md)\nprint(x)\nprint(classify('diabetes', x))",
+    "expected": "The extracted X2 includes its diabetes-only exclusion; classification is CONFIG_BROADER_THAN_PROTOCOL.",
+    "actual": "x2_text returns '- X2: Wrong population:'; classification is NOT_IN_PROTOCOL_X2.",
+    "id": "r7-4-r6:g1#3",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "An eligibility clause joined to an exclusion by 'but' contributes an unqualified term occurrence, incorrectly clearing an overly broad configuration.",
+    "failing_input": "classify('diabetes', '- X2: Exclude diabetes-only populations but trials with HF and diabetes are eligible.')",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL: only diabetes-only populations are excluded; HF with diabetes is explicitly eligible.",
+    "actual": "MATCHES_PROTOCOL: 'Exclude' prevents removal of the whole sentence, and the eligible population's diabetes mention defeats the all-occurrences qualification check.",
+    "id": "r7-4-r6:g1#4",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The inline fallback treats a bold cross-reference as an X2 definition unless its preceding wording matches a small blacklist. This can report protocol agreement without any held X2 definition.",
+    "failing_input": "x = x2_text('Refer to **X2** for diabetes exclusions.')\nprint(x)\nprint(classify('diabetes', x))",
+    "expected": "x2_text returns None; classification is NO_PROTOCOL_X2.",
+    "actual": "x2_text returns '**X2** for diabetes exclusions.'; classification is MATCHES_PROTOCOL.",
+    "id": "r7-4-r6:g1#5",
+    "record_id": "mc-0af08043835dd5e6035c8aed1f83ef98",
+    "verdict": null
+   }
+  ]
  }
 }
