@@ -65,7 +65,9 @@ def _effect_candidates_in_outcome(text: str, kws: list[str], *, window: int = 26
         prev_end = 0
         for m in _EFFECT_CANDIDATE.finditer(sentence):
             clause = low[prev_end:m.start()][-window:]
-            hits = [k for k in kl if k in clause]
+            # a keyword starts a word: 'vertebral fracture' never matches inside 'nonvertebral' / 'non-vertebral
+            # fracture' (V14-01: FREEDOM's nonvertebral HR became a candidate for 'New vertebral fracture')
+            hits = [k for k in kl if re.search(r"(?<![a-z0-9-])" + re.escape(k), clause)]
             if hits:
                 eff = extract._effect_from_match(m, sentence[max(0, m.start() - 260):m.end() + 120])
                 if eff:
