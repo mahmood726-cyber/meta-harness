@@ -495,14 +495,26 @@ def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
     engage = rows.get("24251359") or {}
     rely_text = " ".join([str(rely.get("title") or ""), str(rely.get("abstract") or "")])
     engage_text = " ".join([str(engage.get("title") or ""), str(engage.get("abstract") or "")])
-    rely_found = bool(re.search(r"110 mg.*?relative risk.*?0\.91.*?0\.74.*?1\.11", rely_text, re.I | re.S))
-    edox_low_found = bool(re.search(r"low-dose edoxaban.*?hazard ratio,\s*1\.13.*?0\.96.*?1\.34", engage_text, re.I | re.S))
+    # r24: every number is READ from the held abstract (effect, CI level, bounds) -- none is written here. ENGAGE's
+    # low-dose interval is a 97.5% CI, which the old literals silently re-labelled as 95%.
+    # anchored to the exact clause naming the arm and comparison: a loose 'low-dose edoxaban.*?hazard ratio' reads the
+    # on-treatment 1.07 (0.87-1.31) that comes first in the abstract instead of the intention-to-treat 1.13
+    rely_m = re.search(r"110 mg of dabigatran \(relative risk with dabigatran,\s*(\d+\.\d+);\s*(\d+(?:\.\d+)?)%\s*"
+                       r"confidence interval(?:\s*\[CI\])?,\s*(\d+\.\d+)\s*to\s*(\d+\.\d+)", rely_text, re.I)
+    edox_m = re.search(r"unfavorable trend with low-dose edoxaban versus warfarin \(hazard ratio,\s*(\d+\.\d+);\s*"
+                       r"(\d+(?:\.\d+)?)%\s*CI,\s*(\d+\.\d+)\s*to\s*(\d+\.\d+)", engage_text, re.I)
+    rely_found, edox_low_found = bool(rely_m), bool(edox_m)
     edox_30_label_found = bool(re.search(r"\b30\s*mg\b", engage_text, re.I))
+
+    def _read(m, scale):
+        return {"effect": float(m.group(1)), "ci_level": float(m.group(2)), "ci_low": float(m.group(3)),
+                "ci_high": float(m.group(4)), "scale": scale, "source_span": m.group(0)[-160:]}
+
     available = []
     if rely_found:
-        available.append({"trial": "RE-LY", "arm": "dabigatran 110 mg", "effect": 0.91, "ci_low": 0.74, "ci_high": 1.11, "scale": "RR"})
+        available.append({"trial": "RE-LY", "arm": "dabigatran 110 mg", **_read(rely_m, "RR")})
     if edox_low_found:
-        available.append({"trial": "ENGAGE AF-TIMI 48", "arm": "low-dose edoxaban", "effect": 1.13, "ci_low": 0.96, "ci_high": 1.34, "scale": "HR"})
+        available.append({"trial": "ENGAGE AF-TIMI 48", "arm": "low-dose edoxaban", **_read(edox_m, "HR")})
     if rely_found and edox_30_label_found:
         status = "READY_TO_COMPUTE"
         reason = "RE-LY 110 mg and edoxaban 30 mg effects are both explicitly present in committed sources."

@@ -17,6 +17,9 @@ from .synth import Study, pool
 IN_COMMITTED_SOURCE = "IN_COMMITTED_SOURCE"
 IN_SOURCE_DIFFERENT_ESTIMAND = "IN_SOURCE_DIFFERENT_ESTIMAND"
 NOT_IN_COMMITTED_SOURCE = "NOT_IN_COMMITTED_SOURCE"
+# the outcome is reported, but no held / open source states the per-arm counts and denominators (r24 COPPS): refused,
+# never reconstructed from percentages and a pooled total
+REFUSED_DENOMINATORS_NOT_STATED = "REFUSED_DENOMINATORS_NOT_STATED"
 
 
 def _primary(review: dict[str, Any]) -> dict[str, Any] | None:
@@ -167,20 +170,20 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
             return out
 
     if slug == "colchicine-postop-af" and key == "22090167":
-        if "12.0% versus 22.0%" in text and "336 patients" in text:
-            out.update({
-                "value_status": IN_COMMITTED_SOURCE,
-                "missing_class": "EXTRACTION_DEBT",
-                "ai": 20,
-                "n1i": 169,
-                "ci": 37,
-                "n2i": 167,
-                "scale": outcome.get("estimand") or "RR",
-                "source_ref": "cache/colchicine-postop-af/records.json#22090167.abstract",
-                "source_span": _span(text, "336 patients", "12.0% versus 22.0%"),
-                "verify_basis": "counts reconstructed from committed abstract percentages and total substudy denominator",
-            })
-            return out
+        # r24: the 20/169 v 37/167 that stood here were INFERRED -- per-arm denominators split from the substudy total
+        # (336) and events from the rounded percentages (12.0% v 22.0%); the auditor's own source has 35 placebo
+        # events. No held or open source states the per-arm counts (abstract: total + percentages only; no PMC copy;
+        # the publisher's bronze PDF answers 403 to a plain request and is not bypassed): REFUSED, never inferred
+        out.update({
+            "value_status": REFUSED_DENOMINATORS_NOT_STATED,
+            "missing_class": "SOURCE_ABSENT",
+            "source_ref": "cache/colchicine-postop-af/records.json#22090167.abstract",
+            "source_span": _span(text, "336 patients", "12.0% versus 22.0%"),
+            "verify_basis": ("per-arm counts and denominators are not stated in any held or open source: the abstract "
+                             "gives the substudy total (336) and percentages only; counts are never reconstructed "
+                             "from percentages"),
+        })
+        return out
 
     if not rec:
         out["verify_basis"] = "named trial is not present in the committed topic cache"
