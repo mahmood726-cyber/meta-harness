@@ -24,6 +24,7 @@ from . import parity_relation
 from . import comparator_truth
 from . import endpoint_canonical as endpoint_canonical_mod
 from . import k2 as k2_mod
+from . import loo as loo_mod
 from . import identity as identity_mod
 from . import membership as membership_mod
 from . import grade as grade_mod
@@ -1943,19 +1944,32 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # hidden). Uses the same pooler and scale; no new number is invented.
         k_now = out["result"].get("k")
         if isinstance(k_now, int) and k_now >= 3 and not _incompat and not out["result"].get("pool_refused"):
+            # C4 (external audit R8-1, r13): each re-pool keeps ITS 95% CI from the same pooler (PM + HKSJ), and point
+            # stability (the range of estimates) is reported separately from inference stability (whether each
+            # re-pooled CI keeps the full pool's position relative to the null). A drop that leaves k=2 follows the
+            # served k=2 policy: its CI is not served, so its inference is not assessed.
+            null = 0.0 if str(pooled_scale).upper() in ("MD", "SMD") else 1.0
             loo = []
             for j in range(len(studies)):
                 sub = studies[:j] + studies[j + 1:]
                 r = _pool_result(sub, scale=pooled_scale)
-                loo.append({"dropped": studies[j].label, "estimate": r.get("estimate")})
+                row = {"dropped": studies[j].label, "estimate": r.get("estimate")}
+                if len(sub) >= 3:
+                    row.update(ci_low=r.get("ci_low"), ci_high=r.get("ci_high"), ci_provenance=r.get("ci_provenance"),
+                               inference=loo_mod.ci_position(r.get("ci_low"), r.get("ci_high"), null))
+                else:
+                    row.update(ci_low=None, ci_high=None, inference="NOT_ASSESSED_K2",
+                               ci_note="re-pool has k=2: CI not served (k=2 policy), inference not assessed")
+                loo.append(row)
             ests = [x["estimate"] for x in loo if x["estimate"] is not None]
             base = out["result"].get("estimate")
             worst = max(loo, key=lambda x: abs((x["estimate"] or base) - base)) if (ests and base) else None
+            full = loo_mod.ci_position(out["result"].get("ci_low"), out["result"].get("ci_high"), null)
             out["result"]["leave_one_out"] = {
                 "min": min(ests) if ests else None, "max": max(ests) if ests else None,
                 "most_influential": worst["dropped"] if worst else None,
-                "per_trial": loo,
-                "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."}
+                "per_trial": loo, "full_pool_inference": full,
+                **loo_mod.inference_summary(loo, full, null)}
         elif isinstance(k_now, int) and not _incompat and not out["result"].get("pool_refused"):
             out["result"]["leave_one_out"] = {"note": f"not assessable at k={k_now} (leave-one-out needs k>=3)"}
         if out["result"].get("k") == 1:

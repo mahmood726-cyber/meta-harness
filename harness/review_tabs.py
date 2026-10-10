@@ -401,9 +401,15 @@ def analysis_tab(r: dict) -> str:
             out.append("<table class='kv'>" + "".join(f"<tr><th>{_e(k)}</th><td>{v}</td></tr>" for k, v in rows) + "</table>")
         loo = res.get("leave_one_out") or {}
         if loo.get("per_trial"):
+            def _loo_ci(x):
+                if x.get("ci_low") is not None:
+                    return f"{_fmt(x.get('ci_low'))} to {_fmt(x.get('ci_high'))}"
+                return _e(x.get("ci_note") or "not recorded")
             out.append("<p>Leave-one-out: " + _e(loo.get("note")) + "</p><table class='recs'><tr><th>Trial dropped</th>"
-                       "<th>Re-pooled estimate</th></tr>"
-                       + "".join(f"<tr><td>{_e(x.get('dropped'))}</td><td>{_fmt(x.get('estimate'))}</td></tr>" for x in loo["per_trial"])
+                       "<th>Re-pooled estimate</th><th>Re-pooled 95% CI</th><th>Position relative to the null</th></tr>"
+                       + "".join(f"<tr><td>{_e(x.get('dropped'))}</td><td>{_fmt(x.get('estimate'))}</td>"
+                                 f"<td>{_loo_ci(x)}</td><td>{_e(x.get('inference') or 'not recorded')}</td></tr>"
+                                 for x in loo["per_trial"])
                        + f"</table><p class='muted'>Range {_fmt(loo.get('min'))} to {_fmt(loo.get('max'))}; most influential: "
                        f"{_e(loo.get('most_influential'))}.</p>")
         else:
