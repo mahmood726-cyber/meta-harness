@@ -10,8 +10,12 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import components as components_mod
 from . import extract, hand_binding
 from .ctgov_results import _classify_arms, _num, _registry_measure_type
+
+# an enumerated composite item no vocabulary maps (harness.components): kept, never dropped (P0)
+NOT_ESTABLISHED_PREFIX = "component not established: "
 
 EXACT_TARGET = "EXACT_TARGET"
 NEAR_MATCH = "NEAR_MATCH"
@@ -254,11 +258,21 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
         comps.add("sustained egfr decline")
     if "renal death" in s or "death from renal" in s:
         comps.add("renal death")
-    if expand_named_composites and ("mace" in s or "major adverse cardiovascular" in s or "major cardiovascular" in s):
-        if not comps or "3-point" in s or "three-point" in s:
+    # P0 (reviews 18/25/28/29): the shared vocabulary decides two things this parser used to guess.
+    shared = components_mod.components(text, expand_generic=False)
+    generic = "mace" in s or "major adverse cardiovascular" in s or "major cardiovascular" in s or "major vascular event" in s
+    # (1) a generic label expands to the default 3-point set only when the text ENUMERATES nothing ('major cardiovascular
+    #     events, which comprised ... cardiac interventions' is Alpha Omega's own definition, not 3-point MACE)
+    if expand_named_composites and generic:
+        if (not comps and not shared.enumerated) or "3-point" in s or "three-point" in s:
             comps.update({"cardiovascular death", "myocardial infarction", "stroke"})
         if "4-point" in s or "four-point" in s:
             comps.add("unstable angina")
+    # (2) an enumerated item NO vocabulary maps is kept as a NOT_ESTABLISHED component, never dropped: the composite is then
+    #     not the target unless the outcome declares near-match permission (the same rule that refuses ASCEND's TIA).
+    #     Only in a composite context, so a 'defined as <population>' sentence grows no component.
+    if shared.unknown and (comps or generic):
+        comps.update(f"{NOT_ESTABLISHED_PREFIX}{u}" for u in shared.unknown)
     return comps
 
 
