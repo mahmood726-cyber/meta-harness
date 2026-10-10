@@ -60,6 +60,10 @@ def stale_heterogeneity(review):
         return ""
     n = missing_family_count(review)
     count = f"{n} eligible families not in the pool" if n is not None else "eligible families not in the pool; count not established"
+    prim = next((o for o in review.get("outcomes", []) if o.get("primary")), {})
+    if (prim.get("result") or {}).get("k") == 1:   # C3: one trial -- no pooled membership, no heterogeneity to qualify
+        absent = f"{n} eligible families absent" if n is not None else "eligible families absent; count not established"
+        return f"STALE: single-trial evidence known incomplete ({absent}); with one trial there is no between-trial heterogeneity to interpret."
     return f"STALE: pooled membership known incomplete ({count}); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
 
 
