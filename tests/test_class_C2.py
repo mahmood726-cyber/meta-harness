@@ -89,5 +89,6 @@ def test_sweep_served_reviews():
         for axis, status in derived["axis_matches"].items():
             assert f"{axis.replace('_', ' ')}: {status}" in markup, path.parent.name
         assert review == original  # Rendering cannot change any stored results.
-    assert before == 22
+    # `before` counts affirmative verdicts in the COMMITTED pages: 22 on main 630e622bf (the class's instances); it is
+    # 0 once the captain re-renders, so it is reported, never asserted -- asserting it would fail exactly when fixed
     assert after == 0
