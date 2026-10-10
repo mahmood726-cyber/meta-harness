@@ -263,6 +263,18 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
 
 
 
+def _pooling_method_sentence(res):
+    """C3: a single trial (k = 1) is not pooled, so it is never described with the random-effects method; the interval is
+    named as the trial's reported CI or a reconstruction, from the result's own ci_provenance."""
+    if (res or {}).get("k") == 1:
+        reported = (res or {}).get("ci_provenance") == "source-reported-CI:k=1-verbatim"
+        return ("With a single trial (k = 1) nothing was pooled: the result is that trial's estimate with "
+                + ("its reported 95% CI, verbatim" if reported else "a 95% CI reconstructed from its own data (no reported CI was used)")
+                + "; no random-effects model, heterogeneity or prediction interval applies.")
+    return ("Pooling used random effects "
+            "(Paule-Mandel &tau;&sup2; with a Hartung-Knapp interval on t with k&minus;1 df; log scale for ratios).")
+
+
 def _eligibility_rule_sentence(review):
     """The eligibility rule as REGISTERED, derived from the committed protocol prose (harness.protocol_compiler
     .eligibility_clause) -- never a literal. glp1's B-prime clause makes prospective, systematic outcome ascertainment an
@@ -422,8 +434,7 @@ def render(review, neutral: bool = False) -> str:
         f"{reg_methods} {_eligibility_rule_sentence(review)} Two independently implemented rule screeners ran with "
         "adjudication. Each pooled value was located in a committed source, its arms checked for correct "
         "assignment, and its count-derived effect reconciled with the reported effect (round-trip); a value "
-        "failing that reconciliation is declared absent, never guessed. Pooling used random effects "
-        "(Paule-Mandel &tau;&sup2; with a Hartung-Knapp interval on t with k&minus;1 df; log scale for ratios).</p>"
+        "failing that reconciliation is declared absent, never guessed. " + _pooling_method_sentence(res) + "</p>"
     )
 
     # ---- results ----
