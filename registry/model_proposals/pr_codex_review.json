@@ -6797,5 +6797,71 @@
     "verdict": null
    }
   ]
+ },
+ "tx-rebase-r2": {
+  "base": "cdd81860a",
+  "head": "377209d0b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_table_result.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "940ea5469fb8af41620c1cd91badf9e1ab8972572d03284a3f114ec28f7da880"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "The denominator check ignores definitions outside the arm-header cells, allowing explicitly different populations into a recorded contrast.",
+    "failing_input": "Use a topic naming intervention 'tranexamic acid', comparator 'placebo', and primary outcome 'Death due to bleeding'. Supply eligible held CC JATS whose jats_text is:\nTable 1. n = deaths; N = randomised population for tranexamic acid and safety population for placebo.\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\nDeath due to bleeding | 10/100 | 20/100 | 0.44 (0.20–0.90)",
+    "expected": "Refuse to record a contrast combining randomised and safety denominators.",
+    "actual": "Both extracted population sets are empty and therefore equal. Returns a RECORDED result with events_t=10, n_t=100, events_c=20, n_c=100 and estimate=0.44.",
+    "id": "tx-rebase-r2:g1#1",
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "header_above / table_result",
+    "severity": "P0",
+    "claim": "Roman-numbered captions do not stop the header search, allowing a later table to inherit the previous table's opposite arm order.",
+    "failing_input": "With the same matching intervention, comparator and outcome topic, use this eligible held text:\nTable I. Safety\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\nTable II. Deaths\nOutcome | Placebo | Tranexamic acid | Pooled OR (95% CI)\nDeath due to bleeding | 10/100 | 20/100 | 0.44 (0.20–0.90)\nDirect helper reproduction: header_above(text.splitlines(), 4).",
+    "expected": "header_above returns None because Table II separates the row from the old header; table_result refuses the missing qualifying header.",
+    "actual": "header_above returns 1. table_result records placebo's 10 deaths as intervention deaths, tranexamic acid's 20 deaths as control deaths, and 0.44 as the intervention-versus-control OR.",
+    "id": "tx-rebase-r2:g1#2",
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P1",
+    "claim": "A pooled OR need not have the same direction as the OR calculated from collapsed arm totals. The direction gate rejects valid meta-analysis results under unequal allocation across trials.",
+    "failing_input": "For a matching topic and eligible held source, use:\nTable 1. Pooled results\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\nDeath due to bleeding | 91/120 | 29/120 | 0.47 (0.11–2.11)\nThese totals can come from two trials: intervention/control deaths 90/100 versus 19/20, and 1/20 versus 10/100. Each trial has OR=0.4736842105; their common pooled OR rounds to 0.47.",
+    "expected": "Accept the printed pooled result; collapsed totals do not establish that its orientation is reversed.",
+    "actual": "Returns (None, 'T3_CELLS: printed OR 0.47 is on the other side of 1 from the counts (9.85)').",
+    "id": "tx-rebase-r2:g1#3",
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P1",
+    "claim": "Population matching is case-sensitive despite case-insensitive extraction, so identical denominator populations can be classified as different.",
+    "failing_input": "For a matching topic and eligible held source, use:\nTable 1. Results\nOutcome | Tranexamic acid, randomised (n/N) | Placebo, Randomised (n/N) | Pooled OR (95% CI)\nDeath due to bleeding | 10/100 | 20/100 | 0.44 (0.20–0.90)",
+    "expected": "Treat both denominators as randomised and continue parsing.",
+    "actual": "Returns (None, \"T2_HEADER: arm populations differ [['randomised'], ['Randomised']]\") because re.findall preserves the matched text's case.",
+    "id": "tx-rebase-r2:g1#4",
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -40,6 +40,14 @@ _POPULATION = (r"\b(?:randomi[sz]ed|intention[- ]to[- ]treat|ITT|mITT|modified|p
                r"analy[sz]ed|evaluable|full\s+analysis)\b")
 
 
+def _canon_pop(p):
+    """One name per population ('randomised'/'randomized'/'intention-to-treat'/'ITT' are the randomised set)."""
+    p = re.sub(r"[\s-]+", " ", p.lower())
+    return {"randomized": "randomised", "intention to treat": "randomised", "itt": "randomised",
+            "full analysis": "randomised", "modified": "mitt", "per protocol": "pp", "analyzed": "analysed",
+            "treated": "safety"}.get(p, p)
+
+
 def _n(s):
     return int(re.sub(r"[\s  ,]", "", s))
 
@@ -49,7 +57,7 @@ def _f(s):
 
 
 # any table/figure caption, including supplementary ones ('Table S2', 'Supplementary Table 3', 'eTable 1')
-_CAPTION = re.compile(r"^\s*(?:supplementa(?:ry|l)\s+)?(?:e|S)?(?:Table|Figure|Fig\.?)\s*[A-Z]?\d", re.I)
+_CAPTION = re.compile(r"^\s*(?:supplementa(?:ry|l)\s+)?(?:e|S)?(?:Table|Figure|Fig\.?)\s*(?:[A-Z]?\d|[IVXLC]+\b)", re.I)
 
 
 def header_above(lines, i):
@@ -158,9 +166,18 @@ def table_result(slug):
     # cell parse; zero or two such offsets refuse
     # the two arm headers must not name DIFFERENT denominator populations ('randomised' v 'safety' -- codex
     # tx-rebase-r1 #1): counts over different populations are never one contrast
-    pops = [set(re.findall(_POPULATION, hc[k], re.I)) for k in arms]
+    pops = [{_canon_pop(p) for p in re.findall(_POPULATION, hc[k], re.I)} for k in arms]
     if pops[0] != pops[1]:
         return None, f"T2_HEADER: arm populations differ {[sorted(p) for p in pops]}"
+    # ... nor may the table's own caption / notes define two different populations for its denominators ('N =
+    # randomised population for tranexamic acid and safety population for placebo') -- the block from the previous
+    # caption (or 40 lines) down to the row
+    top = next((j for j in range(hdr, max(hdr - 40, -1), -1) if _CAPTION.search(lines[j])), max(hdr - 40, 0))
+    below = next((j for j in range(i + 1, min(i + 40, len(lines))) if _CAPTION.search(lines[j])), min(i + 40, len(lines)))
+    block_pops = {_canon_pop(p) for ln in lines[top:hdr] + lines[i + 1:below] if not is_result_row(ln)
+                  for p in re.findall(_POPULATION, ln, re.I)}
+    if len(block_pops) >= 2:
+        return None, f"T2_HEADER: the table defines more than one denominator population {sorted(block_pops)}"
     # an estimate header that states its own contrast must state OURS in the arm-column order (codex tx-rebase-r1 #2):
     # 'Placebo vs tranexamic acid OR' over intervention-first arm columns is refused, never silently inverted
     eh = hc[est_col]
@@ -175,13 +192,17 @@ def table_result(slug):
     et, nt, ec, nc = _n(a.group(1)), _n(a.group(2)), _n(b.group(1)), _n(b.group(2))
     if not (0 <= et <= nt and 0 <= ec <= nc and nt > 0 and nc > 0):
         return None, f"T3_CELLS: events exceed their denominator ({et}/{nt}, {ec}/{nc})"
-    # the printed ratio must lie on the side of 1 the arm counts imply (a reversed contrast prints 2.25 over 10/100 v
-    # 20/100): refused, never inverted
+    # the side of 1 the COLLAPSED arm totals imply, beside the printed pooled ratio: RECORDED, never a refusal -- a
+    # pooled estimate can legitimately differ in direction from collapsed totals under unequal allocation across
+    # trials (Simpson; codex tx-rebase-r2 #3); a reversal STATED by the estimate header is refused above
+    direction_check = None
     if measure in ("OR", "RR") and 0 < et < nt and 0 < ec < nc:
         implied = ((et / (nt - et)) / (ec / (nc - ec))) if measure == "OR" else ((et / nt) / (ec / nc))
         est = _f(e.group(1))
-        if (implied - 1) * (est - 1) < 0 and abs(implied - 1) > 0.05 and abs(est - 1) > 0.05:
-            return None, f"T3_CELLS: printed {measure} {est} is on the other side of 1 from the counts ({implied:.2f})"
+        direction_check = {"collapsed_totals_imply": round(implied, 4),
+                           "state": ("OTHER_SIDE_OF_1_FROM_COLLAPSED_TOTALS"
+                                     if (implied - 1) * (est - 1) < 0 and abs(implied - 1) > 0.05 and abs(est - 1) > 0.05
+                                     else "SAME_SIDE")}
     sha = hashlib.sha256(open(jats[-1], "rb").read()).hexdigest()
     return {"state": "RECORDED", "comparator_pmid": comp, "outcome": rc[0], "contrast": f"{hc[arms[0]]} vs {hc[arms[1]]}",
             "scale": measure, "estimate": _f(e.group(1)), "ci_low": _f(e.group(2)), "ci_high": _f(e.group(3)),
@@ -189,7 +210,7 @@ def table_result(slug):
             "printed": lines[i].strip(), "location": {"table": "results table", "block": rc[0], "row": rc[0],
                                                       "column": hc[est_col]},
             "orientation": f"arm columns in header order: {hc[arms[0]]} | {hc[arms[1]]}",
-            "orientation_check": {"header": lines[hdr].strip()},
+            "orientation_check": {"header": lines[hdr].strip()}, "direction_check": direction_check,
             "source": os.path.relpath(jats[-1], ROOT).replace("\\", "/"), "sha256": sha,
             "typed_by": "scripts/g1_comparator_table_result.py (T1-T3)"}, None
 

@@ -93,13 +93,10 @@ def test_PLANT_r1_arm_headers_over_different_populations_are_refused(monkeypatch
     assert r is None and "populations differ" in why
 
 
-def test_PLANT_r1_a_reverse_contrast_is_refused_never_inverted(monkeypatch, tmp_path):
+def test_PLANT_r1_a_reverse_contrast_stated_by_the_estimate_header_is_refused_never_inverted(monkeypatch, tmp_path):
     r, why = _reader(monkeypatch, tmp_path, "Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Placebo vs tranexamic "
                                             "acid OR (95% CI)\nDeath | 10/100 | 20/100 | 2.25 (1.00-5.06)")
     assert r is None and "reverse contrast" in why
-    r, why = _reader(monkeypatch, tmp_path, "Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\n"
-                                            "Death | 10/100 | 20/100 | 2.25 (1.00-5.06)")
-    assert r is None and "other side of 1" in why
 
 
 def test_PLANT_r1_a_decimal_comma_is_never_a_count():
@@ -111,3 +108,30 @@ def test_PLANT_r1_a_supplementary_caption_stops_the_header_search():
     lines = ["Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)", "Table S2. Supplementary results",
              "Outcome | Placebo | Tranexamic acid | Pooled OR (95% CI)", "Death | 20/100 | 10/100 | 2.25 (1.00–5.06)"]
     assert tr.header_above(lines, 3) is None
+
+
+def test_PLANT_r2_a_table_note_defining_two_populations_is_refused(monkeypatch, tmp_path):
+    r, why = _reader(monkeypatch, tmp_path, "Table 1. n = deaths; N = randomised population for tranexamic acid and "
+                                            "safety population for placebo.\nOutcome | Tranexamic acid (n/N) | Placebo "
+                                            "(n/N) | Pooled OR (95% CI)\nDeath | 10/100 | 20/80 | 0.40 (0.20-0.90)")
+    assert r is None and "more than one denominator population" in why
+
+
+def test_PLANT_r2_roman_captions_stop_the_header_search():
+    lines = ["Table I. Safety", "Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)",
+             "Table II. Efficacy", "Outcome | Placebo | Tranexamic acid | Pooled OR (95% CI)",
+             "Death | 20/100 | 10/100 | 2.25 (1.00–5.06)"]
+    assert tr.header_above(lines, 4) is None
+
+
+def test_PLANT_r2_a_pooled_ratio_on_the_other_side_of_collapsed_totals_is_recorded_and_flagged(monkeypatch, tmp_path):
+    # Simpson: a pooled OR can differ in direction from collapsed arm totals -- recorded with the flag, not refused
+    r, why = _reader(monkeypatch, tmp_path, "Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\n"
+                                            "Death | 10/100 | 20/100 | 2.25 (1.00-5.06)")
+    assert r and r["direction_check"]["state"] == "OTHER_SIDE_OF_1_FROM_COLLAPSED_TOTALS", why
+
+
+def test_PLANT_r2_population_names_compare_case_and_spelling_insensitively(monkeypatch, tmp_path):
+    r, why = _reader(monkeypatch, tmp_path, "Outcome | Tranexamic acid, randomised (n/N) | Placebo, Randomized (n/N) | "
+                                            "Pooled OR (95% CI)\nDeath | 10/100 | 20/100 | 0.44 (0.20-0.99)")
+    assert r is not None, why
