@@ -217,17 +217,24 @@ def _derive_endpoint(
             # The marker must govern the matched CLAUSE (back to the previous ';' or sentence start), and that clause
             # may not call itself secondary: 'Primary endpoint: mortality; secondary endpoint: serious vascular event'
             # defines nothing primary (codex harms-r8#1).
+            # harms-r9#1: the match must be INTRODUCED by the primary label -- the match itself begins 'primary ...', or
+            # the lead-in ENDS with 'primary outcome/end point (measure) (was|:)' or 'MAIN OUTCOME MEASURE(S):' -- and
+            # the rest of its sentence may not designate it secondary ('... as a secondary outcome').
             clause = _clause_to(text, m)
-            lead_in = clause[:len(clause) - len(m.group(0))]     # the role words BEFORE the match, never its body
-            applies = (bool(outcome.get("primary"))
-                       and bool(re.search(r"\bprimary\b|\bmain outcome measures?\b", clause, re.I))
-                       and not re.search(r"\b(?:secondary|tertiary|exploratory|other)\b", lead_in, re.I))
+            lead_in = clause[:len(clause) - len(m.group(0))]
+            introduced = bool(re.match(r"primary\b", m.group(0), re.I)) or bool(re.search(
+                r"(?:\bprimary (?:efficacy )?(?:outcome|end ?point)s?(?: measures?)?|\bmain outcome measures?)"
+                r"\s*(?:was|were|is|:|,|-)?\s*(?:the |a |an )?$", lead_in, re.I))
+            tail = _sentence_rest(text, m)
+            applies = (bool(outcome.get("primary")) and introduced
+                       and not re.search(r"\bas an? (?:secondary|tertiary|exploratory)\b|\b(?:secondary|tertiary|"
+                                         r"exploratory) (?:outcome|end ?point)", tail, re.I))
         else:
             # the outcome's whole name must BE the subject: 'AAD-related hospital admission' is not AAD (harms-r6#1);
-            # and the source's own subject may not be negated just before the match: 'Non-antibiotic-associated
-            # diarrhoea (...)' does not define AAD (harms-r8#2)
-            qual = re.search(r"([\w-]+)\s*$", text[:m.start()])
-            negated = bool(qual and re.search(r"^(?:non|not|un|without)\b|^non-|-non-", qual.group(1), re.I))
+            # and the source's own subject may not be negated in the qualifier words just before the match, hyphenated
+            # or spaced: 'Non-antibiotic(-| )associated diarrhoea (...)' does not define AAD (harms-r8#2, r9#2)
+            qual = re.search(r"((?:[\w-]+\s+){0,3}[\w-]+)\s*$", _clause_to(text, m)[:-len(m.group(0)) or None])
+            negated = bool(qual and re.search(r"(?:^|[\s-])(?:non|not|un|without)(?:[\s-]|$)", qual.group(1), re.I))
             applies = (not negated) and bool(re.fullmatch(subject, str(outcome.get("name") or "").strip(), re.I))
         if applies:
             return _derived(value, "committed source text", _short_span(text, m))
@@ -245,6 +252,12 @@ _PRIMARY = object()                                         # the rule's sentenc
 _AAD_SUBJECT = r"(?:antibiotic[- ]associated\s+)?diarrho?ea(?:\s*\(AAD\))?|AAD"
 # ... defines only an outcome whose WHOLE name is AAD itself
 _AAD_ONLY = r"antibiotic[- ]associated\s+diarrho?ea(?:\s*\(AAD\))?|AAD"
+
+
+def _sentence_rest(text: str, m: "re.Match[str]") -> str:
+    """The rest of the match's sentence after it (to the next '. ' or the end)."""
+    end = text.find(". ", m.end())
+    return text[m.end():end if end >= 0 else len(text)]
 
 
 def _clause_to(text: str, m: "re.Match[str]") -> str:

@@ -174,3 +174,14 @@ def test_PLANT_codex_harms_r8_2_a_negated_qualifier_blocks_the_definition():
 def test_a_primary_definition_that_mentions_other_causes_is_still_primary():
     text = "The primary outcome was a composite of death from cardiovascular or other causes and myocardial infarction."
     assert "other causes" in _endpoint({"name": "Death or MI", "primary": True}, "9", text)["value"]
+
+
+def test_PLANT_codex_harms_r9_1_a_primary_rule_must_be_introduced_by_the_primary_label():
+    text = ("Primary outcome: all-cause mortality, with serious vascular event (stroke or myocardial infarction) as a "
+            "secondary outcome.")
+    assert _endpoint({"name": "All-cause mortality", "primary": True}, "10", text)["value"] == "All-cause mortality"
+
+
+def test_PLANT_codex_harms_r9_2_a_multi_word_negated_qualifier_blocks_the_definition():
+    text = "Non-antibiotic associated diarrhoea (three or more loose stools within 24 hours) was recorded."
+    assert _endpoint({"name": "AAD", "primary": False}, "11", text)["value"] == "AAD"

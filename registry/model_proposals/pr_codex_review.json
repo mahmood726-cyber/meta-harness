@@ -7079,5 +7079,47 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r9": {
+  "base": "fca8cff07",
+  "head": "85902151f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fd565566036ac56e2e5b2bdc1b55b15d",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "c682f95de60749334307dac3bad8a6695cf22e1f52061173b0dfb494c81de39b"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The primary-outcome guard binds a secondary endpoint's definition to the primary outcome when both occur in one clause. It checks for 'secondary' only before the match, ignoring an explicit secondary designation after it.",
+    "failing_input": "text = 'Primary outcome: all-cause mortality, with serious vascular event (stroke or myocardial infarction) as a secondary outcome.'; outcome = {'name': 'All-cause mortality', 'primary': True}; audit_row = None; no earlier definition override.",
+    "expected": "Retain 'All-cause mortality' with outcome.name as the basis; the vascular-event definition explicitly belongs to a secondary outcome.",
+    "actual": "Returns _derived('serious vascular event (stroke or myocardial infarction)', 'committed source text', ...). The clause contains 'Primary', while lead_in contains no 'secondary', so applies is True.",
+    "id": "harms-r9:g1#1",
+    "record_id": "mc-fd565566036ac56e2e5b2bdc1b55b15d",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The negation guard examines only the immediately preceding token, allowing explicitly non-antibiotic-associated diarrhoea to define AAD when the qualifier uses spaces.",
+    "failing_input": "text = 'Non-antibiotic associated diarrhoea (three or more loose stools within 24 hours) was recorded.'; outcome = {'name': 'AAD', 'primary': False}; audit_row = None; no earlier definition override.",
+    "expected": "Retain 'AAD' with outcome.name as the basis; a definition explicitly concerning non-antibiotic-associated diarrhoea cannot define AAD.",
+    "actual": "Returns _derived('diarrhoea (three or more loose stools within 24 hours)', 'committed source text', ...). qual.group(1) is 'associated', negated is False, and _AAD_SUBJECT accepts 'AAD'.",
+    "id": "harms-r9:g1#2",
+    "record_id": "mc-fd565566036ac56e2e5b2bdc1b55b15d",
+    "verdict": null
+   }
+  ]
  }
 }
