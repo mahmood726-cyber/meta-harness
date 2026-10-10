@@ -27,8 +27,12 @@ def x2_text(md):
     # the rule's DEFINITION line ('- X2:', '| X2 |', '**X2** -') before any cross-reference ('See X2 for ...')
     # (continuation runs to the next rule or a blank line -- no line cap; numbered items '2. **X2**:' are definitions)
     cont = r"(?:\n(?![^\n]*\bX(?:[013-9]|\d\d)\b)[^\n]*\S[^\n]*)*"
-    m = (re.search(r"(?m)^[ \t>*|#-]*(?:\d+[.)]\s*)?\**X2\b\**\s*[:|*‐-—-][^\n]*" + cont, md)
-         or re.search(r"\bX2\b[^\n]*" + cont, md))
+    # only a DEFINITION counts: a bare cross-reference ('See X2 for ...') is not the rule (-> NO_PROTOCOL_X2)
+    m = re.search(r"(?m)^[ \t>*|#-]*(?:\d+[.)]\s*)?\**X2\b\**\s*[:|*‐-—-][^\n]*" + cont, md)
+    if not m:
+        # an INLINE bold definition ('- Exclude: **X1** not RCT; **X2** wrong population (...); **X3** ...') runs to
+        # the next bold rule or a blank line
+        m = re.search(r"\*\*X2\*\*(?:(?!\*\*X\d)(?!\n\s*\n)[\s\S])*", md)
     return re.sub(r"\s+", " ", m.group(0)) if m else None
 
 
@@ -42,6 +46,12 @@ def classify(term, x2):
     x = _dash((x2 or "").lower())
     if not x2:
         return "NO_PROTOCOL_X2"
+    # a sentence that declares a population ELIGIBLE ('trials with HF and diabetes are eligible') is not exclusion
+    # wording: its mentions neither match nor clear the config term
+    sents = [s for s in re.split(r"(?<=[.;])\s+", x)
+             if not (re.search(r"\b(?:are|is|remain|be)\s+(?:eligible|included|allowed|permitted)\b", s)
+                     and not re.search(r"\b(?:not|never)\s+eligible\b|\bineligible\b|\bexclud", s))]
+    x = " ".join(sents)
     hits = list(re.finditer(r"(?<![a-z])" + re.escape(t) + r"(?![a-z])", x))
     if not hits:
         return "NOT_IN_PROTOCOL_X2"

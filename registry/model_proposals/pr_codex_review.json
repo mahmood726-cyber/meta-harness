@@ -6917,5 +6917,71 @@
     "verdict": null
    }
   ]
+ },
+ "r7-4-r4": {
+  "base": "beb73a487",
+  "head": "51015506e",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "c793b16fb04fc03533d18fc33fcca134ac213419379423e80ad2396654a2a885"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity / active",
+    "severity": "P1",
+    "claim": "Placebo stripping mishandles dose-bearing names, allowing placebo evidence to establish an active drug identity or an OTHER_AGENT exclusion.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts import g1_tracker as g\nT = {'trials': [{'slug': 'empagliflozin', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001']}]}\nfor name in ['Empagliflozin 10 mg placebo', 'Placebo for empagliflozin 10 mg']:\n    data = 'nct_id|intervention_type|name\\nNCT00000001|drug|' + name + '\\n'\n    with patch.object(g.os.path, 'isfile', return_value=True), patch('builtins.open', mock_open(read_data=data)):\n        print(g.verified_agent_identity(T, agents={'empagliflozin': ['empagliflozin']}, snap='snapshot', class_topics=set())['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED for both synthetic placebo-only records.",
+    "actual": "DRUG_MATCH, then OTHER_AGENT. The first substitution leaves 'empagliflozin 10  '; the second case leaves '  10 mg', whose 'mg' is treated as active-agent evidence.",
+    "id": "r7-4-r4:g1#1",
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "Missing registry evidence for one listed NCT is silently discarded. A different drug under another NCT then establishes OTHER_AGENT despite incomplete identity evidence.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts import g1_tracker as g\nT = {'trials': [{'slug': 'empagliflozin', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001', 'NCT00000002']}]}\ndata = 'nct_id|intervention_type|name\\nNCT00000001|drug|sotagliflozin\\n'\nwith patch.object(g.os.path, 'isfile', return_value=True), patch('builtins.open', mock_open(read_data=data)):\n    print(g.verified_agent_identity(T, agents={'empagliflozin': ['empagliflozin']}, snap='snapshot', class_topics=set())['trials'][0]['drug'])",
+    "expected": "AGENT_UNCONFIRMED: the synthetic snapshot contains no intervention evidence for NCT00000002.",
+    "actual": "OTHER_AGENT. reg.get(nct, []) removes the missing NCT from consideration, and the unnamed-row safeguard does not detect missing rows.",
+    "id": "r7-4-r4:g1#2",
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The fallback treats an X2 cross-reference as an exclusion definition, producing a protocol match when no X2 rule is provided.",
+    "failing_input": "from scripts.r7_4_x2_wording_sweep import x2_text, classify\nx2 = x2_text('See X2 for diabetes exclusions.')\nprint(repr(x2), classify('diabetes', x2))",
+    "expected": "None and NO_PROTOCOL_X2: a cross-reference supplies no exclusion rule.",
+    "actual": "'X2 for diabetes exclusions.' and MATCHES_PROTOCOL.",
+    "id": "r7-4-r4:g1#3",
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "An explicit eligibility exception suppresses the broader-than-protocol warning because every mention, including permitted populations, is treated as potential exclusion evidence.",
+    "failing_input": "from scripts.r7_4_x2_wording_sweep import classify\nprint(classify('diabetes', '- X2: Exclude diabetes-only trials. Trials with heart failure and diabetes are eligible.'))",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL: excluding every diabetes mention would also exclude the expressly eligible heart-failure population.",
+    "actual": "MATCHES_PROTOCOL because the occurrence in the eligibility sentence is unqualified.",
+    "id": "r7-4-r4:g1#4",
+    "record_id": "mc-e73ef9399302b48a7e1aea4c0356d009",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -128,3 +128,34 @@ def test_PLANT_r3_numbered_definitions_and_long_rules_are_read_whole():
           "  - diabetes-only populations.\n- X3: Wrong intervention: diabetes drugs.")
     x2 = sw.x2_text(md)
     assert "X3" not in x2 and sw.classify("diabetes", x2) == "CONFIG_BROADER_THAN_PROTOCOL"
+
+
+def test_PLANT_r4_dose_bearing_placebo_names_are_placebos(tmp_path):
+    for i, pl in enumerate(["Empagliflozin 10 mg placebo", "Placebo for empagliflozin 10 mg"]):
+        s = snap(tmp_path, [(f"NCT3{i}", "DRUG", pl)])
+        u = gt.verified_agent_identity(T({"label": "P", "ncts": [f"NCT3{i}"]}), AGENTS, s)["trials"][0]
+        assert u["drug"] == "AGENT_UNCONFIRMED", pl
+    s = snap(tmp_path, [("NCT32", "DRUG", "Empagliflozin 10 mg plus matching placebo")])
+    assert gt.verified_agent_identity(T({"label": "Q", "ncts": ["NCT32"]}), AGENTS, s)["trials"][0]["drug"] == "DRUG_MATCH"
+
+
+def test_PLANT_r4_a_listed_nct_without_registered_drugs_blocks_other_agent(tmp_path):
+    s = snap(tmp_path, [("NCT40", "DRUG", "Sotagliflozin")])
+    u = gt.verified_agent_identity(T({"label": "R", "ncts": ["NCT40", "NCT41"]}), AGENTS, s)["trials"][0]
+    assert u["drug"] == "AGENT_UNCONFIRMED"
+
+
+def test_PLANT_r4_cross_reference_is_no_rule_and_eligible_sentences_do_not_clear_a_term():
+    import r7_4_x2_wording_sweep as sw
+    assert sw.x2_text("See X2 for diabetes exclusions.") is None
+    assert sw.classify("diabetes", sw.x2_text("See X2 for diabetes exclusions.")) == "NO_PROTOCOL_X2"
+    assert sw.classify("diabetes", "- X2: Exclude diabetes-only trials. Trials with heart failure and diabetes are "
+                                   "eligible.") == "CONFIG_BROADER_THAN_PROTOCOL"
+    assert sw.classify("diabetes", "- X2: Exclude diabetes. Trials with diabetes are not eligible.") == "MATCHES_PROTOCOL"
+
+
+def test_PLANT_r4_inline_bold_definition_is_read_to_the_next_rule():
+    import r7_4_x2_wording_sweep as sw
+    x2 = sw.x2_text("- Exclude: **X1** not RCT; **X2** wrong population (diabetes-only,\n  children); **X3** wrong drug "
+                    "(diabetes drugs).")
+    assert "X3" not in x2 and sw.classify("diabetes", x2) == "CONFIG_BROADER_THAN_PROTOCOL"
