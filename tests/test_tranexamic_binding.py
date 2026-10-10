@@ -61,3 +61,53 @@ def test_the_recorded_tranexamic_result_is_re_read_from_the_held_cc_table():
     for k in ("estimate", "ci_low", "ci_high", "scale", "counts", "sha256", "outcome"):
         assert got[k] == rec[k], k
     assert rec["counts"] == {"events_t": 159, "n_t": 27307, "events_c": 194, "n_c": 27097}
+
+
+def _reader(monkeypatch, tmp_path, text):
+    """table_result over a synthetic held CC table (the real reader path, held-source checks stubbed)."""
+    import json as _json
+    import g1_swap as sw
+    from reproducible_ai import record_licence as rl
+    (tmp_path / "topics").mkdir(exist_ok=True)
+    (tmp_path / "topics" / "demo.json").write_text(_json.dumps({
+        "primary_outcome": {"name": "Death", "keywords": ["death"]}, "comparator_pmid": "123",
+        "intervention_terms": ["Tranexamic acid"], "comparator_terms": ["placebo"]}), encoding="utf-8")
+    d = tmp_path / "cache" / "comparators" / "123"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "2026-01-01_kgap_jats.xml").write_text("<x/>", encoding="utf-8")
+    monkeypatch.setattr(tr, "ROOT", str(tmp_path))
+    monkeypatch.setattr(rl, "jats_licence", lambda p: "CC")
+    monkeypatch.setattr(sw, "jats_text", lambda s: text)
+    return tr.table_result("demo")
+
+
+def test_PLANT_r1_positive_control_the_reader_records_a_clean_row(monkeypatch, tmp_path):
+    r, why = _reader(monkeypatch, tmp_path, "Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\n"
+                                            "Death | 10/100 | 20/100 | 0.44 (0.20-0.99)")
+    assert r and r["counts"] == {"events_t": 10, "n_t": 100, "events_c": 20, "n_c": 100}, why
+
+
+def test_PLANT_r1_arm_headers_over_different_populations_are_refused(monkeypatch, tmp_path):
+    r, why = _reader(monkeypatch, tmp_path, "Outcome | Tranexamic acid randomised population (n/N) | Placebo safety "
+                                            "population (n/N) | Pooled OR (95% CI)\nDeath | 10/100 | 20/80 | 0.40 (0.20-0.90)")
+    assert r is None and "populations differ" in why
+
+
+def test_PLANT_r1_a_reverse_contrast_is_refused_never_inverted(monkeypatch, tmp_path):
+    r, why = _reader(monkeypatch, tmp_path, "Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Placebo vs tranexamic "
+                                            "acid OR (95% CI)\nDeath | 10/100 | 20/100 | 2.25 (1.00-5.06)")
+    assert r is None and "reverse contrast" in why
+    r, why = _reader(monkeypatch, tmp_path, "Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\n"
+                                            "Death | 10/100 | 20/100 | 2.25 (1.00-5.06)")
+    assert r is None and "other side of 1" in why
+
+
+def test_PLANT_r1_a_decimal_comma_is_never_a_count():
+    assert tr._EN.match("12,5/100") is None
+    assert tr._EN.match("27 307/27 097") and tr._EN.match("27,307/27,097") and tr._EN.match("159/27 307")
+
+
+def test_PLANT_r1_a_supplementary_caption_stops_the_header_search():
+    lines = ["Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)", "Table S2. Supplementary results",
+             "Outcome | Placebo | Tranexamic acid | Pooled OR (95% CI)", "Death | 20/100 | 10/100 | 2.25 (1.00–5.06)"]
+    assert tr.header_above(lines, 3) is None

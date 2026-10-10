@@ -6731,5 +6731,71 @@
     "verdict": null
    }
   ]
+ },
+ "tx-rebase-r1": {
+  "base": "cdd81860a",
+  "head": "5dac618d1",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_table_result.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "224f438fc6adc38de9d10b0fb70ab4e0d1889a8c9803a4752959f16cd8236871"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "The arm headers can explicitly specify different denominator populations, but the reader discards those qualifiers and records the counts together.",
+    "failing_input": "For table_result('demo'), supply topic {'primary_outcome': {'name': 'Death', 'keywords': ['death']}, 'comparator_pmid': '123', 'intervention_terms': ['Tranexamic acid']}. Mock the held-source lookup/licence successfully and sw.jats_text to return: 'Outcome | Tranexamic acid randomised population (n/N) | Placebo safety population (n/N) | Pooled OR (95% CI)\\nDeath | 10/100 | 20/80 | 0.33 (0.15–0.75)'. Let binding_verdict return BINDABLE for the identical outcome name.",
+    "expected": "Refuse this result because the intervention denominator is randomised and the control denominator is safety.",
+    "actual": "By direct trace, returns state RECORDED with counts {'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 80}; neither denominator kind is retained or checked.",
+    "id": "tx-rebase-r1:g1#1",
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "Arm-column order is treated as proof of estimate direction, even when the estimate header explicitly specifies the reverse contrast.",
+    "failing_input": "For table_result('demo'), supply topic {'primary_outcome': {'name': 'Death', 'keywords': ['death']}, 'comparator_pmid': '123', 'intervention_terms': ['Tranexamic acid']}. Mock the held-source lookup/licence successfully and sw.jats_text to return: 'Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI), placebo versus tranexamic acid\\nDeath | 10/100 | 20/100 | 2.25 (1.00–5.06)'. Let binding_verdict return BINDABLE for the identical outcome name.",
+    "expected": "Refuse the conflicting orientation, or invert the estimate and confidence interval for the intervention-versus-control contrast: estimate approximately 0.444444, CI approximately [0.197628, 1.0].",
+    "actual": "By direct trace, records estimate 2.25 and CI [1.0, 5.06] with contrast 'Tranexamic acid (n/N) vs Placebo (n/N)' and intervention events 10 versus control events 20.",
+    "id": "tx-rebase-r1:g1#2",
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "_EN / _n / table_result",
+    "severity": "P0",
+    "claim": "Comma placement is not validated as thousands grouping, so a decimal-comma numerator is silently converted into an integer death count.",
+    "failing_input": "m = _EN.fullmatch('12,5/100'); (_n(m.group(1)), _n(m.group(2))) returns (125, 100). A complete accepted cell alignment is aligned(['Death', '12,5/100', '20/100', '0.57 (0.25–1.30)'], [1, 2], 3).",
+    "expected": "Reject '12,5/100': its numerator is not a valid integer count or a valid thousands-separated integer.",
+    "actual": "The alignment succeeds. table_result converts the numerator to 125 and records events_t=125, n_t=100 without rejecting even the resulting events-greater-than-denominator condition.",
+    "id": "tx-rebase-r1:g1#3",
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "header_above",
+    "severity": "P1",
+    "claim": "Supplementary-table captions do not stop header lookup, allowing a new table to bind to an earlier table's arm order.",
+    "failing_input": "header_above(['Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)', 'Table S2. Supplementary results', 'Outcome | Placebo | Tranexamic acid | Pooled OR (95% CI)', 'Death | 20/100 | 10/100 | 2.25 (1.00–5.06)'], 3)",
+    "expected": "None: the Table S2 boundary must prevent borrowing the previous table's header.",
+    "actual": "Returns 0. The caption regex requires a digit immediately after 'Table', so the earlier intervention-first header is selected despite the current table explicitly placing placebo first.",
+    "id": "tx-rebase-r1:g1#4",
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "verdict": null
+   }
+  ]
  }
 }

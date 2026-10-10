@@ -24,13 +24,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.append(os.path.join(ROOT, "scripts"))
 OUT = os.path.join(ROOT, "registry", "comparator_results.json")
-_EN = re.compile(r"^\s*(\d[\d\s  ,]*)\s*/\s*(\d[\d\s  ,]*)\s*$")
+# a count is a plain integer or a THOUSANDS-grouped one ('27 307', '27,307', thin/no-break space): '12,5' (a decimal
+# comma) is never a count (codex tx-rebase-r1 #3)
+_INT = r"(\d{1,3}(?:[    ,]\d{3})+|\d+)"
+_EN = re.compile(r"^\s*" + _INT + r"\s*/\s*" + _INT + r"\s*$")
 _EST = re.compile(r"^\s*(\d+[.·]\d+)\s*\(\s*(\d+[.·]\d+)\s*[–-]\s*(\d+[.·]\d+)\s*\)\s*$")
 
 
 def _j(p):
     with open(p, encoding="utf-8") as fh:
         return json.load(fh)
+
+
+_POPULATION = (r"\b(?:randomi[sz]ed|intention[- ]to[- ]treat|ITT|mITT|modified|per[- ]protocol|PP|safety|treated|"
+               r"analy[sz]ed|evaluable|full\s+analysis)\b")
 
 
 def _n(s):
@@ -41,7 +48,8 @@ def _f(s):
     return float(s.replace("·", "."))
 
 
-_CAPTION = re.compile(r"^\s*(?:Table|Figure|Fig\.?)\s*\d", re.I)
+# any table/figure caption, including supplementary ones ('Table S2', 'Supplementary Table 3', 'eTable 1')
+_CAPTION = re.compile(r"^\s*(?:supplementa(?:ry|l)\s+)?(?:e|S)?(?:Table|Figure|Fig\.?)\s*[A-Z]?\d", re.I)
 
 
 def header_above(lines, i):
@@ -148,10 +156,32 @@ def table_result(slug):
     # a header may omit the row-label column ('Contributing trials | Tranexamic acid group (n/N) | ...' over rows that
     # begin with the outcome name): the column offset is the one -- 0 or 1 -- at which BOTH arm cells and the estimate
     # cell parse; zero or two such offsets refuse
+    # the two arm headers must not name DIFFERENT denominator populations ('randomised' v 'safety' -- codex
+    # tx-rebase-r1 #1): counts over different populations are never one contrast
+    pops = [set(re.findall(_POPULATION, hc[k], re.I)) for k in arms]
+    if pops[0] != pops[1]:
+        return None, f"T2_HEADER: arm populations differ {[sorted(p) for p in pops]}"
+    # an estimate header that states its own contrast must state OURS in the arm-column order (codex tx-rebase-r1 #2):
+    # 'Placebo vs tranexamic acid OR' over intervention-first arm columns is refused, never silently inverted
+    eh = hc[est_col]
+    iv_at = _term_re(_intervention_terms(t)).search(eh)
+    ct_at = _term_re([x for x in (t.get("comparator_terms") or []) if len(x) >= 3] + GENERIC_CONTROL).search(eh)
+    if iv_at and ct_at and ct_at.start() < iv_at.start():
+        return None, f"T3: estimate header states the reverse contrast ({eh})"
     fits = aligned(rc, arms, est_col)
     if len(fits) != 1:
         return None, f"T3_CELLS: {len(fits)} column alignments parse"
     a, b, e = fits[0]
+    et, nt, ec, nc = _n(a.group(1)), _n(a.group(2)), _n(b.group(1)), _n(b.group(2))
+    if not (0 <= et <= nt and 0 <= ec <= nc and nt > 0 and nc > 0):
+        return None, f"T3_CELLS: events exceed their denominator ({et}/{nt}, {ec}/{nc})"
+    # the printed ratio must lie on the side of 1 the arm counts imply (a reversed contrast prints 2.25 over 10/100 v
+    # 20/100): refused, never inverted
+    if measure in ("OR", "RR") and 0 < et < nt and 0 < ec < nc:
+        implied = ((et / (nt - et)) / (ec / (nc - ec))) if measure == "OR" else ((et / nt) / (ec / nc))
+        est = _f(e.group(1))
+        if (implied - 1) * (est - 1) < 0 and abs(implied - 1) > 0.05 and abs(est - 1) > 0.05:
+            return None, f"T3_CELLS: printed {measure} {est} is on the other side of 1 from the counts ({implied:.2f})"
     sha = hashlib.sha256(open(jats[-1], "rb").read()).hexdigest()
     return {"state": "RECORDED", "comparator_pmid": comp, "outcome": rc[0], "contrast": f"{hc[arms[0]]} vs {hc[arms[1]]}",
             "scale": measure, "estimate": _f(e.group(1)), "ci_low": _f(e.group(2)), "ci_high": _f(e.group(3)),
