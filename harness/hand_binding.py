@@ -357,7 +357,16 @@ def _label_definition(prose: str, cand: dict[str, Any]) -> dict[str, Any]:
             "components": set(), "binding_reason": reason}
 
 
-_RESULT_PAREN = re.compile(r"[\[(][^\[\]()]*\d[^\[\]()]*(?:95\s*%|CI)[^\[\]()]*[\])]")
+# one level of nested brackets inside a result parenthesis (CARMELINA hHF, V14-02: '(209/3494 [6.0%] versus ...;
+# hazard ratio [HR], 0.90; 95% CI, 0.74-1.08)'); a parenthesis is a RESULT when it carries a digit and a 95%/CI marker
+_PAREN = re.compile(r"[\[(](?:[^\[\]()]|[\[(][^\[\]()]*[\])])*[\])]")
+_IS_RESULT = re.compile(r"\d[\s\S]*(?:95\s*%|CI)")
+
+
+def _result_parens(text: str) -> list:
+    return [m for m in _PAREN.finditer(text) if _IS_RESULT.search(m.group(0))]
+
+
 _LEADING_JOIN = re.compile(r"^\s*(?:[,;]\s*)?(?:as was|as were|and|whereas|while|but)\b\s*", flags=re.I)
 
 
@@ -370,7 +379,7 @@ def _owning_clause(sentence: str, tup: dict[str, Any] | None, names_endpoint) ->
     With one result, the sentence is the clause."""
     if not tup or tup.get("kind") != "effect":
         return sentence
-    parens = list(_RESULT_PAREN.finditer(sentence))
+    parens = _result_parens(sentence)
     if len(parens) < 2:
         return sentence
     idx = next((i for i, m in enumerate(parens) if _tuple_in(m.group(0), tup)), None)
