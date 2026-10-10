@@ -2321,7 +2321,8 @@ def build_review_core(slug, config, records, protocol_sha):
                 newer.append(rec_by_id.get(d["id"], {}).get("acronym") or d["id"])
         except ValueError:
             pass
-    comp_scope = scope.assess(config, comp_rec.get("title") or "", comp_abstract)
+    comp_scope = scope.assess(config, comp_rec.get("title") or "", comp_abstract,
+                              comparator_pico=comp_rec.get("pico"))
     if invalid_note := parity_relation.invalid_scope_override(ROOT, slug):
         comp_scope = {**comp_scope, "scope_valid": False, "note": invalid_note}
     comparator = {
@@ -2329,7 +2330,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "journal": comp_rec.get("journal"), "pmid": comp_rec.get("id"), "doi": comp_rec.get("doi"),
         "url": (f"https://doi.org/{comp_rec.get('doi')}" if comp_rec.get("doi") else None),
         "open_access": bool(oa.get("is_oa")), "reported": reported,
-        "scope": comp_scope,
+        "scope": comp_scope, "pico": comp_rec.get("pico"),
         "overlap": {"ours_k": ours_k, "theirs_k": theirs_k,
                     **({"theirs_k_source": config["comparator_k_source"]} if config.get("comparator_k_source") else {}),
                     "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
@@ -2413,6 +2414,7 @@ def build_review_core(slug, config, records, protocol_sha):
     arm_contrast = design_variance.current_arm_contrast(_load_arm_contrast(slug), primary)
 
     review = {
+        "pico": config.get("pico"),
         "slug": slug, "title": config["title"], "question": config["question"],
         "method_declared": _declared_method,
         "protocol": {"sha": protocol_sha, "committed_utc": records.get("fetched_utc"),
