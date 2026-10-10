@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `35134b4721fd1704c29aef2277a726d3bf3f12b3ca3e538d2a4c92004429fcbd` |
-| html_sha256 (served page bytes) | `5df2f38c64113e1e58a07479155520a81f806b3765e41fbb9664556abe627fd7` |
-| release_sha256 (certificate) | `3e8c33f441d62886f2cd2902824b5c24ccd75d42ca20b71dd350f2b4274b5460` |
+| review_sha256 (canonical review core) | `d1d4d2ad723f30dae8d79e7359532d9a3d0b3d9d3d6674e1912c487e9e541e0a` |
+| html_sha256 (served page bytes) | `5612d7efedca932455b731aa5a1615f32d4beecde5acbdedbcada5ea914e077d` |
+| release_sha256 (certificate) | `a2367954c58657e42e42f6d39cc4ca19313f98985e450d63aa8681bc9fbb51de` |
 | build_utc (label, not clock) | `2026-09-11` |
-| protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
+| protocol_sha | `c5bd23301ce74e2177741c0caad5e4b02efbdd52` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `8e80912495c6a7285a1e2228c21029475a26edd1` |
+| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,9 +38,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/comparators/33519713/body.txt` | `4750ef3f5ded22f7ef871138e6c081f81f88545b7e64dd23cb7134ca1100c375` |
 | `cache/sglt2-primary-prevention-hf/aact_inputs.json` | `c367c1b67f08019017440fdaf6c9eb94f7296552e3b899e57f86a6024568736a` |
-| `cache/sglt2-primary-prevention-hf/ft_31984646.txt` | `bf23a189caca7120eac2e0e71c84111c3dbd3252661685ae945e772d213de0ee` |
-| `cache/sglt2-primary-prevention-hf/ft_33464703.txt` | `1735808b541f99a16a7aa1f92ee1d113a9a90ad55eab708256f4922fc9b290f6` |
-| `cache/sglt2-primary-prevention-hf/ft_34132018.txt` | `0932b943ab2fa4368494efd4f84a9dd2e9313bd648d91d038aa33e8fbb763f33` |
 | `cache/sglt2-primary-prevention-hf/pmc_26819227_fulltext.txt` | `5accb7c8c720dfa649f31bfb3153140dce70df360dabfae77c67cef747912c76` |
 | `outputs/handover/in3/aact/reported_event_totals.txt` | `50429a380c137b78871fbee01cb2641ab0676f2fb9e194fd53455bbfc483ee73` |
 | `outputs/handover/in3/aact/reported_events.txt` | `96356f7251be3d0c803bce360bf6c77537fc34f381ed2546a644b34832d80d76` |

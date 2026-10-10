@@ -20,12 +20,12 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 | This topic's identity | Recorded value |
 |---|---|
 | review_sha256 (canonical review core) | `f4438abd8845e86c345fee8631b94629c278f781990d9750fdfe1d8e38ca50a2` |
-| html_sha256 (served page bytes) | `aed7bdca2085805696841dd8387d2f8d956c8744882ce8111a388e890879aa9a` |
-| release_sha256 (certificate) | `b343765a1d00fa5c0b75595b7cbca09892aced08235ab2290adb94e9563a9c71` |
+| html_sha256 (served page bytes) | `39c46852473abb64c6dc5e4a8e125575b0052f9c5e0b3e3d848bfb8c947b8701` |
+| release_sha256 (certificate) | `e031ff20c10acc83601d8ad77e1e9779603fd7fedd0b0836d4696a8797d7669f` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `fe53c76aad18c0fd8369e3c1fe171406c0f85e7f` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `8e80912495c6a7285a1e2228c21029475a26edd1` |
+| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,8 +38,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/semaglutide-obesity-weight/aact_inputs.json` | `c1081da2beeb8e23feebb75eedfe3eab36f010c96b9b62c43376e1cfddca614c` |
 | `cache/semaglutide-obesity-weight/comparator_fulltext.txt` | `f127d447a9c1f090bcbc1707694a8ba05a272e03befed093349ecc813e8482ed` |
-| `cache/semaglutide-obesity-weight/ft_40069849.txt` | `e099f394d269676e0fca81612b88724de8939018cb532911f3b2b378a283c0d1` |
-| `cache/semaglutide-obesity-weight/ft_41778920.txt` | `a8ac65d4c462c5b3bd08456704e0fa02feacbab468123784257d201b5bba8b97` |
 
 Recorded judgments live under `cache/semaglutide-obesity-weight/`; their object digest is
 `8cc2649ba9b5ae4000ee8283c3fe445808bf04749942128f7b88720bc7f69912`. Acquisitions live under `docs/acquisitions/semaglutide-obesity-weight/`.

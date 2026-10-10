@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `30ff0f6e52deb91ce07f4d63db0b119853d9c7293ae6c6b94beeb13081c61d70` |
-| html_sha256 (served page bytes) | `9e3308636692ce166821dfe0da9fd329d8f8f3e75390b09555e46584848ef1a9` |
-| release_sha256 (certificate) | `70ab13359601237e3e9d88326744fafb6cd3797ad01e8802ba2b76d353493ac7` |
+| review_sha256 (canonical review core) | `8f5f7a3cd61f2c9e8e7185f3c243db252cf0bd0f823a41165675fdf3ea96a7aa` |
+| html_sha256 (served page bytes) | `0fe399976c184ee0ce0ba544088dc6b504f2893cc3126f892d47d3eaef041038` |
+| release_sha256 (certificate) | `c48c1086a59c4f468b89d000bbce355ac55fe5b3f1f3a3844f08fba4ed5cde66` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `8e80912495c6a7285a1e2228c21029475a26edd1` |
+| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -39,7 +39,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/colchicine-secondary-cv-prevention/aact_inputs.json` | `a19782b5c869e87148954e0799df4741aa17aaaeddcf35b64fc21bf9a8f6e2a0` |
 | `cache/colchicine-secondary-cv-prevention/comparator_fulltext.txt` | `b3b16c5416adc984da2c7b05cfcfc1557370c3f50c740611bc147df5ea2a4263` |
 | `cache/colchicine-secondary-cv-prevention/ft_32295417.txt` | `0a6217c28bca8df0262bce8a95c1fa776dd12d0a00d67daf755b0e4caa464fbd` |
-| `cache/colchicine-secondary-cv-prevention/ft_32407460.txt` | `a506eb61dac23665aa44a47a400a82a62b4fe476c6818670967cf9a0004b8098` |
 
 Recorded judgments live under `cache/colchicine-secondary-cv-prevention/`; their object digest is
 `b9fe05cf82e1dc2ec0a84d66ae64c30126ee1d6d797bc967476ef741c9ace0bf`. Acquisitions live under `docs/acquisitions/colchicine-secondary-cv-prevention/`.

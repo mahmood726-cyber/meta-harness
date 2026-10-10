@@ -169,3 +169,21 @@ def test_PLANT_a_text_removed_from_the_tree_under_D8_is_never_refetched_and_its_
     assert row["state"] == fc.REMOVED_FROM_TREE_D8 and row["removed"]["by"] == "V12-08Q"
     on_disk = json.loads((d / "fulltext_ledger.json").read_text(encoding="utf-8"))
     assert on_disk["rows"][0]["removed"]["pmcid"] == "PMC1" and on_disk["tally"][fc.REMOVED_FROM_TREE_D8] == 1
+
+
+def test_PLANT_a_text_removed_centrally_under_V13_04Q_is_never_refetched(tmp_path):
+    """V13-04Q: most removed texts have no per-topic ledger; the central record (registry/tracked_fulltext_licences.json,
+    state REMOVED_FROM_TREE_D8) must stop the cascade from fetching them back."""
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "tracked_fulltext_licences.json").write_text(json.dumps({"rows": [
+        {"slug": "t", "pmid": "8", "file": "cache/t/ft_8.txt", "state": "REMOVED_FROM_TREE_D8"}]}), encoding="utf-8")
+    http = Fake([("elink", _elink("1")), ("efetch", BODY), ("fullTextXML", BODY)])
+    row = fc.acquire(http, "t", "8", dry_run=False, root=tmp_path)
+    assert row["state"] == fc.REMOVED_FROM_TREE_D8 and http.calls == []
+    assert not (tmp_path / "cache" / "t" / "ft_8.txt").exists()
+
+
+def test_lane_fulltext_asks_the_removed_texts_guard_before_writing():
+    src = (ROOT / "scripts" / "lane_fulltext.py").read_text(encoding="utf-8")
+    i_guard, i_write = src.find("removed_texts.is_removed("), src.find('open(dest, "w"')
+    assert 0 <= i_guard < i_write, "lane_fulltext must check removed_texts.is_removed before it writes a held text"

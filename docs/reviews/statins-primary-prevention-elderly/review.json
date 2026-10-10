@@ -4,11 +4,11 @@
   "question": "In older adults (>=70 years) without established cardiovascular disease, do statins versus placebo/control reduce major vascular events? (Evidence units include one whole trial and one pre-specified JUPITER older-adult subgroup.)",
   "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
-    "sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
+    "sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['older persons', 'older adults', 'elderly', '70 years', '75 years', 'aged 70', 'aged 75']; and none of ['heart failure', 'atrial fibrillation', 'stroke', 'acute coronary', 'myocardial infarction', 'coronary artery disease', 'coronary heart disease', 'coronary disease', 'chronic subdural', 'rheumatoid arthritis', 'osteoarthritis', 'hearing loss', 'postoperative', 'perioperative', 'kidney disease', 'hemodialysis', 'liver fibrosis', 'at risk of vascular disease', 'vascular disease (prosper)', 'cognitive decline', 'alzheimer', 'dementia']; randomised intervention is one of ['statin', 'statins', 'rosuvastatin', 'pravastatin', 'atorvastatin'] (named in title/conditions); a comparator among ['placebo', 'usual care', 'control']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
-    "text": "# Protocol - statins for primary prevention in older adults\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page's Protocol tab and Reproducibility tab. The protocol is committed before\nthe synthesis is run.\n\n## PICO\n- **P** - older adults (>=70 years) without established cardiovascular disease.\n- **I** - statin therapy, including rosuvastatin, pravastatin, or atorvastatin.\n- **C** - placebo, usual care, or no-statin control.\n- **O (primary)** - major vascular events / major cardiovascular events.\n- **O (harms)** - muscle symptoms/myopathy; new-onset diabetes.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), statin vs placebo/control.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial or randomised trial analysis;\n- **I2** - title-level or registry-condition population is older/elderly adults;\n- **I3** - title-level or registry intervention is a statin or statin name;\n- **I4** - comparator is placebo, usual care, or control;\n- **design** - randomised statin allocation; double-blinding is not required because\n  usual-care trials are eligible.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or PubMed record\n  not indexed as a randomized controlled trial by the fixed screen);\n- **X2** - wrong population (e.g. heart failure, atrial fibrillation, prior stroke,\n  acute coronary syndrome, coronary disease, perioperative/non-cardiovascular disease);\n- **X3** - wrong intervention/comparison (no statin-vs-placebo/usual-care/control contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether an included trial reports major\n> vascular events, or gives a 2x2 table vs only an effect+CI, is recorded as\n> target-result status at extraction - never as an exclusion. A published effect + 95% CI\n> is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: focused statin-title searches for JUPITER older-person analyses, ALLHAT-LLT\n  older-adult primary-prevention analyses, and STAREE older-adult atorvastatin reports.\n- ClinicalTrials.gov: condition \"Elderly\", intervention \"Atorvastatin\".\n- Comparator reference seeding is disabled for this topic because the resolved open-access\n  comparator is an observational review; its reference list is not an RCT recall set for\n  a randomized statin-vs-control harness.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study\nonly if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1\n(<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nHuang, Zhu, and Ya, *Reviews in Cardiovascular Medicine* 2022, \"Statin use in older\npeople primary prevention on cardiovascular disease: an updated systematic review and\nmeta-analysis\" (PMID 39076238, PMCID PMC11273788, DOI 10.31083/j.rcm2304114; Unpaywall\nis_oa=true). It reports total cardiovascular events HR 0.75 (95% CI 0.66-0.85) in older\nprimary-prevention statin users versus no-statin users. This is an external benchmark,\nnot an RCT-only comparator; exact RCT-only elderly primary-prevention meta-analyses\nfound during resolution were not open access.\n\n## Controls\n- **Positive** - the search must recover and include the JUPITER older-person rosuvastatin\n  analysis (PMID 20404379) and ALLHAT-LLT older-adult pravastatin analyses (PMIDs\n  28531241 and 30251369).\n- **Negative** - CORONA (rosuvastatin in older patients with systolic heart failure,\n  PMID 17984166 - different disease/topic) must be recovered and EXCLUDED as wrong\n  population.\n"
+    "text": "# Protocol - statins for primary prevention in older adults\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page's Protocol tab and Reproducibility tab. The protocol is committed before\nthe synthesis is run.\n\n## PICO\n- **P** - older adults (>=70 years) without established cardiovascular disease.\n- **I** - statin therapy, including rosuvastatin, pravastatin, or atorvastatin.\n- **C** - placebo, usual care, or no-statin control.\n- **O (primary)** - major vascular events / major cardiovascular events.\n- **O (harms)** - muscle symptoms/myopathy; new-onset diabetes.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), statin vs placebo/control.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial or randomised trial analysis;\n- **I2** - title-level or registry-condition population is older/elderly adults;\n- **I3** - title-level or registry intervention is a statin or statin name;\n- **I4** - comparator is placebo, usual care, or control;\n- **design** - randomised statin allocation; double-blinding is not required because\n  usual-care trials are eligible.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or PubMed record\n  not indexed as a randomized controlled trial by the fixed screen);\n- **X2** - wrong population (e.g. heart failure, atrial fibrillation, prior stroke,\n  acute coronary syndrome, coronary disease, perioperative/non-cardiovascular disease);\n- **X3** - wrong intervention/comparison (no statin-vs-placebo/usual-care/control contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether an included trial reports major\n> vascular events, or gives a 2x2 table vs only an effect+CI, is recorded as\n> target-result status at extraction - never as an exclusion. A published effect + 95% CI\n> is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: focused statin-title searches for JUPITER older-person analyses, ALLHAT-LLT\n  older-adult primary-prevention analyses, and STAREE older-adult atorvastatin reports.\n- ClinicalTrials.gov: condition \"Elderly\", intervention \"Atorvastatin\".\n- Comparator reference seeding is disabled for this topic because the resolved open-access\n  comparator is an observational review; its reference list is not an RCT recall set for\n  a randomized statin-vs-control harness.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study\nonly if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1\n(<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nHuang, Zhu, and Ya, *Reviews in Cardiovascular Medicine* 2022, \"Statin use in older\npeople primary prevention on cardiovascular disease: an updated systematic review and\nmeta-analysis\" (PMID 39076238, PMCID PMC11273788, DOI 10.31083/j.rcm2304114; Unpaywall\nis_oa=true). It reports total cardiovascular events HR 0.75 (95% CI 0.66-0.85) in older\nprimary-prevention statin users versus no-statin users. This is an external benchmark,\nnot an RCT-only comparator; exact RCT-only elderly primary-prevention meta-analyses\nfound during resolution were not open access.\n\n## Controls\n- **Positive** - the search must recover and include the JUPITER older-person rosuvastatin\n  analysis (PMID 20404379) and ALLHAT-LLT older-adult pravastatin analyses (PMIDs\n  28531241 and 30251369).\n- **Negative** - CORONA (rosuvastatin in older patients with systolic heart failure,\n  PMID 17984166 - different disease/topic) must be recovered and EXCLUDED as wrong\n  population.\n\n## Amendment 2026-10-09 (estimand RR -> HR, post hoc; V13-03Q)\n**Status: POST HOC.** This amendment was made after the results were seen and is signed by Mahmood (V13-03Q, option A, 9 Oct 2026: 'sign v13' / 'yes to all recommended'; packet lane_status/v13_packet.md sha256 d9842124e80997c0a72ab3c7dca687fe8a0c86c2e21e84f6207f4d44e0f99ace). The original declaration above is kept unchanged.\n\n- **Major vascular events.** Declared estimand: RR. Amended to: HR (time to first event).\n- **Reason.** For these time-to-first-event outcomes the trials print a hazard ratio, which the review already served under the source hierarchy; the declaration is brought into line with what is served. No served number changes.\n"
   },
   "search": {
     "n_records": 28,
@@ -906,20 +906,20 @@
       "name": "Major vascular events",
       "kind": "efficacy",
       "primary": true,
-      "estimand": "RR",
+      "estimand": "HR",
       "population": "intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup",
       "timepoint": "trial end",
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "served_estimand": "HR",
       "estimand_decision": {
-        "declared_estimand": "RR",
+        "declared_estimand": "HR",
         "decision": "time_to_first_event",
         "target_scale": "HR",
         "target_class": "FIRST_EVENT_RATIO",
         "published_candidate_scales": [
           "HR"
         ],
-        "served_scale_changed": true,
+        "served_scale_changed": false,
         "reason": "published HR exists for the target outcome",
         "rule": "prefer published HR; keep reconstruction only when no HR exists"
       },
@@ -931,7 +931,7 @@
           "ci_low": 0.46,
           "ci_high": 0.82,
           "scale": "HR",
-          "source": "abstract effect+CI (HR): The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
+          "source": "abstract source-reported HR (registered estimand): The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82",
           "provenance": "abstract",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
@@ -994,7 +994,7 @@
             },
             "source_provenance": {
               "source": "abstract",
-              "span": "abstract effect+CI (HR): The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82"
+              "span": "abstract source-reported HR (registered estimand): The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82"
             },
             "design_action": {
               "action": "DESIGN_UNPROVEN",
@@ -1058,7 +1058,7 @@
           "ci_low": 0.61,
           "ci_high": 0.82,
           "scale": "HR",
-          "source": "abstract effect+CI (HR): After a median of 5.9 years, a primary cardiovascular event had occurred in 297 participants (10.9 events per 1000 person-years) in the atorvastatin group and in 412 participants (15.5 events per 1000",
+          "source": "abstract source-reported HR (registered estimand): After a median of 5.9 years, a primary cardiovascular event had occurred in 297 participants (10.9 events per 1000 person-years) in the atorvastatin group and in 412 participants (15.5 events per 1000",
           "provenance": "abstract",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
@@ -1112,7 +1112,7 @@
             },
             "source_provenance": {
               "source": "abstract",
-              "span": "abstract effect+CI (HR): After a median of 5.9 years, a primary cardiovascular event had occurred in 297 participants (10.9 events per 1000 person-years) in the atorvastatin group and in 412 participants (15.5 events per 1000"
+              "span": "abstract source-reported HR (registered estimand): After a median of 5.9 years, a primary cardiovascular event had occurred in 297 participants (10.9 events per 1000 person-years) in the atorvastatin group and in 412 participants (15.5 events per 1000"
             },
             "design_action": {
               "action": "ALLOW",
@@ -1234,6 +1234,15 @@
             "input_set_version": "cbd47256cefb7bd743976332fd8ee236b05a2a69c883e1e05aafe38bc44572e4"
           },
           "claim_kind": "membership_state"
+        }
+      ],
+      "estimand_history": [
+        {
+          "until": "2026-10-09",
+          "declared": "RR",
+          "amended_to": "HR",
+          "post_hoc": true,
+          "changed_by": "V13-03Q (A), signed by Mahmood 9 Oct 2026 ('sign v13' / 'yes to all recommended'), packet v13_packet.md d9842124...; external audit review 4 / scale sweep: the trials' published HR was already served"
         }
       ],
       "membership": {
@@ -2630,13 +2639,27 @@
     "n_records_annotated": 31
   },
   "protocol_config": {
-    "divergences": [],
+    "divergences": [
+      {
+        "code": "ESTIMAND_DIVERGENCE",
+        "dimension": "estimand",
+        "prose": "RR",
+        "config": "HR"
+      }
+    ],
     "intervention_i_line": "statin therapy, including rosuvastatin, pravastatin, or atorvastatin.",
     "compliance": {
-      "state": "NOT_ESTABLISHED",
+      "state": "DISCLOSED_DIVERGENCE",
       "agreed_dimensions": [],
-      "divergences": [],
-      "sentence": "NOT ESTABLISHED: no protocol/config dimension was checked, so declared == enforced is not asserted"
+      "divergences": [
+        {
+          "code": "ESTIMAND_DIVERGENCE",
+          "dimension": "estimand",
+          "prose": "RR",
+          "config": "HR"
+        }
+      ],
+      "sentence": "1 protocol/config divergence(s) disclosed; declared == enforced is not asserted"
     }
   },
   "identifier_scope": {
@@ -47268,19 +47291,18 @@
       }
     },
     {
-      "limitation_id": "topic:statins-primary-prevention-elderly:reproduction:protocol-compliance-not-established",
+      "limitation_id": "topic:statins-primary-prevention-elderly:reproduction:protocol-config-divergence",
       "kind": "PROTOCOL_COMPLIANCE",
       "limitation_class": "INFORMATIONAL",
       "severity": "QUALIFIES_CLAIM",
       "claim_affected": "declared == enforced (protocol/config compliance)",
-      "evidence_state": "NOT_ESTABLISHED",
+      "evidence_state": "DISCLOSED_DIVERGENCE",
       "source_fields": [
         "/protocol_config/compliance",
-        "/protocol_config/divergences",
-        "/protocol_config/agreed_dimensions"
+        "/protocol_config/divergences"
       ],
-      "rendered_text": "<div class='absent'><strong>Protocol/config compliance NOT ESTABLISHED.</strong> No dimension of the prose protocol was compared with the executable config on this page, so the empty divergence list establishes nothing; declared == enforced is not asserted until the checks exist.</div>",
-      "text_sha256": "7bc03fe95157bf020626af396f537519cfe2bd244d38a9521a91cf77225ff3aa",
+      "rendered_text": "<div class='absent'><strong>Protocol/config DIVERGENCE disclosed (1).</strong> The prose protocol and the executable config disagree: ESTIMAND_DIVERGENCE (estimand): prose says RR, config enforces HR. Declared == enforced is not asserted; each is a defect to resolve or a dated amendment to declare.</div>",
+      "text_sha256": "2e98e80d09bc7db970a9faebb92e2c74d0e63e588f64d8e08750d0019e37566a",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -47335,9 +47357,11 @@
         "kind": "declared_equals_enforced",
         "surface": "reporting/prisma_item_5",
         "source_path": "/protocol_config/divergences",
-        "asserted_equal": true,
-        "divergence_count": 0,
-        "divergence_codes": [],
+        "asserted_equal": false,
+        "divergence_count": 1,
+        "divergence_codes": [
+          "ESTIMAND_DIVERGENCE"
+        ],
         "claim_id": "2eb93d01c8ed8224"
       },
       {
@@ -47433,14 +47457,14 @@
   ],
   "reproduction": {
     "failures": 0,
-    "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-    "review_sha256": "5aefb00dba8541a6221ec1a4e985b6a7fe25dad9295009bdd1489a0df4a78b5b",
+    "protocol_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
+    "review_sha256": "1f2cc0e65f0543c1b6499a160ed2088fa17ca26205242d2bb835da700038c3d0",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
       "sha": null,
       "kind": "no protocol-only commit -- protocol first committed inside a build",
-      "build_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750"
+      "build_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52"
     },
     "parity": {
       "slug": "statins-primary-prevention-elderly",
@@ -47550,8 +47574,8 @@
     "certificate": {
       "schema_version": 1,
       "slug": "statins-primary-prevention-elderly",
-      "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-      "protocol_text_sha256": "4e98c57b38315f8f77cb408ff4c2dab56f201e2fffd6eed690178e3e9cf58b35",
+      "protocol_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
+      "protocol_text_sha256": "f257b9938c2bacd7e4cfe4ad73f7b16bb10e6c6df2315173df51d5e120515937",
       "search_query_sha256": "31330c5f08b95faf151ebeab3a6a4b17c322e69a74a432b292ae433e20236e33",
       "retrieved_corpus_sha256": "7170920d541cd0ecf65779801b77336d065b5e86db4c039a0818c181aaf69b67",
       "records_file_sha256": "0bd4996edb3ef9df1b90f77efd8d3c74fcaf433114c882b968d325b07263bef2",
@@ -47571,8 +47595,8 @@
           "sha256": "b6e274a0b1ee1784fa3c39a8f8f206be86540f09357707ad8c00bf20c2900634"
         }
       ],
-      "config_sha256": "d0fbe7ae282e88604a59d4410289b0b15c35a01caa5d3a6cf1dde82f13de4d7e",
-      "analysis_code_sha256": "41f7fdd40209b45ceecf6ad6157fc8b5206e4eb822481f0e2a9795f0a54801c6",
+      "config_sha256": "4e4be834b28e07877a2ae6a055f60941bcddf87da4cd8aa70fbcd1bfe3c0d811",
+      "analysis_code_sha256": "43a44e9a03aac1e011f2582f5984a6a1d1b1d04c71cf1935d19f498ce70e4549",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -47597,7 +47621,7 @@
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
         "harness/consumer_consistency.py": "191dab38f85d1a06b3557ce1c51263f0b8909a47",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
-        "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
+        "harness/design_key.py": "473ce31ac965a338d1283d807c49e803aefe4ae6",
         "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
@@ -47625,14 +47649,14 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "355fcb0bdd1961e84e4dc422db30546d44ef3bf3",
+        "harness/limitations.py": "beb6cb7896863ceed7001ae9cdb202263189b28a",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "15b17feef78c8492abec0989242c9ec4455dbb2d",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "9fcc9974357c421ebeb2ef841bc2a753dfb9197e",
+        "harness/page.py": "fd4ff4f749f1db94139ee50ade6e1a604f68aeb3",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "832cd73b870f6ec523ce0481f843c60c608747b3",
+        "harness/pipeline.py": "a984c08b3d8415b25df996c9c6f4b6a7870c7912",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -47640,7 +47664,7 @@
         "harness/provenance_class.py": "695a60c3db0968f0b577983471e9a3bfe18dc912",
         "harness/reason_audit.py": "6950b0298265ef47e7ef83a44622a715bfe54d9e",
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
-        "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
+        "harness/registration.py": "54f865809eb345ec23ebe3aeda251771865b7cd3",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
         "harness/result_changes.py": "3e649a68f6aa1464292930ffc4550d97cfe9a6de",
         "harness/review_tabs.py": "759cfd0b44adb90d127eadb372290afb811578c5",
@@ -47698,6 +47722,7 @@
             "harness/notice_kinds.py",
             "harness/prospective.py",
             "harness/registry_multi.py",
+            "harness/removed_texts.py",
             "harness/search_completeness.py",
             "harness/search_v2.py",
             "harness/secondary_meta.py",
@@ -47712,8 +47737,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "07de93f17c6ccc91c6e502b7ccf19115bbc7d394a4bff2b217191d0ae43d4bf3",
-      "review_sha256": "5aefb00dba8541a6221ec1a4e985b6a7fe25dad9295009bdd1489a0df4a78b5b",
+      "manuscript_sha256": "e074944f03a71abbc9f993f58598ebce224d77cc9f5aa362f58f4a68189606f6",
+      "review_sha256": "1f2cc0e65f0543c1b6499a160ed2088fa17ca26205242d2bb835da700038c3d0",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/statins-primary-prevention-elderly.md UTF-8 text, universal newlines",
@@ -47734,7 +47759,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "dcda3659197c9358b98e39a0fbe62775f401e3b15313f7cce7476f42c2359f33"
+      "release_sha256": "39857d965e3e5221844d6aed8e9e9041c08bad9c3ccc961d0b8b4998aef7b5d3"
     }
   }
 }
