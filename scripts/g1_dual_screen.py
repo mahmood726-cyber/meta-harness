@@ -31,12 +31,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "dual_screen")
 READERS = (("A", "gpt-6-astra", "medium"), ("B", "gpt-5.5", "medium"))
+# NON-DECIDING third reader (Captain ruling 4, 10 Oct): agy routed to Gemini, recorded the same way, run only with --third.
+# It never changes `verdict` (the pre-registered 2-reader rule); it feeds `sensitivity_2of3` only.
+THIRD = ("C", "agy", None)
 _LAST_ERR = [0.0]
 SCHEMA = {"type": "object", "additionalProperties": False, "required": ["decision", "rule", "quote", "why"],
           "properties": {"decision": {"type": "string", "enum": ["INCLUDE", "EXCLUDE", "UNCLEAR"]},
                          "rule": {"type": "string", "enum": ["MEETS_ALL", "NOT_RCT", "POPULATION", "INTERVENTION",
                                                              "COMPARATOR", "DESIGN", "DUPLICATE_OR_SECONDARY_REPORT",
-                                                             "NOT_DECIDABLE_FROM_RECORD"]},
+                                                             "NOT_DECIDABLE_FROM_RECORD", "LITERAL_ONLY"]},
                          "quote": {"type": "string"}, "why": {"type": "string"}}}
 INSTR = """You screen ONE record (a PubMed abstract or a ClinicalTrials.gov registration) against a systematic review's
 REGISTERED eligibility, below. Use only the record; no memory of the trial.
@@ -104,17 +107,52 @@ def protocol_eligibility_text(slug):
     return "\n\n".join(x.strip() for x in keep)
 
 
+# OPERATING READINGS the Captain has ruled for a protocol whose text is ambiguous (quoted into the prompt beside the
+# verbatim protocol; the protocol itself is Mahmood's and is not edited here).
+OPERATING = {
+    "glp1-ra-mace-t2d": (
+        "OPERATING READING (Captain ruling 1, 10 Oct; GLP-1 operating reading per signed V14-07): the B-prime criterion is read "
+        "as reading (ii): 3-point MACE (or its exact three components) must be prespecified as a PRIMARY or KEY-SECONDARY "
+        "EFFICACY endpoint of the trial. Line 79 of the same signed amendment states this intent (glycaemic trials such as "
+        "SUSTAIN-1, PIONEER-1, AWARD-8 are outside). A trial whose MACE was only adjudicated as a SAFETY endpoint (e.g. under "
+        "regulatory cardiovascular-safety adjudication) meets the literal line-78 wording only: answer EXCLUDE with rule "
+        "LITERAL_ONLY when the record shows that, and every other criterion is met. If the record does not show how MACE was "
+        "specified, answer UNCLEAR with rule NOT_DECIDABLE_FROM_RECORD."),
+}
+
+
 def protocol(slug):
     from harness import served_comparator as sc
     c = sc.served_config(slug, json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8")))
+    op = OPERATING.get(slug)
     return (f"QUESTION: {c.get('question') or c.get('title')}\n\nTHE REGISTERED PROTOCOL'S ELIGIBILITY, VERBATIM "
-            f"(a dated amendment governs the text before it):\n{protocol_eligibility_text(slug)}")
+            f"(a dated amendment governs the text before it):\n{protocol_eligibility_text(slug)}"
+            + (f"\n\n{op}" if op else ""))
 
 
-def prompt_for(it):
-    """The exact prompt bytes for one item (shared by the call and by the record recovery)."""
-    return (INSTR + "\n\n=== REGISTERED ELIGIBILITY ===\n" + protocol(it["slug"]) + "\n\n=== RECORD ===\n"
-            + record_text(it["record"])).encode("utf-8")
+def prompt_for(it, third=False):
+    """The exact prompt bytes for one item (shared by the call and by the record recovery). The agy reader (third=True)
+    gets the output schema IN the prompt: codex receives it as --output-schema, agy only sees what the prompt states
+    (10 Oct pilot: without it agy answered 'DECISION: INCLUDE / QUOTE: ...' free text)."""
+    p = (INSTR + "\n\n=== REGISTERED ELIGIBILITY ===\n" + protocol(it["slug"]) + "\n\n=== RECORD ===\n"
+         + record_text(it["record"]))
+    if third:
+        p += ("\n\n=== ANSWER FORMAT ===\nAnswer with ONLY one JSON object (no prose, no code fence) matching this JSON "
+              "schema exactly:\n" + json.dumps(SCHEMA, sort_keys=True))
+    return p.encode("utf-8")
+
+
+def parse_answer(b):
+    """The reader's JSON object, or None. Tolerates a ``` fence (agy wraps JSON in fences); anything else is
+    UNPARSEABLE -- never guessed from prose."""
+    t = b.decode("utf-8", "replace").strip()
+    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", t, re.S)
+    t = m.group(1) if m else t
+    try:
+        o = json.loads(t)
+    except ValueError:
+        return None
+    return o if isinstance(o, dict) else None
 
 
 def _norm(s):
@@ -145,6 +183,7 @@ def main(argv):
     want = {}
     for it in items:
         want[hashlib.sha256(prompt_for(it)).hexdigest()] = it["key"]
+        want[hashlib.sha256(prompt_for(it, third=True)).hexdigest()] = it["key"]
     if os.path.isdir(REC_DIR):
         for f in os.listdir(REC_DIR):
             try:
@@ -156,16 +195,18 @@ def main(argv):
             if key and rec.get("state") == "RAN_OK":
                 mdl = rec.get("model") or {}
                 mid = mdl.get("id_requested") if isinstance(mdl, dict) else mdl
-                tag = next((t for t, m, _e in READERS if m == mid), None)
+                tag = next((t for t, m, _e in READERS if m == mid), None) or (
+                    "C" if str(mid or "").startswith("Gemini") else None)
                 if tag and (led["runs"].get(f"{key}::{tag}") or {}).get("state") != "RAN_OK":
                     led["runs"][f"{key}::{tag}"] = {"record_id": rec["record_id"], "state": "RAN_OK", "prompt_sha256": sha,
                                                     "recovered_from_record": True}
+    readers = READERS + ((THIRD,) if "--third" in argv else ())
     calls = []
     for it in items:
         text = record_text(it["record"])
-        prompt = prompt_for(it)
-        psha = hashlib.sha256(prompt).hexdigest()
-        for tag, model, eff in READERS:
+        for tag, model, eff in readers:
+            prompt = prompt_for(it, third=(tag == "C"))
+            psha = hashlib.sha256(prompt).hexdigest()
             k = f"{it['key']}::{tag}"
             r = led["runs"].get(k) or {}
             if not (r.get("state") == "RAN_OK" and r.get("prompt_sha256") == psha):
@@ -179,7 +220,9 @@ def main(argv):
 
         def one(c):
             k, it, tag, model, eff, prompt, psha, _t = c
-            rec = mcl.call(prompt, schema=json.loads(json.dumps(SCHEMA)), model=model, effort=eff,
+            fn = mcl.agy_call if model == "agy" else (
+                lambda p, **kw: mcl.call(p, model=model, effort=eff, **kw))
+            rec = fn(prompt, schema=json.loads(json.dumps(SCHEMA)),
                            caller={"file": "scripts/g1_dual_screen.py", "line": f"reader {tag}",
                                    "purpose": f"evidence completeness: dual screen {it['slug']} / {it['record'].get('id')} "
                                               f"(reader {tag}; acq/k-gap lane)"},
@@ -219,16 +262,24 @@ def main(argv):
     for it in items:
         text = record_text(it["record"])
         res = {}
-        for tag, _m, _e in READERS:
+        for tag, _m, _e in READERS + (THIRD,):
             r = led["runs"].get(f"{it['key']}::{tag}") or {}
             if r.get("state") == "RAN_OK" and os.path.exists(os.path.join(REC_DIR, r["record_id"] + ".json")):
-                resp = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8"))
+                resp = parse_answer(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))))
+                if resp is None:
+                    res[tag] = {"decision": None, "gated": "UNPARSEABLE", "rule": None, "quote": None,
+                                "record_id": r["record_id"]}
+                    continue
                 res[tag] = {"decision": resp.get("decision"), "gated": gated(resp, text), "rule": resp.get("rule"),
                             "quote": resp.get("quote"), "record_id": r["record_id"]}
         row = {"slug": it["slug"], "id": it["record"].get("id"), "title": (it["record"].get("title") or "")[:200],
                "readers": res, "origin": it.get("origin")}
-        if len(res) == 2:
+        if "A" in res and "B" in res:
             row["verdict"] = verdict(res["A"]["gated"], res["B"]["gated"])
+        if len(res) == 3:                       # NON-DECIDING 2-of-3 sensitivity; never replaces `verdict`
+            g = [res[t]["gated"] for t in ("A", "B", "C")]
+            row["sensitivity_2of3"] = ("ELIGIBLE" if g.count("INCLUDE") >= 2 else
+                                       "EXCLUDED" if g.count("EXCLUDE") >= 2 else "SPLIT")
         led["rows"][it["key"]] = row
     json.dump(led, open(out_p, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
     from collections import Counter
