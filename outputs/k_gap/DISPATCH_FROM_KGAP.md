@@ -572,3 +572,20 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
   - noac: 41 eligible, held as (b).
   - G1 effects in `v14_g1_impact.md`; none applied.
 - **DISAGREE: 65 records** (`concept/_disagree_for_captain.md`, each reader's decision, rule and verbatim quote). The pre-registered dual rule never counts a split. A third tie-break reader would change that rule, so it is your call. Say if you want one (e.g. a third model family, recorded the same way).
+
+### 2026-10-10 ~04:25 addendum -- search complete, typed acquisition, prompt sensitivity (V14 inputs; nothing applied)
+- **Paged re-run done.** All 22 concept searches are complete to the sources' own counts. Two recorded limits remain: cortico-covid EU CTR (40-page cap) and sema-weight Europe PMC (1 of 9,143). Lifting the 5,000 cap moved regex includes by at most 2 per topic.
+- **Typed acquisition (no model, `newly_eligible_acquired.json`).** None of the newly eligible trials gives the protocol's exact outcome and timepoint in an open source:
+  - cortico-covid: mortality without a timepoint (5.9% v 42.9%; 10.0% v 12.2%), 30-day or 90-day mortality, or no posted results;
+  - BOTTICELLI and 31455473: no recurrent-VTE counts in the abstract;
+  - XENITH: NETosis markers only;
+  - STEP 5: Week 104 only.
+  - So these trials widen eligible-not-matched (names: TIMEPOINT / OUTCOME_ABSENT / OUTCOME_NOT_MEASURED) and add no poolable number from open sources.
+- **Prompt sensitivity.** Re-reading the 11 re-screen flips with the verbatim protocol moved 5 of 11 verdicts. SAK went from ELIGIBLE to EXCLUDED: both readers cite INTERVENTION (arms empagliflozin + KCl / + KNO3 / placebo + KCl). Is empagliflozin + KCl v placebo + KCl a valid contrast under the empagliflozin-hfpef protocol? ARTS-DN Japan and Circadin stay ELIGIBLE under both prompts.
+- **Waiting on you:**
+  1. GLP-1 B-prime: line 78 v line 79.
+  2. A typed endpoint-axis rule for outcome topics (noac shows the (a)/(b) split fails).
+  3. Names for doac's 3, STEP 5, and the withdrawn n=0 trials.
+  4. A tie-break reader for the 65 DISAGREE.
+  5. SAK.
+  6. sglt2-ckd D8.
