@@ -55,6 +55,26 @@ def _row(d):
     return sm.SecondaryRow(**{k: v for k, v in d.items() if k in sm.SecondaryRow.__dataclass_fields__})
 
 
+CANONICAL_EFFECT_TYPES = os.path.join(ROOT, "registry", "canonical_effect_types.json")
+
+
+def canonical_primary(slug, trial_id, primary, reg=None):
+    """Our primary value compared on its CANONICAL effect type (r13/r20; scripts/canonical_effect_type.py): an
+    estimate-only row labelled RR / OR whose methods are established as time-to-event (RALES, RE-LY: a Cox 'relative
+    risk') is an HR. The value is unchanged; the source wording is kept beside it. A row with arm counts, or with no
+    ESTABLISHED_HR record for this exact row and wording, is returned as is."""
+    if reg is None:
+        reg = (_j(CANONICAL_EFFECT_TYPES) if os.path.exists(CANONICAL_EFFECT_TYPES) else {}).get("rows") or {}
+    r = reg.get(f"{slug}|{trial_id}") or {}
+    c = r.get("canonical") or {}
+    m = (primary.get("measure") or "").upper()
+    if c.get("state") != "ESTABLISHED_HR" or m not in ("RR", "OR") or primary.get("events_t") is not None \
+            or m != (r.get("source_wording") or "").upper():
+        return primary
+    return dict(primary, measure="HR", measure_source_wording=m,
+                canonical_basis={k: c.get(k) for k in ("rule", "document", "span")})
+
+
 def as_row(primary, label, measure_hint=None):
     """Our primary value dict (secondary_meta_build.our_trials) as a SecondaryRow, so both sides pool identically."""
     if not primary:
@@ -3622,6 +3642,8 @@ def topic(slug, T):
             # OUR value is the row the held-source POOL uses, never the bare build's (a stale baseline value could make
             # the same-trials comparison agree with numbers the pool no longer uses -- codex review 3 Oct)
             mine = dict(mine, primary=our_value_from_row(row_by_id[str(mine["id"])]) or mine.get("primary"))
+        if mine and mine.get("primary"):
+            mine = dict(mine, primary=canonical_primary(slug, mine["id"], mine["primary"]))
         sec = by_fam.get(fam, []) if fam else []
         # the comparator's OWN printed row for this trial, whatever its admission state: agreement asks what the
         # comparator pooled for the trial, not whether we may use its row as data
@@ -3678,7 +3700,10 @@ def topic(slug, T):
                        "disagreement_side": ((theirs.verification or {}).get("which_side")
                                              if theirs and theirs.state == sm.MISMATCH else None),
                        "our_value": ({k: mine["primary"].get(k) for k in ("measure", "effect", "lower", "upper",
-                                                                          "events_t", "n_t", "events_c", "n_c")}
+                                                                          "events_t", "n_t", "events_c", "n_c")} |
+                                     ({"measure_source_wording": mine["primary"]["measure_source_wording"],
+                                       "canonical_basis": mine["primary"]["canonical_basis"]}
+                                      if mine["primary"].get("measure_source_wording") else {})
                                      if in_pool and mine.get("primary") else row_value(vrow)),
                        "registry_binding": (registry_binding(t["ncts"][0], spec_name, kw_all,
                                                              estimand=(cfg.get("primary_outcome") or {}).get("estimand"),
