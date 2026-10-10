@@ -2010,9 +2010,15 @@ def _definition_audit_block(r):
         both = " ·both families" if v.get("both_families") else ""
         # audit 26-A / 28-C / 29: a row judged an earlier VERSION of the served row is shown as such, never as current
         state = _definition_audit_state(r, outcome, pmid, v)
-        stale = (f"<strong>{_e(state)}</strong>: this row judged an earlier version of the served row "
-                 f"(commit {_e((v.get('judged') if isinstance(v.get('judged'), dict) else {}).get('commit') or 'not recorded')}); it is not the current "
-                 "definition. Recorded finding: ") if state in ("AUDIT_ROW_STALE", "UNBOUND") else ""
+        if state == "AUDIT_ROW_STALE":
+            stale = (f"<strong>{_e(state)}</strong>: this row judged an earlier version of the served row "
+                     f"(commit {_e((v.get('judged') if isinstance(v.get('judged'), dict) else {}).get('commit') or 'not recorded')}); "
+                     "it is not the current definition. Recorded finding: ")
+        elif state == "UNBOUND":    # agy review P1: an unbound row records NO version, so it cannot be called earlier
+            stale = (f"<strong>{_e(state)}</strong>: this row records no judged version of the served row; it is not used "
+                     "as the definition. Recorded finding: ")
+        else:
+            stale = ""
         rows.append(f"<tr><td>{_e(pmid)}</td><td>{_e(outcome)}</td><td>{stale}{_e(v.get('detail',''))}{_e(both)}</td>"
                     f"<td><strong>{_e(v.get('resolution',''))}</strong></td></tr>")
     return ("<div class='absent'><strong>Cross-family definition audit.</strong> Two independent model "

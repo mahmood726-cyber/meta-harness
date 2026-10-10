@@ -82,7 +82,17 @@ def _load_json(*parts: str) -> dict[str, Any]:
 def _topic_definition_audit(slug: str | None, review: dict[str, Any]) -> dict[str, dict[str, Any]]:
     own = review.get("definition_audit") or {}
     if own:
-        return own
+        # an embedded copy that predates the binding adopts the judgment of the IDENTICAL row (same detail and resolution)
+        # in docs/definition_audit.json; a row whose text differs stays unbound (never used)
+        bound_rows = _load_json("docs", "definition_audit.json").get("by_row") or {}
+        out = {}
+        for k, v in own.items():
+            ref = bound_rows.get(k) or {}
+            if (not isinstance(v.get("judged"), dict) and isinstance(ref.get("judged"), dict)
+                    and (v.get("detail"), v.get("resolution")) == (ref.get("detail"), ref.get("resolution"))):
+                v = dict(v, judged=ref["judged"])
+            out[k] = v
+        return out
     if not slug:
         return {}
     all_rows = (_load_json("docs", "definition_audit.json").get("by_row") or {})

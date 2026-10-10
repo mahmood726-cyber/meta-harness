@@ -113,4 +113,18 @@ def test_PLANT_a_non_dict_judgment_is_unbound_and_disclosed_without_crashing():
     dims = compat_check.derive_trial_dimensions({"slug": "s"}, {"name": "MACE"}, now, {}, audit)
     assert dims["definition_audit_row"]["state"] == B.UNBOUND and dims["definition_audit_row"]["judged_commit"] is None
     r = {"definition_audit": audit, "outcomes": [{"name": "MACE", "trials": [now]}]}
-    assert "UNBOUND" in page._definition_audit_block(r)
+    html = page._definition_audit_block(r)
+    assert "UNBOUND" in html and "records no judged version" in html and "earlier version" not in html   # agy P1
+
+
+def test_PLANT_an_embedded_pre_binding_copy_adopts_the_identical_bound_row_and_only_that():
+    """A historical review embeds the audit rows without `judged`; the IDENTICAL row's binding applies, a differing one stays
+    unbound (test_compat_underlying's pre-fix probiotics review needs the first)."""
+    da = json.loads((ROOT / "docs" / "definition_audit.json").read_text(encoding="utf-8"))["by_row"]
+    k = "probiotics-aad-prevention::Antibiotic-associated diarrhoea::15740542"
+    same = {k: {kk: vv for kk, vv in da[k].items() if kk != "judged"}}
+    got = compat_check._topic_definition_audit("probiotics-aad-prevention", {"definition_audit": same})
+    assert got[k]["judged"] == da[k]["judged"]
+    edited = {k: dict(same[k], detail="edited text")}
+    got2 = compat_check._topic_definition_audit("probiotics-aad-prevention", {"definition_audit": edited})
+    assert "judged" not in got2[k]
