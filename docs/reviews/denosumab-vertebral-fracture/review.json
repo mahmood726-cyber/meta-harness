@@ -1276,19 +1276,18 @@
       "population": "intention-to-treat",
       "timepoint": "36 months",
       "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
-      "served_estimand": "HR",
+      "served_estimand": "RR",
       "estimand_decision": {
         "declared_estimand": "RR",
-        "decision": "time_to_first_event",
-        "target_scale": "HR",
+        "decision": "cumulative_risk_at_trial_end",
+        "target_scale": "RR",
         "target_class": "FIRST_EVENT_RATIO",
         "published_candidate_scales": [
-          "HR",
           "RR"
         ],
-        "served_scale_changed": true,
-        "reason": "published HR exists for the target outcome",
-        "rule": "prefer published HR; keep reconstruction only when no HR exists"
+        "served_scale_changed": false,
+        "reason": "declared cumulative risk-ratio estimand",
+        "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
       },
       "trials": [
         {
@@ -1303,19 +1302,7 @@
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
-          "alternatives": [
-            {
-              "derivation": "reported",
-              "provenance": "abstract",
-              "source_span": "abstract effect+CI (HR): Denosumab also reduced the risk of nonvertebral fracture, with a cumulative incidence of 6.5% in the denosumab group, versus 8.0% in the placebo group (hazard ratio, 0.80; ...",
-              "effect": 0.8,
-              "ci_low": 0.67,
-              "ci_high": 0.95,
-              "scale": "HR",
-              "estimand_class": "FIRST_EVENT_RATIO",
-              "not_selected_reason": "source_hierarchy_lower_precedence"
-            }
-          ],
+          "alternatives": [],
           "cross_source": {
             "ctgov_rr": 0.325,
             "ctgov_source": "ClinicalTrials.gov results (structured): outcome 'Number of Participants With New Vertebral Fractures' COUNT_OF_PARTICIPANTS 86/3702 (Denosumab 60 mg Q6M) vs 264/3691 (Placebo)",
@@ -1350,13 +1337,6 @@
           },
           "endpoint_admissibility": "UNBOUND_LEGACY",
           "endpoint_binding": "unbound_legacy",
-          "source_hierarchy_limitations": [
-            {
-              "code": "MIXED_BY_SOURCE_LIMIT",
-              "reason": "Outcome decision prefers published HR, but this row has no committed HR effect+CI; the row remains on the reconstructed/available scale and the pool is mixed by source limit.",
-              "citation": "SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED"
-            }
-          ],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
           "design": {
@@ -1389,7 +1369,7 @@
           "study_effect": {
             "effect_estimate": 0.32,
             "standard_error": 0.11619487201692441,
-            "estimand": "HR",
+            "estimand": "RR",
             "analysis_population": "intention-to-treat",
             "randomisation_unit": "INDIVIDUAL",
             "study_design": "PARALLEL",
@@ -2992,7 +2972,7 @@
   },
   "rob_sensitivity": {
     "outcome": "New vertebral fracture",
-    "estimand": "HR",
+    "estimand": "RR",
     "levels": {
       "19671655": "low"
     },
@@ -67999,7 +67979,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "6338148b6cd6d59588057e123fd2e07fd00f37dc",
-    "review_sha256": "4ce5bbe7c48c9a4d382a1f6bcbc990e5982a5fb64660657ecc3ba677d60dce07",
+    "review_sha256": "49f53bdaec1ec457fa58f5e51991972f08a1f7ef93156bfbf225bcd77c5ba733",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -68137,7 +68117,7 @@
         }
       ],
       "config_sha256": "271a127af373b56020cb725bb9e79407f1c8ec948929a754e00789130b3f55bc",
-      "analysis_code_sha256": "43a44e9a03aac1e011f2582f5984a6a1d1b1d04c71cf1935d19f498ce70e4549",
+      "analysis_code_sha256": "653b25fba17876068369f6f21cc2c7fe82e90570ce6524a25cde5b9f26faa1e5",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -68180,7 +68160,7 @@
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
-        "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
+        "harness/hand_binding.py": "c173638e6640ccd47dcd5097eb52c0090aabec05",
         "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
@@ -68218,7 +68198,7 @@
         "harness/second_source.py": "825f07dd07b33fb5a4cf838fc32648cb38adda49",
         "harness/served_comparator.py": "6deca6a6182e339d256c8ad76b4ae30f00cdb4ba",
         "harness/served_pool_additions.py": "898be5bb236a1d860285aa9de9b2ae0a8e61e576",
-        "harness/source_hierarchy.py": "c8d338bd7680fa1b3861fb4c0a2c80b14ae58547",
+        "harness/source_hierarchy.py": "80a2f40c07c033595e7691e45347d0467ba8f5c1",
         "harness/synth.py": "a63014007fb9b7c2f417d22c193538ae2772c656",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "f5ccfb00a5109ffbb0ba8ed71293df69f20ca55e",
@@ -68279,7 +68259,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "0076ce09e430b69d8ae64fa42f7ce3ea39220c5c55ec7267dafe9976f425755c",
-      "review_sha256": "4ce5bbe7c48c9a4d382a1f6bcbc990e5982a5fb64660657ecc3ba677d60dce07",
+      "review_sha256": "49f53bdaec1ec457fa58f5e51991972f08a1f7ef93156bfbf225bcd77c5ba733",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/denosumab-vertebral-fracture.md UTF-8 text, universal newlines",
@@ -68300,7 +68280,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "4786989a6d765e7a173dc751dee09f1e2a6bd3ecaa737746f743ab1d191169a7"
+      "release_sha256": "1a0a26a1ddc4865c908039f1e01369e6e9910bbde14368680c27ed04ba74cf93"
     }
   }
 }

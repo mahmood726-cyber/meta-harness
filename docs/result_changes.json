@@ -2,6 +2,88 @@
  "_doc": "Result-change notices: one per (slug, outcome) whose served pooled result changed. before/after are the served and the rebuilt result tuples (k, estimate, ci_low, ci_high) read from the review objects; left_pool/entered_pool name every trial that moved; the honest ratchet refuses a landing whose result differs from the served one without an exact notice; the page renders each notice beside the outcome and names a reversal of significance as a withdrawal of the previous conclusion. reviewer_countersignature: OPEN until the reviewer has SEEN the rendered notice; SEEN_AND_SIGNED (per notice; the only signature a withdrawn conclusion accepts) or BATCH_SEEN_AND_SIGNED (direction-preserving changes, batch_id named) carry by, when_utc, the sha256 of the rendered block that was signed, and how_it_reached_the_reviewer (the rendered block itself, or a relay and what the relay conveyed); there is no 'agreed in advance'.",
  "notices": [
   {
+   "slug": "doac-vte-recurrence",
+   "outcome": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+   "before": {
+    "k": 6,
+    "estimate": 0.9091,
+    "ci_low": 0.7479,
+    "ci_high": 1.105
+   },
+   "after": {
+    "k": 6,
+    "estimate": 0.9092,
+    "ci_low": 0.7478,
+    "ci_high": 1.1054
+   },
+   "left_pool": [],
+   "entered_pool": [],
+   "reason": "PMID 23808982 stayed in the pool but now contributes a different number: RR 0.84 (0.6 to 1.18) -> HR 0.8393, reconstructed from 59/2609 vs 71/2635 (estimator selection PUBLISHED_EFFECT_TARGET_CLASS -> KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT; source reported -> reconstructed). MIXED_BY_SOURCE_LIMIT: Outcome decision prefers published HR, but this row has no committed HR effect+CI; the row remains on the reconstructed/available scale and the pool is mixed by source limit. (SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED) This is not a set-aside: the previously served number was the WRONG QUANTITY for this outcome, and is asserted wrong. The trial stays in the pool and contributes the quantity the outcome declares, read from the same held document.",
+   "by": "Claude Opus 5.5 (captain lane)",
+   "when_utc": "2026-10-10T18:21:06Z",
+   "reviewer_countersignature": {
+    "state": "OPEN",
+    "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+   }
+  },
+  {
+   "slug": "dpp4-mace-t2d",
+   "outcome": "Hospitalization for heart failure",
+   "before": {
+    "k": 2,
+    "estimate": 1.1296,
+    "ci_low": null,
+    "ci_high": null
+   },
+   "after": {
+    "k": 4,
+    "estimate": 0.9704,
+    "ci_low": 0.6317,
+    "ci_high": 1.4908
+   },
+   "left_pool": [],
+   "entered_pool": [
+    "PMID 28893244",
+    "PMID 30418475"
+   ],
+   "before_note": "refused at k = 2, K2_SINGLE_DF",
+   "reason": "PMID 28893244 entered the pool contributing HR 0.6 (0.35 to 1.05) (source abstract_verified). PMID 30418475 entered the pool contributing HR 0.9 (0.74 to 1.08) (source abstract_verified). Entering trials are new evidence, not a correction: the previously served number is not asserted wrong; it was computed without the held document(s) this topic now admits to pool construction.",
+   "by": "Claude Opus 5.5 (captain lane)",
+   "when_utc": "2026-10-10T18:21:06Z",
+   "reviewer_countersignature": {
+    "state": "OPEN",
+    "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+   }
+  },
+  {
+   "slug": "ticagrelor-vs-clopidogrel-acs",
+   "outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
+   "before": {
+    "k": 2,
+    "estimate": null,
+    "ci_low": null,
+    "ci_high": null
+   },
+   "after": {
+    "k": 1,
+    "estimate": 0.84,
+    "ci_low": 0.77,
+    "ci_high": 0.92
+   },
+   "left_pool": [
+    "PMID 26376600"
+   ],
+   "entered_pool": [],
+   "before_note": "pool refused at k = 2, DIRECTION_CONFLICT_K2: k=2 pooled row refused because point estimates are on opposite sides of the null",
+   "reason": "PMID 26376600 set aside (ENDPOINT_UNBOUND): named endpoint has no definition span in the held text. Mechanism: the hand-row binder landing (m2/bind-hand-rows) binds every hand-extracted row to held bytes or sets it aside; a set-aside trial stays eligible evidence awaiting adjudication; the numbers are not asserted wrong.",
+   "by": "Claude Opus 5.5 (captain lane)",
+   "when_utc": "2026-10-10T18:21:06Z",
+   "reviewer_countersignature": {
+    "state": "OPEN",
+    "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+   }
+  },
+  {
    "slug": "colchicine-recurrent-pericarditis",
    "outcome": "Recurrent pericarditis",
    "before": {

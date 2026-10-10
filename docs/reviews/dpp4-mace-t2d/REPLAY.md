@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `a14645d59c67a68136fe14d112712413120d34c9ba2b2079d12ccefce379953d` |
-| html_sha256 (served page bytes) | `d836d1365c6a8566246d415b6285ff3fca6cff4e746df362cdc698ec91a90467` |
-| release_sha256 (certificate) | `1c10b9e25c46fcfea5f301350ba1fbf6471628df5dd28848bec13b7fe6a3d236` |
+| review_sha256 (canonical review core) | `45305a59e5dd74aee3027a7808f4002da6400bae6c3b11556689bfc0dc3a91b0` |
+| html_sha256 (served page bytes) | `4754ed3a0621ac65403b76829be298dafcacda687090a188e0b62e734c6e0723` |
+| release_sha256 (certificate) | `1c927fb58f870c9321a030253f7a8ed73ceb6f719091dd1fc23fc1c047f83ba9` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `0fb7f9f4cd617ae16e470371a271bccbba9e9c86` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
+| recorded generating commit | `8c220a75002c32e6d7855c6cb98f9cf377fc10d0` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -40,8 +40,10 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/dpp4-mace-t2d/ft_30418475.txt` | `b1fe2a61e664db3c6302cfbcffd65739b37059cdf696faa180dc0d716cfffc1e` |
 | `outputs/handover/in3/aact/reported_event_totals.txt` | `50429a380c137b78871fbee01cb2641ab0676f2fb9e194fd53455bbfc483ee73` |
 | `outputs/handover/in3/aact/reported_events.txt` | `96356f7251be3d0c803bce360bf6c77537fc34f381ed2546a644b34832d80d76` |
+| `outputs/held_abstracts/pubmed_28893244.txt` | `6ade2476f3f931f8ef952c2afc46f2b11b3292361e933428cbb54784b6420c9b` |
+| `outputs/held_abstracts/pubmed_30586723.txt` | `94e500fb2025e3a5d004490722412507eb1aca81e62c61475b8cee6b17548705` |
 
 Recorded judgments live under `cache/dpp4-mace-t2d/`; their object digest is
-`f41f89cee700fe037152f4217b65fadb57a168072a8071ba95b24e244ce31d9c`. Acquisitions live under `docs/acquisitions/dpp4-mace-t2d/`.
+`f8761f899414722d7b30a5316f72453fe006859bad11a94222e93d277ff70f73`. Acquisitions live under `docs/acquisitions/dpp4-mace-t2d/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

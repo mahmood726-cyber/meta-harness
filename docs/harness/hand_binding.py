@@ -357,7 +357,23 @@ def _label_definition(prose: str, cand: dict[str, Any]) -> dict[str, Any]:
             "components": set(), "binding_reason": reason}
 
 
-_RESULT_PAREN = re.compile(r"[\[(][^\[\]()]*\d[^\[\]()]*(?:95\s*%|CI)[^\[\]()]*[\])]")
+# one level of nested brackets inside a result parenthesis (CARMELINA hHF, V14-02: '(209/3494 [6.0%] versus ...;
+# hazard ratio [HR], 0.90; 95% CI, 0.74-1.08)'); a parenthesis is a RESULT when it carries a digit and a 95%/CI marker
+_PAREN = re.compile(r"[\[(](?:[^\[\]()]|[\[(][^\[\]()]*[\])])*[\])]")
+_IS_RESULT = re.compile(r"\d[\s\S]*(?:95\s*%|CI)")
+
+
+def _result_parens(text: str) -> list:
+    out = []
+    for m in _PAREN.finditer(text):
+        if not _IS_RESULT.search(m.group(0)):
+            continue
+        # an ENCLOSING parenthesis that holds two or more results is those results, not one (codex v14-apply-r1 g1#1)
+        inner = [x for x in _PAREN.finditer(text, m.start() + 1, m.end() - 1) if _IS_RESULT.search(x.group(0))]
+        out.extend(inner if len(inner) >= 2 else [m])
+    return out
+
+
 _LEADING_JOIN = re.compile(r"^\s*(?:[,;]\s*)?(?:as was|as were|and|whereas|while|but)\b\s*", flags=re.I)
 
 
@@ -370,10 +386,16 @@ def _owning_clause(sentence: str, tup: dict[str, Any] | None, names_endpoint) ->
     With one result, the sentence is the clause."""
     if not tup or tup.get("kind") != "effect":
         return sentence
-    parens = list(_RESULT_PAREN.finditer(sentence))
+    parens = _result_parens(sentence)
     if len(parens) < 2:
         return sentence
     idx = next((i for i, m in enumerate(parens) if _tuple_in(m.group(0), tup)), None)
+    if idx is None:
+        # the point estimate may sit just before its CI bracket ('Trial B HR 1.2 [95% CI 0.6-2.4]', inside a split
+        # enclosing parenthesis): the segment from the previous result to this one carries the whole tuple
+        # (agy v14-apply-r1-agy #1)
+        idx = next((i for i, m in enumerate(parens)
+                    if _tuple_in(sentence[(parens[i - 1].end() if i else 0):m.end()], tup)), None)
     if idx is None:
         return sentence
     start = idx

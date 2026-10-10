@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `b5b6f9c666b77baea15d62dc8cdf887e05a92057856e0ff82d2b9e81a14daeb8` |
-| html_sha256 (served page bytes) | `2eea38d7dd92b6d5e2a20fa9b8c91171cb04da9b0e820a800608e1e02623c7fb` |
-| release_sha256 (certificate) | `714b30994b5338369f1b5a5386e30ccf02506d71af7fe8f0ee078cb1a15296c0` |
+| review_sha256 (canonical review core) | `5f3774798be9e5da813d87e2a10118d74e4a8f1b06ec8aeff6fe5362cef6aecb` |
+| html_sha256 (served page bytes) | `f1d6fb0a1af438d4b14ecfce805bfa512f464ace4b7443c14233ff7abaa38c95` |
+| release_sha256 (certificate) | `6ad7fa0c2f97563d5ae75150dcba9deba51ec838a2b2a4eceb7689830f9f07b3` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `43f5f12e367109bebd37936a8177ef00c6dcf1f6` |
 | analysis code | 90 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `0bac8bf7bfe8cc74eb3d03b135d2f4a1b6391d58` |
+| recorded generating commit | `8c220a75002c32e6d7855c6cb98f9cf377fc10d0` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -38,8 +38,9 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 |---|---|
 | `cache/finerenone-ckd-t2d-renal/aact_inputs.json` | `01d95f842324caf88e1265c4a842914c537e0c2f4d13b2d368e5497fc00c0a30` |
 | `cache/finerenone-ckd-t2d-renal/comparator_fulltext.txt` | `0e4dc2ef38a6a8f7b59078fe54def5b47a8d3f82805dff7964599f1549d7671c` |
+| `outputs/held_labels/fda_215341s000lbl.txt` | `26c58886d7802376ecc2c3235a2e1acc0bae3dc775bf8744f4df116b23ee0c9d` |
 
 Recorded judgments live under `cache/finerenone-ckd-t2d-renal/`; their object digest is
-`d680bc03d3ed1dd9eb19949350dbaba4cd31433a2468cfd03d0faa216cb196b7`. Acquisitions live under `docs/acquisitions/finerenone-ckd-t2d-renal/`.
+`149fa47409369a549ad457c414d611ecc8d0ae7ce48d8895f1e041fefa18f5aa`. Acquisitions live under `docs/acquisitions/finerenone-ckd-t2d-renal/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.
