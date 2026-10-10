@@ -6863,5 +6863,59 @@
     "verdict": null
    }
   ]
+ },
+ "r7-4-r3": {
+  "base": "beb73a487",
+  "head": "aa5b6f5f7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b4af9e243a774d0176df746876b9ebc7",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "518040c66fc2d60822ee146105d65cba5028e8f6580c9b2e23f35ae21833010b"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "A placebo named for the topic drug establishes DRUG_MATCH even when the only active drug is a different agent. The topic-name match does not distinguish active interventions from named placebos.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts import g1_tracker as g\nT = {'trials': [{'slug': 'empagliflozin', 'drug': 'AGENT_UNCONFIRMED', 'ncts': ['NCT00000001']}]}\nrows = 'nct_id|intervention_type|name\\nNCT00000001|drug|Placebo for empagliflozin\\nNCT00000001|drug|Sotagliflozin\\n'\nwith patch.object(g.os.path, 'isfile', return_value=True), patch('builtins.open', return_value=io.StringIO(rows)):\n    result = g.verified_agent_identity(T, agents={'empagliflozin': ['empagliflozin']}, snap='fixture', class_topics=set())\nprint(result['trials'][0]['drug'])",
+    "expected": "OTHER_AGENT: the synthetic registry fixture contains sotagliflozin and a placebo, with no active empagliflozin intervention.",
+    "actual": "DRUG_MATCH",
+    "id": "r7-4-r3:g1#1",
+    "record_id": "mc-b4af9e243a774d0176df746876b9ebc7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "A numbered Markdown definition is not recognized by the definition regex, so the fallback selects an earlier cross-reference and falsely clears an overbroad exclusion.",
+    "failing_input": "from scripts.r7_4_x2_wording_sweep import x2_text, classify\nmd = 'See X2 for diabetes exclusions.\\n\\n2. **X2**: Exclude diabetes-only populations.'\nprint(x2_text(md))\nprint(classify('diabetes', x2_text(md)))",
+    "expected": "Extract the numbered X2 definition; classify returns CONFIG_BROADER_THAN_PROTOCOL.",
+    "actual": "x2_text returns 'X2 for diabetes exclusions.'; classify returns MATCHES_PROTOCOL.",
+    "id": "r7-4-r3:g1#2",
+    "record_id": "mc-b4af9e243a774d0176df746876b9ebc7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The three-continuation-line cap silently drops exclusions from longer X2 rules, reporting an explicitly present term as absent.",
+    "failing_input": "from scripts.r7_4_x2_wording_sweep import x2_text, classify\nmd = '- X2: Exclude the following populations:\\n  - children;\\n  - pregnant patients;\\n  - healthy volunteers;\\n  - diabetes-only populations.\\n- X3: Wrong intervention.'\nprint(classify('diabetes', x2_text(md)))",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL: diabetes-only populations are explicitly excluded within X2.",
+    "actual": "NOT_IN_PROTOCOL_X2",
+    "id": "r7-4-r3:g1#3",
+    "record_id": "mc-b4af9e243a774d0176df746876b9ebc7",
+    "verdict": null
+   }
+  ]
  }
 }

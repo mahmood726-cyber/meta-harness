@@ -3030,11 +3030,20 @@ def verified_agent_identity(T, agents=None, snap=None, class_topics=None):
         if not mine:
             # no topic-agent definition: an empty lookup cannot establish a different agent
             continue
-        # the topic agent is looked for in EVERY name ('empagliflozin plus matching placebo'); only a name that is
-        # nothing but a placebo/sham (all its words placebo-ish) is dropped from the other-agent evidence
-        hit = any(re.search(r"(?<![a-z])" + re.escape(a.lower()) + r"(?![a-z])", n.lower()) for a in mine for n in allnames)
-        names = [n for n in allnames if n and re.sub(r"(?i)\b(?:matching|placebos?|sham|for|of|to|and|tablets?|"
-                                                       r"capsules?|oral|injection|vehicle)\b|[^a-z]", "", n.lower())]
+        # placebo PHRASES are removed before the agent is looked for: 'empagliflozin plus matching placebo' keeps its
+        # active empagliflozin, 'placebo for empagliflozin' / 'empagliflozin placebo' / 'placebo matching
+        # empagliflozin' name no active drug; a name with nothing active left is not other-agent evidence either
+        def active(n):
+            n = n.lower()
+            # the word directly before (matching) placebo describes it ('empagliflozin placebo'); in 'X plus matching
+            # placebo' that word is 'plus', so X stays
+            n = re.sub(r"\b[\w-]+\s+(?:matching\s+)?(?:placebos?|sham)\b", " ", n)
+            return re.sub(r"\b(?:matching\s+)?(?:placebos?|sham)\b(?:\s+(?:for|to\s+match|of|matching|to)\s+[\w-]+)?",
+                          " ", n)
+        act = [active(n) for n in allnames]
+        hit = any(re.search(r"(?<![a-z])" + re.escape(a.lower()) + r"(?![a-z])", n) for a in mine for n in act)
+        names = [n for n, a in zip(allnames, act) if n and re.sub(
+            r"\b(?:for|of|to|and|plus|with|tablets?|capsules?|oral|injection|vehicle)\b|[^a-z]", "", a)]
         if not names:
             continue
         if unnamed and not hit:

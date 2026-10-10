@@ -25,8 +25,9 @@ def x2_text(md):
     """The protocol's X2 rule text (a line naming X2 and its continuation), or None."""
     # a continuation line ends at any line naming another rule (list item '- X3', table row '| X3 |', '**X3**')
     # the rule's DEFINITION line ('- X2:', '| X2 |', '**X2** -') before any cross-reference ('See X2 for ...')
-    cont = r"(?:\n(?![^\n]*\bX(?:[013-9]|\d\d)\b)[^\n]+){0,3}"
-    m = (re.search(r"(?m)^[ \t>*|#-]*\**X2\b\**\s*[:|*‐-—-][^\n]*" + cont, md)
+    # (continuation runs to the next rule or a blank line -- no line cap; numbered items '2. **X2**:' are definitions)
+    cont = r"(?:\n(?![^\n]*\bX(?:[013-9]|\d\d)\b)[^\n]*\S[^\n]*)*"
+    m = (re.search(r"(?m)^[ \t>*|#-]*(?:\d+[.)]\s*)?\**X2\b\**\s*[:|*‐-—-][^\n]*" + cont, md)
          or re.search(r"\bX2\b[^\n]*" + cont, md))
     return re.sub(r"\s+", " ", m.group(0)) if m else None
 

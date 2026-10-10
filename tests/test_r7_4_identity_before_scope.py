@@ -108,3 +108,23 @@ def test_PLANT_r2_x2_definition_beats_a_cross_reference_and_unicode_hyphens_qual
     x2 = sw.x2_text("See X2 for population exclusions.\n\n- X2: diabetes-only\n- X3: wrong intervention")
     assert sw.classify("diabetes", x2) == "CONFIG_BROADER_THAN_PROTOCOL"
     assert sw.classify("diabetes", "X2: diabetes‑only") == "CONFIG_BROADER_THAN_PROTOCOL"
+
+
+def test_PLANT_r3_a_placebo_named_for_the_topic_drug_is_not_the_topic_drug(tmp_path):
+    for i, pl in enumerate(["Placebo for empagliflozin", "empagliflozin placebo", "Placebo to match empagliflozin",
+                            "Empagliflozin matching placebo"]):
+        s = snap(tmp_path, [(f"NCT1{i}", "DRUG", pl), (f"NCT1{i}", "DRUG", "Sotagliflozin")])
+        u = gt.verified_agent_identity(T({"label": "P", "ncts": [f"NCT1{i}"]}), AGENTS, s)["trials"][0]
+        assert u["drug"] == "OTHER_AGENT", pl
+    s = snap(tmp_path, [("NCT20", "DRUG", "Empagliflozin with matching placebo")])
+    assert gt.verified_agent_identity(T({"label": "Q", "ncts": ["NCT20"]}), AGENTS, s)["trials"][0]["drug"] == "DRUG_MATCH"
+
+
+def test_PLANT_r3_numbered_definitions_and_long_rules_are_read_whole():
+    import r7_4_x2_wording_sweep as sw
+    assert sw.classify("diabetes", sw.x2_text("See X2 for diabetes exclusions.\n\n2. **X2**: Exclude diabetes-only "
+                                              "populations.")) == "CONFIG_BROADER_THAN_PROTOCOL"
+    md = ("- X2: Exclude the following populations:\n  - children;\n  - pregnant patients;\n  - healthy volunteers;\n"
+          "  - diabetes-only populations.\n- X3: Wrong intervention: diabetes drugs.")
+    x2 = sw.x2_text(md)
+    assert "X3" not in x2 and sw.classify("diabetes", x2) == "CONFIG_BROADER_THAN_PROTOCOL"
