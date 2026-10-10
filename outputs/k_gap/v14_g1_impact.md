@@ -84,3 +84,23 @@ Result: ELIGIBLE 1, EXCLUDED 40, DISAGREE 25 (outputs/k_gap/concept/_dual_a_sema
 - **G1 effect (not applied):** cortico-covid is already NOT_YET (unmet ALL_ELIGIBLE_MATCHED, RESULT_AGREES, DIVERGENCES_NAMED). The 7 trials widen the eligible-not-matched gap but do not change the status.
   - Most post-date or fall outside the comparator's set. Each needs either a NOT_IN_COMPARATOR reason (date / population) or acquisition.
   - The two no-results registrations need a report search (open routes) before an OUTCOME_ABSENT name.
+
+## 2026-10-10 ~04:00 -- typed acquisition for the newly eligible (no model call; outputs/k_gap/newly_eligible_acquired.json)
+
+Sources: the PubMed abstract (current record, coverage FULL_ABSTRACT for all 8) and CT.gov posted results. Spans are CANDIDATES for the binding gates, not bound values. **Nothing applied.**
+
+**cortico-covid (protocol: 28-day all-cause mortality).** No trial gives a 28-day count in its abstract:
+- 32943404: "mortality rate ... (5.9% versus 42.9%; p<0.001)". Timepoint not stated -> TIMEPOINT gate.
+- 35361632 / NCT04673162: "overall mortality (10.0% versus 12.2%". Timepoint not stated; the registration has no posted results.
+- 35295605: "no cases of death ... at 14 days". 28-day mortality is a stated secondary, but its value is not in the abstract.
+- 39086948: "all-cause mortality within 30 days" is a primary endpoint, but no value is in the abstract (30 d, not 28 d).
+- 42079491: "by day 90, two had died in the extended group and none in the standard care group". 90-day timepoint.
+- NCT04244591 (n=80) and NCT04438980 (n=72): COMPLETED, no posted results, no RESULT reference.
+- NCT04360876: WITHDRAWN, 0 enrolled.
+- => Each needs the full report (open routes / D8) or an OUTCOME_ABSENT / TIMEPOINT name.
+
+**doac (protocol: recurrent VTE at trial end):**
+- BOTTICELLI 18541000 and 31455473: neither abstract states recurrent-VTE counts in an extractable sentence (only design / enrolment spans).
+- XENITH NCT02506985: posted PRIMARY outcomes are NETosis markers at 12/24/48 h only -> proposed name OUTCOME_NOT_MEASURED.
+
+**sema-weight:** STEP 5 confirmed Week 104 only, in both the abstract ("-15.2% ... versus -2.6% ... -12.6 %-points") and CT.gov. Week-68 outcome declared absent per protocol line 18.
