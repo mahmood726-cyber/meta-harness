@@ -686,3 +686,22 @@ def test_rule_single_number_an_omitted_value_is_not_a_disagreement_and_stays_unr
     other = {"label": "T2", "effect": "0.90", "lower": "0.62", "upper": "1.31"}
     v = g.judge(_ITEM, _rd([base, other]), _rd([dict(base, events_c=None), other]), "a", "b", "", "fixed-effect")
     assert [r["why"] for r in v["refused_rows"]] == [f"{g.SINGLE_NUMBER_UNRESOLVED}:EVENTS_C"]
+
+
+def test_PLANT_agy_real_call_path_writes_its_lane_log_line(tmp_path, monkeypatch):
+    """A REAL agy call is logged through log_call, which requires `outside_workdir_reads` (redaction commit 07cbbc6cb).
+    The agy facts lacked it, so every real call raised KeyError AFTER the model answered: the call ran and no record was
+    written. The fake runners above never reach log_call (`runner is agy_runner` is False), which is why no test saw it.
+    Here the fake is installed AS agy_runner so the real-call branch runs."""
+    monkeypatch.setattr(mcl, "agy_runner", _fake_agy(json.dumps(reading())))
+    monkeypatch.setattr(mcl, "LANE_LOG_DIR", tmp_path / "lane_log")
+    img = tmp_path / "fig.jpg"
+    img.write_bytes(b"\xff\xd8\xff fake")
+    rec = mcl.agy_call(b"read the figure", schema=g.SCHEMA, client_version="agy-test",
+                       caller={"file": "tests/test_g1_forest_reader.py", "line": "1", "purpose": "plant", "lane": "test"},
+                       input_digests=[{"ref": "fig", "sha256": "b" * 64}], images=(str(img),),
+                       settings=("Gemini 3.1 Pro (High)", "c" * 64))
+    assert rec["state"] == "RAN_OK"
+    lines = [json.loads(l) for p in (tmp_path / "lane_log").glob("*.jsonl") for l in p.read_text().splitlines()]
+    assert len(lines) == 1 and lines[0]["record_id"] == rec["record_id"]
+    assert lines[0]["outside_workdir_reads"] is None          # not observable for agy: None, never a made-up 0
