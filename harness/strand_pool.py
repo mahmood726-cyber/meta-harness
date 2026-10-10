@@ -33,7 +33,8 @@ _LEVEL_FIRST = re.compile(
     r"(?:hazard ratio|rate ratio|relative risk|\bHR\b|\bRR\b)\s*\((\d+(?:\.\d+)?)%\s*(?:CI|confidence interval)\)\s*:?\s*"
     + _NUM + r"\s*\(\s*" + _NUM + r"\s{0,3}(?:-|–|to)\s{0,3}" + _NUM + _END, re.I)
 # 'was 0.56 (95% CI, 0.45 to 0.68' -- the effect named earlier in the quoted sentence; the quote fixes which outcome
-_PAREN = re.compile(_NUM + r"\s*\(\s*(\d+(?:\.\d+)?)%\s*(?:CI|confidence interval)\s*,?\s*" + _NUM +
+# (its effect may not follow a minus or a letter either: '1e-2' must not read as 2, codex strands-r2#1)
+_PAREN = re.compile(r"(?<![\w\-−])" + _NUM + r"\s*\(\s*(\d+(?:\.\d+)?)%\s*(?:CI|confidence interval)\s*,?\s*" + _NUM +
                     r"\s{0,3}(?:-|–|to)\s{0,3}" + _NUM + _END, re.I)
 # group order per pattern: effect, level, low, high
 _READERS = ((_EFFECT_FIRST, (1, 2, 3, 4)), (_LEVEL_FIRST, (2, 1, 3, 4)), (_PAREN, (1, 2, 3, 4)))
@@ -94,21 +95,57 @@ def table_arm_counts(jats: str | None, caption: str, row: str, arm_cells: tuple[
         whole = normalise(re.sub(r"<[^>]+>", " ", tw))
         if count_basis.lower() not in whole.lower():
             return None
-        head = normalise(re.sub(r"<[^>]+>", " ", (re.search(r"<thead>(.*?)</thead>", tw, re.S) or [None, ""])[1]))
-        ns = [int(x) for x in re.findall(r"\(\s*n\s*=\s*(\d+)\s*\)", head)]
+        thead = (re.search(r"<thead>(.*?)</thead>", tw, re.S) or [None, ""])[1]
+        cols = _header_columns(thead)
         rows = [r for r in re.findall(r"<tr>(.*?)</tr>", tw, re.S) if _cells(r) and _cells(r)[0] == row]
-        if len(ns) != 2 or len(rows) != 1 or _POPULATION_WORD.search(head):
+        if len(rows) != 1:
             return None
         cells = _cells(rows[0])
-        if max(arm_cells) >= len(cells):
+        if max(arm_cells) >= len(cells) or max(arm_cells) >= len(cols):
             return None
-        arm = [cells[j] for j in arm_cells]
-        if not all(re.fullmatch(r"\d+ \(\d+(?:\.\d+)?\)", c) for c in arm):
-            return None
-        a, c = (int(x.split(" ")[0]) for x in arm)
-        return {"ai": a, "n1i": ns[0], "ci": c, "n2i": ns[1], "caption": cap[:160], "row": " | ".join(cells),
-                "arm_header": head[:240], "count_basis": count_basis}
+        out = []
+        for j in arm_cells:
+            # each arm cell takes ITS OWN column's header: the denominator comes from there (strands-r2#3), and the
+            # column must not be a percentage / SE / SD / mean column (strands-r2#2) or name its own population (r1#5)
+            hdr = cols[j]
+            n = re.findall(r"\(\s*n\s*=\s*(\d+)\s*\)", hdr)
+            if len(n) != 1 or _NOT_A_COUNT_COLUMN.search(hdr) or _POPULATION_WORD.search(hdr):
+                return None
+            if not re.fullmatch(r"\d+ \(\d+(?:\.\d+)?\)", cells[j]):
+                return None
+            out.append((int(cells[j].split(" ")[0]), int(n[0])))
+        (a, n1), (c, n2) = out
+        return {"ai": a, "n1i": n1, "ci": c, "n2i": n2, "caption": cap[:160], "row": " | ".join(cells),
+                "arm_header": " | ".join(cols[j] for j in arm_cells), "count_basis": count_basis}
     return None
+
+
+_NOT_A_COUNT_COLUMN = re.compile(r"%|percent|\bSE\b|\bSD\b|standard (?:error|deviation)|\bmean\b|\bmedian\b|\bIQR\b",
+                                 re.I)
+
+
+def _header_columns(thead: str) -> list[str]:
+    """The header text of every column, with rowspan and colspan expanded into a grid: column j's text is every header
+    cell that covers column j, top to bottom ('FCM (n = 150) | Incidence/100 patient-years at risk')."""
+    grid: dict[tuple[int, int], str] = {}
+    for r, tr in enumerate(re.findall(r"<tr>(.*?)</tr>", thead or "", re.S)):
+        c = 0
+        # a self-closing '<th .../>' is an empty cell -- it must not be read as an opening tag that swallows the next
+        cells = [(m.group(1) if m.group(1) is not None else m.group(3), m.group(2) or "")
+                 for m in re.finditer(r"<t[dh]((?:[^>/]|/(?!>))*)>(.*?)</t[dh]>|<t[dh]([^>]*)/>", tr, re.S)]
+        for attrs, body in cells:
+            while (r, c) in grid:
+                c += 1
+            rs = int((re.search(r'rowspan="(\d+)"', attrs) or [None, "1"])[1])
+            cs = int((re.search(r'colspan="(\d+)"', attrs) or [None, "1"])[1])
+            text = normalise(re.sub(r"<[^>]+>", " ", body))
+            for dr in range(rs):
+                for dc in range(cs):
+                    grid[(r + dr, c + dc)] = text
+            c += cs
+    width = max((c for _, c in grid), default=-1) + 1
+    rows = max((r for r, _ in grid), default=-1) + 1
+    return [" | ".join(t for t in dict.fromkeys(grid.get((r, c), "") for r in range(rows)) if t) for c in range(width)]
 
 
 def counts_rr(ai: int, n1i: int, ci: int, n2i: int) -> dict[str, Any]:
@@ -162,8 +199,10 @@ def _numbers_match_span(m: dict[str, Any], span: str) -> bool:
     def close(a, b):
         return a is not None and b is not None and abs(float(a) - float(b)) < 1e-9
     if m.get("ai") is not None:
-        need = (f"{m['ai']} (", f"{m['ci']} (", f"n = {m['n1i']}", f"n = {m['n2i']}")
-        if not all(x in span for x in need):
+        # whole numbers only: '1 (' must not match inside '11 (' nor 'n = 10' inside 'n = 100' (codex strands-r2#4)
+        need = (rf"(?<![\d.]){m['ai']} \(", rf"(?<![\d.]){m['ci']} \(", rf"\bn = {m['n1i']}(?!\d)",
+                rf"\bn = {m['n2i']}(?!\d)")
+        if not all(re.search(x, span) for x in need):
             return False
         rr = counts_rr(m["ai"], m["n1i"], m["ci"], m["n2i"])
         return all(close(m.get(k), rr[k]) for k in ("effect", "ci_low", "ci_high"))

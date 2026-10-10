@@ -566,6 +566,11 @@ def render_strands_section(d: dict) -> str:
                        f"k={_e(v.get('k'))}, HKSJ/PM &tau;&sup2;={_e(v.get('tau2'))}, <strong>{sig}</strong>{senstxt}")
         elif not (s.get("members") or []):
             res = f"<code>{_e(s.get('status') or 'EMPTY')}</code>: {_e(s.get('reason') or 'no source-backed members declared')}"
+        elif (s.get("members") or [{}])[0].get("effect") is None:
+            # a refused member has no single-trial result to show: its refusal and reason are the row (strands-r2#5)
+            m = (s.get("members") or [{}])[0]
+            res = (f"{_e(m.get('trial'))}: <code>{_e(m.get('status') or 'NO_RESULT')}</code> -- "
+                   f"{_e(m.get('reason') or 'no value')}; k={_e(s.get('k'))}")
         else:
             m = (s.get("members") or [{}])[0]
             counts = (f"; {_e(m.get('ai'))}/{_e(m.get('n1i'))} v {_e(m.get('ci'))}/{_e(m.get('n2i'))}"

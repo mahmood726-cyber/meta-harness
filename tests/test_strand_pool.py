@@ -15,8 +15,10 @@ sys.path.insert(0, ROOT)
 from harness import claimgraph, page, review_tabs, strand_pool as sp  # noqa: E402
 
 TABLE = ("<table-wrap id='tbl2'><caption><p>Hospitalizations and deaths (full-analysis set)</p></caption><table><thead>"
-         "<tr><td>End-point or event</td><td>FCM (<italic>n</italic> = 150)</td><td/><td>Placebo (<italic>n</italic> = "
-         "151)</td><td/></tr></thead><tbody><tr><td>Death</td><td>12</td><td>12 (8.9)</td><td>14</td><td>14 (9.9)</td>"
+         "<tr><td rowspan=\"2\">End-point or event</td><td colspan=\"2\">FCM (<italic>n</italic> = 150)</td>"
+         "<td colspan=\"2\">Placebo (<italic>n</italic> = 151)</td></tr><tr><td>Total number of events</td>"
+         "<td>Incidence/100 patient-years at risk</td><td>Total number of events</td><td>Incidence/100 patient-years "
+         "at risk</td><td>Time to first event hazard ratio 95% CI</td><td>P-value</td></tr></thead><tbody><tr><td>Death</td><td>12</td><td>12 (8.9)</td><td>14</td><td>14 (9.9)</td>"
          "</tr><tr><td> Hospitalizations due to worsening HF</td><td>10</td><td>10 (7.6)</td><td>32</td>"
          "<td>25 (19.4)</td><td>0.39 (0.19–0.82)</td><td>0.009</td></tr></tbody></table></table-wrap>")
 
@@ -193,3 +195,45 @@ def test_PLANT_strands_r1_8_a_k2_pool_without_an_interval_is_still_marked_withhe
     assert v["withheld"] and v["crosses_null"] is None
     assert "significant" not in page.render_strands_section(
         {"strands": [{"strand": "B", "name": "b", "k": 2, "pool": {"k": 2, "estimate": 0.8}}]})
+
+
+# ---------------------------------------------------------------- codex strands-r2 (each fails before its fix)
+def _t(head, row, foot=BASIS):
+    return (f"<table-wrap><caption>Deaths (full-analysis set)</caption><table><thead><tr>{head}</tr></thead><tbody><tr>"
+            f"{row}</tr></tbody></table><table-wrap-foot><p>{foot}</p></table-wrap-foot></table-wrap>")
+
+
+DEATHS = {"caption": "full-analysis set", "row": "Deaths", "count_basis": BASIS}
+
+
+def test_PLANT_strands_r2_1_scientific_notation_is_never_read_as_its_exponent():
+    s = "HR 1e-2 (95% CI 0.005-0.02)"
+    assert sp.read_member(s, s) is None
+
+
+def test_PLANT_strands_r2_2_a_percentage_column_is_not_a_count_column():
+    t = _t("<th>Outcome</th><th>FCM (n = 200), % (SE)</th><th>Placebo (n = 400), % (SE)</th>",
+           "<td>Deaths</td><td>10 (2.0)</td><td>20 (3.0)</td>")
+    assert sp.table_arm_counts(t, arm_cells=(1, 2), **DEATHS) is None
+
+
+def test_PLANT_strands_r2_3_each_count_takes_its_own_columns_denominator():
+    t = _t("<th>Outcome</th><th>A (n = 100)</th><th>B (n = 200)</th>", "<td>Deaths</td><td>10 (10.0)</td><td>20 (10.0)</td>")
+    c = sp.table_arm_counts(t, arm_cells=(2, 1), **DEATHS)
+    assert (c["ai"], c["n1i"], c["ci"], c["n2i"]) == (20, 200, 10, 100)
+
+
+def test_PLANT_strands_r2_4_span_checks_use_whole_numbers():
+    m = dict(ai=1, n1i=10, ci=2, n2i=20, source="held full text",
+             source_span="A (n = 100) | B (n = 200) | Deaths | 11 (11.0) | 12 (6.0)", **sp.counts_rr(1, 10, 2, 20))
+    m.pop("scale", None)
+    assert sp.member_class(m)[0] == "HAND_ENTERED"
+
+
+def test_PLANT_strands_r2_5_a_refused_member_renders_as_refused_not_as_a_single_trial():
+    html = page.render_strands_section({"strands": [{"strand": "D", "name": "Participant-level risk", "k": 0,
+                                                      "event_process": "PARTICIPANT_RISK", "pool": None,
+                                                      "members": [{"trial": "CONFIRM-HF",
+                                                                   "status": "REFUSED_DENOMINATORS_NOT_STATED",
+                                                                   "reason": "no FAS table held"}]}]})
+    assert "REFUSED_DENOMINATORS_NOT_STATED" in html and "no FAS table held" in html and "single trial" not in html
