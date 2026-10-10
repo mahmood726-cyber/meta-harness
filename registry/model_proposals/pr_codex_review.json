@@ -6803,5 +6803,47 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r3": {
+  "base": "fca8cff07",
+  "head": "61d30ff5c",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ef5ea798f3e85aa84348722ec366f5c1",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "705f65dfb9f542c1f35328cea9a6f952e42e7bd0b5417f38205ea535d7beb2ea"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "The significant-word fallback discards 'MI' because it is shorter than four characters, incorrectly equating non-fatal myocardial infarction with non-fatal stroke. This allows _derive_endpoint to adopt a definition for a different outcome.",
+    "failing_input": "_names_outcome('major cardiovascular events, defined as non-fatal stroke or cardiovascular death', {'name': 'non-fatal MI'})",
+    "expected": "False: the definition does not include non-fatal MI.",
+    "actual": "True: the fallback checks only 'fatal' with its preceding negation; 'MI' is discarded.",
+    "id": "harms-r3:g1#1",
+    "record_id": "mc-ef5ea798f3e85aa84348722ec366f5c1",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "The acronym fallback ignores negation, allowing an endpoint defined by absence of a harm to match the harm itself despite the function's explicit negation contract.",
+    "failing_input": "_names_outcome('The primary endpoint was survival without AKI.', {'name': 'acute kidney injury'})",
+    "expected": "False: 'without AKI' must not match the positive outcome 'acute kidney injury'.",
+    "actual": "True: the generated acronym 'AKI' matches without checking its preceding 'without' token.",
+    "id": "harms-r3:g1#2",
+    "record_id": "mc-ef5ea798f3e85aa84348722ec366f5c1",
+    "verdict": null
+   }
+  ]
  }
 }

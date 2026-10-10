@@ -259,16 +259,23 @@ def _names_outcome(span: str, outcome: dict[str, Any]) -> bool:
         for i in range(len(st) - len(nt) + 1):
             if all(_tok_eq(st[i + j], nt[j]) for j in range(len(nt))) and (nt[0] in _NEG or not _negated(st, i)):
                 return True
-        # every significant word, each with the same negation status as in the name
-        sig = [(w, _negated(nt, j)) for j, w in enumerate(nt) if len(w) >= 4 and w not in _NAME_STOP and w not in _NEG]
+        # every significant word -- short ones too ('MI', codex harms-r3#1) -- each with the same negation status as in
+        # the name; only function words are skipped
+        sig = [(w, _negated(nt, j)) for j, w in enumerate(nt)
+               if len(w) >= 2 and w not in _NAME_STOP and w not in _NEG and w not in _FUNCTION]
         if sig and all(any(_tok_eq(t, w) and _negated(st, i) == neg for i, t in enumerate(st)) for w, neg in sig):
             return True
-        initials = "".join(w[0] for w in re.split(r"[^A-Za-z0-9]+", n) if w).upper()
-        if len(initials) >= 2 and re.search(r"\b" + re.escape(initials) + r"\b", span or ""):
-            return True
-        if n.isupper() and len(n) >= 2 and re.search(r"\b" + re.escape(n) + r"\b", span or ""):
-            return True
+        # the acronym, as a whole token that is not negated ('survival without AKI' does not name AKI, harms-r3#2)
+        acronyms = {"".join(w[0] for w in re.split(r"[^A-Za-z0-9]+", n) if w).lower()}
+        if n.isupper():
+            acronyms.add(n.lower())
+        for ac in acronyms:
+            if len(ac) >= 2 and any(t == ac and not _negated(st, i) for i, t in enumerate(st)):
+                return True
     return False
+
+
+_FUNCTION = {"of", "for", "the", "in", "to", "a", "an", "and", "or", "by", "at", "on", "as", "due"}
 
 
 def _derive_population_age(trial: dict[str, Any], rec: dict[str, Any] | None) -> dict[str, Any]:

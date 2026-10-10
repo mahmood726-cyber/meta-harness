@@ -124,3 +124,11 @@ def test_PLANT_codex_harms_r2_negation_and_prefixes_do_not_establish_identity():
     assert not compat_check._names_outcome("The primary endpoint was burnout severity at six months", {"name": "Burn"})
     # plurals still match
     assert compat_check._names_outcome("hospitalizations for heart failure", {"name": "Hospitalization for heart failure"})
+
+
+def test_PLANT_codex_harms_r3_short_words_and_negated_acronyms():
+    assert not compat_check._names_outcome("major cardiovascular events, defined as non-fatal stroke or cardiovascular "
+                                           "death", {"name": "non-fatal MI"})
+    assert compat_check._names_outcome("a composite of non-fatal MI or stroke", {"name": "non-fatal MI"})
+    assert not compat_check._names_outcome("The primary endpoint was survival without AKI.", {"name": "acute kidney injury"})
+    assert compat_check._names_outcome("The primary endpoint was AKI within 7 days.", {"name": "acute kidney injury"})
