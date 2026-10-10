@@ -1172,7 +1172,7 @@ def build_index(docs_dir: str) -> str:
 
     if rows:
         from . import review_tabs as _rt   # ACTIVE / ABANDONED_BY_DECISION from registry/g1_abandoned.json
-        body = ("<p class='audit-link'><strong>External audit pack:</strong> <a href='audit/index.html'>auditor's guide, "
+        body = _rt.download_link_html() + ("<p class='audit-link'><strong>External audit pack:</strong> <a href='audit/index.html'>auditor's guide, "
                 "review list with pinned identities, per-review checklists, extraction spot-check sample and findings "
                 "template</a>.</p>")
         body += "<table><tr><th>Review</th><th>Status</th><th>Method</th><th>Comparator</th>"\

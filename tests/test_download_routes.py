@@ -64,3 +64,21 @@ def test_the_glp1_release_is_labelled_historical_where_it_is_served():
     assert "HISTORICAL (pinned 1b3b0b8dc, 24 Sep)" in first, first
     assert "not the current harness" in first
     assert b"\r" not in (GLP1 / "README.md").read_bytes()
+
+
+
+# ------------------------------------------------------------------------------- the published release (10 Oct)
+def test_the_index_and_every_reproduce_tab_link_the_published_release():
+    from harness import index as I
+    rel = T.RELEASE
+    assert rel["asset"] == f"meta-harness-{rel['tag']}.zip" and rel["sums"] == "SHA256SUMS"   # the starter fetch's names
+    assert rel["url"] in I.build_index(str(ROOT / "docs"))
+    for slug in SLUGS[:2]:
+        html = T.reproduce_additions({"slug": slug})
+        assert rel["url"] in html and "DOI pending (v1.0.1)" in html
+
+
+def test_every_served_page_links_the_release():
+    for s in SLUGS:
+        assert T.RELEASE["url"] in (ROOT / "docs" / "reviews" / s / "index.html").read_text(encoding="utf-8"), s
+    assert T.RELEASE["url"] in (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
