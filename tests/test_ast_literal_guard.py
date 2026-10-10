@@ -87,7 +87,7 @@ def test_PLANT_codex_r1_2_negative_literals_are_flagged():
 
 def test_PLANT_codex_r1_3_four_digit_denominators_are_flagged():
     hits = sweep.sweep_source('counts = "20/1000 versus 30/1000"', "harness/x.py")
-    assert [h["kind"] for h in hits] == ["COUNT_PAIR_TEXT"]
+    assert [(h["kind"], h["value"]) for h in hits] == [("COUNT_PAIR_TEXT", "20/1000"), ("COUNT_PAIR_TEXT", "30/1000")]
 
 
 def test_PLANT_codex_r2_1_an_exponent_bound_is_never_truncated():
@@ -107,3 +107,19 @@ def test_PLANT_codex_r2_3_counts_beside_a_url_or_four_digit_counts_are_flagged()
     # a URL path and a year/month are still not counts
     assert sweep.sweep_source('u = "https://example.org/trial/12/345"', "harness/x.py") == []
     assert sweep.sweep_source('d = "accessed 2024/09"', "harness/x.py") == []
+
+
+def test_PLANT_codex_r3_1_engage_bound_with_exponent_is_refused():
+    rows = {"records": [{"id": "24251359", "title": "", "abstract": ENGAGE.replace("0.96 to 1.34", "0.96 to 1.34e1")}]}
+    assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
+
+
+def test_PLANT_codex_r3_2_small_denominator_counts_are_not_dates():
+    hits = sweep.sweep_source("summary = 'Deaths: 5/10 versus 6/12'", "harness/x.py")
+    assert [h["value"] for h in hits] == ["5/10", "6/12"]
+    assert sweep.sweep_source("d = 'on 5/10/2019'", "harness/x.py") == []          # a d/m/y date still is not
+
+
+def test_PLANT_codex_r3_3_every_count_in_a_string_is_reported():
+    hits = sweep.sweep_source("summary = 'Deaths: 20/169 versus 99/100'", "harness/x.py")
+    assert [h["value"] for h in hits] == ["20/169", "99/100"]

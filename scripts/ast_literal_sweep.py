@@ -69,10 +69,14 @@ def sweep_source(src: str, path: str) -> list[dict]:
                     if any(a <= m.start() < b for a, b in urls):
                         continue
                     a, b = (int(x.replace(" ", "").replace(",", "")) for x in m.group(0).split("/"))
-                    if (a <= 31 and b <= 12) or (1900 <= a <= 2100 and b <= 12) or re.match(r"\d+\s*/\s*0\d", m.group(0)):
-                        continue                                     # a date is not a count
+                    # a date is not a count: d/m only with a third /year part (codex copps-r3#2: 'Deaths 5/10' is a
+                    # count), or a year/month
+                    dmy = re.match(r"/\d{2,4}\b", s[m.end():]) or re.search(r"\b\d{1,4}/$", s[:m.start()])
+                    if (a <= 31 and b <= 12 and dmy) or (1900 <= a <= 2100 and b <= 12)                             or re.match(r"\d+\s*/\s*0\d", m.group(0)):
+                        continue
+                    # every pair is reported, so an allowlisted first count cannot hide a changed second
+                    # (codex copps-r3#3)
                     out.append({"file": path, "line": node.lineno, "kind": "COUNT_PAIR_TEXT", "value": m.group(0)})
-                    break
     return out
 
 

@@ -6843,5 +6843,61 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r3": {
+  "base": "630e622bf",
+  "head": "3a71b4241",
+  "runs": {
+   "g1": {
+    "record_id": "mc-91616a8f777c00f366ccbd2ce3fb1bff",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "33915db526c4c1bd2a861b01b39b863a141dee7713685dc33dff57eb027e92cc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P0",
+    "claim": "The new confidence-bound regex accepts a numeric prefix without checking the token boundary, producing an incorrect upper bound.",
+    "failing_input": "ENGAGE abstract: 'unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34e1)'",
+    "expected": "Read ci_high as 13.4, or refuse the unsupported notation.",
+    "actual": "edox_m captures '1.34' as the upper bound; _read appends an ENGAGE result with ci_high=1.34.",
+    "id": "copps-r3:g1#1",
+    "record_id": "mc-91616a8f777c00f366ccbd2ce3fb1bff",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The date exclusion silently discards genuine death counts with denominators from 10 through 12, even when explicitly labelled as deaths.",
+    "failing_input": "sweep_source(\"summary = 'Deaths: 5/10 versus 6/12'\", 'harness/example.py')",
+    "expected": "COUNT_PAIR_TEXT findings for the death-count literals.",
+    "actual": "Returns []; both matches satisfy a <= 31 and b <= 12 and are discarded as dates.",
+    "id": "copps-r3:g1#2",
+    "record_id": "mc-91616a8f777c00f366ccbd2ce3fb1bff",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Stopping after the first count pair lets an allowlisted count hide arbitrary changes to subsequent arm counts in the same string.",
+    "failing_input": "Compare sweep_source(\"summary = 'Deaths: 20/169 versus 37/167'\", 'harness/example.py') with sweep_source(\"summary = 'Deaths: 20/169 versus 99/100'\", 'harness/example.py'). Allowlist key: 'harness/example.py|COUNT_PAIR_TEXT||20/169'.",
+    "expected": "The changed second count, 99/100, produces a separate unallowlisted finding.",
+    "actual": "Both calls return the identical single finding for 20/169. With that key allowlisted, the CLI reports no unallowlisted findings for either input.",
+    "id": "copps-r3:g1#3",
+    "record_id": "mc-91616a8f777c00f366ccbd2ce3fb1bff",
+    "verdict": null
+   }
+  ]
  }
 }
