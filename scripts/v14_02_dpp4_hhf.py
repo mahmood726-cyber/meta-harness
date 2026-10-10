@@ -44,6 +44,18 @@ def normalise(xml_article: str) -> str:
         re.findall(r"<AbstractText[^>]*>(.*?)</AbstractText>", xml_article, re.S))))).strip()
 
 
+def nct_witness(xml_article: str, nct: str):
+    """Where the article ITSELF names the trial: its databank accession numbers or its own abstract -- never its
+    reference list or linked comments (the lane's rule, codex r6-dpp4-hf-r1 #3). None when it does not."""
+    own = re.sub(r"<ReferenceList>.*?</ReferenceList>|<CommentsCorrectionsList>.*?</CommentsCorrectionsList>", " ",
+                 xml_article, flags=re.S)
+    if nct in re.findall(r"<AccessionNumber>(NCT\d{8})</AccessionNumber>", own):
+        return "databank accession number"
+    if nct in normalise(own):
+        return "the article's own abstract"
+    return None
+
+
 def fetch(pmids):
     from harness import http, fetch as hf
     url = f"{hf.EUTILS}/efetch.fcgi"
@@ -51,7 +63,7 @@ def fetch(pmids):
                             "tool": "meta-harness", "email": "meta-harness@example.org"})
     out = {}
     for art in re.findall(r"<PubmedArticle>.*?</PubmedArticle>", x, re.S):
-        out[re.search(r"<PMID[^>]*>(\d+)", art).group(1)] = normalise(art)
+        out[re.search(r"<PMID[^>]*>(\d+)", art).group(1)] = (normalise(art), art)
     return url, out
 
 
@@ -76,19 +88,21 @@ def main(argv):
     rows = {}
     for pid, pmid, nct, sha, span in TARGETS:
         path = os.path.join(HELD, f"pubmed_{pmid}.txt")
-        text = open(path, encoding="utf-8").read() if offline else got.get(pmid, "")
+        text, art = (open(path, encoding="utf-8").read(), None) if offline else got.get(pmid, ("", ""))
         digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
         if digest != sha:
             raise SystemExit(f"REFUSED {pmid}: abstract sha256 {digest} != pinned {sha} (source moved; apply nothing)")
         if span not in text:
             raise SystemExit(f"REFUSED {pmid}: signed clause not in its own abstract")
-        if nct not in text and not offline:
-            print(f"note {pmid}: NCT not printed in abstract text (lane bound it from the databank accession)")
+        # the trial identity is verified against the article itself (agy v14-apply-r1-agy #2), never trusted
+        basis = (manifest["documents"].get(f"pubmed_{pmid}.txt") or {}).get("nct_basis") if offline else nct_witness(art, nct)
+        if not basis:
+            raise SystemExit(f"REFUSED {pmid}: the article does not itself name {nct} (databank accession or abstract)")
         if not offline:
             with open(path, "w", encoding="utf-8", newline="") as f:
                 f.write(text)
             manifest["documents"][f"pubmed_{pmid}.txt"] = {
-                "pmid": pmid, "nct": nct, "source": url + f"?db=pubmed&id={pmid}&retmode=xml",
+                "pmid": pmid, "nct": nct, "nct_basis": basis, "source": url + f"?db=pubmed&id={pmid}&retmode=xml",
                 "normalisation": "AbstractText elements joined by a space, tags stripped, HTML-unescaped, whitespace collapsed",
                 "sha256": sha, "retrieved_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "held_for": f"{ITEM} {SLUG} '{OUTCOME}'"}

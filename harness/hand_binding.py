@@ -391,6 +391,12 @@ def _owning_clause(sentence: str, tup: dict[str, Any] | None, names_endpoint) ->
         return sentence
     idx = next((i for i, m in enumerate(parens) if _tuple_in(m.group(0), tup)), None)
     if idx is None:
+        # the point estimate may sit just before its CI bracket ('Trial B HR 1.2 [95% CI 0.6-2.4]', inside a split
+        # enclosing parenthesis): the segment from the previous result to this one carries the whole tuple
+        # (agy v14-apply-r1-agy #1)
+        idx = next((i for i, m in enumerate(parens)
+                    if _tuple_in(sentence[(parens[i - 1].end() if i else 0):m.end()], tup)), None)
+    if idx is None:
         return sentence
     start = idx
     while start >= 0:

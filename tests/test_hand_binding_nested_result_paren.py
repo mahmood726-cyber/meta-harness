@@ -49,3 +49,12 @@ def test_enclosing_parenthesis_with_two_results_splits():
     s = ("Results (death decreased (HR 0.70; 95% CI 0.60-0.80), whereas stroke was unchanged "
          "(HR 1.00; 95% CI 0.90-1.10)).")
     assert [m.group(0) for m in hb._result_parens(s)] == ["(HR 0.70; 95% CI 0.60-0.80)", "(HR 1.00; 95% CI 0.90-1.10)"]
+
+
+def test_split_enclosing_paren_keeps_point_estimate_outside_the_ci_bracket():
+    """agy v14-apply-r1-agy #1: '(Trial A HR 1.0 [95% CI 0.5-2.0] and Trial B HR 1.2 [95% CI 0.6-2.4])' splits into
+    the two CI brackets; the owning segment must still carry the point estimate printed before its bracket."""
+    s = "Outcomes differed (Trial A HR 1.0 [95% CI 0.5-2.0] and Trial B HR 1.2 [95% CI 0.6-2.4])."
+    tup = {"kind": "effect", "effect": 1.2, "ci_low": 0.6, "ci_high": 2.4, "scale": "HR"}
+    clause = hb._owning_clause(s, tup, lambda x: "trial" in x.lower())
+    assert "Trial B HR 1.2" in clause and "Trial A" not in clause, clause

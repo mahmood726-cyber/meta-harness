@@ -24,3 +24,13 @@ def test_vertebral_still_matches():
     s = NONVERT.replace("nonvertebral", "vertebral")
     got = sh._effect_candidates_in_outcome(s, KWS)
     assert [(c["scale"], c["effect"]) for c in got] == [("HR", 0.8)]
+
+
+def test_window_cut_never_fakes_a_word_start():
+    """codex v14-apply-r2 g1#1: the 260-char window cut 'non|vertebral'; the boundary is judged on the uncut text.
+    239 x's put the cut exactly after 'non' (the pre-fix code returns the nonvertebral HR 0.80 on this input)."""
+    s = ("Denosumab also reduced the risk of nonvertebral fracture " + "x" * 239 + " (hazard ratio, 0.80; 95% CI, "
+         "0.67 to 0.95; P=0.01).")
+    m = next(sh._EFFECT_CANDIDATE.finditer(s))
+    assert s[:m.start()].lower()[-260:].startswith("vertebral fracture")   # the cut lands exactly after 'non'
+    assert sh._effect_candidates_in_outcome(s, KWS) == []
