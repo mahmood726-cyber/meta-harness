@@ -25,7 +25,7 @@ _KEYS = {"ai", "bi", "ci", "di", "n1i", "n2i", "events_t", "events_c", "n_t", "n
          "estimate", "lower", "upper", "hr", "rr", "or", "e1i", "e2i", "t1i", "t2i", "mean1", "mean2", "sd1", "sd2"}
 # signed values too: 'SMD -0.35 (-0.50–-0.20)' (codex copps-r7#2); integer parts allowed so long as one of the three
 # numbers carries a decimal ('RR 2.0 (1.0-4)', r8#2)
-_N = r"[-−]?\d+(?:[.·]\d{1,3})?"
+_N = r"[-−]?\d+(?:[.·]\d{1,6})?"          # up to 6 decimals ('0.9123', codex copps-r10#2)
 _EFFECT_TEXT_ANY = re.compile(r"(?<![\w.])" + _N + r"\s*\(\s*" + _N + r"\s*(?:[-–,]|to)\s*" + _N + r"\s*\)")
 
 
@@ -39,7 +39,8 @@ class _EffectText:
 _EFFECT_TEXT = _EffectText()
 # denominators: 1-6 ungrouped digits or digit-grouped thousands (codex copps-r1#3 '20/1000', r5#4 '2/8')
 # and never part of a decimal ('0.75/1.25' GRADE thresholds are not the count 75/1)
-_COUNT_TEXT = re.compile(r"(?<![\d.])\d{1,5}\s*/\s*(?:\d{1,3}(?:[ ,]\d{3})+|\d{1,6})\b(?!\.\d)")
+# ...and never the prefix of a larger or decimal number: no [.,]digit may follow ('20/1,234.5' is not '20/1', r10#1)
+_COUNT_TEXT = re.compile(r"(?<![\d.])\d{1,5}\s*/\s*(?:\d{1,3}(?:[ ,]\d{3})+|\d{1,6})\b(?![.,]\d)")
 
 
 def _num(node):

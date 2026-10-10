@@ -7223,5 +7223,49 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r10": {
+  "base": "630e622bf",
+  "head": "d17c3153d",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0774707177545ddc0abdd0869d5f7645",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "98dca8669821632dee947a626e9a1f91ce5e03e100546134d0ca7fb11bb0e1fd"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The count regex backtracks to a denominator prefix when a grouped decimal fails its final check, falsely reporting a count from a noninteger ratio.",
+    "failing_input": "sweep_source('message = \"Ratio 20/1,234.5\"', 'harness/example.py')",
+    "expected": "[]: the denominator is 1234.5, not an integer count.",
+    "actual": "[{\"file\":\"harness/example.py\",\"line\":1,\"kind\":\"COUNT_PAIR_TEXT\",\"value\":\"20/1\"}]",
+    "id": "copps-r10:g1#1",
+    "record_id": "mc-0774707177545ddc0abdd0869d5f7645",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The effect-pattern detector silently misses hardcoded effect tuples with four decimal places because _N permits only one to three fractional digits.",
+    "failing_input": "sweep_source('message = \"HR 0.9123 (0.7401-1.1101)\"', 'harness/example.py')",
+    "expected": "An EFFECT_TUPLE_TEXT finding for '0.9123 (0.7401-1.1101)'.",
+    "actual": "[]",
+    "id": "copps-r10:g1#2",
+    "record_id": "mc-0774707177545ddc0abdd0869d5f7645",
+    "verdict": null
+   }
+  ]
  }
 }

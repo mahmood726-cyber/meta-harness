@@ -231,3 +231,13 @@ def test_PLANT_codex_r9_2_a_line_break_inside_the_statement_still_reads():
 def test_PLANT_codex_r9_3_dict_comprehension_literals_are_flagged():
     hits = sweep.sweep_source("row = {'ai': 20 for _ in range(1)}", "harness/x.py")
     assert [(h["key"], h["value"]) for h in hits] == [("ai", 20)]
+
+
+def test_PLANT_codex_r10_1_a_decimal_denominator_is_not_a_count_prefix():
+    assert sweep.sweep_source('message = "Ratio 20/1,234.5"', "harness/x.py") == []
+    assert [h["value"] for h in sweep.sweep_source('m = "20/1,234 events"', "harness/x.py")] == ["20/1,234"]
+
+
+def test_PLANT_codex_r10_2_four_decimal_effect_tuples_are_flagged():
+    hits = sweep.sweep_source('message = "HR 0.9123 (0.7401-1.1101)"', "harness/x.py")
+    assert [h["kind"] for h in hits] == ["EFFECT_TUPLE_TEXT"]
