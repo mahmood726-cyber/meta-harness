@@ -325,7 +325,7 @@ def derive_trial_dimensions(
     }
     if row_state and row_state != defaudit_binding.BOUND_CURRENT:
         dims["definition_audit_row"] = {
-            "state": row_state, "judged_commit": (raw_row.get("judged") or {}).get("commit"),
+            "state": row_state, "judged_commit": (raw_row.get("judged") if isinstance(raw_row.get("judged"), dict) else {}).get("commit"),
             "note": ("the cross-family definition-audit row for this trial judged a different version of the served row "
                      "(effect, CI, scale or source span changed since); it is not used as the definition"
                      if row_state == defaudit_binding.AUDIT_ROW_STALE else

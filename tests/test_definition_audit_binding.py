@@ -104,3 +104,13 @@ def test_PLANT_a_git_failure_is_not_read_as_an_absent_trial(monkeypatch):
     monkeypatch.setattr(m, "_git", fake)
     with pytest.raises(subprocess.CalledProcessError):
         m.bound(doc)
+
+
+def test_PLANT_a_non_dict_judgment_is_unbound_and_disclosed_without_crashing():
+    """codex pva-defaudit-r2 P2."""
+    now = _trial()
+    audit = {"s::MACE::111": {"detail": "T: 5-point primary.", "resolution": "R", "judged": "legacy"}}
+    dims = compat_check.derive_trial_dimensions({"slug": "s"}, {"name": "MACE"}, now, {}, audit)
+    assert dims["definition_audit_row"]["state"] == B.UNBOUND and dims["definition_audit_row"]["judged_commit"] is None
+    r = {"definition_audit": audit, "outcomes": [{"name": "MACE", "trials": [now]}]}
+    assert "UNBOUND" in page._definition_audit_block(r)

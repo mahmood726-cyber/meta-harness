@@ -2011,7 +2011,7 @@ def _definition_audit_block(r):
         # audit 26-A / 28-C / 29: a row judged an earlier VERSION of the served row is shown as such, never as current
         state = _definition_audit_state(r, outcome, pmid, v)
         stale = (f"<strong>{_e(state)}</strong>: this row judged an earlier version of the served row "
-                 f"(commit {_e((v.get('judged') or {}).get('commit') or 'not recorded')}); it is not the current "
+                 f"(commit {_e((v.get('judged') if isinstance(v.get('judged'), dict) else {}).get('commit') or 'not recorded')}); it is not the current "
                  "definition. Recorded finding: ") if state in ("AUDIT_ROW_STALE", "UNBOUND") else ""
         rows.append(f"<tr><td>{_e(pmid)}</td><td>{_e(outcome)}</td><td>{stale}{_e(v.get('detail',''))}{_e(both)}</td>"
                     f"<td><strong>{_e(v.get('resolution',''))}</strong></td></tr>")

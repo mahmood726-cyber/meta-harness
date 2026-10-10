@@ -6775,5 +6775,37 @@
     "verdict": null
    }
   ]
+ },
+ "pva-defaudit-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0507dd2b8165ad8ce514bf7c128fb56d",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/defaudit_binding.py",
+     "harness/page.py",
+     "scripts/bind_definition_audit.py"
+    ],
+    "prompt_sha256": "33762f0b2831127461d0d4bfc9f77195373f550dd0a3147e8ddc15f8da8ee192"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "derive_trial_dimensions",
+    "severity": "P2",
+    "claim": "A truthy non-dictionary judgment is correctly classified as UNBOUND, but rendering its diagnostic crashes because the new branch calls .get() on that judgment. The same unsafe access occurs in page.py::_definition_audit_block.",
+    "failing_input": "An audit row with judged='legacy'. Runnable reproduction of the added diagnostic path:\nfrom harness.defaudit_binding import audit_state\nraw_row = {'detail': 'Definition checked', 'judged': 'legacy'}\ntrial = {'effect': 0.8, 'ci_low': 0.7, 'ci_high': 0.9, 'scale': 'HR', 'source': 'Held text'}\nrow_state = audit_state(raw_row, trial)\nassert row_state == 'UNBOUND'\n(raw_row.get('judged') or {}).get('commit')",
+    "expected": "Exclude the audit row from the definition and display an UNBOUND diagnostic with no recorded commit.",
+    "actual": "AttributeError: 'str' object has no attribute 'get'; compatibility rendering fails instead of displaying the UNBOUND state.",
+    "id": "pva-defaudit-r2:g1#1",
+    "record_id": "mc-0507dd2b8165ad8ce514bf7c128fb56d",
+    "verdict": null
+   }
+  ]
  }
 }
