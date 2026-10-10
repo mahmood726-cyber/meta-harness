@@ -44,24 +44,32 @@ def _record_for(row: dict[str, Any], rec_by_id: dict[str, dict[str, Any]]) -> di
     return {}
 
 
-_PCT_PAIR = re.compile(r"\d+(?:\.\d+)?\s*%\s*(?:versus|vs\.?|compared with)\s*\d+(?:\.\d+)?\s*%", re.I)
-# a per-arm count: 'n/N' (spaces optional, codex copps-r12#1) or 'n of N' followed by nothing, punctuation or a
-# participant noun -- '5 of 10 centres' is not an arm count (r12#2)
-_N_OF_M = re.compile(r"\b\d+\s*/\s*\d+\b(?!\.\d)|\b\d+\s+of\s+\d+\b(?!\s+(?!patients\b|participants\b|subjects\b|"
-                     r"women\b|men\b|children\b|in\b|with\b|who\b)[a-z])", re.I)
-_ARM_SPLIT = re.compile(r"\b\d+\s+(?:patients\s+)?(?:were\s+)?(?:to|in|assigned to)\s+(?:the\s+)?[\w-]+(?:\s+group)?"
-                        r"\s*(?:,|and)\s*\d+\s+(?:patients\s+)?(?:to|in)\b", re.I)
+def absence_verification(pmid: str, text: str, root: str | None = None) -> dict[str, Any] | None:
+    """The recorded verification that a held source does NOT state a value, or None. A claim of absence is never
+    inferred by a pattern (codex copps-r11..r13 found a new prose form each round): it is read from
+    registry/source_absence_verifications.json and applies only while the held text's sha256 equals the one checked."""
+    import hashlib
+    import json as _json
+    import os as _os
+    base = root or _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    try:
+        reg = _json.load(open(_os.path.join(base, "registry", "source_absence_verifications.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    sha = hashlib.sha256((text or "").encode("utf-8")).hexdigest()
+    for e in reg.get("entries") or []:
+        if str(e.get("pmid")) == str(pmid) and e.get("held_text_sha256") == sha:
+            return e
+    return None
 
 
-# 'occurred in 20 patients (16.7%) in the colchicine group' -- a per-arm COUNT with its percentage (ICAP 23992557)
-_N_PCT = re.compile(r"\b\d+\s+(?:patients|participants|subjects)\s*\(\s*\d+(?:\.\d+)?\s*%\s*\)", re.I)
-
-
-def _percent_only(text: str) -> bool:
-    """Both arms stated only as percentages: a 'X% versus Y%' pair, and no per-arm number anywhere in the text -- no
-    'n of N', no 'n patients (p%)', no randomised per-arm split."""
-    return bool(text and _PCT_PAIR.search(text) and not _N_OF_M.search(text) and not _N_PCT.search(text)
-                and not _ARM_SPLIT.search(text))
+def _between(text: str, start: str | None, end: str | None) -> str:
+    """The held text from `start` through `end` (both must occur, in order), whitespace-collapsed; '' otherwise."""
+    i = (text or "").find(start or "\0")
+    j = (text or "").find(end or "\0", max(i, 0))
+    if i < 0 or j < 0:
+        return ""
+    return re.sub(r"\s+", " ", text[i:j + len(end)]).strip()
 
 
 def _span(text: str, *needles: str, width: int = 360) -> str:
@@ -190,21 +198,19 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
             return out
 
     # r24: per-arm counts are never reconstructed from percentages and a pooled total (COPPS 22090167: the 20/169 v
-    # 37/167 that stood here were inferred from 12.0% v 22.0% of 336; the auditor's source has 35 placebo events; no
-    # PMC copy, and the publisher PDF's bot check was not bypassed). The refusal is decided by the TEXT, for any row
-    # (codex copps-r11#1): both arms given only as percentages, with no 'n of N' and no per-arm randomised split ->
-    # REFUSED_DENOMINATORS_NOT_STATED. A text that states per-arm numbers is extraction debt, never 'absent'.
-    if rec and (outcome.get("estimand") or "RR").upper() in ("RR", "OR", "RD") and _percent_only(text):
-        m = _PCT_PAIR.search(text)
-        total = re.search(r"\b\d+\s+(?:patients|participants|subjects)\b", text[:m.start()], re.I)
+    # 37/167 that stood here were inferred from 12.0% v 22.0% of 336). A claim that the source does NOT state them is a
+    # recorded verification bound to the exact held text (absence_verification), never a pattern over prose.
+    verified = absence_verification(rec.get("id"), text) if rec else None
+    if verified and verified.get("claim") == "PER_ARM_DENOMINATORS_NOT_STATED":
         out.update({
             "value_status": REFUSED_DENOMINATORS_NOT_STATED,
             "missing_class": "SOURCE_ABSENT",
-            "source_ref": f"cache/{slug}/records.json#{rec.get('id')}.abstract",
-            # the span shows the evidence for the refusal: the pooled total (when stated first) through the percentages
-            "source_span": re.sub(r"\s+", " ", text[(total.start() if total else m.start()):m.end()]).strip(),
-            "verify_basis": ("per-arm counts and denominators are not stated in the held source: it gives the arms as "
-                             "percentages only; counts are never reconstructed from percentages"),
+            "source_ref": verified.get("held_text"),
+            # the span the verification names: from the pooled total through the percentages
+            "source_span": _between(text, verified.get("span_from"), verified.get("span_to")),
+            "verify_basis": (f"recorded verification (registry/source_absence_verifications.json, held text sha256 "
+                             f"{verified['held_text_sha256'][:12]}): {verified.get('checked')} Counts are never "
+                             "reconstructed from percentages."),
         })
         return out
 

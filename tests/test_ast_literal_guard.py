@@ -250,3 +250,7 @@ def test_PLANT_codex_r11_2_space_grouped_decimal_is_not_a_count_prefix():
 
 def test_PLANT_codex_r12_3_grouped_numerators_are_kept_whole():
     assert [h["value"] for h in sweep.sweep_source("message = 'Deaths 1,234/5,678'", "harness/x.py")] == ["1,234/5,678"]
+
+
+def test_PLANT_codex_r13_3_space_grouped_numerators_are_kept_whole():
+    assert [h["value"] for h in sweep.sweep_source("label = 'Deaths 1 234/5 678'", "harness/x.py")] == ["1 234/5 678"]

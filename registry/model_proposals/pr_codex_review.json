@@ -7367,5 +7367,61 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r13": {
+  "base": "630e622bf",
+  "head": "6652e14a6",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0ef9cd127c69367a38cf486cd7a13a65",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "4a70c7ca9ab7ec9d579406aca923fc9d6099ba490592c8d60a8a5c63a9e837bc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/known_missing.py",
+    "function": "_percent_only",
+    "severity": "P1",
+    "claim": "Explicit per-arm counts and denominators written in ordinary prose are classified as percentages-only. The new _source_value branch consequently labels available data REFUSED_DENOMINATORS_NOT_STATED / SOURCE_ABSENT.",
+    "failing_input": "_percent_only('Mortality was 5% versus 10%. Deaths numbered 5 in the treatment arm and 10 in the placebo arm; the randomized denominators were 100 and 100, respectively.')",
+    "expected": "False: both event counts and randomized denominators are explicitly stated.",
+    "actual": "True: none of the three count-detection expressions matches this wording.",
+    "id": "copps-r13:g1#1",
+    "record_id": "mc-0ef9cd127c69367a38cf486cd7a13a65",
+    "verdict": null
+   },
+   {
+    "file": "harness/known_missing.py",
+    "function": "_percent_only",
+    "severity": "P1",
+    "claim": "A fraction describing centres is accepted as a per-arm patient count, suppressing the percentages-only refusal even though patient counts and denominators are absent.",
+    "failing_input": "_percent_only('Recruitment was completed at 5/10 centres. Mortality was 12.0% versus 22.0% among 336 patients.')",
+    "expected": "True: the mortality results contain only percentages and a pooled participant total.",
+    "actual": "False: _N_OF_M matches '5/10' without checking what was counted.",
+    "id": "copps-r13:g1#2",
+    "record_id": "mc-0ef9cd127c69367a38cf486cd7a13a65",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The literal-count sweep silently misses space-grouped numerators. Its numerator pattern excludes spaces, and its lookbehind prevents matching the trailing numerator group.",
+    "failing_input": "sweep_source(\"label = 'Deaths 1 234/5 678'\", 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding with value '1 234/5 678'.",
+    "actual": "[]",
+    "id": "copps-r13:g1#3",
+    "record_id": "mc-0ef9cd127c69367a38cf486cd7a13a65",
+    "verdict": null
+   }
+  ]
  }
 }
