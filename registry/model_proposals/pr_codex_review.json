@@ -6845,5 +6845,59 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r4": {
+  "base": "fca8cff07",
+  "head": "a005db41d",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e16de87fe170d1362d05b0bbdc7999dd",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "904e221b103602b56d7280c404782d764c8a562a519addeb4e7cc70d2f2e7ad6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "Removing 'from', 'any', and 'cause' makes cardiovascular death match all-cause death, allowing _derive_endpoint to accept an incompatible endpoint definition.",
+    "failing_input": "_names_outcome('major cardiovascular events, defined as cardiovascular death', {'name': 'death from any cause'})",
+    "expected": "False: cardiovascular death does not define death from any cause.",
+    "actual": "True: the significant-word check reduces the outcome name to 'death'.",
+    "id": "harms-r4:g1#1",
+    "record_id": "mc-e16de87fe170d1362d05b0bbdc7999dd",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "The significant-word fallback combines words from different composite components, defeating the contiguous match's negation protection.",
+    "failing_input": "_names_outcome('major cardiovascular events, defined as non-fatal stroke or fatal myocardial infarction', {'name': 'fatal stroke'})",
+    "expected": "False: the definition includes non-fatal stroke, not fatal stroke.",
+    "actual": "True: 'fatal' matches the myocardial-infarction component, while 'stroke' matches the non-fatal-stroke component.",
+    "id": "harms-r4:g1#2",
+    "record_id": "mc-e16de87fe170d1362d05b0bbdc7999dd",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "A parenthetical acronym bypasses negation of its expanded name, allowing an outcome-free survival definition to match the adverse outcome itself.",
+    "failing_input": "_names_outcome('The primary outcome was survival without acute kidney injury (AKI).', {'name': 'acute kidney injury'})",
+    "expected": "False: 'without acute kidney injury' negates the requested outcome.",
+    "actual": "True: the acronym branch accepts 'AKI' because its immediately preceding token is 'injury', ignoring 'without' before the expanded name.",
+    "id": "harms-r4:g1#3",
+    "record_id": "mc-e16de87fe170d1362d05b0bbdc7999dd",
+    "verdict": null
+   }
+  ]
  }
 }

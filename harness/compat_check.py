@@ -215,8 +215,6 @@ def _derive_endpoint(
     return _derived(None, "underivable", "")
 
 
-_NAME_STOP = {"new", "any", "all", "cause", "rate", "rates", "risk", "event", "events", "outcome", "outcomes", "total",
-              "major", "first", "therapy", "treatment", "with", "from", "time", "incidence", "proportion", "patients"}
 
 
 _NEG = {"non", "not", "no", "without"}
@@ -245,37 +243,34 @@ def _negated(toks: list[str], i: int) -> bool:
 
 
 def _names_outcome(span: str, outcome: dict[str, Any]) -> bool:
-    """True when `span` names the outcome: the whole name or a keyword phrase, ALL significant words of the name, or
-    the name's acronym (AKI). Matching is by whole token and keeps NEGATION: one shared word is not identity ('renal
-    failure' does not name renal replacement therapy, codex harms-r1#1), 'fatal MI' does not name 'non-fatal MI'
-    and 'burnout' does not name 'burn' (harms-r2)."""
+    """True when `span` NAMES the outcome: its name or a keyword phrase as a contiguous run of whole tokens, or its
+    acronym as a whole token -- neither negated. There is deliberately no bag-of-words fallback: four codex rounds
+    (harms-r1..r4) each found a new way for scattered words to fake identity ('renal failure' for renal replacement,
+    'fatal' + 'stroke' from different components of a composite, 'cardiovascular death' for death from any cause).
+    When nothing matches, the row keeps its outcome name with a stated basis -- the safe direction."""
     names = [str(outcome.get("name") or "")] + [str(k) for k in outcome.get("keywords") or []]
     st = _tokens(span)
     for n in names:
         nt = _tokens(n)
         if not nt:
             continue
-        # the whole phrase, contiguous, with the same negation in front of it
         for i in range(len(st) - len(nt) + 1):
             if all(_tok_eq(st[i + j], nt[j]) for j in range(len(nt))) and (nt[0] in _NEG or not _negated(st, i)):
                 return True
-        # every significant word -- short ones too ('MI', codex harms-r3#1) -- each with the same negation status as in
-        # the name; only function words are skipped
-        sig = [(w, _negated(nt, j)) for j, w in enumerate(nt)
-               if len(w) >= 2 and w not in _NAME_STOP and w not in _NEG and w not in _FUNCTION]
-        if sig and all(any(_tok_eq(t, w) and _negated(st, i) == neg for i, t in enumerate(st)) for w, neg in sig):
-            return True
-        # the acronym, as a whole token that is not negated ('survival without AKI' does not name AKI, harms-r3#2)
         acronyms = {"".join(w[0] for w in re.split(r"[^A-Za-z0-9]+", n) if w).lower()}
         if n.isupper():
             acronyms.add(n.lower())
         for ac in acronyms:
-            if len(ac) >= 2 and any(t == ac and not _negated(st, i) for i, t in enumerate(st)):
+            for i, t in enumerate(st):
+                if len(ac) < 2 or t != ac or _negated(st, i):
+                    continue
+                # a parenthetical acronym inherits the negation of the phrase it abbreviates: 'survival without acute
+                # kidney injury (AKI)' does not name AKI (codex harms-r4#3)
+                j = i - len(nt)
+                if j >= 0 and all(_tok_eq(st[j + x], nt[x]) for x in range(len(nt))) and _negated(st, j):
+                    continue
                 return True
     return False
-
-
-_FUNCTION = {"of", "for", "the", "in", "to", "a", "an", "and", "or", "by", "at", "on", "as", "due"}
 
 
 def _derive_population_age(trial: dict[str, Any], rec: dict[str, Any] | None) -> dict[str, Any]:

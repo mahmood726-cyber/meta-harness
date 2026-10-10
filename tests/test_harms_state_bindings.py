@@ -132,3 +132,16 @@ def test_PLANT_codex_harms_r3_short_words_and_negated_acronyms():
     assert compat_check._names_outcome("a composite of non-fatal MI or stroke", {"name": "non-fatal MI"})
     assert not compat_check._names_outcome("The primary endpoint was survival without AKI.", {"name": "acute kidney injury"})
     assert compat_check._names_outcome("The primary endpoint was AKI within 7 days.", {"name": "acute kidney injury"})
+
+
+def test_PLANT_codex_harms_r4_no_word_bag_identity():
+    assert not compat_check._names_outcome("major cardiovascular events, defined as cardiovascular death",
+                                           {"name": "death from any cause"})
+    assert not compat_check._names_outcome("major cardiovascular events, defined as non-fatal stroke or fatal "
+                                           "myocardial infarction", {"name": "fatal stroke"})
+    assert not compat_check._names_outcome("The primary outcome was survival without acute kidney injury (AKI).",
+                                           {"name": "acute kidney injury"})
+    # a contiguous, non-negated phrase or acronym still establishes identity
+    assert compat_check._names_outcome("The primary outcome was acute kidney injury (AKI) within 7 days.",
+                                       {"name": "acute kidney injury"})
+    assert compat_check._names_outcome("composite of non-fatal stroke or death", {"name": "Non-fatal stroke"})
