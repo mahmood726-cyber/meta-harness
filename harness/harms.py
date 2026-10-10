@@ -97,10 +97,23 @@ _INCOMPATIBLE_CODES = {
 _REFUSAL_CODES = {
     absence.REFUSED_ON_EVIDENCE,
     absence.SIGNAL_SPURIOUS,
+    absence.ENGINE_CANNOT_CONSUME,
+    absence.UNIT_MISMATCH_CYCLE_LEVEL,
+}
+
+# the ONLY codes that mean the source does not report the outcome; anything else is a typed refusal
+_NOT_REPORTED_CODES = {
+    absence.OUTCOME_NOT_IN_SOURCE,
+    absence.OUTCOME_NOT_REPORTED,
+    "NO_OUTCOME_DATA_IN_SOURCE",
+    None,
+    "",
 }
 
 _EFFECT_OR_COMPARISON = re.compile(
-    r"\b(?:RR|OR|HR|IRR|relative risk|risk ratio|hazard ratio|odds ratio|rate ratio)\b"
+    # the abbreviations are case-SENSITIVE: under re.I the English word 'or' ('2-fold or a serum creatinine of 3.96')
+    # read as an odds ratio and made a definitions sentence a 'numeric' result (r23-03 SPLIT)
+    r"(?:\b(?-i:RR|OR|HR|IRR)\b|\b(?:relative risk|risk ratio|hazard ratio|odds ratio|rate ratio)\b)"
     r"[^.;]{0,90}?\d+(?:\.\d+)?"
     r"|(?:\d+(?:\.\d+)?\s*%\s*(?:per year)?[^.;]{0,80}?"
     r"(?:vs\.?|versus|compared with|as compared with|and in|in the placebo|in the warfarin)"
@@ -154,14 +167,19 @@ def reporting_signal(text: str | None, spec: dict[str, Any]) -> dict[str, Any] |
     terms = _terms(spec)
     if not terms:
         return None
+    first_term = None
     for sent in extract._sentences(extract._norm(text)):
         if not _matches(sent, terms):
             continue
         compact = re.sub(r"\s+", " ", sent).strip()
+        # r23-03: the RESULT sentence is the span when one exists; a background sentence or an exclusion criterion
+        # ('Patients with established AKI requiring RRT were excluded') that mentions the term first is not it
         if _EFFECT_OR_COMPARISON.search(compact):
             return {"reported": True, "kind": "numeric_signal", "span": compact[:300]}
+        first_term = first_term or compact
+    if first_term:
         # Even non-numeric harm reporting is not outcome absence. It remains extraction debt.
-        return {"reported": True, "kind": "term_signal", "span": compact[:300]}
+        return {"reported": True, "kind": "term_signal", "span": first_term[:300]}
     return None
 
 
@@ -189,14 +207,19 @@ def _hm_state_for_absent(row: dict[str, Any], spec: dict[str, Any],
         state = NOT_RETRIEVED
     elif sig and code in (absence.OUTCOME_NOT_IN_SOURCE, "NO_OUTCOME_DATA_IN_SOURCE", None, ""):
         state = KNOWN_REPORTED_NOT_YET_EXTRACTED
-    elif code in (absence.EXTRACTION_NOT_PERFORMED, absence.COUNTS_PRESENT_NOT_CORROBORATED):
+    elif code in (absence.EXTRACTION_NOT_PERFORMED, absence.COUNTS_PRESENT_NOT_CORROBORATED,
+                  KNOWN_REPORTED_NOT_YET_EXTRACTED):
         state = KNOWN_REPORTED_NOT_YET_EXTRACTED
     elif code in _INCOMPATIBLE_CODES:
         state = RETRIEVED_INCOMPATIBLE_STRUCTURE
     elif code in _REFUSAL_CODES or row.get("absent_kind") == "refused_on_evidence":
         state = RETRIEVED_REFUSED_WITH_REASON
-    else:
+    elif code in _NOT_REPORTED_CODES:
         state = RETRIEVED_OUTCOME_NOT_REPORTED
+    else:
+        # r23-03: a design refusal (SPLIT ENGINE_CANNOT_CONSUME) or any other typed reason is a refusal WITH a reason.
+        # It used to fall through to NOT_REPORTED, which labelled a reported harm absent and could certify absence.
+        state = RETRIEVED_REFUSED_WITH_REASON
     out = {"harm_absence_state": state}
     if sig:
         out["harm_source_reported"] = code != absence.SIGNAL_SPURIOUS

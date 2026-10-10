@@ -197,14 +197,42 @@ def _derive_endpoint(
         (r"major cardiovascular events, defined as [^.]{20,220}", None),
         (r"major cardiovascular events,? comprised [^.]{20,220}", None),
     ]
+    refused = None
     for pattern, _ in rules:
         m = _search(pattern, text)
         if m:
-            return _derived(_short_span(text, m, flank=0), "committed source text", _short_span(text, m))
+            value = _short_span(text, m, flank=0)
+            # r23-03 / r17: the trial's PRIMARY-endpoint sentence defines THIS row only for the primary outcome or
+            # when it names this outcome. A harms row (PLUS new RRT) must never inherit 'death from any cause'.
+            if outcome.get("primary") or _names_outcome(value, outcome):
+                return _derived(value, "committed source text", _short_span(text, m))
+            refused = refused or value
     name = outcome.get("name")
     if name:
-        return _derived(str(name), "outcome.name", str(name))
+        basis = ("outcome.name (the trial's primary-endpoint definition does not name this outcome)"
+                 if refused else "outcome.name")
+        return _derived(str(name), basis, str(name))
     return _derived(None, "underivable", "")
+
+
+_NAME_STOP = {"new", "any", "all", "cause", "rate", "rates", "risk", "event", "events", "outcome", "outcomes", "total",
+              "major", "first", "therapy", "treatment", "with", "from", "time", "incidence", "proportion", "patients"}
+
+
+def _names_outcome(span: str, outcome: dict[str, Any]) -> bool:
+    """True when `span` names the outcome: a significant word of its name/keywords, or the name's acronym (AKI)."""
+    names = [str(outcome.get("name") or "")] + [str(k) for k in outcome.get("keywords") or []]
+    low = (span or "").lower()
+    for n in names:
+        words = [w for w in re.split(r"[^a-z0-9]+", n.lower()) if len(w) >= 4 and w not in _NAME_STOP]
+        if any(re.search(r"\b" + re.escape(w), low) for w in words):
+            return True
+        initials = "".join(w[0] for w in re.split(r"[^A-Za-z0-9]+", n) if w).upper()
+        if len(initials) >= 2 and re.search(r"\b" + re.escape(initials) + r"\b", span or ""):
+            return True
+        if n.isupper() and len(n) >= 2 and re.search(r"\b" + re.escape(n) + r"\b", span or ""):
+            return True
+    return False
 
 
 def _derive_population_age(trial: dict[str, Any], rec: dict[str, Any] | None) -> dict[str, Any]:
