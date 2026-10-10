@@ -412,11 +412,25 @@ def _record_arm_interventions_background_only(rec, keywords) -> tuple[bool, str]
     if not kws:
         return False, ""
 
-    def has_interest(s):
+    def carries_interest(s):
+        # An entry CARRIES the intervention of interest only through an UNQUALIFIED mention. A placebo OF that
+        # intervention ('placebo Circadin', 'Potassium Chloride + Placebo for Empagliflozin', 'dapagliflozin placebo')
+        # is the control, not the drug (12-01 root cause (a): `_PLACEBO.fullmatch` let 'placebo circadin' stay an
+        # active drug arm). The double-dummy MIRO-CKD entries still carry dapagliflozin unqualified, so they stay
+        # background ('balcinrenone/dapagliflozin ... and matching placebo for dapagliflozin').
+        if armcontrast._PLACEBO.fullmatch(s.strip()):
+            return False
+        for k in kws:
+            if not k:
+                continue
+            kq = _re.escape(k)
+            s = _re.sub(rf"(?:matching\s+)?placebo\s*(?:for|to|of)?\s*{kq}|{kq}[\s-]*(?:matching\s+)?placebo", " ", s)
         return any(k and k in s for k in kws)
 
-    active = [s for s in folded if not armcontrast._PLACEBO.fullmatch(s.strip())]
-    if len(active) < 2 or not all(has_interest(s) for s in active):
+    # 'background only' needs the interest in EVERY entry. A pure placebo entry, or a placebo OF the interest, is an
+    # entry without it: the interest is then randomised against placebo, never background. Conservative, like
+    # armcontrast.background_only_inclusion: this fallback may only REMOVE a provably-background inclusion.
+    if not all(carries_interest(s) for s in folded):
         return False, ""
     return True, "; ".join(interventions)
 
@@ -428,6 +442,11 @@ def _background_only_randomised_contrast(rec, keywords, arm_index) -> tuple[bool
         if status is True:
             _st, basis = armcontrast.contrast_status(nct, keywords, arm_index)
             return True, basis
+        if status is False:
+            # 12-01 root cause (b): the STRUCTURED AACT arms prove the interest is not background (it is the
+            # randomised contrast). That verdict is decisive; it never falls through to the weaker intervention-list
+            # fallback, which cannot see arm membership.
+            return False, ""
     bg, basis = _record_arm_interventions_background_only(rec, keywords)
     if bg:
         return True, ("the intervention of interest appears in every structured CT.gov arm entry; "
