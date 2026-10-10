@@ -6731,5 +6731,35 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r1": {
+  "base": "fca8cff07",
+  "head": "9df552b39",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1c090c1312f6802ea1f4b55d613d67b7",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "c0200537434fc1799fc6073ea06b6f4abdba6013f661f7324f3a783d79219e31"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "Matching any single word does not establish outcome identity. A primary composite mentioning renal failure is accepted as the definition of renal replacement therapy, causing _derive_endpoint to attach the wrong endpoint definition to that row.",
+    "failing_input": "_names_outcome('major cardiovascular events, defined as cardiovascular death, myocardial infarction, or renal failure', {'name': 'new renal replacement therapy', 'primary': False})",
+    "expected": "False: renal failure does not establish receipt of renal replacement therapy; retain the outcome.name fallback.",
+    "actual": "True: the shared word 'renal' satisfies the predicate, permitting _derive_endpoint to use the cardiovascular composite definition.",
+    "id": "harms-r1:g1#1",
+    "record_id": "mc-1c090c1312f6802ea1f4b55d613d67b7",
+    "verdict": null
+   }
+  ]
  }
 }

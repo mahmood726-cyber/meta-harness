@@ -219,13 +219,22 @@ _NAME_STOP = {"new", "any", "all", "cause", "rate", "rates", "risk", "event", "e
               "major", "first", "therapy", "treatment", "with", "from", "time", "incidence", "proportion", "patients"}
 
 
+def _fold_words(text: str) -> str:
+    return " " + " ".join(re.split(r"[^a-z0-9]+", (text or "").lower())).strip() + " "
+
+
 def _names_outcome(span: str, outcome: dict[str, Any]) -> bool:
-    """True when `span` names the outcome: a significant word of its name/keywords, or the name's acronym (AKI)."""
+    """True when `span` names the outcome: the whole name or a keyword phrase, ALL significant words of the name, or
+    the name's acronym (AKI). One shared word is not identity ('renal failure' does not name renal replacement
+    therapy; codex harms-r1#1)."""
     names = [str(outcome.get("name") or "")] + [str(k) for k in outcome.get("keywords") or []]
-    low = (span or "").lower()
+    folded = _fold_words(span)
     for n in names:
-        words = [w for w in re.split(r"[^a-z0-9]+", n.lower()) if len(w) >= 4 and w not in _NAME_STOP]
-        if any(re.search(r"\b" + re.escape(w), low) for w in words):
+        phrase = _fold_words(n).strip()
+        if phrase and f" {phrase} " in folded:
+            return True
+        words = [w for w in phrase.split() if len(w) >= 4 and w not in _NAME_STOP]
+        if words and all(re.search(r" " + re.escape(w), folded) for w in words):
             return True
         initials = "".join(w[0] for w in re.split(r"[^A-Za-z0-9]+", n) if w).upper()
         if len(initials) >= 2 and re.search(r"\b" + re.escape(initials) + r"\b", span or ""):

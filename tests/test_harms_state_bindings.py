@@ -101,3 +101,14 @@ def test_PLANT_a_known_reported_row_stays_extraction_debt_not_a_refusal():
     # (harms_incomplete), never 'not reported' and never a resolved refusal (r13 'reported, extraction unresolved')
     got = _state(AKI, harms.KNOWN_REPORTED_NOT_YET_EXTRACTED, "reported; not yet extracted")
     assert got["harm_absence_state"] == harms.KNOWN_REPORTED_NOT_YET_EXTRACTED
+
+
+def test_PLANT_codex_harms_r1_1_one_shared_word_is_not_outcome_identity():
+    rrt = {"name": "new renal replacement therapy", "primary": False}
+    assert not compat_check._names_outcome(
+        "major cardiovascular events, defined as cardiovascular death, myocardial infarction, or renal failure", rrt)
+    # the whole phrase, all significant words, a keyword phrase or the acronym still establish identity
+    assert compat_check._names_outcome("receipt of new renal-replacement therapy", rrt)
+    assert compat_check._names_outcome("proportion of patients with AKI (defined as ...)", AKI)
+    assert compat_check._names_outcome("time to first hospitalization for heart failure",
+                                       {"name": "Hospitalization for heart failure"})
