@@ -23,8 +23,20 @@ OUT = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "ast_literal_sweep.js
 ALLOW = os.path.join(ROOT, "registry", "ast_literal_allowlist.json")
 _KEYS = {"ai", "bi", "ci", "di", "n1i", "n2i", "events_t", "events_c", "n_t", "n_c", "effect", "ci_low", "ci_high",
          "estimate", "lower", "upper", "hr", "rr", "or", "e1i", "e2i", "t1i", "t2i", "mean1", "mean2", "sd1", "sd2"}
-# signed values too: 'SMD -0.35 (-0.50–-0.20)' (codex copps-r7#2)
-_EFFECT_TEXT = re.compile(r"(?<![\w.])[-−]?\d+[.·]\d{1,3}\s*\(\s*[-−]?\d+[.·]\d{1,3}\s*(?:[-–,]|to)\s*[-−]?\d+[.·]\d{1,3}\s*\)")
+# signed values too: 'SMD -0.35 (-0.50–-0.20)' (codex copps-r7#2); integer parts allowed so long as one of the three
+# numbers carries a decimal ('RR 2.0 (1.0-4)', r8#2)
+_N = r"[-−]?\d+(?:[.·]\d{1,3})?"
+_EFFECT_TEXT_ANY = re.compile(r"(?<![\w.])" + _N + r"\s*\(\s*" + _N + r"\s*(?:[-–,]|to)\s*" + _N + r"\s*\)")
+
+
+class _EffectText:
+    """finditer over _EFFECT_TEXT_ANY, keeping only matches with at least one decimal number."""
+    @staticmethod
+    def finditer(s):
+        return (m for m in _EFFECT_TEXT_ANY.finditer(s) if re.search(r"\d[.·]\d", m.group(0)))
+
+
+_EFFECT_TEXT = _EffectText()
 # denominators: 1-6 ungrouped digits or digit-grouped thousands (codex copps-r1#3 '20/1000', r5#4 '2/8')
 # and never part of a decimal ('0.75/1.25' GRADE thresholds are not the count 75/1)
 _COUNT_TEXT = re.compile(r"(?<![\d.])\d{1,5}\s*/\s*(?:\d{1,3}(?:[ ,]\d{3})+|\d{1,6})\b(?!\.\d)")
@@ -39,6 +51,20 @@ def _num(node):
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
         return sign * node.value
     return None
+
+
+def _unpack(target, value) -> list[tuple[str, ast.AST]]:
+    """(key, value-node) for every row['key'] in an assignment target, recursing through tuple/list unpacking."""
+    if value is None:
+        return []
+    if isinstance(target, (ast.Tuple, ast.List)):
+        if isinstance(value, (ast.Tuple, ast.List)) and len(target.elts) == len(value.elts):
+            return [p for t, v in zip(target.elts, value.elts) for p in _unpack(t, v)]
+        return []
+    if isinstance(target, ast.Subscript) and isinstance(target.slice, ast.Constant) \
+            and isinstance(target.slice.value, str):
+        return [(target.slice.value, value)]
+    return []
 
 
 def sweep_source(src: str, path: str) -> list[dict]:
@@ -63,15 +89,8 @@ def sweep_source(src: str, path: str) -> list[dict]:
             # row['ai'] = 20 (codex copps-r6#2)
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             for t in targets:
-                # row['ai'], row['n1i'] = 20, 169 -- unpack a tuple target against a tuple value (codex copps-r7#1)
-                if isinstance(t, (ast.Tuple, ast.List)) and isinstance(node.value, (ast.Tuple, ast.List)) \
-                        and len(t.elts) == len(node.value.elts):
-                    tv = list(zip(t.elts, node.value.elts))
-                else:
-                    tv = [(t, node.value)]
-                pairs += [(tt.slice.value, vv) for tt, vv in tv
-                          if isinstance(tt, ast.Subscript) and isinstance(tt.slice, ast.Constant)
-                          and isinstance(tt.slice.value, str) and vv is not None]
+                # row['ai'], row['n1i'] = 20, 169 and nested ((a, b), (c, d)) = ... (codex copps-r7#1, r8#3)
+                pairs += _unpack(t, node.value)
         for name, v in pairs:
             val = _num(v)
             if name.lower() in _KEYS and val is not None:     # 0 and 1 are real arm counts too (codex copps-r2#2)

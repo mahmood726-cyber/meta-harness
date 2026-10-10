@@ -289,7 +289,9 @@ def _field_from_profile(slug: str, key: str, text: str, default_status: str = "N
 # A bound is read whole or not at all. A WHITELIST of what may follow it -- ')', ';', ']', a prose comma, or the
 # end -- replaces the blacklist that codex rounds r2/r4/r5/r6 kept extending (exponent, thousands comma, '× 10^n',
 # space-grouped '2 030'): anything not whitelisted refuses the read.
-BOUND_END = r"(?=[ \t]{0,3}(?:[);\]]|,(?!\d)|$))"
+# a comma is prose only when no digit follows it directly AND no 3-digit group follows after a space ('2, 030' is a
+# grouped number, codex copps-r8#1); refusing an ambiguous ', 100 patients' is the safe direction
+BOUND_END = r"(?=[ \t]{0,3}(?:[);\]]|,(?!\d)(?![ \t]*\d{3}\b)|$))"
 # matched on the WHOLE text at the anchor (no slice: a slice can cut a bound to its prefix, codex copps-r1#1)
 _RATIO_AT = re.compile(r"[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3},[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}%[ \t]{0,3}"
                        r"(?:CI|confidence interval)[ \t]{0,3},?[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}(?:to|-|–)[ \t]{0,3}"

@@ -199,3 +199,18 @@ def test_PLANT_codex_r7_1_tuple_unpacked_subscripts_are_flagged():
 def test_PLANT_codex_r7_2_signed_effect_tuples_are_flagged():
     hits = sweep.sweep_source("summary = 'SMD -0.35 (-0.50–-0.20)'\n", "harness/x.py")
     assert [h["kind"] for h in hits] == ["EFFECT_TUPLE_TEXT"]
+
+
+def test_PLANT_codex_r8_1_comma_space_group_is_refused():
+    a = "The combined group may have higher rates of ovulation (OR"
+    assert csp.reported_value_at(a + " 1650, 95% CI 1350 to 2, 030)", a) is None
+    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03, 8 studies)", a)["ci_high"] == 2.03
+
+
+def test_PLANT_codex_r8_2_integer_bound_effect_tuples_are_flagged():
+    assert [h["kind"] for h in sweep.sweep_source("summary = 'RR 2.0 (1.0-4)'", "harness/x.py")] == ["EFFECT_TUPLE_TEXT"]
+
+
+def test_PLANT_codex_r8_3_nested_unpacking_is_flagged():
+    hits = sweep.sweep_source("(row['ai'], row['n1i']), (row['ci'], row['n2i']) = (20, 169), (37, 167)", "harness/x.py")
+    assert sorted((h["key"], h["value"]) for h in hits) == [("ai", 20), ("ci", 37), ("n1i", 169), ("n2i", 167)]

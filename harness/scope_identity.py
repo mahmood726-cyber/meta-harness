@@ -491,7 +491,7 @@ def _short_changed(slug: str, label: str | None, body: str) -> str:
 
 # a bound is read whole or not at all: only a whitelisted terminator may follow it (see
 # comparator_second_pass.BOUND_END; codex copps-r6#1)
-_WHOLE = r"(?=[ \t]{0,3}(?:[);\]]|,(?!\d)|$))"
+_WHOLE = r"(?=[ \t]{0,3}(?:[);\]]|,(?!\d)(?![ \t]*\d{3}\b)|$))"
 
 
 def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:

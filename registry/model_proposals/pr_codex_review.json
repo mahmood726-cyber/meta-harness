@@ -7111,5 +7111,61 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r8": {
+  "base": "630e622bf",
+  "head": "fce096056",
+  "runs": {
+   "g1": {
+    "record_id": "mc-97829d53c67d43bba9e9749491448042",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "64c5006ee0b64129af71b7c4031f122c5be4b13cbd317c5b31f485ada5d7efcb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "BOUND_END accepts a comma followed by whitespace as punctuation even when it continues a grouped number. This truncates the upper bound, which _apply_reported_overrides then propagates into results.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 1650, 95% CI 1350 to 2, 030)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "None: refuse the unsupported grouped upper bound rather than read its prefix.",
+    "actual": "{'estimate': 1650.0, 'ci_level': 95.0, 'ci_low': 1350.0, 'ci_high': 2.0}",
+    "id": "copps-r8:g1#1",
+    "record_id": "mc-97829d53c67d43bba9e9749491448042",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P1",
+    "claim": "The effect scanner requires every number to have a decimal point. A hardcoded effect interval with an integer bound escapes detection.",
+    "failing_input": "sweep_source(\"summary = 'RR 2.0 (1.0-4)'\", 'harness/example.py')",
+    "expected": "An EFFECT_TUPLE_TEXT finding for '2.0 (1.0-4)'.",
+    "actual": "[]",
+    "id": "copps-r8:g1#2",
+    "record_id": "mc-97829d53c67d43bba9e9749491448042",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P1",
+    "claim": "Assignment unpacking handles only one level. Nested tuple assignments silently hide literal per-arm counts and denominators from the sweep.",
+    "failing_input": "sweep_source(\"(row['ai'], row['n1i']), (row['ci'], row['n2i']) = (20, 169), (37, 167)\", 'harness/example.py')",
+    "expected": "Four COUNT_OR_EFFECT_KEY findings: ai=20, n1i=169, ci=37, n2i=167.",
+    "actual": "[]",
+    "id": "copps-r8:g1#3",
+    "record_id": "mc-97829d53c67d43bba9e9749491448042",
+    "verdict": null
+   }
+  ]
  }
 }
