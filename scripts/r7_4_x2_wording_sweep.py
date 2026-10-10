@@ -24,13 +24,21 @@ OUT = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "r7_4_x2_wording_swee
 def x2_text(md):
     """The protocol's X2 rule text (a line naming X2 and its continuation), or None."""
     # a continuation line ends at any line naming another rule (list item '- X3', table row '| X3 |', '**X3**')
-    m = re.search(r"\bX2\b[^\n]*(?:\n(?![^\n]*\bX(?:[013-9]|\d\d)\b)[^\n]+){0,3}", md)
+    # the rule's DEFINITION line ('- X2:', '| X2 |', '**X2** -') before any cross-reference ('See X2 for ...')
+    cont = r"(?:\n(?![^\n]*\bX(?:[013-9]|\d\d)\b)[^\n]+){0,3}"
+    m = (re.search(r"(?m)^[ \t>*|#-]*\**X2\b\**\s*[:|*‐-—-][^\n]*" + cont, md)
+         or re.search(r"\bX2\b[^\n]*" + cont, md))
     return re.sub(r"\s+", " ", m.group(0)) if m else None
 
 
+def _dash(s):
+    """Unicode hyphens/dashes (U+2010..U+2015, U+2212) read as an ASCII hyphen, NBSP as a space."""
+    return re.sub(r"[‐-―−]", "-", s).replace(" ", " ")
+
+
 def classify(term, x2):
-    t = term.lower().strip()
-    x = (x2 or "").lower()
+    t = _dash(term.lower().strip())
+    x = _dash((x2 or "").lower())
     if not x2:
         return "NO_PROTOCOL_X2"
     hits = list(re.finditer(r"(?<![a-z])" + re.escape(t) + r"(?![a-z])", x))

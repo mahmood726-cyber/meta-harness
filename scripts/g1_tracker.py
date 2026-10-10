@@ -3013,21 +3013,30 @@ def verified_agent_identity(T, agents=None, snap=None, class_topics=None):
     reg = {}
     csv.field_size_limit(10 ** 9)
     with open(p, encoding="utf-8", newline="") as fh:
-        for r in csv.DictReader(fh, delimiter="|"):
+        rd = csv.DictReader(fh, delimiter="|")
+        missing = {"nct_id", "intervention_type", "name"} - set(rd.fieldnames or [])
+        if missing:
+            raise ValueError(f"{p}: AACT interventions.txt lacks column(s) {sorted(missing)}")
+        for r in rd:
             if r.get("nct_id") in want and str(r.get("intervention_type") or "").upper() in ("DRUG", "BIOLOGICAL"):
                 reg.setdefault(r["nct_id"], []).append(r.get("name") or "")
     T = copy.deepcopy(T)
     for t in T["trials"]:
         if t.get("drug") != "AGENT_UNCONFIRMED" or not t.get("ncts"):
             continue
-        names = [n.strip() for nct in t["ncts"] for n in reg.get(nct, [])
-                 if not re.search(r"placebo|sham|matching", n, re.I)]
-        unnamed = any(not n for n in names)
-        names = [n for n in names if n]
+        allnames = [n.strip() for nct in t["ncts"] for n in reg.get(nct, [])]
+        unnamed = any(not n for n in allnames)
+        mine = agents.get(t["slug"]) or []
+        if not mine:
+            # no topic-agent definition: an empty lookup cannot establish a different agent
+            continue
+        # the topic agent is looked for in EVERY name ('empagliflozin plus matching placebo'); only a name that is
+        # nothing but a placebo/sham (all its words placebo-ish) is dropped from the other-agent evidence
+        hit = any(re.search(r"(?<![a-z])" + re.escape(a.lower()) + r"(?![a-z])", n.lower()) for a in mine for n in allnames)
+        names = [n for n in allnames if n and re.sub(r"(?i)\b(?:matching|placebos?|sham|for|of|to|and|tablets?|"
+                                                       r"capsules?|oral|injection|vehicle)\b|[^a-z]", "", n.lower())]
         if not names:
             continue
-        mine = agents.get(t["slug"]) or []
-        hit = any(re.search(r"(?<![a-z])" + re.escape(a) + r"(?![a-z])", n.lower()) for a in mine for n in names)
         if unnamed and not hit:
             # an UNNAMED registered drug row could be the topic's agent: it cannot establish a different agent
             continue

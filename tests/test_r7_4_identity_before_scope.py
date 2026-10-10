@@ -82,3 +82,29 @@ def test_PLANT_r1_x2_text_stops_at_another_rules_table_row_and_qualifiers_need_b
     assert sw.classify("diabetes", "X2: Exclude diabetes; also exclude prediabetes-only cohorts.") == "MATCHES_PROTOCOL"
     assert sw.classify("diabetes", "X2: exclude diabetes; and diabetes-only cohorts") == "MATCHES_PROTOCOL"
     assert sw.classify("diabetes", "X2: only diabetes populations") == "CONFIG_BROADER_THAN_PROTOCOL"
+
+
+def test_PLANT_r2_topic_agent_inside_a_placebo_named_row_still_matches(tmp_path):
+    s = snap(tmp_path, [("NCT06", "DRUG", "empagliflozin plus matching placebo"), ("NCT06", "DRUG", "dapagliflozin")])
+    assert gt.verified_agent_identity(T({"label": "W", "ncts": ["NCT06"]}), AGENTS, s)["trials"][0]["drug"] == "DRUG_MATCH"
+    s = snap(tmp_path, [("NCT07", "DRUG", "Matching Placebo Tablets"), ("NCT07", "DRUG", "Sotagliflozin")])
+    assert gt.verified_agent_identity(T({"label": "W", "ncts": ["NCT07"]}), AGENTS, s)["trials"][0]["drug"] == "OTHER_AGENT"
+
+
+def test_PLANT_r2_no_topic_agent_definition_cannot_establish_another_agent(tmp_path):
+    s = snap(tmp_path, [("NCT08", "DRUG", "empagliflozin")])
+    assert gt.verified_agent_identity(T({"label": "W", "ncts": ["NCT08"]}), {}, s)["trials"][0]["drug"] == "AGENT_UNCONFIRMED"
+
+
+def test_PLANT_r2_a_snapshot_missing_required_columns_is_a_schema_error(tmp_path):
+    import pytest
+    (tmp_path / "interventions.txt").write_text("nct_id|type|name\nNCT09|DRUG|empagliflozin\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="intervention_type"):
+        gt.verified_agent_identity(T({"label": "W", "ncts": ["NCT09"]}), AGENTS, str(tmp_path))
+
+
+def test_PLANT_r2_x2_definition_beats_a_cross_reference_and_unicode_hyphens_qualify():
+    import r7_4_x2_wording_sweep as sw
+    x2 = sw.x2_text("See X2 for population exclusions.\n\n- X2: diabetes-only\n- X3: wrong intervention")
+    assert sw.classify("diabetes", x2) == "CONFIG_BROADER_THAN_PROTOCOL"
+    assert sw.classify("diabetes", "X2: diabetes‑only") == "CONFIG_BROADER_THAN_PROTOCOL"

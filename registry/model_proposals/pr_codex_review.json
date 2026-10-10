@@ -6785,5 +6785,83 @@
     "verdict": null
    }
   ]
+ },
+ "r7-4-r2": {
+  "base": "beb73a487",
+  "head": "6ddfd7c57",
+  "runs": {
+   "g1": {
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r7_4_x2_wording_sweep.py"
+    ],
+    "prompt_sha256": "a2dd6d702f17d8dd513b19e972c80c71ff79893733083e4ebf458654526e0a6e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "The placebo filter discards whole intervention names containing 'placebo' or 'matching', including active-drug combinations. This can incorrectly classify the topic drug as OTHER_AGENT.",
+    "failing_input": "Synthetic fixture: fixture/interventions.txt contains 'nct_id|intervention_type|name\\nNCT00000001|DRUG|empagliflozin plus matching placebo\\nNCT00000001|DRUG|dapagliflozin\\n'. Call verified_agent_identity({'trials':[{'slug':'empagliflozin','drug':'AGENT_UNCONFIRMED','ncts':['NCT00000001']}]}, agents={'empagliflozin':['empagliflozin']}, snap='fixture', class_topics=set()).",
+    "expected": "trials[0]['drug'] == 'DRUG_MATCH': the registered active intervention explicitly includes empagliflozin.",
+    "actual": "trials[0]['drug'] == 'OTHER_AGENT'; the empagliflozin row is discarded before matching.",
+    "id": "r7-4-r2:g1#1",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P1",
+    "claim": "Missing topic-agent definitions are treated as evidence that every registered drug is a different agent.",
+    "failing_input": "Synthetic fixture: fixture/interventions.txt contains 'nct_id|intervention_type|name\\nNCT00000001|DRUG|empagliflozin\\n'. Call verified_agent_identity({'trials':[{'slug':'empagliflozin','drug':'AGENT_UNCONFIRMED','ncts':['NCT00000001']}]}, agents={}, snap='fixture', class_topics=set()).",
+    "expected": "Retain AGENT_UNCONFIRMED or report missing topic-agent configuration; an empty lookup cannot establish OTHER_AGENT.",
+    "actual": "trials[0]['drug'] == 'OTHER_AGENT', with REGISTRY_INTERVENTIONS recorded as its basis.",
+    "id": "r7-4-r2:g1#2",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "verified_agent_identity",
+    "severity": "P2",
+    "claim": "Missing required snapshot columns silently become absent drug evidence instead of a schema failure.",
+    "failing_input": "Synthetic fixture: fixture/interventions.txt contains 'nct_id|type|name\\nNCT00000001|DRUG|empagliflozin\\n'. Call verified_agent_identity({'trials':[{'slug':'empagliflozin','drug':'AGENT_UNCONFIRMED','ncts':['NCT00000001']}]}, agents={'empagliflozin':['empagliflozin']}, snap='fixture', class_topics=set()).",
+    "expected": "An explicit schema error identifying the missing intervention_type column.",
+    "actual": "Returns an unchanged trial with AGENT_UNCONFIRMED and no error or diagnostic, indistinguishable from a valid snapshot containing no drug rows.",
+    "id": "r7-4-r2:g1#3",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "x2_text",
+    "severity": "P1",
+    "claim": "The first mention of X2 is accepted as the rule definition, so an introductory cross-reference hides the actual exclusion rule.",
+    "failing_input": "classify('diabetes', x2_text('See X2 for population exclusions.\\n\\n- X2: diabetes-only\\n- X3: wrong intervention'))",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL, using the actual X2 rule 'diabetes-only'.",
+    "actual": "NOT_IN_PROTOCOL_X2; x2_text returns 'X2 for population exclusions.'.",
+    "id": "r7-4-r2:g1#4",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r7_4_x2_wording_sweep.py",
+    "function": "classify",
+    "severity": "P1",
+    "claim": "A nonbreaking hyphen in 'diabetes-only' defeats qualifier detection and incorrectly certifies the bare exclusion term as matching the protocol.",
+    "failing_input": "classify('diabetes', 'X2: diabetes\\u2011only')",
+    "expected": "CONFIG_BROADER_THAN_PROTOCOL.",
+    "actual": "MATCHES_PROTOCOL.",
+    "id": "r7-4-r2:g1#5",
+    "record_id": "mc-daa98c6901f5765cbe71a93d9c5ee371",
+    "verdict": null
+   }
+  ]
  }
 }
