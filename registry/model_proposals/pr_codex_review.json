@@ -6863,5 +6863,71 @@
     "verdict": null
    }
   ]
+ },
+ "tx-rebase-r3": {
+  "base": "cdd81860a",
+  "head": "9350a4679",
+  "runs": {
+   "g1": {
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_table_result.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "cd70472269f2c23b1c98d73f8187d95fed56266e36a8c6b30d2e2c08095d4702"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "Integer-looking Kaplan–Meier percentages are recorded as event counts even when the table explicitly identifies them as percentages. Neither the cell parser nor the surrounding-text checks enforce the count-only requirement.",
+    "failing_input": "Call table_result with topic {'primary_outcome': {'name': 'Death due to bleeding', 'keywords': ['death due to bleeding']}, 'comparator_pmid': 'fixture', 'intervention_terms': ['tranexamic acid'], 'comparator_terms': ['placebo']}. Supply a held CC source whose jats_text output is exactly: 'Table 1. Mortality\\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled RR (95% CI)\\nDeath due to bleeding | 10/200 | 20/200 | 0.50 (0.25-1.00)\\nHere n denotes the Kaplan-Meier estimated mortality percentage, not the number of deaths; N denotes group size.' For an isolated test, make binding_verdict return {'verdict': 'BINDABLE'}.",
+    "expected": "Refuse extraction: neither 10 nor 20 is an observed death count.",
+    "actual": "The code returns a RECORDED result with counts {'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 200} and estimate 0.5. This follows directly from the supplied code; Python execution was blocked.",
+    "id": "tx-rebase-r3:g1#1",
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "The denominator-note check skips every line between the selected header and outcome row. An explicit statement that the arms use different populations in that interval therefore passes.",
+    "failing_input": "Call table_result with topic {'primary_outcome': {'name': 'Death due to bleeding', 'keywords': ['death due to bleeding']}, 'comparator_pmid': 'fixture', 'intervention_terms': ['tranexamic acid'], 'comparator_terms': ['placebo']}. Supply a held CC source whose jats_text output is exactly: 'Table 1. Mortality\\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled RR (95% CI)\\nN = randomised population for tranexamic acid and safety population for placebo.\\nDeath due to bleeding | 10/200 | 20/180 | 0.45 (0.22-0.92)'. For an isolated test, make binding_verdict return {'verdict': 'BINDABLE'}.",
+    "expected": "Refuse extraction because the intervention denominator is randomised and the control denominator is safety.",
+    "actual": "The code returns a RECORDED result with counts {'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 180}. Both header population sets are empty, and lines[top:hdr] + lines[i+1:below] excludes the denominator note.",
+    "id": "tx-rebase-r3:g1#2",
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "_canon_pop / table_result",
+    "severity": "P0",
+    "claim": "Canonicalisation equates a full analysis population with the randomised population without evidence that their membership is identical. This defeats the check against mixing denominator kinds.",
+    "failing_input": "Exact helper call: _canon_pop('full analysis') == _canon_pop('randomised'). For the result path, use the preceding topic fixture with held CC text: 'Table 1. Mortality\\nOutcome | Tranexamic acid randomised (n/N) | Placebo full analysis (n/N) | Pooled RR (95% CI)\\nDeath due to bleeding | 10/200 | 20/180 | 0.45 (0.22-0.92)\\nThe full analysis population excludes participants without post-baseline measurements.' Make binding_verdict return {'verdict': 'BINDABLE'} when isolating this check.",
+    "expected": "The populations remain distinct, and table_result refuses the contrast: one denominator includes randomised participants while the other excludes participants without measurements.",
+    "actual": "The helper comparison returns True. Both header population sets become {'randomised'}, the note contributes only that same canonical population, and table_result records counts {'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 180}.",
+    "id": "tx-rebase-r3:g1#3",
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "_term_re / _arm",
+    "severity": "P1",
+    "claim": "Intervention matching has a leading word boundary but no trailing boundary, so a different numbered agent can be classified as the requested intervention.",
+    "failing_input": "_term_re(['interleukin-2']).search('Interleukin-21').group(0); _arm('Interleukin-21', {'intervention_terms': ['interleukin-2'], 'comparator_terms': ['placebo']})",
+    "expected": "The search returns no match, and _arm returns None: Interleukin-21 is not Interleukin-2.",
+    "actual": "The search matches 'Interleukin-2' within 'Interleukin-21', and _arm returns 'intervention'. Consequently, an Interleukin-21 arm followed by a placebo arm satisfies table_result's arm-role gate for an Interleukin-2 topic.",
+    "id": "tx-rebase-r3:g1#4",
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -135,3 +135,29 @@ def test_PLANT_r2_population_names_compare_case_and_spelling_insensitively(monke
     r, why = _reader(monkeypatch, tmp_path, "Outcome | Tranexamic acid, randomised (n/N) | Placebo, Randomized (n/N) | "
                                             "Pooled OR (95% CI)\nDeath | 10/100 | 20/100 | 0.44 (0.20-0.99)")
     assert r is not None, why
+
+
+def test_PLANT_r3_a_table_declaring_percentages_prints_no_counts(monkeypatch, tmp_path):
+    r, why = _reader(monkeypatch, tmp_path, "Table 1. Mortality, Kaplan-Meier % at 6 weeks\nOutcome | Tranexamic acid "
+                                            "(n/N) | Placebo (n/N) | Pooled OR (95% CI)\nDeath | 10/200 | 20/200 | "
+                                            "0.50 (0.20-0.90)")
+    assert r is None and "percentages" in why
+
+
+def test_PLANT_r3_a_population_note_between_header_and_row_is_read(monkeypatch, tmp_path):
+    r, why = _reader(monkeypatch, tmp_path, "Table 1. Mortality\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | "
+                                            "Pooled OR (95% CI)\nDenominators: randomised for tranexamic acid, safety for "
+                                            "placebo\nDeath | 10/200 | 20/180 | 0.45 (0.20-0.90)")
+    assert r is None and "more than one denominator population" in why
+
+
+def test_PLANT_r3_different_analysis_sets_are_never_equated():
+    assert tr._canon_pop("full analysis") != tr._canon_pop("randomised")
+    assert tr._canon_pop("intention-to-treat") != tr._canon_pop("randomised")
+    assert tr._canon_pop("Randomized") == tr._canon_pop("randomised")
+
+
+def test_PLANT_r3_agent_names_are_bounded_at_both_ends():
+    assert tr._term_re(["interleukin-2"]).search("Interleukin-21") is None
+    assert tr._arm("Interleukin-21", {"intervention_terms": ["interleukin-2"], "comparator_terms": ["placebo"]}) is None
+    assert tr._term_re(["tranexamic acid"]).search("Tranexamic acid group (n/N)")

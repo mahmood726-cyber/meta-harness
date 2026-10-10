@@ -41,11 +41,12 @@ _POPULATION = (r"\b(?:randomi[sz]ed|intention[- ]to[- ]treat|ITT|mITT|modified|p
 
 
 def _canon_pop(p):
-    """One name per population ('randomised'/'randomized'/'intention-to-treat'/'ITT' are the randomised set)."""
+    """One name per population SPELLING only ('randomized' = 'randomised', 'analyzed' = 'analysed', 'intention to
+    treat' = 'ITT'). Different analysis sets -- randomised, ITT, full analysis, mITT, per-protocol, safety -- are never
+    equated: their membership is not shown to be identical (codex tx-rebase-r3 #3)."""
     p = re.sub(r"[\s-]+", " ", p.lower())
-    return {"randomized": "randomised", "intention to treat": "randomised", "itt": "randomised",
-            "full analysis": "randomised", "modified": "mitt", "per protocol": "pp", "analyzed": "analysed",
-            "treated": "safety"}.get(p, p)
+    return {"randomized": "randomised", "analyzed": "analysed", "intention to treat": "itt",
+            "per protocol": "pp"}.get(p, p)
 
 
 def _n(s):
@@ -116,7 +117,9 @@ def _term_re(terms):
     terms = [x for x in terms if x]
     if not terms:
         return re.compile(r"(?!x)x")              # matches nothing ('' would match every boundary)
-    return re.compile(r"\b(" + "|".join(re.escape(x) for x in sorted(set(terms), key=len, reverse=True)) + r")", re.I)
+    # bounded at BOTH ends: 'interleukin-2' is not found in 'Interleukin-21' (codex tx-rebase-r3 #4)
+    return re.compile(r"\b(" + "|".join(re.escape(x) for x in sorted(set(terms), key=len, reverse=True)) +
+                      r")(?![A-Za-z0-9])", re.I)
 
 
 def _arm(title, t):
@@ -174,10 +177,19 @@ def table_result(slug):
     # caption (or 40 lines) down to the row
     top = next((j for j in range(hdr, max(hdr - 40, -1), -1) if _CAPTION.search(lines[j])), max(hdr - 40, 0))
     below = next((j for j in range(i + 1, min(i + 40, len(lines))) if _CAPTION.search(lines[j])), min(i + 40, len(lines)))
-    block_pops = {_canon_pop(p) for ln in lines[top:hdr] + lines[i + 1:below] if not is_result_row(ln)
-                  for p in re.findall(_POPULATION, ln, re.I)}
+    # every non-result line of the block, INCLUDING those between the header and the row (codex tx-rebase-r3 #2)
+    block = [ln for ln in lines[top:i] + lines[i + 1:below] if not is_result_row(ln)]
+    block_pops = {_canon_pop(p) for ln in block for p in re.findall(_POPULATION, ln, re.I)}
     if len(block_pops) >= 2:
         return None, f"T2_HEADER: the table defines more than one denominator population {sorted(block_pops)}"
+    # a table that declares its arm cells as percentages / Kaplan-Meier estimates prints no counts, whatever the cells
+    # look like ('10/200' under 'Kaplan-Meier %' -- codex tx-rebase-r3 #1)
+    # read: the two ARM header cells, the caption and note lines -- never the estimate column's '(95% CI)'
+    declared = [hc[k] for k in arms] + [ln for ln in block if _CAPTION.search(ln) or re.match(r"\s*[*†‡§a-z]?\s*n\s*=", ln)]
+    if any(re.search(r"kaplan[- ]meier|\bK-?M\b|%|percent|per\s+100\b|\brates?\b|incidence\s+rate",
+                     re.sub(r"\d+(?:[.·]\d+)?\s*%\s*(?:CI|confidence|credible)", " ", ln, flags=re.I), re.I)
+           for ln in declared):
+        return None, "T3_CELLS: the table declares percentages / rates, not counts"
     # an estimate header that states its own contrast must state OURS in the arm-column order (codex tx-rebase-r1 #2):
     # 'Placebo vs tranexamic acid OR' over intervention-first arm columns is refused, never silently inverted
     eh = hc[est_col]
