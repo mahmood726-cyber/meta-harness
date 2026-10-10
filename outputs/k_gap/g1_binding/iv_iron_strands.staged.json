@@ -1,0 +1,238 @@
+{
+ "slug": "iv-iron-hfref-hosp",
+ "_doc": "iv-iron for heart-failure hospitalisation as declared strands rather than one forced pool. First-event HR, recurrent-event rate ratio and participant-level risk are different estimands and are never pooled together; within the recurrent rate ratios the ENDPOINT splits them further. Every number is read from held source text by harness/strand_pool.py; pools run synth.pool then the k=2 rule (harness/k2.py).",
+ "generated_by": "scripts/build_iv_iron_strands.py",
+ "why_topic_is_suppressed": "Strands A and B measure the SAME endpoint (HF hospitalisation) two incompatible ways -- first-event HR (CONFIRM-HF) vs recurrent rate ratio (AFFIRM-AHF + FAIR-HF2). A hazard ratio of the first event and a rate ratio of all events are not the same quantity and cannot be pooled; the single-pool primary is therefore suppressed.",
+ "refused_cross_endpoint_pool": {
+  "description": "The recurrent-event rate ratios do NOT form one pool. A pool of AFFIRM-AHF's HF-hosp-ALONE rate with IRONMAN's HF-hosp+CV-death COMPOSITE rate crosses the endpoint dimension.",
+  "if_forced_it_would_be": "0.7831 (k=2; no interval would be served) -- the 0.783 figure once treated as the recurrent strand; it mixes endpoints and is refused, not published.",
+  "verdict": "REFUSED -- endpoint mismatch (HF-hosp alone vs composite)"
+ },
+ "open_question_v15": "CONFIRM-HF's post hoc recurrent HF-hospitalisation RR 0.30 (0.14-0.64) (external review 11-04) is not admitted, as a sensitivity or otherwise, without a signed decision.",
+ "strands": [
+  {
+   "strand": "A",
+   "name": "First-event hazard ratio (time to first HF hospitalisation)",
+   "event_process": "FIRST_EVENT_RATIO",
+   "endpoint": "HF hospitalisation (alone)",
+   "effect_measure": "HR",
+   "members": [
+    {
+     "trial": "CONFIRM-HF",
+     "pmid": "25176939",
+     "nct": "NCT01453608",
+     "event_process": "FIRST_EVENT_RATIO",
+     "endpoint": "HF hospitalisation (alone)",
+     "scale": "HR",
+     "effect": 0.39,
+     "ci_low": 0.19,
+     "ci_high": 0.82,
+     "ci_level": 95.0,
+     "source_span": "hazard ratio (95% confidence interval): 0.39 (0.19-0.82)",
+     "source": "held abstract, cache/iv-iron-hfref-hosp/records.json PMID 25176939"
+    }
+   ],
+   "pool": null,
+   "k": 1
+  },
+  {
+   "strand": "B",
+   "name": "Recurrent-event rate ratio, HF hospitalisation ALONE",
+   "event_process": "RATE",
+   "endpoint": "HF hospitalisation (alone)",
+   "effect_measure": "RR",
+   "members": [
+    {
+     "trial": "AFFIRM-AHF",
+     "pmid": "33197395",
+     "nct": "NCT02937454",
+     "event_process": "RATE",
+     "endpoint": "HF hospitalisation (alone)",
+     "scale": "RR",
+     "effect": 0.74,
+     "ci_low": 0.58,
+     "ci_high": 0.94,
+     "ci_level": 95.0,
+     "source_span": "(RR 0.74; 95% CI 0.58-0.94",
+     "source": "held abstract, cache/iv-iron-hfref-hosp/records.json PMID 33197395"
+    },
+    {
+     "trial": "FAIR-HF2",
+     "pmid": "40159390",
+     "nct": "NCT03036462",
+     "event_process": "RATE",
+     "endpoint": "HF hospitalisation (alone)",
+     "scale": "RR",
+     "effect": 0.8,
+     "ci_low": 0.6,
+     "ci_high": 1.06,
+     "ci_level": 95.0,
+     "source_span": "(rate ratio, 0.80 [95% CI, 0.60-1.06]",
+     "source": "held abstract, cache/iv-iron-hfref-hosp/records.json PMID 40159390"
+    }
+   ],
+   "pool": {
+    "k": 2,
+    "estimate": 0.7645,
+    "ci_low": null,
+    "ci_high": null,
+    "tau2": 0.0,
+    "i2": null,
+    "scale": "RR",
+    "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
+    "estimate_fixed": 0.7645,
+    "ci_low_fixed": 0.636,
+    "ci_high_fixed": 0.9191,
+    "k2_trial_diagnostics": {
+     "conflict": false,
+     "reasons": [],
+     "trials": [
+      {
+       "label": null,
+       "id": null,
+       "effect": 0.74,
+       "ci_low": 0.58,
+       "ci_high": 0.94,
+       "scale": "RR"
+      },
+      {
+       "label": null,
+       "id": null,
+       "effect": 0.8,
+       "ci_low": 0.6,
+       "ci_high": 1.06,
+       "scale": "RR"
+      }
+     ]
+    },
+    "pooled_ci_refused": {
+     "code": "K2_SINGLE_DF",
+     "detail": "Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here."
+    },
+    "ci_hksj_unserved": {
+     "ci_low": 0.2318,
+     "ci_high": 2.5218,
+     "method": "PM tau^2 + HKSJ on t(1)",
+     "note": "computed for auditability only; not served as the registered interval at k=2"
+    },
+    "fixed_note": "common-effect sensitivity (z-based; not the registered interval): this uses inverse-variance common-effect weights and a normal quantile, not the registered PM/HKSJ interval."
+   },
+   "k": 2
+  },
+  {
+   "strand": "C",
+   "name": "Recurrent-event rate ratio, HF hospitalisation + CV death COMPOSITE",
+   "event_process": "RATE",
+   "endpoint": "HF hospitalisation + cardiovascular death (composite)",
+   "effect_measure": "RR",
+   "members": [
+    {
+     "trial": "AFFIRM-AHF",
+     "pmid": "33197395",
+     "nct": "NCT02937454",
+     "event_process": "RATE",
+     "endpoint": "HF hospitalisation + cardiovascular death (composite)",
+     "scale": "RR",
+     "effect": 0.79,
+     "ci_low": 0.62,
+     "ci_high": 1.01,
+     "ci_level": 95.0,
+     "source_span": "(rate ratio [RR] 0.79, 95% CI 0.62-1.01",
+     "source": "held abstract, cache/iv-iron-hfref-hosp/records.json PMID 33197395"
+    },
+    {
+     "trial": "IRONMAN",
+     "pmid": "36347265",
+     "nct": "NCT02642562",
+     "event_process": "RATE",
+     "endpoint": "HF hospitalisation + cardiovascular death (composite)",
+     "scale": "RR",
+     "effect": 0.82,
+     "ci_low": 0.66,
+     "ci_high": 1.02,
+     "ci_level": 95.0,
+     "source_span": "(rate ratio [RR] 0.82 [95% CI 0.66 to 1.02]",
+     "source": "held abstract, cache/iv-iron-hfref-hosp/records.json PMID 36347265"
+    }
+   ],
+   "pool": {
+    "k": 2,
+    "estimate": 0.8066,
+    "ci_low": null,
+    "ci_high": null,
+    "tau2": 0.0,
+    "i2": null,
+    "scale": "RR",
+    "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
+    "estimate_fixed": 0.8066,
+    "ci_low_fixed": 0.6856,
+    "ci_high_fixed": 0.9488,
+    "k2_trial_diagnostics": {
+     "conflict": false,
+     "reasons": [],
+     "trials": [
+      {
+       "label": null,
+       "id": null,
+       "effect": 0.79,
+       "ci_low": 0.62,
+       "ci_high": 1.01,
+       "scale": "RR"
+      },
+      {
+       "label": null,
+       "id": null,
+       "effect": 0.82,
+       "ci_low": 0.66,
+       "ci_high": 1.02,
+       "scale": "RR"
+      }
+     ]
+    },
+    "pooled_ci_refused": {
+     "code": "K2_SINGLE_DF",
+     "detail": "Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here."
+    },
+    "ci_hksj_unserved": {
+     "ci_low": 0.2814,
+     "ci_high": 2.3117,
+     "method": "PM tau^2 + HKSJ on t(1)",
+     "note": "computed for auditability only; not served as the registered interval at k=2"
+    },
+    "fixed_note": "common-effect sensitivity (z-based; not the registered interval): this uses inverse-variance common-effect weights and a normal quantile, not the registered PM/HKSJ interval."
+   },
+   "k": 2
+  },
+  {
+   "strand": "D",
+   "name": "Participant-level risk (participants with >=1 HF hospitalisation)",
+   "event_process": "PARTICIPANT_RISK",
+   "endpoint": "HF hospitalisation (alone)",
+   "effect_measure": "RR",
+   "members": [
+    {
+     "trial": "CONFIRM-HF",
+     "pmid": "25176939",
+     "nct": "NCT01453608",
+     "event_process": "PARTICIPANT_RISK",
+     "endpoint": "HF hospitalisation (alone)",
+     "scale": "RR",
+     "ai": 10,
+     "n1i": 150,
+     "ci": 25,
+     "n2i": 151,
+     "effect": 0.4027,
+     "ci_low": 0.2004,
+     "ci_high": 0.809,
+     "ci_level": 95.0,
+     "ci_provenance": "synth.pool:single-trial-Wald-z(k=1):v1",
+     "source_span": "Hospitalizations and deaths (full-analysis set) | End-point or event FCM ( n = 150) Placebo ( n = 151) Total number of events Incidence/100 patient-years at risk Total number of events Incidence/100 patient- years at risk Time to first event hazard ratio 95% CI P -value | Hospitalizations due to worsening HF | 10 | 10 (7.6) | 32 | 25 (19.4) | 0.39 (0.19–0.82) | 0.009",
+     "source": "held full text cache/iv-iron-hfref-hosp/ft_25176939.txt (PMC4359359), Table 2",
+     "note": "participants with >=1 HF hospitalisation in the full-analysis set; the bracketed 7.6 and 19.4 are incidence per 100 patient-years at risk (the table's footnote), not percentages"
+    }
+   ],
+   "pool": null,
+   "k": 1
+  }
+ ]
+}

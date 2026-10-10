@@ -544,21 +544,34 @@ def render_strands_section(d: dict) -> str:
     if not strands:
         return ""
     rows = []
+    from .strand_pool import served_view
     for s in strands:
         pool = s.get("pool")
         if pool:
-            sig = "crosses null" if pool.get("crosses_null") else "significant"
+            # one served view for every strand doc: the estimate, and an interval only when the k=2 rule allows it
+            # (external review 11-02); the estimate is read as 'estimate' or 'effect' (pcsk9's doc uses 'estimate')
+            v = served_view(pool)
             sens = pool.get("common_effect_sensitivity") or {}
-            senstxt = (f" <span class='note'>[common-effect sensitivity {_e(sens.get('effect'))} "
+            senstxt = (f" <span class='note'>[common-effect sensitivity {_e(sens.get('effect', sens.get('estimate')))} "
                        f"({_e(sens.get('ci_low'))}–{_e(sens.get('ci_high'))}), NOT the registered result]</span>"
                        if sens else "")
-            res = (f"pooled {_e(pool.get('effect'))} ({_e(pool.get('ci_low'))}–{_e(pool.get('ci_high'))}), "
-                   f"k={_e(pool.get('k'))}, HKSJ/PM &tau;&sup2;={_e(pool.get('tau2'))}, <strong>{sig}</strong>{senstxt}")
+            if v.get("estimate") is None:
+                res = f"pooled row refused: {_e(v.get('withheld'))}"
+            elif v.get("withheld"):
+                res = (f"pooled {_e(v.get('estimate'))}, k={_e(v.get('k'))}, HKSJ/PM &tau;&sup2;={_e(v.get('tau2'))}; "
+                       f"<strong>95% CI not served</strong> (k=2): {_e(v.get('withheld'))}{senstxt}")
+            else:
+                sig = "crosses null" if v.get("crosses_null") else "significant"
+                res = (f"pooled {_e(v.get('estimate'))} ({_e(v.get('ci_low'))}–{_e(v.get('ci_high'))}), "
+                       f"k={_e(v.get('k'))}, HKSJ/PM &tau;&sup2;={_e(v.get('tau2'))}, <strong>{sig}</strong>{senstxt}")
         elif not (s.get("members") or []):
             res = f"<code>{_e(s.get('status') or 'EMPTY')}</code>: {_e(s.get('reason') or 'no source-backed members declared')}"
         else:
             m = (s.get("members") or [{}])[0]
-            res = f"{_e(m.get('trial'))} {_e(m.get('effect', m.get('crude_rr')))} ({_e(m.get('scale'))}), k=1 (single trial)"
+            counts = (f"; {_e(m.get('ai'))}/{_e(m.get('n1i'))} v {_e(m.get('ci'))}/{_e(m.get('n2i'))}"
+                      if m.get("ai") is not None and m.get("n1i") is not None else "")
+            ci = (f" ({_e(m.get('ci_low'))}–{_e(m.get('ci_high'))})" if m.get("ci_low") is not None else "")
+            res = f"{_e(m.get('trial'))} {_e(m.get('effect'))}{ci} ({_e(m.get('scale'))}{counts}), k=1 (single trial)"
         rows.append(f"<li><strong>Strand {_e(s.get('strand'))}</strong> — {_e(s.get('name'))} "
                     f"[<code>{_e(s.get('event_process'))}</code>]: {res}</li>")
     ref = d.get("refused_cross_endpoint_pool") or {}

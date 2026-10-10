@@ -1,0 +1,107 @@
+{
+ "slug": "pcsk9-mace",
+ "generated_utc": "2026-09-16",
+ "_doc": "Endpoint-clean strand for canonical 3-point MACE. The primary PCSK9 page remains STALE for search_not_executed and its main pool intentionally includes broader published MACE definitions; this strand decomposes the canonical three-component evidence only.",
+ "why_topic_is_suppressed": "Not suppressed. The strand is supplemental because the registered page already has a broader primary composite pool, and the search remains stale.",
+ "strands": [
+  {
+   "id": "strict_3p_mace",
+   "name": "Strict 3-point MACE (CV/CHD death, MI, stroke)",
+   "event_process": "FIRST_EVENT_RATIO",
+   "endpoint": "CV/CHD death | MI | ischemic stroke",
+   "effect_measure": "HR",
+   "members": [
+    {
+     "trial": "FOURIER",
+     "pmid": "28304224",
+     "effect": 0.8,
+     "ci_low": 0.73,
+     "ci_high": 0.88,
+     "scale": "HR",
+     "components": [
+      "CV_DEATH",
+      "MI",
+      "STROKE"
+     ],
+     "source": "held cache/pcsk9-mace/records.json PMID 28304224",
+     "selection_note": "Key secondary endpoint; same canonical 3-point component set.",
+     "ci_level": 95.0,
+     "source_span": "hazard ratio, 0.80; 95% CI, 0.73 to 0.88"
+    },
+    {
+     "trial": "VESALIUS-CV",
+     "pmid": "41211925",
+     "effect": 0.75,
+     "ci_low": 0.65,
+     "ci_high": 0.86,
+     "scale": "HR",
+     "components": [
+      "CHD_DEATH",
+      "MI",
+      "ISCHEMIC_STROKE"
+     ],
+     "source": "held cache/pcsk9-mace/records.json PMID 41211925",
+     "selection_note": "Selected prespecified co-primary by the 2026-09-16 component-set rule.",
+     "ci_level": 95.0,
+     "source_span": "hazard ratio, 0.75; 95% confidence interval [CI], 0.65 to 0.86"
+    }
+   ],
+   "pool": {
+    "k": 2,
+    "estimate": 0.7842,
+    "ci_low": null,
+    "ci_high": null,
+    "tau2": 0.0,
+    "i2": null,
+    "scale": "HR",
+    "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
+    "estimate_fixed": 0.7842,
+    "ci_low_fixed": 0.7256,
+    "ci_high_fixed": 0.8476,
+    "k2_trial_diagnostics": {
+     "conflict": false,
+     "reasons": [],
+     "trials": [
+      {
+       "label": null,
+       "id": null,
+       "effect": 0.8,
+       "ci_low": 0.73,
+       "ci_high": 0.88,
+       "scale": "HR"
+      },
+      {
+       "label": null,
+       "id": null,
+       "effect": 0.75,
+       "ci_low": 0.65,
+       "ci_high": 0.86,
+       "scale": "HR"
+      }
+     ]
+    },
+    "pooled_ci_refused": {
+     "code": "K2_SINGLE_DF",
+     "detail": "Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here."
+    },
+    "ci_hksj_unserved": {
+     "ci_low": 0.4739,
+     "ci_high": 1.2979,
+     "method": "PM tau^2 + HKSJ on t(1)",
+     "note": "computed for auditability only; not served as the registered interval at k=2"
+    },
+    "fixed_note": "common-effect sensitivity (z-based; not the registered interval): this uses inverse-variance common-effect weights and a normal quantile, not the registered PM/HKSJ interval."
+   },
+   "declared_absent": [
+    {
+     "trial": "ODYSSEY OUTCOMES",
+     "pmid": "30403574",
+     "state": "not_in_abstract_in_full_text",
+     "reason": "Cached abstract reports a four-component composite including unstable-angina hospitalization; matching 3-point ODYSSEY OUTCOMES is not in the committed abstract."
+    }
+   ],
+   "k": 2
+  }
+ ],
+ "generated_by": "scripts/rebind_strand_doc.py"
+}
