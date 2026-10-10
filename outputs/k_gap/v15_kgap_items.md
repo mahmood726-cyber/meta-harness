@@ -153,3 +153,28 @@ The contrast is valid per the ruling: empagliflozin + KCl v placebo-for-empaglif
 **Open rule question:** families with an included record but structural state UNKNOWN (e.g. EMPEROR-Preserved NCT03057951) are counted NOT eligible by this rule. The alternative, "eligible unless a trial-level exclusion is PROVEN", would count them. The Captain picks the rule; the per-family table carries both.
 
 **G1 effect:** G1 compares trial units, not family counts, so this count moves no G1 status by itself. It changes the disclosed "eligible families" figure on every page (a wording/served-count change for V15).
+
+## K-6. Comparator N from the INCLUDED set (review 17) -- PR #64 (code + plant; nothing applied)
+- Fix: `seed_candidate_n()` in scripts/g1_tracker.py.
+  - In REFERENCE_SEED_CANDIDATES state, the seeds are disclosed as N_candidates.
+  - N = the comparator's OWN stated k when that is lower than the candidates (basis COMPARATOR_STATED_K).
+  - Finding COMPARATOR_STATED_K_BELOW_SEED_CANDIDATES.
+- Sweep over 32 (outputs/k_gap/comparator_n_sweep.md): **one N moves, sglt2-ckd 12 -> 10.** The comparator abstract says "10 randomized trials".
+  - Which 2 seeds fall outside (the reviewer says DAPA-MI and EMPACT-MI) is NOT typed: comparator 41203232's text has no CC licence (Europe PMC licence None), so it is not read under D8.
+  - **No G1 status changes** (sglt2-ckd stays NOT_YET).
+- cortico-covid is the other seed-state topic: 5 seeds against "7 randomized clinical trials". It is under-enumerated, not over. The existing COMPARATOR_STATED_K_ABOVE_ENUMERATED_N finding covers it, and N is never inflated.
+
+## K-7. Report-to-trial linking with INHERITED eligibility (review 15) -- sweep (outputs/k_gap/report_link_sweep.md); nothing applied
+- **Rule.** A record excluded X2 is a REPORT of a trial family when a TYPED link exists:
+  - PubMed DataBank NCT;
+  - NCT stated in the abstract;
+  - the title names the family's registry acronym as an exact UPPER-case token of 4+ letters, unique in the topic.
+  - A linked report inherits the family's eligibility; an unlinked record is untouched.
+- **Flips by reading of "eligible family"** (the same open rule as K-5):
+  - STRICT, structural ELIGIBLE: 15 across 32 topics.
+    - Active topics: sema-weight 6, sglt2-pp 2, doac 1, sacubitril 1 (40353367 -> NCT01035255 by acronym), tranexamic 1.
+    - Abandoned topics: metformin 2, probiotics 1.
+  - RECONCILED (included record, not INELIGIBLE): +1, **SELECT 38907684 -> NCT03574597 in sema-MACE** ("... Without Diabetes in SELECT."; no DataBank, no NCT in the record: the acronym is the only typed link). This is the reviewer's case.
+- **G1 effect:** none. Every flip is a REPORT of a family already counted, so no trial unit is added and no G1 status changes. The served screening-record counts change (V15 wording/count).
+- **Caveat:** sglt2-pp 33004472 -> NCT02792400 (a glucagon mechanistic study) inherits only because that family's structural screen calls it ELIGIBLE. The inheritance is only as sound as the family verdict.
+- **Next:** the harness fix (inherit at screen time, with the SELECT plant and an unlinked same-phrase control) as its own PR.
