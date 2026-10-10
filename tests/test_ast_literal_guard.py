@@ -128,7 +128,9 @@ def test_PLANT_codex_r3_3_every_count_in_a_string_is_reported():
 def test_PLANT_codex_r4_1_a_comma_grouped_bound_is_refused_not_truncated():
     a = "The combined group may have higher rates of ovulation (OR"
     assert csp.reported_value_at(a + " 650, 95% CI 450 to 1,200)", a) is None
-    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03, 8 studies)", a)["ci_high"] == 2.03   # prose comma ok
+    # r14#1: a comma followed by a digit is refused (fail-safe): '2, 03,000' cannot be told from ', 8 studies'
+    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03, 8 studies)", a) is None
+    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03, in 8 studies)", a)["ci_high"] == 2.03
 
 
 def test_PLANT_codex_r4_2_an_effect_tuple_does_not_hide_counts_in_the_same_string():
@@ -170,7 +172,7 @@ def test_PLANT_codex_r6_1_whitelist_terminator_refuses_every_continuation():
     a = "The combined group may have higher rates of ovulation (OR"
     for tail in (" 2 030)", " 2.03e1)", " 1,200)", " 2.03 x 10^1)", " 2.03·10)", " 2.03 to 3)"):
         assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to" + tail, a) is None, tail
-    for tail in (")", "; 8 studies)", ", 8 studies)", "]", ""):
+    for tail in (")", "; 8 studies)", ", in 8 studies)", "]", ""):
         assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03" + tail, a)["ci_high"] == 2.03, tail
     rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("to 1.11", "to 1 110")}]}
     assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
@@ -204,7 +206,7 @@ def test_PLANT_codex_r7_2_signed_effect_tuples_are_flagged():
 def test_PLANT_codex_r8_1_comma_space_group_is_refused():
     a = "The combined group may have higher rates of ovulation (OR"
     assert csp.reported_value_at(a + " 1650, 95% CI 1350 to 2, 030)", a) is None
-    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03, 8 studies)", a)["ci_high"] == 2.03
+    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03, in 8 studies)", a)["ci_high"] == 2.03
 
 
 def test_PLANT_codex_r8_2_integer_bound_effect_tuples_are_flagged():
@@ -254,3 +256,13 @@ def test_PLANT_codex_r12_3_grouped_numerators_are_kept_whole():
 
 def test_PLANT_codex_r13_3_space_grouped_numerators_are_kept_whole():
     assert [h["value"] for h in sweep.sweep_source("label = 'Deaths 1 234/5 678'", "harness/x.py")] == ["1 234/5 678"]
+
+
+def test_PLANT_codex_r14_1_a_spaced_indian_grouped_bound_is_refused():
+    a = "The combined group may have higher rates of ovulation (OR"
+    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2, 03,000)", a) is None
+
+
+def test_PLANT_codex_r14_2_attribute_assignments_are_flagged():
+    hits = sweep.sweep_source("study.ai = 20\nstudy.n1i = 169\n", "harness/x.py")
+    assert sorted((h["key"], h["value"]) for h in hits) == [("ai", 20), ("n1i", 169)]

@@ -68,6 +68,8 @@ def _unpack(target, value) -> list[tuple[str, ast.AST]]:
     if isinstance(target, ast.Subscript) and isinstance(target.slice, ast.Constant) \
             and isinstance(target.slice.value, str):
         return [(target.slice.value, value)]
+    if isinstance(target, ast.Attribute):                      # study.ai = 20 (codex copps-r14#2)
+        return [(target.attr, value)]
     return []
 
 

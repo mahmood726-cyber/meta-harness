@@ -7423,5 +7423,49 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r14": {
+  "base": "630e622bf",
+  "head": "1d5241db3",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a4a2e48bf7a30973af8b2d0e9bb74217",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "a6894670249e67cc93a340aca976492b382b583e33cc83975e24bb10a89d955d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "BOUND_END accepts a spaced comma followed by a two-digit group, truncating an Indian-grouped confidence bound into a different number.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 1.65, 95% CI 1.35 to 2, 03,000)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "None: unsupported grouped notation must be refused rather than partially read.",
+    "actual": "{'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.0}; _apply_reported_overrides accepts this truncated bound.",
+    "id": "copps-r14:g1#1",
+    "record_id": "mc-a4a2e48bf7a30973af8b2d0e9bb74217",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source / _unpack",
+    "severity": "P2",
+    "claim": "The literal-count sweep misses direct assignments to object fields. _unpack handles subscripts but ignores ast.Attribute, allowing hardcoded study counts to produce a clean report.",
+    "failing_input": "sweep_source('study.ai = 20\\nstudy.n1i = 169\\n', 'harness/example.py')",
+    "expected": "Two COUNT_OR_EFFECT_KEY findings: ai=20 on line 1 and n1i=169 on line 2.",
+    "actual": "[]",
+    "id": "copps-r14:g1#2",
+    "record_id": "mc-a4a2e48bf7a30973af8b2d0e9bb74217",
+    "verdict": null
+   }
+  ]
  }
 }
