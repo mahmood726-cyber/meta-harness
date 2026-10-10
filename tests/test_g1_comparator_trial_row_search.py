@@ -103,3 +103,18 @@ def test_PLANT_reader_replies_bare_or_one_fenced_block_and_quotes_must_be_in_the
                           shown) == "ROWS_CLAIMED"
     assert rs.gate_reader({"per_trial_rows": [{"trial": "WOMAN", "quote": "WOMAN 160/10 036"}]}, shown) == \
         "QUOTE_NOT_IN_TEXT"
+
+
+def test_PLANT_r1_empty_quotes_missing_fields_attribute_rows_and_unavailable_sources(tmp_path, monkeypatch):
+    assert rs.gate_reader({"per_trial_rows": [{"trial": "WOMAN", "quote": ""}], "note": ""}, "") == "QUOTE_NOT_IN_TEXT"
+    assert rs.gate_reader({}, "Death due to bleeding | WOMAN | 1/100 | 2/100") == "INVALID_REPLY"
+    assert rs.gate_reader(None, "x") == "INVALID_REPLY"
+    rows, _ = rs.search_texts('<table-wrap><table><tr id="r1"><td>Death due to bleeding</td><td>WOMAN</td><td>1/100</td>'
+                              '<td>2/100</td></tr></table></table-wrap>', "", PO, TRIALS)
+    assert len(rows) == 1
+    import json
+    (tmp_path / "topics").mkdir()
+    (tmp_path / "topics" / "demo.json").write_text(json.dumps({"primary_outcome": PO, "comparator_pmid": "9"}),
+                                                   encoding="utf-8")
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    assert rs.search("demo")["state"] == "UNAVAILABLE:NO_HELD_JATS"

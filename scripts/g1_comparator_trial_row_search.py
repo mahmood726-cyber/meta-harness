@@ -59,7 +59,7 @@ def search_texts(jats, supp, po, trials):
     tr = [t for t in trials if t]
     rows, figs = [], []
     for m in re.finditer(r"<table-wrap\b.*?</table-wrap>", jats or "", re.S):
-        for row in re.findall(r"<tr>.*?</tr>", m.group(0), re.S):
+        for row in re.findall(r"<tr\b[^>]*>.*?</tr>", m.group(0), re.S):      # rows with attributes too
             p = _plain(row)
             cells = [c.strip() for c in p.split("|") if c.strip()]
             label = cells[0] if cells else ""
@@ -90,7 +90,9 @@ def search(slug):
     labels = [x["label"] for x in json.load(open(g1, encoding="utf-8"))["trials"]] if os.path.exists(g1) else []
     trials = [printed_name(lab, jats) for lab in labels]
     rows, figs = search_texts(jats, supp, po, trials)
-    state = ("FOUND" if rows else "FIGURE_ONLY" if any(f["names_our_outcome"] for f in figs) else "NOT_FOUND")
+    # evidence that could not be searched is never an absence: no held JATS, or no trial inventory to name rows by
+    state = ("UNAVAILABLE:NO_HELD_JATS" if not jats else "UNAVAILABLE:NO_TRIAL_INVENTORY" if not trials
+             else "FOUND" if rows else "FIGURE_ONLY" if any(f["names_our_outcome"] for f in figs) else "NOT_FOUND")
     sha = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
     return {"slug": slug, "comparator_pmid": comp, "outcome": po["name"], "trials": trials, "state": state,
             "rows": rows, "figures": figs,
@@ -123,8 +125,12 @@ def gate_reader(answer, shown):
     """A reader's claimed rows count only when each quote is verbatim (whitespace-normalised) in what it was shown."""
     norm = lambda s: re.sub(r"[\s|]+", " ", s or "").strip().lower()
     sh = norm(shown)
-    rows = (answer or {}).get("per_trial_rows") or []
-    bad = [r for r in rows if norm(r.get("quote")) not in sh]
+    # NO_ROW needs an EXPLICIT empty list: a reply without the field is invalid, never a negative finding
+    if not isinstance(answer, dict) or not isinstance(answer.get("per_trial_rows"), list):
+        return "INVALID_REPLY"
+    rows = answer["per_trial_rows"]
+    # a claimed row needs a NON-EMPTY verbatim quote ('' is a substring of everything)
+    bad = [r for r in rows if not norm((r or {}).get("quote")) or norm(r.get("quote")) not in sh]
     return "NO_ROW" if not rows else ("QUOTE_NOT_IN_TEXT" if bad else "ROWS_CLAIMED")
 
 
