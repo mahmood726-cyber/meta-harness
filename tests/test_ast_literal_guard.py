@@ -246,3 +246,7 @@ def test_PLANT_codex_r10_2_four_decimal_effect_tuples_are_flagged():
 def test_PLANT_codex_r11_2_space_grouped_decimal_is_not_a_count_prefix():
     assert sweep.sweep_source('s = "Deaths 20/1 234.5"', "harness/x.py") == []
     assert [h["value"] for h in sweep.sweep_source('s = "Deaths: 2/8 versus 1/8"', "harness/x.py")] == ["2/8", "1/8"]
+
+
+def test_PLANT_codex_r12_3_grouped_numerators_are_kept_whole():
+    assert [h["value"] for h in sweep.sweep_source("message = 'Deaths 1,234/5,678'", "harness/x.py")] == ["1,234/5,678"]

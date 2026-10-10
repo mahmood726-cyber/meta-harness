@@ -57,3 +57,13 @@ def test_PLANT_per_arm_counts_written_as_n_patients_pct_are_not_percent_only():
             "placebo group. Colchicine reduced the rate of symptom persistence at 72 hours (19.2% vs. 40.0%, P=0.001).")
     assert not km._percent_only(icap)
     assert km._percent_only(COPPS_ABSTRACT)
+
+
+def test_PLANT_codex_r12_1_unspaced_slash_counts_are_per_arm_numbers():
+    assert not km._percent_only("Deaths were 20/100 versus 30/100 (20% versus 30%).")
+
+
+def test_PLANT_codex_r12_2_an_unrelated_n_of_n_does_not_suppress_the_refusal():
+    assert km._percent_only("Of 200 participants, 5 of 10 centres were rural. Deaths were 20% versus 30%; arm "
+                            "denominators were not reported.")
+    assert not km._percent_only("Deaths occurred in 20 of 100 patients versus 30 of 100 (20% versus 30%).")

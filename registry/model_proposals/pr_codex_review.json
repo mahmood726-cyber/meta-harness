@@ -7311,5 +7311,61 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r12": {
+  "base": "630e622bf",
+  "head": "275445bc7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-758d2ec844463119c5e9379b46ffc689",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "d313bc0ab279501ab52b8fe396ff304043606badc035ddf09f66f0e7560188cc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/known_missing.py",
+    "function": "_percent_only",
+    "severity": "P1",
+    "claim": "Explicit per-arm counts written without spaces around '/' are classified as percentages only. _N_OF_M requires whitespace on both sides of '/', causing the new refusal branch to label available counts as SOURCE_ABSENT.",
+    "failing_input": "_percent_only('Deaths were 20/100 versus 30/100 (20% versus 30%).')",
+    "expected": "False: both event counts and arm denominators are explicitly stated.",
+    "actual": "True.",
+    "id": "copps-r12:g1#1",
+    "record_id": "mc-758d2ec844463119c5e9379b46ffc689",
+    "verdict": null
+   },
+   {
+    "file": "harness/known_missing.py",
+    "function": "_percent_only",
+    "severity": "P1",
+    "claim": "An unrelated 'n of N' anywhere in the text suppresses the percentage-only refusal. The exclusion patterns never establish that a matched number describes an outcome count or an arm denominator.",
+    "failing_input": "_percent_only('Of 200 participants, 5 of 10 centres were rural. Deaths were 20% versus 30%; arm denominators were not reported.')",
+    "expected": "True: deaths are reported only as percentages, with no per-arm counts or denominators.",
+    "actual": "False, because '5 of 10' matches _N_OF_M.",
+    "id": "copps-r12:g1#2",
+    "record_id": "mc-758d2ec844463119c5e9379b46ffc689",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The count pattern starts inside a thousands-grouped numerator and reports a truncated count. Its left boundary excludes digits and periods but permits commas and spaces.",
+    "failing_input": "sweep_source(\"message = 'Deaths 1,234/5,678'\", 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding whose value preserves the complete count pair: '1,234/5,678'.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '234/5,678'}]",
+    "id": "copps-r12:g1#3",
+    "record_id": "mc-758d2ec844463119c5e9379b46ffc689",
+    "verdict": null
+   }
+  ]
  }
 }

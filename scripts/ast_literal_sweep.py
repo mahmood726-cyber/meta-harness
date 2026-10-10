@@ -41,7 +41,9 @@ _EFFECT_TEXT = _EffectText()
 # and never part of a decimal ('0.75/1.25' GRADE thresholds are not the count 75/1)
 # ...and never the prefix of a larger or decimal number: no [.,]digit may follow ('20/1,234.5' is not '20/1', r10#1)
 # (nor of a space-grouped one: '20/1 234.5', r11#2)
-_COUNT_TEXT = re.compile(r"(?<![\d.])\d{1,5}\s*/\s*(?:\d{1,3}(?:[ ,]\d{3})+|\d{1,6})\b(?![.,]\d)(?! \d{3}\b)")
+# (the numerator may be grouped too, and never starts inside a grouped number: '1,234/5,678', r12#3)
+_COUNT_TEXT = re.compile(r"(?<![\d.,])(?<!\d )(?:\d{1,3}(?:,\d{3})+|\d{1,5})\s*/\s*(?:\d{1,3}(?:[ ,]\d{3})+|\d{1,6})\b"
+                         r"(?![.,]\d)(?! \d{3}\b)")
 
 
 def _num(node):

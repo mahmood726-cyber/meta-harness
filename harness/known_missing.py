@@ -45,7 +45,10 @@ def _record_for(row: dict[str, Any], rec_by_id: dict[str, dict[str, Any]]) -> di
 
 
 _PCT_PAIR = re.compile(r"\d+(?:\.\d+)?\s*%\s*(?:versus|vs\.?|compared with)\s*\d+(?:\.\d+)?\s*%", re.I)
-_N_OF_M = re.compile(r"\b\d+\s+(?:of|/)\s+\d+\b", re.I)
+# a per-arm count: 'n/N' (spaces optional, codex copps-r12#1) or 'n of N' followed by nothing, punctuation or a
+# participant noun -- '5 of 10 centres' is not an arm count (r12#2)
+_N_OF_M = re.compile(r"\b\d+\s*/\s*\d+\b(?!\.\d)|\b\d+\s+of\s+\d+\b(?!\s+(?!patients\b|participants\b|subjects\b|"
+                     r"women\b|men\b|children\b|in\b|with\b|who\b)[a-z])", re.I)
 _ARM_SPLIT = re.compile(r"\b\d+\s+(?:patients\s+)?(?:were\s+)?(?:to|in|assigned to)\s+(?:the\s+)?[\w-]+(?:\s+group)?"
                         r"\s*(?:,|and)\s*\d+\s+(?:patients\s+)?(?:to|in)\b", re.I)
 
