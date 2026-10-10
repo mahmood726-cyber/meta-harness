@@ -2,7 +2,7 @@
 (Domain 5), writing committed cache/<slug>/rob2.json. Measure-time; replayed offline; rendered.
     python scripts/rob2_build.py [--write] [<slug> ...]
 """
-import json, os, sys
+import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from harness import aact, embed, rob2
@@ -30,6 +30,59 @@ def pooled_ncts(slug):
         nct = recs.get(pid, {}).get("nct") or (pid if pid.startswith("NCT") else None)
         out[pid] = (nct or None)
     return (prim or {}).get("name", ""), out
+
+
+def selected_endpoints(slug):
+    """{pid: (text, role)} -- each pooled trial's SELECTED endpoint, from its own served row (r25): the registered
+    outcome it is bound to (registry_title / registry_type), else its definition span, else the selected result's own
+    source clause; role 'primary' / 'secondary' from the registry type or that clause, else None. Never the topic's
+    generic outcome name."""
+    rev = json.load(open(f"{ROOT}/docs/reviews/{slug}/review.json", encoding="utf-8"))
+    prim = next((o for o in rev.get("outcomes", []) if o.get("primary")), None)
+    out = {}
+    for t in (prim or {}).get("trials", []) or []:
+        pid = str(t.get("id", "")).replace("PMID ", "")
+        title = str(t.get("registry_title") or "") or None          # the registered outcome the row is bound to
+        src = re.sub(r"^[^:]{0,80}\((?:registered estimand|target endpoint)\):\s*", "", str(t.get("source") or ""))
+        rt = str(t.get("registry_type") or "").lower()
+        if rt in ("primary", "secondary"):
+            role = rt
+        elif re.search(r"\bprimary[\s-]+(?:composite\s+)?(?:end\s*-?\s*point|outcome)", src, re.I):   # 'primary-outcome'
+            role = "primary"
+        elif re.search(r"\bsecondary\s+(?:end\s*-?\s*point|outcome)", src, re.I):
+            role = "secondary"
+        else:
+            role = None
+        out[pid] = (title, role)
+    return out
+
+
+def factor_terms(slug, ncts):
+    """(our intervention terms, OTHER factors' intervention names) -- the latter from AACT interventions of the trial's
+    registry records (drug / biological / device / procedure), minus ours and placebo-like controls (CLEAR: colchicine
+    is ours; spironolactone and the stent are other factors)."""
+    cfg = json.load(open(f"{ROOT}/topics/{slug}.json", encoding="utf-8"))
+    ours = [x for x in (cfg.get("intervention_terms") or []) if isinstance(x, str)]
+    ag = cfg.get("intervention_agents") or {}
+    ours += [a for k, v in (ag.items() if isinstance(ag, dict) else []) for a in [k] + list(v or [])]
+    ours += [a for a in (ag if isinstance(ag, list) else [])]
+    # the COMPARATOR is not another factor (Hokusai-VTE's warfarin, esketamine's oral antidepressant)
+    comp = [x for x in (cfg.get("comparator_terms") or []) if isinstance(x, str)]
+    other = {}
+    for nct in ncts:
+        for name, typ in INTERVENTIONS.get(nct, []):
+            if typ not in ("DRUG", "BIOLOGICAL", "DEVICE", "PROCEDURE"):
+                continue
+            if re.search(r"placebo|sham|standard|usual|control|matching|antidepressant", name, re.I) \
+                    or rob2._names_any(name, ours) or rob2._names_any(name, comp):
+                continue
+            other[name] = 1
+    # a factorial trial has >= 2 ACTIVE arms besides ours (CLEAR: spironolactone + stent); one other active
+    # intervention is this trial's comparator or background therapy, never a factor whose outcomes are set aside
+    return sorted(set(ours)), (sorted(other) if len(other) >= 2 else [])
+
+
+INTERVENTIONS = {}
 
 
 def topic_record_ncts(slug):
@@ -114,6 +167,12 @@ def main(argv):
                 regprim[nct].append(outcome)
             elif ot == "secondary" and (outcome["measure"] or outcome["title"] or outcome["description"]):
                 regsec[nct].append(outcome)
+    # one pass: registered interventions (factorial trials: which factor a registered outcome belongs to)
+    INTERVENTIONS.clear()
+    for r in aact._iter_rows(aact._table("interventions")):
+        nct = (r.get("nct_id") or "").upper()
+        if nct in alln:
+            INTERVENTIONS.setdefault(nct, []).append((r.get("name") or "", (r.get("intervention_type") or "").upper()))
     _BLIND_TXT = ("double-blind", "double blind", "double-masked", "double masked", "double-dummy",
                   "double dummy", "placebo-controlled", "placebo controlled", "triple-blind",
                   "quadruple-blind", "quadruple blind")
@@ -128,6 +187,7 @@ def main(argv):
         recs = {str(r.get("id")): (r.get("abstract") or "")
                 for r in json.load(open(f"{ROOT}/cache/{slug}/records.json", encoding="utf-8")).get("records", [])}
         assess = {}
+        sel_of = selected_endpoints(slug)
         for pid, info in d.items():
             nct = info.get("nct")
             registry_ncts = info.get("registry_ncts") or []
@@ -138,9 +198,13 @@ def main(argv):
             rand_txt = any(kw in ab for kw in _RAND_TXT)
             primaries = [out for rn in registry_ncts for out in regprim.get(rn, [])]
             secondaries = [out for rn in registry_ncts for out in regsec.get(rn, [])]
+            title, role = sel_of.get(str(pid)) or (None, None)
+            ours, other = factor_terms(slug, registry_ncts)
             dom = rob2.assess(design, primaries, pooled_out, _match,
                               registered_secondaries=secondaries,
-                              blinded_by_text=blinded_txt, randomized_by_text=rand_txt)
+                              blinded_by_text=blinded_txt, randomized_by_text=rand_txt,
+                              selected={"registered_title": title, "role": role, "our_terms": ours,
+                                        "other_factor_terms": other})
             basis = rob2.rob_basis(dom)
             assess[pid] = {"nct": nct, "registry_in_aact": bool(NCT and NCT in designs),
                            "assessed_from": ("registry+abstract" if (NCT and NCT in designs) else "abstract only"),

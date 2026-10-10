@@ -274,6 +274,160 @@ def _d4(inputs: dict[str, Any]) -> dict[str, Any]:
     return _domain(d4, d4b, f"{OUTPUT_FAMILY}:D4:outcome_assessor_masking_v1", inputs)
 
 
+# --- D5 v3 (r18 + r25). v2 above stays as it was, so a stored v2 object still re-derives.
+#  r18: a CARDIOVASCULAR composite listing whose part names no known component is NOT_ESTABLISHED, never a match (v2
+#       dropped 'urgent HF visit', so DAPA-HF's broad primary equalled its secondary); the v2 vocabulary gains the
+#       components that went missing (urgent HF visit, cardiac arrest, new/worsening HF).
+#  r25: the SELECTED endpoint -- the registered outcome a served row is bound to, else the topic outcome name -- and its
+#       ROLE ('primary end point' in the selected result's own source); in factorial trials a registered outcome
+#       naming ANOTHER factor's intervention is set aside (CLEAR: spironolactone / stent outcomes).
+#  'not established' is never 'possibly post hoc'; the basis names the actual trigger.
+_CARDIO = {"CV_DEATH", "NONFATAL_MI", "NONFATAL_STROKE", "HF_HOSPITALISATION", "UNSTABLE_ANGINA", "REVASCULARISATION",
+           "URGENT_HF_VISIT", "CARDIAC_ARREST", "HF_EVENT_UNSPECIFIED", "ALL_CAUSE_MORTALITY"}
+_V3_EXTRA = (
+    ("URGENT_HF_VISIT", r"\burgent\b.{0,30}\bvisit\b"),
+    ("CARDIAC_ARREST", r"\bcardiac\s+arrests?\b"),
+    ("HF_EVENT_UNSPECIFIED", r"\b(?:new|worsening)\b.{0,15}\bheart\s+failure\b|\bheart\s+failure\s+events?\b"),
+    ("CV_DEATH", r"\bdeath\s+from\s+(?:cardio)?vascular\s+causes?\b"),
+)
+# a part that is ONLY 'death' / 'mortality' (SYNERGY: 'composite of death, recurrent target vessel MI, ...') is
+# all-cause death -- a component the v2 vocabulary lacks; recognised at part level only
+_BARE_DEATH = re.compile(r"^\W*(?:all\s+)?(?:deaths?|mortality)\W*$", re.I)
+# only a part that names an EVENT can be an unrecognised component; qualifiers and population words cannot
+_EVENT_NOUN = re.compile(r"\b(?:death|deaths|mortality|infarction|stroke|hospitali[sz]|visit|arrest|angina|"
+                         r"revasculari[sz]|failure|embol|thrombo|bleed|haemorrhage|hemorrhage|amputation|"
+                         r"intervention|surgery|transplant|dialysis|attack|syncope|arrhythmia)", re.I)
+_QUALIFIER = re.compile(r"\b(?:including|adjudicat\w*|prior\s+to|censoring|co-primary|as\s+assessed|according\s+to|"
+                        r"committee|icec|cec)\b.*$", re.I)
+_LIST_MARKER = re.compile(r"\b(?:composite(?:\s+(?:end\s*-?point|outcome))?\s+of|consisting\s+of|first\s+(?:occurrence|"
+                          r"event)\s+of|defined\s+as(?:\s+the\s+composite\s+of)?)\b", re.I)
+_FILLER = re.compile(r"\b(?:subjects|participants|patients|number|included|in|the|of|a|an|first|occurrence|event|"
+                     r"events|time|to|any|composite|endpoint|end|point|outcome|primary|secondary|co|nonfatal|non|"
+                     r"fatal|acute|recurrent|new|target|vessel|related|due|for|from|with|resulting|requiring|"
+                     r"defined|as|by|on|at|least|one|or|and|is|was|were|which|that|definitive|adjudicated|"
+                     r"confirmed|clinical|clinically|unplanned|ischemia|ischaemia|driven|urgent|resuscitated|"
+                     r"hospitali[sz]ation|hospitali[sz]ed|coronary)\b|[^a-z]+", re.I)
+
+
+def _component_set_v3(text: str) -> frozenset[str]:
+    s = _norm_text(text).lower()
+    comps = set(_component_set(text))
+    comps |= {k for k, rx in _V3_EXTRA if re.search(rx, s)}
+    if "HF_HOSPITALISATION" in comps or "URGENT_HF_VISIT" in comps:
+        comps.discard("HF_EVENT_UNSPECIFIED")
+    return frozenset(comps)
+
+
+def cardio_unrecognised(text: str) -> tuple[str, ...]:
+    """Parts of a CARDIOVASCULAR composite listing ('composite of A, B or C' with >= 2 cardiovascular components) that
+    name no known component. Any other text -> () (the v2 vocabulary is cardiovascular; a VTE or respiratory composite is
+    not judged by it)."""
+    s = _norm_text(text).lower()
+    s = re.split(r"\bsecondary\s+(?:\w+\s+){0,2}(?:end\s*-?points?|outcomes?)\b", s, maxsplit=1)[0]
+    m = _LIST_MARKER.search(s)
+    if not m or len(_component_set_v3(s) & _CARDIO) < 2:
+        return ()
+    seg = re.split(r"\b(?:compared\s+(?:to|with)|versus|vs\.?)\b|\bthe\s+descriptive\b|\.\s", s[m.end():])[0]
+    seg = re.sub(r"\(\s*[a-z0-9-]{1,8}\s*\)", " ", seg)        # '(CV)', '(MI)': an abbreviation, not a part
+    unknown = []
+    for part in [x for x in re.split(r",|;|\bor\b|\band\b|/|\(|\)|:", seg) if x.strip()]:
+        part = _QUALIFIER.sub("", part)
+        if _component_set_v3(part) or _BARE_DEATH.match(part) or not _EVENT_NOUN.search(part):
+            continue
+        if _FILLER.sub("", part).strip():
+            unknown.append(part.strip()[:60])
+    return tuple(unknown)
+
+
+def outcome_match_v3(selected_text: str, registered: dict[str, str], matches=None, *,
+                     allow_secondary_component_subset: bool = False) -> dict[str, Any]:
+    reg_text = _registered_text(registered)
+    su, ru = cardio_unrecognised(selected_text), cardio_unrecognised(reg_text)
+    sc, rc = _component_set_v3(selected_text), _component_set_v3(reg_text)
+    base = {"selected_components": sorted(sc), "registered_components": sorted(rc), "registered_text": reg_text,
+            "selected_unrecognised": list(su), "registered_unrecognised": list(ru)}
+    if su or ru:
+        return dict(base, matched=None, method="component_set_not_established")
+    if sc and rc:
+        sub = allow_secondary_component_subset and sc in SECONDARY_COMPONENT_SUBSET_ALLOWED and sc < rc
+        return dict(base, matched=sc == rc or sub, method="registered_secondary_component" if sub else "component_set")
+    if _simple_matches(selected_text, reg_text) or (matches and matches(selected_text, reg_text)):
+        return dict(base, matched=True, method="text_identity")
+    return dict(base, matched=False, method="no_match")
+
+
+def _names_any(text: str, terms: list[str]) -> bool:
+    t = (text or "").lower()
+    return any(re.search(r"(?<![a-z0-9])" + re.escape(x.lower()) + r"(?![a-z0-9])", t) for x in terms if len(x) >= 3)
+
+
+def factor_filter(outcomes: list[dict[str, str]], our_terms: list[str], other_terms: list[str]):
+    """Factorial trials (CLEAR: colchicine x spironolactone x stent): a registered outcome that names ANOTHER factor's
+    intervention and not ours belongs to that factor -- (kept, excluded)."""
+    # another factor is recognised by its DISTINCTIVE words ('SYNERGY Bioabsorbable Polymer Drug-Eluting Stent' is named
+    # 'SYNERGY Stent' in its outcome), never by generic ones
+    generic = {"drug", "drugs", "placebo", "matching", "therapy", "treatment", "dose", "oral", "tablet", "tablets",
+               "injection", "polymer", "standard", "care", "group", "arm", "daily"}
+    tokens = sorted({w for t in other_terms for w in re.findall(r"[a-z][a-z0-9-]{3,}", t.lower()) if w not in generic})
+    kept, excluded = [], []
+    for o in outcomes:
+        txt = _registered_text(o)
+        (excluded if _names_any(txt, tokens) and not _names_any(txt, our_terms) else kept).append(o)
+    return kept, excluded
+
+
+V3_RULE = f"{OUTPUT_FAMILY}:D5:registered_outcome_identity_v3"
+
+
+def derive_d5_v3(registered_primaries, registered_secondaries, selected: dict[str, Any], factor_excluded=None,
+                 matches: Callable[[str, str], bool] | None = None) -> dict[str, Any]:
+    """D5 on the SELECTED endpoint: selected = {pooled_outcome, registered_title, role, our_terms, other_factor_terms}.
+    The text compared is the registered outcome the served row is bound to, else the topic outcome name -- never a
+    results sentence."""
+    prim_all, sec_all = _outcome_dicts(registered_primaries), _outcome_dicts(registered_secondaries)
+    our, other = list(selected.get("our_terms") or []), list(selected.get("other_factor_terms") or [])
+    prim, xp = factor_filter(prim_all, our, other)
+    sec, xs = factor_filter(sec_all, our, other)
+    inputs = {"registered_primary_outcomes": prim_all, "registered_secondary_outcomes": sec_all,
+              "selected": selected, "factor_excluded_outcomes": [_outcome_label(o) for o in xp + xs]}
+    text = _norm_text(selected.get("registered_title") or selected.get("pooled_outcome"))
+    role = selected.get("role")
+    aside = f" (other factors' registered outcomes set aside: {len(xp) + len(xs)})" if (xp or xs) else ""
+    if not prim and not sec:
+        return _domain("not_assessable", "no registered primary or secondary outcome available for this trial" +
+                       (" after setting aside other factors' outcomes" if (xp or xs) else ""), V3_RULE, inputs)
+    if role == "primary" and not selected.get("registered_title") and len(prim) == 1:
+        # the selected result is stated, in its own source, as THE primary end point; one registered primary remains
+        d = outcome_match_v3(text, prim[0], matches)
+        inputs["comparison"] = dict(d, method="role_primary", registered_type="primary",
+                                    registered_label=_outcome_label(prim[0]))
+        return _domain("low", "the selected result is the trial's primary end point, its registered primary "
+                       f"{_outcome_label(prim[0])!r}{aside}", V3_RULE, inputs)
+    pending = []
+    for kind, outs in (("primary", prim), ("secondary", sec)):
+        for o in outs:
+            d = outcome_match_v3(text, o, matches, allow_secondary_component_subset=kind == "secondary")
+            if d["matched"] is True:
+                inputs["comparison"] = dict(d, registered_type=kind, registered_label=_outcome_label(o))
+                return _domain("low", f"the selected outcome is the trial's registered {kind} outcome "
+                               f"{_outcome_label(o)!r} ({d['method']}){aside}", V3_RULE, inputs)
+            if d["matched"] is None:
+                pending.append((kind, o, d))
+    if pending:
+        kind, o, d = pending[0]
+        unk = d["selected_unrecognised"] or d["registered_unrecognised"]
+        inputs["comparison"] = dict(d, registered_type=kind, registered_label=_outcome_label(o))
+        return _domain("not_assessable", "registered-outcome identity not established: unrecognised component(s) "
+                       f"{unk} in {'the selected outcome' if d['selected_unrecognised'] else repr(_outcome_label(o))}",
+                       V3_RULE, inputs)
+    first = prim[0] if prim else sec[0]
+    inputs["comparison"] = dict(outcome_match_v3(text, first, matches), registered_type=None,
+                                registered_label=_outcome_label(first))
+    return _domain("some concerns", "registered-outcome identity not established: the selected outcome matches no "
+                   f"registered primary or secondary outcome of this trial (registered primary: "
+                   f"{_outcome_label(prim[0])[:80] if prim else None!r}){aside}", V3_RULE, inputs)
+
+
 def derive_d5(
     registered_primaries: list[Any] | None,
     pooled_outcome: str,
@@ -347,8 +501,9 @@ def derive_d5(
 
 def assess(design: dict, registered_primaries: list, pooled_outcome: str, matches,
            registered_secondaries: list = None, blinded_by_text: bool = False,
-           randomized_by_text: bool = False) -> dict:
-    """Return domain signals with rule id, inputs, and derived_at_build metadata."""
+           randomized_by_text: bool = False, selected: dict | None = None) -> dict:
+    """Return domain signals with rule id, inputs, and derived_at_build metadata. selected: the trial's SELECTED
+    endpoint ({text, role, our_terms, other_factor_terms}) -> D5 v3; absent -> the v2 rule (unchanged)."""
     design = design or {}
     d1_inputs = {
         "AACT.designs.allocation": design.get("allocation") or "",
@@ -370,7 +525,10 @@ def assess(design: dict, registered_primaries: list, pooled_outcome: str, matche
         "D2_deviations": _d2(d2_inputs),
         "D3_missing_outcome_data": _d3(design.get("attrition")),
         "D4_outcome_measurement": _d4(d4_inputs),
-        "D5_selective_reporting": derive_d5(registered_primaries, pooled_outcome, matches, registered_secondaries),
+        "D5_selective_reporting": (derive_d5_v3(registered_primaries, registered_secondaries,
+                                                dict(selected, pooled_outcome=pooled_outcome), None, matches)
+                                   if selected is not None else
+                                   derive_d5(registered_primaries, pooled_outcome, matches, registered_secondaries)),
     }
 
 
@@ -415,6 +573,10 @@ def rederive_domain(domain: dict[str, Any], matches: Callable[[str, str], bool] 
         return _d3(inputs.get("AACT.milestones.attrition"))
     if ":D4:" in rule_id:
         return _d4(inputs)
+    if ":D5:registered_outcome_identity_v3" in rule_id:
+        return derive_d5_v3(inputs.get("registered_primary_outcomes") or [],
+                            inputs.get("registered_secondary_outcomes") or [], inputs.get("selected") or {},
+                            inputs.get("factor_excluded_outcomes") or [], matches)
     if ":D5:" in rule_id:
         return derive_d5(
             inputs.get("registered_primary_outcomes") or [],
