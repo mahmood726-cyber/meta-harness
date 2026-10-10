@@ -24,8 +24,12 @@ def verified(registry: str, pmid: str, text: str, claim: str, root: str | None =
     except (OSError, ValueError) as exc:
         # an unreadable registry is a broken build, never a valid 'not verified' (codex copps-r17#2): fail loudly
         raise RuntimeError(f"verification registry {path} unreadable: {exc}") from exc
+    entries = reg.get("entries") if isinstance(reg, dict) else None
+    if not isinstance(entries, list):
+        # malformed contents are a broken registry too, never an empty one (codex copps-r18#2)
+        raise RuntimeError(f"verification registry {path} has no 'entries' list")
     sha = hashlib.sha256((text or "").encode("utf-8")).hexdigest()
-    for e in reg.get("entries") or []:
+    for e in entries:
         if str(e.get("pmid")) == str(pmid) and e.get("held_text_sha256") == sha and e.get("claim") == claim:
             return e
     return None

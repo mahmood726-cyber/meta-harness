@@ -7600,5 +7600,50 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r18": {
+  "base": "630e622bf",
+  "head": "5ffb7b532",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ff68ddf9ed967c9a08e7441b2788aac3",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "ab449554fc170b2deac949d6d3d8a69e914afdaa23e986df3242dc1d832203ca"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The dose boundary accepts the suffix of a comma-grouped number: 1,110 mg is classified as the 110 mg arm because the negative lookbehind permits a preceding comma.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': '1,110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'}]}\nwith patch('harness.recorded_verification.verified', return_value=None):\n    print(_noac_lower_dose_status(records)['reason'])",
+    "expected": "RE-LY 110 mg effect not found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "actual": "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "id": "copps-r18:g1#1",
+    "record_id": "mc-ff68ddf9ed967c9a08e7441b2788aac3",
+    "verdict": null
+   },
+   {
+    "file": "harness/recorded_verification.py",
+    "function": "verified",
+    "severity": "P2",
+    "claim": "Malformed registry contents silently become an ordinary verification miss. The expression reg.get('entries') or [] treats an invalid falsy entries value as an empty registry, defeating the stated fail-loudly behavior.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.recorded_verification import verified\nwith patch('builtins.open', mock_open(read_data='{\"entries\": 0}')):\n    print(verified('source_absence_verifications.json', '22090167', 'held text', 'PER_ARM_DENOMINATORS_NOT_STATED'))",
+    "expected": "Raise an error because entries must be an array; a malformed registry must not produce a normal verification miss.",
+    "actual": "Returns None without raising.",
+    "id": "copps-r18:g1#2",
+    "record_id": "mc-ff68ddf9ed967c9a08e7441b2788aac3",
+    "verdict": null
+   }
+  ]
  }
 }

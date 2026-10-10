@@ -312,3 +312,18 @@ def test_PLANT_codex_r17_2_an_unreadable_verification_registry_fails_loudly(tmp_
     monkeypatch.setattr(rv, "ROOT", str(tmp_path))                     # no registry/ here
     with pytest.raises(RuntimeError):
         rv.verified("arm_label_verifications.json", "24251359", "text", "LOW_DOSE_ARM_IS_30MG")
+
+
+def test_PLANT_codex_r18_1_a_dose_never_starts_inside_a_grouped_number():
+    for pre in ("1,110 mg of", "1 110 mg of"):
+        rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", pre)}]}
+        assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == [], pre
+
+
+def test_PLANT_codex_r18_2_malformed_registry_entries_fail_loudly(tmp_path, monkeypatch):
+    from harness import recorded_verification as rv
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "arm_label_verifications.json").write_text('{"entries": null}', encoding="utf-8")
+    monkeypatch.setattr(rv, "ROOT", str(tmp_path))
+    with pytest.raises(RuntimeError):
+        rv.verified("arm_label_verifications.json", "24251359", "text", "LOW_DOSE_ARM_IS_30MG")
