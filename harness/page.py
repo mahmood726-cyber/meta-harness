@@ -20,6 +20,7 @@ import re
 from pathlib import Path as _Path
 from typing import Any
 
+from .estmeasure import display_measure, display_effect_label
 from . import manuscript as _manuscript_mod
 from . import review_tabs as _review_tabs
 from . import grade as _grade_mod
@@ -327,14 +328,14 @@ def _search_provenance_html(rc: dict) -> str:
 
 
 def _ci(res) -> str:
-    return f"{_num(res.get('estimate'))} ({res.get('scale')}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
+    return f"{_num(res.get('estimate'))} ({_e(display_measure(res))}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
 
 
 def _effect_label(res) -> str:
     # A single-trial result is not a pooled effect; label it honestly so the k=1 CI is not
     # read as a random-effects pooled interval.
-    if res.get("effect_label"):
-        return res.get("effect_label")
+    if display_effect_label(res):
+        return display_effect_label(res)
     return "Single-trial effect" if res.get("k") == 1 else "Pooled effect"
 
 
@@ -388,7 +389,7 @@ def _effect_rows(res: dict) -> list[tuple[str, str]]:
     if res.get("pooled_ci_refused"):
         return [
             ("Pooled point estimate (registered CI refused)",
-             f"{_num(res.get('estimate'))} ({_e(res.get('scale'))}); no pooled significance/null-crossing claim"),
+             f"{_num(res.get('estimate'))} ({_e(display_measure(res))}); no pooled significance/null-crossing claim"),
             ("Registered PM/HKSJ CI", _registered_ci_refusal_text(res)),
         ]
     return [(_effect_label(res), _ci(res))]
@@ -397,7 +398,7 @@ def _effect_rows(res: dict) -> list[tuple[str, str]]:
 def _common_effect_row(res: dict) -> tuple[str, str] | None:
     if res.get("ci_low_fixed") is None:
         return None
-    txt = (f"{_num(res.get('estimate_fixed'))} ({res.get('scale')}), 95% CI "
+    txt = (f"{_num(res.get('estimate_fixed'))} ({_e(display_measure(res))}), 95% CI "
            f"{_num(res.get('ci_low_fixed'))}-{_num(res.get('ci_high_fixed'))}")
     if res.get("fixed_heterogeneity_caveat"):
         txt += f" [{_e(res.get('fixed_heterogeneity_caveat'))}]"
@@ -814,7 +815,7 @@ def _overview(r, neutral):
             dc = prim.get("design_consumption") or res.get("design_consumption") or {}
             rows = [
                 ("Outcome", prim.get("name")),
-                ("Estimand", res.get("scale") or prim.get("estimand")),
+                ("Estimand", display_measure(res, prim.get("estimand"))),
                 ("Estimand decision", _estimand_decision_text(prim)),
             ]
             if dc.get("design_refused"):
@@ -1793,10 +1794,8 @@ def _outcome_block(o, show_inputs=True, review=None):
                      f"{_e(res.get('reason'))} "
                      f"<span class='muted'>Unresolved: {_e(unresolved)}</span></div>")
         rows = [
-            # Show the scale of the number ACTUALLY pooled (res["scale"]: RR / HR / IRR / MD /
-            # "mixed (…)"), not the topic's target estimand — the target is stated in the Analysis
-            # Method prose, and a row reading "Estimand RR" beside a pooled HR is the defect this fixes.
-            ("Estimand", res.get("scale") or o.get("estimand")),
+            # Display the contributing measures, including any mixed-measure pool.
+            ("Estimand", display_measure(res, o.get("estimand"))),
             ("Estimand decision", _estimand_decision_text(o)),
             ("Estimand amendment", _estimand_amendment_text(o)),
             # The authoritative compatibility contract is the Compatibility key block below (compat.py,
