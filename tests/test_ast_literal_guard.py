@@ -123,3 +123,15 @@ def test_PLANT_codex_r3_2_small_denominator_counts_are_not_dates():
 def test_PLANT_codex_r3_3_every_count_in_a_string_is_reported():
     hits = sweep.sweep_source("summary = 'Deaths: 20/169 versus 99/100'", "harness/x.py")
     assert [h["value"] for h in hits] == ["20/169", "99/100"]
+
+
+def test_PLANT_codex_r4_1_a_comma_grouped_bound_is_refused_not_truncated():
+    a = "The combined group may have higher rates of ovulation (OR"
+    assert csp.reported_value_at(a + " 650, 95% CI 450 to 1,200)", a) is None
+    assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03, 8 studies)", a)["ci_high"] == 2.03   # prose comma ok
+
+
+def test_PLANT_codex_r4_2_an_effect_tuple_does_not_hide_counts_in_the_same_string():
+    hits = sweep.sweep_source('summary = "RR 0.91 (0.74-1.11); deaths 20/169 vs 35/167"', "harness/x.py")
+    assert [(h["kind"], h["value"]) for h in hits] == [("EFFECT_TUPLE_TEXT", "0.91 (0.74-1.11)"),
+                                                       ("COUNT_PAIR_TEXT", "20/169"), ("COUNT_PAIR_TEXT", "35/167")]

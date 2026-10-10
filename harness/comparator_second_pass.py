@@ -290,7 +290,8 @@ def _field_from_profile(slug: str, key: str, text: str, default_status: str = "N
 # bounded whitespace and a terminator so a number is read whole or not at all
 _RATIO_AT = re.compile(r"[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3},[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}%[ \t]{0,3}"
                        r"(?:CI|confidence interval)[ \t]{0,3},?[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}(?:to|-|–)[ \t]{0,3}"
-                       r"(\d+(?:\.\d+)?)(?![\w.])", re.I)   # no digit, dot, exponent or letter after (codex copps-r2#1)
+                       r"(\d+(?:\.\d+)?)(?![\w.]|,\d)", re.I)   # no digit, dot, exponent, letter or thousands
+                                                                # comma after (codex copps-r2#1, r4#1)
 
 
 def reported_value_at(text: str, anchor: str) -> dict | None:

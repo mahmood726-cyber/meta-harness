@@ -58,25 +58,23 @@ def sweep_source(src: str, path: str) -> list[dict]:
                                 "key": k.value, "value": val})
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
             s = node.value
-            if _EFFECT_TEXT.search(s):
-                out.append({"file": path, "line": node.lineno, "kind": "EFFECT_TUPLE_TEXT",
-                            "value": _EFFECT_TEXT.search(s).group(0)})
-            else:
-                # each match is judged on its own context, never the whole string (codex copps-r2#3): a URL path or a
-                # year/month is not a count; a count beside a URL still is
-                urls = [m.span() for m in re.finditer(r"https?://\S+", s)]
-                for m in _COUNT_TEXT.finditer(s):
-                    if any(a <= m.start() < b for a, b in urls):
-                        continue
-                    a, b = (int(x.replace(" ", "").replace(",", "")) for x in m.group(0).split("/"))
-                    # a date is not a count: d/m only with a third /year part (codex copps-r3#2: 'Deaths 5/10' is a
-                    # count), or a year/month
-                    dmy = re.match(r"/\d{2,4}\b", s[m.end():]) or re.search(r"\b\d{1,4}/$", s[:m.start()])
-                    if (a <= 31 and b <= 12 and dmy) or (1900 <= a <= 2100 and b <= 12)                             or re.match(r"\d+\s*/\s*0\d", m.group(0)):
-                        continue
-                    # every pair is reported, so an allowlisted first count cannot hide a changed second
-                    # (codex copps-r3#3)
-                    out.append({"file": path, "line": node.lineno, "kind": "COUNT_PAIR_TEXT", "value": m.group(0)})
+            # every effect tuple AND every count pair is reported: one allowlisted finding never hides another in the
+            # same string (codex copps-r3#3, r4#2)
+            for m in _EFFECT_TEXT.finditer(s):
+                out.append({"file": path, "line": node.lineno, "kind": "EFFECT_TUPLE_TEXT", "value": m.group(0)})
+            # each count match is judged on its own context, never the whole string (codex copps-r2#3): a URL path
+            # or a date is not a count; a count beside a URL still is
+            urls = [m.span() for m in re.finditer(r"https?://\S+", s)]
+            for m in _COUNT_TEXT.finditer(s):
+                if any(a <= m.start() < b for a, b in urls):
+                    continue
+                a, b = (int(x.replace(" ", "").replace(",", "")) for x in m.group(0).split("/"))
+                # d/m is a date only with a third /year part ('Deaths 5/10' is a count, codex copps-r3#2)
+                dmy = re.match(r"/\d{2,4}\b", s[m.end():]) or re.search(r"\b\d{1,4}/$", s[:m.start()])
+                if (a <= 31 and b <= 12 and dmy) or (1900 <= a <= 2100 and b <= 12) \
+                        or re.match(r"\d+\s*/\s*0\d", m.group(0)):
+                    continue
+                out.append({"file": path, "line": node.lineno, "kind": "COUNT_PAIR_TEXT", "value": m.group(0)})
     return out
 
 

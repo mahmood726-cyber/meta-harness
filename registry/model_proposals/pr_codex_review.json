@@ -6899,5 +6899,49 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r4": {
+  "base": "630e622bf",
+  "head": "0302404cb",
+  "runs": {
+   "g1": {
+    "record_id": "mc-df6d81f262253954430a6afdfce47748",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "f43e10a84fb48d0a30bf01e1ff5491f59a9f09c8d98d89c5e6c5b34921445b05"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "The upper-bound terminator permits a comma, so a thousands-separated bound is silently truncated and accepted by _apply_reported_overrides.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 650, 95% CI 450 to 1,200)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "ci_high=1200, or None if comma-grouped numbers are unsupported.",
+    "actual": "{'estimate': 650.0, 'ci_level': 95.0, 'ci_low': 450.0, 'ci_high': 1.0}",
+    "id": "copps-r4:g1#1",
+    "record_id": "mc-df6d81f262253954430a6afdfce47748",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Finding an effect interval skips all count-pair checks in the same string because they are under else. Consequently, allowlisting the effect also hides new or changed hardcoded counts in that string.",
+    "failing_input": "sweep_source('summary = \"RR 0.91 (0.74-1.11); deaths 20/169 vs 35/167\"', 'harness/example.py')",
+    "expected": "Three findings: EFFECT_TUPLE_TEXT for '0.91 (0.74-1.11)' and COUNT_PAIR_TEXT for each of '20/169' and '35/167'.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'EFFECT_TUPLE_TEXT', 'value': '0.91 (0.74-1.11)'}]",
+    "id": "copps-r4:g1#2",
+    "record_id": "mc-df6d81f262253954430a6afdfce47748",
+    "verdict": null
+   }
+  ]
  }
 }
