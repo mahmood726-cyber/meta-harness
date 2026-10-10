@@ -105,7 +105,8 @@ def _bundle_only(monkeypatch, tmp_path, name):
 
 def test_every_received_bundle_is_checked():
     assert {b[0] for b in vea.BUNDLES} == {"review10", "review12", "review13", "review14", "review15", "review16",
-                                          "review18", "review19", "review20", "review21", "review25"}
+                                          "review18", "review19", "review20", "review21", "review25",
+                                          "review27", "review28", "review29"}
 
 
 def test_PLANT_a_changed_file_anywhere_in_a_bundle_is_refused_and_never_run(monkeypatch, tmp_path):

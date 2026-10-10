@@ -111,6 +111,21 @@ BUNDLES = [
     ("review21", "audit_topic21.py", "results.json", [("runtime",), ("output",)], [
         ("statins MVE estimate (r21)", "statins-primary-prevention-elderly", None, "estimate", ("current_two_inputs", "estimate")),
     ]),
+    # reviews 27-29: received as zips; the zip and its unmodified topicNN_audit/ folder are both pinned
+    ("review27", "topic27_audit/audit.py", ("topic27_audit/results.json", "topic27_audit/results.json"), [], [
+        ("metformin ovulation OR (r27)", "metformin-pcos-ovulation", None, "estimate", ("primary", "OR")),
+        ("metformin ovulation CI low (r27)", "metformin-pcos-ovulation", None, "ci_low", ("primary", "ci_low")),
+        ("metformin ovulation CI high (r27)", "metformin-pcos-ovulation", None, "ci_high", ("primary", "ci_high")),
+    ]),
+    ("review28", "topic28_audit/audit.py", ("topic28_audit/results.json", "topic28_audit/results.json"), [], [
+        ("omega3 MACE HR (r28)", "omega3-cardiovascular-events", None, "estimate", ("primary", "HR")),
+        ("omega3 MACE CI low (r28)", "omega3-cardiovascular-events", None, "ci_low", ("primary", "ci_low")),
+        ("omega3 MACE CI high (r28)", "omega3-cardiovascular-events", None, "ci_high", ("primary", "ci_high")),
+    ]),
+    # review 29's served pool is k=2 with the CI not served: only the point estimate is compared
+    ("review29", "topic29_audit/audit.py", ("topic29_audit/results.json", "topic29_audit/results.json"), [], [
+        ("pcsk9 MACE HR (r29)", "pcsk9-mace", None, "estimate", ("primary_independent_reconstruction", "HR")),
+    ]),
     ("review25", "audit.py", "results.json", [], [
         ("colchicine secondary estimate (r25)", "colchicine-secondary-cv-prevention", None, "estimate", ("pooled", "estimate")),
         ("colchicine secondary CI low (r25)", "colchicine-secondary-cv-prevention", None, "ci_low", ("pooled", "lower")),
