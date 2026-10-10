@@ -104,3 +104,25 @@ Sources: the PubMed abstract (current record, coverage FULL_ABSTRACT for all 8) 
 - XENITH NCT02506985: posted PRIMARY outcomes are NETosis markers at 12/24/48 h only -> proposed name OUTCOME_NOT_MEASURED.
 
 **sema-weight:** STEP 5 confirmed Week 104 only, in both the abstract ("-15.2% ... versus -2.6% ... -12.6 %-points") and CT.gov. Week-68 outcome declared absent per protocol line 18.
+
+## 2026-10-10 ~04:20 -- the 11 re-screen flips re-read with the VERBATIM-protocol prompt (22 recorded calls; rescreen/_dual_verbatim.json)
+
+| flip | summarised prompt (9 Oct) | verbatim prompt |
+|---|---|---|
+| colchicine-secondary NCT03376698 (dose-finding, T2D + CAD) | DISAGREE | ELIGIBLE |
+| dpp4 NCT02192853 | DISAGREE | DISAGREE |
+| dpp4 NCT02406443 (INDORSE) | DISAGREE | DISAGREE |
+| dpp4 NCT00918879 (saxagliptin, India, glycaemic) | DISAGREE | ELIGIBLE |
+| dpp4 NCT06770894 (bone metabolism) | EXCLUDED | ELIGIBLE |
+| dpp4 NCT02792400 | DISAGREE | DISAGREE |
+| empagliflozin-hfpef NCT05138575 (SAK) | ELIGIBLE | **EXCLUDED** (both readers: INTERVENTION) |
+| esketamine NCT01998958 | EXCLUDED | DISAGREE |
+| finerenone NCT01968668 (ARTS-DN Japan) | ELIGIBLE | ELIGIBLE |
+| melatonin NCT00816673 (Circadin elderly) | ELIGIBLE | ELIGIBLE |
+| tranexamic 39461792 | EXCLUDED | EXCLUDED |
+
+**5 of 11 verdicts moved with the prompt.** The readers are prompt-sensitive. The verbatim prompt is the governing one (it is the protocol as registered), but this instability belongs in the captain's view of how much a single dual verdict can carry.
+
+- **dpp4:** the verbatim prompt admits a glycaemic trial and a bone-metabolism trial. This is the literal-rule flood again, so dpp4 is held as (b) and neither counts.
+- **SAK:** arms are empagliflozin + KCl, empagliflozin + KNO3, and placebo-for-empagliflozin + KCl. Both readers exclude it on INTERVENTION under the verbatim text. Empagliflozin + KCl v placebo + KCl is arguably a clean empagliflozin-v-placebo contrast on a shared co-intervention, so this is a protocol-reading question (V14).
+- **Stable ELIGIBLE under both prompts:** ARTS-DN Japan and Circadin. Their G1 effect is unchanged (none).
