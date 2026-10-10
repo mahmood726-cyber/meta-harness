@@ -185,3 +185,25 @@ def test_PLANT_codex_harms_r9_1_a_primary_rule_must_be_introduced_by_the_primary
 def test_PLANT_codex_harms_r9_2_a_multi_word_negated_qualifier_blocks_the_definition():
     text = "Non-antibiotic associated diarrhoea (three or more loose stools within 24 hours) was recorded."
     assert _endpoint({"name": "AAD", "primary": False}, "11", text)["value"] == "AAD"
+
+
+def test_PLANT_codex_harms_r10_1_an_antibiotic_associated_definition_does_not_define_plain_diarrhoea():
+    text = "Antibiotic-associated diarrhoea (three or more loose stools within 24 hours during antibiotics)."
+    assert _endpoint({"name": "Diarrhoea", "primary": False}, "12", text)["value"] == "Diarrhoea"
+    assert _endpoint({"name": "AAD", "primary": False}, "12", text)["value"].startswith("diarrhoea (three")
+
+
+def test_PLANT_codex_harms_r10_2_a_primary_pattern_never_runs_into_a_secondary_clause():
+    text = ("The parent trial's primary outcome was all-cause mortality at 30 days, assessed as a secondary outcome in "
+            "this substudy.")
+    assert _endpoint({"name": "Quality of life", "primary": True}, "13", text)["value"] == "Quality of life"
+    text2 = "The primary outcome was death; secondary outcome was serious vascular events (MI or stroke)."
+    assert "serious vascular" not in _endpoint({"name": "Death", "primary": True}, "14", text2)["value"]
+
+
+def test_a_semicolon_inside_parentheses_does_not_cut_a_primary_definition():
+    # GLP-1 (34215025) held abstract shape: the ';' is inside the MACE parenthesis
+    text = ("The primary outcome was the first major adverse cardiovascular event (MACE; a composite of nonfatal "
+            "myocardial infarction, nonfatal stroke, or death from cardiovascular causes).")
+    got = _endpoint({"name": "3-point MACE", "primary": True}, "15", text)["value"]
+    assert "a composite of nonfatal myocardial infarction" in got, got

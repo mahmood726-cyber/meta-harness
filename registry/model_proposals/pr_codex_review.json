@@ -7121,5 +7121,47 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r10": {
+  "base": "fca8cff07",
+  "head": "9d949e355",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f3af57c3680374d9f15288339f9c44e9",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "adccb938054a0d888c3f88e477b8a2c19bb84b1334132832d66cd858c072ddda"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The parenthesized diarrhoea rule assigns an antibiotic-associated definition to an unrestricted diarrhoea outcome. Unlike _AAD_ONLY, _AAD_SUBJECT accepts both subjects without checking the source qualifier.",
+    "failing_input": "text = 'Antibiotic-associated diarrhea (at least three loose stools per day during antibiotic treatment).'; outcome = {'name': 'diarrhea', 'primary': False}; audit_row = None; no earlier definition override.",
+    "expected": "Retain 'diarrhea' with outcome.name provenance; the source defines only antibiotic-associated diarrhea.",
+    "actual": "Derives 'diarrhea (at least three loose stools per day during antibiotic treatment)' with committed-source-text provenance, dropping the antibiotic-associated qualifier and assigning its restricted definition to the broader outcome.",
+    "id": "harms-r10:g1#1",
+    "record_id": "mc-f3af57c3680374d9f15288339f9c44e9",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The secondary-outcome guard checks only text after the regex match. The generic primary-outcome pattern consumes the secondary designation itself, allowing an explicitly secondary outcome to define the current primary row.",
+    "failing_input": "text = \"The parent trial's primary outcome was all-cause mortality at 30 days, assessed as a secondary outcome in this substudy.\"; outcome = {'name': 'Quality of life', 'primary': True}; audit_row = None; no earlier definition override.",
+    "expected": "Reject the mortality definition for the substudy's primary outcome and retain 'Quality of life'.",
+    "actual": "Derives 'primary outcome was all-cause mortality at 30 days, assessed as a secondary outcome in this substudy'. The match starts with 'primary', while _sentence_rest returns only '.', so applies is True.",
+    "id": "harms-r10:g1#2",
+    "record_id": "mc-f3af57c3680374d9f15288339f9c44e9",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -225,16 +225,26 @@ def _derive_endpoint(
             introduced = bool(re.match(r"primary\b", m.group(0), re.I)) or bool(re.search(
                 r"(?:\bprimary (?:efficacy )?(?:outcome|end ?point)s?(?: measures?)?|\bmain outcome measures?)"
                 r"\s*(?:was|were|is|:|,|-)?\s*(?:the |a |an )?$", lead_in, re.I))
-            tail = _sentence_rest(text, m)
+            # the body is cut at its first depth-0 ';' (it never runs on into the next clause), and that clause -- the
+            # body plus, if the match itself was not cut, the rest of its clause -- may not designate it secondary: 'the
+            # parent trial's primary outcome was X, assessed as a secondary outcome in this substudy' (codex harms-r10#2)
+            body = _cut_clause(m.group(0))
+            rest = "" if len(body) < len(m.group(0)) else re.split(r";|\. ", _sentence_rest(text, m) + ". ")[0]
+            if len(body) < len(m.group(0)):
+                value = re.sub(r"\s+", " ", body).strip()
             applies = (bool(outcome.get("primary")) and introduced
                        and not re.search(r"\bas an? (?:secondary|tertiary|exploratory)\b|\b(?:secondary|tertiary|"
-                                         r"exploratory) (?:outcome|end ?point)", tail, re.I))
+                                         r"exploratory) (?:outcome|end ?point)", body + rest, re.I))
         else:
             # the outcome's whole name must BE the subject: 'AAD-related hospital admission' is not AAD (harms-r6#1);
             # and the source's own subject may not be negated in the qualifier words just before the match, hyphenated
             # or spaced: 'Non-antibiotic(-| )associated diarrhoea (...)' does not define AAD (harms-r8#2, r9#2)
             qual = re.search(r"((?:[\w-]+\s+){0,3}[\w-]+)\s*$", _clause_to(text, m)[:-len(m.group(0)) or None])
             negated = bool(qual and re.search(r"(?:^|[\s-])(?:non|not|un|without)(?:[\s-]|$)", qual.group(1), re.I))
+            # a source qualifier narrows the subject: an 'antibiotic-associated diarrhoea (...)' definition defines AAD,
+            # never an unrestricted diarrhoea outcome (codex harms-r10#1)
+            if qual and re.search(r"antibiotic[\s-]+associated$", qual.group(1), re.I):
+                subject = _AAD_ONLY
             applies = (not negated) and bool(re.fullmatch(subject, str(outcome.get("name") or "").strip(), re.I))
         if applies:
             return _derived(value, "committed source text", _short_span(text, m))
@@ -248,6 +258,20 @@ def _derive_endpoint(
 
 
 _PRIMARY = object()                                         # the rule's sentence defines the primary outcome only
+
+
+def _cut_clause(body: str) -> str:
+    """The body up to its first ';' at bracket depth 0 -- a primary sentence never runs on into the next clause
+    (codex harms-r10#2), while '(MACE; a composite of ...)' and '[1] ...; [2] ...' stay whole (GLP-1 34215025)."""
+    depth = 0
+    for i, ch in enumerate(body):
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth = max(0, depth - 1)
+        elif ch == ";" and depth == 0:
+            return body[:i].rstrip()
+    return body
 # ... defines only an outcome whose WHOLE name is diarrhoea / AAD (either spelling)
 _AAD_SUBJECT = r"(?:antibiotic[- ]associated\s+)?diarrho?ea(?:\s*\(AAD\))?|AAD"
 # ... defines only an outcome whose WHOLE name is AAD itself
