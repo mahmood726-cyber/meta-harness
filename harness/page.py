@@ -30,6 +30,7 @@ from . import propositions as _proposition_mod
 from . import rob2 as _rob2_mod
 from . import funding as _funding_mod
 from . import scope_identity as _scope_identity_mod
+from . import scope as _scope_mod
 
 TABS = [   # the RapidMeta tab contract (rapidmeta-v1, harness/review_tabs.py; tests/test_review_tabs.py)
     ("overview", "Overview"),
@@ -2140,22 +2141,23 @@ def _comparator(r, neutral):
     for rep in ([] if r.get("comparator_panel") else c.get("reported", []) or []):
         body += f"<p>{_e(rep.get('outcome'))}: {_num(rep.get('estimate'))} ({rep.get('scale')}), 95% CI {_num(rep.get('ci_low'))}–{_num(rep.get('ci_high'))}</p>"
     sc = c.get("scope") or {}
-    if sc:
+    derived = _scope_mod.compare_pico(r.get("pico"), c.get("pico"))
+    if c:
         note_l = str(sc.get("note") or "").lower()
-        if sc.get("scope_valid"):
-            v = "✓ same question"
-        elif "comparator invalid" in note_l:
+        if "comparator invalid" in note_l:
             v = "COMPARATOR INVALID"
+        elif derived["scope_valid"] and sc.get("scope_valid") is not False:
+            v = "✓ same question"
         else:
             v = "⚠ SCOPE MISMATCH"
-        topic_level = sc.get("topic_intervention_level") or ("class-level" if sc.get("topic_is_class") else "a single agent")
-        comp_level = sc.get("comparator_intervention_level") or ("class-level" if sc.get("comparator_is_class") else "a single agent")
+        axes = "; ".join(f"{axis.replace('_', ' ')}: {status}"
+                         for axis, status in derived["axis_matches"].items())
         body += ("<h4>Scope match (is this the same question?)</h4>"
-                 f"<p><strong>{v}.</strong> Intervention level: topic is {_e(topic_level)}, "
-                 f"comparator is {_e(comp_level)} "
-                 f"(match: {_e(sc.get('intervention_level_match'))}); population match: {_e(sc.get('population_match'))}. "
-                 f"{_e(sc.get('note'))} <span class='muted'>Decided by one uniform rule applied to every topic "
-                 "before the k was seen.</span></p>")
+                 f"<p><strong>{v}.</strong> {_e(axes)}. {_e(derived['note'])} "
+                 "<span class='muted'>Compared axis by axis using the topic and comparator PICO; "
+                 "missing axes are unknown.</span></p>")
+        if sc.get("scope_valid") is False:
+            body += f"<p>{_e(sc.get('note'))}</p>"
         if sc.get("population_match_basis"):
             pm = sc.get("population_match_basis") or {}
             paed = ", ".join(x.get("trial_id", "") for x in pm.get("pool_has_paediatric_trials", []) or [])
