@@ -112,3 +112,15 @@ def test_PLANT_codex_harms_r1_1_one_shared_word_is_not_outcome_identity():
     assert compat_check._names_outcome("proportion of patients with AKI (defined as ...)", AKI)
     assert compat_check._names_outcome("time to first hospitalization for heart failure",
                                        {"name": "Hospitalization for heart failure"})
+
+
+def test_PLANT_codex_harms_r2_negation_and_prefixes_do_not_establish_identity():
+    nf = {"name": "Non-fatal myocardial infarction"}
+    assert not compat_check._names_outcome("major cardiovascular events, defined as fatal myocardial infarction", nf)
+    assert not compat_check._names_outcome("defined as non-fatal myocardial infarction",
+                                           {"name": "Fatal myocardial infarction"})
+    assert compat_check._names_outcome("composite of nonfatal myocardial infarction or stroke", nf) or \
+        compat_check._names_outcome("composite of non-fatal myocardial infarction or stroke", nf)
+    assert not compat_check._names_outcome("The primary endpoint was burnout severity at six months", {"name": "Burn"})
+    # plurals still match
+    assert compat_check._names_outcome("hospitalizations for heart failure", {"name": "Hospitalization for heart failure"})

@@ -6761,5 +6761,47 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r2": {
+  "base": "fca8cff07",
+  "head": "a0a43d4a4",
+  "runs": {
+   "g1": {
+    "record_id": "mc-27ca253bfc65a0c1d812a725725975ef",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "5b50508c832f114f784d6d0243350c6d35352c210c8edb7d8c7bab3eeb7acb33"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "Discarding short words removes the distinguishing 'non' from 'non-fatal', allowing a fatal endpoint definition to be assigned to a non-fatal outcome.",
+    "failing_input": "_names_outcome('major cardiovascular events, defined as fatal myocardial infarction', {'name': 'Non-fatal myocardial infarction'})",
+    "expected": "False: fatal myocardial infarction does not identify the non-fatal outcome.",
+    "actual": "True: 'non' is discarded, and the remaining words 'fatal', 'myocardial', and 'infarction' all match. This satisfies the new _derive_endpoint acceptance gate.",
+    "id": "harms-r2:g1#1",
+    "record_id": "mc-27ca253bfc65a0c1d812a725725975ef",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "The significant-word regex lacks a trailing word boundary, so unrelated words sharing a prefix can pass the endpoint identity gate.",
+    "failing_input": "_names_outcome('The primary endpoint was burnout severity at six months', {'name': 'Burn'})",
+    "expected": "False: burnout severity does not name a burn outcome.",
+    "actual": "True: the regex ' burn' matches the beginning of ' burnout', allowing _derive_endpoint to accept an unrelated definition.",
+    "id": "harms-r2:g1#2",
+    "record_id": "mc-27ca253bfc65a0c1d812a725725975ef",
+    "verdict": null
+   }
+  ]
  }
 }

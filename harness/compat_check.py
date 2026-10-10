@@ -219,22 +219,49 @@ _NAME_STOP = {"new", "any", "all", "cause", "rate", "rates", "risk", "event", "e
               "major", "first", "therapy", "treatment", "with", "from", "time", "incidence", "proportion", "patients"}
 
 
-def _fold_words(text: str) -> str:
-    return " " + " ".join(re.split(r"[^a-z0-9]+", (text or "").lower())).strip() + " "
+_NEG = {"non", "not", "no", "without"}
+
+
+def _tokens(text: str) -> list[str]:
+    """Lower-case word tokens; a 'non' prefix is split off so 'nonfatal' and 'non-fatal' are the same two tokens."""
+    out: list[str] = []
+    for t in re.split(r"[^a-z0-9]+", (text or "").lower()):
+        if not t:
+            continue
+        if t.startswith("non") and len(t) >= 7:
+            out += ["non", t[3:]]
+        else:
+            out.append(t)
+    return out
+
+
+def _tok_eq(a: str, b: str) -> bool:
+    """Whole-token equality with plural tolerance -- never a prefix ('burn' is not 'burnout', codex harms-r2#2)."""
+    return a == b or a in (b + "s", b + "es") or b in (a + "s", a + "es")
+
+
+def _negated(toks: list[str], i: int) -> bool:
+    return i > 0 and toks[i - 1] in _NEG
 
 
 def _names_outcome(span: str, outcome: dict[str, Any]) -> bool:
     """True when `span` names the outcome: the whole name or a keyword phrase, ALL significant words of the name, or
-    the name's acronym (AKI). One shared word is not identity ('renal failure' does not name renal replacement
-    therapy; codex harms-r1#1)."""
+    the name's acronym (AKI). Matching is by whole token and keeps NEGATION: one shared word is not identity ('renal
+    failure' does not name renal replacement therapy, codex harms-r1#1), 'fatal MI' does not name 'non-fatal MI'
+    and 'burnout' does not name 'burn' (harms-r2)."""
     names = [str(outcome.get("name") or "")] + [str(k) for k in outcome.get("keywords") or []]
-    folded = _fold_words(span)
+    st = _tokens(span)
     for n in names:
-        phrase = _fold_words(n).strip()
-        if phrase and f" {phrase} " in folded:
-            return True
-        words = [w for w in phrase.split() if len(w) >= 4 and w not in _NAME_STOP]
-        if words and all(re.search(r" " + re.escape(w), folded) for w in words):
+        nt = _tokens(n)
+        if not nt:
+            continue
+        # the whole phrase, contiguous, with the same negation in front of it
+        for i in range(len(st) - len(nt) + 1):
+            if all(_tok_eq(st[i + j], nt[j]) for j in range(len(nt))) and (nt[0] in _NEG or not _negated(st, i)):
+                return True
+        # every significant word, each with the same negation status as in the name
+        sig = [(w, _negated(nt, j)) for j, w in enumerate(nt) if len(w) >= 4 and w not in _NAME_STOP and w not in _NEG]
+        if sig and all(any(_tok_eq(t, w) and _negated(st, i) == neg for i, t in enumerate(st)) for w, neg in sig):
             return True
         initials = "".join(w[0] for w in re.split(r"[^A-Za-z0-9]+", n) if w).upper()
         if len(initials) >= 2 and re.search(r"\b" + re.escape(initials) + r"\b", span or ""):
