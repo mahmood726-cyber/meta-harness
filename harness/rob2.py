@@ -160,6 +160,8 @@ def _component_set(text: str) -> frozenset[str]:
     # an enumerated item no vocabulary maps is KEPT as not established (never dropped), in a composite context only
     if shared.unknown and (comps or mace_term):
         comps.update(f"{NOT_ESTABLISHED_PREFIX}{u}" for u in shared.unknown)
+    # an excluded component stays out even after the generic expansion ('MACE excluding stroke')
+    comps -= {components_mod.ROB2_NAME[c] for c in components_mod.excluded(text) if c in components_mod.ROB2_NAME}
     if "KIDNEY_PROGRESSION_COMPOSITE" in comps:
         comps.discard("CV_DEATH")
     return frozenset(comps)

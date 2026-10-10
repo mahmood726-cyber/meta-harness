@@ -57,6 +57,9 @@ _OTHER_KNOWN = re.compile(
 
 
 _GENERIC_ITEM = re.compile(r"^(?:(?:the )?(?:major |serious )?(?:adverse )?(?:(?:cv|cardiovascular|vascular|cardiac) events?|mace)(?: components?)?\s*)+$")
+# 'The endpoint comprised X.' defines the composite named in the sentence before (agy p0-r2 #3)
+_SUBJECT_CUE = re.compile(r"\b(?:end ?points?|outcomes?)\s+(?:was |were |is |are )?(?:comprised|composed of|consisted of|"
+                          r"included|includes|defined as)\b")
 _COMPOSITE_CONTEXT = re.compile(r"\bcomposite\b|\bmace\b|\bmajor (?:adverse )?(?:cardio)?vascular events?\b|"
                                 r"\b(?:cv|cardiovascular) events\b")
 
@@ -105,6 +108,10 @@ def known(s: str) -> set[str]:
 
 def _item_known(item: str) -> bool:
     it = item.strip(" .()[]")
+    # the item as written first: 'fatal coronary heart disease' is a named synonym, and stripping 'fatal' would lose it
+    # (codex p0-r2 #3)
+    if known(_fold(it)) or _OTHER_KNOWN.search(_fold(it)):
+        return True
     while True:
         new = _ITEM_NOISE.sub("", it).strip()
         if new == it:
@@ -121,13 +128,15 @@ def enumerated_items(s: str) -> list[str]:
     Parenthetical groups are removed first ('cardiovascular (CV) death', 'myocardial infarction (fatal or nonfatal)'), so a
     qualifier never cuts the list and hides later items (codex p0-r1 #3); a registry title and description joined without a
     stop ('Composite of CV Events CV events include: ...') are two segments."""
-    s = re.sub(r"\s*\([^()]*\)", "", strip_exclusions(s))
+    # a parenthetical that ENUMERATES ('MACE (defined as ...)') is unwrapped and read; any other is removed (codex/agy p0-r2 #1)
+    s = re.sub(r"\s*\(([^()]*)\)", lambda m: (" " + m.group(1) + ". ") if _ENUM_CUE.search(m.group(1)) else "",
+               strip_exclusions(s))
     items: list[str] = []
     # only a sentence that names a COMPOSITE enumerates its components: a registry description's other 'defined as' clauses
     # (censoring: 'defined as the latest of the dates of assessments ...') are not component lists
     # sentences, including two glued without a space ('...respectively.at 12 months': PHILO)
     for sent in re.split(r"(?<=\.)\s+|(?<=[a-z]{2}\.)(?=[a-z])", s):
-        if not _COMPOSITE_CONTEXT.search(sent):
+        if not (_COMPOSITE_CONTEXT.search(sent) or _SUBJECT_CUE.search(sent)):
             continue
         cues = list(_ENUM_CUE.finditer(sent))
         for i, m in enumerate(cues):
@@ -143,6 +152,11 @@ def enumerated_items(s: str) -> list[str]:
 
 
 _EXCLUSION = re.compile(r"\b(?:excluding|except(?: for)?|other than|not including)\b[^,.;)]*")
+
+
+def excluded(text: str | None) -> set[str]:
+    """Components an 'excluding X' clause names: they stay out even after a generic label expands (codex/agy p0-r2 #2)."""
+    return set().union(*[known(m.group(0)) for m in _EXCLUSION.finditer(_fold(text))]) if text else set()
 
 
 def strip_exclusions(s: str) -> str:
@@ -170,4 +184,5 @@ def components(text: str | None, expand_generic: bool = True) -> Parsed:
     # '4-point' implies unstable angina only when nothing is enumerated (an enumerated fourth component wins: codex p0-r1 #1)
     if expand_generic and generic and not out.enumerated and re.search(r"\b(?:4|four)[- ]?point\b", s):
         out.components.add("unstable angina")
+    out.components -= excluded(s)
     return out

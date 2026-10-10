@@ -101,3 +101,25 @@ def test_an_excluded_component_is_not_named():
                                                          "excluding stroke.")
     assert "stroke" not in te._components_from_text("MACE defined as cardiovascular death and myocardial infarction, "
                                                     "excluding stroke.")
+
+
+# ---------------------------------------------------------------- codex p0-r2 / agy p0-r2-agy (each failed on cd4fa68c3)
+def test_a_parenthesised_enumeration_is_read_not_deleted():
+    p = C.components("MACE (defined as cardiovascular death, myocardial infarction, stroke, or cardiac interventions).")
+    assert p.enumerated and p.unknown == ["cardiac interventions"]
+    assert any(x.startswith(te.NOT_ESTABLISHED_PREFIX) for x in te._components_from_text("MACE (defined as cardiac interventions)"))
+
+
+def test_an_exclusion_survives_generic_expansion():
+    assert C.components("MACE excluding stroke.").components == {"cardiovascular death", "myocardial infarction"}
+    assert "stroke" not in te._components_from_text("MACE excluding stroke")
+
+
+def test_fatal_coronary_heart_disease_is_a_known_item():
+    p = C.components("MACE defined as fatal coronary heart disease, nonfatal myocardial infarction, and nonfatal stroke.")
+    assert p.unknown == [] and "coronary heart disease death" in p.components
+
+
+def test_a_definition_in_the_next_sentence_is_read():
+    p = C.components("MACE. The endpoint comprised cardiac interventions.")
+    assert p.unknown == ["cardiac interventions"] and not p.expanded_generic

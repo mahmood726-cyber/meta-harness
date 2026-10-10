@@ -274,6 +274,8 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
     #     Only in a composite context, so a 'defined as <population>' sentence grows no component.
     if shared.unknown and (comps or generic):
         comps.update(f"{NOT_ESTABLISHED_PREFIX}{u}" for u in shared.unknown)
+    # (3) an excluded component stays out even after the generic expansion ('MACE excluding stroke')
+    comps -= components_mod.excluded(text)
     return comps
 
 
