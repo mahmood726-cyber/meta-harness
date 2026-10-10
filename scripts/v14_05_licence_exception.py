@@ -25,6 +25,10 @@ def main():
     item = (sig.get("items") or {}).get("V14-05") or {}
     if item.get("state") != "SEEN_AND_SIGNED" or item.get("choice") != "A":
         raise SystemExit("REFUSED: V14-05 is not signed with option A")
+    # the signature's evidence must be present, never defaulted to null (agy v14rec-r1-agy #1)
+    if not str(item.get("quote") or "").strip() or not all(
+            re.fullmatch(r"[0-9a-f]{64}", str(item.get(k) or "")) for k in ("packet_sha256", "item_section_sha256")):
+        raise SystemExit("REFUSED: V14-05 signature record lacks its quote or a 64-hex digest")
     exc = {"item": "V14-05", "choice": "A", "quote": item.get("quote"),
            "packet_sha256": item.get("packet_sha256"), "item_section_sha256": item.get("item_section_sha256"),
            "terms": ("kept under a recorded licence exception: typed/regex use only, never in a model prompt; each fact "
