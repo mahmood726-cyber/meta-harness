@@ -7511,5 +7511,49 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r16": {
+  "base": "630e622bf",
+  "head": "1e0adfff7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0dd26d51af9ad5bf919973447fee67cb",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "83fa699b539c43c22fcc515d10fcf4d946b4e9798108e676864a30f83158789a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The backward dose-label regex attributes a high-dose arm's 30 mg reduction to the low-dose arm across a comma, incorrectly declaring readiness.",
+    "failing_input": "from harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11).'}, {'id': '24251359', 'abstract': 'High-dose edoxaban was reduced to 30 mg, whereas low-dose edoxaban was halved. An unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34).'}]}\n_noac_lower_dose_status(records)['status']",
+    "expected": "NOT_COMPUTED_SOURCE_INCOMPLETE: the text never identifies the low-dose arm as 30 mg.",
+    "actual": "READY_TO_COMPUTE",
+    "id": "copps-r16:g1#1",
+    "record_id": "mc-0dd26d51af9ad5bf919973447fee67cb",
+    "verdict": null
+   },
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The new 15/60 mg veto rejects an explicitly identified 30 mg low-dose regimen when the same clause also describes its reduction to 15 mg.",
+    "failing_input": "from harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11).'}, {'id': '24251359', 'abstract': 'Patients received low-dose edoxaban (30 mg, reduced to 15 mg when indicated). An unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34).'}]}\n_noac_lower_dose_status(records)['status']",
+    "expected": "READY_TO_COMPUTE: both effects and the low-dose arm's 30 mg label are explicitly stated.",
+    "actual": "NOT_COMPUTED_SOURCE_INCOMPLETE",
+    "id": "copps-r16:g1#2",
+    "record_id": "mc-0dd26d51af9ad5bf919973447fee67cb",
+    "verdict": null
+   }
+  ]
  }
 }

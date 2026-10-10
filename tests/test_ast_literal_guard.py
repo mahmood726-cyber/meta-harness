@@ -5,6 +5,8 @@ import json
 import os
 import sys
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
@@ -268,15 +270,32 @@ def test_PLANT_codex_r14_2_attribute_assignments_are_flagged():
     assert sorted((h["key"], h["value"]) for h in hits) == [("ai", 20), ("n1i", 169)]
 
 
-def test_PLANT_codex_r15_1_a_30mg_label_must_belong_to_the_low_dose_arm():
-    e = ("High-dose edoxaban was 60 mg, reduced to 30 mg; low-dose edoxaban was 15 mg. " + ENGAGE)
+@pytest.mark.parametrize("dose_text", [
+    "High-dose edoxaban was 60 mg, reduced to 30 mg; low-dose edoxaban was 15 mg. ",        # codex copps-r15#1
+    "High-dose edoxaban was reduced to 30 mg, whereas low-dose edoxaban was 15 mg. ",       # copps-r16#1
+    "Low-dose edoxaban (30 mg once daily) was compared with warfarin. ",                    # a tied label, still prose
+])
+def test_PLANT_codex_r15_r16_a_dose_label_is_never_inferred_from_prose(dose_text):
     out = si._noac_lower_dose_status({"records": [{"id": "19717844", "title": "", "abstract": RELY},
-                                                  {"id": "24251359", "title": "", "abstract": e}]})
+                                                  {"id": "24251359", "title": "", "abstract": dose_text + ENGAGE}]})
     assert out["status"] != "READY_TO_COMPUTE"
-    tied = "Low-dose edoxaban (30 mg once daily) was compared with warfarin. " + ENGAGE
-    out = si._noac_lower_dose_status({"records": [{"id": "19717844", "title": "", "abstract": RELY},
-                                                  {"id": "24251359", "title": "", "abstract": tied}]})
-    assert out["status"] == "READY_TO_COMPUTE"
+
+
+def test_ready_needs_a_recorded_dose_label_bound_to_the_exact_held_text(tmp_path, monkeypatch):
+    import hashlib
+    from harness import recorded_verification as rv
+    text = "Patients received low-dose edoxaban (30 mg, reduced to 15 mg when indicated). " + ENGAGE
+    reg = tmp_path / "registry"
+    reg.mkdir()
+    (reg / "arm_label_verifications.json").write_text(json.dumps({"entries": [{
+        "pmid": "24251359", "claim": "LOW_DOSE_ARM_IS_30MG",
+        "held_text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()}]}), encoding="utf-8")
+    monkeypatch.setattr(rv, "ROOT", str(tmp_path))
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY},
+                        {"id": "24251359", "title": "", "abstract": text}]}
+    assert si._noac_lower_dose_status(rows)["status"] == "READY_TO_COMPUTE"          # copps-r16#2's text, verified
+    rows["records"][1]["abstract"] = text + " "                                          # any other text: no claim
+    assert si._noac_lower_dose_status(rows)["status"] != "READY_TO_COMPUTE"
 
 
 def test_PLANT_codex_r15_2_six_digit_numerators_are_counts():

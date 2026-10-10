@@ -48,19 +48,9 @@ def absence_verification(pmid: str, text: str, root: str | None = None) -> dict[
     """The recorded verification that a held source does NOT state a value, or None. A claim of absence is never
     inferred by a pattern (codex copps-r11..r13 found a new prose form each round): it is read from
     registry/source_absence_verifications.json and applies only while the held text's sha256 equals the one checked."""
-    import hashlib
-    import json as _json
-    import os as _os
-    base = root or _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-    try:
-        reg = _json.load(open(_os.path.join(base, "registry", "source_absence_verifications.json"), encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    sha = hashlib.sha256((text or "").encode("utf-8")).hexdigest()
-    for e in reg.get("entries") or []:
-        if str(e.get("pmid")) == str(pmid) and e.get("held_text_sha256") == sha:
-            return e
-    return None
+    from . import recorded_verification
+    return recorded_verification.verified("source_absence_verifications.json", pmid, text,
+                                          "PER_ARM_DENOMINATORS_NOT_STATED", root)
 
 
 def _between(text: str, start: str | None, end: str | None) -> str:
