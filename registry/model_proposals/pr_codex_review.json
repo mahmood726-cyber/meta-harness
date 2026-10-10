@@ -6731,5 +6731,71 @@
     "verdict": null
    }
   ]
+ },
+ "rob2-r1": {
+  "base": "630e622bf",
+  "head": "eff111465",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c6b941d989f5f3e39015acb22df681a2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/rob2.py",
+     "scripts/rob2_build.py"
+    ],
+    "prompt_sha256": "83ad8e30cd309ccdde7dc6ac4e16f683aa1e31442790e695ac70c3dfbff2a880"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/rob2.py",
+    "function": "derive_d5_v3",
+    "severity": "P1",
+    "claim": "The primary-role shortcut returns low risk even when the endpoint identity comparison fails. A reported primary endpoint can differ from the registered primary endpoint.",
+    "failing_input": "derive_d5_v3([{'title': 'Change in systolic blood pressure'}], [], {'pooled_outcome': 'All-cause mortality', 'role': 'primary'})",
+    "expected": "“some concerns” because the selected outcome does not match the registered outcome.",
+    "actual": "Returns _domain('low', ...) despite inputs['comparison']['matched'] being False; overwrites the comparison method with 'role_primary'.",
+    "id": "rob2-r1:g1#1",
+    "record_id": "mc-c6b941d989f5f3e39015acb22df681a2",
+    "verdict": null
+   },
+   {
+    "file": "harness/rob2.py",
+    "function": "_component_set_v3 / outcome_match_v3",
+    "severity": "P1",
+    "claim": "The new URGENT_HF_VISIT pattern requires only “urgent” and “visit”; unrelated noncardiac endpoints therefore become identical heart-failure components.",
+    "failing_input": "outcome_match_v3('Urgent asthma visit', {'title': 'Urgent migraine visit'})",
+    "expected": "matched=False: asthma visits and migraine visits are different outcomes.",
+    "actual": "matched=True, method='component_set', with selected_components and registered_components both ['URGENT_HF_VISIT'].",
+    "id": "rob2-r1:g1#2",
+    "record_id": "mc-c6b941d989f5f3e39015acb22df681a2",
+    "verdict": null
+   },
+   {
+    "file": "harness/rob2.py",
+    "function": "factor_filter",
+    "severity": "P1",
+    "claim": "Splitting other interventions into individual words treats a shared adjective as evidence of another factor. This removes registered outcomes that do not name that intervention.",
+    "failing_input": "factor_filter([{'title': 'Cardiac death'}], ['colchicine'], ['Cardiac resynchronization therapy'])",
+    "expected": "([{'title': 'Cardiac death'}], []): “Cardiac death” does not identify the cardiac-resynchronization intervention.",
+    "actual": "([], [{'title': 'Cardiac death'}]): the token 'cardiac' causes exclusion.",
+    "id": "rob2-r1:g1#3",
+    "record_id": "mc-c6b941d989f5f3e39015acb22df681a2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rob2_build.py",
+    "function": "selected_endpoints",
+    "severity": "P1",
+    "claim": "Role detection ignores negation and whether the primary-outcome phrase describes the selected endpoint. An explicitly exploratory endpoint is classified as primary, enabling the unconditional low-risk shortcut.",
+    "failing_input": "import json\nfrom unittest.mock import patch, mock_open\nfrom scripts.rob2_build import selected_endpoints\nreview = {'outcomes': [{'primary': True, 'trials': [{'id': 'paper-1', 'source': 'No primary outcome was prespecified; all-cause mortality was exploratory.'}]}]}\nwith patch('builtins.open', mock_open(read_data=json.dumps(review))):\n    print(selected_endpoints('example'))",
+    "expected": "{'paper-1': (None, None)}: the source supplies no affirmative primary or secondary role for the exploratory endpoint.",
+    "actual": "{'paper-1': (None, 'primary')}",
+    "id": "rob2-r1:g1#4",
+    "record_id": "mc-c6b941d989f5f3e39015acb22df681a2",
+    "verdict": null
+   }
+  ]
  }
 }
