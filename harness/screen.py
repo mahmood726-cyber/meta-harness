@@ -12,6 +12,7 @@ from . import arm_object
 from . import lexicon
 from . import armcontrast
 from . import screen_entry
+from . import screen_terms
 from .extract_values import ScreenDecision  # R1 typed values
 
 # Token-boundary matcher cache: a bare-substring `in` test matched a screening term inside a
@@ -489,6 +490,7 @@ def describe_eligibility(inc: dict) -> str:
 def screen_record(rec, inc, neg_pmids):
     """Return (decision, rule_id, reason, span). `span` is a VERBATIM excerpt of the record's own
     text evidencing the decision (a real substring), so every decision is checkable against source."""
+    inc = screen_terms.expand(inc)        # typed development codes + population synonyms (12-01 class)
     text = _text(rec)
     poptext = _poptext(rec)
     raw_all = _text_raw(rec)
@@ -572,6 +574,10 @@ def screen_record(rec, inc, neg_pmids):
     comp = _has(text, comparator_any, plural=True)
     comp_override = screen_entry.comparator_override(rec, inc)
     if comparator_any and not comp and not comp_override:
+        # r27-B: a placebo that MASKS the intervention on an identical background is a placebo comparator even when the
+        # record never uses the protocol's placebo phrasing (Legro PPCOS I: clomiphene + placebo v clomiphene + metformin)
+        comp_override = screen_terms.placebo_masks_intervention(rec, inc, raw_all)
+    if comparator_any and not comp and not comp_override:
         return ScreenDecision("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
                 f"examined: “{_quote(raw_all)}”")
     comp_term = comp or (comp_override or {}).get("term")
@@ -621,6 +627,7 @@ def screen_record_2(rec, inc):
     screener 1 are exactly the title-anchored-vs-body question that caused past defects. NOT
     independent of screener 1 in the statistical sense (same author, same criteria) — that caveat is
     stated on the page; the rule-based screener 1 remains the adjudicator."""
+    inc = screen_terms.expand(inc)        # the same typed vocabulary as screener 1
     if _is_review(rec):
         return "exclude"
     text = _text(rec)
@@ -643,7 +650,8 @@ def screen_record_2(rec, inc):
         return "exclude"
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
     if (comparator_any and not _has(text, comparator_any, plural=True)
-            and not screen_entry.comparator_override(rec, inc)):
+            and not screen_entry.comparator_override(rec, inc)
+            and not screen_terms.placebo_masks_intervention(rec, inc, _text_raw(rec))):
         return "exclude"
     if inc.get("design_double_blind") and not _double_blind(rec, text):
         return "exclude"
