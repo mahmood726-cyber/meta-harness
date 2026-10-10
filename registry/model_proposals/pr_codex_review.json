@@ -6731,5 +6731,111 @@
     "verdict": null
    }
   ]
+ },
+ "r6-tecos-r1": {
+  "base": "cdd81860a",
+  "head": "04d2a69db",
+  "runs": {
+   "g1": {
+    "record_id": "mc-379c6b70bd904aaff6c2d362d0967e46",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "24c0b6c98fe04ad86c4e59065109067d64576676bb4c9f42a2aed3e34a6a56e7"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "endpoint_components / endpoint_wording_adjudication",
+    "severity": "P1",
+    "claim": "Plural 'cardiovascular deaths' is not recognised, causing identical endpoints to be classified as different and generating a false comparator-mislabel finding.",
+    "failing_input": "trials = [{'comparator_row_provenance': {'span': 'cardiovascular deaths, myocardial infarction, or stroke'}, 'agreement_with_comparator_row': 'AGREE'}]\ncfg = {'primary_outcome': {'name': 'cardiovascular death, myocardial infarction, or stroke'}}\nendpoint_wording_adjudication(trials, cfg)",
+    "expected": "Returns 0; agreement remains 'AGREE'; no comparator-mislabel finding.",
+    "actual": "Returns 1; comparator components are ['MI', 'STROKE'], omitting CV_DEATH. Agreement becomes 'AGREE_ON_TUPLE:COMPARATOR_WORDING_NAMES_A_DIFFERENT_ENDPOINT' and COMPARATOR_ROW_WORDING_MISLABELS_ITS_TUPLE is appended.",
+    "id": "r6-tecos-r1:g1#1",
+    "record_id": "mc-379c6b70bd904aaff6c2d362d0967e46",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "endpoint_components / endpoint_wording_adjudication",
+    "severity": "P1",
+    "claim": "The MACE shorthand branch overrides an explicit component definition, inventing unstable angina and discarding heart-failure hospitalisation.",
+    "failing_input": "trials = [{'comparator_row_provenance': {'span': '4-point MACE (cardiovascular death, myocardial infarction, stroke, or hospitalisation for heart failure)'}, 'agreement_with_comparator_row': 'AGREE'}]\ncfg = {'primary_outcome': {'name': 'cardiovascular death, myocardial infarction, stroke, or hospitalisation for heart failure'}}\nendpoint_wording_adjudication(trials, cfg)",
+    "expected": "The explicit components match; returns 0 and preserves 'AGREE' without a comparator-mislabel finding.",
+    "actual": "Returns 1; comparator components include UNSTABLE_ANGINA instead of HF_HOSPITALISATION. Agreement becomes 'AGREE_ON_TUPLE:COMPARATOR_WORDING_NAMES_A_DIFFERENT_ENDPOINT' and COMPARATOR_ROW_WORDING_MISLABELS_ITS_TUPLE is appended.",
+    "id": "r6-tecos-r1:g1#2",
+    "record_id": "mc-379c6b70bd904aaff6c2d362d0967e46",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "endpoint_components / endpoint_wording_adjudication",
+    "severity": "P1",
+    "claim": "Component matching spans separate endpoint definitions, incorrectly adding a secondary endpoint to the primary composite.",
+    "failing_input": "trials = [{'comparator_row_provenance': {'span': 'Primary endpoint: cardiovascular death or myocardial infarction. Secondary endpoint: stroke.'}, 'agreement_with_comparator_row': 'AGREE'}]\ncfg = {'primary_outcome': {'name': 'cardiovascular death or myocardial infarction'}}\nendpoint_wording_adjudication(trials, cfg)",
+    "expected": "The primary composite matches; returns 0 and preserves 'AGREE' without a comparator-mislabel finding.",
+    "actual": "Returns 1; comparator components incorrectly include STROKE. Agreement becomes 'AGREE_ON_TUPLE:COMPARATOR_WORDING_NAMES_A_DIFFERENT_ENDPOINT' and COMPARATOR_ROW_WORDING_MISLABELS_ITS_TUPLE is appended.",
+    "id": "r6-tecos-r1:g1#3",
+    "record_id": "mc-379c6b70bd904aaff6c2d362d0967e46",
+    "verdict": null
+   }
+  ]
+ },
+ "r6-tecos-r2": {
+  "base": "cdd81860a",
+  "head": "87331cb63",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d406d6d4487c89b83233db811ea4ed90",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "9b29b1d8e7fffcf38e2599fb6b3151381765f84ea32d8667f3d3889986782893"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "endpoint_components / endpoint_wording_adjudication",
+    "severity": "P1",
+    "claim": "Negated component mentions are treated as included components, converting a valid agreement into a false comparator-mislabel finding.",
+    "failing_input": "row = {'comparator_row_provenance': {'span': 'Primary endpoint: cardiovascular death, MI, or stroke; hospitalization for heart failure was not part of this composite.'}, 'agreement_with_comparator_row': 'AGREE'}\ncfg = {'primary_outcome': {'name': '3-point MACE'}}\nendpoint_wording_adjudication([row], cfg)",
+    "expected": "Returns 0; agreement remains 'AGREE'; no comparator mislabel finding. Both composites contain CV_DEATH, MI, and STROKE.",
+    "actual": "Returns 1; includes HF_HOSPITALISATION in comparator_components, changes agreement to 'AGREE_ON_TUPLE:COMPARATOR_WORDING_NAMES_A_DIFFERENT_ENDPOINT', and appends COMPARATOR_ROW_WORDING_MISLABELS_ITS_TUPLE.",
+    "id": "r6-tecos-r2:g1#1",
+    "record_id": "mc-d406d6d4487c89b83233db811ea4ed90",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "endpoint_components",
+    "severity": "P1",
+    "claim": "The secondary-endpoint boundary misses 'secondary efficacy endpoint', merging two explicitly separate endpoints and suppressing a genuine tuple disagreement.",
+    "failing_input": "row = {'comparator_row_provenance': {'span': 'Primary endpoint: cardiovascular death, MI, or stroke. Secondary efficacy endpoint: hospitalization for heart failure.'}, 'agreement_with_comparator_row': 'DISAGREE'}\ncfg = {'primary_outcome': {'name': '3-point MACE'}}\nendpoint_wording_adjudication([row], cfg)",
+    "expected": "Returns 0 and preserves 'DISAGREE': the primary endpoint matches the configured composite.",
+    "actual": "Returns 1 and changes agreement to 'NOT_COMPARABLE:COMPARATOR_ROW_IS_A_DIFFERENT_ENDPOINT' because the secondary endpoint contributes HF_HOSPITALISATION.",
+    "id": "r6-tecos-r2:g1#2",
+    "record_id": "mc-d406d6d4487c89b83233db811ea4ed90",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "endpoint_components / endpoint_wording_adjudication",
+    "severity": "P1",
+    "claim": "An explicitly listed but unrecognized component is silently discarded. A four-component endpoint is consequently treated as identical to three-point MACE.",
+    "failing_input": "row = {'comparator_row_provenance': {'span': '4-point MACE (cardiovascular death, MI, stroke, or resuscitated cardiac arrest)'}, 'agreement_with_comparator_row': 'DISAGREE'}\ncfg = {'primary_outcome': {'name': '3-point MACE'}}\nendpoint_wording_adjudication([row], cfg)",
+    "expected": "Classify the explicitly different composite as 'NOT_COMPARABLE:COMPARATOR_ROW_IS_A_DIFFERENT_ENDPOINT'.",
+    "actual": "endpoint_components returns frozenset({'CV_DEATH', 'MI', 'STROKE'}), dropping resuscitated cardiac arrest. Adjudication returns 0 and leaves 'DISAGREE' unchanged.",
+    "id": "r6-tecos-r2:g1#3",
+    "record_id": "mc-d406d6d4487c89b83233db811ea4ed90",
+    "verdict": null
+   }
+  ]
  }
 }
