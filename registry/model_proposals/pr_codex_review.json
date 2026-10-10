@@ -6933,5 +6933,88 @@
     "verdict": null
    }
   ]
+ },
+ "strands-r3": {
+  "base": "fca8cff07",
+  "head": "68e6a541c",
+  "runs": {
+   "g1": {
+    "record_id": "mc-21f219fd21639d515a156921cc50e470",
+    "state": "RAN_OK",
+    "files": [
+     "harness/claimgraph.py",
+     "harness/page.py",
+     "harness/review_tabs.py",
+     "harness/strand_pool.py",
+     "scripts/build_iv_iron_strands.py",
+     "scripts/provenance_census.py",
+     "scripts/rebind_strand_doc.py"
+    ],
+    "prompt_sha256": "4968688a1504da69ca1f3da936c425fbf5f3947375abedfb6663975ce495c10c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/strand_pool.py",
+    "function": "_cells / table_arm_counts",
+    "severity": "P0",
+    "claim": "A self-closing body cell consumes the following cell, shifting counts into the wrong arms instead of refusing the missing value.",
+    "failing_input": "from harness.strand_pool import table_arm_counts\nj = '<table-wrap><caption>Full-analysis set</caption><table><thead><tr><th>Outcome</th><th>Drug (n = 100)</th><th>Placebo (n = 200)</th><th>Overall (n = 300)</th></tr></thead><tbody><tr><td>Deaths</td><td/><td>10 (5)</td><td>20 (10)</td></tr></tbody></table><table-wrap-foot>Counts are participants</table-wrap-foot></table-wrap>'\nr = table_arm_counts(j, 'Full-analysis set', 'Deaths', (1, 2), 'Counts are participants')\nprint(None if r is None else [r[k] for k in ('ai', 'n1i', 'ci', 'n2i')])",
+    "expected": "None: the drug count is missing; the placebo and overall counts cannot replace the two arm counts.",
+    "actual": "[10, 100, 20, 200]",
+    "id": "strands-r3:g1#1",
+    "record_id": "mc-21f219fd21639d515a156921cc50e470",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "table_arm_counts",
+    "severity": "P0",
+    "claim": "Incidence-rate columns pass the count filter. A participant-count statement elsewhere in the table is sufficient to certify the selected rates as participant counts.",
+    "failing_input": "from harness.strand_pool import table_arm_counts\nj = '<table-wrap><caption>Full-analysis set</caption><table><thead><tr><th rowspan=\"2\">Outcome</th><th colspan=\"2\">Drug (n = 100)</th><th colspan=\"2\">Placebo (n = 200)</th></tr><tr><th>Participants</th><th>Incidence/100 patient-years at risk</th><th>Participants</th><th>Incidence/100 patient-years at risk</th></tr></thead><tbody><tr><td>Deaths</td><td>10 (10)</td><td>5 (2)</td><td>40 (20)</td><td>8 (3)</td></tr></tbody></table><table-wrap-foot>Counts are participants with at least one event. Incidence columns contain rates (standard errors).</table-wrap-foot></table-wrap>'\nr = table_arm_counts(j, 'Full-analysis set', 'Deaths', (2, 4), 'Counts are participants with at least one event')\nprint(None if r is None else [r[k] for k in ('ai', 'n1i', 'ci', 'n2i')])",
+    "expected": "None: selected columns contain incidence rates, not counts. The participant counts are 10 and 40 in columns 1 and 3.",
+    "actual": "[5, 100, 8, 200]",
+    "id": "strands-r3:g1#2",
+    "record_id": "mc-21f219fd21639d515a156921cc50e470",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "read_member",
+    "severity": "P0",
+    "claim": "The unrestricted _PAREN reader accepts a Kaplan–Meier percentage as a ratio effect without requiring a ratio label or checking its units.",
+    "failing_input": "from harness.strand_pool import read_member\ns = 'The Kaplan-Meier mortality estimate was 20 (95% CI, 15-25) percent.'\nprint(read_member(s, s))",
+    "expected": "None: this is an absolute percentage estimate, not an HR, RR, or rate ratio.",
+    "actual": "{'effect': 20.0, 'ci_level': 95.0, 'ci_low': 15.0, 'ci_high': 25.0, 'source_span': 'The Kaplan-Meier mortality estimate was 20 (95% CI, 15-25) percent.'}",
+    "id": "strands-r3:g1#3",
+    "record_id": "mc-21f219fd21639d515a156921cc50e470",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "_numbers_match_span / member_class",
+    "severity": "P1",
+    "claim": "Count provenance checks token presence without preserving arm assignments. Swapped numerators are certified as EXTRACTOR, and the extraction tab consequently marks them verified.",
+    "failing_input": "from harness.strand_pool import counts_rr, member_class\nm = dict(counts_rr(40, 100, 10, 200), ai=40, n1i=100, ci=10, n2i=200, source='held table', source_span='Drug (n = 100) | Placebo (n = 200) | Deaths | 10 (10) | 40 (20)')\nprint(member_class(m)[0])",
+    "expected": "'HAND_ENTERED': the span supports 10/100 versus 40/200, giving RR 0.5; the member instead contains swapped numerators, giving RR 8.",
+    "actual": "'EXTRACTOR'",
+    "id": "strands-r3:g1#4",
+    "record_id": "mc-21f219fd21639d515a156921cc50e470",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "pool_strand",
+    "severity": "P0",
+    "claim": "The extracted ci_level is discarded before constructing Study objects. Identical interval bounds declared as 95% and 99% therefore produce identical pooled results, although they imply different standard errors.",
+    "failing_input": "from harness.strand_pool import pool_strand\ndef members(level):\n    return [dict(trial=t, effect=e, ci_low=lo, ci_high=hi, ci_level=level) for t, e, lo, hi in [('A', 0.8, 0.64, 1.0), ('B', 0.9, 0.72, 1.125), ('C', 0.7, 0.56, 0.875)]]\nprint(pool_strand(members(95), 'RR') == pool_strand(members(99), 'RR'))",
+    "expected": "False after accounting for confidence level, or explicit rejection of unsupported confidence levels.",
+    "actual": "True: ci_level never reaches the pooling engine.",
+    "id": "strands-r3:g1#5",
+    "record_id": "mc-21f219fd21639d515a156921cc50e470",
+    "verdict": null
+   }
+  ]
  }
 }

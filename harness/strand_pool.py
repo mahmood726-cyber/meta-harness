@@ -58,6 +58,10 @@ def read_member(held_text: str | None, quote: str) -> dict[str, Any] | None:
         return None
     end = i + len(nq)
     for rx, (ge, gl, glo, ghi) in _READERS:
+        # the parenthetical form names no measure itself: the quote must carry a ratio label, so an absolute estimate
+        # ('mortality estimate was 20 (95% CI, 15-25) percent') is never read as a ratio (codex strands-r3#3)
+        if rx is _PAREN and not _RATIO_LABEL.search(nq):
+            continue
         for m in rx.finditer(nt, i):
             if m.start() >= end:
                 break
@@ -67,8 +71,14 @@ def read_member(held_text: str | None, quote: str) -> dict[str, Any] | None:
     return None
 
 
+_RATIO_LABEL = re.compile(r"\b(?:HR|RR|OR|IRR)\b|hazard ratio|rate ratio|relative risk|risk ratio|odds ratio", re.I)
+
+
 def _cells(row_html: str) -> list[str]:
-    return [normalise(re.sub(r"<[^>]+>", " ", c)) for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row_html, re.S)]
+    """A row's cells in order; a self-closing '<td/>' is an EMPTY cell, never an opening tag that swallows the next one
+    (codex strands-r3#1)."""
+    return [normalise(re.sub(r"<[^>]+>", " ", m.group(2) or ""))
+            for m in re.finditer(r"<t[dh]((?:[^>/]|/(?!>))*)>(.*?)</t[dh]>|<t[dh][^>]*/>", row_html, re.S)]
 
 
 # a header naming a population of its own ('randomised', 'analysed', ...) cannot be paired with another arm's: the
@@ -103,6 +113,12 @@ def table_arm_counts(jats: str | None, caption: str, row: str, arm_cells: tuple[
         cells = _cells(rows[0])
         if max(arm_cells) >= len(cells) or max(arm_cells) >= len(cols):
             return None
+        # the basis statement must come from the table's CAPTION or FOOTNOTE: the header's own words ('Incidence/100
+        # patient-years at risk') must never count as the statement about them
+        notes = " ".join(normalise(re.sub(r"<[^>]+>", " ", x)) for x in
+                         re.findall(r"<caption>(.*?)</caption>|<table-wrap-foot>(.*?)</table-wrap-foot>", tw, re.S)
+                         for x in x if x)
+        sentences = [_hyph(x) for x in re.split(r"(?<=[.;])\s+", notes)]
         out = []
         for j in arm_cells:
             # each arm cell takes ITS OWN column's header: the denominator comes from there (strands-r2#3), and the
@@ -111,13 +127,26 @@ def table_arm_counts(jats: str | None, caption: str, row: str, arm_cells: tuple[
             n = re.findall(r"\(\s*n\s*=\s*(\d+)\s*\)", hdr)
             if len(n) != 1 or _NOT_A_COUNT_COLUMN.search(hdr) or _POPULATION_WORD.search(hdr):
                 return None
+            # a column with a sub-header is a count column only if the count-basis sentence NAMES that sub-header
+            # ('Incidence/100 patient-years at risk are computed using the number of subjects...'): a basis stated for
+            # another column certifies nothing here (codex strands-r3#2)
+            sub = _hyph(" | ".join(hdr.split(" | ")[1:]))
+            if sub and not any(sub.lower() in s.lower() and count_basis.lower() in s.lower() for s in sentences):
+                return None
             if not re.fullmatch(r"\d+ \(\d+(?:\.\d+)?\)", cells[j]):
                 return None
             out.append((int(cells[j].split(" ")[0]), int(n[0])))
         (a, n1), (c, n2) = out
         return {"ai": a, "n1i": n1, "ci": c, "n2i": n2, "caption": cap[:160], "row": " | ".join(cells),
-                "arm_header": " | ".join(cols[j] for j in arm_cells), "count_basis": count_basis}
+                "arm_header": " | ".join(cols[j] for j in arm_cells), "count_basis": count_basis,
+                # which cell and which column header gave each arm: the provenance re-check keeps the assignment (r3#4)
+                "table_read": {"cells": [cells[j] for j in arm_cells], "headers": [cols[j] for j in arm_cells]}}
     return None
+
+
+def _hyph(s: str) -> str:
+    """'patient- years' (a line-broken hyphen in held text) read as 'patient-years'."""
+    return re.sub(r"-\s+", "-", s or "")
 
 
 _NOT_A_COUNT_COLUMN = re.compile(r"%|percent|\bSE\b|\bSD\b|standard (?:error|deviation)|\bmean\b|\bmedian\b|\bIQR\b",
@@ -159,14 +188,26 @@ def pool_strand(members: list[dict[str, Any]], scale: str) -> dict[str, Any] | N
     """PM/HKSJ via synth.pool, then the k=2 policy (no single-df interval served; direction conflict refuses)."""
     if len(members) < 2:
         return None
-    r = _pool([Study(label=m["trial"], effect=m["effect"], ci_low=m["ci_low"], ci_high=m["ci_high"])
-               for m in members], scale=scale)
+    r = _pool([Study(label=m["trial"], effect=m["effect"], **_ci95(m)) for m in members], scale=scale)
     res = {"k": r.k, "estimate": r.estimate, "ci_low": r.ci_low, "ci_high": r.ci_high, "tau2": r.tau2,
            "i2": getattr(r, "i2", None), "scale": scale, "ci_provenance": r.ci_provenance,
            "estimate_fixed": r.estimate_fixed, "ci_low_fixed": r.ci_low_fixed, "ci_high_fixed": r.ci_high_fixed}
     res = k2.apply_k2_policy(res, [{"effect": m["effect"], "ci_low": m["ci_low"], "ci_high": m["ci_high"]}
                                    for m in members])
     return _rounded(res)
+
+
+def _ci95(m: dict[str, Any]) -> dict[str, float]:
+    """The member's interval on the 95% level the engine assumes: a 97.5% or 99% CI is rescaled on the log scale
+    through its own z, never passed off as 95% (codex strands-r3#5)."""
+    from statistics import NormalDist
+    level = float(m.get("ci_level") or 95.0)
+    lo, hi, est = float(m["ci_low"]), float(m["ci_high"]), float(m["effect"])
+    if abs(level - 95.0) < 1e-9:
+        return {"ci_low": lo, "ci_high": hi}
+    se = (math.log(hi) - math.log(lo)) / (2 * NormalDist().inv_cdf(0.5 + level / 200))
+    z95 = NormalDist().inv_cdf(0.975)
+    return {"ci_low": math.exp(math.log(est) - z95 * se), "ci_high": math.exp(math.log(est) + z95 * se)}
 
 
 def _rounded(res: dict[str, Any]) -> dict[str, Any]:
@@ -199,11 +240,17 @@ def _numbers_match_span(m: dict[str, Any], span: str) -> bool:
     def close(a, b):
         return a is not None and b is not None and abs(float(a) - float(b)) < 1e-9
     if m.get("ai") is not None:
-        # whole numbers only: '1 (' must not match inside '11 (' nor 'n = 10' inside 'n = 100' (codex strands-r2#4)
-        need = (rf"(?<![\d.]){m['ai']} \(", rf"(?<![\d.]){m['ci']} \(", rf"\bn = {m['n1i']}(?!\d)",
-                rf"\bn = {m['n2i']}(?!\d)")
-        if not all(re.search(x, span) for x in need):
+        # the per-arm read must be recorded and must keep its arm assignment: arm 1's cell starts with ai and its
+        # column header gives n1i, arm 2's likewise -- swapped numerators are never certified (codex strands-r3#4)
+        tr = m.get("table_read") or {}
+        cells, heads = tr.get("cells") or [], tr.get("headers") or []
+        if len(cells) != 2 or len(heads) != 2:
             return False
+        for cell, head, x, n in ((cells[0], heads[0], m["ai"], m["n1i"]), (cells[1], heads[1], m["ci"], m["n2i"])):
+            if not re.match(rf"{x} \(", cell) or re.findall(r"\(\s*n\s*=\s*(\d+)\s*\)", head) != [str(n)]:
+                return False
+            if cell not in span or head.split(" | ")[0] not in span:
+                return False
         rr = counts_rr(m["ai"], m["n1i"], m["ci"], m["n2i"])
         return all(close(m.get(k), rr[k]) for k in ("effect", "ci_low", "ci_high"))
     got = read_member(span, span)

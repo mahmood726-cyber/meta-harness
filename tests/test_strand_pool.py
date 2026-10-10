@@ -75,7 +75,9 @@ def test_PLANT_11_01_strand_members_are_in_the_extraction_inventory_and_analysis
                                   "members": [{"trial": "CONFIRM-HF", "pmid": "25176939", "scale": "RR", "effect": 0.4027,
                                                "ci_low": 0.2004, "ci_high": 0.809, "ai": 10, "n1i": 150, "ci": 25,
                                                "n2i": 151, "source": "held full text x",
-                                               "source_span": "Hospitalizations and deaths (full-analysis set) | FCM ( n = 150) Placebo ( n = 151) | Hospitalizations due to worsening HF | 10 | 10 (7.6) | 32 | 25 (19.4)"}]}]}}
+                                               "source_span": "Hospitalizations and deaths (full-analysis set) | FCM ( n = 150) Placebo ( n = 151) | Hospitalizations due to worsening HF | 10 | 10 (7.6) | 32 | 25 (19.4)",
+                                               "table_read": {"cells": ["10 (7.6)", "25 (19.4)"],
+                                                              "headers": ["FCM ( n = 150) | Incidence", "Placebo ( n = 151) | Incidence"]}}]}]}}
     rows = review_tabs.strand_extraction_rows(r)
     assert len(rows) == 1 and rows[0]["class"] == "EXTRACTOR" and "10/150 v 25/151" in rows[0]["value"]
     assert rows[0]["passage_sha256"]
@@ -131,7 +133,7 @@ def test_hand_written_strand_docs_are_rebound_from_held_text():
 
 # ---------------------------------------------------------------- codex strands-r1 (each fails before its fix)
 BASIS = "computed using the number of subjects with the end-point/event"
-TABLE_FOOT = TABLE.replace("</table></table-wrap>", f"</table><table-wrap-foot><p>Incidence {BASIS}.</p>"
+TABLE_FOOT = TABLE.replace("</table></table-wrap>", f"</table><table-wrap-foot><p>Incidence/100 patient-years at risk are {BASIS}.</p>"
                                                     "</table-wrap-foot></table-wrap>")
 CONFIRM_LAYOUT = {"caption": "full-analysis set", "row": "Hospitalizations due to worsening HF", "arm_cells": (2, 4),
                   "count_basis": BASIS}
@@ -237,3 +239,43 @@ def test_PLANT_strands_r2_5_a_refused_member_renders_as_refused_not_as_a_single_
                                                                    "status": "REFUSED_DENOMINATORS_NOT_STATED",
                                                                    "reason": "no FAS table held"}]}]})
     assert "REFUSED_DENOMINATORS_NOT_STATED" in html and "no FAS table held" in html and "single trial" not in html
+
+
+# ---------------------------------------------------------------- codex strands-r3 (each fails before its fix)
+def test_PLANT_strands_r3_1_a_self_closing_body_cell_is_an_empty_cell():
+    t = _t("<th>Outcome</th><th>Drug (n = 100)</th><th>Placebo (n = 200)</th><th>Overall (n = 300)</th>",
+           "<td>Deaths</td><td/><td>10 (5)</td><td>20 (10)</td>")
+    assert sp.table_arm_counts(t, arm_cells=(1, 2), **DEATHS) is None
+
+
+def test_PLANT_strands_r3_2_the_count_basis_must_name_the_selected_columns_sub_header():
+    head = ("<th rowspan=\"2\">Outcome</th><th colspan=\"2\">Drug (n = 100)</th><th colspan=\"2\">Placebo (n = 200)</th>"
+            "</tr><tr><th>Participants</th><th>Incidence/100 patient-years at risk</th><th>Participants</th>"
+            "<th>Incidence/100 patient-years at risk</th>")
+    row = "<td>Deaths</td><td>10 (10.0)</td><td>5 (2.0)</td><td>40 (20.0)</td><td>8 (4.0)</td>"
+    basis = f"Participants: {BASIS}."
+    t = _t(head, row, foot=basis)
+    assert sp.table_arm_counts(t, arm_cells=(2, 4), **DEATHS) is None           # the rate columns: refused
+    c = sp.table_arm_counts(t, arm_cells=(1, 3), **DEATHS)                      # the columns the basis names
+    assert (c["ai"], c["n1i"], c["ci"], c["n2i"]) == (10, 100, 40, 200)
+
+
+def test_PLANT_strands_r3_3_a_parenthetical_read_needs_a_ratio_label():
+    s = "The Kaplan-Meier mortality estimate was 20 (95% CI, 15-25) percent."
+    assert sp.read_member(s, s) is None
+    q = "The hazard ratio for death was 0.56 (95% CI, 0.45 to 0.68"
+    assert sp.read_member(q + "; P<0.001)", q)["effect"] == 0.56
+
+
+def test_PLANT_strands_r3_4_count_provenance_keeps_the_arm_assignment():
+    m = dict(sp.counts_rr(40, 100, 10, 200), ai=40, n1i=100, ci=10, n2i=200, source="held table",
+             source_span="Drug (n = 100) | Placebo (n = 200) | Deaths | 10 (10) | 40 (20)")
+    m.pop("scale", None)
+    assert sp.member_class(m)[0] == "HAND_ENTERED"          # no recorded per-arm read: never certified
+
+
+def test_PLANT_strands_r3_5_a_non_95_interval_is_rescaled_before_pooling():
+    a = [{"trial": "x", "effect": 0.8, "ci_low": 0.6, "ci_high": 1.0667, "ci_level": 95.0},
+         {"trial": "y", "effect": 0.7, "ci_low": 0.5, "ci_high": 0.98, "ci_level": 95.0}]
+    b = [dict(a[0]), dict(a[1], ci_level=99.0)]
+    assert sp.pool_strand(a, "RR")["estimate"] != sp.pool_strand(b, "RR")["estimate"]

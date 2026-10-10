@@ -83,6 +83,7 @@ def confirm_participants(ft):
             "endpoint": _HF_ALONE, "scale": "RR", "ai": c["ai"], "n1i": c["n1i"], "ci": c["ci"], "n2i": c["n2i"],
             "effect": rr["effect"], "ci_low": rr["ci_low"], "ci_high": rr["ci_high"], "ci_level": rr["ci_level"],
             "ci_provenance": rr["ci_provenance"],
+            "table_read": c["table_read"],
             "source_span": f"{c['caption']} | {c['arm_header']} | {c['row']}",
             "source": f"held full text cache/{SLUG}/ft_25176939.txt (PMC4359359), Table 2",
             "note": ("participants with >=1 HF hospitalisation in the full-analysis set; the bracketed 7.6 and 19.4 are "
