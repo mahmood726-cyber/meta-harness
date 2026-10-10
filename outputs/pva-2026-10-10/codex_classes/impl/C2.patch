@@ -1,0 +1,267 @@
+diff --git a/harness/page.py b/harness/page.py
+index fd4ff4f..61cc145 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -30,6 +30,7 @@ from . import propositions as _proposition_mod
+ from . import rob2 as _rob2_mod
+ from . import funding as _funding_mod
+ from . import scope_identity as _scope_identity_mod
++from . import scope as _scope_mod
+ 
+ TABS = [   # the RapidMeta tab contract (rapidmeta-v1, harness/review_tabs.py; tests/test_review_tabs.py)
+     ("overview", "Overview"),
+@@ -2140,22 +2141,23 @@ def _comparator(r, neutral):
+     for rep in ([] if r.get("comparator_panel") else c.get("reported", []) or []):
+         body += f"<p>{_e(rep.get('outcome'))}: {_num(rep.get('estimate'))} ({rep.get('scale')}), 95% CI {_num(rep.get('ci_low'))}–{_num(rep.get('ci_high'))}</p>"
+     sc = c.get("scope") or {}
+-    if sc:
++    derived = _scope_mod.compare_pico(r.get("pico"), c.get("pico"))
++    if c:
+         note_l = str(sc.get("note") or "").lower()
+-        if sc.get("scope_valid"):
+-            v = "✓ same question"
+-        elif "comparator invalid" in note_l:
++        if "comparator invalid" in note_l:
+             v = "COMPARATOR INVALID"
++        elif derived["scope_valid"] and sc.get("scope_valid") is not False:
++            v = "✓ same question"
+         else:
+             v = "⚠ SCOPE MISMATCH"
+-        topic_level = sc.get("topic_intervention_level") or ("class-level" if sc.get("topic_is_class") else "a single agent")
+-        comp_level = sc.get("comparator_intervention_level") or ("class-level" if sc.get("comparator_is_class") else "a single agent")
++        axes = "; ".join(f"{axis.replace('_', ' ')}: {status}"
++                         for axis, status in derived["axis_matches"].items())
+         body += ("<h4>Scope match (is this the same question?)</h4>"
+-                 f"<p><strong>{v}.</strong> Intervention level: topic is {_e(topic_level)}, "
+-                 f"comparator is {_e(comp_level)} "
+-                 f"(match: {_e(sc.get('intervention_level_match'))}); population match: {_e(sc.get('population_match'))}. "
+-                 f"{_e(sc.get('note'))} <span class='muted'>Decided by one uniform rule applied to every topic "
+-                 "before the k was seen.</span></p>")
++                 f"<p><strong>{v}.</strong> {_e(axes)}. {_e(derived['note'])} "
++                 "<span class='muted'>Compared axis by axis using the topic and comparator PICO; "
++                 "missing axes are unknown.</span></p>")
++        if sc.get("scope_valid") is False:
++            body += f"<p>{_e(sc.get('note'))}</p>"
+         if sc.get("population_match_basis"):
+             pm = sc.get("population_match_basis") or {}
+             paed = ", ".join(x.get("trial_id", "") for x in pm.get("pool_has_paediatric_trials", []) or [])
+diff --git a/harness/pipeline.py b/harness/pipeline.py
+index a984c08..473ee29 100644
+--- a/harness/pipeline.py
++++ b/harness/pipeline.py
+@@ -2321,7 +2321,8 @@ def build_review_core(slug, config, records, protocol_sha):
+                 newer.append(rec_by_id.get(d["id"], {}).get("acronym") or d["id"])
+         except ValueError:
+             pass
+-    comp_scope = scope.assess(config, comp_rec.get("title") or "", comp_abstract)
++    comp_scope = scope.assess(config, comp_rec.get("title") or "", comp_abstract,
++                              comparator_pico=comp_rec.get("pico"))
+     if invalid_note := parity_relation.invalid_scope_override(ROOT, slug):
+         comp_scope = {**comp_scope, "scope_valid": False, "note": invalid_note}
+     comparator = {
+@@ -2329,7 +2330,7 @@ def build_review_core(slug, config, records, protocol_sha):
+         "journal": comp_rec.get("journal"), "pmid": comp_rec.get("id"), "doi": comp_rec.get("doi"),
+         "url": (f"https://doi.org/{comp_rec.get('doi')}" if comp_rec.get("doi") else None),
+         "open_access": bool(oa.get("is_oa")), "reported": reported,
+-        "scope": comp_scope,
++        "scope": comp_scope, "pico": comp_rec.get("pico"),
+         "overlap": {"ours_k": ours_k, "theirs_k": theirs_k,
+                     **({"theirs_k_source": config["comparator_k_source"]} if config.get("comparator_k_source") else {}),
+                     "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+@@ -2413,6 +2414,7 @@ def build_review_core(slug, config, records, protocol_sha):
+     arm_contrast = design_variance.current_arm_contrast(_load_arm_contrast(slug), primary)
+ 
+     review = {
++        "pico": config.get("pico"),
+         "slug": slug, "title": config["title"], "question": config["question"],
+         "method_declared": _declared_method,
+         "protocol": {"sha": protocol_sha, "committed_utc": records.get("fetched_utc"),
+diff --git a/harness/scope.py b/harness/scope.py
+index d4f3ba5..d015013 100644
+--- a/harness/scope.py
++++ b/harness/scope.py
+@@ -1,49 +1,39 @@
+-"""Comparator SCOPE-MATCH (PICO-match) — a machine field decided by one uniform rule for every topic.
+-
+-A comparator is a valid benchmark only if it answers the SAME question. The decisive axis is
+-intervention LEVEL: a SINGLE-drug topic benchmarked against a drug-CLASS meta-analysis is a PICO
+-mismatch (the NMA error class — the network is not one drug), even when the class meta names our drug,
+-and the k difference is then a SCOPE difference, not unretrieved evidence. Computed in-pipeline from
+-the config + comparator title (deterministic, replay-safe). The rule is fixed here and applied
+-uniformly — it validates same-scope comparators (including low-k topics) and flags class-vs-single
+-ones regardless of which way it makes a page look.
++"""Fail-closed scope comparison of independently supplied PICO objects.
++
++Each axis is an explicit scope description (a nonempty string). Equality is
++conservative: only case and whitespace are normalized, not clinical meaning.
++Titles, keyword hits and stored verdicts cannot establish PICO equivalence.
+ """
+ from __future__ import annotations
+ 
+-_CLASS_TERMS = ("inhibitors", "antagonists", "agonists", "sglt2", "sglt-2", "glp-1", "glp1",
+-                "mineralocorticoid receptor", "statins", "anticoagulants", "receptor blocker",
+-                "beta-blockers", "ace inhibitor", " arb ", "doac", "noac", "crystalloids",
+-                "probiotics", "probiotic", "omega-3", "omega 3", "n-3 fatty", "fish oil",
+-                "fatty acid")
+-
+-
+-def _has_class(text: str) -> bool:
+-    t = (text or "").lower()
+-    return any(c in t for c in _CLASS_TERMS)
+-
+-
+-def _has_any(text, terms) -> bool:
+-    t = (text or "").lower()
+-    return any(x and x.lower() in t for x in terms or [])
+-
+-
+-def assess(config: dict, comparator_title: str, comparator_abstract: str = "") -> dict:
+-    inc = config.get("include", {})
+-    topic_terms = (config.get("intervention_terms") or []) + (inc.get("intervention_any") or [])
+-    class_terms = tuple(config.get("intervention_class_terms") or ()) + _CLASS_TERMS
+-    topic_is_class = _has_class(" ".join(topic_terms)) or _has_any(" ".join(topic_terms), class_terms)
+-    comparator_is_class = _has_class(comparator_title) or _has_any(comparator_title, class_terms)
+-    iv_level_match = not (comparator_is_class and not topic_is_class)
+-    pop = _has_any((comparator_title or "") + " " + (comparator_abstract or ""), inc.get("population_any") or [])
+-    valid = bool(iv_level_match and pop)
+-    if valid:
+-        note = "same-question comparator (matching intervention level and population)"
+-    elif not iv_level_match:
+-        note = ("comparator is a DRUG-CLASS meta-analysis while this topic is a single agent — a PICO "
+-                "scope mismatch (single-drug review vs class-level review); the k difference vs this "
+-                "comparator is a scope difference, not unretrieved evidence")
+-    else:
+-        note = "comparator population does not clearly match the topic"
+-    return {"topic_is_class": topic_is_class, "comparator_is_class": comparator_is_class,
+-            "intervention_level_match": iv_level_match, "population_match": pop,
+-            "scope_valid": valid, "note": note}
++AXES = ("population", "intervention_level", "comparator", "outcome", "design")
++
++
++def _known(value):
++    if not isinstance(value, str):
++        return None
++    value = " ".join(value.casefold().split())
++    if value in {"", "unknown", "not stated", "not reported", "not assessed",
++                 "unclear", "n/a", "none", "null", "?"}:
++        return None
++    return value
++
++
++def compare_pico(ours: dict | None, theirs: dict | None) -> dict:
++    ours = ours if isinstance(ours, dict) else {}
++    theirs = theirs if isinstance(theirs, dict) else {}
++    matches = {}
++    for axis in AXES:
++        left, right = _known(ours.get(axis)), _known(theirs.get(axis))
++        matches[axis] = ("UNKNOWN" if left is None or right is None else
++                         "MATCH" if left == right else "MISMATCH")
++    valid = all(status == "MATCH" for status in matches.values())
++    return {"axis_matches": matches, "scope_valid": valid,
++            "note": ("All PICO axes match." if valid else
++                     "Scope equivalence is not established: differing or unknown PICO axes.")}
++
++
++def assess(config: dict, comparator_title: str, comparator_abstract: str = "",
++           comparator_pico: dict | None = None) -> dict:
++    # Keep the bibliographic arguments for callers; they are not PICO evidence.
++    return compare_pico(config.get("pico"), comparator_pico)
+diff --git a/tests/test_class_C2.py b/tests/test_class_C2.py
+new file mode 100644
+index 0000000..1087ea7
+--- /dev/null
++++ b/tests/test_class_C2.py
+@@ -0,0 +1,93 @@
++"""C2: scope verdicts require five known, matching PICO axes."""
++import copy
++import json
++from pathlib import Path
++
++import pytest
++
++from harness.page import _comparator
++from harness.scope import AXES, assess, compare_pico
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++def affirmative(markup):
++    return "same question.</strong>" in markup
++
++
++def test_plant_keyword_match_without_comparator_pico():
++    config = {"intervention_terms": ["colchicine"],
++              "include": {"intervention_any": ["colchicine"],
++                          "population_any": ["pericarditis"]}}
++    title = "Colchicine for pericarditis: systematic review"
++    result = assess(config, title, "")
++    assert result["scope_valid"] is False
++    review = {"comparator": {"name": title, "scope": {
++        "scope_valid": True, "topic_is_class": False,
++        "comparator_is_class": False, "intervention_level_match": True,
++        "population_match": True}}}
++    assert not affirmative(_comparator(review, False))
++
++
++def matching_review():
++    # Constructed scope descriptions, not claims about any served review.
++    pico = {"population": "adults", "intervention_level": "single agent",
++            "comparator": "placebo", "outcome": "symptom resolution",
++            "design": "double-blind randomized trials"}
++    return {"pico": pico, "comparator": {"name": "Constructed comparator",
++            "pico": dict(pico), "scope": {"scope_valid": True}}}
++
++
++def test_complete_match():
++    review = matching_review()
++    assert assess(review, "", comparator_pico=review["comparator"]["pico"])["scope_valid"]
++    assert affirmative(_comparator(review, False))
++
++
++@pytest.mark.parametrize("axis", AXES)
++@pytest.mark.parametrize("side", ["ours", "theirs"])
++@pytest.mark.parametrize("value", ["different scope", None, "", "unknown", {}])
++def test_each_axis_must_be_known_and_equal(axis, side, value):
++    review = matching_review()
++    pico = review["pico"] if side == "ours" else review["comparator"]["pico"]
++    if value is None:
++        del pico[axis]
++    else:
++        pico[axis] = value
++    derived = compare_pico(review["pico"], review["comparator"]["pico"])
++    assert derived["scope_valid"] is False
++    assert derived["axis_matches"][axis] != "MATCH"
++    assert not affirmative(_comparator(review, False))
++
++
++def test_equal_unknowns_do_not_match_and_negative_override_is_preserved():
++    review = matching_review()
++    review["pico"]["design"] = review["comparator"]["pico"]["design"] = "unknown"
++    assert not affirmative(_comparator(review, False))
++    review = matching_review()
++    review["comparator"]["scope"] = {"scope_valid": False, "note": "comparator invalid"}
++    markup = _comparator(review, False)
++    assert "COMPARATOR INVALID" in markup
++    assert not affirmative(markup)
++
++
++def test_sweep_served_reviews():
++    paths = sorted((ROOT / "docs" / "reviews").glob("*/review.json"))
++    assert len(paths) == 32
++    before = after = 0
++    for path in paths:
++        review = json.loads(path.read_text(encoding="utf-8"))
++        original = copy.deepcopy(review)
++        old_markup = path.with_name("index.html").read_text(encoding="utf-8")
++        before += affirmative(old_markup)
++        markup = _comparator(review, False)
++        assert "Scope match (is this the same question?)" in markup, path.parent.name
++        derived = compare_pico(review.get("pico"), review["comparator"].get("pico"))
++        unsupported = affirmative(markup) and not derived["scope_valid"]
++        after += unsupported
++        assert not unsupported, path.parent.name
++        for axis, status in derived["axis_matches"].items():
++            assert f"{axis.replace('_', ' ')}: {status}" in markup, path.parent.name
++        assert review == original  # Rendering cannot change any stored results.
++    assert before == 22
++    assert after == 0

@@ -1,0 +1,35 @@
+{
+ "class": "C8",
+ "record_id": "mc-dfe8deb8743c665c7bf24f81bcd2b823",
+ "state": "RAN_OK",
+ "error": null,
+ "review": {
+  "verdict": "REJECT",
+  "findings": [
+   {
+    "severity": "P0",
+    "file": "harness/page.py",
+    "issue": "The regex replacement on `reason` can wipe out SERVED NUMBERs (like counts or estimates) embedded in extraction-only notes if they contain common words like 'exclu'.",
+    "evidence": "Lines 49-54: `re.search(r\"...|exclu|...\", reason, re.I)` overwrites the entire reason string with a generic message.",
+    "fix": "Remove the blanket regex replacement. Fix the upstream generator to structure scope decisions properly instead of masking them at render time."
+   },
+   {
+    "severity": "P1",
+    "file": "harness/page.py",
+    "issue": "Hardcodes specific phrases observed in previous errors rather than fixing the generator universally so the rule holds for every review.",
+    "evidence": "Lines 51-52: Hardcoded regex checks for instances like `chronic.only`, `chronic.HFrEF`, `broader composite`, and `non-standard composite`.",
+    "fix": "Remove the hardcoded list of seen instances. Rely on structural metadata universally without regex fallbacks."
+   },
+   {
+    "severity": "P0",
+    "file": "harness/page.py",
+    "issue": "Silently deletes 'both policies are declared; ' from the HTML rendering of disputed refusals, leading to wrong served output.",
+    "evidence": "Line 65: The modified f-string in `_reproduction` drops 'both policies are declared; ' immediately preceding 'decision owed to'.",
+    "fix": "Restore the 'both policies are declared; ' text in the template f-string."
+   }
+  ],
+  "parts_read": [
+   "CANARY-c5527c000a58"
+  ]
+ }
+}
