@@ -1,0 +1,174 @@
+{
+  "class_id": "C2",
+  "generators": [
+    {
+      "file": "harness/scope.py:30-49",
+      "function": "assess",
+      "reads": "Reads topic configuration intervention_terms, intervention_class_terms, include.intervention_any and include.population_any, plus comparator title/abstract. Does not read a comparator PICO object or compare comparator, outcome or design axes. Population matching is keyword presence; intervention matching is asymmetric.",
+      "code_quote": "iv_level_match = not (comparator_is_class and not topic_is_class)\npop = _has_any((comparator_title or \"\") + \" \" + (comparator_abstract or \"\"), inc.get(\"population_any\") or [])\nvalid = bool(iv_level_match and pop)\nif valid:\n    note = \"same-question comparator (matching intervention level and population)\"\n...\nreturn {\"topic_is_class\": topic_is_class, \"comparator_is_class\": comparator_is_class,\n        \"intervention_level_match\": iv_level_match, \"population_match\": pop,\n        \"scope_valid\": valid, \"note\": note}"
+    },
+    {
+      "file": "harness/pipeline.py:2324-2332",
+      "function": "build_review_core",
+      "reads": "Constructs review.comparator.scope from the protocol configuration and comparator bibliographic title/abstract. An invalid-scope override can force a negative verdict.",
+      "code_quote": "comp_scope = scope.assess(config, comp_rec.get(\"title\") or \"\", comp_abstract)\nif invalid_note := parity_relation.invalid_scope_override(ROOT, slug):\n    comp_scope = {**comp_scope, \"scope_valid\": False, \"note\": invalid_note}\n...\n\"scope\": comp_scope,"
+    },
+    {
+      "file": "harness/page.py:2130-2158",
+      "function": "_comparator",
+      "reads": "Reads review.comparator.scope.scope_valid, note, intervention-level fields and population_match. Directly trusts scope_valid. This block renders before comparator_panel.render, so having a held-document panel does not replace or validate this verdict.",
+      "code_quote": "sc = c.get(\"scope\") or {}\nif sc:\n    note_l = str(sc.get(\"note\") or \"\").lower()\n    if sc.get(\"scope_valid\"):\n        v = \"✓ same question\"\n    elif \"comparator invalid\" in note_l:\n        v = \"COMPARATOR INVALID\"\n    else:\n        v = \"⚠ SCOPE MISMATCH\"\n...\nbody += (\"<h4>Scope match (is this the same question?)</h4>\"\n         f\"<p><strong>{v}.</strong> Intervention level: topic is {_e(topic_level)}, \"\n         f\"comparator is {_e(comp_level)} \"\n         f\"(match: {_e(sc.get('intervention_level_match'))}); population match: {_e(sc.get('population_match'))}. \""
+    }
+  ],
+  "instances": [
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "Affirmative verdict without a comparator PICO object. The two heuristic flags do not establish population equivalence or comparator, outcome and design matches."
+    },
+    {
+      "slug": "colchicine-recurrent-pericarditis",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object. Matching 'pericarditis' does not establish compliance with the protocol's population exclusions, placebo comparison and double-blind design restriction. The served comparator is the 2012 review."
+    },
+    {
+      "slug": "colchicine-secondary-cv-prevention",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object. Additional quantity/treatment/outcome annotations exist, but this verdict does not derive five-axis equality from them; design equality is not established."
+    },
+    {
+      "slug": "corticosteroids-cap-mortality",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "No comparator PICO object; population keywords and intervention-class labels cannot establish all five required axes."
+    },
+    {
+      "slug": "corticosteroids-covid19-mortality",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "No comparator PICO object; comparator, outcome and design equality are not checked by the verdict generator."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "No comparator PICO object. Additional comparison annotations are not inputs to this verdict and do not supply its missing five-axis derivation."
+    },
+    {
+      "slug": "dpp4-mace-t2d",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is a single agent (match: True); population match: True.",
+      "why": "The displayed intervention levels themselves differ, yet the verdict says match. The asymmetric rule permits a class-level topic against a comparator classified as a single agent. No comparator PICO object supplies the other axes."
+    },
+    {
+      "slug": "esketamine-trd-madrs",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object. Additional comparison annotations do not control this verdict; five-axis equality, including design, is unestablished."
+    },
+    {
+      "slug": "finerenone-ckd-t2d-renal",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object. Comparator truth annotations do not replace the two-flag verdict with a five-axis comparison."
+    },
+    {
+      "slug": "glp1-ra-mace-t2d",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "No comparator PICO object. Additional comparison annotations are not used to derive this verdict across all required axes."
+    },
+    {
+      "slug": "iv-iron-hfref-hosp",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object; broad population keyword presence and intervention labels leave comparator, outcome and design equality unverified."
+    },
+    {
+      "slug": "melatonin-primary-insomnia-sol",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object; the affirmative verdict omits comparator, outcome and design comparisons and does not establish population equivalence."
+    },
+    {
+      "slug": "metformin-pcos-ovulation",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object. Additional comparison annotations do not provide the five-axis derivation used by this verdict."
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "No comparator PICO object. The verdict still depends on two heuristic flags, despite additional comparison annotations."
+    },
+    {
+      "slug": "omega3-cardiovascular-events",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is intervention_class, comparator is intervention_class (match: True); population match: True.",
+      "why": "No comparator PICO object. Explicit intervention-class labels and other comparison annotations do not establish all five axes for this verdict."
+    },
+    {
+      "slug": "pcsk9-mace",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "No comparator PICO object. Truth annotations do not cause the verdict to compare population, intervention, comparator, outcome and design."
+    },
+    {
+      "slug": "semaglutide-obesity-weight",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object; unchecked comparator, outcome and design axes cannot support the affirmative verdict."
+    },
+    {
+      "slug": "sglt2-hfref-hosp-cvdeath",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "No comparator PICO object. Comparator truth annotations do not supply the missing five-axis derivation."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "No comparator PICO object. Matching heuristic class labels does not establish intervention scope equality or the other required axes."
+    },
+    {
+      "slug": "ticagrelor-vs-clopidogrel-acs",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object; comparator, outcome and design equality are not assessed by the affirmative verdict generator."
+    },
+    {
+      "slug": "tocilizumab-covid19-mortality",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is class-level, comparator is class-level (match: True); population match: True.",
+      "why": "No comparator PICO object; heuristic class and population matches do not establish all five required axes."
+    },
+    {
+      "slug": "tranexamic-acid-pph",
+      "tab": "Comparison with published meta-analysis (#tab-comparator)",
+      "page_quote": "✓ same question. Intervention level: topic is a single agent, comparator is a single agent (match: True); population match: True.",
+      "why": "No comparator PICO object. There is also a concrete outcome difference in the supplied objects: the protocol targets 'Death due to bleeding', while comparator.reported names 'Life-threatening postpartum bleeding'. The generator ignores that difference."
+    }
+  ],
+  "clean_slugs": [
+    "colchicine-postop-af",
+    "dapagliflozin-hfpef-hosp",
+    "denosumab-vertebral-fracture",
+    "empagliflozin-hfpef-hosp",
+    "probiotics-aad-prevention",
+    "sacubitril-valsartan-hfref",
+    "semaglutide-obesity-mace",
+    "sglt2-ckd-progression",
+    "sglt2-primary-prevention-hf",
+    "statins-primary-prevention-elderly"
+  ],
+  "changes_served_number": false,
+  "number_change_why": "The minimal correction changes scope metadata, verdicts and explanatory wording. It requires no changes to estimates, CIs, counts, k, trial membership or pooling, and introduces no new numeric outputs. This is a proposed correction; no files were modified.",
+  "fix": "Replace scope.assess's title/abstract heuristic with a shared deterministic comparison of our protocol PICO and the comparator's independently source-backed PICO. Store each axis as MATCH, DIFFERENT or UNKNOWN, with its evidence. Require all five axes to be MATCH before scope_valid=True; use symmetric intervention-level equality. Render SCOPE MISMATCH for a known difference and SCOPE UNKNOWN for incomplete evidence. Missing comparator PICO must fail closed. Have page._comparator use the shared derivation rather than trusting a legacy scope_valid=True flag. Wire the comparator PICO through build_review_core; do not infer it by copying ours. Static inputs: protocol definitions, axis schema and source-backed comparator PICO. Dynamic outputs: axis comparisons, aggregate verdict and explanation. Keep numeric calculations and evidence membership unchanged.",
+  "plant": "Proposed test: test_missing_comparator_pico_cannot_render_same_question. Build config={'intervention_terms':['colchicine'],'include':{'population_any':['pericarditis'],'intervention_any':['colchicine'],'comparator_any':['placebo'],'design_double_blind':True},'primary_outcome':{'name':'Recurrent pericarditis'}}. Set title='Colchicine for pericarditis: systematic review'; build review={'comparator':{'name':title,'scope':assess(config,title,'')}} with no comparator PICO. Exact assertions: assert review['comparator']['scope']['scope_valid'] is False; markup=_comparator(review,False); assert 'same question.</strong>' not in markup. Read-only execution confirmed today's assessor returns True and today's renderer violates the latter assertion. After the fix, absent comparator PICO must satisfy both assertions. Extend coverage with a complete matching PICO, then independently change or remove each of the five axes: only the complete all-MATCH case may render the affirmative verdict.",
+  "undetermined": "Swept all 32 reviews/*/index.html and their review.json objects: 22 unsupported affirmative verdicts, nine SCOPE MISMATCH verdicts and one COMPARATOR INVALID. 'Clean' means no affirmative C2 occurrence on that served page; it does not certify that the ten negative verdicts have compliant five-axis provenance. None of the served comparator objects or panel entries supplies a comparator PICO object. The cache directory is absent, so referenced held source documents could not be checked; I cannot establish the actual clinical scope of every comparator or independently confirm the reported population/design breadth of the 2012 pericarditis meta-analysis. Tranexamic acid's currently served comparator is dated 2024, not 2012. No corrected implementation or post-fix test was run. harness/review_tabs.py, harness/comparator_panel.py and harness/index.py were inspected; the quoted scope verdict originates in scope.assess and page._comparator."
+}

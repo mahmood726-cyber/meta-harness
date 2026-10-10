@@ -1,0 +1,225 @@
+{
+  "class_id": "C5",
+  "generators": [
+    {
+      "file": "harness/manuscript.py:170",
+      "function": "forest_for",
+      "reads": "outcomes[].trials: label, scale, effect, ci_low, ci_high, ai, n1i, ci, n2i, mean1, mean2. outcomes[].result: scale, suppressed_incompatible, estimate, ci_low, ci_high, k, effect_label; outcome.estimand. It does not use the arm SDs/sample sizes to construct missing study CIs.",
+      "code_quote": "scale = (res.get(\"scale\") or prim.get(\"estimand\") or \"\").upper()\nis_ratio = scale in (\"HR\", \"RR\", \"OR\", \"IRR\") or scale.startswith(\"MIXED\")\n...\ne, lo, hi = t.get(\"effect\"), t.get(\"ci_low\"), t.get(\"ci_high\")\n...\nif e is None and t.get(\"mean1\") is not None:\n    e = t[\"mean1\"] - t[\"mean2\"]\n    lo = hi = None\n...\nlo_x, hi_x = min(tx), max(tx)\n...\nnull = 1.0 if is_ratio else 0.0\n...\nif nx is not None and lo_x <= (math.log(null) if is_ratio else null) <= hi_x:\n    parts.append(f\"<line x1='{nx:.1f}' y1='{padT-6}' x2='{nx:.1f}' y2='{H-24}' stroke='#78909c' stroke-dasharray='3 3'/>\")\n...\nif lo is not None and hi is not None:\n    xl, xh = xpix(lo), xpix(hi)\n    parts.append(f\"<line x1='{xl:.1f}' y1='{y:.1f}' x2='{xh:.1f}' y2='{y:.1f}' stroke='#37474f'/>\")\n...\nif pooled[0] is not None and pooled[1] is not None:\n    y += rowh // 2\n    xc, xl, xh = xpix(pooled[0]), xpix(pooled[1]), xpix(pooled[2])\n    parts.append(f\"<polygon points='{xl:.1f},{y:.1f} {xc:.1f},{y-6:.1f} {xh:.1f},{y:.1f} {xc:.1f},{y+6:.1f}' fill='#b31412'/>\")"
+    },
+    {
+      "file": "harness/review_tabs.py:353",
+      "function": "_forest / analysis_tab",
+      "reads": "Each review.outcomes entry, subject to outcome gating and result.k.",
+      "code_quote": "def _forest(o: dict) -> str:\n    from . import manuscript\n    return manuscript.forest_for(o, label=f\"Forest plot: {o.get('name')}\")\n...\nfor o in r.get(\"outcomes\") or []:\n...\n    fp = _forest(o)\n    out.append(fp or _reason(\"forest plot\", \"no row of this outcome has a displayable effect.\"))"
+    },
+    {
+      "file": "harness/manuscript.py:164",
+      "function": "_forest / render",
+      "reads": "The first review.outcomes entry with primary=true; its trials and result. render also checks pool_refused and pooled_ci_refused for the caption.",
+      "code_quote": "return forest_for(_primary(review))\n...\nforest = _forest(review)\nforest_caption = (\"Forest plot of the primary outcome, rendered from the committed per-trial estimates.\"\n                  if res.get(\"pool_refused\") or res.get(\"pooled_ci_refused\") else\n                  \"Forest plot of the primary outcome, rendered from the committed per-trial estimates \"\n                  \"and the pooled result.\")"
+    },
+    {
+      "file": "harness/page.py:3010",
+      "function": "_R dispatch / _manuscript",
+      "reads": "Passes the review object to the Analysis and Manuscript renderers. comparator_panel.py and index.py do not generate these forest SVGs.",
+      "code_quote": "\"analysis\": lambda r, n: _review_tabs.analysis_tab(r),\n...\n\"manuscript\": _manuscript,\n...\ndef _manuscript(r, neutral):\n    return _manuscript_mod.render(r, neutral)"
+    }
+  ],
+  "instances": [
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Analysis; Manuscript (one occurrence in each)",
+      "page_quote": "35041780 (RR FROM COUNTS)",
+      "why": "One of two study whiskers is missing. Null line present. Diamond also absent because the pooled CI is explicitly refused under K2_SINGLE_DF."
+    },
+    {
+      "slug": "colchicine-postop-af",
+      "tab": "Analysis; Manuscript (one occurrence in each)",
+      "page_quote": "Pooled (k=3)",
+      "why": "Only one of three studies has a whisker; rows 32720823 and 25172965 show points without CIs. Null line and diamond present."
+    },
+    {
+      "slug": "colchicine-recurrent-pericarditis",
+      "tab": "Analysis — Recurrent pericarditis; Manuscript",
+      "page_quote": "0.44 [0.27, 0.73]",
+      "why": "One of two study whiskers missing (24694983); null=1 line absent. Diamond absent under K2_SINGLE_DF."
+    },
+    {
+      "slug": "colchicine-recurrent-pericarditis",
+      "tab": "Analysis — Symptom persistence at 72 hours",
+      "page_quote": "0.44 [0.26, 0.73]",
+      "why": "Study whisker and diamond present, but null=1 line absent."
+    },
+    {
+      "slug": "corticosteroids-cap-mortality",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "36942789",
+      "why": "Both study whiskers and null=1 line absent. Diamond absent under K2_SINGLE_DF."
+    },
+    {
+      "slug": "corticosteroids-covid19-mortality",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "0.86 [0.76, 0.97]",
+      "why": "The single study has no whisker; null=1 line absent. Quoted CI belongs to the diamond."
+    },
+    {
+      "slug": "dapagliflozin-hfpef-hosp",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "DELIVER",
+      "why": "Whisker and diamond present; null=1 line absent."
+    },
+    {
+      "slug": "denosumab-vertebral-fracture",
+      "tab": "Analysis — New vertebral fracture; Manuscript",
+      "page_quote": "0.32 [0.26, 0.41]",
+      "why": "Whisker and diamond present; null=1 line absent."
+    },
+    {
+      "slug": "denosumab-vertebral-fracture",
+      "tab": "Analysis — Nonvertebral fracture",
+      "page_quote": "0.8 [0.67, 0.95]",
+      "why": "Whisker and diamond present; null=1 line absent."
+    },
+    {
+      "slug": "denosumab-vertebral-fracture",
+      "tab": "Analysis — Hip fracture",
+      "page_quote": "0.6 [0.37, 0.97]",
+      "why": "Whisker and diamond present; null=1 line absent."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Analysis — Any bleeding",
+      "page_quote": "0.67 [0.56, 0.81]",
+      "why": "Both whiskers present; null=1 line absent. Diamond absent under K2_SINGLE_DF. Primary Analysis and Manuscript plots are clean."
+    },
+    {
+      "slug": "dpp4-mace-t2d",
+      "tab": "Analysis — Hospitalization for heart failure",
+      "page_quote": "1.27 [1.07, 1.51]",
+      "why": "Literal diamond-requirement failure only: both whiskers and null line present, but no diamond because K2_SINGLE_DF deliberately refuses the pooled CI. This is not an accidental whisker/null omission."
+    },
+    {
+      "slug": "empagliflozin-hfpef-hosp",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "EMPEROR Preserved, 2020",
+      "why": "Whisker and diamond present; null=1 line absent."
+    },
+    {
+      "slug": "esketamine-trd-madrs",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "Fedgchin 2019 (TRANSFORM-1)",
+      "why": "All four study whiskers and null=0 line absent. Diamond present; additive coordinate transformation is correct."
+    },
+    {
+      "slug": "finerenone-ckd-t2d-renal",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "0.82 [0.73, 0.93]",
+      "why": "Literal diamond-requirement failure only: both whiskers and null line present. Diamond deliberately absent under K2_SINGLE_DF."
+    },
+    {
+      "slug": "melatonin-primary-insomnia-sol",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "-17.4 [-28.52, -6.28]",
+      "why": "Single study whisker and null=0 line absent. Quoted CI belongs to the diamond."
+    },
+    {
+      "slug": "metformin-pcos-ovulation",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "2.07 [0.09, 46.6]",
+      "why": "All three study whiskers absent. Null line and diamond present."
+    },
+    {
+      "slug": "pcsk9-mace",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "0.8 [0.73, 0.88]",
+      "why": "Both whiskers present; null=1 line absent. Diamond absent under K2_SINGLE_DF."
+    },
+    {
+      "slug": "probiotics-aad-prevention",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "Pooled (k=13)",
+      "why": "Only six of thirteen study whiskers present. Missing for 32035998, 15740542, 11560298, 7872284, 21165295, 18026577 and 17604300. Null line and diamond present."
+    },
+    {
+      "slug": "sacubitril-valsartan-hfref",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "PARALLEL-HF",
+      "why": "Literal diamond-requirement failure only: both whiskers and null line present. DIRECTION_CONFLICT_K2 explicitly refuses the pooled row."
+    },
+    {
+      "slug": "semaglutide-obesity-mace",
+      "tab": "Analysis — 3-point major adverse cardiovascular events; Manuscript",
+      "page_quote": "0.8 [0.72, 0.9]",
+      "why": "Whisker and diamond present; null=1 line absent."
+    },
+    {
+      "slug": "semaglutide-obesity-mace",
+      "tab": "Analysis — Adverse events leading to permanent discontinuation",
+      "page_quote": "2.03 [1.87, 2.21]",
+      "why": "Study whisker and null=1 line absent. Quoted CI belongs to the diamond."
+    },
+    {
+      "slug": "semaglutide-obesity-weight",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "-10.3 [-12, -8.6]",
+      "why": "Both study whiskers present; null=0 line absent. Diamond absent under K2_SINGLE_DF."
+    },
+    {
+      "slug": "sglt2-ckd-progression",
+      "tab": "Analysis — Trial-defined primary cardiorenal composite; Manuscript",
+      "page_quote": "0.68 [0.55, 0.84]",
+      "why": "All three whiskers and diamond present; null=1 line absent."
+    },
+    {
+      "slug": "sglt2-ckd-progression",
+      "tab": "Analysis — Diabetic ketoacidosis",
+      "page_quote": "6 [0.72, 49.83]",
+      "why": "Study whisker absent. Null line and diamond present; quoted CI belongs to the diamond."
+    },
+    {
+      "slug": "sglt2-hfref-hosp-cvdeath",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "0.75 [0.65, 0.85]",
+      "why": "Both whiskers present; null=1 line absent. Diamond absent under K2_SINGLE_DF."
+    },
+    {
+      "slug": "sglt2-primary-prevention-hf",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "0.7 [0.58, 0.84]",
+      "why": "All four whiskers and diamond present; null=1 line absent."
+    },
+    {
+      "slug": "statins-primary-prevention-elderly",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "0.61 [0.46, 0.82]",
+      "why": "Both whiskers present; null=1 line absent. Diamond absent under K2_SINGLE_DF."
+    },
+    {
+      "slug": "ticagrelor-vs-clopidogrel-acs",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "PHILO",
+      "why": "Literal diamond-requirement failure only: both whiskers and null line present. DIRECTION_CONFLICT_K2 explicitly refuses the pooled row."
+    },
+    {
+      "slug": "tocilizumab-covid19-mortality",
+      "tab": "Analysis; Manuscript",
+      "page_quote": "1.12 [0.3, 4.25]",
+      "why": "All three study whiskers absent. Null line and diamond present."
+    }
+  ],
+  "clean_slugs": [
+    "colchicine-secondary-cv-prevention",
+    "glp1-ra-mace-t2d",
+    "iv-iron-hfref-hosp",
+    "noac-vs-warfarin-af-stroke",
+    "omega3-cardiovascular-events",
+    "spironolactone-hfref-mortality",
+    "tranexamic-acid-pph"
+  ],
+  "changes_served_number": true,
+  "number_change_why": "Completing missing study whiskers introduces study CI endpoints not currently served for those rows, even if calculated only during rendering. Esketamine, for example, stores arm means, SDs and sample sizes but null effect/ci_low/ci_high fields for all four studies. The fix need not change pooled estimates, pooled CIs, counts or k. Extending the axis and drawing the existing null value alone does not change an estimate, CI, count or k. Never restore deliberately refused pooled intervals merely to draw diamonds.",
+  "fix": "Fix manuscript.forest_for once for both tabs. Preserve reported study CIs; where absent, obtain the validated study effect and variance through the same measure/design-aware path used by synthesis (pipeline.py:1795–1815 and synth.Study.yi_vi), and derive a documented 95% study interval. For mean differences use additive coordinates; for ratios use log coordinates and back-transform interval endpoints. Respect continuity corrections and design refusals rather than duplicating the renderer's incomplete count arithmetic. Include the transformed null in the axis domain before calculating bounds, add a small margin, and always draw its vertical line. Keep diamonds for valid complete pooled results. For explicit pool/CI refusals, visibly declare the diamond unavailable; the unconditional diamond rule needs that exception, or the entire refused forest must be replaced with an explicit unavailable block. Do not substitute an unserved HKSJ interval or common-effect sensitivity. Static inputs: confidence level, null definitions and layout constants. Dynamic inputs: study effects/variances/CIs, pooled result, scale and refusal state.",
+  "plant": "Proposed regression test test_c5_forest_contract builds its outcome from the primary entry of reviews/esketamine-trd-madrs/review.json and calls manuscript.forest_for. Parse the returned SVG with xml.etree.ElementTree. Exact assertions: len([l for l in svg.findall('line') if l.get('y1') == l.get('y2')]) == len(outcome['trials']) == 4; len([l for l in svg.findall('line') if l.get('x1') == l.get('x2') and l.get('y1') != l.get('y2')]) == 1; len(svg.findall('polygon')) == 1. Assert each whisker's endpoints match the affine additive mapping of mean1-mean2 ± 1.959963984540054*sqrt(sd1**2/nc1 + sd2**2/nc2), within 0.11 SVG pixels, and that the null line maps to zero inside the plot bounds. Add a ratio case built from the primary dapagliflozin-hfpef-hosp outcome: assert one vertical null line at the log-coordinate of 1, one study whisker, one diamond, and endpoint positions matching log(0.73) and log(0.92). Add count-derived RR/OR cases from served outcomes to verify the synthesis variance path, and refusal cases asserting no invented diamond plus explicit explanation. Read-only baseline execution confirmed esketamine has 0 horizontal lines versus 4 required and 0 vertical lines versus 1 required. The proposed test therefore fails today; no fix was applied or post-fix pass claimed.",
+  "undetermined": "Swept all 32 served index.html files: 69 forest SVGs. Missing whiskers affect 22 SVGs; missing null lines affect 35; their union is 46 SVGs on 21 pages. Under the literal rule including diamonds, 53 SVGs on 25 pages fail, leaving the seven clean slugs listed above. iv-iron-hfref-hosp contains no forest SVG and is clean only by non-occurrence. The four additional diamond-only pages are explicitly identified in instances; all 22 absent diamonds correspond to deliberate pooled-result/CI refusals. No separate incorrect ratio-versus-additive coordinate transformation was found. Quotes are verbatim SVG text from the served pages; entries listing two tabs enumerate one occurrence in each. I could not determine whether the unconditional diamond requirement was intended to override these explicit refusal policies; doing so is not a safe rendering-only fix. I did not independently validate study identifiers or arm data against original publications, perform browser visual QA, or validate newly derived intervals. No files were modified; this supplied directory is not a Git repository and contains no tests directory."
+}

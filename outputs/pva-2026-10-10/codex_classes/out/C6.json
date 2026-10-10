@@ -1,0 +1,252 @@
+{
+  "class_id": "C6",
+  "generators": [
+    {
+      "file": "harness/pipeline.py:1914",
+      "function": "_build_outcome",
+      "reads": "The contributing effects' compatibility verdict. It records the mixed labels but leaves result.scale as HR.",
+      "code_quote": "elif _compat[\"status\"] == \"compatible_labels\":\n    # one compatibility class, >1 label: keep the pooled ratio scale, disclose the label mix\n    out[\"result\"][\"scale_mixed\"] = _compat[\"labels\"]"
+    },
+    {
+      "file": "harness/page.py:817",
+      "function": "_overview",
+      "reads": "Primary outcome result.scale, falling back to primary.estimand; delegates estimate text to _effect_rows and _common_effect_row.",
+      "code_quote": "(\"Estimand\", res.get(\"scale\") or prim.get(\"estimand\")),\n...\nrows.extend(_effect_rows(res))\nif res.get(\"ci_low_fixed\") is not None:\n    rows.append(_common_effect_row(res))"
+    },
+    {
+      "file": "harness/page.py:1799",
+      "function": "_outcome_block",
+      "reads": "Outcome result.scale and estimand; the same estimate-formatting helpers used by Overview.",
+      "code_quote": "(\"Estimand\", res.get(\"scale\") or o.get(\"estimand\")),\n...\nrows.extend(_effect_rows(res))\ncerow = _common_effect_row(res)"
+    },
+    {
+      "file": "harness/page.py:329",
+      "function": "_ci",
+      "reads": "result.estimate, scale, ci_low and ci_high. Ignores scale_mixed and estmeasure.",
+      "code_quote": "return f\"{_num(res.get('estimate'))} ({res.get('scale')}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}\""
+    },
+    {
+      "file": "harness/page.py:387",
+      "function": "_effect_rows",
+      "reads": "result.pooled_ci_refused, estimate and scale; otherwise uses effect_label for the heading but _ci for the value.",
+      "code_quote": "if res.get(\"pooled_ci_refused\"):\n    return [\n        (\"Pooled point estimate (registered CI refused)\",\n         f\"{_num(res.get('estimate'))} ({_e(res.get('scale'))}); no pooled significance/null-crossing claim\"),\n        (\"Registered PM/HKSJ CI\", _registered_ci_refusal_text(res)),\n    ]\nreturn [(_effect_label(res), _ci(res))]"
+    },
+    {
+      "file": "harness/page.py:397",
+      "function": "_common_effect_row",
+      "reads": "result.estimate_fixed, scale, ci_low_fixed and ci_high_fixed.",
+      "code_quote": "txt = (f\"{_num(res.get('estimate_fixed'))} ({res.get('scale')}), 95% CI \"\n       f\"{_num(res.get('ci_low_fixed'))}-{_num(res.get('ci_high_fixed'))}\")"
+    },
+    {
+      "file": "harness/manuscript.py:279",
+      "function": "render",
+      "reads": "Primary result.scale, k, estimate and CI fields. Reuses result_sentence in both abstract Results and the Results subsection.",
+      "code_quote": "scale = res.get(\"scale\") or prim.get(\"estimand\") or \"effect\"\n...\nf\"Pooling {k} trials retained the point estimate ({scale} {est}), but the registered PM/HKSJ \"\n...\nresult_sentence = (f\"Pooling {_k_phrase(prim)} gave {scale} {est} (95% CI {lo} to {hi}), \"\n                   f\"random-effects (Paule-Mandel with a Hartung-Knapp interval).{pi}\")"
+    },
+    {
+      "file": "harness/endpoint_canonical.py:262",
+      "function": "effect_label",
+      "reads": "result.estmeasure.status/classes and contributing label counts. This existing generator correctly supplies mixed-pool headings.",
+      "code_quote": "if em.get(\"status\") != \"compatible_labels\":\n    return None\n...\nFIRST_EVENT_RATIO: \"pooled first-event ratio\",\n...\ndetail = \" + \".join(f\"{counts[lab]} {lab}\" for lab in labels)\nreturn f\"{prefix} ({detail})\" if detail else prefix"
+    },
+    {
+      "file": "harness/manuscript.py:258",
+      "function": "forest_for",
+      "reads": "result.effect_label before scale. Analysis calls this through review_tabs._forest; these four mixed-pool axes are correctly labelled.",
+      "code_quote": "_axis = res.get(\"effect_label\") or scale or \"effect\""
+    }
+  ],
+  "instances": [
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Overview",
+      "page_quote": "Estimand HR",
+      "why": "Mortality combines HR and RR; the pooled estimand row names only HR."
+    },
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Overview",
+      "page_quote": "Pooled point estimate (registered CI refused) 0.98 (HR); no pooled significance/null-crossing claim",
+      "why": "The mixed HR/RR pooled point estimate is labelled HR."
+    },
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Overview",
+      "page_quote": "Common-effect sensitivity (z-based; not the registered interval) 0.98 (HR), 95% CI 0.92-1.04",
+      "why": "The common-effect pool uses the same mixed inputs but is labelled HR."
+    },
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Results (tab-outcomes)",
+      "page_quote": "Estimand HR",
+      "why": "The mortality pool's estimand row collapses HR/RR to HR."
+    },
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Results (tab-outcomes)",
+      "page_quote": "Pooled point estimate (registered CI refused) 0.98 (HR); no pooled significance/null-crossing claim",
+      "why": "The mixed pooled point estimate is labelled HR."
+    },
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Results (tab-outcomes)",
+      "page_quote": "Common-effect sensitivity (z-based; not the registered interval) 0.98 (HR), 95% CI 0.92-1.04",
+      "why": "The mixed common-effect estimate is labelled HR."
+    },
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Manuscript — abstract Results",
+      "page_quote": "Results. Pooling 2 trials retained the point estimate (HR 0.98)",
+      "why": "The abstract describes the HR/RR pooled estimate as HR."
+    },
+    {
+      "slug": "balanced-crystalloids-vs-saline-mortality",
+      "tab": "Manuscript — Results subsection",
+      "page_quote": "Pooling 2 trials retained the point estimate (HR 0.98)",
+      "why": "A second rendering of the same misleading result sentence."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Overview",
+      "page_quote": "Estimand HR",
+      "why": "The primary recurrence pool combines five HR inputs and one RR."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Overview",
+      "page_quote": "pooled first-event ratio (5 HR + 1 RR) 0.91 (HR), 95% CI 0.75–1.1",
+      "why": "The heading discloses the mixture, but the value is still explicitly labelled HR."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Results (tab-outcomes)",
+      "page_quote": "Estimand HR",
+      "why": "The primary pool's estimand row names only HR despite its RR input."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Results (tab-outcomes)",
+      "page_quote": "pooled first-event ratio (5 HR + 1 RR) 0.91 (HR), 95% CI 0.75–1.1",
+      "why": "The estimate's HR suffix contradicts the mixed-measure heading."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Manuscript — abstract Results",
+      "page_quote": "Results. Pooling 6 trials gave HR 0.91 (95% CI 0.75 to 1.1)",
+      "why": "The mixed recurrence estimate is described as HR."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Manuscript — Results subsection",
+      "page_quote": "Pooling 6 trials gave HR 0.91 (95% CI 0.75 to 1.1)",
+      "why": "A second rendering of the mixed estimate as HR."
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "tab": "Overview",
+      "page_quote": "Estimand HR",
+      "why": "The stroke/systemic-embolism pool combines three HR inputs and one RR."
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "tab": "Overview",
+      "page_quote": "pooled first-event ratio (3 HR + 1 RR) 0.81 (HR), 95% CI 0.66–0.98",
+      "why": "The estimate retains an HR suffix despite the mixed heading."
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "tab": "Results (tab-outcomes)",
+      "page_quote": "Estimand HR",
+      "why": "The mixed primary pool is assigned a single-measure estimand label."
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "tab": "Results (tab-outcomes)",
+      "page_quote": "pooled first-event ratio (3 HR + 1 RR) 0.81 (HR), 95% CI 0.66–0.98",
+      "why": "The value is labelled HR although its inputs include RR."
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "tab": "Manuscript — abstract Results",
+      "page_quote": "Results. Pooling 4 trials gave HR 0.81 (95% CI 0.66 to 0.98)",
+      "why": "The mixed primary estimate is described as HR."
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "tab": "Manuscript — Results subsection",
+      "page_quote": "Pooling 4 trials gave HR 0.81 (95% CI 0.66 to 0.98)",
+      "why": "A second rendering of the mixed estimate as HR."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Overview",
+      "page_quote": "Estimand HR",
+      "why": "The mortality pool combines two HR inputs and one RR."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Overview",
+      "page_quote": "pooled first-event ratio (2 HR + 1 RR) 0.88 (HR), 95% CI 0.29–2.63",
+      "why": "The mixed heading is followed by an incorrect HR-only estimate label."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Results (tab-outcomes)",
+      "page_quote": "Estimand HR",
+      "why": "The mixed mortality pool's estimand row names only HR."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Results (tab-outcomes)",
+      "page_quote": "pooled first-event ratio (2 HR + 1 RR) 0.88 (HR), 95% CI 0.29–2.63",
+      "why": "The pooled value is labelled HR despite its RR contribution."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Manuscript — abstract Results",
+      "page_quote": "Results. Pooling 3 trials gave HR 0.88 (95% CI 0.29 to 2.63)",
+      "why": "The mixed mortality estimate is described as HR."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Manuscript — Results subsection",
+      "page_quote": "Pooling 3 trials gave HR 0.88 (95% CI 0.29 to 2.63)",
+      "why": "A second rendering of the mixed estimate as HR."
+    }
+  ],
+  "clean_slugs": [
+    "colchicine-postop-af",
+    "colchicine-recurrent-pericarditis",
+    "colchicine-secondary-cv-prevention",
+    "corticosteroids-cap-mortality",
+    "corticosteroids-covid19-mortality",
+    "dapagliflozin-hfpef-hosp",
+    "denosumab-vertebral-fracture",
+    "dpp4-mace-t2d",
+    "empagliflozin-hfpef-hosp",
+    "esketamine-trd-madrs",
+    "finerenone-ckd-t2d-renal",
+    "glp1-ra-mace-t2d",
+    "iv-iron-hfref-hosp",
+    "melatonin-primary-insomnia-sol",
+    "metformin-pcos-ovulation",
+    "omega3-cardiovascular-events",
+    "pcsk9-mace",
+    "probiotics-aad-prevention",
+    "sacubitril-valsartan-hfref",
+    "semaglutide-obesity-mace",
+    "semaglutide-obesity-weight",
+    "sglt2-ckd-progression",
+    "sglt2-hfref-hosp-cvdeath",
+    "sglt2-primary-prevention-hf",
+    "statins-primary-prevention-elderly",
+    "ticagrelor-vs-clopidogrel-acs",
+    "tocilizumab-covid19-mortality",
+    "tranexamic-acid-pph"
+  ],
+  "changes_served_number": false,
+  "number_change_why": "The proposed correction changes display labels only. Preserve result.scale for numerical computation, all estimates, intervals, counts, k, and suppression decisions. In particular, balanced-crystalloids' refused registered CI stays absent; its already-served common-effect CI stays unchanged.",
+  "fix": "Sweep: 32/32 served review pages checked; 4 affected, 28 clean; 26 offending rendered occurrences enumerated above. Add one shared display_measure(result) helper that inspects estmeasure and scale_mixed rather than trusting scale or a precomputed effect_label alone. For these pools return 'mixed HR/RR; FIRST_EVENT_RATIO', using dynamically derived labels/classes. Use it in page._ci, _effect_rows, _common_effect_row, both Estimand rows, and manuscript.render's pooled-result wording. Reuse it for forest-axis fallback and any future pooled-estimate consumer. Keep incompatible/suppressed pools gated. Do not replace the computational scale: GRADE and forest transformations inspect it. No additional single-measure propagation was found in the served Analysis axes, canonical-claim table, GRADE text or comparator panel. Protocol target-scale decisions and individual-trial/source quotations are not pooled-estimate labels. Ticagrelor's mixed major-bleeding pool is suppressed by harms_synthesis_suppressed; corticosteroids-CAP and IV-iron suppress their incompatible pools.",
+  "plant": "Build a regression fixture by deep-copying the served balanced-crystalloids-vs-saline-mortality primary result, preserving scale='HR', scale_mixed=['HR','RR'], estmeasure.status='compatible_labels', classes=['FIRST_EVENT_RATIO'], estimate=0.9774 and its existing pooled_ci_refused object. Exact assertion: assert page._effect_rows(result)[0][1] == '0.98 (mixed HR/RR; FIRST_EVENT_RATIO); no pooled significance/null-crossing claim'. Executed read-only against today's generator: FAIL; actual is '0.98 (HR); no pooled significance/null-crossing claim'. Add a companion assertion for a copied DOAC result: assert page._ci(result) == '0.91 (mixed HR/RR; FIRST_EVENT_RATIO), 95% CI 0.75–1.1'. Integration coverage should render the four affected objects and assert the shared display label occurs in both Estimand cells, each pooled-value cell and both manuscript result passages, while numerical fields remain deeply equal and refused CIs remain unserved. The fixtures contain copied served data, not invented research results.",
+  "undetermined": "No files were modified. A corrected implementation and post-fix test pass were not produced because this was a read-only review. The supplied workspace contains harness/, topics/ and reviews/, but no served portfolio-level index.html or its supporting docs/registries, so a verbatim portfolio-index instance cannot be established. index.build_index was inspected: its review table reads manifest title, served_method, comparator and overlap, rather than directly formatting result.scale; other banners depend on missing external documents. The findings concern the supplied served snapshot, not an independently checked live deployment or validation of the underlying scientific appropriateness of pooling HR with RR. Page quotations are rendered text with HTML markup removed."
+}

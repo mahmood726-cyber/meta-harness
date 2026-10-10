@@ -1,0 +1,224 @@
+{
+  "class_id": "C4",
+  "generators": [
+    {
+      "file": "harness/pipeline.py:1944–1958",
+      "function": "_build_outcome",
+      "reads": "Builds outcomes[].result.leave_one_out from the admitted studies, pooled_scale, and result.k/estimate/pool_refused. It computes each omitted-study pool but discards its CI.",
+      "code_quote": "r = _pool_result(sub, scale=pooled_scale)\nloo.append({\"dropped\": studies[j].label, \"estimate\": r.get(\"estimate\")})\n\n\"per_trial\": loo,\n\"note\": \"each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.\"}"
+    },
+    {
+      "file": "harness/pipeline.py:849–857",
+      "function": "_pool_result",
+      "reads": "The canonical synth.pool result. HKSJ interval endpoints and provenance already exist here before the LOO builder discards them.",
+      "code_quote": "r = pool(studies, scale=scale, require_study_effect=require_study_effect)\n\nres = {\"k\": r.k, \"estimate\": _rf(r.estimate, 4), \"scale\": r.scale,\n       \"ci_low\": _rf(r.ci_low, 4), \"ci_high\": _rf(r.ci_high, 4), \"tau2\": _rf(r.tau2, 5),\n       \"Q\": _rf(r.Q, 5), **({\"i2\": _rf(i2, 1)} if i2 is not None else {}),\n       \"ci_provenance\": r.ci_provenance}"
+    },
+    {
+      "file": "harness/review_tabs.py:402–408",
+      "function": "analysis_tab",
+      "reads": "outcomes[].result.leave_one_out: note, per_trial[].dropped/estimate, min, max, most_influential. No interval fields are rendered.",
+      "code_quote": "loo = res.get(\"leave_one_out\") or {}\nif loo.get(\"per_trial\"):\n    out.append(\"<p>Leave-one-out: \" + _e(loo.get(\"note\")) + \"</p><table class='recs'><tr><th>Trial dropped</th>\"\n               \"<th>Re-pooled estimate</th></tr>\"\n               + \"\".join(f\"<tr><td>{_e(x.get('dropped'))}</td><td>{_fmt(x.get('estimate'))}</td></tr>\" for x in loo[\"per_trial\"])\n               + f\"</table><p class='muted'>Range {_fmt(loo.get('min'))} to {_fmt(loo.get('max'))}; most influential: \"\n               f\"{_e(loo.get('most_influential'))}.</p>\")"
+    },
+    {
+      "file": "harness/page.py:1713–1721; caller at 1844",
+      "function": "_loo_text, called by _outcome_block",
+      "reads": "outcomes[].result.leave_one_out.min/max/most_influential/note. Results & conclusions repeats the point-only interpretation.",
+      "code_quote": "if loo.get(\"min\") is not None:\n    return (f\"estimate ranges {_num(loo.get('min'))}–{_num(loo.get('max'))} across single-trial drops; \"\n            f\"most influential: {_e(loo.get('most_influential'))}. \"\n            + _e(loo.get(\"note\", \"\")))\n\n(\"Leave-one-out (influence)\", _loo_text(res.get(\"leave_one_out\"))),"
+    }
+  ],
+  "instances": [
+    {
+      "slug": "colchicine-postop-af",
+      "tab": "Analysis",
+      "page_quote": "Range 0.5558 to 0.8211; most influential: 42132185.",
+      "why": "LOO table contains only trial labels and point estimates, without HKSJ CIs; its introductory note equates point stability with 'no single trial drives it'."
+    },
+    {
+      "slug": "colchicine-postop-af",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.56–0.82 across single-trial drops; most influential: 42132185. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "Point-only summary provides no interval-based inference assessment."
+    },
+    {
+      "slug": "colchicine-secondary-cv-prevention",
+      "tab": "Analysis",
+      "page_quote": "Range 0.7215 to 0.8855; most influential: CLEAR SYNERGY.",
+      "why": "LOO table omits every HKSJ CI and emits the unconditional point-stability interpretation."
+    },
+    {
+      "slug": "colchicine-secondary-cv-prevention",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.72–0.89 across single-trial drops; most influential: CLEAR SYNERGY. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "Point stability is not separated from inference stability."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Analysis",
+      "page_quote": "Range 0.8797 to 0.9457; most influential: 21128814.",
+      "why": "The displayed recurrent-VTE LOO table omits HKSJ CIs and any inference comparison."
+    },
+    {
+      "slug": "doac-vte-recurrence",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.88–0.95 across single-trial drops; most influential: 21128814. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "Point-only summary asserts the generic influence interpretation without evaluating LOO inference."
+    },
+    {
+      "slug": "dpp4-mace-t2d",
+      "tab": "Analysis",
+      "page_quote": "Range 0.995 to 1.007; most influential: TECOS.",
+      "why": "LOO table omits HKSJ intervals; even the point range spans the ratio null, while the note provides no inference assessment."
+    },
+    {
+      "slug": "dpp4-mace-t2d",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.99–1.01 across single-trial drops; most influential: TECOS. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "No distinction between the displayed point range and interval-based inference."
+    },
+    {
+      "slug": "esketamine-trd-madrs",
+      "tab": "Analysis",
+      "page_quote": "Range -4.085 to -3.056; most influential: 37025256.",
+      "why": "Every LOO CI is omitted. Canonical recomputation from served trial inputs confirms all four cross zero, whereas the served primary CI excludes zero."
+    },
+    {
+      "slug": "esketamine-trd-madrs",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges -4.08–-3.06 across single-trial drops; most influential: 37025256. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "The negative point estimates conceal loss of null exclusion after every omission; 'no single trial drives it' is therefore inappropriate."
+    },
+    {
+      "slug": "glp1-ra-mace-t2d",
+      "tab": "Analysis",
+      "page_quote": "Range 0.8388 to 0.8664; most influential: 28910237.",
+      "why": "LOO table serves only point estimates, without the required canonical HKSJ CIs."
+    },
+    {
+      "slug": "glp1-ra-mace-t2d",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.84–0.87 across single-trial drops; most influential: 28910237. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "The summary does not separately establish inference stability."
+    },
+    {
+      "slug": "metformin-pcos-ovulation",
+      "tab": "Analysis",
+      "page_quote": "Range 1.179 to 4.314; most influential: 16769748.",
+      "why": "LOO point estimates appear without HKSJ intervals or inference classification."
+    },
+    {
+      "slug": "metformin-pcos-ovulation",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 1.18–4.31 across single-trial drops; most influential: 16769748. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "The generic point-stability interpretation is emitted without an interval assessment."
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "tab": "Analysis",
+      "page_quote": "Range 0.7796 to 0.8501; most influential: 19717844.",
+      "why": "Every LOO CI is omitted. Canonical recomputation confirms all four cross one, whereas the served primary CI excludes one."
+    },
+    {
+      "slug": "noac-vs-warfarin-af-stroke",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.78–0.85 across single-trial drops; most influential: 19717844. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "All point estimates remain below one, but every omission changes null-exclusion inference; the influence wording conceals this."
+    },
+    {
+      "slug": "omega3-cardiovascular-events",
+      "tab": "Analysis",
+      "page_quote": "Range 0.9096 to 1.001; most influential: 30415628.",
+      "why": "LOO table lacks HKSJ CIs and inference assessment; its point range itself spans one."
+    },
+    {
+      "slug": "omega3-cardiovascular-events",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.91–1 across single-trial drops; most influential: 30415628. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "Point-only narrative does not distinguish direction stability from inference stability."
+    },
+    {
+      "slug": "probiotics-aad-prevention",
+      "tab": "Analysis",
+      "page_quote": "Range 0.5823 to 0.6768; most influential: 15740542.",
+      "why": "All displayed LOO rows omit their HKSJ CIs."
+    },
+    {
+      "slug": "probiotics-aad-prevention",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.58–0.68 across single-trial drops; most influential: 15740542. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "No interval-based inference statement accompanies the point-only influence claim."
+    },
+    {
+      "slug": "sglt2-ckd-progression",
+      "tab": "Analysis",
+      "page_quote": "Range 0.6551 to 0.7127; most influential: 32970396.",
+      "why": "LOO rows show only estimates, omitting the HKSJ intervals for the remaining two-study pools."
+    },
+    {
+      "slug": "sglt2-ckd-progression",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.66–0.71 across single-trial drops; most influential: 32970396. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "Point stability is presented without checking inference stability."
+    },
+    {
+      "slug": "sglt2-primary-prevention-hf",
+      "tab": "Analysis",
+      "page_quote": "Range 0.6736 to 0.7069; most influential: 30415602.",
+      "why": "LOO table lacks each row's canonical HKSJ CI."
+    },
+    {
+      "slug": "sglt2-primary-prevention-hf",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.67–0.71 across single-trial drops; most influential: 30415602. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "The generic influence wording is unsupported by an interval-based assessment."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Analysis",
+      "page_quote": "Range 0.7218 to 1.062; most influential: 10471456.",
+      "why": "LOO rows omit HKSJ CIs; the point estimates also change sides of one."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.72–1.06 across single-trial drops; most influential: 10471456. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "The narrative does not distinguish point-direction changes from interval-based inference."
+    },
+    {
+      "slug": "tocilizumab-covid19-mortality",
+      "tab": "Analysis",
+      "page_quote": "Range 0.8407 to 1.474; most influential: 33933206.",
+      "why": "LOO table omits HKSJ CIs and inference assessment; its point estimates span one."
+    },
+    {
+      "slug": "tocilizumab-covid19-mortality",
+      "tab": "Results & conclusions",
+      "page_quote": "estimate ranges 0.84–1.47 across single-trial drops; most influential: 33933206. each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it.",
+      "why": "Point-only interpretation omits the required inference-stability distinction."
+    }
+  ],
+  "clean_slugs": [
+    "balanced-crystalloids-vs-saline-mortality",
+    "colchicine-recurrent-pericarditis",
+    "corticosteroids-cap-mortality",
+    "corticosteroids-covid19-mortality",
+    "dapagliflozin-hfpef-hosp",
+    "denosumab-vertebral-fracture",
+    "empagliflozin-hfpef-hosp",
+    "finerenone-ckd-t2d-renal",
+    "iv-iron-hfref-hosp",
+    "melatonin-primary-insomnia-sol",
+    "pcsk9-mace",
+    "sacubitril-valsartan-hfref",
+    "semaglutide-obesity-mace",
+    "semaglutide-obesity-weight",
+    "sglt2-hfref-hosp-cvdeath",
+    "statins-primary-prevention-elderly",
+    "ticagrelor-vs-clopidogrel-acs",
+    "tranexamic-acid-pph"
+  ],
+  "changes_served_number": true,
+  "number_change_why": "A compliant fix adds currently unserved LOO ci_low and ci_high values to review.json and the page. Those are new served numbers under the task's definition. Existing primary estimates, primary CIs, trial counts, k, and LOO point estimates need not change.",
+  "fix": "In _build_outcome, retain ci_low, ci_high and ci_provenance from each existing _pool_result call alongside dropped and estimate. Derive a separate inference classification relative to null=0 for MD/SMD and null=1 for ratios, comparing each omission with the primary interval; distinguish below-null, includes-null and above-null, and fail closed on missing intervals. Remove the unconditional 'no single trial drives it' note. Describe the point range separately from inference, naming omissions that change inference or stating that every LOO CI includes the null. In analysis_tab add a 'HKSJ 95% CI' column for every LOO row. In _loo_text show the inference summary alongside the point range and link to the complete Analysis table. Regenerate through the generators, preserving existing display/refusal gates. No estimator replacement is needed: synth.pool already computes PM/HKSJ using t(k−1) and max(1,Q/(k−1)).",
+  "plant": "Add an integration regression named test_loo_intervals_and_inference_change, parametrized over the committed esketamine-trd-madrs and noac-vs-warfarin-af-stroke inputs. Rebuild their primary outcome through the production outcome builder using the committed protocol/source inputs, then render Analysis and Results. Independently construct Study objects from the admitted trial inputs and call _pool_result(studies[:j] + studies[j+1:], scale=scale) for each omission. Exact assertions: assert len(loo['per_trial']) == len(studies); for every row assert (row['estimate'], row['ci_low'], row['ci_high'], row['ci_provenance']) == (expected['estimate'], expected['ci_low'], expected['ci_high'], expected['ci_provenance']); assert all(row['ci_low'] <= null <= row['ci_high'] for row in loo['per_trial']); assert not (primary['ci_low'] <= null <= primary['ci_high']); assert each parsed LOO table row contains the matching dropped label, formatted estimate, and both formatted expected CI endpoints under a 'HKSJ 95% CI' header; assert 'Every LOO 95% CI includes the null; the primary CI excludes it.' appears in both LOO summaries; assert 'no single trial drives it' not in loo_text.lower() and 'robust' not in loo_text.lower(). Today's code fails on missing ci_low/ci_high and missing rendered intervals. Read-only canonical recomputation confirmed the fixture premise: esketamine LOO CIs are [-8.6749,0.5055], [-7.2123,1.1001], [-7.3520,0.8309], [-7.3323,1.1315], versus primary [-6.0691,-0.6180]; NOAC LOO CIs are [0.5553,1.0945], [0.6880,1.0504], [0.5486,1.1114], [0.5477,1.1895], versus primary [0.6609,0.9849]. These are computed verification values, not currently served LOO intervals.",
+  "undetermined": "Swept all 32 local served HTML pages: 14 affected slugs, 28 displayed occurrences, and 18 clean for C4. Quotes are verbatim visible text; the Analysis quotes uniquely locate the deficient tables within their pages. Stored but gated-out LOO objects were not counted as page instances. I recomputed inference changes for the two named audit examples, but did not determine which omissions change inference in the other 12 affected reviews; their missing intervals independently establish C4. I did not independently revalidate trial inputs against external publications or check remote deployment. The proposed fix and regression were not implemented or executed; no files were modified."
+}

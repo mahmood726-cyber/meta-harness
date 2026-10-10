@@ -1,0 +1,21 @@
+{
+ "class": "C6",
+ "record_id": "mc-033ed652521ff11fb809e1d9b2ef0962",
+ "state": "RAN_OK",
+ "error": null,
+ "review": {
+  "verdict": "REJECT",
+  "findings": [
+   {
+    "severity": "P0",
+    "file": "harness/estmeasure.py",
+    "issue": "Dropping a served number (trial counts/k) from the effect label.",
+    "evidence": "In `display_effect_label`, if `measure.startswith(\"mixed \")` and the canonical classes are not found in the normalized label, the function completely replaces the original `label` with `\"Pooled effect (\" + measure + \")\"`. As explicitly acknowledged in the docstring ('Keep descriptive labels (and their input counts) when...'), original effect labels can contain input counts (e.g., '14-trial HR'). By completely discarding the original label in the fallback case, the code removes these served numbers from the output, which directly violates the rule: 'Could it change a SERVED NUMBER (an estimate, CI, count, k... That is not allowed in this patch'.",
+    "fix": "Preserve the original descriptive label and its embedded numbers by appending or inserting the mixed measure text, rather than overwriting it with a hardcoded string. For example: `return f\"{label} ({measure})\" if label else f\"Pooled effect ({measure})\"`."
+   }
+  ],
+  "parts_read": [
+   "CANARY-2fe3accfc28a"
+  ]
+ }
+}

@@ -58,6 +58,14 @@ UNRESOLVED_SUBPROCESS = {
     ("outputs/pva-2026-10-09/codex_handover/run_jobs.py", "[CODEX, 'exec', '-s', 'read-only', '--skip-git-repo-check', "):
         "codex exec (read-only) -- the pva handover classification + adversarial diff review (H2-H19, A1); every call "
         "recorded in calls.jsonl (prompt/input/output sha256). A review lane's notes: no served page or build reads them",
+    ("outputs/pva-2026-10-10/codex_classes/run_jobs.py", "[CODEX, 'exec', '-s', 'read-only', '--skip-git-repo-check', "):
+        "codex exec (read-only) -- the pva wording-class investigation C1-C8 (generators, every instance over the 32 served "
+        "pages, number-change verdict); work dir holds only harness/, topics/ and the served pages and objects (never "
+        "cache/, registry/model_calls or audit/external: D8); every call in calls.jsonl (prompt/input/output sha256)",
+    ("outputs/pva-2026-10-10/codex_classes/implement.py", "[CODEX, 'exec', '-s', 'workspace-write', '--skip-git-repo-ch"):
+        "codex exec (workspace-write in a SPARSE git copy of public material only) -- implements one class fix + plant; "
+        "its diff comes back as impl/<C>.patch for the lane to review and test (C1, C3, C8 were rejected, C2 and C6 "
+        "kept); every call in calls.jsonl",
 }
 
 # committed model outputs -> what reads them and what they can change

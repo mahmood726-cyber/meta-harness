@@ -1,0 +1,42 @@
+{
+ "class": "C3",
+ "record_id": "mc-7c41a8637518188d6f1779b439636c1e",
+ "state": "RAN_OK",
+ "error": null,
+ "review": {
+  "verdict": "REJECT",
+  "findings": [
+   {
+    "severity": "P1",
+    "file": "harness/limitations.py",
+    "issue": "Masking generated data in the renderer instead of fixing the generator.",
+    "evidence": "`_grade_block` dynamically recalculates the `inconsistency` domain basis for k=1 at render time, leaving the stale string containing 'pooled' in the generated JSON.",
+    "fix": "Update `grade.py` to emit the compliant `inconsistency` basis directly into the JSON object."
+   },
+   {
+    "severity": "P1",
+    "file": "harness/page.py",
+    "issue": "Masking generated data in the renderer instead of fixing the generator.",
+    "evidence": "`_comparator` dynamically replaces the phrase 'this pooled number' in `comparator_scope_note` at render time, leaving the non-compliant string in the served JSON.",
+    "fix": "Update the generator pipeline (or topic config processing) to provide a compliant `comparator_scope_note` in the JSON output."
+   },
+   {
+    "severity": "P1",
+    "file": "harness/page.py",
+    "issue": "Masking generated data in the renderer instead of fixing the generator.",
+    "evidence": "`_trial_families` uses `synthesis_text.membership_state` to dynamically change the displayed state to 'SINGLE_TRIAL', leaving 'POOLED' in the served JSON.",
+    "fix": "Update the generator (in `pipeline.py`) to emit the correct membership state directly into the JSON object."
+   },
+   {
+    "severity": "P1",
+    "file": "harness/page.py",
+    "issue": "Masking generated data in the renderer instead of fixing the generator.",
+    "evidence": "`_outcome_block` suppresses the prediction interval note dynamically (`res.get('pi_note') if res.get('k') != 1 else None`), leaving the forbidden `pi_note` in the served JSON.",
+    "fix": "Update the generator (in `pipeline.py`) to explicitly remove or omit `pi_note` when k=1."
+   }
+  ],
+  "parts_read": [
+   "CANARY-4439db384cfd"
+  ]
+ }
+}

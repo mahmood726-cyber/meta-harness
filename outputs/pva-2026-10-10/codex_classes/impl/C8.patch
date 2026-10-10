@@ -1,0 +1,213 @@
+diff --git a/harness/__pycache__/__init__.cpython-313.pyc b/harness/__pycache__/__init__.cpython-313.pyc
+new file mode 100644
+index 0000000..9e91191
+Binary files /dev/null and b/harness/__pycache__/__init__.cpython-313.pyc differ
+diff --git a/harness/__pycache__/aact_cache.cpython-313.pyc b/harness/__pycache__/aact_cache.cpython-313.pyc
+new file mode 100644
+index 0000000..ee2c66a
+Binary files /dev/null and b/harness/__pycache__/aact_cache.cpython-313.pyc differ
+diff --git a/harness/__pycache__/canonical.cpython-313.pyc b/harness/__pycache__/canonical.cpython-313.pyc
+new file mode 100644
+index 0000000..83ce85a
+Binary files /dev/null and b/harness/__pycache__/canonical.cpython-313.pyc differ
+diff --git a/harness/__pycache__/claimgraph.cpython-313.pyc b/harness/__pycache__/claimgraph.cpython-313.pyc
+new file mode 100644
+index 0000000..24adc65
+Binary files /dev/null and b/harness/__pycache__/claimgraph.cpython-313.pyc differ
+diff --git a/harness/__pycache__/funding.cpython-313.pyc b/harness/__pycache__/funding.cpython-313.pyc
+new file mode 100644
+index 0000000..dd28733
+Binary files /dev/null and b/harness/__pycache__/funding.cpython-313.pyc differ
+diff --git a/harness/__pycache__/grade.cpython-313.pyc b/harness/__pycache__/grade.cpython-313.pyc
+new file mode 100644
+index 0000000..77cc8be
+Binary files /dev/null and b/harness/__pycache__/grade.cpython-313.pyc differ
+diff --git a/harness/__pycache__/identity.cpython-313.pyc b/harness/__pycache__/identity.cpython-313.pyc
+new file mode 100644
+index 0000000..be90900
+Binary files /dev/null and b/harness/__pycache__/identity.cpython-313.pyc differ
+diff --git a/harness/__pycache__/k2.cpython-313.pyc b/harness/__pycache__/k2.cpython-313.pyc
+new file mode 100644
+index 0000000..9a65be9
+Binary files /dev/null and b/harness/__pycache__/k2.cpython-313.pyc differ
+diff --git a/harness/__pycache__/manuscript.cpython-313.pyc b/harness/__pycache__/manuscript.cpython-313.pyc
+new file mode 100644
+index 0000000..e4cec61
+Binary files /dev/null and b/harness/__pycache__/manuscript.cpython-313.pyc differ
+diff --git a/harness/__pycache__/membership.cpython-313.pyc b/harness/__pycache__/membership.cpython-313.pyc
+new file mode 100644
+index 0000000..44435aa
+Binary files /dev/null and b/harness/__pycache__/membership.cpython-313.pyc differ
+diff --git a/harness/__pycache__/page.cpython-313.pyc b/harness/__pycache__/page.cpython-313.pyc
+new file mode 100644
+index 0000000..c0a8165
+Binary files /dev/null and b/harness/__pycache__/page.cpython-313.pyc differ
+diff --git a/harness/__pycache__/propositions.cpython-313.pyc b/harness/__pycache__/propositions.cpython-313.pyc
+new file mode 100644
+index 0000000..0d840f5
+Binary files /dev/null and b/harness/__pycache__/propositions.cpython-313.pyc differ
+diff --git a/harness/__pycache__/review_tabs.cpython-313.pyc b/harness/__pycache__/review_tabs.cpython-313.pyc
+new file mode 100644
+index 0000000..d05dd19
+Binary files /dev/null and b/harness/__pycache__/review_tabs.cpython-313.pyc differ
+diff --git a/harness/__pycache__/rob2.cpython-313.pyc b/harness/__pycache__/rob2.cpython-313.pyc
+new file mode 100644
+index 0000000..715e315
+Binary files /dev/null and b/harness/__pycache__/rob2.cpython-313.pyc differ
+diff --git a/harness/__pycache__/rob_sensitivity.cpython-313.pyc b/harness/__pycache__/rob_sensitivity.cpython-313.pyc
+new file mode 100644
+index 0000000..c0c2c75
+Binary files /dev/null and b/harness/__pycache__/rob_sensitivity.cpython-313.pyc differ
+diff --git a/harness/__pycache__/scope_identity.cpython-313.pyc b/harness/__pycache__/scope_identity.cpython-313.pyc
+new file mode 100644
+index 0000000..3ee2084
+Binary files /dev/null and b/harness/__pycache__/scope_identity.cpython-313.pyc differ
+diff --git a/harness/__pycache__/synth.cpython-313.pyc b/harness/__pycache__/synth.cpython-313.pyc
+new file mode 100644
+index 0000000..14ff61e
+Binary files /dev/null and b/harness/__pycache__/synth.cpython-313.pyc differ
+diff --git a/harness/page.py b/harness/page.py
+index fd4ff4f..eae4f3f 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -2323,6 +2323,33 @@ def result_change_block(n: dict) -> str:
+     return block + line
+ 
+ 
++def _refusal_reason(protocol, row):
++    """Scope authority lives in protocol.scope_decisions, keyed by row reference.
++
++    Legacy scope prose cannot establish eligibility. Extraction-only notes remain
++    verbatim; mixed scope/extraction notes need an explicit protocol decision.
++    This formatter changes no screening or pooling decisions.
++    """
++    reason = row.get("not_pooled_because") or ""
++    reference = row.get("scope_decision")
++    decisions = protocol.get("scope_decisions") or {}
++    decision = decisions.get(reference) if isinstance(reference, str) and isinstance(decisions, dict) else None
++    if isinstance(decision, dict) and decision.get("trial") == row.get("trial"):
++        criterion = decision.get("criterion")
++        disposition = decision.get("disposition")
++        # Require a verbatim protocol criterion, not a second independent rationale.
++        if (isinstance(criterion, str) and criterion.strip()
++                and criterion in (protocol.get("eligibility") or "")
++                and disposition in ("included", "excluded")):
++            return f"Protocol scope decision: {disposition}. Criterion: {criterion}"
++    if reference is not None or re.search(
++            r"scope|population|preregister|preregist|criteria|exclu|"
++            r"chronic.only|chronic.HFrEF|timepoint|declared|"
++            r"broader composite|non-standard composite", reason, re.I):
++        return "Scope restriction not established by the protocol; exclusion rationale unresolved."
++    return reason
++
++
+ def _reproduction(r, neutral):
+     rep = r.get("reproduction")
+     reason = _absent(rep)
+@@ -2437,7 +2464,7 @@ def _reproduction(r, neutral):
+     if rf := rep.get("refusals"):
+         rows = "".join(
+             f"<tr><td>{_e(x.get('trial'))}</td><td>{_e(x.get('verified'))}</td>"
+-            f"<td>{_e(x.get('not_pooled_because'))}{(' <strong>DISPUTED &mdash; this trial IS pooled despite the refusal above; both policies are declared; decision owed to ' + _e(x['disputed'].get('decision_owed_to')) + ' (signed ' + _e(x['disputed'].get('signed_by')) + ', ' + _e(x['disputed'].get('date')) + '): ' + _e(x['disputed'].get('reason')) + '</strong>') if isinstance(x.get('disputed'), dict) else ''}</td></tr>" for x in rf)
++            f"<td>{_e(_refusal_reason(r.get('protocol') or {}, x))}{(' <strong>DISPUTED &mdash; this trial IS pooled despite the refusal above; decision owed to ' + _e(x['disputed'].get('decision_owed_to')) + ' (signed ' + _e(x['disputed'].get('signed_by')) + ', ' + _e(x['disputed'].get('date')) + '): ' + _e(x['disputed'].get('reason')) + '</strong>') if isinstance(x.get('disputed'), dict) else ''}</td></tr>" for x in rf)
+         body += ("<h4>Verified but not pooled (refusals, with reasons)</h4>"
+                  "<p class='muted'>Trials we located and whose numbers we verified against source, "
+                  "yet deliberately did not pool. Honest k over inflated k: a named refusal is a result.</p>"
+diff --git a/tests/__pycache__/conftest.cpython-313-pytest-9.0.3.pyc b/tests/__pycache__/conftest.cpython-313-pytest-9.0.3.pyc
+new file mode 100644
+index 0000000..2a14fe2
+Binary files /dev/null and b/tests/__pycache__/conftest.cpython-313-pytest-9.0.3.pyc differ
+diff --git a/tests/__pycache__/test_class_C8.cpython-313-pytest-9.0.3.pyc b/tests/__pycache__/test_class_C8.cpython-313-pytest-9.0.3.pyc
+new file mode 100644
+index 0000000..0d7df51
+Binary files /dev/null and b/tests/__pycache__/test_class_C8.cpython-313-pytest-9.0.3.pyc differ
+diff --git a/tests/test_class_C8.py b/tests/test_class_C8.py
+new file mode 100644
+index 0000000..80dbd06
+--- /dev/null
++++ b/tests/test_class_C8.py
+@@ -0,0 +1,84 @@
++"""C8: scope refusals require a trial-bound protocol decision; no pool changes."""
++import copy
++import html
++import json
++from pathlib import Path
++
++from harness.page import _refusal_reason, _reproduction
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++def test_plant_unregistered_chronic_restriction():
++    review = {
++        "protocol": {"eligibility": "Adults with HFrEF."},
++        "reproduction": {"refusals": [{
++            "trial": "PIONEER-HF",
++            "verified": "Harms available in structured results",
++            "not_pooled_because": "Out of scope: chronic-HFrEF only.",
++        }]},
++    }
++    before = copy.deepcopy(review)
++    rendered = _reproduction(review, False)
++    assert "chronic-HFrEF" not in rendered
++    assert "unresolved" in rendered
++    assert review == before
++
++
++def test_scope_decision_is_trial_bound_and_uses_protocol_criterion():
++    protocol = {
++        "eligibility": "Exclude post-myocardial-infarction populations.",
++        "scope_decisions": {"population": {
++            "trial": "example",
++            "criterion": "Exclude post-myocardial-infarction populations.",
++            "disposition": "excluded",
++        }},
++    }
++    row = {"trial": "example", "scope_decision": "population",
++           "not_pooled_because": "Chronic-HFrEF only."}
++    rendered = _reproduction({"protocol": protocol,
++                              "reproduction": {"refusals": [row]}}, False)
++    assert protocol["eligibility"] in rendered
++    assert "excluded" in rendered
++    assert "Chronic-HFrEF" not in rendered
++    for changes in ({"trial": "another trial"},
++                    {"criterion": "Chronic-HFrEF only."},
++                    {"disposition": "invented"}):
++        altered = copy.deepcopy(protocol)
++        altered["scope_decisions"]["population"].update(changes)
++        assert "unresolved" in _refusal_reason(altered, row)
++    row["scope_decision"] = "missing"
++    assert "unresolved" in _refusal_reason(protocol, row)
++
++
++def test_sweep_all_served_reviews():
++    paths = sorted((ROOT / "docs" / "reviews").glob("*/review.json"))
++    assert len(paths) == 32
++    report = json.loads((ROOT / "CLASS_REPORT.json").read_text(encoding="utf-8"))
++    # The report missed a declared-timepoint restriction: CAP specifies 30 days,
++    # but the stored refusal calls 28 days the declared timepoint.
++    instances = [(x["slug"], x["page_quote"]) for x in report["instances"]]
++    instances.append(("corticosteroids-cap-mortality", "not the declared 28-day"))
++    before_count = after_count = 0
++    for path in paths:
++        review = json.loads(path.read_text(encoding="utf-8"))
++        before = copy.deepcopy(review)
++        rendered = html.unescape(_reproduction(review, False))
++        rows = review.get("reproduction", {}).get("refusals", [])
++        legacy = " ".join(row.get("not_pooled_because", "") for row in rows)
++        for slug, quote in instances:
++            if slug == path.parent.name:
++                before_count += quote in legacy
++                after_count += quote in rendered
++                assert quote not in rendered, (slug, quote)
++        for row in rows:
++            assert html.escape(row["verified"]) in _reproduction(review, False)
++            reason = _refusal_reason(review.get("protocol") or {}, row)
++            assert html.escape(reason) in _reproduction(review, False)
++        # Rendering must not change estimates, membership, decisions, or any input.
++        assert review == before
++        if path.parent.name == "corticosteroids-covid19-mortality":
++            # Numeric results embedded in extraction-only prose also survive.
++            assert "RR 1.30, 95% CI 0.0002-6827" in rendered
++    assert before_count == 7
++    assert after_count == 0

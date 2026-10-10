@@ -1,0 +1,89 @@
+{
+  "class_id": "C8",
+  "generators": [
+    {
+      "file": "harness/page.py:2326,2437–2445",
+      "function": "_reproduction(r, neutral)",
+      "reads": "r['reproduction']['refusals']; each row's trial, verified, not_pooled_because and optional disputed fields. It does not consult r['protocol'] before emitting the scope explanation. This is the Reproduce tab, not the Harms tab.",
+      "code_quote": "def _reproduction(r, neutral):\n    rep = r.get(\"reproduction\")\n...\n    if rf := rep.get(\"refusals\"):\n        rows = \"\".join(\n            f\"<tr><td>{_e(x.get('trial'))}</td><td>{_e(x.get('verified'))}</td>\"\n            f\"<td>{_e(x.get('not_pooled_because'))}{(' <strong>DISPUTED &mdash; this trial IS pooled despite the refusal above; both policies are declared; decision owed to ' + _e(x['disputed'].get('decision_owed_to')) + ' (signed ' + _e(x['disputed'].get('signed_by')) + ', ' + _e(x['disputed'].get('date')) + '): ' + _e(x['disputed'].get('reason')) + '</strong>') if isinstance(x.get('disputed'), dict) else ''}</td></tr>\" for x in rf)\n        body += (\"<h4>Verified but not pooled (refusals, with reasons)</h4>\""
+    },
+    {
+      "file": "harness/census.py:161–172,227–229",
+      "function": "_refusals_rows(root, slug); build_review_dir(...)",
+      "reads": "The assembly path loads prose from docs/refusals.json by slug and attaches it to reproduction.refusals. Thus the offending sentence is stored prose, not a Python literal generated from protocol criteria. The referenced docs file is absent from this supplied workspace.",
+      "code_quote": "def _refusals_rows(root: str, slug: str):\n...\n    p = os.path.join(root, \"docs\", \"refusals.json\")\n    if not slug or not os.path.exists(p):\n        return None\n    try:\n        return (json.load(open(p, encoding=\"utf-8\")) or {}).get(slug)\n    except (ValueError, OSError):\n        return None\n...\n    _rf = _refusals_rows(_root, manifest_meta.get(\"slug\", \"\"))\n    if _rf:\n        reproduction[\"refusals\"] = _rf"
+    }
+  ],
+  "instances": [
+    {
+      "slug": "sacubitril-valsartan-hfref",
+      "tab": "Reproduce — Verified but not pooled",
+      "page_quote": "PIONEER-HF enrolled ACUTE decompensated HF with in-hospital initiation — out of scope for this chronic-HFrEF topic. Dropped.",
+      "why": "Neither topics/sacubitril-valsartan-hfref.json include rules nor the served protocol declares chronic-only HFrEF or excludes acute decompensation/in-hospital initiation. The protocol population is adults with HFrEF. The note invents an exclusion."
+    },
+    {
+      "slug": "metformin-pcos-ovulation",
+      "tab": "Reproduce — Verified but not pooled",
+      "page_quote": "Moll: treatment-NAIVE PCOS, clomifene citrate + metformin vs clomifene citrate + placebo -- a different population and a background-therapy contrast from the CC-resistant / metformin-vs-placebo set. Named scope/estimand exclusion.",
+      "why": "The protocol admits the same background ovulation-induction treatment in both arms and does not restrict eligibility to clomifene-resistant patients. It explicitly names Moll as a positive control. The config annotates Moll as NAIVE with background clomifene. A following DISPUTED warning acknowledges the contradiction but still renders this unsupported scope policy."
+    },
+    {
+      "slug": "omega3-cardiovascular-events",
+      "tab": "Reproduce — Verified but not pooled",
+      "page_quote": "GISSI-HF is double-blind but its chronic-HF population/endpoint does not match.",
+      "why": "The population-mismatch component is unsupported: the protocol explicitly includes heart failure among cardiovascular-risk populations, and include.population_any contains 'heart failure'. Endpoint compatibility is a separate question and cannot justify inventing a population restriction."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Reproduce — Verified but not pooled",
+      "page_quote": "EPHESUS enrolled ACUTE post-myocardial-infarction LV dysfunction, which this topic's preregistered population_none excludes (chronic HFrEF only).",
+      "why": "The specific post-MI exclusion is supported by the protocol and config. The additional '(chronic HFrEF only)' generalization is not: neither declares a general chronic-only requirement or excludes all acute HFrEF. Only that broader qualifier is a C8 defect; this finding does not overturn the EPHESUS exclusion."
+    },
+    {
+      "slug": "colchicine-secondary-cv-prevention",
+      "tab": "Reproduce — Verified but not pooled; COPS row",
+      "page_quote": "the abstract reports 'events' (ambiguous recurrent-vs-patient) with no HR/CI and a broader composite (mortality+ACS+revascularisation+stroke) than a 3-point MACE; refused on ambiguity.",
+      "why": "The scope comparison imports a three-point-MACE target absent from the protocol. The config declares 'Trial-defined major coronary/cardiovascular composite' and explicitly annotates broader composites. The separate event-unit ambiguity may warrant refusal; it does not support the invented three-point restriction."
+    },
+    {
+      "slug": "colchicine-secondary-cv-prevention",
+      "tab": "Reproduce — Verified but not pooled; COColchicine-PCI row",
+      "page_quote": "this is a 30-day peri-PCI SECONDARY composite (the trial's primary is PCI-related myocardial injury); wrong timepoint/scope for secondary CV prevention.",
+      "why": "The protocol declares trial end / longest planned follow-up, with no minimum duration or general peri-PCI exclusion; the config explicitly admits percutaneous coronary intervention populations. Calling 30-day peri-PCI follow-up itself wrong timepoint/scope adds a restriction. Whether this secondary endpoint meets the target-outcome definition remains a separate issue."
+    }
+  ],
+  "clean_slugs": [
+    "balanced-crystalloids-vs-saline-mortality",
+    "colchicine-postop-af",
+    "colchicine-recurrent-pericarditis",
+    "corticosteroids-cap-mortality",
+    "corticosteroids-covid19-mortality",
+    "dapagliflozin-hfpef-hosp",
+    "denosumab-vertebral-fracture",
+    "doac-vte-recurrence",
+    "dpp4-mace-t2d",
+    "empagliflozin-hfpef-hosp",
+    "esketamine-trd-madrs",
+    "finerenone-ckd-t2d-renal",
+    "glp1-ra-mace-t2d",
+    "iv-iron-hfref-hosp",
+    "melatonin-primary-insomnia-sol",
+    "noac-vs-warfarin-af-stroke",
+    "pcsk9-mace",
+    "probiotics-aad-prevention",
+    "semaglutide-obesity-mace",
+    "semaglutide-obesity-weight",
+    "sglt2-ckd-progression",
+    "sglt2-hfref-hosp-cvdeath",
+    "sglt2-primary-prevention-hf",
+    "statins-primary-prevention-elderly",
+    "ticagrelor-vs-clopidogrel-acs",
+    "tocilizumab-covid19-mortality",
+    "tranexamic-acid-pph"
+  ],
+  "changes_served_number": false,
+  "number_change_why": "The proposed correction changes scope explanations only. Preserve all existing estimates, CIs, counts, k values, trial membership and numeric source-verification text. Adding PIONEER-HF harm estimates or changing pool membership would be a separate analytical change and would count as changing served numbers.",
+  "fix": "Sweep denominator: all 32 served pages; six confirmed wording instances across five slugs, with 27 slugs having no confirmed C8 instance. At review assembly, make each scope refusal reference one structured decision under the protocol, including criterion, trial and disposition. Render scope prose through one shared formatter that resolves that reference against the protocol. Do not print independent not_pooled_because prose as scope authority. For legacy scope claims without a supported decision, render 'Scope restriction not established by the protocol; exclusion rationale unresolved.' Preserve separately supported extraction/estimand reasons and numeric verification fields. For EPHESUS, render the actual post-MI criterion without expanding it to chronic-only. Use the same formatter for any harms/scope consumers. No files were modified.",
+  "plant": "Build an in-memory fixture by loading reviews/sacubitril-valsartan-hfref/review.json unchanged, retaining its unrestricted protocol and PIONEER-HF reproduction.refusals row. Call harness.page._reproduction(r, False). Exact regression assertion: assert 'out of scope for this chronic-HFrEF topic' not in rendered. I executed that predicate against today's generator: it is False, and the PIONEER-HF sentence is present. After the proposed fallback, additionally assert 'Scope restriction not established by the protocol; exclusion rationale unresolved.' in rendered. Add a positive case with an explicit protocol scope decision and assert that the displayed reason equals the shared formatter's output for that decision. Keep a deep copy of outcomes and assert r['outcomes'] == before['outcomes'] to guard against analytical changes.",
+  "undetermined": "The originating author/history of docs/refusals.json cannot be established because that file and Git metadata are absent here. I did not establish whether PIONEER-HF harms should actually be pooled, or compute replacement results. The Akrami colchicine note ('non-standard composite including decompensated heart failure; small, low-quality reporting; estimand mismatch.') is suspicious but does not specify a sufficiently definite scope restriction to count as another confirmed instance without resolving endpoint compatibility. Likewise, the omega-3 endpoint mismatch and COColchicine-PCI secondary-endpoint objection were not adjudicated; the confirmed defects are their unsupported population/timepoint scope claims. Clean means no confirmed instance of this class, not validation of every scientific statement. The proposed fix was not implemented or tested after modification, as requested."
+}

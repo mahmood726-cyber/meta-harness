@@ -1,0 +1,90 @@
+{
+  "class_id": "C7",
+  "generators": [
+    {
+      "file": "harness/pipeline.py:2350",
+      "function": "build_review_core",
+      "reads": "Copies topics/<slug>.json comparator_scope_note into review.comparator_scope_note. Except for the design-refusal branch, it does not regenerate the note from current screening records, outcome trials, declared absences or result state.",
+      "code_quote": "2350:     comparator_scope_note = config.get(\"comparator_scope_note\")\n2351:     if (primary.get(\"result\") or {}).get(\"design_refusal\"):\n...\n2444:         **({\"comparator_scope_note\": comparator_scope_note} if comparator_scope_note else {}),"
+    },
+    {
+      "file": "harness/page.py:2168",
+      "function": "_comparator",
+      "reads": "review.comparator_scope_note, rendered verbatim inside the comparator-scope block, before the live comparator panel.",
+      "code_quote": "2168:         # excused as scope. Sourced from the topic config; shown verbatim beside the uniform verdict.\n2169:         if r.get(\"comparator_scope_note\"):\n2170:             body += f\"<p><strong>Comparator resolution.</strong> {_e(r.get('comparator_scope_note'))}</p>\""
+    },
+    {
+      "file": "harness/pipeline.py:1195",
+      "function": "_apply_trial_annotations",
+      "reads": "Outcome spec.trial_annotations, matched against the current trial id or label. source_label is an allowed annotation and overwrites the current row regardless of its selected effect source.",
+      "code_quote": "1197:     anns = spec.get(\"trial_annotations\") or {}\n1208:         \"source_label\",\n1219:     for t in trials:\n1220:         pid = str(t.get(\"id\", \"\")).replace(\"PMID \", \"\").strip()\n1221:         ann = anns.get(pid) or anns.get(str(t.get(\"label\") or \"\")) or anns.get(str(t.get(\"id\") or \"\"))\n1227:         for k in ann:\n1228:             if k in allowed:\n1229:                 if k == \"components\" and t.get(\"components\"):\n1230:                     continue\n1231:                 t[k] = ann[k]"
+    },
+    {
+      "file": "harness/page.py:1620",
+      "function": "_trial_inputs",
+      "reads": "outcome.trials[].source_label, including the stale value copied from configuration.",
+      "code_quote": "1620:         if t.get(\"source_label\"):\n1621:             details.append(f\"source label: {t.get('source_label')}\")"
+    }
+  ],
+  "instances": [
+    {
+      "slug": "sacubitril-valsartan-hfref",
+      "tab": "Comparison with published meta-analysis",
+      "page_quote": "k=1 CONTRIBUTING, not a complete-evidence claim: PARADIGM-HF supplies the only EXTRACTABLE primary-outcome estimate here; 7 records screened in and 6 are declared absent for this pooled number.",
+      "why": "Current primary-outcome trials contain PMID 25176015 and NCT02468232 (PARALLEL-HF), with five declared-absent trials. result.k is 2 and result.pool_refused.code is DIRECTION_CONFLICT_K2. The stored note retains the earlier one-extracted-trial/six-absent state and describes a contributing pool although the current pooled result is refused."
+    },
+    {
+      "slug": "empagliflozin-hfpef-hosp",
+      "tab": "Comparison with published meta-analysis",
+      "page_quote": "4 records screened in and 3 are declared absent for this pooled number.",
+      "why": "Current screening.records contains three include decisions: 34449189, EMPA-PRED · NCT06249945, and NCT03448406. The primary outcome contains one extracted trial and two declared-absent trials. The stored configuration note retains counts of four and three."
+    },
+    {
+      "slug": "tocilizumab-covid19-mortality",
+      "tab": "Comparison with published meta-analysis",
+      "page_quote": "COVACTA gives mortality as a RATE only (19.7% vs 19.4%, no per-arm counts); EMPACTA and the CORIMUNO trials report death-or-ventilation COMPOSITES. So the verifiable-count k is ~1",
+      "why": "Current primary-outcome trials contain three count-based rows: RECOVERY, COVACTA and TOCIBRAS. COVACTA now carries 58/294 versus 28/144, with the source passage identifying deaths at day 28; TOCIBRAS carries 14/65 versus 6/64. The note still describes the earlier extraction state in which only RECOVERY contributed."
+    },
+    {
+      "slug": "spironolactone-hfref-mortality",
+      "tab": "Results & conclusions",
+      "page_quote": "source label: risk ratio reconstructed from arm counts",
+      "why": "This appears in the J-EMPHASIS-HF row, PMID 28824029. Its current selected effect is a source-reported HR 1.77 (95% CI 0.81–3.87), supported by the displayed full-text passage. The count reconstruction is explicitly a source-hierarchy alternative not selected. primary_outcome.trial_annotations['28824029'].source_label overwrites the selected row with the earlier reconstruction label."
+    }
+  ],
+  "clean_slugs": [
+    "balanced-crystalloids-vs-saline-mortality",
+    "colchicine-postop-af",
+    "colchicine-recurrent-pericarditis",
+    "colchicine-secondary-cv-prevention",
+    "corticosteroids-cap-mortality",
+    "corticosteroids-covid19-mortality",
+    "dapagliflozin-hfpef-hosp",
+    "denosumab-vertebral-fracture",
+    "doac-vte-recurrence",
+    "dpp4-mace-t2d",
+    "esketamine-trd-madrs",
+    "finerenone-ckd-t2d-renal",
+    "glp1-ra-mace-t2d",
+    "iv-iron-hfref-hosp",
+    "melatonin-primary-insomnia-sol",
+    "metformin-pcos-ovulation",
+    "noac-vs-warfarin-af-stroke",
+    "omega3-cardiovascular-events",
+    "pcsk9-mace",
+    "probiotics-aad-prevention",
+    "semaglutide-obesity-mace",
+    "semaglutide-obesity-weight",
+    "sglt2-ckd-progression",
+    "sglt2-hfref-hosp-cvdeath",
+    "sglt2-primary-prevention-hf",
+    "statins-primary-prevention-elderly",
+    "ticagrelor-vs-clopidogrel-acs",
+    "tranexamic-acid-pph"
+  ],
+  "changes_served_number": true,
+  "number_change_why": "Four affected pages / 32 checked; 28 without a confirmed C7 instance. Regenerating the comparator prose changes served counts: empagliflozin screened-in 4→3 and absent 3→2; sacubitril extracted inputs 1→2 and absent 6→5, with an explicit pool-refused state; tocilizumab contributing count ~1→3. These count corrections qualify even though they occur in prose. The spironolactone source-label correction alone changes no number. No estimate, CI, analytic membership or numerical result field needs alteration.",
+  "fix": "Replace the unrestricted comparator_scope_note replay with a shared generator reading the final review object: screening include decisions, primary trials, declared-absent rows, and result refusal/suppression state. Generate current counts and member names there; distinguish extracted inputs from an actually served pool. Retain historical comparator rationale only as explicitly historical, source-backed text, separate from current-state claims. Remove source_label from the config annotation overwrite path and derive it after source selection from the selected row's measure and reported-versus-reconstructed provenance; use an explicit unknown state when unsupported. Static inputs: wording templates and source-backed historical rationale. Dynamic inputs: membership, counts, refusal state, selected measure and provenance. The existing live comparator_panel overlap calculation does not repair the preceding stale note. No files were modified.",
+  "plant": "Use the committed review.json fixtures as inputs to generator tests. For each comparator fixture, call page._comparator(r, False). Assert the following exact strings are absent: sacubitril: 'PARADIGM-HF supplies the only EXTRACTABLE primary-outcome estimate here'; empagliflozin: '4 records screened in and 3 are declared absent'; tocilizumab: 'So the verifiable-count k is ~1'. Require positive generated replacements: 'Extracted primary-outcome trial rows: 2; declared-absent trial rows: 5.' for sacubitril, 'Screened-in records: 3; extracted primary-outcome trial rows: 1; declared-absent trial rows: 2.' for empagliflozin, and 'Extracted primary-outcome trial rows: 3.' for tocilizumab; also require sacubitril's DIRECTION_CONFLICT_K2 refusal to remain visible. Add a mutation case by removing one tocilizumab trial in memory while leaving stored prose unchanged; assert the generated extracted-row count becomes 2. For the annotation plant, deep-copy the served PMID 28824029 row, set source_label='hazard ratio', and pass it with the real primary_outcome config to _apply_trial_annotations; assert t['source_label'] == 'hazard ratio'. For rendering, assert 'source label: risk ratio reconstructed from arm counts' not in page._trial_inputs(primary_outcome). Read-only execution confirmed that today's three comparator exclusion assertions, the trial-render exclusion assertion, and the annotation-preservation assertion all FAIL as expected. Positive replacement and mutation assertions are proposed for the fix, not claimed as passing.",
+  "undetermined": "The supplied directory has no Git repository, so the exact commits or dates that made these strings stale could not be established. This review establishes contradictions against the supplied served objects and their displayed source passages; it does not independently validate external literature completeness or historical claims that no same-scope comparator exists. 'Clean' means no confirmed C7 instance in this sweep, not freedom from other error classes. No implementation, full rebuild or post-fix test was performed because the task is read-only."
+}
