@@ -35,3 +35,25 @@ def test_PLANT_no_literal_copps_counts_remain_in_the_harness():
 def test_a_refused_row_is_never_pooled_into_the_sensitivity():
     # build() pools only IN_COMMITTED_SOURCE rows: the refusal keeps COPPS out of the combined estimate
     assert km.REFUSED_DENOMINATORS_NOT_STATED != km.IN_COMMITTED_SOURCE
+
+
+def test_PLANT_codex_r11_1_the_refusal_follows_the_text_not_the_record_id():
+    stated = ("200 patients were randomized: 100 to colchicine and 100 to placebo. Postoperative atrial fibrillation "
+              "occurred in 10 colchicine patients and 20 placebo patients.")
+    out = km._source_value("colchicine-postop-af", {"name": "Postoperative atrial fibrillation", "estimand": "RR"},
+                           _row(), {"22090167": {"id": "22090167", "abstract": stated}}, {})
+    assert out["value_status"] != km.REFUSED_DENOMINATORS_NOT_STATED
+    assert out["missing_class"] != "SOURCE_ABSENT"
+    # and the same percentage-only shape refuses under ANY record id
+    other = km._source_value("colchicine-postop-af", {"name": "Postoperative atrial fibrillation", "estimand": "RR"},
+                             {"id": "PMID 1", "label": "x", "reason": "not pooled"},
+                             {"1": {"id": "1", "abstract": COPPS_ABSTRACT}}, {})
+    assert other["value_status"] == km.REFUSED_DENOMINATORS_NOT_STATED
+
+
+def test_PLANT_per_arm_counts_written_as_n_patients_pct_are_not_percent_only():
+    # ICAP (23992557) held abstract shape: per-arm event counts ARE stated
+    icap = ("The primary outcome occurred in 20 patients (16.7%) in the colchicine group and 45 patients (37.5%) in the "
+            "placebo group. Colchicine reduced the rate of symptom persistence at 72 hours (19.2% vs. 40.0%, P=0.001).")
+    assert not km._percent_only(icap)
+    assert km._percent_only(COPPS_ABSTRACT)

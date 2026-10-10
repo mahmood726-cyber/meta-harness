@@ -241,3 +241,8 @@ def test_PLANT_codex_r10_1_a_decimal_denominator_is_not_a_count_prefix():
 def test_PLANT_codex_r10_2_four_decimal_effect_tuples_are_flagged():
     hits = sweep.sweep_source('message = "HR 0.9123 (0.7401-1.1101)"', "harness/x.py")
     assert [h["kind"] for h in hits] == ["EFFECT_TUPLE_TEXT"]
+
+
+def test_PLANT_codex_r11_2_space_grouped_decimal_is_not_a_count_prefix():
+    assert sweep.sweep_source('s = "Deaths 20/1 234.5"', "harness/x.py") == []
+    assert [h["value"] for h in sweep.sweep_source('s = "Deaths: 2/8 versus 1/8"', "harness/x.py")] == ["2/8", "1/8"]

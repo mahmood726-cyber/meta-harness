@@ -44,6 +44,23 @@ def _record_for(row: dict[str, Any], rec_by_id: dict[str, dict[str, Any]]) -> di
     return {}
 
 
+_PCT_PAIR = re.compile(r"\d+(?:\.\d+)?\s*%\s*(?:versus|vs\.?|compared with)\s*\d+(?:\.\d+)?\s*%", re.I)
+_N_OF_M = re.compile(r"\b\d+\s+(?:of|/)\s+\d+\b", re.I)
+_ARM_SPLIT = re.compile(r"\b\d+\s+(?:patients\s+)?(?:were\s+)?(?:to|in|assigned to)\s+(?:the\s+)?[\w-]+(?:\s+group)?"
+                        r"\s*(?:,|and)\s*\d+\s+(?:patients\s+)?(?:to|in)\b", re.I)
+
+
+# 'occurred in 20 patients (16.7%) in the colchicine group' -- a per-arm COUNT with its percentage (ICAP 23992557)
+_N_PCT = re.compile(r"\b\d+\s+(?:patients|participants|subjects)\s*\(\s*\d+(?:\.\d+)?\s*%\s*\)", re.I)
+
+
+def _percent_only(text: str) -> bool:
+    """Both arms stated only as percentages: a 'X% versus Y%' pair, and no per-arm number anywhere in the text -- no
+    'n of N', no 'n patients (p%)', no randomised per-arm split."""
+    return bool(text and _PCT_PAIR.search(text) and not _N_OF_M.search(text) and not _N_PCT.search(text)
+                and not _ARM_SPLIT.search(text))
+
+
 def _span(text: str, *needles: str, width: int = 360) -> str:
     if not text:
         return ""
@@ -169,19 +186,22 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
             })
             return out
 
-    if slug == "colchicine-postop-af" and key == "22090167":
-        # r24: the 20/169 v 37/167 that stood here were INFERRED -- per-arm denominators split from the substudy total
-        # (336) and events from the rounded percentages (12.0% v 22.0%); the auditor's own source has 35 placebo
-        # events. No held or open source states the per-arm counts (abstract: total + percentages only; no PMC copy;
-        # the publisher's bronze PDF answers 403 to a plain request and is not bypassed): REFUSED, never inferred
+    # r24: per-arm counts are never reconstructed from percentages and a pooled total (COPPS 22090167: the 20/169 v
+    # 37/167 that stood here were inferred from 12.0% v 22.0% of 336; the auditor's source has 35 placebo events; no
+    # PMC copy, and the publisher PDF's bot check was not bypassed). The refusal is decided by the TEXT, for any row
+    # (codex copps-r11#1): both arms given only as percentages, with no 'n of N' and no per-arm randomised split ->
+    # REFUSED_DENOMINATORS_NOT_STATED. A text that states per-arm numbers is extraction debt, never 'absent'.
+    if rec and (outcome.get("estimand") or "RR").upper() in ("RR", "OR", "RD") and _percent_only(text):
+        m = _PCT_PAIR.search(text)
+        total = re.search(r"\b\d+\s+(?:patients|participants|subjects)\b", text[:m.start()], re.I)
         out.update({
             "value_status": REFUSED_DENOMINATORS_NOT_STATED,
             "missing_class": "SOURCE_ABSENT",
-            "source_ref": "cache/colchicine-postop-af/records.json#22090167.abstract",
-            "source_span": _span(text, "336 patients", "12.0% versus 22.0%"),
-            "verify_basis": ("per-arm counts and denominators are not stated in any held or open source: the abstract "
-                             "gives the substudy total (336) and percentages only; counts are never reconstructed "
-                             "from percentages"),
+            "source_ref": f"cache/{slug}/records.json#{rec.get('id')}.abstract",
+            # the span shows the evidence for the refusal: the pooled total (when stated first) through the percentages
+            "source_span": re.sub(r"\s+", " ", text[(total.start() if total else m.start()):m.end()]).strip(),
+            "verify_basis": ("per-arm counts and denominators are not stated in the held source: it gives the arms as "
+                             "percentages only; counts are never reconstructed from percentages"),
         })
         return out
 

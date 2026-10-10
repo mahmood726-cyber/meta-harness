@@ -7267,5 +7267,49 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r11": {
+  "base": "630e622bf",
+  "head": "7a99ad9df",
+  "runs": {
+   "g1": {
+    "record_id": "mc-be1f94a743e2f8d3de6302aea6638825",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "14310386a2086bac58fcf7ece5a6bbc09bcb020c4557998a70e09f8202822bea"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/known_missing.py",
+    "function": "_source_value",
+    "severity": "P1",
+    "claim": "The COPPS special case now declares denominators absent based solely on the slug and record ID, regardless of the supplied source text.",
+    "failing_input": "For slug 'colchicine-postop-af' and key '22090167', supply record {'id': '22090167', 'abstract': '200 patients were randomized: 100 to colchicine and 100 to placebo. Postoperative atrial fibrillation occurred in 10 colchicine patients and 20 placebo patients.'}.",
+    "expected": "Evaluate the supplied evidence; do not classify explicitly stated per-arm counts and denominators as absent.",
+    "actual": "Returns value_status='REFUSED_DENOMINATORS_NOT_STATED' and missing_class='SOURCE_ABSENT', with a verify_basis asserting that the abstract provides only a total and percentages.",
+    "id": "copps-r11:g1#1",
+    "record_id": "mc-be1f94a743e2f8d3de6302aea6638825",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The denominator regex backtracks to a shorter integer when a space-grouped number ends in a decimal, falsely reporting a count pair.",
+    "failing_input": "sweep_source('s = \"Deaths 20/1 234.5\"', 'harness/example.py')",
+    "expected": "[]; the decimal denominator must not be truncated into an integer count.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '20/1'}]",
+    "id": "copps-r11:g1#2",
+    "record_id": "mc-be1f94a743e2f8d3de6302aea6638825",
+    "verdict": null
+   }
+  ]
  }
 }
