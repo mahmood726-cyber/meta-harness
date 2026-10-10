@@ -55,8 +55,16 @@ def groups(base, head):
     return [(f"g{i + 1}", g) for i, g in enumerate(out)]
 
 
-def prompt(group):
-    parts = [base_review.INSTR, "\nYou are reviewing a DIFF merged from a lane branch (lines starting '+' are new).\n"]
+AGY_PREFACE = ("NO TOOLS ARE AVAILABLE TO YOU: do not run commands, do not read files, do not search. Every command is "
+               "denied and a denied call ends your turn with nothing recorded. Reason from the diff text below only; a "
+               "failing input is one you derive by reading the code. Reply with the JSON object only.\n\n")
+
+
+def prompt(group, reader="codex"):
+    # agy tried to RUN its failing input, was denied (unsandboxed) and ended with an EMPTY message (RAN_ERROR records
+    # mc-f9605d5a, mc-c49ddd48 on the V14 diff, 10 Oct): the evidence is inline, and the reader is told so
+    parts = ([AGY_PREFACE] if reader == "agy" else []) + [
+        base_review.INSTR, "\nYou are reviewing a DIFF merged from a lane branch (lines starting '+' are new).\n"]
     for f, d in group:
         parts.append(f"\n=== DIFF {f} ===\n{d}\n")
     return "".join(parts).encode("utf-8")
@@ -76,7 +84,7 @@ def main(argv):
 
         def one(g):
             gname, files = g
-            p = prompt(files)
+            p = prompt(files, reader)
             caller = {"file": "scripts/pr_codex_review.py", "line": "main", "lane": "captain",
                       "purpose": f"{reader} review of merged range {name} {base[:9]}..{head[:9]} ({gname})"}
             digests = [{"ref": f"git diff {base[:12]}...{head[:12]} -- {f}",
