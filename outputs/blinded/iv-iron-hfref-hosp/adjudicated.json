@@ -1,0 +1,351 @@
+{
+ "slug": "iv-iron-hfref-hosp",
+ "n": 11,
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "models": {
+  "codex": "RAN_OK",
+  "gemini": "RAN_OK"
+ },
+ "reviewed": true,
+ "status": "REVIEWED",
+ "schema_violations": {},
+ "findings": [
+  {
+   "id": "codex#1",
+   "model": "codex",
+   "tab": "Results & conclusions",
+   "page_quote": "28701470 PMID 28701470 no poolable effect or arm counts found in the cached source",
+   "source_evidence": {
+    "url": "https://europepmc.org/article/MED/28701470",
+    "quote": "26 of them for worsening HF (13 in each group) in 17 patients (11 patients on FCM and 6 on usual care)."
+   },
+   "severity": "changes_wording",
+   "claim": "The held EFFECT-HF full text reports both hospitalization totals and patients hospitalized in each arm. The outcome-absence statement and its REASON_TRUE audit label are incorrect; determining the appropriate analysis denominator is a separate issue.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "held open text PMID 28701470 (HELD_CACHE_FT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [],
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "codex#2",
+   "model": "codex",
+   "tab": "Results & conclusions",
+   "page_quote": "33197395 PMID 33197395 excluded on evidence -- effect present but wrong estimand class no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/33197395/",
+    "quote": "217 total heart failure hospitalisations occurred in the ferric carboxymaltose group and 294 occurred in the placebo group (RR 0·74; 95% CI 0·58-0·94, p=0·013)."
+   },
+   "severity": "changes_wording",
+   "claim": "The abstract explicitly reports the hospitalization effect and confidence interval. An estimand mismatch can justify exclusion from a first-event analysis, but the accompanying assertion that no effect plus CI was found is false.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 33197395 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [],
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "codex#3",
+   "model": "codex",
+   "tab": "Results & conclusions",
+   "page_quote": "abstract effect+CI (HR): Treatment with FCM was associated with a significant reduction in the risk of hospitalization due to worsening HF with a time-to-event analysis returning an HR of 0.39",
+   "source_evidence": {
+    "url": "https://europepmc.org/article/MED/25176939",
+    "quote": "Treatment with FCM was associated with a significant reduction in the risk of hospitalization due to worsening HF with a time-to-event analysis returning an HR of 0.39 with a 95% CI of (0.19–0.82)"
+   },
+   "severity": "record",
+   "claim": "This quoted passage comes from the full-text results section, although the page labels it as abstract provenance. The supplied abstract supports the same numbers using different wording.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "held open text PMID 25176939 (HELD_CACHE_FT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [],
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "codex#4",
+   "model": "codex",
+   "tab": "Risk of bias & GRADE",
+   "page_quote": "PMID 36347265 public/non-profit",
+   "source_evidence": {
+    "url": "https://clinicaltrials.gov/",
+    "quote": "\"agency_class\": \"INDUSTRY\",\n            \"lead_or_collaborator\": \"collaborator\",\n            \"name\": \"Pharmacosmos A/S\""
+   },
+   "severity": "changes_wording",
+   "claim": "The public/non-profit classification omits the industry tie: the supplied NCT02642562 registry source identifies Pharmacosmos A/S as an industry collaborator. The funding classification should disclose that relationship.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "cache/iv-iron-hfref-hosp/aact_inputs.json"
+   ],
+   "source_url_matches": false,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [],
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "gemini#1",
+   "model": "gemini",
+   "tab": "Results & conclusions",
+   "page_quote": "the primary outcome is reported by trials that could not be pooled (33197395, 36347265, 37632463) — the pooled k is known-incomplete",
+   "source_evidence": {
+    "url": "PMID 33197395",
+    "quote": "217 total heart failure hospitalisations occurred in the ferric carboxymaltose group and 294 occurred in the placebo group"
+   },
+   "severity": "changes_number",
+   "claim": "The page states the primary outcome (HF hospitalization) was reported by trial 33197395 (AFFIRM-AHF) but could not be pooled. However, the abstract explicitly contains arm counts for heart failure hospitalizations which can be pooled.",
+   "served_value": "not pooled",
+   "source_value": "217 vs 294",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 33197395 (ABSTRACT)"
+   ],
+   "source_url_matches": false,
+   "typed_check": "spans+number",
+   "typed_check_passed": false,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "UNCONFIRMED",
+   "why_unconfirmed": "number check failed (served/source values not both quoted, or equal)"
+  },
+  {
+   "id": "gemini#2",
+   "model": "gemini",
+   "tab": "Results & conclusions",
+   "page_quote": "the primary outcome is reported by trials that could not be pooled (33197395, 36347265, 37632463) — the pooled k is known-incomplete",
+   "source_evidence": {
+    "url": "PMID 36347265",
+    "quote": "336 primary endpoints ... occurred in the ferric derisomaltose group and 411 ... occurred in the usual care group"
+   },
+   "severity": "changes_number",
+   "claim": "The page claims trial 36347265 (IRONMAN) could not be pooled for the primary outcome. However, the source abstract includes both arm counts and rates for the primary endpoint.",
+   "served_value": "not pooled",
+   "source_value": "336 vs 411",
+   "page_quote_found": true,
+   "source_quote_found_in": [],
+   "source_url_matches": false,
+   "typed_check": "spans+number",
+   "typed_check_passed": false,
+   "agreed_with": [],
+   "agreed_by": [
+    "gemini"
+   ],
+   "status": "UNCONFIRMED",
+   "why_unconfirmed": "source quote not in any open source shown"
+  }
+ ],
+ "screening": [
+  {
+   "model": "codex",
+   "record": "33197395",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "Randomized intravenous ferric carboxymaltose versus placebo in iron-deficient heart failure with LVEF below 50% meets the stated screening criteria.",
+   "quote": "Before hospital discharge, participants were randomly assigned (1:1) to receive intravenous ferric carboxymaltose or placebo for up to 24 weeks, dosed according to the extent of iron deficiency.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "32565444",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The randomized population has COPD, an explicitly excluded population.",
+   "quote": "We performed a randomised, placebo-controlled, double-blind trial in 48 participants with COPD",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "36673114",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "This is a literature overview, not a primary randomized trial.",
+   "quote": "We selected the most recent publications with important scientific content covering the association of CHF and ID with or without anemia.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "33586856",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "This is a systematic review and meta-analysis, not a primary randomized trial.",
+   "quote": "Ferric carboxymaltose for the treatment of iron-deficient heart failure patients: a systematic review and meta-analysis.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "18191732",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The title and abstract support inclusion at screening as a randomized iron-sucrose versus no-treatment trial in symptomatic heart failure with iron deficiency; the abstract does not specify an ejection-fraction threshold.",
+   "quote": "Effect of intravenous iron sucrose on exercise tolerance in anemic and nonanemic patients with symptomatic chronic heart failure and iron deficiency FERRIC-HF: a randomized, controlled, observer-blinded trial.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "32565444",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly studies patients with 'chronic obstructive pulmonary disease' (COPD), matching the exclusion rule X2 (wrong population).",
+   "quote": "chronic obstructive pulmonary disease",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "36673114",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is an 'Overview' (review) rather than a randomized controlled trial, matching exclusion X1.",
+   "quote": "An Overview",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "33586856",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The abstract describes a 'systematic review and meta-analysis', not a primary RCT, matching exclusion X1.",
+   "quote": "systematic review and meta-analysis",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "33197395",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract states it is a 'multicentre, double-blind, randomised trial' studying ferric carboxymaltose vs placebo in heart failure.",
+   "quote": "AFFIRM-AHF was a multicentre, double-blind, randomised trial",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "18191732",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly describes randomizing patients with CHF to receive iron sucrose or a control.",
+   "quote": "We randomized 35 patients with CHF",
+   "quote_found_in_record": true
+  }
+ ],
+ "numeric_models": {
+  "codex": [
+   {
+    "outcome": "Heart-failure hospitalization",
+    "k": 2,
+    "recomputed_estimate": 0.606409,
+    "recomputed_ci_low": 0.007128,
+    "recomputed_ci_high": 51.5861,
+    "served_estimate": 0.61,
+    "served_ci_low": 0.01,
+    "served_ci_high": 51.59,
+    "agrees": true,
+    "note": "These served comparison values are the page's explicitly INVALID hypothetical calculation, which agrees at its displayed rounding. The served tuple's actual estimate and CI are null, so no usable pooled estimate has numerical agreement to assess. Mechanical log-scale PM/HKSJ recomputation gives tau² approximately 0.177979 and uses t with 1 df; combining this HR and IRR remains substantively invalid."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Heart-failure hospitalization",
+    "k": 2,
+    "recomputed_estimate": 0.6064,
+    "recomputed_ci_low": 0.0002,
+    "recomputed_ci_high": 1763.4,
+    "served_estimate": 0,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "Served values were null (represented here as 0 to satisfy schema constraints). Recomputed estimate on ratio scale is 0.6064, 95% CI 0.0002 to 1763.4."
+   }
+  ]
+ },
+ "numeric_deterministic": [
+  {
+   "outcome": "Heart-failure hospitalization",
+   "status": "NO_POOL_SERVED"
+  },
+  {
+   "outcome": "Injection-site reactions",
+   "status": "NO_POOL_SERVED"
+  },
+  {
+   "outcome": "Hypersensitivity reactions",
+   "status": "NO_POOL_SERVED"
+  }
+ ],
+ "numbers_agree": "-",
+ "models_numeric_states": {
+  "codex": [
+   {
+    "outcome": "Heart-failure hospitalization",
+    "state": "AGREES"
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Heart-failure hospitalization",
+    "state": "NOT_ASSESSABLE"
+   }
+  ]
+ },
+ "models_numbers_agree": {
+  "codex": "y",
+  "gemini": "-"
+ },
+ "dropped_by_licence": [
+  {
+   "ref": "cache/iv-iron-hfref-hosp/ft_34080008.txt",
+   "why": [
+    {
+     "kind": "HELD_CACHE_FT",
+     "licence": "cc by-nc",
+     "why": "LICENCE_NOT_CC_BY_OR_CC0_OR_COPY_NOT_OPEN"
+    }
+   ]
+  },
+  {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "why": [
+    {
+     "kind": "HELD_CACHE_FT",
+     "licence": null,
+     "why": "LICENCE_NOT_CC_BY_OR_CC0_OR_COPY_NOT_OPEN"
+    }
+   ]
+  },
+  {
+   "ref": "cache/iv-iron-hfref-hosp/comparator_fulltext.txt",
+   "why": "comparator licence [('comparator 39727669 text', 'CC')] is not CC BY / CC0 (D8)"
+  }
+ ]
+}

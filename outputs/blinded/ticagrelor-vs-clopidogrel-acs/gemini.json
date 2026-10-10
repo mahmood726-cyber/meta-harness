@@ -1,0 +1,100 @@
+{
+ "model": "agy-gemini",
+ "slug": "ticagrelor-vs-clopidogrel-acs",
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "prompt_sha256": "3a2950f4d8cd45b5f143d8508d2834b637ff4d877e3cd7dbec43a3a332080c31",
+ "attempts": [
+  {
+   "record_id": "mc-4d37bdfa990a6198d5c3a58674250917",
+   "state": "RAN_OK",
+   "error": null
+  }
+ ],
+ "state": "RAN_OK",
+ "output_sha256": "711d688859bf8e41be46537282903ac273479b416eeb8398930a4b72c26a45aa",
+ "response": {
+  "findings": [
+   {
+    "tab": "Risk of bias & GRADE",
+    "page_quote": "PMID 17980250 not stated (abstract only - full text not retrieved) — abstract abstract :",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/17980250/",
+     "quote": "TITLE: Safety, tolerability, and initial efficacy of AZD6140, the first reversible oral adenosine diphosphate receptor antagonist, compared with clopidogrel, in patients with non-ST-segment elevation acute coronary syndrome: primary results of the DISPERSE-2 trial."
+    },
+    "severity": "record",
+    "claim": "The Funding table explicitly states it is 'per pooled trial', but it includes PMID 17980250, which is not pooled for any outcome in this review.",
+    "served_value": "",
+    "source_value": ""
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
+    "k": 2,
+    "recomputed_estimate": 1.05,
+    "recomputed_ci_low": 0.03,
+    "recomputed_ci_high": 33.89,
+    "served_estimate": null,
+    "served_ci_low": null,
+    "served_ci_high": null,
+    "agrees": false,
+    "note": "Recomputed estimate matches the quarantined pool text (1.05, 0.03-33.89), but served tuples correctly list null due to POOL_REFUSED."
+   },
+   {
+    "outcome": "Major bleeding",
+    "k": 2,
+    "recomputed_estimate": 1.1658,
+    "recomputed_ci_low": 0.109,
+    "recomputed_ci_high": 12.46,
+    "served_estimate": 1.1658,
+    "served_ci_low": null,
+    "served_ci_high": null,
+    "agrees": false,
+    "note": "Served CI limits are null, so they do not agree with the recomputed bounds."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "19717846",
+    "served_decision": "include",
+    "verdict": "AGREE",
+    "reason": "The study is a double-blind, randomized trial of ticagrelor vs clopidogrel in acute coronary syndrome.",
+    "quote": "In this multicenter, double-blind, randomized trial, we compared ticagrelor ... and clopidogrel ... for the prevention of cardiovascular events in 18,624 patients admitted to the hospital with an acute coronary syndrome"
+   },
+   {
+    "record": "17980250",
+    "served_decision": "include",
+    "verdict": "AGREE",
+    "reason": "The study is a double-blind randomized trial of AZD6140 (ticagrelor) vs clopidogrel in NSTE-ACS.",
+    "quote": "patients with NSTE-ACS, treated with aspirin and standard therapy for ACS, were randomized in a 1:1:1 double-blind fashion to receive either twice-daily AZD6140 90 mg, AZD6140 180 mg, or clopidogrel 300-mg"
+   },
+   {
+    "record": "26440227",
+    "served_decision": "exclude X2",
+    "verdict": "AGREE",
+    "reason": "The study population has stable coronary artery disease, which is off-topic (requires ACS).",
+    "quote": "Platelet inhibition with ticagrelor versus clopidogrel in Hispanic patients with stable coronary artery disease"
+   },
+   {
+    "record": "22789884",
+    "served_decision": "exclude X-DESIGN",
+    "verdict": "AGREE",
+    "reason": "The study is single-blind, failing the double-blind eligibility criterion.",
+    "quote": "In a prospective, single-center, single-blind study"
+   },
+   {
+    "record": "20828843",
+    "served_decision": "exclude X1",
+    "verdict": "AGREE",
+    "reason": "The study is a meta-analysis, not a randomized controlled trial.",
+    "quote": "We performed an adjusted indirect meta-analysis comparing prasugrel vs. ticagrelor"
+   }
+  ],
+  "parts_read": [
+   "CANARY-e35538deb0e2",
+   "CANARY-e8b177d6477c",
+   "CANARY-4d8c6d5348b4",
+   "CANARY-31d863b75eae"
+  ]
+ }
+}

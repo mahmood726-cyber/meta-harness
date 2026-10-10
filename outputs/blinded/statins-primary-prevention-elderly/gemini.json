@@ -1,0 +1,101 @@
+{
+ "model": "agy-gemini",
+ "slug": "statins-primary-prevention-elderly",
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "prompt_sha256": "699c5adb7e8745ab0b15737b6557fb867ae09172052a8c7946e1dbb740268836",
+ "attempts": [
+  {
+   "record_id": "mc-821249bc66485111e864d2578473dedf",
+   "state": "RAN_OK",
+   "error": null
+  }
+ ],
+ "state": "RAN_OK",
+ "output_sha256": "5a1b2e4652f6b37af717ede14c50d6767725c2f5637bb141ea9f846af46184ec",
+ "response": {
+  "findings": [
+   {
+    "tab": "Data extraction",
+    "page_quote": "abstract effect+CI (HR): After a median of 5.9 years, a primary cardiovascular event had occurred in 297 participants (10.9 events per 1000 person-years) in the atorvastatin group and in 412 participants (15.5 events per 1000",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/42670961/",
+     "quote": "After a median of 5.9 years, a primary cardiovascular event had occurred in 297 participants (10.9 events per 1000 person-years) in the atorvastatin group and in 412 participants (15.5 events per 1000 person-years) in the placebo group (hazard ratio, 0.70; 95% CI, 0.61 to 0.82; P<0.001)."
+    },
+    "severity": "record",
+    "claim": "The recorded provenance span for the extracted hazard ratio is truncated and does not actually contain the extracted effect size and confidence interval.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Results & conclusions",
+    "page_quote": "42670961 Muscle symptoms/myopathy REFUSED_ON_EVIDENCE REASON_FALSE_VALUE_HELD",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/42670961/",
+     "quote": "Serious adverse events occurred in 131 participants (2.7%) in the atorvastatin group and in 129 (2.7%) in the placebo group, with musculoskeletal, hepatobiliary, and diabetes-related adverse events occurring more commonly in the atorvastatin group."
+    },
+    "severity": "record",
+    "claim": "The reason-code audit incorrectly flags the refusal reason as FALSE (REASON_FALSE_VALUE_HELD) even though the quoted abstract text matches the stated reason that musculoskeletal events were described within aggregate serious adverse events.",
+    "served_value": "",
+    "source_value": ""
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "Major vascular events",
+    "k": 2,
+    "recomputed_estimate": 0.6803,
+    "recomputed_ci_low": 0.2897,
+    "recomputed_ci_high": 1.5975,
+    "served_estimate": 0.6803,
+    "served_ci_low": null,
+    "served_ci_high": null,
+    "agrees": false,
+    "note": "The served confidence intervals are null due to the K2_SINGLE_DF refusal rule, while the recomputed HKSJ CI evaluates to [0.2897, 1.5975]."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "20404379",
+    "served_decision": "include",
+    "verdict": "AGREE",
+    "reason": "The abstract explicitly describes a randomized, double-blind, placebo-controlled trial of rosuvastatin in persons 70 years or older.",
+    "quote": "DESIGN: Secondary analysis of JUPITER (Justification for the Use of statins in Prevention: an Intervention Trial Evaluating Rosuvastatin), a randomized, double-blind, placebo-controlled trial."
+   },
+   {
+    "record": "42670961",
+    "served_decision": "include",
+    "verdict": "AGREE",
+    "reason": "The abstract describes a double-blind, randomized, placebo-controlled trial of atorvastatin in adults at least 70 years of age.",
+    "quote": "Community-dwelling adults at least 70 years of age with no history of cardiovascular disease, diabetes, or dementia were randomly assigned in a 1:1 ratio to receive atorvastatin at a dose of 40 mg once daily or identical placebo."
+   },
+   {
+    "record": "NCT01304641",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "The record's title and abstract are not provided in the open primary sources section to verify the decision.",
+    "quote": ""
+   },
+   {
+    "record": "NCT05361421",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "The record's title and abstract are not provided in the open primary sources section to verify the decision.",
+    "quote": ""
+   },
+   {
+    "record": "NCT04111419",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "The record's title and abstract are not provided in the open primary sources section to verify the decision.",
+    "quote": ""
+   }
+  ],
+  "parts_read": [
+   "CANARY-1bbd1434818d",
+   "CANARY-d63eb727095d",
+   "CANARY-29f3d065792b",
+   "CANARY-10178b84c406",
+   "CANARY-0dd86d1987e0"
+  ]
+ }
+}

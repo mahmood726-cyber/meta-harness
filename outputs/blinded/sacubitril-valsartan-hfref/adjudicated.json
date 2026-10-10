@@ -1,0 +1,271 @@
+{
+ "slug": "sacubitril-valsartan-hfref",
+ "n": 14,
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "models": {
+  "codex": "RAN_OK",
+  "gemini": "RAN_OK"
+ },
+ "reviewed": true,
+ "status": "REVIEWED",
+ "schema_violations": {},
+ "findings": [
+  {
+   "id": "codex#1",
+   "model": "codex",
+   "tab": "Reproduce",
+   "page_quote": "ambiguous source attribution (all-cause vs CV-death sentence)",
+   "source_evidence": {
+    "url": "https://pubmed.ncbi.nlm.nih.gov/25176015/",
+    "quote": "of these patients, 558 (13.3%) and 693 (16.5%), respectively, died from cardiovascular causes (hazard ratio, 0.80; 95% CI, 0.71 to 0.89; P<0.001)."
+   },
+   "severity": "changes_wording",
+   "claim": "The refusal reason describes source attribution as ambiguous, although the abstract explicitly binds HR 0.80 (0.71–0.89) to cardiovascular death. The reported extractor binding error should be distinguished from ambiguity in the source.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "PubMed/CT.gov record 25176015 (ABSTRACT)"
+   ],
+   "source_url_matches": true,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [],
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "codex#2",
+   "model": "codex",
+   "tab": "Risk of bias & GRADE",
+   "page_quote": "NCT02468232 source not retrieved — :",
+   "source_evidence": {
+    "url": "https://clinicaltrials.gov/",
+    "quote": "\"NCT02468232\": {\n        \"sponsors\": [\n          {\n            \"agency_class\": \"INDUSTRY\",\n            \"lead_or_collaborator\": \"lead\",\n            \"name\": \"Novartis Pharmaceuticals\"\n          }\n        ],"
+   },
+   "severity": "record",
+   "claim": "PARALLEL-HF's registry sponsor is omitted despite being present in the supplied AACT source. The sponsor column should identify Novartis Pharmaceuticals as the industry lead sponsor; this does not independently establish a publication funding statement.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "cache/sacubitril-valsartan-hfref/aact_inputs.json"
+   ],
+   "source_url_matches": false,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [],
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "codex#3",
+   "model": "codex",
+   "tab": "Screening",
+   "page_quote": "ANSWER-HF · NCT04853758 nct include INCLUDE UNRECORDED NCT04853758 primary eligible+completed+results_unavailable",
+   "source_evidence": {
+    "url": "https://clinicaltrials.gov/",
+    "quote": "\"NCT04853758\": {\n        \"start_date\": \"2021-05-06\",\n        \"completion_date\": \"2024-12-01\",\n        \"study_first_submitted_date\": \"2021-04-06\",\n        \"results_first_posted_date\": \"\",\n        \"overall_status\": \"UNKNOWN\"\n      }"
+   },
+   "severity": "changes_wording",
+   "claim": "ANSWER-HF is labelled completed, but the supplied registry snapshot records its overall status as UNKNOWN. A populated completion-date field does not establish completed status.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "cache/sacubitril-valsartan-hfref/aact_inputs.json"
+   ],
+   "source_url_matches": false,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [],
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  },
+  {
+   "id": "codex#4",
+   "model": "codex",
+   "tab": "Screening",
+   "page_quote": "PRESENT-HF · NCT05487261 nct include INCLUDE UNRECORDED NCT05487261 primary eligible+completed+results_unavailable",
+   "source_evidence": {
+    "url": "https://clinicaltrials.gov/",
+    "quote": "\"NCT05487261\": {\n        \"start_date\": \"2022-12-13\",\n        \"completion_date\": \"2025-11-30\",\n        \"study_first_submitted_date\": \"2022-07-26\",\n        \"results_first_posted_date\": \"\",\n        \"overall_status\": \"UNKNOWN\"\n      }"
+   },
+   "severity": "changes_wording",
+   "claim": "PRESENT-HF is labelled completed, although the supplied registry snapshot records its overall status as UNKNOWN.",
+   "served_value": "",
+   "source_value": "",
+   "page_quote_found": true,
+   "source_quote_found_in": [
+    "cache/sacubitril-valsartan-hfref/aact_inputs.json"
+   ],
+   "source_url_matches": false,
+   "typed_check": "spans",
+   "typed_check_passed": true,
+   "agreed_with": [],
+   "agreed_by": [
+    "codex"
+   ],
+   "status": "CONFIRMED_TYPED"
+  }
+ ],
+ "screening": [
+  {
+   "model": "codex",
+   "record": "25176015",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract establishes randomized, double-blind LCZ696 versus enalapril treatment in reduced-ejection-fraction heart failure.",
+   "quote": "In this double-blind trial, we randomly assigned 8442 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less to receive either LCZ696",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "40689605",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "This is a meta-analysis of RCTs, not an individual randomized trial.",
+   "quote": "Angiotensin-neprilysin inhibition in acute decompensated heart failure: a meta-analysis of randomized controlled trials.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "40100325",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record describes an observational cohort comparing prescribed doses, not randomized allocation.",
+   "quote": "Clinical outcomes according to the average daily dose of sacubitril/valsartan: a nationwide longitudinal cohort study.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "36315602",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The title and abstract describe a mechanistic evidence reanalysis, not a report of a randomized intervention comparison.",
+   "quote": "Critical Reanalysis of the Mechanisms Underlying the Cardiorenal Benefits of SGLT2 Inhibitors and Reaffirmation of the Nutrient Deprivation Signaling/Autophagy Hypothesis.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "codex",
+   "record": "27206819",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The title identifies a clinical practice guideline, not an RCT.",
+   "quote": "2016 ESC Guidelines for the diagnosis and treatment of acute and chronic heart failure",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "25176015",
+   "served_decision": "include",
+   "verdict": "AGREE",
+   "reason": "The abstract explicitly states it is a double-blind trial randomly assigning HFrEF patients to LCZ696 or enalapril.",
+   "quote": "In this double-blind trial, we randomly assigned 8442 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less to receive either LCZ696 (at a dose of 200 mg twice daily) or enalapril",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "40689605",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a meta-analysis, not a randomized controlled trial.",
+   "quote": "Meta-analysis of randomized controlled trials (RCTs)",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "40100325",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a longitudinal cohort study based on a nationwide database, not a randomized controlled trial.",
+   "quote": "We investigated the effectiveness of submaximal doses of sacubitril/valsartan in a real-world cohort.",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "36315602",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a critical reanalysis/review of mechanisms, not a primary randomized controlled trial.",
+   "quote": "A substantial body of evidence indicates that this characteristic pattern of responses can be explained",
+   "quote_found_in_record": true
+  },
+  {
+   "model": "gemini",
+   "record": "27206819",
+   "served_decision": "exclude",
+   "verdict": "AGREE",
+   "reason": "The record is a clinical guidelines document from the European Society of Cardiology, not a randomized controlled trial.",
+   "quote": "",
+   "quote_found_in_record": false
+  }
+ ],
+ "numeric_models": {
+  "codex": [
+   {
+    "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+    "k": 2,
+    "recomputed_estimate": 0.8366,
+    "recomputed_ci_low": 0.2108,
+    "recomputed_ci_high": 3.3204,
+    "served_estimate": 0.84,
+    "served_ci_low": 0.21,
+    "served_ci_high": 3.32,
+    "agrees": true,
+    "note": "Comparison is exclusively with the page's explicitly quarantined audit-only calculation. The served tuple's pooled estimate and CI are null because pooling was refused. Recalculation gives Paule–Mandel tau² approximately 0.01177; HKSJ uses variance factor 1 and t with 1 df. The quarantined values agree at their printed rounding."
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+    "k": 2,
+    "recomputed_estimate": 0.8366,
+    "recomputed_ci_low": 0.2108,
+    "recomputed_ci_high": 3.3201,
+    "served_estimate": 0.84,
+    "served_ci_low": 0.21,
+    "served_ci_high": 3.32,
+    "agrees": true,
+    "note": "Recomputed PM tau^2 = 0.01177 and HKSJ CI. The served pool in the JSON is null due to direction conflict, but the page text provides the quarantined values 0.84 [0.21, 3.32], which agree perfectly with the recomputed results using a variance floor factor of 1.0 (Q_tau2)."
+   }
+  ]
+ },
+ "numeric_deterministic": [
+  {
+   "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+   "status": "NO_POOL_SERVED"
+  }
+ ],
+ "numbers_agree": "-",
+ "models_numeric_states": {
+  "codex": [
+   {
+    "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+    "state": "AGREES"
+   }
+  ],
+  "gemini": [
+   {
+    "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+    "state": "AGREES"
+   }
+  ]
+ },
+ "models_numbers_agree": {
+  "codex": "y",
+  "gemini": "y"
+ },
+ "dropped_by_licence": [
+  {
+   "ref": "cache/sacubitril-valsartan-hfref/comparator_fulltext.txt",
+   "why": "comparator licence [('comparator 36722326 text', 'CC')] is not CC BY / CC0 (D8)"
+  }
+ ]
+}

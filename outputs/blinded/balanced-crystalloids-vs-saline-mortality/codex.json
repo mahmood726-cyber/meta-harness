@@ -1,0 +1,118 @@
+{
+ "model": "codex",
+ "slug": "balanced-crystalloids-vs-saline-mortality",
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "prompt_sha256": "6059e66293f79be30bd4533fe9a808e8362051a7e3c1f55cfb768d451e181b10",
+ "attempts": [
+  {
+   "record_id": "mc-ef4d13d4bf8e3e6c5048bed553867061",
+   "state": "RAN_OK",
+   "error": null
+  }
+ ],
+ "state": "RAN_OK",
+ "output_sha256": "f28640802ea6fe0bee2ef44b7a5ddecb5e91e1fd4f3c847181b28f3e508ee3fd",
+ "response": {
+  "findings": [
+   {
+    "tab": "Manuscript",
+    "page_quote": "Results. Pooling 2 trials retained the point estimate (HR 0.98)",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/35041780/",
+     "quote": "Death within 90 days after randomization occurred in 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group"
+    },
+    "severity": "changes_wording",
+    "claim": "The summary is labelled HR, although PLUS contributes a cumulative risk ratio reconstructed from counts and BaSICS contributes an HR. The mixed-measure approximation disclosed elsewhere should also be identified here.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Harms",
+    "page_quote": "RETRIEVED_OUTCOME_NOT_REPORTED \n harm span: IMPORTANCE: Saline (0.9% sodium chloride) is the most commonly administered intravenous fluid; however, its use may be associated with acute kidney injury (AKI) and increased mortality.",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/26444692/",
+     "quote": "In the buffered crystalloid group, 102 of 1067 patients (9.6%) developed AKI within 90 days after enrollment compared with 94 of 1025 patients (9.2%) in the saline group"
+    },
+    "severity": "changes_wording",
+    "claim": "SPLIT is labelled as not reporting AKI despite reporting arm-level AKI results. A refusal based on design variance does not establish outcome non-reporting.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Harms",
+    "page_quote": "RETRIEVED_OUTCOME_NOT_REPORTED \n harm span: Patients with established AKI requiring renal replacement therapy (RRT) were excluded.",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/26444692/",
+     "quote": "In the buffered crystalloid group, RRT was used in 38 of 1152 patients (3.3%) compared with 38 of 1110 patients (3.4%) in the saline group"
+    },
+    "severity": "changes_wording",
+    "claim": "SPLIT is labelled as not reporting RRT, but its abstract reports RRT results. The eligibility exclusion quoted on the page does not support that reporting label.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Harms",
+    "page_quote": "compatibility row fields: endpoint definition: primary outcome was death from any cause within 90 days after randomization",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/35041780/",
+     "quote": "Secondary outcomes were receipt of new renal-replacement therapy and the maximum increase in the creatinine level during ICU stay."
+    },
+    "severity": "record",
+    "claim": "The PLUS renal-replacement-therapy row carries the mortality endpoint definition. Its endpoint metadata should identify new renal-replacement therapy; the extracted counts themselves match the source.",
+    "served_value": "",
+    "source_value": ""
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "Mortality",
+    "k": 2,
+    "recomputed_estimate": 0.9774,
+    "recomputed_ci_low": 0.6521,
+    "recomputed_ci_high": 1.465,
+    "served_estimate": 0.9774,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "The served CI limits are null, not zero; zero entries here are schema placeholders only. Strict effect-and-CI replay is unavailable because PLUS has null effect and CI fields. Supplementing those fields from the supplied counts gives RR=(530/2433)/(530/2413), with log variance 1/530-1/2433+1/530-1/2413. Combining this reconstructed RR with the BaSICS HR and CI gives PM tau²=0, Q≈0.1097 and the displayed recomputed HKSJ interval using the variance floor and t(1). The point estimate agrees. Full-triplet agreement cannot be established because the served interval was deliberately withheld under K2_SINGLE_DF; false does not indicate a conflicting served interval."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "29770681",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "The supplied source has only a title and an empty abstract; these do not establish publication type or randomization.",
+    "quote": "TITLE: Balanced Crystalloids versus Saline in Critically Ill Adults."
+   },
+   {
+    "record": "26444692",
+    "served_decision": "include",
+    "verdict": "AGREE",
+    "reason": "The title and abstract establish an ICU randomized comparison of buffered crystalloid versus saline. Cluster randomization affects synthesis, not the stated screening eligibility.",
+    "quote": "Effect of a Buffered Crystalloid Solution vs Saline on Acute Kidney Injury Among Patients in the Intensive Care Unit: The SPLIT Randomized Clinical Trial."
+   },
+   {
+    "record": "FENICE II · NCT06394947",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "No source title or abstract is supplied. The AACT identifiers, dates and sponsor fields do not establish whether the study was randomized.",
+    "quote": ""
+   },
+   {
+    "record": "SMART-SURG · NCT02547779",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "No source title or abstract is supplied. The AACT arm index names saline and physiologically-balanced crystalloid, but cannot verify the stated title/conditions-based exclusion.",
+    "quote": ""
+   },
+   {
+    "record": "FFAKI · NCT02458157",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "No source title or abstract is supplied. The structured AACT intervention fields alone do not permit the requested title/abstract screening assessment.",
+    "quote": ""
+   }
+  ]
+ }
+}

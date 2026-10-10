@@ -1,0 +1,94 @@
+{
+ "model": "codex",
+ "slug": "sglt2-hfref-hosp-cvdeath",
+ "commit": "beb73a487faf36becf350064fee22a9eef81436c",
+ "prompt_sha256": "8868694f04806108d54dda55bbb8a6f9a5faf58772243b52d17ad982ceed8724",
+ "attempts": [
+  {
+   "record_id": "mc-78e1d9cb7edd5e915cbffa77b66d4728",
+   "state": "RAN_OK",
+   "error": null
+  }
+ ],
+ "state": "RAN_OK",
+ "output_sha256": "f3813e573e0681e45e813ef1ce9cc9f841a0f8817a2e7ef883b2c16415df52c9",
+ "response": {
+  "findings": [
+   {
+    "tab": "Comparison with published meta-analysis",
+    "page_quote": "Legacy comparator extraction, theirs_k: not stated in the comparator abstract/full text.",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/35112512/",
+     "quote": "Four randomized controlled trials (DAPA HF, EMPEROR-Preserved, EMPEROR-Reduced, and SOLOIST-WHF) were included"
+    },
+    "severity": "changes_wording",
+    "claim": "The comparator abstract explicitly states its overall trial count and names the trials. An unextracted HFrEF-subgroup count should be distinguished from a claim that the comparator states no trial count.",
+    "served_value": "",
+    "source_value": ""
+   },
+   {
+    "tab": "Reproduce",
+    "page_quote": "2 identical, 0 same-result-different-statistic, 0 conflict; 0 not stated in the abstract",
+    "source_evidence": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/31535829/",
+     "quote": "hazard ratio, 0.74; 95% confidence interval [CI], 0.65 to 0.85"
+    },
+    "severity": "record",
+    "claim": "The abstract-verification provenance does not support the current DAPA-HF input: the served registry HR is 0.75, whereas its abstract reports 0.74 for the broader primary endpoint. This is a verification-provenance defect, not evidence that the registry-based HR is incorrect.",
+    "served_value": "",
+    "source_value": ""
+   }
+  ],
+  "numeric_checks": [
+   {
+    "outcome": "Composite cardiovascular death or hospitalisation for heart failure",
+    "k": 2,
+    "recomputed_estimate": 0.75,
+    "recomputed_ci_low": 0.4003,
+    "recomputed_ci_high": 1.4052,
+    "served_estimate": 0.75,
+    "served_ci_low": 0,
+    "served_ci_high": 0,
+    "agrees": false,
+    "note": "The served CI limits are null, not zero; numeric schema fields cannot represent null, so the zero entries are placeholders only. Both log effects are identical, giving Q=0, Paule-Mandel tau²=0 and variance factor=1. Pooled SE≈0.049413; t(1)≈12.706205. The estimate agrees. Full interval agreement cannot be established because the page explicitly withholds its pooled CI under K2_SINGLE_DF; this is not a demonstrated numerical discrepancy."
+   }
+  ],
+  "screening_sample": [
+   {
+    "record": "35112512",
+    "served_decision": "exclude",
+    "verdict": "AGREE",
+    "reason": "The record describes a meta-analysis, not a primary randomized trial.",
+    "quote": "We conducted a meta-analysis of randomized controlled trials"
+   },
+   {
+    "record": "NCT04304560",
+    "served_decision": "include",
+    "verdict": "CANNOT_TELL",
+    "reason": "No independent title/abstract is supplied. The AACT excerpt contains dates and arm information but does not establish all eligibility criteria.",
+    "quote": ""
+   },
+   {
+    "record": "ERTU-SODIUM · NCT05152940",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "No independent title/abstract is supplied; the page's own screening explanation cannot independently validate its decision.",
+    "quote": ""
+   },
+   {
+    "record": "NCT07803471",
+    "served_decision": "exclude",
+    "verdict": "CANNOT_TELL",
+    "reason": "No title/abstract or informative study-design record is supplied. Missing evidence does not establish that the study is nonrandomized.",
+    "quote": ""
+   },
+   {
+    "record": "NCT04385589",
+    "served_decision": "include",
+    "verdict": "CANNOT_TELL",
+    "reason": "No independent title/abstract is supplied. The AACT arm index alone cannot establish HFrEF eligibility, randomization, blinding and placebo control.",
+    "quote": ""
+   }
+  ]
+ }
+}

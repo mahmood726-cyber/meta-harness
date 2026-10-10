@@ -385,7 +385,7 @@ def _agy_version() -> str:
         return f"UNKNOWN ({type(exc).__name__})"
 
 
-def agy_runner(prompt: bytes, schema: dict, timeout_s: int, images: tuple = ()) -> dict:
+def agy_runner(prompt: bytes, schema: dict, timeout_s: int, images: tuple = (), files: tuple = ()) -> dict:
     """Run one `agy --print`. Returns {rc, stdout, stderr, log, argv}; bytes throughout. The prompt is the --print value
     (agy reads no prompt from stdin in text mode); stdin is the null device."""
     work = Path(tempfile.mkdtemp(prefix="mcall-", dir=os.environ.get("MODEL_CALL_WORKDIR") or None))
@@ -393,6 +393,8 @@ def agy_runner(prompt: bytes, schema: dict, timeout_s: int, images: tuple = ()) 
         prepare_workdir(work, schema)
         for n, src in enumerate(images or ()):
             shutil.copyfile(src, work / f"image_{n}{os.path.splitext(str(src))[1].lower()}")
+        for name, data in files or ():                    # (name, bytes): input parts the model reads with read_file
+            (work / name).write_bytes(data)
         log = work / "agy.log"
         argv = [_agy_exe(), "--print", prompt.decode("utf-8"), "--output-format", "json", "--sandbox",
                 "--disable-slash-commands", "--print-timeout", f"{int(timeout_s)}s", "--log-file", str(log)]
@@ -411,11 +413,18 @@ def agy_runner(prompt: bytes, schema: dict, timeout_s: int, images: tuple = ()) 
 
 def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, timeout_s: int = 600,
              runner: Callable[..., dict] | None = None, client_version: str | None = None, images: tuple = (),
-             settings: tuple | None = None) -> dict:
+             settings: tuple | None = None, chunk_chars: int | None = None) -> dict:
     """One agy call -> one record, same contract as call(): RAN_OK with the model's final message bytes, or RAN_ERROR.
 
     settings: (model label, settings sha256) -- injected by tests; a real call reads the client's settings file."""
     runner = runner or agy_runner
+    # LICENCE GUARD AT CALL TIME, exactly as call(): the prompt goes into a committed record (D8). Before 9 Oct the agy
+    # path had no guard, so a Gemini prompt was checked only by whatever its caller did.
+    from reproducible_ai import record_licence
+    probs = record_licence.record_problems({"record_id": "pre-call", "input_digests": list(input_digests),
+                                            "prompt": {"b64": base64.b64encode(prompt).decode("ascii")}})
+    if probs:
+        raise LicenceRefused("; ".join(probs)[:600])
     requested, settings_sha = settings if settings is not None else agy_settings_model()
     digests = list(input_digests)
     if settings_sha:
@@ -429,8 +438,30 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
             h = hashlib.sha256(fh.read()).hexdigest()
         image_digests.append(h)
         digests.append({"ref": f"workdir image_{n}", "sha256": h, "what": "image copied into the work dir for read_file"})
+    # CHUNKED TRANSPORT (9 Oct): agy takes the prompt as the --print ARGUMENT and a Windows command line holds ~32k
+    # characters, so a long prompt is delivered as work-dir files part_NN.txt, each ending in a canary derived from the
+    # prompt digest, and the --print value becomes a short instruction to read every part. The RECORD still holds the
+    # full prompt bytes (the contract: a prompt that is not recoverable is not a source); the answer is accepted only
+    # if it returns every canary -- proof that each part was read to its end, not truncated by a file tool.
+    parts, canaries, send = (), [], prompt
+    if chunk_chars:
+        text = prompt.decode("utf-8")
+        chunks = [text[i:i + chunk_chars] for i in range(0, len(text), chunk_chars)] or [""]
+        ph = hashlib.sha256(prompt).hexdigest()
+        canaries = [f"CANARY-{hashlib.sha256((ph + str(k)).encode()).hexdigest()[:12]}" for k in range(len(chunks))]
+        parts = tuple((f"part_{k + 1:02d}.txt", (c + f"\n\nEND OF PART {k + 1} OF {len(chunks)}: {canaries[k]}\n")
+                       .encode("utf-8")) for k, c in enumerate(chunks))
+        send = (f"Your complete task and input are in {len(parts)} files in the current directory: "
+                + ", ".join(n for n, _ in parts) + ". Read EVERY file COMPLETELY, in order, with your file-reading tool "
+                "(read in ranges if a file is long; do not stop early). Each file ends with a line 'END OF PART k OF n: "
+                "CANARY-...'. Then do the task the files describe, and put every CANARY code you read, in order, in the "
+                "field parts_read of your JSON answer. Do not run commands.").encode("utf-8")
+        for name, data in parts:
+            digests.append({"ref": f"workdir {name}", "sha256": hashlib.sha256(data).hexdigest(),
+                            "what": "prompt part (chunked transport) read by the model with read_file"})
     t0 = _utc()
-    r = runner(prompt, schema, timeout_s, images=tuple(images))
+    r = runner(send, schema, timeout_s, images=tuple(images), files=parts) if parts else \
+        runner(prompt, schema, timeout_s, images=tuple(images))
     t1 = _utc()
     so, se, lg = r.get("stdout") or b"", r.get("stderr") or b"", r.get("log") or b""
     names = _AGY_MODEL_LOG.findall(lg.decode("utf-8", "replace"))
@@ -456,6 +487,10 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
         err = "client log reported no model label: the pin is unknown, so the response is not a source"
     elif rep != requested:
         err = f"client log reported model {rep!r} but settings request {requested!r}: the pin does not hold"
+    elif canaries and [c for c in canaries if c.encode() not in resp]:
+        miss = [c for c in canaries if c.encode() not in resp]
+        err = (f"chunked transport: the answer returned {len(canaries) - len(miss)} of {len(canaries)} part canaries "
+               f"(missing parts {[canaries.index(c) + 1 for c in miss]}): the input was not read in full")
     state = "RAN_ERROR" if err else "RAN_OK"
     lg_red = agy_redact(lg.decode("utf-8", "replace"))
     denied = out.get("denied_actions") or []
@@ -468,7 +503,11 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
                 "output_schema": schema, "timeout_s": timeout_s,
                 "workdir_files": {"LANE_CONTEXT.md": LANE_CONTEXT_SHA256, "schema.json": "the output_schema above",
                                   **{f"image_{n}": h for n, h in enumerate(image_digests)}},
-                **({"attached_images_sha256": image_digests} if image_digests else {})},
+                **({"attached_images_sha256": image_digests} if image_digests else {}),
+                **({"transport": {"kind": "workdir_parts", "chunk_chars": chunk_chars,
+                                  "instruction_sha256": hashlib.sha256(send).hexdigest(),
+                                  "parts": [{"name": n, "sha256": hashlib.sha256(d).hexdigest(), "bytes": len(d)}
+                                            for n, d in parts], "canaries": canaries}} if parts else {})},
         not_controllable=list(AGY_NOT_CONTROLLABLE),
         client={"name": "agy --print", "version": client_version or _agy_version(), "argv": r.get("argv")},
         request_utc=t0, response_utc=t1, caller=caller, input_digests=digests, state=state, error=err,
@@ -484,5 +523,8 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
                        "tool_calls_rejected_n": len(denied),
                        "tool_calls": [{"command": a.get("display_name"), "outcome": "DENIED: " + str(a.get("action"))}
                                       for a in denied if isinstance(a, dict)],
-                       "files_read": [], "transcript_redacted": lg_red})
+                       "files_read": [], "transcript_redacted": lg_red,
+                       # log_call requires every key; agy print mode lists no file reads, so none can be outside
+                       # the work dir (9 Oct: the missing key crashed AFTER the call, so a real call went unrecorded)
+                       "outside_workdir_reads": []})
     return rec
