@@ -1382,6 +1382,35 @@ def cluster_design_of(x):
     return m.group(1).lower() if m else None
 
 
+def extra_date_detail(slug, comp, extra, recs, dates=None):
+    """R8-4: why a trial we pool is absent from the comparator, from registry/comparator_search_dates.json
+    (scripts/r8_4_search_dates.py): its first public date (PubMed electronic/entrez/issue date, or registry results
+    posting when the comparator's own search names a trial registry) against the comparator's typed search END date --
+    never a year against the served page's comparator year (that year can belong to a previous comparator, and a
+    March 2023 report is after a December 2022 search). A trial with no recorded dates for THIS comparator is
+    DATES_NOT_RECORDED, never inferred."""
+    if dates is None:
+        p = os.path.join(ROOT, "registry", "comparator_search_dates.json")
+        dates = _j(p) if os.path.isfile(p) else {}
+    c = (dates.get("comparators") or {}).get(str(comp)) or {}
+    out = []
+    for e in extra:
+        t = (dates.get("trials") or {}).get(f"{slug}|{e}")
+        if not t or str(t.get("comparator")) != str(comp):
+            out.append({"id": e, "year": _int((recs.get(e.replace("PMID ", "")) or {}).get("year")),
+                        "first_public": None, "first_public_basis": None, "comparator_search_end": c.get("search_end"),
+                        "why_not_in_comparator": "DATES_NOT_RECORDED"})
+            continue
+        out.append({"id": e, "first_public": t.get("first_public"), "first_public_basis": t.get("basis"),
+                    "published": t.get("published"), "registry_results_posted": t.get("registry_results_posted"),
+                    "comparator_search_end": c.get("search_end"), "search_end_precision": c.get("precision"),
+                    "search_end_span": c.get("span"), "search_end_source": c.get("source"),
+                    "comparator_searched_trial_registry": c.get("searched_trial_registry"),
+                    "why_not_in_comparator": t["why_not_in_comparator"],
+                    "why_by_publication_only": t.get("why_by_publication_only")})
+    return out
+
+
 def acquired_merge(slug, trials, routes=None, pairs=None, comp=None):
     """A comparator trial whose ONE PRIMARY source (its own open text, or its posted AACT results) gave a typed tuple
     through the acquisition gates is PRIMARY-verified (2 Oct decision): matched, countable, compared on that tuple. A
@@ -3890,13 +3919,7 @@ def topic(slug, T):
                       f"{cm.get('positive_control', {}).get('methods')}")
     extra = sorted(str(t.get("id")) for t in prim.get("trials", []) if str(t.get("id")) not in matched_ids)
     recs = {str(r.get("id")): r for r in _j(os.path.join(ROOT, "cache", slug, "records.json")).get("records", [])}
-    comp_year = _int((rev.get("comparator") or {}).get("year"))
-    extra_detail = []
-    for e in extra:
-        y = _int((recs.get(e.replace("PMID ", "")) or {}).get("year"))
-        extra_detail.append({"id": e, "year": y, "comparator_year": comp_year,
-                             "why_not_in_comparator": ("PUBLISHED_AFTER_COMPARATOR" if y and comp_year and y > comp_year
-                                                       else "NOT_EXPLAINED_BY_DATE")})
+    extra_detail = extra_date_detail(slug, comp, extra, recs)
     d12_map, d12_refused = d12_for(slug, trials)
     out = {"schema_version": SCHEMA_VERSION, "slug": slug, "comparator_pmid": comp,
             "N_comparator_trials": len(trials), "k_matched": sum(1 for x in trials if is_matched(x)),
@@ -4156,8 +4179,9 @@ def table():
                       + (f" vs trial report {f['trial_report']}" if f.get("trial_report") else "")
                       + (f"; {f['detail']}" if f.get("detail") else "") + (f" ({f['basis']})" if f.get("basis") else ""))
         for e in o.get("ours_not_in_comparator_detail") or []:
-            md.append(f"- pooled by us, not listed by the comparator: {e['id']} ({e['year']}; comparator "
-                      f"{e['comparator_year']}): {e['why_not_in_comparator']}")
+            md.append(f"- pooled by us, not listed by the comparator: {e['id']} (first public {e.get('first_public')}"
+                      f" [{e.get('first_public_basis')}]; comparator search end {e.get('comparator_search_end')}): "
+                      f"{e['why_not_in_comparator']}")
     with open(os.path.join(OUT, "G1_TRACKER.md"), "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(md) + "\n")
     canon = canonical(out)
