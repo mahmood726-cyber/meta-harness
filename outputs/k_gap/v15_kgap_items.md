@@ -253,3 +253,33 @@ The contrast is valid per the ruling: empagliflozin + KCl v placebo-for-empaglif
 - The one unread kidney-outcome meta-analysis, 42420866 (age >= 65 subgroup), is behind a bot challenge and has no PMC copy yet. Re-check when it lands in PMC.
 
 **Defect found and fixed:** PR #79, record_licence `_DOI_REF`. It cut DOIs that carry their own parentheses (10.1016/s2213-8587(25)00222-0), so a CC BY text was refused. The plant fails on main. Fail-closed is unchanged.
+
+## K-11. Screening-rule fixes (PR #65, extended): 32-topic re-screen flip counts + recorded dual/agy adjudication
+
+**Fixes in PR #65:**
+- placebo-of-X;
+- structural-False is decisive;
+- development codes (typed);
+- population synonyms (typed);
+- ROLE-AWARE placebo comparator (r27-B).
+
+**Re-screen of all 32** (served screen re-run on each topic's own inputs, main -> branch; outputs/k_gap/screen_placebo_of_x_sweep.md):
+- 21 decisions change. **10 -> INCLUDE:** dpp4 3, metformin 2, and one each for empagliflozin-hfpef, esketamine, finerenone, melatonin and colchicine-secondary.
+- The other 11 are exclusions that now name a truer rule.
+- 24 topics have no change.
+
+**Recorded adjudication of the 10 flips** (codex A + B decide; agy C non-deciding; verbatim protocol; rescreen/_dual_screenfix_flips.json):
+
+| flip | A / B / C | verdict | G1 effect (before applying) |
+|---|---|---|---|
+| dpp4 NCT00918879 (saxagliptin) | INCLUDE x3 | **ELIGIBLE** | **dpp4 leaves G1_MATCHED under the protocol as written** (an eligible glycaemic trial outside comparator 31462224). Kept only if the ruling-2 B-prime-style amendment is adopted. |
+| dpp4 NCT02192853, NCT02792400 | UNCLEAR/UNCLEAR/INCLUDE; UNCLEAR/INCLUDE/UNCLEAR | DISAGREE (not counted) | Same exposure if resolved eligible. |
+| finerenone ARTS-DN Japan NCT01968668 | INCLUDE x3 | ELIGIBLE | None (already named). |
+| melatonin Circadin NCT00816673 | INCLUDE x3 | ELIGIBLE | None (NOT_YET). |
+| metformin Legro PPCOS I 17287476 | INCLUDE x3 | ELIGIBLE | None (abandoned). This is the r27-B case. |
+| colchicine-secondary NCT03376698 | INCLUDE x3 | ELIGIBLE | None (abandoned). |
+| empagliflozin-hfpef SAK NCT05138575 | EXCLUDE x3 (INTERVENTION) | EXCLUDED by readers | The Captain's ruling 5 overrides the INTERVENTION objection (valid KCl-background contrast). Eligible on the typed criteria (K-3); needs the TARGET_RESULT_ABSENT name to keep G1_MATCHED. |
+| esketamine NCT01998958 | UNCLEAR x3 | DISAGREE | Excluded by the typed span (K-9); G1 kept. |
+| metformin 18681789 | EXCLUDE x3 (DUPLICATE_OR_SECONDARY_REPORT) | EXCLUDED | A report of an eligible family; report-to-trial linking, not a new trial. |
+
+**Net G1 effect of the screening fixes:** one topic is exposed by a correct screen, **dpp4**. Its fate is the ruling-2 decision (literal rule v B-prime-style amendment). Recommendation unchanged: adopt the amendment.
