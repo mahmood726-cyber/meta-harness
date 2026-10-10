@@ -6731,5 +6731,203 @@
     "verdict": null
    }
   ]
+ },
+ "tx-rebase-r1": {
+  "base": "cdd81860a",
+  "head": "5dac618d1",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_table_result.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "224f438fc6adc38de9d10b0fb70ab4e0d1889a8c9803a4752959f16cd8236871"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "The arm headers can explicitly specify different denominator populations, but the reader discards those qualifiers and records the counts together.",
+    "failing_input": "For table_result('demo'), supply topic {'primary_outcome': {'name': 'Death', 'keywords': ['death']}, 'comparator_pmid': '123', 'intervention_terms': ['Tranexamic acid']}. Mock the held-source lookup/licence successfully and sw.jats_text to return: 'Outcome | Tranexamic acid randomised population (n/N) | Placebo safety population (n/N) | Pooled OR (95% CI)\\nDeath | 10/100 | 20/80 | 0.33 (0.15–0.75)'. Let binding_verdict return BINDABLE for the identical outcome name.",
+    "expected": "Refuse this result because the intervention denominator is randomised and the control denominator is safety.",
+    "actual": "By direct trace, returns state RECORDED with counts {'events_t': 10, 'n_t': 100, 'events_c': 20, 'n_c': 80}; neither denominator kind is retained or checked.",
+    "id": "tx-rebase-r1:g1#1",
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "Arm-column order is treated as proof of estimate direction, even when the estimate header explicitly specifies the reverse contrast.",
+    "failing_input": "For table_result('demo'), supply topic {'primary_outcome': {'name': 'Death', 'keywords': ['death']}, 'comparator_pmid': '123', 'intervention_terms': ['Tranexamic acid']}. Mock the held-source lookup/licence successfully and sw.jats_text to return: 'Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI), placebo versus tranexamic acid\\nDeath | 10/100 | 20/100 | 2.25 (1.00–5.06)'. Let binding_verdict return BINDABLE for the identical outcome name.",
+    "expected": "Refuse the conflicting orientation, or invert the estimate and confidence interval for the intervention-versus-control contrast: estimate approximately 0.444444, CI approximately [0.197628, 1.0].",
+    "actual": "By direct trace, records estimate 2.25 and CI [1.0, 5.06] with contrast 'Tranexamic acid (n/N) vs Placebo (n/N)' and intervention events 10 versus control events 20.",
+    "id": "tx-rebase-r1:g1#2",
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "_EN / _n / table_result",
+    "severity": "P0",
+    "claim": "Comma placement is not validated as thousands grouping, so a decimal-comma numerator is silently converted into an integer death count.",
+    "failing_input": "m = _EN.fullmatch('12,5/100'); (_n(m.group(1)), _n(m.group(2))) returns (125, 100). A complete accepted cell alignment is aligned(['Death', '12,5/100', '20/100', '0.57 (0.25–1.30)'], [1, 2], 3).",
+    "expected": "Reject '12,5/100': its numerator is not a valid integer count or a valid thousands-separated integer.",
+    "actual": "The alignment succeeds. table_result converts the numerator to 125 and records events_t=125, n_t=100 without rejecting even the resulting events-greater-than-denominator condition.",
+    "id": "tx-rebase-r1:g1#3",
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "header_above",
+    "severity": "P1",
+    "claim": "Supplementary-table captions do not stop header lookup, allowing a new table to bind to an earlier table's arm order.",
+    "failing_input": "header_above(['Outcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)', 'Table S2. Supplementary results', 'Outcome | Placebo | Tranexamic acid | Pooled OR (95% CI)', 'Death | 20/100 | 10/100 | 2.25 (1.00–5.06)'], 3)",
+    "expected": "None: the Table S2 boundary must prevent borrowing the previous table's header.",
+    "actual": "Returns 0. The caption regex requires a digit immediately after 'Table', so the earlier intervention-first header is selected despite the current table explicitly placing placebo first.",
+    "id": "tx-rebase-r1:g1#4",
+    "record_id": "mc-7bfaac4b303930e213333f9652c91423",
+    "verdict": null
+   }
+  ]
+ },
+ "tx-rebase-r2": {
+  "base": "cdd81860a",
+  "head": "377209d0b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_table_result.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "940ea5469fb8af41620c1cd91badf9e1ab8972572d03284a3f114ec28f7da880"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "The denominator check ignores definitions outside the arm-header cells, allowing explicitly different populations into a recorded contrast.",
+    "failing_input": "Use a topic naming intervention 'tranexamic acid', comparator 'placebo', and primary outcome 'Death due to bleeding'. Supply eligible held CC JATS whose jats_text is:\nTable 1. n = deaths; N = randomised population for tranexamic acid and safety population for placebo.\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\nDeath due to bleeding | 10/100 | 20/100 | 0.44 (0.20–0.90)",
+    "expected": "Refuse to record a contrast combining randomised and safety denominators.",
+    "actual": "Both extracted population sets are empty and therefore equal. Returns a RECORDED result with events_t=10, n_t=100, events_c=20, n_c=100 and estimate=0.44.",
+    "id": "tx-rebase-r2:g1#1",
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "header_above / table_result",
+    "severity": "P0",
+    "claim": "Roman-numbered captions do not stop the header search, allowing a later table to inherit the previous table's opposite arm order.",
+    "failing_input": "With the same matching intervention, comparator and outcome topic, use this eligible held text:\nTable I. Safety\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\nTable II. Deaths\nOutcome | Placebo | Tranexamic acid | Pooled OR (95% CI)\nDeath due to bleeding | 10/100 | 20/100 | 0.44 (0.20–0.90)\nDirect helper reproduction: header_above(text.splitlines(), 4).",
+    "expected": "header_above returns None because Table II separates the row from the old header; table_result refuses the missing qualifying header.",
+    "actual": "header_above returns 1. table_result records placebo's 10 deaths as intervention deaths, tranexamic acid's 20 deaths as control deaths, and 0.44 as the intervention-versus-control OR.",
+    "id": "tx-rebase-r2:g1#2",
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P1",
+    "claim": "A pooled OR need not have the same direction as the OR calculated from collapsed arm totals. The direction gate rejects valid meta-analysis results under unequal allocation across trials.",
+    "failing_input": "For a matching topic and eligible held source, use:\nTable 1. Pooled results\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled OR (95% CI)\nDeath due to bleeding | 91/120 | 29/120 | 0.47 (0.11–2.11)\nThese totals can come from two trials: intervention/control deaths 90/100 versus 19/20, and 1/20 versus 10/100. Each trial has OR=0.4736842105; their common pooled OR rounds to 0.47.",
+    "expected": "Accept the printed pooled result; collapsed totals do not establish that its orientation is reversed.",
+    "actual": "Returns (None, 'T3_CELLS: printed OR 0.47 is on the other side of 1 from the counts (9.85)').",
+    "id": "tx-rebase-r2:g1#3",
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P1",
+    "claim": "Population matching is case-sensitive despite case-insensitive extraction, so identical denominator populations can be classified as different.",
+    "failing_input": "For a matching topic and eligible held source, use:\nTable 1. Results\nOutcome | Tranexamic acid, randomised (n/N) | Placebo, Randomised (n/N) | Pooled OR (95% CI)\nDeath due to bleeding | 10/100 | 20/100 | 0.44 (0.20–0.90)",
+    "expected": "Treat both denominators as randomised and continue parsing.",
+    "actual": "Returns (None, \"T2_HEADER: arm populations differ [['randomised'], ['Randomised']]\") because re.findall preserves the matched text's case.",
+    "id": "tx-rebase-r2:g1#4",
+    "record_id": "mc-480e806bfa0776c12b38d9b96247bfc4",
+    "verdict": null
+   }
+  ]
+ },
+ "tx-rebase-r3": {
+  "base": "cdd81860a",
+  "head": "9350a4679",
+  "runs": {
+   "g1": {
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_comparator_table_result.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "cd70472269f2c23b1c98d73f8187d95fed56266e36a8c6b30d2e2c08095d4702"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "Integer-looking Kaplan–Meier percentages are recorded as event counts even when the table explicitly identifies them as percentages. Neither the cell parser nor the surrounding-text checks enforce the count-only requirement.",
+    "failing_input": "Call table_result with topic {'primary_outcome': {'name': 'Death due to bleeding', 'keywords': ['death due to bleeding']}, 'comparator_pmid': 'fixture', 'intervention_terms': ['tranexamic acid'], 'comparator_terms': ['placebo']}. Supply a held CC source whose jats_text output is exactly: 'Table 1. Mortality\\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled RR (95% CI)\\nDeath due to bleeding | 10/200 | 20/200 | 0.50 (0.25-1.00)\\nHere n denotes the Kaplan-Meier estimated mortality percentage, not the number of deaths; N denotes group size.' For an isolated test, make binding_verdict return {'verdict': 'BINDABLE'}.",
+    "expected": "Refuse extraction: neither 10 nor 20 is an observed death count.",
+    "actual": "The code returns a RECORDED result with counts {'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 200} and estimate 0.5. This follows directly from the supplied code; Python execution was blocked.",
+    "id": "tx-rebase-r3:g1#1",
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "table_result",
+    "severity": "P0",
+    "claim": "The denominator-note check skips every line between the selected header and outcome row. An explicit statement that the arms use different populations in that interval therefore passes.",
+    "failing_input": "Call table_result with topic {'primary_outcome': {'name': 'Death due to bleeding', 'keywords': ['death due to bleeding']}, 'comparator_pmid': 'fixture', 'intervention_terms': ['tranexamic acid'], 'comparator_terms': ['placebo']}. Supply a held CC source whose jats_text output is exactly: 'Table 1. Mortality\\nOutcome | Tranexamic acid (n/N) | Placebo (n/N) | Pooled RR (95% CI)\\nN = randomised population for tranexamic acid and safety population for placebo.\\nDeath due to bleeding | 10/200 | 20/180 | 0.45 (0.22-0.92)'. For an isolated test, make binding_verdict return {'verdict': 'BINDABLE'}.",
+    "expected": "Refuse extraction because the intervention denominator is randomised and the control denominator is safety.",
+    "actual": "The code returns a RECORDED result with counts {'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 180}. Both header population sets are empty, and lines[top:hdr] + lines[i+1:below] excludes the denominator note.",
+    "id": "tx-rebase-r3:g1#2",
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "_canon_pop / table_result",
+    "severity": "P0",
+    "claim": "Canonicalisation equates a full analysis population with the randomised population without evidence that their membership is identical. This defeats the check against mixing denominator kinds.",
+    "failing_input": "Exact helper call: _canon_pop('full analysis') == _canon_pop('randomised'). For the result path, use the preceding topic fixture with held CC text: 'Table 1. Mortality\\nOutcome | Tranexamic acid randomised (n/N) | Placebo full analysis (n/N) | Pooled RR (95% CI)\\nDeath due to bleeding | 10/200 | 20/180 | 0.45 (0.22-0.92)\\nThe full analysis population excludes participants without post-baseline measurements.' Make binding_verdict return {'verdict': 'BINDABLE'} when isolating this check.",
+    "expected": "The populations remain distinct, and table_result refuses the contrast: one denominator includes randomised participants while the other excludes participants without measurements.",
+    "actual": "The helper comparison returns True. Both header population sets become {'randomised'}, the note contributes only that same canonical population, and table_result records counts {'events_t': 10, 'n_t': 200, 'events_c': 20, 'n_c': 180}.",
+    "id": "tx-rebase-r3:g1#3",
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_table_result.py",
+    "function": "_term_re / _arm",
+    "severity": "P1",
+    "claim": "Intervention matching has a leading word boundary but no trailing boundary, so a different numbered agent can be classified as the requested intervention.",
+    "failing_input": "_term_re(['interleukin-2']).search('Interleukin-21').group(0); _arm('Interleukin-21', {'intervention_terms': ['interleukin-2'], 'comparator_terms': ['placebo']})",
+    "expected": "The search returns no match, and _arm returns None: Interleukin-21 is not Interleukin-2.",
+    "actual": "The search matches 'Interleukin-2' within 'Interleukin-21', and _arm returns 'intervention'. Consequently, an Interleukin-21 arm followed by a placebo arm satisfies table_result's arm-role gate for an Interleukin-2 topic.",
+    "id": "tx-rebase-r3:g1#4",
+    "record_id": "mc-877b69cb924328f100634c15604d8006",
+    "verdict": null
+   }
+  ]
  }
 }
