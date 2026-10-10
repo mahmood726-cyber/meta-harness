@@ -62,6 +62,139 @@ CHECKS = [
 ]
 
 
+# Bundles received 9-10 Oct (reviews 10, 12-16, 18-21): each is a FOLDER kept byte-for-byte under audit/external/<dir>.
+# The whole folder is pinned (every file in SHA256SUMS; an unlisted file fails), copied to a temp dir and run there (the
+# scripts write their results next to themselves -- never into the committed bytes), with UTF-8 mode on (review 16
+# writes text without an encoding, which is cp1252 on Windows). The regenerated output must equal the auditor's committed
+# one except for the named version-report paths; the pooled numbers must equal the served ones (or a SIGNED supersession).
+# Reviews 11, 17 and 22-24 arrived as reports only (no executable bundle; r22's was mentioned, not attached).
+# (dir, script, auditor output file, ignored output paths, [(label, slug, outcome, served field, path)])
+BUNDLES = [
+    ("review10", "review10_check_topic10.py", ("calculation_results.json", "review10_calculation_results.json"), [], [
+        ("glp1 MACE estimate (r10)", "glp1-ra-mace-t2d", None, "estimate", ("eight_trial_pool", "hr")),
+        ("glp1 MACE CI low (r10)", "glp1-ra-mace-t2d", None, "ci_low", ("eight_trial_pool", "ci95_modified_HKSJ", 0)),
+        ("glp1 MACE CI high (r10)", "glp1-ra-mace-t2d", None, "ci_high", ("eight_trial_pool", "ci95_modified_HKSJ", 1)),
+    ]),
+    ("review12", "checks.py", "results.json", [], [
+        ("melatonin SOL MD (r12)", "melatonin-primary-insomnia-sol", None, "estimate", ("arithmetic", "mean_difference_minutes")),
+        ("melatonin SOL CI low (r12)", "melatonin-primary-insomnia-sol", None, "ci_low", ("arithmetic", "ci95_minutes", 0)),
+        ("melatonin SOL CI high (r12)", "melatonin-primary-insomnia-sol", None, "ci_high", ("arithmetic", "ci95_minutes", 1)),
+    ]),
+    ("review13", "audit.py", "results.json", [("environment",)], [
+        ("noac primary estimate (r13)", "noac-vs-warfarin-af-stroke", None, "estimate", ("primary", "estimate")),
+        ("noac primary CI low (r13)", "noac-vs-warfarin-af-stroke", None, "ci_low", ("primary", "ci_low")),
+        ("noac primary CI high (r13)", "noac-vs-warfarin-af-stroke", None, "ci_high", ("primary", "ci_high")),
+    ]),
+    # review 14 recomputes a pool the harness WITHHOLDS (sacubitril composite, k=2 refused): nothing served to compare;
+    # the script's own assertions and its reproduced output are still checked
+    ("review14", "audit.py", "results.json", [("runtime",)], []),
+    ("review15", "audit_checks.py", "results.json", [], [
+        ("semaglutide discontinuation RR (r15)", "semaglutide-obesity-mace",
+         "Adverse events leading to permanent discontinuation", "estimate", ("discontinuation_reconstruction", "rr")),
+    ]),
+    ("review16", "audit_checks.py", "results.json", [], [
+        ("semaglutide weight MD (r16)", "semaglutide-obesity-weight", None, "estimate", ("primary_reconstruction", "PM_estimate")),
+    ]),
+    ("review18", "audit.py", "results.json", [("scipy_version",)], [
+        ("sglt2 HFrEF composite (r18)", "sglt2-hfref-hosp-cvdeath", None, "estimate", ("primary_reconstruction", "pooled_ratio")),
+    ]),
+    ("review19", "audit_topic19.py", "audit_results.json", [], [
+        ("sglt2 hHF estimate (r19)", "sglt2-primary-prevention-hf", None, "estimate", ("primary", "pooled_hr")),
+        ("sglt2 hHF CI low (r19)", "sglt2-primary-prevention-hf", None, "ci_low", ("primary", "hksj_floored_ci95", 0)),
+        ("sglt2 hHF CI high (r19)", "sglt2-primary-prevention-hf", None, "ci_high", ("primary", "hksj_floored_ci95", 1)),
+    ]),
+    ("review20", "audit.py", "results.json", [("output",)], [
+        ("MRA mortality estimate (r20)", "spironolactone-hfref-mortality", None, "estimate", ("primary_analysis", "effect")),
+        ("MRA mortality CI low (r20)", "spironolactone-hfref-mortality", None, "ci_low", ("primary_analysis", "hksj_ci", 0)),
+        ("MRA mortality CI high (r20)", "spironolactone-hfref-mortality", None, "ci_high", ("primary_analysis", "hksj_ci", 1)),
+    ]),
+    ("review21", "audit_topic21.py", "results.json", [("runtime",), ("output",)], [
+        ("statins MVE estimate (r21)", "statins-primary-prevention-elderly", None, "estimate", ("current_two_inputs", "estimate")),
+    ]),
+    # reviews 27-29: received as zips; the zip and its unmodified topicNN_audit/ folder are both pinned
+    ("review27", "topic27_audit/audit.py", ("topic27_audit/results.json", "topic27_audit/results.json"), [], [
+        ("metformin ovulation OR (r27)", "metformin-pcos-ovulation", None, "estimate", ("primary", "OR")),
+        ("metformin ovulation CI low (r27)", "metformin-pcos-ovulation", None, "ci_low", ("primary", "ci_low")),
+        ("metformin ovulation CI high (r27)", "metformin-pcos-ovulation", None, "ci_high", ("primary", "ci_high")),
+    ]),
+    ("review28", "topic28_audit/audit.py", ("topic28_audit/results.json", "topic28_audit/results.json"), [], [
+        ("omega3 MACE HR (r28)", "omega3-cardiovascular-events", None, "estimate", ("primary", "HR")),
+        ("omega3 MACE CI low (r28)", "omega3-cardiovascular-events", None, "ci_low", ("primary", "ci_low")),
+        ("omega3 MACE CI high (r28)", "omega3-cardiovascular-events", None, "ci_high", ("primary", "ci_high")),
+    ]),
+    # review 29's served pool is k=2 with the CI not served: only the point estimate is compared
+    ("review29", "topic29_audit/audit.py", ("topic29_audit/results.json", "topic29_audit/results.json"), [], [
+        ("pcsk9 MACE HR (r29)", "pcsk9-mace", None, "estimate", ("primary_independent_reconstruction", "HR")),
+    ]),
+    ("review25", "audit.py", "results.json", [], [
+        ("colchicine secondary estimate (r25)", "colchicine-secondary-cv-prevention", None, "estimate", ("pooled", "estimate")),
+        ("colchicine secondary CI low (r25)", "colchicine-secondary-cv-prevention", None, "ci_low", ("pooled", "lower")),
+        ("colchicine secondary CI high (r25)", "colchicine-secondary-cv-prevention", None, "ci_high", ("pooled", "upper")),
+    ]),
+]
+
+
+def _drop(obj, paths):
+    import copy
+    obj = copy.deepcopy(obj)
+    for path in paths:
+        cur = obj
+        for p in path[:-1]:
+            cur = cur.get(p) if isinstance(cur, dict) else None
+        if isinstance(cur, dict):
+            cur.pop(path[-1], None)
+    return obj
+
+
+def _compare(out, compares, superseded, signed, rows):
+    bad = 0
+    for label, slug, outcome, field, path in compares:
+        aud = float(_dig(out, path))
+        srv = _served(slug, outcome).get(field)
+        ok = srv is not None and math.isfinite(aud) and abs(aud - float(srv)) <= TOL
+        sup_ok = _valid_supersession(superseded.get(label), srv, signed)
+        v = "PASS" if ok else ("SUPERSEDED" if sup_ok else "FAIL")
+        rows.append({"check": label, "verdict": v, "auditor": round(aud, 6), "served": srv,
+                     "detail": f"superseded by {superseded[label]['signed_item']}" if v == "SUPERSEDED" else ""})
+        bad += v == "FAIL"
+    return bad
+
+
+def run_bundles(sums, superseded, signed):
+    import shutil
+    rows, bad = [], 0
+    for d, script, outspec, ignore, compares in BUNDLES:
+        base = os.path.join(EXT, d)
+        files = sorted(os.path.relpath(os.path.join(r, f), EXT).replace(os.sep, "/")
+                       for r, _, fs in os.walk(base) for f in fs)
+        listed = sorted(n for n in sums if n.startswith(d + "/"))
+        wrong = [f for f in files if sums.get(f) != hashlib.sha256(open(os.path.join(EXT, f), "rb").read()).hexdigest()]
+        if wrong or files != listed or not files:
+            rows.append({"check": f"{d} bundle bytes", "verdict": "FAIL",
+                         "detail": f"changed: {wrong[:3]}; unlisted: {sorted(set(files) - set(listed))[:3]}; "
+                                   f"missing: {sorted(set(listed) - set(files))[:3]}"})
+            bad += 1
+            continue
+        produced, committed = outspec if isinstance(outspec, tuple) else (outspec, outspec)
+        with tempfile.TemporaryDirectory() as td:
+            work = os.path.join(td, d)
+            shutil.copytree(base, work)
+            p = subprocess.run([sys.executable, os.path.join(work, script)], capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", cwd=work, timeout=600,
+                               env=dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1"))
+            if p.returncode != 0:
+                rows.append({"check": f"{d}/{script} run", "verdict": "FAIL", "detail": (p.stderr or p.stdout)[-600:]})
+                bad += 1
+                continue
+            out = json.load(open(os.path.join(work, produced), encoding="utf-8"))
+        diffs = _same_json(_drop(out, ignore), _drop(json.load(open(os.path.join(base, committed), encoding="utf-8")), ignore))
+        rows.append({"check": f"{d}/{script} reproduces {committed}", "verdict": "PASS" if not diffs else "FAIL",
+                     "detail": "; ".join(diffs[:5])})
+        bad += bool(diffs)
+        bad += _compare(out, compares, superseded, signed, rows)
+    return rows, bad
+
+
 def _signed_items():
     """Every SEEN_AND_SIGNED packet item recorded in registry/v*_signatures.json."""
     import glob
@@ -152,16 +285,9 @@ def run():
             rows.append({"check": f"{script} reproduces {aud_json}", "verdict": "PASS" if not diffs else "FAIL",
                          "detail": "; ".join(diffs[:5])})
             bad += bool(diffs)
-        for label, slug, outcome, field, path in compares:
-            aud = float(_dig(out, path))
-            srv = _served(slug, outcome).get(field)
-            ok = srv is not None and math.isfinite(aud) and abs(aud - float(srv)) <= TOL
-            sup_ok = _valid_supersession(superseded.get(label), srv, signed)
-            v = "PASS" if ok else ("SUPERSEDED" if sup_ok else "FAIL")
-            rows.append({"check": label, "verdict": v, "auditor": round(aud, 6), "served": srv,
-                         "detail": f"superseded by {superseded[label]['signed_item']}" if v == "SUPERSEDED" else ""})
-            bad += v == "FAIL"
-    return rows, bad
+        bad += _compare(out, compares, superseded, signed, rows)
+    brows, bbad = run_bundles(sums, superseded, signed)
+    return rows + brows, bad + bbad
 
 
 def main(argv=None):

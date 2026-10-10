@@ -1,0 +1,436 @@
+{
+  "identity": {
+    "topic": 28,
+    "slug": "omega3-cardiovascular-events",
+    "commit": "0730234d0b4f",
+    "review_sha256": "4e2bd3f4f704c2cfa3a0ae658f2b92f054edf4b4a8a700c5c905e91c6a375b6a",
+    "status": "ABANDONED_BY_DECISION"
+  },
+  "scope": "Independent calculations using manually transcribed inputs. No production gates/replay.",
+  "primary": {
+    "k": 6,
+    "HR": 0.938605792855755,
+    "ci_low": 0.802586785485056,
+    "ci_high": 1.097676725202927,
+    "tau2": 0.012915328053573597,
+    "Q": 19.286679150834033,
+    "I2_percent": 74.07537108437985,
+    "Q_p": 0.0016995259456062273,
+    "HKSJ_factor": 1.0,
+    "se": 0.06090278080698449,
+    "prediction_low": 0.6738147277134322,
+    "prediction_high": 1.3074526248067615,
+    "weights": {
+      "33190147": 0.21986040593727293,
+      "30415637": 0.20527507540428394,
+      "30415628": 0.22072605303270001,
+      "20929341": 0.19912140274257545,
+      "21115589": 0.09757991389002857,
+      "38199870": 0.05743714899313906
+    },
+    "common_effect_HR": 0.9217421147723978,
+    "common_effect_ci_low": 0.8646108662486148,
+    "common_effect_ci_high": 0.9826484483492381
+  },
+  "hashes": [
+    {
+      "id": "33190147",
+      "expected": "9aec291f9cfec3cda011f84626f4ef6b6b9b95f91acdaea2e6088b49bb4de8f1",
+      "computed": "9aec291f9cfec3cda011f84626f4ef6b6b9b95f91acdaea2e6088b49bb4de8f1"
+    },
+    {
+      "id": "30415637",
+      "expected": "589a4a9c85308a37c2b76c47f777429a5fd52b23fd6a4ed39c18f40b5532ef70",
+      "computed": "589a4a9c85308a37c2b76c47f777429a5fd52b23fd6a4ed39c18f40b5532ef70"
+    },
+    {
+      "id": "30415628",
+      "expected": "da5300b597145ba4ec315e394c154ce8afb1e8e019897847fdffb99ccac7113e",
+      "computed": "da5300b597145ba4ec315e394c154ce8afb1e8e019897847fdffb99ccac7113e"
+    },
+    {
+      "id": "20929341",
+      "expected": "5401d6b65e0143b7a086519ba0caf300f44d9f480b903be81a04ca460b5164d5",
+      "computed": "5401d6b65e0143b7a086519ba0caf300f44d9f480b903be81a04ca460b5164d5"
+    },
+    {
+      "id": "21115589",
+      "expected": "d04b5a64af56bd7945c04ed00acf0eba0a7401d74498075e427c8d0dbd95b408",
+      "computed": "d04b5a64af56bd7945c04ed00acf0eba0a7401d74498075e427c8d0dbd95b408"
+    },
+    {
+      "id": "38199870",
+      "expected": "37afa9fffa9bd10407fd419e1514a6dfd7633aafd8f28dec2d680c0f96b09f64",
+      "computed": "37afa9fffa9bd10407fd419e1514a6dfd7633aafd8f28dec2d680c0f96b09f64"
+    }
+  ],
+  "component_recognition_tests": {
+    "scope": "Isolated component-recognition functions only; no D5 callback or admission pipeline executed.",
+    "fixtures": {
+      "alpha_omega_displayed_definition": "The primary end point was the rate of major cardiovascular events, which comprised fatal and nonfatal cardiovascular events and cardiac interventions.",
+      "synthetic_explicit_three_point": "Major cardiovascular events comprised cardiovascular death, myocardial infarction and stroke.",
+      "synthetic_extra_cardiac_interventions": "Major cardiovascular events comprised cardiovascular death, myocardial infarction, stroke and cardiac interventions.",
+      "synthetic_extra_named_revascularization": "Major cardiovascular events comprised cardiovascular death, myocardial infarction, stroke and coronary revascularization.",
+      "hypertension_label_from_cached_D5": "Cardio-vascular: Incident Hypertension"
+    },
+    "outputs": {
+      "alpha_omega_displayed_definition": {
+        "expanded": [
+          "cardiovascular death",
+          "myocardial infarction",
+          "stroke"
+        ],
+        "without_named_expansion": []
+      },
+      "synthetic_explicit_three_point": {
+        "expanded": [
+          "cardiovascular death",
+          "myocardial infarction",
+          "stroke"
+        ],
+        "without_named_expansion": [
+          "cardiovascular death",
+          "myocardial infarction",
+          "stroke"
+        ]
+      },
+      "synthetic_extra_cardiac_interventions": {
+        "expanded": [
+          "cardiovascular death",
+          "myocardial infarction",
+          "stroke"
+        ],
+        "without_named_expansion": [
+          "cardiovascular death",
+          "myocardial infarction",
+          "stroke"
+        ]
+      },
+      "synthetic_extra_named_revascularization": {
+        "expanded": [
+          "cardiovascular death",
+          "coronary revascularization",
+          "myocardial infarction",
+          "stroke"
+        ],
+        "without_named_expansion": [
+          "cardiovascular death",
+          "coronary revascularization",
+          "myocardial infarction",
+          "stroke"
+        ]
+      },
+      "hypertension_label_from_cached_D5": {
+        "expanded": [],
+        "without_named_expansion": []
+      }
+    },
+    "checks": {
+      "Alpha Omega becomes canonical three-point": true,
+      "Alpha Omega has no parsed components without named expansion": true,
+      "Positive three-point control": true,
+      "Unrecognised extra cardiac interventions are dropped": true,
+      "Explicit revascularization extra is retained": true,
+      "Hypertension has no cardiovascular composite components": true
+    }
+  },
+  "leave_one_out_diagnostics": [
+    {
+      "omitted": "33190147",
+      "result": {
+        "k": 5,
+        "HR": 0.9096386573756814,
+        "ci_low": 0.7503736677449501,
+        "ci_high": 1.102707254478815,
+        "tau2": 0.013133952238728545,
+        "Q": 13.412393594661827,
+        "I2_percent": 70.1768370293576,
+        "Q_p": 0.00942705046578952,
+        "HKSJ_factor": 1.0,
+        "se": 0.06932466785259456,
+        "prediction_low": 0.6271407667850395,
+        "prediction_high": 1.3193887733275818,
+        "weights": {
+          "30415637": 0.26279339517507266,
+          "30415628": 0.28231971746934986,
+          "20929341": 0.25500684368526794,
+          "21115589": 0.12571036058026022,
+          "38199870": 0.07416968309004926
+        },
+        "common_effect_HR": 0.8784940857333812,
+        "common_effect_ci_low": 0.8151290597139214,
+        "common_effect_ci_high": 0.9467848673428283
+      }
+    },
+    {
+      "omitted": "30415637",
+      "result": {
+        "k": 5,
+        "HR": 0.9465003849489129,
+        "ci_low": 0.7676122063971614,
+        "ci_high": 1.1670775571863719,
+        "tau2": 0.017318023433280212,
+        "Q": 19.285803681646474,
+        "I2_percent": 79.25935539929488,
+        "Q_p": 0.000690559330600186,
+        "HKSJ_factor": 1.0,
+        "se": 0.07545141480707583,
+        "prediction_low": 0.6211685766940833,
+        "prediction_high": 1.442221986624478,
+        "weights": {
+          "33190147": 0.2676101791239887,
+          "30415628": 0.2684450855620109,
+          "20929341": 0.24719276384063116,
+          "21115589": 0.13422228000539405,
+          "38199870": 0.0825296914679752
+        },
+        "common_effect_HR": 0.9221968433938607,
+        "common_effect_ci_low": 0.858266297597366,
+        "common_effect_ci_high": 0.990889448119244
+      }
+    },
+    {
+      "omitted": "30415628",
+      "result": {
+        "k": 5,
+        "HR": 1.0014190973075392,
+        "ci_low": 0.9003558132822167,
+        "ci_high": 1.1138265490799981,
+        "tau2": 0.0,
+        "Q": 2.2028398247568943,
+        "I2_percent": 0.0,
+        "Q_p": 0.6985093969153334,
+        "HKSJ_factor": 1.0,
+        "se": 0.038316384083132524,
+        "prediction_low": 0.9003558132822167,
+        "prediction_high": 1.1138265490799981,
+        "weights": {
+          "33190147": 0.3711990002407905,
+          "30415637": 0.28486465430241886,
+          "20929341": 0.2570171600290696,
+          "21115589": 0.05850100961710138,
+          "38199870": 0.02841817581061968
+        },
+        "common_effect_HR": 1.0014190973075392,
+        "common_effect_ci_low": 0.9289683204214128,
+        "common_effect_ci_high": 1.079520352208914
+      }
+    },
+    {
+      "omitted": "20929341",
+      "result": {
+        "k": 5,
+        "HR": 0.9239384634582468,
+        "ci_low": 0.7543712610836791,
+        "ci_high": 1.1316208984834233,
+        "tau2": 0.015910448437263178,
+        "Q": 17.487178111641473,
+        "I2_percent": 77.12609790748834,
+        "Q_p": 0.0015539122126994344,
+        "HKSJ_factor": 1.0000000000000004,
+        "se": 0.07302893744446062,
+        "prediction_low": 0.6164472601250925,
+        "prediction_high": 1.3848099253200616,
+        "weights": {
+          "33190147": 0.2684654823437765,
+          "30415637": 0.25318809639948947,
+          "30415628": 0.2693626018266569,
+          "21115589": 0.1300580060416282,
+          "38199870": 0.07892581338844902
+        },
+        "common_effect_HR": 0.9026105227797124,
+        "common_effect_ci_low": 0.8407927973540067,
+        "common_effect_ci_high": 0.9689732814036497
+      }
+    },
+    {
+      "omitted": "21115589",
+      "result": {
+        "k": 5,
+        "HR": 0.925011058297193,
+        "ci_low": 0.7674994805569526,
+        "ci_high": 1.1148482567716858,
+        "tau2": 0.014754999477894278,
+        "Q": 18.2418859193882,
+        "I2_percent": 78.07244263188467,
+        "Q_p": 0.0011067404421613788,
+        "HKSJ_factor": 1.0000000000000002,
+        "se": 0.0672326959913681,
+        "prediction_low": 0.6291295262690828,
+        "prediction_high": 1.360046575855872,
+        "weights": {
+          "33190147": 0.24159277837161255,
+          "30415637": 0.22704671757669206,
+          "30415628": 0.24245013166110052,
+          "20929341": 0.22085215993372528,
+          "38199870": 0.06805821245686955
+        },
+        "common_effect_HR": 0.9152871620711851,
+        "common_effect_ci_low": 0.8573518121768638,
+        "common_effect_ci_high": 0.9771374797998368
+      }
+    },
+    {
+      "omitted": "38199870",
+      "result": {
+        "k": 5,
+        "HR": 0.9369968447476557,
+        "ci_low": 0.7725936215905606,
+        "ci_high": 1.136384073763869,
+        "tau2": 0.017155864863104164,
+        "Q": 19.155432917055066,
+        "I2_percent": 79.11819577599526,
+        "Q_p": 0.0007325588411595779,
+        "HKSJ_factor": 1.0000000000000002,
+        "se": 0.06948695655715105,
+        "prediction_low": 0.6208028161015198,
+        "prediction_high": 1.4142382481130515,
+        "weights": {
+          "33190147": 0.22871655693530418,
+          "30415637": 0.21642770924013513,
+          "30415628": 0.22943561897745618,
+          "20929341": 0.21114280596220253,
+          "21115589": 0.11427730888490205
+        },
+        "common_effect_HR": 0.9201612551202375,
+        "common_effect_ci_low": 0.8625495377894582,
+        "common_effect_ci_high": 0.9816209948872793
+      }
+    }
+  ],
+  "screening_sample": {
+    "source": "manual row-order transcription",
+    "seed": "20261008:omega3-cardiovascular-events:screen",
+    "indices": [
+      17,
+      21,
+      35,
+      54,
+      59
+    ],
+    "ids": [
+      "23351824",
+      "21145429",
+      "39059357",
+      "34468792",
+      "32745277"
+    ]
+  },
+  "strength_bleeding_recovery_not_admitted": {
+    "any_bleeding": {
+      "RR": 1.000459277403552,
+      "ci_low": 0.8605761853739436,
+      "ci_high": 1.1630797862572864,
+      "source_counts": [
+        322,
+        6532,
+        322,
+        6535
+      ],
+      "not_admitted": true
+    },
+    "TIMI_major_bleeding": {
+      "RR": 1.130953965760537,
+      "ci_low": 0.7617244468596562,
+      "ci_high": 1.6791595411472273,
+      "source_counts": [
+        52,
+        6532,
+        46,
+        6535
+      ],
+      "not_admitted": true
+    }
+  },
+  "checks": [
+    {
+      "name": "Passage 33190147",
+      "passed": true
+    },
+    {
+      "name": "Passage 30415637",
+      "passed": true
+    },
+    {
+      "name": "Passage 30415628",
+      "passed": true
+    },
+    {
+      "name": "Passage 20929341",
+      "passed": true
+    },
+    {
+      "name": "Passage 21115589",
+      "passed": true
+    },
+    {
+      "name": "Passage 38199870",
+      "passed": true
+    },
+    {
+      "name": "Alpha Omega becomes canonical three-point",
+      "passed": true
+    },
+    {
+      "name": "Alpha Omega has no parsed components without named expansion",
+      "passed": true
+    },
+    {
+      "name": "Positive three-point control",
+      "passed": true
+    },
+    {
+      "name": "Unrecognised extra cardiac interventions are dropped",
+      "passed": true
+    },
+    {
+      "name": "Explicit revascularization extra is retained",
+      "passed": true
+    },
+    {
+      "name": "Hypertension has no cardiovascular composite components",
+      "passed": true
+    },
+    {
+      "name": "Displayed pooled HR precision",
+      "passed": true
+    },
+    {
+      "name": "Displayed HKSJ lower precision",
+      "passed": true
+    },
+    {
+      "name": "Displayed HKSJ upper precision",
+      "passed": true
+    },
+    {
+      "name": "Displayed Q precision",
+      "passed": true
+    },
+    {
+      "name": "Displayed I2 precision",
+      "passed": true
+    },
+    {
+      "name": "Displayed tau2 precision",
+      "passed": true
+    },
+    {
+      "name": "Weights sum",
+      "passed": true
+    },
+    {
+      "name": "Manual screening count and uniqueness",
+      "passed": true
+    },
+    {
+      "name": "Seeded positions",
+      "passed": true
+    },
+    {
+      "name": "Seeded identifiers",
+      "passed": true
+    }
+  ],
+  "checks_passed": 22
+}
