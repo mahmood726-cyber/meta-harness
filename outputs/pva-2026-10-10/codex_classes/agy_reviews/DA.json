@@ -1,0 +1,21 @@
+{
+ "class": "DA",
+ "record_id": "mc-eb29987830d61038ab7a33fc9fc93334",
+ "state": "RAN_OK",
+ "error": null,
+ "review": {
+  "verdict": "REJECT",
+  "findings": [
+   {
+    "severity": "P1",
+    "file": "harness/page.py",
+    "issue": "Invented claim for UNBOUND state in _definition_audit_block",
+    "evidence": "In harness/page.py, the `stale` string hardcodes the claim 'this row judged an earlier version of the served row' for both 'AUDIT_ROW_STALE' and 'UNBOUND' states. However, the 'UNBOUND' state explicitly means no judged version was recorded or found, so stating that it judged an earlier version is an invented claim. This violates the rule against saying anything the review object does not support (compat_check.py handles this correctly by noting it records no judged row version).",
+    "fix": "Change the assignment of `stale` in harness/page.py to conditionally output the correct text based on the state, e.g., outputting 'this row records no judged row version' for UNBOUND instead of combining both states into the same message."
+   }
+  ],
+  "parts_read": [
+   "CANARY-0f5e023c363b"
+  ]
+ }
+}
