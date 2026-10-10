@@ -2855,6 +2855,73 @@ def decision_named_divergences(slug, trials, reg=None, decisions=None):
     return out
 
 
+_ENDPOINT_PARTS = (
+    ("CV_DEATH", r"\b(?:cardiovascular|cv)\s+(?:death|mortality)\b|\bdeath\s+(?:from|due\s+to)\s+cardiovascular\s+causes?\b"),
+    ("ALL_CAUSE_DEATH", r"\ball[- ]cause\s+(?:death|mortality)\b|\bdeath\s+from\s+any\s+cause\b"),
+    ("MI", r"\bmyocardial\s+infarctions?\b|\bMI\b"),
+    ("STROKE", r"\bstrokes?\b"),
+    ("UNSTABLE_ANGINA", r"\bunstable\s+angina\b"),
+    ("HF_HOSPITALISATION", r"\b(?:hospitali[sz]ations?|admissions?)\s+for\s+heart\s+failure\b|\bheart\s+failure\s+"
+                           r"hospitali[sz]ations?\b|\bHHF\b"),
+    ("REVASCULARISATION", r"\brevasculari[sz]ations?\b"),
+)
+_POINT_MACE = {3: {"CV_DEATH", "MI", "STROKE"}, 4: {"CV_DEATH", "MI", "STROKE", "UNSTABLE_ANGINA"}}
+
+
+def endpoint_components(text):
+    """The composite's components named in a text (frozenset), or None when it names no composite. '3-point MACE' /
+    'three-point MACE' / '4-point MACE' expand to their standard components; otherwise >= 2 named components are
+    needed for the text to define a composite (a single word -- 'stroke' -- is not an endpoint definition)."""
+    t = str(text or "")
+    m = re.search(r"\b(3|three|4|four)[- ]point\s+(?:MACE|major\s+adverse\s+cardiovascular\s+events?)\b", t, re.I)
+    if m:
+        return frozenset(_POINT_MACE[3 if m.group(1).lower() in ("3", "three") else 4])
+    parts = frozenset(k for k, rx in _ENDPOINT_PARTS if re.search(rx, t, re.I))
+    return parts if len(parts) >= 2 else None
+
+
+def endpoint_wording_adjudication(trials, cfg):
+    """R6 (G1 TECOS span): a comparator row is adjudicated on its endpoint WORDING and its TUPLE together. The
+    comparator's span for TECOS names the 4-point composite ('... or hospitalisation for unstable angina') while its
+    tuple 0.99 (0.89-1.10) is TECOS's 3-point MACE result -- the value we pool (AACT outcome 258888999). A tuple that
+    agrees under a wording that names a DIFFERENT composite is never a plain AGREE:
+      tuple agrees    -> AGREE_ON_TUPLE:COMPARATOR_WORDING_NAMES_A_DIFFERENT_ENDPOINT + comparator finding
+                         COMPARATOR_ROW_WORDING_MISLABELS_ITS_TUPLE (the comparator printed our endpoint's value under
+                         another endpoint's name)
+      tuple disagrees -> NOT_COMPARABLE:COMPARATOR_ROW_IS_A_DIFFERENT_ENDPOINT (a different endpoint is not a
+                         disagreement)
+    Our components: the trial's own protocol annotation (primary_outcome.trial_annotations[<family pmid>].components)
+    else the topic's primary outcome name. Both sides must define a composite, else nothing is adjudicated."""
+    po = (cfg or {}).get("primary_outcome") or {}
+    ann = po.get("trial_annotations") or {}
+    topic_parts = endpoint_components(po.get("name"))
+    n = 0
+    for x in trials:
+        span = ((x.get("comparator_row_provenance") or {}).get("span"))
+        theirs = endpoint_components(span)
+        fam = str(x.get("family") or "").replace("PMID ", "")
+        a = ann.get(fam) or {}
+        ours = endpoint_components(" ; ".join(a.get("components") or [])) if a.get("components") else topic_parts
+        if not theirs or not ours or theirs == ours:
+            continue
+        ag = str(x.get("agreement_with_comparator_row") or "")
+        x["endpoint_wording"] = {"state": "COMPARATOR_WORDING_NAMES_A_DIFFERENT_ENDPOINT",
+                                 "comparator_components": sorted(theirs), "our_components": sorted(ours),
+                                 "comparator_span": span, "agreement_before": ag,
+                                 "our_components_basis": (f"primary_outcome.trial_annotations[{fam}]" if a.get("components")
+                                                          else "primary_outcome.name")}
+        if ag.startswith("AGREE"):
+            x["agreement_with_comparator_row"] = "AGREE_ON_TUPLE:COMPARATOR_WORDING_NAMES_A_DIFFERENT_ENDPOINT"
+            x.setdefault("comparator_row_findings", []).append(
+                {"finding": "COMPARATOR_ROW_WORDING_MISLABELS_ITS_TUPLE",
+                 "detail": f"the comparator's row names {sorted(theirs)} but prints the tuple of our "
+                           f"{sorted(ours)} endpoint"})
+        elif ag.startswith("DISAGREE"):
+            x["agreement_with_comparator_row"] = "NOT_COMPARABLE:COMPARATOR_ROW_IS_A_DIFFERENT_ENDPOINT"
+        n += 1
+    return n
+
+
 def comparator_findings(trials, comp):
     """Findings ABOUT the comparator's own rows, typed, each with where it sits and what it rests on."""
     out = []
@@ -3971,6 +4038,13 @@ def topic(slug, T):
     refresh_same_trials_after_bindings(out, pairs, method, comp)
     apply_no_rows_comparator(out)          # after every binding: OUR verified rows are final before the pooled compare
     apply_typed_comparator_rows(out)
+    # R6: wording and tuple adjudicated together, once every comparator row (and its verbatim span) is attached
+    if endpoint_wording_adjudication(out["trials"], cfg):
+        out["per_trial_agreement"] = dict(Counter(x.get("agreement_with_comparator_row") for x in out["trials"]
+                                                  if is_matched(x)))
+        out["comparator_findings"] = list(out.get("comparator_findings") or []) + [
+            f for f in comparator_findings([x for x in out["trials"] if x.get("endpoint_wording")], comp)
+            if f.get("finding") == "COMPARATOR_ROW_WORDING_MISLABELS_ITS_TUPLE"]
     apply_coverage(out)
     cite_or_demote(out, slug)
     bad = scope_citation_violations(out)
