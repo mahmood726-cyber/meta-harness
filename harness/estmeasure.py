@@ -110,5 +110,6 @@ def display_effect_label(result: dict) -> str:
         normalized = label.lower().replace("-", " ").replace("_", " ")
         classes = (result.get("estmeasure") or {}).get("classes") or []
         if not any(c.lower().replace("_", " ") in normalized for c in classes):
-            return "Pooled effect (" + measure + ")"
+            # keep the descriptive label (and any input counts in it); append the measure mix, never replace it
+            return f"{label} ({measure})" if label else "Pooled effect (" + measure + ")"
     return label
