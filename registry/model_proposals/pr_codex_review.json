@@ -6747,5 +6747,86 @@
     "verdict": null
    }
   ]
+ },
+ "v14-apply-r3": {
+  "base": "origin/main",
+  "head": "origin/g1/v14-apply-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-cc385ea45a74a7089760356453221452",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/hand_binding.py",
+     "harness/source_hierarchy.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py",
+     "scripts/v14_05_licence_exception.py"
+    ],
+    "prompt_sha256": "8a56b6cac96e4ba5ea9eef5beff5fb52899b1239e8d13dd84ad9628f47f63c42"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/v14_02_dpp4_hhf.py",
+    "function": "nct_witness",
+    "severity": "P1",
+    "claim": "Abstract matching accepts the requested NCT identifier as a substring of a different, malformed identifier, falsely establishing trial identity.",
+    "failing_input": "nct_witness('<PubmedArticle><Abstract><AbstractText>Trial registration: NCT017032080.</AbstractText></Abstract></PubmedArticle>', 'NCT01703208')",
+    "expected": "None: the abstract does not contain the exact identifier NCT01703208.",
+    "actual": "Returns \"the article's own abstract\".",
+    "id": "v14-apply-r3:g1#1",
+    "record_id": "mc-cc385ea45a74a7089760356453221452",
+    "verdict": null
+   },
+   {
+    "file": "scripts/v14_02_dpp4_hhf.py",
+    "function": "main",
+    "severity": "P1",
+    "claim": "Offline binding accepts any truthy nct_basis without checking the manifest's trial identity or retaining the accession evidence. Abstract hashes do not authenticate this metadata.",
+    "failing_input": "Keep the two pinned held abstracts unchanged, use {} for verified_effects.json, and set held_abstracts/manifest.json to {\"documents\":{\"pubmed_28893244.txt\":{\"nct\":\"NCT00000000\",\"nct_basis\":\"unverified\"},\"pubmed_30586723.txt\":{\"nct\":\"NCT00000000\",\"nct_basis\":\"unverified\"}}}. Call main(['--offline']).",
+    "expected": "Refuse the inconsistent, unverified binding metadata before writing verified effects.",
+    "actual": "Accepts both records and writes verified effects for NCT01703208 and NCT01897532, using the hardcoded target identities despite the contradictory manifest.",
+    "id": "v14-apply-r3:g1#2",
+    "record_id": "mc-cc385ea45a74a7089760356453221452",
+    "verdict": null
+   }
+  ]
+ },
+ "v14-apply-r4": {
+  "base": "origin/main",
+  "head": "origin/g1/v14-apply-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ad2962e24326f1ba2f08f16da4cc88c3",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/hand_binding.py",
+     "harness/source_hierarchy.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py",
+     "scripts/v14_05_licence_exception.py"
+    ],
+    "prompt_sha256": "0ebf70f3162943d8efac5f53d31ecb975d8d40f42a4feb2dab4733c3f8755cc7"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/model_call_live.py",
+    "function": "agy_call",
+    "severity": "P2",
+    "claim": "Removing outside_workdir_reads breaks every agy call that reaches logging: log_call indexes this required field unconditionally. The exception prevents both audit-log persistence and returning the model-call record.",
+    "failing_input": "Reproduce the emitted logging payload directly:\nfrom reproducible_ai.model_call_live import log_call\nlog_call({'record_id': 'review', 'state': 'RAN_OK', 'caller': {'lane': 'review'}}, {'tokens_used': None, 'tool_calls_n': 0, 'tool_calls_rejected_n': 0, 'tool_calls': [], 'files_read': [], 'transcript_redacted': ''})",
+    "expected": "agy_call supplies outside_workdir_reads=None, logs the completed call, and returns its record.",
+    "actual": "KeyError: 'outside_workdir_reads' before the log entry is written or agy_call returns.",
+    "id": "v14-apply-r4:g1#1",
+    "record_id": "mc-ad2962e24326f1ba2f08f16da4cc88c3",
+    "verdict": null
+   }
+  ]
  }
 }

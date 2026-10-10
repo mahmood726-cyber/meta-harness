@@ -37,11 +37,11 @@ def _git(*a):
 
 def groups(base, head):
     """[(group name, [(file, diff text)])]: every changed code file's diff, packed into groups of <= GROUP_CHARS."""
-    files = [f for f in _git("diff", "--name-only", f"{base}..{head}").split()
+    files = [f for f in _git("diff", "--name-only", f"{base}...{head}").split()
              if f.endswith(".py") and f.startswith(CODE_DIRS) and not f.startswith("docs/")]
     out, cur, size = [], [], 0
     for f in files:
-        d = _git("diff", f"{base}..{head}", "--", f)
+        d = _git("diff", f"{base}...{head}", "--", f)
         if not d.strip():
             continue
         d = d if len(d) <= GROUP_CHARS else d[:GROUP_CHARS] + "\n[... diff truncated; the reviewer saw the first part only]\n"
@@ -79,7 +79,7 @@ def main(argv):
             p = prompt(files)
             caller = {"file": "scripts/pr_codex_review.py", "line": "main", "lane": "captain",
                       "purpose": f"{reader} review of merged range {name} {base[:9]}..{head[:9]} ({gname})"}
-            digests = [{"ref": f"git diff {base[:12]}..{head[:12]} -- {f}",
+            digests = [{"ref": f"git diff {base[:12]}...{head[:12]} -- {f}",
                         "sha256": hashlib.sha256(d.encode("utf-8")).hexdigest(), "what": "reviewed diff"} for f, d in files]
             if reader == "agy":
                 rec = mcl.agy_call(p, schema=base_review.SCHEMA, caller=caller, input_digests=digests, timeout_s=1800)
