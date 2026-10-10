@@ -511,7 +511,11 @@ def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
     edox_m = re.search(r"unfavorable trend with low-dose edoxaban versus warfarin \(hazard ratio,\s*(\d+(?:\.\d+)?);\s*"
                        r"(\d+(?:\.\d+)?)%\s*CI,\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)" + _WHOLE, engage_text, re.I)
     rely_found, edox_low_found = bool(rely_m), bool(edox_m)
-    edox_30_label_found = bool(re.search(r"\b30\s*mg\b", engage_text, re.I))
+    # the 30 mg label must belong to the LOW-DOSE edoxaban arm, in one clause: 'high-dose ... 60 mg, reduced to 30 mg;
+    # low-dose ... 15 mg' does not identify it (codex copps-r15#1)
+    edox_30_label_found = bool(re.search(r"low[- ]dose edoxaban[^.;]{0,40}?\b30\s*mg\b|\b30\s*mg\b[^.;]{0,40}?"
+                                         r"low[- ]dose edoxaban|low[- ]dose\s*\(\s*30\s*mg", engage_text, re.I)) \
+        and not re.search(r"low[- ]dose edoxaban[^.;]{0,40}?\b(?:15|60)\s*mg\b", engage_text, re.I)
 
     def _read(m, scale):
         return {"effect": float(m.group(1)), "ci_level": float(m.group(2)), "ci_low": float(m.group(3)),

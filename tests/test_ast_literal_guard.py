@@ -266,3 +266,18 @@ def test_PLANT_codex_r14_1_a_spaced_indian_grouped_bound_is_refused():
 def test_PLANT_codex_r14_2_attribute_assignments_are_flagged():
     hits = sweep.sweep_source("study.ai = 20\nstudy.n1i = 169\n", "harness/x.py")
     assert sorted((h["key"], h["value"]) for h in hits) == [("ai", 20), ("n1i", 169)]
+
+
+def test_PLANT_codex_r15_1_a_30mg_label_must_belong_to_the_low_dose_arm():
+    e = ("High-dose edoxaban was 60 mg, reduced to 30 mg; low-dose edoxaban was 15 mg. " + ENGAGE)
+    out = si._noac_lower_dose_status({"records": [{"id": "19717844", "title": "", "abstract": RELY},
+                                                  {"id": "24251359", "title": "", "abstract": e}]})
+    assert out["status"] != "READY_TO_COMPUTE"
+    tied = "Low-dose edoxaban (30 mg once daily) was compared with warfarin. " + ENGAGE
+    out = si._noac_lower_dose_status({"records": [{"id": "19717844", "title": "", "abstract": RELY},
+                                                  {"id": "24251359", "title": "", "abstract": tied}]})
+    assert out["status"] == "READY_TO_COMPUTE"
+
+
+def test_PLANT_codex_r15_2_six_digit_numerators_are_counts():
+    assert [h["value"] for h in sweep.sweep_source('result = "Deaths 100000/200000"', "harness/x.py")] == ["100000/200000"]

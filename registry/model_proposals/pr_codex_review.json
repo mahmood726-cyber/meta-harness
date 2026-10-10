@@ -7467,5 +7467,49 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r15": {
+  "base": "630e622bf",
+  "head": "a726c3c03",
+  "runs": {
+   "g1": {
+    "record_id": "mc-24080ee6e1390960e48e4f68d0d93f82",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "c9c93c898dcc5de3bad7c2c559c2842ffa47a717e89854bc7b1d25d685e86de1"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The readiness check treats any occurrence of '30 mg' as identifying the low-dose edoxaban arm, even when the source explicitly assigns it to another arm.",
+    "failing_input": "_noac_lower_dose_status({'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval [CI], 0.74 to 1.11)'}, {'id': '24251359', 'abstract': 'High-dose edoxaban was 60 mg, reduced to 30 mg; low-dose edoxaban was 15 mg. There was an unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34).'}]})",
+    "expected": "status='NOT_COMPUTED_SOURCE_INCOMPLETE'; the extracted low-dose effect is not evidence for a 30 mg arm.",
+    "actual": "status='READY_TO_COMPUTE', with reason='RE-LY 110 mg and edoxaban 30 mg effects are both explicitly present in committed sources.'",
+    "id": "copps-r15:g1#1",
+    "record_id": "mc-24080ee6e1390960e48e4f68d0d93f82",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The count scanner silently misses ungrouped six-digit event counts because the numerator alternative allows only five digits. The same counts with thousands separators are detected.",
+    "failing_input": "sweep_source('result = \"Deaths 100000/200000\"', 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding with value='100000/200000'.",
+    "actual": "[]",
+    "id": "copps-r15:g1#2",
+    "record_id": "mc-24080ee6e1390960e48e4f68d0d93f82",
+    "verdict": null
+   }
+  ]
  }
 }
