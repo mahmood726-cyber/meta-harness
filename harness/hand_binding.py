@@ -105,7 +105,10 @@ def _sentences(prose: str) -> list[str]:
     ('... p=0.067). 2347 (47.4%) participants ...' is two sentences)."""
     out = []
     for x in extract._sentences(extract._norm(prose or "")):
-        for p in re.split(r"(?<=\)\.)\s+(?=\d)", x):
+        # a full stop glued to the next sentence ('... respectively.At 12 months, ...', PHILO) also ends one: a
+        # lowercase letter, '.', then a capitalised word (never a decimal, never an initialism like 'U.S.Food')
+        # (only the GLUED case: a spaced '. ' the repo rule left whole, e.g. 'et al. Smith', stays whole)
+        for p in re.split(r"(?<=\)\.)\s+(?=\d)|(?<=[a-z]{2}\.)(?=[A-Z][a-z])", x):
             p = p.strip()
             if p:
                 out.append(p)
