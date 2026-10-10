@@ -6731,5 +6731,207 @@
     "verdict": null
    }
   ]
+ },
+ "strands-r1": {
+  "base": "fca8cff07",
+  "head": "30af60cae",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a883ed576170837257d7e3ea25755318",
+    "state": "RAN_OK",
+    "files": [
+     "harness/claimgraph.py",
+     "harness/page.py",
+     "harness/review_tabs.py",
+     "harness/strand_pool.py",
+     "scripts/build_iv_iron_strands.py",
+     "scripts/provenance_census.py",
+     "scripts/rebind_strand_doc.py"
+    ],
+    "prompt_sha256": "0e6f970fe7b708461a6764cf777b19c930d501f0050380ba7535486be0e1116d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/strand_pool.py",
+    "function": "read_member",
+    "severity": "P0",
+    "claim": "A quote can truncate a numeric token in the held text. The end-of-number check runs against the quote, so its artificial end makes the truncated bound valid.",
+    "failing_input": "read_member('RR 0.74; 95% CI 0.58-0.945)', 'RR 0.74; 95% CI 0.58-0.94')",
+    "expected": "None: the quoted upper bound cuts through the held token 0.945.",
+    "actual": "{'effect': 0.74, 'ci_level': 95.0, 'ci_low': 0.58, 'ci_high': 0.94, 'source_span': 'RR 0.74; 95% CI 0.58-0.94'}",
+    "id": "strands-r1:g1#1",
+    "record_id": "mc-a883ed576170837257d7e3ea25755318",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "read_member",
+    "severity": "P0",
+    "claim": "The unanchored _PAREN fallback reads the fractional digits of a leading-dot decimal as an integer.",
+    "failing_input": "q = 'The hazard ratio was .56 (95% CI, 0.45 to 0.68)'; read_member(q, q)",
+    "expected": "effect=0.56, or refusal if leading-dot decimals are unsupported.",
+    "actual": "{'effect': 56.0, 'ci_level': 95.0, 'ci_low': 0.45, 'ci_high': 0.68, 'source_span': 'The hazard ratio was .56 (95% CI, 0.45 to 0.68)'}",
+    "id": "strands-r1:g1#2",
+    "record_id": "mc-a883ed576170837257d7e3ea25755318",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "table_arm_counts",
+    "severity": "P0",
+    "claim": "Cell shape alone is treated as proof of participant counts. Explicit Kaplan–Meier percentages with standard errors are accepted as counts.",
+    "failing_input": "jats = '<table-wrap><caption>Mortality: Kaplan-Meier estimates, % (SE)</caption><table><thead><tr><th>Outcome</th><th>A (n = 1000)</th><th>B (n = 2000)</th></tr></thead><tbody><tr><td>Deaths</td><td>10 (2.0)</td><td>20 (3.0)</td></tr></tbody></table></table-wrap>'; table_arm_counts(jats, 'Mortality', 'Deaths')",
+    "expected": "None: these are estimated percentages, not participant counts.",
+    "actual": "Returns ai=10, n1i=1000, ci=20, n2i=2000, treating the Kaplan–Meier estimates as event counts.",
+    "id": "strands-r1:g1#3",
+    "record_id": "mc-a883ed576170837257d7e3ea25755318",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "table_arm_counts",
+    "severity": "P0",
+    "claim": "Filtering cells by numeric format destroys column alignment. When an arm is missing, a total column can silently supply its count.",
+    "failing_input": "jats = '<table-wrap><caption>Mortality</caption><table><thead><tr><th>Outcome</th><th>A (n = 100)</th><th>B (n = 200)</th><th>Total</th></tr></thead><tbody><tr><td>Deaths</td><td>10 (10.0)</td><td>Not reported</td><td>30 (10.0)</td></tr></tbody></table></table-wrap>'; table_arm_counts(jats, 'Mortality', 'Deaths')",
+    "expected": "None: arm B has no reported count.",
+    "actual": "Returns ai=10, n1i=100, ci=30, n2i=200. The total count is assigned to arm B.",
+    "id": "strands-r1:g1#4",
+    "record_id": "mc-a883ed576170837257d7e3ea25755318",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "table_arm_counts",
+    "severity": "P0",
+    "claim": "Denominator kinds are discarded when extracting header numbers, allowing explicitly randomised and analysed populations to be combined.",
+    "failing_input": "jats = '<table-wrap><caption>Mortality</caption><table><thead><tr><th>Outcome</th><th>A randomised (n = 100)</th><th>B analysed (n = 80)</th></tr></thead><tbody><tr><td>Deaths</td><td>10 (10.0)</td><td>8 (10.0)</td></tr></tbody></table></table-wrap>'; table_arm_counts(jats, 'Mortality', 'Deaths')",
+    "expected": "None: the two denominators describe different populations.",
+    "actual": "Returns ai=10, n1i=100, ci=8, n2i=80 without refusing the denominator mismatch.",
+    "id": "strands-r1:g1#5",
+    "record_id": "mc-a883ed576170837257d7e3ea25755318",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rebind_strand_doc.py",
+    "function": "rebind",
+    "severity": "P0",
+    "claim": "Quotes are selected solely by PMID. Two endpoints from the same paper therefore receive the same effect, while their distinct endpoint labels remain unchanged.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts import rebind_strand_doc as mod\nq = 'HR 0.80; 95% CI 0.70-0.90)'\nspec = {'docs/test.json': {'slug': 'test', 'members': {'test-paper': {'text': 'abstract', 'quote': q}}}}\ndoc = {'strands': [{'name': 'Mortality', 'effect_measure': 'HR', 'members': [{'trial': 'Test trial', 'pmid': 'test-paper', 'endpoint': 'Mortality'}]}, {'name': 'Hospitalisation', 'effect_measure': 'HR', 'members': [{'trial': 'Test trial', 'pmid': 'test-paper', 'endpoint': 'Hospitalisation'}]}]}\nrecords = {'records': [{'id': 'test-paper', 'abstract': 'Mortality (HR 0.60; 95% CI 0.50-0.70). Hospitalisation (' + q + '.'}]}\nwith patch('builtins.open', mock_open()), patch.object(mod.json, 'load', side_effect=[spec, doc, records]):\n    result = mod.rebind('docs/test.json', root='.')\nprint([(s['name'], s['members'][0]['effect']) for s in result['strands']])",
+    "expected": "Mortality receives 0.60 and hospitalisation receives 0.80, or rebinding refuses because the registry cannot identify a separate quote for each endpoint.",
+    "actual": "[('Mortality', 0.8), ('Hospitalisation', 0.8)]",
+    "id": "strands-r1:g1#6",
+    "record_id": "mc-a883ed576170837257d7e3ea25755318",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "member_class",
+    "severity": "P1",
+    "claim": "A source-string prefix and any nonempty span certify a member as extracted, even when its numbers contradict that span. strand_extraction_rows then marks it verified.",
+    "failing_input": "member_class({'effect': 99.0, 'ci_low': 98.0, 'ci_high': 100.0, 'source': 'held fabricated', 'source_span': 'RR 0.74; 95% CI 0.58-0.94)'})",
+    "expected": "Refusal or an unverified classification: the supplied effect and interval do not match the claimed evidence.",
+    "actual": "('EXTRACTOR', 'read by harness/strand_pool.py from held fabricated'); strand_extraction_rows consequently sets verified=True.",
+    "id": "strands-r1:g1#7",
+    "record_id": "mc-a883ed576170837257d7e3ea25755318",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "served_view",
+    "severity": "P1",
+    "claim": "A k=2 estimate with missing interval fields receives no withholding reason. render_strands_section consequently takes its ordinary-result branch and labels the result significant despite having no interval.",
+    "failing_input": "served_view({'k': 2, 'estimate': 0.8})",
+    "expected": "A nonempty withholding or refusal reason; the renderer must not classify significance.",
+    "actual": "{'k': 2, 'estimate': 0.8, 'ci_low': None, 'ci_high': None, 'withheld': None, 'crosses_null': None, 'tau2': None}. The renderer interprets the false-valued crosses_null as 'significant'.",
+    "id": "strands-r1:g1#8",
+    "record_id": "mc-a883ed576170837257d7e3ea25755318",
+    "verdict": null
+   }
+  ]
+ },
+ "strands-r2": {
+  "base": "fca8cff07",
+  "head": "acf762f10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-2b3bae9066657c3ef78d21d1def5d899",
+    "state": "RAN_OK",
+    "files": [
+     "harness/claimgraph.py",
+     "harness/page.py",
+     "harness/review_tabs.py",
+     "harness/strand_pool.py",
+     "scripts/build_iv_iron_strands.py",
+     "scripts/provenance_census.py",
+     "scripts/rebind_strand_doc.py"
+    ],
+    "prompt_sha256": "83a82b3b45ae88adcf72f7d29ca19feb3b7cde06de7bc15a80e4e14ad177f42e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/strand_pool.py",
+    "function": "read_member",
+    "severity": "P0",
+    "claim": "_PAREN can read the exponent of a scientific-notation value as the effect. The numeric boundary excludes digits and dots but permits a preceding minus sign.",
+    "failing_input": "from harness.strand_pool import read_member\ns = 'HR 1e-2 (95% CI 0.005-0.02)'\nread_member(s, s)",
+    "expected": "None for unsupported notation, or an effect of 0.01 if scientific notation is supported.",
+    "actual": "Returns {'effect': 2.0, 'ci_level': 95.0, 'ci_low': 0.005, 'ci_high': 0.02, 'source_span': 'HR 1e-2 (95% CI 0.005-0.02)' }.",
+    "id": "strands-r2:g1#1",
+    "record_id": "mc-2b3bae9066657c3ef78d21d1def5d899",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "table_arm_counts",
+    "severity": "P0",
+    "claim": "Percentage columns are accepted as participant counts. Finding count_basis somewhere in the table does not establish the units of the selected cells.",
+    "failing_input": "from harness.strand_pool import table_arm_counts\njats = '<table-wrap><caption>Deaths (full-analysis set)</caption><table><thead><tr><th>Outcome</th><th>FCM (n = 200), % (SE)</th><th>Placebo (n = 400), % (SE)</th></tr></thead><tbody><tr><td>Deaths</td><td>10 (2.0)</td><td>20 (3.0)</td></tr></tbody></table><table-wrap-foot>Percentages are computed using the number of subjects with the end-point/event divided by the arm size.</table-wrap-foot></table-wrap>'\ntable_arm_counts(jats, 'full-analysis set', 'Deaths', (1, 2), 'computed using the number of subjects with the end-point/event')",
+    "expected": "None: the selected columns explicitly contain percentages, not counts.",
+    "actual": "Returns a count record with ai=10, n1i=200, ci=20, n2i=400. These falsely imply equal risks, although the reported percentages are 10% and 20%.",
+    "id": "strands-r2:g1#2",
+    "record_id": "mc-2b3bae9066657c3ef78d21d1def5d899",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "table_arm_counts",
+    "severity": "P0",
+    "claim": "Numerators follow arm_cells order, but denominators always follow header order. Reversing the requested arms silently pairs each numerator with the other arm's denominator.",
+    "failing_input": "from harness.strand_pool import table_arm_counts\njats = '<table-wrap><caption>Deaths (full-analysis set)</caption><table><thead><tr><th>Outcome</th><th>A (n = 100)</th><th>B (n = 200)</th></tr></thead><tbody><tr><td>Deaths</td><td>10 (10.0)</td><td>20 (10.0)</td></tr></tbody></table><table-wrap-foot>Cells contain participants with the event (percentage).</table-wrap-foot></table-wrap>'\ntable_arm_counts(jats, 'full-analysis set', 'Deaths', (2, 1), 'participants with the event')",
+    "expected": "ai=20, n1i=200, ci=10, n2i=100, or refusal if that column ordering is unsupported.",
+    "actual": "Returns ai=20, n1i=100, ci=10, n2i=200, changing the implied risk ratio from 1 to 4.",
+    "id": "strands-r2:g1#3",
+    "record_id": "mc-2b3bae9066657c3ef78d21d1def5d899",
+    "verdict": null
+   },
+   {
+    "file": "harness/strand_pool.py",
+    "function": "_numbers_match_span",
+    "severity": "P1",
+    "claim": "Substring checks certify counts and denominators that are not present as whole numbers in the source span. member_class consequently marks incorrect numbers EXTRACTOR, and the extraction tab marks them verified.",
+    "failing_input": "from harness.strand_pool import counts_rr, member_class\nm = dict(ai=1, n1i=10, ci=2, n2i=20, source='held full text', source_span='A (n = 100) | B (n = 200) | Deaths | 11 (11.0) | 12 (6.0)', **counts_rr(1, 10, 2, 20))\nmember_class(m)",
+    "expected": "HAND_ENTERED: the span reports 11/100 and 12/200, not 1/10 and 2/20.",
+    "actual": "Returns ('EXTRACTOR', 'read by harness/strand_pool.py from held full text'). The count checks match suffixes of 11 and 12; the denominator checks match prefixes of 100 and 200.",
+    "id": "strands-r2:g1#4",
+    "record_id": "mc-2b3bae9066657c3ef78d21d1def5d899",
+    "verdict": null
+   },
+   {
+    "file": "harness/page.py",
+    "function": "render_strands_section",
+    "severity": "P1",
+    "claim": "A refused member with no usable result is rendered as a k=1 single-trial result. The new builder legitimately produces this state when held full text is missing, but the renderer ignores its refusal status and k=0.",
+    "failing_input": "from scripts.build_iv_iron_strands import confirm_participants\nfrom harness.page import render_strands_section\nd = {'strands': [{'strand': 'D', 'name': 'Participant-level risk', 'event_process': 'PARTICIPANT_RISK', 'effect_measure': 'RR', 'members': [confirm_participants('')], 'k': 0, 'pool': None}]}\nrender_strands_section(d)",
+    "expected": "Display REFUSED_DENOMINATORS_NOT_STATED and its reason, with no available single-trial result.",
+    "actual": "The HTML labels the member 'k=1 (single trial)' and omits its refusal status and reason.",
+    "id": "strands-r2:g1#5",
+    "record_id": "mc-2b3bae9066657c3ef78d21d1def5d899",
+    "verdict": null
+   }
+  ]
  }
 }

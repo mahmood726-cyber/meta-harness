@@ -158,6 +158,14 @@ def census(root: str = ROOT) -> dict:
                         v = str(t.get(k) or "").replace("PMID ", "").strip()
                         if v:
                             served_class[(slug, v)] = (cls, why)
+        # external review 11-01: every served strand member is a served number too, classified by the SAME function
+        # the page uses (harness/strand_pool.member_class)
+        from harness.strand_pool import member_class, strand_rows
+        for label, rid, _s, m in strand_rows(r):
+            cls, why = member_class(m)
+            pid = str(m.get("pmid") or "")
+            served.append({"slug": slug, "outcome": label, "id": rid, "class": cls, "why": why,
+                           "identity": "HAND_NAMED" if pid in extra.get(slug, set()) else "SEARCHED"})
     tracker = []
     for p in sorted(glob.glob(os.path.join(root, "outputs", "k_gap", "g1", "*.json"))):
         o = _j(p)
