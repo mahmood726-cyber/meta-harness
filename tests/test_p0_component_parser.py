@@ -123,3 +123,39 @@ def test_fatal_coronary_heart_disease_is_a_known_item():
 def test_a_definition_in_the_next_sentence_is_read():
     p = C.components("MACE. The endpoint comprised cardiac interventions.")
     assert p.unknown == ["cardiac interventions"] and not p.expanded_generic
+
+
+def test_a_parenthetical_qualifier_is_not_an_enumeration():
+    """LEADER full text: 'nonfatal (including silent) myocardial infarction' -- round 2 made 'silent' an unknown component."""
+    s = ("The primary composite outcome in the time-to-event analysis was the first occurrence of death from cardiovascular "
+         "causes, nonfatal (including silent) myocardial infarction, or nonfatal stroke.")
+    assert C.components(s).unknown == []
+    assert te._components_from_text(s) == {"cardiovascular death", "myocardial infarction", "stroke"}
+
+
+# ---------------------------------------------------------------- KNOWN LIMITS (codex p0-r3 #1-#4), recorded at stop-at-three
+# A regex enumerator over free text cannot close every synthetic phrasing; each review round found new ones. These four are NOT
+# present in any of the 53 served definition spans (probe recorded in the PR). They are strict xfails: if one starts passing,
+# the limit is gone and the marker must be removed. The architecture question (a recorded two-family reader for definition
+# spans, regex as cross-check) is with Mahmood.
+import pytest  # noqa: E402
+
+_LIMITS = [
+    ("MACE (cardiovascular death, myocardial infarction, stroke, and cardiac interventions).", "unkeyed parenthetical list"),
+    ("The endpoint consisted of cardiovascular death, myocardial infarction, stroke, and cardiac interventions.",
+     "'consisted of' is a subject cue but not an enumeration cue"),
+    ("The composite of cardiovascular death, myocardial infarction, and stroke plus cardiac interventions.",
+     "'plus' is not an item separator"),
+]
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex p0-r3): see _LIMITS")
+@pytest.mark.parametrize("text,why", _LIMITS)
+def test_known_limit_unknown_component_found(text, why):
+    assert C.components(text).unknown == ["cardiac interventions"], why
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex p0-r3 #4): excluding a SUBTYPE removes the whole component")
+def test_known_limit_subtype_exclusion():
+    s = "The composite of cardiovascular death, myocardial infarction, and stroke (excluding hemorrhagic stroke)."
+    assert C.components(s).components == {"cardiovascular death", "myocardial infarction", "stroke"}

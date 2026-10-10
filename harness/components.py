@@ -57,6 +57,9 @@ _OTHER_KNOWN = re.compile(
 
 
 _GENERIC_ITEM = re.compile(r"^(?:(?:the )?(?:major |serious )?(?:adverse )?(?:(?:cv|cardiovascular|vascular|cardiac) events?|mace)(?: components?)?\s*)+$")
+# only a DEFINING cue unwraps a parenthetical: 'nonfatal (including silent) myocardial infarction' qualifies a component, it
+# does not define a composite (LEADER: round-2 unwrapping made 'silent' an unknown component)
+_DEFINING_CUE = re.compile(r"\b(?:defined as|comprised|comprising|consisting of|consisted of|composite of)\b", re.I)
 # 'The endpoint comprised X.' defines the composite named in the sentence before (agy p0-r2 #3)
 _SUBJECT_CUE = re.compile(r"\b(?:end ?points?|outcomes?)\s+(?:was |were |is |are )?(?:comprised|composed of|consisted of|"
                           r"included|includes|defined as)\b")
@@ -129,7 +132,7 @@ def enumerated_items(s: str) -> list[str]:
     qualifier never cuts the list and hides later items (codex p0-r1 #3); a registry title and description joined without a
     stop ('Composite of CV Events CV events include: ...') are two segments."""
     # a parenthetical that ENUMERATES ('MACE (defined as ...)') is unwrapped and read; any other is removed (codex/agy p0-r2 #1)
-    s = re.sub(r"\s*\(([^()]*)\)", lambda m: (" " + m.group(1) + ". ") if _ENUM_CUE.search(m.group(1)) else "",
+    s = re.sub(r"\s*\(([^()]*)\)", lambda m: (" " + m.group(1) + ". ") if _DEFINING_CUE.search(m.group(1)) else "",
                strip_exclusions(s))
     items: list[str] = []
     # only a sentence that names a COMPOSITE enumerates its components: a registry description's other 'defined as' clauses
