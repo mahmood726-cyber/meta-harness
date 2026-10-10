@@ -110,8 +110,11 @@ def main(argv):
             if r["state"] != "RAN_OK":
                 continue
             raw = ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8")
+            fenced = raw.strip()
+            if fenced.startswith("```") and fenced.endswith("```"):      # agy wraps JSON in a ```json fence
+                fenced = fenced.split("\n", 1)[1].rsplit("```", 1)[0] if "\n" in fenced else fenced.strip("`")
             try:
-                resp = json.loads(raw)
+                resp = json.loads(fenced)
             except ValueError:
                 # a reply outside the schema (agy sometimes answers in markdown) is kept WHOLE as one finding to
                 # reproduce by hand -- never dropped, never read as "no findings"
