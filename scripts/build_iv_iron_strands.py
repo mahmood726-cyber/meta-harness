@@ -45,7 +45,11 @@ MEMBERS = {
     "CONFIRM_firstevent": ("CONFIRM-HF", "25176939", "NCT01453608", _HF_ALONE, "FIRST_EVENT_RATIO", "HR",
                            "hazard ratio (95% confidence interval): 0.39 (0.19-0.82)"),
 }
-CONFIRM_TABLE = ("full-analysis set", "Hospitalizations due to worsening HF")
+# the table layout this builder STATES and the held source must confirm (codex strands-r1#3-#5): the FAS caption, the
+# row, the arm cells by position (events | 'subjects (incidence)' per arm), and the footnote phrase saying the
+# bracketed cell counts subjects
+CONFIRM_TABLE = {"caption": "full-analysis set", "row": "Hospitalizations due to worsening HF", "arm_cells": (2, 4),
+                 "count_basis": "computed using the number of subjects with the end-point/event"}
 
 
 def _held(root=ROOT):
@@ -69,7 +73,7 @@ def member(key, ab):
 
 
 def confirm_participants(ft):
-    c = sp.table_arm_counts(ft, *CONFIRM_TABLE)
+    c = sp.table_arm_counts(ft, **CONFIRM_TABLE)
     if not c:
         return {"trial": "CONFIRM-HF", "pmid": "25176939", "nct": "NCT01453608", "event_process": "PARTICIPANT_RISK",
                 "endpoint": _HF_ALONE, "status": "REFUSED_DENOMINATORS_NOT_STATED",

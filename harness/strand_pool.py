@@ -20,9 +20,11 @@ from typing import Any
 from . import k2
 from .synth import Study, pool as _pool
 
-_NUM = r"(\d+(?:\.\d+)?)"
-# a bound is read whole or not at all (r24 whitelist): only ')', ';', ']', a prose comma, or the end may follow it
-_END = r"(?=\s{0,3}(?:[);\]]|,(?!\d)(?!\s*\d{3}\b)|$))"
+# a number never starts inside another (no digit or dot before it: '.56' is not 56, codex strands-r1#2)
+_NUM = r"(?<![\d.])(\d+(?:\.\d+)?)"
+# a bound is read whole or not at all (r24 whitelist): only ')', ';', ']', a prose comma, or the end may follow it; any
+# digit after a comma refuses (r24 copps-r14)
+_END = r"(?=\s{0,3}(?:[);\]]|,(?!\s*\d)|$))"
 _EFFECT_FIRST = re.compile(
     r"(?:\bRR\b|rate ratio|\bHR\b|hazard ratio|relative risk|risk ratio)(?:\s*\[RR\])?\s*[,:]?\s*" + _NUM +
     r"\s{0,3}[;,]?\s{0,3}\[?\s{0,3}(\d+(?:\.\d+)?)%\s*(?:CI|confidence interval)(?:\s*\[CI\])?\s*[,:]?\s*" + _NUM +
@@ -30,11 +32,11 @@ _EFFECT_FIRST = re.compile(
 _LEVEL_FIRST = re.compile(
     r"(?:hazard ratio|rate ratio|relative risk|\bHR\b|\bRR\b)\s*\((\d+(?:\.\d+)?)%\s*(?:CI|confidence interval)\)\s*:?\s*"
     + _NUM + r"\s*\(\s*" + _NUM + r"\s{0,3}(?:-|–|to)\s{0,3}" + _NUM + _END, re.I)
-
-
 # 'was 0.56 (95% CI, 0.45 to 0.68' -- the effect named earlier in the quoted sentence; the quote fixes which outcome
 _PAREN = re.compile(_NUM + r"\s*\(\s*(\d+(?:\.\d+)?)%\s*(?:CI|confidence interval)\s*,?\s*" + _NUM +
                     r"\s{0,3}(?:-|–|to)\s{0,3}" + _NUM + _END, re.I)
+# group order per pattern: effect, level, low, high
+_READERS = ((_EFFECT_FIRST, (1, 2, 3, 4)), (_LEVEL_FIRST, (2, 1, 3, 4)), (_PAREN, (1, 2, 3, 4)))
 
 
 def normalise(text: str | None) -> str:
@@ -44,51 +46,68 @@ def normalise(text: str | None) -> str:
 
 
 def read_member(held_text: str | None, quote: str) -> dict[str, Any] | None:
-    """{effect, ci_level, ci_low, ci_high, source_span} read from `quote`, which must occur in the held text; else None."""
+    """{effect, ci_level, ci_low, ci_high, source_span} read from the held text at `quote`; else None.
+
+    The match runs over the HELD text and must lie inside the quoted span, so the end-of-number check sees what really
+    follows in the source: a quote that stops inside a held number ('0.94' of '0.945') cannot shorten it (codex
+    strands-r1#1)."""
     nq, nt = normalise(quote), normalise(held_text)
-    if not nq or nq not in nt:
+    i = nt.find(nq) if nq else -1
+    if i < 0:
         return None
-    m = _EFFECT_FIRST.search(nq)
-    if m:
-        eff, lvl, lo, hi = m.group(1), m.group(2), m.group(3), m.group(4)
-    elif _LEVEL_FIRST.search(nq):
-        m = _LEVEL_FIRST.search(nq)
-        lvl, eff, lo, hi = m.group(1), m.group(2), m.group(3), m.group(4)
-    else:
-        m = _PAREN.search(nq)
-        if not m:
-            return None
-        eff, lvl, lo, hi = m.group(1), m.group(2), m.group(3), m.group(4)
-    return {"effect": float(eff), "ci_level": float(lvl), "ci_low": float(lo), "ci_high": float(hi), "source_span": nq}
+    end = i + len(nq)
+    for rx, (ge, gl, glo, ghi) in _READERS:
+        for m in rx.finditer(nt, i):
+            if m.start() >= end:
+                break
+            if m.end() <= end:
+                return {"effect": float(m.group(ge)), "ci_level": float(m.group(gl)), "ci_low": float(m.group(glo)),
+                        "ci_high": float(m.group(ghi)), "source_span": nq}
+    return None
 
 
 def _cells(row_html: str) -> list[str]:
-    return [normalise(re.sub(r"<[^>]+>", " ", c)) for c in re.findall(r"<td[^>]*>(.*?)</td>", row_html, re.S)]
+    return [normalise(re.sub(r"<[^>]+>", " ", c)) for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row_html, re.S)]
 
 
-def table_arm_counts(jats: str | None, caption_term: str, row_label: str) -> dict[str, Any] | None:
-    """Per-arm participants with the event, and the arm sizes, from ONE held table:
-      - the table whose caption contains `caption_term` (e.g. 'full-analysis set');
-      - arm sizes from its header cells '... (n = N)', in column order;
-      - the row whose first cell is `row_label`; each arm's 'X (rate)' cell gives X participants.
+# a header naming a population of its own ('randomised', 'analysed', ...) cannot be paired with another arm's: the
+# population must come from the caption for both arms (codex strands-r1#5)
+_POPULATION_WORD = re.compile(r"randomi[sz]ed|analy[sz]ed|\bITT\b|intention|per[- ]protocol|safety|evaluable|treated",
+                              re.I)
+
+
+def table_arm_counts(jats: str | None, caption: str, row: str, arm_cells: tuple[int, int],
+                     count_basis: str) -> dict[str, Any] | None:
+    """Per-arm participants with the event, and the arm sizes, from ONE held table, under a layout the CALLER states and
+    the source must confirm (codex strands-r1#3-#5) -- never guessed from cell shape:
+      - the table whose caption contains `caption` (the population, e.g. 'full-analysis set');
+      - exactly two header arm sizes '(n = N)', with no population word of their own in the header;
+      - the row whose first cell is `row`; the arm cells are read at the stated POSITIONS `arm_cells`, each 'X (r)';
+      - `count_basis`, a phrase of the table itself (caption, header or footnote) stating that X counts participants.
     Returns None when any piece is missing or ambiguous -- never an inferred denominator."""
     if not jats:
         return None
     for tw in re.findall(r"<table-wrap\b.*?</table-wrap>", jats, re.S):
         cap = normalise(re.sub(r"<[^>]+>", " ", (re.search(r"<caption>(.*?)</caption>", tw, re.S) or [None, ""])[1]))
-        if caption_term.lower() not in cap.lower():
+        if caption.lower() not in cap.lower():
             continue
+        whole = normalise(re.sub(r"<[^>]+>", " ", tw))
+        if count_basis.lower() not in whole.lower():
+            return None
         head = normalise(re.sub(r"<[^>]+>", " ", (re.search(r"<thead>(.*?)</thead>", tw, re.S) or [None, ""])[1]))
         ns = [int(x) for x in re.findall(r"\(\s*n\s*=\s*(\d+)\s*\)", head)]
-        rows = [r for r in re.findall(r"<tr>(.*?)</tr>", tw, re.S) if _cells(r) and _cells(r)[0] == row_label]
-        if len(ns) != 2 or len(rows) != 1:
+        rows = [r for r in re.findall(r"<tr>(.*?)</tr>", tw, re.S) if _cells(r) and _cells(r)[0] == row]
+        if len(ns) != 2 or len(rows) != 1 or _POPULATION_WORD.search(head):
             return None
-        arm = [c for c in _cells(rows[0])[1:] if re.fullmatch(r"\d+ \(\d+(?:\.\d+)?\)", c)]
-        if len(arm) != 2:
+        cells = _cells(rows[0])
+        if max(arm_cells) >= len(cells):
+            return None
+        arm = [cells[j] for j in arm_cells]
+        if not all(re.fullmatch(r"\d+ \(\d+(?:\.\d+)?\)", c) for c in arm):
             return None
         a, c = (int(x.split(" ")[0]) for x in arm)
-        return {"ai": a, "n1i": ns[0], "ci": c, "n2i": ns[1], "caption": cap[:160], "row": " | ".join(_cells(rows[0])),
-                "arm_header": head[:240]}
+        return {"ai": a, "n1i": ns[0], "ci": c, "n2i": ns[1], "caption": cap[:160], "row": " | ".join(cells),
+                "arm_header": head[:240], "count_basis": count_basis}
     return None
 
 
@@ -127,10 +146,29 @@ def member_class(m: dict[str, Any]) -> tuple[str, str]:
     """The provenance class of one strand member -- ONE function shared by the page's extraction tab and the
     provenance census (external review 11-01): EXTRACTOR when this module read it from a held source (a held span is
     recorded), HAND_ENTERED when the strand doc was written outside this module."""
-    if m.get("source_span") and str(m.get("source") or "").startswith("held "):
+    span = m.get("source_span") or ""
+    if span and str(m.get("source") or "").startswith("held ") and _numbers_match_span(m, span):
         return "EXTRACTOR", f"read by harness/strand_pool.py from {m.get('source')}"
+    if span:
+        # a span is recorded but the member's numbers do not re-read from it (codex strands-r1#7): never certified
+        return "HAND_ENTERED", "the member's numbers do not re-read from its recorded span"
     return "HAND_ENTERED", ("the strand doc was written outside harness/strand_pool.py; no held span is recorded on "
                             "this member")
+
+
+def _numbers_match_span(m: dict[str, Any], span: str) -> bool:
+    """The member's numbers re-read from its own span: an effect + CI from the quote, or counts from the table row and
+    header (with the effect recomputed from them)."""
+    def close(a, b):
+        return a is not None and b is not None and abs(float(a) - float(b)) < 1e-9
+    if m.get("ai") is not None:
+        need = (f"{m['ai']} (", f"{m['ci']} (", f"n = {m['n1i']}", f"n = {m['n2i']}")
+        if not all(x in span for x in need):
+            return False
+        rr = counts_rr(m["ai"], m["n1i"], m["ci"], m["n2i"])
+        return all(close(m.get(k), rr[k]) for k in ("effect", "ci_low", "ci_high"))
+    got = read_member(span, span)
+    return bool(got) and all(close(m.get(k), got[k]) for k in ("effect", "ci_low", "ci_high"))
 
 
 def strand_rows(r: dict[str, Any]) -> list[dict[str, Any]]:
@@ -167,7 +205,7 @@ def served_view(pool: dict[str, Any] | None) -> dict[str, Any] | None:
     if pool.get("pool_refused"):
         return {"k": k_, "estimate": None, "ci_low": None, "ci_high": None,
                 "withheld": f"{pool['pool_refused'].get('code')}: {pool['pool_refused'].get('detail')}"}
-    if k_ == 2 and (lo is not None or hi is not None or pool.get("pooled_ci_refused")):
+    if k_ == 2:     # at k=2 an interval is never served, whether or not the doc carries one (codex strands-r1#8)
         withheld = (pool.get("pooled_ci_refused") or {}).get("detail") or (
             "Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval.")
         lo = hi = None

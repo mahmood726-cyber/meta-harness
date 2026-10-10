@@ -22,13 +22,12 @@ TABLE = ("<table-wrap id='tbl2'><caption><p>Hospitalizations and deaths (full-an
 
 
 def test_PLANT_11_03_confirm_counts_are_read_from_the_fas_table_never_inferred():
-    c = sp.table_arm_counts(TABLE, "full-analysis set", "Hospitalizations due to worsening HF")
+    c = sp.table_arm_counts(TABLE_FOOT, **CONFIRM_LAYOUT)
     assert (c["ai"], c["n1i"], c["ci"], c["n2i"]) == (10, 150, 25, 151)
     rr = sp.counts_rr(10, 150, 25, 151)
     assert (rr["effect"], rr["ci_low"], rr["ci_high"]) == (0.4027, 0.2004, 0.809)
     # no arm size in the header -> refused, never ~132/~129
-    assert sp.table_arm_counts(TABLE.replace("(<italic>n</italic> = 150)", ""), "full-analysis set",
-                               "Hospitalizations due to worsening HF") is None
+    assert sp.table_arm_counts(TABLE_FOOT.replace("(<italic>n</italic> = 150)", ""), **CONFIRM_LAYOUT) is None
 
 
 def test_PLANT_11_02_a_k2_strand_never_serves_an_interval():
@@ -73,7 +72,8 @@ def test_PLANT_11_01_strand_members_are_in_the_extraction_inventory_and_analysis
                                   "pool": None,
                                   "members": [{"trial": "CONFIRM-HF", "pmid": "25176939", "scale": "RR", "effect": 0.4027,
                                                "ci_low": 0.2004, "ci_high": 0.809, "ai": 10, "n1i": 150, "ci": 25,
-                                               "n2i": 151, "source": "held full text x", "source_span": "row span"}]}]}}
+                                               "n2i": 151, "source": "held full text x",
+                                               "source_span": "Hospitalizations and deaths (full-analysis set) | FCM ( n = 150) Placebo ( n = 151) | Hospitalizations due to worsening HF | 10 | 10 (7.6) | 32 | 25 (19.4)"}]}]}}
     rows = review_tabs.strand_extraction_rows(r)
     assert len(rows) == 1 and rows[0]["class"] == "EXTRACTOR" and "10/150 v 25/151" in rows[0]["value"]
     assert rows[0]["passage_sha256"]
@@ -125,3 +125,71 @@ def test_hand_written_strand_docs_are_rebound_from_held_text():
     assert [sp.member_class(m)[0] for m in s["members"]] == ["EXTRACTOR"] * 3
     # k=3: the served interval is unchanged by the rebind; only its provenance changes
     assert (s["pool"]["estimate"], s["pool"]["ci_low"], s["pool"]["ci_high"]) == (0.6511, 0.4818, 0.8798)
+
+
+# ---------------------------------------------------------------- codex strands-r1 (each fails before its fix)
+BASIS = "computed using the number of subjects with the end-point/event"
+TABLE_FOOT = TABLE.replace("</table></table-wrap>", f"</table><table-wrap-foot><p>Incidence {BASIS}.</p>"
+                                                    "</table-wrap-foot></table-wrap>")
+CONFIRM_LAYOUT = {"caption": "full-analysis set", "row": "Hospitalizations due to worsening HF", "arm_cells": (2, 4),
+                  "count_basis": BASIS}
+
+
+def test_PLANT_strands_r1_1_a_quote_that_cuts_a_held_number_is_refused():
+    held = "events (RR 0.74; 95% CI 0.58-0.945, p=0.01)"
+    assert sp.read_member(held, "(RR 0.74; 95% CI 0.58-0.94") is None
+
+
+def test_PLANT_strands_r1_2_a_leading_dot_decimal_is_not_read_as_an_integer():
+    q = "was .56 (95% CI, 0.45 to 0.68"
+    assert sp.read_member(q + ")", q) is None
+
+
+def test_PLANT_strands_r1_3_cell_shape_alone_is_not_a_count():
+    # the same table without the footnote stating what the bracketed number is
+    assert sp.table_arm_counts(TABLE, **CONFIRM_LAYOUT) is None
+    assert sp.table_arm_counts(TABLE_FOOT, **CONFIRM_LAYOUT)["ai"] == 10
+
+
+def test_PLANT_strands_r1_4_arm_cells_are_read_by_position_never_by_shape():
+    gap = TABLE_FOOT.replace("<td>10 (7.6)</td>", "<td>NR</td>")
+    assert sp.table_arm_counts(gap, **CONFIRM_LAYOUT) is None
+
+
+def test_PLANT_strands_r1_5_mixed_population_denominators_are_refused():
+    mixed = TABLE_FOOT.replace("FCM (<italic>n</italic> = 150)", "FCM randomised (<italic>n</italic> = 150)")
+    assert sp.table_arm_counts(mixed, **CONFIRM_LAYOUT) is None
+
+
+def test_PLANT_strands_r1_6_one_paper_two_endpoints_needs_a_strand_specific_quote(tmp_path, monkeypatch):
+    rb = _rebind()
+    spec = {"docs/t.json": {"slug": "t", "members": {"1": {"text": "abstract", "quote": "HR 0.80; 95% CI 0.70-0.90"}}}}
+    doc = {"strands": [{"strand": "m", "effect_measure": "HR", "members": [{"trial": "X", "pmid": "1"}]},
+                       {"strand": "h", "effect_measure": "HR", "members": [{"trial": "X", "pmid": "1"}]}]}
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "t.json").write_text(json.dumps(doc), encoding="utf-8")
+    (tmp_path / "cache" / "t").mkdir(parents=True)
+    (tmp_path / "cache" / "t" / "records.json").write_text(json.dumps(
+        {"records": [{"id": "1", "abstract": "mortality (HR 0.60; 95% CI 0.50-0.70) and hosp (HR 0.80; 95% CI 0.70-0.90)."}]}),
+        encoding="utf-8")
+    q = tmp_path / "q.json"
+    q.write_text(json.dumps(spec), encoding="utf-8")
+    monkeypatch.setattr(rb, "QUOTES", str(q))
+    import pytest as _p
+    with _p.raises(SystemExit):
+        rb.rebind("docs/t.json", root=str(tmp_path))
+
+
+def test_PLANT_strands_r1_7_a_member_whose_numbers_contradict_its_span_is_not_extractor():
+    bad = {"effect": 99.0, "ci_low": 98.0, "ci_high": 100.0, "source": "held fabricated",
+           "source_span": "(RR 0.74; 95% CI 0.58-0.94"}
+    assert sp.member_class(bad)[0] != "EXTRACTOR"
+    good = dict(bad, effect=0.74, ci_low=0.58, ci_high=0.94)
+    assert sp.member_class(good)[0] == "EXTRACTOR"
+
+
+def test_PLANT_strands_r1_8_a_k2_pool_without_an_interval_is_still_marked_withheld():
+    v = sp.served_view({"k": 2, "estimate": 0.8})
+    assert v["withheld"] and v["crosses_null"] is None
+    assert "significant" not in page.render_strands_section(
+        {"strands": [{"strand": "B", "name": "b", "k": 2, "pool": {"k": 2, "estimate": 0.8}}]})

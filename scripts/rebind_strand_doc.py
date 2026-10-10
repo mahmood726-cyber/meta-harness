@@ -34,13 +34,22 @@ def rebind(doc_rel, root=ROOT):
     slug = spec["slug"]
     doc = json.load(open(os.path.join(root, doc_rel), encoding="utf-8"))
     abstracts = _held(root, slug, "abstract")
+    # one paper can serve two strands (two endpoints): a PMID used more than once needs a strand-specific quote key
+    # 'pmid|strand', never the shared bare-PMID quote (codex strands-r1#6)
+    uses = {}
+    for s in doc.get("strands") or []:
+        for m in s.get("members") or []:
+            uses[str(m.get("pmid"))] = uses.get(str(m.get("pmid")), 0) + 1
     for s in doc.get("strands") or []:
         members = []
+        sid = str(s.get("strand") or s.get("id"))
         for m in s.get("members") or []:
             pid = str(m.get("pmid"))
-            q = spec["members"].get(pid)
+            q = spec["members"].get(f"{pid}|{sid}") or (spec["members"].get(pid) if uses[pid] == 1 else None)
             if not q:
-                raise SystemExit(f"REFUSED: no quote registered for {m.get('trial')} (PMID {pid}) in {doc_rel}")
+                raise SystemExit(f"REFUSED: no quote registered for {m.get('trial')} (PMID {pid}) in strand {sid} of "
+                                 f"{doc_rel}" + (" -- this PMID serves several strands, so its key must be "
+                                                 f"'{pid}|{sid}'" if uses[pid] > 1 else ""))
             text = abstracts.get(pid) if q["text"] == "abstract" else _held(root, slug, q["text"])
             got = sp.read_member(text, q["quote"])
             if not got:
