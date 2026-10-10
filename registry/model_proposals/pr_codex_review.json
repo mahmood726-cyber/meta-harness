@@ -7037,5 +7037,47 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r8": {
+  "base": "fca8cff07",
+  "head": "2009dff2a",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c60e536bc6f16404478c7633fa03e5a7",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "0750e93e2b75e0aca1d4ece1e0d8e3c1c54a858fc1bb493ce1316acb9be34b93"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The primary-outcome guard accepts a secondary endpoint's definition whenever 'primary' appears elsewhere in the same sentence.",
+    "failing_input": "With no audit override, text = 'Primary endpoint: mortality; secondary endpoint: serious vascular event (myocardial infarction, stroke, or vascular death).' and outcome = {'name': 'Mortality', 'primary': True}.",
+    "expected": "Retain 'Mortality' with basis 'outcome.name'; the vascular composite explicitly defines a secondary endpoint.",
+    "actual": "Selects 'serious vascular event (myocardial infarction, stroke, or vascular death)' with basis 'committed source text'. The sentence-wide primary check passes.",
+    "id": "harms-r8:g1#1",
+    "record_id": "mc-c60e536bc6f16404478c7633fa03e5a7",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The diarrhoea rule checks the destination outcome's name but ignores qualifiers on the source subject, allowing explicitly non-antibiotic-associated diarrhoea to define AAD.",
+    "failing_input": "With no audit override, text = 'Non-antibiotic-associated diarrhoea (three or more loose stools per day without antibiotic exposure).' and outcome = {'name': 'AAD', 'primary': False}.",
+    "expected": "Retain 'AAD' with basis 'outcome.name'; this source definition explicitly excludes antibiotic association.",
+    "actual": "Selects 'diarrhoea (three or more loose stools per day without antibiotic exposure)' with basis 'committed source text': the source regex starts inside the qualified subject, and _AAD_SUBJECT accepts the destination name 'AAD'.",
+    "id": "harms-r8:g1#2",
+    "record_id": "mc-c60e536bc6f16404478c7633fa03e5a7",
+    "verdict": null
+   }
+  ]
  }
 }

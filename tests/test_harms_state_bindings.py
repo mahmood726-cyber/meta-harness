@@ -158,3 +158,19 @@ def test_a_structured_abstracts_main_outcome_measure_label_marks_the_primary_end
             "infarction, stroke, or death from cardiovascular disease.")
     got = _endpoint({"name": "Major vascular events / MACE", "primary": True}, "6", text)
     assert got["value"].startswith("Major cardiovascular events, defined as")
+
+
+def test_PLANT_codex_harms_r8_1_the_primary_marker_must_govern_the_matched_clause():
+    text = ("Primary endpoint: mortality; secondary endpoint: serious vascular event (myocardial infarction, stroke, or "
+            "vascular death).")
+    assert _endpoint({"name": "Mortality", "primary": True}, "7", text)["value"] == "Mortality"
+
+
+def test_PLANT_codex_harms_r8_2_a_negated_qualifier_blocks_the_definition():
+    text = "Non-antibiotic-associated diarrhoea (three or more loose stools per day without antibiotic exposure)."
+    assert _endpoint({"name": "AAD", "primary": False}, "8", text)["value"] == "AAD"
+
+
+def test_a_primary_definition_that_mentions_other_causes_is_still_primary():
+    text = "The primary outcome was a composite of death from cardiovascular or other causes and myocardial infarction."
+    assert "other causes" in _endpoint({"name": "Death or MI", "primary": True}, "9", text)["value"]
