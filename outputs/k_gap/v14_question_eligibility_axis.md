@@ -20,28 +20,28 @@ Literal universe = concept-search records NOT already held that the regex screen
 
 | topic | split | new records | literal-rule includes | search state |
 |---|---|---|---|---|
-| doac-vte-recurrence | a (at risk: phase-2 / biomarker trials admitted) | 5895 | 87 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
-| noac-vs-warfarin-af-stroke | b (moved 9 Oct: dual screen admitted 41 incl. cognition / plaque / biomarker trials) | 6387 | 275 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
-| tranexamic-acid-pph | a | pending | pending | queued |
+| doac-vte-recurrence | a (at risk: phase-2 / biomarker trials admitted) | 11980 | 87 | all COMPLETE |
+| noac-vs-warfarin-af-stroke | b (moved 9 Oct: dual screen admitted 41 incl. cognition / plaque / biomarker trials) | 14507 | 276 | all COMPLETE |
+| tranexamic-acid-pph | a | 944 | 10 | all COMPLETE |
 | corticosteroids-covid19-mortality | a | 17874 | 26 | EUCTR TRUNCATED |
 | colchicine-recurrent-pericarditis | a | 1298 | 0 | all COMPLETE |
 | melatonin-primary-insomnia-sol | a | 6414 | 25 | all COMPLETE |
-| esketamine-trd-madrs | a | 1358 | 5 | EUCTR FIRST_PAGE_ONLY |
+| esketamine-trd-madrs | a | 1358 | 5 | all COMPLETE |
 | semaglutide-obesity-weight | a | 9184 | 75 | EUROPEPMC TRUNCATED |
-| glp1-ra-mace-t2d | b (B-prime amendment) | 7282 | 635 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
-| dpp4-mace-t2d | b | 6674 | 530 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
+| glp1-ra-mace-t2d | b (B-prime amendment) | 18367 | 635 | all COMPLETE |
+| dpp4-mace-t2d | b | 12772 | 532 | all COMPLETE |
 | semaglutide-obesity-mace | b | 9111 | 19 | all COMPLETE |
 | sglt2-hfref-hosp-cvdeath | b | 18277 | 181 | all COMPLETE |
-| dapagliflozin-hfpef-hosp | b | 5113 | 12 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
-| empagliflozin-hfpef-hosp | b | 5151 | 11 | EUROPEPMC TRUNCATED; EUCTR FIRST_PAGE_ONLY |
-| finerenone-ckd-t2d-renal | b | 2029 | 34 | EUCTR FIRST_PAGE_ONLY |
+| dapagliflozin-hfpef-hosp | b | 7500 | 12 | all COMPLETE |
+| empagliflozin-hfpef-hosp | b | 7823 | 11 | all COMPLETE |
+| finerenone-ckd-t2d-renal | b | 2029 | 34 | all COMPLETE |
 | spironolactone-hfref-mortality | b | 13171 | 67 | all COMPLETE |
-| denosumab-vertebral-fracture | b | 5043 | 35 | EUCTR FIRST_PAGE_ONLY |
+| denosumab-vertebral-fracture | b | 5043 | 35 | all COMPLETE |
 | iv-iron-hfref-hosp | b | 1074 | 32 | all COMPLETE |
 | sacubitril-valsartan-hfref | b | 7916 | 33 | all COMPLETE |
 | sglt2-ckd-progression | b | 17067 | 127 | all COMPLETE |
 | sglt2-primary-prevention-hf | b | 26222 | 64 | all COMPLETE |
-| statins-primary-prevention-elderly | b | pending | pending | queued |
+| statins-primary-prevention-elderly | b | 25666 | 42 | all COMPLETE |
 
 **Proposed rule.** (a) topics: a recorded dual codex screen with the protocol's eligibility text quoted verbatim decides eligibility. (b) topics: the literal-rule universe is reported here and NOT screened to eligible -- each protocol says eligibility is not on the outcome axis, so read literally every trial of the drug in the population is eligible, and 'eligible, not pooled' would flood with trials that never measured the outcome (the defect B-prime fixed for GLP-1). The Captain decides per topic: a B-prime-style amendment, or the literal universe. dpp4 is the clearest case: its search is UID queries for the 5 DPP-4 CVOTs, the same search-vs-eligibility mismatch B-prime fixed for GLP-1, and it has no amendment.
 
