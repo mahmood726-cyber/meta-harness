@@ -291,10 +291,11 @@ def _field_from_profile(slug: str, key: str, text: str, default_status: str = "N
 # space-grouped '2 030'): anything not whitelisted refuses the read.
 # a comma is prose only when no digit follows it directly AND no 3-digit group follows after a space ('2, 030' is a
 # grouped number, codex copps-r8#1); refusing an ambiguous ', 100 patients' is the safe direction
-BOUND_END = r"(?=[ \t]{0,3}(?:[);\]]|,(?!\d)(?![ \t]*\d{3}\b)|$))"
-# matched on the WHOLE text at the anchor (no slice: a slice can cut a bound to its prefix, codex copps-r1#1)
-_RATIO_AT = re.compile(r"[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3},[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}%[ \t]{0,3}"
-                       r"(?:CI|confidence interval)[ \t]{0,3},?[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}(?:to|-|–)[ \t]{0,3}"
+BOUND_END = r"(?=\s{0,3}(?:[);\]]|,(?!\d)(?!\s*\d{3}\b)|$))"
+# matched on the WHOLE text at the anchor (no slice: a slice can cut a bound to its prefix, codex copps-r1#1); bounded
+# whitespace between fields includes a line break, since wrapped text is ordinary (codex copps-r9#2)
+_RATIO_AT = re.compile(r"\s{0,3}(\d+(?:\.\d+)?)\s{0,3},\s{0,3}(\d+(?:\.\d+)?)\s{0,3}%\s{0,3}"
+                       r"(?:CI|confidence interval)\s{0,3},?\s{0,3}(\d+(?:\.\d+)?)\s{0,3}(?:to|-|–)\s{0,3}"
                        r"(\d+(?:\.\d+)?)" + BOUND_END, re.I)
 
 

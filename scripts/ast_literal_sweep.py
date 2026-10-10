@@ -83,6 +83,10 @@ def sweep_source(src: str, path: str) -> list[dict]:
         if isinstance(node, ast.Dict):
             pairs = [(k.value, v) for k, v in zip(node.keys, node.values)
                      if isinstance(k, ast.Constant) and isinstance(k.value, str)]
+        elif isinstance(node, ast.DictComp):
+            # {'ai': 20 for _ in ...} (codex copps-r9#3)
+            if isinstance(node.key, ast.Constant) and isinstance(node.key.value, str):
+                pairs = [(node.key.value, node.value)]
         elif isinstance(node, ast.Call):
             pairs = [(kw.arg, kw.value) for kw in node.keywords if kw.arg]
         elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
@@ -95,7 +99,7 @@ def sweep_source(src: str, path: str) -> list[dict]:
             val = _num(v)
             if name.lower() in _KEYS and val is not None:     # 0 and 1 are real arm counts too (codex copps-r2#2)
                 out.append({"file": path, "line": v.lineno, "kind": "COUNT_OR_EFFECT_KEY", "key": name, "value": val})
-        if isinstance(node, (ast.Dict, ast.Call, ast.Assign, ast.AugAssign, ast.AnnAssign)):
+        if isinstance(node, (ast.Dict, ast.DictComp, ast.Call, ast.Assign, ast.AugAssign, ast.AnnAssign)):
             continue
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
             s = node.value

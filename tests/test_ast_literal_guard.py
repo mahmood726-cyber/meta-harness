@@ -214,3 +214,20 @@ def test_PLANT_codex_r8_2_integer_bound_effect_tuples_are_flagged():
 def test_PLANT_codex_r8_3_nested_unpacking_is_flagged():
     hits = sweep.sweep_source("(row['ai'], row['n1i']), (row['ci'], row['n2i']) = (20, 169), (37, 167)", "harness/x.py")
     assert sorted((h["key"], h["value"]) for h in hits) == [("ai", 20), ("ci", 37), ("n1i", 169), ("n2i", 167)]
+
+
+def test_PLANT_codex_r9_1_integer_effects_are_read():
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("dabigatran, 0.91;", "dabigatran, 1;")}]}
+    got = si._noac_lower_dose_status(rows)["available_lower_dose_rows"]
+    assert got and got[0]["effect"] == 1.0
+
+
+def test_PLANT_codex_r9_2_a_line_break_inside_the_statement_still_reads():
+    a = "The combined group may have higher rates of ovulation (OR"
+    assert csp.reported_value_at(a + " 1.65,\n95% CI 1.35 to 2.03)", a) == \
+        {"estimate": 1.65, "ci_level": 95.0, "ci_low": 1.35, "ci_high": 2.03}
+
+
+def test_PLANT_codex_r9_3_dict_comprehension_literals_are_flagged():
+    hits = sweep.sweep_source("row = {'ai': 20 for _ in range(1)}", "harness/x.py")
+    assert [(h["key"], h["value"]) for h in hits] == [("ai", 20)]

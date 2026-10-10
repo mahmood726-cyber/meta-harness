@@ -7167,5 +7167,61 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r9": {
+  "base": "630e622bf",
+  "head": "47c87de0a",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a4c9e9483a9283a67c6effda1c97f3cb",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "c9fd854f946106cb3cb69d9194da59474c1c2a9887281b6b8801b16bfde55499"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "Integer-valued effects are classified as missing because the effect regex requires a decimal point. Changing an explicitly reported RR from '1.0' to the equivalent '1' prevents readiness.",
+    "failing_input": "_noac_lower_dose_status({'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 1; 95% confidence interval [CI], 0.74 to 1.35)'}, {'id': '24251359', 'abstract': 'Low-dose edoxaban was 30 mg. An unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34).'}]})['status']",
+    "expected": "'READY_TO_COMPUTE': both effects and the dose label are explicitly present.",
+    "actual": "'NOT_COMPUTED_SOURCE_INCOMPLETE'; the RE-LY effect is not recognized.",
+    "id": "copps-r9:g1#1",
+    "record_id": "mc-a4c9e9483a9283a67c6effda1c97f3cb",
+    "verdict": null
+   },
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P2",
+    "claim": "A line break inside an otherwise supported effect statement prevents extraction. The new regex permits only spaces and tabs between fields, so ordinary text wrapping silently drops an override.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 1.65,\\n95% CI 1.35 to 2.03)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "{'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.03}",
+    "actual": "None; replacing the newline with a space makes the same statement parse.",
+    "id": "copps-r9:g1#2",
+    "record_id": "mc-a4c9e9483a9283a67c6effda1c97f3cb",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The sweep misses literal count fields in dictionary comprehensions. It handles ast.Dict but not ast.DictComp, allowing a directly hardcoded arm count to produce no finding.",
+    "failing_input": "sweep_source(\"row = {'ai': 20 for _ in range(1)}\", 'harness/example.py')",
+    "expected": "A COUNT_OR_EFFECT_KEY finding for key 'ai', value 20, line 1.",
+    "actual": "[]",
+    "id": "copps-r9:g1#3",
+    "record_id": "mc-a4c9e9483a9283a67c6effda1c97f3cb",
+    "verdict": null
+   }
+  ]
  }
 }
