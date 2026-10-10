@@ -1,0 +1,214 @@
+# Dual-screen DISAGREE records -- for a Captain ruling (k-gap)
+
+Each row: the record, then reader A (gpt-6-astra) and B (gpt-5.5) decision / rule / verbatim quote. The VOID GLP-1 run is not included. noac is held as (b); its rows are listed for completeness only.
+
+## _dual_a_doac_esketamine.json -- 23 DISAGREE
+
+- **17576867** (doac-vte-recurrence) Treatment of proximal deep-vein thrombosis with the oral direct factor Xa inhibitor rivaroxaban (BAY 59-7939): the ODIXa-DVT (Oral Direct Fa
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "This randomized, parallel-group phase II trial in patients with proximal deep-vein thrombosis" (mc-c8fa9359d4ef7e1a9e52ce9091b0fe24)
+  - B: INCLUDE / MEETS_ALL -- "This randomized, parallel-group phase II trial in patients with proximal deep-vein thrombosis explored the efficacy and safety of rivaroxaban 10, 20, or 30 mg BID or 40 mg once daily compared with enoxaparin 1 mg/kg BID followed by vitamin K antagonist." (mc-1cf70c50fd96469895c3a0a0df0d8293)
+- **18621928** (doac-vte-recurrence) A dose-ranging study evaluating once-daily oral administration of the factor Xa inhibitor rivaroxaban in the treatment of patients with acut
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "A total of 543 patients with acute deep-venous thrombosis received rivaroxaban 20, 30, or 40 mg once daily or comparator." (mc-d8b3e89fec74ad3b096490261222bdab)
+  - B: INCLUDE / MEETS_ALL -- "We performed a randomized dose-ranging study, double-blind for rivaroxaban doses and open-label for the comparator (low-molecular-weight heparin followed by vitamin K antagonists) to assess the optimal dose of rivaroxaban for the treatment of deep vein thrombo" (mc-cfc63f45b9493563f57d4e22d6d0aa8b)
+- **20459411** (doac-vte-recurrence) [Dabigatran versus warfarin in the treatment of acute venous thromboembolism. Results of the RE-COVER study].
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "[Dabigatran versus warfarin in the treatment of acute venous thromboembolism. Results of the RE-COVER study]." (mc-4ac38cba4ed89ede77a2a1263a92999a)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "TITLE: [Dabigatran versus warfarin in the treatment of acute venous thromboembolism. Results of the RE-COVER study]." (mc-2bedabac6cfb8845d82f6155043f1a94)
+- **24298731** (doac-vte-recurrence) [Hokusai-VTE: edoxaban versus warfarin for the treatment of symptomatic venous thromboembolism].
+  - A: EXCLUDE / DUPLICATE_OR_SECONDARY_REPORT -- "The Hokusai-VTE study is a randomized, double-blind trial to evaluate whether initial heparin (5 days) followed by the oral Xa factor inhibitor edoxaban (60 mg once daily) may be an alternative to the standard therapy, i.e. heparin (5 days) followed by warfari" (mc-e1b452eeaa81d18d3bceeacb18fe205e)
+  - B: INCLUDE / MEETS_ALL -- "The Hokusai-VTE study is a randomized, double-blind trial to evaluate whether initial heparin (5 days) followed by the oral Xa factor inhibitor edoxaban (60 mg once daily) may be an alternative to the standard therapy, i.e. heparin (5 days) followed by warfari" (mc-c216a20b235ef06eeb4b60680127ebce)
+- **25717286** (doac-vte-recurrence) Oral rivaroxaban for Japanese patients with symptomatic venous thromboembolism - the J-EINSTEIN DVT and PE program.
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "in patients with acute, objectively confirmed symptomatic DVT and/or PE." (mc-4d730a584c0f99463cd829ead6141bec)
+  - B: INCLUDE / MEETS_ALL -- "We conducted an open-label, randomized trial that compared 3, 6, or 12 months of oral rivaroxaban alone (10 mg twice daily or 15 mg twice daily for 3 weeks followed by 15 mg once daily) with activated partial thromboplastin time-adjusted intravenous unfraction" (mc-04a6c79fe9c2944ae8bbde6a9092602a)
+- **25912695** (doac-vte-recurrence) Apixaban for the Treatment of Japanese Subjects With Acute Venous Thromboembolism (AMPLIFY-J Study).
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Eighty subjects were randomized, 33 subjects (41.3%) were aged <65 years." (mc-74122611f5574964ef25f0d14a5336b9)
+  - B: INCLUDE / MEETS_ALL -- "Japan phase 3 study (AMPLIFY-J), randomized, active-controlled, open-label study in Japanese subjects with acute PE/DVT, was designed based on AMPLIFY. Key objectives were to investigate safety and efficacy of apixaban in symptomatic PE/DVT subjects during 24-" (mc-03b8ebcce55f80d171f3287014029aad)
+- **27155586** (doac-vte-recurrence) Comparison of rivaroxaban mono-therapy and standard-therapy adjusted by CYP2C9 and VKORC1 genotypes in symptomatic pulmonary embolism.
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Sixty-two PE patients with or without deep venous thrombosis (DVT) was randomized to rivaroxaban mono-therapy or standard-therapy with enoxaparin followed by vitamin K antagonist (VKA)." (mc-781623cdebff0e8dee681a6adc03b5a6)
+  - B: INCLUDE / MEETS_ALL -- "Sixty-two PE patients with or without deep venous thrombosis (DVT) was randomized to rivaroxaban mono-therapy or standard-therapy with enoxaparin followed by vitamin K antagonist (VKA)." (mc-2fa17b7dbedb8917c073252e9d7f641f)
+- **27165711** (doac-vte-recurrence) Magnetic resonance venography to assess thrombus resolution with edoxaban monotherapy versus parenteral anticoagulation/warfarin for symptom
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "We randomized patients in a 2:1 allocation ratio to edoxaban 90 mg/day for 10 days followed by 60 mg/day versus parenteral anticoagulation bridging to warfarin for 3 months." (mc-7e30a4e8893dd7238b393691e9443355)
+  - B: INCLUDE / MEETS_ALL -- "We randomized patients in a 2:1 allocation ratio to edoxaban 90 mg/day for 10 days followed by 60 mg/day versus parenteral anticoagulation bridging to warfarin for 3 months." (mc-4bcf50711f8da4e352e57d38a08da54f)
+- **31277885** (doac-vte-recurrence) Comparison of the recanalization rate and postthrombotic syndrome in patients with deep venous thrombosis treated with rivaroxaban or warfar
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "This was a prospective, consecutive, randomized, blind cohort study of patients admitted with deep venous thrombosis" (mc-9918929cb70a16e969a8754db79ccf54)
+  - B: INCLUDE / MEETS_ALL -- "The patients were randomized into 2 groups and treated with oral anticoagulation for 6 months: either rivaroxaban (group 1) or warfarin (group 2)." (mc-c89399bf61b6d89848bfae99c32e8e8c)
+- **31636749** (doac-vte-recurrence) Deep Vein Thrombosis in Severe Motor and Intellectual Disabilities Patients and Its Treatment by Anticoagulants of Warfarin Versus Edoxaban.
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "In this study, DVT was confirmed in SMID patients by lower extremity venous ultrasound." (mc-531b2f65bef137b8b2041c1c50709659)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "In this study, DVT was confirmed in SMID patients by lower extremity venous ultrasound." (mc-75b0c307c3b0bcdd44bde21e507494d6)
+- **31889152** (doac-vte-recurrence) Rivaroxaban after Thrombolysis in Acute Iliofemoral Venous Thrombosis: A Randomized, Open-labeled, Multicenter Trial.
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Patients with acute DVT of both the iliac and the femoral vein" (mc-82804c39a46d41b67603b1b7bc3abe09)
+  - B: UNCLEAR / POPULATION -- "Patients with acute DVT of both the iliac and the femoral vein (n = 72) were recruited and randomized to either standard anticoagulation (enoxaparin and warfarin, n = 35) or rivaroxaban (n = 37) after successful thrombolysis or mechanical thrombectomy." (mc-87f2cf17b0ef7174fc6a14d0586175ba)
+- **38346475** (doac-vte-recurrence) Treatment of acute pulmonary embolism after catheter-directed thrombolysis with dabigatran vs warfarin: Results of a multicenter randomized 
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "66 consecutive patients with symptomatic high and intermediate to high PE risk after endovascular mechanical thrombus fragmentation procedure with RDT (CDT+RDT) were randomized into two groups" (mc-e609a63a49708c3942f8f50fd1b6e837)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Over a 5-year period, 66 consecutive patients with symptomatic high and intermediate to high PE risk after endovascular mechanical thrombus fragmentation procedure with RDT (CDT+RDT) were randomized into two groups within the next 48 hours." (mc-a0851d6c3d16d172063ae1135f1b009a)
+- **NCT00252005** (doac-vte-recurrence) Protocol CV185017: A Phase 2 Randomized, Parallel-Arm Study of Oral Direct Factor Xa-Inhibitor Apixaban and Low Molecular Weight Heparin or 
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "in the treatment of subjects with acute symptomatic deep-vein thrombosis." (mc-559b821ca7d56790800a1499cbdcf5c3)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Subjects With Acute Symptomatic Deep-Vein Thrombosis" (mc-3ae98a6e6ad2f34060277524d717919b)
+- **NCT00395772** (doac-vte-recurrence) Once-daily Oral Direct Factor Xa Inhibitor BAY59-7939 in Patients With Acute Symptomatic Deep-vein Thrombosis The Einstein-DVT Dose-finding 
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Patients With Acute Symptomatic Deep-vein Thrombosis" (mc-b3c0e8d97104189880efea5f2fac3fc0)
+  - B: INCLUDE / MEETS_ALL -- "ALLOCATION: RANDOMIZED PUBLICATION TYPES: Randomized Controlled Trial ABSTRACT / SUMMARY: The purpose of this study is to determine the optimal dose of BAY 59-7939 and to compare the safety and effectiveness of this new drug with the standard way of treatment " (mc-bdee4297cdd07d8eada16e6c0240527c)
+- **NCT01516814** (doac-vte-recurrence) Randomized, Open-label, Parallel-group, Active-controlled Study of Rivaroxaban in Patients With Acute Symptomatic Pulmonary Embolism, With o
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Japanese patients with acute symptomatic PE with or without symptomatic DVT." (mc-0b50aa509dd97fc41360c8ed50849b3c)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Japanese patients with acute symptomatic PE with or without symptomatic DVT" (mc-f02369631eded7e93305223e89ae8e00)
+- **NCT01516840** (doac-vte-recurrence) Randomized, Open-label (Double Blind Among Rivaroxaban Groups in the Initial 3 Weeks), Parallel-group, Active-controlled Study of Rivaroxaba
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Japanese patients with acute symptomatic DVT without symptomatic PE." (mc-ab3a2e7777f4038137f1232e60cead98)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Japanese patients with acute symptomatic DVT without symptomatic PE." (mc-2b663000c4e871cd30f31f64874fc9f8)
+- **NCT01662908** (doac-vte-recurrence) A Randomized, Open-Label, Parallel-Group, Multi-Center Study for the Evaluation of Efficacy and Safety of Edoxaban Monotherapy Versus (LMW) 
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "ARMS: edoxaban tosylate; heparin/warfarin" (mc-9af2a9810c05011ff12ecf5ede0c4070)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "A Randomized, Open-Label, Parallel-Group, Multi-Center Study for the Evaluation of Efficacy and Safety of Edoxaban Monotherapy Versus (LMW) Heparin/Warfarin in Subjects With Symptomatic Deep-Vein Thrombosis" (mc-ad15c5470a7d46d1c8dd96c0cae78973)
+- **NCT01780987** (doac-vte-recurrence) Active-control, Multicenter, Randomized, Open-label, Safety And Efficacy Study Evaluating The Use Of Apixaban In The Treatment Of Symptomati
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "ARMS: Apixaban; UFH/Warfarin" (mc-1c4657f966a927a677426d4161edb490)
+  - B: INCLUDE / MEETS_ALL -- "INTERVENTIONS: Apixaban; Unfractionated Heparin (UFH); Warfarin ARMS: Apixaban; UFH/Warfarin MASKING: NONE ALLOCATION: RANDOMIZED" (mc-e281b2ae4dfd17e047ec25743bb19a18)
+- **NCT01986192** (doac-vte-recurrence) An Efficacy and Safety Study of Ribaroxaban for the Prevention of Deep Vein Thrombosis Recurrence in Patients With Acute Iliofemoral Venous 
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Therefore, patients who have completed CDT and have been stabilized at least 24 hours after thrombolysis will be included in this study." (mc-f21f4ad63930306a16f1abfc6dc738b7)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "patients with acute iliofemoral venous thrombosis initially treated with thrombolysis" (mc-5b2281458b2c8cae6d9863bbdd9e39d5)
+- **NCT02704598** (doac-vte-recurrence) Comparison of the Recanalization Rate and Incidence of Postthrombotic Syndrome in Patients With Lower-limb Deep Venous Thrombosis Treated Wi
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "This is a prospective, randomized study, aiming to evaluate patients with Deep Venous Thrombosis in lower limbs" (mc-3adc2abf4f46bc233a48251913199702)
+  - B: UNCLEAR / POPULATION -- "patients with Deep Venous Thrombosis in lower limbs" (mc-12f9e398bd159443a5be3b7056b61f2a)
+- **NCT02979561** (doac-vte-recurrence) A Prospective Randomised Controlled Study to Evaluate Outcomes of the Treatment With Pradaxa or Warfarin for Prevention of Recurrent VTE in 
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "patients with angiographically confirmed acute massive pulmonary embolism" (mc-2760a8e621d90954deac698900843b03)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "patients with angiographically confirmed acute massive pulmonary embolism undergoIng endovascular mechanical fragmentation and thrombolytic therapy" (mc-8c2fc0565bf1198070b430c2fcae8937)
+- **NCT04066764** (doac-vte-recurrence) An Efficacy and Safety Study of New Oral Anticoagulants and Vitamin K Antagonists for the Anticoagulation for the Implantation of Vena Cava 
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "in patients with deep venous thrombosis." (mc-99e7aac533195ceb621dbae0b5b37cf4)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "patients with deep venous thrombosis" (mc-649e1434350c479d96b64489c089b13f)
+- **NCT07077954** (doac-vte-recurrence) COMPARISON OF THE EFFECTIVITY OF WARFARIN AND RIVAROXABAN IN THE TREATMENT OF LOWER LIMB DEEP VENOUS THROMBOSIS
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Total 74(37 in each group) patients were included." (mc-1621746b4c56a38cba032240f8297eda)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "This was a randomized controlled trial conducted at General Surgical wards of Mayo Hospital, Lahore.Total 74(37 in each group) patients were included.After heparinizing patients for 48 hours (80 units/kg/stat and 18 units/kg/hour), patients in group-A were sta" (mc-ca921b025eaac7a68396fc2f726615c7)
+
+## _dual_a_melatonin-primary-insomnia-sol.json -- 6 DISAGREE
+
+- **11600532** (melatonin-primary-insomnia-sol) Melatonin treatment for age-related insomnia.
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "TITLE: Melatonin treatment for age-related insomnia." (mc-fc874bd22570b028b4a4934c349aa6bb)
+  - B: EXCLUDE / POPULATION -- "Melatonin treatment for age-related insomnia." (mc-4f75ebd6e1043ea4ada4a3263cd6505c)
+- **21887103** (melatonin-primary-insomnia-sol) Efficacy and safety of prolonged-release melatonin in insomnia patients with diabetes: a randomized, double-blind, crossover study.
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Efficacy and safety of prolonged-release melatonin in insomnia patients with diabetes: a randomized, double-blind, crossover study." (mc-b3401fba49c449d55a4cb83a472c0af9)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "36 type 2 diabetic patients with insomnia" (mc-05ce4ca9cf93d795bcbecc49073cd25d)
+- **33806529** (melatonin-primary-insomnia-sol) Melatonin Supplementation for Six Weeks Had No Effect on Arterial Stiffness and Mitochondrial DNA in Women Aged 55 Years and Older with Inso
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Melatonin Supplementation for Six Weeks Had No Effect on Arterial Stiffness and Mitochondrial DNA in Women Aged 55 Years and Older with Insomnia: A Double-Blind Randomized Controlled Study." (mc-62aa0f3cf554c3a31272911edc160bb2)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Thirty-eight healthy women aged 55 years and older were enrolled. All had insomnia (Pittsburgh Sleep Quality Index (PSQI) ≥ 5), not treated with any medications, for at least three months before enrollment." (mc-107bb3a08858a7b165edb971860e6ee1)
+- **8795804** (melatonin-primary-insomnia-sol) Melatonin and insomnia.
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "The hypnotic action of melatonin 5 mg p.o. was explored in 15 subjects with psychophysiological insomnia in a double-blind controlled self-report questionnaire study." (mc-aef5d379a27efb8d0895387b674da1ba)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "15 subjects with psychophysiological insomnia" (mc-ce389716b458709076f9407ee65dc51d)
+- **NCT02798367** (melatonin-primary-insomnia-sol) National, Phase II/III, Multicenter, Randomized, Double-blind, Controlled, Parallel,Effect of Melatonin 3mg and 5mg Plus Cognitive Behaviora
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "CONDITIONS: Insomnia Disorder" (mc-efe656d24b5e49f61749761918cdcbea)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "CONDITIONS: Insomnia Disorder" (mc-9df44caa14883fa8604ac025573d36bf)
+- **NCT07695246** (melatonin-primary-insomnia-sol) Efficacy of Cognitive Behavioural Therapy for Insomnia With Adjuvant Melatonin Treatment in Older Adults With Chronic Insomnia: A Randomised
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "CONDITIONS: Insomnia; Aging; Sleep Disorders" (mc-c13d2a975277dfd2182177faf865fde3)
+  - B: INCLUDE / MEETS_ALL -- "Adults aged 60 or above with chronic insomnia will be randomly assigned to one of three groups: (1) CBT-I plus nightly melatonin, (2) CBT-I plus nightly placebo tablet, or (3) sleep health psychoeducation plus nightly placebo tablet." (mc-13b2e58cc35741e965ac9c13325472b0)
+
+## _dual_a_noac.json -- 9 DISAGREE
+
+- **21438804** (noac-vs-warfarin-af-stroke) Dabigatran for stroke prevention in atrial fibrillation: the RE-LY trial.
+  - A: EXCLUDE / DUPLICATE_OR_SECONDARY_REPORT -- "Based on the results of the RE-LY trial, both the US FDA and Health Canada recently approved dabigatran etexilate for the prevention of stroke and systemic embolism in patients with nonvalvular atrial fibrillation." (mc-9ccc2f4bc7bbe9b5df250dfe6f2b5077)
+  - B: INCLUDE / MEETS_ALL -- "The Randomized Evaluation of Long-Term Anticoagulation (RE-LY) trial of 18,113 patients with nonvalvular atrial fibrillation and at least one additional risk factor for stroke demonstrated that dabigatran etexilate given at a dose of 150 mg twice daily compare" (mc-028621be7592bde641c1dc8b2786a046)
+- **36036525** (noac-vs-warfarin-af-stroke) Rivaroxaban in Rheumatic Heart Disease-Associated Atrial Fibrillation.
+  - A: INCLUDE / MEETS_ALL -- "Patients were randomly assigned to receive standard doses of rivaroxaban or dose-adjusted vitamin K antagonist." (mc-c6a8c11123ea3e9cf2aa9c5a8e32b6f3)
+  - B: EXCLUDE / POPULATION -- "patients with atrial fibrillation and echocardiographically documented rheumatic heart disease" (mc-31f76345a08cc9c6696d9eac7acf0a74)
+- **NCT00973245** (noac-vs-warfarin-af-stroke) BAY 59-7939 (Factor Xa Inhibitor) Phase II Once Daily Dose Study in Patients With Atrial Fibrillation
+  - A: INCLUDE / MEETS_ALL -- "INTERVENTIONS: Xarelto (Rivaroxaban, BAY59-7939); Xarelto (Rivaroxaban, BAY59-7939); Xarelto (Rivaroxaban, BAY59-7939); Warfarin ARMS: Arm 1; Arm 2; Arm 4; Arm 3 MASKING: NONE ALLOCATION: RANDOMIZED" (mc-ee2cfb2c66b16eb2636bbfc877706cf7)
+  - B: UNGATED / MEETS_ALL -- "CONDITIONS: Atrial Fibrillation INTERVENTIONS: Xarelto (Rivaroxaban, BAY59-7939); Xarelto (Rivaroxaban, BAY59-7939); Xarelto (Rivaroxaban, BAY59-7939); Warfarin ALLOCATION: RANDOMIZED" (mc-1da47f98ab18bee2f9e9bc612ac3c260)
+- **NCT01994265** (noac-vs-warfarin-af-stroke) Randomized Clinical Trial for the Prevention of Cognitive Impairment in Atrial Fibrillation Patients Treated With Dabigatran or Warfarin
+  - A: INCLUDE / MEETS_ALL -- "Randomized Clinical Trial for the Prevention of Cognitive Impairment in Atrial Fibrillation Patients Treated With Dabigatran or Warfarin" (mc-acc2a1b49697b54d38c1ac42d3204197)
+  - B: UNGATED / MEETS_ALL -- "TITLE: Randomized Clinical Trial for the Prevention of Cognitive Impairment in Atrial Fibrillation Patients Treated With Dabigatran or Warfarin CONDITIONS: Atrial Fibrillation INTERVENTIONS: Warfarin; Dabigatran ARMS: Warfarin; Dabigatran ALLOCATION: RANDOMIZE" (mc-e74598f28a872aa96d6cf01d3c0894a6)
+- **NCT02982850** (noac-vs-warfarin-af-stroke) Effectiveness of Dabigatran Versus Conventional Treatment for Prevention of Silent Cerebral Infarct in Aortic and Mitral Valvular Atrial Fib
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Dabigatran; Acetylsalicylic acid; Warfarin ARMS: Dabigatran; Conventional Treatment" (mc-cad2fa5c657ba96040d2fd938da47f30)
+  - B: EXCLUDE / POPULATION -- "TITLE: Effectiveness of Dabigatran Versus Conventional Treatment for Prevention of Silent Cerebral Infarct in Aortic and Mitral Valvular Atrial Fibrillation Patients" (mc-6fa06ce314bb31b093a901d5c2a0de62)
+- **NCT03799822** (noac-vs-warfarin-af-stroke) Safety and Efficacy of Vitamin K Antagonists Versus Rivaroxaban in Hemodialysis Patients With Atrial Fibrillation: a Multicenter Randomized 
+  - A: EXCLUDE / DUPLICATE_OR_SECONDARY_REPORT -- "After termination of this trial, included patients will be asked to participate in the extension trial by continuing the treament of their respective allocation arm. No new intervention will be done." (mc-00f156fa5840a37bd4c7fdb82e7955c9)
+  - B: INCLUDE / MEETS_ALL -- "Safety and Efficacy of Vitamin K Antagonists Versus Rivaroxaban in Hemodialysis Patients With Atrial Fibrillation: a Multicenter Randomized Controlled Trial" (mc-308d5f1ef90b9644e0ac5bb3e6daf42b)
+- **NCT03987711** (noac-vs-warfarin-af-stroke) Strategies for the Management of Atrial Fibrillation in patiEnts Receiving Dialysis (SAFE-D)
+  - A: INCLUDE / MEETS_ALL -- "ARMS: Warfarin; Apixaban; No oral anticoagulation MASKING: NONE ALLOCATION: RANDOMIZED" (mc-b6a2cc2c060d0af3ef2bac438d236d72)
+  - B: UNGATED / MEETS_ALL -- "INTERVENTIONS: Warfarin; Apixaban; No oral anticoagulation ARMS: Warfarin; Apixaban; No oral anticoagulation ALLOCATION: RANDOMIZED" (mc-d9dba1ceeb929a3fb4993a0ec97a3761)
+- **NCT06045858** (noac-vs-warfarin-af-stroke) Safety and Efficacy of Apixaban Versus Warfarin in Peritoneal Dialysis Patients With Non Valvular Atrial Fibrillation: a Prospective, Random
+  - A: INCLUDE / MEETS_ALL -- "Eligible patients will be randomly assigned to receive either apixaban at a reduced dose 2.5mg twice daily (dose determined with the previous pharmacokinetic study APIDP1 of apixaban in PD patients) or dose-adjusted to INR target \[2-3\] coumadin therapy." (mc-4632f576ad6293ec2034d45af946e480)
+  - B: EXCLUDE / NOT_RCT -- "Setting: A total of 178 participants will be recruited from 20 French peritoneal dialysis centers." (mc-db1be2c88386e7b1f8e4e0d65b3a9a08)
+- **NCT07434661** (noac-vs-warfarin-af-stroke) Safety and Efficacy of Apixaban Compared With Warfarin in Patients With Atrial Fibrillation in the First Three Months After Mitral or Aortic
+  - A: EXCLUDE / POPULATION -- "in the early period (3 months) after repair or bioprosthetics of the mitral and aortic valve cardiac surgery" (mc-64b62e2bb7c243d28b777f9025440e49)
+  - B: INCLUDE / MEETS_ALL -- "SAFE-HEART is a single-centre, randomized controlled trial comparing the safety and efficiency of Apixaban versus Warfarin in the early period (3 months) after repair or bioprosthetics of the mitral and aortic valve cardiac surgery in patients with atrial fibr" (mc-6b4e1d4b0dcfdaf5baf5ad16b6e7c00d)
+
+## _dual_a_semaglutide_weight.json -- 25 DISAGREE
+
+- **33269530** (semaglutide-obesity-weight) The effect of semaglutide 2.4 mg once weekly on energy intake, appetite, control of eating, and gastric emptying in adults with obesity.
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "A double-blind, parallel-group trial was conducted in 72 adults with obesity, randomized to once-weekly s.c. semaglutide (dose-escalated to 2.4 mg) or placebo for 20 weeks." (mc-f4d7e897ed1047959a2181479f1d3c5c)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "A double-blind, parallel-group trial was conducted in 72 adults with obesity, randomized to once-weekly s.c. semaglutide (dose-escalated to 2.4 mg) or placebo for 20 weeks." (mc-073840743e09c7dba17c8c49d4990614)
+- **NCT03842202** (semaglutide-obesity-weight) Effect of Semaglutide 2.4 mg Once-weekly on Gastric Emptying in Subjects With Obesity
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Participants will either get semaglutide or "dummy" medicine - which treatment any participant gets is decided by chance." (mc-37afd1f52653cf8767befbd6d5438188)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Participants will either get semaglutide or "dummy" medicine - which treatment any participant gets is decided by chance. Participants will take 1 injection per week." (mc-b9901343d28b7506fd33d13fcbf8131a)
+- **NCT04019197** (semaglutide-obesity-weight) Effects of GLP-l Receptor Agonists on Cardiometabolic Alterations in HIV-associated Lipohypertrophy
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide Injectable Product; Placebo" (mc-7d6fb83390f693757246074d53059c6d)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide Injectable Product; Placebo" (mc-62bcbf1ba49bbef4a0892a0fc7e454cc)
+- **NCT04263415** (semaglutide-obesity-weight) The Effects of Semaglutide on Modulation of Taste Sensitivity, Tongue Tissue Transcriptome, Gastric Emptying and Central Neural Responses in
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide; Placebo" (mc-87df173973bf1ce2860ffd1a9581c318)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide; Placebo" (mc-faeb543bdb442a8c70ebba7a545a0061)
+- **NCT04779697** (semaglutide-obesity-weight) GLP-1 Analogue Effects on Food Cues, Stress, Motivation for Highly Palatable Foods, and Weight
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: GLP-1 analogue - semaglutide; Placebo" (mc-d97ca2ad6605d914d1f9212910eeb9ed)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: GLP-1 analogue - semaglutide; Placebo" (mc-753ad1ff6be176dfae5edb59cf580343)
+- **NCT04885634** (semaglutide-obesity-weight) Semaglutide for the Reduction of Arrhythmia Burden in Overweight and Obese Patients With Atrial Fibrillation (Pilot Study)
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "The purpose of this pilot study is to assess the feasibility of a double-blind, randomized placebo-controlled trial of semaglutide 2.4 mg subcutaneously once weekly on top of standard care compared to standard care alone." (mc-f76d247a047e7690829a777e4211a878)
+  - B: EXCLUDE / INTERVENTION -- "Semaglutide for the Reduction of Arrhythmia Burden in Overweight and Obese Patients With Atrial Fibrillation (Pilot Study)" (mc-59252c8ce63b53e8925581a595a326fd)
+- **NCT05087342** (semaglutide-obesity-weight) A Randomized Latino Semaglutide 2.4mg Study
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide 2.4mg; Placebo" (mc-43715287396499700d853f6f01858fcb)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide 2.4mg; Placebo" (mc-65b2340e32fc1b68a311bc55cfc969d3)
+- **NCT05173714** (semaglutide-obesity-weight) Sit Less, Interact and Move More (SLIMM) 2 Study
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "ARMS: SLIMM + Standard RT + Placebo; SLIMM + Guided RT + Placebo; SLIMM + Guided RT + Semaglutide" (mc-02aceda23d8f99a1225cf73d01ded7a5)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: SLIMM; Standard Resistance Training; Guided Resistance Training; Placebo; Semaglutide" (mc-5f5a2cd9aaaadf2883d68d1a4259db4b)
+- **NCT05209165** (semaglutide-obesity-weight) Semaglutide as Treatment of Overweight and Obese Individuals to Reduce Atrial Fibrillation Burden
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "The investigators plan on conducting a randomized controlled trial of semaglutide versus placebo" (mc-5a9da9b285edabc740f05c7f7527c617)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "randomized controlled trial of semaglutide versus placebo" (mc-e71db43bbc2a68a00cf7c545c4a1766b)
+- **NCT05333003** (semaglutide-obesity-weight) Semaglutide in Comorbid Schizophrenia Spectrum Disorder and Obesity for Metformin Non-responders: a Single-blind Randomized Control Trial
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide; Placebo" (mc-ad37db9a7314cf477ca44c3ee222467a)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide; Placebo" (mc-d9843e8fb4d40d0a5a061f890579b71b)
+- **NCT05829460** (semaglutide-obesity-weight) Primary Prevention and Uterine Preservation in Premenopausal Women With Obesity and Endometrial Hyperplasia
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Arm 1: Semaglutide + progestin; Arm 2: Placebo + Progestin" (mc-36acba602a2e087897344f39c33f90b6)
+  - B: EXCLUDE / INTERVENTION -- "combined treatment with the GLP-1R agonist semaglutide 2.4 mg and levonorgestrel intrauterine device (LNG-IUD), compared to LNG-IUD alone" (mc-adea46f3a52842fea24c6039455c6b93)
+- **NCT05996848** (semaglutide-obesity-weight) Efficacy and Safety of Cagrilintide s.c. 2.4 mg in Combination With Semaglutide s.c. 2.4 mg (CagriSema s.c. 2.4 mg/2.4 mg) Once-Weekly in Ch
+  - A: EXCLUDE / DESIGN -- "This study will look at how well the new medicine CagriSema helps people with excess body weight losing weight compared to a "dummy" medicine and a medicine called semaglutide." (mc-5311d62d0101aa67ab629d16d406d6f0)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Participants will either get CagriSema, a dummy medicine or semaglutide. Which treatment participants get is decided by chance. Participants will take one injection once a week." (mc-e2c8a253f7e2625ac8aab1861221eba8)
+- **NCT06499857** (semaglutide-obesity-weight) Semaglutide for Metabolic Intervention and Adipose Loss to Treat Atrial Fibrillation
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide; Placebo" (mc-571c1e42656cd0fda4702c72b881f175)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide; Placebo" (mc-03889d5682413e4c64741fc0f26b5c8c)
+- **NCT06814938** (semaglutide-obesity-weight) A Novel Precision Medicine Approach For Obesity: A Randomized, Multi-Center Trial
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide; Placebo" (mc-e5f56a370ded97b0504c6faa8cfe2223)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide; Placebo" (mc-ad1259dce4f9b6653a08ff1b04f8737d)
+- **NCT06986993** (semaglutide-obesity-weight) Impact of Semaglutide Administration on Tobacco Use Behavior and Related Mechanisms Among Smokers With Obesity
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "This pilot randomized trial will assess the impact of 12 weeks of semaglutide administration (vs placebo)" (mc-18d859b6f5c12b2420cfca850c0edb15)
+  - B: EXCLUDE / INTERVENTION -- "This pilot randomized trial will assess the impact of 12 weeks of semaglutide administration (vs placebo) on changes in: (i) tobacco use and related factors (nicotine craving, withdrawal, motivation to quit, etc.)" (mc-f6676127bec42acf81dada8837b9afc5)
+- **NCT06989177** (semaglutide-obesity-weight) An Interventional Study Investigating the Effects of Probiotics on Body Weight and Metabolic Homeostasis
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Twelve weeks of energy-restricted nutritional and lifestyle intervention with placebo, Lactobacillus paracasei LC-19 (LC-19), or semaglutide (a glucagon-like peptide-1 receptor agonist, GLP-1RA) will be randomly conducted in the overweight or obese participant" (mc-db0d1f67545da3aeb19309758dcf5490)
+  - B: EXCLUDE / INTERVENTION -- "Twelve weeks of energy-restricted nutritional and lifestyle intervention with placebo, Lactobacillus paracasei LC-19 (LC-19), or semaglutide (a glucagon-like peptide-1 receptor agonist, GLP-1RA) will be randomly conducted in the overweight or obese participant" (mc-8e691e6dcebf17a4100afa846f8f6a18)
+- **NCT07010432** (semaglutide-obesity-weight) The Role of the Amylin Analogue Cagrilintide in Bone Metabolism During Weight Loss in Postmenopausal Women With Obesity
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Participants will either get cagrilintide, semaglutide, CagriSema (cagrilintide combined with semaglutide) or placebo. Which treatment participants get is decided by chance." (mc-0e4829de609ba3528ed021708cbad1db)
+  - B: EXCLUDE / INTERVENTION -- "Participants will either get cagrilintide, semaglutide, CagriSema (cagrilintide combined with semaglutide) or placebo." (mc-14dcabb1daccb23868e6d8e1b83e19cb)
+- **NCT07136714** (semaglutide-obesity-weight) Is the GLP-1 Receptor Agonist Semaglutide Able to Alleviate Mood in Patients With Major Depressive Disorder and Overweight or Obesity
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "This 26-week long, double-blinded randomized clinical trial aims to investigate the effects of semaglutide once-weekly vs. placebo on depressive symptoms in 116 patients with Major Depressive Disorder (MDD) and co-existing overweight or obesity." (mc-fe0b7048c7ebb9d2324bf838f5d2fd98)
+  - B: EXCLUDE / INTERVENTION -- "This 26-week long, double-blinded randomized clinical trial aims to investigate the effects of semaglutide once-weekly vs. placebo on depressive symptoms in 116 patients with Major Depressive Disorder (MDD) and co-existing overweight or obesity." (mc-672afa74747129ed297315092bdf1b20)
+- **NCT07284979** (semaglutide-obesity-weight) A Phase 3, Randomized, Active- and Placebo-Controlled, Partially-Blinded Study to Compare the Efficacy and Safety of KAI-9531 Administered O
+  - A: EXCLUDE / DESIGN -- "ARMS: Ribupatide: Dose 1; Ribupatide: Dose 2; Semaglutide; Placebo" (mc-53e06e2da5a09f02be6d896d6ebc696a)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "The primary objective of this study is to demonstrate that ribupatide (KAI-9531) subcutaneous (SC) injection once weekly is superior to semaglutide SC once weekly and to placebo SC once weekly on percent change in body weight." (mc-e437aea5ead4216bc3aa3b6163a6aaf2)
+- **NCT07639021** (semaglutide-obesity-weight) Evaluation of Different Dose Escalation Regimens for NNC0662-0419 in Participants With Obesity
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "ARMS: NNC0662-0419; NNC0662-0419 placebo; Semaglutide; Semaglutide placebo" (mc-c35218bde90e71f2286f135b370d1737)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: NNC0662-0419; Semaglutide; NNC0662-0419 Placebo; Semaglutide placebo" (mc-b7653ec6d2323d074451649aa81921f8)
+- **NCT07767175** (semaglutide-obesity-weight) A Study Investigating Safety, Tolerability, Pharmacokinetics and Pharmacodynamics of NNC0721-8060 in Healthy Adult Participants Living With 
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "ARMS: NNC0721-8060; Semaglutide; Placebo" (mc-36b487793f214ab68a4fa6d88651c301)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: NNC0721-8060; Semaglutide; Placebo" (mc-87c0d3e80905bd188ef1d16e739b09b2)
+- **NCT07845578** (semaglutide-obesity-weight) An Investigation of the Effect of High Dose s.c. Semaglutide on Gastric Emptying in Participants With Obesity
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Participants will receive either semaglutide or placebo, and the treatment assigned will be decided by chance." (mc-ecd1b68f4fa4e6411e08bfb3f7fddf2b)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide; Placebo semaglutide; Paracetamol" (mc-f535753b000ae3446ff06e6f733fd362)
+- **NCT07859137** (semaglutide-obesity-weight) Semaglutide Before Primary Metabolic and Bariatric Surgery in Patients With BMI 60 kg/m² or Higher: a Randomized, Double-blind, Placebo-cont
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide weekly injection; Placebo" (mc-ae8d8e36b9dc2060a7cbb99bc8047122)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide weekly injection; Placebo" (mc-6ab22ea81cd838cc97dea9f6c1131b7f)
+- **NCT07859150** (semaglutide-obesity-weight) Semaglutide 2.4 mg Once Weekly for Recurrent Weight Gain After Metabolic and Bariatric Surgery (RESURGE): a Randomized, Double-Blind, Placeb
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "CONDITIONS: Morbid Obesity INTERVENTIONS: Semaglutide weekly injection; Placabo" (mc-e8a69db1696c3978004da87bfd922ee4)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide weekly injection; Placabo ARMS: GLP 1; Placebo" (mc-92ecb6b4e155c91641fda7d00ce267c3)
+- **NCT07859163** (semaglutide-obesity-weight) Semaglutide Given Before and After Conversion of Sleeve Gastrectomy to Roux-en-Y Gastric Bypass for Recurrent Weight Gain: a Randomized, Dou
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "INTERVENTIONS: Semaglutide weekly injection; Placebo" (mc-f8707b0786b2bbb5e3ce0eef8fd8cd25)
+  - B: EXCLUDE / DESIGN -- "This protocol is that trial." (mc-7edb9678f8e453389cdfd106f1f8bae7)
+
+## _dual_a_tranexamic-acid-pph.json -- 2 DISAGREE
+
+- **NCT01085006** (tranexamic-acid-pph) The Effect of Tranexamic Acid Administration on Postpartum Hemorrhage During and After Cesarean Delivery
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Intravenous Tranexamic acid is used to reduce the hemorrhage during and after cesarean delivery in a double blind randomized placebo controlled trial." (mc-ed30aa3cba28fd87535813f7746c44f2)
+  - B: EXCLUDE / POPULATION -- "Intravenous Tranexamic acid is used to reduce the hemorrhage during and after cesarean delivery in a double blind randomized placebo controlled trial." (mc-a09cc29b5ba82101fc23f8da95d0cec1)
+- **NCT03774706** (tranexamic-acid-pph) Role of Sublingual Misoprostol With or Without Intravenous Tranexamic Acid for Reducing Post-partum Hemorrhage During and After Hemorrhagic 
+  - A: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "CONDITIONS: Cesarean Section Complications" (mc-d9cb7a6de2a88484223d73bd66846129)
+  - B: UNCLEAR / NOT_DECIDABLE_FROM_RECORD -- "Purpose to evaluates the effects of sublingual misoprostol with or without intravenous tranexamic acid (TA) on reducing post-partum hemorrhage during and after hemorrhagic cesarean section." (mc-58dc8deae7d37c10fb1798e4c551724b)
+

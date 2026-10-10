@@ -554,3 +554,21 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
 - **Paging:**
   - Europe PMC paging works: sema-weight retrieved 9,142 of 9,143, with the 1 missing recorded as `recall_limit`.
   - noac's search predates the fix (5,000 of 14,392); it is queued for the paged re-run.
+
+### 2026-10-10 ~02:50 addendum -- (a) dual screens complete; DISAGREE list for ruling
+- **Concept search:** all 22 topics searched (ledgers + regex screens pushed).
+- **(a) dual screens, all complete.** Newly eligible by trial:
+
+  | topic | newly eligible | DISAGREE |
+  |---|---|---|
+  | doac | 3 | 23 (incl. J-EINSTEIN) |
+  | esketamine | 1 (withdrawn, n=0) | 0 |
+  | sema-weight | 1 (STEP 5) | 25 |
+  | cortico-covid | 7 distinct trials | 0 |
+  | tranexamic | 0 | 2 |
+  | melatonin | 0 | 6 |
+  | colchicine-peri | 0 | 0 |
+
+  - noac: 41 eligible, held as (b).
+  - G1 effects in `v14_g1_impact.md`; none applied.
+- **DISAGREE: 65 records** (`concept/_disagree_for_captain.md`, each reader's decision, rule and verbatim quote). The pre-registered dual rule never counts a split. A third tie-break reader would change that rule, so it is your call. Say if you want one (e.g. a third model family, recorded the same way).
