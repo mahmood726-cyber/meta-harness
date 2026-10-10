@@ -6650,5 +6650,102 @@
     "verdict": null
    }
   ]
+ },
+ "v13-04-r2": {
+  "base": "038d84f2b",
+  "head": "g1/v13-04-licence-2026-10-09",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6ad5bae60edfc01b6d50b85a1ae6fbfd",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/classify_tracked_fulltexts.py",
+     "scripts/v13_04_prescreen.py"
+    ],
+    "prompt_sha256": "99bad826f9fecf97bb6495dd696e0b938134d9a0d16cd824b733abc6b856a58a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/v13_04_prescreen.py",
+    "function": "tree_clean",
+    "severity": "P2",
+    "claim": "The new safety gate treats a failed Git status command with empty stdout as a clean tree. It must check the return code before allowing the destructive pre-screen to proceed.",
+    "failing_input": "from subprocess import CompletedProcess\nfrom unittest.mock import patch\nfrom scripts import v13_04_prescreen as m\nfailure = CompletedProcess(['git', 'status'], 128, stdout='', stderr='fatal: not a git repository')\nwith patch.object(m, 'git', return_value=failure):\n    print(m.tree_clean())",
+    "expected": "False, or an exception that stops main(): repository cleanliness could not be established.",
+    "actual": "True, because the failed command's empty stdout passes the cleanliness check.",
+    "id": "v13-04-r2:g1#1",
+    "record_id": "mc-6ad5bae60edfc01b6d50b85a1ae6fbfd",
+    "verdict": null
+   }
+  ]
+ },
+ "v14-apply-r1": {
+  "base": "origin/main",
+  "head": "origin/g1/v14-apply-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-813bb58f6c64482224a59e2eeef26105",
+    "state": "RAN_OK",
+    "files": [
+     "harness/hand_binding.py",
+     "harness/source_hierarchy.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py",
+     "scripts/v14_05_licence_exception.py"
+    ],
+    "prompt_sha256": "d983276fd98ad847b61d44c619bfdbaef08cffa2709bf2ad72b24ef6467fcdb8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/hand_binding.py",
+    "function": "_result_parens / _owning_clause",
+    "severity": "P1",
+    "claim": "The new regex collapses two separate endpoint results inside an enclosing parenthesis into one match. Consequently, _owning_clause takes its len(parens) < 2 shortcut and returns both endpoints instead of isolating the tuple's owning clause. The previous regex found both results separately.",
+    "failing_input": "from harness.hand_binding import _result_parens\ns = 'Results (death decreased (HR 0.70; 95% CI 0.60-0.80), whereas stroke was unchanged (HR 1.00; 95% CI 0.90-1.10)).'\nprint([m.group(0) for m in _result_parens(s)])",
+    "expected": "Two distinct result matches: ['(HR 0.70; 95% CI 0.60-0.80)', '(HR 1.00; 95% CI 0.90-1.10)'], allowing separate death and stroke clause ownership.",
+    "actual": "['(death decreased (HR 0.70; 95% CI 0.60-0.80), whereas stroke was unchanged (HR 1.00; 95% CI 0.90-1.10))']. With this single match, _owning_clause returns the entire sentence for either effect tuple.",
+    "id": "v14-apply-r1:g1#1",
+    "record_id": "mc-813bb58f6c64482224a59e2eeef26105",
+    "verdict": null
+   }
+  ]
+ },
+ "v14-apply-r2": {
+  "base": "origin/main",
+  "head": "origin/g1/v14-apply-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-fc65bff2b6bdb34808ab0c5fe475759e",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/hand_binding.py",
+     "harness/source_hierarchy.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py",
+     "scripts/v14_05_licence_exception.py"
+    ],
+    "prompt_sha256": "592d55b24d252eff6376a5cdc280dddb31169764d84c8a8f9e62a3319e8e4723"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/source_hierarchy.py",
+    "function": "_effect_candidates_in_outcome",
+    "severity": "P1",
+    "claim": "The word-boundary check runs after window truncation. When truncation removes 'non' from 'nonvertebral', the remaining suffix falsely matches the vertebral-fracture endpoint.",
+    "failing_input": "Run the changed clause/keyword logic: import re; prefix = 'nonvertebral fracture showed '; clause = prefix[-26:]; hits = [k for k in ['vertebral fracture'] if re.search(r'(?<![a-z0-9-])' + re.escape(k), clause)]; print(clause, hits)",
+    "expected": "hits == []; nonvertebral fracture must not match vertebral fracture.",
+    "actual": "clause == 'vertebral fracture showed '; hits == ['vertebral fracture']. The truncated string supplies an artificial word boundary.",
+    "id": "v14-apply-r2:g1#1",
+    "record_id": "mc-fc65bff2b6bdb34808ab0c5fe475759e",
+    "verdict": null
+   }
+  ]
  }
 }

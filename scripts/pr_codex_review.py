@@ -101,7 +101,14 @@ def main(argv):
         for gname, r in entry["runs"].items():
             if r["state"] != "RAN_OK":
                 continue
-            resp = json.loads(ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8"))
+            raw = ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8")
+            try:
+                resp = json.loads(raw)
+            except ValueError:
+                # a reply outside the schema (agy sometimes answers in markdown) is kept WHOLE as one finding to
+                # reproduce by hand -- never dropped, never read as "no findings"
+                resp = {"findings": [{"severity": "UNSTRUCTURED", "file": "-", "function": "-", "claim": raw,
+                                      "failing_input": "(see claim)", "expected": "-", "actual": "-"}]}
             for i, f in enumerate(resp.get("findings") or []):
                 fid = f"{nm}:{gname}#{i + 1}"
                 entry["findings"].append(dict(f, id=fid, record_id=r["record_id"], verdict=entry["verdicts"].get(fid)))
