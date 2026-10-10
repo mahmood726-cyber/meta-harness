@@ -103,7 +103,21 @@ NICE_HOSTS = ("www.nice.org.uk", "nice.org.uk")
 # a whole-text block (scripts/k_gap_upw_locate.py: '<<<TEXT ... TEXT>>>'): 21 committed records carried whole Unpaywall
 # texts in this shape and neither detector above saw them (6 Oct audit) -- 14 of them were not CC
 _TEXT_BLOCK = re.compile(r"<<<TEXT\n(.*?)\nTEXT>>>", re.S)
-_DOI_REF = re.compile(r"\bDOI\s+(10\.[^\s)]+)")
+_DOI_REF = re.compile(r"\bDOI\s+(10\.\S+)")
+
+
+def _doi_in_ref(ref):
+    """The DOI declared in a ref ('... (DOI 10.1/cc)'). The whole token is taken, then trailing ')' are dropped only
+    while the parentheses are UNBALANCED: '[^\\s)]+' cut every DOI that carries its own parentheses -- Lancet-family
+    '10.1016/s2213-8587(25)00222-0' became '...(25', missed the held index, and a CC BY text was refused (10 Oct).
+    Fail-closed is unchanged: the DOI must still resolve, from held data, to a CC licence."""
+    m = _DOI_REF.search(ref or "")
+    if not m:
+        return None
+    d = m.group(1).rstrip(".,;")
+    while d.endswith(")") and d.count(")") > d.count("("):
+        d = d[:-1]
+    return d
 
 
 def doi_licences(index_path=UPW_INDEX):
@@ -179,9 +193,9 @@ def ref_licences(ref, lic, dlic):
     m = re.match(r"trial report PMID (\d+)", ref)
     if m:
         return [(f"PMID {m.group(1)} report", lic.get(m.group(1)))]
-    m = _DOI_REF.search(ref)
-    if m:
-        return [(f"DOI {m.group(1)}", dlic.get(m.group(1).lower()))]
+    d = _doi_in_ref(ref)
+    if d:
+        return [(f"DOI {d}", dlic.get(d.lower()))]
     return []
 
 

@@ -228,3 +228,28 @@ The contrast is valid per the ruling: empagliflozin + KCl v placebo-for-empaglif
 - So the trial fails the intervention criterion: X3, wrong intervention context, with that span.
 - With the exclusion recorded, esketamine stays G1_MATCHED (3/3). Without it, the fix alone would admit the trial and esketamine would leave G1_MATCHED.
 - The CT.gov registration (sha256 d8fdc435…) says only "Adjunctive to Oral Antidepressant Therapy", which is not decisive by itself.
+
+## K-10. sglt2-ckd comparator-swap screen: RESULT (Captain ruling 6, D17) -- no G1 gain
+
+**Procedure.** g1_swap's pre-registered procedure, unchanged: rule registry/comparator_selection/sglt2-ckd-progression.rule.json, the SCREEN_INSTR/SCHEMA prompt, the gate_screen quote gate, and one recorded codex call per candidate. Only the TEXT SOURCE is new: the host page or deposited file, admitted under D17 (signed V12), with the host-page Creative Commons statement captured VERBATIM. CC BY / CC0 only; nothing NC/ND or unlicensed entered a prompt.
+
+**Funnel:**
+- **Stage A** (title + abstract): 39 never-read C1-PASS candidates, 39 recorded calls. 13 survivors (no gated FAIL).
+- **Admitted (D17):** 2 of 13.
+  - 37705832: Br J Cardiol, PMC page, CC BY.
+  - 41082889: Lancet Diabetes Endocrinol IPD meta-analysis, HAL deposit; HAL record states CC BY 4.0; file linked by citation_pdf_url.
+- **Not admitted:** 11, each typed (registry/comparator_selection/sglt2-ckd-progression.d17_fullread.json):
+  - 4 are erratum / corrigendum / correction NOTICES, not meta-analyses: 29508697, 31305690, 34481507, 42775199;
+  - 1 is a clinical-practice guideline: 33975892;
+  - host page carries no licence statement: 36801545, 38678962, 40658498 (Ovid abstract page);
+  - BOT_CHALLENGE ("Client Challenge", never solved): 42420866 (BMC; no PMC copy yet);
+  - fetch failed: 38768620 (Göttingen resolver), 42610389 (OUP).
+- **Full read (stage B):** 2 recorded calls. 0 of 2 pass the rule.
+  - 37705832: C3 FAIL, a pooled population across T2D, HF and CKD ("42,568 patients with type 2 diabetes at high risk ... 21,974 ...").
+  - 41082889: C5 FAIL ("to assess the effects of empagliflozin on conventional and exploratory acute and chronic kidney outcomes": not the protocol's estimand). Also single-agent; C3 UNCLEAR.
+
+**G1 effect: NONE.** No open comparator passes the pre-registered rule, so sglt2-ckd stays NOT_YET.
+- By title (NOT a rule decision), none of the 11 unread candidates targets the protocol's question: elderly subgroup, hospitalisation outcome, MRA + SGLT2 combination, CV-outcome reviews, notices.
+- The one unread kidney-outcome meta-analysis, 42420866 (age >= 65 subgroup), is behind a bot challenge and has no PMC copy yet. Re-check when it lands in PMC.
+
+**Defect found and fixed:** PR #79, record_licence `_DOI_REF`. It cut DOIs that carry their own parentheses (10.1016/s2213-8587(25)00222-0), so a CC BY text was refused. The plant fails on main. Fail-closed is unchanged.
