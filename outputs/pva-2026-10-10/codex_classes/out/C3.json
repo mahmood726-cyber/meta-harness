@@ -1,0 +1,277 @@
+{
+  "class_id": "C3",
+  "generators": [
+    {
+      "file": "harness/manuscript.py:279",
+      "function": "render",
+      "reads": "Selects the primary outcome with _primary(review); reads result.k, scale, estimate, ci_low and ci_high. The Methods paragraph ignores k. The forest caption checks refusal flags but not k.",
+      "code_quote": "k = res.get(\"k\")\n\n\"failing that reconciliation is declared absent, never guessed. Pooling used random effects \"\n\"(Paule-Mandel &tau;&sup2; with a Hartung-Knapp interval on t with k&minus;1 df; log scale for ratios).</p>\"\n\nforest_caption = (\"Forest plot of the primary outcome, rendered from the committed per-trial estimates.\"\n                  if res.get(\"pool_refused\") or res.get(\"pooled_ci_refused\") else\n                  \"Forest plot of the primary outcome, rendered from the committed per-trial estimates \"\n                  \"and the pooled result.\")"
+    },
+    {
+      "file": "harness/page.py:333",
+      "function": "_effect_label; _overview; _outcome_block; _riskofbias",
+      "reads": "result.k and effect_label; primary outcome trial identities; outcome.compat_key.randomised_contrast; primary trial membership and rob2 assessments. Several labels remain unconditional despite the existing single-trial effect-label branch.",
+      "code_quote": "return \"Single-trial effect\" if res.get(\"k\") == 1 else \"Pooled effect\"\n\nrows.append((\"Trials pooled (k)\", kdisp))\n\n(\"Parser-confirmed contrast\",\n (f\"{rc.get('verified')} of {rc.get('total')} pooled trials\"\n  if rc.get(\"total\") else None)),\n\ncover = (f\"<strong>Coverage: {n_ass} of {n_pool} primary-outcome pooled trials assessed</strong> \""
+    },
+    {
+      "file": "harness/review_tabs.py:358",
+      "function": "analysis_tab; conclusions",
+      "reads": "Each outcome's method and result.k; the primary result.claim and reproduction.claim_check. Analysis correctly suppresses heterogeneity rows at k=1, but its introduction and the conclusion explanation still use pooled terminology.",
+      "code_quote": "out = [\"<p>For each outcome: the declared model (verbatim from the outcome's <code>method</code>), the forest plot \"\n       \"drawn from the pooled rows, heterogeneity and prediction interval as computed, and the leave-one-out \"\n\nout.append(f\"<p class='method'><strong>Model:</strong> {_e(o.get('method'))}</p>\")\n\nsingle = res.get(\"k\") == 1\n\nf\"<p>The page's conclusion is this object, derived from the pooled result by <code>harness/claim.py</code>. {cover} \""
+    },
+    {
+      "file": "harness/grade.py:58",
+      "function": "stale_heterogeneity",
+      "reads": "invalidation.reasons; known_missing_sensitivity rows; primary declared_absent_trials. Does not check primary result.k. Its output is reused in Overview, Risk of bias & GRADE, Results, Manuscript and Reporting.",
+      "code_quote": "if not membership_incomplete(review):\n    return \"\"\nn = missing_family_count(review)\ncount = f\"{n} eligible families not in the pool\" if n is not None else \"eligible families not in the pool; count not established\"\nreturn f\"STALE: pooled membership known incomplete ({count}); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.\""
+    },
+    {
+      "file": "harness/pipeline.py:1249",
+      "function": "_build_outcome; _pool_result",
+      "reads": "The computed outcome result.k; studies[0].effect, ci_low and ci_high. The pipeline already distinguishes reported versus reconstructed intervals, but supplies generic single-trial method prose.",
+      "code_quote": "if out[\"result\"].get(\"k\") == 1:\n    out[\"method\"] = (\"Single included trial that reported this outcome — the estimate is that \"\n                     \"trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction \"\n                     \"interval are not applicable at k=1).\")\n\nres[\"ci_note\"] = \"k=1: point estimate and 95% CI are the single trial's reported values, verbatim.\"\nres[\"ci_provenance\"] = \"source-reported-CI:k=1-verbatim\""
+    },
+    {
+      "file": "harness/trial_family.py:596",
+      "function": "attach_review; count_sentence",
+      "reads": "Outcome trial rows matched to family_id, missing/refusal state, and the derived family count chain. The displayed membership vocabulary does not distinguish one contributing trial from a pool.",
+      "code_quote": "state = 'POOLED' if rows and not missing and not refused else next((label for key,label in\n\nf\"contributing to any outcome {chain['contributing']} of {n}; pooled in primary {chain['pooled']} of {n}. \""
+    },
+    {
+      "file": "harness/rob_sensitivity.py:36",
+      "function": "suppression_reason",
+      "reads": "sens.full.k and relation_from_sensitivity(sens), plus formal RoB assessment status.",
+      "code_quote": "if relation_from_sensitivity(sens) == LOW_ONLY_IDENTICAL_TO_FULL:\n    k = (sens.get(\"full\") or {}).get(\"k\")\n    reasons.append(f\"the machine-signal low-only set equals the full pool (k={k} of {k})\")"
+    },
+    {
+      "file": "harness/page.py:2165",
+      "function": "_comparator",
+      "reads": "review.comparator_scope_note. This is object-supplied prose, not generated by comparator_panel.render.",
+      "code_quote": "body += f\"<p><strong>Comparator resolution.</strong> {_e(r.get('comparator_scope_note'))}</p>\""
+    },
+    {
+      "file": "harness/page.py:2326",
+      "function": "_reproduction",
+      "reads": "The review's independent second-extraction audit counts. The introductory description calls the audited values pooled regardless of k.",
+      "code_quote": "body += (f\"<h4>Independent second extraction (blind)</h4><p>Of this page's pooled numbers, a \""
+    }
+  ],
+  "instances": [
+    {
+      "slug": "colchicine-recurrent-pericarditis",
+      "tab": "Results & conclusions — Symptom persistence at 72 hours",
+      "page_quote": "Parser-confirmed contrast 1 of 1 pooled trials",
+      "why": "This secondary outcome has result.k=1. Its compatibility row explicitly calls the single contributing trial pooled. The primary outcome has k=2; its pooling text is not a C3 instance."
+    },
+    {
+      "slug": "corticosteroids-covid19-mortality",
+      "tab": "Manuscript — Methods and Results figure caption",
+      "page_quote": "Pooling used random effects (Paule-Mandel τ² with a Hartung-Knapp interval on t with k−1 df; log scale for ratios).\n\nForest plot of the primary outcome, rendered from the committed per-trial estimates and the pooled result.",
+      "why": "The served mortality outcome has k=1. Both passages describe it as pooled. The abstract and Results instead say a single trial contributed an estimate, creating an internal contradiction."
+    },
+    {
+      "slug": "dapagliflozin-hfpef-hosp",
+      "tab": "Manuscript — Methods and Results figure caption",
+      "page_quote": "Pooling used random effects (Paule-Mandel τ² with a Hartung-Knapp interval on t with k−1 df; log scale for ratios).\n\nForest plot of the primary outcome, rendered from the committed per-trial estimates and the pooled result.",
+      "why": "DELIVER alone supplies the served primary HR, k=1. The methods and caption falsely describe pooling."
+    },
+    {
+      "slug": "denosumab-vertebral-fracture",
+      "tab": "Manuscript — Methods and Results figure caption",
+      "page_quote": "Pooling used random effects (Paule-Mandel τ² with a Hartung-Knapp interval on t with k−1 df; log scale for ratios).\n\nForest plot of the primary outcome, rendered from the committed per-trial estimates and the pooled result.",
+      "why": "The primary vertebral-fracture estimate has k=1. The two served secondary fracture estimates also each have k=1; none supports this pooling claim."
+    },
+    {
+      "slug": "empagliflozin-hfpef-hosp",
+      "tab": "Manuscript — Methods and Results figure caption",
+      "page_quote": "Pooling used random effects (Paule-Mandel τ² with a Hartung-Knapp interval on t with k−1 df; log scale for ratios).\n\nForest plot of the primary outcome, rendered from the committed per-trial estimates and the pooled result.",
+      "why": "EMPEROR-Preserved alone supplies the served primary HR, k=1."
+    },
+    {
+      "slug": "melatonin-primary-insomnia-sol",
+      "tab": "Manuscript — Methods and Results figure caption",
+      "page_quote": "Pooling used random effects (Paule-Mandel τ² with a Hartung-Knapp interval on t with k−1 df; log scale for ratios).\n\nForest plot of the primary outcome, rendered from the committed per-trial estimates and the pooled result.",
+      "why": "The served sleep-onset-latency MD is reconstructed from one trial's arm summaries. It is neither a random-effects pool nor a log-ratio analysis."
+    },
+    {
+      "slug": "semaglutide-obesity-mace",
+      "tab": "Manuscript — Methods and Results figure caption",
+      "page_quote": "Pooling used random effects (Paule-Mandel τ² with a Hartung-Knapp interval on t with k−1 df; log scale for ratios).\n\nForest plot of the primary outcome, rendered from the committed per-trial estimates and the pooled result.",
+      "why": "SELECT alone supplies the primary HR, k=1. This is the named review's actual served wording; the literal phrase 'pooled by PM/HKSJ' is not necessary to establish the violation."
+    },
+    {
+      "slug": "tranexamic-acid-pph",
+      "tab": "Manuscript — Methods and Results figure caption",
+      "page_quote": "Pooling used random effects (Paule-Mandel τ² with a Hartung-Knapp interval on t with k−1 df; log scale for ratios).\n\nForest plot of the primary outcome, rendered from the committed per-trial estimates and the pooled result.",
+      "why": "The death-due-to-bleeding estimate is supplied by one trial, k=1."
+    },
+    {
+      "slug": "corticosteroids-covid19-mortality",
+      "tab": "Overview; Screening; Risk of bias & GRADE; Results & conclusions",
+      "page_quote": "Overview: “Trials pooled (k) 1 — 32678530 (PMID 32678530)”\nOverview and Screening: “pooled in primary 1 of 37.”\nRisk of bias & GRADE: “Coverage: 1 of 1 primary-outcome pooled trials assessed”\nResults & conclusions: “Parser-confirmed contrast 1 of 1 pooled trials”",
+      "why": "These are additional placements describing the same k=1 primary contribution as pooled. The count-chain sentence appears twice in Screening."
+    },
+    {
+      "slug": "dapagliflozin-hfpef-hosp",
+      "tab": "Overview; Screening; Risk of bias & GRADE; Results & conclusions; Comparison with published meta-analysis",
+      "page_quote": "Overview: “Trials pooled (k) 1 — DELIVER (PMID 36027570)”\nOverview and Screening: “pooled in primary 1 of 22.”\nRisk of bias & GRADE: “Coverage: 1 of 1 primary-outcome pooled trials assessed”\nResults & conclusions: “Parser-confirmed contrast 1 of 1 pooled trials”\nComparison: “4 are declared absent for this pooled number”",
+      "why": "All refer to the single DELIVER contribution. The count-chain sentence appears twice in Screening. The comparator note explicitly calls the k=1 estimate a pooled number."
+    },
+    {
+      "slug": "denosumab-vertebral-fracture",
+      "tab": "Overview; Screening; Risk of bias & GRADE; Results & conclusions",
+      "page_quote": "Overview: “Trials pooled (k) 1 — 19671655 (PMID 19671655)”\nOverview and Screening: “pooled in primary 1 of 9.”\nRisk of bias & GRADE: “Coverage: 1 of 1 primary-outcome pooled trials assessed”\nResults & conclusions: “Parser-confirmed contrast 1 of 1 pooled trials”",
+      "why": "The compatibility quote occurs three times: New vertebral fracture, Nonvertebral fracture and Hip fracture, each k=1. The count-chain sentence appears twice in Screening."
+    },
+    {
+      "slug": "empagliflozin-hfpef-hosp",
+      "tab": "Overview; Screening; Risk of bias & GRADE; Results & conclusions; Comparison with published meta-analysis",
+      "page_quote": "Overview: “Trials pooled (k) 1 — EMPEROR Preserved, 2020 (PMID 34449189)”\nOverview and Screening: “pooled in primary 1 of 25.”\nRisk of bias & GRADE: “Coverage: 1 of 1 primary-outcome pooled trials assessed”\nResults & conclusions: “Parser-confirmed contrast 1 of 1 pooled trials”\nComparison: “3 are declared absent for this pooled number.”",
+      "why": "These label the sole EMPEROR-Preserved estimate as pooled. The count-chain sentence appears twice in Screening."
+    },
+    {
+      "slug": "melatonin-primary-insomnia-sol",
+      "tab": "Overview; Screening; Risk of bias & GRADE; Results & conclusions",
+      "page_quote": "Overview: “Trials pooled (k) 1 — 20712869 (PMID 20712869)”\nOverview and Screening: “pooled in primary 1 of 16.”\nRisk of bias & GRADE: “Coverage: 1 of 1 primary-outcome pooled trials assessed”\nResults & conclusions: “Parser-confirmed contrast 1 of 1 pooled trials”",
+      "why": "These describe the one-trial MD as pooled. The count-chain sentence appears twice in Screening."
+    },
+    {
+      "slug": "semaglutide-obesity-mace",
+      "tab": "Overview; Screening; Risk of bias & GRADE; Results & conclusions; Harms",
+      "page_quote": "Overview: “Trials pooled (k) 1 — 37952131 (PMID 37952131)”\nOverview and Screening: “pooled in primary 1 of 4.”\nRisk of bias & GRADE: “Coverage: 1 of 1 primary-outcome pooled trials assessed”\nResults & conclusions and Harms: “Parser-confirmed contrast 1 of 1 pooled trials”",
+      "why": "The primary MACE estimate and adverse-events-leading-to-permanent-discontinuation estimate each have k=1. The compatibility quote occurs once for each. The count-chain sentence appears twice in Screening."
+    },
+    {
+      "slug": "sglt2-ckd-progression",
+      "tab": "Harms — Diabetic ketoacidosis",
+      "page_quote": "Parser-confirmed contrast 1 of 1 pooled trials",
+      "why": "The DKA estimate uses only EMPA-KIDNEY, k=1. The primary cardiorenal outcome has k=3 and its pooling text is not a C3 instance."
+    },
+    {
+      "slug": "tranexamic-acid-pph",
+      "tab": "Overview; Screening; Risk of bias & GRADE; Results & conclusions",
+      "page_quote": "Overview: “Trials pooled (k) 1 — 28456509 (PMID 28456509)”\nOverview and Screening: “pooled in primary 1 of 39.”\nRisk of bias & GRADE: “Coverage: 1 of 1 primary-outcome pooled trials assessed”\nResults & conclusions: “Parser-confirmed contrast 1 of 1 pooled trials”",
+      "why": "These describe the one-trial death-due-to-bleeding estimate as pooled. The count-chain sentence appears twice in Screening."
+    },
+    {
+      "slug": "corticosteroids-covid19-mortality",
+      "tab": "Overview; Risk of bias & GRADE; Results & conclusions; Manuscript; Reporting (PRISMA)",
+      "page_quote": "STALE: pooled membership known incomplete (6 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+      "why": "At k=1 these between-trial quantities are not estimable, rather than existing descriptive statistics. Manuscript repeats the warning in Abstract Results, Results and limitations."
+    },
+    {
+      "slug": "dapagliflozin-hfpef-hosp",
+      "tab": "Overview; Risk of bias & GRADE; Results & conclusions; Manuscript; Reporting (PRISMA)",
+      "page_quote": "STALE: pooled membership known incomplete (4 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+      "why": "This warning incorrectly assigns descriptive heterogeneity and a prediction interval to the k=1 primary result. Manuscript repeats it in Abstract Results, Results and limitations."
+    },
+    {
+      "slug": "empagliflozin-hfpef-hosp",
+      "tab": "Overview; Risk of bias & GRADE; Results & conclusions; Manuscript; Reporting (PRISMA)",
+      "page_quote": "STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+      "why": "The primary result has k=1. Manuscript repeats the invalid characterization in Abstract Results, Results and limitations."
+    },
+    {
+      "slug": "melatonin-primary-insomnia-sol",
+      "tab": "Overview; Risk of bias & GRADE; Results & conclusions; Manuscript; Reporting (PRISMA)",
+      "page_quote": "STALE: pooled membership known incomplete (7 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+      "why": "The primary result has k=1. Manuscript repeats the invalid characterization in Abstract Results, Results and limitations."
+    },
+    {
+      "slug": "tranexamic-acid-pph",
+      "tab": "Overview; Risk of bias & GRADE; Results & conclusions; Manuscript; Reporting (PRISMA)",
+      "page_quote": "STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+      "why": "The primary result has k=1. Manuscript repeats the invalid characterization in Abstract Results, Results and limitations."
+    },
+    {
+      "slug": "corticosteroids-covid19-mortality",
+      "tab": "Manuscript — risk-of-bias sensitivity",
+      "page_quote": "the machine-signal low-only set equals the full pool (k=1 of 1)",
+      "why": "Even the suppression explanation describes the single-trial result as a full pool."
+    },
+    {
+      "slug": "dapagliflozin-hfpef-hosp",
+      "tab": "Manuscript — risk-of-bias sensitivity",
+      "page_quote": "the machine-signal low-only set equals the full pool (k=1 of 1)",
+      "why": "The single DELIVER contribution is called a full pool."
+    },
+    {
+      "slug": "denosumab-vertebral-fracture",
+      "tab": "Manuscript — risk-of-bias sensitivity",
+      "page_quote": "the machine-signal low-only set equals the full pool (k=1 of 1)",
+      "why": "The one-trial primary result is called a full pool."
+    },
+    {
+      "slug": "empagliflozin-hfpef-hosp",
+      "tab": "Manuscript — risk-of-bias sensitivity",
+      "page_quote": "the machine-signal low-only set equals the full pool (k=1 of 1)",
+      "why": "The single EMPEROR-Preserved contribution is called a full pool."
+    },
+    {
+      "slug": "melatonin-primary-insomnia-sol",
+      "tab": "Manuscript — risk-of-bias sensitivity",
+      "page_quote": "the machine-signal low-only set equals the full pool (k=1 of 1)",
+      "why": "The reconstructed one-trial MD is called a full pool."
+    },
+    {
+      "slug": "semaglutide-obesity-mace",
+      "tab": "Manuscript — risk-of-bias sensitivity",
+      "page_quote": "the machine-signal low-only set equals the full pool (k=1 of 1)",
+      "why": "The single SELECT contribution is called a full pool."
+    },
+    {
+      "slug": "semaglutide-obesity-mace",
+      "tab": "Analysis; Results & conclusions; Reproduce",
+      "page_quote": "Analysis: “drawn from the pooled rows, heterogeneity and prediction interval as computed”\nResults & conclusions: “The page's conclusion is this object, derived from the pooled result by harness/claim.py .”\nReproduce: “Of this page's pooled numbers, a blind second extractor agreed or reconciled on 1 of 1”",
+      "why": "These generic introductions also cover the served k=1 estimates. The Analysis introduction and primary-conclusion wording are shared with the other six k=1-primary pages."
+    },
+    {
+      "slug": "tranexamic-acid-pph",
+      "tab": "Reproduce",
+      "page_quote": "Of this page's pooled numbers, a blind second extractor agreed or reconciled on 0 of 0",
+      "why": "The audit description calls this page's one-trial result pooled, even though no abstract-checkable audit comparison was completed."
+    },
+    {
+      "slug": "corticosteroids-covid19-mortality",
+      "tab": "Overview; Analysis; Results & conclusions; Manuscript",
+      "page_quote": "Single-trial effect 0.86 (OR), 95% CI 0.76–0.97\n\nA single eligible trial contributed an extractable estimate: OR 0.86 (95% CI 0.76 to 0.97)",
+      "why": "The displayed effect and manuscript result do not identify this as reconstructed. result.ci_provenance is synth.pool:single-trial-Wald-z(k=1):v1; the trial row contains arm counts. 'The trial's own effect' is insufficiently specific for this reconstructed OR."
+    },
+    {
+      "slug": "melatonin-primary-insomnia-sol",
+      "tab": "Overview; Analysis; Results & conclusions; Manuscript",
+      "page_quote": "Single-trial effect -17.4 (MD), 95% CI -28.52–-6.28\n\nA single eligible trial contributed an extractable estimate: MD -17.4 (95% CI -28.52 to -6.28)",
+      "why": "The summary does not identify reconstruction from arm means, SDs and sample sizes. Its interval carries the single-trial Wald provenance token."
+    }
+  ],
+  "clean_slugs": [
+    "balanced-crystalloids-vs-saline-mortality",
+    "colchicine-postop-af",
+    "colchicine-secondary-cv-prevention",
+    "corticosteroids-cap-mortality",
+    "doac-vte-recurrence",
+    "dpp4-mace-t2d",
+    "esketamine-trd-madrs",
+    "finerenone-ckd-t2d-renal",
+    "glp1-ra-mace-t2d",
+    "iv-iron-hfref-hosp",
+    "metformin-pcos-ovulation",
+    "noac-vs-warfarin-af-stroke",
+    "omega3-cardiovascular-events",
+    "pcsk9-mace",
+    "probiotics-aad-prevention",
+    "sacubitril-valsartan-hfref",
+    "semaglutide-obesity-weight",
+    "sglt2-hfref-hosp-cvdeath",
+    "sglt2-primary-prevention-hf",
+    "spironolactone-hfref-mortality",
+    "statins-primary-prevention-elderly",
+    "ticagrelor-vs-clopidogrel-acs",
+    "tocilizumab-covid19-mortality"
+  ],
+  "changes_served_number": false,
+  "number_change_why": "The proposed correction changes prose and labels only. Existing k=1 estimates and CIs already distinguish reported intervals from reconstructed Wald intervals in result.ci_provenance. Preserve every served estimate, CI, count and k; add no intervals. Nine of the 32 pages have the confirmed C3 findings above. A k=1 object whose synthesis is withheld was not treated as a served pooled estimate.",
+  "fix": "Add a shared outcome-aware wording helper based on result.k and result.ci_provenance. At k=1 emit 'Reported single-trial estimate' for source-reported-CI:k=1-verbatim and 'Reconstructed single-trial estimate' for synth.pool:single-trial-Wald-z(k=1):v1; fail closed on unknown provenance. Use it in the pipeline method string, page effect labels, Analysis model text, and manuscript result/method/caption. Emit pooling methods only for actual multi-trial syntheses; qualify mixed-outcome methods by outcome. Replace unconditional 'pooled trials/rows/numbers/result' display labels with 'contributing trials/estimates/result', including family, compatibility, RoB and audit descriptions. For k=1, stale_heterogeneity should retain the missing-evidence count but state only that evidence coverage is incomplete; it must not characterize nonexistent heterogeneity or prediction intervals as descriptive. Preserve the declared protocol method as a plan, explicitly distinguishing it from the method actually applied. Render comparator_scope_note with outcome-aware terminology rather than allowing 'this pooled number' for k=1. Static versus dynamic disclosure: wording templates are static; k, provenance, trial identities and numerical values come from the review object. No statistical constants or outputs need changing.",
+  "plant": "Read-only execution confirmed this assertion FAILS today for both reviews/semaglutide-obesity-mace/review.json and reviews/corticosteroids-covid19-mortality/review.json: assert 'Pooling used random effects' not in harness.manuscript.render(r). Proposed regression test: parameterize those two committed review inputs, building an in-memory deep copy named reported_k1_SELECT and reconstructed_k1_RECOVERY respectively. Assert primary.result.k == 1; render the manuscript and full page. Assert the manuscript contains 'Reported single-trial estimate' for SELECT and 'Reconstructed single-trial estimate' for RECOVERY; assert 'Pooling used random effects' not in manuscript_html; assert 'and the pooled result.' not in manuscript_html. Parse result-specific DOM blocks and assert absence of 'Trials pooled (k)', '1 of 1 pooled trials', and 'prediction interval are descriptive only'. Assert numerical leaves of the input review equal their pre-render snapshot, and the served estimate/CI/k cells retain their existing values. Add a mixed-outcome case from colchicine-recurrent-pericarditis: the k=2 primary may retain pooling terminology, but the k=1 symptom-persistence block must contain 'Reported single-trial estimate' and must not contain '1 of 1 pooled trials'. No test file was written and no post-fix pass is claimed.",
+  "undetermined": "All 32 served HTML files and their outcome inventories were examined. The confirmed affected-slug denominator is 9/32; clean means no confirmed C3 served-estimate finding, not general correctness. Repeated generic boilerplate is grouped above rather than individually indexed at every DOM occurrence; the instance list therefore should not be treated as a complete DOM-occurrence count. Explicit negations such as 'prediction interval undefined for k=1', prospective protocol pooling plans, external comparator pooling, and historical/refused estimates were not counted as claims that the current k=1 result was pooled. Some clean pages contain withheld k=1 secondary objects. I did not establish what historical H13/H19 identify, independently validate the clinical source records, or run a rebuild/Overmind certification. The originating author of comparator_scope_note was not determined; its rendering path was. No files were modified."
+}
