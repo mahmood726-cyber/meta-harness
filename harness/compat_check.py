@@ -194,7 +194,7 @@ def _derive_endpoint(
     # composite that genuinely lists 'stroke' still does not DEFINE the stroke row). Every other row keeps its outcome
     # name with a stated basis -- the safe direction.
     rules = [
-        (r"AAD\s*=\s*[^:;.]{8,120}", _AAD_SUBJECT),
+        (r"AAD\s*=\s*[^:;.]{8,120}", _AAD_ONLY),                # defines AAD, never plain diarrhoea (harms-r7#2)
         # 'diarrho?ea' matches diarrhoea AND diarrhea (the old 'diarrh?oe?a' required the o; codex harms-r6#2)
         (r"diarrho?ea\s*\([^)]{10,180}\)", _AAD_SUBJECT),
         (r"diarrho?ea caused by Clostridium difficile or otherwise unexplained diarrho?ea", _AAD_SUBJECT),
@@ -211,7 +211,11 @@ def _derive_endpoint(
             continue
         value = _short_span(text, m, flank=0)
         if subject is _PRIMARY:
-            applies = bool(outcome.get("primary"))
+            # the review's primary outcome, AND a sentence that says it is the trial's PRIMARY endpoint: 'A secondary
+            # outcome was serious vascular event (...)' defines nothing primary (codex harms-r7#1)
+            # A structured abstract's 'MAIN OUTCOME MEASURE:' label marks it too (SU.FOL.OM3 21115589).
+            applies = bool(outcome.get("primary")) and bool(
+                re.search(r"\bprimary\b|\bmain outcome measures?\b", _sentence_at(text, m), re.I))
         else:
             # the outcome's whole name must BE the subject: 'AAD-related hospital admission' is not AAD (harms-r6#1)
             applies = bool(re.fullmatch(subject, str(outcome.get("name") or "").strip(), re.I))
@@ -229,6 +233,15 @@ def _derive_endpoint(
 _PRIMARY = object()                                         # the rule's sentence defines the primary outcome only
 # ... defines only an outcome whose WHOLE name is diarrhoea / AAD (either spelling)
 _AAD_SUBJECT = r"(?:antibiotic[- ]associated\s+)?diarrho?ea(?:\s*\(AAD\))?|AAD"
+# ... defines only an outcome whose WHOLE name is AAD itself
+_AAD_ONLY = r"antibiotic[- ]associated\s+diarrho?ea(?:\s*\(AAD\))?|AAD"
+
+
+def _sentence_at(text: str, m: "re.Match[str]") -> str:
+    """The sentence containing the match: from the previous full stop (or start) to the next one (or end)."""
+    start = text.rfind(". ", 0, m.start())
+    end = text.find(". ", m.end())
+    return text[start + 2 if start >= 0 else 0:end if end >= 0 else len(text)]
 
 
 def _derive_population_age(trial: dict[str, Any], rec: dict[str, Any] | None) -> dict[str, Any]:

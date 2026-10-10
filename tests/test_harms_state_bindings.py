@@ -137,3 +137,24 @@ def test_PLANT_codex_harms_r6_the_subject_gate_is_a_full_name_match_in_either_sp
     got = _endpoint({"name": "AAD-related hospital admission", "primary": False}, "3", text)
     assert got["value"] == "AAD-related hospital admission" and "another outcome" in got["source"]
     assert _endpoint({"name": "Antibiotic-associated diarrhea", "primary": False}, "3", text)["value"].startswith("AAD =")
+
+
+def test_PLANT_codex_harms_r7_1_a_primary_rule_needs_the_word_primary_in_its_sentence():
+    text = "A secondary outcome was serious vascular event (myocardial infarction, stroke, or vascular death)."
+    assert _endpoint({"name": "All-cause mortality", "primary": True}, "4", text)["value"] == "All-cause mortality"
+
+
+def test_PLANT_codex_harms_r7_2_the_aad_rule_does_not_define_plain_diarrhoea():
+    text = ("Diarrhea (three or more loose stools daily regardless of cause). AAD = diarrhea attributable to antibiotic "
+            "treatment")
+    got = _endpoint({"name": "Diarrhea", "primary": False}, "5", text)
+    assert got["value"].startswith("Diarrhea (three or more"), got
+    assert _endpoint({"name": "AAD", "primary": False}, "5", text)["value"].startswith("AAD =")
+
+
+def test_a_structured_abstracts_main_outcome_measure_label_marks_the_primary_endpoint():
+    # SU.FOL.OM3 (21115589) held abstract shape
+    text = ("MAIN OUTCOME MEASURE: Major cardiovascular events, defined as a composite of non-fatal myocardial "
+            "infarction, stroke, or death from cardiovascular disease.")
+    got = _endpoint({"name": "Major vascular events / MACE", "primary": True}, "6", text)
+    assert got["value"].startswith("Major cardiovascular events, defined as")

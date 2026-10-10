@@ -6995,5 +6995,47 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r7": {
+  "base": "fca8cff07",
+  "head": "1e3af0427",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1ac0fc8cb8130243b831bfef491e441b",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "bc13039389d803b581e19f18f3e34a428487ce73dfa10939f6d98b5e54c6f44f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The vascular-event rules treat a secondary-outcome definition as defining any primary outcome. Checking outcome.primary does not establish that the matched sentence describes the primary endpoint.",
+    "failing_input": "Held text: 'A secondary outcome was serious vascular event (myocardial infarction, stroke, or vascular death).'; outcome={'name': 'All-cause mortality', 'primary': True}; no audit override.",
+    "expected": "Retain 'All-cause mortality' with outcome.name as the basis.",
+    "actual": "Derives 'serious vascular event (myocardial infarction, stroke, or vascular death)' from committed source text.",
+    "id": "harms-r7:g1#1",
+    "record_id": "mc-1ac0fc8cb8130243b831bfef491e441b",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "Sharing _AAD_SUBJECT between AAD and general diarrhea definitions conflates distinct outcomes. Because the AAD rule runs first, it overrides an explicitly supplied all-cause diarrhea definition.",
+    "failing_input": "Held text: 'Diarrhea (three or more loose stools daily regardless of cause). AAD = diarrhea attributable to antibiotic treatment'; outcome={'name': 'Diarrhea', 'primary': False}; no audit override.",
+    "expected": "Derive 'Diarrhea (three or more loose stools daily regardless of cause)' for the Diarrhea outcome.",
+    "actual": "Derives 'AAD = diarrhea attributable to antibiotic treatment' because the AAD rule's subject also fully matches 'Diarrhea'.",
+    "id": "harms-r7:g1#2",
+    "record_id": "mc-1ac0fc8cb8130243b831bfef491e441b",
+    "verdict": null
+   }
+  ]
  }
 }
