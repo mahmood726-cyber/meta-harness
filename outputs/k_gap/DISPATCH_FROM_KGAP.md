@@ -589,3 +589,43 @@ eligible 239 (−1). Please regenerate the served tracker from the tip; this lan
   4. A tie-break reader for the 65 DISAGREE.
   5. SAK.
   6. sglt2-ckd D8.
+
+## 2026-10-10 evening -- full-speed resume: rulings 1-6 worked, 3 PRs, V15 staging (nothing applied)
+
+**PRs to main** (each with a plant that fails on main, plus a sweep; the captain lands them):
+- **#61** agy_call log_call KeyError: every REAL agy call raised KeyError after the model answered, so no record was written. This was on main. 55 + 211 tests.
+- **#64** comparator N from its included set (r17). Sweep over 32: one N moves (sglt2-ckd 12 -> 10, the comparator's own "10 randomized trials"); no G1 status changes.
+- **#65** screen.py placebo-of-X + structural-False (12-01). Sweep over 32: 5 decisions X-CONTRAST -> INCLUDE. G1 effects:
+  - empagliflozin-hfpef SAK: at risk unless named TARGET_RESULT_ABSENT;
+  - esketamine NCT01998958: resolved by a typed span (29282469: "Participants continued their existing antidepressant treatment"), which fails the protocol's "newly-initiated", so esketamine stays matched;
+  - finerenone and melatonin: none.
+
+**V15 staging:** outputs/k_gap/v15_kgap_items.md K-1..K-9 + outputs/k_gap/v15_bprime_drafts.md. Each item carries its G1 effect; none is applied.
+
+**Ruling 1, GLP-1 (ii) (K-8):**
+- Typed MACE prefilter: 615 -> 30 records.
+- Codex A+B + agy C: ELIGIBLE 0, EXCLUDED 16, SPLIT 14.
+- LITERAL_ONLY tagged by one reader on 5 records.
+- Reading (i) is not countable from records (safety adjudication is not in abstracts).
+- No G1 change.
+
+**Ruling 2:** a B-prime-style draft for each of 14 (b) topics, quoted against the current text, with literal counts. Recommended default: adopt the drafts. Amended counts are PENDING (disk floor).
+
+**Ruling 3, names (K-2), typed from CT.gov phases:**
+- J-EINSTEIN and AMPLIFY-J are PHASE3, so no phase rule can name them.
+- doac 31455473 is unregistered with no stated phase, so doac goes NOT_YET unless that is resolved.
+- WITHDRAWN typed for NCT03852160 and NCT04360876.
+
+**Ruling 4, agy third reader (K-1):**
+- Live: "Gemini 3.1 Pro".
+- 69 DISAGREE records: 2-of-3 gives ELIGIBLE 16 / EXCLUDED 9 / SPLIT 44.
+- agy is far more inclusive (doac 20/23). Recommendation: do NOT adopt 2-of-3.
+
+**Ruling 5, SAK (K-3):** eligible on the protocol text (10 mg; LVEF >= 50%; randomised quadruple-masked placebo crossover). Target result absent.
+
+**Ruling 6, sglt2-ckd 39 stage-A reads:** NOT STARTED. Codex LEVEL 0: C: 4.93 GB, below the 5 GB no-new-job floor. This lane holds about 0.13 GB on C:. Ready to start the moment C: >= 5 GB.
+
+**Your queue items:**
+- 3, family reconcile (K-5): noac 12->7 and tranexamic 5->2 reproduced; melatonin 3->1 (2 after #65); glp1 145->8. The UNKNOWN-structural rule is open.
+- 5, report-to-trial linking (K-7): 15 strict flips + SELECT reconciled. No trial-unit or G1 change.
+- 6, acquisitions (K-4; 26/26 spans code-verified): STEP 3 found; STEP 8 pooled placebo only; PROSPER subgroup third-party only; EMPHASIS lab-K counts absent; JUPITER >=70 absent; COPPS inferred 20/169 v 37/167 = 11.8%/22.2%, not the abstract's 12.0%/22.0%. That supports binding's "refuse".
