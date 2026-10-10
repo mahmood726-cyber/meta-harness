@@ -109,7 +109,12 @@ def main(argv):
                 # reproduce by hand -- never dropped, never read as "no findings"
                 resp = {"findings": [{"severity": "UNSTRUCTURED", "file": "-", "function": "-", "claim": raw,
                                       "failing_input": "(see claim)", "expected": "-", "actual": "-"}]}
+            if isinstance(resp, list):                 # agy may answer with the findings list itself
+                resp = {"findings": resp}
             for i, f in enumerate(resp.get("findings") or []):
+                f = f if isinstance(f, dict) else {"severity": "UNSTRUCTURED", "claim": str(f)}
+                for k in ("severity", "file", "function", "claim", "failing_input", "expected", "actual"):
+                    f.setdefault(k, "-")
                 fid = f"{nm}:{gname}#{i + 1}"
                 entry["findings"].append(dict(f, id=fid, record_id=r["record_id"], verdict=entry["verdicts"].get(fid)))
         for f in entry["findings"]:
