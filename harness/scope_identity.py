@@ -489,8 +489,9 @@ def _short_changed(slug: str, label: str | None, body: str) -> str:
     return label or clean[:220]
 
 
-# a bound is read whole or not at all: no digit, dot, exponent, letter, thousands comma or '× 10^n' after it
-_WHOLE = r"(?![\w.]|,\d|\s*[×x*]\s*10)"
+# a bound is read whole or not at all: only a whitelisted terminator may follow it (see
+# comparator_second_pass.BOUND_END; codex copps-r6#1)
+_WHOLE = r"(?=[ \t]{0,3}(?:[);\]]|,(?!\d)|$))"
 
 
 def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:

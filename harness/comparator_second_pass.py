@@ -286,13 +286,14 @@ def _field_from_profile(slug: str, key: str, text: str, default_status: str = "N
     return value
 
 
-# matched on the WHOLE text at the anchor (no slice: a slice can cut a bound to its prefix, codex copps-r1#1), with
-# bounded whitespace and a terminator so a number is read whole or not at all
+# A bound is read whole or not at all. A WHITELIST of what may follow it -- ')', ';', ']', a prose comma, or the
+# end -- replaces the blacklist that codex rounds r2/r4/r5/r6 kept extending (exponent, thousands comma, '× 10^n',
+# space-grouped '2 030'): anything not whitelisted refuses the read.
+BOUND_END = r"(?=[ \t]{0,3}(?:[);\]]|,(?!\d)|$))"
+# matched on the WHOLE text at the anchor (no slice: a slice can cut a bound to its prefix, codex copps-r1#1)
 _RATIO_AT = re.compile(r"[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3},[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}%[ \t]{0,3}"
                        r"(?:CI|confidence interval)[ \t]{0,3},?[ \t]{0,3}(\d+(?:\.\d+)?)[ \t]{0,3}(?:to|-|–)[ \t]{0,3}"
-                       r"(\d+(?:\.\d+)?)(?![\w.]|,\d|\s*[×x*]\s*10)", re.I)
-# the bound is read whole or not at all: no digit, dot, exponent, letter, thousands comma or '× 10^n' after it
-# (codex copps-r2#1, r4#1, r5#1)
+                       r"(\d+(?:\.\d+)?)" + BOUND_END, re.I)
 
 
 def reported_value_at(text: str, anchor: str) -> dict | None:

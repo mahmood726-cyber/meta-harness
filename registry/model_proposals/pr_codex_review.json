@@ -7011,5 +7011,61 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r6": {
+  "base": "630e622bf",
+  "head": "034be3f59",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e7aef647151703862237e343cb6c1812",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "a08529b825ea6e36b8e3c9df23e1f07b5b98877ba4563a4da5f6234af157260e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "A space-grouped upper bound is truncated to its first group. The resulting wrong number can enter a reported override.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 12.0, 95% CI 1.35 to 2 030)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "Parse ci_high as 2030.0, or return None if space-grouped numbers are unsupported.",
+    "actual": "{'estimate': 12.0, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.0}",
+    "id": "copps-r6:g1#1",
+    "record_id": "mc-e7aef647151703862237e343cb6c1812",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The literal-count audit misses dictionary entries assigned through subscripts because it inspects only dictionary literals and call keywords.",
+    "failing_input": "sweep_source(\"row = {}; row['ai'] = 20\", 'harness/demo.py')",
+    "expected": "A COUNT_OR_EFFECT_KEY finding for ai=20.",
+    "actual": "[]",
+    "id": "copps-r6:g1#2",
+    "record_id": "mc-e7aef647151703862237e343cb6c1812",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The leading-zero exclusion suppresses genuine count pairs even without a third date component.",
+    "failing_input": "sweep_source(\"label = 'Deaths 2/08'\", 'harness/demo.py')",
+    "expected": "[{'file': 'harness/demo.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '2/08'}]",
+    "actual": "[]",
+    "id": "copps-r6:g1#3",
+    "record_id": "mc-e7aef647151703862237e343cb6c1812",
+    "verdict": null
+   }
+  ]
  }
 }

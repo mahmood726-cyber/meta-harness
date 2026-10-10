@@ -164,3 +164,28 @@ def test_PLANT_codex_r5_4_single_digit_denominators_are_flagged():
 
 def test_decimal_thresholds_are_not_counts():
     assert sweep.sweep_source('b = "GRADE default thresholds 0.75/1.25"', "harness/x.py") == []
+
+
+def test_PLANT_codex_r6_1_whitelist_terminator_refuses_every_continuation():
+    a = "The combined group may have higher rates of ovulation (OR"
+    for tail in (" 2 030)", " 2.03e1)", " 1,200)", " 2.03 x 10^1)", " 2.03·10)", " 2.03 to 3)"):
+        assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to" + tail, a) is None, tail
+    for tail in (")", "; 8 studies)", ", 8 studies)", "]", ""):
+        assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03" + tail, a)["ci_high"] == 2.03, tail
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("to 1.11", "to 1 110")}]}
+    assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
+
+
+def test_PLANT_codex_r6_2_subscript_assignment_is_flagged():
+    hits = sweep.sweep_source("row = {}\nrow['ai'] = 20\nrow['effect'] = -0.3", "harness/x.py")
+    assert sorted((h["key"], h["value"]) for h in hits) == [("ai", 20), ("effect", -0.3)]
+
+
+def test_PLANT_codex_r6_3_leading_zero_denominator_without_a_year_is_a_count():
+    assert [h["value"] for h in sweep.sweep_source("label = 'Deaths 2/08'", "harness/x.py")] == ["2/08"]
+    assert sweep.sweep_source("d = 'accessed 2024/09'", "harness/x.py") == []
+    assert sweep.sweep_source("d = 'on 2/08/2019'", "harness/x.py") == []
+
+
+def test_an_iso_date_path_fragment_is_not_a_count():
+    assert sweep.sweep_source("p = 'evidence/gate-authority-2026-09-14/03-refusal-p'", "harness/x.py") == []

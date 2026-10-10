@@ -58,11 +58,17 @@ def sweep_source(src: str, path: str) -> list[dict]:
                      if isinstance(k, ast.Constant) and isinstance(k.value, str)]
         elif isinstance(node, ast.Call):
             pairs = [(kw.arg, kw.value) for kw in node.keywords if kw.arg]
+        elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
+            # row['ai'] = 20 (codex copps-r6#2)
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            pairs = [(t.slice.value, node.value) for t in targets
+                     if isinstance(t, ast.Subscript) and isinstance(t.slice, ast.Constant)
+                     and isinstance(t.slice.value, str) and node.value is not None]
         for name, v in pairs:
             val = _num(v)
             if name.lower() in _KEYS and val is not None:     # 0 and 1 are real arm counts too (codex copps-r2#2)
                 out.append({"file": path, "line": v.lineno, "kind": "COUNT_OR_EFFECT_KEY", "key": name, "value": val})
-        if isinstance(node, ast.Dict) or isinstance(node, ast.Call):
+        if isinstance(node, (ast.Dict, ast.Call, ast.Assign, ast.AugAssign, ast.AnnAssign)):
             continue
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
             s = node.value
@@ -79,8 +85,10 @@ def sweep_source(src: str, path: str) -> list[dict]:
                 a, b = (int(x.replace(" ", "").replace(",", "")) for x in m.group(0).split("/"))
                 # d/m is a date only with a third /year part ('Deaths 5/10' is a count, codex copps-r3#2)
                 dmy = re.match(r"/\d{2,4}\b", s[m.end():]) or re.search(r"\b\d{1,4}/$", s[:m.start()])
-                if (a <= 31 and b <= 12 and dmy) or (1900 <= a <= 2100 and b <= 12) \
-                        or re.match(r"\d+\s*/\s*0\d", m.group(0)):
+                # ...or the day of an ISO date in a path ('gate-authority-2026-09-14/03-refusal')
+                dmy = dmy or re.search(r"\d{4}-\d{2}-$", s[:m.start()])
+                # a leading-zero denominator alone is no date ('Deaths 2/08' is a count, codex copps-r6#3)
+                if (a <= 31 and b <= 12 and dmy) or (1900 <= a <= 2100 and b <= 12):
                     continue
                 out.append({"file": path, "line": node.lineno, "kind": "COUNT_PAIR_TEXT", "value": m.group(0)})
     return out
