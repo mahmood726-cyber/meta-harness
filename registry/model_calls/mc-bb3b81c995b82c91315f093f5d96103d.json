@@ -1,0 +1,136 @@
+{
+ "caller": {
+  "file": "scripts/canonical_effect_type.py",
+  "lane": "g1/binding",
+  "line": "readers",
+  "purpose": "canonical effect type second reader noac-vs-warfarin-af-stroke|PMID 19717844"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=high",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "files_read": [],
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "reasoning effort": "high",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a126e4-7356-7250-b6fe-9ba6886d616e",
+   "tokens used": "17,347"
+  },
+  "lane_log": "registry/model_calls/lane_log/g1__binding.jsonl",
+  "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work dir -> <workdir>) is in the lane log with every tool call and file read",
+  "outside_workdir_reads": 0,
+  "stderr_bytes": 2041,
+  "stderr_sha256": "b94b6d7783d48bacbbc3d584af48947e667575fc2085e1b6e5e293e20d9887a4",
+  "stdout_bytes": 273,
+  "stdout_sha256": "c71571ab86672d52cd1829fe84a98e325d05ddd95ccde3f9aedd83a9507e6c5d",
+  "tokens_used": 17347,
+  "tool_calls_n": 0,
+  "tool_calls_rejected_n": 0,
+  "transcript_redacted_sha256": "d068ebd8b8316d5b783bb2b53a2e4906aa078bfbcc4150ac11fa5fdfb21ad587"
+ },
+ "input_digests": [
+  {
+   "ref": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2018/022512s035lbl.pdf (U.S. FDA label, U.S. government work; passage on RE-LY)",
+   "sha256": "be40bd1afb7e5a9c4f1371035e8d4b10fc5a53f9c1374dae31a8168da5b55c22",
+   "what": "the label text the passage is cut from"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "9b713506ad3ab8cc36cc3aa5dadc8d81a32c849f19f169fe5a44145dff515b02",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-6-astra",
+  "id_requested": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "note": {
+     "type": "string"
+    },
+    "primary_estimate_is_time_to_event": {
+     "type": "boolean"
+    },
+    "quote": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "primary_estimate_is_time_to_event",
+    "quote",
+    "note"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "high",
+  "sandbox": "read-only",
+  "timeout_s": 1200,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "QmVsb3cgaXMgYSBwYXNzYWdlIG9mIGEgVS5TLiBGREEgZHJ1ZyBsYWJlbCAoVS5TLiBnb3Zlcm5tZW50IHRleHQpIGFib3V0IHRoZSB0cmlhbCBSRS1MWS4gUXVlc3Rpb246IGlzIHRoZSBlc3RpbWF0ZSB0aGUgbGFiZWwgcmVwb3J0cyBmb3IgUkUtTFkncyBQUklNQVJZIGVuZHBvaW50IGEgdGltZS10by1ldmVudCBlc3RpbWF0ZSAoYSBoYXphcmQgcmF0aW8gZnJvbSBhIHN1cnZpdmFsIC8gQ294IC8gbG9nLXJhbmsgYW5hbHlzaXMgb2YgdGltZSB0byB0aGUgZXZlbnQpPyBBbnN3ZXIgZmFsc2UgaWYgdGhlIHBhc3NhZ2UgZG9lcyBub3Qgc2hvdyB0aGlzIGZvciB0aGUgUFJJTUFSWSBlbmRwb2ludCAoYSBzZWNvbmRhcnksIHN1Ymdyb3VwIG9yIGV4cGxvcmF0b3J5IGFuYWx5c2lzIGRvZXMgbm90IGNvdW50KS4gR2l2ZSBhIFZFUkJBVElNIHF1b3RlIGZyb20gdGhlIHBhc3NhZ2UgdGhhdCBkZWNpZGVzIGl0LiBBbnN3ZXIgb25seSB3aXRoIEpTT04gbWF0Y2hpbmc6IHsidHlwZSI6ICJvYmplY3QiLCAiYWRkaXRpb25hbFByb3BlcnRpZXMiOiBmYWxzZSwgInJlcXVpcmVkIjogWyJwcmltYXJ5X2VzdGltYXRlX2lzX3RpbWVfdG9fZXZlbnQiLCAicXVvdGUiLCAibm90ZSJdLCAicHJvcGVydGllcyI6IHsicHJpbWFyeV9lc3RpbWF0ZV9pc190aW1lX3RvX2V2ZW50IjogeyJ0eXBlIjogImJvb2xlYW4ifSwgInF1b3RlIjogeyJ0eXBlIjogInN0cmluZyJ9LCAibm90ZSI6IHsidHlwZSI6ICJzdHJpbmcifX19Cgo8PDxMQUJFTCBQQVNTQUdFIChodHRwczovL3d3dy5hY2Nlc3NkYXRhLmZkYS5nb3YvZHJ1Z3NhdGZkYV9kb2NzL2xhYmVsLzIwMTgvMDIyNTEyczAzNWxibC5wZGYpCkZvciBjdXJyZW50IGxhYmVsaW5nIGluZm9ybWF0aW9uLCBwbGVhc2UgdmlzaXQgaHR0cHM6Ly93d3cuZmRhLmdvdi9kcnVnc2F0ZmRhIFJlbGF0aXZlIHRvIHdhcmZhcmluIGFuZCB0byBQUkFEQVhBIDExMCBtZyB0d2ljZSBkYWlseSwgUFJBREFYQSAxNTAgbWcgdHdpY2UgZGFpbHkgc2lnbmlmaWNhbnRseSByZWR1Y2VkIHRoZSBwcmltYXJ5IGNvbXBvc2l0ZSBlbmRwb2ludCBvZiBzdHJva2UgYW5kIHN5c3RlbWljIGVtYm9saXNtIChzZWUgVGFibGUgOSBhbmQgRmlndXJlIDQpLiBUYWJsZSA5IEZpcnN0IE9jY3VycmVuY2Ugb2YgU3Ryb2tlIG9yIFN5c3RlbWljIEVtYm9saXNtIGluIHRoZSBSRS1MWSBTdHVkeSogUFJBREFYQSAxNTAgbWcgdHdpY2UgZGFpbHkgUFJBREFYQSAxMTAgbWcgdHdpY2UgZGFpbHkgV2FyZmFyaW4gUGF0aWVudHMgcmFuZG9taXplZCA2MDc2IDYwMTUgNjAyMiBQYXRpZW50cyAoJSBwZXIgeXIpIHdpdGggZXZlbnRzIDEzNSAoMS4xMiUpIDE4MyAoMS41NCUpIDIwMyAoMS43MiUpIEhhemFyZCByYXRpbyB2cy4gd2FyZmFyaW4gKDk1JSBDSSkgMC42NSAoMC41MiwgMC44MSkgMC44OSAoMC43MywgMS4wOSkgUC12YWx1ZSBmb3Igc3VwZXJpb3JpdHkgMC4wMDAxIDAuMjcgSGF6YXJkIHJhdGlvIHZzLgpQQVNTQUdFPj4+Cg==",
+  "bytes": 1489,
+  "sha256": "c8ca162e4282c10fa285eb5f87b7705870446bee0bb90730d9cce819913faa8d"
+ },
+ "record_id": "mc-bb3b81c995b82c91315f093f5d96103d",
+ "request_utc": "2026-10-10T17:37:45Z",
+ "response": {
+  "b64": "eyJwcmltYXJ5X2VzdGltYXRlX2lzX3RpbWVfdG9fZXZlbnQiOnRydWUsInF1b3RlIjoiSGF6YXJkIHJhdGlvIHZzLiB3YXJmYXJpbiAoOTUlIENJKSAwLjY1ICgwLjUyLCAwLjgxKSAwLjg5ICgwLjczLCAxLjA5KSIsIm5vdGUiOiJUYWJsZSA5IGV4cGxpY2l0bHkgcmVwb3J0cyBoYXphcmQgcmF0aW9zIGZvciBmaXJzdCBvY2N1cnJlbmNlIG9mIHN0cm9rZSBvciBzeXN0ZW1pYyBlbWJvbGlzbSwgaWRlbnRpZmllZCBhcyB0aGUgcHJpbWFyeSBjb21wb3NpdGUgZW5kcG9pbnQuIn0=",
+  "bytes": 272,
+  "sha256": "f4bcf2f698d7bc2632803dc38a1a24eddfe12d7eaa22335ef5af26d9f44aaf72"
+ },
+ "response_utc": "2026-10-10T17:38:03Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}

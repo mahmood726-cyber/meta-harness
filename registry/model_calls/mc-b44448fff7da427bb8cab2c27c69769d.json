@@ -1,0 +1,124 @@
+{
+ "caller": {
+  "file": "scripts/canonical_effect_type.py",
+  "lane": "g1/binding",
+  "line": "readers",
+  "purpose": "canonical effect type second reader noac-vs-warfarin-af-stroke|PMID 19717844"
+ },
+ "client": {
+  "argv": [
+   "agy",
+   "--print",
+   "<prompt sha256 c8ca162e4282c10fa285eb5f87b7705870446bee0bb90730d9cce819913faa8d>",
+   "--output-format",
+   "json",
+   "--sandbox",
+   "--disable-slash-commands",
+   "--print-timeout",
+   "1200s",
+   "--log-file",
+   "<workdir>\\agy.log"
+  ],
+  "name": "agy --print",
+  "version": "1.3.3"
+ },
+ "client_evidence": {
+  "client_log_bytes": 44434,
+  "client_log_redacted_sha256": "982c466d40733b02926c6a576a9c37651e08b2b47185ece4bfd0706c9b2e8c36",
+  "denied_actions": [],
+  "lane_log": "registry/model_calls/lane_log/g1__binding.jsonl",
+  "model_labels_in_log": [
+   "Gemini 3.1 Pro (High)"
+  ],
+  "num_turns": 1,
+  "status": "SUCCESS",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_bytes": 604,
+  "stdout_sha256": "ba2b8059a090e5bc13ac26840e4cb53499f566b8888ee266e0c8efee634371dc",
+  "usage": {
+   "cache_read_tokens": 0,
+   "input_tokens": 16079,
+   "output_tokens": 1108,
+   "thinking_tokens": 1017,
+   "total_tokens": 17187
+  }
+ },
+ "input_digests": [
+  {
+   "ref": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2018/022512s035lbl.pdf (U.S. FDA label, U.S. government work; passage on RE-LY)",
+   "sha256": "be40bd1afb7e5a9c4f1371035e8d4b10fc5a53f9c1374dae31a8168da5b55c22",
+   "what": "the label text the passage is cut from"
+  },
+  {
+   "ref": "client-settings:~/.gemini/antigravity-cli/settings.json (content not copied)",
+   "sha256": "58008010c24a95f54bdd82bbfb2f4b0fefa973796cc05b92e833cad777cef8bb",
+   "what": "the client's model setting and tool permissions in force"
+  },
+  {
+   "ref": "output-schema (inline in params; stated in the prompt)",
+   "sha256": "9b713506ad3ab8cc36cc3aa5dadc8d81a32c849f19f169fe5a44145dff515b02",
+   "what": "JSON schema the answer must meet"
+  }
+ ],
+ "model": {
+  "id_reported": "Gemini 3.1 Pro (High)",
+  "id_requested": "Gemini 3.1 Pro (High)",
+  "provider": "google",
+  "reported_by": "client log line 'Propagating selected model override to backend' (agy --log-file); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (agy built-in, not exposed)",
+  "server-side model revision behind the model label",
+  "the client's tool use (sandboxed; denied actions are recorded, not prevented from being attempted)"
+ ],
+ "params": {
+  "json_schema_flag": false,
+  "output_format": "json",
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "note": {
+     "type": "string"
+    },
+    "primary_estimate_is_time_to_event": {
+     "type": "boolean"
+    },
+    "quote": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "primary_estimate_is_time_to_event",
+    "quote",
+    "note"
+   ],
+   "type": "object"
+  },
+  "sandbox": true,
+  "slash_commands": false,
+  "timeout_s": 1200,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "QmVsb3cgaXMgYSBwYXNzYWdlIG9mIGEgVS5TLiBGREEgZHJ1ZyBsYWJlbCAoVS5TLiBnb3Zlcm5tZW50IHRleHQpIGFib3V0IHRoZSB0cmlhbCBSRS1MWS4gUXVlc3Rpb246IGlzIHRoZSBlc3RpbWF0ZSB0aGUgbGFiZWwgcmVwb3J0cyBmb3IgUkUtTFkncyBQUklNQVJZIGVuZHBvaW50IGEgdGltZS10by1ldmVudCBlc3RpbWF0ZSAoYSBoYXphcmQgcmF0aW8gZnJvbSBhIHN1cnZpdmFsIC8gQ294IC8gbG9nLXJhbmsgYW5hbHlzaXMgb2YgdGltZSB0byB0aGUgZXZlbnQpPyBBbnN3ZXIgZmFsc2UgaWYgdGhlIHBhc3NhZ2UgZG9lcyBub3Qgc2hvdyB0aGlzIGZvciB0aGUgUFJJTUFSWSBlbmRwb2ludCAoYSBzZWNvbmRhcnksIHN1Ymdyb3VwIG9yIGV4cGxvcmF0b3J5IGFuYWx5c2lzIGRvZXMgbm90IGNvdW50KS4gR2l2ZSBhIFZFUkJBVElNIHF1b3RlIGZyb20gdGhlIHBhc3NhZ2UgdGhhdCBkZWNpZGVzIGl0LiBBbnN3ZXIgb25seSB3aXRoIEpTT04gbWF0Y2hpbmc6IHsidHlwZSI6ICJvYmplY3QiLCAiYWRkaXRpb25hbFByb3BlcnRpZXMiOiBmYWxzZSwgInJlcXVpcmVkIjogWyJwcmltYXJ5X2VzdGltYXRlX2lzX3RpbWVfdG9fZXZlbnQiLCAicXVvdGUiLCAibm90ZSJdLCAicHJvcGVydGllcyI6IHsicHJpbWFyeV9lc3RpbWF0ZV9pc190aW1lX3RvX2V2ZW50IjogeyJ0eXBlIjogImJvb2xlYW4ifSwgInF1b3RlIjogeyJ0eXBlIjogInN0cmluZyJ9LCAibm90ZSI6IHsidHlwZSI6ICJzdHJpbmcifX19Cgo8PDxMQUJFTCBQQVNTQUdFIChodHRwczovL3d3dy5hY2Nlc3NkYXRhLmZkYS5nb3YvZHJ1Z3NhdGZkYV9kb2NzL2xhYmVsLzIwMTgvMDIyNTEyczAzNWxibC5wZGYpCkZvciBjdXJyZW50IGxhYmVsaW5nIGluZm9ybWF0aW9uLCBwbGVhc2UgdmlzaXQgaHR0cHM6Ly93d3cuZmRhLmdvdi9kcnVnc2F0ZmRhIFJlbGF0aXZlIHRvIHdhcmZhcmluIGFuZCB0byBQUkFEQVhBIDExMCBtZyB0d2ljZSBkYWlseSwgUFJBREFYQSAxNTAgbWcgdHdpY2UgZGFpbHkgc2lnbmlmaWNhbnRseSByZWR1Y2VkIHRoZSBwcmltYXJ5IGNvbXBvc2l0ZSBlbmRwb2ludCBvZiBzdHJva2UgYW5kIHN5c3RlbWljIGVtYm9saXNtIChzZWUgVGFibGUgOSBhbmQgRmlndXJlIDQpLiBUYWJsZSA5IEZpcnN0IE9jY3VycmVuY2Ugb2YgU3Ryb2tlIG9yIFN5c3RlbWljIEVtYm9saXNtIGluIHRoZSBSRS1MWSBTdHVkeSogUFJBREFYQSAxNTAgbWcgdHdpY2UgZGFpbHkgUFJBREFYQSAxMTAgbWcgdHdpY2UgZGFpbHkgV2FyZmFyaW4gUGF0aWVudHMgcmFuZG9taXplZCA2MDc2IDYwMTUgNjAyMiBQYXRpZW50cyAoJSBwZXIgeXIpIHdpdGggZXZlbnRzIDEzNSAoMS4xMiUpIDE4MyAoMS41NCUpIDIwMyAoMS43MiUpIEhhemFyZCByYXRpbyB2cy4gd2FyZmFyaW4gKDk1JSBDSSkgMC42NSAoMC41MiwgMC44MSkgMC44OSAoMC43MywgMS4wOSkgUC12YWx1ZSBmb3Igc3VwZXJpb3JpdHkgMC4wMDAxIDAuMjcgSGF6YXJkIHJhdGlvIHZzLgpQQVNTQUdFPj4+Cg==",
+  "bytes": 1489,
+  "sha256": "c8ca162e4282c10fa285eb5f87b7705870446bee0bb90730d9cce819913faa8d"
+ },
+ "record_id": "mc-b44448fff7da427bb8cab2c27c69769d",
+ "request_utc": "2026-10-10T17:38:05Z",
+ "response": {
+  "b64": "YGBganNvbgp7CiAgInByaW1hcnlfZXN0aW1hdGVfaXNfdGltZV90b19ldmVudCI6IHRydWUsCiAgInF1b3RlIjogIkhhemFyZCByYXRpbyB2cy4gd2FyZmFyaW4gKDk1JSBDSSkiLAogICJub3RlIjogIlRoZSBwYXNzYWdlIGV4cGxpY2l0bHkgc3RhdGVzIHRoYXQgUFJBREFYQSBzaWduaWZpY2FudGx5IHJlZHVjZWQgdGhlICdwcmltYXJ5IGNvbXBvc2l0ZSBlbmRwb2ludCcgYW5kIHJlZmVyZW5jZXMgVGFibGUgOSwgd2hpY2ggcmVwb3J0cyB0aGUgZWZmZWN0IG1lYXN1cmUgYXMgYSAnSGF6YXJkIHJhdGlvJywgYSBzdGFuZGFyZCB0aW1lLXRvLWV2ZW50IGVzdGltYXRlLiIKfQpgYGAK",
+  "bytes": 333,
+  "sha256": "56dc2f71b646c40a87c2953044e85201a6de18ae7300ac67324b72cd0c2f77c0"
+ },
+ "response_utc": "2026-10-10T17:38:34Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}

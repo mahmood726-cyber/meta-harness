@@ -1,0 +1,124 @@
+{
+ "caller": {
+  "file": "scripts/canonical_effect_type.py",
+  "lane": "g1/binding",
+  "line": "readers",
+  "purpose": "canonical effect type second reader spironolactone-hfref-mortality|PMID 10471456"
+ },
+ "client": {
+  "argv": [
+   "agy",
+   "--print",
+   "<prompt sha256 24a10a37082de60e3e0a4d1837147750aeb5242b2fd0be9508a93d229926d414>",
+   "--output-format",
+   "json",
+   "--sandbox",
+   "--disable-slash-commands",
+   "--print-timeout",
+   "1200s",
+   "--log-file",
+   "<workdir>\\agy.log"
+  ],
+  "name": "agy --print",
+  "version": "1.3.3"
+ },
+ "client_evidence": {
+  "client_log_bytes": 29123,
+  "client_log_redacted_sha256": "a8a56346f22cbb9b30a062d6a60e887eda330582b7f5284cca32390aa125678c",
+  "denied_actions": [],
+  "lane_log": "registry/model_calls/lane_log/g1__binding.jsonl",
+  "model_labels_in_log": [
+   "Gemini 3.1 Pro (High)"
+  ],
+  "num_turns": 1,
+  "status": "SUCCESS",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_bytes": 701,
+  "stdout_sha256": "7cc7ed4888e1a11dd21db299dc330173f459005240f0ad4533ef332724729d05",
+  "usage": {
+   "cache_read_tokens": 0,
+   "input_tokens": 16054,
+   "output_tokens": 1191,
+   "thinking_tokens": 1087,
+   "total_tokens": 17245
+  }
+ },
+ "input_digests": [
+  {
+   "ref": "https://www.accessdata.fda.gov/drugsatfda_docs/label/2020/012151s077lbl.pdf (U.S. FDA label, U.S. government work; passage on RALES)",
+   "sha256": "747d55989f3ab33ef801ce4416660806a7059cfaa191870047d0615f3c82a04c",
+   "what": "the label text the passage is cut from"
+  },
+  {
+   "ref": "client-settings:~/.gemini/antigravity-cli/settings.json (content not copied)",
+   "sha256": "58008010c24a95f54bdd82bbfb2f4b0fefa973796cc05b92e833cad777cef8bb",
+   "what": "the client's model setting and tool permissions in force"
+  },
+  {
+   "ref": "output-schema (inline in params; stated in the prompt)",
+   "sha256": "9b713506ad3ab8cc36cc3aa5dadc8d81a32c849f19f169fe5a44145dff515b02",
+   "what": "JSON schema the answer must meet"
+  }
+ ],
+ "model": {
+  "id_reported": "Gemini 3.1 Pro (High)",
+  "id_requested": "Gemini 3.1 Pro (High)",
+  "provider": "google",
+  "reported_by": "client log line 'Propagating selected model override to backend' (agy --log-file); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (agy built-in, not exposed)",
+  "server-side model revision behind the model label",
+  "the client's tool use (sandboxed; denied actions are recorded, not prevented from being attempted)"
+ ],
+ "params": {
+  "json_schema_flag": false,
+  "output_format": "json",
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "note": {
+     "type": "string"
+    },
+    "primary_estimate_is_time_to_event": {
+     "type": "boolean"
+    },
+    "quote": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "primary_estimate_is_time_to_event",
+    "quote",
+    "note"
+   ],
+   "type": "object"
+  },
+  "sandbox": true,
+  "slash_commands": false,
+  "timeout_s": 1200,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "prompt": {
+  "b64": "QmVsb3cgaXMgYSBwYXNzYWdlIG9mIGEgVS5TLiBGREEgZHJ1ZyBsYWJlbCAoVS5TLiBnb3Zlcm5tZW50IHRleHQpIGFib3V0IHRoZSB0cmlhbCBSQUxFUy4gUXVlc3Rpb246IGlzIHRoZSBlc3RpbWF0ZSB0aGUgbGFiZWwgcmVwb3J0cyBmb3IgUkFMRVMncyBQUklNQVJZIGVuZHBvaW50IGEgdGltZS10by1ldmVudCBlc3RpbWF0ZSAoYSBoYXphcmQgcmF0aW8gZnJvbSBhIHN1cnZpdmFsIC8gQ294IC8gbG9nLXJhbmsgYW5hbHlzaXMgb2YgdGltZSB0byB0aGUgZXZlbnQpPyBBbnN3ZXIgZmFsc2UgaWYgdGhlIHBhc3NhZ2UgZG9lcyBub3Qgc2hvdyB0aGlzIGZvciB0aGUgUFJJTUFSWSBlbmRwb2ludCAoYSBzZWNvbmRhcnksIHN1Ymdyb3VwIG9yIGV4cGxvcmF0b3J5IGFuYWx5c2lzIGRvZXMgbm90IGNvdW50KS4gR2l2ZSBhIFZFUkJBVElNIHF1b3RlIGZyb20gdGhlIHBhc3NhZ2UgdGhhdCBkZWNpZGVzIGl0LiBBbnN3ZXIgb25seSB3aXRoIEpTT04gbWF0Y2hpbmc6IHsidHlwZSI6ICJvYmplY3QiLCAiYWRkaXRpb25hbFByb3BlcnRpZXMiOiBmYWxzZSwgInJlcXVpcmVkIjogWyJwcmltYXJ5X2VzdGltYXRlX2lzX3RpbWVfdG9fZXZlbnQiLCAicXVvdGUiLCAibm90ZSJdLCAicHJvcGVydGllcyI6IHsicHJpbWFyeV9lc3RpbWF0ZV9pc190aW1lX3RvX2V2ZW50IjogeyJ0eXBlIjogImJvb2xlYW4ifSwgInF1b3RlIjogeyJ0eXBlIjogInN0cmluZyJ9LCAibm90ZSI6IHsidHlwZSI6ICJzdHJpbmcifX19Cgo8PDxMQUJFTCBQQVNTQUdFIChodHRwczovL3d3dy5hY2Nlc3NkYXRhLmZkYS5nb3YvZHJ1Z3NhdGZkYV9kb2NzL2xhYmVsLzIwMjAvMDEyMTUxczA3N2xibC5wZGYpClRoZSBwcmltYXJ5IGVuZHBvaW50IGZvciBSQUxFUyB3YXMgdGltZSB0byBhbGwtY2F1c2UgbW9ydGFsaXR5LiBSQUxFUyB3YXMgdGVybWluYXRlZCBlYXJseSBiZWNhdXNlIG9mIHNpZ25pZmljYW50IG1vcnRhbGl0eSBiZW5lZml0IGRlbW9uc3RyYXRlZCBkdXJpbmcgYSBwbGFubmVkIGludGVyaW0gYW5hbHlzaXMuIENvbXBhcmVkIHRvIHBsYWNlYm8sIHNwaXJvbm9sYWN0b25lIHJlZHVjZWQgdGhlIHJpc2sgb2YgZGVhdGggYnkgMzAlIChwPDAuMDAxOyA5NSUgY29uZmlkZW5jZSBpbnRlcnZhbCAxOCUgdG8gNDAlKS4gU3Bpcm9ub2xhY3RvbmUgYWxzbyByZWR1Y2VkIHRoZSByaXNrIG9mIGhvc3BpdGFsaXphdGlvbiBmb3IgY2FyZGlhYyBjYXVzZXMgKGRlZmluZWQgYXMgd29yc2VuaW5nIGhlYXJ0IGZhaWx1cmUsIGFuZ2luYSwgdmVudHJpY3VsYXIgYXJyaHl0aG1pYXMsIG9yIG15b2NhcmRpYWwgaW5mYXJjdGlvbikgYnkgMzAlIChwIDwwLjAwMTsgOTUlIGNvbmZpZGVuY2UgaW50ZXJ2YWwgMTglIHRvIDQxJSkuIFRoZSBzdXJ2aXZhbCBjdXJ2ZXMgYnkgdHJlYXRtZW50IGdyb3VwIGFyZSBzaG93biBpbiBGaWd1cmUgMS4gUmVmZXJlbmNlIElEOiA0NjQ4MTUzIFRoaXMgbGFiZWwgbWF5IG5vdCBiZSB0aGUgbGF0ZXN0IGFwcHJvdmVkIGJ5IEZEQS4gRm9yIGN1cnJlbnQgbGFiZWxpbmcgaW5mb3JtYXRpb24sIHBsZWFzZSB2aXNpdCBodHRwczovL3d3dy5mZGEuZ292L2RydWdzYXRmZGEgRmlndXJlIDEuIFN1cnZpdmFsIGJ5IFRyZWF0bWVudCBHcm91cCBpbiBSQUxFUyBNb3J0YWxpdHkgaGF6YXJkIHJhdGlvcyBmb3Igc29tZSBzdWJncm91cHMgYXJlIHNob3duIGluIEZpZ3VyZSAyLgpQQVNTQUdFPj4+Cg==",
+  "bytes": 1696,
+  "sha256": "24a10a37082de60e3e0a4d1837147750aeb5242b2fd0be9508a93d229926d414"
+ },
+ "record_id": "mc-03db51527b047ae6169eaeec6ba8cb4a",
+ "request_utc": "2026-10-10T17:45:05Z",
+ "response": {
+  "b64": "YGBganNvbgp7CiAgInByaW1hcnlfZXN0aW1hdGVfaXNfdGltZV90b19ldmVudCI6IHRydWUsCiAgInF1b3RlIjogIlRoZSBwcmltYXJ5IGVuZHBvaW50IGZvciBSQUxFUyB3YXMgdGltZSB0byBhbGwtY2F1c2UgbW9ydGFsaXR5LiIsCiAgIm5vdGUiOiAiVGhlIGxhYmVsIGV4cGxpY2l0bHkgZGVmaW5lcyB0aGUgcHJpbWFyeSBlbmRwb2ludCBhcyBhIHRpbWUtdG8tZXZlbnQgbWV0cmljICgndGltZSB0byBhbGwtY2F1c2UgbW9ydGFsaXR5JykuIFRoZSBwYXNzYWdlJ3Mgc3Vic2VxdWVudCBkaXNjdXNzaW9uIG9mIHN1cnZpdmFsIGN1cnZlcyBhbmQgbW9ydGFsaXR5IGhhemFyZCByYXRpb3MgY29uZmlybXMgdGhhdCB0aGUgcmVwb3J0ZWQgZXN0aW1hdGVzIGFyZSBkZXJpdmVkIGZyb20gc3Vydml2YWwvdGltZS10by1ldmVudCBhbmFseXNlcy4iCn0KYGBgCg==",
+  "bytes": 430,
+  "sha256": "0445a9d1e37e578dfd1e21f665f6799587de26fd7092e5fcd26cc8505bbba8d6"
+ },
+ "response_utc": "2026-10-10T17:45:22Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}

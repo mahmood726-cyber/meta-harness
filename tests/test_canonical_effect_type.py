@@ -14,14 +14,27 @@ RALES_LABEL = ("The Randomized Aldactone Evaluation Study (RALES) was a placebo 
                "ratios for some subgroups are shown in Figure 2.")
 
 
-def test_PLANT_rales_label_establishes_time_to_event_hr():
+def test_PLANT_rales_label_passage_is_PROPOSED_for_the_readers():
     assert ce.label_time_to_event(RALES_LABEL, "RALES")
     # the acronym must be the trial's: another trial's passage establishes nothing for RALES
     assert ce.label_time_to_event(RALES_LABEL.replace("RALES", "EPHESUS"), "RALES") is None
 
 
-def test_PLANT_time_to_event_needs_hazard_ratios_or_log_rank_too():
-    assert ce.label_time_to_event("In RALES the primary endpoint was time to all-cause mortality.", "RALES") is None
+def test_PLANT_a_time_to_primary_is_only_PROPOSED_never_established_by_the_regex(monkeypatch):
+    # superseded the regex-only rule (codex canon-r1): a 'time to' primary definition may PROPOSE the passage; only two
+    # confirming recorded readers establish HR (RALES: codex REFUTES, agy CONFIRMS -> NOT_ESTABLISHED)
+    assert ce.label_time_to_event("In RALES the primary endpoint was time to all-cause mortality.", "RALES")
+    monkeypatch.setattr(ce, "candidates", lambda: [{"slug": "s", "id": "PMID 1", "source_wording": "RR", "label": "RALES",
+                                                    "source": ""}])
+    monkeypatch.setattr(ce, "evidence", lambda c, urls: {"state": "PROPOSED_LABEL_PASSAGE", "acronym": "RALES",
+                                                         "passage": "p", "document": "d", "text_sha256": "x"})
+    monkeypatch.setattr(ce, "_reg_urls", lambda: {})
+    split = {"codex": {"verdict": "REFUTES"}, "agy": {"verdict": "CONFIRMS", "answer": {"quote": "q"}}}
+    monkeypatch.setattr(ce, "readers", lambda key, ev, run: split)
+    assert ce.build()["s|PMID 1"]["canonical"]["state"] == "NOT_ESTABLISHED"
+    both = {w: {"verdict": "CONFIRMS", "answer": {"quote": "q"}} for w in ("codex", "agy")}
+    monkeypatch.setattr(ce, "readers", lambda key, ev, run: both)
+    assert ce.build()["s|PMID 1"]["canonical"]["state"] == "ESTABLISHED_HR"
 
 
 def test_PLANT_own_text_cox_needs_cox_and_the_estimate_in_one_sentence():
@@ -59,3 +72,22 @@ def test_PLANT_counts_derived_ratios_unrecorded_rows_and_other_wordings_are_neve
         ["measure"] == "OR"
     nope = {k: dict(v, canonical={"state": "NOT_ESTABLISHED"}) for k, v in REG.items()}
     assert gt.canonical_primary("spironolactone-hfref-mortality", "PMID 10471456", RALES, nope)["measure"] == "RR"
+
+
+def test_PLANT_r1_secondary_or_other_model_text_and_another_trials_definition_establish_nothing():
+    assert ce.own_text_cox("The primary outcome relative risk was estimated using a log-binomial model, and Cox "
+                           "regression was used only for secondary survival outcomes.") is None
+    assert ce.label_passage("ALPHA's primary endpoint was response at week 12; the secondary endpoint was time to "
+                            "death, analysed using hazard ratios.", "ALPHA") is None
+    assert ce.label_passage("ALPHA assessed response at week 12. BETA's primary endpoint was time to death and hazard "
+                            "ratios were estimated with Cox regression.", "ALPHA") is None
+
+
+def test_PLANT_a_proposed_passage_is_established_only_when_both_readers_confirm_with_a_verbatim_quote():
+    passage = "The primary endpoint for RALES was time to all-cause mortality. Log-rank p < 0.001."
+    yes = {"primary_estimate_is_time_to_event": True, "quote": "time to all-cause mortality", "note": ""}
+    assert ce.reader_verdict(yes, passage) == "CONFIRMS"
+    assert ce.reader_verdict(dict(yes, primary_estimate_is_time_to_event=False), passage) == "REFUTES"
+    assert ce.reader_verdict(dict(yes, quote=""), passage) == "QUOTE_NOT_IN_PASSAGE"
+    assert ce.reader_verdict(dict(yes, quote="hazard ratio 0.70"), passage) == "QUOTE_NOT_IN_PASSAGE"
+    assert ce.reader_verdict({"quote": "x"}, passage) == "INVALID_REPLY"
