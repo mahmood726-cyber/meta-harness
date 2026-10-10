@@ -18,10 +18,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def verified(registry: str, pmid: str, text: str, claim: str, root: str | None = None) -> dict[str, Any] | None:
     """The entry of registry/<registry> recording `claim` for `pmid`, if its held_text_sha256 is this text's; else None."""
+    path = os.path.join(root or ROOT, "registry", registry)
     try:
-        reg = json.load(open(os.path.join(root or ROOT, "registry", registry), encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+        reg = json.load(open(path, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        # an unreadable registry is a broken build, never a valid 'not verified' (codex copps-r17#2): fail loudly
+        raise RuntimeError(f"verification registry {path} unreadable: {exc}") from exc
     sha = hashlib.sha256((text or "").encode("utf-8")).hexdigest()
     for e in reg.get("entries") or []:
         if str(e.get("pmid")) == str(pmid) and e.get("held_text_sha256") == sha and e.get("claim") == claim:

@@ -7555,5 +7555,50 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r17": {
+  "base": "630e622bf",
+  "head": "c48566fbf",
+  "runs": {
+   "g1": {
+    "record_id": "mc-9635b227515fe2f16a10b90bc65bbef4",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "0d5cce993a59163193f2e54273ecbffe80de9a556843223732b42bb425ab2bfc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The dose regex has no left numeric boundary: it reads the suffix of 2110 mg as 110 mg and assigns that dose's effect to the 110 mg arm.",
+    "failing_input": "from harness.scope_identity import _noac_lower_dose_status\nr = {'records': [{'id': '19717844', 'abstract': '2110 mg of dabigatran (relative risk with dabigatran, 2.5; 95% confidence interval, 2.0 to 3.0)'}]}\nprint(_noac_lower_dose_status(r)['reason'])",
+    "expected": "RE-LY 110 mg effect not found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "actual": "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "id": "copps-r17:g1#1",
+    "record_id": "mc-9635b227515fe2f16a10b90bc65bbef4",
+    "verdict": null
+   },
+   {
+    "file": "harness/recorded_verification.py",
+    "function": "verified",
+    "severity": "P1",
+    "claim": "Registry read failures silently return None. The dose-status caller interprets this as evidence that the source does not identify the 30 mg arm, even when the supplied abstract explicitly does.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.scope_identity import _noac_lower_dose_status\nr = {'records': [\n    {'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'},\n    {'id': '24251359', 'abstract': 'The low-dose edoxaban arm received 30 mg. There was an unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34)'}\n]}\nwith patch('builtins.open', side_effect=PermissionError('registry unreadable')):\n    print(_noac_lower_dose_status(r)['reason'])",
+    "expected": "Propagate the registry error or report that verification is unavailable; do not claim the source lacks the dose identification.",
+    "actual": "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect found, but the committed source does not explicitly identify that lower-dose arm as edoxaban 30 mg.",
+    "id": "copps-r17:g1#2",
+    "record_id": "mc-9635b227515fe2f16a10b90bc65bbef4",
+    "verdict": null
+   }
+  ]
  }
 }

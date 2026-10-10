@@ -505,7 +505,7 @@ def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
     # anchored to the exact clause naming the arm and comparison: a loose 'low-dose edoxaban.*?hazard ratio' reads the
     # on-treatment 1.07 (0.87-1.31) that comes first in the abstract instead of the intention-to-treat 1.13
     # integer-valued numbers ('relative risk, 1;') are read too (codex copps-r9#1)
-    rely_m = re.search(r"110 mg of dabigatran \(relative risk with dabigatran,\s*(\d+(?:\.\d+)?);\s*(\d+(?:\.\d+)?)%\s*"
+    rely_m = re.search(r"(?<![\d.])110 mg of dabigatran \(relative risk with dabigatran,\s*(\d+(?:\.\d+)?);\s*(\d+(?:\.\d+)?)%\s*"
                        r"confidence interval(?:\s*\[CI\])?,\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)" + _WHOLE,
                        rely_text, re.I)
     edox_m = re.search(r"unfavorable trend with low-dose edoxaban versus warfarin \(hazard ratio,\s*(\d+(?:\.\d+)?);\s*"

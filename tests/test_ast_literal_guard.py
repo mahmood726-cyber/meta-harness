@@ -300,3 +300,15 @@ def test_ready_needs_a_recorded_dose_label_bound_to_the_exact_held_text(tmp_path
 
 def test_PLANT_codex_r15_2_six_digit_numerators_are_counts():
     assert [h["value"] for h in sweep.sweep_source('result = "Deaths 100000/200000"', "harness/x.py")] == ["100000/200000"]
+
+
+def test_PLANT_codex_r17_1_a_dose_never_starts_inside_another_number():
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", "2110 mg of")}]}
+    assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
+
+
+def test_PLANT_codex_r17_2_an_unreadable_verification_registry_fails_loudly(tmp_path, monkeypatch):
+    from harness import recorded_verification as rv
+    monkeypatch.setattr(rv, "ROOT", str(tmp_path))                     # no registry/ here
+    with pytest.raises(RuntimeError):
+        rv.verified("arm_label_verifications.json", "24251359", "text", "LOW_DOSE_ARM_IS_30MG")
