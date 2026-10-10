@@ -178,3 +178,31 @@ The contrast is valid per the ruling: empagliflozin + KCl v placebo-for-empaglif
 - **G1 effect:** none. Every flip is a REPORT of a family already counted, so no trial unit is added and no G1 status changes. The served screening-record counts change (V15 wording/count).
 - **Caveat:** sglt2-pp 33004472 -> NCT02792400 (a glucagon mechanistic study) inherits only because that family's structural screen calls it ELIGIBLE. The inheritance is only as sound as the family verdict.
 - **Next:** the harness fix (inherit at screen time, with the SELECT plant and an unlinked same-phrase control) as its own PR.
+
+## K-8. GLP-1 under the operating reading (ii) (Captain ruling 1; V14-07 signed: line 79) -- nothing applied
+
+**Prompt.** The verbatim protocol including B-prime lines 78-79, plus the Captain's operating reading: MACE prespecified as a primary or key-secondary EFFICACY endpoint. A record that meets everything except that MACE was only safety-adjudicated is tagged LITERAL_ONLY.
+
+**Regex first** (scripts/g1_glp1_mace_prefilter.py, typed):
+- 615 concept records not already held (trial-identity dedup).
+- 585 never mention MACE or any of its components in title + abstract: NO_MACE_MENTION, no model asked.
+  - Audit of the dropped records that mention anything cardiovascular: risk factors, blood pressure, heart rate, QT; none is a MACE endpoint.
+- 30 records went to the readers: codex A + B, with agy C as a non-deciding third reader. 90 recorded calls, 0 failures.
+
+**Result under reading (ii), pre-registered 2-reader rule:**
+- ELIGIBLE 0.
+- EXCLUDED 16.
+- DISAGREE 14. Mostly all three readers UNCLEAR / NOT_DECIDABLE_FROM_RECORD: the abstract does not say how MACE was specified.
+- 2-of-3 sensitivity: EXCLUDED 17, SPLIT 13, ELIGIBLE 0.
+
+**LITERAL_ONLY** was tagged by one reader (B) on 5 records: 21251180 (dulaglutide dose-finding), 26512041, 34873344, 41705420, NCT00747968. No record is LITERAL_ONLY by both readers.
+
+**Reading (i), literal line 78: the universe is NOT countable from records.**
+- Safety-adjudicated MACE (FDA 2008 programme adjudication) is rarely stated in an abstract or registration.
+- So the 585 NO_MACE_MENTION records are not settled under (i).
+- Counting (i) would need each trial's protocol or CSR. Under (i) the literal universe is up to the 615 regex-included records: the "flood" B-prime was written to prevent.
+
+**G1 effect:**
+- Under (ii), none: no new eligible trial; GLP-1 stays G1_MATCHED.
+- Under (i), uncountable from open records; it would at least add the LITERAL_ONLY-tagged trials outside comparator 34526024. GLP-1 would leave G1_MATCHED unless every one is named.
+- Recommendation: (ii), as already operated.
