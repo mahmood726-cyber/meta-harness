@@ -187,90 +187,45 @@ def _derive_endpoint(
     if audit_row and (audit_row.get("detail") or audit_row.get("resolution")):
         label = _norm_ws("; ".join(str(audit_row.get(k) or "") for k in ("detail", "resolution")))
         return _derived(label, "docs/definition_audit.json", label)
+    # Each rule names WHICH outcome its sentence may define. A trial's primary-endpoint / composite sentence defines the
+    # PRIMARY outcome only; an outcome-specific definition (AAD, diarrhoea) defines only an outcome whose name is that
+    # subject. There is deliberately no text matcher deciding that a sentence 'names' a non-primary row: five codex
+    # rounds (harms-r1..r5) each defeated one ('renal failure' for RRT, negation, prefixes, acronyms, and finally a
+    # composite that genuinely lists 'stroke' still does not DEFINE the stroke row). Every other row keeps its outcome
+    # name with a stated basis -- the safe direction.
     rules = [
-        (r"AAD\s*=\s*[^:;.]{8,120}", None),
-        (r"diarrh?oe?a\s*\([^)]{10,180}\)", None),
-        (r"diarrh?oe?a caused by Clostridium difficile or otherwise unexplained diarrh?oe?a", None),
-        (r"primary (?:efficacy )?(?:measure|outcome|end point|endpoint) was a composite of [^.]{20,240}", None),
-        (r"primary (?:outcome|end point|endpoint) was [^.]{20,240}", None),
-        (r"serious vascular event \([^)]{10,180}\)", None),
-        (r"major cardiovascular events, defined as [^.]{20,220}", None),
-        (r"major cardiovascular events,? comprised [^.]{20,220}", None),
+        (r"AAD\s*=\s*[^:;.]{8,120}", _AAD_SUBJECT),
+        (r"diarrh?oe?a\s*\([^)]{10,180}\)", _AAD_SUBJECT),
+        (r"diarrh?oe?a caused by Clostridium difficile or otherwise unexplained diarrh?oe?a", _AAD_SUBJECT),
+        (r"primary (?:efficacy )?(?:measure|outcome|end point|endpoint) was a composite of [^.]{20,240}", _PRIMARY),
+        (r"primary (?:outcome|end point|endpoint) was [^.]{20,240}", _PRIMARY),
+        (r"serious vascular event \([^)]{10,180}\)", _PRIMARY),
+        (r"major cardiovascular events, defined as [^.]{20,220}", _PRIMARY),
+        (r"major cardiovascular events,? comprised [^.]{20,220}", _PRIMARY),
     ]
     refused = None
-    for pattern, _ in rules:
+    for pattern, subject in rules:
         m = _search(pattern, text)
-        if m:
-            value = _short_span(text, m, flank=0)
-            # r23-03 / r17: the trial's PRIMARY-endpoint sentence defines THIS row only for the primary outcome or
-            # when it names this outcome. A harms row (PLUS new RRT) must never inherit 'death from any cause'.
-            if outcome.get("primary") or _names_outcome(value, outcome):
-                return _derived(value, "committed source text", _short_span(text, m))
-            refused = refused or value
+        if not m:
+            continue
+        value = _short_span(text, m, flank=0)
+        if subject is _PRIMARY:
+            applies = bool(outcome.get("primary"))
+        else:
+            applies = bool(re.search(subject, str(outcome.get("name") or ""), re.I))
+        if applies:
+            return _derived(value, "committed source text", _short_span(text, m))
+        refused = refused or value
     name = outcome.get("name")
     if name:
-        basis = ("outcome.name (the trial's primary-endpoint definition does not name this outcome)"
+        basis = ("outcome.name (the trial's primary-endpoint definition defines the primary outcome only)"
                  if refused else "outcome.name")
         return _derived(str(name), basis, str(name))
     return _derived(None, "underivable", "")
 
 
-
-
-_NEG = {"non", "not", "no", "without"}
-
-
-def _tokens(text: str) -> list[str]:
-    """Lower-case word tokens; a 'non' prefix is split off so 'nonfatal' and 'non-fatal' are the same two tokens."""
-    out: list[str] = []
-    for t in re.split(r"[^a-z0-9]+", (text or "").lower()):
-        if not t:
-            continue
-        if t.startswith("non") and len(t) >= 7:
-            out += ["non", t[3:]]
-        else:
-            out.append(t)
-    return out
-
-
-def _tok_eq(a: str, b: str) -> bool:
-    """Whole-token equality with plural tolerance -- never a prefix ('burn' is not 'burnout', codex harms-r2#2)."""
-    return a == b or a in (b + "s", b + "es") or b in (a + "s", a + "es")
-
-
-def _negated(toks: list[str], i: int) -> bool:
-    return i > 0 and toks[i - 1] in _NEG
-
-
-def _names_outcome(span: str, outcome: dict[str, Any]) -> bool:
-    """True when `span` NAMES the outcome: its name or a keyword phrase as a contiguous run of whole tokens, or its
-    acronym as a whole token -- neither negated. There is deliberately no bag-of-words fallback: four codex rounds
-    (harms-r1..r4) each found a new way for scattered words to fake identity ('renal failure' for renal replacement,
-    'fatal' + 'stroke' from different components of a composite, 'cardiovascular death' for death from any cause).
-    When nothing matches, the row keeps its outcome name with a stated basis -- the safe direction."""
-    names = [str(outcome.get("name") or "")] + [str(k) for k in outcome.get("keywords") or []]
-    st = _tokens(span)
-    for n in names:
-        nt = _tokens(n)
-        if not nt:
-            continue
-        for i in range(len(st) - len(nt) + 1):
-            if all(_tok_eq(st[i + j], nt[j]) for j in range(len(nt))) and (nt[0] in _NEG or not _negated(st, i)):
-                return True
-        acronyms = {"".join(w[0] for w in re.split(r"[^A-Za-z0-9]+", n) if w).lower()}
-        if n.isupper():
-            acronyms.add(n.lower())
-        for ac in acronyms:
-            for i, t in enumerate(st):
-                if len(ac) < 2 or t != ac or _negated(st, i):
-                    continue
-                # a parenthetical acronym inherits the negation of the phrase it abbreviates: 'survival without acute
-                # kidney injury (AKI)' does not name AKI (codex harms-r4#3)
-                j = i - len(nt)
-                if j >= 0 and all(_tok_eq(st[j + x], nt[x]) for x in range(len(nt))) and _negated(st, j):
-                    continue
-                return True
-    return False
+_PRIMARY = object()                                         # the rule's sentence defines the primary outcome only
+_AAD_SUBJECT = r"diarrh?oe?a|\bAAD\b"                       # ... defines only an outcome named as diarrhoea / AAD
 
 
 def _derive_population_age(trial: dict[str, Any], rec: dict[str, Any] | None) -> dict[str, Any]:

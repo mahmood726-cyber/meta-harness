@@ -6899,5 +6899,59 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r5": {
+  "base": "fca8cff07",
+  "head": "f69ca728e",
+  "runs": {
+   "g1": {
+    "record_id": "mc-11a493c96f3f9a2cedd165382e08e2f4",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "c36360e206398b70d0ed35ebac1947f21b060f5d859d20fd0f277b9ae95bdf53"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "An acronym used as the outcome name bypasses the parenthetical-negation safeguard: the ordinary token-match branch returns before that safeguard runs.",
+    "failing_input": "_names_outcome('survival without acute kidney injury (AKI)', {'name': 'AKI', 'keywords': ['acute kidney injury']})",
+    "expected": "False: AKI is explicitly negated by 'without'.",
+    "actual": "True: the token 'aki' matches the outcome name, and its preceding token is 'injury', not a negation.",
+    "id": "harms-r5:g1#1",
+    "record_id": "mc-11a493c96f3f9a2cedd165382e08e2f4",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_names_outcome",
+    "severity": "P1",
+    "claim": "Automatically generated acronyms match ordinary lowercase words, allowing an unrelated primary endpoint to define a harms row.",
+    "failing_input": "_names_outcome('major cardiovascular events, defined as cardiovascular death or stroke, are assessed at 90 days', {'name': 'adverse renal events', 'primary': False})",
+    "expected": "False: the span contains no adverse renal events outcome.",
+    "actual": "True: 'adverse renal events' generates 'are', which matches the verb 'are'. This passes the new _derive_endpoint guard.",
+    "id": "harms-r5:g1#2",
+    "record_id": "mc-11a493c96f3f9a2cedd165382e08e2f4",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The new guard treats naming one component as sufficient to assign the entire composite endpoint definition to that component's row.",
+    "failing_input": "Held text: 'major cardiovascular events, defined as cardiovascular death, myocardial infarction, or stroke'. Outcome record: {'name': 'stroke', 'primary': False}.",
+    "expected": "The derived endpoint remains 'stroke'; the composite definition does not define the individual component.",
+    "actual": "The shown rule matches the composite span, _names_outcome returns True for 'stroke', and _derive_endpoint returns 'major cardiovascular events, defined as cardiovascular death, myocardial infarction, or stroke' as the endpoint value.",
+    "id": "harms-r5:g1#3",
+    "record_id": "mc-11a493c96f3f9a2cedd165382e08e2f4",
+    "verdict": null
+   }
+  ]
  }
 }

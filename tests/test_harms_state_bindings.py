@@ -8,6 +8,8 @@ Strings are copied from the held abstracts (cache/balanced-crystalloids-vs-salin
 import os
 import sys
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from harness import absence, compat_check, harms  # noqa: E402
@@ -49,7 +51,7 @@ def test_PLANT_a_harm_row_never_inherits_the_efficacy_primary_definition():
     got = _endpoint({"name": "New renal-replacement therapy", "kind": "harm"}, "35041780", PLUS)
     assert "death" not in (got["value"] or "").lower(), got
     assert got["value"] == "New renal-replacement therapy"
-    assert "does not name this outcome" in got["source"]
+    assert "defines the primary outcome only" in got["source"]
 
 
 def test_the_primary_outcome_still_gets_its_primary_definition():
@@ -57,9 +59,36 @@ def test_the_primary_outcome_still_gets_its_primary_definition():
     assert "death from any cause within 90 days" in got["value"]
 
 
-def test_a_secondary_outcome_named_by_the_definition_keeps_it():
+def test_a_secondary_outcome_never_takes_the_trials_primary_sentence_even_when_it_is_that_outcome():
+    # SPLIT's primary IS AKI, but in this review AKI is a harms row: the trial's primary sentence defines this review's
+    # primary outcome only, so the row keeps its name (safe; the earlier 'names the outcome' rule was the defect class)
     got = _endpoint({"name": "Acute kidney injury", "kind": "harm"}, "26444692", SPLIT)
-    assert "proportion of patients with AKI" in got["value"]
+    assert got["value"] == "Acute kidney injury"
+
+
+@pytest.mark.parametrize("sentence,name", [
+    # every codex harms-r1..r5 counterexample: none may define a non-primary row
+    ("major cardiovascular events, defined as cardiovascular death, myocardial infarction, or renal failure",
+     "new renal replacement therapy"),                                                                     # r1
+    ("major cardiovascular events, defined as fatal myocardial infarction and stroke", "Non-fatal myocardial infarction"),
+    ("The primary endpoint was burnout severity at six months", "Burn"),                                   # r2
+    ("major cardiovascular events, defined as non-fatal stroke or cardiovascular death", "non-fatal MI"),  # r3
+    ("The primary endpoint was survival without AKI at 90 days", "acute kidney injury"),
+    ("major cardiovascular events, defined as cardiovascular death and stroke", "death from any cause"),   # r4
+    ("The primary outcome was survival without acute kidney injury (AKI) at 90 days", "AKI"),              # r5
+    ("major cardiovascular events, defined as cardiovascular death or stroke, are assessed at 90 days",
+     "adverse renal events"),
+    ("major cardiovascular events, defined as cardiovascular death, myocardial infarction, or stroke", "stroke"),
+])
+def test_PLANT_codex_harms_r1_r5_no_primary_sentence_defines_a_non_primary_row(sentence, name):
+    got = _endpoint({"name": name, "kind": "harm"}, "1", sentence + ".")
+    assert got["value"] == name, got
+
+
+def test_an_outcome_specific_definition_applies_only_to_its_subject():
+    text = "AAD = three or more loose stools per day for two days. The primary outcome was AAD within 30 days."
+    assert _endpoint({"name": "Antibiotic-associated diarrhoea", "primary": False}, "2", text)["value"].startswith("AAD")
+    assert _endpoint({"name": "Serious adverse events", "kind": "harm"}, "2", text)["value"] == "Serious adverse events"
 
 
 def _state(spec, code, reason, abstract=SPLIT, pid="26444692"):
@@ -101,47 +130,3 @@ def test_PLANT_a_known_reported_row_stays_extraction_debt_not_a_refusal():
     # (harms_incomplete), never 'not reported' and never a resolved refusal (r13 'reported, extraction unresolved')
     got = _state(AKI, harms.KNOWN_REPORTED_NOT_YET_EXTRACTED, "reported; not yet extracted")
     assert got["harm_absence_state"] == harms.KNOWN_REPORTED_NOT_YET_EXTRACTED
-
-
-def test_PLANT_codex_harms_r1_1_one_shared_word_is_not_outcome_identity():
-    rrt = {"name": "new renal replacement therapy", "primary": False}
-    assert not compat_check._names_outcome(
-        "major cardiovascular events, defined as cardiovascular death, myocardial infarction, or renal failure", rrt)
-    # the whole phrase, all significant words, a keyword phrase or the acronym still establish identity
-    assert compat_check._names_outcome("receipt of new renal-replacement therapy", rrt)
-    assert compat_check._names_outcome("proportion of patients with AKI (defined as ...)", AKI)
-    assert compat_check._names_outcome("time to first hospitalization for heart failure",
-                                       {"name": "Hospitalization for heart failure"})
-
-
-def test_PLANT_codex_harms_r2_negation_and_prefixes_do_not_establish_identity():
-    nf = {"name": "Non-fatal myocardial infarction"}
-    assert not compat_check._names_outcome("major cardiovascular events, defined as fatal myocardial infarction", nf)
-    assert not compat_check._names_outcome("defined as non-fatal myocardial infarction",
-                                           {"name": "Fatal myocardial infarction"})
-    assert compat_check._names_outcome("composite of nonfatal myocardial infarction or stroke", nf) or \
-        compat_check._names_outcome("composite of non-fatal myocardial infarction or stroke", nf)
-    assert not compat_check._names_outcome("The primary endpoint was burnout severity at six months", {"name": "Burn"})
-    # plurals still match
-    assert compat_check._names_outcome("hospitalizations for heart failure", {"name": "Hospitalization for heart failure"})
-
-
-def test_PLANT_codex_harms_r3_short_words_and_negated_acronyms():
-    assert not compat_check._names_outcome("major cardiovascular events, defined as non-fatal stroke or cardiovascular "
-                                           "death", {"name": "non-fatal MI"})
-    assert compat_check._names_outcome("a composite of non-fatal MI or stroke", {"name": "non-fatal MI"})
-    assert not compat_check._names_outcome("The primary endpoint was survival without AKI.", {"name": "acute kidney injury"})
-    assert compat_check._names_outcome("The primary endpoint was AKI within 7 days.", {"name": "acute kidney injury"})
-
-
-def test_PLANT_codex_harms_r4_no_word_bag_identity():
-    assert not compat_check._names_outcome("major cardiovascular events, defined as cardiovascular death",
-                                           {"name": "death from any cause"})
-    assert not compat_check._names_outcome("major cardiovascular events, defined as non-fatal stroke or fatal "
-                                           "myocardial infarction", {"name": "fatal stroke"})
-    assert not compat_check._names_outcome("The primary outcome was survival without acute kidney injury (AKI).",
-                                           {"name": "acute kidney injury"})
-    # a contiguous, non-negated phrase or acronym still establishes identity
-    assert compat_check._names_outcome("The primary outcome was acute kidney injury (AKI) within 7 days.",
-                                       {"name": "acute kidney injury"})
-    assert compat_check._names_outcome("composite of non-fatal stroke or death", {"name": "Non-fatal stroke"})
