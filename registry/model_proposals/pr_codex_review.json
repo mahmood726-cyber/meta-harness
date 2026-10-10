@@ -6731,5 +6731,71 @@
     "verdict": null
    }
   ]
+ },
+ "trial-rows-r1": {
+  "base": "630e622bf",
+  "head": "f0b64ba4f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-94c5c133613a9f7ed67ce38221dfb269",
+    "state": "RAN_OK",
+    "files": [
+     "reproducible_ai/model_call_live.py",
+     "scripts/g1_comparator_trial_row_search.py"
+    ],
+    "prompt_sha256": "c3a297f503b8bc010bb43df6d89fda062cb9207b2f0637619c74d9cd95ff46e3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_comparator_trial_row_search.py",
+    "function": "gate_reader",
+    "severity": "P1",
+    "claim": "An empty quote passes the evidence gate because the empty string is a substring of every shown text, including empty text.",
+    "failing_input": "gate_reader({'per_trial_rows': [{'trial': 'WOMAN', 'quote': ''}], 'note': ''}, '')",
+    "expected": "QUOTE_NOT_IN_TEXT: a claimed row requires nonempty textual evidence.",
+    "actual": "ROWS_CLAIMED",
+    "id": "trial-rows-r1:g1#1",
+    "record_id": "mc-94c5c133613a9f7ed67ce38221dfb269",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_trial_row_search.py",
+    "function": "gate_reader / _answer",
+    "severity": "P1",
+    "claim": "A parsed response missing the required per_trial_rows field becomes a negative finding instead of a validation failure. This can falsely corroborate NOT_FOUND.",
+    "failing_input": "gate_reader(_answer('{}'), 'Death due to bleeding | WOMAN | 1/100 | 2/100')",
+    "expected": "An invalid-response error; NO_ROW must require an explicitly supplied, valid empty per_trial_rows array.",
+    "actual": "NO_ROW",
+    "id": "trial-rows-r1:g1#2",
+    "record_id": "mc-94c5c133613a9f7ed67ce38221dfb269",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_trial_row_search.py",
+    "function": "search_texts",
+    "severity": "P1",
+    "claim": "The literal <tr> matcher silently skips valid table rows containing attributes, losing explicitly printed per-trial results.",
+    "failing_input": "search_texts('<table-wrap><table><tr id=\"r1\"><td>Death due to bleeding</td><td>WOMAN</td><td>1/100</td><td>2/100</td></tr></table></table-wrap>', '', {'name': 'Death due to bleeding', 'keywords': ['death due to bleeding']}, ['WOMAN'])",
+    "expected": "One matching WOMAN row and no figures.",
+    "actual": "([], [])",
+    "id": "trial-rows-r1:g1#3",
+    "record_id": "mc-94c5c133613a9f7ed67ce38221dfb269",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_comparator_trial_row_search.py",
+    "function": "search",
+    "severity": "P1",
+    "claim": "Missing source files and a missing trial inventory silently become NOT_FOUND, converting unavailable evidence into an outcome-absence classification.",
+    "failing_input": "import json\nfrom unittest.mock import patch, mock_open\nimport scripts.g1_comparator_trial_row_search as m\n\ntopic = {'primary_outcome': {'name': 'Death due to bleeding', 'keywords': ['death due to bleeding']}, 'comparator_pmid': '39461793'}\nwith patch.object(m.glob, 'glob', return_value=[]), patch.object(m.os.path, 'exists', return_value=False), patch('builtins.open', mock_open(read_data=json.dumps(topic))):\n    result = m.search('fixture')\nprint(result['state'], result['searched'], result['trials'])",
+    "expected": "An explicit missing-evidence error or indeterminate state.",
+    "actual": "NOT_FOUND [] []",
+    "id": "trial-rows-r1:g1#4",
+    "record_id": "mc-94c5c133613a9f7ed67ce38221dfb269",
+    "verdict": null
+   }
+  ]
  }
 }

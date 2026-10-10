@@ -484,5 +484,8 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
                        "tool_calls_rejected_n": len(denied),
                        "tool_calls": [{"command": a.get("display_name"), "outcome": "DENIED: " + str(a.get("action"))}
                                       for a in denied if isinstance(a, dict)],
-                       "files_read": [], "transcript_redacted": lg_red})
+                       "files_read": [], "transcript_redacted": lg_red,
+                       # agy --print reads nothing outside its work dir (every tool action is denied above); stated,
+                       # because log_call requires it -- its absence raised AFTER the call, losing every agy record
+                       "outside_workdir_reads": 0})
     return rec
