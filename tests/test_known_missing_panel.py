@@ -76,11 +76,15 @@ def test_colchicine_panel_passes_and_combined_sensitivity_changes_null_crossing(
     panel = next(o for o in review["outcomes"] if o.get("primary"))["known_missing_sensitivity"]
     rows = {r["trial_key"]: r for r in panel["rows"]}
     assert rows["36286314"]["value_status"] == "IN_COMMITTED_SOURCE"
-    assert rows["22090167"]["value_status"] == "IN_COMMITTED_SOURCE"
-    assert panel["combined"]["k"] == 6
-    assert panel["combined"]["estimate"] == 0.6488
-    assert panel["combined"]["ci_low"] == 0.4782
-    assert panel["combined"]["ci_high"] == 0.8802
+    # r24: COPPS's counts were INFERRED from percentages and a pooled total (the 20/169 v 37/167 constants); no held or
+    # open source states them, so the row is REFUSED and never enters the combined pool. This test used to assert the
+    # inferred row (k 6, 0.6488 (0.4782-0.8802)) -- it was defending the defect.
+    assert rows["22090167"]["value_status"] == known_missing.REFUSED_DENOMINATORS_NOT_STATED
+    assert not any(rows["22090167"].get(k) is not None for k in ("ai", "n1i", "ci", "n2i"))
+    assert panel["combined"]["k"] == 5                                  # the base pool + COCS only
+    assert panel["combined"]["estimate"] == 0.6664
+    assert panel["combined"]["ci_low"] == 0.4527
+    assert panel["combined"]["ci_high"] == 0.9812
     assert panel["combined"]["conclusion_effect"] == "CHANGES_CI_NULL_CROSSING"
     assert check_known_missing_panel(_write_review(tmp_path, review)) == []
 

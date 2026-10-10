@@ -17,6 +17,9 @@ from .synth import Study, pool
 IN_COMMITTED_SOURCE = "IN_COMMITTED_SOURCE"
 IN_SOURCE_DIFFERENT_ESTIMAND = "IN_SOURCE_DIFFERENT_ESTIMAND"
 NOT_IN_COMMITTED_SOURCE = "NOT_IN_COMMITTED_SOURCE"
+# the outcome is reported, but no held / open source states the per-arm counts and denominators (r24 COPPS): refused,
+# never reconstructed from percentages and a pooled total
+REFUSED_DENOMINATORS_NOT_STATED = "REFUSED_DENOMINATORS_NOT_STATED"
 
 
 def _primary(review: dict[str, Any]) -> dict[str, Any] | None:
@@ -39,6 +42,34 @@ def _record_for(row: dict[str, Any], rec_by_id: dict[str, dict[str, Any]]) -> di
             if trial in hay:
                 return rec
     return {}
+
+
+def absence_verification(pmid: str, text: str, root: str | None = None) -> dict[str, Any] | None:
+    """The recorded verification that a held source does NOT state a value, or None. A claim of absence is never
+    inferred by a pattern (codex copps-r11..r13 found a new prose form each round): it is read from
+    registry/source_absence_verifications.json and applies only while the held text's sha256 equals the one checked."""
+    import hashlib
+    import json as _json
+    import os as _os
+    base = root or _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    try:
+        reg = _json.load(open(_os.path.join(base, "registry", "source_absence_verifications.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    sha = hashlib.sha256((text or "").encode("utf-8")).hexdigest()
+    for e in reg.get("entries") or []:
+        if str(e.get("pmid")) == str(pmid) and e.get("held_text_sha256") == sha:
+            return e
+    return None
+
+
+def _between(text: str, start: str | None, end: str | None) -> str:
+    """The held text from `start` through `end` (both must occur, in order), whitespace-collapsed; '' otherwise."""
+    i = (text or "").find(start or "\0")
+    j = (text or "").find(end or "\0", max(i, 0))
+    if i < 0 or j < 0:
+        return ""
+    return re.sub(r"\s+", " ", text[i:j + len(end)]).strip()
 
 
 def _span(text: str, *needles: str, width: int = 360) -> str:
@@ -166,21 +197,22 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
             })
             return out
 
-    if slug == "colchicine-postop-af" and key == "22090167":
-        if "12.0% versus 22.0%" in text and "336 patients" in text:
-            out.update({
-                "value_status": IN_COMMITTED_SOURCE,
-                "missing_class": "EXTRACTION_DEBT",
-                "ai": 20,
-                "n1i": 169,
-                "ci": 37,
-                "n2i": 167,
-                "scale": outcome.get("estimand") or "RR",
-                "source_ref": "cache/colchicine-postop-af/records.json#22090167.abstract",
-                "source_span": _span(text, "336 patients", "12.0% versus 22.0%"),
-                "verify_basis": "counts reconstructed from committed abstract percentages and total substudy denominator",
-            })
-            return out
+    # r24: per-arm counts are never reconstructed from percentages and a pooled total (COPPS 22090167: the 20/169 v
+    # 37/167 that stood here were inferred from 12.0% v 22.0% of 336). A claim that the source does NOT state them is a
+    # recorded verification bound to the exact held text (absence_verification), never a pattern over prose.
+    verified = absence_verification(rec.get("id"), text) if rec else None
+    if verified and verified.get("claim") == "PER_ARM_DENOMINATORS_NOT_STATED":
+        out.update({
+            "value_status": REFUSED_DENOMINATORS_NOT_STATED,
+            "missing_class": "SOURCE_ABSENT",
+            "source_ref": verified.get("held_text"),
+            # the span the verification names: from the pooled total through the percentages
+            "source_span": _between(text, verified.get("span_from"), verified.get("span_to")),
+            "verify_basis": (f"recorded verification (registry/source_absence_verifications.json, held text sha256 "
+                             f"{verified['held_text_sha256'][:12]}): {verified.get('checked')} Counts are never "
+                             "reconstructed from percentages."),
+        })
+        return out
 
     if not rec:
         out["verify_basis"] = "named trial is not present in the committed topic cache"

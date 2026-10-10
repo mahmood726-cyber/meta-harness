@@ -489,28 +489,59 @@ def _short_changed(slug: str, label: str | None, body: str) -> str:
     return label or clean[:220]
 
 
+# a bound is read whole or not at all: only a whitelisted terminator may follow it (see
+# comparator_second_pass.BOUND_END; codex copps-r6#1)
+_WHOLE = r"(?=\s{0,3}(?:[);\]]|,(?!\s*\d)|$))"
+
+
 def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
     rows = {str(r.get("id")): r for r in records.get("records") or []}
     rely = rows.get("19717844") or {}
     engage = rows.get("24251359") or {}
     rely_text = " ".join([str(rely.get("title") or ""), str(rely.get("abstract") or "")])
     engage_text = " ".join([str(engage.get("title") or ""), str(engage.get("abstract") or "")])
-    rely_found = bool(re.search(r"110 mg.*?relative risk.*?0\.91.*?0\.74.*?1\.11", rely_text, re.I | re.S))
-    edox_low_found = bool(re.search(r"low-dose edoxaban.*?hazard ratio,\s*1\.13.*?0\.96.*?1\.34", engage_text, re.I | re.S))
-    edox_30_label_found = bool(re.search(r"\b30\s*mg\b", engage_text, re.I))
+    # r24: every number is READ from the held abstract (effect, CI level, bounds) -- none is written here. ENGAGE's
+    # low-dose interval is a 97.5% CI, which the old literals silently re-labelled as 95%.
+    # anchored to the exact clause naming the arm and comparison: a loose 'low-dose edoxaban.*?hazard ratio' reads the
+    # on-treatment 1.07 (0.87-1.31) that comes first in the abstract instead of the intention-to-treat 1.13
+    # integer-valued numbers ('relative risk, 1;') are read too (codex copps-r9#1)
+    rely_m = re.search(r"110 mg of dabigatran \(relative risk with dabigatran,\s*(\d+(?:\.\d+)?);\s*(\d+(?:\.\d+)?)%\s*"
+                       r"confidence interval(?:\s*\[CI\])?,\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)" + _WHOLE,
+                       rely_text, re.I)
+    edox_m = re.search(r"unfavorable trend with low-dose edoxaban versus warfarin \(hazard ratio,\s*(\d+(?:\.\d+)?);\s*"
+                       r"(\d+(?:\.\d+)?)%\s*CI,\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)" + _WHOLE, engage_text, re.I)
+    rely_found, edox_low_found = bool(rely_m), bool(edox_m)
+    # the 30 mg label must belong to the LOW-DOSE edoxaban arm, in one clause: 'high-dose ... 60 mg, reduced to 30 mg;
+    # low-dose ... 15 mg' does not identify it (codex copps-r15#1)
+    edox_30_label_found = bool(re.search(r"low[- ]dose edoxaban[^.;]{0,40}?\b30\s*mg\b|\b30\s*mg\b[^.;]{0,40}?"
+                                         r"low[- ]dose edoxaban|low[- ]dose\s*\(\s*30\s*mg", engage_text, re.I)) \
+        and not re.search(r"low[- ]dose edoxaban[^.;]{0,40}?\b(?:15|60)\s*mg\b", engage_text, re.I)
+
+    def _read(m, scale):
+        return {"effect": float(m.group(1)), "ci_level": float(m.group(2)), "ci_low": float(m.group(3)),
+                "ci_high": float(m.group(4)), "scale": scale, "source_span": m.group(0)[-160:]}
+
     available = []
     if rely_found:
-        available.append({"trial": "RE-LY", "arm": "dabigatran 110 mg", "effect": 0.91, "ci_low": 0.74, "ci_high": 1.11, "scale": "RR"})
+        available.append({"trial": "RE-LY", "arm": "dabigatran 110 mg", **_read(rely_m, "RR")})
     if edox_low_found:
-        available.append({"trial": "ENGAGE AF-TIMI 48", "arm": "low-dose edoxaban", "effect": 1.13, "ci_low": 0.96, "ci_high": 1.34, "scale": "HR"})
-    if rely_found and edox_30_label_found:
+        available.append({"trial": "ENGAGE AF-TIMI 48", "arm": "low-dose edoxaban", **_read(edox_m, "HR")})
+    # READY needs BOTH effects read AND the 30 mg label; a dose label alone never stands in for a missing effect
+    # (codex copps-r5#2). The reason is generated from what was found, never asserted.
+    if rely_found and edox_low_found and edox_30_label_found:
         status = "READY_TO_COMPUTE"
         reason = "RE-LY 110 mg and edoxaban 30 mg effects are both explicitly present in committed sources."
-    else:
+    elif rely_found and edox_low_found:
         status = "NOT_COMPUTED_SOURCE_INCOMPLETE"
         reason = (
             "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect found, but the committed source "
             "does not explicitly identify that lower-dose arm as edoxaban 30 mg."
+        )
+    else:
+        status = "NOT_COMPUTED_SOURCE_INCOMPLETE"
+        reason = (
+            f"RE-LY 110 mg effect {'found' if rely_found else 'not found'}; ENGAGE low-dose edoxaban effect "
+            f"{'found' if edox_low_found else 'not found'} in the committed source."
         )
     return {
         "status": status,
