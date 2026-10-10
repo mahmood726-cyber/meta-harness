@@ -6888,5 +6888,138 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "v14rec-r1": {
+  "base": "origin/main",
+  "head": "origin/g1/v14-records-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-186a1a9ce891fbf7913143847add9bdb",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/v14_05_licence_exception.py"
+    ],
+    "prompt_sha256": "e2dfe482ff1c87929ab657f0f5ddeba177592814465b181a7ab29c2cb80d49b3"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "v14rec-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/g1/v14-records-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-000fca0b18b874b5dd4b8702b1b066f2",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/v14_05_licence_exception.py"
+    ],
+    "prompt_sha256": "2c00d1c1cb8f5dc66fe89a83b5a816d394ac54f23552813d8055bcbdfd60949e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/v14_05_licence_exception.py",
+    "function": "main",
+    "severity": "P1 wrong classification or binding",
+    "claim": "Silent fallback on signature fields turns missing evidence (quote/hashes) into 'absent' (null), stamping invalid exception records.",
+    "failing_input": "{\"items\": {\"V14-05\": {\"state\": \"SEEN_AND_SIGNED\", \"choice\": \"A\"}}} in v14_signatures.json",
+    "expected_output": "Script fails closed (e.g. KeyError) due to missing required cryptographic signature fields.",
+    "actual_output": "Silently creates the exception object with null for the hashes and quote, stamping it into tracked_fulltext_licences.json.",
+    "expected": "-",
+    "actual": "-",
+    "id": "v14rec-r1-agy:g1#1",
+    "record_id": "mc-000fca0b18b874b5dd4b8702b1b066f2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/v14_05_licence_exception.py",
+    "function": "main",
+    "severity": "P2 robustness",
+    "claim": "Silent fallback on row state turns a schema failure into 'absent', silently ignoring malformed rows.",
+    "failing_input": "{\"rows\": [{\"id\": \"missing_state_row\"}]} in tracked_fulltext_licences.json",
+    "expected_output": "Script fails closed (e.g. KeyError) upon encountering a row without a 'state' key.",
+    "actual_output": "r.get('state') silently evaluates to None, bypassing the RETAINED check and silently ignoring the malformed row without alerting to the schema violation.",
+    "expected": "-",
+    "actual": "-",
+    "id": "v14rec-r1-agy:g1#2",
+    "record_id": "mc-000fca0b18b874b5dd4b8702b1b066f2",
+    "verdict": null
+   }
+  ]
+ },
+ "v14rec-r2": {
+  "base": "origin/main",
+  "head": "origin/g1/v14-records-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-55e0fb601a5716b6ac66f0e8d6648166",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/v14_05_licence_exception.py"
+    ],
+    "prompt_sha256": "dcdba1f9f0661ef81ca735bc97d557c1d498b58b835e457099878ee34362d41a"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "v14rec-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/g1/v14-records-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d3d82cdb783d05710c68dd590780aab1",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/v14_05_licence_exception.py"
+    ],
+    "prompt_sha256": "3434207690135c233a9daf28c4856b8a14c0f792f8dc3c200cbf60dc8ca2b427"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr59-r1": {
+  "base": "origin/main",
+  "head": "origin/pva/download-link",
+  "runs": {
+   "g1": {
+    "record_id": "mc-2366cae281c63fbf39b5552461dfe43d",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/index.py",
+     "harness/review_tabs.py"
+    ],
+    "prompt_sha256": "4aaefe07f57e9f15c039ebc0a81d8bf28e8ee038162b967cd24399d00a8d0417"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr59-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/pva/download-link",
+  "runs": {
+   "g1": {
+    "record_id": "mc-da51b2f6ab1f1a85263b3cad0e145192",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/index.py",
+     "harness/review_tabs.py"
+    ],
+    "prompt_sha256": "26e4fe6f4b99e9c77a706f5bf7b980a0c8e08510def166cb5f09d93af926d806"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }
