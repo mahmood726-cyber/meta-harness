@@ -289,7 +289,10 @@ def identity_terms(keywords: list[str], outcome_name: str | None) -> list[str]:
     """The keywords that name the OUTCOME: they share a content word with its name (death/mortality are one family);
     a population / setting term ('ICU', 'critically ill') or a bare role phrase never does."""
     name = outcome_name or ""
-    nw = _content_words(name)
+    # the outcome's CORE, before any population clause ('Mortality in critically ill patients' -> 'Mortality'):
+    # a keyword sharing only a population word never identifies the outcome (tvp-r1 #5)
+    core = re.split(r"\b(?:in|among|amongst|for|of\s+patients|of\s+participants)\b", name, maxsplit=1, flags=re.I)[0]
+    nw = _content_words(core) or _content_words(name)
     if nw & set(_DEATH_WORDS):
         nw |= set(_DEATH_WORDS)
     out = [name] if name else []
@@ -319,6 +322,10 @@ def _is_abbreviation_of(k: str, name: str) -> bool:
 
 
 _CITATION = re.compile(r"\[\s*\d{1,3}(?:\s*[,–-]\s*\d{1,3})*\s*\]|\bet\s+al\b", re.I)
+# a citation reports ANOTHER study only next to a study name: an all-caps acronym or 'trial'/'study' (40825340's table:
+# 'SELECT trial (semaglutide 2.4 mg) [ 9 ]'); '... the prespecified definition [9]' cites a definition (tvp-r1 #3)
+_OTHER_STUDY_CITATION = re.compile(r"\b(?:[A-Z][A-Z0-9-]{2,}|trial|study)\b[^;\[\]]{0,60}\[\s*\d{1,3}"
+                                   r"(?:\s*[,–-]\s*\d{1,3})*\s*\]|\bet\s+al\b")
 
 
 def _names_target(sentence: str, terms: list[str]) -> bool:
@@ -344,40 +351,54 @@ def target_window_weeks(spec: dict[str, Any] | None) -> tuple[float, float] | No
     return None
 
 
-def sentence_weeks(sentence: str) -> list[float]:
-    """Every timepoint a sentence states, in weeks ('week 68', '44 weeks', '26 wk', '90 days', '6 months')."""
-    s = (sentence or "").lower()
-    out = []
-    for m in re.finditer(r"\bweek\s*(\d+)\b|\b(\d+)[\s-]*(weeks?|wks?|days?|months?|years?)\b", s):
+def sentence_weeks(sentence: str, near: list[str] | None = None) -> list[float]:
+    """The timepoints a sentence states, in weeks ('week 68', '44 weeks', '12.5 weeks', '26 wk', '90 days', '6
+    months'). near: identity terms -- when given, a treatment DURATION ('after 4 weeks of treatment', 'for 12 weeks')
+    is not the outcome's timepoint, and the timepoint closest to the outcome term is the one returned (tvp-r1 #2)."""
+    s = (sentence or "").lower().replace("·", ".")
+    hits = []
+    for m in re.finditer(r"\bweek\s*(\d+(?:\.\d+)?)\b|(?<![\d.])(\d+(?:\.\d+)?)[\s-]*(weeks?|wks?|days?|months?|years?)\b", s):
         if m.group(1):
-            out.append(float(m.group(1)))
-            continue
-        n, u = float(m.group(2)), m.group(3)
-        out.append(n if u.startswith("w") else n / 7.0 if u.startswith("d") else n * 4.345 if u.startswith("m")
-                   else n * 52.18)
-    return out
+            w = float(m.group(1))
+        else:
+            n, u = float(m.group(2)), m.group(3)
+            w = n if u.startswith("w") else n / 7.0 if u.startswith("d") else n * 4.345 if u.startswith("m") else n * 52.18
+        before, after = s[max(0, m.start() - 12):m.start()], s[m.end():m.end() + 25]
+        duration = bool(re.search(r"\b(?:after|for|over)\s*$", before) and re.search(r"^\s*of\s+(?:treatment|therapy|"
+                                                                                 r"intervention|follow)", after)) or \
+            bool(re.search(r"\bfor\s*$", before))
+        hits.append((m.start(), w, duration))
+    if not near:
+        return [w for _, w, _ in hits]
+    hits = [h for h in hits if not h[2]]
+    pos = [m.start() for t in near for m in re.finditer(re.escape(t.lower()), s)]
+    if not hits or not pos:
+        return [w for _, w, _ in hits]
+    best = min(hits, key=lambda h: min(abs(h[0] - p) for p in pos))
+    return [best[1]]
 
 
 def target_value_match(sources: list[dict[str, str]], spec: dict[str, Any] | None,
                        outcome_name: str | None) -> dict[str, str] | None:
-    """The first held sentence that is a value FOR THE TARGET (state MATCH, at_target_timepoint when it states an
-    in-window timepoint), else the first that names the outcome at an OUT-of-window timepoint (state
+    """The BEST held candidate over every source (tvp-r1 #4): a value FOR THE TARGET stated at an in-window timepoint,
+    else one with no stated timepoint (state MATCH), else one naming the outcome at an OUT-of-window timepoint (state
     TIMEPOINT_MISMATCH), else None."""
     spec = spec or {}
-    terms = absence._terms(identity_terms(spec.get("keywords") or [], outcome_name))
+    ids = identity_terms(spec.get("keywords") or [], outcome_name)
+    terms = absence._terms(ids)
     window = target_window_weeks(spec)
-    mismatch = None
+    in_window = undated = mismatch = None
     for src in sources or []:
         text = _plain(src.get("text") or "")
         for sent in extract._sentences(text):
             sent = norm_space(sent)
             if not terms or not _names_target(sent, terms) or not _has_numeric_outcome(sent):
                 continue
-            if len(sent) > 600 or _CITATION.search(sent):
-                # a table chunk or a sentence citing references reports OTHER studies, never this trial's own
-                # result (40825340: another article's summary table of SELECT et al., '[ 9 ]')
+            if len(sent) > 600 or _OTHER_STUDY_CITATION.search(sent):
+                # a table chunk, or a citation next to another study's name, reports OTHER studies, never this
+                # trial's own result (40825340: another article's summary table, 'SELECT trial ... [ 9 ]')
                 continue
-            ws = sentence_weeks(sent)
+            ws = sentence_weeks(sent, near=[t for t in ids if t])
             out = {"source_id": src.get("source_id") or "held_source", "source_kind": src.get("source_kind") or "held",
                    "span": clip(sent)}
             if window and ws and not any(window[0] - 1e-9 <= w <= window[1] + 1e-9 for w in ws):
@@ -385,9 +406,13 @@ def target_value_match(sources: list[dict[str, str]], spec: dict[str, Any] | Non
                                             window_weeks=[round(window[0], 2), round(window[1], 2)])
                 continue
             value = _normalised_value(sent, text)
-            return dict(out, state=TARGET_MATCH, at_target_timepoint=bool(window and ws),
+            cand = dict(out, state=TARGET_MATCH, at_target_timepoint=bool(window and ws),
                         **({"value_text": value} if value else {}))
-    return mismatch
+            if cand["at_target_timepoint"]:
+                in_window = in_window or cand
+            else:
+                undated = undated or cand
+    return in_window or undated or mismatch
 
 
 def overcomes(code: str, row: dict[str, Any] | None, match: dict[str, Any] | None) -> bool:

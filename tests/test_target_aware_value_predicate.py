@@ -98,3 +98,32 @@ def test_PLANT_abbreviations_name_the_outcome_and_corroborated_counts_overcome_a
     # without the percentages the counts refusal stands
     bare = "POAF was observed in 21 patients in the colchicine group and 39 in the placebo group (OR 0.52)."
     assert ra.audit_reason_row({"name": spec["name"]}, row, src(bare), spec)["verdict"] != ra.REASON_FALSE_VALUE_HELD
+
+
+MORT4 = {"keywords": ["mortality"], "timepoint_weeks": 4, "timepoint_tolerance_weeks": 0}
+
+
+def test_PLANT_r1_decimal_timepoints_and_treatment_durations():
+    assert ra.sentence_weeks("Mortality at 12.5 weeks was 10% versus 20%.") == [12.5]
+    m = ra.target_value_match(src("After 4 weeks of treatment, mortality at 52 weeks was 10 (10%) in the treatment group "
+                                  "versus 20 (20%) in the placebo group."),
+                              MORT4, "Mortality")
+    assert m["state"] == ra.TARGET_TIMEPOINT_MISMATCH
+
+
+def test_PLANT_r1_a_cited_definition_does_not_disqualify_this_trials_result():
+    m = ra.target_value_match(src("In our trial, mortality at 4 weeks was 10 (10%) in the treatment group versus 20 (20%) in "
+                                  "the placebo group, using the prespecified definition [9]."), MORT4, "Mortality")
+    assert m and m["state"] == ra.TARGET_MATCH
+    assert ra.target_value_match(src(OTHER_TABLE, "fulltext:40825340"), WEIGHT, WEIGHT["name"]) is None
+
+
+def test_PLANT_r1_the_best_candidate_over_all_sources_answers_a_timepoint_refusal():
+    srcs = [{"source_id": "summary", "text": "Mortality was 10 (10%) in the treatment group versus 20 (20%) in the placebo group."},
+            {"source_id": "results", "text": "Mortality at 4 weeks was 10 (10%) in the treatment group versus 20 (20%) in the placebo group."}]
+    assert ra.overcomes(absence.TIMEPOINT_MISMATCH, {}, ra.target_value_match(srcs, MORT4, "Mortality"))
+
+
+def test_PLANT_r1_a_population_phrase_in_the_outcome_name_is_not_an_identity_term():
+    assert ra.identity_terms(["critically ill"], "Mortality in critically ill patients") == \
+        ["Mortality in critically ill patients"]
