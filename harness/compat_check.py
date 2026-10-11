@@ -187,24 +187,127 @@ def _derive_endpoint(
     if audit_row and (audit_row.get("detail") or audit_row.get("resolution")):
         label = _norm_ws("; ".join(str(audit_row.get(k) or "") for k in ("detail", "resolution")))
         return _derived(label, "docs/definition_audit.json", label)
+    # Each rule names WHICH outcome its sentence may define. A trial's primary-endpoint / composite sentence defines the
+    # PRIMARY outcome only; an outcome-specific definition (AAD, diarrhoea) defines only an outcome whose name is that
+    # subject. There is deliberately no text matcher deciding that a sentence 'names' a non-primary row: five codex
+    # rounds (harms-r1..r5) each defeated one ('renal failure' for RRT, negation, prefixes, acronyms, and finally a
+    # composite that genuinely lists 'stroke' still does not DEFINE the stroke row). Every other row keeps its outcome
+    # name with a stated basis -- the safe direction.
     rules = [
-        (r"AAD\s*=\s*[^:;.]{8,120}", None),
-        (r"diarrh?oe?a\s*\([^)]{10,180}\)", None),
-        (r"diarrh?oe?a caused by Clostridium difficile or otherwise unexplained diarrh?oe?a", None),
-        (r"primary (?:efficacy )?(?:measure|outcome|end point|endpoint) was a composite of [^.]{20,240}", None),
-        (r"primary (?:outcome|end point|endpoint) was [^.]{20,240}", None),
-        (r"serious vascular event \([^)]{10,180}\)", None),
-        (r"major cardiovascular events, defined as [^.]{20,220}", None),
-        (r"major cardiovascular events,? comprised [^.]{20,220}", None),
+        (r"AAD\s*=\s*[^:;.]{8,120}", _AAD_ONLY),                # defines AAD, never plain diarrhoea (harms-r7#2)
+        # 'diarrho?ea' matches diarrhoea AND diarrhea (the old 'diarrh?oe?a' required the o; codex harms-r6#2)
+        (r"diarrho?ea\s*\([^)]{10,180}\)", _AAD_SUBJECT),
+        (r"diarrho?ea caused by Clostridium difficile or otherwise unexplained diarrho?ea", _AAD_SUBJECT),
+        (r"primary (?:efficacy )?(?:measure|outcome|end point|endpoint) was a composite of [^.]{20,240}", _PRIMARY),
+        (r"primary (?:outcome|end point|endpoint) was [^.]{20,240}", _PRIMARY),
+        (r"serious vascular event \([^)]{10,180}\)", _PRIMARY),
+        (r"major cardiovascular events, defined as [^.]{20,220}", _PRIMARY),
+        (r"major cardiovascular events,? comprised [^.]{20,220}", _PRIMARY),
     ]
-    for pattern, _ in rules:
+    refused = None
+    for pattern, subject in rules:
         m = _search(pattern, text)
-        if m:
-            return _derived(_short_span(text, m, flank=0), "committed source text", _short_span(text, m))
+        if not m:
+            continue
+        value = _short_span(text, m, flank=0)
+        if subject is _PRIMARY:
+            # the review's primary outcome, AND a sentence that says it is the trial's PRIMARY endpoint: 'A secondary
+            # outcome was serious vascular event (...)' defines nothing primary (codex harms-r7#1)
+            # A structured abstract's 'MAIN OUTCOME MEASURE:' label marks it too (SU.FOL.OM3 21115589).
+            # The marker must govern the matched CLAUSE (back to the previous ';' or sentence start), and that clause
+            # may not call itself secondary: 'Primary endpoint: mortality; secondary endpoint: serious vascular event'
+            # defines nothing primary (codex harms-r8#1).
+            # harms-r9#1: the match must be INTRODUCED by the primary label -- the match itself begins 'primary ...', or
+            # the lead-in ENDS with 'primary outcome/end point (measure) (was|:)' or 'MAIN OUTCOME MEASURE(S):' -- and
+            # the rest of its sentence may not designate it secondary ('... as a secondary outcome').
+            clause = _clause_to(text, m)
+            lead_in = clause[:len(clause) - len(m.group(0))]
+            # a match that begins 'primary' must begin a WORD: 'non-primary outcome was ...' is not (codex harms-r13#1)
+            introduced = bool(re.match(r"primary\b", m.group(0), re.I) and not re.search(r"[\w-]$", lead_in)) or bool(re.search(
+                r"(?:\bprimary (?:efficacy )?(?:outcome|end ?point)s?(?: measures?)?|\bmain outcome measures?)"
+                r"\s*(?:was|were|is|:|,|-)?\s*(?:the |a |an )?$", lead_in, re.I))
+            # the body is cut at its first depth-0 ';' (it never runs on into the next clause), and that clause -- the
+            # body plus, if the match itself was not cut, the rest of its clause -- may not designate it secondary: 'the
+            # parent trial's primary outcome was X, assessed as a secondary outcome in this substudy' (codex harms-r10#2)
+            body = _cut_clause(m.group(0))
+            rest = "" if len(body) < len(m.group(0)) else re.split(r";|\. ", _sentence_rest(text, m) + ". ")[0]
+            if len(body) < len(m.group(0)):
+                value = re.sub(r"\s+", " ", body).strip()
+            applies = (bool(outcome.get("primary")) and introduced
+                       and not re.search(r"\bas an? (?:secondary|tertiary|exploratory)\b|\b(?:secondary|tertiary|"
+                                         r"exploratory) (?:outcome|end ?point)", body + rest, re.I))
+        else:
+            # the outcome's whole name must BE the subject: 'AAD-related hospital admission' is not AAD (harms-r6#1);
+            # and the source's own subject may not be negated in the qualifier words just before the match, hyphenated
+            # or spaced: 'Non-antibiotic(-| )associated diarrhoea (...)' does not define AAD (harms-r8#2, r9#2)
+            qual = re.search(r"((?:[\w-]+\s+){0,3}[\w-]+)\s*$", _clause_to(text, m)[:-len(m.group(0)) or None])
+            negated = bool(qual and re.search(r"(?:^|[\s-])(?:non|not|un|without)(?:[\s-]|$)", qual.group(1), re.I))
+            # a source qualifier narrows the subject: an 'antibiotic-associated diarrhoea (...)' definition defines AAD,
+            # never an unrestricted diarrhoea outcome (codex harms-r10#1)
+            if qual and re.search(r"antibiotic[\s-]+associated$", qual.group(1), re.I):
+                subject = _AAD_ONLY
+            # any OTHER word qualifying 'diarrhoea (...)' narrows it to something else ('Viral diarrhoea (rotavirus ...)'
+            # defines neither diarrhoea nor AAD, codex harms-r13#2): only a function word may precede it -- a whitelist
+            last = (qual.group(1).split()[-1].lower() if qual else "")
+            qualified = (pattern.startswith("diarrho") and subject is not _AAD_ONLY and last not in _UNQUALIFYING)
+            applies = (not negated and not qualified
+                       and bool(re.fullmatch(subject, str(outcome.get("name") or "").strip(), re.I)))
+        if applies:
+            return _derived(value, "committed source text", _short_span(text, m))
+        refused = refused or value
     name = outcome.get("name")
     if name:
-        return _derived(str(name), "outcome.name", str(name))
+        basis = ("outcome.name (the definition in the source applies to another outcome: a primary-endpoint sentence "
+                 "defines the primary outcome only)" if refused else "outcome.name")
+        return _derived(str(name), basis, str(name))
     return _derived(None, "underivable", "")
+
+
+_PRIMARY = object()                                         # the rule's sentence defines the primary outcome only
+# words that may directly precede 'diarrhoea (...)' without qualifying WHICH diarrhoea it is
+_UNQUALIFYING = {"", "of", "for", "with", "and", "or", "as", "was", "were", "is", "the", "a", "an", "any", "incidence",
+                 "rate", "risk", "occurrence", "defined", "developed", "definition:", "outcome:", "outcome", "endpoint",
+                 "end", "point", "results:", "methods:"}
+
+
+def _cut_clause(body: str) -> str:
+    """The body up to the first depth-0 ';' that OPENS ANOTHER ROLE'S CLAUSE ('; secondary outcome was ...') -- a primary
+    sentence never runs on into it (codex harms-r10#2). Every other ';' is part of the definition: a semicolon-separated
+    composite, numbered or not ('A; B; or C', '[1] A; [2] B'), stays whole (harms-r11#1, r12#1), and so does
+    '(MACE; a composite of ...)' (GLP-1 34215025).
+    A WHITELIST of terminators, not a list of continuations: three rounds (r10-r12) each defeated a continuation rule."""
+    depth = 0
+    for i, ch in enumerate(body):
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth = max(0, depth - 1)
+        elif ch == ";" and depth == 0 and _OTHER_ROLE_NEXT.match(body, i + 1):
+            return body[:i].rstrip()
+    return body
+
+
+# the clause after a ';' designates ANOTHER outcome role: '; secondary outcome(s) were ...', '; and the key secondary
+# end point was ...', '; other outcomes included ...', '; safety end points ...'
+_OTHER_ROLE_NEXT = re.compile(r"\s*(?:and\s+|while\s+|whereas\s+)?(?:the\s+|a\s+|its\s+)?(?:key\s+|main\s+|major\s+)?"
+                              r"(?:secondary|tertiary|exploratory|other|additional|safety)\s+(?:efficacy\s+)?"
+                              r"(?:outcomes?|end ?points?|measures?)\b", re.I)
+# ... defines only an outcome whose WHOLE name is diarrhoea / AAD (either spelling)
+_AAD_SUBJECT = r"(?:antibiotic[- ]associated\s+)?diarrho?ea(?:\s*\(AAD\))?|AAD"
+# ... defines only an outcome whose WHOLE name is AAD itself
+_AAD_ONLY = r"antibiotic[- ]associated\s+diarrho?ea(?:\s*\(AAD\))?|AAD"
+
+
+def _sentence_rest(text: str, m: "re.Match[str]") -> str:
+    """The rest of the match's sentence after it (to the next '. ' or the end)."""
+    end = text.find(". ", m.end())
+    return text[m.end():end if end >= 0 else len(text)]
+
+
+def _clause_to(text: str, m: "re.Match[str]") -> str:
+    """The clause that leads into the match and the match itself: from the previous '. ' or ';' (or the start)."""
+    start = max(text.rfind(". ", 0, m.start()), text.rfind(";", 0, m.start()))
+    return text[start + 1 if start >= 0 else 0:m.end()]
 
 
 def _derive_population_age(trial: dict[str, Any], rec: dict[str, Any] | None) -> dict[str, Any]:

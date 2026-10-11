@@ -1,0 +1,264 @@
+"""r23-03 / r17 / r13: a harms row carries ITS OWN definition and state, never the efficacy tuple's.
+
+  - PLUS: the new-RRT row carried 'primary outcome was death from any cause within 90 days'.
+  - SPLIT: AKI and RRT are REPORTED (RR 1.04, RR 0.96) but were labelled RETRIEVED_OUTCOME_NOT_REPORTED because the
+    design refusal code (ENGINE_CANNOT_CONSUME) fell through to the not-reported default; its RRT span was the
+    exclusion criterion.
+Strings are copied from the held abstracts (cache/balanced-crystalloids-vs-saline-mortality/records.json)."""
+import os
+import sys
+
+import pytest
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from harness import absence, compat_check, harms  # noqa: E402
+
+PLUS = ("METHODS: In a double-blind, randomized, controlled trial, we assigned critically ill patients to receive BMES "
+        "(Plasma-Lyte 148) or saline as fluid therapy in the intensive care unit (ICU) for 90 days. The primary outcome "
+        "was death from any cause within 90 days after randomization. Secondary outcomes were receipt of new "
+        "renal-replacement therapy and the maximum increase in the creatinine level during ICU stay. RESULTS: ... New "
+        "renal-replacement therapy was initiated in 306 of 2403 patients (12.7%) in the BMES group and in 310 of 2394 "
+        "patients (12.9%) in the saline group, for a difference of -0.20 percentage points (95% CI, -2.96 to 2.56).")
+SPLIT = ("IMPORTANCE: Saline (0.9% sodium chloride) is the most commonly administered intravenous fluid; however, its "
+         "use may be associated with acute kidney injury (AKI) and increased mortality. PARTICIPANTS: All patients "
+         "admitted to the ICU requiring crystalloid fluid therapy were eligible for inclusion. Patients with "
+         "established AKI requiring renal replacement therapy (RRT) were excluded. MAIN OUTCOMES AND MEASURES: The "
+         "primary outcome was proportion of patients with AKI (defined as a rise in serum creatinine level of at least "
+         "2-fold or a serum creatinine level of >=3.96 mg/dL with an increase of >=0.5 mg/dL); main secondary outcomes "
+         "were incidence of RRT use and in-hospital mortality. RESULTS: In the buffered crystalloid group, 102 of 1067 "
+         "patients (9.6%) developed AKI within 90 days after enrollment compared with 94 of 1025 patients (9.2%) in the "
+         "saline group (absolute difference, 0.4% [95% CI, -2.1% to 2.9%]; relative risk [RR], 1.04 [95% CI, 0.80 to "
+         "1.36]; P = .77). In the buffered crystalloid group, RRT was used in 38 of 1152 patients (3.3%) compared with "
+         "38 of 1110 patients (3.4%) in the saline group (absolute difference, -0.1% [95% CI, -1.6% to 1.4%]; RR, 0.96 "
+         "[95% CI, 0.62 to 1.50]; P = .91).")
+AKI = {"name": "Acute kidney injury", "keywords": ["acute kidney injury", "AKI", "kidney injury"], "estimand": "RR"}
+RRT = {"name": "New renal-replacement therapy", "estimand": "RR",
+       "keywords": ["new renal-replacement therapy", "renal-replacement therapy", "renal replacement therapy", "RRT",
+                    "kidney replacement therapy"]}
+DESIGN_REFUSAL = ("ENGINE_CANNOT_CONSUME(design=cluster_crossover, missing=design_adjusted_effect|ICC): typed design "
+                  "action REFUSE: SPLIT is cluster-crossover")
+
+
+def _endpoint(outcome, pid, abstract):
+    trial = {"id": f"PMID {pid}", "label": pid}
+    return compat_check.derive_trial_dimensions({"slug": "x"}, outcome, trial,
+                                                {"records": [{"id": pid, "title": "", "abstract": abstract}]},
+                                                {})["endpoint_definition"]
+
+
+def test_PLANT_a_harm_row_never_inherits_the_efficacy_primary_definition():
+    got = _endpoint({"name": "New renal-replacement therapy", "kind": "harm"}, "35041780", PLUS)
+    assert "death" not in (got["value"] or "").lower(), got
+    assert got["value"] == "New renal-replacement therapy"
+    assert "another outcome" in got["source"]
+
+
+def test_the_primary_outcome_still_gets_its_primary_definition():
+    got = _endpoint({"name": "All-cause mortality", "primary": True}, "35041780", PLUS)
+    assert "death from any cause within 90 days" in got["value"]
+
+
+def test_a_secondary_outcome_never_takes_the_trials_primary_sentence_even_when_it_is_that_outcome():
+    # SPLIT's primary IS AKI, but in this review AKI is a harms row: the trial's primary sentence defines this review's
+    # primary outcome only, so the row keeps its name (safe; the earlier 'names the outcome' rule was the defect class)
+    got = _endpoint({"name": "Acute kidney injury", "kind": "harm"}, "26444692", SPLIT)
+    assert got["value"] == "Acute kidney injury"
+
+
+@pytest.mark.parametrize("sentence,name", [
+    # every codex harms-r1..r5 counterexample: none may define a non-primary row
+    ("major cardiovascular events, defined as cardiovascular death, myocardial infarction, or renal failure",
+     "new renal replacement therapy"),                                                                     # r1
+    ("major cardiovascular events, defined as fatal myocardial infarction and stroke", "Non-fatal myocardial infarction"),
+    ("The primary endpoint was burnout severity at six months", "Burn"),                                   # r2
+    ("major cardiovascular events, defined as non-fatal stroke or cardiovascular death", "non-fatal MI"),  # r3
+    ("The primary endpoint was survival without AKI at 90 days", "acute kidney injury"),
+    ("major cardiovascular events, defined as cardiovascular death and stroke", "death from any cause"),   # r4
+    ("The primary outcome was survival without acute kidney injury (AKI) at 90 days", "AKI"),              # r5
+    ("major cardiovascular events, defined as cardiovascular death or stroke, are assessed at 90 days",
+     "adverse renal events"),
+    ("major cardiovascular events, defined as cardiovascular death, myocardial infarction, or stroke", "stroke"),
+])
+def test_PLANT_codex_harms_r1_r5_no_primary_sentence_defines_a_non_primary_row(sentence, name):
+    got = _endpoint({"name": name, "kind": "harm"}, "1", sentence + ".")
+    assert got["value"] == name, got
+
+
+def test_an_outcome_specific_definition_applies_only_to_its_subject():
+    text = "AAD = three or more loose stools per day for two days. The primary outcome was AAD within 30 days."
+    assert _endpoint({"name": "Antibiotic-associated diarrhoea", "primary": False}, "2", text)["value"].startswith("AAD")
+    assert _endpoint({"name": "Serious adverse events", "kind": "harm"}, "2", text)["value"] == "Serious adverse events"
+
+
+def _state(spec, code, reason, abstract=SPLIT, pid="26444692"):
+    row = {"id": f"PMID {pid}", "label": pid, "reason_code": code, "reason": reason}
+    return harms._hm_state_for_absent(row, spec, {pid: {"id": pid, "abstract": abstract}}, {})
+
+
+def test_PLANT_a_design_refusal_of_a_reported_harm_is_not_not_reported():
+    for spec, needle in ((AKI, "102 of 1067"), (RRT, "38 of 1152")):
+        got = _state(spec, absence.ENGINE_CANNOT_CONSUME, DESIGN_REFUSAL)
+        assert got["harm_absence_state"] == harms.RETRIEVED_REFUSED_WITH_REASON, (spec["name"], got)
+        assert got["harm_source_reported"] is True
+        # PLANT: the span is the RESULT sentence, not the background sentence or the RRT exclusion criterion
+        assert needle in got["harm_source_span"], got["harm_source_span"]
+        assert got["harm_source_signal"] == "numeric_signal"
+
+
+def test_PLANT_an_unrecognised_code_never_certifies_absence():
+    got = _state(RRT, "SOME_NEW_CODE", "a reason")
+    assert got["harm_absence_state"] != harms.RETRIEVED_OUTCOME_NOT_REPORTED
+
+
+def test_a_genuine_not_in_source_row_is_still_not_reported():
+    got = _state(RRT, absence.OUTCOME_NOT_IN_SOURCE, "not in the abstract",
+                 abstract="RESULTS: Mortality was 10% versus 11% in the two groups.", pid="1")
+    assert got["harm_absence_state"] == harms.RETRIEVED_OUTCOME_NOT_REPORTED
+    assert got["harm_source_reported"] is False
+
+
+def test_PLANT_the_word_or_is_not_an_odds_ratio():
+    sent = ("The primary outcome was AKI (a rise in serum creatinine of at least 2-fold or a serum creatinine level of "
+            ">=3.96 mg/dL with an increase of >=0.5 mg/dL).")
+    assert harms._EFFECT_OR_COMPARISON.search(sent) is None
+    assert harms._EFFECT_OR_COMPARISON.search("AKI occurred more often (OR 1.40, 95% CI 1.1 to 1.8).")
+
+
+def test_PLANT_a_known_reported_row_stays_extraction_debt_not_a_refusal():
+    # LoDoCo2 (32862667) GI events: the row's own code says reported-not-yet-extracted; it must stay unresolved debt
+    # (harms_incomplete), never 'not reported' and never a resolved refusal (r13 'reported, extraction unresolved')
+    got = _state(AKI, harms.KNOWN_REPORTED_NOT_YET_EXTRACTED, "reported; not yet extracted")
+    assert got["harm_absence_state"] == harms.KNOWN_REPORTED_NOT_YET_EXTRACTED
+
+
+def test_PLANT_codex_harms_r6_the_subject_gate_is_a_full_name_match_in_either_spelling():
+    text = "AAD = antibiotic-associated diarrhoea with at least three loose stools daily."
+    got = _endpoint({"name": "AAD-related hospital admission", "primary": False}, "3", text)
+    assert got["value"] == "AAD-related hospital admission" and "another outcome" in got["source"]
+    assert _endpoint({"name": "Antibiotic-associated diarrhea", "primary": False}, "3", text)["value"].startswith("AAD =")
+
+
+def test_PLANT_codex_harms_r7_1_a_primary_rule_needs_the_word_primary_in_its_sentence():
+    text = "A secondary outcome was serious vascular event (myocardial infarction, stroke, or vascular death)."
+    assert _endpoint({"name": "All-cause mortality", "primary": True}, "4", text)["value"] == "All-cause mortality"
+
+
+def test_PLANT_codex_harms_r7_2_the_aad_rule_does_not_define_plain_diarrhoea():
+    text = ("Diarrhea (three or more loose stools daily regardless of cause). AAD = diarrhea attributable to antibiotic "
+            "treatment")
+    got = _endpoint({"name": "Diarrhea", "primary": False}, "5", text)
+    assert got["value"].startswith("Diarrhea (three or more"), got
+    assert _endpoint({"name": "AAD", "primary": False}, "5", text)["value"].startswith("AAD =")
+
+
+def test_a_structured_abstracts_main_outcome_measure_label_marks_the_primary_endpoint():
+    # SU.FOL.OM3 (21115589) held abstract shape
+    text = ("MAIN OUTCOME MEASURE: Major cardiovascular events, defined as a composite of non-fatal myocardial "
+            "infarction, stroke, or death from cardiovascular disease.")
+    got = _endpoint({"name": "Major vascular events / MACE", "primary": True}, "6", text)
+    assert got["value"].startswith("Major cardiovascular events, defined as")
+
+
+def test_PLANT_codex_harms_r8_1_the_primary_marker_must_govern_the_matched_clause():
+    text = ("Primary endpoint: mortality; secondary endpoint: serious vascular event (myocardial infarction, stroke, or "
+            "vascular death).")
+    assert _endpoint({"name": "Mortality", "primary": True}, "7", text)["value"] == "Mortality"
+
+
+def test_PLANT_codex_harms_r8_2_a_negated_qualifier_blocks_the_definition():
+    text = "Non-antibiotic-associated diarrhoea (three or more loose stools per day without antibiotic exposure)."
+    assert _endpoint({"name": "AAD", "primary": False}, "8", text)["value"] == "AAD"
+
+
+def test_a_primary_definition_that_mentions_other_causes_is_still_primary():
+    text = "The primary outcome was a composite of death from cardiovascular or other causes and myocardial infarction."
+    assert "other causes" in _endpoint({"name": "Death or MI", "primary": True}, "9", text)["value"]
+
+
+def test_PLANT_codex_harms_r9_1_a_primary_rule_must_be_introduced_by_the_primary_label():
+    text = ("Primary outcome: all-cause mortality, with serious vascular event (stroke or myocardial infarction) as a "
+            "secondary outcome.")
+    assert _endpoint({"name": "All-cause mortality", "primary": True}, "10", text)["value"] == "All-cause mortality"
+
+
+def test_PLANT_codex_harms_r9_2_a_multi_word_negated_qualifier_blocks_the_definition():
+    text = "Non-antibiotic associated diarrhoea (three or more loose stools within 24 hours) was recorded."
+    assert _endpoint({"name": "AAD", "primary": False}, "11", text)["value"] == "AAD"
+
+
+def test_PLANT_codex_harms_r10_1_an_antibiotic_associated_definition_does_not_define_plain_diarrhoea():
+    text = "Antibiotic-associated diarrhoea (three or more loose stools within 24 hours during antibiotics)."
+    assert _endpoint({"name": "Diarrhoea", "primary": False}, "12", text)["value"] == "Diarrhoea"
+    assert _endpoint({"name": "AAD", "primary": False}, "12", text)["value"].startswith("diarrhoea (three")
+
+
+def test_PLANT_codex_harms_r10_2_a_primary_pattern_never_runs_into_a_secondary_clause():
+    text = ("The parent trial's primary outcome was all-cause mortality at 30 days, assessed as a secondary outcome in "
+            "this substudy.")
+    assert _endpoint({"name": "Quality of life", "primary": True}, "13", text)["value"] == "Quality of life"
+    text2 = "The primary outcome was death; secondary outcome was serious vascular events (MI or stroke)."
+    assert "serious vascular" not in _endpoint({"name": "Death", "primary": True}, "14", text2)["value"]
+
+
+def test_a_semicolon_inside_parentheses_does_not_cut_a_primary_definition():
+    # GLP-1 (34215025) held abstract shape: the ';' is inside the MACE parenthesis
+    text = ("The primary outcome was the first major adverse cardiovascular event (MACE; a composite of nonfatal "
+            "myocardial infarction, nonfatal stroke, or death from cardiovascular causes).")
+    got = _endpoint({"name": "3-point MACE", "primary": True}, "15", text)["value"]
+    assert "a composite of nonfatal myocardial infarction" in got, got
+
+
+@pytest.mark.parametrize("body", [
+    "primary outcome was a composite of [1] cardiovascular death; [2] nonfatal myocardial infarction; and [3] nonfatal stroke",
+    "primary outcome was a composite of (1) cardiovascular death; (2) nonfatal myocardial infarction; or (3) nonfatal stroke",
+    "primary outcome was a composite of 1) cardiovascular death; 2) nonfatal myocardial infarction; 3) nonfatal stroke",
+    "primary outcome was a composite of (i) cardiovascular death; (ii) nonfatal myocardial infarction; (iii) stroke",
+])
+def test_PLANT_harms_r11_1_a_numbered_composite_list_is_never_cut(body):
+    from harness.compat_check import _cut_clause
+    assert _cut_clause(body) == body
+
+
+def test_the_clause_cut_still_stops_at_the_next_clause():
+    from harness.compat_check import _cut_clause
+    assert _cut_clause("primary outcome was mortality at 90 days; secondary outcome was stroke") == \
+        "primary outcome was mortality at 90 days"
+
+
+@pytest.mark.parametrize("body", [
+    "primary outcome was a composite of cardiovascular death; nonfatal myocardial infarction; or nonfatal stroke",
+    "primary outcome was a composite of death; myocardial infarction; stroke; or hospitalisation for unstable angina",
+])
+def test_PLANT_harms_r12_1_an_unnumbered_semicolon_composite_is_never_cut(body):
+    from harness.compat_check import _cut_clause
+    assert _cut_clause(body) == body
+
+
+@pytest.mark.parametrize("body,cut", [
+    ("primary outcome was death; secondary outcome was stroke", "primary outcome was death"),
+    ("primary outcome was death at 90 days; and the key secondary end point was stroke", "primary outcome was death at 90 days"),
+    ("primary outcome was death; other outcomes included stroke", "primary outcome was death"),
+])
+def test_a_semicolon_opening_another_roles_clause_still_cuts(body, cut):
+    from harness.compat_check import _cut_clause
+    assert _cut_clause(body) == cut
+
+
+def test_PLANT_harms_r13_1_non_primary_is_not_the_primary_label():
+    text = ("The non-primary outcome was a composite of death and nonfatal myocardial infarction. The primary outcome "
+            "was all-cause mortality within 30 days.")
+    got = _endpoint({"name": "All-cause mortality", "primary": True}, "16", text)["value"]
+    assert "composite of death and nonfatal" not in got
+
+
+@pytest.mark.parametrize("text", ["Viral diarrhoea (a positive rotavirus stool antigen test).",
+                                  "Infectious diarrhea (stool culture positive for a bacterial pathogen)."])
+def test_PLANT_harms_r13_2_a_qualified_diarrhoea_definition_defines_neither_diarrhoea_nor_aad(text):
+    for name in ("AAD", "Diarrhoea"):
+        assert _endpoint({"name": name, "primary": False}, "17", text)["value"] == name
+
+
+def test_an_unqualified_diarrhoea_definition_still_defines_diarrhoea():
+    text = "The incidence of diarrhoea (three or more loose stools per day for two days) was lower."
+    assert "three or more loose stools" in _endpoint({"name": "Diarrhoea", "primary": False}, "18", text)["value"]
