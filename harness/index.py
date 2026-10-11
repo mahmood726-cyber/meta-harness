@@ -584,15 +584,31 @@ def _external_agreement_section(docs_dir: str) -> str:
             f"which compared different quantities. {co} cross-estimand comparison(s) disagree on direction, and "
             f"{nc} outcome(s) are not comparable at all (a mean difference vs a rate). Every case is enumerated "
             f"in <code>docs/external_agreement.json</code>. This is pooled-level agreement. "
-            f"<strong>The per-trial head-to-head was attempted against the gold standard</strong> "
-            f"(the Cochrane review CD013505 of metformin for PCOS ovulation): its pooled OR 2.64 (k=13) sits "
-            f"far from our single-trial OR 8.25 (k=1) &mdash; a stark, honest illustration of the small-k "
-            f"weakness the expansion tier targets &mdash; but a true number-by-number check is <strong>blocked "
-            f"even for Cochrane</strong>: its per-woman arm counts live in forest-plot images, not the "
-            f"open-access text (only per-cycle data is tabulated). Per-trial ground truth needs vision/OCR or "
-            f"IPD (<code>docs/cochrane_headtohead.json</code>).</p>"
+            + _cochrane_headtohead_line(docs_dir) + "</p>"
             + _evidence_base_line(docs_dir)
             + "</div>")
+
+
+def _cochrane_headtohead_line(docs_dir: str) -> str:
+    """The per-trial head-to-head sentence, its numbers READ from docs/cochrane_headtohead.json (the Cochrane pooled
+    estimate and ours, each with its k). Never written in code (lc lane, 11 Oct: the two ORs stood here as literals);
+    no file or no numbers -> no comparison is printed."""
+    p = os.path.join(docs_dir, "cochrane_headtohead.json")
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+        c, o = d["cochrane_pooled"], d["ours"]
+        theirs = f"{c['measure']} {float(c['effect']):g} (k={int(c['k'])})"
+        ours = f"{o['scale']} {float(o['estimate']):g} (k={int(o['k'])})"
+    except (OSError, ValueError, KeyError, TypeError):
+        return ""
+    single = "single-trial " if int(o["k"]) == 1 else ""
+    return (f"<strong>The per-trial head-to-head was attempted against the gold standard</strong> "
+            f"(the Cochrane review {html.escape(str(d.get('cochrane_review') or '').split(' ')[0])} of metformin for "
+            f"PCOS ovulation): its pooled {theirs} sits far from our {single}{ours} &mdash; a stark, honest "
+            f"illustration of the small-k weakness the expansion tier targets &mdash; but a true number-by-number "
+            f"check is <strong>blocked even for Cochrane</strong>: its per-woman arm counts live in forest-plot "
+            f"images, not the open-access text (only per-cycle data is tabulated). Per-trial ground truth needs "
+            f"vision/OCR or IPD (<code>docs/cochrane_headtohead.json</code>).")
 
 
 def _evidence_base_line(docs_dir: str) -> str:
