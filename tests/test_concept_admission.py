@@ -145,3 +145,13 @@ def test_PLANT_flow_r1_3_the_flow_script_refuses_a_text_that_is_not_the_signed_o
     with pytest.raises(SystemExit):
         s.main(["--offline"])
     assert json.loads((tmp_path / "cache" / s.SLUG / "verified_effects.json").read_text(encoding="utf-8")) == {}
+
+
+def test_flows_row_is_a_replayed_extractor_row_never_hand_entered():
+    """The hand-entered list may only shrink: FLOW's canonical row is a typed read over the held, signed CC BY text."""
+    from harness import provenance_class as pc
+    v = json.load(open(os.path.join(CACHE, "verified_effects.json"), encoding="utf-8"))["38785209"]
+    row = v[-1] if isinstance(v, list) else v
+    cls, why = pc.classify_served(dict(row, id="PMID 38785209"), lambda _: True)
+    assert cls == "EXTRACTOR", why
+    assert (row["effect"], row["ci_low"], row["ci_high"]) == (0.82, 0.68, 0.98)

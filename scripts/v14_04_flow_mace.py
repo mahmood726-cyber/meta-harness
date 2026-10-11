@@ -36,7 +36,6 @@ TEXT_SHA = "f5b56a7b8757869962afb09191da6791c5038cc001c5913c93f1f415fa3c9a62"   
 DEF_SPAN = "the composite of CV death, non-fatal MI or non-fatal stroke (hereafter CV death/MI/stroke)"
 RES_SPAN = ("In the overall population, semaglutide reduced rates of the composite of CV death/MI/stroke compared with "
             "placebo [HR 0.82 (95% CI 0.68–0.98)]")
-_HR = re.compile(r"HR\s+(\d+\.\d+)\s*\(95% CI\s+(\d+\.\d+)\s*[–-]\s*(\d+\.\d+)\)")
 
 
 def _licence(http, fetch):
@@ -73,10 +72,13 @@ def main(argv):
         raise SystemExit("REFUSED: the held text is not the signed FLOW text (sha256 differs from V14-04's)")
     if DEF_SPAN not in text or RES_SPAN not in text:
         raise SystemExit("REFUSED: a signed span is not verbatim in the held text")
-    m = _HR.search(RES_SPAN)
-    e, lo, hi = (float(x) for x in m.groups())
-    if not lo < e < hi:
-        raise SystemExit("REFUSED: effect outside its interval")
+    # the SAME typed reader the served row is replayed with (harness/extractor_replay, held_fulltext_clause)
+    from harness.extractor_replay import ReadRefused, read_abstract_clause
+    try:
+        v = read_abstract_clause(RES_SPAN)
+    except ReadRefused as exc:
+        raise SystemExit(f"REFUSED: {exc}")
+    e, lo, hi = v["effect"], v["ci_low"], v["ci_high"]
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
     if not offline:
         os.makedirs(HELD_DIR, exist_ok=True)
@@ -97,7 +99,9 @@ def main(argv):
                       f"definition '{DEF_SPAN}'; result HR {e:.2f} ({lo:.2f}-{hi:.2f}), overall population"),
            "verification": f"{ITEM}: both spans verbatim in the held CC BY text (sha256 {sha})",
            "source_span": RES_SPAN, "document_ref": f"outputs/held_fulltexts/{HELD_NAME}", "source_level": 1,
-           "provenance": "fulltext_verified",
+           # a typed read over the held, signed text, replayed by the provenance gate -- never a hand row (the
+           # hand-entered list may only shrink; DISPATCH_V14_EXTRACTOR_ROUTE)
+           "document_sha256": TEXT_SHA, "provenance": "held_fulltext_clause",
            "reason": (f"{ITEM} (signed by Mahmood, 'sign v14', conditional on an unchanged G1 state): FLOW eligible "
                       f"under B-prime per protocol line 79 (V14-07); binding lane review10_flow_elixa, two recorded "
                       f"readers agree.")}
