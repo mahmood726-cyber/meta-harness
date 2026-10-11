@@ -7149,5 +7149,240 @@
     "verdict": null
    }
   ]
+ },
+ "comp-r3": {
+  "base": "a8a7c4b66",
+  "head": "e90086b87",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e6c9f6e77d9bc1527b2312e7723c2e49",
+    "state": "RAN_OK",
+    "files": [
+     "harness/components.py",
+     "harness/hand_binding.py",
+     "harness/rob2.py"
+    ],
+    "prompt_sha256": "37b74cd97bad11f92ed595464a1c0e83830d33e1b4c73b4e4acc4b078912a47b"
+   },
+   "g2": {
+    "record_id": "mc-3e18b02c9859cc19285edb7e6ab9ffd5",
+    "state": "RAN_OK",
+    "files": [
+     "harness/target_endpoint.py",
+     "scripts/rob2_build.py"
+    ],
+    "prompt_sha256": "ed290ff91e35bcb3ae25a69d48024effe1cb9e5b77b9e0b2c83d2cbbc429c201"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/components.py",
+    "function": "unrecognised_parts",
+    "severity": "P1",
+    "claim": "A recognised component anywhere in a listing part suppresses unknown events in that same part, allowing a broader composite to be classified as established 3-point MACE.",
+    "failing_input": "p = parse('Composite of cardiovascular death, myocardial infarction, stroke plus amputation.'); print(sorted(p.components), p.unrecognised, p.established)",
+    "expected": "Amputation is reported as unrecognised; established is False.",
+    "actual": "['cardiovascular death', 'myocardial infarction', 'stroke'], (), True",
+    "id": "comp-r3:g1#1",
+    "record_id": "mc-e6c9f6e77d9bc1527b2312e7723c2e49",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "_listing",
+    "severity": "P1",
+    "claim": "The unconditional split at 'secondary outcome' erases a secondary endpoint's entire listing, disabling unknown-component detection.",
+    "failing_input": "p = parse('Secondary outcome: composite of cardiovascular death or amputation.'); print(sorted(p.components), p.unrecognised, p.established)",
+    "expected": "Amputation is reported as unrecognised; established is False.",
+    "actual": "['cardiovascular death'], (), True",
+    "id": "comp-r3:g1#2",
+    "record_id": "mc-e6c9f6e77d9bc1527b2312e7723c2e49",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "parse",
+    "severity": "P1",
+    "claim": "Excluded events become included components because component extraction reads the exclusion clause before qualifier stripping is applied to unknown-part detection.",
+    "failing_input": "p = parse('Composite of cardiovascular death or myocardial infarction, excluding stroke.'); print(sorted(p.components), p.established)",
+    "expected": "['cardiovascular death', 'myocardial infarction'], True",
+    "actual": "['cardiovascular death', 'myocardial infarction', 'stroke'], True",
+    "id": "comp-r3:g1#3",
+    "record_id": "mc-e6c9f6e77d9bc1527b2312e7723c2e49",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "_listing",
+    "severity": "P1",
+    "claim": "A parenthesis defining one component replaces the entire enclosing composite whenever it contains two recognised cardiovascular components.",
+    "failing_input": "p = parse('Composite of cardiovascular death, myocardial infarction, or cerebrovascular events (stroke or transient ischemic attack).'); print(sorted(p.components), p.established)",
+    "expected": "['cardiovascular death', 'myocardial infarction', 'stroke', 'transient ischemic attack'], True",
+    "actual": "['stroke', 'transient ischemic attack'], True",
+    "id": "comp-r3:g1#4",
+    "record_id": "mc-e6c9f6e77d9bc1527b2312e7723c2e49",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "target_set",
+    "severity": "P1",
+    "claim": "Mixed recognised and unrecognised declarations silently lose the unrecognised components. The fallback preserves declarations only when none are recognised.",
+    "failing_input": "target_set(None, declared=['cardiovascular death', 'amputation'])",
+    "expected": "Preserve both declared components, or explicitly reject the unsupported declaration.",
+    "actual": "{'cardiovascular death'}",
+    "id": "comp-r3:g1#5",
+    "record_id": "mc-e6c9f6e77d9bc1527b2312e7723c2e49",
+    "verdict": null
+   },
+   {
+    "file": "harness/rob2.py",
+    "function": "_term_identity",
+    "severity": "P1",
+    "claim": "Removing 'change' and 'baseline' as neutral qualifiers equates change from baseline with the baseline measurement itself, permitting false outcome identity matches.",
+    "failing_input": "_term_identity('Change in body weight from baseline', 'Body weight at baseline')",
+    "expected": "False: change from baseline and baseline body weight are different measurements.",
+    "actual": "True: both reduce to the significant terms {'body', 'weight'}.",
+    "id": "comp-r3:g1#6",
+    "record_id": "mc-e6c9f6e77d9bc1527b2312e7723c2e49",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rob2_build.py",
+    "function": "role_from_source",
+    "severity": "P1",
+    "claim": "Negation is lost across coordinated endpoint roles, inventing a secondary designation explicitly denied by the source.",
+    "failing_input": "role_from_source('No primary or secondary outcome was prespecified.')",
+    "expected": "None",
+    "actual": "'secondary'",
+    "id": "comp-r3:g2#1",
+    "record_id": "mc-3e18b02c9859cc19285edb7e6ab9ffd5",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rob2_build.py",
+    "function": "role_from_source",
+    "severity": "P1",
+    "claim": "The exploratory veto ignores negation, discarding an explicitly prespecified primary designation.",
+    "failing_input": "role_from_source('The prespecified primary outcome occurred in 20 patients and was not exploratory.')",
+    "expected": "'primary'",
+    "actual": "None",
+    "id": "comp-r3:g2#2",
+    "record_id": "mc-3e18b02c9859cc19285edb7e6ab9ffd5",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rob2_build.py",
+    "function": "role_from_source",
+    "severity": "P1",
+    "claim": "Any digit counts as result reporting, so a primary endpoint's assessment time overrides the secondary endpoint that actually reports a result.",
+    "failing_input": "role_from_source('The primary outcome was assessed at 12 months; the secondary outcome occurred in 20 patients.')",
+    "expected": "'secondary'",
+    "actual": "'primary'",
+    "id": "comp-r3:g2#3",
+    "record_id": "mc-3e18b02c9859cc19285edb7e6ab9ffd5",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rob2_build.py",
+    "function": "selected_endpoints",
+    "severity": "P1",
+    "claim": "The documented source-text fallback is discarded. When registry_title and endpoint_definition_span are absent, available endpoint evidence becomes an entirely empty selection passed to rob2.assess.",
+    "failing_input": "import json\nfrom unittest.mock import patch, mock_open\nfrom scripts import rob2_build as b\nreview = {'outcomes': [{'primary': True, 'trials': [{'id': '1', 'source': 'Cardiovascular death occurred in 20 patients.'}]}]}\nwith patch('builtins.open', mock_open(read_data=json.dumps(review))):\n    print(b.selected_endpoints('demo'))",
+    "expected": "The selection for '1' retains 'Cardiovascular death occurred in 20 patients.' as fallback endpoint text, with role None.",
+    "actual": "{'1': (None, None, None)}",
+    "id": "comp-r3:g2#4",
+    "record_id": "mc-3e18b02c9859cc19285edb7e6ab9ffd5",
+    "verdict": null
+   }
+  ]
+ },
+ "comp-r3-agy": {
+  "base": "a8a7c4b66",
+  "head": "e90086b87",
+  "runs": {
+   "g1": {
+    "record_id": "mc-60e923a43e22961bc752195b73ce3f14",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/components.py (part 1)"
+    ],
+    "prompt_sha256": "6c4f1918216ee6173383853a39b426a58d14dcbd13390b8240bf8beccce4693c"
+   },
+   "g2": {
+    "record_id": "mc-cf2a6e28dedcc52ba777417528a75710",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/components.py (part 2)"
+    ],
+    "prompt_sha256": "130aea075fc46ee3457d0ffe2d2f834e0d464332e06c0b954d26076d51a121d7"
+   },
+   "g3": {
+    "record_id": "mc-6d01e5f80a916bf57c24d789bebbfcca",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/hand_binding.py",
+     "harness/rob2.py"
+    ],
+    "prompt_sha256": "776160a19a140e23cbadba678144a1a273bfc5bf33e5d214d8109fc55458a1a7"
+   },
+   "g4": {
+    "record_id": "mc-c65e408695b506ccbad47965f371a352",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/target_endpoint.py",
+     "scripts/rob2_build.py"
+    ],
+    "prompt_sha256": "b5d95009c1e547b91760c42e135ec59ef1f4e9cefbd56452932fe32e54a6d534"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/components.py",
+    "function": "target_set",
+    "severity": "P1",
+    "claim": "target_set checks `if comps == {\"kidney progression composite\"}:` with strict equality to expand the kidney composite umbrella into its constituent parts ('kidney failure', 'sustained egfr decline', 'renal death'). In a cardiorenal review target combining cardiovascular death with a kidney composite (e.g. 'Cardiovascular death or kidney composite outcome'), `comps` contains both 'cardiovascular death' and 'kidney progression composite', causing the equality check to fail. Because 'kidney progression composite' is not in `TARGET_VOCABULARY`, it is filtered out by `comps & TARGET_VOCABULARY`, completely discarding the kidney components and returning only {'cardiovascular death'}.",
+    "input": "target_set('Cardiovascular death or kidney composite outcome')",
+    "expected": "{'cardiovascular death', 'kidney failure', 'renal death', 'sustained egfr decline'}",
+    "actual": "{'cardiovascular death'}",
+    "failing_input": "-",
+    "id": "comp-r3-agy:g2#1",
+    "record_id": "mc-cf2a6e28dedcc52ba777417528a75710",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "parse",
+    "severity": "P1",
+    "claim": "In parse, expansion of standard 3-point MACE is gated on `not (comps & _CARDIO)`. Because 'heart failure event' is included in `_CARDIO`, any composite endpoint combining 3-point MACE with heart failure (e.g. '3-point MACE or hospitalization for heart failure') populates `comps` with 'heart failure event'. This makes `comps & _CARDIO` non-empty, preventing `standard` from being added to `comps` and dropping the standard MACE components from the parsed composite.",
+    "input": "names('3-point MACE or hospitalization for heart failure')",
+    "expected": "{'cardiovascular death', 'heart failure event', 'myocardial infarction', 'stroke'}",
+    "actual": "{'heart failure event'}",
+    "failing_input": "-",
+    "id": "comp-r3-agy:g2#2",
+    "record_id": "mc-cf2a6e28dedcc52ba777417528a75710",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rob2_build.py",
+    "function": "main",
+    "severity": "P2",
+    "claim": "The assess call in main contains duplicate keyword arguments and an unclosed statement with an erroneous newline/indentation, resulting in an immediate SyntaxError on execution.",
+    "failing_input": "main([])",
+    "expected_output": "Script runs and evaluates trials without crashing on syntax parsing.",
+    "actual_output": "SyntaxError: invalid syntax (at line 228 where 'blinded_by_text=blinded_txt, randomized_by_text=rand_txt,' appears outside the closed function call 'rob2.assess(...)')",
+    "expected": "-",
+    "actual": "-",
+    "id": "comp-r3-agy:g4#1",
+    "record_id": "mc-c65e408695b506ccbad47965f371a352",
+    "verdict": null
+   }
+  ]
  }
 }

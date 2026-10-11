@@ -368,3 +368,53 @@ def test_percent_and_percentage_are_the_same_unit_word():
     'Percentage Change in Body Weight (%)' -- one is filler, so both are; a threshold stays distinct by its number."""
     assert rob2._term_identity("Percent change in body weight", "Percentage Change in Body Weight (%)")
     assert not rob2._term_identity("At least 50 percent reduction in pain", "At least 30 percent reduction in pain")
+
+
+# ---- codex comp-r3 + agy comp-r3-agy (PR #83): plants that fail on e90086b87 ----------------------------------------
+@pytest.mark.parametrize("text,unknown", [
+    ("Composite of cardiovascular death, myocardial infarction, stroke plus amputation.", "amputation"),     # r3#1
+    ("Secondary outcome: composite of cardiovascular death or amputation.", "amputation"),                   # r3#2
+])
+def test_PLANT_comp_r3_an_unknown_part_is_never_hidden(text, unknown):
+    p = C.parse(text)
+    assert any(unknown in u for u in p.unrecognised) and not p.established
+
+
+def test_PLANT_comp_r3_3_an_excluded_event_is_not_a_component():
+    assert sorted(C.parse("Composite of cardiovascular death or myocardial infarction, excluding stroke.").components) == \
+        ["cardiovascular death", "myocardial infarction"]
+
+
+def test_PLANT_comp_r3_4_a_parenthesis_defining_one_item_never_replaces_the_listing():
+    p = C.parse("Composite of cardiovascular death, myocardial infarction, or cerebrovascular events (stroke or transient "
+                "ischemic attack).")
+    assert {"cardiovascular death", "myocardial infarction", "stroke", "transient ischemic attack"} <= set(p.components)
+
+
+def test_PLANT_comp_r3_5_an_unrecognised_declaration_is_kept():
+    assert C.target_set(None, declared=["cardiovascular death", "amputation"]) == {"cardiovascular death", "amputation"}
+
+
+def test_PLANT_comp_r3_6_change_from_baseline_is_not_the_baseline_value():
+    assert not rob2._term_identity("Change in body weight from baseline", "Body weight at baseline")
+    assert rob2._term_identity("Change from baseline in body weight", "Change in body weight from baseline")
+
+
+@pytest.mark.parametrize("src,role", [
+    ("No primary or secondary outcome was prespecified.", None),                                              # g2#1
+    ("The prespecified primary outcome occurred in 20 patients and was not exploratory.", "primary"),         # g2#2
+    ("The primary outcome was assessed at 12 months; the secondary outcome occurred in 20 patients.", "secondary"),  # g2#3
+])
+def test_PLANT_comp_r3_g2_role_reading(src, role):
+    import rob2_build as rb
+    assert rb.role_from_source(src) == role
+
+
+def test_PLANT_comp_r3_agy_target_kidney_umbrella_beside_cv_death_expands():
+    assert C.target_set("Cardiovascular death or kidney composite outcome") == \
+        {"cardiovascular death", "kidney failure", "sustained egfr decline", "renal death"}
+
+
+def test_PLANT_comp_r3_agy_three_point_mace_plus_hf_keeps_the_standard_set():
+    assert {"cardiovascular death", "myocardial infarction", "stroke"} <= C.names(
+        "3-point MACE or hospitalization for heart failure")

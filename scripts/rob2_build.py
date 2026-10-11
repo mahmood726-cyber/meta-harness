@@ -34,9 +34,10 @@ def pooled_ncts(slug):
 
 def selected_endpoints(slug):
     """{pid: (text, role, definition span)} -- each pooled trial's SELECTED endpoint, from its own served row (r25): the registered
-    outcome it is bound to (registry_title / registry_type), else its definition span, else the selected result's own
-    source clause; role 'primary' / 'secondary' from the registry type or that clause, else None. Never the topic's
-    generic outcome name."""
+    outcome it is bound to (registry_title / registry_type), else its held definition span -- and NEVER the result's own
+    source sentence (derive_d5_v3 compares a registered outcome or a definition, else the topic's outcome name; a results
+    sentence is not an endpoint text: codex comp-r3 g2#4 read the old docstring, which said otherwise). The source
+    clause is read ONLY for the role ('primary' / 'secondary'), from the registry type or that clause, else None."""
     rev = json.load(open(f"{ROOT}/docs/reviews/{slug}/review.json", encoding="utf-8"))
     prim = next((o for o in rev.get("outcomes", []) if o.get("primary")), None)
     out = {}
@@ -62,18 +63,23 @@ def role_from_source(src):
         start = max(src.rfind(";", 0, m.start()), src.rfind(". ", 0, m.start())) + 1
         ends = [i for i in (src.find(";", m.end()), src.find(". ", m.end())) if i >= 0]
         clause = src[start:min(ends) if ends else len(src)]
-        if re.search(r"\b(?:exploratory|post[- ]hoc|not\s+pre-?specified|unplanned)\b", clause, re.I):   # g2#2: pre-specified
+        # ... and a NEGATED veto word vetoes nothing ('... and was not exploratory', codex comp-r3 g2#2)
+        if re.search(r"\b(?<!not )(?<!non-)(?:exploratory|post[- ]hoc|unplanned)\b|\bnot\s+pre-?specified\b", clause,
+                     re.I):
             continue
         # a negator must GOVERN the phrase -- only an article or 'prespecified'/'formal' between them ('No primary
         # outcome was prespecified'); 'No difference in the primary outcome' negates the difference (g2#1)
+        # ... across a coordinated role too: 'No primary or secondary outcome was prespecified' (codex comp-r3 g2#1)
         if re.search(r"\b(?:no|not|without|non|neither|nor)[\s-]+(?:(?:a|an|the|any|pre-?specified|formal|single|"
-                     r"separate)\s+)*$", src[max(0, m.start() - 40):m.start()], re.I):
+                     r"separate|primary|secondary|or|and|nor)\s+)*$", src[max(0, m.start() - 60):m.start()], re.I):
             continue
         found.append((m.group(1).lower(), clause))
     # the role is the one whose clause REPORTS the result ('occurred', a ratio, a count); a role only mentioned in
     # another clause ('the primary outcome was reported separately') never wins over it (codex comp-r2 g2#1)
+    # a RESULT cue, never any digit: 'assessed at 12 months' reports nothing (codex comp-r3 g2#3)
     reporting = [k for k, c in found if re.search(r"\b(?:occurred|occurring|hazard ratio|odds ratio|relative risk|risk "
-                                                   r"ratio)\b|\d", c, re.I)]
+                                                   r"ratio)\b|\d+(?:\.\d+)?\s*%|\b\d+\s+(?:of\s+\d+\s+)?(?:patients|"
+                                                   r"participants|subjects|events)\b", c, re.I)]
     return (reporting or [k for k, _ in found] or [None])[0]
 
 
