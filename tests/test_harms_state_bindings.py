@@ -224,3 +224,22 @@ def test_the_clause_cut_still_stops_at_the_next_clause():
     from harness.compat_check import _cut_clause
     assert _cut_clause("primary outcome was mortality at 90 days; secondary outcome was stroke") == \
         "primary outcome was mortality at 90 days"
+
+
+@pytest.mark.parametrize("body", [
+    "primary outcome was a composite of cardiovascular death; nonfatal myocardial infarction; or nonfatal stroke",
+    "primary outcome was a composite of death; myocardial infarction; stroke; or hospitalisation for unstable angina",
+])
+def test_PLANT_harms_r12_1_an_unnumbered_semicolon_composite_is_never_cut(body):
+    from harness.compat_check import _cut_clause
+    assert _cut_clause(body) == body
+
+
+@pytest.mark.parametrize("body,cut", [
+    ("primary outcome was death; secondary outcome was stroke", "primary outcome was death"),
+    ("primary outcome was death at 90 days; and the key secondary end point was stroke", "primary outcome was death at 90 days"),
+    ("primary outcome was death; other outcomes included stroke", "primary outcome was death"),
+])
+def test_a_semicolon_opening_another_roles_clause_still_cuts(body, cut):
+    from harness.compat_check import _cut_clause
+    assert _cut_clause(body) == cut

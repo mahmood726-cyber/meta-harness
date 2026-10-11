@@ -261,22 +261,27 @@ _PRIMARY = object()                                         # the rule's sentenc
 
 
 def _cut_clause(body: str) -> str:
-    """The body up to its first ';' at bracket depth 0 -- a primary sentence never runs on into the next clause
-    (codex harms-r10#2), while '(MACE; a composite of ...)' and '[1] ...; [2] ...' stay whole (GLP-1 34215025)."""
+    """The body up to the first depth-0 ';' that OPENS ANOTHER ROLE'S CLAUSE ('; secondary outcome was ...') -- a primary
+    sentence never runs on into it (codex harms-r10#2). Every other ';' is part of the definition: a semicolon-separated
+    composite, numbered or not ('A; B; or C', '[1] A; [2] B'), stays whole (harms-r11#1, r12#1), and so does
+    '(MACE; a composite of ...)' (GLP-1 34215025).
+    A WHITELIST of terminators, not a list of continuations: three rounds (r10-r12) each defeated a continuation rule."""
     depth = 0
     for i, ch in enumerate(body):
         if ch in "([":
             depth += 1
         elif ch in ")]":
             depth = max(0, depth - 1)
-        elif ch == ";" and depth == 0 and not _LIST_ITEM_NEXT.match(body, i + 1):
+        elif ch == ";" and depth == 0 and _OTHER_ROLE_NEXT.match(body, i + 1):
             return body[:i].rstrip()
     return body
 
 
-# a ';' followed by the next item's enumerator ('[2]', '(2)', '2)', '(ii)', optionally after 'and'/'or') continues a
-# numbered list: '[1] CV death; [2] nonfatal MI; and [3] nonfatal stroke' is one composite (codex harms-r11#1)
-_LIST_ITEM_NEXT = re.compile(r"\s*(?:(?:and|or)\s+)?(?:\[\d{1,2}\]|\(\d{1,2}\)|\d{1,2}\)|\(?[ivx]{1,4}\))\s", re.I)
+# the clause after a ';' designates ANOTHER outcome role: '; secondary outcome(s) were ...', '; and the key secondary
+# end point was ...', '; other outcomes included ...', '; safety end points ...'
+_OTHER_ROLE_NEXT = re.compile(r"\s*(?:and\s+|while\s+|whereas\s+)?(?:the\s+|a\s+|its\s+)?(?:key\s+|main\s+|major\s+)?"
+                              r"(?:secondary|tertiary|exploratory|other|additional|safety)\s+(?:efficacy\s+)?"
+                              r"(?:outcomes?|end ?points?|measures?)\b", re.I)
 # ... defines only an outcome whose WHOLE name is diarrhoea / AAD (either spelling)
 _AAD_SUBJECT = r"(?:antibiotic[- ]associated\s+)?diarrho?ea(?:\s*\(AAD\))?|AAD"
 # ... defines only an outcome whose WHOLE name is AAD itself

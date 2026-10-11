@@ -7208,5 +7208,35 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r12": {
+  "base": "fca8cff07",
+  "head": "391da62a6",
+  "runs": {
+   "g1": {
+    "record_id": "mc-eee78e9d3cb090ef2d38d95040f73a02",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "54d1c51f25ab849e71868ce39069b967d8e4aca75d201bdcce5654ea507552fd"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_cut_clause / _derive_endpoint",
+    "severity": "P1",
+    "claim": "The new clause cutter truncates unnumbered, semicolon-separated composite endpoints and returns the first component as the complete definition.",
+    "failing_input": "_cut_clause('primary outcome was a composite of cardiovascular death; nonfatal myocardial infarction; or nonfatal stroke'). This same text reaches the cutter in _derive_endpoint for outcome={'name': 'Major cardiovascular events', 'primary': True}.",
+    "expected": "Preserve the complete composite definition, including cardiovascular death, nonfatal myocardial infarction, and nonfatal stroke.",
+    "actual": "Returns 'primary outcome was a composite of cardiovascular death'. _derive_endpoint accepts this truncated value with basis 'committed source text'.",
+    "id": "harms-r12:g1#1",
+    "record_id": "mc-eee78e9d3cb090ef2d38d95040f73a02",
+    "verdict": null
+   }
+  ]
  }
 }
