@@ -99,9 +99,11 @@ def _named(s: str) -> set[str]:
         comps.add("coronary heart disease death")
     # 'non-cardiovascular death' / 'death from non-cardiovascular causes' is NOT cardiovascular death
     s_cv = re.sub(r"\bnon-?\s?cardiovascular\b", "noncv", s)
-    if ("cardiovascular death" in s_cv or "death from cardiovascular" in s_cv or "cardiovascular causes" in s_cv
-            or re.search(r"cardiovascular(?:(?!\b(?:or|and)\b|[,;]).){0,30}death|death(?:(?!\b(?:or|and)\b|[,;]).){0,30}"
-                         r"cardiovascular", s_cv)
+    # 'cardiovascular causes' is a death only beside one ('death / mortality from cardiovascular causes'): a bare
+    # 'hospitalization for cardiovascular causes' is no death (codex comp-r2#1)
+    if ("cardiovascular death" in s_cv or "death from cardiovascular" in s_cv
+            or re.search(r"cardiovascular(?:(?!\b(?:or|and)\b|[,;]).){0,30}death|(?:death|mortality)(?:(?!\b(?:or|and)\b"
+                         r"|[,;]).){0,30}cardiovascular", s_cv)
             or re.search(r"\bcardiovascular[- ]related\s+death|\bcardiovascular\s+mortality\b", s_cv)
             # 'death from vascular causes' / 'vascular death' is the PLATO / PHILO / ASCEND / ORIGIN phrasing
             or re.search(r"(?<!cerebro)(?<!cardio)(?<!non-)(?<!non)\bvascular death|(?<!non-)death from vascular causes",
@@ -113,9 +115,11 @@ def _named(s: str) -> set[str]:
         comps.add("non-cardiovascular death")
     if "transient ischemic attack" in s or re.search(r"\btia\b", s):
         comps.add("transient ischemic attack")
-    if (("heart failure" in s and "hospitalization" in s)
+    # heart failure and hospitalization must be ONE phrase (within 4 words), never two endpoints of one text: 'angina
+    # hospitalization or urgent heart failure visit' names no HF hospitalization (codex comp-r2#2)
+    if (re.search(r"\b(?:heart failure|hf)\b(?:\W+(?!(?:or|and)\b)\w+){0,3}?\W+(?:re)?hospitali[sz]"
+                  r"|\b(?:re)?hospitali[sz]\w*(?:\W+(?!(?:or|and)\b)\w+){0,4}?\W+(?:heart failure|hf)\b", s)
             or "hospitalizations due to heart failure" in s
-            or (re.search(r"\bhf\b", s) and re.search(r"hospitali[sz]", s))
             or (re.search(r"\bhospitali[sz]ed\s+(?:for|because of|due to)\s+(?:acute\s+|worsening\s+)?(?:heart failure|hf)\b", s)
                 and (re.search(r"\b(?:were|was|been|being|be)\s+(?:re)?hospitali[sz]ed\b", s)
                      or re.search(r"hazard ratio|odds ratio|risk ratio|\b(?:hr|rr|or)\b|%|\bvs\b|versus", s))
@@ -167,8 +171,10 @@ def _named(s: str) -> set[str]:
     # systemic embolism: the AF-trial composite 'stroke or systemic embolism' (RE-LY, ROCKET AF, ARISTOTLE)
     if re.search(r"\bsystemic (?:arterial )?embol", s):
         comps.add("systemic embolism")
+    # a bare kidney-composite LABEL is its umbrella only: its parts come from a listing, never from the label
+    # (rule 3 for kidney composites, codex comp-r2#5)
     if "kidney composite" in s or "renal composite" in s or "composite kidney outcome" in s:
-        comps.update({"kidney failure", "sustained egfr decline", "renal death"})
+        comps.add("kidney progression composite")
     if "egfr" in s and any(w in s for w in ("decline", "decrease", "reduction")):
         comps.add("sustained egfr decline")
     if "renal death" in s or "death from renal" in s:
@@ -290,7 +296,12 @@ def _segment_text(text: str) -> str:
                    r"|\b(?:occurred|occurring|developed|was reported|were reported)\b|\d+(?:\.\d+)?\s*%"
                    # ... or a METHOD cue ('was evaluated using time-to-event analysis', GLP-1 registry text)
                    r"|\b(?:was|were)\s+(?:evaluated|analy[sz]ed|assessed|calculated|estimated)\b|\busing\b"
-                   r"|\b\d+\s+(?:of|patients|participants|subjects)\b", text)[0]
+                   # ... and a participial one ('..., assessed in a time-to-first-event analysis', GLP-1 PIONEER 6 text)
+                   r"|\b(?:as\s+)?(?:assessed|analy[sz]ed|evaluated|measured|adjudicated)\s+(?:in|by|with|as|over)\b"
+                   r"|\b\d+\s+(?:of|patients|participants|subjects)\b"
+                   # ... and 'respectively' closes a paired listing ('safety and efficacy endpoints were major bleeding and
+                   # the composite of MI, stroke or vascular death, respectively', PHILO)
+                   r"|\brespectively\b", text)[0]
     # '(CV)', '(MI)': an abbreviation, not a part -- removed, and the gap closed ('coronary heart disease (CHD) death'
     # must still read as 'coronary heart disease death')
     return re.sub(r"\s+", " ", re.sub(r"\(\s*[a-z0-9-]{1,8}\s*\)", " ", seg))
@@ -298,13 +309,18 @@ def _segment_text(text: str) -> str:
 
 def _listing_segment(s: str) -> str:
     """The listing of a FOLDED text, or '' when it is not a cardiovascular listing."""
+    return _listing(s)[1]
+
+
+def _listing(s: str) -> tuple[str, str]:
+    """(how the listing was found -- 'paren' / 'marker' / 'list' / '' -- and the listing) of a FOLDED text."""
     s = re.split(r"\bsecondary\s+(?:\w+\s+){0,2}(?:end\s*-?points?|outcomes?)\b", s, maxsplit=1)[0]
     # only a CARDIOVASCULAR listing is judged (>= 1 cardiovascular component, or a generic cardiovascular label): this
     # vocabulary is cardiovascular, and a VTE or respiratory composite is not read by it (rob2-r1 of PR #67). One is
     # enough: 'Composite of cardiovascular death or amputation' names an unknown part (codex comp-r1#1)
     # (all-cause death alone does not make a listing cardiovascular: 'death, dementia or disability' is not read here)
     if not (_named(s) & (_CARDIO - {"all-cause death"})) and not GENERIC_LABEL_RX.search(s):
-        return ""
+        return "", ""
 
     def _segment(start: int) -> str:
         return _segment_text(s[start:])
@@ -314,17 +330,30 @@ def _listing_segment(s: str) -> str:
     # 'the primary outcome was a first serious vascular event (i.e., nonfatal MI or stroke, TIA, or vascular death)': a
     # composite NAME followed by its parenthesised listing -- the parenthesis IS the listing (ASCEND 30146932, PROSPER
     # 20404379); a name with no parenthesised listing is judged as written (Alpha Omega stays not established)
-    for inner in re.findall(r"\(([^()]{10,400})\)", s):
+    for pm in re.finditer(r"\(([^()]{10,400})\)", s):
+        inner = pm.group(1)
         if len(_named(inner) & _CARDIO) >= 2:
-            return _segment_text(re.sub(r"^\s*(?:i\.\s*e\.|e\.\s*g\.|ie|eg)\s*,?\s*", "", inner))
+            listing = _segment_text(re.sub(r"^\s*(?:i\.\s*e\.|e\.\s*g\.|ie|eg)\s*,?\s*", "", inner))
+            # a listing CONTINUED after the parenthesis is read too: 'MACE (CV death, MI, stroke) and amputation' --
+            # a part outside it is never hidden (codex comp-r2#4)
+            more = re.match(r"\s*(?:,|\bor\b|\band\b)\s*(.+)", s[pm.end():])
+            return "paren", listing + (", " + _segment_text(more.group(1)) if more else "")
     marks = list(_LIST_MARKER.finditer(s))
+    # a DEFINING marker ('composite of', 'comprised of', 'defined as', 'including', ...) outranks one that only
+    # INTRODUCES an outcome name ('first occurrence of', ':'): PHILO's 'time to first occurrence of any major bleeding
+    # event and to any event from the composite of MI, stroke or vascular death' defines the composite after 'composite of'
+    defining = [m for m in marks if not re.match(r"first\s+(?:occurrence|event)\s+of|:", m.group(0))]
+    marks = defining or marks
+    # a marker INSIDE a parenthesis qualifies a word, it never opens the listing: LEADER's 'nonfatal (including silent)
+    # myocardial infarction' is one component of 'death from cardiovascular causes, nonfatal ... MI, or nonfatal stroke'
+    marks = [m for m in marks if s[:m.start()].count("(") <= s[:m.start()].count(")")]
     if marks:
         segs = [_segment(m.end()) for m in marks]
         counts = [len(_named(x) | _named_rob2_only(x)) for x in segs]
-        return segs[len(segs) - 1 - counts[::-1].index(max(counts))]
-    if re.search(r",|\bor\b", s):
-        return _segment(0)
-    return ""
+        return "marker", segs[len(segs) - 1 - counts[::-1].index(max(counts))]
+    if re.search(r",|\bor\b|\band\b", s):             # 'and' joins a listing too (codex comp-r2#3)
+        return "list", _segment(0)
+    return "", ""
 
 
 # ------------------------------------------------------------------------------------------------------------- parse
@@ -350,6 +379,15 @@ def parse(text: str | None, expand_standard: bool = True) -> Parse:
     if not s.strip():
         return Parse(frozenset())
     comps = _named(s) | _named_rob2_only(s)
+    # an explicit LISTING (a 'composite of / defined as / comprising' marker, or a parenthesised listing) IS the
+    # endpoint: its components are the listing's, never words elsewhere in the text -- PHILO's 'safety and efficacy
+    # endpoints were any major bleeding event and the composite of MI, stroke or vascular death, respectively' defines
+    # the efficacy composite without major bleeding (P0 full suite: ticagrelor's served PHILO row)
+    kind, seg = _listing(s)
+    if kind in ("paren", "marker"):
+        listed = _named(seg) | _named_rob2_only(seg)
+        if listed:
+            comps = listed
     if bare_death_listed(text):
         comps.add("all-cause death")                  # 'composite of death, MI, or stroke': counted, never dropped
     if "recurrent vte" in comps:
@@ -387,10 +425,17 @@ def target_set(name: str | None, declared: Iterable[str] | None = None) -> set[s
     generic name ('Major vascular events / MACE') IS expanded to the standard 3-point set. That expansion is the review's
     own protocol decision about ITS target, never a reading of a trial's source text (rule 3)."""
     if declared:
-        got = names(" ; ".join(map(str, declared))) & TARGET_VOCABULARY
+        # a DECLARED component is the review's own: never filtered out (all-cause death in a declared composite,
+        # codex comp-r2#6); each declaration is read on its own, so one never borrows a word from another
+        got = set().union(*(names(str(x)) for x in declared))
         return got or {str(x) for x in declared}
     p = parse(name)
-    got = set(p.components) & TARGET_VOCABULARY
+    comps = set(p.components)
+    if comps == {"kidney progression composite"}:
+        # a review target NAMED as the kidney composite is its standard parts -- the review's protocol, as for MACE
+        # (finerenone 'Kidney composite outcome'); a trial's source label never expands (comp-r2#5)
+        comps = {"kidney failure", "sustained egfr decline", "renal death"}
+    got = comps & TARGET_VOCABULARY
     if got:
         return got
     # exactly the generic names the extraction route expanded before P0 ('mace', 'major adverse cardiovascular', 'major

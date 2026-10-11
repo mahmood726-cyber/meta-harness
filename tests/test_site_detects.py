@@ -25,12 +25,13 @@ N_SITES = 42 + 70 + 69 + 56 + 59 + 71 + 8      # + harness/whole_numbers.py (R4)
 N_SITES += 8 + 2         # + harness/analysis_set.py (g1/sglt2 lane) + 2 NR-C23 arm_object (consolidation 2026-10-04)
 N_SITES += 4             # + target_endpoint.py HHF verb form (V8 groundwork 6 Oct; specs added 7 Oct)
 N_SITES -= 1             # fetch.py: the ftp + https OA href extractors replaced by one package-URL check (fetch-loud, 8 Oct)
+N_SITES -= 2             # P0 (PR #83): components.py owns the moved vocabulary; 1 site retired (CV abbreviation -> fold), 2 merged into 1
 SITE_KEYS = sorted(k for k in INLINE_SPECS if k.split(":", 1)[0] in FILES)
 
 
 def test_keys_are_exactly_the_planted_sites():
     assert len(FILES) >= 50, "the inventory found too few files -- the key set would be vacuous"
-    assert len(SITE_KEYS) == N_SITES == 388, "every non-extract.py site planted in this landing carries a labelling spec"
+    assert len(SITE_KEYS) == N_SITES == 386, "every non-extract.py site planted in this landing carries a labelling spec"
     assert sorted(DETECTS) == SITE_KEYS
 
 

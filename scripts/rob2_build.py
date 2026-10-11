@@ -55,22 +55,26 @@ def role_from_source(src):
     """'primary' / 'secondary' when the selected result's own clause REPORTS it as that endpoint ('A primary-outcome
     event occurred in ...', 'The primary end point occurred ...'); None when the phrase is negated or the clause calls
     the result exploratory / post hoc ('No primary outcome was prespecified; ... was exploratory'; rob2-r1 #4)."""
-    for kind in ("primary", "secondary"):
-        for m in re.finditer(r"\b" + kind + r"[\s-]+(?:composite\s+)?(?:end\s*-?\s*point|outcome)", src, re.I):
-            # the exploratory / post-hoc veto reads the phrase's OWN clause, never the whole source ('The primary outcome
-            # occurred in 20 patients; an exploratory analysis assessed biomarkers', codex comp-r1 g2#2)
-            start = max(src.rfind(";", 0, m.start()), src.rfind(". ", 0, m.start())) + 1
-            ends = [i for i in (src.find(";", m.end()), src.find(". ", m.end())) if i >= 0]
-            clause = src[start:min(ends) if ends else len(src)]
-            if re.search(r"\b(?:exploratory|post[- ]hoc|not\s+prespecified|unplanned)\b", clause, re.I):
-                continue
-            # a negator must GOVERN the phrase -- only an article or 'prespecified'/'formal' between them ('No primary
-            # outcome was prespecified'); 'No difference in the primary outcome' negates the difference (g2#1)
-            if re.search(r"\b(?:no|not|without|non|neither|nor)[\s-]+(?:(?:a|an|the|any|pre-?specified|formal|single|"
-                         r"separate)\s+)*$", src[max(0, m.start() - 40):m.start()], re.I):
-                continue
-            return kind
-    return None
+    found = []                                   # (kind, clause) in TEXT order -- never primary-first (comp-r2 g2#1)
+    for m in re.finditer(r"\b(primary|secondary)[\s-]+(?:composite\s+)?(?:end\s*-?\s*point|outcome)", src, re.I):
+        # the exploratory / post-hoc veto reads the phrase's OWN clause, never the whole source ('The primary outcome
+        # occurred in 20 patients; an exploratory analysis assessed biomarkers', codex comp-r1 g2#2)
+        start = max(src.rfind(";", 0, m.start()), src.rfind(". ", 0, m.start())) + 1
+        ends = [i for i in (src.find(";", m.end()), src.find(". ", m.end())) if i >= 0]
+        clause = src[start:min(ends) if ends else len(src)]
+        if re.search(r"\b(?:exploratory|post[- ]hoc|not\s+pre-?specified|unplanned)\b", clause, re.I):   # g2#2: pre-specified
+            continue
+        # a negator must GOVERN the phrase -- only an article or 'prespecified'/'formal' between them ('No primary
+        # outcome was prespecified'); 'No difference in the primary outcome' negates the difference (g2#1)
+        if re.search(r"\b(?:no|not|without|non|neither|nor)[\s-]+(?:(?:a|an|the|any|pre-?specified|formal|single|"
+                     r"separate)\s+)*$", src[max(0, m.start() - 40):m.start()], re.I):
+            continue
+        found.append((m.group(1).lower(), clause))
+    # the role is the one whose clause REPORTS the result ('occurred', a ratio, a count); a role only mentioned in
+    # another clause ('the primary outcome was reported separately') never wins over it (codex comp-r2 g2#1)
+    reporting = [k for k, c in found if re.search(r"\b(?:occurred|occurring|hazard ratio|odds ratio|relative risk|risk "
+                                                   r"ratio)\b|\d", c, re.I)]
+    return (reporting or [k for k, _ in found] or [None])[0]
 
 
 def factor_terms(slug, ncts, factorial=False):
@@ -89,7 +93,8 @@ def factor_terms(slug, ncts, factorial=False):
         for name, typ in INTERVENTIONS.get(nct, []):
             if typ not in ("DRUG", "BIOLOGICAL", "DEVICE", "PROCEDURE"):
                 continue
-            if re.search(r"placebo|sham|standard|usual|control|matching|antidepressant", name, re.I) \
+            # whole words: 'Nifedipine controlled release' is an active drug, not a control (codex comp-r2 g2#3)
+            if re.search(r"\b(?:placebos?|sham|standard|usual|control|matching|antidepressants?)\b", name, re.I) \
                     or rob2._names_any(name, ours) or rob2._names_any(name, comp):
                 continue
             other[name] = 1

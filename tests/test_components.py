@@ -288,3 +288,83 @@ def test_PLANT_comp_r1_agy_1_a_hyphenated_non_qualifier_is_not_a_negation_of_the
     """agy (Gemini) comp-r1-agy g3 (mc-bb8232f2): 'non-fatal' qualifies the events, it does not negate the role."""
     import rob2_build as rb
     assert rb.role_from_source("The non-fatal primary endpoint occurred in 10 patients.") == "primary"
+
+
+# ---- codex comp-r2 (PR #83): plants that fail on 8fec97904 --------------------------------------------------------
+def test_PLANT_comp_r2_1_cardiovascular_causes_without_a_death_is_no_death():
+    assert "cardiovascular death" not in C.names("Hospitalization for cardiovascular causes")
+    assert "cardiovascular death" in C.names("Death from cardiovascular causes")
+    assert "cardiovascular death" in C.names("Mortality from cardiovascular causes")
+
+
+def test_PLANT_comp_r2_2_hf_and_hospitalization_must_be_one_phrase():
+    assert "heart failure hospitalization" not in C.names("Composite of hospitalization for angina or urgent heart "
+                                                          "failure visit")
+    for t in ("hospitalization for worsening heart failure", "heart failure hospitalization",
+              "first hospitalization due to acute decompensated heart failure"):
+        assert "heart failure hospitalization" in C.names(t), t
+
+
+@pytest.mark.parametrize("text", ["Cardiovascular death and amputation",                                 # g1#3
+                                  "Composite of MACE (cardiovascular death, myocardial infarction, stroke) and amputation"])
+def test_PLANT_comp_r2_3_4_an_and_part_or_a_part_after_the_parenthesis_is_read(text):
+    p = C.parse(text)
+    assert "amputation" in p.unrecognised and not p.established
+
+
+def test_PLANT_comp_r2_5_a_bare_kidney_composite_label_is_its_umbrella_only():
+    assert set(C.parse("Kidney composite").components) == {"kidney progression composite"}
+
+
+def test_PLANT_comp_r2_6_a_declared_component_is_never_filtered_out():
+    assert C.target_set("Declared composite", ["all-cause death", "myocardial infarction", "stroke"]) == \
+        {"all-cause death", "myocardial infarction", "stroke"}
+
+
+def test_PLANT_comp_r2_7_a_ratio_is_ordered():
+    assert not rob2._term_identity("Ratio of total cholesterol to HDL cholesterol",
+                                   "Ratio of HDL cholesterol to total cholesterol")
+    assert rob2._term_identity("Ratio of total cholesterol to HDL cholesterol", "Total cholesterol to HDL cholesterol ratio")
+
+
+@pytest.mark.parametrize("src,role", [
+    ("The secondary outcome occurred in 10 patients; the primary outcome was reported separately.", "secondary"),
+    ("The primary outcome was not pre-specified.", None),
+])
+def test_PLANT_comp_r2_g2_role_is_the_reporting_clause(src, role):
+    import rob2_build as rb
+    assert rb.role_from_source(src) == role
+
+
+def test_PLANT_comp_r2_g2_3_a_controlled_release_drug_is_not_a_control(monkeypatch, tmp_path):
+    import json
+    import rob2_build as rb
+    (tmp_path / "topics").mkdir()
+    (tmp_path / "topics" / "t.json").write_text(json.dumps({"intervention_terms": ["aspirin"]}), encoding="utf-8")
+    monkeypatch.setattr(rb, "ROOT", str(tmp_path))
+    monkeypatch.setattr(rb, "INTERVENTIONS", {"N": [("Nifedipine controlled release", "DRUG")]})
+    assert rb.factor_terms("t", ["N"], factorial=True) == (["aspirin"], ["Nifedipine controlled release"])
+
+
+def test_a_review_target_named_as_the_kidney_composite_is_its_standard_parts():
+    assert C.target_set("Kidney composite outcome") == {"kidney failure", "sustained egfr decline", "renal death"}
+
+
+def test_a_participial_method_clause_after_a_parenthesised_listing_is_not_a_part():
+    """Found by the comp-r2 sweep (glp1, G1): reading past a parenthesis must stop at a method clause."""
+    p = C.parse("The primary outcome was MACE (cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke), "
+                "assessed in a time-to-first-event analysis.")
+    assert p.established and p.unrecognised == ()
+
+
+def test_PLANT_comp_r2_agy_a_unit_parenthesis_is_stripped_like_an_abbreviation():
+    """agy comp-r2-agy g3 (mc-5df7333c): the comment promises '(%)' is stripped; the class [a-z0-9-] never matched it, so
+    '(%)' became a 'percent' term and the same outcome stated with and without its unit did not match."""
+    assert rob2._term_identity("All-cause mortality (%)", "All-cause mortality")
+
+
+def test_percent_and_percentage_are_the_same_unit_word():
+    """Found by the sweep after agy comp-r2 (semaglutide-obesity-weight, G1): 'Percent change in body weight' v
+    'Percentage Change in Body Weight (%)' -- one is filler, so both are; a threshold stays distinct by its number."""
+    assert rob2._term_identity("Percent change in body weight", "Percentage Change in Body Weight (%)")
+    assert not rob2._term_identity("At least 50 percent reduction in pain", "At least 30 percent reduction in pain")

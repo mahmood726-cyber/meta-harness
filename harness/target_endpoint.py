@@ -557,6 +557,9 @@ def admit_rows(spec: dict[str, Any], trials: list[dict[str, Any]]):
             "endpoint_result_span": t.get("endpoint_result_span"),
             "endpoint_definition_span": t.get("endpoint_definition_span"),
             "target_endpoint_class": t.get("target_endpoint_class"),
+            # the document the refusal was READ from, as an abstention carries it: a refusal on evidence names its
+            # evidence (P0: a SOUL row named LEADER's full text and was refused there without saying so)
+            **({"held_document": t["held_document"]} if t.get("held_document") else {}),
             "refused_effect": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale", "ai", "n1i", "ci", "n2i")
                                if t.get(k) is not None},
             "source": t.get("source", ""), "provenance": t.get("provenance"),

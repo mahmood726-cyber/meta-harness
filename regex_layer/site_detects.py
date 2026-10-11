@@ -394,7 +394,7 @@ DETECTS.update({
         "text_source": _PROSE, "lowercased": False},
     "hand_binding.py:sub:7b4eac99d8": _fmt("whitespace normalisation in _plain; matches formatting, not meaning", _XML),
     "hand_binding.py:sub:caf616cd71": _fmt("XML tag stripper in _plain; matches markup, not meaning", _XML),
-    "hand_binding.py:split:59b745f04e": _fmt("sentence splitter after ').' before a digit; matches formatting, not meaning",
+    "hand_binding.py:split:35d25266ea": _fmt("sentence splitter after ').' before a digit; matches formatting, not meaning",
                                              _PROSE),
     "hand_binding.py:findall:1af9a0dc3c": _fmt("JATS table-cell extractor; matches markup, not meaning", _XML),
     "hand_binding.py:finditer:2fa8c78f40": _fmt("JATS <table-wrap> block finder; matches markup, not meaning", _XML),
@@ -423,7 +423,7 @@ DETECTS.update({
                                              "a folded endpoint keyword", True),
     "hand_binding.py:sub:07d45602cf": _fmt("non-letter stripper on a table label; matches formatting, not meaning",
                                            "a table row label (lowercased)", True),
-    "hand_binding.py:_RESULT_PAREN": {
+    "hand_binding.py:_IS_RESULT": {
         "detects": "the sentence carries a parenthesised result with its confidence interval",
         "trigger": r"\bci\b|confidence|95",
         "text_source": _PROSE, "lowercased": False},
@@ -1128,3 +1128,16 @@ DETECTS.update({
                                       "trigger": r"semaglutide", "text_source": "a semaglutide+placebo trial record's "
                                       "title + abstract (middle-dot decimals normalised)", "lowercased": False},
 })
+
+
+# ---- P0 (DISPATCH_REVIEW29, PR #83): the same site migration as the plants (regex_layer/specs_target_endpoint.py)
+from regex_layer.specs_target_endpoint import p0_migrate as _p0_migrate  # noqa: E402
+
+
+def _merge_detects(vals):
+    first = dict(vals[0])
+    first["detects"] = " AND ".join(v["detects"] for v in vals) + " (one proximity pattern since P0)"
+    return first
+
+
+DETECTS = _p0_migrate(DETECTS, _merge_detects)

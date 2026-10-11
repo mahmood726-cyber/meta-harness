@@ -96,9 +96,61 @@ def _outcome_label(row: dict[str, Any]) -> str:
 
 
 def _component_set(text: str) -> frozenset[str]:
-    """rob2 ids of the components a text names: the ONE shared parser (harness/components.py). Kept for the
-    legacy v2 D5 rule; the former private vocabulary dropped CHD death and expanded a bare MACE label (r29)."""
-    return components.parse(text).ids()
+    """The v2 D5 rule's OWN vocabulary, FROZEN at main a8a7c4b66 verbatim. A rule id names a fixed rule: every
+    rating served before P0 is a stored v2 rating, and rederive_domain must reproduce it exactly. New builds use v3
+    (derive_d5_v3), which reads components through the ONE shared parser (harness/components.py)."""
+    s = _norm_text(text).lower()
+    if not s:
+        return frozenset()
+    comps: set[str] = set()
+    if re.search(r"\bmadrs\b|\bmontgomery[- ]?a?sberg\b|\bmontgomery[- ]?asberg\b", s):
+        is_response = re.search(r"\bresponse\b|\bremission\b|50\s*%|\b50 percent\b|\breduction\b", s)
+        is_change = re.search(r"\bchange\b|\bfrom baseline\b|\btotal score\b", s)
+        if is_change and not is_response:
+            comps.add("MADRS_CHANGE")
+    if re.search(r"\brecurrent\b", s) and re.search(r"\bvtes?\b|\bvenous thromboembolism\b|\bdvt\b|\bdeep vein thrombosis\b|\bpe\b|\bpulmonary embolism\b", s):
+        if not re.search(r"\bnet clinical benefit\b", s):
+            comps.add("RECURRENT_VTE")
+    if re.search(r"\ball[- ]cause mortality\b|\ball cause mortality\b", s):
+        comps.add("ALL_CAUSE_MORTALITY")
+    if re.search(r"\b(?:kidney|renal|egfr|gfr|esrd|end[- ]stage|dialysis)\b", s) and re.search(
+        r"\b(?:composite|progression|sustained|decline|decrease|failure|replacement therapy|dialysis|death)\b",
+        s,
+    ):
+        comps.add("KIDNEY_PROGRESSION_COMPOSITE")
+    # ... including the '-related' form registries use ('CV-related death': TECOS's registered 3-point MACE secondary)
+    # never NON-cardiovascular death: '\b' sits between '-' and 'c', so the bare pattern counted it (found 7 Oct)
+    if re.search(r"(?<!non-)(?<!non)(?<!non )\b(?:cv\s+death|cardiovascular(?:\s*\([^)]*\))?\s+death"
+                 r"|(?:cv|cardiovascular)[- ]related\s+death)\b|\bdeath from cardiovascular causes\b", s):
+        comps.add("CV_DEATH")
+    if re.search(r"\bnon[- ]?fatal\s+(myocardial infarction|mi)\b", s):
+        comps.add("NONFATAL_MI")
+    elif re.search(r"\b(myocardial infarction|mi)\b", s):
+        comps.add("NONFATAL_MI")
+    if re.search(r"\bnon[- ]?fatal\s+stroke\b", s):
+        comps.add("NONFATAL_STROKE")
+    elif re.search(r"\bstroke\b", s):
+        comps.add("NONFATAL_STROKE")
+
+    # Extra components keep a broader composite from falsely matching 3-point MACE.
+    if re.search(
+        r"\bhhf\b|\bhospitali[sz](?:ation|ed)\b.{0,35}\b(?:heart failure|hf)\b|"
+        r"\b(?:heart failure|hf)\b.{0,35}\bhospitali[sz](?:ation|ed)\b",
+        s,
+    ):
+        comps.add("HF_HOSPITALISATION")
+    if re.search(r"\bunstable angina\b", s):
+        comps.add("UNSTABLE_ANGINA")
+    if re.search(r"\brevasculari[sz]ation\b", s):
+        comps.add("REVASCULARISATION")
+
+    mace_term = re.search(r"\bmace\b|\bmajor adverse cardiovascular events?\b|\bmajor cardiovascular events?\b", s)
+    three_point = re.search(r"\b(?:3|three)[- ]?point\b", s)
+    if mace_term and (three_point or not comps):
+        comps.update(STANDARD_3P_MACE)
+    if "KIDNEY_PROGRESSION_COMPOSITE" in comps:
+        comps.discard("CV_DEATH")
+    return frozenset(comps)
 
 
 def _simple_matches(a: str, b: str) -> bool:
@@ -307,7 +359,7 @@ _TERM_SYNONYMS = (
     (r"\bpost[- ]?operative\b", " postoperative "),
 )
 _TERM_FILLER = {"the", "a", "an", "of", "in", "with", "from", "to", "at", "by", "for", "and", "or", "on", "time", "first",
-                "occurrence", "incidence", "rate", "rates", "number", "percentage", "proportion", "participants",
+                "occurrence", "incidence", "rate", "rates", "number", "percentage", "percent", "proportion", "participants",
                 "patients", "subjects", "who", "experienced", "event", "events", "measure", "outcome", "endpoint"}
 # qualifiers that do not change WHAT is measured: a timepoint, the setting, the all-cause qualifier, change wording
 _NEUTRAL = {"allcause", "postoperative", "day", "days", "week", "weeks", "month", "months", "year", "years", "baseline",
@@ -316,7 +368,7 @@ _NEUTRAL = {"allcause", "postoperative", "day", "days", "week", "weeks", "month"
 
 def _terms(text: str) -> set[str]:
     s = components.fold(text)
-    s = re.sub(r"\(\s*[a-z0-9-]{1,8}\s*\)", " ", s)          # '(AAD)', '(%)' abbreviations
+    s = re.sub(r"\(\s*(?:[a-z0-9-]{1,8}|%)\s*\)", " ", s)    # '(AAD)', '(%)' abbreviations (agy comp-r2 g3)
     for rx, rep in _TERM_SYNONYMS:
         s = re.sub(rx, rep, s)
     words = {w for w in re.findall(r"[a-z]+|\d+", s) if w not in _TERM_FILLER}
@@ -334,7 +386,16 @@ def _term_identity(a: str, b: str) -> bool:
     # only a TIMEPOINT number is neutral ('at 72 hours', '28-day'); any other number defines the outcome -- a response
     # threshold ('at least 50 percent' v '30 percent') is a different outcome (codex comp-r1#6)
     core_a, core_b = ta - _NEUTRAL - _timepoint_numbers(a), tb - _NEUTRAL - _timepoint_numbers(b)
-    return bool(core_a) and core_a == core_b
+    if not (core_a and core_a == core_b):
+        return False
+    # a RATIO is ordered: 'total cholesterol to HDL' is not 'HDL to total cholesterol' (codex comp-r2#7) -- each side of
+    # the ratio separator must state the same terms, in the same order of sides
+    sep = r"\bto\b|/|\bover\b"
+    if re.search(r"\bratio\b", components.fold(a + " " + b)):
+        drop = _NEUTRAL | {"ratio"}
+        sides = lambda t: [x - drop for x in (_terms(p) for p in re.split(sep, components.fold(t))) if x - drop]  # noqa: E731
+        return sides(a) == sides(b)
+    return True
 
 
 def _timepoint_numbers(text: str) -> set[str]:

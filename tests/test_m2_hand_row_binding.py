@@ -449,8 +449,11 @@ def test_PLANT_handed_abstract_is_ignored_when_the_entry_names_a_document():
     """An entry that names its document is bound to THAT document; a handed abstract cannot substitute for it."""
     row = _handed_row(SOUL, HANDED, document_ref=f"cache/{GLP1}/ft_{LEADER}.txt")   # names LEADER's full text
     kept, refused = _admit(SPEC, row)
-    assert kept == [] and refused[0]["reason_code"] == "ENDPOINT_UNBOUND"
-    assert refused[0]["held_document"]["ref"].startswith("cache/")
+    # the requirement: never kept, and bound to EXACTLY the named document. The refusal kind depends on what that
+    # document shows for the number -- since P0 the shared vocabulary reads LEADER's 'Death from noncardiovascular
+    # causes' row, so the number is refused on that evidence (RESULT_INCOMPATIBLE) rather than left unbound
+    assert kept == [] and refused[0]["reason_code"] in ("ENDPOINT_UNBOUND", "RESULT_INCOMPATIBLE")
+    assert refused[0]["held_document"]["ref"] == f"cache/{GLP1}/ft_{LEADER}.txt"
 
 
 def test_registry_and_derived_rows_keep_unbound_legacy_and_are_still_admitted():
