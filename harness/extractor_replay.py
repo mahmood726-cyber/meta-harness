@@ -21,9 +21,11 @@ import re
 from typing import Any
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REPLAY_PROV = frozenset({"held_abstract_clause", "label_adr_table"})
-_HELD = {"held_abstract_clause": "outputs/held_abstracts/", "label_adr_table": "outputs/held_labels/"}
-_MANIFEST_SHA = {"held_abstract_clause": "sha256", "label_adr_table": "text_sha256"}
+REPLAY_PROV = frozenset({"held_abstract_clause", "held_fulltext_clause", "label_adr_table"})
+_HELD = {"held_abstract_clause": "outputs/held_abstracts/", "held_fulltext_clause": "outputs/held_fulltexts/",
+         "label_adr_table": "outputs/held_labels/"}
+_MANIFEST_SHA = {"held_abstract_clause": "sha256", "held_fulltext_clause": "sha256", "label_adr_table": "text_sha256"}
+_CLAUSE_KINDS = ("held_abstract_clause", "held_fulltext_clause")
 
 
 class ReadRefused(ValueError):
@@ -31,8 +33,8 @@ class ReadRefused(ValueError):
 
 
 # ------------------------------------------------------------------------------------------------ abstract clause
-_NUM = r"(\d+(?:\.\d+)?)"
-_HR = re.compile(r"(?:HR of|\[HR\],|hazard ratio(?: \[HR\])?,?)\s*" + _NUM + r"\s*\(?;?\s*95% CI,?\s*" + _NUM
+_NUM = r"(\d+(?:\.\d+)?)(?!\d|\.\d|[eE][-+]?\d)"   # a number never continues ('1.20e1' is not 1.2, extr-r3#1); a full stop may end it
+_HR = re.compile(r"(?:HR of|\[HR\],|hazard ratio(?: \[HR\])?,?|\bHR\b)\s*" + _NUM + r"\s*\(?;?\s*95% CI,?\s*" + _NUM
                  + r"\s*(?:,|-|–|to)\s*" + _NUM)
 def read_abstract_clause(clause: str) -> dict[str, Any]:
     """The ONE hazard ratio a signed clause states, with its 95% CI, by type -- nothing else. Counts are never read from a
@@ -49,6 +51,8 @@ def read_abstract_clause(clause: str) -> dict[str, Any]:
 
 # ------------------------------------------------------------------------------------------------ label ADR table
 def _pct_ok(n: int, d: int, printed: str) -> bool:
+    if d <= 0:
+        raise ReadRefused("a denominator of zero")
     places = len(printed.split(".")[1]) if "." in printed else 0
     return f"{100.0 * n / d:.{places}f}" == printed
 
@@ -73,6 +77,9 @@ def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
                      + r"\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)").search(text, cap.end(), end)
     if not hdr or hdr.start() - cap.end() > 4000:
         raise ReadRefused("arm header not within the table's reach")
+    # several arm headers in one table (randomised v safety population) leave the row's denominators ambiguous
+    if re.compile(re.escape(spec["arm_t"]) + r"\s+N\s*=").search(text, hdr.end(), end):
+        raise ReadRefused("the table carries more than one arm header: the row's denominators are ambiguous")
     row = re.compile(r"(?:^|(?<=\n))[ \t]*" + re.escape(spec["row_label"]) + r"\s+(\d+)\s*\((\d+(?:\.\d+)?)\)\s+(\d+)\s*\("
                      r"(\d+(?:\.\d+)?)\)", re.M).search(text, hdr.end(), end)
     if not row or row.start() - hdr.end() > 400:
@@ -126,12 +133,15 @@ def replay(t: dict[str, Any], root: str = ROOT) -> tuple[bool, str]:
         span = str(t.get("source_span") or "")
         if not span or span not in text:
             raise ReadRefused("the row's source_span is not verbatim in the held text")
-        if kind == "held_abstract_clause":
+        if kind in _CLAUSE_KINDS:
             # this kind serves an effect and its CI only: a row carrying counts is not a clause read (extr-r1#1)
             if any(t.get(k) is not None for k in ("ai", "n1i", "ci", "n2i")):
                 raise ReadRefused("a held_abstract_clause row serves an effect and its CI, never counts")
             want = read_abstract_clause(span)
         else:
+            # this kind serves arm counts only: a row carrying an effect is not a table read (extr-r3#3)
+            if any(t.get(k) is not None for k in ("effect", "ci_low", "ci_high")):
+                raise ReadRefused("a label_adr_table row serves arm counts, never an effect")
             v = read_label_adr_table(text, t.get("replay") or {})
             if v["raw_row"] != span:
                 raise ReadRefused("the replayed row is not the row's source_span")

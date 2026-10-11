@@ -170,3 +170,32 @@ def test_PLANT_extr_r2_4_the_trial_is_named_inside_its_own_caption():
             "Placebo N = 100 n (%)\nHyperkalemia 10 (10) 5 (5)")
     with pytest.raises(xr.ReadRefused):
         xr.read_label_adr_table(text, LABEL_SPEC)
+
+
+# ---- codex extr-r3 (PR #84): plants that fail on 0e4a0ba93 ----------------------------------------------------------
+def test_PLANT_extr_r3_1_a_number_ends_where_it_ends():
+    with pytest.raises(xr.ReadRefused):
+        xr.read_abstract_clause("hazard ratio, 0.90; 95% CI, 0.50-1.20e1")
+
+
+def test_PLANT_extr_r3_2_several_arm_headers_in_one_table_are_refused():
+    text = ("Table 3: Adverse reactions in FIDELIO-DKD\nRandomised population\nKerendia N = 100 n (%) Placebo N = 100 n (%)\n"
+            "Safety population\nKerendia N = 80 n (%) Placebo N = 90 n (%)\nHyperkalemia 1 (1) 1 (1)\n")
+    with pytest.raises(xr.ReadRefused):
+        xr.read_label_adr_table(text, LABEL_SPEC)
+
+
+def test_PLANT_extr_r3_3_a_label_row_serving_an_effect_is_untraced():
+    cls, _ = pc.classify_served(_label_row(effect=2.03, ci_low=1.76, ci_high=2.33, scale="HR"), _held)
+    assert cls == "UNTRACED"
+
+
+def test_PLANT_extr_r3_4_a_zero_denominator_is_a_refusal():
+    text = "Table 3: Adverse reactions in FIDELIO-DKD\nKerendia N = 0 n (%) Placebo N = 100 n (%)\nHyperkalemia 0 (0) 1 (1)\n"
+    with pytest.raises(xr.ReadRefused):
+        xr.read_label_adr_table(text, LABEL_SPEC)
+
+
+def test_the_bracketed_hr_form_is_read():
+    assert xr.read_abstract_clause("semaglutide reduced rates of the composite compared with placebo "
+                                   "[HR 0.82 (95% CI 0.68\u20130.98)]") == {"effect": 0.82, "ci_low": 0.68, "ci_high": 0.98}
