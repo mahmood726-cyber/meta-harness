@@ -7645,5 +7645,62 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r19": {
+  "base": "630e622bf",
+  "head": "7e6158917",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b486fd56d141c3899f3d0106cd4c0092",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "f358580d87e08ce008030b1977af3afa0de03c3f236b4220a9370867f499fbb2"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The dose boundary permits matching the suffix of a comma-and-space-grouped dose, incorrectly attributing its effect to the 110 mg arm.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': 'Participants received 1, 110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11).'}]}\nwith patch('harness.recorded_verification.verified', return_value=None):\n    print(_noac_lower_dose_status(records)['reason'])",
+    "expected": "RE-LY 110 mg effect not found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "actual": "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "id": "copps-r19:g1#1",
+    "record_id": "mc-b486fd56d141c3899f3d0106cd4c0092",
+    "verdict": null
+   },
+   {
+    "file": "harness/recorded_verification.py",
+    "function": "verified",
+    "severity": "P2",
+    "claim": "Malformed verification entries silently become 'not verified'. Only the outer entries list is validated; missing required claim/hash fields return None instead of reporting a broken registry.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.recorded_verification import verified\nwith patch('builtins.open', mock_open(read_data='{\"entries\":[{\"pmid\":\"123\"}]}')):\n    print(verified('test.json', '123', 'held abstract', 'LOW_DOSE_ARM_IS_30MG'))",
+    "expected": "Raise RuntimeError identifying the malformed registry entry.",
+    "actual": "None",
+    "id": "copps-r19:g1#2",
+    "record_id": "mc-b486fd56d141c3899f3d0106cd4c0092",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source / _EffectText.finditer",
+    "severity": "P2",
+    "claim": "The decimal-only filter silently excludes hardcoded effects whose estimate and confidence bounds are all integers, although these are valid effect tuples.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"result = 'RR 2 (1-4)'\", 'harness/example.py'))",
+    "expected": "An EFFECT_TUPLE_TEXT finding for '2 (1-4)'.",
+    "actual": "[]",
+    "id": "copps-r19:g1#3",
+    "record_id": "mc-b486fd56d141c3899f3d0106cd4c0092",
+    "verdict": null
+   }
+  ]
  }
 }

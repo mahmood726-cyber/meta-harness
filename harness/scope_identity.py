@@ -492,6 +492,17 @@ def _short_changed(slug: str, label: str | None, body: str) -> str:
 # a bound is read whole or not at all: only a whitelisted terminator may follow it (see
 # comparator_second_pass.BOUND_END; codex copps-r6#1)
 _WHOLE = r"(?=\s{0,3}(?:[);\]]|,(?!\s*\d)|$))"
+# a number CONTINUED before the match: a digit, then optional digit-grouping separators (comma, full stop, any space,
+# including narrow no-break). r17 '2110', r18 '1,110' / '1 110', r19 '1, 110' are this one class (codex copps-r19#1)
+_CONTINUES_A_NUMBER = re.compile(r"\d[\s,.\u00a0\u202f\u2009]*$")
+
+
+def _first_unbounded(pattern: str, text: str):
+    """The first case-insensitive match of `pattern` whose start does not continue a number."""
+    for m in re.finditer(pattern, text, re.I):
+        if not _CONTINUES_A_NUMBER.search(text[max(0, m.start() - 8):m.start()]):
+            return m
+    return None
 
 
 def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
@@ -505,9 +516,9 @@ def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
     # anchored to the exact clause naming the arm and comparison: a loose 'low-dose edoxaban.*?hazard ratio' reads the
     # on-treatment 1.07 (0.87-1.31) that comes first in the abstract instead of the intention-to-treat 1.13
     # integer-valued numbers ('relative risk, 1;') are read too (codex copps-r9#1)
-    rely_m = re.search(r"(?<![\d.,])(?<!\d )110 mg of dabigatran \(relative risk with dabigatran,\s*(\d+(?:\.\d+)?);\s*(\d+(?:\.\d+)?)%\s*"
+    rely_m = _first_unbounded(r"110 mg of dabigatran \(relative risk with dabigatran,\s*(\d+(?:\.\d+)?);\s*(\d+(?:\.\d+)?)%\s*"
                        r"confidence interval(?:\s*\[CI\])?,\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)" + _WHOLE,
-                       rely_text, re.I)
+                       rely_text)
     edox_m = re.search(r"unfavorable trend with low-dose edoxaban versus warfarin \(hazard ratio,\s*(\d+(?:\.\d+)?);\s*"
                        r"(\d+(?:\.\d+)?)%\s*CI,\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)" + _WHOLE, engage_text, re.I)
     rely_found, edox_low_found = bool(rely_m), bool(edox_m)

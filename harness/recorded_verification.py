@@ -28,6 +28,12 @@ def verified(registry: str, pmid: str, text: str, claim: str, root: str | None =
     if not isinstance(entries, list):
         # malformed contents are a broken registry too, never an empty one (codex copps-r18#2)
         raise RuntimeError(f"verification registry {path} has no 'entries' list")
+    # every entry must carry the fields a verification is keyed on: a malformed entry is a broken registry, never a
+    # silent 'not verified' (codex copps-r19#2)
+    for i, e in enumerate(entries):
+        missing = [k for k in ("pmid", "held_text_sha256", "claim") if not isinstance(e, dict) or not e.get(k)]
+        if missing:
+            raise RuntimeError(f"verification registry {path} entry {i} malformed: missing {missing}")
     sha = hashlib.sha256((text or "").encode("utf-8")).hexdigest()
     for e in entries:
         if str(e.get("pmid")) == str(pmid) and e.get("held_text_sha256") == sha and e.get("claim") == claim:

@@ -29,11 +29,16 @@ _N = r"[-−]?\d+(?:[.·]\d{1,6})?"          # up to 6 decimals ('0.9123', codex
 _EFFECT_TEXT_ANY = re.compile(r"(?<![\w.])" + _N + r"\s*\(\s*" + _N + r"\s*(?:[-–,]|to)\s*" + _N + r"\s*\)")
 
 
+_EFFECT_LABEL_BEFORE = re.compile(r"(?:\b(?:[ahi]?rr|hr|or|smd|md|rd)|ratio|difference)\s*[:=,]?\s*$", re.I)
+
+
 class _EffectText:
-    """finditer over _EFFECT_TEXT_ANY, keeping only matches with at least one decimal number."""
+    """finditer over _EFFECT_TEXT_ANY, keeping matches with at least one decimal number -- or all-integer ones that an
+    effect label directly precedes ('RR 2 (1-4)', codex copps-r19#3); a bare '2 (1-4)' is too common to flag."""
     @staticmethod
     def finditer(s):
-        return (m for m in _EFFECT_TEXT_ANY.finditer(s) if re.search(r"\d[.·]\d", m.group(0)))
+        return (m for m in _EFFECT_TEXT_ANY.finditer(s)
+                if re.search(r"\d[.·]\d", m.group(0)) or _EFFECT_LABEL_BEFORE.search(s[max(0, m.start() - 24):m.start()]))
 
 
 _EFFECT_TEXT = _EffectText()

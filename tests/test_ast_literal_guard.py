@@ -327,3 +327,36 @@ def test_PLANT_codex_r18_2_malformed_registry_entries_fail_loudly(tmp_path, monk
     monkeypatch.setattr(rv, "ROOT", str(tmp_path))
     with pytest.raises(RuntimeError):
         rv.verified("arm_label_verifications.json", "24251359", "text", "LOW_DOSE_ARM_IS_30MG")
+
+
+@pytest.mark.parametrize("pre", ["1,110 mg of", "1 110 mg of", "1, 110 mg of", "1 ,110 mg of", "1.110 mg of",
+                                 "1 , 110 mg of", "1 110 mg of"])
+def test_PLANT_codex_r19_1_a_dose_never_continues_a_number_whatever_the_separator(pre):
+    """r17 ('2110'), r18 ('1,110', '1 110') and r19 ('1, 110') are one class: the dose token must not CONTINUE a number.
+    The class is closed by one boundary check over any digit-grouping separator, not by another lookbehind."""
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", pre)}]}
+    assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
+
+
+def test_the_dose_boundary_still_reads_a_dose_after_prose():
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY}]}
+    assert [r["arm"] for r in si._noac_lower_dose_status(rows)["available_lower_dose_rows"]] == ["dabigatran 110 mg"]
+
+
+@pytest.mark.parametrize("entries", ['[{"pmid": "123"}]', '[{"pmid": "123", "claim": "X"}]', '["not a dict"]'])
+def test_PLANT_codex_r19_2_a_malformed_registry_entry_fails_loudly(tmp_path, monkeypatch, entries):
+    from harness import recorded_verification as rv
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "arm_label_verifications.json").write_text('{"entries": %s}' % entries, encoding="utf-8")
+    monkeypatch.setattr(rv, "ROOT", str(tmp_path))
+    with pytest.raises(RuntimeError):
+        rv.verified("arm_label_verifications.json", "123", "held abstract", "LOW_DOSE_ARM_IS_30MG")
+
+
+@pytest.mark.parametrize("src,flagged", [("result = 'RR 2 (1-4)'", True), ("x = 'hazard ratio 1 (1 to 2)'", True),
+                                         ("x = 'odds ratio: 3 (2-5)'", True), ("x = 'step 2 (1-4)'", False),
+                                         ("x = 'see table 2 (1-4)'", False)])
+def test_PLANT_codex_r19_3_an_all_integer_effect_with_its_label_is_flagged(src, flagged):
+    from scripts.ast_literal_sweep import sweep_source
+    found = [f for f in sweep_source(src, "harness/example.py") if f["kind"] == "EFFECT_TUPLE_TEXT"]
+    assert bool(found) is flagged
