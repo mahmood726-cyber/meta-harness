@@ -6731,5 +6731,58 @@
     "verdict": null
    }
   ]
+ },
+ "r6-dpp4-hf-r1": {
+  "base": "beb73a487",
+  "head": "b158ee38b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-45201d81049b4bc628aed7a7a7a1206c",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_r6_dpp4_hf.py"
+    ],
+    "prompt_sha256": "373ed871987457a8d5f24e6759404fcc11eb902a311a35838cfdf4f072c0d56d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_r6_dpp4_hf.py",
+    "function": "gate",
+    "severity": "P1",
+    "claim": "The reader gate reports agreement even when the reader reverses both arms' counts and denominators. None of the four count fields participates in validation or agreement.",
+    "failing_input": "from scripts.g1_r6_dpp4_hf import TARGETS, gate\nt = TARGETS[0]\na = dict(state='FOUND', quote=t['span'], hr=0.60, lower=0.35, upper=1.05, events_t=33, n_t=2100, events_c=20, n_c=2092, definition_note='Drug arm first.')\nprint(gate(a, t['span'], t))",
+    "expected": "GATED_DIFFERS, because the reader assigns the placebo counts to treatment and vice versa.",
+    "actual": "GATED_AGREES",
+    "id": "r6-dpp4-hf-r1:g1#1",
+    "record_id": "mc-45201d81049b4bc628aed7a7a7a1206c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_r6_dpp4_hf.py",
+    "function": "gate",
+    "severity": "P1",
+    "claim": "The clause-overlap check accepts an unrelated endpoint's numeric result when a separate quote line contains just 40 characters from the target span. This defeats the stated protection against confirmation from another endpoint.",
+    "failing_input": "from scripts.g1_r6_dpp4_hf import TARGETS, gate\nt = TARGETS[0]\nother = 'All-cause mortality had an HR of 0.60 (95% CI 0.35, 1.05).'\nab = t['span'] + '\\n' + other\na = dict(state='FOUND', quote='The hHF outcome occurred in 20/2092 patients\\n' + other, hr=0.60, lower=0.35, upper=1.05, events_t=None, n_t=None, events_c=None, n_c=None, definition_note='These estimates describe all-cause mortality.')\nprint(gate(a, ab, t))",
+    "expected": "GATED_OTHER_CLAUSE: the quoted HR and confidence interval belong to all-cause mortality; the hHF fragment contains neither.",
+    "actual": "GATED_AGREES",
+    "id": "r6-dpp4-hf-r1:g1#2",
+    "record_id": "mc-45201d81049b4bc628aed7a7a7a1206c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_r6_dpp4_hf.py",
+    "function": "_abstracts / verify",
+    "severity": "P1",
+    "claim": "Trial identifiers are collected from the entire PubmedArticle XML, including references to other papers. Consequently, a cited paper's NCT identifier can satisfy the binding requirement despite its absence from the reviewed paper's own evidence.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.g1_r6_dpp4_hf import TARGETS, _abstracts, verify\nt = TARGETS[0]\nxml = '<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>28893244</PMID><Article><Abstract><AbstractText>' + t['span'] + '</AbstractText></Abstract></Article></MedlineCitation><PubmedData><ReferenceList><Reference><Citation>Separate trial report: NCT01703208.</Citation></Reference></ReferenceList></PubmedData></PubmedArticle></PubmedArticleSet>'\nwith patch('harness.http.get_text', return_value=xml):\n    ab = _abstracts(['28893244'])['28893244']\nprint(ab['ncts'], verify(t, ab))",
+    "expected": "The reference-only NCT must not establish this paper's trial identity; verification should reject the binding.",
+    "actual": "['NCT01703208'] None; verification accepts the binding.",
+    "id": "r6-dpp4-hf-r1:g1#3",
+    "record_id": "mc-45201d81049b4bc628aed7a7a7a1206c",
+    "verdict": null
+   }
+  ]
  }
 }
