@@ -50,7 +50,7 @@ def test_synthetic_edges():
 
 def test_absence_needs_a_complete_object():
     assert not sc.absence_licensed(["STUB", "METADATA", "EXCERPT"])
-    assert sc.absence_licensed(["STUB", "FULL_ABSTRACT"]) and sc.absence_licensed(["FULLTEXT"])
+    assert sc.absence_licensed(["STUB", "FULL_ABSTRACT"]) and sc.absence_licensed(["FULLTEXT"], scope="fulltext")
 
 
 def test_abstract_label_uses_the_bundle_preservation_record():
@@ -154,3 +154,30 @@ def test_PLANT_a_saved_http_error_page_is_a_stub():
                 "cache/comparators/38128217/2026-09-15_europepmc_fulltext.xml"):
         d = _lab(rel)
         assert (d["label"], d["reason"]) == ("STUB", "HTTP_ERROR_PAGE"), rel
+
+
+def test_PLANT_codex_r3_1_an_xhtml_page_behind_an_xml_declaration_is_not_jats():
+    x = ('<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Publisher portal</title></head>'
+         '<body><p>Sign in to view this article.</p></body></html>')
+    assert sc.label_document(x)["label"] == "METADATA"
+
+
+def test_PLANT_codex_r3_2_an_abstract_scope_absence_needs_a_complete_abstract():
+    assert not sc.absence_licensed(["FULLTEXT"], scope="abstract")
+    assert sc.absence_licensed(["FULLTEXT", "FULL_ABSTRACT"], scope="abstract")
+
+
+def test_PLANT_codex_r3_3_an_unknown_scope_fails_closed():
+    import pytest
+    with pytest.raises(ValueError):
+        sc.absence_licensed(["FULL_ABSTRACT"], scope="full_text")
+
+
+def test_PLANT_agy_r3_1_the_declared_label_wins_over_the_generic_excerpt_phrase():
+    assert sc.label_document("NOT A COMPLETE DOCUMENT (coverage: METADATA)\nTitle: x")["label"] == "METADATA"
+
+
+def test_PLANT_agy_r3_3_a_hyphenated_tag_is_not_a_body():
+    x = "<?xml version='1.0'?><article><front><title>x</title></front><body-matter><p>y</p></body-matter></article>"
+    d = sc.label_document(x)
+    assert (d["label"], d["reason"]) == ("STUB", "XML_NO_BODY")

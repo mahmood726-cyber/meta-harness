@@ -6806,5 +6806,56 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "e1-cov-r3-agy": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-8b6a0017947516049d03646f899b2767",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/source_coverage.py",
+     "scripts/acquire_bundle_evidence.py",
+     "scripts/source_coverage_sweep.py"
+    ],
+    "prompt_sha256": "6fa23789de970e882795b7359aebe2432c4768e0981126d481d766a3e39f87a3"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "e1-cov-r3-agy-b": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3f3e165a30cca55bcb5921ff804850da",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/source_coverage.py",
+     "scripts/acquire_bundle_evidence.py",
+     "scripts/source_coverage_sweep.py"
+    ],
+    "prompt_sha256": "6fa23789de970e882795b7359aebe2432c4768e0981126d481d766a3e39f87a3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "{\n  \"defects\": [\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"The _DECLARED regex matches 'NOT A COMPLETE DOCUMENT' before '(coverage: ...)', causing files with self-declared METADATA or STUB headers to match the uncaptioned branch and default to EXCERPT instead of preserving their declared label.\",\n      \"input\": \"SOURCE EXCERPT -- NOT A COMPLETE DOCUMENT (coverage: METADATA)\\n\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 59,\n        \"label\": \"METADATA\",\n        \"reason\": \"SELF_DECLARED:METADATA\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"EXCERPT_ONLY\",\n        \"chars\": 59,\n        \"label\": \"EXCERPT\",\n        \"reason\": \"SELF_DECLARED:EXCERPT_ONLY\"\n      }\n    },\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"XHTML documents starting with an XML declaration match _JATS_START ('<?xml') before _HTML_START is checked, causing HTML landing or paywall pages containing <body> tags to be classified as JATS FULLTEXT with bundle coverage COMPLETE_SOURCE instead of METADATA.\",\n      \"input\": \"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n<!DOCTYPE html>\\n<html xmlns=\\\"http://www.w3.org/1999/xhtml\\\">\\n<head><title>Portal</title></head>\\n<body><p>Sign in to view full text.</p></body>\\n</html>\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 196,\n        \"label\": \"METADATA\",\n        \"reason\": \"HTML_PAGE\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"COMPLETE_SOURCE\",\n        \"chars\": 196,\n        \"label\": \"FULLTEXT\",\n        \"reason\": \"XML_BODY\"\n      }\n    },\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"_TAG_BODY_OPEN matches word boundary \\\\b which treats '-' as non-word, erroneously matching tags like <body-matter>. The closing tag </body-matter> fails to match </body\\\\s*>, causing an XML file with no <body> element to be classified as a truncated EXCERPT instead of STUB with XML_NO_BODY.\",\n      \"input\": \"<?xml version=\\\"1.0\\\"?>\\n<article><front><abstract><p>Abstract text</p></abstract></front><body-matter><p>Appendix</p></body-matter></article>\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 133,\n        \"label\": \"STUB\",\n        \"reason\": \"XML_NO_BODY\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"EXCERPT_ONLY\",\n        \"chars\": 133,\n        \"label\": \"EXCERPT\",\n        \"reason\": \"XML_TRUNCATED\"\n      }\n    }\n  ]\n}\n{\n  \"defects\": [\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"The _DECLARED regex matches 'NOT A COMPLETE DOCUMENT' before '(coverage: ...)', causing files with self-declared METADATA or STUB headers to match the uncaptioned branch and default to EXCERPT instead of preserving their declared label.\",\n      \"input\": \"SOURCE EXCERPT -- NOT A COMPLETE DOCUMENT (coverage: METADATA)\\n\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 59,\n        \"label\": \"METADATA\",\n        \"reason\": \"SELF_DECLARED:METADATA\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"EXCERPT_ONLY\",\n        \"chars\": 59,\n        \"label\": \"EXCERPT\",\n        \"reason\": \"SELF_DECLARED:EXCERPT_ONLY\"\n      }\n    },\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"XHTML documents starting with an XML declaration match _JATS_START ('<?xml') before _HTML_START is checked, causing HTML landing or paywall pages containing <body> tags to be classified as JATS FULLTEXT with bundle coverage COMPLETE_SOURCE instead of METADATA.\",\n      \"input\": \"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n<!DOCTYPE html>\\n<html xmlns=\\\"http://www.w3.org/1999/xhtml\\\">\\n<head><title>Portal</title></head>\\n<body><p>Sign in to view full text.</p></body>\\n</html>\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 196,\n        \"label\": \"METADATA\",\n        \"reason\": \"HTML_PAGE\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"COMPLETE_SOURCE\",\n        \"chars\": 196,\n        \"label\": \"FULLTEXT\",\n        \"reason\": \"XML_BODY\"\n      }\n    },\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"_TAG_BODY_OPEN matches word boundary \\\\b which treats '-' as non-word, erroneously matching tags like <body-matter>. The closing tag </body-matter> fails to match </body\\\\s*>, causing an XML file with no <body> element to be classified as a truncated EXCERPT instead of STUB with XML_NO_BODY.\",\n      \"input\": \"<?xml version=\\\"1.0\\\"?>\\n<article><front><abstract><p>Abstract text</p></abstract></front><body-matter><p>Appendix</p></body-matter></article>\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 133,\n        \"label\": \"STUB\",\n        \"reason\": \"XML_NO_BODY\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"EXCERPT_ONLY\",\n        \"chars\": 133,\n        \"label\": \"EXCERPT\",\n        \"reason\": \"XML_TRUNCATED\"\n      }\n    }\n  ]\n}\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "e1-cov-r3-agy-b:g1#1",
+    "record_id": "mc-3f3e165a30cca55bcb5921ff804850da",
+    "verdict": null
+   }
+  ]
  }
 }
