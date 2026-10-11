@@ -494,7 +494,9 @@ def _short_changed(slug: str, label: str | None, body: str) -> str:
 _WHOLE = r"(?=\s{0,3}(?:[);\]]|,(?!\s*\d)|$))"
 # a number CONTINUED before the match: a digit, then optional digit-grouping separators (comma, full stop, any space,
 # including narrow no-break). r17 '2110', r18 '1,110' / '1 110', r19 '1, 110' are this one class (codex copps-r19#1)
-_CONTINUES_A_NUMBER = re.compile(r"\d[\s,.\u00a0\u202f\u2009]*$")
+# ... and a RANGE or alternative ending in the dose ('75-110 mg', '75 to 110 mg', '75/110 mg') is not the fixed
+# 110 mg arm (codex copps-r22#1)
+_CONTINUES_A_NUMBER = re.compile(r"\d(?:[\s,.\u00a0\u202f\u2009]|[-\u2010-\u2015]|\bto\b|\bor\b|/)*$")
 
 
 def _first_unbounded(pattern: str, text: str):

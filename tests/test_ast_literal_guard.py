@@ -406,3 +406,30 @@ def test_PLANT_codex_r21_2_starred_unpacking_is_swept(src):
     from scripts.ast_literal_sweep import sweep_source
     vals = {(f["key"], f["value"]) for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"}
     assert ("ai", 20) in vals
+
+
+@pytest.mark.parametrize("pre", ["75\u2013110 mg of", "75-110 mg of", "75 to 110 mg of", "75 or 110 mg of", "75/110 mg of"])
+def test_PLANT_codex_r22_1_a_range_ending_in_the_dose_is_not_the_fixed_arm(pre):
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", pre)}]}
+    assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
+
+
+def test_PLANT_codex_r22_2_a_starred_literal_value_is_swept():
+    from scripts.ast_literal_sweep import sweep_source
+    src = "row = {}\nrow['ai'], row['n1i'], row['ci'], row['n2i'] = *[20, 169, 37, 167],\n"
+    vals = {(f["key"], f["value"]) for f in sweep_source(src, "harness/p.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"}
+    assert {("ai", 20), ("n1i", 169), ("ci", 37), ("n2i", 167)} <= vals
+
+
+def test_PLANT_codex_r22_3_the_sweep_cli_fails_on_an_unallowlisted_literal(tmp_path):
+    import shutil
+    import subprocess
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "harness").mkdir()
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "outputs" / "k_gap" / "g1_binding").mkdir(parents=True)
+    shutil.copyfile(os.path.join(ROOT, "scripts", "ast_literal_sweep.py"), tmp_path / "scripts" / "ast_literal_sweep.py")
+    (tmp_path / "harness" / "probe.py").write_text("row = {'ai': 20, 'n1i': 169}\n", encoding="utf-8")
+    p = subprocess.run([sys.executable, str(tmp_path / "scripts" / "ast_literal_sweep.py")], capture_output=True,
+                       cwd=str(tmp_path), stdin=subprocess.DEVNULL)
+    assert p.returncode != 0

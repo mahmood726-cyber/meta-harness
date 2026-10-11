@@ -7804,5 +7804,62 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r22": {
+  "base": "630e622bf",
+  "head": "664a466b2",
+  "runs": {
+   "g1": {
+    "record_id": "mc-858c622e08a9f3fb0d446bbb248f2751",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "aef2b78ff4595071c793ce86eb5663e3719000c578d6f055e34d051a48199abb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded / _noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "A dose range ending in 110 mg is accepted as evidence for the fixed 110 mg arm. The prefix guard does not recognize a range separator.",
+    "failing_input": "from harness.scope_identity import _first_unbounded, _WHOLE\ntext = 'Patients received 75–110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval [CI], 0.74 to 1.11)'\npattern = r'110 mg of dabigatran \\(relative risk with dabigatran,\\s*(\\d+(?:\\.\\d+)?);\\s*(\\d+(?:\\.\\d+)?)%\\s*confidence interval(?:\\s*\\[CI\\])?,\\s*(\\d+(?:\\.\\d+)?)\\s*to\\s*(\\d+(?:\\.\\d+)?)' + _WHOLE\nm = _first_unbounded(pattern, text)\nprint(None if m is None else m.groups())",
+    "expected": "None: the reported effect belongs to a 75–110 mg regimen, not an explicitly identified fixed 110 mg arm.",
+    "actual": "('0.91', '95', '0.74', '1.11'). The caller consequently accepts this effect under arm 'dabigatran 110 mg'.",
+    "id": "copps-r22:g1#1",
+    "record_id": "mc-858c622e08a9f3fb0d446bbb248f2751",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_unpack / sweep_source",
+    "severity": "P2",
+    "claim": "Literal tuple assignments using starred values evade the sweep entirely, including all four per-arm count fields.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nsrc = \"row = {}\\nrow['ai'], row['n1i'], row['ci'], row['n2i'] = *[20, 169, 37, 167],\\n\"\nprint(sweep_source(src, 'harness/probe.py'))\nns = {}\nexec(src, ns)\nprint(ns['row'])",
+    "expected": "Four COUNT_OR_EFFECT_KEY findings for ai=20, n1i=169, ci=37 and n2i=167.",
+    "actual": "The sweep returns []. Executing the source assigns {'ai': 20, 'n1i': 169, 'ci': 37, 'n2i': 167}. _unpack compares the four targets with one unexpanded AST Starred value and returns no pairs.",
+    "id": "copps-r22:g1#2",
+    "record_id": "mc-858c622e08a9f3fb0d446bbb248f2751",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "__main__",
+    "severity": "P2",
+    "claim": "The CLI exits successfully even when it detects unallowlisted literals. Used as a validation command, it cannot fail on those violations.",
+    "failing_input": "import json, pathlib, shutil, subprocess, sys, tempfile\nwith tempfile.TemporaryDirectory() as <outside-workdir>/n    root = pathlib.Path(d)\n    (root / 'scripts').mkdir()\n    (root / 'harness').mkdir()\n    out = root / 'outputs/k_gap/g1_binding'\n    out.mkdir(parents=True)\n    shutil.copyfile('scripts/ast_literal_sweep.py', root / 'scripts/ast_literal_sweep.py')\n    (root / 'harness/probe.py').write_text(\"row = {'ai': 20}\\n\", encoding='utf-8')\n    result = subprocess.run([sys.executable, str(root / 'scripts/ast_literal_sweep.py')], capture_output=True, text=True)\n    print(result.returncode)\n    print(len(json.loads((out / 'ast_literal_sweep.json').read_text())['not_allowlisted']))",
+    "expected": "A nonzero exit status when the report contains an unallowlisted violation.",
+    "actual": "Exit status 0; the report contains one unallowlisted violation.",
+    "id": "copps-r22:g1#3",
+    "record_id": "mc-858c622e08a9f3fb0d446bbb248f2751",
+    "verdict": null
+   }
+  ]
  }
 }

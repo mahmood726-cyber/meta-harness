@@ -69,6 +69,12 @@ def _unpack(target, value) -> list[tuple[str, ast.AST]]:
     if isinstance(target, (ast.Tuple, ast.List)):
         if not isinstance(value, (ast.Tuple, ast.List)):
             return []
+        # a starred LITERAL in the value is its elements: '= *[20, 169, 37, 167],' (codex copps-r22#2)
+        if any(isinstance(v, ast.Starred) and isinstance(v.value, (ast.Tuple, ast.List)) for v in value.elts):
+            flat = []
+            for v in value.elts:
+                flat += v.value.elts if isinstance(v, ast.Starred) and isinstance(v.value, (ast.Tuple, ast.List)) else [v]
+            value = ast.Tuple(elts=flat, ctx=ast.Load())
         stars = [i for i, t in enumerate(target.elts) if isinstance(t, ast.Starred)]
         if not stars and len(target.elts) == len(value.elts):
             return [p for t, v in zip(target.elts, value.elts) for p in _unpack(t, v)]
@@ -176,3 +182,8 @@ if __name__ == "__main__":
               open(OUT, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
     for h in hits:
         print(("   " if h["allowlisted"] else "NEW"), h["file"], h["line"], h["kind"], h.get("key", ""), h["value"])
+    # a validation command must be able to FAIL: any unallowlisted literal is a nonzero exit (codex copps-r22#3)
+    new = [h for h in hits if not h["allowlisted"]]
+    if new:
+        print(f"REFUSED: {len(new)} literal(s) not in {ALLOW}", file=sys.stderr)
+        sys.exit(1)
