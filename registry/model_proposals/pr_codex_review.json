@@ -8053,5 +8053,50 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r27": {
+  "base": "630e622bf",
+  "head": "92a043077",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a735f960a736ed26fcb1ab43e7433624",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "afefd12f7c0fb9a933b7624a7564bbad4c5b3d09939a2c403ca4273043fe2c30"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The sweep misses literal count assignments through Python's built-in setattr, allowing hardcoded arm counts through the gate.",
+    "failing_input": "sweep_source(\"setattr(study, 'ai', 20)\", 'harness/example.py')",
+    "expected": "A COUNT_OR_EFFECT_KEY finding with key 'ai' and value 20.",
+    "actual": "[]; setattr has no keyword arguments, its function is not an ast.Attribute, and its positional arguments are not literal pair containers.",
+    "id": "copps-r27:g1#1",
+    "record_id": "mc-a735f960a736ed26fcb1ab43e7433624",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_scan_text",
+    "severity": "P2",
+    "claim": "The date exemption misclassifies ordinary MM/DD/YYYY dates as hardcoded counts, causing the validation command to reject legitimate source text.",
+    "failing_input": "sweep_source(\"message = 'Report downloaded 12/31/2025'\", 'harness/example.py')",
+    "expected": "[]; the string contains a date, not an arm count.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '12/31'}]. Although the trailing year is detected, the exemption requires the second component to be at most 12. Without an allowlist entry, this finding makes the command exit 1.",
+    "id": "copps-r27:g1#2",
+    "record_id": "mc-a735f960a736ed26fcb1ab43e7433624",
+    "verdict": null
+   }
+  ]
  }
 }

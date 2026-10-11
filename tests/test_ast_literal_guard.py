@@ -526,3 +526,16 @@ def test_PLANT_codex_r26_2_a_string_inside_an_interpolation_is_read_only_as_rend
     from scripts.ast_literal_sweep import sweep_source
     assert sweep_source("text = f\"{'20/169':.2}\"", "harness/example.py") == []
     assert [h for h in sweep_source("text = f\"{'20/169'}\"", "harness/example.py") if h["kind"] == "COUNT_PAIR_TEXT"]
+
+
+def test_PLANT_codex_r27_1_setattr_is_a_field_setter():
+    from scripts.ast_literal_sweep import sweep_source
+    assert [f for f in sweep_source("setattr(study, 'ai', 20)", "harness/example.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"]
+
+
+@pytest.mark.parametrize("src,hit", [("message = 'Report downloaded 12/31/2025'", False),
+                                     ("message = 'Report downloaded 31/12/2025'", False),
+                                     ("message = 'Deaths 12/31 versus 9/30'", True)])
+def test_PLANT_codex_r27_2_a_month_first_date_is_a_date(src, hit):
+    from scripts.ast_literal_sweep import sweep_source
+    assert bool([f for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_PAIR_TEXT"]) is hit

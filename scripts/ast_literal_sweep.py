@@ -124,6 +124,10 @@ def sweep_source(src: str, path: str) -> list[dict]:
             if (isinstance(node.func, ast.Attribute) and node.func.attr in _FIELD_SETTERS and len(node.args) >= 2
                     and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)):
                 pairs.append((node.args[0].value, node.args[1]))
+            # setattr(study, 'ai', 20): the builtin setter names its field second (codex copps-r27#1)
+            if (isinstance(node.func, ast.Name) and node.func.id == "setattr" and len(node.args) == 3
+                    and isinstance(node.args[1], ast.Constant) and isinstance(node.args[1].value, str)):
+                pairs.append((node.args[1].value, node.args[2]))
             # dict([('ai', 20), ...]) / dict((('ai', 20), ...)): positional literal (key, value) pairs (codex copps-r20#3)
             for arg in node.args:
                 if isinstance(arg, (ast.List, ast.Tuple, ast.Set)):
@@ -202,7 +206,8 @@ def _scan_text(s: str, line: int, path: str, out: list) -> None:
         # ...or the day of an ISO date in a path ('gate-authority-2026-09-14/03-refusal')
         dmy = dmy or re.search(r"\d{4}-\d{2}-$", s[:m.start()])
         # a leading-zero denominator alone is no date ('Deaths 2/08' is a count, codex copps-r6#3)
-        if (a <= 31 and b <= 12 and dmy) or (1900 <= a <= 2100 and b <= 12):
+        # with its /year, day/month (a<=31, b<=12) and month/day (a<=12, b<=31) are both dates (codex copps-r27#2)
+        if (dmy and ((a <= 31 and b <= 12) or (a <= 12 and b <= 31))) or (1900 <= a <= 2100 and b <= 12):
             continue
         out.append({"file": path, "line": line, "kind": "COUNT_PAIR_TEXT", "value": m.group(0)})
 
