@@ -1,11 +1,15 @@
 """r24 class sweep: literal trial counts / effects assigned in harness CODE, found by an AST walk (grep found only
 same-line dict literals). A trial's number belongs in a source-bound record with its span, never in code.
 
-Flags, per harness/*.py:
-  COUNT_OR_EFFECT_KEY  a dict entry whose key names a trial count / effect field (ai, n1i, ci, n2i, events_t, n_t,
-                       effect, ci_low, ci_high, estimate, lower, upper, ...) with a NUMERIC LITERAL value
+Flags, per harness/*.py and scripts/*.py (register A6):
+  COUNT_OR_EFFECT_KEY  a dict entry, keyword, subscript, attribute or bare name naming a trial count / effect field
+                       (ai, n1i, ci, n2i, events_t, n_t, effect, ci_low, ci_high, estimate, lower, upper, ...) with a
+                       NUMERIC LITERAL value
   EFFECT_TUPLE_TEXT    a string literal that prints an effect with its interval ('0.91 (0.74-1.11)')
+  LABELLED_EFFECT_TEXT a string literal that prints a labelled effect without one ('pooled OR 2.64')
+  SAMPLE_SIZE_TEXT     a string literal that prints a sample size ('n=179 vs n=181')
   COUNT_PAIR_TEXT      a string literal that prints two-arm counts ('20/169', '159/27 307')
+A string written as a regex is read as the text it matches (r"20\\s*/\\s*169" is 20/169).
 
     python scripts/ast_literal_sweep.py   -> outputs/k_gap/g1_binding/ast_literal_sweep.json
 """
@@ -247,13 +251,19 @@ def _scan_text(s: str, line: int, path: str, out: list) -> None:
         out.append({"file": path, "line": line, "kind": "COUNT_PAIR_TEXT", "value": m.group(0)})
 
 
+# harness/ AND scripts/ (register A6: the scripts write served artefacts too -- external_agreement.py printed stale
+# 'We are k=1 (Vandermolen OR 8.25)' notes beside a served k=3 pool)
+SWEPT_DIRS = ("harness", "scripts")
+
+
 def sweep(root=ROOT) -> list[dict]:
     hits = []
-    hdir = os.path.join(root, "harness")
-    for f in sorted(os.listdir(hdir)):
-        if f.endswith(".py"):
-            p = os.path.join(hdir, f)
-            hits += sweep_source(open(p, encoding="utf-8").read(), f"harness/{f}")
+    for d in SWEPT_DIRS:
+        hdir = os.path.join(root, d)
+        for f in sorted(os.listdir(hdir)):
+            if f.endswith(".py"):
+                p = os.path.join(hdir, f)
+                hits += sweep_source(open(p, encoding="utf-8").read(), f"{d}/{f}")
     return hits
 
 

@@ -14,24 +14,59 @@ sys.path.insert(0, ROOT := os.path.dirname(os.path.dirname(os.path.abspath(__fil
 from harness import parity_relation  # noqa: E402
 
 # divergences (|log-ratio| >= 0.12) adjudicated against the record: why our pooled differs from theirs.
+# A note judges ONE version of the row (A6, lc lane 11 Oct): it carries no numbers -- the row's own values are printed
+# beside it -- and records the served (k, estimate, scale) it was written for, as the note's own text stated them. When
+# the served row has moved, the note is WITHHELD and the row says it needs re-adjudication (the notes had gone stale:
+# 'We are k=1 (Vandermolen OR 8.25)' beside a served k=3 pool at OR 2.07). None = the note did not state that value.
 ADJUDICATION = {
-    "colchicine-postop-af": "Different trial set: we pool k=5 (incl. null low-dose trials); the comparator's "
-                            "0.62 pools a different, more-positive set. Same direction (protective).",
-    "colchicine-recurrent-pericarditis": "Same direction; 0.47 vs 0.40 (|log|=0.16). Our k is smaller "
-                            "(strict double-blind + recurrence-definition).",
-    "corticosteroids-cap-mortality": "We are k=1 (CAPE-COD RR 0.53); the comparator pools several (0.69). "
-                            "Single-trial vs pool -- our smaller evidence base, not an extraction error.",
-    "corticosteroids-covid19-mortality": "Scale/set mismatch: our RECOVERY-only rate ratio (IRR 0.83) vs the "
-                            "comparator's pooled REACT odds ratio (0.66). Different estimand and trial set.",
-    "esketamine-trd-madrs": "NOT COMPARABLE: our outcome is MADRS change (MD -4.07); the comparator's is "
-                            "response RATE (RR 1.44). Different outcome/scale.",
-    "metformin-pcos-ovulation": "We are k=1 (Vandermolen OR 8.25, an outlier-high single trial); the Cochrane "
-                            "review pools many (OR 2.64). The Cochrane pool is the reliable value -- our k=1 is "
-                            "a small-evidence artefact, exactly what the larger-evidence-base expansion tier "
-                            "targets. The per-trial Cochrane head-to-head examines this directly.",
-    "statins-primary-prevention-elderly": "We are k=1 (a pre-specified elderly subgroup HR 0.61); the "
-                            "comparator pools more (0.75). Single-subgroup vs pool.",
+    "colchicine-postop-af": {
+        "note": "Different trial set: our pool includes null low-dose trials; the comparator pools a different, "
+                "more-positive set. Same direction (protective).",
+        "written_for": {"k": 5, "estimate": None, "scale": "RR"}},
+    "colchicine-recurrent-pericarditis": {
+        "note": "Same direction. Our k is smaller (strict double-blind + recurrence-definition).",
+        "written_for": {"k": None, "estimate": 0.47, "scale": "RR"}},
+    "corticosteroids-cap-mortality": {
+        "note": "We pool a single trial (CAPE COD); the comparator pools several. Single-trial vs pool -- our smaller "
+                "evidence base, not an extraction error.",
+        "written_for": {"k": 1, "estimate": 0.53, "scale": "RR"}},
+    "corticosteroids-covid19-mortality": {
+        "note": "Scale/set mismatch: our RECOVERY-only rate ratio vs the comparator's pooled REACT odds ratio. "
+                "Different estimand and trial set.",
+        "written_for": {"k": 1, "estimate": 0.83, "scale": "RR"}},
+    "esketamine-trd-madrs": {
+        "note": "NOT COMPARABLE: our outcome is MADRS change (a mean difference); the comparator's is response RATE "
+                "(a risk ratio). Different outcome/scale.",
+        "written_for": {"k": None, "estimate": -4.07, "scale": "MD"}},
+    "metformin-pcos-ovulation": {
+        "note": "We pool a single trial (Vandermolen, an outlier-high single trial); the Cochrane review pools many. "
+                "The Cochrane pool is the reliable value -- our single trial is a small-evidence artefact, exactly "
+                "what the larger-evidence-base expansion tier targets. The per-trial Cochrane head-to-head examines "
+                "this directly.",
+        "written_for": {"k": 1, "estimate": 8.25, "scale": "OR"}},
+    "statins-primary-prevention-elderly": {
+        "note": "We pool a single pre-specified elderly subgroup; the comparator pools more. Single-subgroup vs pool.",
+        "written_for": {"k": 1, "estimate": 0.61, "scale": "HR"}},
 }
+
+
+def _adjudication(slug, ours, osc, k):
+    """(note, status, detail) for the served row: the note only while the row is the version it judged."""
+    a = ADJUDICATION.get(slug)
+    if not a:
+        return "", "NONE", ""
+    w = a["written_for"]
+    moved = []
+    if w.get("k") is not None and w["k"] != k:
+        moved.append(f"k={w['k']} -> k={k}")
+    if w.get("estimate") is not None and (ours is None or round(float(ours), 2) != round(float(w["estimate"]), 2)):
+        moved.append(f"estimate {w['estimate']} -> {ours}")
+    if w.get("scale") and (osc or "").upper() != w["scale"].upper():
+        moved.append(f"scale {w['scale']} -> {osc}")
+    if moved:
+        return "", "STALE_REQUIRES_READJUDICATION", ("note written for a different served row (" + "; ".join(moved)
+                                                     + "); withheld until re-adjudicated")
+    return a["note"], "CURRENT", ""
 
 
 def build():
@@ -54,7 +89,7 @@ def build():
         prow = parity_relation.load_parity_row(ROOT, slug)
         prel = parity_relation.compute(prow, r) if prow else {}
         rows.append(_classify(slug, ours, osc, theirs, tsc, rep.get("outcome"),
-                              prel.get("relation"), prel.get("label")))
+                              prel.get("relation"), prel.get("label"), k=res.get("k")))
     n = len(rows)
     same_agree = sum(1 for x in rows if x["category"] == "same_estimand_agree")
     same_replication = sum(1 for x in rows if x["category"] == "same_estimand_replication")
@@ -88,14 +123,16 @@ def build():
 _RATIO = {"RR", "OR", "HR", "IRR", "RATE_RATIO"}
 
 
-def _classify(slug, ours, osc, theirs, tsc, their_outcome, relation=None, relation_label=None):
+def _classify(slug, ours, osc, theirs, tsc, their_outcome, relation=None, relation_label=None, k=None):
     o = (osc or "").upper()
     t = (tsc or "").upper()
     row = {"slug": slug, "our_estimate": ours, "our_scale": osc,
            "their_estimate": theirs, "their_scale": tsc, "their_outcome": their_outcome,
            "log_ratio_diff": None, "agree_within_12pct": False,
-           "adjudication": ADJUDICATION.get(slug, ""),
+           "k": k,
            "parity_relation": relation, "parity_relation_label": relation_label}
+    row["adjudication"], row["adjudication_status"], row["adjudication_stale_detail"] = _adjudication(slug, ours, osc, k)
+
     def _stamp_relation():
         if relation == "IDENTICAL_SET":
             row.setdefault("agreement_basis", "arithmetic_replication")

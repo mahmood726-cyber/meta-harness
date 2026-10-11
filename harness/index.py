@@ -598,17 +598,29 @@ def _cochrane_headtohead_line(docs_dir: str) -> str:
         d = json.load(open(p, encoding="utf-8"))
         c, o = d["cochrane_pooled"], d["ours"]
         theirs = f"{c['measure']} {float(c['effect']):g} (k={int(c['k'])})"
-        ours = f"{o['scale']} {float(o['estimate']):g} (k={int(o['k'])})"
-    except (OSError, ValueError, KeyError, TypeError):
+        built = f"{o['scale']} {float(o['estimate']):g} (k={int(o['k'])})"
+        # OUR side is the SERVED pool, never the head-to-head's frozen copy of it (it said k=1 OR 8.25 beside a
+        # served k=3 pool at OR 2.07)
+        rev = json.load(open(os.path.join(docs_dir, "reviews", _HEADTOHEAD_SLUG, "review.json"), encoding="utf-8"))
+        res = next(x for x in rev.get("outcomes") or [] if x.get("primary"))["result"]
+        sk, se, ss = int(res["k"]), float(res["estimate"]), res.get("scale") or o["scale"]
+    except (OSError, ValueError, KeyError, TypeError, StopIteration):
         return ""
-    single = "single-trial " if int(o["k"]) == 1 else ""
-    return (f"<strong>The per-trial head-to-head was attempted against the gold standard</strong> "
+    head = (f"<strong>The per-trial head-to-head was attempted against the gold standard</strong> "
             f"(the Cochrane review {html.escape(str(d.get('cochrane_review') or '').split(' ')[0])} of metformin for "
-            f"PCOS ovulation): its pooled {theirs} sits far from our {single}{ours} &mdash; a stark, honest "
-            f"illustration of the small-k weakness the expansion tier targets &mdash; but a true number-by-number "
-            f"check is <strong>blocked even for Cochrane</strong>: its per-woman arm counts live in forest-plot "
-            f"images, not the open-access text (only per-cycle data is tabulated). Per-trial ground truth needs "
-            f"vision/OCR or IPD (<code>docs/cochrane_headtohead.json</code>).")
+            f"PCOS ovulation): ")
+    blocked = (f"a true number-by-number check is <strong>blocked even for Cochrane</strong>: its per-woman arm counts "
+               f"live in forest-plot images, not the open-access text (only per-cycle data is tabulated). Per-trial "
+               f"ground truth needs vision/OCR or IPD (<code>docs/cochrane_headtohead.json</code>).")
+    if sk == int(o["k"]) and round(se, 2) == round(float(o["estimate"]), 2):
+        single = "single-trial " if sk == 1 else ""
+        return (head + f"its pooled {theirs} sits far from our {single}{built} &mdash; a stark, honest illustration of "
+                f"the small-k weakness the expansion tier targets &mdash; but " + blocked)
+    return (head + f"its pooled {theirs}; our served pool is {ss} {round(se, 2):g} (k={sk}). The head-to-head was "
+            f"built when we held {built} and has not been re-run on the current pool. Even so, " + blocked)
+
+
+_HEADTOHEAD_SLUG = "metformin-pcos-ovulation"      # the topic docs/cochrane_headtohead.json compares
 
 
 def _evidence_base_line(docs_dir: str) -> str:
