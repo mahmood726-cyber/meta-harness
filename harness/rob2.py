@@ -388,9 +388,9 @@ def _term_identity(a: str, b: str) -> bool:
     core_a, core_b = ta - _NEUTRAL - _timepoint_numbers(a), tb - _NEUTRAL - _timepoint_numbers(b)
     if not (core_a and core_a == core_b):
         return False
-    # 'change' and 'baseline' are neutral only TOGETHER: a change from baseline is not the baseline value itself
-    # ('Change in body weight from baseline' v 'Body weight at baseline', codex comp-r3#6)
-    if ("change" in ta) != ("change" in tb) and "baseline" in (tb if "change" in ta else ta):
+    # a CHANGE is never an absolute value: 'change' on one side only is a different measurement, whether the other
+    # side is the baseline value or a follow-up value (codex comp-r3#6, comp-r4#4)
+    if ("change" in ta) != ("change" in tb):
         return False
     # a RATIO is ordered: 'total cholesterol to HDL' is not 'HDL to total cholesterol' (codex comp-r2#7) -- each side of
     # the ratio separator must state the same terms, in the same order of sides

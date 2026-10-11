@@ -94,7 +94,8 @@ def _named(s: str) -> set[str]:
     # coronary death: 'death from coronary heart disease', 'CHD death', 'coronary death', 'fatal CHD', 'death from
     # coronary causes' (ODYSSEY; review 29)
     if ("coronary heart disease death" in s or "death from coronary heart disease" in s
-            or re.search(r"\bchd\b.{0,30}death|death.{0,30}\bchd\b|\bfatal (?:chd|coronary heart disease)\b"
+            # ('non-fatal CHD' is no death, codex comp-r4#5)
+            or re.search(r"\bchd\b.{0,30}death|death.{0,30}\bchd\b|(?<!non-)(?<!non)\bfatal (?:chd|coronary heart disease)\b"
                          r"|\bcoronary death\b|death from coronary (?:causes|artery disease)", s)):
         comps.add("coronary heart disease death")
     # 'non-cardiovascular death' / 'death from non-cardiovascular causes' is NOT cardiovascular death
@@ -125,8 +126,12 @@ def _named(s: str) -> set[str]:
                      or re.search(r"hazard ratio|odds ratio|risk ratio|\b(?:hr|rr|or)\b|%|\bvs\b|versus", s))
                 and not re.search(r"\b(?:eligib|enrol|inclusion|recruit)", s))):
         comps.add("heart failure hospitalization")
-    if re.search(r"(?<!non-)(?<!non)\bfatal\b.{0,25}\b(?:hf|heart failure)\b|death from heart failure|heart failure death",
-                 s):
+    # 'fatal' qualifies heart failure only within one part: 'fatal MI or heart failure hospitalization' borrows nothing
+    # across the separator (codex comp-r4#6)
+    # ... except the coordinated adjectives of ONE noun: 'fatal or hospitalized HF' is fatal HF or hospitalized HF
+    if re.search(r"(?<!non-)(?<!non)\bfatal\b(?:(?!\b(?:or|and)\b|[,;]).){0,25}\b(?:hf|heart failure)\b"
+                 r"|(?<!non-)(?<!non)\bfatal\s+(?:or|and)\s+(?:re)?hospitali[sz]ed\s+(?:hf|heart failure)\b"
+                 r"|death from heart failure|heart failure death", s):
         comps.add("heart failure death")
     # an urgent visit FOR HEART FAILURE only ('urgent asthma visit' is not this component)
     if re.search(r"\burgent\b[^.;]{0,30}\bvisit\b[^.;]{0,50}\b(?:heart failure|hf)\b|\b(?:heart failure|hf)\b[^.;]{0,20}"
@@ -211,7 +216,8 @@ _EVENT_NOUN = re.compile(r"\b(?:death|deaths|mortality|infarction|stroke|hospita
                          # (not 'disease': 'patients at risk for atherosclerotic cardiovascular disease' is a population)
                          r"|transplant|dialysis|attack|syncope|arrhythmia|events?|hypertension|fibrillation)",
                          re.I)
-_QUALIFIER = re.compile(r"\b(?:including|excluding|excluded|except|adjudicat\w*|prior\s+to|censoring|co-primary|"
+# (not 'including': in a listing it introduces MORE parts -- '..., including amputation' names amputation, codex comp-r4#1)
+_QUALIFIER = re.compile(r"\b(?:excluding|excluded|except|adjudicat\w*|prior\s+to|censoring|co-primary|"
                         # a POPULATION is not a component ('in patients with heart failure with preserved ejection fraction')
                         r"with\s+(?:preserved|reduced|mildly\s+reduced)|ejection\s+fraction|in\s+(?:patients|participants)|"
                         r"(?:patients|participants|subjects)\s+with|"
@@ -399,6 +405,11 @@ def parse(text: str | None, expand_standard: bool = True) -> Parse:
         listed = _named(seg) | _named_rob2_only(seg)
         if listed:
             comps = listed
+    # an EXCLUDED event is never a component, whatever kind of listing (or none) the text has: what an
+    # 'excluding / except / other than / but not' clause names is removed unless the text also names it before
+    # ('cardiovascular death or myocardial infarction, excluding stroke', codex comp-r4#2)
+    for m in re.finditer(r"\b(?:excluding|except(?:\s+for)?|other\s+than|but\s+not|not\s+including)\b([^.;]*)", s):
+        comps -= (_named(m.group(1)) | _named_rob2_only(m.group(1))) - (_named(s[:m.start()]) | _named_rob2_only(s[:m.start()]))
     if bare_death_listed(text):
         comps.add("all-cause death")                  # 'composite of death, MI, or stroke': counted, never dropped
     if "recurrent vte" in comps:
@@ -451,6 +462,10 @@ def target_set(name: str | None, declared: Iterable[str] | None = None) -> set[s
         # agy comp-r3-agy g2#1); a trial's source label never expands (comp-r2#5)
         comps = (comps - {"kidney progression composite"}) | {"kidney failure", "sustained egfr decline", "renal death"}
     got = comps & TARGET_VOCABULARY
+    # all-cause death leaves the TARGET only as a lone single-concept name; in a composite it is a component
+    # ('Composite of all-cause death, myocardial infarction and stroke', codex comp-r4#3)
+    if "all-cause death" in comps and got:
+        got |= {"all-cause death"}
     if got:
         return got
     # exactly the generic names the extraction route expanded before P0 ('mace', 'major adverse cardiovascular', 'major

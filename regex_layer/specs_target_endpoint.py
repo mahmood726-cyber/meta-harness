@@ -201,9 +201,11 @@ P0_MOVED = {k: k.replace("target_endpoint.py", "components.py", 1) for k in (
     "target_endpoint.py:sub:fce6fbe7f9", "target_endpoint.py:sub:ff4ae8621b")}
 P0_MOVED.update({
     # rewritten by P0 -- the same role, the plants still hold (each checked against the new pattern)
-    "target_endpoint.py:search:b01e38dc40": "components.py:search:d581b4b9be",     # CHD death: + 'fatal CHD', 'coronary death'
+    "target_endpoint.py:search:b01e38dc40": "components.py:search:850bd15c8b",     # CHD death: + 'fatal CHD' (never 'non-fatal')
     "target_endpoint.py:search:05aff607b5": "components.py:search:02f207b087",     # CV death with words between (+ mortality)
     "target_endpoint.py:search:bb8366c955#2": "components.py:search:7229b1e928",   # urgent HF visit
+    # comp-r4#6: 'fatal' no longer crosses a part separator (coordinated 'fatal or hospitalized HF' kept): new pattern
+    "target_endpoint.py:search:2535b7ece1": "components.py:search:530b27594b",
 })
 # the HF-abbreviation and the hospitalisation patterns were ONE rule in two searches; P0 (codex comp-r2#2) made them one
 # proximity pattern ('angina hospitalization or urgent HF visit' named no HF hospitalization): both plant sets hold to it

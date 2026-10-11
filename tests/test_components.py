@@ -418,3 +418,51 @@ def test_PLANT_comp_r3_agy_target_kidney_umbrella_beside_cv_death_expands():
 def test_PLANT_comp_r3_agy_three_point_mace_plus_hf_keeps_the_standard_set():
     assert {"cardiovascular death", "myocardial infarction", "stroke"} <= C.names(
         "3-point MACE or hospitalization for heart failure")
+
+
+# ---- codex comp-r4 (PR #83): plants that fail on 3c1aec332 ----------------------------------------------------------
+def test_PLANT_comp_r4_1_an_included_unknown_part_is_read():
+    p = C.parse("Composite of cardiovascular death, myocardial infarction, stroke, including amputation")
+    assert any("amputation" in u for u in p.unrecognised) and not p.established
+
+
+def test_PLANT_comp_r4_2_an_excluded_event_is_never_a_component_in_any_listing():
+    assert sorted(C.parse("cardiovascular death or myocardial infarction, excluding stroke").components) == \
+        ["cardiovascular death", "myocardial infarction"]
+
+
+def test_PLANT_comp_r4_3_a_composite_target_keeps_all_cause_death():
+    assert C.target_set("Composite of all-cause death, myocardial infarction and stroke") == \
+        {"all-cause death", "myocardial infarction", "stroke"}
+
+
+def test_PLANT_comp_r4_4_a_change_is_never_an_absolute_value():
+    assert not rob2._term_identity("Change in body weight from baseline", "Body weight at 12 months")
+
+
+@pytest.mark.parametrize("text,absent", [("non-fatal CHD", "coronary heart disease death"),
+                                         ("Composite of fatal MI or heart failure hospitalization", "heart failure death")])
+def test_PLANT_comp_r4_5_6_no_death_is_invented(text, absent):
+    assert absent not in C.names(text)
+    assert "heart failure death" in C.names("fatal or hospitalized HF")       # coordinated adjectives of one noun
+
+
+@pytest.mark.parametrize("src,role", [
+    ("The primary outcome was reported separately, whereas the secondary outcome occurred in 20 patients.", "secondary"),
+    ("The primary outcome occurred in 20 patients and was not an exploratory analysis.", "primary"),
+])
+def test_PLANT_comp_r4_g2_role_reading(src, role):
+    import rob2_build as rb
+    assert rb.role_from_source(src) == role
+
+
+def test_PLANT_comp_r4_g2_3_a_registered_parallel_design_has_no_other_factors(monkeypatch, tmp_path):
+    import json
+    import rob2_build as rb
+    (tmp_path / "topics").mkdir()
+    (tmp_path / "topics" / "t.json").write_text(json.dumps({"intervention_terms": ["aspirin"],
+                                                            "comparator_terms": ["placebo"]}), encoding="utf-8")
+    monkeypatch.setattr(rb, "ROOT", str(tmp_path))
+    monkeypatch.setattr(rb, "INTERVENTIONS", {"N": [("aspirin", "DRUG"), ("clopidogrel", "DRUG"), ("ticagrelor", "DRUG")]})
+    assert rb.factor_terms("t", ["N"], factorial=False) == (["aspirin"], [])
+    assert rb.factor_terms("t", ["N"])[1] == ["clopidogrel", "ticagrelor"]          # no design recorded: >= 2 rule

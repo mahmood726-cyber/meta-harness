@@ -60,12 +60,15 @@ def role_from_source(src):
     for m in re.finditer(r"\b(primary|secondary)[\s-]+(?:composite\s+)?(?:end\s*-?\s*point|outcome)", src, re.I):
         # the exploratory / post-hoc veto reads the phrase's OWN clause, never the whole source ('The primary outcome
         # occurred in 20 patients; an exploratory analysis assessed biomarkers', codex comp-r1 g2#2)
-        start = max(src.rfind(";", 0, m.start()), src.rfind(". ", 0, m.start())) + 1
-        ends = [i for i in (src.find(";", m.end()), src.find(". ", m.end())) if i >= 0]
-        clause = src[start:min(ends) if ends else len(src)]
+        # a clause also ends at 'whereas / while / , but': 'the primary outcome was reported separately, whereas the
+        # secondary outcome occurred in 20 patients' gives the result cue to the secondary role (codex comp-r4 g2#1)
+        cuts = [m2.start() for m2 in re.finditer(r";|\. |,?\s+\b(?:whereas|while)\b|,\s+but\b", src)]
+        start = max([c for c in cuts if c < m.start()], default=-1) + 1
+        clause = src[start:min([c for c in cuts if c >= m.end()], default=len(src))]
         # ... and a NEGATED veto word vetoes nothing ('... and was not exploratory', codex comp-r3 g2#2)
-        if re.search(r"\b(?<!not )(?<!non-)(?:exploratory|post[- ]hoc|unplanned)\b|\bnot\s+pre-?specified\b", clause,
-                     re.I):
+        veto = [v for v in re.finditer(r"\b(?:exploratory|post[- ]hoc|unplanned)\b", clause, re.I)
+                if not re.search(r"\b(?:not|non)[\s-]+(?:(?:a|an|the)\s+)?$", clause[:v.start()], re.I)]  # g2#2: 'not an'
+        if veto or re.search(r"\bnot\s+pre-?specified\b", clause, re.I):
             continue
         # a negator must GOVERN the phrase -- only an article or 'prespecified'/'formal' between them ('No primary
         # outcome was prespecified'); 'No difference in the primary outcome' negates the difference (g2#1)
@@ -83,7 +86,7 @@ def role_from_source(src):
     return (reporting or [k for k, _ in found] or [None])[0]
 
 
-def factor_terms(slug, ncts, factorial=False):
+def factor_terms(slug, ncts, factorial=None):
     """(our intervention terms, OTHER factors' intervention names) -- the latter from AACT interventions of the trial's
     registry records (drug / biological / device / procedure), minus ours and placebo-like controls (CLEAR: colchicine
     is ours; spironolactone and the stent are other factors)."""
@@ -107,6 +110,10 @@ def factor_terms(slug, ncts, factorial=False):
     # without a registered FACTORIAL design, a factorial is recognised by >= 2 ACTIVE arms besides ours (CLEAR:
     # spironolactone + stent) -- one other active intervention is then this trial's comparator or background therapy.
     # A registered FACTORIAL design (AACT designs.intervention_model) needs only one: aspirin x vitamin E (comp-r1 g2#3)
+    # A registered NON-factorial design (PARALLEL, ...) has no other factors at all: several active arms are alternative
+    # treatments, not crossed randomisations (codex comp-r4 g2#3); the >= 2 rule applies only when no design is recorded
+    if factorial is False:
+        return sorted(set(ours)), []
     return sorted(set(ours)), (sorted(other) if len(other) >= (1 if factorial else 2) else [])
 
 
@@ -227,8 +234,8 @@ def main(argv):
             primaries = [out for rn in registry_ncts for out in regprim.get(rn, [])]
             secondaries = [out for rn in registry_ncts for out in regsec.get(rn, [])]
             title, role, definition = sel_of.get(str(pid)) or (None, None, None)
-            factorial = any(str((designs.get(n.upper()) or {}).get("intervention_model") or "").upper() == "FACTORIAL"
-                            for n in registry_ncts)
+            models = {str((designs.get(n.upper()) or {}).get("intervention_model") or "").upper() for n in registry_ncts} - {""}
+            factorial = True if "FACTORIAL" in models else (False if models else None)
             ours, other = factor_terms(slug, registry_ncts, factorial)
             dom = rob2.assess(design, primaries, pooled_out, _match,
                               registered_secondaries=secondaries,
