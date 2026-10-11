@@ -27,9 +27,10 @@ from typing import Iterable
 _FOLD = (
     ("hospitalisation", "hospitalization"), ("hospitalisations", "hospitalizations"), ("hospitalised", "hospitalized"),
     ("revascularisation", "revascularization"), ("ischaemic", "ischemic"), ("ischaemia", "ischemia"),
-    ("cv ", "cardiovascular "), ("cv-", "cardiovascular-"), ("hhf", "heart failure hospitalization"),
     ("e-gfr", "egfr"),
 )
+# abbreviations expand only as WORDS: 'HCV death' is not cardiovascular death (codex comp-r5#5)
+_ABBREV = ((re.compile(r"\bcv(?=[ -])"), "cardiovascular"), (re.compile(r"\bhhf\b"), "heart failure hospitalization"))
 
 
 def fold(text: str | None) -> str:
@@ -37,6 +38,8 @@ def fold(text: str | None) -> str:
     s = str(text or "").lower()
     for old, new in _FOLD:
         s = s.replace(old, new)
+    for rx, new in _ABBREV:
+        s = rx.sub(new, s)
     s = re.sub(r"\bteaes?\b", "treatment-emergent adverse events", s)
     s = re.sub(r"\bsaes?\b", "serious adverse events", s)
     s = re.sub(r"\baes?\b", "adverse events", s)
@@ -433,7 +436,10 @@ def parse(text: str | None, expand_standard: bool = True) -> Parse:
     # ischemic stroke) -- expand_standard=False, as the extraction route has always read result spans
     # gated on the 3-point components only: '3-point MACE or hospitalization for heart failure' is the standard set PLUS
     # HF hospitalization, never HF hospitalization alone (agy comp-r3-agy g2#2)
-    if expand_standard and standard and not (comps & STANDARD_3P):
+    # ... and never beside an explicit LISTING: '3-point MACE defined as CHD death, cardiac arrest, or coronary
+    # revascularization' IS those three (codex comp-r5#4)
+    explicit = kind in ("paren", "marker") and bool(_named(seg) | _named_rob2_only(seg))
+    if expand_standard and standard and not explicit and not (comps & STANDARD_3P):
         comps |= standard
     generic_only = bool(GENERIC_LABEL_RX.search(s)) and not comps
     return Parse(frozenset(comps), unrecognised_parts(text), generic_only, standard)

@@ -466,3 +466,15 @@ def test_PLANT_comp_r4_g2_3_a_registered_parallel_design_has_no_other_factors(mo
     monkeypatch.setattr(rb, "INTERVENTIONS", {"N": [("aspirin", "DRUG"), ("clopidogrel", "DRUG"), ("ticagrelor", "DRUG")]})
     assert rb.factor_terms("t", ["N"], factorial=False) == (["aspirin"], [])
     assert rb.factor_terms("t", ["N"])[1] == ["clopidogrel", "ticagrelor"]          # no design recorded: >= 2 rule
+
+
+# ---- codex comp-r5 (PR #83): the two findings that INVENT components (the rest are backlog, see the PR) ------------
+def test_PLANT_comp_r5_5_hcv_death_is_not_cardiovascular_death():
+    assert "cardiovascular death" not in C.names("HCV death")
+    assert "cardiovascular death" in C.names("CV death") and "cardiovascular death" in C.names("CV-death")
+
+
+def test_PLANT_comp_r5_4_an_explicit_listing_is_not_expanded_to_3_point():
+    assert set(C.names("3-point MACE defined as CHD death, cardiac arrest, or coronary revascularization")) == \
+        {"coronary heart disease death", "cardiac arrest", "coronary revascularization"}
+    assert {"cardiovascular death", "myocardial infarction", "stroke"} <= C.names("3-point MACE")

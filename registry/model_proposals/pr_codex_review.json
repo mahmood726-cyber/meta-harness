@@ -7607,5 +7607,141 @@
     "verdict": null
    }
   ]
+ },
+ "comp-r5": {
+  "base": "a8a7c4b66",
+  "head": "810a681de",
+  "runs": {
+   "g1": {
+    "record_id": "mc-9cbca7ec93a61d172010c20b1fa3e7c7",
+    "state": "RAN_OK",
+    "files": [
+     "harness/components.py",
+     "harness/hand_binding.py",
+     "harness/rob2.py"
+    ],
+    "prompt_sha256": "e38d40aa7ec99903607537361565a335031b116e83645eb35f32e023d10fb4ad"
+   },
+   "g2": {
+    "record_id": "mc-aaf6e7040913e22ab19c439d07db5806",
+    "state": "RAN_OK",
+    "files": [
+     "harness/target_endpoint.py",
+     "scripts/rob2_build.py"
+    ],
+    "prompt_sha256": "df32ef643add5ef4fa30fbe7a9fadc5e6a2d8f9300ba4e54b309d6cdd48688c8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/components.py",
+    "function": "_segment_text",
+    "severity": "P1",
+    "claim": "A percentage threshold inside an endpoint definition is treated as a result boundary, silently discarding valid components.",
+    "failing_input": "parse('Composite of cardiovascular death, sustained 50% decline in eGFR, or stroke')",
+    "expected": "components={'cardiovascular death', 'sustained egfr decline', 'stroke'}, unrecognised=().",
+    "actual": "components={'cardiovascular death'}, unrecognised=(), established=True. Segmentation stops at '50%'.",
+    "id": "comp-r5:g1#1",
+    "record_id": "mc-9cbca7ec93a61d172010c20b1fa3e7c7",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "parse",
+    "severity": "P1",
+    "claim": "The parser identifies the boundary before a secondary outcome but ignores that boundary for an ordinary list, contaminating the selected endpoint.",
+    "failing_input": "parse('Cardiovascular death or myocardial infarction; secondary outcome was stroke.')",
+    "expected": "components={'cardiovascular death', 'myocardial infarction'}.",
+    "actual": "components={'cardiovascular death', 'myocardial infarction', 'stroke'}, established=True. The restricted segment replaces components only for 'paren' and 'marker', not 'list'.",
+    "id": "comp-r5:g1#2",
+    "record_id": "mc-9cbca7ec93a61d172010c20b1fa3e7c7",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "unrecognised_parts",
+    "severity": "P1",
+    "claim": "An unqualified hospitalization component is silently dropped because its entire event name is classified as filler.",
+    "failing_input": "parse('Composite of cardiovascular death or hospitalization')",
+    "expected": "components={'cardiovascular death'}, unrecognised=('hospitalization',), established=False.",
+    "actual": "components={'cardiovascular death'}, unrecognised=(), established=True.",
+    "id": "comp-r5:g1#3",
+    "record_id": "mc-9cbca7ec93a61d172010c20b1fa3e7c7",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "parse",
+    "severity": "P1",
+    "claim": "Standard-set expansion invents three additional components even when the source explicitly lists its complete three-component definition.",
+    "failing_input": "parse('3-point MACE defined as CHD death, cardiac arrest, or coronary revascularization')",
+    "expected": "components={'coronary heart disease death', 'cardiac arrest', 'coronary revascularization'}.",
+    "actual": "components={'coronary heart disease death', 'cardiac arrest', 'coronary revascularization', 'cardiovascular death', 'myocardial infarction', 'stroke'}, established=True.",
+    "id": "comp-r5:g1#4",
+    "record_id": "mc-9cbca7ec93a61d172010c20b1fa3e7c7",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "fold",
+    "severity": "P1",
+    "claim": "CV abbreviation expansion lacks word boundaries, turning HCV death into cardiovascular death.",
+    "failing_input": "parse('HCV death')",
+    "expected": "No cardiovascular-death component; this vocabulary cannot establish the supplied endpoint.",
+    "actual": "components={'cardiovascular death'}, established=True. fold('HCV death') returns 'hcardiovascular death', which passes the substring check.",
+    "id": "comp-r5:g1#5",
+    "record_id": "mc-9cbca7ec93a61d172010c20b1fa3e7c7",
+    "verdict": null
+   },
+   {
+    "file": "harness/rob2.py",
+    "function": "_term_identity",
+    "severity": "P1",
+    "claim": "Removing both conjunctions makes a joint-symptom endpoint identical to an either-symptom endpoint, enabling false text-identity matches.",
+    "failing_input": "_term_identity('Participants with nausea and vomiting', 'Participants with nausea or vomiting')",
+    "expected": "False: experiencing both symptoms and experiencing either symptom define different outcomes.",
+    "actual": "True: both inputs reduce to the same term set {'nausea', 'vomiting'}.",
+    "id": "comp-r5:g1#6",
+    "record_id": "mc-9cbca7ec93a61d172010c20b1fa3e7c7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rob2_build.py",
+    "function": "role_from_source",
+    "severity": "P1",
+    "claim": "A secondary result is labelled primary when both endpoint mentions share a clause. The reporting cue is assigned to both mentions, and the first mention wins.",
+    "failing_input": "role_from_source('The primary outcome was reported separately and the secondary outcome occurred in 20 patients.')",
+    "expected": "'secondary'",
+    "actual": "'primary'",
+    "id": "comp-r5:g2#1",
+    "record_id": "mc-aaf6e7040913e22ab19c439d07db5806",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rob2_build.py",
+    "function": "role_from_source",
+    "severity": "P1",
+    "claim": "The negation filter confuses absence of an endpoint difference with absence of a primary endpoint, discarding an explicitly stated primary role.",
+    "failing_input": "role_from_source('There was no primary outcome difference (hazard ratio, 1.00).')",
+    "expected": "'primary'",
+    "actual": "None",
+    "id": "comp-r5:g2#2",
+    "record_id": "mc-aaf6e7040913e22ab19c439d07db5806",
+    "verdict": null
+   },
+   {
+    "file": "scripts/rob2_build.py",
+    "function": "factor_terms",
+    "severity": "P1",
+    "claim": "When design metadata is missing, two additional active interventions are automatically classified as factorial interventions. The same intervention list describes an ordinary three-arm parallel trial, so it cannot establish crossed randomisations.",
+    "failing_input": "from unittest.mock import mock_open, patch\nfrom scripts import rob2_build as b\ncfg = '{\"intervention_terms\": [\"aspirin\"], \"comparator_terms\": [\"placebo\"]}'\n# Three alternative treatment arms; factorial-design metadata is unavailable.\ninterventions = {'NCT00000001': [('aspirin', 'DRUG'), ('clopidogrel', 'DRUG'), ('prasugrel', 'DRUG')]}\nwith patch('builtins.open', mock_open(read_data=cfg)), patch.dict(b.INTERVENTIONS, interventions, clear=True):\n    print(b.factor_terms('fixture', ['NCT00000001'], factorial=None))",
+    "expected": "(['aspirin'], []): no other factorial interventions established by the supplied evidence.",
+    "actual": "(['aspirin'], ['clopidogrel', 'prasugrel'])",
+    "id": "comp-r5:g2#3",
+    "record_id": "mc-aaf6e7040913e22ab19c439d07db5806",
+    "verdict": null
+   }
+  ]
  }
 }
