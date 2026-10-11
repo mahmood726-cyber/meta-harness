@@ -185,7 +185,7 @@ def _fold(text: str | None) -> str:
     return re.sub(r"\s+", " ", s)
 
 
-def _components_from_text(text: str | None, expand_named_composites: bool = True) -> set[str]:
+def _components_from_text(text: str | None, expand_named_composites: bool = True, mark_unknown: bool = False) -> set[str]:
     """Components a span NAMES.  With expand_named_composites (default, definition spans) a bare
     'MACE' / '3-point MACE' with no enumerated components expands to the canonical 3-point set; a
     RESULT span is read with expansion OFF so that 'MACE occurred in ... (HR ...)' resolves to the
@@ -273,8 +273,10 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
             comps.add("unstable angina")
     # (2) an enumerated item NO vocabulary maps is kept as a NOT_ESTABLISHED component, never dropped: the composite is then
     #     not the target unless the outcome declares near-match permission (the same rule that refuses ASCEND's TIA).
-    #     Only in a composite context, so a 'defined as <population>' sentence grows no component.
-    if shared.unknown and (comps or generic):
+    #     Only in a composite context, so a 'defined as <population>' sentence grows no component; and (D20) ONLY when the
+    #     caller parses a served abstract / full-text DEFINITION span (mark_unknown) -- never registry candidates, never D5:
+    #     on registry free text the rule misfired ('SEE', 'mins', 'composite endpoints').
+    if mark_unknown and shared.unknown and (comps or generic):
         comps.update(f"{NOT_ESTABLISHED_PREFIX}{u}" for u in shared.unknown)
     # (3) an excluded component stays out even after the generic expansion ('MACE excluding stroke')
     comps -= components_mod.excluded(text)
@@ -316,7 +318,7 @@ def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
         # (hazard ratio 0.87 ...), with ... hospitalization for heart failure")
         if extract.extract_effect(x) or _EFFECT_RE.search(x) or re.search(r"\d+ of \d+", xl):
             continue
-        comps = _components_from_text(x, expand_named_composites=True)
+        comps = _components_from_text(x, expand_named_composites=True, mark_unknown=True)
         if not comps:
             continue
         q = _QUALIFIER_RX.search(xl)
@@ -346,7 +348,7 @@ def bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
                 "endpoint_definition_span": None, "components": set(),
                 "binding_reason": "no result span"}
     rs = result_span.strip()
-    own = _components_from_text(rs, expand_named_composites=False)
+    own = _components_from_text(rs, expand_named_composites=False, mark_unknown=True)
     names_endpoint = bool(_NAMED_COMPOSITE_RX.search(rs.lower()))
     if own:
         # the result sentence states its own component set (one component = a component-only result;
