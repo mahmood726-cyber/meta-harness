@@ -511,6 +511,11 @@ def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
     rely_v = recorded_verification.verified("arm_label_verifications.json", "19717844", rely_text,
                                             "RELY_FIXED_110MG_ARM_CLAUSE")
     clause = str((rely_v or {}).get("clause") or "")
+    # a MATCHING verification without its clause, or whose clause is not in the text it is bound to, is a broken
+    # registry entry -- never a silent 'effect not found' (codex copps-r30#1)
+    if rely_v is not None and (not clause or clause not in rely_text):
+        raise RuntimeError("registry/arm_label_verifications.json: the RE-LY fixed-arm verification has no clause, or "
+                           "its clause is not in the held text it is bound to")
     rely_m = re.search(r"110 mg of dabigatran \(relative risk with dabigatran,\s*(\d+(?:\.\d+)?);\s*(\d+(?:\.\d+)?)%\s*"
                        r"confidence interval(?:\s*\[CI\])?,\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)" + _WHOLE,
                        clause) if clause and clause in rely_text else None

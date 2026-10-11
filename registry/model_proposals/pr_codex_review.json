@@ -8164,5 +8164,50 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r30": {
+  "base": "630e622bf",
+  "head": "63ffcd9d2",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e53a6155b40731f2cede3ac06cbe2d3b",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "415c5e9bdf01506d20b6189dd2a02917e17f605273ed58e2d5d4c97a62e05266"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P2",
+    "claim": "A matching arm verification missing its required clause silently becomes 'effect not found'. The registry validator accepts the entry, and `.get('clause') or ''` hides the malformed verification instead of reporting a broken registry.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport hashlib\nfrom harness.scope_identity import _noac_lower_dose_status\n\nclause = '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'\nentry = {'pmid': '19717844', 'held_text_sha256': hashlib.sha256(('RE-LY ' + clause).encode()).hexdigest(), 'claim': 'RELY_FIXED_110MG_ARM_CLAUSE'}\nrecords = {'records': [{'id': '19717844', 'title': 'RE-LY', 'abstract': clause}]}\nwith patch('builtins.open', mock_open(read_data='{}')), patch('harness.recorded_verification.json.load', return_value={'entries': [entry]}):\n    result = _noac_lower_dose_status(records)\n    print(result['status'])",
+    "expected": "Raise a registry-validation error because the matching RELY_FIXED_110MG_ARM_CLAUSE verification has no clause.",
+    "actual": "Returns NOT_COMPUTED_SOURCE_INCOMPLETE without an error; constructs the reason 'RE-LY 110 mg effect not found; ENGAGE low-dose edoxaban effect not found in the committed source.'",
+    "id": "copps-r30:g1#1",
+    "record_id": "mc-e53a6155b40731f2cede3ac06cbe2d3b",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_unpack",
+    "severity": "P2",
+    "claim": "Nested starred literal unpacking escapes the hardcoded-count gate. Flattening expands only one level, leaving an inner Starred node; the resulting length mismatch discards every assignment.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nsrc = \"row = {}\\nrow['ai'], row['n1i'] = (*(*[20, 169],),)\\n\"\nprint(sweep_source(src, 'harness/example.py'))\nns = {}\nexec(src, ns)\nprint(ns['row'])",
+    "expected": "COUNT_OR_EFFECT_KEY findings for ai=20 and n1i=169, allowing the gate to reject these unallowlisted hardcoded counts.",
+    "actual": "The sweep returns []; executing the scanned source produces {'ai': 20, 'n1i': 169}.",
+    "id": "copps-r30:g1#2",
+    "record_id": "mc-e53a6155b40731f2cede3ac06cbe2d3b",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -70,11 +70,15 @@ def _unpack(target, value) -> list[tuple[str, ast.AST]]:
         if not isinstance(value, (ast.Tuple, ast.List)):
             return []
         # a starred LITERAL in the value is its elements: '= *[20, 169, 37, 167],' (codex copps-r22#2)
+        # ... at any depth: '= *[*[20, 169], 37, 167],' (codex copps-r30#2)
+        def _flat(elts):
+            out = []
+            for v in elts:
+                out += _flat(v.value.elts) if isinstance(v, ast.Starred) and isinstance(v.value, (ast.Tuple, ast.List)) \
+                    else [v]
+            return out
         if any(isinstance(v, ast.Starred) and isinstance(v.value, (ast.Tuple, ast.List)) for v in value.elts):
-            flat = []
-            for v in value.elts:
-                flat += v.value.elts if isinstance(v, ast.Starred) and isinstance(v.value, (ast.Tuple, ast.List)) else [v]
-            value = ast.Tuple(elts=flat, ctx=ast.Load())
+            value = ast.Tuple(elts=_flat(value.elts), ctx=ast.Load())
         stars = [i for i, t in enumerate(target.elts) if isinstance(t, ast.Starred)]
         if not stars and len(target.elts) == len(value.elts):
             return [p for t, v in zip(target.elts, value.elts) for p in _unpack(t, v)]

@@ -553,3 +553,22 @@ def test_PLANT_codex_r29_1_a_dynamic_format_spec_leaves_its_literal_scanned():
     assert [h for h in sweep_source(src, "harness/example.py") if h["kind"] == "COUNT_PAIR_TEXT"]
     # a constant spec still renders and is read once (r26#2)
     assert sweep_source("text = f\"{'20/169':.2}\"", "harness/example.py") == []
+
+
+@pytest.mark.parametrize("clause", [None, "a clause that is not in the held text"])
+def test_PLANT_codex_r30_1_a_matching_verification_without_its_clause_fails_loudly(verify, clause):
+    entry = _rely_entry(RELY)
+    if clause is None:
+        entry.pop("clause")
+    else:
+        entry["clause"] = clause
+    verify(entry)
+    with pytest.raises(RuntimeError):
+        si._noac_lower_dose_status({"records": [{"id": "19717844", "title": "", "abstract": RELY}]})
+
+
+def test_PLANT_codex_r30_2_nested_starred_literals_are_swept():
+    from scripts.ast_literal_sweep import sweep_source
+    src = "row = {}\nrow['ai'], row['n1i'], row['ci'], row['n2i'] = *[*[20, 169], 37, 167],\n"
+    vals = {(f["key"], f["value"]) for f in sweep_source(src, "harness/p.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"}
+    assert {("ai", 20), ("n1i", 169)} <= vals
