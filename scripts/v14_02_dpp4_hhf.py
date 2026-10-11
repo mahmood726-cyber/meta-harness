@@ -129,8 +129,9 @@ def main(argv):
         v = parse(span)
         rows[pid] = {"kind": "extracted_effect", "outcome": OUTCOME, "scale": "HR", "override": True,
                      "effect": v["effect"], "ci_low": v["ci_low"], "ci_high": v["ci_high"],
-                     "source": f"PMID {pmid} ({nct}) PubMed abstract: hHF {v['events_t']}/{v['n_t']} v "
-                               f"{v['events_c']}/{v['n_c']}; HR {v['effect']:.2f} ({v['ci_low']:.2f}-{v['ci_high']:.2f})",
+                     # the clause verbatim: the typed read takes the HR and its CI only, never counts (extr-r2)
+                     "source": f"PMID {pmid} ({nct}) PubMed abstract: '{span}' -> HR {v['effect']:.2f} "
+                               f"({v['ci_low']:.2f}-{v['ci_high']:.2f})",
                      "verification": f"{ITEM}: span found verbatim in the held abstract (sha256 {sha})",
                      "source_span": span, "document_ref": f"outputs/held_abstracts/pubmed_{pmid}.txt",
                      "document_sha256": sha, "source_level": 1,

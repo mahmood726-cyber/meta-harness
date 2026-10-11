@@ -34,32 +34,17 @@ class ReadRefused(ValueError):
 _NUM = r"(\d+(?:\.\d+)?)"
 _HR = re.compile(r"(?:HR of|\[HR\],|hazard ratio(?: \[HR\])?,?)\s*" + _NUM + r"\s*\(?;?\s*95% CI,?\s*" + _NUM
                  + r"\s*(?:,|-|–|to)\s*" + _NUM)
-_COUNTS = re.compile(r"(?<![\d.])(\d+)/(\d+)(?![\d.])"           # never a rate such as 0.51/100 ...
-                     r"(?!\s*(?:person|patient|participant)[- ]?(?:years?|yrs?|months?)|\s*p-?y\b)")  # ... or 5/100 person-years (extr-r1#2)
-# population qualifiers that name WHICH denominator a count is over (extr-r1#3: randomized v safety are not comparable)
-_POPULATION = re.compile(r"\b(randomi[sz]ed|safety|intention[- ]to[- ]treat|itt|per[- ]protocol|treated|analy[sz]ed|"
-                         r"evaluable)\b", re.I)
-
-
 def read_abstract_clause(clause: str) -> dict[str, Any]:
-    """HR, its 95% CI and both arms' n/N, by type, from ONE clause. Exactly two n/N pairs and one HR, else refused."""
+    """The ONE hazard ratio a signed clause states, with its 95% CI, by type -- nothing else. Counts are never read from a
+    clause (codex extr-r1/r2: rates per person-years, mixed populations, Kaplan-Meier estimates and thousands separators
+    each defeated a count reading; no held row serves counts from a clause). Zero or several HRs: refused."""
     hr = _HR.findall(clause)
-    counts = _COUNTS.findall(clause)
-    if len(hr) != 1 or len(counts) != 2:
-        raise ReadRefused(f"clause must state one HR with its 95% CI and two n/N pairs (got {len(hr)} HR, "
-                          f"{len(counts)} n/N)")
+    if len(hr) != 1:
+        raise ReadRefused(f"clause must state exactly one HR with its 95% CI (got {len(hr)})")
     e, lo, hi = (float(x) for x in hr[0])
     if not lo <= e <= hi:
         raise ReadRefused(f"HR {e} outside its interval {lo}-{hi}")
-    (et, nt), (ec, nc) = ((int(a), int(b)) for a, b in counts)
-    if et > nt or ec > nc:
-        raise ReadRefused("an event count exceeds its denominator")
-    # the two denominators must be of ONE kind: a population named after each count must be the same (extr-r1#3)
-    pops = [{p.group(1).lower().replace(" ", "-") for p in _POPULATION.finditer(clause[m.end():m.end() + 40])}
-            for m in _COUNTS.finditer(clause)]
-    if pops[0] and pops[1] and pops[0] != pops[1]:
-        raise ReadRefused(f"the two counts are over different populations ({sorted(pops[0])} v {sorted(pops[1])})")
-    return {"effect": e, "ci_low": lo, "ci_high": hi, "events_t": et, "n_t": nt, "events_c": ec, "n_c": nc}
+    return {"effect": e, "ci_low": lo, "ci_high": hi}
 
 
 # ------------------------------------------------------------------------------------------------ label ADR table
@@ -74,8 +59,10 @@ def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
     for k in ("table", "trial", "arm_t", "arm_c", "row_label"):
         if not str(spec.get(k) or "").strip():
             raise ReadRefused(f"replay spec lacks {k!r}")
-    cap = re.search(re.escape(spec["table"]).replace(r"\ ", r"\s+") + r"\s*:\s*Adverse\s+reactions\b[^\n]*\n?[^\n]*"
-                    + re.escape(spec["trial"]), text, re.I)
+    # the trial is named within the caption's own two lines, never past another 'Table N:' caption (extr-r2#4)
+    _line = r"(?:(?!\bTable\s+\d+\s*:)[^\n])*"
+    cap = re.search(re.escape(spec["table"]).replace(r"\ ", r"\s+") + r"\s*:\s*Adverse\s+reactions\b" + _line + r"\n?"
+                    + _line + re.escape(spec["trial"]), text, re.I)
     if not cap:
         raise ReadRefused(f"{spec['table']} caption naming {spec['trial']} not found")
     # the table ends where the next 'Table N:' caption starts: a header or row past it belongs to another table
@@ -140,12 +127,10 @@ def replay(t: dict[str, Any], root: str = ROOT) -> tuple[bool, str]:
         if not span or span not in text:
             raise ReadRefused("the row's source_span is not verbatim in the held text")
         if kind == "held_abstract_clause":
-            v = read_abstract_clause(span)
-            want = {"effect": v["effect"], "ci_low": v["ci_low"], "ci_high": v["ci_high"]}
-            # any count the row serves must be the clause's count (extr-r1#1): ai/n1i/ci/n2i <- events/n per arm
-            for k, src in (("ai", "events_t"), ("n1i", "n_t"), ("ci", "events_c"), ("n2i", "n_c")):
-                if t.get(k) is not None:
-                    want[k] = v[src]
+            # this kind serves an effect and its CI only: a row carrying counts is not a clause read (extr-r1#1)
+            if any(t.get(k) is not None for k in ("ai", "n1i", "ci", "n2i")):
+                raise ReadRefused("a held_abstract_clause row serves an effect and its CI, never counts")
+            want = read_abstract_clause(span)
         else:
             v = read_label_adr_table(text, t.get("replay") or {})
             if v["raw_row"] != span:

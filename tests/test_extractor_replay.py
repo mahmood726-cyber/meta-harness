@@ -72,7 +72,7 @@ def test_PLANT_a_replayed_held_abstract_clause_is_extractor(pmid, sha, clause, e
     assert pc.classify_served(_abs_row(pmid, "f" * 64, clause, *eff), _held)[0] == "UNTRACED"
 
 
-@pytest.mark.parametrize("clause", ["HR 0.60 (95% CI 0.35, 1.05) with 20/2092 events",           # one n/N only
+@pytest.mark.parametrize("clause", ["no hazard ratio here, 20/2092 events",                       # no HR
                                     "20/2092 v 33/2100; HR of 0.60 (95% CI 0.65, 1.05)",           # HR outside its CI
                                     "20/2092 v 33/2100; HR of 0.60 (95% CI 0.35, 1.05); HR of 0.70 (95% CI 0.5, 0.9)"])
 def test_PLANT_the_clause_reader_refuses_rather_than_guesses(clause):
@@ -127,8 +127,9 @@ def test_PLANT_extr_r1_1_replay_checks_every_served_count(tmp_path):
         {"documents": {"pubmed_1.txt": {"sha256": sha}}}), encoding="utf-8")
     row = _abs_row("1", sha, clause, 0.5, 0.3, 0.8)
     assert xr.replay(row, root=str(tmp_path))[0] is True
+    # a clause row never serves counts -- right or wrong, a count on it is refused (extr-r2: counts not read)
     assert xr.replay(dict(row, ai=99, n1i=200), root=str(tmp_path))[0] is False
-    assert xr.replay(dict(row, ai=5, n1i=100, ci=10, n2i=100), root=str(tmp_path))[0] is True
+    assert xr.replay(dict(row, ai=5, n1i=100, ci=10, n2i=100), root=str(tmp_path))[0] is False
 
 
 @pytest.mark.parametrize("clause", [
@@ -136,9 +137,10 @@ def test_PLANT_extr_r1_1_replay_checks_every_served_count(tmp_path):
     "Deaths: 5/100 randomized participants in the treatment arm versus 10/90 safety participants in the placebo arm; "
     "hazard ratio, 0.50; 95% CI, 0.30-0.80.",
 ])
-def test_PLANT_extr_r1_2_3_rates_and_mixed_denominators_are_refused(clause):
-    with pytest.raises(xr.ReadRefused):
-        xr.read_abstract_clause(clause)
+def test_PLANT_extr_r1_2_3_rates_and_mixed_denominators_are_never_read_as_counts(clause):
+    """extr-r2 design change: the clause reader reads the HR and its CI only -- a count is never read, so neither a
+    rate nor a mixed denominator can become one."""
+    assert set(xr.read_abstract_clause(clause)) == {"effect", "ci_low", "ci_high"}
 
 
 def test_PLANT_extr_r1_4_the_header_never_crosses_into_the_next_table():
@@ -153,3 +155,18 @@ def test_PLANT_extr_r1_5_the_row_label_starts_a_line():
             "Severe Hyperkalemia 2 (2) 1 (1)\nHyperkalemia 20 (20) 10 (10)\n")
     v = xr.read_label_adr_table(text, LABEL_SPEC)
     assert (v["ai"], v["ci"]) == (20, 10)
+
+
+@pytest.mark.parametrize("clause", ["Deaths: 1/1,000 versus 2/2,000; HR of 0.50; 95% CI, 0.10-2.00.",
+                                    "Among randomized participants, deaths were 5/100; among safety participants, deaths "
+                                    "were 4/80; HR of 1.00; 95% CI, 0.50-2.00.",
+                                    "Kaplan-Meier estimated mortality was 5/100 versus 10/100; HR of 0.50; 95% CI, 0.20-0.90."])
+def test_PLANT_extr_r2_1_2_3_no_count_is_ever_read_from_a_clause(clause):
+    assert set(xr.read_abstract_clause(clause)) == {"effect", "ci_low", "ci_high"}
+
+
+def test_PLANT_extr_r2_4_the_trial_is_named_inside_its_own_caption():
+    text = ("Table 3: Adverse reactions in OTHER-TRIAL\nTable 4: Adverse reactions in FIDELIO-DKD\nKerendia N = 100 n (%) "
+            "Placebo N = 100 n (%)\nHyperkalemia 10 (10) 5 (5)")
+    with pytest.raises(xr.ReadRefused):
+        xr.read_label_adr_table(text, LABEL_SPEC)
