@@ -32,7 +32,11 @@ _YEAR = re.compile(r"\b(?:by\s+|at\s+)?(\d{1,2}|one|two|three)\s*[- ]?\s*years?\
 _MONTH = re.compile(r"\b(\d{1,2})\s*[- ]?\s*months?\b", re.I)
 # not out-of-hospital / out of hospital / pre-hospital / post-hospital (codex e1p2-r1 #3)
 _HOSPITAL = re.compile(r"(?<!out.of.)(?<!pre.)(?<!post.)\b(?:in[- ]?)?hospital\b", re.I)
+# after / following / post- discharge is OUTSIDE the stay (codex e1p2-r2 #4); 'before hospital discharge' is inside it
+_POST_DISCHARGE = re.compile(r"\b(?:after|following|post)[- ]+(?:hospital[- ]+)?discharge|\bpost[- ]?discharge\b", re.I)
 _INT_CELL = re.compile(r"^\d+$")
+_PERCENT = re.compile(r"%|\bpercent", re.I)
+_RANGE_DAYS = re.compile(r"\b(\d{1,3})\s*(?:-|–|to)\s*(\d{1,3})\s*[- ]?\s*days?\b", re.I)
 _WORDNUM = {"one": 1, "two": 2, "three": 3}
 
 
@@ -49,14 +53,19 @@ def table_rows(jats: str):
         tid = (re.search(r'\bid="([^"]+)"', tw[:300]) or re.match("", "")).group(1) if re.search(r'\bid="', tw[:300]) else None
         cap = _text((re.search(r"<caption>(.*?)</caption>", tw, re.S) or re.search(r"<label>(.*?)</label>", tw, re.S)
                      or re.match("(.*)", "")).group(1))
-        section = None
+        section, header = None, []
         for tr in re.findall(r"<tr\b.*?</tr>", tw, re.S):
-            cells = [_text(c) for c in re.findall(r"<t[dh]\b.*?</t[dh]>", tr, re.S)]
+            raw = re.findall(r"<t[dh]\b.*?</t[dh]>", tr, re.S)
+            cells = [_text(c) for c in raw]
+            if raw and all(c.startswith("<th") for c in raw) and len([c for c in cells if c]) > 1:
+                header = cells      # a column-header row: kept so a column's unit ('Treatment (%)') can be read
+                continue
             if len([c for c in cells if c]) == 1:
                 section = next(c for c in cells if c)
                 continue
             if cells:
-                out.append({"table": tid, "caption": cap, "section": section, "label": cells[0], "cells": cells})
+                out.append({"table": tid, "caption": cap, "section": section, "label": cells[0], "cells": cells,
+                            "header": header})
     return out
 
 
@@ -79,7 +88,7 @@ def row_window(label: str):
     days = _days(lab)
     if days:
         return ("DAYS", max(days))
-    if _HOSPITAL.search(lab):
+    if _HOSPITAL.search(lab) and not _POST_DISCHARGE.search(lab):
         return ("IN_HOSPITAL", None)
     return ("UNSTATED", None)
 
@@ -93,6 +102,9 @@ def allowed_windows(declared_timepoint: str, keywords) -> set:
         s = s.lower()
         allowed |= set(_days(s))
         allowed |= {int(n) for n in re.findall(r"(\d{1,3})\s*[- ]?\s*day", s)}
+        for a, b in _RANGE_DAYS.findall(s):      # '28-30 days' is every day of the range (codex e1p2-r2 #3)
+            if int(a) <= int(b):
+                allowed |= set(range(int(a), int(b) + 1))
         m = re.fullmatch(r"(\d{1,3})\s*-\s*(\d{1,3})", s.strip())
         if m:
             allowed |= set(range(int(m.group(1)), int(m.group(2)) + 1))
@@ -132,7 +144,13 @@ def candidates(jats: str, keywords, outcome_name: str, declared_timepoint: str) 
                 or (_window_only(r["label"]) and _names_outcome(r["section"] or "", terms))):
             continue
         data = " | ".join(r["cells"][1:])
-        ints = [c for c in r["cells"][1:] if _INT_CELL.match(c)]
+        # an integer is a count only when neither the row label nor that column's header says it is a percentage
+        # (codex e1p2-r2 #2: 'Treatment (%) | 10')
+        hdr = r.get("header") or []
+        ints = [c for i, c in enumerate(r["cells"]) if i > 0 and _INT_CELL.match(c)
+                and not _PERCENT.search(hdr[i] if i < len(hdr) else "")]
+        if _PERCENT.search(r["label"]):
+            ints = []
         if not (_COUNTS.search(data) or _EFFECT.search(data) or len(ints) >= 2):
             continue        # plain integer arm counts ('30-day mortality, n | 10 | 12') are counts too
         kind, n = row_window(r["label"])
@@ -154,12 +172,15 @@ ADMISSIBLE = ("WINDOW_MATCH", "IN_HOSPITAL_MATCH")
 def _is_witness(cells, witness: str) -> bool:
     """A candidate IS the refusal's witness only when at least two of its numeric cells (all, if it has one) occur in
     the witness span as whole tokens. One shared cell is not enough: a control arm's 28/281 is printed on every
-    mortality row of a table (codex e1p2-r1 #4)."""
+    mortality row of a table (codex e1p2-r1 #4). Matches are counted as a multiset: two identical cells need two
+    occurrences in the witness (codex e1p2-r2 #1)."""
+    import collections
     nums = [x for x in cells if x and re.search(r"\d", x)]
     if not witness or not nums:
         return False
-    hit = [x for x in nums if re.search(r"(?<![\d.])" + re.escape(x) + r"(?![\d.])", witness)]
-    return len(hit) >= min(2, len(nums))
+    hit = sum(min(n, len(re.findall(r"(?<![\d.])" + re.escape(x) + r"(?![\d.])", witness)))
+              for x, n in collections.Counter(nums).items())
+    return hit >= min(2, len(nums))
 
 
 def audit_refusal(slug: str, pid, row: dict, keywords, outcome_name: str, declared_timepoint: str, root=None) -> dict:

@@ -101,3 +101,32 @@ def test_section_heading_names_the_outcome():
             '<tr><td>28 days</td><td>10/100</td><td>20/100</td></tr></table></table-wrap>')
     c = candidates(jats, [], "mortality", "28 days")
     assert len(c) == 1 and c[0]["section"] == "Mortality" and c[0]["assessment"] == "WINDOW_MATCH"
+
+
+# ---- PR2 review round 2 (codex e1p2-r2 mc-f008fcd6; agy e1p2-r2-agy mc-800ba92b: no defects): plants failed first ----
+def test_duplicate_cells_need_duplicate_matches_in_the_witness():
+    from harness.candidate_rows import _is_witness
+    assert _is_witness(["10/100", "10/100"], "60-day mortality: 10/100 versus 20/100") is False
+    assert _is_witness(["10/100", "10/100"], "10/100 versus 10/100") is True
+
+
+def test_integer_percentages_are_not_arm_counts():
+    from harness.candidate_rows import candidates
+    jats = ('<table-wrap id="t1"><caption>Outcomes</caption><table><tr><th>Outcome</th><th>Treatment (%)</th>'
+            '<th>Control (%)</th></tr><tr><td>28-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>')
+    assert candidates(jats, [], "Mortality", "28-day") == []
+    jats = ('<table-wrap><table><tr><td>28-day mortality, %</td><td>10</td><td>12</td></tr></table></table-wrap>')
+    assert candidates(jats, [], "Mortality", "28-day") == []
+
+
+def test_a_declared_day_range_with_units_allows_every_day_in_it():
+    from harness.candidate_rows import allowed_windows
+    assert {28, 29, 30} <= allowed_windows("28-30 days", [])
+    assert {28, 29, 30} <= allowed_windows("28 to 30 days", [])
+
+
+def test_post_discharge_is_not_in_hospital_but_before_discharge_is():
+    from harness.candidate_rows import row_window
+    for lab in ("Mortality after hospital discharge", "Post-discharge mortality", "Death following hospital discharge"):
+        assert row_window(lab)[0] != "IN_HOSPITAL", lab
+    assert row_window("Death before hospital discharge")[0] == "IN_HOSPITAL"
