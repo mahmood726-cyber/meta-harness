@@ -7,6 +7,7 @@ from __future__ import annotations
 import glob
 import html
 import json
+import math
 import os
 import re
 
@@ -594,18 +595,23 @@ def _cochrane_headtohead_line(docs_dir: str) -> str:
     estimate and ours, each with its k). Never written in code (lc lane, 11 Oct: the two ORs stood here as literals);
     no file or no numbers -> no comparison is printed."""
     p = os.path.join(docs_dir, "cochrane_headtohead.json")
+    rp = os.path.join(docs_dir, "reviews", _HEADTOHEAD_SLUG, "review.json")
+    if not (os.path.exists(p) and os.path.exists(rp)):
+        return ""                         # nothing to compare; a PRESENT but unreadable file fails loudly below
     try:
         d = json.load(open(p, encoding="utf-8"))
         c, o = d["cochrane_pooled"], d["ours"]
-        theirs = f"{c['measure']} {float(c['effect']):g} (k={int(c['k'])})"
+        tk, te = int(c["k"]), float(c["effect"])
+        theirs = f"{c['measure']} {te:g} (k={tk})"
         built = f"{o['scale']} {float(o['estimate']):g} (k={int(o['k'])})"
         # OUR side is the SERVED pool, never the head-to-head's frozen copy of it (it said k=1 OR 8.25 beside a
         # served k=3 pool at OR 2.07)
-        rev = json.load(open(os.path.join(docs_dir, "reviews", _HEADTOHEAD_SLUG, "review.json"), encoding="utf-8"))
+        rev = json.load(open(rp, encoding="utf-8"))
         res = next(x for x in rev.get("outcomes") or [] if x.get("primary"))["result"]
         sk, se, ss = int(res["k"]), float(res["estimate"]), res.get("scale") or o["scale"]
-    except (OSError, ValueError, KeyError, TypeError, StopIteration):
-        return ""
+    except (ValueError, KeyError, TypeError, StopIteration) as e:
+        # a corrupt evidence file is a build error, never a silently missing paragraph (codex lc-literals g1#1)
+        raise ValueError(f"head-to-head evidence unreadable ({p} / {rp}): {e!r}") from e
     head = (f"<strong>The per-trial head-to-head was attempted against the gold standard</strong> "
             f"(the Cochrane review {html.escape(str(d.get('cochrane_review') or '').split(' ')[0])} of metformin for "
             f"PCOS ovulation): ")
@@ -614,8 +620,12 @@ def _cochrane_headtohead_line(docs_dir: str) -> str:
                f"ground truth needs vision/OCR or IPD (<code>docs/cochrane_headtohead.json</code>).")
     if sk == int(o["k"]) and round(se, 2) == round(float(o["estimate"]), 2):
         single = "single-trial " if sk == 1 else ""
-        return (head + f"its pooled {theirs} sits far from our {single}{built} &mdash; a stark, honest illustration of "
-                f"the small-k weakness the expansion tier targets &mdash; but " + blocked)
+        # 'far' and 'small-k' are claims about the numbers: printed only when ours is the smaller evidence base and
+        # the two differ at least two-fold (codex lc-literals g1#2: equal pools were called far apart)
+        if sk < tk and se > 0 and te > 0 and abs(math.log(se / te)) >= math.log(2):
+            return (head + f"its pooled {theirs} sits far from our {single}{built} &mdash; a stark, honest illustration "
+                    f"of the small-k weakness the expansion tier targets &mdash; but " + blocked)
+        return head + f"its pooled {theirs}; our {single}{built}. " + blocked[0].upper() + blocked[1:]
     return (head + f"its pooled {theirs}; our served pool is {ss} {round(se, 2):g} (k={sk}). The head-to-head was "
             f"built when we held {built} and has not been re-run on the current pool. Even so, " + blocked)
 

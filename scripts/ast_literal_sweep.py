@@ -214,15 +214,16 @@ _SAMPLE_SIZE = re.compile(r"(?<![\w.])[nN]\s*=\s*(?:\d{1,3}(?:,\d{3})+|\d+)\b")
 # a regex written over a trial's numbers matches them all the same: r"20\s*/\s*169" is the count 20/169
 _REGEX_SPACE = re.compile(r"\\s[*+?]?|\\ ")
 _REGEX_ESC = re.compile(r"\\([.()\-/])")
+_REGEX_ANCHOR = re.compile(r"\\[bBAZ]")
 
 
 def _scan_text(s: str, line: int, path: str, out: list) -> None:
     """Effect tuples, labelled effects, sample sizes and count pairs printed in one string's text -- read as the text a
-    regex over the string's escapes would match ('20\\s*/\\s*169' is the count 20/169)."""
+    regex over the string's escapes would match ('20\\s*/\\s*169' is the count 20/169). Always: a generic escape
+    elsewhere in the string (\\d, \\w) prints no digit and so finds nothing itself, but never switches the reading off
+    for the concrete numbers beside it (codex lc-literals g2#1); anchors (\\b) are not text (g2#2)."""
     if "\\" in s:
-        r = _REGEX_ESC.sub(r"\1", _REGEX_SPACE.sub(" ", s))
-        if r != s and not re.search(r"\\[dw]", r):        # a generic pattern (\d+/\d+) names no trial's numbers
-            s = r
+        s = _REGEX_ESC.sub(r"\1", _REGEX_SPACE.sub(" ", _REGEX_ANCHOR.sub("", s)))
     tuples = [m.span() for m in _EFFECT_TEXT.finditer(s)]
     for m in _LABELLED_EFFECT.finditer(s):
         if not any(a <= m.end() - 1 < b for a, b in tuples):  # the tuple already reports a labelled effect with its CI

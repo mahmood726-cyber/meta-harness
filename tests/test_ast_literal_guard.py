@@ -606,3 +606,12 @@ def test_PLANT_lc_a_bare_name_carrying_a_count_field_is_swept(src):
 def test_PLANT_lc_new_shapes_do_not_fire_on_their_near_misses(src):
     assert not [h for h in sweep.sweep_source(src, "plant.py")
                 if h["kind"] in {"LABELLED_EFFECT_TEXT", "SAMPLE_SIZE_TEXT", "COUNT_PAIR_TEXT", "COUNT_OR_EFFECT_KEY"}], src
+
+
+# --- recorded review of lc/literals-guard (lc-literals-codex) -------------------------------------------------------
+@pytest.mark.parametrize("src", [
+    'P = r"OR\s+2\.64; year=\d{4}"\n',     # g2#1: a generic escape elsewhere must not switch normalisation off
+    'P = r"\bOR\s+2\.64\b"\n',            # g2#2: regex word boundaries are not text
+])
+def test_PLANT_lc_literals_codex_g2_a_regex_over_an_effect_is_read_whatever_else_it_holds(src):
+    assert "LABELLED_EFFECT_TEXT" in {h["kind"] for h in sweep.sweep_source(src, "plant.py")}, src

@@ -37,3 +37,22 @@ def test_no_served_review_no_comparison(tmp_path):
     d = _docs(tmp_path, 3, 2.07)
     shutil.rmtree(os.path.join(d, "reviews"))
     assert index._cochrane_headtohead_line(d) == ""
+
+
+def test_PLANT_lc_literals_codex_g1_1_a_corrupt_evidence_file_fails_loudly(tmp_path):
+    import pytest
+    d = _docs(tmp_path, 1, 8.25)
+    open(os.path.join(d, "cochrane_headtohead.json"), "w", encoding="utf-8").write("{")
+    with pytest.raises(ValueError):
+        index._cochrane_headtohead_line(d)
+
+
+def test_PLANT_lc_literals_codex_g1_2_far_apart_only_when_they_are(tmp_path):
+    global H2H
+    saved = H2H
+    try:
+        H2H = dict(saved, ours={"k": 13, "estimate": 2.64, "scale": "OR"})
+        s = index._cochrane_headtohead_line(_docs(tmp_path, 13, 2.64))
+        assert "far from" not in s and "stark" not in s, s
+    finally:
+        H2H = saved
