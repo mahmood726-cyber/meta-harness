@@ -492,23 +492,6 @@ def _short_changed(slug: str, label: str | None, body: str) -> str:
 # a bound is read whole or not at all: only a whitelisted terminator may follow it (see
 # comparator_second_pass.BOUND_END; codex copps-r6#1)
 _WHOLE = r"(?=\s{0,3}(?:[);\]]|,(?!\s*\d)|$))"
-# a number CONTINUED before the match: a digit, then optional digit-grouping separators (comma, full stop, any space,
-# including narrow no-break). r17 '2110', r18 '1,110' / '1 110', r19 '1, 110' are this one class (codex copps-r19#1)
-# ... and a RANGE or alternative ending in the dose ('75-110 mg', '75 to 110 mg', '75/110 mg') is not the fixed
-# 110 mg arm (codex copps-r22#1)
-# ... and the Lancet middle-dot decimal '0·110 mg' continues a number too (codex copps-r24#1)
-_CONTINUES_A_NUMBER = re.compile(r"\d(?:[\s,.\u00b7\u00a0\u202f\u2009]|[-\u2010-\u2015]|\bto\b|\bor\b|/)*$", re.I)  # 'TO' too (copps-r23#1)
-
-
-def _first_unbounded(pattern: str, text: str):
-    """The first case-insensitive match of `pattern` whose start does not continue a number."""
-    for m in re.finditer(pattern, text, re.I):
-        # the WHOLE prefix: a fixed window loses the digit behind a long separator run (codex copps-r21#1)
-        if not _CONTINUES_A_NUMBER.search(text[:m.start()]):
-            return m
-    return None
-
-
 def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
     rows = {str(r.get("id")): r for r in records.get("records") or []}
     rely = rows.get("19717844") or {}
@@ -520,16 +503,23 @@ def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
     # anchored to the exact clause naming the arm and comparison: a loose 'low-dose edoxaban.*?hazard ratio' reads the
     # on-treatment 1.07 (0.87-1.31) that comes first in the abstract instead of the intention-to-treat 1.13
     # integer-valued numbers ('relative risk, 1;') are read too (codex copps-r9#1)
-    rely_m = _first_unbounded(r"110 mg of dabigatran \(relative risk with dabigatran,\s*(\d+(?:\.\d+)?);\s*(\d+(?:\.\d+)?)%\s*"
+    # the clause reporting the FIXED 110 mg arm is a RECORDED verification bound to this exact held text; the effect is
+    # read only inside it. Every number-prefix guard was defeated by a new prose form (codex copps-r17..r25: '2110',
+    # '1,110', '1, 110', '75-110', '75 TO 110', '0·110', '75 mg or 110 mg'): any text variant is simply
+    # unverified (stop-at-three -> design change)
+    from . import recorded_verification
+    rely_v = recorded_verification.verified("arm_label_verifications.json", "19717844", rely_text,
+                                            "RELY_FIXED_110MG_ARM_CLAUSE")
+    clause = str((rely_v or {}).get("clause") or "")
+    rely_m = re.search(r"110 mg of dabigatran \(relative risk with dabigatran,\s*(\d+(?:\.\d+)?);\s*(\d+(?:\.\d+)?)%\s*"
                        r"confidence interval(?:\s*\[CI\])?,\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)" + _WHOLE,
-                       rely_text)
+                       clause) if clause and clause in rely_text else None
     edox_m = re.search(r"unfavorable trend with low-dose edoxaban versus warfarin \(hazard ratio,\s*(\d+(?:\.\d+)?);\s*"
                        r"(\d+(?:\.\d+)?)%\s*CI,\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)" + _WHOLE, engage_text, re.I)
     rely_found, edox_low_found = bool(rely_m), bool(edox_m)
     # that the source identifies the low-dose arm as 30 mg is a RECORDED verification bound to this exact held text,
     # never a pattern over prose: copps-r15 and r16 each defeated a dose-label regex (a high-dose arm 'reduced to 30 mg';
     # a 30 mg low-dose arm 'reduced to 15 mg')
-    from . import recorded_verification
     edox_30_label_found = bool(recorded_verification.verified(
         "arm_label_verifications.json", "24251359", str(engage.get("abstract") or ""), "LOW_DOSE_ARM_IS_30MG"))
 

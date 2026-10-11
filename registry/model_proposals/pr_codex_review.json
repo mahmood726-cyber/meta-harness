@@ -7951,5 +7951,62 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r25": {
+  "base": "630e622bf",
+  "head": "5a5f61774",
+  "runs": {
+   "g1": {
+    "record_id": "mc-122da70f212797f1eaf838096d83ff90",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "688e3fea0ac6a4750a3b5f5229871b2d897132f3b01b867027cbfd66df1b849f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded / _noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "Dose alternatives with repeated units bypass the numeric-prefix guard, allowing a mixed-dose effect to be attributed to the fixed 110 mg arm.",
+    "failing_input": "from harness.scope_identity import _first_unbounded\ntext = 'Patients received 75 mg or 110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11).'\nm = _first_unbounded(r'110 mg of dabigatran', text)\nprint(None if m is None else m.group(0))",
+    "expected": "None: '75 mg or 110 mg' does not establish a fixed 110 mg arm.",
+    "actual": "Prints '110 mg of dabigatran'. The prefix guard cannot cross 'mg'; the full extraction pattern also matches this sentence, causing _noac_lower_dose_status to append effect 0.91 under arm 'dabigatran 110 mg'.",
+    "id": "copps-r25:g1#1",
+    "record_id": "mc-122da70f212797f1eaf838096d83ff90",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Constant f-string interpolations with format specifications evade the literal gate, even when they render exact hardcoded counts.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"label = f'Deaths {20:d}/{169:d}'\", 'harness/example.py'))",
+    "expected": "A COUNT_PAIR_TEXT finding with value '20/169'.",
+    "actual": "[]: formatted interpolations become NUL separators, so the hardcoded count pair is undetected.",
+    "id": "copps-r25:g1#2",
+    "record_id": "mc-122da70f212797f1eaf838096d83ff90",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Treating the first two positional arguments of every call as a field assignment falsely flags ordinary string searches and can fail the validation command.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"offset = abstract.find('or', 1)\", 'harness/example.py'))",
+    "expected": "[]: 1 is a string-search starting offset, not a trial count or odds ratio.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_OR_EFFECT_KEY', 'key': 'or', 'value': 1}]. Unless allowlisted, this finding makes the command exit with status 1.",
+    "id": "copps-r25:g1#3",
+    "record_id": "mc-122da70f212797f1eaf838096d83ff90",
+    "verdict": null
+   }
+  ]
  }
 }

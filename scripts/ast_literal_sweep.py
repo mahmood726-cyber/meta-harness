@@ -119,8 +119,10 @@ def sweep_source(src: str, path: str) -> list[dict]:
         elif isinstance(node, ast.Call):
             pairs = [(kw.arg, kw.value) for kw in node.keywords if kw.arg]
             # row.setdefault('ai', 20) / row.__setitem__('ai', 20): a positional field-name literal then its value
-            # (codex copps-r23#2)
-            if len(node.args) >= 2 and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+            # (codex copps-r23#2) -- only for the methods that SET a field: abstract.find('or', 1) is a search offset
+            # (codex copps-r25#3)
+            if (isinstance(node.func, ast.Attribute) and node.func.attr in _FIELD_SETTERS and len(node.args) >= 2
+                    and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)):
                 pairs.append((node.args[0].value, node.args[1]))
             # dict([('ai', 20), ...]) / dict((('ai', 20), ...)): positional literal (key, value) pairs (codex copps-r20#3)
             for arg in node.args:
@@ -143,14 +145,35 @@ def sweep_source(src: str, path: str) -> list[dict]:
         elif isinstance(node, ast.JoinedStr):
             # f'Deaths {20}/{169}': the RENDERED text of an f-string whose interpolations are constants is scanned as
             # one string (codex copps-r24#2); a non-constant interpolation renders as a break, never as a digit
-            s = "".join(v.value if isinstance(v, ast.Constant) else
-                        (str(v.value.value) if isinstance(v, ast.FormattedValue) and isinstance(v.value, ast.Constant)
-                         and v.conversion == -1 and v.format_spec is None else "\x00")
-                        for v in node.values)
+            s = "".join(_render(v) for v in node.values)
             _scan_text(s, node.lineno, path, out)
         elif isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in fparts:
             _scan_text(node.value, node.lineno, path, out)
     return out
+
+
+_FIELD_SETTERS = {"setdefault", "__setitem__"}
+
+
+def _render(v) -> str:
+    """One f-string part as it renders: text as is; a CONSTANT interpolation with its conversion (!s/!r/!a) and a
+    constant format spec ('{20:d}', codex copps-r25#2) applied; anything else a break, never a digit."""
+    if isinstance(v, ast.Constant):
+        return str(v.value)
+    if not (isinstance(v, ast.FormattedValue) and isinstance(v.value, ast.Constant)):
+        return "\x00"
+    val = v.value.value
+    val = {115: str, 114: repr, 97: ascii}.get(v.conversion, lambda x: x)(val)
+    spec = ""
+    if v.format_spec is not None:
+        parts = [_render(x) for x in v.format_spec.values]
+        if any(x == "\x00" for x in parts):
+            return "\x00"
+        spec = "".join(parts)
+    try:
+        return format(val, spec)
+    except (ValueError, TypeError):
+        return "\x00"
 
 
 def _scan_text(s: str, line: int, path: str, out: list) -> None:

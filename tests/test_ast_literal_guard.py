@@ -42,9 +42,33 @@ def test_PLANT_the_sweep_flags_each_pre_r24_shape():
             ("EFFECT_TUPLE_TEXT", ""), ("COUNT_PAIR_TEXT", "")} <= kinds
 
 
-def test_noac_lower_dose_values_are_read_with_their_ci_level():
+def _rely_entry(abstract, title=""):
+    import hashlib
+    text = " ".join([title, abstract])
+    start = text.index("110 mg of dabigatran")
+    clause = text[start:text.index(")", text.index("relative risk", start)) + 1]
+    return {"pmid": "19717844", "claim": "RELY_FIXED_110MG_ARM_CLAUSE", "clause": clause,
+            "held_text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()}
+
+
+@pytest.fixture
+def verify(tmp_path, monkeypatch):
+    """verify(entries): a temporary arm-label registry holding exactly `entries` (the reading logic is tested on
+    fixture texts; production reads only the entry bound to the held text)."""
+    from harness import recorded_verification as rv
+
+    def _write(*entries):
+        (tmp_path / "registry").mkdir(exist_ok=True)
+        (tmp_path / "registry" / "arm_label_verifications.json").write_text(
+            json.dumps({"entries": list(entries)}), encoding="utf-8")
+        monkeypatch.setattr(rv, "ROOT", str(tmp_path))
+    return _write
+
+
+def test_noac_lower_dose_values_are_read_with_their_ci_level(verify):
     rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY},
                         {"id": "24251359", "title": "", "abstract": ENGAGE}]}
+    verify(_rely_entry(RELY))
     got = {a["trial"]: a for a in si._noac_lower_dose_status(rows)["available_lower_dose_rows"]}
     assert (got["RE-LY"]["effect"], got["RE-LY"]["ci_level"], got["RE-LY"]["ci_low"], got["RE-LY"]["ci_high"]) == \
         (0.91, 95.0, 0.74, 1.11)
@@ -53,8 +77,9 @@ def test_noac_lower_dose_values_are_read_with_their_ci_level():
     assert (e["effect"], e["ci_level"], e["ci_low"], e["ci_high"]) == (1.13, 97.5, 0.96, 1.34)
 
 
-def test_PLANT_a_changed_source_number_changes_the_value_not_a_literal():
+def test_PLANT_a_changed_source_number_changes_the_value_not_a_literal(verify):
     rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("0.91", "0.93")}]}
+    verify(_rely_entry(RELY.replace("0.91", "0.93")))
     got = si._noac_lower_dose_status(rows)["available_lower_dose_rows"]
     assert got[0]["effect"] == 0.93
 
@@ -147,7 +172,8 @@ def test_PLANT_codex_r5_1_a_times_ten_bound_is_refused():
     assert csp.reported_value_at(a + " 1.65, 95% CI 1.35 to 2.03 x 10^1)", a) is None
 
 
-def test_PLANT_codex_r5_2_ready_needs_both_effects_not_a_dose_label():
+def test_PLANT_codex_r5_2_ready_needs_both_effects_not_a_dose_label(verify):
+    verify(_rely_entry(RELY))
     rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY},
                         {"id": "24251359", "title": "",
                          "abstract": "30 mg low-dose edoxaban (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34)"}]}
@@ -220,8 +246,9 @@ def test_PLANT_codex_r8_3_nested_unpacking_is_flagged():
     assert sorted((h["key"], h["value"]) for h in hits) == [("ai", 20), ("ci", 37), ("n1i", 169), ("n2i", 167)]
 
 
-def test_PLANT_codex_r9_1_integer_effects_are_read():
+def test_PLANT_codex_r9_1_integer_effects_are_read(verify):
     rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("dabigatran, 0.91;", "dabigatran, 1;")}]}
+    verify(_rely_entry(RELY.replace("dabigatran, 0.91;", "dabigatran, 1;")))
     got = si._noac_lower_dose_status(rows)["available_lower_dose_rows"]
     assert got and got[0]["effect"] == 1.0
 
@@ -289,7 +316,7 @@ def test_ready_needs_a_recorded_dose_label_bound_to_the_exact_held_text(tmp_path
     reg.mkdir()
     (reg / "arm_label_verifications.json").write_text(json.dumps({"entries": [{
         "pmid": "24251359", "claim": "LOW_DOSE_ARM_IS_30MG",
-        "held_text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()}]}), encoding="utf-8")
+        "held_text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()}, _rely_entry(RELY)]}), encoding="utf-8")
     monkeypatch.setattr(rv, "ROOT", str(tmp_path))
     rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY},
                         {"id": "24251359", "title": "", "abstract": text}]}
@@ -338,9 +365,12 @@ def test_PLANT_codex_r19_1_a_dose_never_continues_a_number_whatever_the_separato
     assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
 
 
-def test_the_dose_boundary_still_reads_a_dose_after_prose():
-    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY}]}
-    assert [r["arm"] for r in si._noac_lower_dose_status(rows)["available_lower_dose_rows"]] == ["dabigatran 110 mg"]
+def test_the_recorded_rely_clause_is_read_from_the_real_held_record():
+    """Control: the held RE-LY title + abstract carries the recorded FIXED 110 mg clause -> its effect is read."""
+    import json
+    recs = json.load(open(os.path.join(ROOT, "cache", "noac-vs-warfarin-af-stroke", "records.json"), encoding="utf-8"))
+    got = si._noac_lower_dose_status(recs)["available_lower_dose_rows"]
+    assert [(r["arm"], r["effect"], r["ci_low"], r["ci_high"]) for r in got][0] == ("dabigatran 110 mg", 0.91, 0.74, 1.11)
 
 
 @pytest.mark.parametrize("entries", ['[{"pmid": "123"}]', '[{"pmid": "123", "claim": "X"}]', '["not a dict"]'])
@@ -375,14 +405,11 @@ def test_PLANT_codex_r20_1_registry_fields_have_their_types(tmp_path, monkeypatc
         rv.verified("arm_label_verifications.json", "1", "t", "C")
 
 
-def test_PLANT_codex_r20_2_a_missing_verification_is_never_reported_as_the_source_not_saying_so():
-    import harness.scope_identity as s
-    from unittest.mock import patch
+def test_PLANT_codex_r20_2_a_missing_verification_is_never_reported_as_the_source_not_saying_so(verify):
     rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY},
                         {"id": "24251359", "title": "", "abstract": ENGAGE}]}
-    with patch.object(s, "_edox_30_label_verified", return_value=False, create=True), \
-            patch("harness.recorded_verification.verified", return_value=None):
-        reason = s._noac_lower_dose_status(rows)["reason"]
+    verify(_rely_entry(RELY))                     # RE-LY's clause recorded; no LOW_DOSE_ARM_IS_30MG entry at all
+    reason = si._noac_lower_dose_status(rows)["reason"]
     assert "does not explicitly identify" not in reason and "no recorded verification" in reason
 
 
@@ -396,8 +423,8 @@ def test_PLANT_codex_r20_3_dict_from_literal_pairs_is_swept(src):
 
 @pytest.mark.parametrize("gap", [" " * 9, " " * 40, ", " * 6])
 def test_PLANT_codex_r21_1_a_long_separator_run_still_continues_the_number(gap):
-    assert si._first_unbounded(r"110 mg", "1" + gap + "110 mg") is None
-    assert si._first_unbounded(r"110 mg", "with " + gap + "110 mg") is not None
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", "1" + gap + "110 mg of")}]}
+    assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
 
 
 @pytest.mark.parametrize("src", ["row['ai'], *rest = 20, 169, 37, 167", "*rest, row['ai'] = 169, 37, 20",
@@ -437,7 +464,6 @@ def test_PLANT_codex_r22_3_the_sweep_cli_fails_on_an_unallowlisted_literal(tmp_p
 
 @pytest.mark.parametrize("pre", ["75 TO 110 mg of", "75 Or 110 mg of"])
 def test_PLANT_codex_r23_1_the_range_guard_ignores_case(pre):
-    assert si._first_unbounded(r"110 mg", pre.replace(" of", "")) is None
     rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", pre)}]}
     assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
 
@@ -449,7 +475,6 @@ def test_PLANT_codex_r23_2_a_positional_field_literal_call_is_swept(src):
 
 
 def test_PLANT_codex_r24_1_a_middle_dot_decimal_continues_the_number():
-    assert si._first_unbounded(r"110 mg", "0\u00b7110 mg of dabigatran") is None
     rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", "0\u00b7110 mg of")}]}
     assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
 
@@ -466,3 +491,26 @@ def test_an_f_string_with_a_variable_is_not_a_count_and_its_text_is_reported_onc
     assert sweep_source("s = f'Deaths {n}/{d}'", "harness/example.py") == []
     hits = sweep_source("s = f'RR 0.91 (0.74-1.11) for {name}'", "harness/example.py")
     assert len(hits) == 1
+
+
+@pytest.mark.parametrize("pre", ["75 mg or 110 mg of", "75 mg and 110 mg of", "doses up to 110 mg of"])
+def test_PLANT_codex_r25_1_no_text_but_the_recorded_one_yields_the_fixed_arm(pre):
+    """Stop-at-three design change: the fixed-arm clause is a recorded verification bound to the held text's sha256, so
+    any other text -- every prose form codex found in r17..r25, and every one it has not -- is simply unverified."""
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", pre)}]}
+    assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
+    # even the fixture's clean '110 mg of' is unverified: it is not the held text the verification was recorded on
+    clean = {"records": [{"id": "19717844", "title": "", "abstract": RELY}]}
+    assert [r for r in si._noac_lower_dose_status(clean)["available_lower_dose_rows"] if r["trial"] == "RE-LY"] == []
+
+
+@pytest.mark.parametrize("src", ["label = f'Deaths {20:d}/{169:d}'", "label = f'Deaths {20!s}/{169:>4}'"])
+def test_PLANT_codex_r25_2_a_formatted_constant_interpolation_renders(src):
+    from scripts.ast_literal_sweep import sweep_source
+    assert [f for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_PAIR_TEXT"]
+
+
+@pytest.mark.parametrize("src", ["offset = abstract.find('or', 1)", "i = text.index('hr', 5)", "x = s.replace('ai', 20)"])
+def test_PLANT_codex_r25_3_a_search_offset_is_not_a_field(src):
+    from scripts.ast_literal_sweep import sweep_source
+    assert [f for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"] == []
