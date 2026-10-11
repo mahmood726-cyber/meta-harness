@@ -152,7 +152,7 @@ def _component_set(text: str) -> frozenset[str]:
     for name in ("coronary heart disease death", "transient ischemic attack"):
         if name in shared.components:
             comps.add(components_mod.ROB2_NAME[name])
-    mace_term = re.search(r"\bmace\b|\bmajor adverse cardiovascular events?\b|\bmajor (?:cardio)?vascular events?\b", s)
+    mace_term = re.search(r"\bmace\b|\bmajor adverse cardiovascular events?\b|\bmajor cardiovascular events?\b", s)
     three_point = re.search(r"\b(?:3|three)[- ]?point\b", s)
     # a generic label expands only when the text enumerates nothing (never over a stated definition)
     if mace_term and (three_point or (not comps and not shared.enumerated)):

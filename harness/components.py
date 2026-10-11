@@ -179,7 +179,7 @@ def components(text: str | None, expand_generic: bool = True) -> Parsed:
         # MI and non-fatal stroke'); with none named (Alpha Omega) it stays unknown
         if out.components:
             out.unknown = [u for u in out.unknown if not _GENERIC_ITEM.search(_fold(u))]
-    generic = re.search(r"\bmace\b|\bmajor (?:adverse )?cardiovascular events?\b|\bmajor vascular events?\b", s)
+    generic = re.search(r"\bmace\b|\bmajor (?:adverse )?cardiovascular events?\b", s)   # not 'major vascular events' (CTT)
     three_point = re.search(r"\b(?:3|three)[- ]?point\b", s)
     if expand_generic and generic and (three_point or (not out.components and not out.enumerated)):
         out.components |= set(THREE_POINT)

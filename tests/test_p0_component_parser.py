@@ -159,3 +159,18 @@ def test_known_limit_unknown_component_found(text, why):
 def test_known_limit_subtype_exclusion():
     s = "The composite of cardiovascular death, myocardial infarction, and stroke (excluding hemorrhagic stroke)."
     assert C.components(s).components == {"cardiovascular death", "myocardial infarction", "stroke"}
+
+
+def test_major_vascular_events_is_not_expanded_to_three_point_mace():
+    """statins-elderly: 'Major vascular events' is the CTT composite (coronary events, stroke AND revascularization); P0 first
+    expanded it to 3-point MACE and refused both pooled trials (JUPITER for unstable angina)."""
+    assert te._components_from_text("Major vascular events") == set()
+    assert te.canonical_components({"name": "Major vascular events"}) == []
+    assert rob2._component_set("Major vascular events") == frozenset()
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex p0-r4 #3): an eligibility exclusion ('excluding patients with prior "
+                                       "stroke') is read as an endpoint exclusion; 0 of 321 served texts carry one (probe)")
+def test_known_limit_population_exclusion():
+    s = "The primary endpoint was MACE. Eligibility criteria: excluding patients with prior stroke."
+    assert C.components(s).components == {"cardiovascular death", "myocardial infarction", "stroke"}
