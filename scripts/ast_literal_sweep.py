@@ -102,7 +102,7 @@ def sweep_source(src: str, path: str) -> list[dict]:
             if isinstance(n, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n.body
             and isinstance(n.body[0], ast.Expr) and isinstance(n.body[0].value, ast.Constant)}
     # the text fragments of an f-string are scanned once, as part of its rendered text (codex copps-r24#2)
-    fparts = {id(v) for n in ast.walk(tree) if isinstance(n, ast.JoinedStr) for v in n.values}
+    fparts = {id(x) for n in ast.walk(tree) if isinstance(n, ast.JoinedStr) for v in n.values for x in ast.walk(v)}
     for node in ast.walk(tree):
         if id(node) in docs:
             continue
@@ -160,9 +160,17 @@ def _render(v) -> str:
     constant format spec ('{20:d}', codex copps-r25#2) applied; anything else a break, never a digit."""
     if isinstance(v, ast.Constant):
         return str(v.value)
-    if not (isinstance(v, ast.FormattedValue) and isinstance(v.value, ast.Constant)):
+    if not isinstance(v, ast.FormattedValue):
         return "\x00"
-    val = v.value.value
+    node = v.value
+    # '{-0.35}' is UnaryOp(USub, Constant) (codex copps-r26#1)
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)) and isinstance(node.operand, ast.Constant) \
+            and isinstance(node.operand.value, (int, float)) and not isinstance(node.operand.value, bool):
+        val = -node.operand.value if isinstance(node.op, ast.USub) else node.operand.value
+    elif isinstance(node, ast.Constant):
+        val = node.value
+    else:
+        return "\x00"
     val = {115: str, 114: repr, 97: ascii}.get(v.conversion, lambda x: x)(val)
     spec = ""
     if v.format_spec is not None:

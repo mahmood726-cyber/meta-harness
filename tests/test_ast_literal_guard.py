@@ -514,3 +514,15 @@ def test_PLANT_codex_r25_2_a_formatted_constant_interpolation_renders(src):
 def test_PLANT_codex_r25_3_a_search_offset_is_not_a_field(src):
     from scripts.ast_literal_sweep import sweep_source
     assert [f for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"] == []
+
+
+def test_PLANT_codex_r26_1_a_negative_constant_interpolation_renders():
+    from scripts.ast_literal_sweep import sweep_source
+    hits = sweep_source("text = f'SMD {-0.35:.2f} ({-0.50:.2f}\u2013{-0.20:.2f})'", "harness/example.py")
+    assert [h for h in hits if h["kind"] == "EFFECT_TUPLE_TEXT"]
+
+
+def test_PLANT_codex_r26_2_a_string_inside_an_interpolation_is_read_only_as_rendered():
+    from scripts.ast_literal_sweep import sweep_source
+    assert sweep_source("text = f\"{'20/169':.2}\"", "harness/example.py") == []
+    assert [h for h in sweep_source("text = f\"{'20/169'}\"", "harness/example.py") if h["kind"] == "COUNT_PAIR_TEXT"]

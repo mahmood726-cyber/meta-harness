@@ -8008,5 +8008,50 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r26": {
+  "base": "630e622bf",
+  "head": "2a3770e59",
+  "runs": {
+   "g1": {
+    "record_id": "mc-110050dd36d37f81102abb4a6e3f17a2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "5c977f348ee009b7b9a00da02b457f12ca3d84bbbad8f65de06f8a8d50bd27cf"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_render / sweep_source",
+    "severity": "P1",
+    "claim": "The sweep misses hardcoded negative effects in constant f-strings. Python represents negative literals as UnaryOp nodes, which _render replaces with a break instead of rendering. The validation gate therefore passes this unallowlisted effect.",
+    "failing_input": "sweep_source(\"text = f'SMD {-0.35:.2f} ({-0.50:.2f}–{-0.20:.2f})'\", 'harness/example.py')",
+    "expected": "An EFFECT_TUPLE_TEXT finding for '-0.35 (-0.50–-0.20)'.",
+    "actual": "[]",
+    "id": "copps-r26:g1#1",
+    "record_id": "mc-110050dd36d37f81102abb4a6e3f17a2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "String constants inside f-string interpolations are scanned again independently of their formatting. This flags a count that the rendered string does not contain and can incorrectly fail validation.",
+    "failing_input": "sweep_source(\"text = f\\\"{'20/169':.2}\\\"\", 'harness/example.py')",
+    "expected": "[]: the f-string renders as '20', containing no count pair.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '20/169'}]",
+    "id": "copps-r26:g1#2",
+    "record_id": "mc-110050dd36d37f81102abb4a6e3f17a2",
+    "verdict": null
+   }
+  ]
  }
 }
