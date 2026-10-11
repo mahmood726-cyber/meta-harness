@@ -841,6 +841,10 @@ def _with_comparator_records(records: dict, config: dict, cache_dir: str) -> dic
     records.json, the search cache, is never rewritten for a comparator switch, so every digest of it stays valid; the
     overlay file is pinned in the page certificate beside it. A file naming another comparator is not applied, and the
     pipeline's comparator_records_problem then refuses a page whose held comparator records are not its comparator's."""
+    # every reader of the study set reads it through here: the signed concept admissions are overlaid first
+    # (harness/concept_admission.py, DISPATCH_V14_04 -- an ELIGIBLE family found only by family discovery)
+    from . import concept_admission
+    records = concept_admission.with_concept_admissions(records, cache_dir)
     p = os.path.join(cache_dir, COMPARATOR_RECORDS)
     if not os.path.exists(p) or not isinstance(records, dict):
         return records

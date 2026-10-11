@@ -207,6 +207,9 @@ def compute(slug, review, protocol_sha):
         # a SIGNED replacement comparator's own records (fetch.ensure overlays them on records.json; V8, 7 Oct)
         "comparator_records_sha256": (_hash(_json(cache / "comparator_records.json"))
                                       if (cache / "comparator_records.json").exists() else NOT_PRESENT),
+        # the SIGNED concept admissions overlaid on records.json (harness/concept_admission.py; V14-04)
+        **({"concept_admissions_sha256": _hash(_json(cache / "concept_admissions.json"))}
+           if (cache / "concept_admissions.json").exists() else {}),
         "retrieval_ledger_sha256": _hash(ledger),
         "screening_ledger_sha256": _hash(review["screening"]),
         "extraction_objects_sha256": _hash(extraction),
@@ -227,6 +230,10 @@ def compute(slug, review, protocol_sha):
             "records_file_sha256": "canonical entire cache/<slug>/records.json",
             "comparator_records_sha256": "canonical entire cache/<slug>/comparator_records.json (a signed replacement "
                                          "comparator's own record, OA status and full text), else NOT_PRESENT",
+            # (present only on a page that holds a register, so no other page's certificate changes)
+            **({"concept_admissions_sha256": "canonical entire cache/<slug>/concept_admissions.json (signed admissions "
+                                             "of eligible families found only by family discovery)"}
+               if (cache / "concept_admissions.json").exists() else {}),
             "retrieval_ledger_sha256": "canonical entire retrieval_ledger.json (including any raw-index digest)",
             "screening_ledger_sha256": "canonical review.json['screening']",
             "extraction_objects_sha256": "canonical ref-to-JSON map: " + ", ".join(extraction),
