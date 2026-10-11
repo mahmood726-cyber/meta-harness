@@ -29,7 +29,11 @@ SCOPE = {"FULLTEXT": "fulltext", "FULL_ABSTRACT": "abstract"}
 PMC_NO_DOWNLOAD = "does not allow downloading of the full text"
 # a self-declared coverage header written by an acquisition step ('SOURCE EXCERPT -- NOT A COMPLETE DOCUMENT
 # (coverage: EXCERPT_ONLY)', cache/spironolactone-hfref-mortality/ft_28824029.txt): the file's own statement wins
-_DECLARED = re.compile(r"\(coverage:\s*([A-Z_]+)\)|NOT A COMPLETE DOCUMENT")
+_DECLARED = re.compile(r"\(coverage:\s*([A-Z_]+)\)")
+_DECLARED_GENERIC = re.compile(r"NOT A COMPLETE DOCUMENT")   # only when no '(coverage: X)' names a label (agy r3 #1)
+# the ROOT element of a JATS document (after any XML declaration / doctype): an XHTML page behind '<?xml' is not JATS
+# (codex e1-cov-r3 g1#1, agy r3 #2)
+_ROOT_ELEMENT = re.compile(r"<(?![?!])([\w.-]+:)?([\w.-]+)")
 # repository / portal page markers (Pure 'Research output', Scopus counts, an RIS export block)
 _PORTAL = re.compile(r"Research output\s*:\s*Contribution to journal|Citations\s*\(Scopus\)|Overview\s+Fingerprint"
                      r"|^\s*(?:UR|ER|DO|AN|SN|M3)\s+-\s", re.M)
@@ -42,7 +46,8 @@ _JATS_START = ("<?xml", "<pmc-articleset", "<article", "<!doctype pmc-articleset
 _HTML_START = ("<!doctype html", "<html")
 _HTTP_ERROR = re.compile(r"<(?:title|h1)>\s*(?:[45]\d\d\b[^<]*|(?:Gateway Time-?out|Bad Gateway|Service Unavailable|"
                          r"Not Found|Forbidden|Access Denied|Too Many Requests)[^<]*)</(?:title|h1)>", re.I)
-_TAG_BODY_OPEN = re.compile(r"<(?:[\w.-]+:)?body\b[^>]*?(/?)>", re.I)        # <body>, <jats:body>, <body/>
+# <body>, <jats:body>, <body/> -- and never <body-matter> ('-' is a word boundary for \b: agy r3 #3)
+_TAG_BODY_OPEN = re.compile(r"<(?:[\w.-]+:)?body(?=[\s/>])[^>]*?(/?)>", re.I)
 FULLTEXT_MIN_CHARS = 8000          # prose: a full article; an abstract with 'Methods: ... Results:' labels is shorter
 REVISION_MIN_SIMILARITY = 0.97     # a revised PubMed record (spelling / one corrected word) v an abridgement (OMNeON: 0.69)
 REVISION_MAX_LENGTH_DELTA = 0.03
@@ -84,17 +89,20 @@ def label_document(raw) -> dict:
         # a saved server error response ('504 Gateway Time-out', comparators 24963045 / 38128217) delivered nothing
         return out("STUB", "HTTP_ERROR_PAGE")
     m = _DECLARED.search(t[:600])
-    if m and (m.group(1) or "EXCERPT_ONLY") not in ("COMPLETE_SOURCE", "COMPLETE_ABSTRACT"):
+    declared = m.group(1) if m else ("EXCERPT_ONLY" if _DECLARED_GENERIC.search(t[:600]) else None)
+    if declared and declared not in ("COMPLETE_SOURCE", "COMPLETE_ABSTRACT"):
         # a header may LOWER coverage (an acquisition step saying 'this is an excerpt'); it never RAISES it: a
         # declared COMPLETE_* is ignored and the bytes decide (codex e1-cov-r1 g1#2); a declared METADATA / STUB keeps
-        # its own label (agy e1-cov-r1-agy #2)
-        declared = m.group(1) or "EXCERPT_ONLY"
+        # its own label (agy e1-cov-r1-agy #2), even beside the generic phrase (agy r3 #1)
         return out(_DECLARED_LABEL.get(declared, "EXCERPT"), f"SELF_DECLARED:{declared}")
     # portal / landing-page markers before any structure: an HTML page is never JATS (codex e1-cov-r2 g1#1)
     if _PORTAL.search(t):
         return out("METADATA", "PORTAL_PAGE")
     if head.startswith(_HTML_START):
         return out("METADATA", "HTML_PAGE")
+    root = _ROOT_ELEMENT.search(t)
+    if head.startswith(_JATS_START) and root and root.group(2).lower() == "html":
+        return out("METADATA", "HTML_PAGE")          # XHTML behind an XML declaration (codex r3 #1, agy r3 #2)
     if head.startswith(_JATS_START):
         mo = _TAG_BODY_OPEN.search(t)
         if not mo:
@@ -178,10 +186,13 @@ def preservation_record(cached_abstract: str, units: list) -> dict:
 
 def absence_licensed(searched: list, scope: str = "abstract") -> bool:
     """The bundle's asymmetric rule, for the evidential SCOPE of the claim (agy e1-cov-r1-agy #4): 'not in the abstract'
-    needs a complete abstract (FULL_ABSTRACT, or a FULLTEXT, which contains it); 'not reported by the trial report' needs
-    a FULLTEXT. searched = [label, ...] of the objects actually read."""
-    need = ("COMPLETE_SOURCE",) if scope == "fulltext" else ("COMPLETE_SOURCE", "COMPLETE_ABSTRACT")
-    return any(BUNDLE_COVERAGE.get(lab) in need for lab in searched or [])
+    needs a complete ABSTRACT (a held article body says nothing about whether the abstract was acquired: codex
+    e1-cov-r3 g1#2); 'not reported by the trial report' needs a FULLTEXT. An unknown scope fails closed (ValueError:
+    codex e1-cov-r3 g1#3). searched = [label, ...] of the objects actually read."""
+    need = {"abstract": "COMPLETE_ABSTRACT", "fulltext": "COMPLETE_SOURCE"}.get(scope)
+    if need is None:
+        raise ValueError(f"absence scope must be 'abstract' or 'fulltext', not {scope!r}")
+    return any(BUNDLE_COVERAGE.get(lab) == need for lab in searched or [])
 
 
 def sha256(raw) -> str:
