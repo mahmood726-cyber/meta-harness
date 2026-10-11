@@ -7163,5 +7163,50 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r11": {
+  "base": "a8a7c4b66",
+  "head": "33a029cbd",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5b733461a2045b197de2a39fd2a29fa7",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py",
+     "harness/index.py",
+     "harness/review_tabs.py",
+     "scripts/v14_05_licence_exception.py"
+    ],
+    "prompt_sha256": "52c8a7f8a3cc49026c87debbf0df12bc637e6874b50e45374bd17ae84740214d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_cut_clause",
+    "severity": "P1",
+    "claim": "The new clause truncation removes valid semicolon-separated composite components, including the numbered lists its docstring explicitly promises to preserve. _derive_endpoint adopts the incomplete composite as the endpoint definition.",
+    "failing_input": "_cut_clause('primary outcome was a composite of [1] cardiovascular death; [2] nonfatal myocardial infarction; and [3] nonfatal stroke')",
+    "expected": "primary outcome was a composite of [1] cardiovascular death; [2] nonfatal myocardial infarction; and [3] nonfatal stroke",
+    "actual": "primary outcome was a composite of [1] cardiovascular death",
+    "id": "harms-r11:g1#1",
+    "record_id": "mc-5b733461a2045b197de2a39fd2a29fa7",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P2",
+    "claim": "The new negation check treats any 'not' within the preceding four words as negating the outcome's identity. Consequently, a statement that treatment did not prevent an outcome causes its explicit definition to be discarded.",
+    "failing_input": "Held text: 'Treatment did not prevent diarrhoea (three or more loose stools per day).' Outcome: {'name': 'diarrhoea', 'primary': false}. No explicit definition or audit override.",
+    "expected": "Derive 'diarrhoea (three or more loose stools per day)' from the committed source text.",
+    "actual": "The qualifier is 'Treatment did not prevent', so negated=True. The function returns the bare name 'diarrhoea' with basis 'outcome.name (the definition in the source applies to another outcome: a primary-endpoint sentence defines the primary outcome only)'.",
+    "id": "harms-r11:g1#2",
+    "record_id": "mc-5b733461a2045b197de2a39fd2a29fa7",
+    "verdict": null
+   }
+  ]
  }
 }

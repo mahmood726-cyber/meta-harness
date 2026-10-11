@@ -269,9 +269,14 @@ def _cut_clause(body: str) -> str:
             depth += 1
         elif ch in ")]":
             depth = max(0, depth - 1)
-        elif ch == ";" and depth == 0:
+        elif ch == ";" and depth == 0 and not _LIST_ITEM_NEXT.match(body, i + 1):
             return body[:i].rstrip()
     return body
+
+
+# a ';' followed by the next item's enumerator ('[2]', '(2)', '2)', '(ii)', optionally after 'and'/'or') continues a
+# numbered list: '[1] CV death; [2] nonfatal MI; and [3] nonfatal stroke' is one composite (codex harms-r11#1)
+_LIST_ITEM_NEXT = re.compile(r"\s*(?:(?:and|or)\s+)?(?:\[\d{1,2}\]|\(\d{1,2}\)|\d{1,2}\)|\(?[ivx]{1,4}\))\s", re.I)
 # ... defines only an outcome whose WHOLE name is diarrhoea / AAD (either spelling)
 _AAD_SUBJECT = r"(?:antibiotic[- ]associated\s+)?diarrho?ea(?:\s*\(AAD\))?|AAD"
 # ... defines only an outcome whose WHOLE name is AAD itself

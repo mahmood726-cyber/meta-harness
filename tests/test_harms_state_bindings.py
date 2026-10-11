@@ -207,3 +207,20 @@ def test_a_semicolon_inside_parentheses_does_not_cut_a_primary_definition():
             "myocardial infarction, nonfatal stroke, or death from cardiovascular causes).")
     got = _endpoint({"name": "3-point MACE", "primary": True}, "15", text)["value"]
     assert "a composite of nonfatal myocardial infarction" in got, got
+
+
+@pytest.mark.parametrize("body", [
+    "primary outcome was a composite of [1] cardiovascular death; [2] nonfatal myocardial infarction; and [3] nonfatal stroke",
+    "primary outcome was a composite of (1) cardiovascular death; (2) nonfatal myocardial infarction; or (3) nonfatal stroke",
+    "primary outcome was a composite of 1) cardiovascular death; 2) nonfatal myocardial infarction; 3) nonfatal stroke",
+    "primary outcome was a composite of (i) cardiovascular death; (ii) nonfatal myocardial infarction; (iii) stroke",
+])
+def test_PLANT_harms_r11_1_a_numbered_composite_list_is_never_cut(body):
+    from harness.compat_check import _cut_clause
+    assert _cut_clause(body) == body
+
+
+def test_the_clause_cut_still_stops_at_the_next_clause():
+    from harness.compat_check import _cut_clause
+    assert _cut_clause("primary outcome was mortality at 90 days; secondary outcome was stroke") == \
+        "primary outcome was mortality at 90 days"
