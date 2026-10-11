@@ -10,8 +10,12 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import components as components_mod
 from . import extract, hand_binding
 from .ctgov_results import _classify_arms, _num, _registry_measure_type
+
+# an enumerated composite item no vocabulary maps (harness.components): kept, never dropped (P0)
+NOT_ESTABLISHED_PREFIX = "component not established: "
 
 EXACT_TARGET = "EXACT_TARGET"
 NEAR_MATCH = "NEAR_MATCH"
@@ -181,12 +185,13 @@ def _fold(text: str | None) -> str:
     return re.sub(r"\s+", " ", s)
 
 
-def _components_from_text(text: str | None, expand_named_composites: bool = True) -> set[str]:
+def _components_from_text(text: str | None, expand_named_composites: bool = True, mark_unknown: bool = False) -> set[str]:
     """Components a span NAMES.  With expand_named_composites (default, definition spans) a bare
     'MACE' / '3-point MACE' with no enumerated components expands to the canonical 3-point set; a
     RESULT span is read with expansion OFF so that 'MACE occurred in ... (HR ...)' resolves to the
     abstract's definition sentence instead of asserting a component set the sentence never states."""
-    s = _fold(text)
+    # an excluded component ('excluding stroke') is not a named one (codex p0-r1 #5)
+    s = components_mod.strip_exclusions(_fold(text))
     comps: set[str] = set()
     if ("coronary heart disease death" in s or "death from coronary heart disease" in s
             or re.search(r"\bchd\b.{0,30}death|death.{0,30}\bchd\b", s)):
@@ -254,11 +259,27 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
         comps.add("sustained egfr decline")
     if "renal death" in s or "death from renal" in s:
         comps.add("renal death")
-    if expand_named_composites and ("mace" in s or "major adverse cardiovascular" in s or "major cardiovascular" in s):
-        if not comps or "3-point" in s or "three-point" in s:
+    # P0 (reviews 18/25/28/29): the shared vocabulary decides two things this parser used to guess.
+    shared = components_mod.components(text, expand_generic=False)
+    # the generic labels main already expanded -- NOT "major vascular events": that is the CTT composite (coronary events, stroke
+    # AND revascularization), never default 3-point MACE (statins-elderly lost both trials when P0 added it)
+    generic = "mace" in s or "major adverse cardiovascular" in s or "major cardiovascular" in s
+    # (1) a generic label expands to the default 3-point set only when the text ENUMERATES nothing ('major cardiovascular
+    #     events, which comprised ... cardiac interventions' is Alpha Omega's own definition, not 3-point MACE)
+    if expand_named_composites and generic:
+        if (not comps and not shared.enumerated) or "3-point" in s or "three-point" in s:
             comps.update({"cardiovascular death", "myocardial infarction", "stroke"})
         if "4-point" in s or "four-point" in s:
             comps.add("unstable angina")
+    # (2) an enumerated item NO vocabulary maps is kept as a NOT_ESTABLISHED component, never dropped: the composite is then
+    #     not the target unless the outcome declares near-match permission (the same rule that refuses ASCEND's TIA).
+    #     Only in a composite context, so a 'defined as <population>' sentence grows no component; and (D20) ONLY when the
+    #     caller parses a served abstract / full-text DEFINITION span (mark_unknown) -- never registry candidates, never D5:
+    #     on registry free text the rule misfired ('SEE', 'mins', 'composite endpoints').
+    if mark_unknown and shared.unknown and (comps or generic):
+        comps.update(f"{NOT_ESTABLISHED_PREFIX}{u}" for u in shared.unknown)
+    # (3) an excluded component stays out even after the generic expansion ('MACE excluding stroke')
+    comps -= components_mod.excluded(text)
     return comps
 
 
@@ -297,7 +318,7 @@ def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
         # (hazard ratio 0.87 ...), with ... hospitalization for heart failure")
         if extract.extract_effect(x) or _EFFECT_RE.search(x) or re.search(r"\d+ of \d+", xl):
             continue
-        comps = _components_from_text(x, expand_named_composites=True)
+        comps = _components_from_text(x, expand_named_composites=True, mark_unknown=True)
         if not comps:
             continue
         q = _QUALIFIER_RX.search(xl)
@@ -327,7 +348,7 @@ def bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
                 "endpoint_definition_span": None, "components": set(),
                 "binding_reason": "no result span"}
     rs = result_span.strip()
-    own = _components_from_text(rs, expand_named_composites=False)
+    own = _components_from_text(rs, expand_named_composites=False, mark_unknown=True)
     names_endpoint = bool(_NAMED_COMPOSITE_RX.search(rs.lower()))
     if own:
         # the result sentence states its own component set (one component = a component-only result;
