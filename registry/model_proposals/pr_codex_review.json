@@ -6731,5 +6731,93 @@
     "verdict": null
    }
   ]
+ },
+ "flow-r1": {
+  "base": "b2e31705a",
+  "head": "aa07dec3c",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b80596d15daef5e6e1c820d1bfe006c8",
+    "state": "RAN_OK",
+    "files": [
+     "harness/certificate.py",
+     "harness/concept_admission.py",
+     "harness/fetch.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/build_concept_admissions.py",
+     "scripts/v14_04_flow_mace.py"
+    ],
+    "prompt_sha256": "a677baf6130a3afa3c8d78addc33c26ca1ede9afbc6d90ba71d9487a8f12e75d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/concept_admission.py",
+    "function": "verify_entry",
+    "severity": "P1",
+    "claim": "An incomplete signature passes verification: missing choice and digest fields compare equal as None. This admits a record without the required recorded choice or item-section digest.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport hashlib\nfrom harness import concept_admission as ca\ntext = 'Trial registration: NCT00000001.'\nsha = hashlib.sha256(text.encode()).hexdigest()\ne = {'pmid':'1', 'nct':'NCT00000001', 'signed_item':'X', 'signature':{}, 'abstract_sha256':sha, 'record':{}}\nloads = [\n {'items':{'X':{'state':'SEEN_AND_SIGNED'}}},\n {'families':[{'family_id':'NCT00000001','eligibility':{'state':'ELIGIBLE'},'reports':[{'report_id':'1'}]}]},\n {'records':[{'id':'1','nct':'NCT00000001','found_by':['pubmed_concept_query']}]},\n {'documents':{'pubmed_1.txt':{'pmid':'1','sha256':sha,'nct':'NCT00000001','nct_evidence':text}}}\n]\nwith patch.object(ca, '_load', side_effect=loads), patch('builtins.open', mock_open(read_data=text)):\n result = ca.verify_entry(e, 'cache', 'root')\nprint(result['id'], result['nct'])",
+    "expected": "AdmissionRefused because neither the registry signature nor the entry supplies a choice or item-section digest.",
+    "actual": "Returns an admitted record; the print produces '1 NCT00000001'. Both missing-field comparisons evaluate to True.",
+    "id": "flow-r1:g1#1",
+    "record_id": "mc-b80596d15daef5e6e1c820d1bfe006c8",
+    "verdict": null
+   },
+   {
+    "file": "harness/concept_admission.py",
+    "function": "verify_entry",
+    "severity": "P1",
+    "claim": "The trial witness is accepted even when its manifest explicitly identifies a different paper. The function never checks the manifest PMID, so another paper's recorded witness can bind the admitted paper.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport hashlib\nfrom harness import concept_admission as ca\ntext = 'Our trial registration is NCT00000002.'\nsha = hashlib.sha256(text.encode()).hexdigest()\nsig = {'choice':'A','item_section_sha256':'a'*64}\ne = {'pmid':'1','nct':'NCT00000001','signed_item':'X','signature':sig,'abstract_sha256':sha,'record':{}}\nloads = [\n {'items':{'X':dict(sig, state='SEEN_AND_SIGNED')}},\n {'families':[{'family_id':'NCT00000001','eligibility':{'state':'ELIGIBLE'},'reports':[{'report_id':'1'}]}]},\n {'records':[{'id':'1','nct':'NCT00000001','found_by':['pubmed_concept_query']}]},\n {'documents':{'pubmed_1.txt':{'pmid':'2','sha256':sha,'nct':'NCT00000001','nct_evidence':'Trial registration: NCT00000001.'}}}\n]\nwith patch.object(ca, '_load', side_effect=loads), patch('builtins.open', mock_open(read_data=text)):\n result = ca.verify_entry(e, 'cache', 'root')\nprint(result['id'], result['nct'], result['abstract'])",
+    "expected": "AdmissionRefused: the supplied witness identifies PMID 2, not the admitted PMID 1.",
+    "actual": "Returns PMID 1 bound to NCT00000001, with abstract 'Our trial registration is NCT00000002.'",
+    "id": "flow-r1:g1#2",
+    "record_id": "mc-b80596d15daef5e6e1c820d1bfe006c8",
+    "verdict": null
+   },
+   {
+    "file": "scripts/v14_04_flow_mace.py",
+    "function": "main",
+    "severity": "P0",
+    "claim": "Offline verification checks only the text digest and presence of two generic spans. It ignores the manifest's paper/trial identifiers and the spans' trial context, allowing another trial's HR to overwrite FLOW's verified effect.",
+    "failing_input": "import hashlib, io, json, os\nfrom unittest.mock import patch, mock_open\nfrom scripts import v14_04_flow_mace as s\ntext = ('Synthetic fixture. FLOW (NCT03819153): HR 1.20 (95% CI 1.10–1.30). '\n        'The following results concern a different trial, NCT00000002: '\n        + s.DEF_SPAN + '. ' + s.RES_SPAN)\nfiles = {\n s.HELD_NAME: text,\n 'manifest.json': json.dumps({'documents':{s.HELD_NAME:{\n  'pmid':'2','pmcid':'PMC2','nct':'NCT00000002','licence':'licenses/by/4.0',\n  'sha256':hashlib.sha256(text.encode()).hexdigest()}}}),\n 'verified_effects.json':'{}'\n}\nwriter = mock_open()\ndef opened(path, mode='r', **kwargs):\n if mode == 'w':\n  return writer()\n return io.StringIO(files[os.path.basename(path)])\nwith patch.object(s.os.path, 'exists', return_value=True), patch('builtins.open', side_effect=opened):\n s.main(['--offline'])\nwritten = json.loads(''.join(c.args[0] for c in writer().write.call_args_list))\nprint(written[s.PID][0]['effect'])",
+    "expected": "Refuse the mismatched source document; do not write the unrelated trial's 0.82 as FLOW's effect.",
+    "actual": "Writes effect 0.82, CI 0.68–0.98 under FLOW pool ID 38785209, with provenance 'fulltext_verified' and source attribution to PMID 39211948 / NCT03819153. The final print produces 0.82.",
+    "id": "flow-r1:g1#3",
+    "record_id": "mc-b80596d15daef5e6e1c820d1bfe006c8",
+    "verdict": null
+   }
+  ]
+ },
+ "flow-r1-agy": {
+  "base": "b2e31705a",
+  "head": "aa07dec3c",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5c365d49c0239aff3fa19cb5c20eb6ba",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/certificate.py",
+     "harness/concept_admission.py",
+     "harness/fetch.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/build_concept_admissions.py"
+    ],
+    "prompt_sha256": "9603a3adde67443b4b016a07c2dfb61421622afb1518a26ed6fc010439ba6d93"
+   },
+   "g2": {
+    "record_id": "mc-bda455dd10e8c1c01f91199e575a92c7",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/v14_04_flow_mace.py"
+    ],
+    "prompt_sha256": "73047bbbf6340555dace4f2fde5cc10bb1dec530f5f17318438cd674ea76cd66"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }

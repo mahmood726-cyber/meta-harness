@@ -50,7 +50,9 @@ def verify_entry(e: dict[str, Any], cache_dir: str, root: str = ROOT) -> dict[st
     # 1. the signed item
     sig = (_load(os.path.join(root, "registry", "v14_signatures.json")).get("items") or {}).get(item) or {}
     want = e.get("signature") or {}
-    if not (sig.get("state") == "SEEN_AND_SIGNED" and sig.get("choice") == want.get("choice")
+    # every field present and equal: two MISSING fields are not a match (codex flow-r1#1)
+    if not (sig.get("state") == "SEEN_AND_SIGNED" and sig.get("choice") and sig.get("choice") == want.get("choice")
+            and re.fullmatch(r"[0-9a-f]{64}", str(sig.get("item_section_sha256") or ""))
             and sig.get("item_section_sha256") == want.get("item_section_sha256")):
         raise AdmissionRefused(f"{pmid}: {item} is not signed as recorded (state {sig.get('state')!r})")
     # 2. the family: ELIGIBLE, the report one of ITS reports, its id the NCT
@@ -78,6 +80,9 @@ def verify_entry(e: dict[str, Any], cache_dir: str, root: str = ROOT) -> dict[st
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
     if not (sha == man.get("sha256") == e.get("abstract_sha256")):
         raise AdmissionRefused(f"{pmid}: held abstract sha256 {sha[:12]} != manifest / entry")
+    # the manifest entry is THIS paper's: its PMID, then its witness naming this trial (codex flow-r1#2)
+    if str(man.get("pmid") or "") != pmid:
+        raise AdmissionRefused(f"{pmid}: the held manifest entry is for PMID {man.get('pmid')!r}")
     if man.get("nct") != nct or not re.search(r"(?<![0-9A-Za-z])" + re.escape(nct) + r"(?![0-9A-Za-z])",
                                               str(man.get("nct_evidence") or "")):
         raise AdmissionRefused(f"{pmid}: the held article's recorded witness does not name {nct}")

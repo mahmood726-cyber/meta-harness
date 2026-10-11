@@ -98,3 +98,50 @@ def test_a_topic_without_a_register_is_unchanged():
     other = os.path.join(ROOT, "cache", "dpp4-mace-t2d")
     recs = json.load(open(os.path.join(other, "records.json"), encoding="utf-8"))
     assert ca.with_concept_admissions(copy.deepcopy(recs), other) == recs
+
+
+# ---- codex flow-r1 (PR #85): plants that fail on aa07dec3c ----------------------------------------------------------
+@pytest.mark.parametrize("kw", [
+    {"mutate_sig": lambda s: (s.pop("choice"), s.pop("item_section_sha256"))},                # r1#1: missing == missing
+    {"mutate_entry": lambda e: e.update(signature={})},
+])
+def test_PLANT_flow_r1_1_an_incomplete_signature_never_matches(tmp_path, kw):
+    if "mutate_entry" in kw:
+        root, cache = _sandbox(tmp_path, mutate_sig=lambda s: (s.pop("choice"), s.pop("item_section_sha256")), **kw)
+    else:
+        root, cache = _sandbox(tmp_path, mutate_entry=lambda e: e.update(signature={}), **kw)
+    with pytest.raises(ca.AdmissionRefused):
+        ca.admitted_records(cache, root)
+
+
+def test_PLANT_flow_r1_2_the_manifest_entry_must_be_this_papers(tmp_path):
+    root, cache = _sandbox(tmp_path)
+    p = os.path.join(root, "outputs", "held_abstracts", "manifest.json")
+    m = json.load(open(p, encoding="utf-8"))
+    m["documents"]["pubmed_38785209.txt"]["pmid"] = "2"
+    open(p, "w", encoding="utf-8").write(json.dumps(m))
+    with pytest.raises(ca.AdmissionRefused):
+        ca.admitted_records(cache, root)
+
+
+def test_PLANT_flow_r1_3_the_flow_script_refuses_a_text_that_is_not_the_signed_one(tmp_path, monkeypatch):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("v14_04", os.path.join(ROOT, "scripts", "v14_04_flow_mace.py"))
+    s = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(s)
+    held = tmp_path / "held"
+    held.mkdir()
+    import hashlib
+    text = "Synthetic. " + s.DEF_SPAN + ". " + s.RES_SPAN + "."
+    (held / s.HELD_NAME).write_text(text, encoding="utf-8", newline="")
+    (held / "manifest.json").write_text(json.dumps({"documents": {s.HELD_NAME: {
+        "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "pmid": s.PMID, "pmcid": s.PMCID, "nct": s.NCT}}}),
+        encoding="utf-8")
+    monkeypatch.setattr(s, "HELD_DIR", str(held))
+    # a sandboxed ROOT: no version of the script may write the real cache, even one that wrongly accepts the text
+    (tmp_path / "cache" / s.SLUG).mkdir(parents=True)
+    (tmp_path / "cache" / s.SLUG / "verified_effects.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(s, "ROOT", str(tmp_path))
+    with pytest.raises(SystemExit):
+        s.main(["--offline"])
+    assert json.loads((tmp_path / "cache" / s.SLUG / "verified_effects.json").read_text(encoding="utf-8")) == {}

@@ -32,6 +32,7 @@ ITEM = "V14-04"
 OUTCOME = "3-point major adverse cardiovascular events"
 HELD_DIR = os.path.join(ROOT, "outputs", "held_fulltexts")
 HELD_NAME = f"pmc_{PMCID}.txt"
+TEXT_SHA = "f5b56a7b8757869962afb09191da6791c5038cc001c5913c93f1f415fa3c9a62"   # V14-04's held text, as the captain verified it
 DEF_SPAN = "the composite of CV death, non-fatal MI or non-fatal stroke (hereafter CV death/MI/stroke)"
 RES_SPAN = ("In the overall population, semaglutide reduced rates of the composite of CV death/MI/stroke compared with "
             "placebo [HR 0.82 (95% CI 0.68–0.98)]")
@@ -56,12 +57,20 @@ def main(argv):
     man = json.load(open(mp, encoding="utf-8")) if os.path.exists(mp) else {"documents": {}}
     if offline:
         text = open(path, encoding="utf-8", newline="").read()
-        if hashlib.sha256(text.encode("utf-8")).hexdigest() != man["documents"][HELD_NAME]["sha256"]:
+        doc = man["documents"].get(HELD_NAME) or {}
+        if hashlib.sha256(text.encode("utf-8")).hexdigest() != doc.get("sha256"):
             raise SystemExit("REFUSED: held text does not match its manifest digest")
+        # the manifest entry is THIS paper's and THIS trial's (codex flow-r1#3)
+        if (str(doc.get("pmid")), str(doc.get("pmcid")), str(doc.get("nct"))) != (PMID, PMCID, NCT):
+            raise SystemExit("REFUSED: the held manifest entry names another paper or trial")
     else:
         from harness import fetch, http
         lic, stmt = _licence(http, fetch)
         text = re.sub(r"\s+", " ", fetch._pmc_fulltext(PMID) or "").strip()
+    # the bytes are the SIGNED ones: the captain verified this text (V14-04, sha f5b56a7b...); a replaced text and
+    # manifest together never pass (codex flow-r1#3 -- the manifest alone is no anchor)
+    if hashlib.sha256(text.encode("utf-8")).hexdigest() != TEXT_SHA:
+        raise SystemExit("REFUSED: the held text is not the signed FLOW text (sha256 differs from V14-04's)")
     if DEF_SPAN not in text or RES_SPAN not in text:
         raise SystemExit("REFUSED: a signed span is not verbatim in the held text")
     m = _HR.search(RES_SPAN)
