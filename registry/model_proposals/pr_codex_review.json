@@ -8131,5 +8131,38 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r29": {
+  "base": "630e622bf",
+  "head": "08d108293",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0abb8c31f1b94f37bcaaad5687cfa135",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "9938ab77a8322c411bb070eb5a973ba30b9237ada2dded6415237a23dcbfcf01"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source / _render",
+    "severity": "P2",
+    "claim": "A dynamic f-string format specification hides a hardcoded count pair. `_render` returns a break for the unresolved specification, but `fparts` still suppresses scanning the underlying string literal, allowing the validation gate to pass.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nsrc = \"width = 20\\nlabel = f\\\"{'Deaths 20/169':{width}}\\\"\"\nsweep_source(src, 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding for '20/169' on line 2; executing the supplied source renders that literal count pair.",
+    "actual": "[]",
+    "id": "copps-r29:g1#1",
+    "record_id": "mc-0abb8c31f1b94f37bcaaad5687cfa135",
+    "verdict": null
+   }
+  ]
  }
 }

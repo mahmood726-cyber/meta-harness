@@ -545,3 +545,11 @@ def test_PLANT_codex_r28_1_a_literal_inside_an_unrendered_interpolation_is_still
     from scripts.ast_literal_sweep import sweep_source
     src = "show = True\nsummary = f\"{'Deaths 20/169' if show else ''}\""
     assert [h for h in sweep_source(src, "harness/example.py") if h["kind"] == "COUNT_PAIR_TEXT"]
+
+
+def test_PLANT_codex_r29_1_a_dynamic_format_spec_leaves_its_literal_scanned():
+    from scripts.ast_literal_sweep import sweep_source
+    src = "width = 20\nlabel = f\"{'Deaths 20/169':{width}}\""
+    assert [h for h in sweep_source(src, "harness/example.py") if h["kind"] == "COUNT_PAIR_TEXT"]
+    # a constant spec still renders and is read once (r26#2)
+    assert sweep_source("text = f\"{'20/169':.2}\"", "harness/example.py") == []
