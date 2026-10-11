@@ -112,33 +112,287 @@ def _text_span(source: str, label: str) -> dict[str, str]:
     return {"source": source, "span": label}
 
 
-def _derived(value: str | None, source: str, span: str | None) -> dict[str, Any]:
-    return {"value": value, "source": source, "span": _norm_ws(span or "")}
+def _derived(value: str | None, source: str, span: str | None, trial_reported: bool | None = None) -> dict[str, Any]:
+    if trial_reported is None:
+        trial_reported = None if value is None else source not in _NOT_TRIAL_REPORTED
+    return {"value": value, "source": source, "span": _norm_ws(span or ""), "trial_reported": trial_reported}
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# OUTCOME BINDING (external audit review 26-A / 12-03 / 04-2, 11 Oct). Every panel field binds to the row's SELECTED
+# outcome, in this order:
+#   1. an explicit field (trial.timeframe for follow-up; the definition-audit row for the endpoint);
+#   2. the ROW'S OWN source span (the sentence the effect was extracted from);
+#   3. sentences of the held record that are ABOUT this outcome (its head term and, for multi-word names, half of the rest);
+#      for the analysis set, a sentence about another STAGE (extension, re-randomisation, run-in, open-label phase) never
+#      counts; a 'primary outcome was X' clause binds only when X is this outcome;
+#   4. a trial-level statement (median follow-up; 'analysed by intention to treat') for follow-up / analysis set;
+#   5. the protocol's declaration (outcome.timepoint, study_effect.analysis_population, outcome.name), labelled as such
+#      (trial_reported False).
+# The old rule took the FIRST regex hit over source + span + title + whole abstract: CAPE COD's mortality follow-up was
+# its hydrocortisone taper ('14 days'), Torres's 'primary outcome was treatment failure' was attached to its mortality
+# and hyperglycaemia rows, and melatonin's analysis set was the extension phase's 'completers'.
+# Time phrases are typed: FOLLOW-UP feeds follow_up_window; EXPOSURE (treatment duration), LENGTH OF STAY and SCHEDULE
+# have their own fields and never become a follow-up window.
+# ---------------------------------------------------------------------------------------------------------------------
+SRC_ROW = "row source span"
+SRC_OUTCOME_SENTENCE = "outcome-bound sentence of the held record"
+SRC_TRIAL_STATEMENT = "trial-level statement in the held record"
+SRC_PRIMARY_CLAUSE = "the trial's primary-outcome clause (the row's own span reports the primary outcome)"
+SRC_DECLARED = "protocol declaration (study_effect.analysis_population; not trial-reported)"
+_NOT_TRIAL_REPORTED = {SRC_DECLARED, "outcome.timepoint", "outcome.name", "underivable"}
+
+_GENERIC_TOKENS = {"all", "cause", "any", "new", "total", "overall", "time", "first", "rate", "risk", "events", "event",
+                   "outcome", "outcomes", "the", "of", "or", "and", "to", "in", "a", "an", "with", "for", "by", "on",
+                   "from", "at", "per", "trial", "defined", "reported", "composite", "change", "baseline",
+                   "effect", "effects"}           # 'adverse effects' must not bind to 'major adverse cardiac events'
+_SYNONYMS = {"mortality": ("mortality", "death", "deaths", "died", "dying", "survival"),
+             "death": ("death", "deaths", "died", "mortality"),
+             "hospitalization": ("hospitalization", "hospitalisation", "hospitalized", "hospitalised", "admission"),
+             "hospitalisation": ("hospitalization", "hospitalisation", "hospitalized", "hospitalised", "admission"),
+             "mace": ("mace", "major adverse cardiovascular events", "major adverse cardiac events",
+                      "major cardiovascular events", "major vascular events")}
+_STAGE = re.compile(r"\bextension\b|\bre-?randomi[sz]ed\b|\bre-?randomi[sz]ation\b|\brun-?in\b|\bopen-label (?:phase|period)\b"
+                    r"|\bcontinuation (?:phase|period)\b|\blong-term (?:phase|period|follow-up phase)\b|\bwithdrawal phase\b", re.I)
+
+
+def _fold(s: str) -> str:
+    """Lower case; British/American vowel pairs folded identically on both sides (haemo/hemo, oedema/edema)."""
+    s = (s or "").lower()
+    return s.replace("ae", "e").replace("oe", "e")
+
+
+_WORDS = re.compile(r"[a-z]+")
+
+
+def _outcome_tokens(outcome: dict[str, Any]) -> list[str]:
+    words = _WORDS.findall(_fold(str(outcome.get("name") or "")))
+    toks = [w for w in words if w not in _GENERIC_TOKENS and len(w) >= 3]
+    return toks
+
+
+def _has_token(text_f: str, tok: str) -> bool:
+    alts = _SYNONYMS.get(tok, (tok,))
+    for alt in alts:
+        a = _fold(alt)
+        if re.search(rf"(?<!non-)(?<!non )\b{re.escape(a)}(?:s|es)?\b", text_f):
+            return True
+    return False
+
+
+def _about_outcome(text: str, toks: list[str]) -> bool:
+    """A text is ABOUT the outcome when it carries the head term (the last content word) and, for longer names, at least
+    half of the other content words. 'nonvertebral' never satisfies 'vertebral' (the prefix guard and word boundary)."""
+    if not toks:
+        return False
+    acr = "".join(t[0] for t in toks).upper()
+    if len(toks) >= 2 and re.search(rf"\b{re.escape(acr)}\b", text or ""):
+        return True                       # the outcome's own acronym ('AAD' for antibiotic-associated diarrhoea)
+    tf = _fold(text)
+    head, rest = toks[-1], toks[:-1]
+    if not _has_token(tf, head):
+        return False
+    need = (len(rest) + 1) // 2
+    return sum(1 for t in rest if _has_token(tf, t)) >= need
+
+
+_SENT_SPLIT = re.compile(r"(?<=[.;!?])\s+(?=[A-Z(\[])")
+
+
+def _sentences(text: str) -> list[str]:
+    return [s for s in _SENT_SPLIT.split(_norm_ws(text)) if s]
+
+
+def _row_text(trial: dict[str, Any]) -> str:
+    return _norm_ws(" ".join(str(b or "") for b in (
+        trial.get("source"), ((trial.get("study_effect") or {}).get("source_provenance") or {}).get("span"))))
+
+
+def _record_text(rec: dict[str, Any] | None) -> str:
+    return _norm_ws(" ".join(str(b or "") for b in ((rec or {}).get("title"), (rec or {}).get("abstract"))))
+
+
+def _outcome_sentences(outcome: dict[str, Any], rec: dict[str, Any] | None, *, skip_stage: bool = False) -> list[str]:
+    toks = _outcome_tokens(outcome)
+    out = []
+    for s in _sentences(_record_text(rec)):
+        if skip_stage and _STAGE.search(s):
+            continue
+        # the trial's own primary-outcome sentence binds to the review's PRIMARY row when it names the head term
+        # ('The primary outcome was the proportion of patients who developed diarrhea in the first 21 days')
+        if _about_outcome(s, toks) or (outcome.get("primary") and toks and _PRIMARY_SENTENCE.search(s)
+                                       and _has_token(_fold(s), toks[-1])):
+            out.append(s)
+    return out
+
+
+_PRIMARY_SENTENCE = re.compile(r"\bprimary (?:efficacy )?(?:outcome|end ?point|measure)", re.I)
+
+
+# --- time phrases ------------------------------------------------------------------------------------------------
+_UNIT = r"(day|week|month|year)s?"
+# a number: decimals with '.' or the Lancet middle dot ('1·5 years' was read as '5 years'); never the tail of '34.2±13.7'
+_NUM = r"(?<![\d.·±])(\d+(?:[.·]\d+)?)"
+
+
+def _q(n: str, unit: str) -> str:
+    n = n.replace("·", ".")
+    return f"{n} {unit.lower()}" + ("" if n in ("1", "1.0") else "s")
+
+
+_TP_ABX30 = re.compile(r"\bduring\s+and\s+up\s+to\s+30\s+days\s+after\b|\bAbx\+30d\b", re.I)
+_TP_PLUS2W = re.compile(r"\bduring\s+or\s+up\s+to\s+2\s+weeks\s+after\b|\bup to\s+2\s+weeks\s+after\b", re.I)
+_TP_FU_STATED = re.compile(r"\b(?:median|mean)\s+(?:duration\s+of\s+(?:the\s+)?)?follow[-\s]?up\s+(?:of|was|period\s+(?:of|was))\s+"
+                           r"(?:approximately\s+)?" + _NUM + r"\s+" + _UNIT, re.I)
+_TP_FOLLOWED_FOR = re.compile(r"\bfollowed(?:\s+up)?\s+for\s+(?:a\s+(?:median|mean)\s+of\s+)?" + _NUM + r"\s+" + _UNIT, re.I)
+_TP_OVER_MEDIAN = re.compile(r"\b(?:over|during)\s+a\s+(?:median|mean)\s+(?:follow[-\s]?up\s+)?of\s+" + _NUM + r"\s+" + _UNIT, re.I)
+_TP_SUPPLEMENTATION = re.compile(r"\bmedian duration of supplementation was\s+" + _NUM + r"\s+years\b", re.I)
+_TP_BY_DAY = re.compile(r"\b(?:by|at|on|through|until|to)\s+(day|week|month|year)\s+(\d+)\b", re.I)
+_TP_WITHIN = re.compile(r"\bwithin\s+" + _NUM + r"\s+" + _UNIT, re.I)
+_TP_N_OR_M = re.compile(r"\b(\d+)\s+or\s+(\d+)[-\s]" + _UNIT + r"\b", re.I)
+_TP_NUM_UNIT = re.compile(_NUM + r"[-\s]" + _UNIT + r"\b", re.I)
+_TIME_PHRASES = [            # earlier patterns are more specific: they claim their span first
+    (_TP_ABX30, lambda m: "during treatment plus 30 days"),
+    (_TP_PLUS2W, lambda m: "during treatment plus 2 weeks"),
+    (_TP_FU_STATED, lambda m: _q(m.group(1), m.group(2))),
+    (_TP_FOLLOWED_FOR, lambda m: _q(m.group(1), m.group(2))),
+    (_TP_OVER_MEDIAN, lambda m: _q(m.group(1), m.group(2))),
+    (_TP_SUPPLEMENTATION, lambda m: _q(m.group(1), "year")),
+    (_TP_BY_DAY, lambda m: _q(m.group(2), m.group(1))),
+    (_TP_WITHIN, lambda m: "within " + _q(m.group(1), m.group(2))),
+    (_TP_N_OR_M, lambda m: f"{m.group(1)} or " + _q(m.group(2), m.group(3))),
+    (_TP_NUM_UNIT, lambda m: _q(m.group(1), m.group(2))),
+]
+# the explicit follow-up statements a trial makes about ITSELF (used when no sentence binds to the outcome)
+_TRIAL_FOLLOW_UP = re.compile(r"\b(?:median|mean)\s+(?:duration\s+of\s+(?:the\s+)?)?follow[-\s]?up\b|\bfollowed(?:\s+up)?\s+for\b"
+                              r"|\b(?:over|during)\s+a\s+(?:median|mean)\b|\bmedian duration of supplementation\b", re.I)
+_AGE = re.compile(r"\bage[ds]?\b[^.;]{0,25}$|\bmean age\b[^.;]{0,25}$", re.I)
+_AFTER_AGE = re.compile(r"\A[^.;]{0,12}\b(?:of age|old)\b", re.I)
+_DISPERSION_END = re.compile(r"(?:±|\+/-|\bSD\b|\bIQR\b)\s*$")
+_LOS = re.compile(r"\blength of (?:hospital |icu |intensive care )?stay\b|\bhospital stay\b|\bLOS\b|\bdays? in (?:the )?hospital\b", re.I)
+_SCHEDULE = re.compile(r"\bevery\s+\d+|\b(?:once|twice|three times)\s+(?:a\s+|per\s+)?(?:day|daily|week|weekly|month)\b|\bq\d+[hdw]?\b", re.I)
+_EVERY_END = re.compile(r"\bevery\s*$", re.I)
+_FU_LEAD = re.compile(r"\b(?:median|mean)\s+(?:duration\s+of\s+)?follow[-\s]?up\b|\bfollowed(?:\s+up)?\s+for\b"
+                      r"|\b(?:by|at|on|through|until)\s+$", re.I)
+_FU_PHRASE_START = re.compile(r"\A\s*(?:by|at|on|through|until|within|during|up to|Abx\+)", re.I)
+_CLAUSE_SPLIT = re.compile(r"[,;:]")
+_EXPOSURE = re.compile(r"\btaper\w*|\btreat(?:ed|ment)\b|\btherapy\b|\badminister\w*|\breceiv\w*|\binfusion\b|\bcourse\b|\bdos(?:e|es|ing)\b"
+                       r"|\bsupplementation\b|\bdaily\b|\bfor a total of\b|\bsubcutaneous\w*|\boral\w*|\bintravenous\w*|\bassigned to\b", re.I)
+_FOLLOW = re.compile(r"\bfollow[-\s]?up\b|\bfollowed\b|\bdeath\b|\bdied\b|\bmortality\b|\boccurred\b|\bincidence\b|\bevents?\b"
+                     r"|\bend ?point\b|\boutcome\b|\bsurvival\b|\bassessed\b|\bmeasured\b|\bcumulative\b", re.I)
+
+
+def time_phrase_kind(sentence: str, phrase: str) -> str:
+    """'follow_up' | 'exposure' | 'length_of_stay' | 'schedule' | 'age' | 'dispersion' | 'unclassified' for one time
+    phrase in its sentence. The 80 characters BEFORE the phrase decide: a treatment verb there makes it a treatment
+    duration ('tapering for a total of 8 or 14 days'), an outcome word a follow-up window ('By day 28, death had occurred')."""
+    s = _norm_ws(sentence)
+    i = s.lower().find(_norm_ws(phrase).lower())
+    i = max(i, 0)
+    before = s[max(0, i - 80):i]
+    near = s[max(0, i - 80):i + len(phrase) + 60]
+    if _AGE.search(before) or _AFTER_AGE.search(s[i + len(phrase):]):
+        return "age"                      # 'mean age, 70 years' is not a follow-up window
+    if _DISPERSION_END.search(before):
+        return "dispersion"               # '34.2±13.7 months': 13.7 is an SD
+    if _LOS.search(near):
+        return "length_of_stay"
+    if _SCHEDULE.search(phrase) or _EVERY_END.search(before):
+        return "schedule"
+    if _FU_LEAD.search(before + " ") or _FU_PHRASE_START.search(phrase):
+        return "follow_up"
+    clause = _CLAUSE_SPLIT.split(before)[-1]
+    if _EXPOSURE.search(clause):
+        return "exposure"
+    if _FOLLOW.search(near):
+        return "follow_up"
+    return "unclassified"
+
+
+def _phrases(text: str) -> list[tuple[str, str, str, str]]:
+    """Every time phrase in text: (normalised value, raw phrase, its sentence, kind), in text order."""
+    out = []
+    for sent in _sentences(text):
+        taken, found = [], []
+        for rx, norm in _TIME_PHRASES:            # earlier patterns are more specific: they claim their span first
+            for m in rx.finditer(sent):
+                if any(not (m.end() <= a or m.start() >= b) for a, b in taken):
+                    continue
+                taken.append((m.start(), m.end()))
+                found.append((m.start(), norm(m), m.group(0)))
+        for _, v, raw in sorted(found):
+            out.append((v, raw, sent, time_phrase_kind(sent, raw)))
+    return out
+
+
+def _first_kind(text: str, kind: str) -> tuple[str, str] | None:
+    for v, raw, sent, k in _phrases(text):
+        if k == kind:
+            return v, sent
+    return None
+
+
+def _derive_time_fields(outcome: dict[str, Any], trial: dict[str, Any], rec: dict[str, Any] | None) -> dict[str, Any]:
+    """Exposure (treatment duration), length of stay and dosing schedule: trial-level fields, kept apart from follow-up."""
+    out = {}
+    text = _row_text(trial) + " " + _record_text(rec)
+    phrases = _phrases(text)
+    for key, kind in (("exposure_duration", "exposure"), ("length_of_stay", "length_of_stay"), ("schedule", "schedule")):
+        vals, spans = [], []
+        for v, raw, sent, k in phrases:
+            if k == kind and v not in vals:
+                vals.append(v)
+                if sent not in spans:
+                    spans.append(sent)
+        out[key] = (_derived("; ".join(vals[:4]), SRC_TRIAL_STATEMENT, " ".join(spans[:2]), True) if vals
+                    else _derived(None, "underivable", "", None))
+    return out
 
 
 def _derive_analysis_set(
     trial: dict[str, Any],
     rec: dict[str, Any] | None,
     audit_row: dict[str, Any] | None,
+    outcome: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    text = _trial_text(trial, rec, audit_row)
     rules = [
-        (r"\bmodified[-\s]+intention[-\s]+to[-\s]+treat\b|\bmodified\s+ITT\b|\bmITT\b",
-         "modified intention-to-treat"),
+        (r"\bmodified[-\s]+intention[-\s]+to[-\s]+treat\b|\bmodified\s+ITT\b|\bmITT\b", "modified intention-to-treat"),
         (r"\b(completers?|completed the trial and were included|efficacy analysis|no efficacy data)\b",
          "completers efficacy set"),
         (r"\bper[-\s]+protocol\b", "per-protocol"),
-        (r"\bintention[-\s]+to[-\s]+treat\b|\bITT population\b|\banalys(?:is|es) (?:was|were )?based on allocated treatment\b|\banalyzed according to the intention-to-treat principle\b|\bdata were analyzed according to the intention-to-treat principle\b",
+        (r"\bintention[-\s]+to[-\s]+treat\b|\bITT\b|\banalys(?:is|es) (?:was|were )?based on allocated treatment\b",
          "intention-to-treat"),
     ]
-    for pattern, value in rules:
-        m = _search(pattern, text)
-        if m:
-            return _derived(value, "committed source text", _short_span(text, m))
+
+    def first(text):
+        for pattern, value in rules:
+            m = _search(pattern, text)
+            if m:
+                return value, m
+        return None
+
+    row = _row_text(trial)
+    hit = first(row)
+    if hit:
+        return _derived(hit[0], SRC_ROW, _short_span(row, hit[1]))
+    for s in _outcome_sentences(outcome or {}, rec, skip_stage=True):
+        hit = first(s)
+        if hit:
+            return _derived(hit[0], SRC_OUTCOME_SENTENCE, s)
+    # a trial-level analysis statement ('analysed according to the intention-to-treat principle'), never from a
+    # sentence about another stage
+    for s in _sentences(_record_text(rec)):
+        if _STAGE.search(s):
+            continue
+        hit = first(s)
+        if hit and _ANALYSIS_WORD.search(s):
+            return _derived(hit[0], SRC_TRIAL_STATEMENT, s)
     existing = ((trial.get("study_effect") or {}).get("analysis_population")
                 or (trial.get("compat_dimensions") or {}).get("analysis_set"))
+    if isinstance(existing, dict):
+        existing = existing.get("value")
     if existing and existing != "UNKNOWN":
-        return _derived(str(existing), "study_effect.analysis_population", str(existing))
+        return _derived(str(existing), SRC_DECLARED, str(existing), False)
     return _derived(None, "underivable", "")
 
 
@@ -148,33 +402,60 @@ def _derive_follow_up(
     rec: dict[str, Any] | None,
     audit_row: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    text = _trial_text(trial, rec, audit_row)
-    rules = [
-        (r"\bwithin\s+8\s+weeks\b", "within 8 weeks"),
-        (r"\bwithin\s+12\s+weeks\b", "within 12 weeks"),
-        (r"\bduring\s+and\s+up\s+to\s+30\s+days\s+after\b|\bAbx\+30d\b", "during treatment plus 30 days"),
-        (r"\bduring\s+or\s+up\s+to\s+2\s+weeks\s+after\b|\bup to\s+2\s+weeks\s+after\b", "during treatment plus 2 weeks"),
-        (r"\bat\s+56\s+days\b|\b56\s+days\b|56-day", "56 days"),
-        (r"\bat\s+14\s+days\b|\b14\s+days\b", "14 days"),
-        (r"\bat\s+21\s+days\b|\b21\s+days\b", "21 days"),
-        (r"\bmedian follow[-\s]?up of\s+([0-9.]+)\s+years\b", None),
-        (r"\bmean follow[-\s]?up of\s+([0-9.]+)\s+years\b", None),
-        (r"\bfollowed for a median of\s+([0-9.]+)\s+years\b", None),
-        (r"\bfor\s+40\s+months\b", "40 months"),
-        (r"\bmedian duration of supplementation was\s+([0-9.]+)\s+years\b", None),
-    ]
-    for pattern, value in rules:
-        m = _search(pattern, text)
-        if not m:
-            continue
-        if value is None and m.groups():
-            value = m.group(1) + " years"
-        return _derived(value, "committed source text", _short_span(text, m))
     if trial.get("timeframe"):
-        return _derived(str(trial.get("timeframe")), "trial.timeframe", str(trial.get("timeframe")))
+        return _derived(str(trial.get("timeframe")), "trial.timeframe", str(trial.get("timeframe")), True)
+    hit = _first_kind(_row_text(trial), "follow_up")
+    if hit:
+        return _derived(hit[0], SRC_ROW, hit[1])
+    for s in _outcome_sentences(outcome, rec):
+        hit = _first_kind(s, "follow_up")
+        if hit:
+            return _derived(hit[0], SRC_OUTCOME_SENTENCE, s)
+    for v, raw, sent, kind in _phrases(_record_text(rec)):
+        # only an explicit statement about the trial's own follow-up ('median follow-up of 2.8 years'), never any time
+        # phrase that happens to share a sentence with the word 'follow' (a treatment duration for 3, 6 or 12 months)
+        if _TRIAL_FOLLOW_UP.search(raw):
+            return _derived(v, SRC_TRIAL_STATEMENT, sent)
     if outcome.get("timepoint"):
-        return _derived(str(outcome.get("timepoint")), "outcome.timepoint", str(outcome.get("timepoint")))
+        return _derived(str(outcome.get("timepoint")), "outcome.timepoint", str(outcome.get("timepoint")), False)
     return _derived(None, "underivable", "")
+
+
+_PRIMARY_CLAUSE = re.compile(r"primary (?:efficacy )?(?:measure|outcome|end point|endpoint) was (?:a composite of )?([^.]{8,240})", re.I)
+_DEFINITION_RULES = [
+    r"AAD\s*=\s*[^:;.]{8,120}",
+    r"diarrh?oe?a\s*\([^)]{10,180}\)",
+    r"diarrh?oe?a caused by Clostridium difficile or otherwise unexplained diarrh?oe?a",
+    r"serious vascular event \([^)]{10,180}\)",
+    r"major cardiovascular events, defined as [^.]{20,220}",
+    r"major cardiovascular events,? comprised [^.]{20,220}",
+]
+
+
+_HEAD_BREAK = re.compile(r"\(|;|,| defined\b| which\b| that\b| assessed\b| measured\b")
+_ANALYSIS_WORD = re.compile(r"\banaly[sz]\w*|\bpopulation\b|\bset\b", re.I)
+
+
+def _primary_head(clause_tail: str) -> str:
+    """The primary outcome itself: the words after 'was' up to its first parenthesis / definition / list break."""
+    return _HEAD_BREAK.split(clause_tail, maxsplit=1)[0]
+
+
+_ROW_REPORTS_PRIMARY = re.compile(r"\bprimary[- ](?:efficacy[- ])?(?:outcome|end ?point|composite)", re.I)
+
+
+def _endpoint_from(text: str, outcome: dict[str, Any], toks: list[str]) -> tuple[str, str] | None:
+    m = _PRIMARY_CLAUSE.search(text)
+    if m:
+        head = _primary_head(m.group(1))
+        # the clause binds when ITS outcome is this row's outcome; for the review's PRIMARY row the head term suffices
+        if _about_outcome(head, toks) or (outcome.get("primary") and toks and _has_token(_fold(head), toks[-1])):
+            return _norm_ws(m.group(0)), _short_span(text, m)
+    for pattern in _DEFINITION_RULES:
+        m = _search(pattern, text)
+        if m:
+            return _norm_ws(m.group(0)), _short_span(text, m)
+    return None
 
 
 def _derive_endpoint(
@@ -183,27 +464,28 @@ def _derive_endpoint(
     rec: dict[str, Any] | None,
     audit_row: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    text = _trial_text(trial, rec, audit_row)
     if audit_row and (audit_row.get("detail") or audit_row.get("resolution")):
         label = _norm_ws("; ".join(str(audit_row.get(k) or "") for k in ("detail", "resolution")))
-        return _derived(label, "docs/definition_audit.json", label)
-    rules = [
-        (r"AAD\s*=\s*[^:;.]{8,120}", None),
-        (r"diarrh?oe?a\s*\([^)]{10,180}\)", None),
-        (r"diarrh?oe?a caused by Clostridium difficile or otherwise unexplained diarrh?oe?a", None),
-        (r"primary (?:efficacy )?(?:measure|outcome|end point|endpoint) was a composite of [^.]{20,240}", None),
-        (r"primary (?:outcome|end point|endpoint) was [^.]{20,240}", None),
-        (r"serious vascular event \([^)]{10,180}\)", None),
-        (r"major cardiovascular events, defined as [^.]{20,220}", None),
-        (r"major cardiovascular events,? comprised [^.]{20,220}", None),
-    ]
-    for pattern, _ in rules:
-        m = _search(pattern, text)
+        return _derived(label, "docs/definition_audit.json", label, True)
+    toks = _outcome_tokens(outcome)
+    row = _row_text(trial)
+    hit = _endpoint_from(row, outcome, toks)
+    if hit:
+        return _derived(hit[0], SRC_ROW, hit[1])
+    # the row's OWN span says it reports the trial's primary outcome ('a primary outcome event occurred in 197 of 2152'):
+    # then the trial's primary-outcome clause defines this row, whatever the review calls the outcome
+    if _ROW_REPORTS_PRIMARY.search(row):
+        rt = _record_text(rec)
+        m = _PRIMARY_CLAUSE.search(rt)
         if m:
-            return _derived(_short_span(text, m, flank=0), "committed source text", _short_span(text, m))
+            return _derived(_norm_ws(m.group(0)), SRC_PRIMARY_CLAUSE, _short_span(rt, m))
+    for s in _outcome_sentences(outcome, rec):
+        hit = _endpoint_from(s, outcome, toks)
+        if hit:
+            return _derived(hit[0], SRC_OUTCOME_SENTENCE, s)
     name = outcome.get("name")
     if name:
-        return _derived(str(name), "outcome.name", str(name))
+        return _derived(str(name), "outcome.name", str(name), False)
     return _derived(None, "underivable", "")
 
 
@@ -311,11 +593,12 @@ def derive_trial_dimensions(
     dims = {
         "trial_id": pid,
         "trial_label": trial.get("label") or trial.get("id"),
-        "analysis_set": _derive_analysis_set(trial, rec, audit_row),
+        "analysis_set": _derive_analysis_set(trial, rec, audit_row, outcome),
         "follow_up_window": _derive_follow_up(outcome, trial, rec, audit_row),
         "endpoint_definition": _derive_endpoint(outcome, trial, rec, audit_row),
         "population_age": _derive_population_age(trial, rec),
         "intervention_ontology": _derive_intervention(review, trial, rec),
+        **_derive_time_fields(outcome, trial, rec),
     }
     return dims
 
@@ -352,20 +635,58 @@ def _violation(outcome: dict[str, Any], dim: str, code: str, asserted: Any,
     }
 
 
+_TRIAL_DEFINED_WINDOW = re.compile(r"\btrial end\b|\bstudy end\b|\blongest\b|\btrial-reported\b|\btrial-defined\b", re.I)
+_DURATION = re.compile(r"\A(\d+(?:\.\d+)?) (day|week|month|year)s?\Z")
+_WINDOW_PREFIX = re.compile(r"\A(?:within|by|at|through|until|up to)\s+")
+_WEEK_N = re.compile(r"\b(day|week|month|year)\s+(\d+)\b")
+_ASSERTED_RANGE = re.compile(r"(\d+)\s*-\s*(\d+)\s*-?\s*(day|week|month|year)s?\b")
+
+
+def _follow_canon(v: str) -> str:
+    """'Week 68' -> '68 weeks'; 'within 28 days' -> '28 days'; '28-day' -> '28 days'; '1 weeks' -> '1 week'."""
+    s = _canon(v)
+    s = _WEEK_N.sub(lambda m: f"{m.group(2)} {m.group(1)}s", s)
+    s = _WINDOW_PREFIX.sub("", s)
+    m = _DURATION.match(s.replace("-", " "))
+    if m:
+        n, u = m.group(1), m.group(2)
+        return f"{n} {u}" + ("" if n in ("1", "1.0") else "s")
+    return s
+
+
+def _follow_compatible(asserted: Any, value: str) -> bool:
+    """A per-trial follow-up value is COMPATIBLE with the outcome's asserted window when it states the same window
+    (wording aside), lies inside an asserted range, is named in the assertion, or -- for a TRIAL-DEFINED window ('trial
+    end', 'longest reported follow-up', 'trial-reported') -- is the trial's own reported follow-up duration. Different
+    trials having different lengths is what a trial-defined window means; it is not heterogeneity of the window.
+    (Outcome binding, 11 Oct: rows now carry each trial's real follow-up instead of echoing the outcome's timepoint, and
+    the old exact-string test would have flagged 18 topics on wording alone.)"""
+    av, vv = _follow_canon(asserted), _follow_canon(value)
+    if vv == av or (vv and vv in av):
+        return True
+    m = _DURATION.match(vv)
+    r = _ASSERTED_RANGE.search(av)
+    if m and r and m.group(2) == r.group(3) and float(r.group(1)) <= float(m.group(1)) <= float(r.group(2)):
+        return True
+    if _TRIAL_DEFINED_WINDOW.search(av) and (m or _TRIAL_DEFINED_WINDOW.search(vv) or vv in {"study end", "trial end"}):
+        return True
+    return False
+
+
 def _is_mismatch(dim: str, asserted: Any, values: list[str]) -> bool:
     vals = [_canon(v) for v in values if v]
     if not vals:
         return False
+    if dim == "follow_up_window":
+        # a FIXED asserted window flags every trial whose window differs from it (so differing trials always flag); a
+        # TRIAL-DEFINED one accepts each trial's own reported duration (see _follow_compatible)
+        return any(not _follow_compatible(asserted, v) for v in vals)
     if len(set(vals)) > 1:
         return True
     av = _canon(asserted)
     if dim == "analysis_set":
         if av in {"intention-to-treat", "itt"}:
             return any(v not in {"intention-to-treat", "itt"} for v in vals)
-        return any(v != av for v in vals)
-    if dim == "follow_up_window":
-        if "study end" in av or "trial end" in av:
-            return len(set(vals)) > 1 or any(v not in {av, "study end", "trial end"} for v in vals)
         return any(v != av for v in vals)
     if dim == "endpoint":
         if av in {"single endpoint", "composite"}:
