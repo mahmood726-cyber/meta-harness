@@ -73,7 +73,9 @@ def test_PLANT_r25_colcot_primary_by_role_never_its_cardiac_arrest_secondary():
     assert rob2.derive_d5_v3(prim, sec, dict(sel, pooled_outcome="3-point major adverse cardiovascular events"))[
         "level"] != "low"
     # and 3-point MACE is NOT the cardiac-arrest secondary (v2 dropped 'resuscitated cardiac arrest')
-    assert rob2.outcome_match_v3("Major adverse cardiovascular events", sec[0])["matched"] is False
+    assert rob2.outcome_match_v3("3-point major adverse cardiovascular events", sec[0])["matched"] is False
+    # a BARE generic label is never expanded to 3-point (r29 rule 3): not established, and never a match
+    assert rob2.outcome_match_v3("Major adverse cardiovascular events", sec[0])["matched"] is None
 
 
 def test_PLANT_never_possibly_post_hoc_and_the_basis_names_the_trigger():

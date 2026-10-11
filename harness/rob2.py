@@ -19,6 +19,8 @@ from __future__ import annotations
 import re
 from typing import Any, Callable
 
+from . import components
+
 OUTPUT_FAMILY = "registry-machine-signal-restricted"
 
 DOMAIN_LABELS = {
@@ -94,58 +96,9 @@ def _outcome_label(row: dict[str, Any]) -> str:
 
 
 def _component_set(text: str) -> frozenset[str]:
-    s = _norm_text(text).lower()
-    if not s:
-        return frozenset()
-    comps: set[str] = set()
-    if re.search(r"\bmadrs\b|\bmontgomery[- ]?a?sberg\b|\bmontgomery[- ]?asberg\b", s):
-        is_response = re.search(r"\bresponse\b|\bremission\b|50\s*%|\b50 percent\b|\breduction\b", s)
-        is_change = re.search(r"\bchange\b|\bfrom baseline\b|\btotal score\b", s)
-        if is_change and not is_response:
-            comps.add("MADRS_CHANGE")
-    if re.search(r"\brecurrent\b", s) and re.search(r"\bvtes?\b|\bvenous thromboembolism\b|\bdvt\b|\bdeep vein thrombosis\b|\bpe\b|\bpulmonary embolism\b", s):
-        if not re.search(r"\bnet clinical benefit\b", s):
-            comps.add("RECURRENT_VTE")
-    if re.search(r"\ball[- ]cause mortality\b|\ball cause mortality\b", s):
-        comps.add("ALL_CAUSE_MORTALITY")
-    if re.search(r"\b(?:kidney|renal|egfr|gfr|esrd|end[- ]stage|dialysis)\b", s) and re.search(
-        r"\b(?:composite|progression|sustained|decline|decrease|failure|replacement therapy|dialysis|death)\b",
-        s,
-    ):
-        comps.add("KIDNEY_PROGRESSION_COMPOSITE")
-    # ... including the '-related' form registries use ('CV-related death': TECOS's registered 3-point MACE secondary)
-    # never NON-cardiovascular death: '\b' sits between '-' and 'c', so the bare pattern counted it (found 7 Oct)
-    if re.search(r"(?<!non-)(?<!non)(?<!non )\b(?:cv\s+death|cardiovascular(?:\s*\([^)]*\))?\s+death"
-                 r"|(?:cv|cardiovascular)[- ]related\s+death)\b|\bdeath from cardiovascular causes\b", s):
-        comps.add("CV_DEATH")
-    if re.search(r"\bnon[- ]?fatal\s+(myocardial infarction|mi)\b", s):
-        comps.add("NONFATAL_MI")
-    elif re.search(r"\b(myocardial infarction|mi)\b", s):
-        comps.add("NONFATAL_MI")
-    if re.search(r"\bnon[- ]?fatal\s+stroke\b", s):
-        comps.add("NONFATAL_STROKE")
-    elif re.search(r"\bstroke\b", s):
-        comps.add("NONFATAL_STROKE")
-
-    # Extra components keep a broader composite from falsely matching 3-point MACE.
-    if re.search(
-        r"\bhhf\b|\bhospitali[sz](?:ation|ed)\b.{0,35}\b(?:heart failure|hf)\b|"
-        r"\b(?:heart failure|hf)\b.{0,35}\bhospitali[sz](?:ation|ed)\b",
-        s,
-    ):
-        comps.add("HF_HOSPITALISATION")
-    if re.search(r"\bunstable angina\b", s):
-        comps.add("UNSTABLE_ANGINA")
-    if re.search(r"\brevasculari[sz]ation\b", s):
-        comps.add("REVASCULARISATION")
-
-    mace_term = re.search(r"\bmace\b|\bmajor adverse cardiovascular events?\b|\bmajor cardiovascular events?\b", s)
-    three_point = re.search(r"\b(?:3|three)[- ]?point\b", s)
-    if mace_term and (three_point or not comps):
-        comps.update(STANDARD_3P_MACE)
-    if "KIDNEY_PROGRESSION_COMPOSITE" in comps:
-        comps.discard("CV_DEATH")
-    return frozenset(comps)
+    """rob2 ids of the components a text names: the ONE shared parser (harness/components.py). Kept for the
+    legacy v2 D5 rule; the former private vocabulary dropped CHD death and expanded a bare MACE label (r29)."""
+    return components.parse(text).ids()
 
 
 def _simple_matches(a: str, b: str) -> bool:
@@ -282,81 +235,102 @@ def _d4(inputs: dict[str, Any]) -> dict[str, Any]:
 #       ROLE ('primary end point' in the selected result's own source); in factorial trials a registered outcome
 #       naming ANOTHER factor's intervention is set aside (CLEAR: spironolactone / stent outcomes).
 #  'not established' is never 'possibly post hoc'; the basis names the actual trigger.
-_CARDIO = {"CV_DEATH", "NONFATAL_MI", "NONFATAL_STROKE", "HF_HOSPITALISATION", "UNSTABLE_ANGINA", "REVASCULARISATION",
-           "URGENT_HF_VISIT", "CARDIAC_ARREST", "HF_EVENT_UNSPECIFIED", "ALL_CAUSE_MORTALITY"}
-_V3_EXTRA = (
-    # an urgent visit FOR HEART FAILURE only (rob2-r1 #2: 'urgent asthma visit' is not this component)
-    ("URGENT_HF_VISIT", r"\burgent\b[^.;]{0,30}\bvisit\b[^.;]{0,50}\b(?:heart\s+failure|hf)\b|"
-                        r"\b(?:heart\s+failure|hf)\b[^.;]{0,20}\burgent\b[^.;]{0,20}\bvisit\b|"
-                        r"\burgent\s+(?:heart\s+failure|hf)\s+visit\b"),
-    ("CARDIAC_ARREST", r"\bcardiac\s+arrests?\b"),
-    ("HF_EVENT_UNSPECIFIED", r"\b(?:new|worsening)\b.{0,15}\bheart\s+failure\b|\bheart\s+failure\s+events?\b"),
-    ("CV_DEATH", r"\bdeath\s+from\s+(?:cardio)?vascular\s+causes?\b"),
-)
-# a part that is ONLY 'death' / 'mortality' (SYNERGY: 'composite of death, recurrent target vessel MI, ...') is
-# all-cause death -- a component the v2 vocabulary lacks; recognised at part level only
-_BARE_DEATH = re.compile(r"^\W*(?:all\s+)?(?:deaths?|mortality)\W*$", re.I)
-# only a part that names an EVENT can be an unrecognised component; qualifiers and population words cannot
-_EVENT_NOUN = re.compile(r"\b(?:death|deaths|mortality|infarction|stroke|hospitali[sz]|visit|arrest|angina|"
-                         r"revasculari[sz]|failure|embol|thrombo|bleed|haemorrhage|hemorrhage|amputation|"
-                         r"intervention|surgery|transplant|dialysis|attack|syncope|arrhythmia)", re.I)
-_QUALIFIER = re.compile(r"\b(?:including|adjudicat\w*|prior\s+to|censoring|co-primary|as\s+assessed|according\s+to|"
-                        r"committee|icec|cec)\b.*$", re.I)
-_LIST_MARKER = re.compile(r"\b(?:composite(?:\s+(?:end\s*-?point|outcome))?\s+of|consisting\s+of|first\s+(?:occurrence|"
-                          r"event)\s+of|defined\s+as(?:\s+the\s+composite\s+of)?)\b", re.I)
-_FILLER = re.compile(r"\b(?:subjects|participants|patients|number|included|in|the|of|a|an|first|occurrence|event|"
-                     r"events|time|to|any|composite|endpoint|end|point|outcome|primary|secondary|co|nonfatal|non|"
-                     r"fatal|acute|recurrent|new|target|vessel|related|due|for|from|with|resulting|requiring|"
-                     r"defined|as|by|on|at|least|one|or|and|is|was|were|which|that|definitive|adjudicated|"
-                     r"confirmed|clinical|clinically|unplanned|ischemia|ischaemia|driven|urgent|resuscitated|"
-                     r"hospitali[sz]ation|hospitali[sz]ed|coronary)\b|[^a-z]+", re.I)
-
-
 def _component_set_v3(text: str) -> frozenset[str]:
-    s = _norm_text(text).lower()
-    comps = set(_component_set(text))
-    comps |= {k for k, rx in _V3_EXTRA if re.search(rx, s)}
-    if "HF_HOSPITALISATION" in comps or "URGENT_HF_VISIT" in comps:
-        comps.discard("HF_EVENT_UNSPECIFIED")
-    return frozenset(comps)
+    """The rob2 ids of the components a text names -- read by the ONE shared parser (harness/components.py,
+    DISPATCH_REVIEW29 P0), the same vocabulary as the extraction route. The ids rob2 has always served are kept
+    (components.IDS); a bare generic label names nothing."""
+    return components.parse(text).ids()
 
 
 def cardio_unrecognised(text: str) -> tuple[str, ...]:
-    """Parts of a CARDIOVASCULAR composite listing ('composite of A, B or C' with >= 2 cardiovascular components) that
-    name no known component. Any other text -> () (the v2 vocabulary is cardiovascular; a VTE or respiratory composite is
-    not judged by it)."""
-    s = _norm_text(text).lower()
-    s = re.split(r"\bsecondary\s+(?:\w+\s+){0,2}(?:end\s*-?points?|outcomes?)\b", s, maxsplit=1)[0]
-    m = _LIST_MARKER.search(s)
-    if not m or len(_component_set_v3(s) & _CARDIO) < 2:
-        return ()
-    seg = re.split(r"\b(?:compared\s+(?:to|with)|versus|vs\.?)\b|\bthe\s+descriptive\b|\.\s", s[m.end():])[0]
-    seg = re.sub(r"\(\s*[a-z0-9-]{1,8}\s*\)", " ", seg)        # '(CV)', '(MI)': an abbreviation, not a part
-    unknown = []
-    for part in [x for x in re.split(r",|;|\bor\b|\band\b|/|\(|\)|:", seg) if x.strip()]:
-        part = _QUALIFIER.sub("", part)
-        if _component_set_v3(part) or _BARE_DEATH.match(part) or not _EVENT_NOUN.search(part):
-            continue
-        if _FILLER.sub("", part).strip():
-            unknown.append(part.strip()[:60])
-    return tuple(unknown)
+    """Parts of a cardiovascular composite listing that name an event the shared vocabulary does not know -- reported,
+    never dropped (components.unrecognised_parts)."""
+    return components.unrecognised_parts(text)
+
+
+_HF_UMBRELLA = "HF_EVENT_UNSPECIFIED"
+_HF_SPECIFIC = {"HF_HOSPITALISATION", "URGENT_HF_VISIT", "HF_DEATH"}
+# cardiovascular components for the generic-label rule: all-cause death is NOT one ('Major vascular events' v 'death or
+# dementia or disability' is a plain mismatch, STAREE)
+_CARDIO_IDS = frozenset(components.IDS[n] for n in components._CARDIO if n in components.IDS) - {"ALL_CAUSE_MORTALITY"}
 
 
 def outcome_match_v3(selected_text: str, registered: dict[str, str], matches=None, *,
-                     allow_secondary_component_subset: bool = False) -> dict[str, Any]:
+                     allow_secondary_component_subset: bool = False, is_definition: bool = False) -> dict[str, Any]:
+    """Selected text v one registered outcome. Components first (shared parser); an unrecognised part on either side ->
+    not established (matched None). Text identity is a LAST resort and is literal only (DISPATCH_REVIEW29 rule 4):
+      - never when the registered outcome has an empty description (DO-HEALTH 'Incident Hypertension', 28-02);
+      - never by similarity (the embedding fallback matched 'Major vascular events / MACE' to 'Incident Hypertension');
+        `matches` is accepted for the callers' signature and not used;
+      - never when the selected text is the trial's held DEFINITION span -- a definition is compared by its components,
+        and a title match can never beat it (ODYSSEY: the 4-point primary definition v the 'CHD death' secondary)."""
     reg_text = _registered_text(registered)
     su, ru = cardio_unrecognised(selected_text), cardio_unrecognised(reg_text)
     sc, rc = _component_set_v3(selected_text), _component_set_v3(reg_text)
     base = {"selected_components": sorted(sc), "registered_components": sorted(rc), "registered_text": reg_text,
             "selected_unrecognised": list(su), "registered_unrecognised": list(ru)}
+    # the registered LABEL names the same component set in the same terms: the description only elaborates it (EMPHASIS-HF
+    # 'First Occurrence of All-Cause Mortality', described by its causes of death). Never for a held definition span.
+    label = _outcome_label(registered)
+    if (not is_definition and sc and not su and not cardio_unrecognised(label) and _component_set_v3(label) == sc
+            and _term_identity(selected_text, label)):
+        return dict(base, matched=True, method="label_identity")
     if su or ru:
         return dict(base, matched=None, method="component_set_not_established")
+    if not sc and components.GENERIC_LABEL_RX.search(components.fold(selected_text)) and (
+            rc & _CARDIO_IDS or components.GENERIC_LABEL_RX.search(components.fold(reg_text))):
+        # a generic label with no listed components v a cardiovascular outcome: never expanded, never matched by
+        # similarity (rules 3/4) and not a mismatch either -- not established ('Major vascular events' v 'Major
+        # cardiovascular events', which the embedding fallback matched)
+        return dict(base, matched=None, method="generic_not_established")
+    if sc and rc and sc != rc and _HF_UMBRELLA in (sc ^ rc):
+        # an UNSPECIFIED heart-failure event on one side, specific HF events on the other, everything else equal: the
+        # umbrella is never expanded (rule 3) and is not a mismatch either -- not established (DELIVER, EMPEROR-Preserved)
+        a, b = sc - _HF_SPECIFIC - {_HF_UMBRELLA}, rc - _HF_SPECIFIC - {_HF_UMBRELLA}
+        if a == b and (sc | rc) & _HF_SPECIFIC:
+            return dict(base, matched=None, method="umbrella_not_established")
     if sc and rc:
         sub = allow_secondary_component_subset and sc in SECONDARY_COMPONENT_SUBSET_ALLOWED and sc < rc
         return dict(base, matched=sc == rc or sub, method="registered_secondary_component" if sub else "component_set")
-    if _simple_matches(selected_text, reg_text) or (matches and matches(selected_text, reg_text)):
+    if not is_definition and _term_identity(selected_text, _outcome_label(registered)):
         return dict(base, matched=True, method="text_identity")
     return dict(base, matched=False, method="no_match")
+
+
+_TERM_SYNONYMS = (
+    (r"\bdeath from (?:all causes|any cause)\b", " death allcause "),
+    (r"\ball[- ]causes?\b|\bany cause\b|\ball causes\b", " allcause "),
+    (r"\bmortality\b|\bdeaths\b", " death "), (r"%", " percent "), (r"\bdiarrhoea\b", " diarrhea "),
+    (r"\bsleep[- ]onset latency\b", " sleep latency "), (r"\bhospitali[sz]ations?\b", " hospitalization "),
+    (r"\bpost[- ]?operative\b", " postoperative "),
+)
+_TERM_FILLER = {"the", "a", "an", "of", "in", "with", "from", "to", "at", "by", "for", "and", "or", "on", "time", "first",
+                "occurrence", "incidence", "rate", "rates", "number", "percentage", "proportion", "participants",
+                "patients", "subjects", "who", "experienced", "event", "events", "measure", "outcome", "endpoint"}
+# qualifiers that do not change WHAT is measured: a timepoint, the setting, the all-cause qualifier, change wording
+_NEUTRAL = {"allcause", "postoperative", "day", "days", "week", "weeks", "month", "months", "year", "years", "baseline",
+            "change", "within", "during", "follow", "up", "overall", "total", "any"}
+
+
+def _terms(text: str) -> set[str]:
+    s = components.fold(text)
+    s = re.sub(r"\(\s*[a-z0-9-]{1,8}\s*\)", " ", s)          # '(AAD)', '(%)' abbreviations
+    for rx, rep in _TERM_SYNONYMS:
+        s = re.sub(rx, rep, s)
+    words = {w for w in re.findall(r"[a-z]+|\d+", s) if w not in _TERM_FILLER}
+    # a plural is the same term ('New Vertebral Fractures' = 'new vertebral fracture')
+    return {w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w for w in words}
+
+
+def _term_identity(a: str, b: str) -> bool:
+    """Text identity by TERMS (DISPATCH_REVIEW29 rule 4): the two names state the same significant terms, after folding
+    synonyms ('mortality' = 'death', 'all causes' = 'any cause'), with any difference only a neutral qualifier (timepoint,
+    setting, all-cause, change wording). Never a similarity score: the embedding fallback matched 'Major vascular events
+    / MACE' to 'Incident Hypertension' (DO-HEALTH, 28-02), 'Recurrent pericarditis' to 'Symptom persistence at 72 hours'
+    and '28-day all-cause mortality' to 'Ventilator-free days'."""
+    ta, tb = _terms(a), _terms(b)
+    core_a, core_b = ta - _NEUTRAL - {x for x in ta if x.isdigit()}, tb - _NEUTRAL - {x for x in tb if x.isdigit()}
+    return bool(core_a) and core_a == core_b
 
 
 def _names_any(text: str, terms: list[str]) -> bool:
@@ -401,7 +375,11 @@ def derive_d5_v3(registered_primaries, registered_secondaries, selected: dict[st
     sec, xs = factor_filter(sec_all, our, other)
     inputs = {"registered_primary_outcomes": prim_all, "registered_secondary_outcomes": sec_all,
               "selected": selected, "factor_excluded_outcomes": [_outcome_label(o) for o in xp + xs]}
-    text = _norm_text(selected.get("registered_title") or selected.get("pooled_outcome"))
+    # the text compared: the registered outcome the row is bound to, else the trial's HELD DEFINITION span (rule 4c:
+    # a held definition beats any title match), else the topic outcome name
+    is_def = not selected.get("registered_title") and bool(selected.get("definition_span"))
+    text = _norm_text(selected.get("registered_title") or selected.get("definition_span")
+                      or selected.get("pooled_outcome"))
     role = selected.get("role")
     aside = f" (other factors' registered outcomes set aside: {len(xp) + len(xs)})" if (xp or xs) else ""
     if not prim and not sec:
@@ -411,7 +389,7 @@ def derive_d5_v3(registered_primaries, registered_secondaries, selected: dict[st
         # the selected result is stated, in its own source, as THE primary end point; one registered primary remains.
         # Low only when that primary is not an explicit MISMATCH with the outcome -- or the topic outcome is declared
         # trial-defined ('Trial-defined major coronary composite': each trial's own primary IS the outcome) (rob2-r1 #1)
-        d = outcome_match_v3(text, prim[0], matches)
+        d = outcome_match_v3(text, prim[0], matches, is_definition=is_def)
         trial_defined = bool(re.search(r"\btrial[- ]defined\b", text, re.I))
         if d["matched"] is True or trial_defined:         # 'not established' (None) earns no low either
             inputs["comparison"] = dict(d, method="role_primary", registered_type="primary",
@@ -421,7 +399,8 @@ def derive_d5_v3(registered_primaries, registered_secondaries, selected: dict[st
     pending = []
     for kind, outs in (("primary", prim), ("secondary", sec)):
         for o in outs:
-            d = outcome_match_v3(text, o, matches, allow_secondary_component_subset=kind == "secondary")
+            d = outcome_match_v3(text, o, matches, allow_secondary_component_subset=kind == "secondary",
+                                 is_definition=is_def)
             if d["matched"] is True:
                 inputs["comparison"] = dict(d, registered_type=kind, registered_label=_outcome_label(o))
                 return _domain("low", f"the selected outcome is the trial's registered {kind} outcome "
@@ -432,11 +411,19 @@ def derive_d5_v3(registered_primaries, registered_secondaries, selected: dict[st
         kind, o, d = pending[0]
         unk = d["selected_unrecognised"] or d["registered_unrecognised"]
         inputs["comparison"] = dict(d, registered_type=kind, registered_label=_outcome_label(o))
+        # the basis names the actual trigger (rule: the basis never asserts what was not found)
+        why = {"generic_not_established": "the selected outcome is a generic label with no listed components or held "
+                                          "definition, so it cannot be compared with",
+               "umbrella_not_established": "the selected outcome names an unspecified heart-failure event, which cannot "
+                                           "be compared without a held definition with"}.get(d["method"])
+        if why:
+            return _domain("not_assessable", f"registered-outcome identity not established: {why} "
+                           f"{_outcome_label(o)!r}", V3_RULE, inputs)
         return _domain("not_assessable", "registered-outcome identity not established: unrecognised component(s) "
                        f"{unk} in {'the selected outcome' if d['selected_unrecognised'] else repr(_outcome_label(o))}",
                        V3_RULE, inputs)
     first = prim[0] if prim else sec[0]
-    inputs["comparison"] = dict(outcome_match_v3(text, first, matches), registered_type=None,
+    inputs["comparison"] = dict(outcome_match_v3(text, first, matches, is_definition=is_def), registered_type=None,
                                 registered_label=_outcome_label(first))
     return _domain("some concerns", "registered-outcome identity not established: the selected outcome matches no "
                    f"registered primary or secondary outcome of this trial (registered primary: "

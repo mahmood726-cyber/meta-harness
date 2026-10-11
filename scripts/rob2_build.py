@@ -33,7 +33,7 @@ def pooled_ncts(slug):
 
 
 def selected_endpoints(slug):
-    """{pid: (text, role)} -- each pooled trial's SELECTED endpoint, from its own served row (r25): the registered
+    """{pid: (text, role, definition span)} -- each pooled trial's SELECTED endpoint, from its own served row (r25): the registered
     outcome it is bound to (registry_title / registry_type), else its definition span, else the selected result's own
     source clause; role 'primary' / 'secondary' from the registry type or that clause, else None. Never the topic's
     generic outcome name."""
@@ -45,7 +45,9 @@ def selected_endpoints(slug):
         title = str(t.get("registry_title") or "") or None          # the registered outcome the row is bound to
         src = re.sub(r"^[^:]{0,80}\((?:registered estimand|target endpoint)\):\s*", "", str(t.get("source") or ""))
         rt = str(t.get("registry_type") or "").lower()
-        out[pid] = (title, rt if rt in ("primary", "secondary") else role_from_source(src))
+        # ... and the trial's HELD DEFINITION span, which beats any title match (DISPATCH_REVIEW29 rule 4c)
+        out[pid] = (title, rt if rt in ("primary", "secondary") else role_from_source(src),
+                    str(t.get("endpoint_definition_span") or "") or None)
     return out
 
 
@@ -204,12 +206,13 @@ def main(argv):
             rand_txt = any(kw in ab for kw in _RAND_TXT)
             primaries = [out for rn in registry_ncts for out in regprim.get(rn, [])]
             secondaries = [out for rn in registry_ncts for out in regsec.get(rn, [])]
-            title, role = sel_of.get(str(pid)) or (None, None)
+            title, role, definition = sel_of.get(str(pid)) or (None, None, None)
             ours, other = factor_terms(slug, registry_ncts)
             dom = rob2.assess(design, primaries, pooled_out, _match,
                               registered_secondaries=secondaries,
                               blinded_by_text=blinded_txt, randomized_by_text=rand_txt,
-                              selected={"registered_title": title, "role": role, "our_terms": ours,
+                              selected={"registered_title": title, "role": role, "definition_span": definition,
+                                        "our_terms": ours,
                                         "other_factor_terms": other})
             basis = rob2.rob_basis(dom)
             assess[pid] = {"nct": nct, "registry_in_aact": bool(NCT and NCT in designs),
