@@ -539,3 +539,9 @@ def test_PLANT_codex_r27_1_setattr_is_a_field_setter():
 def test_PLANT_codex_r27_2_a_month_first_date_is_a_date(src, hit):
     from scripts.ast_literal_sweep import sweep_source
     assert bool([f for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_PAIR_TEXT"]) is hit
+
+
+def test_PLANT_codex_r28_1_a_literal_inside_an_unrendered_interpolation_is_still_scanned():
+    from scripts.ast_literal_sweep import sweep_source
+    src = "show = True\nsummary = f\"{'Deaths 20/169' if show else ''}\""
+    assert [h for h in sweep_source(src, "harness/example.py") if h["kind"] == "COUNT_PAIR_TEXT"]

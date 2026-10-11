@@ -8098,5 +8098,38 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r28": {
+  "base": "630e622bf",
+  "head": "0d1f53db9",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4b44a5735f06aac3780b19f36d1457e7",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "667a6df604d7391efa3b1513a08d9f922066c608536a1c3d573e6254860275a6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The f-string deduplication suppresses string literals inside conditional interpolations, although _render cannot render those expressions. Hardcoded counts therefore escape the validation sweep.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nsrc = \"show = True\\nsummary = f\\\"{'Deaths 20/169' if show else ''}\\\"\"\nprint(sweep_source(src, 'harness/example.py'))",
+    "expected": "A COUNT_PAIR_TEXT finding for '20/169' on line 2: running the supplied source produces summary == 'Deaths 20/169'.",
+    "actual": "[] (deduced from the supplied code; local execution was blocked). The conditional expression renders as a null separator for scanning, while fparts prevents its underlying string literals from being scanned independently.",
+    "id": "copps-r28:g1#1",
+    "record_id": "mc-4b44a5735f06aac3780b19f36d1457e7",
+    "verdict": null
+   }
+  ]
  }
 }

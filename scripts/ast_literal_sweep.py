@@ -102,7 +102,11 @@ def sweep_source(src: str, path: str) -> list[dict]:
             if isinstance(n, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n.body
             and isinstance(n.body[0], ast.Expr) and isinstance(n.body[0].value, ast.Constant)}
     # the text fragments of an f-string are scanned once, as part of its rendered text (codex copps-r24#2)
-    fparts = {id(x) for n in ast.walk(tree) if isinstance(n, ast.JoinedStr) for v in n.values for x in ast.walk(v)}
+    # ... and ONLY what the rendering covers: an interpolation _render cannot render (a conditional, a call) keeps its
+    # own string literals scanned on their own (codex copps-r28#1: f"{'Deaths 20/169' if show else ''}")
+    fparts = {id(x) for n in ast.walk(tree) if isinstance(n, ast.JoinedStr) for v in n.values
+              for x in ([v] + ([v.value] + list(ast.walk(v.value)) if isinstance(v, ast.FormattedValue)
+                               and isinstance(v.value, (ast.Constant, ast.UnaryOp)) else []))}
     for node in ast.walk(tree):
         if id(node) in docs:
             continue
