@@ -189,8 +189,11 @@ def _terms_with_abbreviations(keywords, outcome_name, texts):
             phrase = lexicon.fold(m.group(1)).replace("-", " ").strip()
             for t in terms:
                 if phrase.endswith(t) or phrase == t:
-                    words = t.split()
-                    if _abbr_fits(m.group(2), words):
+                    # fit against the DEFINING phrase, not the shorter term: 'hospitalization for heart failure (hHF)'
+                    # defines hHF for the term 'heart failure' (agy e1p2-r1 #1); the abbreviation must
+                    # end on the term's last word, so it abbreviates the outcome and not just its neighbours
+                    letters = [c.lower() for c in m.group(2) if c.isalpha()]
+                    if letters and letters[-1] == t.split()[-1][0] and _abbr_fits(m.group(2), phrase.split()):
                         extra.add(ABBR_MARK + m.group(2))
                     break
     return terms + sorted(extra)

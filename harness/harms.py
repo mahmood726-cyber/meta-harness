@@ -70,7 +70,7 @@ def _fulltext_rung(pid, fulltext_by_pmid, fulltext_coverage):
         return "NOT_CHECKED"
     if fulltext_coverage is None:
         return "CHECKED"
-    label = fulltext_coverage.get(pid)
+    label = fulltext_coverage.get(pid) or fulltext_coverage.get(str(pid))     # keys may be str (agy e1p2-r1 #4)
     return "CHECKED" if label == "FULLTEXT" else f"NOT_CHECKED_{label or 'UNKNOWN_COVERAGE'}"
 
 

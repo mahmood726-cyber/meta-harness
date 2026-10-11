@@ -30,7 +30,9 @@ _EFFECT = re.compile(r"\b\d+(?:\.\d+)?\s*\(\s*[−-]?\s*\d+(?:\.\d+)?\s*[,–-]\
 _DAY = re.compile(r"(?:\bday\s+(\d{1,3})\b|\b(\d{1,3})\s*[- ]?\s*days?\b)", re.I)
 _YEAR = re.compile(r"\b(?:by\s+|at\s+)?(\d{1,2}|one|two|three)\s*[- ]?\s*years?\b", re.I)
 _MONTH = re.compile(r"\b(\d{1,2})\s*[- ]?\s*months?\b", re.I)
-_HOSPITAL = re.compile(r"\b(?:in[- ]?)?hospital\b", re.I)
+# not out-of-hospital / out of hospital / pre-hospital / post-hospital (codex e1p2-r1 #3)
+_HOSPITAL = re.compile(r"(?<!out.of.)(?<!pre.)(?<!post.)\b(?:in[- ]?)?hospital\b", re.I)
+_INT_CELL = re.compile(r"^\d+$")
 _WORDNUM = {"one": 1, "two": 2, "three": 3}
 
 
@@ -58,13 +60,23 @@ def table_rows(jats: str):
     return out
 
 
+def _months_to_days(mo: int) -> int:
+    return 365 * (mo // 12) if mo % 12 == 0 else 30 * mo
+
+
+def _days(text: str) -> list:
+    """Every window a phrase states, in days: 'day 60', '28-day', '1 year' (365), '12 months' (365), '6 months' (180)."""
+    days = [int(a or b) for a, b in _DAY.findall(text or "")]
+    days += [365 * (_WORDNUM.get(y.lower()) or int(y)) for y in _YEAR.findall(text or "")
+             if y.lower() in _WORDNUM or y.isdigit()]
+    days += [_months_to_days(int(mo)) for mo in _MONTH.findall(text or "")]
+    return days
+
+
 def row_window(label: str):
     """('DAYS', n) | ('IN_HOSPITAL', None) | ('UNSTATED', None) from the row's OWN label (never another row's)."""
     lab = label or ""
-    days = [int(a or b) for a, b in _DAY.findall(lab)]
-    days += [365 * (_WORDNUM.get(y.lower()) or int(y)) for y in _YEAR.findall(lab)
-             if y.lower() in _WORDNUM or y.isdigit()]
-    days += [30 * int(mo) for mo in _MONTH.findall(lab)]
+    days = _days(lab)
     if days:
         return ("DAYS", max(days))
     if _HOSPITAL.search(lab):
@@ -73,16 +85,29 @@ def row_window(label: str):
 
 
 def allowed_windows(declared_timepoint: str, keywords) -> set:
-    """The day windows an outcome declares -- the SAME reading extract.outcome_window_mismatch uses."""
+    """The windows an outcome declares, in days, read by the SAME parser as a row's own label (row_window): days,
+    years and months (codex+agy e1p2-r1: a declared '1 year' was read as no window at all, so a '1-year' row
+    mismatched)."""
     allowed = set()
     for s in [declared_timepoint or ""] + [str(k) for k in keywords or []]:
         s = s.lower()
+        allowed |= set(_days(s))
         allowed |= {int(n) for n in re.findall(r"(\d{1,3})\s*[- ]?\s*day", s)}
-        allowed |= {int(n) for n in re.findall(r"\bday\s+(\d{1,3})\b", s)}
         m = re.fullmatch(r"(\d{1,3})\s*-\s*(\d{1,3})", s.strip())
         if m:
             allowed |= set(range(int(m.group(1)), int(m.group(2)) + 1))
     return allowed
+
+
+_WINDOW_WORDS = re.compile(r"\b(?:at|by|on|within|through|up|to|after|study|follow[- ]?up|no|total|n|and|or|of|"
+                           r"days?|months?|years?|weeks?|one|two|three|in[- ]?hospital|hospital|discharge)\b", re.I)
+
+
+def _window_only(label: str) -> bool:
+    """A label that states a window and nothing else ('28 days', 'At 1 year', 'In hospital, n (%)')."""
+    if row_window(label)[0] == "UNSTATED":
+        return False
+    return not re.sub(r"[\W\d_]+", "", _WINDOW_WORDS.sub(" ", label or ""))
 
 
 def _names_outcome(label: str, terms) -> bool:
@@ -100,11 +125,16 @@ def candidates(jats: str, keywords, outcome_name: str, declared_timepoint: str) 
     for r in table_rows(jats):
         if any(ph in (r["caption"] or "").lower() for ph in extract._TABLE_ROLE_NEVER_AN_EFFECT_SOURCE):
             continue        # a baseline / design table never holds an outcome result (extract's own role vocabulary)
-        if not _names_outcome(r["label"], terms):
+        # the outcome may be named by the section heading above a row whose OWN label is only a window
+        # ('Mortality' / '28 days', agy e1p2-r1 #3) -- never by a heading over rows that name other outcomes
+        # ('In-hospital morbidity and mortality' / 'Vasopressor dependent shock ...')
+        if not (_names_outcome(r["label"], terms)
+                or (_window_only(r["label"]) and _names_outcome(r["section"] or "", terms))):
             continue
         data = " | ".join(r["cells"][1:])
-        if not (_COUNTS.search(data) or _EFFECT.search(data)):
-            continue
+        ints = [c for c in r["cells"][1:] if _INT_CELL.match(c)]
+        if not (_COUNTS.search(data) or _EFFECT.search(data) or len(ints) >= 2):
+            continue        # plain integer arm counts ('30-day mortality, n | 10 | 12') are counts too
         kind, n = row_window(r["label"])
         if kind == "DAYS":
             verdict = "WINDOW_MATCH" if n in allowed else "WINDOW_MISMATCH"
@@ -112,12 +142,24 @@ def candidates(jats: str, keywords, outcome_name: str, declared_timepoint: str) 
             verdict = "IN_HOSPITAL_MATCH" if in_hospital_declared else "WINDOW_MISMATCH"
         else:
             verdict = "WINDOW_UNSTATED"
-        out.append({"table": r["table"], "section": r["section"], "label": r["label"], "cells": r["cells"][1:],
+        out.append({"table": r["table"], "caption": r["caption"], "section": r["section"], "label": r["label"],
+                    "cells": r["cells"][1:],
                     "window": {"kind": kind, "days": n}, "assessment": verdict})
     return out
 
 
 ADMISSIBLE = ("WINDOW_MATCH", "IN_HOSPITAL_MATCH")
+
+
+def _is_witness(cells, witness: str) -> bool:
+    """A candidate IS the refusal's witness only when at least two of its numeric cells (all, if it has one) occur in
+    the witness span as whole tokens. One shared cell is not enough: a control arm's 28/281 is printed on every
+    mortality row of a table (codex e1p2-r1 #4)."""
+    nums = [x for x in cells if x and re.search(r"\d", x)]
+    if not witness or not nums:
+        return False
+    hit = [x for x in nums if re.search(r"(?<![\d.])" + re.escape(x) + r"(?![\d.])", witness)]
+    return len(hit) >= min(2, len(nums))
 
 
 def audit_refusal(slug: str, pid, row: dict, keywords, outcome_name: str, declared_timepoint: str, root=None) -> dict:
@@ -135,7 +177,7 @@ def audit_refusal(slug: str, pid, row: dict, keywords, outcome_name: str, declar
     cands = candidates(open(p, encoding="utf-8", errors="replace").read(), keywords, outcome_name, declared_timepoint)
     witness = _WS.sub(" ", row.get("source_span") or row.get("verbatim_span") or "")
     for c in cands:
-        c["is_refusal_witness"] = bool(witness) and any(x and x in witness for x in c["cells"][-2:] if len(x) > 4)
+        c["is_refusal_witness"] = _is_witness(c["cells"], witness)
     unassessed = [c for c in cands if c["assessment"] in ADMISSIBLE and not c["is_refusal_witness"]]
     if unassessed:
         state = "CANDIDATE_ROW_UNASSESSED"
