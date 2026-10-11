@@ -6731,5 +6731,107 @@
     "verdict": null
    }
   ]
+ },
+ "r9-4-label-r1": {
+  "base": "beb73a487",
+  "head": "1ce1a1ed0",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c5559ba88bafa2851aae021fe4d05695",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_label_adr.py",
+     "scripts/g1_regulatory_source.py"
+    ],
+    "prompt_sha256": "0ded231cc733c596dcb9efb9e62b595f65e965d711565cada5223c9e2e96d950"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_label_adr.py",
+    "function": "tables / propose",
+    "severity": "P0",
+    "claim": "The row search crosses subsequent table boundaries, allowing another trial's events to be paired with the current table's denominators. Rounded percentages do not prevent this.",
+    "failing_input": "from scripts.g1_label_adr import propose\ncfg = {'intervention_terms': ['finerenone'], 'comparator_terms': ['placebo'], 'harm_outcomes': [{'name': 'Hyperkalemia'}]}\ntext = 'Table 1: Adverse reactions in ALPHA safety population\\n\\nfinerenone N = 1000 n (%) placebo N = 1000 n (%)\\nHeadache 1 (0.1) 2 (0.2)\\n\\nTable 2: Adverse reactions in BETA safety population\\n\\nfinerenone N = 1001 n (%) placebo N = 1001 n (%)\\nHyperkalemia 10 (1) 20 (2)'\nprops, refused = propose('test', cfg, 'held-label', text, {'ALPHA': '1', 'BETA': '2'})\nprint([(p['trial'], p['values']) for p in props])",
+    "expected": "Only BETA is proposed, with events_t=10, n_t=1001, events_c=20, n_c=1001.",
+    "actual": "Both ALPHA and BETA are proposed. The false ALPHA proposal contains events_t=10, n_t=1000, events_c=20, n_c=1000, combining BETA's row with ALPHA's header.",
+    "id": "r9-4-label-r1:g1#1",
+    "record_id": "mc-c5559ba88bafa2851aae021fe4d05695",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_label_adr.py",
+    "function": "tables",
+    "severity": "P1",
+    "claim": "The single-trial check counts only acronyms supplied in names. A caption explicitly naming two trials passes when only one is in that mapping.",
+    "failing_input": "from scripts.g1_label_adr import propose\ncfg = {'intervention_terms': ['finerenone'], 'comparator_terms': ['placebo'], 'harm_outcomes': [{'name': 'Hyperkalemia'}]}\ntext = 'Table 1: Adverse reactions in ALPHA and BETA safety populations\\n\\nfinerenone N = 100 n (%) placebo N = 100 n (%)\\nHyperkalemia 10 (10) 20 (20)'\nprops, refused = propose('test', cfg, 'held-label', text, {'ALPHA': '1'})\nprint([(p['trial'], p['values']) for p in props], refused)",
+    "expected": "No proposal; refuse the table because its caption identifies two trials.",
+    "actual": "One proposal binds the combined table to ALPHA alone, with events_t=10, n_t=100, events_c=20, n_c=100; refused is empty.",
+    "id": "r9-4-label-r1:g1#2",
+    "record_id": "mc-c5559ba88bafa2851aae021fe4d05695",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_label_adr.py",
+    "function": "propose",
+    "severity": "P1",
+    "claim": "Every accepted table is labelled SAFETY without checking its stated population, so explicitly randomised denominators are misclassified.",
+    "failing_input": "from scripts.g1_label_adr import propose\ncfg = {'intervention_terms': ['finerenone'], 'comparator_terms': ['placebo'], 'harm_outcomes': [{'name': 'Hyperkalemia'}]}\ntext = 'Table 1: Adverse reactions in ALPHA randomised population\\n\\nfinerenone N = 100 n (%) placebo N = 100 n (%)\\nHyperkalemia 10 (10) 20 (20)'\nprops, refused = propose('test', cfg, 'held-label', text, {'ALPHA': '1'})\nprint(props[0]['population'], props[0]['endpoint'])",
+    "expected": "Refuse this table under the adapter's safety-only contract, rather than relabel its randomised population.",
+    "actual": "population is 'SAFETY (label adverse-reaction table)' and endpoint is 'Hyperkalemia (FDA label adverse reaction, ALPHA safety population)'.",
+    "id": "r9-4-label-r1:g1#3",
+    "record_id": "mc-c5559ba88bafa2851aae021fe4d05695",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_label_adr.py",
+    "function": "reader_gate",
+    "severity": "P1",
+    "claim": "The gate accepts integer percentages from n (%) cells as event counts because it checks token membership without interpreting the header or cell position.",
+    "failing_input": "from scripts.g1_label_adr import reader_gate\nshown = 'finerenone N = 1000 n (%) placebo N = 1000 n (%) Hyperkalemia 100 (10) 200 (20)'\nans = {'state': 'FOUND', 'quote': shown, 'events_t': 10, 'n_t': 1000, 'events_c': 20, 'n_c': 1000, 'population': 'safety'}\nprint(reader_gate(ans, shown))",
+    "expected": "Reject: the printed event counts are 100 and 200; 10 and 20 are percentages.",
+    "actual": "'GATED'.",
+    "id": "r9-4-label-r1:g1#4",
+    "record_id": "mc-c5559ba88bafa2851aae021fe4d05695",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_label_adr.py",
+    "function": "tables",
+    "severity": "P2",
+    "claim": "Without a blank line after the caption, _CAP consumes the header and rows as caption text. A complete valid table is then reported as lacking its header.",
+    "failing_input": "from scripts.g1_label_adr import propose\ncfg = {'intervention_terms': ['finerenone'], 'comparator_terms': ['placebo'], 'harm_outcomes': [{'name': 'Hyperkalemia'}]}\ntext = 'Table 1: Adverse reactions in ALPHA\\nfinerenone N = 100 n (%) placebo N = 100 n (%)\\nHyperkalemia 10 (10) 20 (20)'\nprops, refused = propose('test', cfg, 'held-label', text, {'ALPHA': '1'})\nprint(props, [r['why'] for r in refused])",
+    "expected": "One proposal with events_t=10, n_t=100, events_c=20, n_c=100.",
+    "actual": "([], ['NO_ARM_HEADER_WITH_N']).",
+    "id": "r9-4-label-r1:g1#5",
+    "record_id": "mc-c5559ba88bafa2851aae021fe4d05695",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_label_adr.py",
+    "function": "_pct_ok / propose",
+    "severity": "P2",
+    "claim": "A zero denominator is accepted by the header parser and causes an uncaught division-by-zero exception instead of a recorded refusal.",
+    "failing_input": "from scripts.g1_label_adr import propose\ncfg = {'intervention_terms': ['finerenone'], 'comparator_terms': ['placebo'], 'harm_outcomes': [{'name': 'Hyperkalemia'}]}\ntext = 'Table 1: Adverse reactions in ALPHA safety population\\n\\nfinerenone N = 0 n (%) placebo N = 100 n (%)\\nHyperkalemia 0 (0) 20 (20)'\npropose('test', cfg, 'held-label', text, {'ALPHA': '1'})",
+    "expected": "No proposal; record an invalid-denominator refusal and continue processing.",
+    "actual": "Raises ZeroDivisionError in _pct_ok.",
+    "id": "r9-4-label-r1:g1#6",
+    "record_id": "mc-c5559ba88bafa2851aae021fe4d05695",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_regulatory_source.py",
+    "function": "fda_review_urls",
+    "severity": "P2",
+    "claim": "Both search branches catch every Exception and continue, silently converting transport failures into an empty discovery state.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts.g1_regulatory_source import fda_review_urls\nwith patch('harness.http.get_json', side_effect=TimeoutError('FDA unavailable')) as get_json:\n    fda_review_urls('finerenone')",
+    "expected": "Propagate the timeout or explicitly report discovery failure; do not treat unavailable searches as evidence of no applications.",
+    "actual": "Both TimeoutError exceptions are swallowed. The shown code proceeds with results=[] and subs=[], without preserving any indication that either search failed.",
+    "id": "r9-4-label-r1:g1#7",
+    "record_id": "mc-c5559ba88bafa2851aae021fe4d05695",
+    "verdict": null
+   }
+  ]
  }
 }

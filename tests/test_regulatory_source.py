@@ -173,3 +173,23 @@ def test_typed_first_admits_a_regulator_table_without_a_model_and_checks_the_ran
     assert v == "ADMITTED" and adm["kind"] == "REGULATORY_TABLE" and adm["row"].events_t == 58 and adm["url"] == FDA
     monkeypatch.setattr(ga, "posted_population_short", lambda *a: {"randomised_total": 900})
     assert ga.typed_first(t, cfg, held) == (None, None)                       # a subpopulation is never the trial's
+
+
+def test_PLANT_an_application_without_openfda_names_is_found_by_its_active_ingredient(monkeypatch):
+    # R9-4 (9 Oct): KERENDIA NDA215341 carries no openfda.generic_name, so the generic-name search returned nothing and
+    # no finerenone label or review was ever held. The application's OWN products.active_ingredients names the drug.
+    from harness import http
+    lbl = "http://www.accessdata.fda.gov/drugsatfda_docs/label/2021/215341s000lbl.pdf"
+    hit = {"results": [{"application_number": "NDA215341", "submissions": [{"application_docs": [
+        {"type": "Label", "url": lbl, "date": "20210712"}]}]},
+        {"application_number": "ANDA220684", "submissions": [{"application_docs": [
+            {"type": "Label", "url": "https://www.accessdata.fda.gov/anda_label.pdf", "date": "20250101"}]}]}]}
+
+    def get_json(url, params=None, **k):
+        if "generic_name" in (params or {}).get("search", ""):
+            raise RuntimeError("HTTP 404 NOT_FOUND: No matches found!")
+        assert 'products.active_ingredients.name:"FINERENONE"' == params["search"]
+        return hit
+    monkeypatch.setattr(http, "get_json", get_json)
+    urls = rs.fda_review_urls("finerenone")
+    assert urls == [lbl.replace("http://", "https://")]
