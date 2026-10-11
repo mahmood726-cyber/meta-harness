@@ -199,3 +199,32 @@ def test_PLANT_extr_r3_4_a_zero_denominator_is_a_refusal():
 def test_the_bracketed_hr_form_is_read():
     assert xr.read_abstract_clause("semaglutide reduced rates of the composite compared with placebo "
                                    "[HR 0.82 (95% CI 0.68\u20130.98)]") == {"effect": 0.82, "ci_low": 0.68, "ci_high": 0.98}
+
+
+# ---- codex extr-r4 + flow-r2 + agy flow-r2 (PRs #84 / #85): plants that fail on 3d301ebb1 ---------------------------
+@pytest.mark.parametrize("clause", ["log HR 0.20; 95% CI, 0.10-0.30",                                   # extr-r4#1
+                                    "log HR 0.82 (95% CI 0.68–0.98)",                              # flow-r2#2
+                                    "HR 0.10; 95% CI, 0.08-1.20e−1",                               # extr-r4#2
+                                    "HR 0.82 (95% CI 0.68–1,000)"])                                # flow-r2#1
+def test_PLANT_extr_r4_a_log_hr_or_a_continued_number_is_refused(clause):
+    with pytest.raises(xr.ReadRefused):
+        xr.read_abstract_clause(clause)
+
+
+@pytest.mark.parametrize("text", [
+    # extr-r4#3 / flow-r2#3: a period-terminated next caption ends the table
+    "Table 3: Adverse reactions in FIDELIO-DKD\nNo extractable table here.\nTable 4. Adverse reactions in FIGARO-DKD\n"
+    "Kerendia N = 100 n (%) Placebo N = 100 n (%)\nHyperkalemia 10 (10.0) 20 (20.0)\n",
+    # extr-r4#4: other denominators stated between the header and the row
+    "Table 3: Adverse reactions in FIDELIO-DKD\nRandomised population\nKerendia N = 100 n (%) Placebo N = 100 n (%)\n"
+    "Safety population N = 90 and N = 80\nHyperkalemia 1 (1) 1 (1)\n",
+    # agy flow-r2 g1#2: a second header BEFORE the matched one is ambiguity too
+    "Table 3: Adverse reactions in FIDELIO-DKD\nSafety population: Kerendia N = 90, Placebo N = 80\nKerendia N = 100 n (%) "
+    "Placebo N = 100 n (%)\nHyperkalemia 1 (1) 1 (1)\n",
+    # flow-r2#4: a pooled multi-trial caption
+    "Table 3: Adverse reactions pooled across FIDELIO-DKD and FIGARO-DKD\nKerendia N = 100 n (%) Placebo N = 100 n (%)\n"
+    "Hyperkalemia 10 (10) 20 (20)\n",
+])
+def test_PLANT_extr_r4_the_label_reader_refuses_ambiguous_tables(text):
+    with pytest.raises(xr.ReadRefused):
+        xr.read_label_adr_table(text, LABEL_SPEC)

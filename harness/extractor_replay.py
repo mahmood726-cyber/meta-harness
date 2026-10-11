@@ -33,13 +33,21 @@ class ReadRefused(ValueError):
 
 
 # ------------------------------------------------------------------------------------------------ abstract clause
-_NUM = r"(\d+(?:\.\d+)?)(?!\d|\.\d|[eE][-+]?\d)"   # a number never continues ('1.20e1' is not 1.2, extr-r3#1); a full stop may end it
+# a number never continues: not with a digit, '.digit', a thousands ',ddd' ('1,000', flow-r2#1) or an exponent in any
+# minus ('1.20e1', '1.20e\u22121', extr-r3#1 / r4#2); a full stop may end it
+_NUM = r"(\d+(?:\.\d+)?)(?!\d|\.\d|,\d{3}|[eE][-+\u2212]?\d)"
 _HR = re.compile(r"(?:HR of|\[HR\],|hazard ratio(?: \[HR\])?,?|\bHR\b)\s*" + _NUM + r"\s*\(?;?\s*95% CI,?\s*" + _NUM
-                 + r"\s*(?:,|-|–|to)\s*" + _NUM)
+                 + r"\s*(?:,|-|\u2013|to)\s*" + _NUM)
+# a LOG hazard ratio is not a hazard ratio (extr-r4#1, flow-r2#2): such a clause is refused, never exponentiated here
+_LOG_HR = re.compile(r"\b(?:log|ln|logarithm(?:ic)?)[\s-]*(?:of\s+(?:the\s+)?)?(?:hazard\s+ratio|HR)\b", re.I)
+
+
 def read_abstract_clause(clause: str) -> dict[str, Any]:
     """The ONE hazard ratio a signed clause states, with its 95% CI, by type -- nothing else. Counts are never read from a
     clause (codex extr-r1/r2: rates per person-years, mixed populations, Kaplan-Meier estimates and thousands separators
-    each defeated a count reading; no held row serves counts from a clause). Zero or several HRs: refused."""
+    each defeated a count reading; no held row serves counts from a clause). Zero or several HRs, or a log HR: refused."""
+    if _LOG_HR.search(clause):
+        raise ReadRefused("the clause states a LOG hazard ratio")
     hr = _HR.findall(clause)
     if len(hr) != 1:
         raise ReadRefused(f"clause must state exactly one HR with its 95% CI (got {len(hr)})")
@@ -57,33 +65,47 @@ def _pct_ok(n: int, d: int, printed: str) -> bool:
     return f"{100.0 * n / d:.{places}f}" == printed
 
 
+# a table caption ends a table whether it is 'Table N:' or 'Table N.' (extr-r4#3, flow-r2#3)
+_CAPTION_START = re.compile(r"\bTable\s+\d+\s*[:.]")
+# a caption naming a POOL of studies cannot supply one trial's counts (flow-r2#4)
+_POOLED = re.compile(r"\b(?:pooled|pooling|combined|integrated|across|meta-?analy)", re.I)
+_TRIAL_TOKEN = re.compile(r"\b[A-Z][A-Z0-9]+-[A-Z0-9]+\b")
+
+
 def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
     """One adverse-reaction row of a label table, by type. spec: table ('Table 3'), trial ('FIDELIO-DKD'), arm_t
     ('Kerendia'), arm_c ('Placebo'), row_label ('Hyperkalemia') -- literals, escaped; nothing in the spec is a pattern."""
     for k in ("table", "trial", "arm_t", "arm_c", "row_label"):
         if not str(spec.get(k) or "").strip():
             raise ReadRefused(f"replay spec lacks {k!r}")
-    # the trial is named within the caption's own two lines, never past another 'Table N:' caption (extr-r2#4)
-    _line = r"(?:(?!\bTable\s+\d+\s*:)[^\n])*"
+    # the trial is named within the caption's own two lines, never past another caption (extr-r2#4)
+    _line = r"(?:(?!\bTable\s+\d+\s*[:.])[^\n])*"
     cap = re.search(re.escape(spec["table"]).replace(r"\ ", r"\s+") + r"\s*:\s*Adverse\s+reactions\b" + _line + r"\n?"
-                    + _line + re.escape(spec["trial"]), text, re.I)
+                    + _line + re.escape(spec["trial"]) + _line, text, re.I)
     if not cap:
         raise ReadRefused(f"{spec['table']} caption naming {spec['trial']} not found")
-    # the table ends where the next 'Table N:' caption starts: a header or row past it belongs to another table
-    # (extr-r1#4: FIGARO's Table 4 header read under FIDELIO's Table 3 caption)
-    nxt = re.compile(r"\bTable\s+\d+\s*:").search(text, cap.end())
+    caption = re.sub(r"\s+", " ", cap.group(0)).strip()
+    others = sorted(set(_TRIAL_TOKEN.findall(caption)) - {spec["trial"]})
+    if _POOLED.search(caption) or others:
+        raise ReadRefused(f"the caption names a pool or other trials ({others or 'pooled'}): not {spec['trial']}'s counts")
+    # the table ends where the next caption starts: a header or row past it belongs to another table (extr-r1#4)
+    nxt = _CAPTION_START.search(text, cap.end())
     end = nxt.start() if nxt else len(text)
-    hdr = re.compile(re.escape(spec["arm_t"]) + r"\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)\s+" + re.escape(spec["arm_c"])
-                     + r"\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)").search(text, cap.end(), end)
+    hdr_rx = re.compile(re.escape(spec["arm_t"]) + r"\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)\s+" + re.escape(spec["arm_c"])
+                        + r"\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)")
+    hdr = hdr_rx.search(text, cap.end(), end)
     if not hdr or hdr.start() - cap.end() > 4000:
         raise ReadRefused("arm header not within the table's reach")
-    # several arm headers in one table (randomised v safety population) leave the row's denominators ambiguous
-    if re.compile(re.escape(spec["arm_t"]) + r"\s+N\s*=").search(text, hdr.end(), end):
-        raise ReadRefused("the table carries more than one arm header: the row's denominators are ambiguous")
     row = re.compile(r"(?:^|(?<=\n))[ \t]*" + re.escape(spec["row_label"]) + r"\s+(\d+)\s*\((\d+(?:\.\d+)?)\)\s+(\d+)\s*\("
                      r"(\d+(?:\.\d+)?)\)", re.M).search(text, hdr.end(), end)
     if not row or row.start() - hdr.end() > 400:
         raise ReadRefused(f"{spec['row_label']!r} row not directly under the header")
+    # the row's denominators are the header's ONLY when nothing else states one: exactly one arm header between the
+    # caption and the row, and no other 'N =' between the header and the row (randomised v safety populations;
+    # extr-r3#2, r4#4, agy flow-r2 g1#2 -- the whole span before the row, not only after the header)
+    if (len(list(hdr_rx.finditer(text, cap.end(), row.start()))) != 1
+            or re.search(r"\b[Nn]\s*=\s*\d", text[cap.end():hdr.start()] + "\n" + text[hdr.end():row.start()])):
+        raise ReadRefused("more than one denominator statement before the row: the row's denominators are ambiguous")
     nt, nc = (int(x.replace(",", "")) for x in hdr.groups())
     et, pt, ec, pc = row.groups()
     et, ec = int(et), int(ec)
@@ -91,7 +113,7 @@ def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
         raise ReadRefused("printed percentages do not reconcile with n / N")
     return {"ai": et, "n1i": nt, "ci": ec, "n2i": nc, "raw_row": row.group(0),
             "row_span": re.sub(r"\s+", " ", row.group(0)).strip(), "header_span": re.sub(r"\s+", " ", hdr.group(0)),
-            "caption_span": re.sub(r"\s+", " ", cap.group(0)).strip()}
+            "caption_span": caption}
 
 
 # ------------------------------------------------------------------------------------------------------- replay
