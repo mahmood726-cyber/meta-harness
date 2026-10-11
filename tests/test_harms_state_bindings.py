@@ -243,3 +243,22 @@ def test_PLANT_harms_r12_1_an_unnumbered_semicolon_composite_is_never_cut(body):
 def test_a_semicolon_opening_another_roles_clause_still_cuts(body, cut):
     from harness.compat_check import _cut_clause
     assert _cut_clause(body) == cut
+
+
+def test_PLANT_harms_r13_1_non_primary_is_not_the_primary_label():
+    text = ("The non-primary outcome was a composite of death and nonfatal myocardial infarction. The primary outcome "
+            "was all-cause mortality within 30 days.")
+    got = _endpoint({"name": "All-cause mortality", "primary": True}, "16", text)["value"]
+    assert "composite of death and nonfatal" not in got
+
+
+@pytest.mark.parametrize("text", ["Viral diarrhoea (a positive rotavirus stool antigen test).",
+                                  "Infectious diarrhea (stool culture positive for a bacterial pathogen)."])
+def test_PLANT_harms_r13_2_a_qualified_diarrhoea_definition_defines_neither_diarrhoea_nor_aad(text):
+    for name in ("AAD", "Diarrhoea"):
+        assert _endpoint({"name": name, "primary": False}, "17", text)["value"] == name
+
+
+def test_an_unqualified_diarrhoea_definition_still_defines_diarrhoea():
+    text = "The incidence of diarrhoea (three or more loose stools per day for two days) was lower."
+    assert "three or more loose stools" in _endpoint({"name": "Diarrhoea", "primary": False}, "18", text)["value"]

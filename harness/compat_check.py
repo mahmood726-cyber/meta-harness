@@ -222,7 +222,8 @@ def _derive_endpoint(
             # the rest of its sentence may not designate it secondary ('... as a secondary outcome').
             clause = _clause_to(text, m)
             lead_in = clause[:len(clause) - len(m.group(0))]
-            introduced = bool(re.match(r"primary\b", m.group(0), re.I)) or bool(re.search(
+            # a match that begins 'primary' must begin a WORD: 'non-primary outcome was ...' is not (codex harms-r13#1)
+            introduced = bool(re.match(r"primary\b", m.group(0), re.I) and not re.search(r"[\w-]$", lead_in)) or bool(re.search(
                 r"(?:\bprimary (?:efficacy )?(?:outcome|end ?point)s?(?: measures?)?|\bmain outcome measures?)"
                 r"\s*(?:was|were|is|:|,|-)?\s*(?:the |a |an )?$", lead_in, re.I))
             # the body is cut at its first depth-0 ';' (it never runs on into the next clause), and that clause -- the
@@ -245,7 +246,12 @@ def _derive_endpoint(
             # never an unrestricted diarrhoea outcome (codex harms-r10#1)
             if qual and re.search(r"antibiotic[\s-]+associated$", qual.group(1), re.I):
                 subject = _AAD_ONLY
-            applies = (not negated) and bool(re.fullmatch(subject, str(outcome.get("name") or "").strip(), re.I))
+            # any OTHER word qualifying 'diarrhoea (...)' narrows it to something else ('Viral diarrhoea (rotavirus ...)'
+            # defines neither diarrhoea nor AAD, codex harms-r13#2): only a function word may precede it -- a whitelist
+            last = (qual.group(1).split()[-1].lower() if qual else "")
+            qualified = (pattern.startswith("diarrho") and subject is not _AAD_ONLY and last not in _UNQUALIFYING)
+            applies = (not negated and not qualified
+                       and bool(re.fullmatch(subject, str(outcome.get("name") or "").strip(), re.I)))
         if applies:
             return _derived(value, "committed source text", _short_span(text, m))
         refused = refused or value
@@ -258,6 +264,10 @@ def _derive_endpoint(
 
 
 _PRIMARY = object()                                         # the rule's sentence defines the primary outcome only
+# words that may directly precede 'diarrhoea (...)' without qualifying WHICH diarrhoea it is
+_UNQUALIFYING = {"", "of", "for", "with", "and", "or", "as", "was", "were", "is", "the", "a", "an", "any", "incidence",
+                 "rate", "risk", "occurrence", "defined", "developed", "definition:", "outcome:", "outcome", "endpoint",
+                 "end", "point", "results:", "methods:"}
 
 
 def _cut_clause(body: str) -> str:

@@ -7238,5 +7238,59 @@
     "verdict": null
    }
   ]
+ },
+ "harms-r13": {
+  "base": "fca8cff07",
+  "head": "59d0579b4",
+  "runs": {
+   "g1": {
+    "record_id": "mc-104b7d142aad677e2bb5d469cdce0257",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "bf753e5e79ed67830f54e46dfd3af41708de94579567d6893e00a9d9a917540c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "The primary-endpoint gate accepts 'non-primary': the search starts inside that word, and introduced checks only the matched substring.",
+    "failing_input": "Held text: 'The non-primary outcome was a composite of death and nonfatal myocardial infarction. The primary outcome was all-cause mortality within 30 days.' Outcome: {'name': 'All-cause mortality', 'primary': True}. No definition or audit override.",
+    "expected": "Derive 'primary outcome was all-cause mortality within 30 days'.",
+    "actual": "Derives 'primary outcome was a composite of death and nonfatal myocardial infarction' from committed source text; the preceding 'non-' is excluded from the match and never checked.",
+    "id": "harms-r13:g1#1",
+    "record_id": "mc-104b7d142aad677e2bb5d469cdce0257",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P1",
+    "claim": "A disease-qualified diarrhoea definition can still be assigned to AAD. The qualifier logic recognizes antibiotic-associated and negation, but other narrowing qualifiers leave _AAD_SUBJECT eligible.",
+    "failing_input": "Held text: 'Viral diarrhoea (a positive rotavirus stool antigen test).' Outcome: {'name': 'AAD', 'primary': False}. No definition or audit override.",
+    "expected": "Retain 'AAD' with outcome.name as its basis; the viral-diarrhoea definition does not define antibiotic-associated diarrhoea.",
+    "actual": "Derives 'diarrhoea (a positive rotavirus stool antigen test)' from committed source text as the AAD definition.",
+    "id": "harms-r13:g1#2",
+    "record_id": "mc-104b7d142aad677e2bb5d469cdce0257",
+    "verdict": null
+   },
+   {
+    "file": "harness/compat_check.py",
+    "function": "_derive_endpoint",
+    "severity": "P2",
+    "claim": "Rejecting the first occurrence of a pattern prevents consideration of later valid occurrences: each rule performs only one search.",
+    "failing_input": "Held text: 'Non-antibiotic-associated diarrhoea (three loose stools per day). Antibiotic-associated diarrhoea (three loose stools per day during antibiotic treatment).' Outcome: {'name': 'AAD', 'primary': False}. No definition or audit override.",
+    "expected": "Derive 'diarrhoea (three loose stools per day during antibiotic treatment)' from the second sentence.",
+    "actual": "Rejects the first match as negated, never examines the second match, and returns 'AAD' with the basis stating that the source definition applies to another outcome.",
+    "id": "harms-r13:g1#3",
+    "record_id": "mc-104b7d142aad677e2bb5d469cdce0257",
+    "verdict": null
+   }
+  ]
  }
 }
