@@ -171,10 +171,18 @@ def _outcome_tokens(outcome: dict[str, Any]) -> list[str]:
     return toks
 
 
+def _negates(text_f: str, toks: list[str]) -> bool:
+    """The text names a NON-qualified form of one of the outcome's words ('nonvertebral', 'non-fatal'): it is about
+    another outcome, whatever head term it shares (codex lc-compat-codex-focused:g1#1, g2#1)."""
+    return any(p + t in text_f for t in toks for p in ("non", "non-", "non "))
+
+
 def _has_token(text_f: str, tok: str) -> bool:
     alts = _SYNONYMS.get(tok, (tok,))
     for alt in alts:
         a = _fold(alt)
+        if a == "survival":               # 'progression-free survival' is not mortality (codex g1#2); 'overall survival' is
+            text_f = text_f.replace("-free survival", " ").replace(" free survival", " ")
         if re.search(rf"(?<!non-)(?<!non )\b{re.escape(a)}(?:s|es)?\b", text_f):
             return True
     return False
@@ -221,7 +229,7 @@ def _outcome_sentences(outcome: dict[str, Any], rec: dict[str, Any] | None, *, s
         # the trial's own primary-outcome sentence binds to the review's PRIMARY row when it names the head term
         # ('The primary outcome was the proportion of patients who developed diarrhea in the first 21 days')
         if _about_outcome(s, toks) or (outcome.get("primary") and toks and _PRIMARY_SENTENCE.search(s)
-                                       and _has_token(_fold(s), toks[-1])):
+                                       and _has_token(_fold(s), toks[-1]) and not _negates(_fold(s), toks)):
             out.append(s)
     return out
 
@@ -247,7 +255,7 @@ _TP_FU_STATED = re.compile(r"\b(?:median|mean)\s+(?:duration\s+of\s+(?:the\s+)?)
 _TP_FOLLOWED_FOR = re.compile(r"\bfollowed(?:\s+up)?\s+for\s+(?:a\s+(?:median|mean)\s+of\s+)?" + _NUM + r"\s+" + _UNIT, re.I)
 _TP_OVER_MEDIAN = re.compile(r"\b(?:over|during)\s+a\s+(?:median|mean)\s+(?:follow[-\s]?up\s+)?of\s+" + _NUM + r"\s+" + _UNIT, re.I)
 _TP_SUPPLEMENTATION = re.compile(r"\bmedian duration of supplementation was\s+" + _NUM + r"\s+years\b", re.I)
-_TP_BY_DAY = re.compile(r"\b(?:by|at|on|through|until|to)\s+(day|week|month|year)\s+(\d+)\b", re.I)
+_TP_BY_DAY = re.compile(r"\b(?:by|at|on|through|until|to)\s+(day|week|month|year)\s+(\d+(?:[.·]\d+)?)\b", re.I)
 _TP_WITHIN = re.compile(r"\bwithin\s+" + _NUM + r"\s+" + _UNIT, re.I)
 _TP_N_OR_M = re.compile(r"\b(\d+)\s+or\s+(\d+)[-\s]" + _UNIT + r"\b", re.I)
 _TP_NUM_UNIT = re.compile(_NUM + r"[-\s]" + _UNIT + r"\b", re.I)
@@ -282,26 +290,38 @@ _FOLLOW = re.compile(r"\bfollow[-\s]?up\b|\bfollowed\b|\bdeath\b|\bdied\b|\bmort
                      r"|\bend ?point\b|\boutcome\b|\bsurvival\b|\bassessed\b|\bmeasured\b|\bcumulative\b", re.I)
 
 
-def time_phrase_kind(sentence: str, phrase: str) -> str:
+def time_phrase_kind(sentence: str, phrase: str, start: int | None = None) -> str:
     """'follow_up' | 'exposure' | 'length_of_stay' | 'schedule' | 'age' | 'dispersion' | 'unclassified' for one time
     phrase in its sentence. The 80 characters BEFORE the phrase decide: a treatment verb there makes it a treatment
-    duration ('tapering for a total of 8 or 14 days'), an outcome word a follow-up window ('By day 28, death had occurred')."""
+    duration ('tapering for a total of 8 or 14 days'), an outcome word a follow-up window ('By day 28, death had occurred').
+    start: the phrase's own offset in the (whitespace-normalised) sentence -- a phrase that occurs twice is classified
+    where it stands, not at its first occurrence (codex lc-compat-codex-focused:g1#5)."""
     s = _norm_ws(sentence)
-    i = s.lower().find(_norm_ws(phrase).lower())
+    i = start if start is not None else s.lower().find(_norm_ws(phrase).lower())
     i = max(i, 0)
     before = s[max(0, i - 80):i]
     near = s[max(0, i - 80):i + len(phrase) + 60]
+    clause = _CLAUSE_SPLIT.split(before)[-1]
     if _AGE.search(before) or _AFTER_AGE.search(s[i + len(phrase):]):
         return "age"                      # 'mean age, 70 years' is not a follow-up window
     if _DISPERSION_END.search(before):
         return "dispersion"               # '34.2±13.7 months': 13.7 is an SD
-    if _LOS.search(near):
+    # a stay in the phrase's OWN clause ('length of hospital stay was 7 days') or right after it ('5 days in hospital');
+    # never a stay named elsewhere in the sentence ('Mortality at day 28 and length of stay', codex g1#4 / full g1#3)
+    los_after = _LOS.search(phrase + s[i + len(phrase):i + len(phrase) + 30])
+    if (_LOS.search(before) and not _FOLLOW.search(clause)) or (los_after and los_after.start() < len(phrase)):
         return "length_of_stay"
     if _SCHEDULE.search(phrase) or _EVERY_END.search(before):
         return "schedule"
     if _FU_LEAD.search(before + " ") or _FU_PHRASE_START.search(phrase):
+        # 'until' / 'through' END a treatment as readily as a follow-up: 'received treatment until day 7' is a treatment
+        # duration (codex g1#3 / full g1#2). 'at / by / to week N' stay assessment time points ('Treatment with FCM
+        # prolonged 6MWT at Week 24'); an outcome or follow-up word in the clause keeps any of them a follow-up window
+        ends = {(phrase.split() or [""])[0].lower(), (before.split() or [""])[-1].lower()}
+        if (ends & {"until", "through"} and _EXPOSURE.search(clause) and not _FOLLOW.search(clause)
+                and not _TRIAL_FOLLOW_UP.search(clause + " " + phrase)):
+            return "exposure"
         return "follow_up"
-    clause = _CLAUSE_SPLIT.split(before)[-1]
     if _EXPOSURE.search(clause):
         return "exposure"
     if _FOLLOW.search(near):
@@ -320,8 +340,8 @@ def _phrases(text: str) -> list[tuple[str, str, str, str]]:
                     continue
                 taken.append((m.start(), m.end()))
                 found.append((m.start(), norm(m), m.group(0)))
-        for _, v, raw in sorted(found):
-            out.append((v, raw, sent, time_phrase_kind(sent, raw)))
+        for at, v, raw in sorted(found):
+            out.append((v, raw, sent, time_phrase_kind(sent, raw, at)))
     return out
 
 
@@ -385,7 +405,7 @@ def _derive_analysis_set(
         if _STAGE.search(s):
             continue
         hit = first(s)
-        if hit and _ANALYSIS_WORD.search(s):
+        if hit and _ANALYSIS_WORD.search(s) and not _OUTCOME_NOUN.search(_fold(s)[:hit[1].start()]):
             return _derived(hit[0], SRC_TRIAL_STATEMENT, s)
     existing = ((trial.get("study_effect") or {}).get("analysis_population")
                 or (trial.get("compat_dimensions") or {}).get("analysis_set"))
@@ -442,18 +462,34 @@ def _primary_head(clause_tail: str) -> str:
 
 
 _ROW_REPORTS_PRIMARY = re.compile(r"\bprimary[- ](?:efficacy[- ])?(?:outcome|end ?point|composite)", re.I)
+# ...unless the span says the row is NOT the primary ('a secondary outcome, not the primary outcome', codex full g1#5)
+_ROW_NOT_PRIMARY = re.compile(r"\bnot (?:the |a )?primary\b|\bsecondary (?:efficacy )?(?:outcome|end ?point)", re.I)
+# a sentence whose subject is a NAMED outcome ('Hospitalization was analysed per-protocol') states that outcome's
+# analysis, not the trial's (codex full g1#4); matched on vowel-folded lowercase text
+_OUTCOME_NOUN = re.compile(r"\b(?:mortality|deaths?|hospitali[sz]ations?|admissions?|strokes?|fractures?|bleeding|hemorrhages?"
+                           r"|infarctions?|survival|infections?|diarrhea|relapses?|recurrences?|remission|pain|exacerbations?)\b")
 
 
 def _endpoint_from(text: str, outcome: dict[str, Any], toks: list[str]) -> tuple[str, str] | None:
     m = _PRIMARY_CLAUSE.search(text)
     if m:
         head = _primary_head(m.group(1))
+        # a composite's head is cut at its first comma ('a composite of mortality, myocardial infarction, or stroke'
+        # -> 'mortality'): a ONE-word outcome is then a component of the composite, never defined by it (codex g2#2)
+        composite = "composite" in m.group(0).lower()
+        component = composite and len(toks) == 1 and toks[0] != "mace"
+        if composite:                     # a composite outcome is matched on its whole component list
+            head = m.group(1).split("(", 1)[0]
         # the clause binds when ITS outcome is this row's outcome; for the review's PRIMARY row the head term suffices
-        if _about_outcome(head, toks) or (outcome.get("primary") and toks and _has_token(_fold(head), toks[-1])):
+        # -- unless the clause names a non-qualified form of the row's outcome ('nonfatal stroke' for 'Fatal stroke')
+        if not component and not _negates(_fold(head), toks) and (
+                _about_outcome(head, toks) or (outcome.get("primary") and toks and _has_token(_fold(head), toks[-1]))):
             return _norm_ws(m.group(0)), _short_span(text, m)
     for pattern in _DEFINITION_RULES:
         m = _search(pattern, text)
-        if m:
+        # a definition defines THIS row only when it names one of the row's words: 'diarrhoea (three or more loose
+        # stools daily)' never defines Mortality (codex full g1#6)
+        if m and any(_has_token(_fold(m.group(0)), t) for t in toks):
             return _norm_ws(m.group(0)), _short_span(text, m)
     return None
 
@@ -474,7 +510,7 @@ def _derive_endpoint(
         return _derived(hit[0], SRC_ROW, hit[1])
     # the row's OWN span says it reports the trial's primary outcome ('a primary outcome event occurred in 197 of 2152'):
     # then the trial's primary-outcome clause defines this row, whatever the review calls the outcome
-    if _ROW_REPORTS_PRIMARY.search(row):
+    if _ROW_REPORTS_PRIMARY.search(row) and not _ROW_NOT_PRIMARY.search(row):
         rt = _record_text(rec)
         m = _PRIMARY_CLAUSE.search(rt)
         if m:
@@ -662,13 +698,23 @@ def _follow_compatible(asserted: Any, value: str) -> bool:
     (Outcome binding, 11 Oct: rows now carry each trial's real follow-up instead of echoing the outcome's timepoint, and
     the old exact-string test would have flagged 18 topics on wording alone.)"""
     av, vv = _follow_canon(asserted), _follow_canon(value)
-    if vv == av or (vv and vv in av):
+    # named as one of the assertion's own alternatives ('in-hospital' of 'in-hospital / index-admission') -- a whole
+    # part, never a substring ('8 days' is not inside '28 days', codex g3#1)
+    if vv == av or (vv and vv in {_follow_canon(p) for p in av.replace(";", "/").split("/")}):
         return True
     m = _DURATION.match(vv)
+    # ...or a duration the assertion itself names, as whole words ('trial end / mean follow-up 39.8 months',
+    # '12 months or longest reported trial follow-up'); '28 days' never names '8 days'
+    words = av.replace("/", " ").replace(",", " ").split()
+    if m and vv in {_follow_canon(f"{a} {b}") for a, b in zip(words, words[1:])}:
+        return True
     r = _ASSERTED_RANGE.search(av)
     if m and r and m.group(2) == r.group(3) and float(r.group(1)) <= float(m.group(1)) <= float(r.group(2)):
         return True
-    if _TRIAL_DEFINED_WINDOW.search(av) and (m or _TRIAL_DEFINED_WINDOW.search(vv) or vv in {"study end", "trial end"}):
+    # a trial-defined window with a NUMBER in it is capped ('28 days or trial end, whichever is earlier', codex g3#2):
+    # it is not open to any duration
+    if _TRIAL_DEFINED_WINDOW.search(av) and not any(ch.isdigit() for ch in av) and (
+            m or _TRIAL_DEFINED_WINDOW.search(vv) or vv in {"study end", "trial end"}):
         return True
     return False
 

@@ -1,6 +1,6 @@
 # Compatibility-panel fields bound to the selected outcome: sweep of all 32 topics
 
-Rows: 137; rows changed: 137; field changes: 665 (value changes 139; the rest change only the source the value is bound to).
+Rows: 137; rows changed: 137; field changes: 665 (value changes 147; the rest change only the source the value is bound to); 0 field(s) keep value and source but rest on a different span. Rows only before: none; only after: none.
 
 | Topic | Rows changed |
 |---|---|
@@ -208,7 +208,7 @@ Rows: 137; rows changed: 137; field changes: 665 (value changes 139; the rest ch
 | doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-relate | length_of_stay | None (None) | None (underivable) |
 | doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-relate | schedule | None (None) | None (underivable) |
 | doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-relate | analysis_set | intention-to-treat (study_effect.analysis_population) | intention-to-treat (protocol declaration (study_effect.analysis_population; not trial-reported)) |
-| doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-relate | exposure_duration | None (None) | 3 weeks; 6 or 12 months; 12 months (trial-level statement in the held record) |
+| doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-relate | exposure_duration | None (None) | 3 weeks; 6 or 12 months (trial-level statement in the held record) |
 | doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-relate | length_of_stay | None (None) | None (underivable) |
 | doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-relate | schedule | None (None) | None (underivable) |
 | doac-vte-recurrence::Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-relate | analysis_set | intention-to-treat (study_effect.analysis_population) | intention-to-treat (protocol declaration (study_effect.analysis_population; not trial-reported)) |
@@ -254,7 +254,7 @@ Rows: 137; rows changed: 137; field changes: 665 (value changes 139; the rest ch
 | dpp4-mace-t2d::3-point major adverse cardiovascular events::30418475 | schedule | None (None) | None (underivable) |
 | dpp4-mace-t2d::Adverse events::30418475 | analysis_set | trial-reported randomized comparison / safety population (study_effect.analysis_population) | trial-reported randomized comparison / safety population (protocol declaration (study_effect.analysis_population; not trial-reported)) |
 | dpp4-mace-t2d::Adverse events::30418475 | follow_up_window | 2.2 years (committed source text) | 2.2 years (row source span) |
-| dpp4-mace-t2d::Adverse events::30418475 | endpoint_definition | Primary outcome was time to first occurrence of the composite of CV death, nonfatal myocar (committed source text) | Primary outcome was time to first occurrence of the composite of CV death, nonfatal myocar (the trial's primary-outcome clause (the row's own span reports the primary outcome)) |
+| dpp4-mace-t2d::Adverse events::30418475 | endpoint_definition | Primary outcome was time to first occurrence of the composite of CV death, nonfatal myocar (committed source text) | Adverse events (outcome.name) |
 | dpp4-mace-t2d::Adverse events::30418475 | exposure_duration | None (None) | None (underivable) |
 | dpp4-mace-t2d::Adverse events::30418475 | length_of_stay | None (None) | None (underivable) |
 | dpp4-mace-t2d::Adverse events::30418475 | schedule | None (None) | None (underivable) |
@@ -270,7 +270,7 @@ Rows: 137; rows changed: 137; field changes: 665 (value changes 139; the rest ch
 | dpp4-mace-t2d::Hospitalization for heart failure::26052984 | schedule | None (None) | None (underivable) |
 | dpp4-mace-t2d::Hypoglycemia::30418475 | analysis_set | trial-reported randomized comparison / safety population (study_effect.analysis_population) | trial-reported randomized comparison / safety population (protocol declaration (study_effect.analysis_population; not trial-reported)) |
 | dpp4-mace-t2d::Hypoglycemia::30418475 | follow_up_window | 2.2 years (committed source text) | 2.2 years (row source span) |
-| dpp4-mace-t2d::Hypoglycemia::30418475 | endpoint_definition | Primary outcome was time to first occurrence of the composite of CV death, nonfatal myocar (committed source text) | Primary outcome was time to first occurrence of the composite of CV death, nonfatal myocar (the trial's primary-outcome clause (the row's own span reports the primary outcome)) |
+| dpp4-mace-t2d::Hypoglycemia::30418475 | endpoint_definition | Primary outcome was time to first occurrence of the composite of CV death, nonfatal myocar (committed source text) | Hypoglycemia (outcome.name) |
 | dpp4-mace-t2d::Hypoglycemia::30418475 | exposure_duration | None (None) | None (underivable) |
 | dpp4-mace-t2d::Hypoglycemia::30418475 | length_of_stay | None (None) | None (underivable) |
 | dpp4-mace-t2d::Hypoglycemia::30418475 | schedule | None (None) | None (underivable) |
@@ -519,7 +519,7 @@ Rows: 137; rows changed: 137; field changes: 665 (value changes 139; the rest ch
 | probiotics-aad-prevention::Antibiotic-associated diarrhoea::35727573 | schedule | None (None) | None (underivable) |
 | probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939 | analysis_set | completers efficacy set (committed source text) | completers efficacy set (trial-level statement in the held record) |
 | probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939 | follow_up_window | 14 days (committed source text) | study end (outcome.timepoint) |
-| probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939 | exposure_duration | None (None) | None (underivable) |
+| probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939 | exposure_duration | None (None) | 14 days (trial-level statement in the held record) |
 | probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939 | length_of_stay | None (None) | None (underivable) |
 | probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939 | schedule | None (None) | None (underivable) |
 | probiotics-aad-prevention::Antibiotic-associated diarrhoea::7872284 | analysis_set | intention-to-treat (study_effect.analysis_population) | intention-to-treat (protocol declaration (study_effect.analysis_population; not trial-reported)) |
@@ -528,7 +528,7 @@ Rows: 137; rows changed: 137; field changes: 665 (value changes 139; the rest ch
 | probiotics-aad-prevention::Antibiotic-associated diarrhoea::7872284 | schedule | None (None) | None (underivable) |
 | probiotics-aad-prevention::Any adverse events::39529939 | analysis_set | completers efficacy set (committed source text) | completers efficacy set (trial-level statement in the held record) |
 | probiotics-aad-prevention::Any adverse events::39529939 | follow_up_window | 14 days (committed source text) | None (underivable) |
-| probiotics-aad-prevention::Any adverse events::39529939 | exposure_duration | None (None) | None (underivable) |
+| probiotics-aad-prevention::Any adverse events::39529939 | exposure_duration | None (None) | 14 days (trial-level statement in the held record) |
 | probiotics-aad-prevention::Any adverse events::39529939 | length_of_stay | None (None) | None (underivable) |
 | probiotics-aad-prevention::Any adverse events::39529939 | schedule | None (None) | None (underivable) |
 | probiotics-aad-prevention::Any adverse events::41699149 | exposure_duration | None (None) | None (underivable) |
@@ -572,7 +572,7 @@ Rows: 137; rows changed: 137; field changes: 665 (value changes 139; the rest ch
 | sglt2-ckd-progression::Diabetic ketoacidosis::36331190 | length_of_stay | None (None) | None (underivable) |
 | sglt2-ckd-progression::Diabetic ketoacidosis::36331190 | schedule | None (None) | None (underivable) |
 | sglt2-ckd-progression::Lower-limb amputation::36331190 | follow_up_window | None (underivable) | 2.0 years (trial-level statement in the held record) |
-| sglt2-ckd-progression::Lower-limb amputation::36331190 | endpoint_definition | primary outcome was a composite of progression of kidney disease (defined as end-stage kid (committed source text) | primary outcome was a composite of progression of kidney disease (defined as end-stage kid (the trial's primary-outcome clause (the row's own span reports the primary outcome)) |
+| sglt2-ckd-progression::Lower-limb amputation::36331190 | endpoint_definition | primary outcome was a composite of progression of kidney disease (defined as end-stage kid (committed source text) | Lower-limb amputation (outcome.name) |
 | sglt2-ckd-progression::Lower-limb amputation::36331190 | exposure_duration | None (None) | None (underivable) |
 | sglt2-ckd-progression::Lower-limb amputation::36331190 | length_of_stay | None (None) | None (underivable) |
 | sglt2-ckd-progression::Lower-limb amputation::36331190 | schedule | None (None) | None (underivable) |
@@ -639,12 +639,12 @@ Rows: 137; rows changed: 137; field changes: 665 (value changes 139; the rest ch
 | spironolactone-hfref-mortality::All-cause mortality::10471456 | schedule | None (None) | None (underivable) |
 | spironolactone-hfref-mortality::All-cause mortality::21073363 | analysis_set | intention-to-treat (study_effect.analysis_population) | intention-to-treat (protocol declaration (study_effect.analysis_population; not trial-reported)) |
 | spironolactone-hfref-mortality::All-cause mortality::21073363 | follow_up_window | trial end / longest randomised follow-up (outcome.timepoint) | 21 months (trial-level statement in the held record) |
-| spironolactone-hfref-mortality::All-cause mortality::21073363 | endpoint_definition | primary outcome was a composite of death from cardiovascular causes or hospitalization for (committed source text) | primary outcome was a composite of death from cardiovascular causes or hospitalization for (outcome-bound sentence of the held record) |
+| spironolactone-hfref-mortality::All-cause mortality::21073363 | endpoint_definition | primary outcome was a composite of death from cardiovascular causes or hospitalization for (committed source text) | All-cause mortality (outcome.name) |
 | spironolactone-hfref-mortality::All-cause mortality::21073363 | exposure_duration | None (None) | None (underivable) |
 | spironolactone-hfref-mortality::All-cause mortality::21073363 | length_of_stay | None (None) | None (underivable) |
 | spironolactone-hfref-mortality::All-cause mortality::21073363 | schedule | None (None) | None (underivable) |
 | spironolactone-hfref-mortality::All-cause mortality::28824029 | analysis_set | intention-to-treat (study_effect.analysis_population) | intention-to-treat (row source span) |
-| spironolactone-hfref-mortality::All-cause mortality::28824029 | endpoint_definition | primary endpoint was a composite of death from cardiovascular causes or hospitalization fo (committed source text) | primary endpoint was a composite of death from cardiovascular causes or hospitalization fo (the trial's primary-outcome clause (the row's own span reports the primary outcome)) |
+| spironolactone-hfref-mortality::All-cause mortality::28824029 | endpoint_definition | primary endpoint was a composite of death from cardiovascular causes or hospitalization fo (committed source text) | All-cause mortality (outcome.name) |
 | spironolactone-hfref-mortality::All-cause mortality::28824029 | exposure_duration | None (None) | 12 months (trial-level statement in the held record) |
 | spironolactone-hfref-mortality::All-cause mortality::28824029 | length_of_stay | None (None) | None (underivable) |
 | spironolactone-hfref-mortality::All-cause mortality::28824029 | schedule | None (None) | None (underivable) |
@@ -695,7 +695,7 @@ Rows: 137; rows changed: 137; field changes: 665 (value changes 139; the rest ch
 | tocilizumab-covid19-mortality::Serious adverse events::33332779 | exposure_duration | None (None) | None (underivable) |
 | tocilizumab-covid19-mortality::Serious adverse events::33332779 | length_of_stay | None (None) | None (underivable) |
 | tocilizumab-covid19-mortality::Serious adverse events::33332779 | schedule | None (None) | None (underivable) |
-| tocilizumab-covid19-mortality::Serious adverse events::33631066 | analysis_set | modified intention-to-treat (committed source text) | modified intention-to-treat (trial-level statement in the held record) |
+| tocilizumab-covid19-mortality::Serious adverse events::33631066 | analysis_set | modified intention-to-treat (committed source text) | None (underivable) |
 | tocilizumab-covid19-mortality::Serious adverse events::33631066 | endpoint_definition | primary outcome was clinical status at day 28 on an ordinal scale ranging from 1 (discharg (committed source text) | Serious adverse events (outcome.name) |
 | tocilizumab-covid19-mortality::Serious adverse events::33631066 | exposure_duration | None (None) | None (underivable) |
 | tocilizumab-covid19-mortality::Serious adverse events::33631066 | length_of_stay | None (None) | None (underivable) |

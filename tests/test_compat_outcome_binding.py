@@ -98,3 +98,93 @@ def test_follow_up_comparison_trial_defined_accepts_durations_fixed_window_does_
     assert _is_mismatch("follow_up_window", "28 days", ["28 days", "90 days"])
     assert _follow_compatible("52-104 weeks", "68 weeks") and not _follow_compatible("52-104 weeks", "26 weeks")
     assert not _follow_compatible("in-hospital / index-admission", "14 days")
+
+
+# --- recorded codex review of this branch (registry/model_proposals/pr_codex_review.json: lc-compat-codex-*) ---------
+# each finding's own failing input, reproduced here before the fix
+def test_PLANT_codex_focused_g1_1_and_g2_1_a_non_qualified_primary_never_binds_the_qualified_outcome():
+    assert cc._outcome_sentences({"name": "Vertebral fractures", "primary": True},
+                                 {"abstract": "The primary outcome was nonvertebral fractures."}) == []
+    assert cc._endpoint_from("The primary outcome was nonfatal stroke.", {"name": "Fatal stroke", "primary": True},
+                             ["fatal", "stroke"]) is None
+
+
+def test_PLANT_codex_focused_g1_2_event_free_survival_is_not_mortality():
+    assert cc._outcome_sentences({"name": "Mortality"}, {"abstract": "Progression-free survival was analysed per-protocol."}) == []
+    assert cc._outcome_sentences({"name": "Mortality"}, {"abstract": "Overall survival was 80%."}) != []
+
+
+def test_PLANT_codex_focused_g1_3_and_full_g1_2_treatment_until_day_n_is_exposure():
+    assert cc.time_phrase_kind("Patients received treatment until day 7.", "until day 7") == "exposure"
+    assert cc._derive_follow_up({"name": "Mortality"}, {"source": "Patients received treatment until day 14. Mortality was "
+                                "assessed at day 28."}, None, None)["value"] == "28 days"
+    assert cc.time_phrase_kind("By day 28, death had occurred in 25.", "By day 28") == "follow_up"
+
+
+def test_PLANT_codex_focused_g1_4_and_full_g1_3_length_of_stay_only_in_its_own_clause():
+    assert cc._derive_time_fields({}, {"source": "Mortality at day 28 and length of stay were assessed."}, None)[
+        "length_of_stay"]["value"] is None
+    assert cc._derive_follow_up({"name": "Mortality"}, {"source": "Mortality was assessed at day 28; length of hospital "
+                                "stay was 7 days."}, None, None)["value"] == "28 days"
+    assert cc._derive_time_fields({}, {"source": "Mortality was assessed at day 28; length of hospital stay was 7 days."},
+                                  None)["length_of_stay"]["value"] == "7 days"
+    assert cc._derive_time_fields({}, {"source": "Patients spent 5 days in hospital."}, None)["length_of_stay"]["value"] == "5 days"
+
+
+def test_PLANT_codex_focused_g1_5_a_repeated_phrase_is_classified_at_its_own_offset():
+    kinds = [k for _, _, _, k in cc._phrases("Treatment lasted 7 days, and mortality was assessed at 7 days.")]
+    assert kinds == ["exposure", "follow_up"], kinds
+
+
+def test_PLANT_codex_focused_g2_2_a_composite_primary_does_not_define_its_first_component():
+    assert cc._endpoint_from("The primary outcome was a composite of mortality, myocardial infarction, or stroke.",
+                             {"name": "Mortality", "primary": True}, ["mortality"]) is None
+    assert cc._endpoint_from("The primary outcome was a composite of death, myocardial infarction, or stroke.",
+                             {"name": "Composite of death, myocardial infarction or stroke", "primary": True},
+                             cc._outcome_tokens({"name": "Composite of death, myocardial infarction or stroke"})) is not None
+
+
+def test_PLANT_codex_focused_g3_1_and_full_g1_1_8_days_is_not_inside_28_days():
+    assert not cc._follow_compatible("28 days", "8 days")
+    assert cc._is_mismatch("follow_up_window", "28 days", ["8 days"])
+    assert cc._follow_compatible("in-hospital / index-admission", "in-hospital")
+
+
+def test_PLANT_codex_focused_g3_2_a_capped_trial_end_assertion_is_not_open_ended():
+    assert cc._is_mismatch("follow_up_window", "28 days or trial end, whichever is earlier", ["365 days"])
+
+
+def test_PLANT_codex_full_g1_4_another_outcomes_analysis_statement_is_not_trial_level():
+    d = cc._derive_analysis_set({"study_effect": {"analysis_population": "intention-to-treat"}},
+                                {"abstract": "Hospitalization was analysed per-protocol."}, None, {"name": "Mortality"})
+    assert (d["value"], d["source"], d["trial_reported"]) == ("intention-to-treat", cc.SRC_DECLARED, False), d
+    d = cc._derive_analysis_set({}, {"abstract": "Data were analysed according to the intention-to-treat principle."},
+                                None, {"name": "Mortality"})
+    assert (d["value"], d["source"]) == ("intention-to-treat", cc.SRC_TRIAL_STATEMENT), d
+
+
+def test_PLANT_codex_full_g1_5_a_row_that_denies_being_primary_does_not_take_the_primary_clause():
+    d = cc._derive_endpoint({"name": "Mortality"}, {"source": "Mortality was a secondary outcome, not the primary outcome."},
+                            {"abstract": "The primary outcome was treatment failure."}, None)
+    assert d["value"] == "Mortality", d
+
+
+def test_PLANT_codex_full_g1_6_a_co_mentioned_outcomes_definition_is_not_this_rows():
+    d = cc._derive_endpoint({"name": "Mortality"}, {"source": "Mortality and diarrhoea (three or more loose stools daily) "
+                            "were assessed."}, None, None)
+    assert d["value"] == "Mortality", d
+    d = cc._derive_endpoint({"name": "Antibiotic-associated diarrhoea"}, {"source": "diarrhoea (three or more loose stools "
+                            "daily for 2 days) occurred in 10"}, None, None)
+    assert d["value"].startswith("diarrhoea ("), d
+
+
+def test_PLANT_codex_full_g1_7_a_fractional_time_point_keeps_its_decimal():
+    assert cc._derive_follow_up({"name": "Mortality"}, {"source": "Mortality was assessed at month 1.5."}, None,
+                                None)["value"] == "1.5 months"
+
+
+def test_follow_up_a_duration_named_in_the_assertion_is_compatible_even_beside_trial_end():
+    # served keys: semaglutide-obesity-mace, ticagrelor-vs-clopidogrel-acs (the g3#2 cap must not flag these)
+    assert cc._follow_compatible("trial end / mean follow-up 39.8 months", "39.8 months")
+    assert cc._follow_compatible("12 months or longest reported trial follow-up", "12 months")
+    assert not cc._follow_compatible("12 months or longest reported trial follow-up", "2 months")

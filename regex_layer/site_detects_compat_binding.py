@@ -106,6 +106,14 @@ DETECTS: dict = {
     "compat_check.py:_ROW_REPORTS_PRIMARY": {
         "detects": "the served row's own span reports the trial's primary outcome",
         "trigger": r"primary", "text_source": "a served row's source span", "lowercased": False},
+    "compat_check.py:_ROW_NOT_PRIMARY": {
+        "detects": "the served row's span says the row is not (or is a secondary to) the trial's primary outcome",
+        "trigger": r"secondary|not", "text_source": "a served row's source span", "lowercased": False},
+    "compat_check.py:_OUTCOME_NOUN": {
+        "detects": "the text before an analysis-set statement names an outcome (so the statement is that outcome's)",
+        "trigger": r"mortal|death|hospital|admission|stroke|fracture|bleed|hemorrh|infarct|surviv|infect|diarrh|relaps"
+                   r"|recurr|remission|pain|exacerb", "text_source": "an abstract sentence, vowel-folded and lowercased, "
+                   "up to its analysis-set match", "lowercased": True},
     "compat_check.py:_TRIAL_DEFINED_WINDOW": {
         "detects": "the asserted follow-up window is defined by each trial (trial end / longest / trial-reported)",
         "trigger": r"trial|study|longest", "text_source": "an outcome's asserted follow_up_window (compat_key)",

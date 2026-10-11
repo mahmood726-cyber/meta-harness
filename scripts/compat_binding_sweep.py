@@ -46,7 +46,7 @@ def snap(out_path):
 
 def diff(before_p, after_p, out_dir=None):
     a, b = json.load(open(before_p, encoding="utf-8")), json.load(open(after_p, encoding="utf-8"))
-    changes, per_topic = [], {}
+    changes, per_topic, span_only = [], {}, 0
     for key in sorted(set(a) | set(b)):
         slug = key.split("::")[0]
         for f in FIELDS:
@@ -55,8 +55,13 @@ def diff(before_p, after_p, out_dir=None):
                 changes.append({"row": key, "field": f, "before": va, "after": vb,
                                 "value_changed": va.get("value") != vb.get("value")})
                 per_topic.setdefault(slug, set()).add(key)
-    out = {"rows": len(set(a) | set(b)), "rows_changed": len({c["row"] for c in changes}),
+            elif va.get("span") != vb.get("span"):
+                span_only += 1            # the same value and source, now resting on other text (codex g5#1)
+    # a row present on one side only is reported by name, never folded into 'unchanged' (codex g5#2)
+    out = {"rows": len(set(a) | set(b)), "rows_only_before": sorted(set(a) - set(b)),
+           "rows_only_after": sorted(set(b) - set(a)), "rows_changed": len({c["row"] for c in changes}),
            "field_changes": len(changes), "value_changes": sum(c["value_changed"] for c in changes),
+           "span_only_changes": span_only,
            "per_topic_rows_changed": {k: len(v) for k, v in sorted(per_topic.items())}, "changes": changes}
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
@@ -64,7 +69,9 @@ def diff(before_p, after_p, out_dir=None):
                   ensure_ascii=False)
         L = ["# Compatibility-panel fields bound to the selected outcome: sweep of all 32 topics", "",
              f"Rows: {out['rows']}; rows changed: {out['rows_changed']}; field changes: {out['field_changes']} "
-             f"(value changes {out['value_changes']}; the rest change only the source the value is bound to).", "",
+             f"(value changes {out['value_changes']}; the rest change only the source the value is bound to); "
+             f"{out['span_only_changes']} field(s) keep value and source but rest on a different span. Rows only "
+             f"before: {out['rows_only_before'] or 'none'}; only after: {out['rows_only_after'] or 'none'}.", "",
              "| Topic | Rows changed |", "|---|---|"]
         L += [f"| {k} | {v} |" for k, v in out["per_topic_rows_changed"].items()]
         L += ["", "| Row | Field | Before (source) | After (source) |", "|---|---|---|---|"]

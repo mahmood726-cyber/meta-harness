@@ -145,6 +145,16 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "the row's own span reports the trial's PRIMARY outcome",
         "plants": {"accept": [("a primary outcome event occurred in 197 of 2152", None), ("the primary end point occurred", None)],
                    "refuse": ["In-hospital mortality did not differ", "primary care"]}},
+    "compat_check.py:_ROW_NOT_PRIMARY": {
+        "kind": "search", "what": "the row's span says it is NOT the trial's primary outcome (codex lc-compat full g1#5)",
+        "plants": {"accept": [("Mortality was a secondary outcome, not the primary outcome.", None),
+                              ("the secondary end point of death", None)],
+                   "refuse": ["a primary outcome event occurred in 197 of 2152", "not primarily"]}},
+    "compat_check.py:_OUTCOME_NOUN": {
+        "kind": "search", "what": "a NAMED outcome as the subject of an analysis sentence (folded lowercase; codex full g1#4)",
+        "plants": {"accept": [("hospitalization was analysed ", None), ("deaths were analysed ", None),
+                              ("progression-free survival was analysed ", None)],
+                   "refuse": ["data were analysed according to the ", "all randomized patients were included in the "]}},
     # --- follow-up comparison (_follow_compatible): asserted window vs the bound per-trial value ---------------------
     "compat_check.py:_TRIAL_DEFINED_WINDOW": {
         "kind": "search", "what": "an asserted follow-up window that is TRIAL-DEFINED (trial end / longest / trial-reported)",

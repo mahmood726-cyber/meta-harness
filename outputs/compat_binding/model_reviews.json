@@ -1,0 +1,380 @@
+{
+ "_doc": "Recorded model reviews of lc/compat-binding (lane literals_compat): codex (openai) on 5 focused + 1 full group, agy (Gemini) on the 5 focused groups. Raw records in registry/model_calls/<record_id>.json. Every finding was run here; verdicts name the plant that reproduces it.",
+ "reviews": {
+  "lc-compat-codex-focused": {
+   "base": "a8a7c4b664150399f050ff9565210ae122b32e5f",
+   "head": "2918d1b86a8026395ffaabdaa6c3c477fb7484a2",
+   "runs": {
+    "g1": {
+     "record_id": "mc-97ad7bee916b72ca81fc7f450af023cc",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "1ffee488204a1fadf4235f49aa7dfbade8b49e795160d02f01dd16c4fac74a3f"
+    },
+    "g2": {
+     "record_id": "mc-49f4a8582ef3e1efcc2d116d4ad39f0f",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "8a82bdf887525e8493fabd593cbb99732e47fcc5a81b97f71e43688c20ddc668"
+    },
+    "g3": {
+     "record_id": "mc-0601afac7a1a10e3c1a9279b46f0c017",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "a6ce2c4e0db95336fd681c2ad9ac3daa642d3663e4f1447fbff3c1c474ca89b8"
+    },
+    "g4": {
+     "record_id": "mc-3576481736e0755afe16db4fdc92de53",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "33c3caa582f50d843e961a3de2f3d385bfae997e296ef336d143375508910488"
+    },
+    "g5": {
+     "record_id": "mc-7547d4d2107315f7d5ec1cbd406d990d",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "scripts/compat_binding_sweep.py"
+     ],
+     "prompt_sha256": "5c61298ec702a41b998f2e4330f837bc690a5c30248edc5b1b26f91b5e6fe0be"
+    }
+   },
+   "verdicts": {
+    "lc-compat-codex-focused:g1#1": "REPRODUCED, FIXED: _negates guard on the primary fallback; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_1_and_g2_1_a_non_qualified_primary_never_binds_the_qualified_outcome",
+    "lc-compat-codex-focused:g1#2": "REPRODUCED, FIXED: event-free survival is not a mortality synonym; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_2_event_free_survival_is_not_mortality",
+    "lc-compat-codex-focused:g1#3": "REPRODUCED, FIXED: until/through + treatment clause = exposure (at/by/to stay assessment points, checked on the 32-topic sweep); tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_3_and_full_g1_2_treatment_until_day_n_is_exposure",
+    "lc-compat-codex-focused:g1#4": "REPRODUCED, FIXED: LOS only in the phrase's own context; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_4_and_full_g1_3_length_of_stay_only_in_its_own_clause",
+    "lc-compat-codex-focused:g1#5": "REPRODUCED, FIXED: phrase classified at its own offset; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_5_a_repeated_phrase_is_classified_at_its_own_offset",
+    "lc-compat-codex-focused:g2#1": "REPRODUCED, FIXED (same fix as g1#1); tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_1_and_g2_1_a_non_qualified_primary_never_binds_the_qualified_outcome",
+    "lc-compat-codex-focused:g2#2": "REPRODUCED, FIXED: a one-word outcome is a component, never defined by a composite; composites matched on the whole component list; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g2_2_a_composite_primary_does_not_define_its_first_component",
+    "lc-compat-codex-focused:g3#1": "REPRODUCED, FIXED: whole-part membership, no substring; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g3_1_and_full_g1_1_8_days_is_not_inside_28_days",
+    "lc-compat-codex-focused:g3#2": "REPRODUCED, FIXED: a trial-defined assertion carrying a number is capped; durations it names whole-word stay compatible; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g3_2_a_capped_trial_end_assertion_is_not_open_ended",
+    "lc-compat-codex-focused:g5#1": "REPRODUCED, FIXED: span-only changes counted (span_only_changes)",
+    "lc-compat-codex-focused:g5#2": "REPRODUCED, FIXED: rows present on one side only listed (rows_only_before/after)"
+   },
+   "findings": [
+    {
+     "file": "harness/compat_check.py",
+     "function": "_outcome_sentences",
+     "severity": "P1",
+     "claim": "The primary-outcome fallback bypasses endpoint identity: matching only 'fractures' binds a nonvertebral endpoint to a vertebral outcome.",
+     "failing_input": "_outcome_sentences({'name': 'Vertebral fractures', 'primary': True}, {'abstract': 'The primary outcome was nonvertebral fractures.'})",
+     "expected": "[]",
+     "actual": "['The primary outcome was nonvertebral fractures.']",
+     "id": "lc-compat-codex-focused:g1#1",
+     "record_id": "mc-97ad7bee916b72ca81fc7f450af023cc",
+     "verdict": "REPRODUCED, FIXED: _negates guard on the primary fallback; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_1_and_g2_1_a_non_qualified_primary_never_binds_the_qualified_outcome"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_outcome_sentences",
+     "severity": "P1",
+     "claim": "Treating unqualified 'survival' as a mortality synonym binds progression-free survival statements to mortality rows, allowing their analysis sets and time windows to be attributed to the wrong endpoint.",
+     "failing_input": "_outcome_sentences({'name': 'Mortality'}, {'abstract': 'Progression-free survival was analysed per-protocol.'})",
+     "expected": "[]",
+     "actual": "['Progression-free survival was analysed per-protocol.']",
+     "id": "lc-compat-codex-focused:g1#2",
+     "record_id": "mc-97ad7bee916b72ca81fc7f450af023cc",
+     "verdict": "REPRODUCED, FIXED: event-free survival is not a mortality synonym; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_2_event_free_survival_is_not_mortality"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "time_phrase_kind",
+     "severity": "P1",
+     "claim": "The follow-up prefix check takes precedence over explicit treatment context, classifying a treatment stopping time as follow-up.",
+     "failing_input": "time_phrase_kind('Patients received treatment until day 7.', 'until day 7')",
+     "expected": "'exposure'",
+     "actual": "'follow_up'",
+     "id": "lc-compat-codex-focused:g1#3",
+     "record_id": "mc-97ad7bee916b72ca81fc7f450af023cc",
+     "verdict": "REPRODUCED, FIXED: until/through + treatment clause = exposure (at/by/to stay assessment points, checked on the 32-topic sweep); tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_3_and_full_g1_2_treatment_until_day_n_is_exposure"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_derive_time_fields",
+     "severity": "P1",
+     "claim": "A nearby mention of length of stay captures a mortality assessment time and emits it as a trial-reported length of stay, although no stay duration is stated.",
+     "failing_input": "_derive_time_fields({}, {'source': 'Mortality at day 28 and length of stay were assessed.'}, None)['length_of_stay']",
+     "expected": "{'value': None, 'source': 'underivable', 'span': '', 'trial_reported': None}",
+     "actual": "{'value': '28 days', 'source': 'trial-level statement in the held record', 'span': 'Mortality at day 28 and length of stay were assessed.', 'trial_reported': True}",
+     "id": "lc-compat-codex-focused:g1#4",
+     "record_id": "mc-97ad7bee916b72ca81fc7f450af023cc",
+     "verdict": "REPRODUCED, FIXED: LOS only in the phrase's own context; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_4_and_full_g1_3_length_of_stay_only_in_its_own_clause"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_phrases / time_phrase_kind",
+     "severity": "P1",
+     "claim": "Repeated identical time phrases are classified using the first occurrence's context because time_phrase_kind uses str.find rather than the matched offset. A later follow-up window becomes treatment exposure.",
+     "failing_input": "_phrases('Treatment lasted 7 days, and mortality was assessed at 7 days.')",
+     "expected": "[('7 days', '7 days', 'Treatment lasted 7 days, and mortality was assessed at 7 days.', 'exposure'), ('7 days', '7 days', 'Treatment lasted 7 days, and mortality was assessed at 7 days.', 'follow_up')]",
+     "actual": "[('7 days', '7 days', 'Treatment lasted 7 days, and mortality was assessed at 7 days.', 'exposure'), ('7 days', '7 days', 'Treatment lasted 7 days, and mortality was assessed at 7 days.', 'exposure')]",
+     "id": "lc-compat-codex-focused:g1#5",
+     "record_id": "mc-97ad7bee916b72ca81fc7f450af023cc",
+     "verdict": "REPRODUCED, FIXED: phrase classified at its own offset; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_5_a_repeated_phrase_is_classified_at_its_own_offset"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_endpoint_from",
+     "severity": "P1",
+     "claim": "The primary-row fallback accepts matching only the final outcome token, binding fatal stroke to an explicitly nonfatal endpoint.",
+     "failing_input": "_endpoint_from('The primary outcome was nonfatal stroke.', {'name': 'Fatal stroke', 'primary': True}, ['fatal', 'stroke'])",
+     "expected": "None: nonfatal stroke does not define fatal stroke.",
+     "actual": "Returns a match whose first element is 'primary outcome was nonfatal stroke'; the primary-row fallback accepts the shared token 'stroke'.",
+     "id": "lc-compat-codex-focused:g2#1",
+     "record_id": "mc-49f4a8582ef3e1efcc2d116d4ad39f0f",
+     "verdict": "REPRODUCED, FIXED (same fix as g1#1); tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_1_and_g2_1_a_non_qualified_primary_never_binds_the_qualified_outcome"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_endpoint_from / _primary_head",
+     "severity": "P1",
+     "claim": "Removing 'a composite of' and truncating at the first comma makes a composite endpoint match a row reporting only its first component.",
+     "failing_input": "_endpoint_from('The primary outcome was a composite of mortality, myocardial infarction, or stroke.', {'name': 'Mortality', 'primary': True}, ['mortality'])",
+     "expected": "None: the composite does not define mortality alone.",
+     "actual": "Returns a match whose first element is 'primary outcome was a composite of mortality, myocardial infarction, or stroke'. The extracted head is only 'mortality', so the composite is incorrectly accepted.",
+     "id": "lc-compat-codex-focused:g2#2",
+     "record_id": "mc-49f4a8582ef3e1efcc2d116d4ad39f0f",
+     "verdict": "REPRODUCED, FIXED: a one-word outcome is a component, never defined by a composite; composites matched on the whole component list; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g2_2_a_composite_primary_does_not_define_its_first_component"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_follow_compatible",
+     "severity": "P1",
+     "claim": "Unbounded substring matching accepts different numeric windows: '8 days' is a substring of '28 days', suppressing the mismatch.",
+     "failing_input": "_is_mismatch('follow_up_window', '28 days', ['8 days'])",
+     "expected": "True: the trial's 8-day window differs from the asserted 28-day window.",
+     "actual": "False: _follow_compatible returns True through `vv in av`.",
+     "id": "lc-compat-codex-focused:g3#1",
+     "record_id": "mc-0601afac7a1a10e3c1a9279b46f0c017",
+     "verdict": "REPRODUCED, FIXED: whole-part membership, no substring; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g3_1_and_full_g1_1_8_days_is_not_inside_28_days"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_follow_compatible",
+     "severity": "P1",
+     "claim": "Any occurrence of 'trial end' allows arbitrary durations, even when the assertion explicitly caps follow-up.",
+     "failing_input": "_is_mismatch('follow_up_window', '28 days or trial end, whichever is earlier', ['365 days'])",
+     "expected": "True: 365 days exceeds the asserted maximum of 28 days.",
+     "actual": "False: the trial-defined keyword branch accepts '365 days' solely because it matches _DURATION.",
+     "id": "lc-compat-codex-focused:g3#2",
+     "record_id": "mc-0601afac7a1a10e3c1a9279b46f0c017",
+     "verdict": "REPRODUCED, FIXED: a trial-defined assertion carrying a number is capped; durations it names whole-word stay compatible; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g3_2_a_capped_trial_end_assertion_is_not_open_ended"
+    },
+    {
+     "file": "scripts/compat_binding_sweep.py",
+     "function": "diff",
+     "severity": "P2",
+     "claim": "The comparison ignores span changes, so removing recorded supporting text produces no reported change.",
+     "failing_input": "before.json: {\"topic::mortality::trial1\":{\"analysis_set\":{\"value\":\"randomised\",\"source\":\"report\",\"span\":\"All randomised participants were included.\"}}}\nafter.json: {\"topic::mortality::trial1\":{\"analysis_set\":{\"value\":\"randomised\",\"source\":\"report\",\"span\":null}}}\nCall: diff('before.json', 'after.json')",
+     "expected": "Report the removal of the supporting span as a provenance change, with value_changes equal to 0.",
+     "actual": "Returns {\"rows\":1,\"rows_changed\":0,\"field_changes\":0,\"value_changes\":0,\"per_topic_rows_changed\":{},\"changes\":[]} because only value and source are compared.",
+     "id": "lc-compat-codex-focused:g5#1",
+     "record_id": "mc-7547d4d2107315f7d5ec1cbd406d990d",
+     "verdict": "REPRODUCED, FIXED: span-only changes counted (span_only_changes)"
+    },
+    {
+     "file": "scripts/compat_binding_sweep.py",
+     "function": "diff",
+     "severity": "P2",
+     "claim": "Deleting a row with unknown dimensions is silently indistinguishable from retaining it: missing rows and null-valued fields collapse to the same comparison values.",
+     "failing_input": "before.json: {\"topic::mortality::trial1\":{\"analysis_set\":{\"value\":null,\"source\":null,\"span\":null}}}\nafter.json: {}\nCall: diff('before.json', 'after.json')",
+     "expected": "Identify trial1 as a removed row and report rows_changed equal to 1.",
+     "actual": "Returns {\"rows\":1,\"rows_changed\":0,\"field_changes\":0,\"value_changes\":0,\"per_topic_rows_changed\":{},\"changes\":[]}; the deleted row is counted in the union but its deletion is not reported.",
+     "id": "lc-compat-codex-focused:g5#2",
+     "record_id": "mc-7547d4d2107315f7d5ec1cbd406d990d",
+     "verdict": "REPRODUCED, FIXED: rows present on one side only listed (rows_only_before/after)"
+    }
+   ]
+  },
+  "lc-compat-codex-full": {
+   "base": "a8a7c4b664150399f050ff9565210ae122b32e5f",
+   "head": "2918d1b86a8026395ffaabdaa6c3c477fb7484a2",
+   "runs": {
+    "g1": {
+     "record_id": "mc-b90608d5bd4141059c6aa0b610065859",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_check.py",
+      "scripts/compat_binding_sweep.py"
+     ],
+     "prompt_sha256": "d8ba3e405cc5c0a020ba03480df7c3d47e09e56c34f8cebfed8c8c23427faef1"
+    }
+   },
+   "verdicts": {
+    "lc-compat-codex-full:g1#1": "DUPLICATE of focused:g3#1 (fixed)",
+    "lc-compat-codex-full:g1#2": "DUPLICATE of focused:g1#3 (fixed)",
+    "lc-compat-codex-full:g1#3": "REPRODUCED, FIXED with focused:g1#4; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_4_and_full_g1_3_length_of_stay_only_in_its_own_clause",
+    "lc-compat-codex-full:g1#4": "REPRODUCED, FIXED: a sentence whose subject is a named outcome is not trial-level (_OUTCOME_NOUN); tests/test_compat_outcome_binding.py::test_PLANT_codex_full_g1_4_another_outcomes_analysis_statement_is_not_trial_level",
+    "lc-compat-codex-full:g1#5": "REPRODUCED, FIXED: _ROW_NOT_PRIMARY; tests/test_compat_outcome_binding.py::test_PLANT_codex_full_g1_5_a_row_that_denies_being_primary_does_not_take_the_primary_clause",
+    "lc-compat-codex-full:g1#6": "REPRODUCED, FIXED: a definition must name one of the row's words; tests/test_compat_outcome_binding.py::test_PLANT_codex_full_g1_6_a_co_mentioned_outcomes_definition_is_not_this_rows",
+    "lc-compat-codex-full:g1#7": "REPRODUCED, FIXED: _TP_BY_DAY keeps decimals; tests/test_compat_outcome_binding.py::test_PLANT_codex_full_g1_7_a_fractional_time_point_keeps_its_decimal"
+   },
+   "findings": [
+    {
+     "file": "harness/compat_check.py",
+     "function": "_follow_compatible",
+     "severity": "P1",
+     "claim": "Substring matching accepts unequal follow-up durations, allowing a fixed-window mismatch to pass.",
+     "failing_input": "_follow_compatible('28 days', '8 days')",
+     "expected": "False",
+     "actual": "True, because '8 days' is a substring of '28 days'.",
+     "id": "lc-compat-codex-full:g1#1",
+     "record_id": "mc-b90608d5bd4141059c6aa0b610065859",
+     "verdict": "DUPLICATE of focused:g3#1 (fixed)"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "time_phrase_kind / _derive_follow_up",
+     "severity": "P1",
+     "claim": "The temporal-prefix check precedes the exposure check, so treatment ending 'until day 14' becomes mortality follow-up.",
+     "failing_input": "_derive_follow_up({'name': 'Mortality'}, {'source': 'Patients received treatment until day 14. Mortality was assessed at day 28.'}, None, None)['value']",
+     "expected": "'28 days'",
+     "actual": "'14 days'",
+     "id": "lc-compat-codex-full:g1#2",
+     "record_id": "mc-b90608d5bd4141059c6aa0b610065859",
+     "verdict": "DUPLICATE of focused:g1#3 (fixed)"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "time_phrase_kind / _derive_follow_up",
+     "severity": "P1",
+     "claim": "A nearby length-of-stay clause overrides an explicitly stated mortality assessment time, silently losing the follow-up window.",
+     "failing_input": "_derive_follow_up({'name': 'Mortality'}, {'source': 'Mortality was assessed at day 28; length of hospital stay was 7 days.'}, None, None)['value']",
+     "expected": "'28 days'",
+     "actual": "None; both time phrases are classified as length_of_stay.",
+     "id": "lc-compat-codex-full:g1#3",
+     "record_id": "mc-b90608d5bd4141059c6aa0b610065859",
+     "verdict": "REPRODUCED, FIXED with focused:g1#4; tests/test_compat_outcome_binding.py::test_PLANT_codex_focused_g1_4_and_full_g1_3_length_of_stay_only_in_its_own_clause"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_derive_analysis_set",
+     "severity": "P1",
+     "claim": "The trial-level fallback accepts an analysis statement explicitly restricted to another outcome, binding that outcome's population to the selected row.",
+     "failing_input": "_derive_analysis_set({'study_effect': {'analysis_population': 'intention-to-treat'}}, {'abstract': 'Hospitalization was analysed per-protocol.'}, None, {'name': 'Mortality'})",
+     "expected": "value='intention-to-treat', source=SRC_DECLARED, trial_reported=False; the record supplies no mortality analysis population.",
+     "actual": "{'value': 'per-protocol', 'source': 'trial-level statement in the held record', 'span': 'Hospitalization was analysed per-protocol.', 'trial_reported': True}",
+     "id": "lc-compat-codex-full:g1#4",
+     "record_id": "mc-b90608d5bd4141059c6aa0b610065859",
+     "verdict": "REPRODUCED, FIXED: a sentence whose subject is a named outcome is not trial-level (_OUTCOME_NOUN); tests/test_compat_outcome_binding.py::test_PLANT_codex_full_g1_4_another_outcomes_analysis_statement_is_not_trial_level"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_derive_endpoint",
+     "severity": "P1",
+     "claim": "Any mention of 'primary outcome' activates the unconditional primary-clause override, even when the row explicitly denies being the primary outcome.",
+     "failing_input": "_derive_endpoint({'name': 'Mortality'}, {'source': 'Mortality was a secondary outcome, not the primary outcome.'}, {'abstract': 'The primary outcome was treatment failure.'}, None)['value']",
+     "expected": "'Mortality' as the declaration fallback; treatment failure does not define this row.",
+     "actual": "'primary outcome was treatment failure'",
+     "id": "lc-compat-codex-full:g1#5",
+     "record_id": "mc-b90608d5bd4141059c6aa0b610065859",
+     "verdict": "REPRODUCED, FIXED: _ROW_NOT_PRIMARY; tests/test_compat_outcome_binding.py::test_PLANT_codex_full_g1_5_a_row_that_denies_being_primary_does_not_take_the_primary_clause"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_endpoint_from",
+     "severity": "P1",
+     "claim": "Definition-pattern matches bypass outcome binding, so a co-mentioned outcome's definition becomes the selected endpoint definition.",
+     "failing_input": "_derive_endpoint({'name': 'Mortality'}, {'source': 'Mortality and diarrhoea (three or more loose stools daily) were assessed.'}, None, None)['value']",
+     "expected": "'Mortality' as the declaration fallback; no mortality definition is supplied.",
+     "actual": "'diarrhoea (three or more loose stools daily)'",
+     "id": "lc-compat-codex-full:g1#6",
+     "record_id": "mc-b90608d5bd4141059c6aa0b610065859",
+     "verdict": "REPRODUCED, FIXED: a definition must name one of the row's words; tests/test_compat_outcome_binding.py::test_PLANT_codex_full_g1_6_a_co_mentioned_outcomes_definition_is_not_this_rows"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_phrases / _derive_follow_up",
+     "severity": "P1",
+     "claim": "The higher-priority _TP_BY_DAY pattern truncates fractional timepoints because its integer capture accepts a boundary before the decimal point.",
+     "failing_input": "_derive_follow_up({'name': 'Mortality'}, {'source': 'Mortality was assessed at month 1.5.'}, None, None)['value']",
+     "expected": "'1.5 months'",
+     "actual": "'1 month'",
+     "id": "lc-compat-codex-full:g1#7",
+     "record_id": "mc-b90608d5bd4141059c6aa0b610065859",
+     "verdict": "REPRODUCED, FIXED: _TP_BY_DAY keeps decimals; tests/test_compat_outcome_binding.py::test_PLANT_codex_full_g1_7_a_fractional_time_point_keeps_its_decimal"
+    }
+   ]
+  },
+  "lc-compat-agy": {
+   "base": "a8a7c4b664150399f050ff9565210ae122b32e5f",
+   "head": "2918d1b86a8026395ffaabdaa6c3c477fb7484a2",
+   "runs": {
+    "g1": {
+     "record_id": "mc-912783c94ec0f33895d1def62bdb0e81",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [],
+     "prompt_sha256": null,
+     "note": "run index rebuilt from the run's stdout: the runner crashed printing a bool field before saving"
+    },
+    "g2": {
+     "record_id": "mc-66e505a6c281bd2b0ae208c3478b8a92",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [],
+     "prompt_sha256": null,
+     "note": "run index rebuilt from the run's stdout: the runner crashed printing a bool field before saving"
+    },
+    "g3": {
+     "record_id": "mc-b1f8d286efa4aa1ca44cbcd9d91bb1a6",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [],
+     "prompt_sha256": null,
+     "note": "run index rebuilt from the run's stdout: the runner crashed printing a bool field before saving"
+    },
+    "g4": {
+     "record_id": "mc-0a99d1fceafb31dbca94b9e772daf1b1",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [],
+     "prompt_sha256": null,
+     "note": "run index rebuilt from the run's stdout: the runner crashed printing a bool field before saving"
+    },
+    "g5": {
+     "record_id": "mc-cd972811f5d119823b09aecd241378a8",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [],
+     "prompt_sha256": null,
+     "note": "run index rebuilt from the run's stdout: the runner crashed printing a bool field before saving"
+    }
+   },
+   "verdicts": {
+    "lc-compat-agy:g3#1": "REPRODUCED; same defect as codex focused:g3#1 (fixed) -- second family agrees"
+   },
+   "findings": [
+    {
+     "file": "harness/compat_check.py",
+     "function": "_follow_compatible",
+     "severity": "P1",
+     "claim": "_follow_compatible performs an unanchored substring check (vv and vv in av) instead of token/phrase matching. Any trial follow-up duration whose canonical representation is a substring of the asserted window (e.g., '8 days' in '28 days', '2 weeks' in '12 weeks' or '52 weeks', '4 weeks' in '24 weeks', '2 months' in '12 months') evaluates to True, incorrectly classifying a non-matching trial follow-up duration as compatible and causing _is_mismatch to evaluate to False.",
+     "failing_input": "_follow_compatible('28 days', '8 days')",
+     "input": "_follow_compatible('28 days', '8 days')",
+     "expected_output": false,
+     "expected": "False",
+     "actual_output": true,
+     "actual": "True",
+     "id": "lc-compat-agy:g3#1",
+     "record_id": "mc-b1f8d286efa4aa1ca44cbcd9d91bb1a6",
+     "verdict": "REPRODUCED; same defect as codex focused:g3#1 (fixed) -- second family agrees"
+    }
+   ]
+  }
+ }
+}
