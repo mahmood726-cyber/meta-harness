@@ -108,3 +108,49 @@ def test_PLANT_codex_r1_3_a_wholly_missing_unit_is_never_a_revision():
     units = [{"index": 0, "label": "", "text": held}, {"index": 1, "label": "", "text": "Two deaths."}]
     lab = sc.abstract_label(held, units)
     assert lab["label"] == "EXCERPT", lab
+
+
+def test_PLANT_codex_r2_1_an_html_portal_page_is_metadata_not_jats():
+    d = sc.label_document("<!DOCTYPE html><html><body>Research output: Contribution to journal</body></html>")
+    assert d["label"] == "METADATA" and d["reason"] == "PORTAL_PAGE"
+    assert sc.label_document("<!DOCTYPE html><html><body>Some landing page.</body></html>")["label"] != "FULLTEXT"
+
+
+def test_PLANT_codex_r2_2_scattered_characters_never_cover_a_unit():
+    held = "No deaths were excluded from the analysis. " + "a" * 2000
+    units = [{"index": 0, "label": "", "text": held}, {"index": 1, "label": "RESULTS", "text": "No deaths."}]
+    assert sc.abstract_label(held, units)["label"] == "EXCERPT"
+
+
+def test_PLANT_codex_r2_3_a_bom_does_not_hide_jats():
+    assert sc.label_document(b"\xef\xbb\xbf<article><body><p>Trial results.</p></body></article>")["label"] == "FULLTEXT"
+
+
+def test_PLANT_agy_r1_1_a_namespace_prefixed_jats_body_is_a_body():
+    x = ('<?xml version="1.0"?><jats:article xmlns:jats="http://jats.nlm.nih.gov"><jats:body><jats:p>Results: 20 deaths '
+         'occurred.</jats:p></jats:body></jats:article>')
+    assert sc.label_document(x)["label"] == "FULLTEXT"
+
+
+def test_PLANT_agy_r1_2_a_declared_metadata_or_stub_header_keeps_its_label():
+    assert sc.label_document("SOURCE METADATA -- (coverage: METADATA)\nTitle: Trial of Drug X")["label"] == "METADATA"
+    assert sc.label_document("(coverage: STUB)\nnothing")["label"] == "STUB"
+
+
+def test_PLANT_agy_r1_3_a_self_closing_body_is_empty():
+    d = sc.label_document("<article><body/></article>")
+    assert (d["label"], d["reason"]) == ("STUB", "XML_EMPTY_BODY")
+
+
+def test_PLANT_agy_r1_4_absence_is_licensed_only_for_the_scope_searched():
+    assert sc.absence_licensed(["FULL_ABSTRACT"], scope="abstract")
+    assert not sc.absence_licensed(["FULL_ABSTRACT"], scope="fulltext")          # not in the abstract != not reported
+    assert sc.absence_licensed(["STUB", "FULLTEXT"], scope="fulltext")
+
+
+def test_PLANT_a_saved_http_error_page_is_a_stub():
+    # two comparator 'europepmc_fulltext.xml' files are nginx '504 Gateway Time-out' pages
+    for rel in ("cache/comparators/24963045/2026-09-15_europepmc_fulltext.xml",
+                "cache/comparators/38128217/2026-09-15_europepmc_fulltext.xml"):
+        d = _lab(rel)
+        assert (d["label"], d["reason"]) == ("STUB", "HTTP_ERROR_PAGE"), rel

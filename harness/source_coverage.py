@@ -38,15 +38,36 @@ _SECTIONS = (re.compile(r"\b(?:Introduction|INTRODUCTION|Background|BACKGROUND)\
              re.compile(r"\b(?:Methods|METHODS|Materials and [Mm]ethods|MATERIALS AND METHODS|Study [Dd]esign)\b"),
              re.compile(r"\b(?:Results|RESULTS)\b"),
              re.compile(r"\b(?:Discussion|DISCUSSION)\b"))
-_XML_START = ("<?xml", "<!doctype", "<pmc-articleset", "<article")
+_JATS_START = ("<?xml", "<pmc-articleset", "<article", "<!doctype pmc-articleset", "<!doctype article")
+_HTML_START = ("<!doctype html", "<html")
+_HTTP_ERROR = re.compile(r"<(?:title|h1)>\s*(?:[45]\d\d\b[^<]*|(?:Gateway Time-?out|Bad Gateway|Service Unavailable|"
+                         r"Not Found|Forbidden|Access Denied|Too Many Requests)[^<]*)</(?:title|h1)>", re.I)
+_TAG_BODY_OPEN = re.compile(r"<(?:[\w.-]+:)?body\b[^>]*?(/?)>", re.I)        # <body>, <jats:body>, <body/>
 FULLTEXT_MIN_CHARS = 8000          # prose: a full article; an abstract with 'Methods: ... Results:' labels is shorter
 REVISION_MIN_SIMILARITY = 0.97     # a revised PubMed record (spelling / one corrected word) v an abridgement (OMNeON: 0.69)
 REVISION_MAX_LENGTH_DELTA = 0.03
-REVISION_MIN_UNIT_COVERAGE = 0.9   # and EVERY acquired unit is >= 90% present: no unit may be dropped wholesale
+REVISION_MIN_UNIT_COVERAGE = 0.6   # and EVERY acquired unit >= 60% present in runs of >= RUN_WORDS words (case- and
+                                   # punctuation-normalised): a reworded unit passes (41831311 0.84, a changed URL 0.63),
+                                   # a dropped unit scores ~0 -- and no number may be lost or changed (_numbers)
+RUN_WORDS = 4
+
+
+def _norm_words(x: str) -> str:
+    # all punctuation is a word separator here ('www.clinicaltrials.gov' v 'clinicaltrials.gov'); numbers are compared
+    # separately and exactly (_numbers), so nothing numeric is lost by this
+    return re.sub(r"[^\w\s]", " ", (x or "").lower())
+
+
+def _numbers(x: str) -> list:
+    """Every number in a text, with multiplicity: a revision may reword, never lose or change a number."""
+    return sorted(re.findall(r"\d+(?:[.·]\d+)?", x or ""))
+_DECLARED_LABEL = {"EXCERPT_ONLY": "EXCERPT", "EXCERPT": "EXCERPT", "SUMMARY": "SUMMARY", "METADATA": "METADATA",
+                   "STUB": "STUB", "UNKNOWN_COMPLETENESS": "EXCERPT"}
 
 
 def _text(raw) -> str:
-    return raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw or "")
+    t = raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw or "")
+    return t.lstrip("\ufeff")                     # a UTF-8 BOM is not content (codex e1-cov-r2 g1#3)
 
 
 def label_document(raw) -> dict:
@@ -59,26 +80,38 @@ def label_document(raw) -> dict:
         return out("STUB", "PMC_NO_DOWNLOAD")
     if not t.strip():
         return out("STUB", "EMPTY")
+    if _HTTP_ERROR.search(t[:2000]) and len(t) < 5000:
+        # a saved server error response ('504 Gateway Time-out', comparators 24963045 / 38128217) delivered nothing
+        return out("STUB", "HTTP_ERROR_PAGE")
     m = _DECLARED.search(t[:600])
     if m and (m.group(1) or "EXCERPT_ONLY") not in ("COMPLETE_SOURCE", "COMPLETE_ABSTRACT"):
         # a header may LOWER coverage (an acquisition step saying 'this is an excerpt'); it never RAISES it: a
-        # declared COMPLETE_* is ignored and the bytes decide (codex e1-cov-r1 g1#2)
-        return out("EXCERPT", f"SELF_DECLARED:{m.group(1) or 'EXCERPT_ONLY'}")
-    if head.startswith(_XML_START):
-        if "<body" not in t:
+        # declared COMPLETE_* is ignored and the bytes decide (codex e1-cov-r1 g1#2); a declared METADATA / STUB keeps
+        # its own label (agy e1-cov-r1-agy #2)
+        declared = m.group(1) or "EXCERPT_ONLY"
+        return out(_DECLARED_LABEL.get(declared, "EXCERPT"), f"SELF_DECLARED:{declared}")
+    # portal / landing-page markers before any structure: an HTML page is never JATS (codex e1-cov-r2 g1#1)
+    if _PORTAL.search(t):
+        return out("METADATA", "PORTAL_PAGE")
+    if head.startswith(_HTML_START):
+        return out("METADATA", "HTML_PAGE")
+    if head.startswith(_JATS_START):
+        mo = _TAG_BODY_OPEN.search(t)
+        if not mo:
             return out("STUB", "XML_NO_BODY")
+        if mo.group(1) == "/":                       # <body/>: delivered nothing (agy e1-cov-r1-agy #3)
+            return out("STUB", "XML_EMPTY_BODY")
         # a JATS <body> IS the article's complete body however short (a research letter's body is a few hundred
         # words: comparators 27757047): length is never coverage. Only an empty body delivered nothing -- and a body
-        # with no closing tag is a TRUNCATED download, never complete (codex e1-cov-r1 g1#1)
-        mb = re.search(r"<body\b[^>]*>(.*?)</body>", t, re.S)
-        if not mb:
+        # with no closing tag is a TRUNCATED download, never complete (codex e1-cov-r1 g1#1). Namespace prefixes
+        # (<jats:body>) are bodies too (agy e1-cov-r1-agy #1).
+        close = re.search(r"</(?:[\w.-]+:)?body\s*>", t[mo.end():], re.I)
+        if not close:
             return out("EXCERPT", "XML_TRUNCATED")
-        body = re.sub(r"<[^>]+>", " ", mb.group(1))
+        body = re.sub(r"<[^>]+>", " ", t[mo.end():mo.end() + close.start()])
         if re.sub(r"\s+", " ", body).strip():
             return out("FULLTEXT", "XML_BODY")
         return out("STUB", "XML_EMPTY_BODY")
-    if _PORTAL.search(t):
-        return out("METADATA", "PORTAL_PAGE")
     groups = sum(1 for rx in _SECTIONS if rx.search(t))
     if len(t) >= FULLTEXT_MIN_CHARS and groups >= 3:
         return out("FULLTEXT", f"PROSE_SECTIONS:{groups}")
@@ -109,15 +142,22 @@ def abstract_label(held_abstract: str, acquired_units: list | None) -> dict:
     ratio = difflib.SequenceMatcher(None, held, acq, autojunk=False).ratio()
 
     def unit_covered(u):
-        # the share of THIS unit's characters found in the held text, unit by unit: whole-text similarity can hide one
-        # wholly missing unit ('Two deaths.') inside a long abstract (codex e1-cov-r1 g1#3)
-        txt = u["text"]
-        if not txt:
+        # the share of THIS unit's WORDS found in the held text in runs of >= RUN_WORDS consecutive words: whole-text
+        # similarity can hide a wholly missing unit (codex e1-cov-r1 g1#3), and scattered single characters can fake
+        # coverage (codex e1-cov-r2 g1#2). A unit shorter than RUN_WORDS must be present verbatim (normalised).
+        words = re.findall(r"\S+", _norm_words(u["text"]))
+        if not words:
             return True
-        blocks = difflib.SequenceMatcher(None, txt, held, autojunk=False).get_matching_blocks()
-        return sum(b.size for b in blocks) >= REVISION_MIN_UNIT_COVERAGE * len(txt)
+        if len(words) < RUN_WORDS:
+            # a short unit must be a whole SENTENCE of the held text, not a substring: 'No deaths.' is not preserved by
+            # 'No deaths were excluded from the analysis.' (codex e1-cov-r2 g1#2)
+            core = re.escape(u["text"].strip().rstrip(".;:").strip())
+            return bool(re.search(r"(?:^|[.;:]\s+)" + core + r"\s*(?:[.;:]|$)", held))
+        hw = re.findall(r"\S+", _norm_words(held))
+        blocks = difflib.SequenceMatcher(None, words, hw, autojunk=False).get_matching_blocks()
+        return sum(b.size for b in blocks if b.size >= RUN_WORDS) >= REVISION_MIN_UNIT_COVERAGE * len(words)
     if ratio >= REVISION_MIN_SIMILARITY and abs(len(held) - len(acq)) <= REVISION_MAX_LENGTH_DELTA * max(len(acq), 1) \
-            and all(unit_covered(u) for u in units):
+            and all(unit_covered(u) for u in units) and _numbers(held) == _numbers(acq):
         return {"label": "FULL_ABSTRACT", "reason": f"REVISED_RECORD:similarity={ratio:.3f},chars={len(held)}v{len(acq)}",
                 "bundle_coverage": "COMPLETE_ABSTRACT", "version_differs": True, "preservation": pres}
     return {"label": "EXCERPT", "version_differs": None, "reason": f"UNITS_MISSING:{pres['missing']}/{len(pres['units'])}"
@@ -136,10 +176,12 @@ def preservation_record(cached_abstract: str, units: list) -> dict:
     return build_bundle.preservation_record(cached_abstract, units)
 
 
-def absence_licensed(searched: list) -> bool:
-    """The bundle's asymmetric rule: a NEGATIVE claim ('the outcome is not reported') needs at least one searched object
-    whose coverage is COMPLETE_* for its scope. searched = [label, ...] of the objects actually read."""
-    return any(BUNDLE_COVERAGE.get(lab) in ("COMPLETE_SOURCE", "COMPLETE_ABSTRACT") for lab in searched or [])
+def absence_licensed(searched: list, scope: str = "abstract") -> bool:
+    """The bundle's asymmetric rule, for the evidential SCOPE of the claim (agy e1-cov-r1-agy #4): 'not in the abstract'
+    needs a complete abstract (FULL_ABSTRACT, or a FULLTEXT, which contains it); 'not reported by the trial report' needs
+    a FULLTEXT. searched = [label, ...] of the objects actually read."""
+    need = ("COMPLETE_SOURCE",) if scope == "fulltext" else ("COMPLETE_SOURCE", "COMPLETE_ABSTRACT")
+    return any(BUNDLE_COVERAGE.get(lab) in need for lab in searched or [])
 
 
 def sha256(raw) -> str:
