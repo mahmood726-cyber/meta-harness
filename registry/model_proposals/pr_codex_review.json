@@ -6969,5 +6969,35 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "e1p2-r3-agy": {
+  "base": "9fcba966",
+  "head": "a2822096",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b0a07df5f9e0a98c4a03202909f8c12d",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/candidate_rows.py"
+    ],
+    "prompt_sha256": "fa4870e23c3a3fda355b7a04e97c94409ccded5b690f47bff1fad1dc73fd45c8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "[\n  {\n    \"file\": \"harness/candidate_rows.py\",\n    \"function\": \"candidates\",\n    \"severity\": \"P0\",\n    \"claim\": \"In candidates(), percentage-header filtering checks not _PERCENT.search(hdr[i] if i < len(hdr) else '') for cell i in r['cells']. In clinical trial tables where the column header row does not include a header for the stub/label column (e.g., <tr><th>Treatment (%)</th><th>Control</th></tr>), len(hdr) equals the number of data columns, while r['cells'] contains [label, col1, col2, ...]. Because enumeration starts at i > 0, hdr[0] ('Treatment (%)') is never checked against any data cell; instead, cell 1 is checked against hdr[1] ('Control') and cell 2 falls back to ''. Consequently, column 1's percentage header is ignored, allowing integer percentages in column 1 to be classified as integer counts and admitted into candidate rows.\",\n    \"failing_input\": \"candidates('<table-wrap id=\\\"t1\\\"><table><tr><th>Treatment (%)</th><th>Control</th></tr><tr><td>30-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>', keywords=[], outcome_name='mortality', declared_timepoint='30 days')\",\n    \"expected_output\": \"The row is rejected (or ints excludes '10' because its column header declares '%', leaving ints as ['12'] with len(ints) < 2), yielding no candidate arm count matches.\",\n    \"actual_output\": \"ints evaluates to ['10', '12'] (len(ints) >= 2) because hdr[1] ('Control') is checked for '10', admitting the percentage 10 as a death count.\"\n  }\n]\n[\n  {\n    \"file\": \"harness/candidate_rows.py\",\n    \"function\": \"candidates\",\n    \"severity\": \"P0\",\n    \"claim\": \"In candidates(), percentage-header filtering checks not _PERCENT.search(hdr[i] if i < len(hdr) else '') for cell i in r['cells']. In clinical trial tables where the column header row does not include a header for the stub/label column (e.g., <tr><th>Treatment (%)</th><th>Control</th></tr>), len(hdr) equals the number of data columns, while r['cells'] contains [label, col1, col2, ...]. Because enumeration starts at i > 0, hdr[0] ('Treatment (%)') is never checked against any data cell; instead, cell 1 is checked against hdr[1] ('Control') and cell 2 falls back to ''. Consequently, column 1's percentage header is ignored, allowing integer percentages in column 1 to be classified as integer counts and admitted into candidate rows.\",\n    \"failing_input\": \"candidates('<table-wrap id=\\\"t1\\\"><table><tr><th>Treatment (%)</th><th>Control</th></tr><tr><td>30-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>', keywords=[], outcome_name='mortality', declared_timepoint='30 days')\",\n    \"expected_output\": \"The row is rejected (or ints excludes '10' because its column header declares '%', leaving ints as ['12'] with len(ints) < 2), yielding no candidate arm count matches.\",\n    \"actual_output\": \"ints evaluates to ['10', '12'] (len(ints) >= 2) because hdr[1] ('Control') is checked for '10', admitting the percentage 10 as a death count.\"\n  }\n]\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "e1p2-r3-agy:g1#1",
+    "record_id": "mc-b0a07df5f9e0a98c4a03202909f8c12d",
+    "verdict": null
+   }
+  ]
  }
 }

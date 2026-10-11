@@ -36,6 +36,11 @@ _HOSPITAL = re.compile(r"(?<!out.of.)(?<!pre.)(?<!post.)\b(?:in[- ]?)?hospital\b
 _POST_DISCHARGE = re.compile(r"\b(?:after|following|post)[- ]+(?:hospital[- ]+)?discharge|\bpost[- ]?discharge\b", re.I)
 _INT_CELL = re.compile(r"^\d+$")
 _PERCENT = re.compile(r"%|\bpercent", re.I)
+_COUNT_MARK = re.compile(r"\bn\b|\bno\.|\bnumber\b|\bevents?\b|\bdeaths\b|\bpatients\s+who\s+died\b", re.I)
+# an age is not a follow-up window: 'aged 60 years', '65 years of age', '60 years or older' (codex e1p2-r3 #4)
+_AGE_BEFORE = re.compile(r"(?:\baged?|\bage\s+(?:of|over|under|above|below)?|[≥>≤<]=?)\s*$", re.I)
+_AGE_AFTER = re.compile(r"^\s*(?:old\b|of\s+age\b|or\s+(?:older|younger|over|more)\b|and\s+(?:older|over)\b|\+)",
+                        re.I)
 _RANGE_DAYS = re.compile(r"\b(\d{1,3})\s*(?:-|–|to)\s*(\d{1,3})\s*[- ]?\s*days?\b", re.I)
 _WORDNUM = {"one": 1, "two": 2, "three": 3}
 
@@ -57,8 +62,11 @@ def table_rows(jats: str):
         for tr in re.findall(r"<tr\b.*?</tr>", tw, re.S):
             raw = re.findall(r"<t[dh]\b.*?</t[dh]>", tr, re.S)
             cells = [_text(c) for c in raw]
-            if raw and all(c.startswith("<th") for c in raw) and len([c for c in cells if c]) > 1:
-                header = cells      # a column-header row: kept so a column's unit ('Treatment (%)') can be read
+            if raw and all(c.startswith("<th") for c in raw):
+                # EVERY column-header row of the table is kept, whole: a unit may sit in a grouped header ('Patients
+                # (%)' over 'Treatment | Control') or in a header row with no stub cell -- column alignment is not
+                # attempted (codex e1p2-r3 #3, agy e1p2-r3-agy P0)
+                header = header + [c for c in cells if c]
                 continue
             if len([c for c in cells if c]) == 1:
                 section = next(c for c in cells if c)
@@ -75,10 +83,15 @@ def _months_to_days(mo: int) -> int:
 
 def _days(text: str) -> list:
     """Every window a phrase states, in days: 'day 60', '28-day', '1 year' (365), '12 months' (365), '6 months' (180)."""
-    days = [int(a or b) for a, b in _DAY.findall(text or "")]
-    days += [365 * (_WORDNUM.get(y.lower()) or int(y)) for y in _YEAR.findall(text or "")
-             if y.lower() in _WORDNUM or y.isdigit()]
-    days += [_months_to_days(int(mo)) for mo in _MONTH.findall(text or "")]
+    text = text or ""
+
+    def not_age(m):
+        return not (_AGE_BEFORE.search(text[:m.start()]) or _AGE_AFTER.search(text[m.end():]))
+
+    days = [int(m.group(1) or m.group(2)) for m in _DAY.finditer(text) if not_age(m)]
+    days += [365 * (_WORDNUM.get(m.group(1).lower()) or int(m.group(1))) for m in _YEAR.finditer(text)
+             if (m.group(1).lower() in _WORDNUM or m.group(1).isdigit()) and not_age(m)]
+    days += [_months_to_days(int(m.group(1))) for m in _MONTH.finditer(text) if not_age(m)]
     return days
 
 
@@ -132,7 +145,9 @@ def candidates(jats: str, keywords, outcome_name: str, declared_timepoint: str) 
     if re.search(r"mortal|death", outcome_name or "", re.I):
         terms += ["mortality", "death", "died", "deaths"]
     allowed = allowed_windows(declared_timepoint, keywords)
-    in_hospital_declared = bool(_HOSPITAL.search(declared_timepoint or ""))
+    # the declared window is read by the SAME rule as a row's: 'after hospital discharge' is not in-hospital (r3 #1)
+    in_hospital_declared = bool(_HOSPITAL.search(declared_timepoint or "")
+                                and not _POST_DISCHARGE.search(declared_timepoint or ""))
     out = []
     for r in table_rows(jats):
         if any(ph in (r["caption"] or "").lower() for ph in extract._TABLE_ROLE_NEVER_AN_EFFECT_SOURCE):
@@ -144,12 +159,12 @@ def candidates(jats: str, keywords, outcome_name: str, declared_timepoint: str) 
                 or (_window_only(r["label"]) and _names_outcome(r["section"] or "", terms))):
             continue
         data = " | ".join(r["cells"][1:])
-        # an integer is a count only when neither the row label nor that column's header says it is a percentage
-        # (codex e1p2-r2 #2: 'Treatment (%) | 10')
-        hdr = r.get("header") or []
-        ints = [c for i, c in enumerate(r["cells"]) if i > 0 and _INT_CELL.match(c)
-                and not _PERCENT.search(hdr[i] if i < len(hdr) else "")]
-        if _PERCENT.search(r["label"]):
+        # plain integers are arm COUNTS only when the label or a header says so ('30-day mortality, n'; 'No. of
+        # events') and nothing in the table's headers, caption or the label says percentage (codex e1p2-r2 #2,
+        # e1p2-r3 #3; agy e1p2-r3-agy P0) -- an unmarked '10 | 12' is never read as counts
+        units = " | ".join([r["label"], r["caption"] or ""] + list(r.get("header") or []))
+        ints = [c for c in r["cells"][1:] if _INT_CELL.match(c)]
+        if _PERCENT.search(units) or not _COUNT_MARK.search(units):
             ints = []
         if not (_COUNTS.search(data) or _EFFECT.search(data) or len(ints) >= 2):
             continue        # plain integer arm counts ('30-day mortality, n | 10 | 12') are counts too
@@ -178,7 +193,8 @@ def _is_witness(cells, witness: str) -> bool:
     nums = [x for x in cells if x and re.search(r"\d", x)]
     if not witness or not nums:
         return False
-    hit = sum(min(n, len(re.findall(r"(?<![\d.])" + re.escape(x) + r"(?![\d.])", witness)))
+    # a token followed by '%' is a percentage, never a count cell's witness (codex e1p2-r3 #2)
+    hit = sum(min(n, len(re.findall(r"(?<![\d.])" + re.escape(x) + r"(?![\d.]|\s*%)", witness)))
               for x, n in collections.Counter(nums).items())
     return hit >= min(2, len(nums))
 
