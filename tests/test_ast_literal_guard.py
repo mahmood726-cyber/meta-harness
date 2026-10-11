@@ -433,3 +433,16 @@ def test_PLANT_codex_r22_3_the_sweep_cli_fails_on_an_unallowlisted_literal(tmp_p
     p = subprocess.run([sys.executable, str(tmp_path / "scripts" / "ast_literal_sweep.py")], capture_output=True,
                        cwd=str(tmp_path), stdin=subprocess.DEVNULL)
     assert p.returncode != 0
+
+
+@pytest.mark.parametrize("pre", ["75 TO 110 mg of", "75 Or 110 mg of"])
+def test_PLANT_codex_r23_1_the_range_guard_ignores_case(pre):
+    assert si._first_unbounded(r"110 mg", pre.replace(" of", "")) is None
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", pre)}]}
+    assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
+
+
+@pytest.mark.parametrize("src", ['row = {}\nrow.setdefault("ai", 20)\n', 'row = {}\nrow.__setitem__("n1i", 169)\n'])
+def test_PLANT_codex_r23_2_a_positional_field_literal_call_is_swept(src):
+    from scripts.ast_literal_sweep import sweep_source
+    assert [f for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"]

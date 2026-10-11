@@ -116,6 +116,10 @@ def sweep_source(src: str, path: str) -> list[dict]:
                 pairs = [(node.key.value, node.value)]
         elif isinstance(node, ast.Call):
             pairs = [(kw.arg, kw.value) for kw in node.keywords if kw.arg]
+            # row.setdefault('ai', 20) / row.__setitem__('ai', 20): a positional field-name literal then its value
+            # (codex copps-r23#2)
+            if len(node.args) >= 2 and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                pairs.append((node.args[0].value, node.args[1]))
             # dict([('ai', 20), ...]) / dict((('ai', 20), ...)): positional literal (key, value) pairs (codex copps-r20#3)
             for arg in node.args:
                 if isinstance(arg, (ast.List, ast.Tuple, ast.Set)):

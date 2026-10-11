@@ -7861,5 +7861,50 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r23": {
+  "base": "630e622bf",
+  "head": "c727871c4",
+  "runs": {
+   "g1": {
+    "record_id": "mc-570e4d83abd4e7dcd33e972d572fad75",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "ca3c735b5d6ca8dc86ef8ecbb7ea585479fcc559664f66e59291e65ac15b4231"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded",
+    "severity": "P1",
+    "claim": "The range-prefix guard is case-sensitive although arm matching is case-insensitive. An uppercase dose range can therefore be classified as the fixed 110 mg arm.",
+    "failing_input": "from harness.scope_identity import _first_unbounded\nm = _first_unbounded(r'110 mg', '75 TO 110 mg')\nprint(None if m is None else (m.group(), m.span()))",
+    "expected": "None, as for '75 to 110 mg': the dose is a range, not a fixed 110 mg arm.",
+    "actual": "('110 mg', (6, 12)). The same prefix passes the guard when followed by the full RE-LY effect clause in _noac_lower_dose_status.",
+    "id": "copps-r23:g1#1",
+    "record_id": "mc-570e4d83abd4e7dcd33e972d572fad75",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The literal gate misses counts inserted through setdefault. Its call handling checks keyword arguments and container arguments, but ignores a positional field name followed by a numeric literal.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source('row = {}\\nrow.setdefault(\"ai\", 20)\\n', 'harness/example.py'))",
+    "expected": "A COUNT_OR_EFFECT_KEY finding for ai=20 on line 2; executing this source inserts the hardcoded arm count.",
+    "actual": "[]; the CLI gate passes this source without requiring an allowlist entry.",
+    "id": "copps-r23:g1#2",
+    "record_id": "mc-570e4d83abd4e7dcd33e972d572fad75",
+    "verdict": null
+   }
+  ]
  }
 }
