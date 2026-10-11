@@ -223,6 +223,20 @@ def coverage_for(slug: str, pid, fulltext_text=None, root: str | None = None) ->
     ab = (_registry(root).get("abstracts") or {}).get(f"cache/{slug}/records.json#PMID-{pid}") or {}
     out = {"abstract": ab.get("label"), "abstract_reason": ab.get("reason") or "NO_RETAINED_ACQUISITION",
            "fulltext": None, "fulltext_reason": None}
+    acq = ab.get("acquisition") or {}
+    if ab.get("label") == "EXCERPT" and acq.get("path") and os.path.isfile(os.path.join(root, acq["path"])):
+        # the cached copy is abridged but the VERBATIM acquisition is held: an absence check searches the best-coverage
+        # object held (the served cache is not rewritten; replacing it is the captain's decision)
+        raw = open(os.path.join(root, acq["path"]), "rb").read()
+        if sha256(raw) == acq.get("sha256"):
+            import sys
+            if os.path.join(root, "scripts") not in sys.path:
+                sys.path.insert(0, os.path.join(root, "scripts"))
+            import build_bundle
+            units = build_bundle.abstract_units(raw)
+            out["complete_abstract_text"] = " ".join(((u["label"] + ": ") if u.get("label") else "") + u["text"]
+                                                     for u in units)
+            out["complete_abstract_ref"] = {"path": acq["path"], "sha256": acq["sha256"]}
     for ext in ("txt", "xml"):
         p = os.path.join(root, "cache", slug, f"ft_{pid}.{ext}")
         if os.path.isfile(p):
