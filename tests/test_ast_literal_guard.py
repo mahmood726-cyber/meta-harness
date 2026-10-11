@@ -615,3 +615,14 @@ def test_PLANT_lc_new_shapes_do_not_fire_on_their_near_misses(src):
 ])
 def test_PLANT_lc_literals_codex_g2_a_regex_over_an_effect_is_read_whatever_else_it_holds(src):
     assert "LABELLED_EFFECT_TEXT" in {h["kind"] for h in sweep.sweep_source(src, "plant.py")}, src
+
+
+# --- recorded review, second family (lc-literals-agy) ----------------------------------------------------------------
+def test_PLANT_lc_literals_agy_g2_1_a_percentage_is_not_a_sample_size():
+    assert not [h for h in sweep.sweep_source('P = "mortality: n = 12.5%"\n', "plant.py") if h["kind"] == "SAMPLE_SIZE_TEXT"]
+    assert [h for h in sweep.sweep_source('P = "n = 125 randomised"\n', "plant.py") if h["kind"] == "SAMPLE_SIZE_TEXT"]
+
+
+def test_PLANT_lc_literals_agy_g2_2_title_case_labels_are_read():
+    for s in ('P = "Hazard Ratio of 0.87"\n', 'P = "Odds Ratio 1.50"\n'):
+        assert "LABELLED_EFFECT_TEXT" in {h["kind"] for h in sweep.sweep_source(s, "plant.py")}, s

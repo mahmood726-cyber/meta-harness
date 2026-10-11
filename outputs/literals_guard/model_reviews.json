@@ -1,0 +1,145 @@
+{
+ "_doc": "Recorded model reviews of lc/literals-guard (lane literals_compat): codex (openai) and agy (Gemini) on the branch diff over #70's head 542dee10. Raw records registry/model_calls/<record_id>.json. Every finding was run here; verdicts name the plant.",
+ "reviews": {
+  "lc-literals-codex": {
+   "base": "542dee10e2b5d24cecf6ab8fa408d3e3857b1735",
+   "head": "afac1971b0f13fd6366c34f250ea8f137a8e84cf",
+   "runs": {
+    "g1": {
+     "record_id": "mc-77db574b132957b96b12b80fb4219915",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_direction.py",
+      "harness/index.py"
+     ],
+     "prompt_sha256": "f361e33e11bdca4a1052c6f79a0651969e23d07b244feefe3de6c11dcc2901a9"
+    },
+    "g2": {
+     "record_id": "mc-0c64927c445389dcffcd9a40d6e4855c",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "scripts/ast_literal_sweep.py"
+     ],
+     "prompt_sha256": "5d3a6e6836fca236c23f6546096d8ecb98df468a516821125168da9007509418"
+    }
+   },
+   "verdicts": {
+    "lc-literals-codex:g1#1": "REPRODUCED, FIXED: a present but unreadable evidence file raises; tests/test_index_headtohead_served.py::test_PLANT_lc_literals_codex_g1_1_a_corrupt_evidence_file_fails_loudly",
+    "lc-literals-codex:g1#2": "REPRODUCED, FIXED: far/stark only when ours is smaller-k and two-fold apart; tests/test_index_headtohead_served.py::test_PLANT_lc_literals_codex_g1_2_far_apart_only_when_they_are",
+    "lc-literals-codex:g2#1": "REPRODUCED, FIXED: regex reading unconditional; tests/test_ast_literal_guard.py::test_PLANT_lc_literals_codex_g2_a_regex_over_an_effect_is_read_whatever_else_it_holds",
+    "lc-literals-codex:g2#2": "NOT REPRODUCED as stated (the plant passed before the change); anchors now dropped explicitly; same plant"
+   },
+   "findings": [
+    {
+     "file": "harness/index.py",
+     "function": "_cochrane_headtohead_line",
+     "severity": "P2",
+     "claim": "Malformed evidence is silently treated as an absent comparison. JSONDecodeError is caught as ValueError, so a corrupted evidence file produces no diagnostic.",
+     "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.index import _cochrane_headtohead_line\nwith patch('builtins.open', mock_open(read_data='{')):\n    result = _cochrane_headtohead_line('docs')",
+     "expected": "An explicit evidence-loading error or visible failure diagnostic distinguishing malformed JSON from unavailable evidence.",
+     "actual": "result == ''; the comparison silently disappears.",
+     "id": "lc-literals-codex:g1#1",
+     "record_id": "mc-77db574b132957b96b12b80fb4219915",
+     "verdict": "REPRODUCED, FIXED: a present but unreadable evidence file raises; tests/test_index_headtohead_served.py::test_PLANT_lc_literals_codex_g1_1_a_corrupt_evidence_file_fails_loudly"
+    },
+    {
+     "file": "harness/index.py",
+     "function": "_cochrane_headtohead_line",
+     "severity": "P1",
+     "claim": "The estimates and study counts are now dynamic, but the disagreement and small-k conclusions remain unconditional. Equal estimates with equal study counts are falsely characterized as far apart.",
+     "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.index import _cochrane_headtohead_line\npayload = '{\"cochrane_review\":\"CD013505\",\"cochrane_pooled\":{\"measure\":\"OR\",\"effect\":2.64,\"k\":13},\"ours\":{\"scale\":\"OR\",\"estimate\":2.64,\"k\":13}}'\nwith patch('builtins.open', mock_open(read_data=payload)):\n    result = _cochrane_headtohead_line('docs')",
+     "expected": "Report the equal estimates without claiming disagreement or attributing it to a smaller study count.",
+     "actual": "The HTML contains 'its pooled OR 2.64 (k=13) sits far from our OR 2.64 (k=13)' and calls this an illustration of 'the small-k weakness'.",
+     "id": "lc-literals-codex:g1#2",
+     "record_id": "mc-77db574b132957b96b12b80fb4219915",
+     "verdict": "REPRODUCED, FIXED: far/stark only when ours is smaller-k and two-fold apart; tests/test_index_headtohead_served.py::test_PLANT_lc_literals_codex_g1_2_far_apart_only_when_they_are"
+    },
+    {
+     "file": "scripts/ast_literal_sweep.py",
+     "function": "_scan_text",
+     "severity": "P2",
+     "claim": "A generic escape anywhere in the string disables normalization for every concrete literal, allowing hardcoded effects to evade the sweep.",
+     "failing_input": "out = []; _scan_text(r'OR\\s+2\\.64; year=\\d{4}', 1, 'example.py', out)",
+     "expected": "A LABELLED_EFFECT_TEXT finding for 'OR 2.64'; the unrelated generic year pattern should not suppress it.",
+     "actual": "No LABELLED_EFFECT_TEXT finding. The remaining \\d prevents assigning the normalized string to s, so the effect's escaped whitespace and decimal point remain unmatched.",
+     "id": "lc-literals-codex:g2#1",
+     "record_id": "mc-0c64927c445389dcffcd9a40d6e4855c",
+     "verdict": "REPRODUCED, FIXED: regex reading unconditional; tests/test_ast_literal_guard.py::test_PLANT_lc_literals_codex_g2_a_regex_over_an_effect_is_read_whatever_else_it_holds"
+    },
+    {
+     "file": "scripts/ast_literal_sweep.py",
+     "function": "_scan_text",
+     "severity": "P2",
+     "claim": "Regex word-boundary assertions prevent detection of hardcoded labelled effects because normalization leaves the literal characters '\\b' before the label.",
+     "failing_input": "out = []; _scan_text(r'\\bOR\\s+2\\.64\\b', 1, 'example.py', out)",
+     "expected": "A LABELLED_EFFECT_TEXT finding for 'OR 2.64', which this regex explicitly matches.",
+     "actual": "No LABELLED_EFFECT_TEXT finding. Normalization produces '\\bOR 2.64\\b'; the literal 'b' immediately before 'OR' defeats the detector's required word boundary.",
+     "id": "lc-literals-codex:g2#2",
+     "record_id": "mc-0c64927c445389dcffcd9a40d6e4855c",
+     "verdict": "NOT REPRODUCED as stated (the plant passed before the change); anchors now dropped explicitly; same plant"
+    }
+   ]
+  },
+  "lc-literals-agy": {
+   "base": "542dee10e2b5d24cecf6ab8fa408d3e3857b1735",
+   "head": "afac1971b0f13fd6366c34f250ea8f137a8e84cf",
+   "runs": {
+    "g1": {
+     "record_id": "mc-1164e97e056b5d9f7d557a388d72fecc",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [
+      "harness/compat_direction.py",
+      "harness/index.py"
+     ],
+     "prompt_sha256": "fbe9dc795f41ac886637a5d7138ceffb1c21b97e0135c390a7f0250ba58f8030"
+    },
+    "g2": {
+     "record_id": "mc-1f5b62f57536b0980b7d79ec59e2c9c8",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [
+      "scripts/ast_literal_sweep.py"
+     ],
+     "prompt_sha256": "fa12a2f59a70451f7c8f5353783153f1b200e1023f63a9f8b7d6d96446f9f144"
+    }
+   },
+   "verdicts": {
+    "lc-literals-agy:g2#1": "REPRODUCED, FIXED: no sample size before a decimal or %; tests/test_ast_literal_guard.py::test_PLANT_lc_literals_agy_g2_1_a_percentage_is_not_a_sample_size",
+    "lc-literals-agy:g2#2": "REPRODUCED, FIXED: Title Case ratio labels; tests/test_ast_literal_guard.py::test_PLANT_lc_literals_agy_g2_2_title_case_labels_are_read"
+   },
+   "findings": [
+    {
+     "file": "scripts/ast_literal_sweep.py",
+     "function": "_scan_text",
+     "severity": "P0",
+     "claim": "_SAMPLE_SIZE matches percentages as integer sample sizes because it terminates digits at a word boundary \\b without asserting that the digits are not followed by a decimal point or percent sign. For decimal percentages such as 'n = 12.5%', \\b matches between the integer '12' and the decimal point '.', truncating the percentage to 'n = 12' and emitting it as SAMPLE_SIZE_TEXT, violating the rules that a percentage is never a count and numbers must come from held text.",
+     "failing_input": "out = []; _scan_text('mortality: n = 12.5%', 1, 'scripts/ast_literal_sweep.py', out)",
+     "expected_output": "out == []",
+     "actual_output": "out == [{'file': 'scripts/ast_literal_sweep.py', 'line': 1, 'kind': 'SAMPLE_SIZE_TEXT', 'value': 'n = 12'}]",
+     "expected": "-",
+     "actual": "-",
+     "id": "lc-literals-agy:g2#1",
+     "record_id": "mc-1f5b62f57536b0980b7d79ec59e2c9c8",
+     "verdict": "REPRODUCED, FIXED: no sample size before a decimal or %; tests/test_ast_literal_guard.py::test_PLANT_lc_literals_agy_g2_1_a_percentage_is_not_a_sample_size"
+    },
+    {
+     "file": "scripts/ast_literal_sweep.py",
+     "function": "_scan_text",
+     "severity": "P1",
+     "claim": "In _LABELLED_EFFECT, the case-insensitive group (?i:odds|risk|hazard|rate) closes before '\\s+ratios?\\b'. Because the pattern is compiled without the re.IGNORECASE flag, 'ratios?' is strictly case-sensitive lowercase, causing Title Case effect labels such as 'Hazard Ratio of 0.87' or 'Odds Ratio 1.50' to fail to match and be omitted from out.",
+     "failing_input": "out = []; _scan_text('Hazard Ratio of 0.87', 1, 'scripts/ast_literal_sweep.py', out)",
+     "expected_output": "out == [{'file': 'scripts/ast_literal_sweep.py', 'line': 1, 'kind': 'LABELLED_EFFECT_TEXT', 'value': 'Hazard Ratio of 0.87'}]",
+     "actual_output": "out == []",
+     "expected": "-",
+     "actual": "-",
+     "id": "lc-literals-agy:g2#2",
+     "record_id": "mc-1f5b62f57536b0980b7d79ec59e2c9c8",
+     "verdict": "REPRODUCED, FIXED: Title Case ratio labels; tests/test_ast_literal_guard.py::test_PLANT_lc_literals_agy_g2_2_title_case_labels_are_read"
+    }
+   ]
+  }
+ }
+}

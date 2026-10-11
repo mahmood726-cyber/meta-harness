@@ -207,10 +207,10 @@ def _render(v) -> str:
 # an effect printed with its label but no interval: 'pooled OR 2.64 (k=13)', 'a hazard ratio of 0.87' (lc lane, 11 Oct:
 # index.py served the Cochrane and single-trial ORs as literals). Abbreviations are case-sensitive ('or 2.5 mg' is
 # English); the number must carry a decimal ('the NNT is 25' and 'OR 2' are not read).
-_LABELLED_EFFECT = re.compile(r"(?:\b(?:[ahi]?RR|HR|OR|SMD|MD|RD)\b|\b(?i:odds|risk|hazard|rate)\s+ratios?\b)"
+_LABELLED_EFFECT = re.compile(r"(?:\b(?:[ahi]?RR|HR|OR|SMD|MD|RD)\b|\b(?i:odds|risk|hazard|rate)\s+(?i:ratios?)\b)"
                               r"\s*(?:(?i:of|was|=|:|,)\s*)?[-−]?\d+[.·]\d{1,6}\b")
 # an arm or trial size: 'n=179 vs n=181', 'N = 5,050' (lc lane: compat_direction.py basis string)
-_SAMPLE_SIZE = re.compile(r"(?<![\w.])[nN]\s*=\s*(?:\d{1,3}(?:,\d{3})+|\d+)\b")
+_SAMPLE_SIZE = re.compile(r"(?<![\w.])[nN]\s*=\s*(?:\d{1,3}(?:,\d{3})+|\d+)\b(?![.·]\d|\s*%)")   # never '12.5%' (agy g2#1)
 # a regex written over a trial's numbers matches them all the same: r"20\s*/\s*169" is the count 20/169
 _REGEX_SPACE = re.compile(r"\\s[*+?]?|\\ ")
 _REGEX_ESC = re.compile(r"\\([.()\-/])")
