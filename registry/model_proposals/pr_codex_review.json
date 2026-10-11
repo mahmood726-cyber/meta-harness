@@ -7043,5 +7043,99 @@
     "verdict": null
    }
   ]
+ },
+ "extr-r4": {
+  "base": "b2e31705a",
+  "head": "3d301ebb1",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3725917a0feb965e307eb76d8fe4a1c9",
+    "state": "RAN_OK",
+    "files": [
+     "harness/extractor_replay.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "3a859ca55ee52da381ae21ed4b2452996d2892dd867f31bfd09475bcb211f693"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The HR pattern matches inside 'log HR', returning a log-scale estimate as an untransformed hazard ratio.",
+    "failing_input": "from harness.extractor_replay import read_abstract_clause\nread_abstract_clause('log HR 0.20; 95% CI, 0.10-0.30')",
+    "expected": "ReadRefused: these numbers are explicitly log hazard ratios, not hazard ratios.",
+    "actual": "{'effect': 0.2, 'ci_low': 0.1, 'ci_high': 0.3}",
+    "id": "extr-r4:g1#1",
+    "record_id": "mc-3725917a0feb965e307eb76d8fe4a1c9",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The numeric continuation guard permits scientific notation with a Unicode minus to be truncated at its mantissa. This changes the extracted upper confidence limit tenfold.",
+    "failing_input": "from harness.extractor_replay import read_abstract_clause\nread_abstract_clause('HR 0.10; 95% CI, 0.08-1.20e\\u22121')",
+    "expected": "ReadRefused for unsupported notation, or ci_high = 0.12 if that notation is supported.",
+    "actual": "{'effect': 0.1, 'ci_low': 0.08, 'ci_high': 1.2}",
+    "id": "extr-r4:g1#2",
+    "record_id": "mc-3725917a0feb965e307eb76d8fe4a1c9",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "Only colon-terminated table captions stop the search. A subsequent period-terminated caption allows another trial's header and counts to be extracted under the requested trial's caption.",
+    "failing_input": "from harness.extractor_replay import read_label_adr_table\nspec = {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'}\ntext = 'Table 3: Adverse reactions in FIDELIO-DKD\\nNo extractable table here.\\nTable 4. Adverse reactions in FIGARO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 10 (10) 20 (20)'\nv = read_label_adr_table(text, spec)\nprint({k: v[k] for k in ('ai', 'n1i', 'ci', 'n2i', 'caption_span')})",
+    "expected": "ReadRefused: Table 3 contains no extractable header or row; the counts belong to FIGARO-DKD's Table 4.",
+    "actual": "{'ai': 10, 'n1i': 100, 'ci': 20, 'n2i': 100, 'caption_span': 'Table 3: Adverse reactions in FIDELIO-DKD'}",
+    "id": "extr-r4:g1#3",
+    "record_id": "mc-3725917a0feb965e307eb76d8fe4a1c9",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "Rounded percentage agreement does not establish denominator identity. The reader accepts randomised header totals even when the table explicitly gives different safety denominators for the percentages.",
+    "failing_input": "from harness.extractor_replay import read_label_adr_table\nspec = {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'}\ntext = 'Table 3: Adverse reactions in FIDELIO-DKD\\nRandomised population\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 1 (1) 1 (1)\\nPercentages use safety denominators: 90 patients receiving Kerendia and 80 receiving Placebo.'\nv = read_label_adr_table(text, spec)\nprint({k: v[k] for k in ('ai', 'n1i', 'ci', 'n2i')})",
+    "expected": "ReadRefused for the conflicting denominator populations, or safety denominators n1i = 90 and n2i = 80 if explicitly supported.",
+    "actual": "{'ai': 1, 'n1i': 100, 'ci': 1, 'n2i': 100}. Both percentage checks pass because 1/100, 1/90 and 1/80 all round to 1%.",
+    "id": "extr-r4:g1#4",
+    "record_id": "mc-3725917a0feb965e307eb76d8fe4a1c9",
+    "verdict": null
+   }
+  ]
+ },
+ "extr-r4-agy": {
+  "base": "b2e31705a",
+  "head": "3d301ebb1",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a238a47d0d4460da0cb65826629f02d4",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/extractor_replay.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "e1616141364f1866cda7d6f53c220caac75ce14c86a550765f1c017a753c065a"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }
