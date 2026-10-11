@@ -65,7 +65,7 @@ def test_rob2_same_composite_still_matches():
 
 # ---------------------------------------------------------------- extraction
 def test_extraction_alpha_omega_is_not_three_point_mace():
-    comps = te._components_from_text(ALPHA_OMEGA)
+    comps = te._components_from_text(ALPHA_OMEGA, mark_unknown=True)
     assert not ({"cardiovascular death", "myocardial infarction", "stroke"} <= comps)
     assert any(c.startswith(te.NOT_ESTABLISHED_PREFIX) for c in comps)
 
@@ -118,7 +118,7 @@ def test_an_excluded_component_is_not_named():
 def test_a_parenthesised_enumeration_is_read_not_deleted():
     p = C.components("MACE (defined as cardiovascular death, myocardial infarction, stroke, or cardiac interventions).")
     assert p.enumerated and p.unknown == ["cardiac interventions"]
-    assert any(x.startswith(te.NOT_ESTABLISHED_PREFIX) for x in te._components_from_text("MACE (defined as cardiac interventions)"))
+    assert any(x.startswith(te.NOT_ESTABLISHED_PREFIX) for x in te._components_from_text("MACE (defined as cardiac interventions)", mark_unknown=True))
 
 
 def test_an_exclusion_survives_generic_expansion():
@@ -191,3 +191,26 @@ def test_known_limit_population_exclusion():
 def test_rob2_excluded_component_is_not_named():
     assert "NONFATAL_STROKE" not in rob2._component_set("MACE defined as cardiovascular death and myocardial infarction, "
                                                          "excluding stroke.")
+
+
+def test_d20_the_unknown_item_rule_is_off_for_registry_text():
+    """D20 (Mahmood 'c'): the unknown-item rule applies ONLY to served abstract/full-text definition spans. A registry candidate
+    ('Composite of Stroke and Systemic Embolic Events (SEE)') is parsed without it -- the render showed 'component not
+    established: see' turning a G1 noac family's outcome from extractable to unknown."""
+    reg = "Yearly Event Rate for Composite Endpoint of Stroke/SEE Time to first occurrence of stroke or systemic embolic event"
+    assert not any(c.startswith(te.NOT_ESTABLISHED_PREFIX) for c in te._components_from_text(reg))
+    assert any(c.startswith(te.NOT_ESTABLISHED_PREFIX) for c in te._components_from_text(ALPHA_OMEGA, mark_unknown=True))
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex p0-r5 #1): an item recognised only by the union list (e.g. pulmonary "
+                                       "embolism) is accepted but not returned as a component (main dropped it entirely)")
+def test_known_limit_union_list_item_not_returned():
+    p = C.components("MACE defined as cardiovascular death, myocardial infarction, stroke, or pulmonary embolism.")
+    assert p.components != {"cardiovascular death", "myocardial infarction", "stroke"} or p.unknown
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex p0-r5 #4): an exclusion LIST stops at its first comma; 0 served texts "
+                                       "carry an exclusion clause (probe of 321)")
+def test_known_limit_exclusion_list():
+    p = C.components("MACE excluding transient ischemic attack, unstable angina, and revascularization.")
+    assert p.components == {"cardiovascular death", "myocardial infarction", "stroke"}
