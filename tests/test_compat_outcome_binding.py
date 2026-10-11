@@ -187,4 +187,32 @@ def test_follow_up_a_duration_named_in_the_assertion_is_compatible_even_beside_t
     # served keys: semaglutide-obesity-mace, ticagrelor-vs-clopidogrel-acs (the g3#2 cap must not flag these)
     assert cc._follow_compatible("trial end / mean follow-up 39.8 months", "39.8 months")
     assert cc._follow_compatible("12 months or longest reported trial follow-up", "12 months")
-    assert not cc._follow_compatible("12 months or longest reported trial follow-up", "2 months")
+    assert not cc._follow_compatible("12 months", "2 months")           # whole words: "2 months" is not in "12 months"
+
+
+# --- recorded review round 2 (lc-compat-r2-codex) -------------------------------------------------------------------
+def test_PLANT_codex_r2_g1_1_a_separately_named_non_outcome_does_not_veto_the_primary_clause():
+    s = cc._outcome_sentences({"name": "Vertebral fracture", "primary": True},
+                              {"abstract": "The primary outcome was new vertebral fracture; nonvertebral fractures were "
+                                           "secondary."})
+    assert s, s
+    assert cc._outcome_sentences({"name": "Vertebral fractures", "primary": True},
+                                 {"abstract": "The primary outcome was nonvertebral fractures."}) == []
+
+
+def test_PLANT_codex_r2_g2_1_a_measured_stay_is_still_a_stay():
+    assert cc.time_phrase_kind("Length of hospital stay was measured as 7 days.", "7 days") == "length_of_stay"
+
+
+def test_PLANT_codex_r2_g3_1_a_multiword_component_is_not_defined_by_its_composite():
+    assert cc._endpoint_from("The primary outcome was a composite of death, myocardial infarction, or disabling "
+                             "stroke.", {"name": "Disabling stroke", "primary": False}, ["disabling", "stroke"]) is None
+    toks = cc._outcome_tokens({"name": "3-point major adverse cardiovascular events"})
+    assert cc._endpoint_from("The primary outcome was a composite of death from cardiovascular causes, nonfatal "
+                             "myocardial infarction, or nonfatal stroke.",
+                             {"name": "3-point major adverse cardiovascular events", "primary": True}, toks) is not None
+
+
+def test_PLANT_codex_r2_g4_1_an_or_longest_assertion_is_open_a_whichever_earlier_one_is_capped():
+    assert cc._follow_compatible("12 months or longest reported trial follow-up", "24 months")
+    assert not cc._follow_compatible("28 days or trial end, whichever is earlier", "365 days")

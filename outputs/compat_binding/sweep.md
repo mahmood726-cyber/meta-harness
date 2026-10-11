@@ -1,6 +1,6 @@
 # Compatibility-panel fields bound to the selected outcome: sweep of all 32 topics
 
-Rows: 137; rows changed: 137; field changes: 665 (value changes 147; the rest change only the source the value is bound to); 0 field(s) keep value and source but rest on a different span. Rows only before: none; only after: none.
+Rows: 137; rows changed: 137; field changes: 665 (value changes 148; the rest change only the source the value is bound to); 0 field(s) keep value and source but rest on a different span. Rows only before: none; only after: none.
 
 | Topic | Rows changed |
 |---|---|
@@ -88,7 +88,7 @@ Rows: 137; rows changed: 137; field changes: 665 (value changes 147; the rest ch
 | colchicine-secondary-cv-prevention::Gastrointestinal adverse effects::34876021 | length_of_stay | None (None) | None (underivable) |
 | colchicine-secondary-cv-prevention::Gastrointestinal adverse effects::34876021 | schedule | None (None) | None (underivable) |
 | colchicine-secondary-cv-prevention::Non-cardiovascular death::32865380 | follow_up_window | None (underivable) | 28.6 months (trial-level statement in the held record) |
-| colchicine-secondary-cv-prevention::Non-cardiovascular death::32865380 | endpoint_definition | primary end point was a composite of cardiovascular death, spontaneous (nonprocedural) myo (committed source text) | primary end point was a composite of cardiovascular death, spontaneous (nonprocedural) myo (outcome-bound sentence of the held record) |
+| colchicine-secondary-cv-prevention::Non-cardiovascular death::32865380 | endpoint_definition | primary end point was a composite of cardiovascular death, spontaneous (nonprocedural) myo (committed source text) | Non-cardiovascular death (outcome.name) |
 | colchicine-secondary-cv-prevention::Non-cardiovascular death::32865380 | exposure_duration | None (None) | None (underivable) |
 | colchicine-secondary-cv-prevention::Non-cardiovascular death::32865380 | length_of_stay | None (None) | None (underivable) |
 | colchicine-secondary-cv-prevention::Non-cardiovascular death::32865380 | schedule | None (None) | None (underivable) |

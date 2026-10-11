@@ -229,9 +229,20 @@ def _outcome_sentences(outcome: dict[str, Any], rec: dict[str, Any] | None, *, s
         # the trial's own primary-outcome sentence binds to the review's PRIMARY row when it names the head term
         # ('The primary outcome was the proportion of patients who developed diarrhea in the first 21 days')
         if _about_outcome(s, toks) or (outcome.get("primary") and toks and _PRIMARY_SENTENCE.search(s)
-                                       and _has_token(_fold(s), toks[-1]) and not _negates(_fold(s), toks)):
+                                       and _primary_fallback_binds(s, toks)):
             out.append(s)
     return out
+
+
+def _primary_fallback_binds(s: str, toks: list[str]) -> bool:
+    """The primary-outcome sentence binds the review's primary row on the head term -- read in the primary CLAUSE's own
+    head when the sentence has one, so a separately named 'nonvertebral fractures were secondary' does not veto 'the
+    primary outcome was vertebral fracture' (codex lc-compat-r2-codex:g1#1)."""
+    m = _PRIMARY_CLAUSE.search(s)
+    # the clause to its first ';' -- not to its first comma: '...the 6-month incidence of recurrent symptomatic, ...
+    # venous thromboembolism and related deaths' keeps its own words
+    scope = _fold(m.group(1).split(";", 1)[0] if m else s)
+    return _has_token(scope, toks[-1]) and not _negates(scope, toks)
 
 
 _PRIMARY_SENTENCE = re.compile(r"\bprimary (?:efficacy )?(?:outcome|end ?point|measure)", re.I)
@@ -309,7 +320,9 @@ def time_phrase_kind(sentence: str, phrase: str, start: int | None = None) -> st
     # a stay in the phrase's OWN clause ('length of hospital stay was 7 days') or right after it ('5 days in hospital');
     # never a stay named elsewhere in the sentence ('Mortality at day 28 and length of stay', codex g1#4 / full g1#3)
     los_after = _LOS.search(phrase + s[i + len(phrase):i + len(phrase) + 30])
-    if (_LOS.search(before) and not _FOLLOW.search(clause)) or (los_after and los_after.start() < len(phrase)):
+    # (a stay named in the phrase's own clause wins outright: 'Length of hospital stay was measured as 7 days', r2-g2#1)
+    if (_LOS.search(clause) or (_LOS.search(before) and not _FOLLOW.search(clause))
+            or (los_after and los_after.start() < len(phrase))):
         return "length_of_stay"
     if _SCHEDULE.search(phrase) or _EVERY_END.search(before):
         return "schedule"
@@ -477,9 +490,17 @@ def _endpoint_from(text: str, outcome: dict[str, Any], toks: list[str]) -> tuple
         # a composite's head is cut at its first comma ('a composite of mortality, myocardial infarction, or stroke'
         # -> 'mortality'): a ONE-word outcome is then a component of the composite, never defined by it (codex g2#2)
         composite = "composite" in m.group(0).lower()
-        component = composite and len(toks) == 1 and toks[0] != "mace"
+        component = False
         if composite:                     # a composite outcome is matched on its whole component list
             head = m.group(1).split("(", 1)[0]
+            # ...and binds only a row that IS a composite: one naming itself so (composite / MACE wording) or whose
+            # words reach two or more of the listed components. 'Disabling stroke' is one component of 'death,
+            # myocardial infarction, or disabling stroke', never defined by it (codex g2#2, r2-g3#1)
+            name_f = _fold(str(outcome.get("name") or ""))
+            comps = [c for c in _fold(head).replace(" or ", ",").replace(" and ", ",").split(",") if c.strip()]
+            reached = sum(1 for c in comps if any(_has_token(c, t) for t in toks))
+            component = not ("composite" in name_f or any(_fold(a) in name_f for a in _SYNONYMS["mace"])
+                             or reached >= 2)
         # the clause binds when ITS outcome is this row's outcome; for the review's PRIMARY row the head term suffices
         # -- unless the clause names a non-qualified form of the row's outcome ('nonfatal stroke' for 'Fatal stroke')
         if not component and not _negates(_fold(head), toks) and (
@@ -711,9 +732,10 @@ def _follow_compatible(asserted: Any, value: str) -> bool:
     r = _ASSERTED_RANGE.search(av)
     if m and r and m.group(2) == r.group(3) and float(r.group(1)) <= float(m.group(1)) <= float(r.group(2)):
         return True
-    # a trial-defined window with a NUMBER in it is capped ('28 days or trial end, whichever is earlier', codex g3#2):
-    # it is not open to any duration
-    if _TRIAL_DEFINED_WINDOW.search(av) and not any(ch.isdigit() for ch in av) and (
+    # a trial-defined window CAPPED by a fixed one ('28 days or trial end, whichever is earlier', codex g3#2) is not
+    # open to any duration; '12 months or longest reported trial follow-up' is (r2-g4#1)
+    capped = any(w in av for w in ("whichever", "earlier", "shorter", "first of"))
+    if _TRIAL_DEFINED_WINDOW.search(av) and not capped and (
             m or _TRIAL_DEFINED_WINDOW.search(vv) or vv in {"study end", "trial end"}):
         return True
     return False
