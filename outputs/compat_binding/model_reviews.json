@@ -375,6 +375,200 @@
      "verdict": "REPRODUCED; same defect as codex focused:g3#1 (fixed) -- second family agrees"
     }
    ]
+  },
+  "lc-compat-r2-codex": {
+   "base": "2918d1b86a8026395ffaabdaa6c3c477fb7484a2",
+   "head": "e1d63bfd4aa449ccdd65af639ab1ed3838acea28",
+   "runs": {
+    "g1": {
+     "record_id": "mc-910c4cf76e98fe28eeea3e62a51dce2a",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "9eeb5cd17a26279f40fe45d9697fcc2cee49e30914e178f1e1c431adea41539b"
+    },
+    "g2": {
+     "record_id": "mc-f2d347823f2a905d3ea0f06c89faeb7a",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "a33a60ce3877d4e616911516f1c96f5858b098dffafbc5fbc444275fd20cc09f"
+    },
+    "g3": {
+     "record_id": "mc-a6499be6b1c27c8ddb69c4872faa4c38",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "741451573c28f7d52951fc441ed9174866d080fb666a40ebac5f97f4f3c15194"
+    },
+    "g4": {
+     "record_id": "mc-3a15c625e17eb6686b1e8c1f09122cfb",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "e189c78237ea10e45887d79548a4d25e873a627b93f0163c11bc9151c655ce05"
+    },
+    "g5": {
+     "record_id": "mc-ecbc2a4f315b503ed3e694a0cc8bca5b",
+     "state": "RAN_OK",
+     "reader": "codex",
+     "files": [
+      "scripts/compat_binding_sweep.py"
+     ],
+     "prompt_sha256": "920b2e1f6b5c43e08d1fd54d95201a08c43b19dbe84cee322ef044b57a9b4bb7"
+    }
+   },
+   "verdicts": {
+    "lc-compat-r2-codex:g1#1": "NOT REPRODUCED at the binding level (_about_outcome binds first); scoped anyway: the veto now reads the primary clause to its \";\" (tests/test_compat_outcome_binding.py::test_PLANT_codex_r2_g1_1_...)",
+    "lc-compat-r2-codex:g2#1": "REPRODUCED, FIXED: a stay in the own clause wins; tests/test_compat_outcome_binding.py::test_PLANT_codex_r2_g2_1_a_measured_stay_is_still_a_stay",
+    "lc-compat-r2-codex:g3#1": "REPRODUCED, FIXED: a composite binds only a composite row; tests/test_compat_outcome_binding.py::test_PLANT_codex_r2_g3_1_a_multiword_component_is_not_defined_by_its_composite",
+    "lc-compat-r2-codex:g4#1": "REPRODUCED, FIXED: only a whichever-earlier cap closes a trial-defined window; tests/test_compat_outcome_binding.py::test_PLANT_codex_r2_g4_1_an_or_longest_assertion_is_open_a_whichever_earlier_one_is_capped"
+   },
+   "findings": [
+    {
+     "file": "harness/compat_check.py",
+     "function": "_negates",
+     "severity": "P1",
+     "claim": "The new sentence-wide veto mistakes a separate non-qualified outcome for negation of the target outcome, even when the target is explicitly identified as primary.",
+     "failing_input": "_negates('the primary outcome was vertebral fracture; nonvertebral fractures were secondary.', ['vertebral', 'fracture'])",
+     "expected": "False: the sentence explicitly identifies vertebral fracture as primary; the nonvertebral mention describes a separate secondary outcome.",
+     "actual": "True: finding 'nonvertebral' anywhere negates the entire sentence, disabling the primary-outcome fallback in _outcome_sentences.",
+     "id": "lc-compat-r2-codex:g1#1",
+     "record_id": "mc-910c4cf76e98fe28eeea3e62a51dce2a",
+     "verdict": "NOT REPRODUCED at the binding level (_about_outcome binds first); scoped anyway: the veto now reads the primary clause to its \";\" (tests/test_compat_outcome_binding.py::test_PLANT_codex_r2_g1_1_...)"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "time_phrase_kind",
+     "severity": "P1",
+     "claim": "The new _FOLLOW veto misclassifies explicitly measured hospital-stay durations as follow-up. 'measured' blocks the length_of_stay branch and subsequently triggers the follow_up branch.",
+     "failing_input": "time_phrase_kind('Length of hospital stay was measured as 7 days.', '7 days')",
+     "expected": "'length_of_stay'",
+     "actual": "'follow_up' (traced through the supplied code; execution was unavailable).",
+     "id": "lc-compat-r2-codex:g2#1",
+     "record_id": "mc-f2d347823f2a905d3ea0f06c89faeb7a",
+     "verdict": "REPRODUCED, FIXED: a stay in the own clause wins; tests/test_compat_outcome_binding.py::test_PLANT_codex_r2_g2_1_a_measured_stay_is_still_a_stay"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_endpoint_from",
+     "severity": "P1",
+     "claim": "The composite guard excludes only single-token components. Expanding the head to the entire component list therefore lets a multiword component inherit the definition of the whole primary composite.",
+     "failing_input": "_endpoint_from('The primary outcome was a composite of death, myocardial infarction, or disabling stroke.', {'primary': False}, ['disabling', 'stroke'])",
+     "expected": "None: the sentence defines the composite, not the disabling-stroke component.",
+     "actual": "Returns the primary-composite clause and its evidence span as the row's definition: component is False because there are two tokens, and the expanded head contains both 'disabling' and 'stroke'.",
+     "id": "lc-compat-r2-codex:g3#1",
+     "record_id": "mc-a6499be6b1c27c8ddb69c4872faa4c38",
+     "verdict": "REPRODUCED, FIXED: a composite binds only a composite row; tests/test_compat_outcome_binding.py::test_PLANT_codex_r2_g3_1_a_multiword_component_is_not_defined_by_its_composite"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_follow_compatible",
+     "severity": "P1",
+     "claim": "The new digit guard treats every numbered assertion as capped, including assertions explicitly allowing the longest reported trial follow-up. This rejects valid follow-up bindings.",
+     "failing_input": "For a trial whose longest reported follow-up is 24 months: _follow_compatible('12 months or longest reported trial follow-up', '24 months')",
+     "expected": "True: the assertion explicitly permits the trial's longest reported follow-up.",
+     "actual": "False: '24 months' matches neither an explicit duration nor a range, and the digits in '12 months' disable the trial-defined-window branch.",
+     "id": "lc-compat-r2-codex:g4#1",
+     "record_id": "mc-3a15c625e17eb6686b1e8c1f09122cfb",
+     "verdict": "REPRODUCED, FIXED: only a whichever-earlier cap closes a trial-defined window; tests/test_compat_outcome_binding.py::test_PLANT_codex_r2_g4_1_an_or_longest_assertion_is_open_a_whichever_earlier_one_is_capped"
+    }
+   ]
+  },
+  "lc-compat-r2-agy": {
+   "base": "2918d1b86a8026395ffaabdaa6c3c477fb7484a2",
+   "head": "e1d63bfd4aa449ccdd65af639ab1ed3838acea28",
+   "runs": {
+    "g1": {
+     "record_id": "mc-7102ab80fdbc47a80c9311d84064fab0",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "e90911094144e20538a507a464cf57bc03fad32ef1f84de08be107e07497e371"
+    },
+    "g2": {
+     "record_id": "mc-0bb855b525b83ce8a0741b1b74517f0e",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "08d495536173828854e5fd9cb972828b445296a3a146d864d48d01bd029ff358"
+    },
+    "g3": {
+     "record_id": "mc-8d6b45c5108cafcaf65136a9145c4f2a",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "7bff4bf072bc93cfa62450e37795ec05f1b1689977e9468e3949cb1da1173889"
+    },
+    "g4": {
+     "record_id": "mc-c811c2de1ac4127bcf6627feebf75f5f",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [
+      "harness/compat_check.py"
+     ],
+     "prompt_sha256": "635a3df4e0a2c54b0b0c8454178ebf6462e1497ffade681e025c4c99d6bce78c"
+    },
+    "g5": {
+     "record_id": "mc-5b6c3bcebdf089f13f8b22dcd0f2513d",
+     "state": "RAN_OK",
+     "reader": "agy",
+     "files": [
+      "scripts/compat_binding_sweep.py"
+     ],
+     "prompt_sha256": "84572f68670ba089ba45d6dc9632c9eac938033230d4577ed73905afaaeedb8b"
+    }
+   },
+   "verdicts": {
+    "lc-compat-r2-agy:g1#1": "REPRODUCED, FIXED: the PFS strip applies only to the mortality synonym; tests/test_compat_outcome_binding.py::test_PLANT_agy_r2_g1_1_a_progression_free_survival_row_still_binds_its_own_word",
+    "lc-compat-r2-agy:g1#2": "REPRODUCED, FIXED: no veto when the plain word is also named; tests/test_compat_outcome_binding.py::test_PLANT_agy_r2_g1_2_fatal_or_non_fatal_names_both_and_negates_neither"
+   },
+   "findings": [
+    {
+     "file": "harness/compat_check.py",
+     "function": "_has_token",
+     "severity": "P1",
+     "claim": "In _has_token, when evaluating the token 'survival', the code unconditionally strips '-free survival' and ' free survival' from text_f (intended to prevent 'progression-free survival' from being treated as mortality). Consequently, whenever _has_token is legitimately queried for token 'survival' on text containing outcomes such as 'progression-free survival', 'disease-free survival', or 'event-free survival', the head term 'survival' is removed from text_f and the function returns False. In _outcome_sentences, this causes valid primary outcome sentences for progression-free survival to fail to bind to the primary outcome row via _has_token(_fold(s), toks[-1]).",
+     "input": "_has_token('progression-free survival', 'survival')",
+     "failing_input": "_has_token('progression-free survival', 'survival')",
+     "expected": "True",
+     "expected_output": "True",
+     "actual": "False",
+     "actual_output": "False",
+     "id": "lc-compat-r2-agy:g1#1",
+     "record_id": "mc-7102ab80fdbc47a80c9311d84064fab0",
+     "verdict": "REPRODUCED, FIXED: the PFS strip applies only to the mortality synonym; tests/test_compat_outcome_binding.py::test_PLANT_agy_r2_g1_1_a_progression_free_survival_row_still_binds_its_own_word"
+    },
+    {
+     "file": "harness/compat_check.py",
+     "function": "_negates",
+     "severity": "P1",
+     "claim": "_negates checks if any token in toks appears in text_f prefixed by 'non', 'non-', or 'non '. For composite trial outcomes that explicitly include both fatal and non-fatal events (e.g., 'fatal or non-fatal stroke' where toks contains 'fatal'), _negates matches 'non-fatal' against the token 'fatal' and returns True. In _outcome_sentences, this falsely classifies text describing the composite outcome as negating the outcome and erroneously rejects valid primary outcome sentences.",
+     "input": "_negates('the primary outcome was fatal or non-fatal stroke', ['fatal', 'non-fatal', 'stroke'])",
+     "failing_input": "_negates('the primary outcome was fatal or non-fatal stroke', ['fatal', 'non-fatal', 'stroke'])",
+     "expected": "False",
+     "expected_output": "False",
+     "actual": "True",
+     "actual_output": "True",
+     "id": "lc-compat-r2-agy:g1#2",
+     "record_id": "mc-7102ab80fdbc47a80c9311d84064fab0",
+     "verdict": "REPRODUCED, FIXED: no veto when the plain word is also named; tests/test_compat_outcome_binding.py::test_PLANT_agy_r2_g1_2_fatal_or_non_fatal_names_both_and_negates_neither"
+    }
+   ]
   }
  }
 }

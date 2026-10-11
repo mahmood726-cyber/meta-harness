@@ -174,14 +174,17 @@ def _outcome_tokens(outcome: dict[str, Any]) -> list[str]:
 def _negates(text_f: str, toks: list[str]) -> bool:
     """The text names a NON-qualified form of one of the outcome's words ('nonvertebral', 'non-fatal'): it is about
     another outcome, whatever head term it shares (codex lc-compat-codex-focused:g1#1, g2#1)."""
-    return any(p + t in text_f for t in toks for p in ("non", "non-", "non "))
+    # ...only when the plain word is NOT also named: 'fatal or non-fatal stroke' names both (agy r2-g1#2)
+    return any(any(p + t in text_f for p in ("non", "non-", "non ")) and not _has_token(text_f, t) for t in toks)
 
 
 def _has_token(text_f: str, tok: str) -> bool:
     alts = _SYNONYMS.get(tok, (tok,))
     for alt in alts:
         a = _fold(alt)
-        if a == "survival":               # 'progression-free survival' is not mortality (codex g1#2); 'overall survival' is
+        # 'progression-free survival' is not MORTALITY (codex g1#2); 'overall survival' is -- but a row whose own word
+        # is 'survival' (Progression-free survival) still finds it (agy r2-g1#1)
+        if a == "survival" and tok != "survival":
             text_f = text_f.replace("-free survival", " ").replace(" free survival", " ")
         if re.search(rf"(?<!non-)(?<!non )\b{re.escape(a)}(?:s|es)?\b", text_f):
             return True

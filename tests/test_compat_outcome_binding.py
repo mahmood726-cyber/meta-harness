@@ -216,3 +216,14 @@ def test_PLANT_codex_r2_g3_1_a_multiword_component_is_not_defined_by_its_composi
 def test_PLANT_codex_r2_g4_1_an_or_longest_assertion_is_open_a_whichever_earlier_one_is_capped():
     assert cc._follow_compatible("12 months or longest reported trial follow-up", "24 months")
     assert not cc._follow_compatible("28 days or trial end, whichever is earlier", "365 days")
+
+
+# --- recorded review round 2, second family (lc-compat-r2-agy) -------------------------------------------------------
+def test_PLANT_agy_r2_g1_1_a_progression_free_survival_row_still_binds_its_own_word():
+    assert cc._has_token("progression-free survival", "survival")
+    assert not cc._has_token("progression-free survival", "mortality")
+
+
+def test_PLANT_agy_r2_g1_2_fatal_or_non_fatal_names_both_and_negates_neither():
+    assert not cc._negates("the primary outcome was fatal or non-fatal stroke", ["fatal", "stroke"])
+    assert cc._negates("the primary outcome was nonfatal stroke", ["fatal", "stroke"])
