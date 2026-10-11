@@ -130,3 +130,40 @@ def test_post_discharge_is_not_in_hospital_but_before_discharge_is():
     for lab in ("Mortality after hospital discharge", "Post-discharge mortality", "Death following hospital discharge"):
         assert row_window(lab)[0] != "IN_HOSPITAL", lab
     assert row_window("Death before hospital discharge")[0] == "IN_HOSPITAL"
+
+
+# ---- PR2 review round 3, the last (codex e1p2-r3 mc-e8a1dce2 4 P1; agy e1p2-r3-agy mc-b0a07df5 1 P0): plants ----
+def test_a_post_discharge_declared_outcome_does_not_match_hospital_mortality():
+    from harness.candidate_rows import candidates
+    jats = '<table-wrap><table><tr><td>Hospital mortality</td><td>10/100</td><td>12/100</td></tr></table></table-wrap>'
+    assert [c["assessment"] for c in candidates(jats, ["mortality"], "mortality", "after hospital discharge")] \
+        == ["WINDOW_MISMATCH"]
+
+
+def test_integer_cells_do_not_witness_percentages():
+    from harness.candidate_rows import _is_witness
+    assert _is_witness(["10", "12"], "60-day mortality: Kaplan-Meier estimates were 10% versus 12%.") is False
+
+
+def test_percentage_headers_anywhere_in_the_table_block_plain_integer_counts():
+    from harness.candidate_rows import candidates
+    grouped = ('<table-wrap id="t1"><table><tr><th>Outcome</th><th colspan="2">Patients (%)</th></tr>'
+               '<tr><th></th><th>Treatment</th><th>Control</th></tr>'
+               '<tr><td>28-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>')
+    no_stub = ('<table-wrap id="t1"><table><tr><th>Treatment (%)</th><th>Control</th></tr>'
+               '<tr><td>30-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>')
+    assert candidates(grouped, [], "Mortality", "28-day") == []
+    assert candidates(no_stub, [], "mortality", "30 days") == []
+
+
+def test_plain_integers_need_a_count_marker():
+    from harness.candidate_rows import candidates
+    bare = '<table-wrap><table><tr><td>30-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>'
+    assert candidates(bare, [], "Mortality", "30-day") == []
+
+
+def test_an_age_is_not_a_measurement_window():
+    from harness.candidate_rows import row_window
+    assert row_window("30-day mortality among patients aged 60 years or older") == ("DAYS", 30)
+    assert row_window("Mortality in patients 65 years of age or older") == ("UNSTATED", None)
+    assert row_window("Mortality at 1 year") == ("DAYS", 365)
