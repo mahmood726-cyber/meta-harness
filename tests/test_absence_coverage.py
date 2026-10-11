@@ -91,3 +91,17 @@ def test_a_short_abbreviation_matches_only_as_a_whole_word_and_only_if_it_fits_t
     assert not absence._matches_term("After 30 days nothing occurred", terms)   # 'af' inside 'after' is not AF
     bad = absence._terms_with_abbreviations([], "Atrial fibrillation", ["Atrial fibrillation (XYZ) was recorded."])
     assert not any(t.startswith(absence.ABBR_MARK) for t in bad)            # XYZ does not fit 'atrial fibrillation'
+
+
+# ---- PR2 review round 1 (agy e1p2-r1-agy mc-936c03ad): plants that failed first ----
+def test_lowercase_lead_abbreviation_is_learned_from_a_shorter_term():
+    from harness import absence
+    text = "The hospitalization for heart failure (hHF) outcome was prespecified. The hHF outcome occurred in 20/2092."
+    terms = absence._terms_with_abbreviations(["heart failure"], "Heart failure", [text])
+    assert absence.ABBR_MARK + "hHF" in terms
+
+
+def test_harms_rung_reads_coverage_for_an_integer_pid():
+    from harness.harms import _fulltext_rung
+    assert _fulltext_rung(28893244, {28893244: "Full text ..."}, {"28893244": "FULLTEXT"}) == "CHECKED"
+    assert _fulltext_rung(28893244, {28893244: "x"}, {"28893244": "STUB"}) == "NOT_CHECKED_STUB"
