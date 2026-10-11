@@ -41,10 +41,13 @@ equivalent recomputability is an external comparative claim with verification NO
 published reviews release extraction data, code and supplements — and is being checked per
 comparator, not asserted.
 
-**What this is not.** It is **not** a claim of stronger evidence than the published
-comparators. The offer is **greater auditability**: every number traces to a
-committed source, every absence is *declared* rather than left blank, and any
-hand-edit breaks the gate.
+**What this is not.** This project is not a validated autonomous systematic-review
+system and does not establish more complete or more correct evidence than its published
+comparators. It offers a way to inspect committed inputs, provenance, analysis methods,
+identified absences, warnings, and historical audit findings. Coverage varies by
+release and topic. A successful replay does not validate study identification,
+outcome definitions, eligibility decisions, or independent accuracy. Numerical
+analysis for publication requires method-matched external checking.
 
 ## The loop
 ```
