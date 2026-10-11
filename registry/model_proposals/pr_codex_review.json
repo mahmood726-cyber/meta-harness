@@ -7137,5 +7137,122 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "extr-r5": {
+  "base": "b2e31705a",
+  "head": "9935a4e52",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7875fba6f4685af904748abc13a17295",
+    "state": "RAN_OK",
+    "files": [
+     "harness/extractor_replay.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "f93ea3d078f4995f89463a91b4f4457678ec6d85f7c9705a1ab4986575850ecc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "The table boundary regex is case-sensitive, allowing another table's counts to be attributed to the requested trial when the next caption uses uppercase TABLE.",
+    "failing_input": "read_label_adr_table('Table 3: Adverse reactions in FIDELIO-DKD\\nNo data tabulated.\\nTABLE 4: Adverse reactions in FIGARO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 10 (10) 20 (20)', {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'})",
+    "expected": "Raise ReadRefused: Table 3 has no arm header or outcome row before Table 4.",
+    "actual": "Returns ai=10, n1i=100, ci=20, n2i=100 with caption_span='Table 3: Adverse reactions in FIDELIO-DKD', although those counts belong to FIGARO-DKD.",
+    "id": "extr-r5:g1#1",
+    "record_id": "mc-7875fba6f4685af904748abc13a17295",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "The other-trial detector recognizes only uppercase hyphenated names. A caption explicitly naming two trials passes when the second name is lowercase, allowing aggregate counts to be served for one trial.",
+    "failing_input": "read_label_adr_table('Table 3: Adverse reactions in FIDELIO-DKD and figaro-dkd\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 10 (10) 20 (20)', {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'})",
+    "expected": "Raise ReadRefused because the caption names multiple trials.",
+    "actual": "Returns ai=10, n1i=100, ci=20, n2i=100; neither the other-trial check nor the pooling check detects the second trial.",
+    "id": "extr-r5:g1#2",
+    "record_id": "mc-7875fba6f4685af904748abc13a17295",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "The denominator-ambiguity check recognizes only N= syntax. Explicit safety denominators written with colons are ignored, and rounded percentages can reconcile against the wrong randomised denominators.",
+    "failing_input": "read_label_adr_table('Table 3: Adverse reactions in FIDELIO-DKD\\nRandomised population\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nSafety population: Kerendia (n: 80); Placebo (n: 80)\\nHyperkalemia 1 (1) 1 (1)', {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'})",
+    "expected": "Raise ReadRefused because another population and denominator pair intervene before the row.",
+    "actual": "Returns ai=1, n1i=100, ci=1, n2i=100. The stated safety denominators are 80; both 1/80 and 1/100 round to the printed 1%.",
+    "id": "extr-r5:g1#3",
+    "record_id": "mc-7875fba6f4685af904748abc13a17295",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The log-HR guard misses 'log-transformed hazard ratio', so an explicitly logarithmic estimate and interval are returned as an ordinary HR.",
+    "failing_input": "read_abstract_clause('The log-transformed hazard ratio 0.20; 95% CI, 0.10-0.30.')",
+    "expected": "Raise ReadRefused because the clause explicitly reports a logarithmic hazard ratio.",
+    "actual": "Returns {'effect': 0.2, 'ci_low': 0.1, 'ci_high': 0.3}.",
+    "id": "extr-r5:g1#4",
+    "record_id": "mc-7875fba6f4685af904748abc13a17295",
+    "verdict": null
+   }
+  ]
+ },
+ "extr-r5-agy": {
+  "base": "b2e31705a",
+  "head": "9935a4e52",
+  "runs": {
+   "g1": {
+    "record_id": "mc-26b5124acccf9f304d9f7393e2599bad",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/extractor_replay.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/v14_02_dpp4_hhf.py"
+    ],
+    "prompt_sha256": "ec35570cf25ffb6564e0638db500f1968450eceae679e9e404948b94b20e2ee2"
+   },
+   "g2": {
+    "record_id": "mc-b9c10628d1c513e95e186de0a0b3106c",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "9f84b98f205e3f550d1c0ad850a909b1c83290aec2416c2fbbf5d33e29b374cc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P1",
+    "claim": "read_label_adr_table fails on any matched row with UnboundLocalError because it never unpacks row.groups() into (et, pt, ec, pc) before evaluating 'et, ec = int(et), int(ec)' and referencing pt/pc. Because replay() only catches ReadRefused, this exception crashes replay() and provenance_class.classify_served(), preventing any valid label_adr_table row from being verified or classified as EXTRACTOR.",
+    "failing_input": "read_label_adr_table(text='Table 3: Adverse reactions in FIDELIO-DKD\\nKerendia N = 2827 n (%) Placebo N = 2831 n (%)\\nHyperkalemia 542 (19.2) 261 (9.2)\\n', spec={'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'})",
+    "expected_output": "{'ai': 542, 'n1i': 2827, 'ci': 261, 'n2i': 2831, 'raw_row': 'Hyperkalemia 542 (19.2) 261 (9.2)', 'row_span': 'Hyperkalemia 542 (19.2) 261 (9.2)', 'header_span': 'Kerendia N = 2827 n (%) Placebo N = 2831 n (%)', 'caption_span': 'Table 3: Adverse reactions in FIDELIO-DKD'}",
+    "actual_output": "UnboundLocalError: cannot access local variable 'et' where it is not associated with a value",
+    "expected": "-",
+    "actual": "-",
+    "id": "extr-r5-agy:g1#1",
+    "record_id": "mc-26b5124acccf9f304d9f7393e2599bad",
+    "verdict": null
+   }
+  ]
  }
 }

@@ -39,7 +39,8 @@ _NUM = r"(\d+(?:\.\d+)?)(?!\d|\.\d|,\d{3}|[eE][-+\u2212]?\d)"
 _HR = re.compile(r"(?:HR of|\[HR\],|hazard ratio(?: \[HR\])?,?|\bHR\b)\s*" + _NUM + r"\s*\(?;?\s*95% CI,?\s*" + _NUM
                  + r"\s*(?:,|-|\u2013|to)\s*" + _NUM)
 # a LOG hazard ratio is not a hazard ratio (extr-r4#1, flow-r2#2): such a clause is refused, never exponentiated here
-_LOG_HR = re.compile(r"\b(?:log|ln|logarithm(?:ic)?)[\s-]*(?:of\s+(?:the\s+)?)?(?:hazard\s+ratio|HR)\b", re.I)
+_LOG_HR = re.compile(r"\b(?:log|ln|logarithm(?:ic)?)(?:[\s-]*(?:transformed|scale[d]?))?[\s-]*(?:of\s+(?:the\s+)?)?"
+                     r"(?:hazard\s+ratio|HR)\b", re.I)                       # + 'log-transformed HR' (extr-r5#4)
 
 
 def read_abstract_clause(clause: str) -> dict[str, Any]:
@@ -66,10 +67,10 @@ def _pct_ok(n: int, d: int, printed: str) -> bool:
 
 
 # a table caption ends a table whether it is 'Table N:' or 'Table N.' (extr-r4#3, flow-r2#3)
-_CAPTION_START = re.compile(r"\bTable\s+\d+\s*[:.]")
+_CAPTION_START = re.compile(r"\bTable\s+\d+\s*[:.]", re.I)               # 'TABLE 4:' too (extr-r5#1)
 # a caption naming a POOL of studies cannot supply one trial's counts (flow-r2#4)
 _POOLED = re.compile(r"\b(?:pooled|pooling|combined|integrated|across|meta-?analy)", re.I)
-_TRIAL_TOKEN = re.compile(r"\b[A-Z][A-Z0-9]+-[A-Z0-9]+\b")
+_TRIAL_TOKEN = re.compile(r"\b[A-Za-z][A-Za-z0-9]+-[A-Za-z0-9]+\b")   # 'figaro-dkd' too (extr-r5#2)
 
 
 def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
@@ -79,13 +80,13 @@ def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
         if not str(spec.get(k) or "").strip():
             raise ReadRefused(f"replay spec lacks {k!r}")
     # the trial is named within the caption's own two lines, never past another caption (extr-r2#4)
-    _line = r"(?:(?!\bTable\s+\d+\s*[:.])[^\n])*"
+    _line = r"(?:(?![Tt][Aa][Bb][Ll][Ee]\s+\d+\s*[:.])[^\n])*"
     cap = re.search(re.escape(spec["table"]).replace(r"\ ", r"\s+") + r"\s*:\s*Adverse\s+reactions\b" + _line + r"\n?"
                     + _line + re.escape(spec["trial"]) + _line, text, re.I)
     if not cap:
         raise ReadRefused(f"{spec['table']} caption naming {spec['trial']} not found")
     caption = re.sub(r"\s+", " ", cap.group(0)).strip()
-    others = sorted(set(_TRIAL_TOKEN.findall(caption)) - {spec["trial"]})
+    others = sorted({t for t in _TRIAL_TOKEN.findall(caption) if t.lower() != spec["trial"].lower()})
     if _POOLED.search(caption) or others:
         raise ReadRefused(f"the caption names a pool or other trials ({others or 'pooled'}): not {spec['trial']}'s counts")
     # the table ends where the next caption starts: a header or row past it belongs to another table (extr-r1#4)
@@ -104,7 +105,7 @@ def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
     # caption and the row, and no other 'N =' between the header and the row (randomised v safety populations;
     # extr-r3#2, r4#4, agy flow-r2 g1#2 -- the whole span before the row, not only after the header)
     if (len(list(hdr_rx.finditer(text, cap.end(), row.start()))) != 1
-            or re.search(r"\b[Nn]\s*=\s*\d", text[cap.end():hdr.start()] + "\n" + text[hdr.end():row.start()])):
+            or re.search(r"\b[Nn]\s*[:=]\s*\d", text[cap.end():hdr.start()] + "\n" + text[hdr.end():row.start()])):
         raise ReadRefused("more than one denominator statement before the row: the row's denominators are ambiguous")
     nt, nc = (int(x.replace(",", "")) for x in hdr.groups())
     et, pt, ec, pc = row.groups()
