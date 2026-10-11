@@ -40,3 +40,7 @@ The default-branch `harness/index.py` inspected for this task had blob SHA `6a43
 ## Status when this document was created
 
 The original 30-author AllMeta introduction batch was confirmed in Gmail. Those messages did not constitute the proposed combined Meta-harness, AllMeta and Synthesis campaign. No expanded-campaign messages were sent during this check. The public harness homepage was not successfully fetched by the web tool, so its currently served wording and deployment identity remain unverified in this check.
+
+## Public page status update — 11 October 2026
+
+The new standalone outreach landing page is at `/research-stage/` and can be used only after its CI and deployment are confirmed. It is intentionally separate from the generated legacy `/index.html`, because modifying `harness/index.py` changes the code identity pinned by the existing review certificates. The generated homepage still requires an independently verified, certificate-aware and ratchet-acknowledged correction; **do not represent it as corrected yet**. Its historic claims must not be used for outreach. The research-stage page avoids overclaims without modifying any held analysis or integrity certificate.

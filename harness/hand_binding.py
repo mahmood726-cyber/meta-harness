@@ -395,7 +395,7 @@ def _ownership(spec: dict[str, Any], cand: dict[str, Any], prose: str, tup: dict
             te._components_from_text(x, expand_named_composites=False)
             or te._NAMED_COMPOSITE_RX.search(x.lower()) or _family_match_tolerant(spec, x)))
     canon = te.canonical_components(spec)
-    own = te._components_from_text(own_text, expand_named_composites=False)
+    own = te._components_from_text(own_text, expand_named_composites=False, mark_unknown=True)
     if own:
         cls = te._classify(spec, own_text, components=own)
         cls.update({"endpoint_binding": te.BINDING_SELF, "endpoint_result_span": cand["text"],
