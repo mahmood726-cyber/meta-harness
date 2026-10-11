@@ -210,3 +210,81 @@ def test_PLANT_the_basis_of_an_unestablished_generic_or_umbrella_label_says_so()
                           {"pooled_outcome": "Cardiovascular death or worsening heart failure", "registered_title": None,
                            "role": None})
     assert u["level"] == "not_assessable" and "unspecified heart-failure event" in u["basis"]
+
+
+# ---- codex comp-r1 (PR #83): plants that fail on 12d0a4cf9 --------------------------------------------------------
+@pytest.mark.parametrize("text,unknown", [
+    ("Composite of cardiovascular death or amputation", "amputation"),                                  # g1#1
+    ("Composite of cardiovascular death, myocardial infarction, stroke; amputation", "amputation"),     # g1#2
+])
+def test_PLANT_comp_r1_an_unknown_part_is_never_dropped(text, unknown):
+    p = C.parse(text)
+    assert unknown in p.unrecognised and not p.established
+
+
+def test_PLANT_comp_r1_a_listing_semicolon_before_follow_up_still_ends_the_listing():
+    p = C.parse("The primary end point was CV death, MI, or stroke; median follow-up was 3 years")
+    assert p.established and p.unrecognised == ()
+
+
+def test_PLANT_comp_r1_3_a_stated_cv_death_is_kept_beside_a_kidney_composite():
+    assert sorted(te._components_from_text("Composite of cardiovascular death, kidney failure")) == \
+        ["cardiovascular death", "kidney failure"]
+
+
+def test_PLANT_comp_r1_4_label_identity_never_passes_an_unknown_part_in_the_description():
+    label = "Cardiovascular death, myocardial infarction or stroke"
+    r = rob2.outcome_match_v3(label, {"title": label, "measure": label,
+                                      "description": "Composite of cardiovascular death, myocardial infarction, stroke "
+                                                     "or amputation"})
+    assert r["matched"] is not True
+
+
+def test_PLANT_comp_r1_5_heatstroke_is_not_stroke():
+    assert rob2._component_set("Heatstroke") == frozenset()
+    assert "stroke" in C.names("Nonfatal strokes")
+
+
+def test_PLANT_comp_r1_6_a_threshold_number_defines_the_outcome_a_timepoint_does_not():
+    assert not rob2._term_identity("At least 50 percent reduction in pain", "At least 30 percent reduction in pain")
+    assert rob2._term_identity("All-cause mortality at 28 days", "All-cause mortality")
+
+
+@pytest.mark.parametrize("src,role", [
+    ("No difference in the primary outcome was observed.", "primary"),                                     # g2#1
+    ("The primary outcome occurred in 20 patients; an exploratory analysis assessed biomarkers.", "primary"),  # g2#2
+    ("No primary outcome was prespecified; the result was exploratory.", None),
+    ("This exploratory primary outcome analysis was post hoc.", None),
+])
+def test_PLANT_comp_r1_g2_role_from_source_reads_the_phrase_own_clause(src, role):
+    import rob2_build as rb
+    assert rb.role_from_source(src) == role
+
+
+def test_PLANT_comp_r1_g2_3_a_registered_factorial_needs_one_other_active_factor(monkeypatch, tmp_path):
+    import json
+    import rob2_build as rb
+    (tmp_path / "topics").mkdir()
+    (tmp_path / "topics" / "t.json").write_text(json.dumps({"intervention_terms": ["aspirin"],
+                                                            "comparator_terms": ["placebo"]}), encoding="utf-8")
+    monkeypatch.setattr(rb, "ROOT", str(tmp_path))
+    monkeypatch.setattr(rb, "INTERVENTIONS", {"NCT1": [("aspirin", "DRUG"), ("vitamin E", "DRUG"), ("placebo", "DRUG")]})
+    assert rb.factor_terms("t", ["NCT1"], factorial=True) == (["aspirin"], ["vitamin E"])
+    assert rb.factor_terms("t", ["NCT1"])[1] == []          # not registered factorial: one active is a comparator
+
+
+def test_PLANT_comp_r1_sweep_systemic_embolism_and_kidney_transplant_are_components():
+    """Found by the comp-r1 sweep: once a single-component listing is judged (comp-r1#1), 'stroke or systemic embolism'
+    (RE-LY, ROCKET AF, ARISTOTLE) and EMPA-KIDNEY's 'receipt of a kidney transplant' were unknown parts."""
+    p = C.parse("The primary outcome was stroke or systemic embolism.")
+    assert p.established and {"stroke", "systemic embolism"} <= set(p.components)
+    assert "systemic embolism" in C.target_set("Stroke or systemic embolism")
+    k = C.parse("Kidney disease progression (end-stage kidney disease, receipt of a kidney transplant, sustained eGFR "
+                "decline) or cardiovascular death")
+    assert "receipt of a kidney transplant" not in k.unrecognised
+
+
+def test_PLANT_comp_r1_agy_1_a_hyphenated_non_qualifier_is_not_a_negation_of_the_role():
+    """agy (Gemini) comp-r1-agy g3 (mc-bb8232f2): 'non-fatal' qualifies the events, it does not negate the role."""
+    import rob2_build as rb
+    assert rb.role_from_source("The non-fatal primary endpoint occurred in 10 patients.") == "primary"

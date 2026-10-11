@@ -73,6 +73,7 @@ IDS = {
     "kidney progression composite": "KIDNEY_PROGRESSION_COMPOSITE",
     "madrs change": "MADRS_CHANGE",
     "recurrent vte": "RECURRENT_VTE",
+    "systemic embolism": "SYSTEMIC_EMBOLISM",
 }
 NAMES = {v: k for k, v in IDS.items()}
 STANDARD_3P = frozenset({"cardiovascular death", "myocardial infarction", "stroke"})
@@ -80,7 +81,7 @@ _CARDIO = frozenset({"coronary heart disease death", "cardiovascular death", "al
                      "stroke", "transient ischemic attack", "unstable angina", "angina hospitalization",
                      "coronary revascularization", "cardiac intervention", "cardiac arrest",
                      "heart failure hospitalization", "urgent heart failure visit", "heart failure death",
-                     "heart failure event"})
+                     "heart failure event", "systemic embolism"})
 
 GENERIC_LABEL_RX = re.compile(r"\bmace\b|\bmajor adverse cardiovascular events?\b|\bmajor (?:adverse )?cardiovascular "
                               r"events?\b|\bmajor (?:adverse )?vascular events?\b|\bmajor cardiac events?\b")
@@ -137,7 +138,7 @@ def _named(s: str) -> set[str]:
         comps.add("recurrent events")
     if "myocardial infarction" in s or re.search(r"\bmi\b", s):
         comps.add("myocardial infarction")
-    if "stroke" in s:
+    if re.search(r"\bstrokes?\b", s):                # never 'heatstroke' / 'sunstroke' (codex comp-r1#5)
         comps.add("stroke")
     if "unstable angina" in s:
         comps.add("unstable angina")
@@ -159,8 +160,13 @@ def _named(s: str) -> set[str]:
         comps.add("cardiac arrhythmia")
     if re.search(r"\bmajor bleed", s):
         comps.add("major bleeding")
-    if "kidney failure" in s:
+    # receipt of a kidney transplant IS kidney failure (the CKD-progression definitions list it beside dialysis; the shared
+    # vocabulary read it as an unknown part, sglt2-ckd EMPA-KIDNEY registry text)
+    if "kidney failure" in s or re.search(r"\b(?:kidney|renal) transplant", s):
         comps.add("kidney failure")
+    # systemic embolism: the AF-trial composite 'stroke or systemic embolism' (RE-LY, ROCKET AF, ARISTOTLE)
+    if re.search(r"\bsystemic (?:arterial )?embol", s):
+        comps.add("systemic embolism")
     if "kidney composite" in s or "renal composite" in s or "composite kidney outcome" in s:
         comps.update({"kidney failure", "sustained egfr decline", "renal death"})
     if "egfr" in s and any(w in s for w in ("decline", "decrease", "reduction")):
@@ -264,12 +270,23 @@ def unrecognised_parts(text: str | None) -> tuple[str, ...]:
     return tuple(unknown)
 
 
+# what may follow a ';' that ENDS a listing: another outcome role, or a clause about follow-up / the population / what
+# happened -- never another event (a whitelist of terminators, as for the harms definition cut)
+_CLAUSE_AFTER_SEMI = (r"(?:and\s+|while\s+|whereas\s+)?(?:the\s+|a\s+|an\s+|its\s+)?(?:key\s+|main\s+|major\s+)?"
+                      r"(?:(?:primary|secondary|tertiary|exploratory|other|additional|safety)\s+(?:efficacy\s+)?"
+                      r"(?:outcomes?|end\s*-?points?|measures?)\b|(?:median\s+)?follow[- ]?up\b|median\b|patients\b"
+                      r"|participants\b|subjects\b|there\s+(?:was|were)\b|it\s+(?:was|is)\b|this\b|these\b)")
+
+
 def _segment_text(text: str) -> str:
     """A listing's text up to where it ends: a sentence break, a ';', a comparison, a result parenthesis, or a RESULT cue
     (a listing never runs on into what happened: 'a 3-point MACE event occurred in 336 patients', VESALIUS-CV)."""
     # (a double quote too: registry text quotes a population label -- empagliflozin's '... (HHF) "Failure with preserved
     # Ejection Fraction (HFpEF)', truncated at source)
-    seg = re.split(r"\b(?:compared\s+(?:to|with)|versus|vs\.?)\b|\.\s|;|[\"“”]|\(\s*(?:hazard|hr|rr|95%)"
+    # a ';' ends a listing only before ANOTHER role's clause or a non-listing clause cue; a ';'-separated listing stays
+    # whole, so a part after it is read, never hidden ('... stroke; amputation', codex comp-r1#2)
+    seg = re.split(r"\b(?:compared\s+(?:to|with)|versus|vs\.?)\b|\.\s|;(?=\s*" + _CLAUSE_AFTER_SEMI + r")"
+                   r"|[\"“”]|\(\s*(?:hazard|hr|rr|95%)"
                    r"|\b(?:occurred|occurring|developed|was reported|were reported)\b|\d+(?:\.\d+)?\s*%"
                    # ... or a METHOD cue ('was evaluated using time-to-event analysis', GLP-1 registry text)
                    r"|\b(?:was|were)\s+(?:evaluated|analy[sz]ed|assessed|calculated|estimated)\b|\busing\b"
@@ -282,9 +299,11 @@ def _segment_text(text: str) -> str:
 def _listing_segment(s: str) -> str:
     """The listing of a FOLDED text, or '' when it is not a cardiovascular listing."""
     s = re.split(r"\bsecondary\s+(?:\w+\s+){0,2}(?:end\s*-?points?|outcomes?)\b", s, maxsplit=1)[0]
-    # only a CARDIOVASCULAR listing is judged (>= 2 cardiovascular components, or a generic cardiovascular label): this
-    # vocabulary is cardiovascular, and a VTE or respiratory composite is not read by it (rob2-r1 of PR #67)
-    if len(_named(s) & _CARDIO) < 2 and not GENERIC_LABEL_RX.search(s):
+    # only a CARDIOVASCULAR listing is judged (>= 1 cardiovascular component, or a generic cardiovascular label): this
+    # vocabulary is cardiovascular, and a VTE or respiratory composite is not read by it (rob2-r1 of PR #67). One is
+    # enough: 'Composite of cardiovascular death or amputation' names an unknown part (codex comp-r1#1)
+    # (all-cause death alone does not make a listing cardiovascular: 'death, dementia or disability' is not read here)
+    if not (_named(s) & (_CARDIO - {"all-cause death"})) and not GENERIC_LABEL_RX.search(s):
         return ""
 
     def _segment(start: int) -> str:
@@ -337,7 +356,8 @@ def parse(text: str | None, expand_standard: bool = True) -> Parse:
         # recurrent VTE IS its parts (DVT, PE): beside its own umbrella they are not extra components (doac-vte)
         comps -= {"pulmonary embolism", "deep vein thrombosis"}
     if "kidney progression composite" in comps:
-        comps.discard("cardiovascular death")         # rob2's rule: a kidney composite's death is not a CV component
+        # a STATED cardiovascular death is never discarded beside a kidney composite (the old rob2-v2 rule did; rule 2,
+        # codex comp-r1#3: 'Composite of cardiovascular death, kidney failure' keeps both)
         if comps & {"kidney failure", "sustained egfr decline", "renal death"}:
             # the umbrella stands only for a kidney composite named WITHOUT its parts; beside its parts it is not an extra
             # component (finerenone FIDELIO / FIGARO were read as kidney composite + 3 parts)

@@ -55,17 +55,25 @@ def role_from_source(src):
     """'primary' / 'secondary' when the selected result's own clause REPORTS it as that endpoint ('A primary-outcome
     event occurred in ...', 'The primary end point occurred ...'); None when the phrase is negated or the clause calls
     the result exploratory / post hoc ('No primary outcome was prespecified; ... was exploratory'; rob2-r1 #4)."""
-    if re.search(r"\b(?:exploratory|post[- ]hoc|not\s+prespecified|unplanned)\b", src, re.I):
-        return None
     for kind in ("primary", "secondary"):
         for m in re.finditer(r"\b" + kind + r"[\s-]+(?:composite\s+)?(?:end\s*-?\s*point|outcome)", src, re.I):
-            if not re.search(r"\b(?:no|not|without|non|neither|nor)\b[\w\s,-]{0,25}$", src[max(0, m.start() - 30):m.start()],
-                             re.I):
-                return kind
+            # the exploratory / post-hoc veto reads the phrase's OWN clause, never the whole source ('The primary outcome
+            # occurred in 20 patients; an exploratory analysis assessed biomarkers', codex comp-r1 g2#2)
+            start = max(src.rfind(";", 0, m.start()), src.rfind(". ", 0, m.start())) + 1
+            ends = [i for i in (src.find(";", m.end()), src.find(". ", m.end())) if i >= 0]
+            clause = src[start:min(ends) if ends else len(src)]
+            if re.search(r"\b(?:exploratory|post[- ]hoc|not\s+prespecified|unplanned)\b", clause, re.I):
+                continue
+            # a negator must GOVERN the phrase -- only an article or 'prespecified'/'formal' between them ('No primary
+            # outcome was prespecified'); 'No difference in the primary outcome' negates the difference (g2#1)
+            if re.search(r"\b(?:no|not|without|non|neither|nor)[\s-]+(?:(?:a|an|the|any|pre-?specified|formal|single|"
+                         r"separate)\s+)*$", src[max(0, m.start() - 40):m.start()], re.I):
+                continue
+            return kind
     return None
 
 
-def factor_terms(slug, ncts):
+def factor_terms(slug, ncts, factorial=False):
     """(our intervention terms, OTHER factors' intervention names) -- the latter from AACT interventions of the trial's
     registry records (drug / biological / device / procedure), minus ours and placebo-like controls (CLEAR: colchicine
     is ours; spironolactone and the stent are other factors)."""
@@ -85,9 +93,10 @@ def factor_terms(slug, ncts):
                     or rob2._names_any(name, ours) or rob2._names_any(name, comp):
                 continue
             other[name] = 1
-    # a factorial trial has >= 2 ACTIVE arms besides ours (CLEAR: spironolactone + stent); one other active
-    # intervention is this trial's comparator or background therapy, never a factor whose outcomes are set aside
-    return sorted(set(ours)), (sorted(other) if len(other) >= 2 else [])
+    # without a registered FACTORIAL design, a factorial is recognised by >= 2 ACTIVE arms besides ours (CLEAR:
+    # spironolactone + stent) -- one other active intervention is then this trial's comparator or background therapy.
+    # A registered FACTORIAL design (AACT designs.intervention_model) needs only one: aspirin x vitamin E (comp-r1 g2#3)
+    return sorted(set(ours)), (sorted(other) if len(other) >= (1 if factorial else 2) else [])
 
 
 INTERVENTIONS = {}
@@ -207,7 +216,9 @@ def main(argv):
             primaries = [out for rn in registry_ncts for out in regprim.get(rn, [])]
             secondaries = [out for rn in registry_ncts for out in regsec.get(rn, [])]
             title, role, definition = sel_of.get(str(pid)) or (None, None, None)
-            ours, other = factor_terms(slug, registry_ncts)
+            factorial = any(str((designs.get(n.upper()) or {}).get("intervention_model") or "").upper() == "FACTORIAL"
+                            for n in registry_ncts)
+            ours, other = factor_terms(slug, registry_ncts, factorial)
             dom = rob2.assess(design, primaries, pooled_out, _match,
                               registered_secondaries=secondaries,
                               blinded_by_text=blinded_txt, randomized_by_text=rand_txt,

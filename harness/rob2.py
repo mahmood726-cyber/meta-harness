@@ -272,7 +272,9 @@ def outcome_match_v3(selected_text: str, registered: dict[str, str], matches=Non
     # the registered LABEL names the same component set in the same terms: the description only elaborates it (EMPHASIS-HF
     # 'First Occurrence of All-Cause Mortality', described by its causes of death). Never for a held definition span.
     label = _outcome_label(registered)
-    if (not is_definition and sc and not su and not cardio_unrecognised(label) and _component_set_v3(label) == sc
+    # ... and never past an unknown part anywhere in the registered outcome (codex comp-r1#4: a description adding
+    # 'amputation' makes it a broader composite)
+    if (not is_definition and sc and not su and not ru and _component_set_v3(label) == sc
             and _term_identity(selected_text, label)):
         return dict(base, matched=True, method="label_identity")
     if su or ru:
@@ -329,8 +331,16 @@ def _term_identity(a: str, b: str) -> bool:
     / MACE' to 'Incident Hypertension' (DO-HEALTH, 28-02), 'Recurrent pericarditis' to 'Symptom persistence at 72 hours'
     and '28-day all-cause mortality' to 'Ventilator-free days'."""
     ta, tb = _terms(a), _terms(b)
-    core_a, core_b = ta - _NEUTRAL - {x for x in ta if x.isdigit()}, tb - _NEUTRAL - {x for x in tb if x.isdigit()}
+    # only a TIMEPOINT number is neutral ('at 72 hours', '28-day'); any other number defines the outcome -- a response
+    # threshold ('at least 50 percent' v '30 percent') is a different outcome (codex comp-r1#6)
+    core_a, core_b = ta - _NEUTRAL - _timepoint_numbers(a), tb - _NEUTRAL - _timepoint_numbers(b)
     return bool(core_a) and core_a == core_b
+
+
+def _timepoint_numbers(text: str) -> set[str]:
+    s = components.fold(text)
+    unit = r"(?:hours?|days?|weeks?|months?|years?)"
+    return set(re.findall(r"\b(\d+)\s*-?\s*" + unit + r"\b", s)) | set(re.findall(r"\b" + unit + r"\s*-?\s*(\d+)\b", s))
 
 
 def _names_any(text: str, terms: list[str]) -> bool:
