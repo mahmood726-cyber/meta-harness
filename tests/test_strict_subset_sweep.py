@@ -21,10 +21,15 @@ def test_positive_controls_the_two_withdrawn_rows_fire():
         assert c["named_by_title"] == ["cardiovascular death"] and c["missed_by_title"] == ["worsening heart failure"]
 
 
-def test_the_lexicon_would_have_missed_them():
+def test_the_shared_parser_no_longer_collapses_them():
+    """Formerly 'the lexicon would have missed them': it asserted the defect's MECHANISM (the old lexicon collapsed
+    'worsening heart failure' to nothing, so the CV-death-only title read as the composite). The shared component parser
+    (DISPATCH_REVIEW29 P0) keeps the unspecified HF event, so the requirement is now asserted: name != title."""
     from harness import target_endpoint as te
-    assert set(te._components_from_text(NAME)) == {"cardiovascular death"}          # the collapse: 'worsening heart failure' -> nothing
-    assert set(te._components_from_text(DELIVER_TITLE)) == set(te._components_from_text(NAME))   # title == name under the lexicon: EXACT
+    assert set(te._components_from_text(NAME)) == {"cardiovascular death", "heart failure event"}
+    for title in (DELIVER_TITLE, EMPEROR_TITLE):
+        assert set(te._components_from_text(title)) == {"cardiovascular death"}
+        assert set(te._components_from_text(title)) != set(te._components_from_text(NAME)), title
 
 
 def test_titles_naming_every_clause_do_not_fire():

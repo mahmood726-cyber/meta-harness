@@ -232,7 +232,7 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_plain: strip XML tags from a cell / caption",
         "plants": {"accept": [("<td>0.87</td>", None), ("<italic>n</italic> (%)", None)],
                    "refuse": ["p &lt; 0.05", "n (%)"]}},
-    "hand_binding.py:split:59b745f04e": {
+    "hand_binding.py:split:35d25266ea": {
         "kind": "split", "what": "_sentences: split after ').' when a digit starts the next sentence",
         "plants": {"accept": [("p=0.067). 2347 (47.4%) participants", ["p=0.067).", "2347 (47.4%) participants"])],
                    "refuse": ["p=0.067). The rate", "(p=0.067) 2347 participants"]}},
@@ -313,7 +313,7 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_label_definition: non-letters in a table label become spaces",
         "plants": {"accept": [("3-point mace", None), ("primary (composite)", None)],
                    "refuse": ["primary composite outcome", "mace"]}},
-    "hand_binding.py:_RESULT_PAREN": {
+    "hand_binding.py:_IS_RESULT": {
         "kind": "search", "what": "_owning_clause: a parenthesised result carrying its confidence interval",
         "plants": {"accept": [("fatal or hospitalized HF (HR, 0.70; 95% CI, 0.51-0.96)", None),
                               ("[hazard ratio 0.87, CI 0.78-0.97]", None),

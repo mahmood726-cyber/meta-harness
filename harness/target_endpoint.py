@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import components
 from . import extract, hand_binding
 from .ctgov_results import _classify_arms, _num, _registry_measure_type
 
@@ -163,103 +164,19 @@ def protocol_rule_object() -> dict[str, Any]:
 
 
 def _fold(text: str | None) -> str:
-    s = str(text or "").lower()
-    replacements = {
-        "hospitalisation": "hospitalization",
-        "hospitalisations": "hospitalizations",
-        "cardiovascular": "cardiovascular",
-        "cv ": "cardiovascular ",
-        "hhf": "heart failure hospitalization",
-        "e-gfr": "egfr",
-    }
-    for old, new in replacements.items():
-        s = s.replace(old, new)
-    # the adverse-event families abbreviated, as safety tables label them (esketamine Table 4: 'TEAEs | 120 (95.2)')
-    s = re.sub(r"\bteaes?\b", "treatment-emergent adverse events", s)
-    s = re.sub(r"\bsaes?\b", "serious adverse events", s)
-    s = re.sub(r"\baes?\b", "adverse events", s)
-    return re.sub(r"\s+", " ", s)
+    """The shared fold (harness/components.fold): one normalisation for every route that reads components."""
+    return components.fold(text)
 
 
 def _components_from_text(text: str | None, expand_named_composites: bool = True) -> set[str]:
-    """Components a span NAMES.  With expand_named_composites (default, definition spans) a bare
-    'MACE' / '3-point MACE' with no enumerated components expands to the canonical 3-point set; a
-    RESULT span is read with expansion OFF so that 'MACE occurred in ... (HR ...)' resolves to the
-    abstract's definition sentence instead of asserting a component set the sentence never states."""
-    s = _fold(text)
-    comps: set[str] = set()
-    if ("coronary heart disease death" in s or "death from coronary heart disease" in s
-            or re.search(r"\bchd\b.{0,30}death|death.{0,30}\bchd\b", s)):
-        comps.add("coronary heart disease death")
-    # 'non-cardiovascular death' / 'death from non-cardiovascular causes' is NOT cardiovascular death
-    # (colchicine-secondary-cv-prevention's 'Non-cardiovascular death' outcome was read as CV death)
-    s_cv = re.sub(r"\bnon-?\s?cardiovascular\b", "noncv", s)
-    if ("cardiovascular death" in s_cv or "death from cardiovascular" in s_cv
-            or "cardiovascular causes" in s_cv
-            or re.search(r"cardiovascular(?:(?!\b(?:or|and)\b|[,;]).){0,30}death|death(?:(?!\b(?:or|and)\b|[,;]).){0,30}cardiovascular", s_cv)
-            or re.search(r"\bcv\b.*death|death.*\bcv\b", s_cv)
-            # 'death from vascular causes' / 'vascular death' is the PLATO / PHILO / ASCEND / ORIGIN
-            # phrasing of cardiovascular death (not 'cerebrovascular')
-            or re.search(r"(?<!cerebro)(?<!cardio)(?<!non-)(?<!non)\bvascular death|(?<!non-)death from vascular causes", s)):
-        comps.add("cardiovascular death")
-    if "transient ischemic attack" in s or "transient ischaemic attack" in s or re.search(r"\btia\b", s):
-        comps.add("transient ischemic attack")
-    if (("heart failure" in s and "hospitalization" in s)
-            or "hospitalizations due to heart failure" in s
-            # 'hospitalized HF' / 'HF hospitalisation' (CANVAS HF paper: 'hospitalized HF alone (HR, 0.67 ...)')
-            or (re.search(r"\bhf\b", s) and re.search(r"hospitali[sz]", s))
-            # the VERB form of the same endpoint: SAVOR-TIMI 53 'were hospitalized for heart failure (3.5% vs. 2.8%;
-            # hazard ratio, 1.27 ...)' was ENDPOINT_UNBOUND while TECOS's noun form bound (6 Oct). 'hospitalized WITH
-            # heart failure' is how a POPULATION is described ('patients hospitalized with heart failure'), so not here.
-            # An EVENT, not a description of who enrolled: predicative ('were/was hospitalized for HF') or stated with a
-            # result (HR/RR/OR, %, vs) -- and never in an eligibility / enrolment sentence ('Patients hospitalized for heart
-            # failure were eligible' describes who entered: codex captain-v8-groundwork g1#1)
-            or (re.search(r"\bhospitali[sz]ed\s+(?:for|because of|due to)\s+(?:acute\s+|worsening\s+)?(?:heart failure|hf)\b", s)
-                and (re.search(r"\b(?:were|was|been|being|be)\s+(?:re)?hospitali[sz]ed\b", s)
-                     or re.search(r"hazard ratio|odds ratio|risk ratio|\b(?:hr|rr|or)\b|%|\bvs\b|versus", s))
-                and not re.search(r"\b(?:eligib|enrol|inclusion|recruit)", s))):
-        comps.add("heart failure hospitalization")
-    # 'fatal or hospitalized HF' / 'death from heart failure' is a heart-failure death component, not HHF alone
-    if re.search(r"(?<!non-)(?<!non)\bfatal\b.{0,25}\b(?:hf|heart failure)\b|death from heart failure|heart failure death", s):
-        comps.add("heart failure death")
-    if "urgent visit" in s and ("heart failure" in s or re.search(r"\bhf\b", s)):
-        comps.add("urgent heart failure visit")
-    if (
-        "recurrent" in s
-        and ("hospitalization" in s or "event" in s)
-        and (
-            "rate of recurrent" in s
-            or "recurrent event rate" in s
-            or "total recurrent" in s
-            or "first and recurrent" in s
-            # a registry measure declared as a recurrent-event analysis (AFFIRM-AHF: "HF hospitalisations
-            # ... analysed as recurrent event") is a recurrent-event estimand, not a first-event count
-            or re.search(r"analy[sz]ed as (?:a )?recurrent event|recurrent[- ]event analysis", s)
-        )
-    ):
-        comps.add("recurrent events")
-    if "myocardial infarction" in s or re.search(r"\bmi\b", s):
-        comps.add("myocardial infarction")
-    if "stroke" in s:
-        comps.add("stroke")
-    if "unstable angina" in s:
-        comps.add("unstable angina")
-    if "coronary revascularization" in s or "revascularisation" in s:
-        comps.add("coronary revascularization")
-    if "kidney failure" in s:
-        comps.add("kidney failure")
-    if "kidney composite" in s or "renal composite" in s or "composite kidney outcome" in s:
-        comps.update({"kidney failure", "sustained egfr decline", "renal death"})
-    if "egfr" in s and any(w in s for w in ("decline", "decrease", "reduction")):
-        comps.add("sustained egfr decline")
-    if "renal death" in s or "death from renal" in s:
-        comps.add("renal death")
-    if expand_named_composites and ("mace" in s or "major adverse cardiovascular" in s or "major cardiovascular" in s):
-        if not comps or "3-point" in s or "three-point" in s:
-            comps.update({"cardiovascular death", "myocardial infarction", "stroke"})
-        if "4-point" in s or "four-point" in s:
-            comps.add("unstable angina")
-    return comps
+    """Components a span NAMES -- the ONE shared parser (harness/components.py, DISPATCH_REVIEW29 P0).
+
+    A bare generic label ('MACE', 'major (adverse) cardiovascular events', 'major vascular events') is NEVER expanded from
+    source text any more, whatever `expand_named_composites` says: it binds to the trial's own definition span or the
+    endpoint is not established (the former expansion served Alpha Omega's '... and cardiac interventions' composite as
+    EXACT 3-point MACE). An explicit '3-point' / '4-point' MACE still names its standard set. The flag is kept for the
+    callers' signatures; the REVIEW's own target expands its generic name in canonical_components()."""
+    return components.names(text, expand_standard=expand_named_composites)
 
 
 def _result_sentence(abstract: str, source: str | None) -> str | None:
@@ -305,6 +222,9 @@ def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
         out.append({
             "span": x.strip(),
             "components": comps,
+            # listing parts naming an event the shared vocabulary does not know: the definition does NOT establish a
+            # component set (Alpha Omega '... fatal and nonfatal cardiovascular events and cardiac interventions')
+            "unrecognised": list(components.unrecognised_parts(x)),
             "ordinal": ref["ordinal"], "timepoint": ref["timepoint"], "population": ref["population"],
             "primary": bool(q and q.group("pri")) or bool(extract._ANCHOR_RX.search(xl)) or bool(re.search(r"\bprimary (?:[a-z-]+ ){0,3}?(?:measure|variable)s?\b", xl)),
             "secondary": bool(q and q.group("sec")),
@@ -330,6 +250,9 @@ def bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
     own = _components_from_text(rs, expand_named_composites=False)
     names_endpoint = bool(_NAMED_COMPOSITE_RX.search(rs.lower()))
     if own:
+        own_unknown = list(components.unrecognised_parts(rs))
+        if own_unknown:
+            return _not_established(rs, rs, own, own_unknown)
         # the result sentence states its own component set (one component = a component-only result;
         # "the second primary outcome (total heart failure hospitalizations) occurred ..." = that
         # component): the sentence is its own definition span
@@ -371,6 +294,8 @@ def bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
         rec = res["record"]
         if res["selected"] is not None:
             d = res["selected"]
+            if d.get("unrecognised"):
+                return dict(_not_established(rs, d["span"], d["components"], d["unrecognised"]), **rec)
             n = len(rec["definition_candidates"])
             by = (" by " + " + ".join(res["how"])) if res["how"] else ""
             return {"binding": BINDING_DEFINITION, "endpoint_result_span": rs,
@@ -390,8 +315,21 @@ def bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
             "binding_reason": "result sentence names neither components nor an endpoint"}
 
 
+def _not_established(result_span: str, definition_span: str, comps, unknown) -> dict[str, Any]:
+    """A definition (or self-defining result) span with a listing part the shared vocabulary does not know: the
+    component set is NOT ESTABLISHED, so the row does not bind -- an unknown part is never dropped (DISPATCH_REVIEW29
+    rule 2). It classifies as ENDPOINT_UNBOUND, the typed refusal every consumer already handles as 'awaiting
+    adjudication', with the parts named."""
+    return {"binding": BINDING_NONE, "endpoint_result_span": result_span,
+            "endpoint_definition_span": definition_span, "components": set(),
+            "components_not_established": sorted(unknown), "components_recognised": sorted(comps),
+            "binding_reason": ("NOT_ESTABLISHED: the definition span lists component(s) the shared vocabulary does "
+                               f"not recognise {sorted(unknown)}; recognised {sorted(comps)}")}
+
+
 def _unbound_classification(binding: dict[str, Any]) -> dict[str, Any]:
     return {
+        **{k: binding[k] for k in ("components_not_established", "components_recognised") if k in binding},
         "target_endpoint_class": ENDPOINT_UNBOUND,
         "target_components": [],
         "extra_components": [],
@@ -619,6 +557,9 @@ def admit_rows(spec: dict[str, Any], trials: list[dict[str, Any]]):
             "endpoint_result_span": t.get("endpoint_result_span"),
             "endpoint_definition_span": t.get("endpoint_definition_span"),
             "target_endpoint_class": t.get("target_endpoint_class"),
+            # the document the refusal was READ from, as an abstention carries it: a refusal on evidence names its
+            # evidence (P0: a SOUL row named LEADER's full text and was refused there without saying so)
+            **({"held_document": t["held_document"]} if t.get("held_document") else {}),
             "refused_effect": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale", "ai", "n1i", "ci", "n2i")
                                if t.get(k) is not None},
             "source": t.get("source", ""), "provenance": t.get("provenance"),
@@ -633,10 +574,10 @@ def canonical_components(spec: dict[str, Any]) -> list[str]:
         # 'Trial-defined primary cardiorenal composite'): there is no canonical component set to
         # match against, so classification falls back to the outcome-family keyword match.
         return []
-    explicit = spec.get("components") or spec.get("canonical_components")
-    if explicit:
-        return sorted(_components_from_text(" ; ".join(map(str, explicit))) or {str(x) for x in explicit})
-    return sorted(_components_from_text(spec.get("name")))
+    # the REVIEW's declared target: its explicit components, else its name -- where a generic name ('Major vascular events
+    # / MACE') IS the standard 3-point set. That expansion is the review's protocol decision about ITS target, never a
+    # reading of a trial's source text (harness/components.target_set; DISPATCH_REVIEW29 rule 3).
+    return sorted(components.target_set(spec.get("name"), spec.get("components") or spec.get("canonical_components")))
 
 
 def _keyword_family_match(spec: dict[str, Any], text: str | None) -> bool:

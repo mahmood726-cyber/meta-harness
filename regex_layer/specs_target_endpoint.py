@@ -186,3 +186,55 @@ SITE_SPECS: dict = {
                               ("recruited from 30 sites", None)],
                    "refuse": ["were hospitalized for heart failure", "hazard ratio 1.27"]}},
 }
+
+
+# ---- P0 (DISPATCH_REVIEW29, PR #83): the component vocabulary moved from harness/target_endpoint.py's
+# _components_from_text into ONE shared parser, harness/components.py (_named). A site's id hashes its pattern text, so a
+# pattern moved verbatim keeps its hash and only changes file; a pattern P0 rewrote has a new hash. The plants are the
+# requirement and move with the site; nothing is re-planted silently. components.py is not an owned file
+# (sites_without_plants.json): its planted sites are held while they exist, never a gate on new ones.
+P0_MOVED = {k: k.replace("target_endpoint.py", "components.py", 1) for k in (
+    "target_endpoint.py:search:2535b7ece1", "target_endpoint.py:search:3994cff820", "target_endpoint.py:search:8292d00421",
+    "target_endpoint.py:search:87b0688b0c", "target_endpoint.py:search:a76d57a8e4", "target_endpoint.py:search:c2741ecf04",
+    "target_endpoint.py:search:c511b01726", "target_endpoint.py:search:dd5374fdc1", "target_endpoint.py:search:e0e9b4f7fb",
+    "target_endpoint.py:sub:0b02262c07", "target_endpoint.py:sub:7b4eac99d8#2", "target_endpoint.py:sub:cb26b534c7",
+    "target_endpoint.py:sub:fce6fbe7f9", "target_endpoint.py:sub:ff4ae8621b")}
+P0_MOVED.update({
+    # rewritten by P0 -- the same role, the plants still hold (each checked against the new pattern)
+    "target_endpoint.py:search:b01e38dc40": "components.py:search:850bd15c8b",     # CHD death: + 'fatal CHD' (never 'non-fatal')
+    "target_endpoint.py:search:05aff607b5": "components.py:search:02f207b087",     # CV death with words between (+ mortality)
+    "target_endpoint.py:search:bb8366c955#2": "components.py:search:7229b1e928",   # urgent HF visit
+    # comp-r4#6: 'fatal' no longer crosses a part separator (coordinated 'fatal or hospitalized HF' kept): new pattern
+    "target_endpoint.py:search:2535b7ece1": "components.py:search:530b27594b",
+})
+# the HF-abbreviation and the hospitalisation patterns were ONE rule in two searches; P0 (codex comp-r2#2) made them one
+# proximity pattern ('angina hospitalization or urgent HF visit' named no HF hospitalization): both plant sets hold to it
+P0_MERGED = {"components.py:search:d228497418": ("target_endpoint.py:search:bb8366c955",
+                                                 "target_endpoint.py:search:8c575f0c81")}
+# superseded by components.fold(), which expands 'cv-' / '(cv)' before any pattern reads the text: no regex site is left;
+# the two plants are kept as behaviour tests of the parser (tests/test_components.py)
+P0_RETIRED = {"target_endpoint.py:search:3cac5c21b4": "CV abbreviation: expanded by components.fold(), not a regex site"}
+
+
+def p0_migrate(d: dict, merge_value) -> dict:
+    out = {k: v for k, v in d.items() if k not in P0_MOVED and k not in P0_RETIRED
+           and not any(k in olds for olds in P0_MERGED.values())}
+    for old, new in P0_MOVED.items():
+        if old in d:
+            out[new] = d[old]
+    for new, olds in P0_MERGED.items():
+        vals = [d[o] for o in olds if o in d]
+        if vals:
+            out[new] = merge_value(vals)
+    return out
+
+
+def _merge_specs(vals):
+    first = dict(vals[0])
+    first["what"] = " + ".join(v["what"] for v in vals) + " (one proximity pattern since P0)"
+    first["plants"] = {"accept": [a for v in vals for a in v["plants"]["accept"]],
+                       "refuse": [r for v in vals for r in v["plants"]["refuse"]]}
+    return first
+
+
+SITE_SPECS = p0_migrate(SITE_SPECS, _merge_specs)
