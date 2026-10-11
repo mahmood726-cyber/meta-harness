@@ -6731,5 +6731,80 @@
     "verdict": null
    }
   ]
+ },
+ "e1-cov-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ec67dc20df8dcd3c74b12fbe4795f8ed",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/source_coverage.py",
+     "scripts/acquire_bundle_evidence.py",
+     "scripts/source_coverage_sweep.py"
+    ],
+    "prompt_sha256": "380b2e6970b22f83def787f17d13e3bd07df52139045b9ea88cc54c1be8c2ecb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/source_coverage.py",
+    "function": "label_document",
+    "severity": "P1",
+    "claim": "Truncated XML is classified as complete full text because the body regex accepts end-of-input instead of a closing body tag. This licenses absence claims from an incomplete download.",
+    "failing_input": "label_document('<article><body><sec><title>Introduction</title><p>Enrollment began.')",
+    "expected": "Reject the malformed document or label it EXCERPT; it must not receive COMPLETE_SOURCE coverage.",
+    "actual": "Returns label='FULLTEXT', reason='XML_BODY', bundle_coverage='COMPLETE_SOURCE'. absence_licensed(['FULLTEXT']) returns True.",
+    "id": "e1-cov-r1:g1#1",
+    "record_id": "mc-ec67dc20df8dcd3c74b12fbe4795f8ed",
+    "verdict": null
+   },
+   {
+    "file": "harness/source_coverage.py",
+    "function": "label_document",
+    "severity": "P1",
+    "claim": "A self-declared completeness header overrides definitive evidence that no full text was delivered.",
+    "failing_input": "label_document('(coverage: COMPLETE_SOURCE)\\nThe publisher does not allow downloading of the full text.')",
+    "expected": "label='STUB', reason='PMC_NO_DOWNLOAD', bundle_coverage=None.",
+    "actual": "Returns label='FULLTEXT', reason='SELF_DECLARED:COMPLETE_SOURCE', bundle_coverage='COMPLETE_SOURCE', licensing absence claims.",
+    "id": "e1-cov-r1:g1#2",
+    "record_id": "mc-ec67dc20df8dcd3c74b12fbe4795f8ed",
+    "verdict": null
+   },
+   {
+    "file": "harness/source_coverage.py",
+    "function": "abstract_label",
+    "severity": "P1",
+    "claim": "The similarity fallback promotes an abstract missing an entire outcome unit to COMPLETE_ABSTRACT. Text similarity does not establish that the omission represents a complete earlier revision.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import source_coverage as sc\nheld = ('Participants were followed for one year. ' * 30).strip()\nunits = [{'label': '', 'text': held}, {'label': '', 'text': 'Two deaths.'}]\npreservation = {'verdict': 'INCOMPLETE', 'preserved': 1, 'missing': 1, 'units': [{'state': 'PRESERVED'}, {'state': 'MISSING', 'text_if_missing': 'Two deaths.'}], 'extra_chars_in_cached_not_in_acquired': 0}\nwith patch.object(sc, 'preservation_record', return_value=preservation):\n    result = sc.abstract_label(held, units)\nprint(result['label'], result['bundle_coverage'], result['version_differs'])",
+    "expected": "EXCERPT EXCERPT_ONLY; the explicitly missing 'Two deaths.' unit must prevent complete-abstract coverage.",
+    "actual": "Prints 'FULL_ABSTRACT COMPLETE_ABSTRACT True', despite the preservation result explicitly reporting the missing death-outcome unit.",
+    "id": "e1-cov-r1:g1#3",
+    "record_id": "mc-ec67dc20df8dcd3c74b12fbe4795f8ed",
+    "verdict": null
+   }
+  ]
+ },
+ "e1-cov-r1-agy": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-74652f91424709e4531ccf78326116b2",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/source_coverage.py",
+     "scripts/acquire_bundle_evidence.py",
+     "scripts/source_coverage_sweep.py"
+    ],
+    "prompt_sha256": "7c6c12f0c53cdca0dd4d5587e8e17335dd18b75326b7e873bfa9a0266a7e1cee"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }
