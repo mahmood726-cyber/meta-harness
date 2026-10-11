@@ -247,3 +247,17 @@ def test_PLANT_extr_r5_label_tables(text):
 def test_PLANT_extr_r5_4_a_log_transformed_hr_is_refused():
     with pytest.raises(xr.ReadRefused):
         xr.read_abstract_clause("The log-transformed hazard ratio 0.20; 95% CI, 0.10-0.30.")
+
+
+# ---- codex flow-r3 (PR #85, same reader): plants that fail on 3351a1636 --------------------------------------------
+@pytest.mark.parametrize("text", [
+    "Table 3: Adverse reactions in FIDELIO-DKD\nRandomised population:\nKerendia N = 1000 n (%) Placebo N = 1000 n (%)\n"
+    "Safety population: Kerendia 990; Placebo 990\nHyperkalemia 9 (0.9) 8 (0.8)\n",                      # flow-r3#1
+    "Table 3: Adverse reactions in FIDELIO-DKD\nNo data available.\nTable 4\nAdverse reactions in FIGARO-DKD\n"
+    "Kerendia N = 100 n (%) Placebo N = 100 n (%)\nHyperkalemia 9 (9) 8 (8)\n",                             # flow-r3#2
+    "Table 3: Adverse reactions in FIDELIO-DKD and FIGARO (total for both trials)\nKerendia N = 100 n (%) Placebo "
+    "N = 100 n (%)\nHyperkalemia 9 (9) 8 (8)\n",                                                            # flow-r3#3
+])
+def test_PLANT_flow_r3_label_tables(text):
+    with pytest.raises(xr.ReadRefused):
+        xr.read_label_adr_table(text, LABEL_SPEC)

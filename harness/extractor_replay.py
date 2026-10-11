@@ -67,9 +67,11 @@ def _pct_ok(n: int, d: int, printed: str) -> bool:
 
 
 # a table caption ends a table whether it is 'Table N:' or 'Table N.' (extr-r4#3, flow-r2#3)
-_CAPTION_START = re.compile(r"\bTable\s+\d+\s*[:.]", re.I)               # 'TABLE 4:' too (extr-r5#1)
+_CAPTION_START = re.compile(r"\bTable\s+\d+\s*[:.]|(?:^|(?<=\n))[ \t]*Table\s+\d+\b", re.I)   # 'TABLE 4:', a bare
+# 'Table 4' line too (extr-r5#1, flow-r3#2)
 # a caption naming a POOL of studies cannot supply one trial's counts (flow-r2#4)
-_POOLED = re.compile(r"\b(?:pooled|pooling|combined|integrated|across|meta-?analy)", re.I)
+_POOLED = re.compile(r"\b(?:pooled|pooling|combined|integrated|across|meta-?analy|total|both|overall)", re.I)
+_ACRONYM = re.compile(r"\b[A-Z][A-Z0-9]{3,}\b")
 _TRIAL_TOKEN = re.compile(r"\b[A-Za-z][A-Za-z0-9]+-[A-Za-z0-9]+\b")   # 'figaro-dkd' too (extr-r5#2)
 
 
@@ -86,7 +88,8 @@ def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
     if not cap:
         raise ReadRefused(f"{spec['table']} caption naming {spec['trial']} not found")
     caption = re.sub(r"\s+", " ", cap.group(0)).strip()
-    others = sorted({t for t in _TRIAL_TOKEN.findall(caption) if t.lower() != spec["trial"].lower()})
+    others = sorted({t for t in _TRIAL_TOKEN.findall(caption) if t.lower() != spec["trial"].lower()}
+                    | {a for a in _ACRONYM.findall(caption) if a not in re.split(r"[^A-Z0-9]+", spec["trial"].upper())})
     if _POOLED.search(caption) or others:
         raise ReadRefused(f"the caption names a pool or other trials ({others or 'pooled'}): not {spec['trial']}'s counts")
     # the table ends where the next caption starts: a header or row past it belongs to another table (extr-r1#4)
@@ -107,6 +110,9 @@ def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
     if (len(list(hdr_rx.finditer(text, cap.end(), row.start()))) != 1
             or re.search(r"\b[Nn]\s*[:=]\s*\d", text[cap.end():hdr.start()] + "\n" + text[hdr.end():row.start()])):
         raise ReadRefused("more than one denominator statement before the row: the row's denominators are ambiguous")
+    _rowlike = re.compile(r"^[ \t]*[A-Za-z][^\n]*?\s\d+\s*\(\d+(?:\.\d+)?\)\s+\d+\s*\(\d+(?:\.\d+)?\)[ \t]*$")
+    if any(ln.strip() and not _rowlike.match(ln) for ln in text[hdr.end():row.start()].split("\n")):
+        raise ReadRefused("a non-row line stands between the arm header and the row (another population?)")
     nt, nc = (int(x.replace(",", "")) for x in hdr.groups())
     et, pt, ec, pc = row.groups()
     et, ec = int(et), int(ec)
