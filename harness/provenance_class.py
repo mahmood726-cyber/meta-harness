@@ -14,7 +14,9 @@ import json
 import os
 import re
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from . import extractor_replay
+
+ROOT =os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MC = re.compile(r"mc-[0-9a-f]{32}")
 EXTRACTOR_PROV = {"abstract", "pmc_fulltext", "pmc_fulltext_effect", "ctgov_results", "aact_verified", "published_rate",
                   "pre_specified_dose"}
@@ -40,6 +42,11 @@ def classify_served(t: dict, held) -> tuple[str, str]:
         if t.get("source") and _deterministic_basis(json.dumps(adm)):
             return "EXTRACTOR", f"signed row: {adm.get('basis')}"
         return "UNTRACED", "signed row with neither a record nor a typed registry source"
+    if prov in extractor_replay.REPLAY_PROV:
+        # a typed read over a HELD document is EXTRACTOR only when its replay limb re-derives the row identically from
+        # the pinned bytes (DISPATCH_V14_EXTRACTOR_ROUTE); anything less is untraced, never hand-entered
+        ok, why = extractor_replay.replay(t)
+        return ("EXTRACTOR", why) if ok else ("UNTRACED", why)
     if "_verified" in prov:
         return "HAND_ENTERED", f"verified input ({prov}), bound to a held span"
     if prov in EXTRACTOR_PROV:
