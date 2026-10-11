@@ -34,9 +34,6 @@ TARGETS = [  # pool id, abstract pmid, nct, pinned sha256 (lane record r6_dpp4_h
      "Linagliptin versus placebo did not affect the incidence of hHF (209/3494 [6.0%] versus 226/3485 [6.5%], "
      "respectively; hazard ratio [HR], 0.90; 95% CI, 0.74-1.08)"),
 ]
-_NUM = r"(\d+(?:\.\d+)?)"
-_HR = re.compile(r"(?:HR of|\[HR\],)\s*" + _NUM + r"\s*\(?;?\s*95% CI,?\s*" + _NUM + r"\s*[,-]\s*" + _NUM)
-_COUNTS = re.compile(r"(?<![\d.])(\d+)/(\d+)(?![\d.])")  # never a rate such as 0.51/100
 
 
 def normalise(xml_article: str) -> str:
@@ -91,14 +88,10 @@ def fetch(pmids):
 
 
 def parse(span: str) -> dict:
-    m, c = _HR.search(span), _COUNTS.findall(span)
-    if not m or len(c) != 2:
-        raise ValueError(f"signed clause does not parse: {span[:60]}")
-    e, lo, hi = map(float, m.groups())
-    if not lo < e < hi:
-        raise ValueError(f"effect outside its interval: {e} ({lo}, {hi})")
-    (et, nt), (ec, nc) = [tuple(map(int, x)) for x in c]
-    return {"effect": e, "ci_low": lo, "ci_high": hi, "events_t": et, "n_t": nt, "events_c": ec, "n_c": nc}
+    """The shared typed clause reader -- the SAME reader the served row is replayed with
+    (harness/extractor_replay.read_abstract_clause)."""
+    from harness.extractor_replay import read_abstract_clause
+    return read_abstract_clause(span)
 
 
 def main(argv):
@@ -136,11 +129,14 @@ def main(argv):
         v = parse(span)
         rows[pid] = {"kind": "extracted_effect", "outcome": OUTCOME, "scale": "HR", "override": True,
                      "effect": v["effect"], "ci_low": v["ci_low"], "ci_high": v["ci_high"],
-                     "source": f"PMID {pmid} ({nct}) PubMed abstract: hHF {v['events_t']}/{v['n_t']} v "
-                               f"{v['events_c']}/{v['n_c']}; HR {v['effect']:.2f} ({v['ci_low']:.2f}-{v['ci_high']:.2f})",
+                     # the clause verbatim: the typed read takes the HR and its CI only, never counts (extr-r2)
+                     "source": f"PMID {pmid} ({nct}) PubMed abstract: '{span}' -> HR {v['effect']:.2f} "
+                               f"({v['ci_low']:.2f}-{v['ci_high']:.2f})",
                      "verification": f"{ITEM}: span found verbatim in the held abstract (sha256 {sha})",
                      "source_span": span, "document_ref": f"outputs/held_abstracts/pubmed_{pmid}.txt",
-                     "source_level": 1, "provenance": "abstract_verified",
+                     "document_sha256": sha, "source_level": 1,
+                     # a typed read over held bytes, replayed by the provenance gate (never a hand row)
+                     "provenance": "held_abstract_clause",
                      "reason": f"{ITEM} (signed by Mahmood, 'sign v14'): typed transcription from PMID {pmid}'s own PubMed "
                                f"abstract, held verbatim and pinned by sha256 {sha[:12]}; binding lane r6_dpp4_hf, two "
                                f"recorded readers agree."}

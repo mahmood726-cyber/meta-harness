@@ -6819,5 +6819,210 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "extr-r1": {
+  "base": "b2e31705a",
+  "head": "b405fde84",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "state": "RAN_OK",
+    "files": [
+     "harness/extractor_replay.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "6aea4a5d167e9d216e027a6b5c961408c6a20e9079f87552e6c4a3af8b53f3fc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "replay",
+    "severity": "P0",
+    "claim": "Abstract replay validates only effect and confidence limits. Incorrect served event counts and denominators pass the gate despite the promise to rederive every served number.",
+    "failing_input": "import hashlib, json, tempfile\nfrom pathlib import Path\nfrom harness.extractor_replay import replay\nspan = 'Deaths: 5/100 versus 10/100; hazard ratio, 0.50; 95% CI, 0.30-0.80.'\nsha = hashlib.sha256(span.encode()).hexdigest()\nwith tempfile.TemporaryDirectory() as root:\n    d = Path(root) / 'outputs' / 'held_abstracts'\n    d.mkdir(parents=True)\n    (d / 'pubmed_12345678.txt').write_text(span, encoding='utf-8')\n    (d / 'manifest.json').write_text(json.dumps({'documents': {'pubmed_12345678.txt': {'sha256': sha}}}), encoding='utf-8')\n    row = dict(provenance='held_abstract_clause', document_ref='outputs/held_abstracts/pubmed_12345678.txt', document_sha256=sha, source_span=span, effect=0.5, ci_low=0.3, ci_high=0.8, events_t=99, n_t=200, events_c=1, n_c=200)\n    print(replay(row, root)[0])",
+    "expected": "False: the source says 5/100 and 10/100, whereas the served row says 99/200 and 1/200.",
+    "actual": "True.",
+    "id": "extr-r1:g1#1",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The n/N regex accepts integer incidence rates as participant event counts. It checks numerical shape without checking what the numerator and denominator represent.",
+    "failing_input": "read_abstract_clause('Mortality rates were 5/100 person-years versus 10/100 person-years; hazard ratio, 0.50; 95% CI, 0.30-0.80.')",
+    "expected": "ReadRefused: rates per person-years do not establish per-arm death counts or participant denominators.",
+    "actual": "{'effect': 0.5, 'ci_low': 0.3, 'ci_high': 0.8, 'events_t': 5, 'n_t': 100, 'events_c': 10, 'n_c': 100}",
+    "id": "extr-r1:g1#2",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The reader accepts explicitly incompatible denominator kinds and returns them as an ordinary pair of arm counts, discarding the distinction.",
+    "failing_input": "read_abstract_clause('Deaths: 5/100 randomized participants in the treatment arm versus 10/90 safety participants in the placebo arm; hazard ratio, 0.50; 95% CI, 0.30-0.80.')",
+    "expected": "ReadRefused: randomized and safety denominators cannot be combined as comparable arm denominators.",
+    "actual": "{'effect': 0.5, 'ci_low': 0.3, 'ci_high': 0.8, 'events_t': 5, 'n_t': 100, 'events_c': 10, 'n_c': 90}",
+    "id": "extr-r1:g1#3",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "Header search can cross a subsequent table caption. The reader consequently attributes another trial's counts to the requested trial; the distance limits and percentage checks still pass.",
+    "failing_input": "spec = {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'}\ntext = 'Table 3: Adverse reactions in FIDELIO-DKD\\nNo adverse reactions were tabulated.\\nTable 4: Adverse reactions in FIGARO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 20 (20) 10 (10)'\nv = read_label_adr_table(text, spec)\nprint({k: v[k] for k in ('ai', 'n1i', 'ci', 'n2i', 'caption_span')})",
+    "expected": "ReadRefused: Table 3 has no matching arm header or row; Table 4 belongs to FIGARO-DKD.",
+    "actual": "{'ai': 20, 'n1i': 100, 'ci': 10, 'n2i': 100, 'caption_span': 'Table 3: Adverse reactions in FIDELIO-DKD'}",
+    "id": "extr-r1:g1#4",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "The row-label regex matches a suffix of a different endpoint label. Requesting Hyperkalemia can select Severe Hyperkalemia even when the correct row is present.",
+    "failing_input": "spec = {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'}\ntext = 'Table 3: Adverse reactions in FIDELIO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nSevere Hyperkalemia 2 (2) 1 (1)\\nHyperkalemia 20 (20) 10 (10)'\nv = read_label_adr_table(text, spec)\nprint({k: v[k] for k in ('ai', 'n1i', 'ci', 'n2i', 'raw_row')})",
+    "expected": "{'ai': 20, 'n1i': 100, 'ci': 10, 'n2i': 100, 'raw_row': 'Hyperkalemia 20 (20) 10 (10)'}",
+    "actual": "{'ai': 2, 'n1i': 100, 'ci': 1, 'n2i': 100, 'raw_row': 'Hyperkalemia 2 (2) 1 (1)'}",
+    "id": "extr-r1:g1#5",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   }
+  ]
+ },
+ "extr-r2": {
+  "base": "b2e31705a",
+  "head": "8432f296b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4fbacb38365bd96d24984ad66102fa45",
+    "state": "RAN_OK",
+    "files": [
+     "harness/extractor_replay.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "eddbc7f3dfc148a32b90bdb445c04f2818da8cbada04feaf6c048bcb6fd79e66"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The count pattern truncates comma-formatted denominators and returns incorrect sample sizes.",
+    "failing_input": "read_abstract_clause('Deaths: 1/1,000 versus 2/2,000; HR of 0.50; 95% CI, 0.10-2.00.')",
+    "expected": "Parse n_t=1000 and n_c=2000, or raise ReadRefused if thousands separators are unsupported.",
+    "actual": "Returns {'effect': 0.5, 'ci_low': 0.1, 'ci_high': 2.0, 'events_t': 1, 'n_t': 1, 'events_c': 2, 'n_c': 2}.",
+    "id": "extr-r2:g1#1",
+    "record_id": "mc-4fbacb38365bd96d24984ad66102fa45",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "Population qualifiers preceding counts escape validation. The forward-only windows associate 'safety' with the first count, find nothing after the second, and therefore accept mixed denominators.",
+    "failing_input": "read_abstract_clause('Among randomized participants, deaths were 5/100; among safety participants, deaths were 4/80; HR of 1.00; 95% CI, 0.50-2.00.')",
+    "expected": "Raise ReadRefused because randomized and safety denominators cannot be combined.",
+    "actual": "Returns {'effect': 1.0, 'ci_low': 0.5, 'ci_high': 2.0, 'events_t': 5, 'n_t': 100, 'events_c': 4, 'n_c': 80}.",
+    "id": "extr-r2:g1#2",
+    "record_id": "mc-4fbacb38365bd96d24984ad66102fa45",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "Slash notation is treated as observed event counts even when the text explicitly identifies Kaplan–Meier estimates.",
+    "failing_input": "read_abstract_clause('Kaplan-Meier estimated mortality was 5/100 versus 10/100; HR of 0.50; 95% CI, 0.20-0.90.')",
+    "expected": "Raise ReadRefused; Kaplan–Meier estimates do not establish integer event counts or arm sample sizes.",
+    "actual": "Returns {'effect': 0.5, 'ci_low': 0.2, 'ci_high': 0.9, 'events_t': 5, 'n_t': 100, 'events_c': 10, 'n_c': 100}.",
+    "id": "extr-r2:g1#3",
+    "record_id": "mc-4fbacb38365bd96d24984ad66102fa45",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P1",
+    "claim": "The caption regex can consume the next table's caption to obtain the requested trial name. Because the boundary search starts after that match, the reader then accepts the next table's header and data under the requested table number.",
+    "failing_input": "read_label_adr_table('Table 3: Adverse reactions in OTHER-TRIAL\\nTable 4: Adverse reactions in FIDELIO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 10 (10) 5 (5)', {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'})",
+    "expected": "Raise ReadRefused because Table 3 does not name FIDELIO-DKD; Table 4 cannot supply its evidence.",
+    "actual": "Returns ai=10, n1i=100, ci=5, n2i=100, with caption_span='Table 3: Adverse reactions in OTHER-TRIAL Table 4: Adverse reactions in FIDELIO-DKD'.",
+    "id": "extr-r2:g1#4",
+    "record_id": "mc-4fbacb38365bd96d24984ad66102fa45",
+    "verdict": null
+   }
+  ]
+ },
+ "extr-r2-agy": {
+  "base": "b2e31705a",
+  "head": "8432f296b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f81a5342ba14d4369297c9c63a30b0f5",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/extractor_replay.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "5bd2e6bab8411b940885e1f1a58cef26e44f3979c70aa448427c4765a660d9c6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "replay",
+    "severity": "P1",
+    "claim": "The replay limb unconditionally requires 'effect', 'ci_low', and 'ci_high' in the served row for 'held_abstract_clause', rejecting valid extracted count rows (such as those produced by scripts/v14_02_dpp4_hhf.py) and demoting them from EXTRACTOR to UNTRACED.",
+    "failing_input": "t = {'provenance': 'held_abstract_clause', 'document_ref': 'outputs/held_abstracts/pubmed_30423136.txt', 'document_sha256': '1111111111111111111111111111111111111111111111111111111111111111', 'source_span': 'Linagliptin versus placebo did not affect the incidence of hHF (209/3494 [6.0%] versus 226/3485 [6.5%], respectively; hazard ratio [HR], 0.90; 95% CI, 0.74-1.08)', 'ai': 209, 'n1i': 3494, 'ci': 226, 'n2i': 3485}",
+    "expected_output": "(True, \"held_abstract_clause: replayed from outputs/held_abstracts/pubmed_30423136.txt (sha256 111111111111), identical values\")",
+    "actual_output": "(False, \"held_abstract_clause: replay refused -- replay re-derives different ['effect', 'ci_low', 'ci_high']: [('effect', None, 0.9), ('ci_low', None, 0.74), ('ci_high', None, 1.08)]\")",
+    "expected": "-",
+    "actual": "-",
+    "id": "extr-r2-agy:g1#1",
+    "record_id": "mc-f81a5342ba14d4369297c9c63a30b0f5",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "Denominator populations from different kinds (e.g. randomized vs safety) are permitted to mix because population qualifier extraction only scans forward from each count, causing preceding qualifiers to be ignored and the forward window of the first count to reach into and adopt the second count's qualifier.",
+    "failing_input": "\"In 100 randomized patients, 20/100 died versus 10/100 in the safety population; hazard ratio [HR], 0.80; 95% CI, 0.65 to 0.95\"",
+    "expected_output": "raises ReadRefused(\"the two counts are over different populations\")",
+    "actual_output": "{'effect': 0.8, 'ci_low': 0.65, 'ci_high': 0.95, 'events_t': 20, 'n_t': 100, 'events_c': 10, 'n_c': 100}",
+    "expected": "-",
+    "actual": "-",
+    "id": "extr-r2-agy:g1#2",
+    "record_id": "mc-f81a5342ba14d4369297c9c63a30b0f5",
+    "verdict": null
+   }
+  ]
  }
 }

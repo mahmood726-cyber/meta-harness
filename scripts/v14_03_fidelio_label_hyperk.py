@@ -20,7 +20,6 @@ import datetime
 import hashlib
 import json
 import os
-import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -36,34 +35,23 @@ HELD_NAME = "fda_215341s000lbl.txt"
 OUTCOME = {"name": "Hyperkalemia (FDA label adverse reaction, FIDELIO-DKD safety population)",
            "keywords": ["hyperkalemia", "hyperkalaemia"], "estimand": "RR",
            "population": "FIDELIO-DKD safety population (FDA label adverse-reaction table)",
-           "timepoint": "trial-reported follow-up"}
-_CAPTION = re.compile(r"Table\s+3\s*:\s*Adverse\s+reactions\b[^\n]*\n?[^\n]*FIDELIO-DKD", re.I)
-_HEADER = re.compile(r"Kerendia\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)\s+Placebo\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)")
-_ROW = re.compile(r"Hyperkalemia\s+(\d+)\s*\((\d+(?:\.\d+)?)\)\s+(\d+)\s*\((\d+(?:\.\d+)?)\)")
-
-
-def _pct_ok(n, d, printed):
-    places = len(printed.split(".")[1]) if "." in printed else 0
-    return f"{100.0 * n / d:.{places}f}" == printed
+           "timepoint": "trial-reported follow-up",
+           # the endpoint is the LABEL's table: only the trials it covers can report it (V14-03 scoping); FIGARO's own
+           # lab-threshold hyperkalaemia is a different endpoint, not 'known reported, unresolved'
+           "source_scope": {"document_ref": f"outputs/held_labels/{HELD_NAME}", "trials": [PID],
+                            "basis": "FDA label Table 3 (FIDELIO-DKD safety population)"}}
+REPLAY = {"table": "Table 3", "trial": "FIDELIO-DKD", "arm_t": "Kerendia", "arm_c": "Placebo",
+          "row_label": "Hyperkalemia"}
 
 
 def parse(text):
-    cap = _CAPTION.search(text)
-    if not cap:
-        raise SystemExit("REFUSED: Table 3 caption naming FIDELIO-DKD not found")
-    hdr = _HEADER.search(text, cap.end())
-    if not hdr or hdr.start() - cap.end() > 4000:
-        raise SystemExit("REFUSED: arm header not within the table's reach")
-    row = _ROW.search(text, hdr.end())
-    if not row or row.start() - hdr.end() > 400:
-        raise SystemExit("REFUSED: hyperkalemia row not directly under the header")
-    nt, nc = (int(x.replace(",", "")) for x in hdr.groups())
-    et, pt, ec, pc = row.groups()
-    et, ec = int(et), int(ec)
-    if not (_pct_ok(et, nt, pt) and _pct_ok(ec, nc, pc)):
-        raise SystemExit("REFUSED: printed percentages do not reconcile with n / N")
-    return {"ai": et, "n1i": nt, "ci": ec, "n2i": nc, "row_span": re.sub(r"\s+", " ", row.group(0)).strip(),
-            "raw_row": row.group(0), "header_span": re.sub(r"\s+", " ", hdr.group(0))}
+    """The shared typed table reader -- the SAME reader the served row is replayed with
+    (harness/extractor_replay.read_label_adr_table); a refusal stops the script."""
+    from harness.extractor_replay import ReadRefused, read_label_adr_table
+    try:
+        return read_label_adr_table(text, REPLAY)
+    except ReadRefused as exc:
+        raise SystemExit(f"REFUSED: {exc}")
 
 
 def main(argv):
@@ -98,12 +86,13 @@ def main(argv):
             f.write("\n")
     row = {"kind": "extracted_counts", "outcome": OUTCOME["name"], "override": True,
            "ai": v["ai"], "n1i": v["n1i"], "ci": v["ci"], "n2i": v["n2i"],
-           "provenance": "fulltext_verified", "source_level": 1,
+           "provenance": "label_adr_table", "source_level": 1, "replay": dict(REPLAY),
            "document_ref": f"outputs/held_labels/{HELD_NAME}", "document_sha256": TEXT_SHA,
            "source_span": v["raw_row"],
            "source": (f"Kerendia US label (215341s000, Jul 2021) Table 3, FIDELIO-DKD safety population: "
                       f"'{v['header_span']}' / '{v['row_span']}'"),
-           "verification": f"{ITEM}: typed Table 3 read; percentages reconcile with n / N; label text sha256 {TEXT_SHA}",
+           "verification": (f"{ITEM}: typed Table 3 read (caption '{v['caption_span'][:80]}'); percentages reconcile "
+                            f"with n / N; label text sha256 {TEXT_SHA}; label doc sha256 {DOC_SHA}"),
            "reason": (f"{ITEM} (signed by Mahmood, 'sign v14'): investigator-reported hyperkalaemia adverse reaction, its "
                       f"own harms endpoint -- not the trials' lab-threshold hyperkalaemia; binding lane label_adr (R9-4).")}
     vpath = os.path.join(ROOT, "cache", SLUG, "verified_arms.json")
@@ -116,11 +105,11 @@ def main(argv):
         f.write("\n")
     tp = os.path.join(ROOT, "topics", f"{SLUG}.json")
     topic = json.load(open(tp, encoding="utf-8"))
-    if not any(o.get("name") == OUTCOME["name"] for o in topic["harm_outcomes"]):
-        topic["harm_outcomes"].append(OUTCOME)
-        with open(tp, "w", encoding="utf-8", newline="\n") as f:
-            json.dump(topic, f, indent=2, ensure_ascii=False)
-            f.write("\n")
+    # the outcome is (re)written whole, so a scope added later reaches a topic that already carries the outcome
+    topic["harm_outcomes"] = [o for o in topic["harm_outcomes"] if o.get("name") != OUTCOME["name"]] + [OUTCOME]
+    with open(tp, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(topic, f, indent=2, ensure_ascii=False)
+        f.write("\n")
     print(json.dumps({k: v[k] for k in ("ai", "n1i", "ci", "n2i", "row_span", "header_span")}))
 
 

@@ -18,6 +18,22 @@ RETRIEVED_OUTCOME_NOT_REPORTED = "RETRIEVED_OUTCOME_NOT_REPORTED"
 RETRIEVED_INCOMPATIBLE_STRUCTURE = "RETRIEVED_INCOMPATIBLE_STRUCTURE"
 RETRIEVED_REFUSED_WITH_REASON = "RETRIEVED_REFUSED_WITH_REASON"
 KNOWN_REPORTED_NOT_YET_EXTRACTED = "KNOWN_REPORTED_NOT_YET_EXTRACTED"
+# an outcome SCOPED to one source document (spec.source_scope: a label's adverse-reaction table) is reported only by the
+# trials that document covers; any other trial is 'not in this source' -- never 'known reported, unresolved' because
+# its own abstract uses the endpoint's keyword (FIGARO's lab hyperkalaemia v the FIDELIO label table, V14-03)
+NOT_IN_THIS_SOURCE = "NOT_IN_THIS_SOURCE"
+
+
+def _out_of_scope(pid: str, spec: dict[str, Any]) -> str | None:
+    """The scope basis when `spec` is scoped to a source document that does not cover trial `pid`; else None."""
+    scope = (spec or {}).get("source_scope") or {}
+    if not scope:
+        return None
+    trials = {_id_key(x) for x in scope.get("trials") or []}
+    if not scope.get("document_ref") or not trials:
+        raise ValueError(f"source_scope needs a document_ref and its trials: {scope}")
+    return None if _id_key(pid) in trials else f"{NOT_IN_THIS_SOURCE}: {scope['document_ref']} covers {sorted(trials)}"
+
 
 _REPORTED_STATES = {
     RETRIEVED_INCOMPATIBLE_STRUCTURE,
@@ -42,6 +58,8 @@ def reporting_ledger(outcome):
     for trial in outcome.get("declared_absent_trials") or []:
         key = _id_key(trial.get("id") or trial.get("label"))
         code = trial.get("reason_code") or trial.get("state")
+        if trial.get("harm_absence_state") == NOT_IN_THIS_SOURCE:
+            continue                                   # outside the outcome's source scope: no reporting debt
         if (trial.get("harm_source_reported") or key in rows
                 or ("harm_source_reported" not in trial
                     and (code in _INCOMPATIBLE_CODES or code == absence.REFUSED_ON_EVIDENCE))):
@@ -183,6 +201,9 @@ def _hm_state_for_absent(row: dict[str, Any], spec: dict[str, Any],
                          fulltext_by_pmid: dict[str, str] | None) -> dict[str, Any]:
     code = row.get("reason_code") or row.get("state")
     pid = _id_key(row.get("id") or row.get("label"))
+    scope = _out_of_scope(pid, spec)
+    if scope:
+        return {"harm_absence_state": NOT_IN_THIS_SOURCE, "harm_source_reported": False, "harm_scope": scope}
     text = _source_text(pid, rec_by_id, fulltext_by_pmid)
     sig = reporting_signal(text, spec)
     if code == absence.SOURCE_NOT_RETRIEVED or not (rec_by_id.get(pid) or {}).get("abstract"):
@@ -251,6 +272,9 @@ def annotate_outcome(outcome: dict[str, Any], spec: dict[str, Any], included: li
     for d in included:
         key = _id_key(d.get("id"))
         if key in pooled or key in states:
+            continue
+        if _out_of_scope(key, spec):
+            states[key] = NOT_IN_THIS_SOURCE
             continue
         sig = reporting_signal(_source_text(key, rec_by_id, fulltext_by_pmid), spec)
         if sig:
