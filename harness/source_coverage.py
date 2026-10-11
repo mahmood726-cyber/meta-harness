@@ -42,6 +42,7 @@ _XML_START = ("<?xml", "<!doctype", "<pmc-articleset", "<article")
 FULLTEXT_MIN_CHARS = 8000          # prose: a full article; an abstract with 'Methods: ... Results:' labels is shorter
 REVISION_MIN_SIMILARITY = 0.97     # a revised PubMed record (spelling / one corrected word) v an abridgement (OMNeON: 0.69)
 REVISION_MAX_LENGTH_DELTA = 0.03
+REVISION_MIN_UNIT_COVERAGE = 0.9   # and EVERY acquired unit is >= 90% present: no unit may be dropped wholesale
 
 
 def _text(raw) -> str:
@@ -53,20 +54,26 @@ def label_document(raw) -> dict:
     t = _text(raw)
     head = t.lstrip()[:300].lower()
     out = lambda lab, why: {"label": lab, "reason": why, "bundle_coverage": BUNDLE_COVERAGE[lab], "chars": len(t)}  # noqa: E731
-    m = _DECLARED.search(t[:600])
-    if m:
-        declared = m.group(1) or "EXCERPT_ONLY"
-        lab = {"COMPLETE_SOURCE": "FULLTEXT", "COMPLETE_ABSTRACT": "FULL_ABSTRACT"}.get(declared, "EXCERPT")
-        return out(lab, f"SELF_DECLARED:{declared}")
+    # evidence that nothing was delivered comes first: no header can outrank it (codex e1-cov-r1 g1#2)
     if PMC_NO_DOWNLOAD in t:
         return out("STUB", "PMC_NO_DOWNLOAD")
+    if not t.strip():
+        return out("STUB", "EMPTY")
+    m = _DECLARED.search(t[:600])
+    if m and (m.group(1) or "EXCERPT_ONLY") not in ("COMPLETE_SOURCE", "COMPLETE_ABSTRACT"):
+        # a header may LOWER coverage (an acquisition step saying 'this is an excerpt'); it never RAISES it: a
+        # declared COMPLETE_* is ignored and the bytes decide (codex e1-cov-r1 g1#2)
+        return out("EXCERPT", f"SELF_DECLARED:{m.group(1) or 'EXCERPT_ONLY'}")
     if head.startswith(_XML_START):
         if "<body" not in t:
             return out("STUB", "XML_NO_BODY")
         # a JATS <body> IS the article's complete body however short (a research letter's body is a few hundred
-        # words: comparators 27757047): length is never coverage. Only an empty body delivered nothing.
-        mb = re.search(r"<body\b[^>]*>(.*?)(?:</body>|$)", t, re.S)
-        body = re.sub(r"<[^>]+>", " ", mb.group(1) if mb else "")
+        # words: comparators 27757047): length is never coverage. Only an empty body delivered nothing -- and a body
+        # with no closing tag is a TRUNCATED download, never complete (codex e1-cov-r1 g1#1)
+        mb = re.search(r"<body\b[^>]*>(.*?)</body>", t, re.S)
+        if not mb:
+            return out("EXCERPT", "XML_TRUNCATED")
+        body = re.sub(r"<[^>]+>", " ", mb.group(1))
         if re.sub(r"\s+", " ", body).strip():
             return out("FULLTEXT", "XML_BODY")
         return out("STUB", "XML_EMPTY_BODY")
@@ -75,8 +82,6 @@ def label_document(raw) -> dict:
     groups = sum(1 for rx in _SECTIONS if rx.search(t))
     if len(t) >= FULLTEXT_MIN_CHARS and groups >= 3:
         return out("FULLTEXT", f"PROSE_SECTIONS:{groups}")
-    if not t.strip():
-        return out("STUB", "EMPTY")
     return out("EXCERPT", f"PROSE_NOT_A_BODY:chars={len(t)},sections={groups}")
 
 
@@ -102,7 +107,17 @@ def abstract_label(held_abstract: str, acquired_units: list | None) -> dict:
     import difflib
     acq = " ".join(((u["label"] + ": ") if u.get("label") else "") + u["text"] for u in units)
     ratio = difflib.SequenceMatcher(None, held, acq, autojunk=False).ratio()
-    if ratio >= REVISION_MIN_SIMILARITY and abs(len(held) - len(acq)) <= REVISION_MAX_LENGTH_DELTA * max(len(acq), 1):
+
+    def unit_covered(u):
+        # the share of THIS unit's characters found in the held text, unit by unit: whole-text similarity can hide one
+        # wholly missing unit ('Two deaths.') inside a long abstract (codex e1-cov-r1 g1#3)
+        txt = u["text"]
+        if not txt:
+            return True
+        blocks = difflib.SequenceMatcher(None, txt, held, autojunk=False).get_matching_blocks()
+        return sum(b.size for b in blocks) >= REVISION_MIN_UNIT_COVERAGE * len(txt)
+    if ratio >= REVISION_MIN_SIMILARITY and abs(len(held) - len(acq)) <= REVISION_MAX_LENGTH_DELTA * max(len(acq), 1) \
+            and all(unit_covered(u) for u in units):
         return {"label": "FULL_ABSTRACT", "reason": f"REVISED_RECORD:similarity={ratio:.3f},chars={len(held)}v{len(acq)}",
                 "bundle_coverage": "COMPLETE_ABSTRACT", "version_differs": True, "preservation": pres}
     return {"label": "EXCERPT", "version_differs": None, "reason": f"UNITS_MISSING:{pres['missing']}/{len(pres['units'])}"

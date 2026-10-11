@@ -90,3 +90,21 @@ def test_a_revised_pubmed_record_is_a_complete_earlier_version_not_an_abridgemen
         held, units = _acq_case(slug, pmid)
         lab = sc.abstract_label(held, units)
         assert lab["label"] == "FULL_ABSTRACT" and lab["version_differs"] is True, (slug, lab)
+
+
+def test_PLANT_codex_r1_1_a_truncated_xml_is_never_complete():
+    d = sc.label_document("<article><body><sec><title>Introduction</title><p>Enrollment began.")
+    assert d["label"] == "EXCERPT" and d["reason"] == "XML_TRUNCATED" and not sc.absence_licensed([d["label"]])
+
+
+def test_PLANT_codex_r1_2_a_header_can_lower_coverage_never_raise_it():
+    d = sc.label_document("(coverage: COMPLETE_SOURCE)\nThe publisher does not allow downloading of the full text.")
+    assert d["label"] == "STUB" and d["reason"] == "PMC_NO_DOWNLOAD"
+    assert sc.label_document("(coverage: COMPLETE_SOURCE)\nshort text")["label"] == "EXCERPT"
+
+
+def test_PLANT_codex_r1_3_a_wholly_missing_unit_is_never_a_revision():
+    held = ("Participants were followed for one year. " * 30).strip()
+    units = [{"index": 0, "label": "", "text": held}, {"index": 1, "label": "", "text": "Two deaths."}]
+    lab = sc.abstract_label(held, units)
+    assert lab["label"] == "EXCERPT", lab
