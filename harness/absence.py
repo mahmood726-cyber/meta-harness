@@ -257,13 +257,53 @@ def _basis(code, span=None, detail=None):
     return f"{code}: {detail or 'no source span available'}"
 
 
+def _coverage_gate(result, coverage, fulltext_searched):
+    """E1 (11 Oct): an OUTCOME_NOT_IN_SOURCE stands only when the objects actually searched license an absence for the
+    scope searched (harness/source_coverage.absence_licensed -- the bundle's asymmetric rule). Otherwise the row says
+    what was held instead: SOURCE_NOT_RETRIEVED with the coverage named (an abridged abstract, a stub full text, an
+    abstract with no retained acquisition). Positive findings are never touched: they may rest on an excerpt."""
+    if coverage is None or result.get("reason_code") != OUTCOME_NOT_IN_SOURCE:
+        return result
+    from . import source_coverage as sc
+    ab, ft = coverage.get("abstract"), coverage.get("fulltext")
+    scope = "fulltext" if fulltext_searched else "abstract"
+    searched = ["FULLTEXT"] if fulltext_searched else [ab]
+    seen = {"abstract": ab or "UNKNOWN (no retained acquisition)",
+            "fulltext": ("SEARCHED:FULLTEXT" if fulltext_searched else
+                         (f"NOT_SEARCHED:{ft}" if ft else "NOT_HELD"))}
+    held = (f"coverage searched: abstract {seen['abstract']}; full text {seen['fulltext']}"
+            + (f" ({coverage.get('fulltext_reason')})" if ft and not fulltext_searched else ""))
+    if sc.absence_licensed(searched, scope):
+        return dict(result, absence_scope=scope, coverage_searched=seen,
+                    state_basis=f"{result.get('state_basis')}; absence scope: {scope}; {held}")
+    return {"reason_code": SOURCE_NOT_RETRIEVED, "state": SOURCE_NOT_RETRIEVED,
+            "state_basis": _basis(SOURCE_NOT_RETRIEVED, detail=f"no complete source for an absence claim; {held}"),
+            "source_span": result.get("source_span") or "", "verbatim_span": result.get("verbatim_span") or "",
+            "absence_scope": None, "coverage_searched": seen}
+
+
 def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declared_estimand=None,
-                    reason=None, absent_kind=None, row=None):
+                    reason=None, absent_kind=None, row=None, coverage=None):
     """Classify a declared-absent/refused row from the committed source.
 
     This is an audit layer only: it reports what was visible in the cached source and why a row is not
     poolable. It never changes extraction order and never makes a non-pooled value poolable.
+
+    coverage (E1): source_coverage.coverage_for(slug, pid) -- a held 'full text' that is not a FULLTEXT (a PMC
+    no-download stub, a portal page) is not searched, and an absence is licensed only for the scope searched.
+    None keeps the legacy behaviour (callers that only test for a POSITIVE value).
     """
+    if coverage is not None:
+        fulltext_searched = bool(fulltext) and coverage.get("fulltext") == "FULLTEXT"
+        if not fulltext_searched:
+            fulltext = None
+        return _coverage_gate(_classify_reason(keywords, abstract, fulltext, outcome_name, declared_estimand,
+                                               reason, absent_kind, row), coverage, fulltext_searched)
+    return _classify_reason(keywords, abstract, fulltext, outcome_name, declared_estimand, reason, absent_kind, row)
+
+
+def _classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declared_estimand=None,
+                     reason=None, absent_kind=None, row=None):
     row = row or {}
     # A row `admit_rows` refused or set aside on its endpoint binding keeps the code it was given
     # (RESULT_INCOMPATIBLE / ENDPOINT_UNBOUND): on the served release this layer overwrote a

@@ -42,6 +42,7 @@ from . import consumer_consistency as consumer_consistency_mod
 from . import reason_audit as reason_audit_mod
 from . import unextracted as unextracted_mod
 from . import harms as harms_mod
+from . import source_coverage as source_coverage_mod
 from . import protocol_compiler as protocol_compiler_mod
 from . import target_endpoint as target_endpoint_mod
 from . import second_source as second_source_mod
@@ -2579,6 +2580,8 @@ def build_review_core(slug, config, records, protocol_sha):
                 reason=_t.get("reason"),
                 absent_kind=_t.get("absent_kind"),
                 row=_t,
+                # E1: the absence is conditional on the coverage of what was searched (held bytes + census)
+                coverage=source_coverage_mod.coverage_for(slug, _pid, _ft),
             )
             for _ak, _av in _ann.items():
                 if _av not in (None, "", []):
@@ -2603,7 +2606,9 @@ def build_review_core(slug, config, records, protocol_sha):
             eligibility_chain_mod.apply_admissions(review, config, records, _md)
         except OSError:
             pass
-    harms_mod.annotate_review(review, _spec_by_name, included, rec_by_id, ftbp)
+    harms_mod.annotate_review(review, _spec_by_name, included, rec_by_id, ftbp,
+                              {str(_p): source_coverage_mod.coverage_for(slug, _p, _t)["fulltext"]
+                               for _p, _t in (ftbp or {}).items()})
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered
     # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check

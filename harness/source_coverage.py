@@ -197,3 +197,39 @@ def absence_licensed(searched: list, scope: str = "abstract") -> bool:
 
 def sha256(raw) -> str:
     return hashlib.sha256(raw if isinstance(raw, (bytes, bytearray)) else _text(raw).encode("utf-8")).hexdigest()
+
+
+_COVERAGE_CACHE: dict = {}
+
+
+def _registry(root: str) -> dict:
+    """registry/source_coverage.json (scripts/source_coverage_sweep.py; CI checks it is current), loaded once."""
+    import json
+    import os
+    if root not in _COVERAGE_CACHE:
+        p = os.path.join(root, "registry", "source_coverage.json")
+        _COVERAGE_CACHE[root] = json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}
+    return _COVERAGE_CACHE[root]
+
+
+def coverage_for(slug: str, pid, fulltext_text=None, root: str | None = None) -> dict:
+    """The coverage of what a reader holds for one trial record: {abstract, abstract_reason, fulltext, fulltext_reason}.
+    abstract: the census label of cache/<slug>/records.json#PMID-<pid> (None = no retained acquisition = UNKNOWN, which
+    licenses no absence). fulltext: the label of the HELD BYTES (cache/<slug>/ft_<pid>.txt|.xml) -- never of a parsed
+    rendering, which loses the PMC no-download marker -- else of the recorded text a caller passes; None if none."""
+    import os
+    root = root or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pid = str(pid or "").replace("PMID ", "").strip()
+    ab = (_registry(root).get("abstracts") or {}).get(f"cache/{slug}/records.json#PMID-{pid}") or {}
+    out = {"abstract": ab.get("label"), "abstract_reason": ab.get("reason") or "NO_RETAINED_ACQUISITION",
+           "fulltext": None, "fulltext_reason": None}
+    for ext in ("txt", "xml"):
+        p = os.path.join(root, "cache", slug, f"ft_{pid}.{ext}")
+        if os.path.isfile(p):
+            d = label_document(open(p, "rb").read())
+            out.update(fulltext=d["label"], fulltext_reason=d["reason"])
+            return out
+    if fulltext_text:
+        d = label_document(fulltext_text)
+        out.update(fulltext=d["label"], fulltext_reason=d["reason"])
+    return out
