@@ -484,5 +484,9 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
                        "tool_calls_rejected_n": len(denied),
                        "tool_calls": [{"command": a.get("display_name"), "outcome": "DENIED: " + str(a.get("action"))}
                                       for a in denied if isinstance(a, dict)],
-                       "files_read": [], "transcript_redacted": lg_red})
+                       "files_read": [], "transcript_redacted": lg_red,
+                       # log_call requires this field (redaction commit 07cbbc6cb); without it every REAL agy call
+                       # raised KeyError after the model answered, so the call ran and no record was written.
+                       # agy's file reads are not observable from its output: recorded as None, never a made-up 0.
+                       "outside_workdir_reads": None})
     return rec
