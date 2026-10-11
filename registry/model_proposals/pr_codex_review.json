@@ -7374,5 +7374,125 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "flow-r3": {
+  "base": "b2e31705a",
+  "head": "f8d95c561",
+  "runs": {
+   "g1": {
+    "record_id": "mc-8bc6bc11978fad4f9ed03de223319cf0",
+    "state": "RAN_OK",
+    "files": [
+     "harness/certificate.py",
+     "harness/concept_admission.py",
+     "harness/extractor_replay.py",
+     "harness/fetch.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/build_concept_admissions.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py",
+     "scripts/v14_04_flow_mace.py"
+    ],
+    "prompt_sha256": "d9eb850634efa4314f08be0da35fb0e6964cfaecbf5b4b4eca0c8d35c0cb2de4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "The denominator guard detects only additional 'N =' statements. Explicit safety denominators written differently are ignored, and rounded percentages can reconcile against the wrong randomised denominators.",
+    "failing_input": "read_label_adr_table('Table 3: Adverse reactions in FIDELIO-DKD\\nRandomised population:\\nKerendia N = 1000 n (%) Placebo N = 1000 n (%)\\nSafety population: Kerendia 990; Placebo 990\\nHyperkalemia 9 (0.9) 8 (0.8)', {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'})",
+    "expected": "Raise ReadRefused because the row introduces a different analysis population and denominators.",
+    "actual": "Returns ai=9, n1i=1000, ci=8, n2i=1000. Both percentage checks pass despite the stated safety denominators being 990.",
+    "id": "flow-r3:g1#1",
+    "record_id": "mc-8bc6bc11978fad4f9ed03de223319cf0",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "A subsequent table caption without ':' or '.' does not terminate the selected table. Counts from another trial are consequently attributed to the requested trial.",
+    "failing_input": "read_label_adr_table('Table 3: Adverse reactions in FIDELIO-DKD\\nNo data available.\\nTable 4\\nAdverse reactions in FIGARO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 9 (9) 8 (8)', {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'})",
+    "expected": "Raise ReadRefused: Table 3 supplies no arm header or count row.",
+    "actual": "Returns ai=9, n1i=100, ci=8, n2i=100, with caption_span identifying Table 3 and FIDELIO-DKD, although the numbers belong to Table 4 and FIGARO-DKD.",
+    "id": "flow-r3:g1#2",
+    "record_id": "mc-8bc6bc11978fad4f9ed03de223319cf0",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "The other-trial check recognizes only hyphenated uppercase names. A caption explicitly stating totals for two trials passes when the second trial has an unhyphenated name.",
+    "failing_input": "read_label_adr_table('Table 3: Adverse reactions in FIDELIO-DKD and FIGARO (total for both trials)\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 9 (9) 8 (8)', {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'})",
+    "expected": "Raise ReadRefused because combined trial totals cannot supply FIDELIO-DKD-only counts.",
+    "actual": "Returns ai=9, n1i=100, ci=8, n2i=100. Neither _TRIAL_TOKEN nor _POOLED rejects the caption.",
+    "id": "flow-r3:g1#3",
+    "record_id": "mc-8bc6bc11978fad4f9ed03de223319cf0",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The log-HR guard misses 'log-transformed hazard ratio'. The HR regex then reads the embedded 'hazard ratio' phrase and serves logarithmic values as ordinary HR values.",
+    "failing_input": "read_abstract_clause('log-transformed hazard ratio 0.82; 95% CI 0.68-0.98')",
+    "expected": "Raise ReadRefused because the clause explicitly reports a transformed hazard ratio.",
+    "actual": "Returns {'effect': 0.82, 'ci_low': 0.68, 'ci_high': 0.98}.",
+    "id": "flow-r3:g1#4",
+    "record_id": "mc-8bc6bc11978fad4f9ed03de223319cf0",
+    "verdict": null
+   }
+  ]
+ },
+ "flow-r3-agy": {
+  "base": "b2e31705a",
+  "head": "f8d95c561",
+  "runs": {
+   "g1": {
+    "record_id": "mc-25fcc006d276afeae64a054f69743022",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/certificate.py",
+     "harness/concept_admission.py",
+     "harness/extractor_replay.py",
+     "harness/fetch.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "db67edc92c9512c733b400531bb6014d3438a6660de61b587be321fa30667d75"
+   },
+   "g2": {
+    "record_id": "mc-58cb8fe76e029dd049b0049a5ba673f2",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/build_concept_admissions.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "f1894842db0498bceb6ebd43e037315ca031d52d44a7423583cd6dfaf872a60c"
+   },
+   "g3": {
+    "record_id": "mc-6b900c957332473edb9b8dac1f6c5e65",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/v14_04_flow_mace.py"
+    ],
+    "prompt_sha256": "95503260a202db4c523c2cb48771ccd9aca45f106dfd6e5fcbdf6f4d4891ed6e"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }
