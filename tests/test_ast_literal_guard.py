@@ -572,3 +572,57 @@ def test_PLANT_codex_r30_2_nested_starred_literals_are_swept():
     src = "row = {}\nrow['ai'], row['n1i'], row['ci'], row['n2i'] = *[*[20, 169], 37, 167],\n"
     vals = {(f["key"], f["value"]) for f in sweep_source(src, "harness/p.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"}
     assert {("ai", 20), ("n1i", 169)} <= vals
+
+
+# --- literals_compat lane (11 Oct): shapes #70's sweep did not see, each found standing in served harness prose -----
+@pytest.mark.parametrize("src,kind", [
+    # index.py: "its pooled OR 2.64 (k=13) sits far from our single-trial OR 8.25 (k=1)" -- an effect, no interval
+    ('P = "its pooled OR 2.64 (k=13) sits far from our single-trial OR 8.25 (k=1)"\n', "LABELLED_EFFECT_TEXT"),
+    ('P = "a hazard ratio of 0.87 was seen"\n', "LABELLED_EFFECT_TEXT"),
+    # compat_direction.py: "trial source span gives all randomized n=179 vs n=181" -- arm sizes in a basis string
+    ('P = "trial source span gives all randomized n=179 vs n=181"\n', "SAMPLE_SIZE_TEXT"),
+    ('P = "N = 5,050 randomised"\n', "SAMPLE_SIZE_TEXT"),
+    # a count pair written as a regex: re.search(r"20\s*/\s*169", text) matches the trial's numbers all the same
+    ('P = r"Deaths 20\\s*/\\s*169"\n', "COUNT_PAIR_TEXT"),
+    ('P = r"RR 0\\.91 \\(0\\.74-1\\.11\\)"\n', "EFFECT_TUPLE_TEXT"),
+])
+def test_PLANT_lc_unlabelled_shapes_are_swept(src, kind):
+    assert kind in {h["kind"] for h in sweep.sweep_source(src, "plant.py")}, src
+
+
+@pytest.mark.parametrize("src", ['events_t = 20\n', 'n1i: int = 169\n', 'ai, n1i = 20, 169\n'])
+def test_PLANT_lc_a_bare_name_carrying_a_count_field_is_swept(src):
+    assert any(h["kind"] == "COUNT_OR_EFFECT_KEY" for h in sweep.sweep_source(src, "plant.py")), src
+
+
+@pytest.mark.parametrize("src", [
+    'P = "the OR of either arm"\n',          # 'OR' then no number
+    'P = "or 2.5 mg daily"\n',               # English 'or' before a dose
+    'P = "the NNT is 25"\n',
+    'P = "k=13 trials"\n',                   # k is a trial COUNT of the pool, not a sample size
+    'P = r"\\d+\\s*/\\s*\\d+"\n',        # a generic count-pair pattern is not a count
+    'i = 20\n',
+])
+def test_PLANT_lc_new_shapes_do_not_fire_on_their_near_misses(src):
+    assert not [h for h in sweep.sweep_source(src, "plant.py")
+                if h["kind"] in {"LABELLED_EFFECT_TEXT", "SAMPLE_SIZE_TEXT", "COUNT_PAIR_TEXT", "COUNT_OR_EFFECT_KEY"}], src
+
+
+# --- recorded review of lc/literals-guard (lc-literals-codex) -------------------------------------------------------
+@pytest.mark.parametrize("src", [
+    'P = r"OR\s+2\.64; year=\d{4}"\n',     # g2#1: a generic escape elsewhere must not switch normalisation off
+    'P = r"\bOR\s+2\.64\b"\n',            # g2#2: regex word boundaries are not text
+])
+def test_PLANT_lc_literals_codex_g2_a_regex_over_an_effect_is_read_whatever_else_it_holds(src):
+    assert "LABELLED_EFFECT_TEXT" in {h["kind"] for h in sweep.sweep_source(src, "plant.py")}, src
+
+
+# --- recorded review, second family (lc-literals-agy) ----------------------------------------------------------------
+def test_PLANT_lc_literals_agy_g2_1_a_percentage_is_not_a_sample_size():
+    assert not [h for h in sweep.sweep_source('P = "mortality: n = 12.5%"\n', "plant.py") if h["kind"] == "SAMPLE_SIZE_TEXT"]
+    assert [h for h in sweep.sweep_source('P = "n = 125 randomised"\n', "plant.py") if h["kind"] == "SAMPLE_SIZE_TEXT"]
+
+
+def test_PLANT_lc_literals_agy_g2_2_title_case_labels_are_read():
+    for s in ('P = "Hazard Ratio of 0.87"\n', 'P = "Odds Ratio 1.50"\n'):
+        assert "LABELLED_EFFECT_TEXT" in {h["kind"] for h in sweep.sweep_source(s, "plant.py")}, s

@@ -110,7 +110,8 @@ _SOURCE_FACTS: dict[str, dict[str, dict[str, dict[str, str]]]] = {
             },
             "analysis_set": {
                 "value": "INTENTION_TO_TREAT",
-                "basis": "trial source span gives all randomized n=179 vs n=181",
+                # the arm sizes are the held record's ('randomized to colchicine (n = ...)'), not this file's
+                "basis": "trial source span (held record 27502857) gives the arm sizes of all randomized patients",
             },
         },
     },
