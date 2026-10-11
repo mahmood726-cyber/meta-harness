@@ -15,19 +15,15 @@ from . import parity_relation
 _E = lambda x: html.escape("" if x is None else str(x), quote=True)
 
 _FRONT = """<div class="banner">
-<h2>What this is</h2>
-<p>A reproducible harness that builds meta-analyses from a committed protocol, and
-publishes each as a tabbed, auditable page. Every page here passed a two-limb gate:
-it reproduces from a fresh clone with zero census failures and its served analysis
-method equals its declared method; and it names a published open-access comparator
-with the trial-set overlap stated.</p>
-<h2>What this is not</h2>
-<p>It is <strong>not</strong> a claim of stronger evidence than the peer-reviewed
-comparators. The offer is <strong>greater auditability</strong>: every number is
-traceable to a committed source, every absence is declared rather than left blank,
-and any hand-edit breaks the gate. A page whose estimate matches its comparator on
-an identical trial set is arithmetic, not corroboration &mdash; so the overlap is
-stated on every page.</p>
+<h2>Research-stage meta-analysis audit and replay workflow</h2>
+<p>Meta-harness connects committed protocols, cached inputs, screening and extraction
+records, analysis settings, and generated review pages. Internal checks replay
+the legacy pages from committed analysis inputs and cached sources; a protocol-only registration commit does not reproduce the legacy reviews.</p>
+<h2>What is not established</h2>
+<p>Computational replay does not establish search completeness, correct study eligibility,
+independent human adjudication, or superiority to published meta-analyses.
+The legacy corpus is an adversarial regression corpus, not a prospectively validated
+autonomous systematic-review system. The measured limits appear below.</p>
 </div>"""
 
 _CSS = """body{font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif;margin:0;color:#12232e;background:#f7f8fa}
@@ -441,13 +437,13 @@ def _verification_section(docs_dir: str) -> str:
         caveat = (f" <strong>Located is not correct.</strong> This count establishes where each number came from, "
                   f"not that it answers the review's question: {len(withdrawn)} number(s) that passed this check "
                   f"digit for digit were withdrawn as the wrong endpoint -- {items}.")
-    return (f"<div class='banner'><h2>Every pooled number is verified against its source "
-            f"(gate-enforced)</h2><p><strong>All {ok} of {n} pooled trial-outcome numbers</strong> across "
-            f"these pages have their digits located in the committed source span they cite (arm counts, "
-            f"effect+CI, or per-arm mean/SD). A publication-gate limb "
-            f"(<code>check_pooled_verified</code>) <strong>refuses any page that pools a number not found "
-            f"in its source</strong>, so this cannot silently stop being true. No published meta-analysis "
-            f"makes — or can be forced to keep — this claim about every one of its numbers.{caveat}</p></div>")
+    return (f"<div class='banner'><h2>Source-location checks (not correctness validation)</h2>"
+            f"<p><strong>{ok} of {n} pooled trial-outcome records</strong> have their displayed digits "
+            f"located in cited committed source spans under the current source-location check. "
+            f"The gate (<code>check_pooled_verified</code>) rejects pooled records that fail this "
+            f"check. Located values can still represent the wrong endpoint, design, analysis set, "
+            f"or an incomplete evidence base.{caveat}</p></div>")
+
 
 
 def _error_coverage_section(docs_dir: str) -> str:
@@ -519,8 +515,7 @@ def _error_rate_section(docs_dir: str) -> str:
                 f"The live inventory contains {d.get('current_pooled_population')} pooled rows; "
                 f"{d.get('not_independently_rechecked_current')} are explicitly NOT_INDEPENDENTLY_RECHECKED. "
                 "The inventory refresh does not increase the historical independent-verification numerator.</em> ")
-    return (f"<div class='banner'><h2>We measured our own error rate (no meta-analysis reports this about "
-            f"itself)</h2>"
+    return (f"<div class='banner'><h2>Historical internal source-consistency audit</h2>"
             f"<p>{prov}Every claim the harness makes rests on the assumption that its numbers are right. So we "
             f"measured it: all <strong>{pop}</strong> pooled numbers were independently re-extracted from the "
             f"committed source by an offline checker <strong>blind to the stored value</strong>, then compared "
@@ -567,7 +562,7 @@ def _external_agreement_section(docs_dir: str) -> str:
     co = d.get("cross_estimand_opposite", 0)
     nc = d.get("non_comparable", 0)
     same_n = ag + rep + sd
-    return (f"<div class='banner'><h2>External validation: our pooled numbers vs the published meta-analyses'</h2>"
+    return (f"<div class='banner'><h2>Published pooled-estimate comparisons (not review validation)</h2>"
             f"<p>The strongest check is against an external hand-built standard: our pooled primary estimate vs "
             f"the published comparator meta-analysis's reported pooled estimate. But a comparison is only 'the "
             f"same question' when the two share the <strong>same estimand</strong> — an RR is not an OR is not an "
@@ -587,10 +582,11 @@ def _external_agreement_section(docs_dir: str) -> str:
             f"<strong>The per-trial head-to-head was attempted against the gold standard</strong> "
             f"(the Cochrane review CD013505 of metformin for PCOS ovulation): its pooled OR 2.64 (k=13) sits "
             f"far from our single-trial OR 8.25 (k=1) &mdash; a stark, honest illustration of the small-k "
-            f"weakness the expansion tier targets &mdash; but a true number-by-number check is <strong>blocked "
-            f"even for Cochrane</strong>: its per-woman arm counts live in forest-plot images, not the "
-            f"open-access text (only per-cycle data is tabulated). Per-trial ground truth needs vision/OCR or "
-            f"IPD (<code>docs/cochrane_headtohead.json</code>).</p>"
+            f"weakness the expansion tier targets &mdash; but the attempted "
+            f"per-trial comparison did not recover the arm counts from the text extracted "
+            f"from the cited Cochrane review. These may be accessible in its figures, "
+            f"supplements or shared datasets and code, which a complete comparison would "
+            f"also inspect (<code>docs/cochrane_headtohead.json</code>).</p>"
             + _evidence_base_line(docs_dir)
             + "</div>")
 
@@ -634,12 +630,11 @@ def _crossfamily_section(docs_dir: str) -> str:
     if agree is None or rate is None:
         return ""
     comp = agree + (dis or 0)
-    return (f"<div class='banner'><h2>Independent cross-family check &mdash; the fix for &lsquo;everything is "
-            f"self-assessed&rsquo;</h2>"
+    return (f"<div class='banner'><h2>Cross-family model consistency (not independent validation)</h2>"
             f"<p>Our checker and our error-rate sampler share a model architecture with our extractor, so the "
             f"internal error rate is a consistency measure, not independent accuracy. So a <strong>different "
             f"model family</strong> &mdash; Gemini 3.1 Pro, via AGY, sharing no architecture with our pipeline "
-            f"&mdash; independently re-extracted every pooled number from the same committed source. It "
+            f"&mdash; re-extracted pooled values from the same committed sources as a model-based check. It "
             f"<strong>agreed with our stored value on {agree} of {comp}</strong> comparable numbers "
             f"(<strong>{round(rate*100,1)}%</strong>); on <strong>{three}</strong> numbers all three families "
             f"(our harness, a GPT-5 checker, and Gemini) agree. Every one of the <strong>{dis}</strong> "
@@ -648,7 +643,7 @@ def _crossfamily_section(docs_dir: str) -> str:
             f"a rounding tie, one registry-vs-abstract count, and one CT.gov-vs-abstract estimand difference "
             f"(all disclosed in <code>docs/crossfamily.json</code>). A model call is treated as a source &mdash; "
             f"the Gemini outputs are committed, so this regenerates without re-calling the model. "
-            f"<strong>Three-family agreement is a far stronger claim than our own dual extraction.</strong></p>"
+            f"<strong>Model-family agreement does not replace independent human adjudication or external validation.</strong></p>"
             + _crossfamily_judge_line(docs_dir)
             + "</div>")
 
@@ -705,9 +700,10 @@ def _crossfamily_judge_line(docs_dir: str) -> str:
             f"verdict previously rested on a Claude-family judge. A non-Claude judge (Gemini) re-judged the "
             f"same blinded pairs on {nj} dimension-comparisons across {nt} topics and rated <strong>our page "
             f"more auditable on {ow} of {nj}</strong> (agreeing with the Claude judge on {ag} of {nj}, and "
-            f"more favourable to us on the rest). The auditability result is <strong>not an artefact of an AI "
-            f"liking a page in its own style</strong> &mdash; a different family reaches the same verdict "
+            f"more favourable to us on the rest). This is model-family agreement in this sample, "
+            f"not independent human adjudication or proof of general superiority "
             f"(<code>docs/crossfamily_judge.json</code>).</p>")
+
 
 
 def _provenance_section(docs_dir: str) -> str:
@@ -744,10 +740,10 @@ def _provenance_section(docs_dir: str) -> str:
             f"party. (3) <strong>Topic selection is ours</strong>, which can flatter the success rate; the "
             f"expansion tier is preregistered in one batch with declared-hard cases to counter this. "
             f"(4) The headline accuracy figure began as an <strong>internal-consistency</strong> measure; an "
-            f"independent non-Claude model family has since re-extracted every pooled row against the same "
-            f"committed source (reported in the cross-family section above), so it now carries a genuinely "
-            f"independent check &mdash; though the census and blind-judging arms still share our architecture, "
-            f"which leaves that cross-family re-extraction as the sole fully-decorrelated signal.</p></div>")
+            f"additional model family re-extracted the pooled rows against the same committed "
+            f"sources. This is a model-based consistency check, not independently adjudicated "
+            f"accuracy or general external validation.</p></div>")
+
 
 
 def _screen_section(docs_dir: str) -> str:
@@ -911,7 +907,7 @@ def _fair_section(docs_dir: str) -> str:
         "reporting, and those losses are shown here rather than hidden. So the earlier abstract-based "
         "&lsquo;15 clean wins&rsquo; is superseded by a stable domain split: <strong>we win transparency and "
         "auditability; we lose completeness/<em>k</em></strong> &mdash; the same conclusion the parity table "
-        "reaches, confirmed by a blind reader on full text. The judge also flagged real defects in our pages "
+        "reaches in this model-judged sample, not an independent human validation. The judges also flagged real defects in our pages "
         "(a risk-of-bias table covering only a subset of pooled trials; a retraction line whose count did not "
         "equal k); those are recorded, not hidden.</p></div>")
 
@@ -1230,15 +1226,13 @@ def build_index(docs_dir: str) -> str:
                "criteria exclude. Each affected page names which recovered trials were declined and why. "
                "<strong>But this is not true of every topic: the external audits proved genuine search and "
                "extraction misses on others &mdash; see the honest split below.</strong></p></div>")
-    _thesis = ("<div class='banner'><h2>The result, in two honest parts (after ten external audits)</h2>"
-               "<p><strong>On reporting and reproducibility we are clearly better, and it is externally "
-               "verified.</strong> Every pooled number carries a verbatim source span and the whole review "
-               "regenerates from a committed protocol commit; ten independent audits found roughly two dozen "
-               "defect classes in a week <em>because</em> every number is checkable &mdash; the errors were "
-               "findable, which is the entire point. We correctly refused what several comparators pooled: "
-               "ELIXA's four-point composite dropped into a three-point analysis, open-label trials under a "
-               "double-blind protocol, per-arm variances reconstructed from figures. Every refusal is "
-               "published with its reason.</p>"
+    _thesis = ("<div class='banner'><h2>Evidence-bounded progress and limitations</h2>"
+               "<p><strong>What internal checks show.</strong> The legacy pages can be replayed from "
+               "committed analysis inputs and cached sources. This is conditional computational "
+               "recomputability, not regeneration from a protocol-only registration commit. "
+               "External critiques and internal checks exposed defects in eligibility, search, "
+               "extraction and endpoint definitions. Named findings and fixes are available below; "
+               "they do not establish superiority over peer-reviewed meta-analyses.</p>"
                "<p><strong>On the evidence synthesis itself &mdash; finding the right trials and the right "
                "patients &mdash; the published comparators have been better on the topics audited.</strong> "
                "Our point estimates were arithmetically correct for the trials we did pool &mdash; but our "
@@ -1304,18 +1298,14 @@ def build_index(docs_dir: str) -> str:
                "between-arm differential attrition). A fix that raises our own confidence is held to a higher "
                "bar than one that lowers it, precisely so &lsquo;we fixed a bug&rsquo; can never quietly become "
                "&lsquo;our evidence is better than we said&rsquo;.</p>"
-               "<p>So the honest offer is <strong>the most auditable synthesis, not the most complete one</strong> "
-               "&mdash; and where our evidence base was narrower or wrong, the audits caught it precisely "
-               "because every number is checkable.</p>"
-               "<p><strong>The sharpest form of the argument.</strong> We attempted a per-trial, "
-               "number-by-number check against the gold standard &mdash; the Cochrane review of metformin for "
-               "PCOS ovulation (CD013505) &mdash; and found that <strong>0 of its 18 trials expose their "
-               "per-trial counts in machine-readable form</strong>: the numbers live in forest-plot images, "
-               "not the text. <strong>A reader cannot check a Cochrane review number-by-number. They can check "
-               "ours</strong> &mdash; every pooled number here carries a verbatim source span, and the whole "
-               "review regenerates from a committed protocol commit. (Extracting per-trial ground truth from "
-               "forest-plot images is a named research-agenda item &mdash; vision/OCR or individual patient "
-               "data &mdash; not yet attempted.)</p></div>")
+               "<p>The practical offer is inspectable sources, decisions and replay instructions, "
+               "not a claim to be the most auditable or most complete synthesis.</p>"
+               "<p><strong>Scope of the Cochrane comparison.</strong> In one extraction attempt, "
+               "we could not recover all per-trial counts from the accessible machine-readable "
+               "text of the cited Cochrane review. Figures, supplements and shared data or code "
+               "may contain those values. That attempt does not show that a reader cannot "
+               "check the published review. The legacy harness replays committed inputs, not "
+               "a registration-time protocol commit.</p></div>")
     _cont = _continuous_section(docs_dir)
     _erate = _error_rate_section(docs_dir)
     _spec = _spec_curve_section(docs_dir)
