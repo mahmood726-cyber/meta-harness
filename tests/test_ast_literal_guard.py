@@ -446,3 +446,23 @@ def test_PLANT_codex_r23_1_the_range_guard_ignores_case(pre):
 def test_PLANT_codex_r23_2_a_positional_field_literal_call_is_swept(src):
     from scripts.ast_literal_sweep import sweep_source
     assert [f for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"]
+
+
+def test_PLANT_codex_r24_1_a_middle_dot_decimal_continues_the_number():
+    assert si._first_unbounded(r"110 mg", "0\u00b7110 mg of dabigatran") is None
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY.replace("110 mg of", "0\u00b7110 mg of")}]}
+    assert si._noac_lower_dose_status(rows)["available_lower_dose_rows"] == []
+
+
+@pytest.mark.parametrize("src,kind", [("summary = f'Deaths {20}/{169} versus {37}/{167}'", "COUNT_PAIR_TEXT"),
+                                      ("s = f'RR {0.91} ({0.74}-{1.11})'", "EFFECT_TUPLE_TEXT")])
+def test_PLANT_codex_r24_2_a_constant_only_f_string_is_swept_as_its_rendered_text(src, kind):
+    from scripts.ast_literal_sweep import sweep_source
+    assert [f for f in sweep_source(src, "harness/example.py") if f["kind"] == kind]
+
+
+def test_an_f_string_with_a_variable_is_not_a_count_and_its_text_is_reported_once():
+    from scripts.ast_literal_sweep import sweep_source
+    assert sweep_source("s = f'Deaths {n}/{d}'", "harness/example.py") == []
+    hits = sweep_source("s = f'RR 0.91 (0.74-1.11) for {name}'", "harness/example.py")
+    assert len(hits) == 1

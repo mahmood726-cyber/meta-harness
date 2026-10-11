@@ -7906,5 +7906,50 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r24": {
+  "base": "630e622bf",
+  "head": "dbd7fc511",
+  "runs": {
+   "g1": {
+    "record_id": "mc-9a95a978b710bec11c718e2c6c3934bc",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "13c682a5702db7463b7b17bc19fb07e963f2b59283043d7085f3ad1707e476f6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded",
+    "severity": "P1",
+    "claim": "The number-continuation guard omits the middle-dot decimal separator, so a 0·110 mg dose is accepted as the fixed 110 mg arm. The caller consequently attributes its effect to the wrong arm.",
+    "failing_input": "from harness.scope_identity import _first_unbounded\ntext = '0·110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'\nm = _first_unbounded(r'110 mg of dabigatran', text)\nprint(None if m is None else (m.start(), m.group(0)))",
+    "expected": "None: 110 is part of the decimal dose 0·110, not an independently stated 110 mg dose.",
+    "actual": "(2, '110 mg of dabigatran'). The complete production effect pattern also matches at this position, setting rely_found=True.",
+    "id": "copps-r24:g1#1",
+    "record_id": "mc-9a95a978b710bec11c718e2c6c3934bc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Constant-only f-strings bypass the literal sweep. Hardcoded arm counts reach generated text without any finding, allowing the validation command to succeed.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"summary = f'Deaths {20}/{169} versus {37}/{167}'\", 'harness/example.py'))",
+    "expected": "Findings identifying the hardcoded count pairs 20/169 and 37/167, making them subject to the allowlist gate.",
+    "actual": "[]: the numeric constants occur inside FormattedValue nodes, while each inspected string constant contains only a fragment of the rendered count text.",
+    "id": "copps-r24:g1#2",
+    "record_id": "mc-9a95a978b710bec11c718e2c6c3934bc",
+    "verdict": null
+   }
+  ]
  }
 }
