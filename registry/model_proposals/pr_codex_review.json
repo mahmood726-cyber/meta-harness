@@ -7131,5 +7131,154 @@
     "verdict": null
    }
   ]
+ },
+ "flow-r2": {
+  "base": "b2e31705a",
+  "head": "de17e087f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-49cf363ed559c9f1287f0442d0022c31",
+    "state": "RAN_OK",
+    "files": [
+     "harness/certificate.py",
+     "harness/concept_admission.py",
+     "harness/extractor_replay.py",
+     "harness/fetch.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "reproducible_ai/model_call_live.py",
+     "scripts/build_concept_admissions.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py",
+     "scripts/v14_04_flow_mace.py"
+    ],
+    "prompt_sha256": "19615567e6f8729ed6df420aa08959b55e71399b585c83687747dab3d9c8de46"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "A thousands-separated upper confidence limit is silently truncated because _NUM permits a match to end before a comma.",
+    "failing_input": "from harness.extractor_replay import read_abstract_clause\nread_abstract_clause('HR 0.82 (95% CI 0.68–1,000)')",
+    "expected": "Return ci_high=1000.0, or raise ReadRefused for unsupported numeric formatting.",
+    "actual": "Returns {'effect': 0.82, 'ci_low': 0.68, 'ci_high': 1.0}. The interval check passes, and replay reproduces the erroneous limit.",
+    "id": "flow-r2:g1#1",
+    "record_id": "mc-49cf363ed559c9f1287f0442d0022c31",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The HR pattern also matches explicitly log-transformed HRs, returning logarithms as ordinary hazard ratios.",
+    "failing_input": "from harness.extractor_replay import read_abstract_clause\nread_abstract_clause('log HR 0.82 (95% CI 0.68–0.98)')",
+    "expected": "Raise ReadRefused because the clause reports log HR, or explicitly exponentiate the estimate and both limits before returning HR values.",
+    "actual": "Returns {'effect': 0.82, 'ci_low': 0.68, 'ci_high': 0.98}, treating the log-scale numbers as HR-scale values.",
+    "id": "flow-r2:g1#2",
+    "record_id": "mc-49cf363ed559c9f1287f0442d0022c31",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "Table boundaries recognize only colon captions. A subsequent table with a period caption supplies another trial's counts under the requested trial's caption.",
+    "failing_input": "from harness.extractor_replay import read_label_adr_table\nspec = {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'}\ntext = 'Table 3: Adverse reactions in FIDELIO-DKD\\nNo adverse reactions are tabulated here.\\nTable 4. Adverse reactions in FIGARO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 10 (10) 20 (20)'\nread_label_adr_table(text, spec)",
+    "expected": "Raise ReadRefused: Table 3 has no matching arm header or outcome row; the available counts belong to FIGARO-DKD's Table 4.",
+    "actual": "Returns ai=10, n1i=100, ci=20, n2i=100 with caption_span='Table 3: Adverse reactions in FIDELIO-DKD'. Both percentage checks pass.",
+    "id": "flow-r2:g1#3",
+    "record_id": "mc-49cf363ed559c9f1287f0442d0022c31",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "Mentioning the requested trial anywhere in a caption is sufficient to accept pooled multi-trial counts as that trial's counts. The returned caption span also omits the second trial.",
+    "failing_input": "from harness.extractor_replay import read_label_adr_table\nspec = {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'}\ntext = 'Table 3: Adverse reactions pooled across FIDELIO-DKD and FIGARO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 10 (10) 20 (20)'\nread_label_adr_table(text, spec)",
+    "expected": "Raise ReadRefused: pooled FIDELIO-DKD/FIGARO-DKD counts cannot supply a FIDELIO-DKD-only extraction.",
+    "actual": "Returns ai=10, n1i=100, ci=20, n2i=100 with caption_span='Table 3: Adverse reactions pooled across FIDELIO-DKD'. Replay accepts these same pooled numbers for the single-trial spec.",
+    "id": "flow-r2:g1#4",
+    "record_id": "mc-49cf363ed559c9f1287f0442d0022c31",
+    "verdict": null
+   }
+  ]
+ },
+ "flow-r2-agy": {
+  "base": "b2e31705a",
+  "head": "de17e087f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a25e207735d976674236ee6e23814aaa",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/certificate.py",
+     "harness/concept_admission.py",
+     "harness/extractor_replay.py",
+     "harness/fetch.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py"
+    ],
+    "prompt_sha256": "1b96879bacad2c1fa16098c5fa8966b0aaa400762a3f9ea802ddd42e1f99b5e8"
+   },
+   "g2": {
+    "record_id": "mc-c085b8810d46374eedff7408b75c3ac0",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "reproducible_ai/model_call_live.py",
+     "scripts/build_concept_admissions.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "f5ef93558b300c259fb55ca92825c96149dbbb2375b950653ce321f1901db2e3"
+   },
+   "g3": {
+    "record_id": "mc-7b43224221dcc72b28ed9b9c598cfbfb",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/v14_04_flow_mace.py"
+    ],
+    "prompt_sha256": "95503260a202db4c523c2cb48771ccd9aca45f106dfd6e5fcbdf6f4d4891ed6e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/concept_admission.py",
+    "function": "verify_entry",
+    "severity": "P1",
+    "claim": "A paper binds to a trial on external manifest metadata without verifying that the held text of the article itself names the trial, violating the standard that a paper binds to a trial only on its own evidence.",
+    "failing_input": "verify_entry({'pmid': '12345678', 'nct': 'NCT12345678', 'signed_item': 'item1', 'signature': {'choice': 'ADMIT', 'item_section_sha256': 'a' * 64}, 'abstract_sha256': hashlib.sha256(b'Held text mentioning no NCT at all.').hexdigest(), 'record': {'title': 'Trial Report'}}, cache_dir='/path/to/cache', root='/path/to/root') with held abstract 'pubmed_12345678.txt' containing 'Held text mentioning no NCT at all.' and manifest.json containing {'documents': {'pubmed_12345678.txt': {'pmid': '12345678', 'nct': 'NCT12345678', 'nct_evidence': 'NCT12345678', 'sha256': hashlib.sha256(b'Held text mentioning no NCT at all.').hexdigest()}}}",
+    "expected_output": "AdmissionRefused because the held article text does not contain NCT12345678 or the recorded witness",
+    "actual_output": "{'title': 'Trial Report', 'id': '12345678', 'id_type': 'pmid', 'nct': 'NCT12345678', 'abstract': 'Held text mentioning no NCT at all.', 'concept_admission': {'register': 'cache/<slug>/concept_admissions.json', 'signed_item': 'item1', 'routes': ['pubmed_concept_query'], 'abstract_sha256': '...'}}",
+    "expected": "-",
+    "actual": "-",
+    "id": "flow-r2-agy:g1#1",
+    "record_id": "mc-a25e207735d976674236ee6e23814aaa",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "When multiple arm headers exist in a table (e.g. randomised population followed by safety population), the ambiguity check searches only after the matched header (hdr.end() to end) instead of the entire table; if the first header lacks 'n (%)', hdr matches the second header and the preceding header is silently ignored, mixing or accepting ambiguous populations.",
+    "failing_input": "read_label_adr_table('Table 3: Adverse reactions FIDELIO-DKD\\nKerendia N = 2833 Placebo N = 2841\\nKerendia N = 2827 n (%) Placebo N = 2831 n (%) \\nHyperkalemia 522 (18.5) 152 (5.4)', {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'})",
+    "expected_output": "ReadRefused('the table carries more than one arm header: the row\\'s denominators are ambiguous')",
+    "actual_output": "{'ai': 522, 'n1i': 2827, 'ci': 152, 'n2i': 2831, 'raw_row': 'Hyperkalemia 522 (18.5) 152 (5.4)', 'row_span': 'Hyperkalemia 522 (18.5) 152 (5.4)', 'header_span': 'Kerendia N = 2827 n (%) Placebo N = 2831 n (%)', 'caption_span': 'Table 3: Adverse reactions FIDELIO-DKD'}",
+    "expected": "-",
+    "actual": "-",
+    "id": "flow-r2-agy:g1#2",
+    "record_id": "mc-a25e207735d976674236ee6e23814aaa",
+    "verdict": null
+   }
+  ]
  }
 }

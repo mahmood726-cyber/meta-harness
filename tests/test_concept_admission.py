@@ -155,3 +155,22 @@ def test_flows_row_is_a_replayed_extractor_row_never_hand_entered():
     cls, why = pc.classify_served(dict(row, id="PMID 38785209"), lambda _: True)
     assert cls == "EXTRACTOR", why
     assert (row["effect"], row["ci_low"], row["ci_high"]) == (0.82, 0.68, 0.98)
+
+
+def test_PLANT_flow_r2_agy_the_held_text_itself_names_the_trial(tmp_path):
+    """agy flow-r2-agy g1#1: binding on the manifest's witness alone is binding on metadata."""
+    import hashlib
+    def strip(t):
+        return t.replace("NCT03819153", "NCT-REDACTED")
+    root, cache = _sandbox(tmp_path, mutate_text=strip)
+    p = os.path.join(root, "outputs", "held_abstracts")
+    text = open(os.path.join(p, "pubmed_38785209.txt"), encoding="utf-8").read()
+    sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    m = json.load(open(os.path.join(p, "manifest.json"), encoding="utf-8"))
+    m["documents"]["pubmed_38785209.txt"]["sha256"] = sha
+    open(os.path.join(p, "manifest.json"), "w", encoding="utf-8").write(json.dumps(m))
+    reg = json.load(open(os.path.join(cache, ca.REGISTER), encoding="utf-8"))
+    reg["entries"][0]["abstract_sha256"] = sha
+    open(os.path.join(cache, ca.REGISTER), "w", encoding="utf-8").write(json.dumps(reg))
+    with pytest.raises(ca.AdmissionRefused):
+        ca.admitted_records(cache, root)

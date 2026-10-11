@@ -86,6 +86,10 @@ def verify_entry(e: dict[str, Any], cache_dir: str, root: str = ROOT) -> dict[st
     if man.get("nct") != nct or not re.search(r"(?<![0-9A-Za-z])" + re.escape(nct) + r"(?![0-9A-Za-z])",
                                               str(man.get("nct_evidence") or "")):
         raise AdmissionRefused(f"{pmid}: the held article's recorded witness does not name {nct}")
+    # ... and the HELD TEXT itself names the trial: a paper binds to a trial on its own evidence, never on manifest
+    # metadata alone (agy flow-r2-agy g1#1; FLOW's abstract states 'ClinicalTrials.gov number, NCT03819153')
+    if not re.search(r"(?<![0-9A-Za-z])" + re.escape(nct) + r"(?![0-9A-Za-z])", text):
+        raise AdmissionRefused(f"{pmid}: the held abstract does not itself name {nct}")
     out = {k: e["record"][k] for k in _RECORD_KEYS if (e.get("record") or {}).get(k) not in (None, "")}
     out.update({"id": pmid, "id_type": "pmid", "nct": nct, "abstract": text,
                 "concept_admission": {"register": f"cache/<slug>/{REGISTER}", "signed_item": item,
