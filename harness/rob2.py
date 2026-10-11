@@ -19,8 +19,6 @@ from __future__ import annotations
 import re
 from typing import Any, Callable
 
-from . import components as components_mod
-
 OUTPUT_FAMILY = "registry-machine-signal-restricted"
 
 DOMAIN_LABELS = {
@@ -41,10 +39,6 @@ MACHINE_DOMAINS = (
 NOT_ASSESSED_LEVELS = {"not assessed", "not_assessable"}
 STANDARD_3P_MACE = frozenset({"CV_DEATH", "NONFATAL_MI", "NONFATAL_STROKE"})
 SECONDARY_COMPONENT_SUBSET_ALLOWED = {frozenset({"HF_HOSPITALISATION"})}
-# P0: the cardiovascular composite family, and the marker for an enumerated item no vocabulary maps (never dropped)
-CV_COMPOSITE_COMPONENTS = frozenset({"CV_DEATH", "NONFATAL_MI", "NONFATAL_STROKE", "CHD_DEATH", "TIA", "UNSTABLE_ANGINA",
-                                     "REVASCULARISATION", "HF_HOSPITALISATION"})
-NOT_ESTABLISHED_PREFIX = "component not established: "
 
 
 def _b(v):
@@ -100,8 +94,7 @@ def _outcome_label(row: dict[str, Any]) -> str:
 
 
 def _component_set(text: str) -> frozenset[str]:
-    # an excluded component ('excluding stroke') is not a named one (codex p0-r1 #5)
-    s = components_mod.strip_exclusions(_norm_text(text).lower())
+    s = _norm_text(text).lower()
     if not s:
         return frozenset()
     comps: set[str] = set()
@@ -146,22 +139,10 @@ def _component_set(text: str) -> frozenset[str]:
     if re.search(r"\brevasculari[sz]ation\b", s):
         comps.add("REVASCULARISATION")
 
-    # P0 (reviews 18/25/28/29): the shared vocabulary (harness.components) -- the extraction route's -- names what this parser
-    # did not know: 'CHD death' read as {} and dropped from ODYSSEY's 4-point primary; TIA likewise.
-    shared = components_mod.components(text, expand_generic=False)
-    for name in ("coronary heart disease death", "transient ischemic attack"):
-        if name in shared.components:
-            comps.add(components_mod.ROB2_NAME[name])
     mace_term = re.search(r"\bmace\b|\bmajor adverse cardiovascular events?\b|\bmajor cardiovascular events?\b", s)
     three_point = re.search(r"\b(?:3|three)[- ]?point\b", s)
-    # a generic label expands only when the text enumerates nothing (never over a stated definition)
-    if mace_term and (three_point or (not comps and not shared.enumerated)):
+    if mace_term and (three_point or not comps):
         comps.update(STANDARD_3P_MACE)
-    # an enumerated item no vocabulary maps is KEPT as not established (never dropped), in a composite context only
-    if shared.unknown and (comps or mace_term):
-        comps.update(f"{NOT_ESTABLISHED_PREFIX}{u}" for u in shared.unknown)
-    # an excluded component stays out even after the generic expansion ('MACE excluding stroke')
-    comps -= {components_mod.ROB2_NAME[c] for c in components_mod.excluded(text) if c in components_mod.ROB2_NAME}
     if "KIDNEY_PROGRESSION_COMPOSITE" in comps:
         comps.discard("CV_DEATH")
     return frozenset(comps)
@@ -185,15 +166,6 @@ def _outcome_match_detail(
     registered_component_set = _component_set(reg_text)
     pooled_components = sorted(pooled_component_set)
     registered_components = sorted(registered_component_set)
-    detail = {"pooled_components": pooled_components, "registered_components": registered_components,
-              "registered_text": reg_text}
-    # P0: a composite with an unmapped component is NOT ESTABLISHED -- neither a match nor a mismatch
-    if any(c.startswith(NOT_ESTABLISHED_PREFIX) for c in pooled_component_set | registered_component_set):
-        return dict(detail, matched=False, method="components_not_established")
-    # P0 (r28 DO-HEALTH 'Incident Hypertension', r29 ODYSSEY 'CHD death'): a cardiovascular COMPOSITE is never matched by
-    # text identity to a registered outcome that names no component -- that is a different or unparsed outcome, not this one
-    if pooled_component_set & CV_COMPOSITE_COMPONENTS and not registered_component_set and reg_text:
-        return dict(detail, matched=False, method="components_not_established")
     if pooled_component_set and registered_component_set:
         subset_match = (
             allow_secondary_component_subset
