@@ -43,6 +43,7 @@ from . import reason_audit as reason_audit_mod
 from . import unextracted as unextracted_mod
 from . import harms as harms_mod
 from . import source_coverage as source_coverage_mod
+from . import candidate_rows as candidate_rows_mod
 from . import protocol_compiler as protocol_compiler_mod
 from . import target_endpoint as target_endpoint_mod
 from . import second_source as second_source_mod
@@ -2586,6 +2587,15 @@ def build_review_core(slug, config, records, protocol_sha):
             for _ak, _av in _ann.items():
                 if _av not in (None, "", []):
                     _t[_ak] = _av
+            # D3 (r26-01 ESCAPe): a refusal on WINDOW grounds is complete only when every candidate row of this
+            # outcome in the held FULLTEXT has been assessed with the same window rule. Annotates; admits nothing.
+            if (_t.get("reason_code") == absence_mod.TIMEPOINT_MISMATCH
+                    or "measurement window" in str(_t.get("reason") or "")):
+                _aud = candidate_rows_mod.audit_refusal(slug, _pid, _t, _kws, _o.get("name"), _sp.get("timepoint"))
+                _t["candidate_rows_audit"] = {
+                    "state": _aud["state"], "n_candidates": len(_aud["candidates"]),
+                    "unassessed": [{k: c[k] for k in ("table", "label", "cells", "window", "assessment")}
+                                   for c in _aud.get("unassessed") or []]}
     # COMPATIBILITY-UNDERLYING CHECK (lane CK): derive the compatibility dimensions from every pooled trial row
     # and its committed source text; an asserted uniform key the rows do not support is relabelled mixed/trial-defined.
     compat_check_mod.enrich(review, records)

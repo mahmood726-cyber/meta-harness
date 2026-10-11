@@ -55,3 +55,39 @@ def test_PLANT_the_harms_rung_says_checked_only_of_an_article_body():
     assert lad[1] == {"rung": "held full text", "state": "NOT_CHECKED_STUB"}
     lad = harms._ladder("1", rec, {"1": "body"}, None, fulltext_coverage={"1": "FULLTEXT"})
     assert lad[1]["state"] == "CHECKED"
+
+
+def test_PLANT_an_abridged_cached_abstract_is_checked_against_the_retained_verbatim_one():
+    # OMNeON 28893244: the cached abstract (1,138 chars) lost 'HHF 20/2092 v 33/2100, HR 0.60 (0.35-1.05)'; the
+    # verbatim EFetch acquisition (registry/source_acquisitions) holds it. The absence check searches the best-coverage
+    # object held -- the served cache is not rewritten.
+    cov = sc.coverage_for("dpp4-mace-t2d", "28893244")
+    assert cov["abstract"] == "EXCERPT" and "0.60" in (cov.get("complete_abstract_text") or "")
+    import json
+    rec = next(r for r in json.load(open(os.path.join(ROOT, "cache", "dpp4-mace-t2d", "records.json"),
+                                         encoding="utf-8"))["records"] if str(r["id"]) == "28893244")
+    out = absence.classify_reason(["hospitalization for heart failure", "heart failure hospitalization", "hHF"],
+                                  rec["abstract"], None, outcome_name="Hospitalization for heart failure",
+                                  declared_estimand="HR", coverage=cov)
+    assert out["reason_code"] in (absence.EXTRACTION_NOT_PERFORMED, absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
+                                  absence.COUNTS_PRESENT_NOT_CORROBORATED), out
+    assert "0.60" in out["source_span"]
+
+
+def test_PLANT_an_abbreviation_the_text_defines_for_the_outcome_is_the_outcome():
+    # OMNeON's complete abstract defines 'hospitalization for heart failure (hHF)' and reports 'The hHF outcome occurred
+    # in 20/2092 ... 33/2100 ... HR 0.60 (0.35, 1.05)': without the text's own abbreviation the classifier declared the
+    # outcome absent from a complete source
+    cov = sc.coverage_for("dpp4-mace-t2d", "28893244")
+    out = absence.classify_reason([], "", None, outcome_name="Hospitalization for heart failure", declared_estimand="HR",
+                                  coverage=cov)
+    assert out["reason_code"] != absence.OUTCOME_NOT_IN_SOURCE and "0.60" in out["source_span"], out
+
+
+def test_a_short_abbreviation_matches_only_as_a_whole_word_and_only_if_it_fits_the_phrase():
+    text = "Atrial fibrillation (AF) was recorded. After 30 days, AF occurred in 12/100 v 20/100 (RR 0.60, 0.31-1.15)."
+    terms = absence._terms_with_abbreviations([], "Atrial fibrillation", [text])
+    assert absence._matches_term("AF occurred in 12/100", terms)
+    assert not absence._matches_term("After 30 days nothing occurred", terms)   # 'af' inside 'after' is not AF
+    bad = absence._terms_with_abbreviations([], "Atrial fibrillation", ["Atrial fibrillation (XYZ) was recorded."])
+    assert not any(t.startswith(absence.ABBR_MARK) for t in bad)            # XYZ does not fit 'atrial fibrillation'
