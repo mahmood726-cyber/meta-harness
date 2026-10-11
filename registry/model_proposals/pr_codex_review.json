@@ -7702,5 +7702,62 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r20": {
+  "base": "630e622bf",
+  "head": "c878a9ac1",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b1dcb2bd8e77347413df8b780f8244c0",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "aaa68e13ecfe334df035d2c273c9328fe26166708bd0e306d9b4605e66f8b253"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/recorded_verification.py",
+    "function": "verified",
+    "severity": "P2",
+    "claim": "Truthy fields with invalid types pass registry validation, silently turning registry corruption into an unverified result.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.recorded_verification import verified\npayload = '{\"entries\":[{\"pmid\":\"24251359\",\"held_text_sha256\":[\"invalid\"],\"claim\":\"LOW_DOSE_ARM_IS_30MG\"}]}'\nwith patch('builtins.open', mock_open(read_data=payload)):\n    print(verified('arm_label_verifications.json', '24251359', 'held text', 'LOW_DOSE_ARM_IS_30MG'))",
+    "expected": "RuntimeError identifying the malformed held_text_sha256 field.",
+    "actual": "Returns None: the malformed entry passes the truthiness check and silently fails the hash comparison.",
+    "id": "copps-r20:g1#1",
+    "record_id": "mc-b1dcb2bd8e77347413df8b780f8244c0",
+    "verdict": null
+   },
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "A missing recorded verification is reported as evidence that the source does not identify the dose, even when the supplied source explicitly identifies it.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'}, {'id': '24251359', 'abstract': 'The low-dose edoxaban arm was 30 mg. There was an unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34)'}]}\nwith patch('builtins.open', mock_open(read_data='{\"entries\":[]}')):\n    result = _noac_lower_dose_status(records)\n    print(result['status'], result['reason'])",
+    "expected": "NOT_COMPUTED_SOURCE_INCOMPLETE with a reason stating that the dose-label verification is missing. The source's explicit dose statement must not be classified as absent.",
+    "actual": "NOT_COMPUTED_SOURCE_INCOMPLETE with reason: 'RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect found, but the committed source does not explicitly identify that lower-dose arm as edoxaban 30 mg.'",
+    "id": "copps-r20:g1#2",
+    "record_id": "mc-b1dcb2bd8e77347413df8b780f8244c0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The literal-count sweep misses dictionaries constructed from literal key/value pairs, allowing a complete hardcoded two-arm result to produce no findings.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"row = dict([('ai', 20), ('n1i', 169), ('ci', 37), ('n2i', 167)])\", 'harness/example.py'))",
+    "expected": "COUNT_OR_EFFECT_KEY findings for ai=20, n1i=169, ci=37, and n2i=167.",
+    "actual": "Returns []. Calls are inspected only for keyword arguments; these positional literal pairs are never recognized as dictionary fields.",
+    "id": "copps-r20:g1#3",
+    "record_id": "mc-b1dcb2bd8e77347413df8b780f8244c0",
+    "verdict": null
+   }
+  ]
  }
 }

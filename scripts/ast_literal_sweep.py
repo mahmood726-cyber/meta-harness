@@ -100,6 +100,12 @@ def sweep_source(src: str, path: str) -> list[dict]:
                 pairs = [(node.key.value, node.value)]
         elif isinstance(node, ast.Call):
             pairs = [(kw.arg, kw.value) for kw in node.keywords if kw.arg]
+            # dict([('ai', 20), ...]) / dict((('ai', 20), ...)): positional literal (key, value) pairs (codex copps-r20#3)
+            for arg in node.args:
+                if isinstance(arg, (ast.List, ast.Tuple, ast.Set)):
+                    pairs += [(e.elts[0].value, e.elts[1]) for e in arg.elts
+                              if isinstance(e, (ast.Tuple, ast.List)) and len(e.elts) == 2
+                              and isinstance(e.elts[0], ast.Constant) and isinstance(e.elts[0].value, str)]
         elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
             # row['ai'] = 20 (codex copps-r6#2)
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]

@@ -360,3 +360,35 @@ def test_PLANT_codex_r19_3_an_all_integer_effect_with_its_label_is_flagged(src, 
     from scripts.ast_literal_sweep import sweep_source
     found = [f for f in sweep_source(src, "harness/example.py") if f["kind"] == "EFFECT_TUPLE_TEXT"]
     assert bool(found) is flagged
+
+
+@pytest.mark.parametrize("entry", ['{"pmid": "1", "held_text_sha256": ["x"], "claim": "C"}',
+                                   '{"pmid": "1", "held_text_sha256": "abc", "claim": "C"}',
+                                   '{"pmid": 1.5, "held_text_sha256": "%s", "claim": "C"}' % ("a" * 64),
+                                   '{"pmid": "1", "held_text_sha256": "%s", "claim": ["C"]}' % ("a" * 64)])
+def test_PLANT_codex_r20_1_registry_fields_have_their_types(tmp_path, monkeypatch, entry):
+    from harness import recorded_verification as rv
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "arm_label_verifications.json").write_text('{"entries": [%s]}' % entry, encoding="utf-8")
+    monkeypatch.setattr(rv, "ROOT", str(tmp_path))
+    with pytest.raises(RuntimeError):
+        rv.verified("arm_label_verifications.json", "1", "t", "C")
+
+
+def test_PLANT_codex_r20_2_a_missing_verification_is_never_reported_as_the_source_not_saying_so():
+    import harness.scope_identity as s
+    from unittest.mock import patch
+    rows = {"records": [{"id": "19717844", "title": "", "abstract": RELY},
+                        {"id": "24251359", "title": "", "abstract": ENGAGE}]}
+    with patch.object(s, "_edox_30_label_verified", return_value=False, create=True), \
+            patch("harness.recorded_verification.verified", return_value=None):
+        reason = s._noac_lower_dose_status(rows)["reason"]
+    assert "does not explicitly identify" not in reason and "no recorded verification" in reason
+
+
+@pytest.mark.parametrize("src", ["row = dict([('ai', 20), ('n1i', 169), ('ci', 37), ('n2i', 167)])",
+                                 "row = dict((('ai', 20), ('n1i', 169)))"])
+def test_PLANT_codex_r20_3_dict_from_literal_pairs_is_swept(src):
+    from scripts.ast_literal_sweep import sweep_source
+    keys = {f["key"] for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"}
+    assert {"ai", "n1i"} <= keys

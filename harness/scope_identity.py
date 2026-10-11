@@ -546,8 +546,10 @@ def _noac_lower_dose_status(records: dict[str, Any]) -> dict[str, Any]:
     elif rely_found and edox_low_found:
         status = "NOT_COMPUTED_SOURCE_INCOMPLETE"
         reason = (
-            "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect found, but the committed source "
-            "does not explicitly identify that lower-dose arm as edoxaban 30 mg."
+            # a MISSING recorded verification is not evidence about the source: say what is missing (codex copps-r20#2)
+            "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect found, but there is no recorded verification "
+            "(registry/arm_label_verifications.json) that the held source identifies that lower-dose arm as "
+            "edoxaban 30 mg."
         )
     else:
         status = "NOT_COMPUTED_SOURCE_INCOMPLETE"

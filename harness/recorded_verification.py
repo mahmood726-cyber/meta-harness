@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from typing import Any
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +35,10 @@ def verified(registry: str, pmid: str, text: str, claim: str, root: str | None =
         missing = [k for k in ("pmid", "held_text_sha256", "claim") if not isinstance(e, dict) or not e.get(k)]
         if missing:
             raise RuntimeError(f"verification registry {path} entry {i} malformed: missing {missing}")
+        # and typed: a pmid string of digits, a 64-hex sha256, a string claim (codex copps-r20#1)
+        if not (isinstance(e["pmid"], str) and e["pmid"].isdigit() and isinstance(e["claim"], str)
+                and isinstance(e["held_text_sha256"], str) and re.fullmatch(r"[0-9a-f]{64}", e["held_text_sha256"])):
+            raise RuntimeError(f"verification registry {path} entry {i} malformed: field types")
     sha = hashlib.sha256((text or "").encode("utf-8")).hexdigest()
     for e in entries:
         if str(e.get("pmid")) == str(pmid) and e.get("held_text_sha256") == sha and e.get("claim") == claim:
