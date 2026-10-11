@@ -11,7 +11,7 @@ def test_outreach_landing_exists_with_scoped_claims():
     for phrase in (
         "replay from committed analysis inputs",
         "not the same as reproduction from a protocol-only registration commit",
-        "does not establish registration-time reproduction",
+        "does <strong>not</strong> establish registration-time reproduction",
         "Model-family comparisons",
         "Source-location checks",
         "Clinical and publication safeguard",
