@@ -500,7 +500,8 @@ _CONTINUES_A_NUMBER = re.compile(r"\d[\s,.\u00a0\u202f\u2009]*$")
 def _first_unbounded(pattern: str, text: str):
     """The first case-insensitive match of `pattern` whose start does not continue a number."""
     for m in re.finditer(pattern, text, re.I):
-        if not _CONTINUES_A_NUMBER.search(text[max(0, m.start() - 8):m.start()]):
+        # the WHOLE prefix: a fixed window loses the digit behind a long separator run (codex copps-r21#1)
+        if not _CONTINUES_A_NUMBER.search(text[:m.start()]):
             return m
     return None
 

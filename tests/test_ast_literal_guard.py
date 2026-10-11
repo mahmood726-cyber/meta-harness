@@ -392,3 +392,17 @@ def test_PLANT_codex_r20_3_dict_from_literal_pairs_is_swept(src):
     from scripts.ast_literal_sweep import sweep_source
     keys = {f["key"] for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"}
     assert {"ai", "n1i"} <= keys
+
+
+@pytest.mark.parametrize("gap", [" " * 9, " " * 40, ", " * 6])
+def test_PLANT_codex_r21_1_a_long_separator_run_still_continues_the_number(gap):
+    assert si._first_unbounded(r"110 mg", "1" + gap + "110 mg") is None
+    assert si._first_unbounded(r"110 mg", "with " + gap + "110 mg") is not None
+
+
+@pytest.mark.parametrize("src", ["row['ai'], *rest = 20, 169, 37, 167", "*rest, row['ai'] = 169, 37, 20",
+                                 "row['ai'], *mid, row['n1i'] = 20, 1, 2, 169"])
+def test_PLANT_codex_r21_2_starred_unpacking_is_swept(src):
+    from scripts.ast_literal_sweep import sweep_source
+    vals = {(f["key"], f["value"]) for f in sweep_source(src, "harness/example.py") if f["kind"] == "COUNT_OR_EFFECT_KEY"}
+    assert ("ai", 20) in vals

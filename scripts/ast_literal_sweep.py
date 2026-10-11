@@ -67,8 +67,18 @@ def _unpack(target, value) -> list[tuple[str, ast.AST]]:
     if value is None:
         return []
     if isinstance(target, (ast.Tuple, ast.List)):
-        if isinstance(value, (ast.Tuple, ast.List)) and len(target.elts) == len(value.elts):
+        if not isinstance(value, (ast.Tuple, ast.List)):
+            return []
+        stars = [i for i, t in enumerate(target.elts) if isinstance(t, ast.Starred)]
+        if not stars and len(target.elts) == len(value.elts):
             return [p for t, v in zip(target.elts, value.elts) for p in _unpack(t, v)]
+        if len(stars) == 1 and len(value.elts) >= len(target.elts) - 1:
+            # row['ai'], *rest = 20, 169, ...: targets before the star bind from the front, after it from the back
+            # (codex copps-r21#2)
+            s, after = stars[0], len(target.elts) - stars[0] - 1
+            front = list(zip(target.elts[:s], value.elts[:s]))
+            back = list(zip(target.elts[s + 1:], value.elts[len(value.elts) - after:])) if after else []
+            return [p for t, v in front + back for p in _unpack(t, v)]
         return []
     if isinstance(target, ast.Subscript) and isinstance(target.slice, ast.Constant) \
             and isinstance(target.slice.value, str):

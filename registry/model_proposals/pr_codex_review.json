@@ -7759,5 +7759,50 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r21": {
+  "base": "630e622bf",
+  "head": "797abda7e",
+  "runs": {
+   "g1": {
+    "record_id": "mc-93bcdeec7f5d160ae2227a4b37bae5a2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "11c91bf58e04aa9b5d5132597c01a55e11b1f36bf808021a4797897d5e3000fa"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded",
+    "severity": "P1",
+    "claim": "The eight-character lookbehind window lets a suffix of a space-grouped dose match as 110 mg. Consequently, _noac_lower_dose_status can assign another dose's effect to the 110 mg arm.",
+    "failing_input": "_first_unbounded(r'110 mg', '1' + ' ' * 9 + '110 mg').span()",
+    "expected": "The matcher returns None because 110 continues the grouped number 1110.",
+    "actual": "Returns a match with span (10, 16). The inspected prefix contains only eight spaces, losing the preceding digit.",
+    "id": "copps-r21:g1#1",
+    "record_id": "mc-93bcdeec7f5d160ae2227a4b37bae5a2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_unpack / sweep_source",
+    "severity": "P2",
+    "claim": "Starred unpacking silently bypasses literal-count detection when the target and value tuples have different lengths, even when a count receives an explicit numeric literal.",
+    "failing_input": "sweep_source(\"row['ai'], *rest = 20, 169, 37, 167\", 'harness/example.py')",
+    "expected": "A COUNT_OR_EFFECT_KEY finding for key 'ai', value 20, line 1.",
+    "actual": "Returns []. _unpack rejects the unequal tuple lengths without inspecting the assignment to row['ai'].",
+    "id": "copps-r21:g1#2",
+    "record_id": "mc-93bcdeec7f5d160ae2227a4b37bae5a2",
+    "verdict": null
+   }
+  ]
  }
 }
