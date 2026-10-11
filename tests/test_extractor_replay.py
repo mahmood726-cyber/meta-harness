@@ -113,3 +113,43 @@ def test_PLANT_a_malformed_source_scope_fails_loudly():
     with pytest.raises(ValueError):
         harms.annotate_outcome(_harm_outcome(), {"keywords": ["x"], "source_scope": {"trials": ["1"]}},
                                [{"id": "33264825"}, {"id": "2"}], {"2": {"abstract": "x"}})
+
+
+# ---- codex extr-r1 (PR #84): plants that fail on b405fde84 ----------------------------------------------------------
+def test_PLANT_extr_r1_1_replay_checks_every_served_count(tmp_path):
+    clause = "Deaths: 5/100 versus 10/100; hazard ratio, 0.50; 95% CI, 0.30-0.80."
+    import hashlib
+    import json
+    sha = hashlib.sha256(clause.encode("utf-8")).hexdigest()
+    (tmp_path / "outputs" / "held_abstracts").mkdir(parents=True)
+    (tmp_path / "outputs" / "held_abstracts" / "pubmed_1.txt").write_text(clause, encoding="utf-8", newline="")
+    (tmp_path / "outputs" / "held_abstracts" / "manifest.json").write_text(json.dumps(
+        {"documents": {"pubmed_1.txt": {"sha256": sha}}}), encoding="utf-8")
+    row = _abs_row("1", sha, clause, 0.5, 0.3, 0.8)
+    assert xr.replay(row, root=str(tmp_path))[0] is True
+    assert xr.replay(dict(row, ai=99, n1i=200), root=str(tmp_path))[0] is False
+    assert xr.replay(dict(row, ai=5, n1i=100, ci=10, n2i=100), root=str(tmp_path))[0] is True
+
+
+@pytest.mark.parametrize("clause", [
+    "Mortality rates were 5/100 person-years versus 10/100 person-years; hazard ratio, 0.50; 95% CI, 0.30-0.80.",
+    "Deaths: 5/100 randomized participants in the treatment arm versus 10/90 safety participants in the placebo arm; "
+    "hazard ratio, 0.50; 95% CI, 0.30-0.80.",
+])
+def test_PLANT_extr_r1_2_3_rates_and_mixed_denominators_are_refused(clause):
+    with pytest.raises(xr.ReadRefused):
+        xr.read_abstract_clause(clause)
+
+
+def test_PLANT_extr_r1_4_the_header_never_crosses_into_the_next_table():
+    text = ("Table 3: Adverse reactions in FIDELIO-DKD\nNo adverse reactions were tabulated.\nTable 4: Adverse reactions in "
+            "FIGARO-DKD\nKerendia N = 100 n (%) Placebo N = 100 n (%)\nHyperkalemia 20 (20.0) 10 (10.0)\n")
+    with pytest.raises(xr.ReadRefused):
+        xr.read_label_adr_table(text, LABEL_SPEC)
+
+
+def test_PLANT_extr_r1_5_the_row_label_starts_a_line():
+    text = ("Table 3: Adverse reactions in FIDELIO-DKD\nKerendia N = 100 n (%) Placebo N = 100 n (%)\n"
+            "Severe Hyperkalemia 2 (2) 1 (1)\nHyperkalemia 20 (20) 10 (10)\n")
+    v = xr.read_label_adr_table(text, LABEL_SPEC)
+    assert (v["ai"], v["ci"]) == (20, 10)

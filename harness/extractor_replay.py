@@ -34,7 +34,11 @@ class ReadRefused(ValueError):
 _NUM = r"(\d+(?:\.\d+)?)"
 _HR = re.compile(r"(?:HR of|\[HR\],|hazard ratio(?: \[HR\])?,?)\s*" + _NUM + r"\s*\(?;?\s*95% CI,?\s*" + _NUM
                  + r"\s*(?:,|-|–|to)\s*" + _NUM)
-_COUNTS = re.compile(r"(?<![\d.])(\d+)/(\d+)(?![\d.])")          # never a rate such as 0.51/100
+_COUNTS = re.compile(r"(?<![\d.])(\d+)/(\d+)(?![\d.])"           # never a rate such as 0.51/100 ...
+                     r"(?!\s*(?:person|patient|participant)[- ]?(?:years?|yrs?|months?)|\s*p-?y\b)")  # ... or 5/100 person-years (extr-r1#2)
+# population qualifiers that name WHICH denominator a count is over (extr-r1#3: randomized v safety are not comparable)
+_POPULATION = re.compile(r"\b(randomi[sz]ed|safety|intention[- ]to[- ]treat|itt|per[- ]protocol|treated|analy[sz]ed|"
+                         r"evaluable)\b", re.I)
 
 
 def read_abstract_clause(clause: str) -> dict[str, Any]:
@@ -50,6 +54,11 @@ def read_abstract_clause(clause: str) -> dict[str, Any]:
     (et, nt), (ec, nc) = ((int(a), int(b)) for a, b in counts)
     if et > nt or ec > nc:
         raise ReadRefused("an event count exceeds its denominator")
+    # the two denominators must be of ONE kind: a population named after each count must be the same (extr-r1#3)
+    pops = [{p.group(1).lower().replace(" ", "-") for p in _POPULATION.finditer(clause[m.end():m.end() + 40])}
+            for m in _COUNTS.finditer(clause)]
+    if pops[0] and pops[1] and pops[0] != pops[1]:
+        raise ReadRefused(f"the two counts are over different populations ({sorted(pops[0])} v {sorted(pops[1])})")
     return {"effect": e, "ci_low": lo, "ci_high": hi, "events_t": et, "n_t": nt, "events_c": ec, "n_c": nc}
 
 
@@ -69,12 +78,16 @@ def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
                     + re.escape(spec["trial"]), text, re.I)
     if not cap:
         raise ReadRefused(f"{spec['table']} caption naming {spec['trial']} not found")
+    # the table ends where the next 'Table N:' caption starts: a header or row past it belongs to another table
+    # (extr-r1#4: FIGARO's Table 4 header read under FIDELIO's Table 3 caption)
+    nxt = re.compile(r"\bTable\s+\d+\s*:").search(text, cap.end())
+    end = nxt.start() if nxt else len(text)
     hdr = re.compile(re.escape(spec["arm_t"]) + r"\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)\s+" + re.escape(spec["arm_c"])
-                     + r"\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)").search(text, cap.end())
+                     + r"\s+N\s*=\s*(\d[\d,]*)\s+n\s*\(%\)").search(text, cap.end(), end)
     if not hdr or hdr.start() - cap.end() > 4000:
         raise ReadRefused("arm header not within the table's reach")
-    row = re.compile(r"(?<![A-Za-z])" + re.escape(spec["row_label"]) + r"\s+(\d+)\s*\((\d+(?:\.\d+)?)\)\s+(\d+)\s*\("
-                     r"(\d+(?:\.\d+)?)\)").search(text, hdr.end())
+    row = re.compile(r"(?:^|(?<=\n))[ \t]*" + re.escape(spec["row_label"]) + r"\s+(\d+)\s*\((\d+(?:\.\d+)?)\)\s+(\d+)\s*\("
+                     r"(\d+(?:\.\d+)?)\)", re.M).search(text, hdr.end(), end)
     if not row or row.start() - hdr.end() > 400:
         raise ReadRefused(f"{spec['row_label']!r} row not directly under the header")
     nt, nc = (int(x.replace(",", "")) for x in hdr.groups())
@@ -129,6 +142,10 @@ def replay(t: dict[str, Any], root: str = ROOT) -> tuple[bool, str]:
         if kind == "held_abstract_clause":
             v = read_abstract_clause(span)
             want = {"effect": v["effect"], "ci_low": v["ci_low"], "ci_high": v["ci_high"]}
+            # any count the row serves must be the clause's count (extr-r1#1): ai/n1i/ci/n2i <- events/n per arm
+            for k, src in (("ai", "events_t"), ("n1i", "n_t"), ("ci", "events_c"), ("n2i", "n_c")):
+                if t.get(k) is not None:
+                    want[k] = v[src]
         else:
             v = read_label_adr_table(text, t.get("replay") or {})
             if v["raw_row"] != span:

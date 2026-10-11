@@ -6731,5 +6731,87 @@
     "verdict": null
    }
   ]
+ },
+ "extr-r1": {
+  "base": "b2e31705a",
+  "head": "b405fde84",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "state": "RAN_OK",
+    "files": [
+     "harness/extractor_replay.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/provenance_class.py",
+     "scripts/v14_02_dpp4_hhf.py",
+     "scripts/v14_03_fidelio_label_hyperk.py"
+    ],
+    "prompt_sha256": "6aea4a5d167e9d216e027a6b5c961408c6a20e9079f87552e6c4a3af8b53f3fc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "replay",
+    "severity": "P0",
+    "claim": "Abstract replay validates only effect and confidence limits. Incorrect served event counts and denominators pass the gate despite the promise to rederive every served number.",
+    "failing_input": "import hashlib, json, tempfile\nfrom pathlib import Path\nfrom harness.extractor_replay import replay\nspan = 'Deaths: 5/100 versus 10/100; hazard ratio, 0.50; 95% CI, 0.30-0.80.'\nsha = hashlib.sha256(span.encode()).hexdigest()\nwith tempfile.TemporaryDirectory() as root:\n    d = Path(root) / 'outputs' / 'held_abstracts'\n    d.mkdir(parents=True)\n    (d / 'pubmed_12345678.txt').write_text(span, encoding='utf-8')\n    (d / 'manifest.json').write_text(json.dumps({'documents': {'pubmed_12345678.txt': {'sha256': sha}}}), encoding='utf-8')\n    row = dict(provenance='held_abstract_clause', document_ref='outputs/held_abstracts/pubmed_12345678.txt', document_sha256=sha, source_span=span, effect=0.5, ci_low=0.3, ci_high=0.8, events_t=99, n_t=200, events_c=1, n_c=200)\n    print(replay(row, root)[0])",
+    "expected": "False: the source says 5/100 and 10/100, whereas the served row says 99/200 and 1/200.",
+    "actual": "True.",
+    "id": "extr-r1:g1#1",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The n/N regex accepts integer incidence rates as participant event counts. It checks numerical shape without checking what the numerator and denominator represent.",
+    "failing_input": "read_abstract_clause('Mortality rates were 5/100 person-years versus 10/100 person-years; hazard ratio, 0.50; 95% CI, 0.30-0.80.')",
+    "expected": "ReadRefused: rates per person-years do not establish per-arm death counts or participant denominators.",
+    "actual": "{'effect': 0.5, 'ci_low': 0.3, 'ci_high': 0.8, 'events_t': 5, 'n_t': 100, 'events_c': 10, 'n_c': 100}",
+    "id": "extr-r1:g1#2",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_abstract_clause",
+    "severity": "P0",
+    "claim": "The reader accepts explicitly incompatible denominator kinds and returns them as an ordinary pair of arm counts, discarding the distinction.",
+    "failing_input": "read_abstract_clause('Deaths: 5/100 randomized participants in the treatment arm versus 10/90 safety participants in the placebo arm; hazard ratio, 0.50; 95% CI, 0.30-0.80.')",
+    "expected": "ReadRefused: randomized and safety denominators cannot be combined as comparable arm denominators.",
+    "actual": "{'effect': 0.5, 'ci_low': 0.3, 'ci_high': 0.8, 'events_t': 5, 'n_t': 100, 'events_c': 10, 'n_c': 90}",
+    "id": "extr-r1:g1#3",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "Header search can cross a subsequent table caption. The reader consequently attributes another trial's counts to the requested trial; the distance limits and percentage checks still pass.",
+    "failing_input": "spec = {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'}\ntext = 'Table 3: Adverse reactions in FIDELIO-DKD\\nNo adverse reactions were tabulated.\\nTable 4: Adverse reactions in FIGARO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nHyperkalemia 20 (20) 10 (10)'\nv = read_label_adr_table(text, spec)\nprint({k: v[k] for k in ('ai', 'n1i', 'ci', 'n2i', 'caption_span')})",
+    "expected": "ReadRefused: Table 3 has no matching arm header or row; Table 4 belongs to FIGARO-DKD.",
+    "actual": "{'ai': 20, 'n1i': 100, 'ci': 10, 'n2i': 100, 'caption_span': 'Table 3: Adverse reactions in FIDELIO-DKD'}",
+    "id": "extr-r1:g1#4",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   },
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_label_adr_table",
+    "severity": "P0",
+    "claim": "The row-label regex matches a suffix of a different endpoint label. Requesting Hyperkalemia can select Severe Hyperkalemia even when the correct row is present.",
+    "failing_input": "spec = {'table': 'Table 3', 'trial': 'FIDELIO-DKD', 'arm_t': 'Kerendia', 'arm_c': 'Placebo', 'row_label': 'Hyperkalemia'}\ntext = 'Table 3: Adverse reactions in FIDELIO-DKD\\nKerendia N = 100 n (%) Placebo N = 100 n (%)\\nSevere Hyperkalemia 2 (2) 1 (1)\\nHyperkalemia 20 (20) 10 (10)'\nv = read_label_adr_table(text, spec)\nprint({k: v[k] for k in ('ai', 'n1i', 'ci', 'n2i', 'raw_row')})",
+    "expected": "{'ai': 20, 'n1i': 100, 'ci': 10, 'n2i': 100, 'raw_row': 'Hyperkalemia 20 (20) 10 (10)'}",
+    "actual": "{'ai': 2, 'n1i': 100, 'ci': 1, 'n2i': 100, 'raw_row': 'Hyperkalemia 2 (2) 1 (1)'}",
+    "id": "extr-r1:g1#5",
+    "record_id": "mc-f61adc1ee135579821e3256fd83b0405",
+    "verdict": null
+   }
+  ]
  }
 }
