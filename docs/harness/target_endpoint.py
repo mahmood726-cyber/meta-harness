@@ -261,7 +261,9 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
         comps.add("renal death")
     # P0 (reviews 18/25/28/29): the shared vocabulary decides two things this parser used to guess.
     shared = components_mod.components(text, expand_generic=False)
-    generic = "mace" in s or "major adverse cardiovascular" in s or "major cardiovascular" in s or "major vascular event" in s
+    # the generic labels main already expanded -- NOT "major vascular events": that is the CTT composite (coronary events, stroke
+    # AND revascularization), never default 3-point MACE (statins-elderly lost both trials when P0 added it)
+    generic = "mace" in s or "major adverse cardiovascular" in s or "major cardiovascular" in s
     # (1) a generic label expands to the default 3-point set only when the text ENUMERATES nothing ('major cardiovascular
     #     events, which comprised ... cardiac interventions' is Alpha Omega's own definition, not 3-point MACE)
     if expand_named_composites and generic:
