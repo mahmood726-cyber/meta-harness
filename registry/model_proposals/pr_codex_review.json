@@ -6879,5 +6879,95 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "e1p2-r2": {
+  "base": "ab37e0df",
+  "head": "9fcba966",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/absence.py",
+     "harness/candidate_rows.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/source_coverage.py",
+     "scripts/refusal_reason_sweep.py"
+    ],
+    "prompt_sha256": "3c74a7071497c988711053b17157b81119655c9f8061ad4a16a411b4f23dcfb4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/candidate_rows.py",
+    "function": "_is_witness",
+    "severity": "P1",
+    "claim": "Duplicate arm cells are counted as independent witness matches. A witness with a different second-arm count therefore suppresses an unassessed candidate.",
+    "failing_input": "from harness.candidate_rows import _is_witness\n_is_witness(['10/100', '10/100'], '60-day mortality: 10/100 versus 20/100')",
+    "expected": "False: the witness does not contain the candidate's two arm counts.",
+    "actual": "True: both identical cells match the same occurrence of '10/100'.",
+    "id": "e1p2-r2:g1#1",
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "verdict": null
+   },
+   {
+    "file": "harness/candidate_rows.py",
+    "function": "candidates",
+    "severity": "P1",
+    "claim": "Integer percentages are treated as arm counts because column headers are ignored. This creates an admissible candidate despite the table printing neither counts nor an effect estimate.",
+    "failing_input": "from harness.candidate_rows import candidates\njats = '<table-wrap id=\"t1\"><caption>Outcomes</caption><table><tr><th>Outcome</th><th>Treatment (%)</th><th>Control (%)</th></tr><tr><td>28-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>'\n[c['assessment'] for c in candidates(jats, [], 'Mortality', '28 days')]",
+    "expected": "[]: the two values are explicitly percentages, not counts.",
+    "actual": "['WINDOW_MATCH']",
+    "id": "e1p2-r2:g1#2",
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "verdict": null
+   },
+   {
+    "file": "harness/candidate_rows.py",
+    "function": "allowed_windows",
+    "severity": "P1",
+    "claim": "A declared day range with units retains only its upper endpoint, incorrectly rejecting rows within the declared range.",
+    "failing_input": "from harness.candidate_rows import allowed_windows\nallowed_windows('28-30 days', [])",
+    "expected": "{28, 29, 30}",
+    "actual": "{30}; a '28-day mortality' candidate consequently receives WINDOW_MISMATCH.",
+    "id": "e1p2-r2:g1#3",
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "verdict": null
+   },
+   {
+    "file": "harness/candidate_rows.py",
+    "function": "row_window",
+    "severity": "P1",
+    "claim": "The hospital keyword classifies explicitly post-discharge mortality as in-hospital mortality, allowing an incompatible row to receive IN_HOSPITAL_MATCH.",
+    "failing_input": "from harness.candidate_rows import row_window\nrow_window('Mortality after hospital discharge')",
+    "expected": "('UNSTATED', None), requiring adjudication under the available categories; this is explicitly not an in-hospital window.",
+    "actual": "('IN_HOSPITAL', None)",
+    "id": "e1p2-r2:g1#4",
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "verdict": null
+   }
+  ]
+ },
+ "e1p2-r2-agy": {
+  "base": "e1e9a84a",
+  "head": "9fcba966",
+  "runs": {
+   "g1": {
+    "record_id": "mc-800ba92bd0e23c6b4375fe382f0b4613",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/absence.py",
+     "harness/candidate_rows.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "62109a4eede8f0bdc3380c2d639a9a2422d8e6d78edaa59f6b1fb094aa4d7fa4"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }
