@@ -10,8 +10,8 @@ Every case keeps the paired shape: the CONTROL (the committed inputs) admits -> 
 row is refused for the named reason with the trial still visible -> the exact inputs restored admit again and
 give the control's pool. Cases assert a property and a code, never a number or a message string.
 
-Known misses are strict xfails, named: W4a/W4b (an excluded component treated as included: the layer-1 exclusion
-relation, not this object). W2a/W5b require a canonical span absent from the held document to refuse only its row.
+No named misses remain on this battery: W2a/W5b (a canonical span absent from the held document) refuse only their row,
+and W4a/W4b (an excluded component treated as included) refuse on the passive exclusion (M2, 12 Oct).
 """
 import copy
 import json
@@ -342,22 +342,38 @@ def test_W2a_and_W5b_refuse_only_the_row_at_load(lane):
     assert loaded == control
 
 
-# ----------------------------------------------------------------------------- named misses, strict
-@pytest.mark.xfail(strict=True, reason="W4a: an excluded component treated as included -- the layer-1 exclusion "
-                                       "relation, not the hand-row object")
 def test_W4a_exclusion_stated_in_the_held_abstract_refuses_the_hand_row(inputs, lane):
     inp, spec = inputs
+    control = _control(inp, spec, lane)
     rec_by_id = edit_abstract(lane, inp, SOUL,
         "(a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke)",
         "(a composite of death from cardiovascular causes or nonfatal myocardial infarction; nonfatal stroke was "
         "excluded from the primary outcome)")
     out = _build(inp, spec, lane, rec_by_id)
     assert SOUL not in _pool(out)
+    absent = _absent(out, SOUL)
+    assert absent is not None and absent.get("reason_code") == "RESULT_INCOMPATIBLE"
+    shutil.copyfile(os.path.join(CACHE, "records.json"), lane / "cache" / SLUG / "records.json")
+    assert _pool(_build(inp, spec, lane)) == control
 
 
-@pytest.mark.xfail(strict=True, reason="W4b: the same exclusion on the machine (abstract) route")
 def test_W4b_exclusion_stated_in_the_held_abstract_refuses_the_abstract_row(inputs, lane):
     inp, spec = inputs
+    # Unrelated outcome approvals can cite the entire abstract. Remove those from
+    # this primary-only lane BEFORE the control, or their stale spans abort LOAD
+    # before the machine route is exercised (the separate W2a/W5b limitation).
+    for name in verified_inputs.FILES:
+        path = lane / "cache" / SLUG / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        entries = verified_inputs.entries(data.get(SUSTAIN6))
+        primary = [e for e in entries if e["outcome"] == PRIMARY]
+        if primary:
+            data[SUSTAIN6] = primary
+        else:
+            data.pop(SUSTAIN6, None)
+        path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    control = _control(inp, spec, lane)
+    assert control[SUSTAIN6] == ("EXACT_TARGET", None)  # machine route, no hand binding
     rec_by_id = edit_abstract(lane, inp, SUSTAIN6,
         "The primary composite outcome was the first occurrence of cardiovascular death, nonfatal myocardial "
         "infarction, or nonfatal stroke.",
@@ -365,6 +381,10 @@ def test_W4b_exclusion_stated_in_the_held_abstract_refuses_the_abstract_row(inpu
         "infarction; nonfatal stroke was excluded from the primary composite outcome.")
     out = _build(inp, spec, lane, rec_by_id)
     assert SUSTAIN6 not in _pool(out)
+    absent = _absent(out, SUSTAIN6)
+    assert absent is not None and absent.get("reason_code") == "RESULT_INCOMPATIBLE"
+    shutil.copyfile(os.path.join(CACHE, "records.json"), lane / "cache" / SLUG / "records.json")
+    assert _pool(_build(inp, spec, lane)) == control
 
 
 def test_PLANT_a_span_refused_row_is_never_copied_by_missing_effect(tmp_path, monkeypatch):
