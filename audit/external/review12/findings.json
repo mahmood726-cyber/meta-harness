@@ -1,0 +1,39 @@
+[
+  {
+    "id": "12-01",
+    "title": "Drug-matched placebo creates a false background-only exclusion",
+    "tabs": ["Screening", "Included studies"],
+    "page_evidence": "NCT00816673 is family-ELIGIBLE but its record-level decision is X-CONTRAST, with basis ending 'placebo Circadin; Circadin'.",
+    "code_evidence": "The fallback removes only full matches of the placebo regex; 'placebo circadin' remains active and matches the intervention keyword. The caller continues to this fallback after a False structural result.",
+    "verification": "Pinned display and code read; isolated transcribed-function test executed. Current registry response body not obtained.",
+    "severity": "changes served wording",
+    "numerical_qualification": "Selection/flow counts require a rebuild. No demonstrated change to the currently served efficacy MD."
+  },
+  {
+    "id": "12-02",
+    "title": "MYNAP is counted as an eligible adult trial family",
+    "tabs": ["Protocol", "Screening"],
+    "page_evidence": "NCT02333149 / MYNAP is ELIGIBLE among the displayed 3/16 eligible families.",
+    "source_evidence": "Original MYNAP protocol specifies ages 6-17 years and ADHD; pinned review protocol requires adults and excludes children/neurodevelopmental populations.",
+    "severity": "changes a served number",
+    "numerical_qualification": "Removing this one ineligible family changes the displayed eligible-family count from 3 to 2, holding all other classifications fixed. This is not a validated final census and does not alter the current MD."
+  },
+  {
+    "id": "12-03",
+    "title": "Extension-phase completers language contaminates the three-week analysis-set label",
+    "tabs": ["Analysis", "Results and conclusions"],
+    "page_evidence": "Declared population is the age 65-80 ITT subgroup, but the compatibility reading labels the row completers using the statement about placebo completers being re-randomized for the extension.",
+    "source_evidence": "Table 3 supplies three-week first-randomization results. The re-randomization sentence describes entry into the subsequent 26-week extension, not the three-week estimator population.",
+    "severity": "changes served wording",
+    "numerical_qualification": "No alteration of the six extracted arm statistics is indicated. This finding concerns incorrect estimator metadata and its witness scope."
+  },
+  {
+    "id": "12-04",
+    "title": "Subgroup, timepoint and reconstructed-effect scope are not consistently propagated",
+    "tabs": ["Protocol", "Results and conclusions", "Manuscript"],
+    "page_evidence": "The protocol explicitly discloses the age 65-80 unadjusted subgroup result; other displays use generic 'end of treatment', adult-insomnia framing and 'the trial\u2019s own effect'.",
+    "source_evidence": "The verified arm statistics concern the 65-80-year subgroup at three weeks; the published covariate-adjusted effect is -15.6 rather than the reconstructed -17.4 minutes.",
+    "severity": "changes served wording",
+    "numerical_qualification": "The subgroup limitation is already disclosed and is not counted as a newly discovered hidden subgroup. The remaining problem is inconsistent propagation to downstream outputs. Neither a different population nor a different estimator should silently replace the declared MD."
+  }
+]

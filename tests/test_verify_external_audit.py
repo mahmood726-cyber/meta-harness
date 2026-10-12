@@ -90,3 +90,107 @@ def test_PLANT_a_script_run_supersession_must_pin_served_values_and_the_expected
         {"check": "review05_recalculation.py run", "signed_item": "V13-01"}]}), encoding="utf-8")
     rows, bad = vea.run()
     assert any(r["check"] == "review05_recalculation.py run" and r["verdict"] == "FAIL" for r in rows)
+
+
+# ------------------------------------------------------------------------------- bundles (reviews 10-21, 10 Oct)
+def _bundle_only(monkeypatch, tmp_path, name):
+    import shutil
+    ext = tmp_path / "external"
+    shutil.copytree(vea.EXT, ext)
+    monkeypatch.setattr(vea, "EXT", str(ext))
+    monkeypatch.setattr(vea, "CHECKS", [])
+    monkeypatch.setattr(vea, "BUNDLES", [b for b in vea.BUNDLES if b[0] == name])
+    return ext
+
+
+def test_every_received_bundle_is_checked():
+    assert {b[0] for b in vea.BUNDLES} == {"review10", "review12", "review13", "review14", "review15", "review16",
+                                          "review18", "review19", "review20", "review21", "review25",
+                                          "review27", "review28", "review29"}
+
+
+def test_PLANT_a_changed_file_anywhere_in_a_bundle_is_refused_and_never_run(monkeypatch, tmp_path):
+    ext = _bundle_only(monkeypatch, tmp_path, "review12")
+    p = ext / "review12" / "findings.json"
+    p.write_bytes(p.read_bytes() + b" ")
+    rows, bad = vea.run()
+    assert bad == 1 and rows[0]["check"] == "review12 bundle bytes" and "findings.json" in rows[0]["detail"]
+
+
+def test_PLANT_an_unlisted_file_added_to_a_bundle_is_refused(monkeypatch, tmp_path):
+    ext = _bundle_only(monkeypatch, tmp_path, "review12")
+    (ext / "review12" / "extra.py").write_text("print(1)\n", encoding="utf-8")
+    rows, bad = vea.run()
+    assert bad == 1 and "unlisted" in rows[0]["detail"] and "extra.py" in rows[0]["detail"]
+
+
+def test_PLANT_ignored_paths_drop_only_what_they_name():
+    out = {"runtime": {"numpy": "2.4.4"}, "pool": {"estimate": 0.81}}
+    ref = {"runtime": {"numpy": "2.3.5"}, "pool": {"estimate": 0.80}}
+    assert vea._same_json(vea._drop(out, [("runtime",)]), vea._drop(ref, [("runtime",)])) != []
+    assert vea._same_json(vea._drop(out, [("runtime",)]), vea._drop(dict(ref, pool={"estimate": 0.81}), [("runtime",)])) == []
+
+
+# ---------------------------------------------------------------- captain review: the bundle gate could not fail
+# codex pr62-cap-r1 #1: run_bundles copied the bundle INCLUDING its committed results.json into the run dir, so a script that
+# writes nothing 'reproduced' it by comparing the stale copy with itself. agy pr62-cap-r1-agy #1: a timeout, a missing
+# output or malformed JSON crashed the whole verifier. Each must be a per-bundle FAIL with a typed reason.
+def _swap_script(monkeypatch, tmp_path, body):
+    import hashlib
+    ext = _bundle_only(monkeypatch, tmp_path, "review12")
+    p = ext / "review12" / "checks.py"
+    p.write_text(body, encoding="utf-8")
+    h = hashlib.sha256(p.read_bytes()).hexdigest()
+    sums = ext / "SHA256SUMS"
+    sums.write_text("".join((f"{h} *review12/checks.py\n" if ln.endswith("*review12/checks.py") else ln + "\n")
+                            for ln in sums.read_text(encoding="utf-8").splitlines()), encoding="utf-8")
+    return ext
+
+
+def test_PLANT_a_script_that_writes_nothing_fails(monkeypatch, tmp_path):
+    _swap_script(monkeypatch, tmp_path, "pass\n")
+    rows, bad = vea.run()
+    assert bad >= 1 and any(r["verdict"] == "FAIL" and "NOT_WRITTEN" in r["detail"] for r in rows)
+    assert not any(r["verdict"] == "PASS" and "reproduces" in r["check"] for r in rows)
+
+
+def test_PLANT_malformed_output_is_a_fail_not_a_crash(monkeypatch, tmp_path):
+    _swap_script(monkeypatch, tmp_path, "open('results.json', 'w').write('{not json')\n")
+    rows, bad = vea.run()
+    assert bad >= 1 and any(r["verdict"] == "FAIL" and "MALFORMED_OUTPUT" in r["detail"] for r in rows)
+
+
+def test_PLANT_a_timeout_is_a_fail_not_a_crash(monkeypatch, tmp_path):
+    _swap_script(monkeypatch, tmp_path, "import time\ntime.sleep(30)\n")
+    monkeypatch.setattr(vea, "BUNDLE_TIMEOUT_S", 2)
+    rows, bad = vea.run()
+    assert bad >= 1 and any(r["verdict"] == "FAIL" and "TIMEOUT" in r["detail"] for r in rows)
+
+
+def test_PLANT_a_null_or_missing_auditor_value_is_a_fail_not_a_crash():
+    """codex pr62-cap-r2 #1: valid JSON with 'HR': null reached float() and crashed the whole verifier."""
+    cmp_ = [("x null", "doac-vte-recurrence", None, "estimate", ("primary", "HR")),
+            ("x missing", "doac-vte-recurrence", None, "estimate", ("primary", "absent")),
+            ("x text", "doac-vte-recurrence", None, "estimate", ("primary", "note"))]
+    rows = []
+    bad = vea._compare({"primary": {"HR": None, "note": "n/a"}}, cmp_, {}, set(), rows)
+    assert bad == 3 and [r["verdict"] for r in rows] == ["FAIL"] * 3
+    assert all("NON_NUMERIC_OUTPUT" in r["detail"] or "MISSING_OUTPUT_FIELD" in r["detail"] for r in rows)
+
+
+# ---------------------------------------------------------------- codex pr62-cap-r3 (stop at three)
+def test_PLANT_a_huge_integer_is_a_fail_not_an_overflow():
+    rows = []
+    bad = vea._compare({"HR": 10 ** 400}, [("large HR", "doac-vte-recurrence", None, "estimate", ("HR",))], {}, set(), rows)
+    assert bad == 1 and rows[0]["verdict"] == "FAIL" and "NON_NUMERIC_OUTPUT" in rows[0]["detail"]
+
+
+def test_PLANT_a_missing_committed_reference_is_a_fail_not_a_crash(monkeypatch, tmp_path):
+    import hashlib
+    ext = _bundle_only(monkeypatch, tmp_path, "review12")
+    (ext / "review12" / "results.json").unlink()
+    sums = ext / "SHA256SUMS"
+    sums.write_text("".join(ln + "\n" for ln in sums.read_text(encoding="utf-8").splitlines()
+                            if not ln.endswith("*review12/results.json")), encoding="utf-8")
+    rows, bad = vea.run()
+    assert bad >= 1 and any(r["verdict"] == "FAIL" and "MISSING_REFERENCE" in r["detail"] for r in rows)
