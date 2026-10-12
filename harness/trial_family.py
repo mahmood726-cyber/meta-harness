@@ -600,12 +600,23 @@ def reconcile_family_eligibility(review, nodes):
     the protocol screen included none of its records (noac 12 -> 7, tranexamic 5 -> 2, melatonin, metformin IVF) is
     demoted to NO_RECORD_ELIGIBLE_UNDER_PROTOCOL; the structural verdict is kept beside it for audit, never deleted.
     An UNKNOWN / INELIGIBLE family is untouched: this gate only ever REMOVES an unsupported eligibility. Returns the
-    demoted family ids."""
+    demoted (or abstained) family ids."""
     screened = (review.get('screening') or {}).get('records') or []
     if not screened:
-        # no record-level screen to reconcile against: ABSTAIN. Absent data is not evidence that no record was eligible
-        # (the 'missing field means ineligible' class; caught by test_refused_pool_is_not_claimed_as_pooled_family)
-        return []
+        # no record-level screen to reconcile against: ABSTAIN, TYPED. Absent data is not evidence that no record was
+        # eligible (so never NO_RECORD_ELIGIBLE), nor that one was (codex pr81-cap-r1 #1: leaving 'ELIGIBLE' was fail-open
+        # -- downstream read eligibility as established with no included own record). 0 of 32 served topics lack a screen.
+        abstained = []
+        for f in nodes:
+            if (f.get('eligibility') or {}).get('state') != 'ELIGIBLE':
+                continue
+            structural = f['eligibility']
+            f['eligibility'] = cell(code='RECONCILE_ABSTAINED')
+            f['eligibility']['structural'] = structural
+            f['eligibility']['reconcile'] = {'rule': 'family ELIGIBLE needs >=1 own record INCLUDED by the record-level screen',
+                                             'abstained': 'no record-level screen to reconcile against'}
+            abstained.append(f['family_id'])
+        return abstained
     included = {identity._norm(r.get('id')) for r in screened if r.get('decision') == 'include'}
     demoted = []
     for f in nodes:

@@ -53,5 +53,21 @@ def test_PLANT_no_record_level_screen_means_abstain_not_demote():
     """A review with no screening records gives the gate no evidence: absent data never demotes a family (the
     'missing field means ineligible' class; first draft of this gate demoted here)."""
     nodes = [_fam("NCTF", "ELIGIBLE", ["666"], ["NCTF"])]
-    assert tf.reconcile_family_eligibility({"outcomes": []}, nodes) == []
-    assert nodes[0]["eligibility"]["state"] == "ELIGIBLE"
+    tf.reconcile_family_eligibility({"outcomes": []}, nodes)
+    # never demoted (absent data is not ineligibility) -- but never left ELIGIBLE either: that half of this test asserted
+    # the fail-open codex pr81-cap-r1 #1 named, and is rewritten to the requirement (typed abstention)
+    assert nodes[0]["eligibility"].get("absence_code") != "NO_RECORD_ELIGIBLE_UNDER_PROTOCOL"
+    assert nodes[0]["eligibility"].get("absence_code") == "RECONCILE_ABSTAINED"
+
+
+def test_PLANT_no_record_level_screen_abstains_typed_never_eligible():
+    """codex pr81-cap-r1 #1 (P1 FAIL-OPEN): with no record-level screen the gate returned [] and left {'state': 'ELIGIBLE'},
+    so downstream read eligibility as established without any included own record. Abstaining is typed; the structural
+    verdict is kept beside it, never deleted."""
+    from harness import trial_family as tf
+    nodes = [{"family_id": "NCT1", "eligibility": {"state": "ELIGIBLE", "span": {"fixture": "structural"}},
+              "reports": [{"report_id": "111"}], "identity_basis": {"registry_ids": ["NCT1"]}, "aliases": {}}]
+    out = tf.reconcile_family_eligibility({"screening": {"records": []}}, nodes)
+    e = nodes[0]["eligibility"]
+    assert e["state"] != "ELIGIBLE" and e["absence_code"] == "RECONCILE_ABSTAINED"
+    assert e["structural"]["state"] == "ELIGIBLE" and out == ["NCT1"]
