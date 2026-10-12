@@ -62,3 +62,23 @@ def test_known_limit_mixed_population_denominators():
     s = "Randomised: treatment 100, control 100. Safety population: treatment 90, control 80. Safety deaths: treatment 9, control 8."
     assert not t.check_bind({"decision": "BIND", "span": s, "numbers": dict(_N, events_t=9, n_t=100, events_c=8, n_c=80)},
                             "TITLE: x\nABSTRACT: " + s)[0]
+
+
+# ---------------------------------------------------------------- codex / agy m2pre-cap-r2 (each failed on 74fe46beb)
+def _b(span, **nums):
+    return t.check_bind({"decision": "BIND", "span": span, "numbers": dict(_N, **nums)}, "TITLE: x\nABSTRACT: " + span)[0]
+
+
+def test_PLANT_word_percent_and_percentage_ranges_are_not_counts():
+    assert not _b("Kaplan-Meier mortality was 12 percent in treatment and 8 percent in control", events_t=12, events_c=8)
+    assert not _b("mortality was 12-15%", events_t=12)
+
+
+def test_PLANT_scientific_notation_and_unspaced_commas_are_not_split():
+    assert not _b("Treatment deaths: 1e2 of 500; control deaths: 80 of 500.", events_t=2, n_t=500, events_c=80, n_c=500)
+    assert not _b("grades 1,2 adverse events", events_t=12)
+    assert _b("deaths 1,234 of 5,000 versus 1,100 of 5,001", events_t=1234, n_t=5000, events_c=1100, n_c=5001)
+
+
+def test_PLANT_a_denominator_only_answer_is_not_a_bind():
+    assert not _b("We randomized 100 patients per arm. Mortality results are not yet available.", n_t=100, n_c=100)

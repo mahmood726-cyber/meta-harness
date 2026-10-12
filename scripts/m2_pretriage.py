@@ -59,6 +59,13 @@ def _git_json(path, required=False):
     return json.loads(r.stdout)
 
 
+def _main_files(d):
+    p = subprocess.run(["git", "ls-tree", "--name-only", "origin/main", f"{d}/"], cwd=ROOT, capture_output=True, text=True)
+    if p.returncode != 0:      # a read failure is an error, never 'this review is absent' (codex m2pre-cap-r2 #5)
+        raise RuntimeError(f"git ls-tree origin/main:{d} failed: {p.stderr[:200]!r}")
+    return set(p.stdout.split())
+
+
 def unbound_rows():
     p = subprocess.run(["git", "ls-tree", "--name-only", "origin/main", "docs/reviews/"], cwd=ROOT,
                        capture_output=True, text=True)
@@ -66,8 +73,8 @@ def unbound_rows():
         raise RuntimeError(f"cannot enumerate docs/reviews on origin/main: {p.stderr[:200]!r}")
     out = []
     for d in p.stdout.split():
-        if subprocess.run(["git", "cat-file", "-e", f"origin/main:{d}/review.json"], cwd=ROOT).returncode != 0:
-            continue                                     # not a review directory
+        if f"{d}/review.json" not in _main_files(d):
+            continue                                     # not a review directory (an absent file, never a read error)
         rev = _git_json(f"{d}/review.json", required=True)
         topic = _git_json(f"topics/{d.split('/')[-1]}.json") or {}
         specs = [topic.get("primary_outcome") or {}] + list(topic.get("secondary_outcomes") or [])
@@ -153,11 +160,20 @@ def check_bind(ans, text):
             if isinstance(v, (int, float)) and not isinstance(v, bool)}
     if not nums:
         return False, "a bind with no numbers"                  # codex/agy m2pre-cap-r1: an empty bind binds nothing
-    # numbers WITH their sign ('-0.25', unicode minus) and leading-dot decimals ('.75'); a token followed by '%' is a
-    # percentage and never an event count or denominator (codex/agy m2pre-cap-r1)
+    if not any(k in nums for k in ("effect", "events_t", "events_c")):
+        return False, "denominators only: no result"            # codex m2pre-cap-r2 #4
+    # numbers WITH their sign ('-0.25', unicode minus) and leading-dot decimals ('.75'); a comma is a thousands separator
+    # only before exactly three digits ('1,234'; '1,2' is two numbers); scientific notation ('1e2') is never split into
+    # numbers; a token that is a percentage -- '%' or 'percent' after it, or the first bound of a '12-15%' range -- is
+    # never an event count or denominator (codex/agy m2pre-cap-r1, r2)
     norm = span.replace("·", ".").replace("−", "-").replace("–", "-")
-    toks = [(float(m.group(1).replace(",", "")), m.group(2) == "%")
-            for m in re.finditer(r"((?:(?<![\w.])-)?(?:\d[\d,]*(?:\.\d+)?|\.\d+))\s*(%?)", norm)]
+    toks = []
+    for m in re.finditer(r"((?:(?<![\w.])-)?(?:\d{1,3}(?:,\d{3})+(?!\d)|\d+(?:\.\d+)?|\.\d+))", norm):
+        tail, head = norm[m.end():m.end() + 24], norm[max(0, m.start() - 2):m.start()]
+        if re.match(r"[eE][-+]?\d", tail) or re.search(r"\d[eE][-+]?$", head):
+            continue                                            # a piece of scientific notation
+        pct = bool(re.match(r"\s*(?:%|percent\b|per cent\b|-\s*\d+(?:\.\d+)?\s*%)", tail, re.I))
+        toks.append((float(m.group(1).replace(",", "")), pct))
     counts = {"events_t", "n_t", "events_c", "n_c"}
     for k, v in nums.items():
         if not any(abs(v - x) < 1e-9 and not (pct and k in counts) for x, pct in toks):
