@@ -291,6 +291,28 @@ def extraction_rows(r: dict) -> list[dict]:
                          "value": _value(t), "provenance": t.get("provenance"), "class": cls, "class_why": why,
                          "verified": t.get("verified"), "passage": passage(t), "passage_sha256": passage_sha256(t),
                          "records": recs})
+    return rows + strand_extraction_rows(r)
+
+
+def strand_extraction_rows(r: dict) -> list[dict]:
+    """External review 11-01: a served strand is a first-class analysis object, so every strand member number is in the
+    inventory (and the audit pack's sample frame) with its passage and digest. A member read by harness/strand_pool.py
+    carries its held source span and is EXTRACTOR; a member of a doc written outside that path is HAND_ENTERED."""
+    import hashlib
+    from .strand_pool import member_class, strand_rows
+    rows = []
+    for i, (label, rid, s, m) in enumerate(strand_rows(r)):
+        span = m.get("source_span") or ""
+        counts = (f"; {m.get('ai')}/{m.get('n1i')} v {m.get('ci')}/{m.get('n2i')}" if m.get("ai") is not None else "")
+        val = (f"{_fmt(m.get('effect'))} ({_fmt(m.get('ci_low'))} to {_fmt(m.get('ci_high'))}) {_e(m.get('scale'))}"
+               f"{_e(counts)}" if m.get("effect") is not None else _e(m.get("status") or "no value"))
+        cls, why = member_class(m)          # the census uses the same function (scripts/provenance_census.py)
+        rows.append({"anchor": f"s{i}", "outcome": label, "state": f"declared strand member (k={s.get('k')})",
+                     "trial": m.get("trial"), "id": rid, "value": val,
+                     "provenance": "harness/strand_pool.py read" if cls == "EXTRACTOR" else "strand doc entry",
+                     "class": cls, "class_why": why, "verified": cls == "EXTRACTOR", "passage": span,
+                     "passage_sha256": hashlib.sha256(span.encode("utf-8")).hexdigest() if span else None,
+                     "records": []})
     return rows
 
 
@@ -423,6 +445,29 @@ def analysis_tab(r: dict) -> str:
                        f"{_e(loo.get('most_influential'))}.</p>")
         else:
             out.append(_reason("sensitivity", "leave-one-out: " + _e(loo.get("note") or "not recorded for this outcome") + "."))
+    strands = ((r.get("strands") or {}).get("strands")) or []
+    if strands:
+        # external review 11-01: the served strands are analysis objects of this page, so their method and served
+        # result are stated here as for an outcome -- through the same k=2 rule (harness/strand_pool.served_view)
+        from .strand_pool import served_view
+        any_out = True
+        out.append("<h4>Declared strands</h4><p>Each strand is pooled by the registered engine (PM tau-squared + HKSJ) "
+                   "and the k=2 rule of harness/k2.py; its member numbers are in the Data extraction tab.</p>")
+        body = []
+        for s in strands:
+            v = served_view(s.get("pool"))
+            if v and v.get("estimate") is not None:
+                ci = (f"{_fmt(v.get('ci_low'))} to {_fmt(v.get('ci_high'))}" if v.get("ci_low") is not None else
+                      f"not served -- {_e(v.get('withheld'))}")
+                res = f"{_fmt(v.get('estimate'))}; 95% CI {ci}"
+            elif v:
+                res = f"pooled row refused -- {_e(v.get('withheld'))}"
+            else:
+                res = "k=1: the single trial's own result (Data extraction tab); not pooled"
+            body.append(f"<tr><td>{_e(s.get('strand') or s.get('id'))}</td><td>{_e(s.get('name'))}</td>"
+                        f"<td>{_e(s.get('effect_measure'))}</td><td>{_fmt(s.get('k'))}</td><td>{res}</td></tr>")
+        out.append("<table class='recs' id='strand-analyses'><tr><th>Strand</th><th>Analysis</th><th>Measure</th>"
+                   f"<th>k</th><th>Served result</th></tr>{''.join(body)}</table>")
     if not any_out:
         why = ("no outcome of this review has a pooled estimate that may be shown (each is withheld for the reason given "
                "under its heading)")

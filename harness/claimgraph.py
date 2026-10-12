@@ -177,6 +177,12 @@ def attach_strands(review: dict[str, Any], root: str) -> None:
             continue
         if doc.get("slug") != slug:
             continue
+        # external review 11-02: every strand pool passes the SAME k=2 rule as an outcome pool before it is served,
+        # whichever builder (or hand) wrote the doc
+        from . import strand_pool
+        for s in doc.get("strands") or []:
+            if isinstance(s, dict) and isinstance(s.get("pool"), dict):
+                s["pool"] = strand_pool.policy_pool(s["pool"])
         review["strands"] = doc
         by_key = _strand_names_by_member(doc)
         if by_key:
@@ -453,6 +459,16 @@ def _strand_violations(review: dict[str, Any]) -> list[dict[str, Any]]:
                 "strand_pool",
                 _claim_id("strand_pool", (primary or {}).get("name"), version),
                 f"{len(strands)} strand result(s) exist but only {counted} are counted in claim scope",
+            ))
+    from . import strand_pool
+    for s in strands:
+        code = strand_pool.k2_violation(s.get("pool"))
+        if code:
+            out.append(_violation(
+                "STRAND_K2_CI_SERVED", "strand_pool",
+                _claim_id("strand_pool", s.get("name"), version),
+                f"strand {s.get('strand') or s.get('id')} serves a pooled interval at k=2 ({code}); "
+                "harness/k2.py withholds it for every pool",
             ))
     pooled = strand_member_keys(strands_doc)
     for reason in (review.get("invalidation") or {}).get("reasons") or []:
