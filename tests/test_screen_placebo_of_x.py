@@ -50,3 +50,20 @@ def test_PLANT_structural_false_is_decisive_never_falls_through(monkeypatch):
     # abstention (None) still lets the fallback speak
     monkeypatch.setattr(armcontrast, "background_only_inclusion", lambda nct, kw, idx: None)
     assert screen._background_only_randomised_contrast(rec, ["drugx"], {})[0] is True
+
+
+def test_PLANT_a_commentary_on_a_trial_is_not_a_trial_report():
+    """V15-B preview (captain, 12 Oct): PMID 18681789 -- 'Is pharmacogenomics our future? Metformin, ovulation and
+    polymorphism of the STK11 gene in PCOS', an 'Evaluation of: Legro RS et al.' commentary (pubtypes Comparative Study /
+    Journal Article) -- was admitted by the placebo-of-X branch and its GENOTYPE odds ratio (CC v GG, 0.30) entered the
+    metformin + clomifene pool (2.07 -> 1.26). A commentary is secondary literature, never a primary report."""
+    from harness import screen
+    rec = {"pubtypes": ["Comparative Study", "Journal Article"],
+           "title": "Is pharmacogenomics our future? Metformin, ovulation and polymorphism of the STK11 gene in polycystic "
+                    "ovary syndrome.",
+           "abstract": "Evaluation of: Legro RS, Barnhart HX, Schlaff WD et al.: Ovulatory response to treatment of "
+                       "polycystic ovary syndrome is associated with a polymorphism in the STK11 gene."}
+    assert screen._is_review(rec)
+    assert screen._is_review({"pubtypes": ["Comment", "Journal Article"], "title": "x", "abstract": "y"})
+    assert screen._is_review({"pubtypes": ["Editorial"], "title": "x", "abstract": "y"})
+    assert not screen._is_review({"pubtypes": ["Randomized Controlled Trial"], "title": "x", "abstract": "Evaluation of x"})

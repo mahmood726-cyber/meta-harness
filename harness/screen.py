@@ -160,8 +160,16 @@ def _is_review(rec) -> bool:
     # 'Clinical Trial') that ALSO reports a pooled sub-analysis is still a trial: RE-COVER II (24344086),
     # "Treatment of acute VTE with dabigatran or warfarin and pooled analysis", is pubtype-RCT and must
     # not be reclassified a review by the title marker.
+    # a COMMENTARY on a trial is secondary literature too: pubtype Comment / Editorial, or the 'Evaluation of: <citation>'
+    # format of evaluation journals. PMID 18681789 ('Is pharmacogenomics our future?', an evaluation of Legro et al.) was
+    # admitted by the placebo-of-X branch and its GENOTYPE odds ratio entered the metformin + clomifene pool (V15-B
+    # preview, captain, 12 Oct)
+    if any(p in ("comment", "editorial") for p in pts):
+        return True
     if any(("randomized controlled trial" in p) or ("clinical trial" in p) for p in pts):
         return False
+    if _re2.match(r"\s*evaluation of\s*:", rec.get("abstract", "") or "", _re2.I):
+        return True
     return bool(_REVIEW_TITLE.search(rec.get("title", "") or ""))
 
 
