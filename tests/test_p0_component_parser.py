@@ -214,3 +214,26 @@ def test_known_limit_union_list_item_not_returned():
 def test_known_limit_exclusion_list():
     p = C.components("MACE excluding transient ischemic attack, unstable angina, and revascularization.")
     assert p.components == {"cardiovascular death", "myocardial infarction", "stroke"}
+
+
+# ---------------------------------------------------------------- agy p0-r1 #1 / p0-r5 #1 #4: LOST by the review runner's parser
+# (agy answered {"defects": [...]}); recovered 12 Oct. Each failed on main c948b4f78.
+def test_non_cv_death_is_not_cardiovascular_death():
+    assert "cardiovascular death" not in C.components("A composite of non-CV death and stroke.").components
+    assert "cardiovascular death" not in te._components_from_text("A composite of non-CV death and stroke.")
+
+
+def test_a_four_point_label_never_adds_unstable_angina_over_an_enumerated_fourth_item():
+    s = ("The primary endpoint was 4-point MACE, defined as cardiovascular death, myocardial infarction, stroke, or heart "
+         "failure hospitalization.")
+    assert "unstable angina" not in te._components_from_text(s)
+    assert "unstable angina" in te._components_from_text("4-point MACE")          # a bare label still expands
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (agy p0-r5 #3): a parenthesised 'including' list is read as a qualifier "
+                                       "(the LEADER rule: 'nonfatal (including silent) myocardial infarction'), so a full "
+                                       "enumeration in '(including ...)' is not read")
+def test_known_limit_parenthesised_including_enumeration():
+    p = C.components("The primary endpoint was MACE (including cardiovascular death, myocardial infarction, stroke, and "
+                     "cardiac interventions).")
+    assert p.unknown == ["cardiac interventions"]

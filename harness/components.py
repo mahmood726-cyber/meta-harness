@@ -86,7 +86,8 @@ def known(s: str) -> set[str]:
             or "fatal coronary heart disease" in s or "fatal chd" in s
             or re.search(r"\bchd\b.{0,30}death|death.{0,30}\bchd\b", s)):
         comps.add("coronary heart disease death")
-    s_cv = re.sub(r"\bnon-?\s?cardiovascular\b", "noncv", s)
+    # 'non-CV death' is not CV death: the hyphen is a word boundary, so '\bcv\b' matched inside it (agy p0-r1 #1 / p0-r5 #1)
+    s_cv = re.sub(r"\bnon-?\s?(?:cardiovascular|cv)\b", "noncv", s)
     if ("cardiovascular death" in s_cv or "death from cardiovascular" in s_cv or "cardiovascular causes" in s_cv
             or re.search(r"cardiovascular(?:(?!\b(?:or|and)\b|[,;]).){0,30}death|death(?:(?!\b(?:or|and)\b|[,;]).){0,30}cardiovascular", s_cv)
             or re.search(r"\bcv\b.*death|death.*\bcv\b", s_cv)
