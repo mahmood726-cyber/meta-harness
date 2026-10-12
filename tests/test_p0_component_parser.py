@@ -297,3 +297,24 @@ def test_PLANT_a_conjoined_passive_exclusion_excludes_every_named_component():
     assert {"stroke", "myocardial infarction"} <= C.excluded("Stroke and myocardial infarction were excluded.")
     # a definition list before a bracket / comma is never swallowed into the subject
     assert C.excluded("MACE (cardiovascular death, myocardial infarction, stroke) and stroke was excluded.") == {"stroke"}
+
+
+# ---------------------------------------------------------------- codex / agy m2comb-cap-r2 (each failed on 809447575)
+def test_PLANT_a_singular_passive_subject_is_one_noun_phrase():
+    assert "cardiovascular death was included" in C.strip_exclusions("cardiovascular death was included but stroke was excluded.")
+    assert C.excluded("among patients with diabetes, stroke was excluded from the endpoint.") == {"stroke"}
+    assert C.excluded("Patients with diabetes were enrolled, but stroke was excluded") == {"stroke"}
+
+
+def test_PLANT_a_plural_passive_subject_runs_across_commas():
+    assert C.excluded("stroke, myocardial infarction and cardiovascular death were excluded.") == \
+        {"stroke", "myocardial infarction", "cardiovascular death"}
+    assert C.excluded("Patients with prior stroke, myocardial infarction or TIA were excluded.") == set()       # eligibility
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (agy m2comb-cap-r2 #3): a disjunctive subject with a singular verb "
+                                       "('stroke or MI was excluded') is read as its last item -- it cannot be told from a "
+                                       "list followed by a clause ('...and MI or nonfatal stroke was excluded', codex's W4 "
+                                       "test) without parsing the sentence")
+def test_known_limit_disjunctive_singular_subject():
+    assert C.excluded("stroke or myocardial infarction was excluded") == {"stroke", "myocardial infarction"}

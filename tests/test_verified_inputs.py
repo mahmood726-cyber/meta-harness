@@ -84,3 +84,15 @@ def test_PLANT_a_multi_row_verified_entry_does_not_crash_the_refusal_scan(tmp_pa
                                   [{"id": "111", "id_type": "pmid"}], {"111": {"abstract": held}}, ["drug"], ["placebo"],
                                   verified_effects={"111": [entry, dict(entry, outcome="Other outcome", span_refusal=None)]}, verified_arms={})
     assert not out["trials"] and out["declared_absent_trials"][0]["state"] == "EXTRACTION_DEBT"
+
+
+def test_PLANT_a_refusal_keyed_by_the_trials_PMID_is_seen_for_its_NCT_record(tmp_path, monkeypatch):
+    """agy m2comb-cap-r2 #1: the symmetric case -- an NCT-indexed record whose refused entry is keyed by its PMID."""
+    held, entry = _refused(tmp_path)
+    monkeypatch.setattr(pipeline, "_source_effect_candidates",
+                        lambda *a, **k: pytest.fail("a refused trial reached candidate selection"))
+    out = pipeline._build_outcome({"name": "Synthetic harm", "keywords": ["harm"], "estimand": "RR"}, "harm",
+                                  [{"id": "NCT00001", "id_type": "nct"}],
+                                  {"NCT00001": {"abstract": held, "nct": "NCT00001", "pmid": "111"}},
+                                  ["drug"], ["placebo"], verified_effects={"111": entry}, verified_arms={})
+    assert not out["trials"] and out["declared_absent_trials"][0]["state"] == "EXTRACTION_DEBT"
