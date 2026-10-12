@@ -28,3 +28,37 @@ def test_a_number_not_in_the_span_never_binds():
 
 def test_a_refuse_is_not_a_bind():
     assert not t.check_bind({"decision": "REFUSE", "span": "", "numbers": {}}, SRC)[0]
+
+
+# ---------------------------------------------------------------- codex / agy m2pre-cap-r1 (each failed on d9367bded)
+import pytest  # noqa: E402
+
+_N = dict.fromkeys(["effect", "ci_low", "ci_high", "measure", "events_t", "n_t", "events_c", "n_c"])
+
+
+def test_PLANT_a_bind_with_no_numbers_is_not_a_bind():
+    assert not t.check_bind({"decision": "BIND", "span": "Death occurred in", "numbers": dict(_N)}, SRC)[0]
+
+
+def test_PLANT_signs_and_leading_dot_decimals_are_read():
+    s = "TITLE: x\nABSTRACT: mean difference -0.5 (95% CI -1.2 to 0.2); hazard ratio was .75 (95% CI .60 to .95)."
+    assert t.check_bind({"decision": "BIND", "span": "mean difference -0.5 (95% CI -1.2 to 0.2)",
+                         "numbers": dict(_N, effect=-0.5, ci_low=-1.2, ci_high=0.2)}, s)[0]
+    assert not t.check_bind({"decision": "BIND", "span": "mean difference -0.5 (95% CI -1.2 to 0.2)",
+                             "numbers": dict(_N, effect=0.5, ci_low=-1.2, ci_high=0.2)}, s)[0]
+    assert t.check_bind({"decision": "BIND", "span": "hazard ratio was .75 (95% CI .60 to .95)",
+                         "numbers": dict(_N, effect=0.75, ci_low=0.6, ci_high=0.95)}, s)[0]
+
+
+def test_PLANT_a_percentage_is_never_an_event_count():
+    s = "TITLE: x\nABSTRACT: Kaplan-Meier mortality was 12% versus 8%."
+    assert not t.check_bind({"decision": "BIND", "span": "Kaplan-Meier mortality was 12% versus 8%.",
+                             "numbers": dict(_N, events_t=12, events_c=8)}, s)[0]
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex m2pre-cap-r1 #2): arm denominators from different analysis "
+                                       "populations inside one span are not detected; the human signer sees the span")
+def test_known_limit_mixed_population_denominators():
+    s = "Randomised: treatment 100, control 100. Safety population: treatment 90, control 80. Safety deaths: treatment 9, control 8."
+    assert not t.check_bind({"decision": "BIND", "span": s, "numbers": dict(_N, events_t=9, n_t=100, events_c=8, n_c=80)},
+                            "TITLE: x\nABSTRACT: " + s)[0]

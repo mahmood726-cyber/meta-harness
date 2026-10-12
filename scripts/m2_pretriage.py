@@ -50,19 +50,25 @@ MODEL, EFFORT = "gpt-6-astra", "high"
 REC_DIR = os.path.join(ROOT, ms.RECORD_DIR)
 
 
-def _git_json(path):
+def _git_json(path, required=False):
     r = subprocess.run(["git", "show", f"origin/main:{path}"], cwd=ROOT, capture_output=True)
-    return json.loads(r.stdout) if r.returncode == 0 else None
+    if r.returncode != 0:
+        if required:              # a failed read is never 'no rows' (codex m2pre-cap-r1 #5)
+            raise RuntimeError(f"git show origin/main:{path} failed: {r.stderr[:200]!r}")
+        return None
+    return json.loads(r.stdout)
 
 
 def unbound_rows():
-    slugs = subprocess.run(["git", "ls-tree", "--name-only", "origin/main", "docs/reviews/"], cwd=ROOT,
-                           capture_output=True, text=True).stdout.split()
+    p = subprocess.run(["git", "ls-tree", "--name-only", "origin/main", "docs/reviews/"], cwd=ROOT,
+                       capture_output=True, text=True)
+    if p.returncode != 0 or not p.stdout.split():
+        raise RuntimeError(f"cannot enumerate docs/reviews on origin/main: {p.stderr[:200]!r}")
     out = []
-    for d in slugs:
-        rev = _git_json(f"{d}/review.json")
-        if not rev:
-            continue
+    for d in p.stdout.split():
+        if subprocess.run(["git", "cat-file", "-e", f"origin/main:{d}/review.json"], cwd=ROOT).returncode != 0:
+            continue                                     # not a review directory
+        rev = _git_json(f"{d}/review.json", required=True)
         topic = _git_json(f"topics/{d.split('/')[-1]}.json") or {}
         specs = [topic.get("primary_outcome") or {}] + list(topic.get("secondary_outcomes") or [])
         for o in rev.get("outcomes") or []:
@@ -143,10 +149,20 @@ def check_bind(ans, text):
     span = re.sub(r"\s+", " ", ans.get("span") or "").strip()
     if not span or span not in re.sub(r"\s+", " ", text):
         return False, "span not in the source shown"
-    tokens = [float(x.replace(",", "")) for x in re.findall(r"\d[\d,]*(?:\.\d+)?", span.replace("·", "."))]
-    for k, v in (ans.get("numbers") or {}).items():
-        if isinstance(v, (int, float)) and not isinstance(v, bool) and not any(abs(v - x) < 1e-9 for x in tokens):
-            return False, f"{k}={v} not in the span"
+    nums = {k: v for k, v in (ans.get("numbers") or {}).items()
+            if isinstance(v, (int, float)) and not isinstance(v, bool)}
+    if not nums:
+        return False, "a bind with no numbers"                  # codex/agy m2pre-cap-r1: an empty bind binds nothing
+    # numbers WITH their sign ('-0.25', unicode minus) and leading-dot decimals ('.75'); a token followed by '%' is a
+    # percentage and never an event count or denominator (codex/agy m2pre-cap-r1)
+    norm = span.replace("·", ".").replace("−", "-").replace("–", "-")
+    toks = [(float(m.group(1).replace(",", "")), m.group(2) == "%")
+            for m in re.finditer(r"((?:(?<![\w.])-)?(?:\d[\d,]*(?:\.\d+)?|\.\d+))\s*(%?)", norm)]
+    counts = {"events_t", "n_t", "events_c", "n_c"}
+    for k, v in nums.items():
+        if not any(abs(v - x) < 1e-9 and not (pct and k in counts) for x, pct in toks):
+            return False, f"{k}={v} not in the span" + (" (only as a percentage)" if k in counts and any(
+                abs(v - x) < 1e-9 for x, _ in toks) else "")
     return True, "ok"
 
 
