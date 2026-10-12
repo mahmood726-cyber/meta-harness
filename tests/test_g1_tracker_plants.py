@@ -355,7 +355,40 @@ def test_r17_enumerated_sets_and_a_higher_stated_k_leave_N_alone():
     o = gt.seed_candidate_n(_seed_out("TABLE_ENUMERATED", 8), 7, {"text": "7 trials"}, "x")
     assert o["N_comparator_trials"] == 8 and o["N_comparator_trials_basis"] == "TABLE_ENUMERATED"
     assert "N_candidates" not in o and not o["comparator_findings"]
-    # seed candidates BELOW the stated k (cortico-covid: 5 seeds, '7 randomized clinical trials'): N is never inflated
-    # here -- the existing COMPARATOR_STATED_K_ABOVE_ENUMERATED_N finding covers that direction
+    # seed candidates BELOW the stated k (cortico-covid: 5 seeds, '7 randomized clinical trials'): the stated k IS the
+    # comparator N on either side of the seed count (codex pr64-cap-r1 #1; this test first asserted N stayed 5); the
+    # missing identities stay unresolved -- the call site's COMPARATOR_STATED_K_ABOVE_ENUMERATED_N finding names the gap
     o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 5), 7, {"text": "7 randomized clinical trials"}, "y")
-    assert o["N_comparator_trials"] == 5 and o["N_candidates"] == 5 and not o["comparator_findings"]
+    assert o["N_comparator_trials"] == 7 and o["N_candidates"] == 5
+    assert o["N_comparator_trials_basis"] == "COMPARATOR_STATED_K" and o["included_set_membership"] == "UNRESOLVED"
+
+
+# ---------------------------------------------------------------- codex pr64-cap-r1 (each failed on 564814c63)
+def test_a_stated_k_above_the_seed_count_is_the_comparator_N():
+    o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 8, 5), 10, {"text": "10 randomized trials"}, "x")
+    assert (o["N_comparator_trials"], o["N_candidates"], o["N_comparator_trials_basis"]) == (10, 8, "COMPARATOR_STATED_K")
+    assert o["included_set_membership"] == "UNRESOLVED"
+
+
+def test_never_more_matches_than_the_comparator_N():
+    """12 seed candidates all matched, the comparator includes 10: which 10 is unresolved, so N is NOT shrunk under the
+    matches ('12 of 10'); the candidates stay the denominator and a finding names the unresolved membership."""
+    o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 12, 12), 10, {"text": "10 randomized trials"}, "x")
+    assert o["k_matched"] <= o["N_comparator_trials"]
+    assert o["k_matched_of_comparator_N"] != "12 of 10" and o["N_candidates"] == 12
+    assert o["included_set_membership"] == "UNRESOLVED"
+    assert [f["finding"] for f in o["comparator_findings"]] == ["COMPARATOR_STATED_K_BELOW_MATCHED_SEED_CANDIDATES"]
+    assert gt.g1_status(dict(o, trials=[], N_eligible=12, open_gaps=[], slug="x"))["criteria"].get(
+        "ALL_ELIGIBLE_MATCHED") is not True
+
+
+def test_seed_candidate_n_is_idempotent():
+    o = _seed_out("REFERENCE_SEED_CANDIDATES", 12, 5)
+    gt.seed_candidate_n(o, 10, {"text": "10 randomized trials"}, "x")
+    once = {k: o[k] for k in ("N_comparator_trials", "N_candidates", "N_comparator_trials_basis", "k_matched_of_comparator_N")}
+    n_find = len(o["comparator_findings"])
+    gt.seed_candidate_n(o, 10, {"text": "10 randomized trials"}, "x")
+    assert {k: o[k] for k in once} == once == {"N_comparator_trials": 10, "N_candidates": 12,
+                                               "N_comparator_trials_basis": "COMPARATOR_STATED_K",
+                                               "k_matched_of_comparator_N": "5 of 10"}
+    assert len(o["comparator_findings"]) == n_find

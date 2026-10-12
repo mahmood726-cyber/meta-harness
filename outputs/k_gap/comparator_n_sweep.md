@@ -7,7 +7,7 @@
 | colchicine-recurrent-pericarditis | PROPOSAL_ENUMERATED_GATED | 5 | 5 | PROPOSAL_ENUMERATED_GATED | None | NOT_YET | NOT_YET |
 | colchicine-secondary-cv-prevention | TABLE_ENUMERATED | 15 | 15 | TABLE_ENUMERATED | None | NOT_YET | NOT_YET |
 | corticosteroids-cap-mortality | REFERENCE_SEED_CANDIDATES | 11 | 11 | REFERENCE_SEED_CANDIDATES | None | NOT_YET | NOT_YET |
-| corticosteroids-covid19-mortality | REFERENCE_SEED_CANDIDATES | 5 | 5 | REFERENCE_SEED_CANDIDATES | 7 | NOT_YET | NOT_YET |
+| corticosteroids-covid19-mortality | REFERENCE_SEED_CANDIDATES | 5 | 7 | COMPARATOR_STATED_K | 7 | NOT_YET | NOT_YET |
 | dapagliflozin-hfpef-hosp | PROPOSAL_ENUMERATED_GATED | 2 | 2 | PROPOSAL_ENUMERATED_GATED | None | G1_MATCHED | G1_MATCHED |
 | denosumab-vertebral-fracture | ENUMERATED | 2 | 2 | ENUMERATED | 57 | G1_MATCHED | G1_MATCHED |
 | doac-vte-recurrence | ENUMERATED | 5 | 5 | ENUMERATED | 3 | G1_MATCHED | G1_MATCHED |
