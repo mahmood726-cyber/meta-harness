@@ -126,6 +126,34 @@ def test_an_exclusion_survives_generic_expansion():
     assert "stroke" not in te._components_from_text("MACE excluding stroke")
 
 
+@pytest.mark.parametrize("component", sorted(C.THREE_POINT))
+@pytest.mark.parametrize("verb", ["was", "were", "is", "are"])
+def test_passive_exclusion_survives_generic_expansion(component, verb):
+    text = f"3-point MACE; {component} {verb} excluded from the primary composite outcome."
+    expected = C.THREE_POINT - {component}
+    assert C.excluded(text) == {component}
+    assert C.components(text).components == expected
+    assert C.components(text).unknown == []
+    assert te._components_from_text(text) == expected
+
+
+@pytest.mark.parametrize("separator", [",", ";", " and", " or"])
+def test_passive_exclusion_keeps_the_preceding_included_components(separator):
+    text = ("MACE defined as cardiovascular death and myocardial infarction"
+            f"{separator} nonfatal stroke was excluded from the primary outcome.")
+    expected = {"cardiovascular death", "myocardial infarction"}
+    assert C.components(text).components == expected
+    assert C.components(text).unknown == []
+    assert te._components_from_text(text) == expected
+
+
+def test_negated_passive_exclusion_does_not_remove_a_component():
+    text = "3-point MACE; nonfatal stroke was not excluded from the primary outcome."
+    assert C.excluded(text) == set()
+    assert C.components(text).components == C.THREE_POINT
+    assert te._components_from_text(text) == C.THREE_POINT
+
+
 def test_fatal_coronary_heart_disease_is_a_known_item():
     p = C.components("MACE defined as fatal coronary heart disease, nonfatal myocardial infarction, and nonfatal stroke.")
     assert p.unknown == [] and "coronary heart disease death" in p.components
@@ -237,3 +265,17 @@ def test_known_limit_parenthesised_including_enumeration():
     p = C.components("The primary endpoint was MACE (including cardiovascular death, myocardial infarction, stroke, and "
                      "cardiac interventions).")
     assert p.unknown == ["cardiac interventions"]
+
+
+def test_PLANT_a_passive_POPULATION_exclusion_removes_no_component():
+    """Captain review of the M2 W4 change: the passive form 'X was excluded' also matched ELIGIBILITY sentences --
+    'Patients with prior stroke were excluded' removed stroke from MACE (22 served review.json carry 'were/was excluded')."""
+    # the passive population sentence excludes nothing (that it NAMES stroke at all is the separate known limit
+    # test_known_limit_population_exclusion, unchanged from main)
+    assert C.excluded("The primary endpoint was MACE. Patients with prior stroke were excluded.") == set()
+    assert "myocardial infarction" in C.components(
+        "MACE (cardiovascular death, myocardial infarction, stroke). Patients with a history of myocardial infarction "
+        "were excluded.").components
+    # the endpoint's OWN passive exclusion still counts (battery W4)
+    assert "stroke" not in C.components("The composite of cardiovascular death, myocardial infarction and stroke; nonfatal "
+                                         "stroke was excluded.").components
