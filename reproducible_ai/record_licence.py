@@ -111,13 +111,29 @@ def _doi_in_ref(ref):
     while the parentheses are UNBALANCED: '[^\\s)]+' cut every DOI that carries its own parentheses -- Lancet-family
     '10.1016/s2213-8587(25)00222-0' became '...(25', missed the held index, and a CC BY text was refused (10 Oct).
     Fail-closed is unchanged: the DOI must still resolve, from held data, to a CC licence."""
+    c = _doi_candidates(ref)
+    return c[-1] if c else None
+
+
+def _doi_candidates(ref):
+    """The declared DOI token EXACTLY as written, then each shorter form left after dropping one more piece of trailing
+    citation punctuation ('.', ',', ';', an unbalanced ')'), longest first. ref_licences takes the first form that is
+    held, so the exact held DOI always wins: stripping unconditionally turned 'DOI 10.1234/example.' into the DIFFERENT
+    held record '10.1234/example' and borrowed its cc-by licence (codex pr79-cap-r1 #1)."""
     m = _DOI_REF.search(ref or "")
     if not m:
-        return None
-    d = m.group(1).rstrip(".,;")
-    while d.endswith(")") and d.count(")") > d.count("("):
-        d = d[:-1]
-    return d
+        return []
+    out = [m.group(1)]
+    d = m.group(1)
+    while True:
+        if d[-1:] in ".,;":
+            d = d[:-1]
+        elif d.endswith(")") and d.count(")") > d.count("("):
+            d = d[:-1]
+        else:
+            break
+        out.append(d)
+    return out
 
 
 def doi_licences(index_path=UPW_INDEX):
@@ -193,8 +209,9 @@ def ref_licences(ref, lic, dlic):
     m = re.match(r"trial report PMID (\d+)", ref)
     if m:
         return [(f"PMID {m.group(1)} report", lic.get(m.group(1)))]
-    d = _doi_in_ref(ref)
-    if d:
+    cands = _doi_candidates(ref)
+    if cands:
+        d = next((c for c in cands if c.lower() in dlic), cands[-1])    # exact held DOI first; never a borrowed licence
         return [(f"DOI {d}", dlic.get(d.lower()))]
     return []
 

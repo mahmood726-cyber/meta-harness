@@ -118,3 +118,15 @@ def test_PLANT_a_doi_with_its_own_parentheses_is_declared_whole():
     assert rl.text_block_problems(rec("DOI 10.1016/s2213-8587(25)00222-0 (D17)"), dl, {}) == []
     assert rl.text_block_problems(rec("DOI 10.1016/s0140-6736(24)00001-x (D17)"), dl, {})      # not CC: refused
     assert rl.text_block_problems(rec("DOI 10.1016/s9999-9999(99)99999-9 (D17)"), dl, {})      # not held: refused
+
+
+def test_PLANT_the_exact_held_doi_wins_over_a_stripped_form():
+    """codex pr79-cap-r1 #1: stripping trailing punctuation unconditionally turned 'DOI 10.1234/example.' into the DIFFERENT
+    held DOI '10.1234/example' and took its cc-by licence -- a wrong CC licence lets non-CC text into a prompt (D8)."""
+    from reproducible_ai import record_licence as rl
+    dlic = {"10.1234/example.": "all-rights-reserved", "10.1234/example": "cc-by"}
+    assert rl.ref_licences("DOI 10.1234/example.", {}, dlic) == [("DOI 10.1234/example.", "all-rights-reserved")]
+    # citation punctuation is still dropped when the exact token is NOT held
+    assert rl.ref_licences("see (DOI 10.1234/example).", {}, {"10.1234/example": "cc-by"}) == [("DOI 10.1234/example", "cc-by")]
+    # and a DOI held by no form stays unresolved (fail closed), never borrowed
+    assert rl.ref_licences("DOI 10.9/none.", {}, {}) == [("DOI 10.9/none", None)]
