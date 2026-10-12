@@ -116,22 +116,22 @@ def _doi_in_ref(ref):
 
 
 def _doi_candidates(ref):
-    """The declared DOI token EXACTLY as written, then each shorter form left after dropping one more piece of trailing
-    citation punctuation ('.', ',', ';', an unbalanced ')'), longest first. ref_licences takes the first form that is
+    """The declared DOI token EXACTLY as written, then each shorter form left after dropping an UNBALANCED closing ')'
+    together with any punctuation after it ('(DOI 10.1/x).'), longest first. ref_licences takes the first form that is
     held, so the exact held DOI always wins: stripping unconditionally turned 'DOI 10.1234/example.' into the DIFFERENT
-    held record '10.1234/example' and borrowed its cc-by licence (codex pr79-cap-r1 #1)."""
+    held record '10.1234/example' and borrowed its cc-by licence (codex pr79-cap-r1 #1). A bare trailing '.', ',' or ';'
+    is never assumed to be punctuation -- it may be part of the identifier -- so such a token is read exactly and fails
+    closed when unheld (codex pr79-cap-r2 #1; main's '[^\\s)]+' never stripped it either)."""
     m = _DOI_REF.search(ref or "")
     if not m:
         return []
     out = [m.group(1)]
     d = m.group(1)
     while True:
-        if d[-1:] in ".,;":
-            d = d[:-1]
-        elif d.endswith(")") and d.count(")") > d.count("("):
-            d = d[:-1]
-        else:
+        t = re.search(r"\)[.,;]*$", d)
+        if not (t and d.count(")") > d.count("(")):
             break
+        d = d[:t.start()]
         out.append(d)
     return out
 

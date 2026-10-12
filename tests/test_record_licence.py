@@ -128,5 +128,15 @@ def test_PLANT_the_exact_held_doi_wins_over_a_stripped_form():
     assert rl.ref_licences("DOI 10.1234/example.", {}, dlic) == [("DOI 10.1234/example.", "all-rights-reserved")]
     # citation punctuation is still dropped when the exact token is NOT held
     assert rl.ref_licences("see (DOI 10.1234/example).", {}, {"10.1234/example": "cc-by"}) == [("DOI 10.1234/example", "cc-by")]
-    # and a DOI held by no form stays unresolved (fail closed), never borrowed
-    assert rl.ref_licences("DOI 10.9/none.", {}, {}) == [("DOI 10.9/none", None)]
+    # a DOI held by no form stays unresolved (fail closed), never borrowed
+    assert rl.ref_licences("DOI 10.9/none.", {}, {}) == [("DOI 10.9/none.", None)]
+
+
+def test_PLANT_a_trailing_period_is_never_assumed_to_be_punctuation():
+    """codex pr79-cap-r2 #1: with the exact 'DOI 10.1234/example.' unheld, dropping the period borrowed the cc-by of the
+    held '10.1234/example'. A period is punctuation only OUTSIDE an unbalanced ')' ('(DOI 10.1/x).'); otherwise the
+    declared token is read exactly and fails closed."""
+    from reproducible_ai import record_licence as rl
+    assert rl.ref_licences("DOI 10.1234/example.", {}, {"10.1234/example": "cc-by"}) == [("DOI 10.1234/example.", None)]
+    lancet = "10.1016/s2213-8587(25)00222-0"
+    assert rl.ref_licences(f"report (DOI {lancet}).", {}, {lancet: "cc-by"}) == [(f"DOI {lancet}", "cc-by")]
