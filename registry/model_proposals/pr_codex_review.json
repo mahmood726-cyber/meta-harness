@@ -7910,5 +7910,975 @@
     "verdict": null
    }
   ]
+ },
+ "p0f-cap-r1": {
+  "base": "origin/main",
+  "head": "origin/fix/p0-agy-recovered-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-66dd8ef7ba42ea3ba46bf248e7acf870",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/components.py",
+     "harness/target_endpoint.py"
+    ],
+    "prompt_sha256": "3e5206abdabced6285a41c8ce44aaf264b67157a28e0898475ca6677b2968790"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "p0f-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/fix/p0-agy-recovered-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3afd088d45e57b5638a40ea76a593416",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/components.py",
+     "harness/target_endpoint.py"
+    ],
+    "prompt_sha256": "6ab7f1e0067a82e0bd46cd79cf2137ee416a0f71537bbdfcad33b38249f8d1e8"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr79-cap-r2": {
+  "base": "origin/main",
+  "head": "origin/kgap/doi-ref-parens",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7091ce21220b524b4ec3f5ec4bc61a35",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "reproducible_ai/record_licence.py"
+    ],
+    "prompt_sha256": "6555faf3095dd9ebb27d6795afb05305715ee88dfaf77978a7024157eecb2cc3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "ref_licences",
+    "severity": "P1",
+    "claim": "When the exact declared DOI is unheld, punctuation stripping can borrow a different DOI's CC licence. Exact-match precedence only protects records already in the index; it does not establish that a trailing period is citation punctuation rather than part of the identifier.",
+    "failing_input": "ref_licences('DOI 10.1234/example.', {}, {'10.1234/example': 'cc-by'}) — the declared identifier includes the final period.",
+    "expected": "[('DOI 10.1234/example.', None)] — fail closed because the declared DOI has no held licence.",
+    "actual": "[('DOI 10.1234/example', 'cc-by')]",
+    "id": "pr79-cap-r2:g1#1",
+    "record_id": "mc-7091ce21220b524b4ec3f5ec4bc61a35",
+    "verdict": null
+   }
+  ]
+ },
+ "pr79-cap-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/doi-ref-parens",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0712cb488c517b02c2ef86c346888cdd",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "reproducible_ai/record_licence.py"
+    ],
+    "prompt_sha256": "0fdcf9da82957d16ee797926e72c2e4d4df7a0bc111f942d17dde7019c8a1ec2"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr79-cap-r3": {
+  "base": "origin/main",
+  "head": "origin/kgap/doi-ref-parens",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b41c38e41cf161bd155a5f5bb5ca4ecc",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "reproducible_ai/record_licence.py"
+    ],
+    "prompt_sha256": "677ea6ad6517f9c9974dc861f2e6aa7546569c9388da446bcf106664d1894666"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "_doi_candidates / ref_licences",
+    "severity": "P1",
+    "claim": "A colon after a parenthesized DOI prevents lookup of its held licence. The new regex captures the closing parenthesis and colon, but the cleanup accepts only '.', ',' and ';'. This regresses the previous parser.",
+    "failing_input": "ref_licences('report (DOI 10.1234/example): held text', {}, {'10.1234/example': 'cc-by'})",
+    "expected": "[('DOI 10.1234/example', 'cc-by')]",
+    "actual": "[('DOI 10.1234/example):', None)]",
+    "id": "pr79-cap-r3:g1#1",
+    "record_id": "mc-b41c38e41cf161bd155a5f5bb5ca4ecc",
+    "verdict": null
+   }
+  ]
+ },
+ "pr79-cap-r3-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/doi-ref-parens",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5ccfd154b3796f1ab64c73f6f668a870",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "reproducible_ai/record_licence.py"
+    ],
+    "prompt_sha256": "4fcb1c5aa7fcaec2aa4a2ab47384f0c11706a6edfc4bf14952dd2266a78431f8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "[]\n[]\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr79-cap-r3-agy:g1#1",
+    "record_id": "mc-5ccfd154b3796f1ab64c73f6f668a870",
+    "verdict": null
+   }
+  ]
+ },
+ "pr62-cap-r2": {
+  "base": "origin/main",
+  "head": "origin/pva/audit-bundles-r10-r25",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3fbf8c702e28cd0647b4946a7f966ca2",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "18af3eb019a62eedc60af81abe9fafbe2af8a5137a378a051fbeb45c1fcb5d6d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/verify_external_audit.py",
+    "function": "run_bundles",
+    "severity": "P2",
+    "claim": "Bundle output is checked for JSON syntax but not numeric schema. A null estimate escapes the error handling and crashes the audit during _compare, preventing remaining bundles from being checked.",
+    "failing_input": "Run from the repository root:\nimport hashlib, json, tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nimport scripts.verify_external_audit as v\n\nwith tempfile.TemporaryDirectory() as td:\n    base = Path(td) / 'review28' / 'topic28_audit'\n    base.mkdir(parents=True)\n    data = {'primary': {'HR': None, 'ci_low': 0.5, 'ci_high': 1.5}}\n    (base / 'results.json').write_text(json.dumps(data), encoding='utf-8')\n    (base / 'audit.py').write_text(\"import json\\nfrom pathlib import Path\\nPath(__file__).with_name('results.json').write_text(json.dumps(\" + repr(data) + \"), encoding='utf-8')\\n\", encoding='utf-8')\n    sums = {p.relative_to(td).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in base.iterdir()}\n    bundles = [b for b in v.BUNDLES if b[0] == 'review28']\n    with patch.object(v, 'EXT', td), patch.object(v, 'BUNDLES', bundles):\n        v.run_bundles(sums, {}, {})",
+    "expected": "Return a FAIL row identifying the invalid numeric output, increment the failure count, and continue checking subsequent bundles.",
+    "actual": "The null HR reaches float(_dig(out, path)), raising an uncaught TypeError instead of returning audit results. This is source-traced; command execution was blocked in the review environment.",
+    "id": "pr62-cap-r2:g1#1",
+    "record_id": "mc-3fbf8c702e28cd0647b4946a7f966ca2",
+    "verdict": null
+   }
+  ]
+ },
+ "pr62-cap-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/pva/audit-bundles-r10-r25",
+  "runs": {
+   "g1": {
+    "record_id": "mc-544456367365dcd35f6812e65a1e5974",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "e3eca0f9bd33d6fc31997eb0241bba31656adabd155b27f21e865eab986d67bb"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr62-cap-r3": {
+  "base": "origin/main",
+  "head": "origin/pva/audit-bundles-r10-r25",
+  "runs": {
+   "g1": {
+    "record_id": "mc-198b375d13cc7c0d66e0607e70c21524",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "8b1c56e51f4f5c5c1fd3d8a84069a29a8d76e53c4268888ef3fd1fdb71967605"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/verify_external_audit.py",
+    "function": "run_bundles",
+    "severity": "P2",
+    "claim": "The manifest check does not require the committed reference output to exist. A bundle containing only its correctly pinned script passes that check, generates output successfully, then crashes at the unguarded reference-file read, preventing subsequent bundles from being checked.",
+    "failing_input": "import hashlib, tempfile\nfrom pathlib import Path\nfrom unittest.mock import patch\nimport scripts.verify_external_audit as v\n\nwith tempfile.TemporaryDirectory() as td:\n    base = Path(td) / 'review14'\n    base.mkdir()\n    script = b\"from pathlib import Path\\nPath('results.json').write_text('{}', encoding='utf-8')\\n\"\n    (base / 'audit.py').write_bytes(script)\n    sums = {'review14/audit.py': hashlib.sha256(script).hexdigest()}\n    bundles = [('review14', 'audit.py', 'results.json', [], [])]\n    with patch.object(v, 'EXT', td), patch.object(v, 'BUNDLES', bundles):\n        print(v.run_bundles(sums, {}, {}))",
+    "expected": "A FAIL row identifying the missing committed results.json, bad = 1, and continued processing of subsequent bundles.",
+    "actual": "Raises FileNotFoundError when opening base/results.json after execution; run_bundles returns no result.",
+    "id": "pr62-cap-r3:g1#1",
+    "record_id": "mc-198b375d13cc7c0d66e0607e70c21524",
+    "verdict": null
+   },
+   {
+    "file": "scripts/verify_external_audit.py",
+    "function": "_compare",
+    "severity": "P2",
+    "claim": "The new numeric validation itself raises for large JSON integers. Python accepts these integers, but math.isfinite implicitly converts them to float and can overflow, aborting verification instead of recording a FAIL.",
+    "failing_input": "import json\nimport scripts.verify_external_audit as v\n\nout = json.loads('{\"HR\":' + '1' + '0' * 400 + '}')\nrows = []\nv._compare(out, [('large HR', 'pcsk9-mace', None, 'estimate', ('HR',))], {}, {}, rows)",
+    "expected": "Return 1 and append a FAIL row for the unrepresentable numeric value, allowing later comparisons and bundles to run.",
+    "actual": "Raises OverflowError: int too large to convert to float at math.isfinite(raw); rows remains empty.",
+    "id": "pr62-cap-r3:g1#2",
+    "record_id": "mc-198b375d13cc7c0d66e0607e70c21524",
+    "verdict": null
+   }
+  ]
+ },
+ "pr62-cap-r3-agy": {
+  "base": "origin/main",
+  "head": "origin/pva/audit-bundles-r10-r25",
+  "runs": {
+   "g1": {
+    "record_id": "mc-549185978710836dd23b08bf0eba3695",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "1d109c6df6250546812b7de947ef45bab3610b014161fb609999624af9ab7f79"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr81-cap-r2": {
+  "base": "origin/main",
+  "head": "origin/kgap/family-reconcile",
+  "runs": {
+   "g1": {
+    "record_id": "mc-66c44d8a1e099e475d04cda937b4ae23",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/trial_family.py",
+     "scripts/g1_family_reconcile_sweep.py"
+    ],
+    "prompt_sha256": "d82f109b5247cf9469878bd9770e7c04fdcc83d5afc36b123fbf8095d4c1611d"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr81-cap-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/family-reconcile",
+  "runs": {
+   "g1": {
+    "record_id": "mc-05742bd30d7e645bbc2633b7b24559c8",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/trial_family.py",
+     "scripts/g1_family_reconcile_sweep.py"
+    ],
+    "prompt_sha256": "e955df24f3ca5483644cec87ad8352b84b5fcada875650bf6c0c353c3ea63c73"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr65-cap-r2": {
+  "base": "origin/main",
+  "head": "origin/kgap/screen-placebo-of-x",
+  "runs": {
+   "g1": {
+    "record_id": "mc-54faf7c655d9fe2962e41beefb6ed418",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/screen.py",
+     "harness/screen_terms.py",
+     "scripts/g1_screen_sweep.py"
+    ],
+    "prompt_sha256": "4b4d036eba9ca3eb38e65860c132b06ad45aab30fcbcb8c5635ac321464418dc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/screen_terms.py",
+    "function": "expand",
+    "severity": "P1",
+    "claim": "Population expansion drops requirements expressed without a recognized conjunction. An insulin-requiring population becomes eligible through an unrestricted diabetes synonym.",
+    "failing_input": "from harness.screen_terms import expand\nprint('t2dm' in expand({'population_any': ['type 2 diabetes requiring insulin']})['population_any_extra'])",
+    "expected": "False: added synonyms must retain the requirement 'requiring insulin'.",
+    "actual": "True: bare 't2dm' is added as an alternative population term.",
+    "id": "pr65-cap-r2:g1#1",
+    "record_id": "mc-54faf7c655d9fe2962e41beefb6ed418",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "expand",
+    "severity": "P1",
+    "claim": "Development-code expansion turns a required drug combination into a single-drug alternative by adding bare codes whenever an intervention term contains the drug name.",
+    "failing_input": "from harness.screen_terms import expand\nprint(expand({'intervention_any': ['finerenone plus spironolactone']}))",
+    "expected": "Any added development-code alternatives retain 'plus spironolactone'.",
+    "actual": "{'intervention_any': ['finerenone plus spironolactone', 'BAY94-8862', 'BAY 94-8862', 'BAY-94-8862', 'BAY948862']}",
+    "id": "pr65-cap-r2:g1#2",
+    "record_id": "mc-54faf7c655d9fe2962e41beefb6ed418",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "The implicit-placebo branch checks only for one shared background agent, accepting a comparator despite an additional active drug in the intervention arm.",
+    "failing_input": "from harness.screen_terms import placebo_masks_intervention\nprint(placebo_masks_intervention({'arms': ['clomiphene plus placebo', 'clomiphene plus metformin plus letrozole']}, {'intervention_any': ['metformin'], 'comparator_any': ['matching placebo']}, ''))",
+    "expected": "None: the backgrounds differ because only the metformin arm contains letrozole.",
+    "actual": "{'term': 'placebo (masks the intervention; shared background clomiphene)', 'span': 'clomiphene plus placebo'}",
+    "id": "pr65-cap-r2:g1#3",
+    "record_id": "mc-54faf7c655d9fe2962e41beefb6ed418",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "The explicit-placebo branch excludes every arm containing any placebo from i_arms. In a double-dummy record this empties i_arms and silently skips the background-equality check, accepting unequal backgrounds.",
+    "failing_input": "from harness.screen_terms import placebo_masks_intervention\nprint(placebo_masks_intervention({'arms': ['clomiphene plus metformin plus placebo for letrozole', 'letrozole plus placebo for metformin']}, {'intervention_any': ['metformin'], 'comparator_any': ['matching placebo']}, ''))",
+    "expected": "None: the metformin arm has clomiphene background, whereas its placebo arm has letrozole background.",
+    "actual": "{'term': 'placebo (masks the intervention)', 'span': 'placebo for metformin'}",
+    "id": "pr65-cap-r2:g1#4",
+    "record_id": "mc-54faf7c655d9fe2962e41beefb6ed418",
+    "verdict": null
+   }
+  ]
+ },
+ "pr65-cap-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/screen-placebo-of-x",
+  "runs": {
+   "g1": {
+    "record_id": "mc-488f2397524934584ae1964e2f18b830",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/screen.py",
+     "harness/screen_terms.py",
+     "scripts/g1_screen_sweep.py"
+    ],
+    "prompt_sha256": "cb1c7bfc61f35cc1c5c0f2032655ec0c61368de0a4ef87ddda24582ce4638ca4"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr65-cap-r3": {
+  "base": "origin/main",
+  "head": "origin/kgap/screen-placebo-of-x",
+  "runs": {
+   "g1": {
+    "record_id": "mc-64407176cd2326a8370566dd14e52ce1",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/screen.py",
+     "harness/screen_terms.py",
+     "scripts/g1_screen_sweep.py"
+    ],
+    "prompt_sha256": "4cf0e316561a25ee7434f0b5d13fe8a496dc157028511f2e30b11a27bafdb338"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "Explicit placebo wording passes even when every listed arm masks the intervention. An empty i_arms list skips validation instead of rejecting the comparator override.",
+    "failing_input": "placebo_masks_intervention({'arms': ['clomiphene plus placebo for metformin', 'letrozole plus placebo for metformin']}, {'intervention_any': ['metformin'], 'comparator_any': ['matching placebo']}, '')",
+    "expected": "None: neither arm administers metformin.",
+    "actual": "{'term': 'placebo (masks the intervention)', 'span': 'placebo for metformin'}",
+    "id": "pr65-cap-r3:g1#1",
+    "record_id": "mc-64407176cd2326a8370566dd14e52ce1",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "Intervention inventory entries are treated as complete arms. Their empty backgrounds can satisfy equality even when the actual arms explicitly have different backgrounds.",
+    "failing_input": "placebo_masks_intervention({'interventions': ['metformin', 'placebo for metformin'], 'arms': ['clomiphene plus metformin', 'letrozole plus placebo for metformin']}, {'intervention_any': ['metformin'], 'comparator_any': ['matching placebo']}, '')",
+    "expected": "None: the actual arm backgrounds are clomiphene and letrozole.",
+    "actual": "{'term': 'placebo (masks the intervention)', 'span': 'placebo for metformin'}",
+    "id": "pr65-cap-r3:g1#2",
+    "record_id": "mc-64407176cd2326a8370566dd14e52ce1",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "_background / placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "Comma-separated background agents disappear because _background discards an entire component containing the intervention or placebo. Unequal backgrounds consequently compare equal.",
+    "failing_input": "placebo_masks_intervention({'arms': ['metformin, clomiphene', 'placebo for metformin, letrozole']}, {'intervention_any': ['metformin'], 'comparator_any': ['matching placebo']}, '')",
+    "expected": "None: clomiphene and letrozole are different background agents.",
+    "actual": "{'term': 'placebo (masks the intervention)', 'span': 'placebo for metformin'}; both backgrounds are parsed as empty sets.",
+    "id": "pr65-cap-r3:g1#3",
+    "record_id": "mc-64407176cd2326a8370566dd14e52ce1",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "For text-only records, finding one shared background agent suffices even when the same text explicitly gives an additional agent exclusively to the intervention arm.",
+    "failing_input": "placebo_masks_intervention({}, {'intervention_any': ['metformin'], 'comparator_any': ['matching placebo']}, 'clomiphene plus placebo versus clomiphene plus metformin plus letrozole.')",
+    "expected": "None: letrozole makes the backgrounds unequal.",
+    "actual": "{'term': 'placebo (masks the intervention; shared background clomiphene)', 'span': 'clomiphene plus placebo'}",
+    "id": "pr65-cap-r3:g1#4",
+    "record_id": "mc-64407176cd2326a8370566dd14e52ce1",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "The override reduces any comparator requirement containing 'placebo' to a generic placebo requirement, dropping explicitly required companion agents.",
+    "failing_input": "placebo_masks_intervention({'arms': ['letrozole plus metformin', 'letrozole plus placebo']}, {'intervention_any': ['metformin'], 'comparator_any': ['placebo plus clomiphene']}, '')",
+    "expected": "None: the required clomiphene comparator is absent.",
+    "actual": "{'term': 'placebo (masks the intervention; shared background letrozole)', 'span': 'letrozole plus placebo'}",
+    "id": "pr65-cap-r3:g1#5",
+    "record_id": "mc-64407176cd2326a8370566dd14e52ce1",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "expand",
+    "severity": "P1",
+    "claim": "Population synonyms are deduplicated using substring membership in concatenated terms. A restricted existing phrase therefore suppresses an unrestricted synonym required by another inclusion alternative.",
+    "failing_input": "'t2dm' in expand({'population_any': ['type 2 diabetes', 't2dm requiring insulin']}).get('population_any_extra', [])",
+    "expected": "True: unrestricted 'type 2 diabetes' must also permit unrestricted 't2dm'.",
+    "actual": "False: 't2dm' is suppressed because it occurs inside 't2dm requiring insulin'.",
+    "id": "pr65-cap-r3:g1#6",
+    "record_id": "mc-64407176cd2326a8370566dd14e52ce1",
+    "verdict": null
+   }
+  ]
+ },
+ "pr65-cap-r3-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/screen-placebo-of-x",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ce9c3ba2fc0e09bd44d7ec2ddb443a71",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/screen.py",
+     "harness/screen_terms.py",
+     "scripts/g1_screen_sweep.py"
+    ],
+    "prompt_sha256": "f68eef6e143c06cee3a126e0e66c59be7dd71e2b69c019ca1886f2aa8a903c31"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "When structured arms are listed in rec['arms'], placebo_masks_intervention bypasses the background equivalence check whenever p_arms or i_arms is empty, returning a placebo comparator override based on abstract/text mentions (e.g. prior literature) for a trial that has no placebo arm.",
+    "failing_input": "rec = {'arms': ['metformin 500 mg', 'metformin 1000 mg'], 'title': 'Dose comparison of metformin'}\ninc = {'intervention_any': ['metformin'], 'comparator_any': ['placebo capsule']}\ntext = 'Prior studies evaluated placebo for metformin, but this trial compared two active doses.'\nscreen_terms.placebo_masks_intervention(rec, inc, text)",
+    "expected_output": "None",
+    "actual_output": "{'term': 'placebo (masks the intervention)', 'span': 'placebo for metformin'}",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr65-cap-r3-agy:g1#1",
+    "record_id": "mc-ce9c3ba2fc0e09bd44d7ec2ddb443a71",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen.py",
+    "function": "_record_arm_interventions_background_only",
+    "severity": "P1",
+    "claim": "Replacing `len(active) < 2` with `not all(carries_interest(s) for s in folded)` causes `_record_arm_interventions_background_only` to return True for empty intervention lists (vacuous all([])) and single-intervention trials. An intervention cannot be a background-only contrast without multiple arms sharing it as background, so eligible single-arm or single-intervention trials are falsely classified as background-only and excluded.",
+    "failing_input": "rec = {'interventions': ['Empagliflozin 10 mg']}\nkeywords = ['empagliflozin']\nscreen._record_arm_interventions_background_only(rec, keywords)",
+    "expected_output": "(False, '')",
+    "actual_output": "(True, 'Empagliflozin 10 mg')",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr65-cap-r3-agy:g1#2",
+    "record_id": "mc-ce9c3ba2fc0e09bd44d7ec2ddb443a71",
+    "verdict": null
+   }
+  ]
+ },
+ "d8lic-cap-r1": {
+  "base": "origin/main",
+  "head": "origin/fix/licence-nc-nd-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4dfadefc5e0a4ddc0517ffdf6ac2526f",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "reproducible_ai/record_licence.py",
+     "scripts/g1_trial_acquire.py"
+    ],
+    "prompt_sha256": "992ffe5504aa10f0e53793653c9bb3f16c599eb260e940785716f6ab5c05e68e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "licences",
+    "severity": "P1",
+    "claim": "The restriction regex misses space-separated licence names, allowing explicitly restricted copies through the prompt guard. Non-?Commercial matches 'NonCommercial' and 'Non-Commercial', but not 'Non Commercial'.",
+    "failing_input": "Call licences('index.json') with index.json containing: {\"12345678\":{\"copy_licence\":\"CC\",\"copy_statement\":\"Creative Commons Attribution Non Commercial License\"}}",
+    "expected": "{\"12345678\":\"CC_RESTRICTED\"}",
+    "actual": "{\"12345678\":\"CC\"}. The same bypass occurs for 'Creative Commons Attribution No Derivatives License' and 'Creative Commons Attribution Share Alike License'.",
+    "id": "d8lic-cap-r1:g1#1",
+    "record_id": "mc-4dfadefc5e0a4ddc0517ffdf6ac2526f",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "jats_licence",
+    "severity": "P1",
+    "claim": "The JATS restriction check omits 'no commercial reuse', although both other changed readers recognize it. The positive Attribution match consequently classifies explicitly restricted text as open.",
+    "failing_input": "Call jats_licence('article.xml') with article.xml containing: <permissions><license><license-p>Creative Commons Attribution License; no commercial reuse</license-p></license></permissions>",
+    "expected": "\"CC_RESTRICTED\"",
+    "actual": "\"CC\"",
+    "id": "d8lic-cap-r1:g1#2",
+    "record_id": "mc-4dfadefc5e0a4ddc0517ffdf6ac2526f",
+    "verdict": null
+   }
+  ]
+ },
+ "d8lic-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/fix/licence-nc-nd-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-14fab595814b21583b34b8d626502e07",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "reproducible_ai/record_licence.py",
+     "scripts/g1_trial_acquire.py"
+    ],
+    "prompt_sha256": "2d5096f67a68f8adceb55fe04961813342ce61684e5c7dcca0115b6b6031e5ff"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "jats_licence",
+    "severity": "P1",
+    "claim": "jats_licence omits 'no commercial re-?use' from its restriction check, causing articles with CC BY wording and commercial re-use restrictions (such as BMJ/publisher open-access licences with commercial re-use restrictions) to be classified as 'CC' instead of 'CC_RESTRICTED', allowing non-open full texts into prompts.",
+    "input": "jats_licence with a file containing '<permissions><license><license-p>Distributed under the terms of the Creative Commons Attribution License (CC BY). No commercial re-use.</license-p></license></permissions>'",
+    "expected_output": "'CC_RESTRICTED'",
+    "actual_output": "'CC'",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "d8lic-cap-r1-agy:g1#1",
+    "record_id": "mc-14fab595814b21583b34b8d626502e07",
+    "verdict": null
+   }
+  ]
+ },
+ "d8lic-cap-r2": {
+  "base": "origin/main",
+  "head": "origin/fix/licence-nc-nd-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3d30ae6d1f9acf262e4371d5c8e0460a",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "reproducible_ai/record_licence.py",
+     "scripts/g1_trial_acquire.py"
+    ],
+    "prompt_sha256": "f2c8c65a05fe8020109d6d69f6cab176b784634c81f9e3aebd8876600ef74773"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "jats_licence / _RESTRICTED",
+    "severity": "P1",
+    "claim": "The new restriction check mistakes permission for non-commercial reuse for a prohibition on commercial reuse, rejecting an explicit CC BY grant.",
+    "failing_input": "Call jats_licence(path) with a file containing exactly: <permissions><license><license-p>This article is licensed under CC BY 4.0, permitting commercial and non-commercial reuse.</license-p></license></permissions>",
+    "expected": "CC",
+    "actual": "CC_RESTRICTED: _RESTRICTED matches 'non-commercial' without considering that both forms of reuse are permitted.",
+    "id": "d8lic-cap-r2:g1#1",
+    "record_id": "mc-3d30ae6d1f9acf262e4371d5c8e0460a",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "jats_licence / _RESTRICTED",
+    "severity": "P1",
+    "claim": "The restriction check operates on raw XML and misses an entity-encoded non-commercial restriction. The broader positive match then admits the restricted licence.",
+    "failing_input": "Call jats_licence(path) with a file containing exactly: <permissions><license><license-p>Creative Commons Attribution Non&#x2011;Commercial 4.0 International License (CC BY&#x2011;NC).</license-p></license></permissions>",
+    "expected": "CC_RESTRICTED: &#x2011; represents a non-breaking hyphen, so the statement names a non-commercial licence.",
+    "actual": "CC: _RESTRICTED finds no match, while the positive expression matches 'Creative Commons Attribution'.",
+    "id": "d8lic-cap-r2:g1#2",
+    "record_id": "mc-3d30ae6d1f9acf262e4371d5c8e0460a",
+    "verdict": null
+   }
+  ]
+ },
+ "d8lic-cap-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/fix/licence-nc-nd-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-75596129964c2417096fc2debab2913e",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "reproducible_ai/record_licence.py",
+     "scripts/g1_trial_acquire.py"
+    ],
+    "prompt_sha256": "e5a09643966c1737c9fbae88272ee05a32d16fe0a35b6db6d7b06a67c37ddcda"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "d8lic-cap-r3": {
+  "base": "origin/main",
+  "head": "origin/fix/licence-nc-nd-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-65448b820eb9bc361e8b71c016369c48",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "reproducible_ai/record_licence.py",
+     "scripts/g1_trial_acquire.py"
+    ],
+    "prompt_sha256": "acb28e6a12d434286294fa5e8abd766825a13794bd73532fb49b790f808b07ae"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "_Restricted.search / jats_licence",
+    "severity": "P1",
+    "claim": "The restriction matcher misses line-wrapped licence names. Non[- ]?Commercial cannot match a newline, so the subsequent Creative Commons Attribution match admits a restricted licence as CC.",
+    "failing_input": "Call jats_licence('case.xml') with case.xml containing: <article><permissions><license><license-p>Distributed under the Creative Commons Attribution Non\nCommercial License.</license-p></license></permissions></article> (\\n denotes an actual newline).",
+    "expected": "CC_RESTRICTED",
+    "actual": "CC",
+    "id": "d8lic-cap-r3:g1#1",
+    "record_id": "mc-65448b820eb9bc361e8b71c016369c48",
+    "verdict": null
+   },
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "_Restricted.search / jats_licence",
+    "severity": "P1",
+    "claim": "Any mention of non-commercial reuse triggers rejection, even when the statement explicitly permits both commercial and non-commercial reuse under CC BY. The new restriction check overrides the valid CC BY URL.",
+    "failing_input": "Call jats_licence('case.xml') with case.xml containing: <article><permissions><license><license-p>This article is licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Reuse is permitted for commercial and non-commercial purposes.</license-p></license></permissions></article>",
+    "expected": "CC",
+    "actual": "CC_RESTRICTED",
+    "id": "d8lic-cap-r3:g1#2",
+    "record_id": "mc-65448b820eb9bc361e8b71c016369c48",
+    "verdict": null
+   }
+  ]
+ },
+ "d8lic-cap-r3-agy": {
+  "base": "origin/main",
+  "head": "origin/fix/licence-nc-nd-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-8636180ceab7db61efb0111e91d99564",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "reproducible_ai/record_licence.py",
+     "scripts/g1_trial_acquire.py"
+    ],
+    "prompt_sha256": "fd8d905b92f355d7d5c37b983606d0e74eff86c4c64773243be797c9889fcf3c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "{\n  \"defects\": []\n}\n{\n  \"defects\": []\n}\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "d8lic-cap-r3-agy:g1#1",
+    "record_id": "mc-8636180ceab7db61efb0111e91d99564",
+    "verdict": null
+   }
+  ]
+ },
+ "m2w2a-cap-r1": {
+  "base": "origin/main",
+  "head": "origin/m2/w2a-w5b-row-scope-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3501c26fb86061f05a5c050ab17f058b",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/missing_effect.py",
+     "harness/pipeline.py",
+     "harness/verified_inputs.py"
+    ],
+    "prompt_sha256": "9a632f5a5e691b4de3e0b574cb9c82cf1660e7d11898dd95c5ed7b5423c5712f"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "m2w2a-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/m2/w2a-w5b-row-scope-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3b58ec47e5ed31cce635ecd9b548c2aa",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/missing_effect.py",
+     "harness/pipeline.py",
+     "harness/verified_inputs.py"
+    ],
+    "prompt_sha256": "32e4764a0b3c6e9626038fe21d4bbafef5037ca2bb7ed493d611a660826c53a9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/pipeline.py",
+    "function": "_build_outcome",
+    "severity": "P0",
+    "claim": "When an included trial record is indexed by PMID (d['id_type'] == 'pmid') and its verified extraction in verified_effects or verified_arms failed canonical span validation under its trial NCT identifier (pid), the condition 'if d[\"id\"] in span_refusals:' fails to check the trial's NCT identifier (rec.get('nct')). The trial bypasses the extraction debt exclusion and falls through to dose and abstract fallbacks, allowing unverified fallback extraction numbers to reach the meta-analysis result.",
+    "input": "_build_outcome(spec={\"name\": \"all_cause_mortality\"}, kind=\"binary\", included=[{\"id\": \"12345678\", \"id_type\": \"pmid\"}], rec_by_id={\"12345678\": {\"nct\": \"NCT00001\", \"acronym\": \"TRIAL1\"}}, interv=\"drug\", comp=\"placebo\", ctgov_results=None, fulltext_by_pmid={}, verified_effects={\"NCT00001\": {\"span_refusal\": {\"reason_code\": \"ENDPOINT_UNBOUND\", \"reason\": \"source_span absent\"}}}, verified_arms={})",
+    "expected": "The trial is recognized as having a span refusal via its associated NCT ID 'NCT00001', is excluded from candidate selection in the first loop, and is recorded in absent with state='EXTRACTION_DEBT' and endpoint_admissibility='ENDPOINT_UNBOUND'.",
+    "actual": "d['id'] ('12345678') does not match the NCT key in span_refusals ('NCT00001'), so the trial is not added to absent as EXTRACTION_DEBT and instead falls through to candidate selection and dose/abstract fallbacks.",
+    "failing_input": "-",
+    "id": "m2w2a-cap-r1-agy:g1#1",
+    "record_id": "mc-3b58ec47e5ed31cce635ecd9b548c2aa",
+    "verdict": null
+   },
+   {
+    "file": "harness/pipeline.py",
+    "function": "_build_outcome",
+    "severity": "P2",
+    "claim": "_build_outcome crashes with AttributeError when verified_arms or verified_effects contains a list of records for a trial PID (the standard structure returned by verified_inputs.load when isinstance(value, list) is True, such as multi-arm trials), because it calls entry.get('span_refusal') directly on entry instead of inspecting items within the list.",
+    "input": "_build_outcome(spec={\"name\": \"all_cause_mortality\"}, kind=\"binary\", included=[{\"id\": \"NCT00001\", \"id_type\": \"nct\"}], rec_by_id={\"NCT00001\": {}}, interv=\"drug\", comp=\"placebo\", ctgov_results=None, fulltext_by_pmid={}, verified_effects={}, verified_arms={\"NCT00001\": [{\"name\": \"drug\", \"events\": 10, \"total\": 100}, {\"name\": \"placebo\", \"events\": 20, \"total\": 100}]})",
+    "expected": "Executes without raising an AttributeError and inspects individual arm entries in the list for span_refusal.",
+    "actual": "Raises AttributeError: 'list' object has no attribute 'get' at line 1265 when executing 'if entry.get(\"span_refusal\"): '.",
+    "failing_input": "-",
+    "id": "m2w2a-cap-r1-agy:g1#2",
+    "record_id": "mc-3b58ec47e5ed31cce635ecd9b548c2aa",
+    "verdict": null
+   }
+  ]
+ },
+ "m2comb-cap-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/m2/battery-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-21a452335c5cc19b5542523d6be580d3",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/components.py",
+     "harness/missing_effect.py",
+     "harness/pipeline.py",
+     "harness/verified_inputs.py"
+    ],
+    "prompt_sha256": "a0264fec467b22e6a8cbcc30e5e58b75380432f312209baad21c07276ebb7fbf"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "{\n  \"defects\": [\n    {\n      \"file\": \"harness/pipeline.py\",\n      \"function\": \"_build_outcome\",\n      \"severity\": \"P0\",\n      \"claim\": \"When an included trial is identified by NCT ID (id_type == 'nct'), _refused_ids checks only (d['id'], nct) against span_refusals and never checks rec.get('pmid'). If the trial's failed span entry was keyed in verified_effects or verified_arms by PMID, _refused_ids fails to match and returns an empty list. As a result, the trial is not marked absent as EXTRACTION_DEBT and bypasses extraction debt gating, allowing unverified effect/arm data into candidate selection and pooling.\",\n      \"input\": \"d = {'id': 'NCT00000001', 'id_type': 'nct'}; rec_by_id = {'NCT00000001': {'nct': 'NCT00000001', 'pmid': '12345678'}}; span_refusals = {'12345678': [{'reason_code': 'ENDPOINT_UNBOUND'}]}; _refused_ids(d)\",\n      \"expected\": \"['12345678']\",\n      \"actual\": \"[]\"\n    },\n    {\n      \"file\": \"harness/components.py\",\n      \"function\": \"_endpoint_exclusions\",\n      \"severity\": \"P1\",\n      \"claim\": \"In _endpoint_exclusions, clause boundary detection (clause = max(text.rfind(c, 0, m.start()) for c in '.;:') + 1) only checks for '.;:' and does not stop at comma or conjunction boundaries. When an endpoint exclusion follows a clause containing a population term (e.g. 'Patients with diabetes were enrolled, but stroke was excluded'), _POPULATION_SUBJECT.search(text[clause:verb]) matches the population word in the preceding clause, erroneously classifying the endpoint exclusion as an eligibility exclusion and discarding it.\",\n      \"input\": \"excluded('Patients with diabetes were enrolled, but stroke was excluded')\",\n      \"expected\": \"{'stroke'}\",\n      \"actual\": \"set()\"\n    },\n    {\n      \"file\": \"harness/components.py\",\n      \"function\": \"_endpoint_exclusions\",\n      \"severity\": \"P1\",\n      \"claim\": \"When multiple components are excluded disjunctively using 'or' (e.g., 'stroke or MI was excluded'), English grammar takes the singular verb 'was'. Because _EXCLUSION stops at 'or' and matches only 'MI was excluded', and line 35 checks re.match(r'\\\\s(?:were|are)\\\\b', v.group(0)) to expand backwards across the conjunction, the singular verb 'was' takes the else branch and yields only (m.start(), m.end()), completely dropping the component before 'or' ('stroke').\",\n      \"input\": \"excluded('stroke or MI was excluded')\",\n      \"expected\": \"{'mi', 'stroke'}\",\n      \"actual\": \"{'mi'}\"\n    }\n  ]\n}\n{\n  \"defects\": [\n    {\n      \"file\": \"harness/pipeline.py\",\n      \"function\": \"_build_outcome\",\n      \"severity\": \"P0\",\n      \"claim\": \"When an included trial is identified by NCT ID (id_type == 'nct'), _refused_ids checks only (d['id'], nct) against span_refusals and never checks rec.get('pmid'). If the trial's failed span entry was keyed in verified_effects or verified_arms by PMID, _refused_ids fails to match and returns an empty list. As a result, the trial is not marked absent as EXTRACTION_DEBT and bypasses extraction debt gating, allowing unverified effect/arm data into candidate selection and pooling.\",\n      \"input\": \"d = {'id': 'NCT00000001', 'id_type': 'nct'}; rec_by_id = {'NCT00000001': {'nct': 'NCT00000001', 'pmid': '12345678'}}; span_refusals = {'12345678': [{'reason_code': 'ENDPOINT_UNBOUND'}]}; _refused_ids(d)\",\n      \"expected\": \"['12345678']\",\n      \"actual\": \"[]\"\n    },\n    {\n      \"file\": \"harness/components.py\",\n      \"function\": \"_endpoint_exclusions\",\n      \"severity\": \"P1\",\n      \"claim\": \"In _endpoint_exclusions, clause boundary detection (clause = max(text.rfind(c, 0, m.start()) for c in '.;:') + 1) only checks for '.;:' and does not stop at comma or conjunction boundaries. When an endpoint exclusion follows a clause containing a population term (e.g. 'Patients with diabetes were enrolled, but stroke was excluded'), _POPULATION_SUBJECT.search(text[clause:verb]) matches the population word in the preceding clause, erroneously classifying the endpoint exclusion as an eligibility exclusion and discarding it.\",\n      \"input\": \"excluded('Patients with diabetes were enrolled, but stroke was excluded')\",\n      \"expected\": \"{'stroke'}\",\n      \"actual\": \"set()\"\n    },\n    {\n      \"file\": \"harness/components.py\",\n      \"function\": \"_endpoint_exclusions\",\n      \"severity\": \"P1\",\n      \"claim\": \"When multiple components are excluded disjunctively using 'or' (e.g., 'stroke or MI was excluded'), English grammar takes the singular verb 'was'. Because _EXCLUSION stops at 'or' and matches only 'MI was excluded', and line 35 checks re.match(r'\\\\s(?:were|are)\\\\b', v.group(0)) to expand backwards across the conjunction, the singular verb 'was' takes the else branch and yields only (m.start(), m.end()), completely dropping the component before 'or' ('stroke').\",\n      \"input\": \"excluded('stroke or MI was excluded')\",\n      \"expected\": \"{'mi', 'stroke'}\",\n      \"actual\": \"{'mi'}\"\n    }\n  ]\n}\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2comb-cap-r2-agy:g1#1",
+    "record_id": "mc-21a452335c5cc19b5542523d6be580d3",
+    "verdict": null
+   }
+  ]
+ },
+ "m2comb-cap-r3": {
+  "base": "origin/main",
+  "head": "origin/m2/battery-r2-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6730c92f8c3b159aa35dc5faa8eeaacb",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/components.py",
+     "harness/missing_effect.py",
+     "harness/pipeline.py",
+     "harness/verified_inputs.py"
+    ],
+    "prompt_sha256": "a9097f8050ee73706352b97885305e1c9f6a3a306f719f87cb6868cdd2f1f1df"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/components.py",
+    "function": "_endpoint_exclusions",
+    "severity": "P1",
+    "claim": "Plural passive exclusions reach backward across an independent clause, incorrectly excluding an explicitly counted component.",
+    "failing_input": "strip_exclusions('cardiovascular death was counted, and stroke and myocardial infarction were excluded.')",
+    "expected": "Preserve 'cardiovascular death was counted'; exclude only stroke and myocardial infarction.",
+    "actual": "Returns ' .'. The exclusion span covers the entire sentence before the period, including cardiovascular death.",
+    "id": "m2comb-cap-r3:g1#1",
+    "record_id": "mc-6730c92f8c3b159aa35dc5faa8eeaacb",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "_endpoint_exclusions",
+    "severity": "P1",
+    "claim": "For plural exclusions, a preceding population qualifier is incorporated into the subject. The population guard then suppresses an explicit endpoint exclusion.",
+    "failing_input": "strip_exclusions('among patients with diabetes, stroke and myocardial infarction were excluded from the endpoint.')",
+    "expected": "Recognize and remove the endpoint exclusion of stroke and myocardial infarction.",
+    "actual": "Returns the input unchanged. _endpoint_exclusions yields no spans because its reconstructed subject includes 'patients'.",
+    "id": "m2comb-cap-r3:g1#2",
+    "record_id": "mc-6730c92f8c3b159aa35dc5faa8eeaacb",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "_endpoint_exclusions",
+    "severity": "P1",
+    "claim": "The passive exclusion tail consumes components describing the retained composite, causing an included component to be classified as excluded.",
+    "failing_input": "strip_exclusions('stroke was excluded from the composite of cardiovascular death and myocardial infarction.')",
+    "expected": "Exclude stroke while preserving cardiovascular death and myocardial infarction as composite components.",
+    "actual": "Returns ' and myocardial infarction.'. The exclusion span includes 'cardiovascular death', so excluded() also treats that retained component as excluded.",
+    "id": "m2comb-cap-r3:g1#3",
+    "record_id": "mc-6730c92f8c3b159aa35dc5faa8eeaacb",
+    "verdict": null
+   }
+  ]
+ },
+ "m2comb-cap-r3-agy": {
+  "base": "origin/main",
+  "head": "origin/m2/battery-r2-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0c68727ef72cd28b55bf25eeba2b6dc4",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/components.py",
+     "harness/missing_effect.py",
+     "harness/pipeline.py",
+     "harness/verified_inputs.py"
+    ],
+    "prompt_sha256": "5b70e8b87f1ad0064bd2d3fc775237ad31c9bcf7735983e88351671e0b844440"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/components.py",
+    "function": "_endpoint_exclusions",
+    "severity": "P1",
+    "claim": "In plural passive exclusions ('were excluded' / 'are excluded'), marks is set to '.;:()' omitting comma (','). When a coordinate clause containing the primary endpoint or included components precedes ', and ... were excluded' without a period or semicolon, start fails to stop at the comma and runs all the way back to index 0. This engulfs the preceding clause into the exclusion span: excluded() incorrectly classifies the primary endpoint as excluded, and strip_exclusions() wipes the primary endpoint from the text.",
+    "failing_input": "strip_exclusions(\"The primary endpoint was MACE, and stroke and MI were excluded\")",
+    "expected_output": "\"The primary endpoint was MACE, and \"",
+    "actual_output": "\" \"",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2comb-cap-r3-agy:g1#1",
+    "record_id": "mc-0c68727ef72cd28b55bf25eeba2b6dc4",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "_endpoint_exclusions",
+    "severity": "P1",
+    "claim": "In singular passive exclusions ('was excluded' / 'is excluded'), the regex _EXCLUSION uses (?!\b(?:and|or)\b)[^,.;()] which terminates at disjunction boundaries ('or'). For disjunctive endpoint exclusions joined by 'or' before a singular verb (e.g. 'stroke or MI was excluded'), _EXCLUSION matches only the component after 'or' ('MI was excluded'). Because plural is False, start = max(start, m.start()) forces start to m.start(), discarding 'stroke'. Consequently, 'stroke' is omitted from excluded() and left behind by strip_exclusions(), causing an excluded component to be misclassified as an included endpoint component.",
+    "failing_input": "excluded(\"stroke or MI was excluded\")",
+    "expected_output": "{\"mi\", \"stroke\"}",
+    "actual_output": "{\"mi\"}",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2comb-cap-r3-agy:g1#2",
+    "record_id": "mc-0c68727ef72cd28b55bf25eeba2b6dc4",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "_endpoint_exclusions",
+    "severity": "P1",
+    "claim": "In plural passive exclusions ('were excluded'), marks is set to '.;:()' without comma. When an introductory population/eligibility clause precedes the exclusion separated by a comma (e.g. 'Among patients with diabetes, stroke and MI were excluded'), start fails to stop at the comma and scans back across it. Because _POPULATION_SUBJECT matches 'patients' in text[start:verb], the entire endpoint exclusion clause is misidentified as an eligibility criterion and discarded, yielding no excluded components.",
+    "failing_input": "excluded(\"Among patients with diabetes, stroke and MI were excluded\")",
+    "expected_output": "{\"mi\", \"stroke\"}",
+    "actual_output": "set()",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2comb-cap-r3-agy:g1#3",
+    "record_id": "mc-0c68727ef72cd28b55bf25eeba2b6dc4",
+    "verdict": null
+   },
+   {
+    "file": "harness/verified_inputs.py",
+    "function": "_validate",
+    "severity": "P1",
+    "claim": "When a source_span is absent from held documents, _validate checks 'if entry[\"kind\"] == \"typed_refusal\": raise ValueError(reason)' and otherwise returns an ENDPOINT_UNBOUND refusal dict. Despite the documented rule that canonical adjudications cannot claim nonexistent evidence spans, a canonical adjudication whose kind is not 'typed_refusal' (e.g. kind='canonical' or kind='adjudication') fails to raise ValueError and instead returns a refusal dict. Furthermore, for standard extraction rows lacking a 'kind' key, evaluating entry['kind'] raises an unhandled KeyError instead of returning the span-refusal evidence.",
+    "failing_input": "_validate({'source_span': '10 deaths', 'document_ref': 'doc.txt'}, directory, 'trial_1')",
+    "expected_output": "{'reason_code': 'ENDPOINT_UNBOUND', 'reason': 'directory/trial_1: source_span absent from held document doc.txt', 'document_ref': 'doc.txt', 'source_span': '10 deaths'}",
+    "actual_output": "KeyError: 'kind'",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2comb-cap-r3-agy:g1#4",
+    "record_id": "mc-0c68727ef72cd28b55bf25eeba2b6dc4",
+    "verdict": null
+   },
+   {
+    "file": "harness/pipeline.py",
+    "function": "_build_outcome",
+    "severity": "P1",
+    "claim": "When an included trial's extraction entry fails its held-document span check, _refused_ids intercepts the trial and appends it to absent with absent_kind='machine_absent'. This violates fail-closed correctness ('silent fallbacks that turn failure into absent are defects'): an extraction debt caused by unverified or missing evidence is silently disguised as a trial where the endpoint was simply absent/unmeasured.",
+    "failing_input": "_build_outcome({'name': 'all-cause mortality'}, 'arms', [{'id': '12345', 'id_type': 'pmid'}], {'12345': {}}, 'A', 'B', verified_arms={'12345': {'source_span': 'bad span', 'span_refusal': {'reason_code': 'ENDPOINT_UNBOUND', 'reason': 'absent'}}})",
+    "expected_output": "Fail closed or raise ValueError rather than classifying the trial as machine_absent in the absent pool",
+    "actual_output": "Appends trial to absent with absent_kind='machine_absent', state='EXTRACTION_DEBT', and endpoint_admissibility='ENDPOINT_UNBOUND'",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2comb-cap-r3-agy:g1#5",
+    "record_id": "mc-0c68727ef72cd28b55bf25eeba2b6dc4",
+    "verdict": null
+   }
+  ]
  }
 }

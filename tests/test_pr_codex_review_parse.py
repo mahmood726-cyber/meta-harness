@@ -30,3 +30,18 @@ def test_an_explicit_empty_findings_list_is_empty():
 def test_a_second_json_object_keeps_the_reply_whole():
     out = R.parse_reply('{"defects": [{"claim": "c"}]}\n{"summary": "x"}')
     assert len(out) >= 1 and (out[0]["claim"] == "c" or out[0]["severity"] == "UNSTRUCTURED")
+
+
+def test_a_later_runner_never_drops_an_earlier_runners_entry(tmp_path, monkeypatch):
+    """m2comb-cap-r2 (12 Oct): two runners loaded the proposals file at start; the later write dropped the other's run."""
+    import json
+    p = tmp_path / "prop.json"
+    monkeypatch.setattr(R, "PROP", str(p))
+    p.write_text(json.dumps({"old": {"runs": {}}}), encoding="utf-8")
+    snapshot_a = json.loads(p.read_text(encoding="utf-8"))           # runner A loads
+    snapshot_b = json.loads(p.read_text(encoding="utf-8"))           # runner B loads
+    snapshot_a["a-run"] = {"runs": {"g1": 1}}
+    R.write_entries(snapshot_a, "a-run")
+    snapshot_b["b-run"] = {"runs": {"g1": 2}}
+    R.write_entries(snapshot_b, "b-run")
+    assert set(json.loads(p.read_text(encoding="utf-8"))) == {"old", "a-run", "b-run"}

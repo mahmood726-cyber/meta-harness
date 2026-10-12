@@ -147,8 +147,23 @@ def main(argv):
         for f in entry["findings"]:
             print(f"[{f['id']}] {f['severity']} {f['file']}::{f['function']} -- {f['claim'][:300]}\n    input: "
                   f"{f['failing_input'][:300]}\n    expected: {f['expected'][:160]} | actual: {f['actual'][:160]}\n")
-    with open(PROP, "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
+    write_entries(data, name)
+
+
+def write_entries(data, name):
+    """Merge THIS run's entry into the proposals file as it is NOW: two runners started together each loaded the file at
+    start and the later write dropped the other's run (m2comb-cap-r2: codex's 3 findings read as '0 findings', 12 Oct).
+    Only `name` (or every entry, when no name was given) is written over the current file."""
+    cur = json.load(open(PROP, encoding="utf-8")) if os.path.exists(PROP) else {}
+    if name:
+        if name in data:
+            cur[name] = data[name]
+    else:
+        cur.update(data)
+    tmp = PROP + f".{os.getpid()}.tmp"
+    with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(cur, indent=1, ensure_ascii=False) + "\n")
+    os.replace(tmp, PROP)
 
 
 if __name__ == "__main__":
