@@ -39,7 +39,23 @@ DISCLOSURE = ("A comparator row is matched to our trial by PMID only: result ide
 
 
 def _git(*a):
-    return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True)
+    # AMENDMENT A1 (signed, outputs/robgrade/AMENDMENTS.json): git output is UTF-8 whatever the locale -- cp1252
+    # decoding mangled U+202F and the scorer falsely refused (12 Oct, NI_SCORE_RUN.md)
+    return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True, encoding="utf-8")
+
+
+AMENDMENTS = os.path.join(ROOT, "outputs", "robgrade", "AMENDMENTS.json")
+
+
+def declared(sha, f):
+    """A frozen file may differ from the pre-registration ONLY by a DECLARED, SIGNED amendment naming this file, the
+    pre-registration, the file's git blob there, and its git blob now (git ids: immune to line-ending conversion)."""
+    if not os.path.exists(AMENDMENTS):
+        return False
+    old = _git("rev-parse", f"{sha}:{f}").stdout.strip()
+    cur = _git("hash-object", "--", f).stdout.strip()
+    return any(a.get("file") == f and a.get("prereg") == sha and a.get("from_blob") == old and a.get("to_blob") == cur
+               and (a.get("signed") or {}).get("by") for a in json.load(open(AMENDMENTS, encoding="utf-8"))["amendments"])
 
 
 def check_prereg(sha):
@@ -51,7 +67,8 @@ def check_prereg(sha):
                          f"({added[-1] if added else 'never added'})")
     if _git("merge-base", "--is-ancestor", sha, "HEAD").returncode != 0:
         raise SystemExit(f"REFUSED: {sha} is not an ancestor of HEAD")
-    changed = [f for f in POLICY_FILES + INPUT_FILES if _git("diff", "--quiet", sha, "--", f).returncode != 0]
+    changed = [f for f in POLICY_FILES + INPUT_FILES if _git("diff", "--quiet", sha, "--", f).returncode != 0
+               and not declared(full, f)]
     if changed:
         raise SystemExit(f"REFUSED: policy files differ from the pre-registration {sha}: {changed}")
     return _git("rev-parse", sha).stdout.strip()
