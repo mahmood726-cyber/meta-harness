@@ -168,21 +168,17 @@ PROFILES = {
     },
     "metformin-pcos-ovulation": {
         "reported_overrides": [
+            # r24: the values are READ from the comparator's own sentence at the anchor (OR, CI level, bounds), never
+            # written here; an anchor whose numbers do not parse gives no override (fail closed)
             {
                 "outcome": "Ovulation rate",
-                "estimate": 1.65,
                 "scale": "OR",
-                "ci_low": 1.35,
-                "ci_high": 2.03,
-                "source_term": "The combined group may have higher rates of ovulation (OR 1.65",
+                "source_term": "The combined group may have higher rates of ovulation (OR",
             },
             {
                 "outcome": "Gastrointestinal adverse events",
-                "estimate": 4.26,
                 "scale": "OR",
-                "ci_low": 2.83,
-                "ci_high": 6.40,
-                "source_term": "gastrointestinal side effects are probably more common with combined therapy (OR 4.26",
+                "source_term": "gastrointestinal side effects are probably more common with combined therapy (OR",
             },
         ],
         "treatment_strategy_match": {
@@ -290,11 +286,42 @@ def _field_from_profile(slug: str, key: str, text: str, default_status: str = "N
     return value
 
 
+# A bound is read whole or not at all. A WHITELIST of what may follow it -- ')', ';', ']', a prose comma, or the
+# end -- replaces the blacklist that codex rounds r2/r4/r5/r6 kept extending (exponent, thousands comma, '× 10^n',
+# space-grouped '2 030'): anything not whitelisted refuses the read.
+# a comma is prose only when no digit follows it directly AND no 3-digit group follows after a space ('2, 030' is a
+# grouped number, codex copps-r8#1); refusing an ambiguous ', 100 patients' is the safe direction
+# (r14#1: any digit after the comma, spaced or not, refuses -- '2, 03,000' cannot be told from ', 8 studies')
+BOUND_END = r"(?=\s{0,3}(?:[);\]]|,(?!\s*\d)|$))"
+# matched on the WHOLE text at the anchor (no slice: a slice can cut a bound to its prefix, codex copps-r1#1); bounded
+# whitespace between fields includes a line break, since wrapped text is ordinary (codex copps-r9#2)
+_RATIO_AT = re.compile(r"\s{0,3}(\d+(?:\.\d+)?)\s{0,3},\s{0,3}(\d+(?:\.\d+)?)\s{0,3}%\s{0,3}"
+                       r"(?:CI|confidence interval)\s{0,3},?\s{0,3}(\d+(?:\.\d+)?)\s{0,3}(?:to|-|–)\s{0,3}"
+                       r"(\d+(?:\.\d+)?)" + BOUND_END, re.I)
+
+
+def reported_value_at(text: str, anchor: str) -> dict | None:
+    """{estimate, ci_low, ci_high, ci_level} read from the comparator's own sentence right after `anchor` ('... (OR 1.65,
+    95% CI 1.35 to 2.03'), or None."""
+    i = (text or "").find(anchor)
+    if i < 0:
+        return None
+    m = _RATIO_AT.match(text, i + len(anchor))
+    if not m:
+        return None
+    return {"estimate": float(m.group(1)), "ci_level": float(m.group(2)), "ci_low": float(m.group(3)),
+            "ci_high": float(m.group(4))}
+
+
 def _apply_reported_overrides(comparator: dict, slug: str, text: str) -> None:
     overrides = []
     for item in PROFILES.get(slug, {}).get("reported_overrides", []):
         if _contains(text, item["source_term"]):
+            val = reported_value_at(text, item["source_term"])
+            if not val:
+                continue                       # the anchor without parseable numbers: no override, never a guess
             row = {k: v for k, v in item.items() if k != "source_term"}
+            row.update(val)
             row["source"] = "cached comparator text"
             row["source_snippet"] = _snippet(text, item["source_term"])
             overrides.append(row)

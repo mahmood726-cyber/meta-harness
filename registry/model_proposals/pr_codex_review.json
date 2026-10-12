@@ -6731,5 +6731,1483 @@
     "verdict": null
    }
   ]
+ },
+ "copps-r1": {
+  "base": "630e622bf",
+  "head": "abd867812",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6994afc387058f0510ded7f6d53cde70",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "c835d16deb1ad3a614709ab292f1ec12ff50fd284eb60797b532cfdd00f38a6c"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "The 80-character slice can cut through the upper confidence bound. The regex accepts the remaining numeric prefix, silently returning a different number.",
+    "failing_input": "reported_value_at('OR' + ' 1.65, 95% CI 1.35 to ' + ' ' * 55 + '2.03)', 'OR')",
+    "expected": "{'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.03}, or None if the complete bound cannot be parsed.",
+    "actual": "{'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.0}",
+    "id": "copps-r1:g1#1",
+    "record_id": "mc-6994afc387058f0510ded7f6d53cde70",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source / _is_num",
+    "severity": "P2",
+    "claim": "Negative literal effects evade detection because Python represents them as UnaryOp nodes, whereas _is_num accepts only Constant nodes. An entirely hardcoded log-effect and interval therefore produce no findings.",
+    "failing_input": "sweep_source('row = {\"estimate\": -0.35, \"ci_low\": -0.60, \"ci_high\": -0.10}', 'harness/example.py')",
+    "expected": "Three COUNT_OR_EFFECT_KEY findings for estimate, ci_low, and ci_high.",
+    "actual": "[]",
+    "id": "copps-r1:g1#2",
+    "record_id": "mc-6994afc387058f0510ded7f6d53cde70",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The count-pair regex misses ungrouped denominators with four or more digits, allowing ordinary hardcoded trial-count strings through the sweep.",
+    "failing_input": "sweep_source('counts = \"20/1000 versus 30/1000\"', 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding.",
+    "actual": "[]",
+    "id": "copps-r1:g1#3",
+    "record_id": "mc-6994afc387058f0510ded7f6d53cde70",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r2": {
+  "base": "630e622bf",
+  "head": "a3ae92196",
+  "runs": {
+   "g1": {
+    "record_id": "mc-84ca1539b680d00366f0aecce605de39",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "6b9bd75da9089f1e96c4e132b1b3b0decd946d1f18a26a600b40d5c3e9638a21"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "The upper-bound terminator permits an exponent suffix, so a scientific-notation bound is silently truncated and can enter a reported override.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 1.65, 95% CI 1.35 to 2.03e1)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "Either parse ci_high as 20.3 or return None for unsupported notation.",
+    "actual": "Returns {'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.03}.",
+    "id": "copps-r2:g1#1",
+    "record_id": "mc-84ca1539b680d00366f0aecce605de39",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The unconditional exemption for numeric values 0 and 1 hides hardcoded zero-event and one-event trial arms, despite those being count fields covered by the sweep.",
+    "failing_input": "sweep_source(\"trial = {'ai': 1, 'ci': 0}\", 'harness/example.py')",
+    "expected": "COUNT_OR_EFFECT_KEY findings for ai=1 and ci=0 unless explicitly allowlisted.",
+    "actual": "Returns [].",
+    "id": "copps-r2:g1#2",
+    "record_id": "mc-84ca1539b680d00366f0aecce605de39",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The date/URL exclusion suppresses entire string literals containing genuine counts. Its unanchored date pattern also treats ordinary four-digit event counts as dates.",
+    "failing_input": "sweep_source('result = \"1000/2000\"', 'harness/example.py'); sweep_source('result = \"Deaths: 20/169 versus 35/167; source https://example.org/trial\"', 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding for 1000/2000 in the first call and at least 20/169 in the second.",
+    "actual": "Both calls return []. The first matches the date exclusion; the second is suppressed merely because the string also contains a URL.",
+    "id": "copps-r2:g1#3",
+    "record_id": "mc-84ca1539b680d00366f0aecce605de39",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r3": {
+  "base": "630e622bf",
+  "head": "3a71b4241",
+  "runs": {
+   "g1": {
+    "record_id": "mc-91616a8f777c00f366ccbd2ce3fb1bff",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "33915db526c4c1bd2a861b01b39b863a141dee7713685dc33dff57eb027e92cc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P0",
+    "claim": "The new confidence-bound regex accepts a numeric prefix without checking the token boundary, producing an incorrect upper bound.",
+    "failing_input": "ENGAGE abstract: 'unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34e1)'",
+    "expected": "Read ci_high as 13.4, or refuse the unsupported notation.",
+    "actual": "edox_m captures '1.34' as the upper bound; _read appends an ENGAGE result with ci_high=1.34.",
+    "id": "copps-r3:g1#1",
+    "record_id": "mc-91616a8f777c00f366ccbd2ce3fb1bff",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The date exclusion silently discards genuine death counts with denominators from 10 through 12, even when explicitly labelled as deaths.",
+    "failing_input": "sweep_source(\"summary = 'Deaths: 5/10 versus 6/12'\", 'harness/example.py')",
+    "expected": "COUNT_PAIR_TEXT findings for the death-count literals.",
+    "actual": "Returns []; both matches satisfy a <= 31 and b <= 12 and are discarded as dates.",
+    "id": "copps-r3:g1#2",
+    "record_id": "mc-91616a8f777c00f366ccbd2ce3fb1bff",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Stopping after the first count pair lets an allowlisted count hide arbitrary changes to subsequent arm counts in the same string.",
+    "failing_input": "Compare sweep_source(\"summary = 'Deaths: 20/169 versus 37/167'\", 'harness/example.py') with sweep_source(\"summary = 'Deaths: 20/169 versus 99/100'\", 'harness/example.py'). Allowlist key: 'harness/example.py|COUNT_PAIR_TEXT||20/169'.",
+    "expected": "The changed second count, 99/100, produces a separate unallowlisted finding.",
+    "actual": "Both calls return the identical single finding for 20/169. With that key allowlisted, the CLI reports no unallowlisted findings for either input.",
+    "id": "copps-r3:g1#3",
+    "record_id": "mc-91616a8f777c00f366ccbd2ce3fb1bff",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r4": {
+  "base": "630e622bf",
+  "head": "0302404cb",
+  "runs": {
+   "g1": {
+    "record_id": "mc-df6d81f262253954430a6afdfce47748",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "f43e10a84fb48d0a30bf01e1ff5491f59a9f09c8d98d89c5e6c5b34921445b05"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "The upper-bound terminator permits a comma, so a thousands-separated bound is silently truncated and accepted by _apply_reported_overrides.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 650, 95% CI 450 to 1,200)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "ci_high=1200, or None if comma-grouped numbers are unsupported.",
+    "actual": "{'estimate': 650.0, 'ci_level': 95.0, 'ci_low': 450.0, 'ci_high': 1.0}",
+    "id": "copps-r4:g1#1",
+    "record_id": "mc-df6d81f262253954430a6afdfce47748",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Finding an effect interval skips all count-pair checks in the same string because they are under else. Consequently, allowlisting the effect also hides new or changed hardcoded counts in that string.",
+    "failing_input": "sweep_source('summary = \"RR 0.91 (0.74-1.11); deaths 20/169 vs 35/167\"', 'harness/example.py')",
+    "expected": "Three findings: EFFECT_TUPLE_TEXT for '0.91 (0.74-1.11)' and COUNT_PAIR_TEXT for each of '20/169' and '35/167'.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'EFFECT_TUPLE_TEXT', 'value': '0.91 (0.74-1.11)'}]",
+    "id": "copps-r4:g1#2",
+    "record_id": "mc-df6d81f262253954430a6afdfce47748",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r5": {
+  "base": "630e622bf",
+  "head": "65b1a901e",
+  "runs": {
+   "g1": {
+    "record_id": "mc-75c3f32630c6a577a0eb360aa9464e7f",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "4117147d0299ab6477df84863d78cc7c63cd938987cd58149b895bb22eff3364"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "The upper-bound terminator accepts a multiplication sign or whitespace, silently truncating scientific notation. The truncated value can enter a reported override.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 1.65, 95% CI 1.35 to 2.03 × 10^1)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "None if this notation is unsupported; otherwise ci_high must be 20.3.",
+    "actual": "{'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.03}",
+    "id": "copps-r5:g1#1",
+    "record_id": "mc-75c3f32630c6a577a0eb360aa9464e7f",
+    "verdict": null
+   },
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The stricter new edoxaban parser can omit the effect while the readiness condition still passes using only a '30 mg' label.",
+    "failing_input": "RE-LY abstract: '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval [CI], 0.74 to 1.11)'. ENGAGE record 24251359 abstract: '30 mg low-dose edoxaban (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34)'.",
+    "expected": "Do not report READY_TO_COMPUTE unless both required effects have been extracted.",
+    "actual": "rely_found=True, edox_low_found=False, edox_30_label_found=True. Only RE-LY is appended to available, but status becomes READY_TO_COMPUTE and the reason claims both effects are present.",
+    "id": "copps-r5:g1#2",
+    "record_id": "mc-75c3f32630c6a577a0eb360aa9464e7f",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Numeric field detection only handles ast.Dict, so ordinary dict(...) construction bypasses the literal-count audit.",
+    "failing_input": "sweep_source('row = dict(ai=20, n1i=169, ci=35, n2i=167)', 'harness/example.py')",
+    "expected": "Four COUNT_OR_EFFECT_KEY findings for ai, n1i, ci, and n2i.",
+    "actual": "[]",
+    "id": "copps-r5:g1#3",
+    "record_id": "mc-75c3f32630c6a577a0eb360aa9464e7f",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The count-pair regex requires at least two denominator digits, so it silently misses hardcoded counts for small trial arms.",
+    "failing_input": "sweep_source('result = \"Deaths: 2/8 versus 1/8\"', 'harness/example.py')",
+    "expected": "Two COUNT_PAIR_TEXT findings, with values '2/8' and '1/8'.",
+    "actual": "[]",
+    "id": "copps-r5:g1#4",
+    "record_id": "mc-75c3f32630c6a577a0eb360aa9464e7f",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r6": {
+  "base": "630e622bf",
+  "head": "034be3f59",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e7aef647151703862237e343cb6c1812",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "a08529b825ea6e36b8e3c9df23e1f07b5b98877ba4563a4da5f6234af157260e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "A space-grouped upper bound is truncated to its first group. The resulting wrong number can enter a reported override.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 12.0, 95% CI 1.35 to 2 030)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "Parse ci_high as 2030.0, or return None if space-grouped numbers are unsupported.",
+    "actual": "{'estimate': 12.0, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.0}",
+    "id": "copps-r6:g1#1",
+    "record_id": "mc-e7aef647151703862237e343cb6c1812",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The literal-count audit misses dictionary entries assigned through subscripts because it inspects only dictionary literals and call keywords.",
+    "failing_input": "sweep_source(\"row = {}; row['ai'] = 20\", 'harness/demo.py')",
+    "expected": "A COUNT_OR_EFFECT_KEY finding for ai=20.",
+    "actual": "[]",
+    "id": "copps-r6:g1#2",
+    "record_id": "mc-e7aef647151703862237e343cb6c1812",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The leading-zero exclusion suppresses genuine count pairs even without a third date component.",
+    "failing_input": "sweep_source(\"label = 'Deaths 2/08'\", 'harness/demo.py')",
+    "expected": "[{'file': 'harness/demo.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '2/08'}]",
+    "actual": "[]",
+    "id": "copps-r6:g1#3",
+    "record_id": "mc-e7aef647151703862237e343cb6c1812",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r7": {
+  "base": "630e622bf",
+  "head": "383f51aa8",
+  "runs": {
+   "g1": {
+    "record_id": "mc-af8c7e11b74505dbb93e3c43980c0750",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "7b701bc76ec1bd06f7af7408fa8ad6558354bb4e29040bc7e3df43ea88865216"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Tuple-unpacked assignments bypass detection of hardcoded count fields. Assignment targets are inspected only when the target itself is a Subscript; nested targets are skipped.",
+    "failing_input": "sweep_source(\"row = {}\\nrow['ai'], row['n1i'] = 20, 169\\n\", 'harness/example.py')",
+    "expected": "Two COUNT_OR_EFFECT_KEY findings: ai=20 and n1i=169.",
+    "actual": "[]",
+    "id": "copps-r7:g1#1",
+    "record_id": "mc-af8c7e11b74505dbb93e3c43980c0750",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Hardcoded effect tuples with negative confidence bounds escape detection because _EFFECT_TEXT accepts only unsigned bounds.",
+    "failing_input": "sweep_source(\"summary = 'SMD -0.35 (-0.50–-0.20)'\\n\", 'harness/example.py')",
+    "expected": "An EFFECT_TUPLE_TEXT finding for -0.35 (-0.50–-0.20).",
+    "actual": "[]",
+    "id": "copps-r7:g1#2",
+    "record_id": "mc-af8c7e11b74505dbb93e3c43980c0750",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r8": {
+  "base": "630e622bf",
+  "head": "fce096056",
+  "runs": {
+   "g1": {
+    "record_id": "mc-97829d53c67d43bba9e9749491448042",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "64c5006ee0b64129af71b7c4031f122c5be4b13cbd317c5b31f485ada5d7efcb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "BOUND_END accepts a comma followed by whitespace as punctuation even when it continues a grouped number. This truncates the upper bound, which _apply_reported_overrides then propagates into results.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 1650, 95% CI 1350 to 2, 030)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "None: refuse the unsupported grouped upper bound rather than read its prefix.",
+    "actual": "{'estimate': 1650.0, 'ci_level': 95.0, 'ci_low': 1350.0, 'ci_high': 2.0}",
+    "id": "copps-r8:g1#1",
+    "record_id": "mc-97829d53c67d43bba9e9749491448042",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P1",
+    "claim": "The effect scanner requires every number to have a decimal point. A hardcoded effect interval with an integer bound escapes detection.",
+    "failing_input": "sweep_source(\"summary = 'RR 2.0 (1.0-4)'\", 'harness/example.py')",
+    "expected": "An EFFECT_TUPLE_TEXT finding for '2.0 (1.0-4)'.",
+    "actual": "[]",
+    "id": "copps-r8:g1#2",
+    "record_id": "mc-97829d53c67d43bba9e9749491448042",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P1",
+    "claim": "Assignment unpacking handles only one level. Nested tuple assignments silently hide literal per-arm counts and denominators from the sweep.",
+    "failing_input": "sweep_source(\"(row['ai'], row['n1i']), (row['ci'], row['n2i']) = (20, 169), (37, 167)\", 'harness/example.py')",
+    "expected": "Four COUNT_OR_EFFECT_KEY findings: ai=20, n1i=169, ci=37, n2i=167.",
+    "actual": "[]",
+    "id": "copps-r8:g1#3",
+    "record_id": "mc-97829d53c67d43bba9e9749491448042",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r9": {
+  "base": "630e622bf",
+  "head": "47c87de0a",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a4c9e9483a9283a67c6effda1c97f3cb",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "c9fd854f946106cb3cb69d9194da59474c1c2a9887281b6b8801b16bfde55499"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "Integer-valued effects are classified as missing because the effect regex requires a decimal point. Changing an explicitly reported RR from '1.0' to the equivalent '1' prevents readiness.",
+    "failing_input": "_noac_lower_dose_status({'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 1; 95% confidence interval [CI], 0.74 to 1.35)'}, {'id': '24251359', 'abstract': 'Low-dose edoxaban was 30 mg. An unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34).'}]})['status']",
+    "expected": "'READY_TO_COMPUTE': both effects and the dose label are explicitly present.",
+    "actual": "'NOT_COMPUTED_SOURCE_INCOMPLETE'; the RE-LY effect is not recognized.",
+    "id": "copps-r9:g1#1",
+    "record_id": "mc-a4c9e9483a9283a67c6effda1c97f3cb",
+    "verdict": null
+   },
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P2",
+    "claim": "A line break inside an otherwise supported effect statement prevents extraction. The new regex permits only spaces and tabs between fields, so ordinary text wrapping silently drops an override.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 1.65,\\n95% CI 1.35 to 2.03)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "{'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.03}",
+    "actual": "None; replacing the newline with a space makes the same statement parse.",
+    "id": "copps-r9:g1#2",
+    "record_id": "mc-a4c9e9483a9283a67c6effda1c97f3cb",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The sweep misses literal count fields in dictionary comprehensions. It handles ast.Dict but not ast.DictComp, allowing a directly hardcoded arm count to produce no finding.",
+    "failing_input": "sweep_source(\"row = {'ai': 20 for _ in range(1)}\", 'harness/example.py')",
+    "expected": "A COUNT_OR_EFFECT_KEY finding for key 'ai', value 20, line 1.",
+    "actual": "[]",
+    "id": "copps-r9:g1#3",
+    "record_id": "mc-a4c9e9483a9283a67c6effda1c97f3cb",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r10": {
+  "base": "630e622bf",
+  "head": "d17c3153d",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0774707177545ddc0abdd0869d5f7645",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "98dca8669821632dee947a626e9a1f91ce5e03e100546134d0ca7fb11bb0e1fd"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The count regex backtracks to a denominator prefix when a grouped decimal fails its final check, falsely reporting a count from a noninteger ratio.",
+    "failing_input": "sweep_source('message = \"Ratio 20/1,234.5\"', 'harness/example.py')",
+    "expected": "[]: the denominator is 1234.5, not an integer count.",
+    "actual": "[{\"file\":\"harness/example.py\",\"line\":1,\"kind\":\"COUNT_PAIR_TEXT\",\"value\":\"20/1\"}]",
+    "id": "copps-r10:g1#1",
+    "record_id": "mc-0774707177545ddc0abdd0869d5f7645",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The effect-pattern detector silently misses hardcoded effect tuples with four decimal places because _N permits only one to three fractional digits.",
+    "failing_input": "sweep_source('message = \"HR 0.9123 (0.7401-1.1101)\"', 'harness/example.py')",
+    "expected": "An EFFECT_TUPLE_TEXT finding for '0.9123 (0.7401-1.1101)'.",
+    "actual": "[]",
+    "id": "copps-r10:g1#2",
+    "record_id": "mc-0774707177545ddc0abdd0869d5f7645",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r11": {
+  "base": "630e622bf",
+  "head": "7a99ad9df",
+  "runs": {
+   "g1": {
+    "record_id": "mc-be1f94a743e2f8d3de6302aea6638825",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "14310386a2086bac58fcf7ece5a6bbc09bcb020c4557998a70e09f8202822bea"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/known_missing.py",
+    "function": "_source_value",
+    "severity": "P1",
+    "claim": "The COPPS special case now declares denominators absent based solely on the slug and record ID, regardless of the supplied source text.",
+    "failing_input": "For slug 'colchicine-postop-af' and key '22090167', supply record {'id': '22090167', 'abstract': '200 patients were randomized: 100 to colchicine and 100 to placebo. Postoperative atrial fibrillation occurred in 10 colchicine patients and 20 placebo patients.'}.",
+    "expected": "Evaluate the supplied evidence; do not classify explicitly stated per-arm counts and denominators as absent.",
+    "actual": "Returns value_status='REFUSED_DENOMINATORS_NOT_STATED' and missing_class='SOURCE_ABSENT', with a verify_basis asserting that the abstract provides only a total and percentages.",
+    "id": "copps-r11:g1#1",
+    "record_id": "mc-be1f94a743e2f8d3de6302aea6638825",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The denominator regex backtracks to a shorter integer when a space-grouped number ends in a decimal, falsely reporting a count pair.",
+    "failing_input": "sweep_source('s = \"Deaths 20/1 234.5\"', 'harness/example.py')",
+    "expected": "[]; the decimal denominator must not be truncated into an integer count.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '20/1'}]",
+    "id": "copps-r11:g1#2",
+    "record_id": "mc-be1f94a743e2f8d3de6302aea6638825",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r12": {
+  "base": "630e622bf",
+  "head": "275445bc7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-758d2ec844463119c5e9379b46ffc689",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "d313bc0ab279501ab52b8fe396ff304043606badc035ddf09f66f0e7560188cc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/known_missing.py",
+    "function": "_percent_only",
+    "severity": "P1",
+    "claim": "Explicit per-arm counts written without spaces around '/' are classified as percentages only. _N_OF_M requires whitespace on both sides of '/', causing the new refusal branch to label available counts as SOURCE_ABSENT.",
+    "failing_input": "_percent_only('Deaths were 20/100 versus 30/100 (20% versus 30%).')",
+    "expected": "False: both event counts and arm denominators are explicitly stated.",
+    "actual": "True.",
+    "id": "copps-r12:g1#1",
+    "record_id": "mc-758d2ec844463119c5e9379b46ffc689",
+    "verdict": null
+   },
+   {
+    "file": "harness/known_missing.py",
+    "function": "_percent_only",
+    "severity": "P1",
+    "claim": "An unrelated 'n of N' anywhere in the text suppresses the percentage-only refusal. The exclusion patterns never establish that a matched number describes an outcome count or an arm denominator.",
+    "failing_input": "_percent_only('Of 200 participants, 5 of 10 centres were rural. Deaths were 20% versus 30%; arm denominators were not reported.')",
+    "expected": "True: deaths are reported only as percentages, with no per-arm counts or denominators.",
+    "actual": "False, because '5 of 10' matches _N_OF_M.",
+    "id": "copps-r12:g1#2",
+    "record_id": "mc-758d2ec844463119c5e9379b46ffc689",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The count pattern starts inside a thousands-grouped numerator and reports a truncated count. Its left boundary excludes digits and periods but permits commas and spaces.",
+    "failing_input": "sweep_source(\"message = 'Deaths 1,234/5,678'\", 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding whose value preserves the complete count pair: '1,234/5,678'.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '234/5,678'}]",
+    "id": "copps-r12:g1#3",
+    "record_id": "mc-758d2ec844463119c5e9379b46ffc689",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r13": {
+  "base": "630e622bf",
+  "head": "6652e14a6",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0ef9cd127c69367a38cf486cd7a13a65",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "4a70c7ca9ab7ec9d579406aca923fc9d6099ba490592c8d60a8a5c63a9e837bc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/known_missing.py",
+    "function": "_percent_only",
+    "severity": "P1",
+    "claim": "Explicit per-arm counts and denominators written in ordinary prose are classified as percentages-only. The new _source_value branch consequently labels available data REFUSED_DENOMINATORS_NOT_STATED / SOURCE_ABSENT.",
+    "failing_input": "_percent_only('Mortality was 5% versus 10%. Deaths numbered 5 in the treatment arm and 10 in the placebo arm; the randomized denominators were 100 and 100, respectively.')",
+    "expected": "False: both event counts and randomized denominators are explicitly stated.",
+    "actual": "True: none of the three count-detection expressions matches this wording.",
+    "id": "copps-r13:g1#1",
+    "record_id": "mc-0ef9cd127c69367a38cf486cd7a13a65",
+    "verdict": null
+   },
+   {
+    "file": "harness/known_missing.py",
+    "function": "_percent_only",
+    "severity": "P1",
+    "claim": "A fraction describing centres is accepted as a per-arm patient count, suppressing the percentages-only refusal even though patient counts and denominators are absent.",
+    "failing_input": "_percent_only('Recruitment was completed at 5/10 centres. Mortality was 12.0% versus 22.0% among 336 patients.')",
+    "expected": "True: the mortality results contain only percentages and a pooled participant total.",
+    "actual": "False: _N_OF_M matches '5/10' without checking what was counted.",
+    "id": "copps-r13:g1#2",
+    "record_id": "mc-0ef9cd127c69367a38cf486cd7a13a65",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The literal-count sweep silently misses space-grouped numerators. Its numerator pattern excludes spaces, and its lookbehind prevents matching the trailing numerator group.",
+    "failing_input": "sweep_source(\"label = 'Deaths 1 234/5 678'\", 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding with value '1 234/5 678'.",
+    "actual": "[]",
+    "id": "copps-r13:g1#3",
+    "record_id": "mc-0ef9cd127c69367a38cf486cd7a13a65",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r14": {
+  "base": "630e622bf",
+  "head": "1d5241db3",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a4a2e48bf7a30973af8b2d0e9bb74217",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "a6894670249e67cc93a340aca976492b382b583e33cc83975e24bb10a89d955d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/comparator_second_pass.py",
+    "function": "reported_value_at",
+    "severity": "P0",
+    "claim": "BOUND_END accepts a spaced comma followed by a two-digit group, truncating an Indian-grouped confidence bound into a different number.",
+    "failing_input": "reported_value_at('The combined group may have higher rates of ovulation (OR 1.65, 95% CI 1.35 to 2, 03,000)', 'The combined group may have higher rates of ovulation (OR')",
+    "expected": "None: unsupported grouped notation must be refused rather than partially read.",
+    "actual": "{'estimate': 1.65, 'ci_level': 95.0, 'ci_low': 1.35, 'ci_high': 2.0}; _apply_reported_overrides accepts this truncated bound.",
+    "id": "copps-r14:g1#1",
+    "record_id": "mc-a4a2e48bf7a30973af8b2d0e9bb74217",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source / _unpack",
+    "severity": "P2",
+    "claim": "The literal-count sweep misses direct assignments to object fields. _unpack handles subscripts but ignores ast.Attribute, allowing hardcoded study counts to produce a clean report.",
+    "failing_input": "sweep_source('study.ai = 20\\nstudy.n1i = 169\\n', 'harness/example.py')",
+    "expected": "Two COUNT_OR_EFFECT_KEY findings: ai=20 on line 1 and n1i=169 on line 2.",
+    "actual": "[]",
+    "id": "copps-r14:g1#2",
+    "record_id": "mc-a4a2e48bf7a30973af8b2d0e9bb74217",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r15": {
+  "base": "630e622bf",
+  "head": "a726c3c03",
+  "runs": {
+   "g1": {
+    "record_id": "mc-24080ee6e1390960e48e4f68d0d93f82",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "c9c93c898dcc5de3bad7c2c559c2842ffa47a717e89854bc7b1d25d685e86de1"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The readiness check treats any occurrence of '30 mg' as identifying the low-dose edoxaban arm, even when the source explicitly assigns it to another arm.",
+    "failing_input": "_noac_lower_dose_status({'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval [CI], 0.74 to 1.11)'}, {'id': '24251359', 'abstract': 'High-dose edoxaban was 60 mg, reduced to 30 mg; low-dose edoxaban was 15 mg. There was an unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34).'}]})",
+    "expected": "status='NOT_COMPUTED_SOURCE_INCOMPLETE'; the extracted low-dose effect is not evidence for a 30 mg arm.",
+    "actual": "status='READY_TO_COMPUTE', with reason='RE-LY 110 mg and edoxaban 30 mg effects are both explicitly present in committed sources.'",
+    "id": "copps-r15:g1#1",
+    "record_id": "mc-24080ee6e1390960e48e4f68d0d93f82",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The count scanner silently misses ungrouped six-digit event counts because the numerator alternative allows only five digits. The same counts with thousands separators are detected.",
+    "failing_input": "sweep_source('result = \"Deaths 100000/200000\"', 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding with value='100000/200000'.",
+    "actual": "[]",
+    "id": "copps-r15:g1#2",
+    "record_id": "mc-24080ee6e1390960e48e4f68d0d93f82",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r16": {
+  "base": "630e622bf",
+  "head": "1e0adfff7",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0dd26d51af9ad5bf919973447fee67cb",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "83fa699b539c43c22fcc515d10fcf4d946b4e9798108e676864a30f83158789a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The backward dose-label regex attributes a high-dose arm's 30 mg reduction to the low-dose arm across a comma, incorrectly declaring readiness.",
+    "failing_input": "from harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11).'}, {'id': '24251359', 'abstract': 'High-dose edoxaban was reduced to 30 mg, whereas low-dose edoxaban was halved. An unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34).'}]}\n_noac_lower_dose_status(records)['status']",
+    "expected": "NOT_COMPUTED_SOURCE_INCOMPLETE: the text never identifies the low-dose arm as 30 mg.",
+    "actual": "READY_TO_COMPUTE",
+    "id": "copps-r16:g1#1",
+    "record_id": "mc-0dd26d51af9ad5bf919973447fee67cb",
+    "verdict": null
+   },
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The new 15/60 mg veto rejects an explicitly identified 30 mg low-dose regimen when the same clause also describes its reduction to 15 mg.",
+    "failing_input": "from harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11).'}, {'id': '24251359', 'abstract': 'Patients received low-dose edoxaban (30 mg, reduced to 15 mg when indicated). An unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34).'}]}\n_noac_lower_dose_status(records)['status']",
+    "expected": "READY_TO_COMPUTE: both effects and the low-dose arm's 30 mg label are explicitly stated.",
+    "actual": "NOT_COMPUTED_SOURCE_INCOMPLETE",
+    "id": "copps-r16:g1#2",
+    "record_id": "mc-0dd26d51af9ad5bf919973447fee67cb",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r17": {
+  "base": "630e622bf",
+  "head": "c48566fbf",
+  "runs": {
+   "g1": {
+    "record_id": "mc-9635b227515fe2f16a10b90bc65bbef4",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "0d5cce993a59163193f2e54273ecbffe80de9a556843223732b42bb425ab2bfc"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The dose regex has no left numeric boundary: it reads the suffix of 2110 mg as 110 mg and assigns that dose's effect to the 110 mg arm.",
+    "failing_input": "from harness.scope_identity import _noac_lower_dose_status\nr = {'records': [{'id': '19717844', 'abstract': '2110 mg of dabigatran (relative risk with dabigatran, 2.5; 95% confidence interval, 2.0 to 3.0)'}]}\nprint(_noac_lower_dose_status(r)['reason'])",
+    "expected": "RE-LY 110 mg effect not found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "actual": "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "id": "copps-r17:g1#1",
+    "record_id": "mc-9635b227515fe2f16a10b90bc65bbef4",
+    "verdict": null
+   },
+   {
+    "file": "harness/recorded_verification.py",
+    "function": "verified",
+    "severity": "P1",
+    "claim": "Registry read failures silently return None. The dose-status caller interprets this as evidence that the source does not identify the 30 mg arm, even when the supplied abstract explicitly does.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.scope_identity import _noac_lower_dose_status\nr = {'records': [\n    {'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'},\n    {'id': '24251359', 'abstract': 'The low-dose edoxaban arm received 30 mg. There was an unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34)'}\n]}\nwith patch('builtins.open', side_effect=PermissionError('registry unreadable')):\n    print(_noac_lower_dose_status(r)['reason'])",
+    "expected": "Propagate the registry error or report that verification is unavailable; do not claim the source lacks the dose identification.",
+    "actual": "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect found, but the committed source does not explicitly identify that lower-dose arm as edoxaban 30 mg.",
+    "id": "copps-r17:g1#2",
+    "record_id": "mc-9635b227515fe2f16a10b90bc65bbef4",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r18": {
+  "base": "630e622bf",
+  "head": "5ffb7b532",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ff68ddf9ed967c9a08e7441b2788aac3",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "ab449554fc170b2deac949d6d3d8a69e914afdaa23e986df3242dc1d832203ca"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The dose boundary accepts the suffix of a comma-grouped number: 1,110 mg is classified as the 110 mg arm because the negative lookbehind permits a preceding comma.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': '1,110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'}]}\nwith patch('harness.recorded_verification.verified', return_value=None):\n    print(_noac_lower_dose_status(records)['reason'])",
+    "expected": "RE-LY 110 mg effect not found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "actual": "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "id": "copps-r18:g1#1",
+    "record_id": "mc-ff68ddf9ed967c9a08e7441b2788aac3",
+    "verdict": null
+   },
+   {
+    "file": "harness/recorded_verification.py",
+    "function": "verified",
+    "severity": "P2",
+    "claim": "Malformed registry contents silently become an ordinary verification miss. The expression reg.get('entries') or [] treats an invalid falsy entries value as an empty registry, defeating the stated fail-loudly behavior.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.recorded_verification import verified\nwith patch('builtins.open', mock_open(read_data='{\"entries\": 0}')):\n    print(verified('source_absence_verifications.json', '22090167', 'held text', 'PER_ARM_DENOMINATORS_NOT_STATED'))",
+    "expected": "Raise an error because entries must be an array; a malformed registry must not produce a normal verification miss.",
+    "actual": "Returns None without raising.",
+    "id": "copps-r18:g1#2",
+    "record_id": "mc-ff68ddf9ed967c9a08e7441b2788aac3",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r19": {
+  "base": "630e622bf",
+  "head": "7e6158917",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b486fd56d141c3899f3d0106cd4c0092",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "f358580d87e08ce008030b1977af3afa0de03c3f236b4220a9370867f499fbb2"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "The dose boundary permits matching the suffix of a comma-and-space-grouped dose, incorrectly attributing its effect to the 110 mg arm.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': 'Participants received 1, 110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11).'}]}\nwith patch('harness.recorded_verification.verified', return_value=None):\n    print(_noac_lower_dose_status(records)['reason'])",
+    "expected": "RE-LY 110 mg effect not found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "actual": "RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect not found in the committed source.",
+    "id": "copps-r19:g1#1",
+    "record_id": "mc-b486fd56d141c3899f3d0106cd4c0092",
+    "verdict": null
+   },
+   {
+    "file": "harness/recorded_verification.py",
+    "function": "verified",
+    "severity": "P2",
+    "claim": "Malformed verification entries silently become 'not verified'. Only the outer entries list is validated; missing required claim/hash fields return None instead of reporting a broken registry.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.recorded_verification import verified\nwith patch('builtins.open', mock_open(read_data='{\"entries\":[{\"pmid\":\"123\"}]}')):\n    print(verified('test.json', '123', 'held abstract', 'LOW_DOSE_ARM_IS_30MG'))",
+    "expected": "Raise RuntimeError identifying the malformed registry entry.",
+    "actual": "None",
+    "id": "copps-r19:g1#2",
+    "record_id": "mc-b486fd56d141c3899f3d0106cd4c0092",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source / _EffectText.finditer",
+    "severity": "P2",
+    "claim": "The decimal-only filter silently excludes hardcoded effects whose estimate and confidence bounds are all integers, although these are valid effect tuples.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"result = 'RR 2 (1-4)'\", 'harness/example.py'))",
+    "expected": "An EFFECT_TUPLE_TEXT finding for '2 (1-4)'.",
+    "actual": "[]",
+    "id": "copps-r19:g1#3",
+    "record_id": "mc-b486fd56d141c3899f3d0106cd4c0092",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r20": {
+  "base": "630e622bf",
+  "head": "c878a9ac1",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b1dcb2bd8e77347413df8b780f8244c0",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "aaa68e13ecfe334df035d2c273c9328fe26166708bd0e306d9b4605e66f8b253"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/recorded_verification.py",
+    "function": "verified",
+    "severity": "P2",
+    "claim": "Truthy fields with invalid types pass registry validation, silently turning registry corruption into an unverified result.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.recorded_verification import verified\npayload = '{\"entries\":[{\"pmid\":\"24251359\",\"held_text_sha256\":[\"invalid\"],\"claim\":\"LOW_DOSE_ARM_IS_30MG\"}]}'\nwith patch('builtins.open', mock_open(read_data=payload)):\n    print(verified('arm_label_verifications.json', '24251359', 'held text', 'LOW_DOSE_ARM_IS_30MG'))",
+    "expected": "RuntimeError identifying the malformed held_text_sha256 field.",
+    "actual": "Returns None: the malformed entry passes the truthiness check and silently fails the hash comparison.",
+    "id": "copps-r20:g1#1",
+    "record_id": "mc-b1dcb2bd8e77347413df8b780f8244c0",
+    "verdict": null
+   },
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "A missing recorded verification is reported as evidence that the source does not identify the dose, even when the supplied source explicitly identifies it.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom harness.scope_identity import _noac_lower_dose_status\nrecords = {'records': [{'id': '19717844', 'abstract': '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'}, {'id': '24251359', 'abstract': 'The low-dose edoxaban arm was 30 mg. There was an unfavorable trend with low-dose edoxaban versus warfarin (hazard ratio, 1.13; 97.5% CI, 0.96 to 1.34)'}]}\nwith patch('builtins.open', mock_open(read_data='{\"entries\":[]}')):\n    result = _noac_lower_dose_status(records)\n    print(result['status'], result['reason'])",
+    "expected": "NOT_COMPUTED_SOURCE_INCOMPLETE with a reason stating that the dose-label verification is missing. The source's explicit dose statement must not be classified as absent.",
+    "actual": "NOT_COMPUTED_SOURCE_INCOMPLETE with reason: 'RE-LY 110 mg effect found; ENGAGE low-dose edoxaban effect found, but the committed source does not explicitly identify that lower-dose arm as edoxaban 30 mg.'",
+    "id": "copps-r20:g1#2",
+    "record_id": "mc-b1dcb2bd8e77347413df8b780f8244c0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The literal-count sweep misses dictionaries constructed from literal key/value pairs, allowing a complete hardcoded two-arm result to produce no findings.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"row = dict([('ai', 20), ('n1i', 169), ('ci', 37), ('n2i', 167)])\", 'harness/example.py'))",
+    "expected": "COUNT_OR_EFFECT_KEY findings for ai=20, n1i=169, ci=37, and n2i=167.",
+    "actual": "Returns []. Calls are inspected only for keyword arguments; these positional literal pairs are never recognized as dictionary fields.",
+    "id": "copps-r20:g1#3",
+    "record_id": "mc-b1dcb2bd8e77347413df8b780f8244c0",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r21": {
+  "base": "630e622bf",
+  "head": "797abda7e",
+  "runs": {
+   "g1": {
+    "record_id": "mc-93bcdeec7f5d160ae2227a4b37bae5a2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "11c91bf58e04aa9b5d5132597c01a55e11b1f36bf808021a4797897d5e3000fa"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded",
+    "severity": "P1",
+    "claim": "The eight-character lookbehind window lets a suffix of a space-grouped dose match as 110 mg. Consequently, _noac_lower_dose_status can assign another dose's effect to the 110 mg arm.",
+    "failing_input": "_first_unbounded(r'110 mg', '1' + ' ' * 9 + '110 mg').span()",
+    "expected": "The matcher returns None because 110 continues the grouped number 1110.",
+    "actual": "Returns a match with span (10, 16). The inspected prefix contains only eight spaces, losing the preceding digit.",
+    "id": "copps-r21:g1#1",
+    "record_id": "mc-93bcdeec7f5d160ae2227a4b37bae5a2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_unpack / sweep_source",
+    "severity": "P2",
+    "claim": "Starred unpacking silently bypasses literal-count detection when the target and value tuples have different lengths, even when a count receives an explicit numeric literal.",
+    "failing_input": "sweep_source(\"row['ai'], *rest = 20, 169, 37, 167\", 'harness/example.py')",
+    "expected": "A COUNT_OR_EFFECT_KEY finding for key 'ai', value 20, line 1.",
+    "actual": "Returns []. _unpack rejects the unequal tuple lengths without inspecting the assignment to row['ai'].",
+    "id": "copps-r21:g1#2",
+    "record_id": "mc-93bcdeec7f5d160ae2227a4b37bae5a2",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r22": {
+  "base": "630e622bf",
+  "head": "664a466b2",
+  "runs": {
+   "g1": {
+    "record_id": "mc-858c622e08a9f3fb0d446bbb248f2751",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "aef2b78ff4595071c793ce86eb5663e3719000c578d6f055e34d051a48199abb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded / _noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "A dose range ending in 110 mg is accepted as evidence for the fixed 110 mg arm. The prefix guard does not recognize a range separator.",
+    "failing_input": "from harness.scope_identity import _first_unbounded, _WHOLE\ntext = 'Patients received 75–110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval [CI], 0.74 to 1.11)'\npattern = r'110 mg of dabigatran \\(relative risk with dabigatran,\\s*(\\d+(?:\\.\\d+)?);\\s*(\\d+(?:\\.\\d+)?)%\\s*confidence interval(?:\\s*\\[CI\\])?,\\s*(\\d+(?:\\.\\d+)?)\\s*to\\s*(\\d+(?:\\.\\d+)?)' + _WHOLE\nm = _first_unbounded(pattern, text)\nprint(None if m is None else m.groups())",
+    "expected": "None: the reported effect belongs to a 75–110 mg regimen, not an explicitly identified fixed 110 mg arm.",
+    "actual": "('0.91', '95', '0.74', '1.11'). The caller consequently accepts this effect under arm 'dabigatran 110 mg'.",
+    "id": "copps-r22:g1#1",
+    "record_id": "mc-858c622e08a9f3fb0d446bbb248f2751",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_unpack / sweep_source",
+    "severity": "P2",
+    "claim": "Literal tuple assignments using starred values evade the sweep entirely, including all four per-arm count fields.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nsrc = \"row = {}\\nrow['ai'], row['n1i'], row['ci'], row['n2i'] = *[20, 169, 37, 167],\\n\"\nprint(sweep_source(src, 'harness/probe.py'))\nns = {}\nexec(src, ns)\nprint(ns['row'])",
+    "expected": "Four COUNT_OR_EFFECT_KEY findings for ai=20, n1i=169, ci=37 and n2i=167.",
+    "actual": "The sweep returns []. Executing the source assigns {'ai': 20, 'n1i': 169, 'ci': 37, 'n2i': 167}. _unpack compares the four targets with one unexpanded AST Starred value and returns no pairs.",
+    "id": "copps-r22:g1#2",
+    "record_id": "mc-858c622e08a9f3fb0d446bbb248f2751",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "__main__",
+    "severity": "P2",
+    "claim": "The CLI exits successfully even when it detects unallowlisted literals. Used as a validation command, it cannot fail on those violations.",
+    "failing_input": "import json, pathlib, shutil, subprocess, sys, tempfile\nwith tempfile.TemporaryDirectory() as <outside-workdir>/n    root = pathlib.Path(d)\n    (root / 'scripts').mkdir()\n    (root / 'harness').mkdir()\n    out = root / 'outputs/k_gap/g1_binding'\n    out.mkdir(parents=True)\n    shutil.copyfile('scripts/ast_literal_sweep.py', root / 'scripts/ast_literal_sweep.py')\n    (root / 'harness/probe.py').write_text(\"row = {'ai': 20}\\n\", encoding='utf-8')\n    result = subprocess.run([sys.executable, str(root / 'scripts/ast_literal_sweep.py')], capture_output=True, text=True)\n    print(result.returncode)\n    print(len(json.loads((out / 'ast_literal_sweep.json').read_text())['not_allowlisted']))",
+    "expected": "A nonzero exit status when the report contains an unallowlisted violation.",
+    "actual": "Exit status 0; the report contains one unallowlisted violation.",
+    "id": "copps-r22:g1#3",
+    "record_id": "mc-858c622e08a9f3fb0d446bbb248f2751",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r23": {
+  "base": "630e622bf",
+  "head": "c727871c4",
+  "runs": {
+   "g1": {
+    "record_id": "mc-570e4d83abd4e7dcd33e972d572fad75",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "ca3c735b5d6ca8dc86ef8ecbb7ea585479fcc559664f66e59291e65ac15b4231"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded",
+    "severity": "P1",
+    "claim": "The range-prefix guard is case-sensitive although arm matching is case-insensitive. An uppercase dose range can therefore be classified as the fixed 110 mg arm.",
+    "failing_input": "from harness.scope_identity import _first_unbounded\nm = _first_unbounded(r'110 mg', '75 TO 110 mg')\nprint(None if m is None else (m.group(), m.span()))",
+    "expected": "None, as for '75 to 110 mg': the dose is a range, not a fixed 110 mg arm.",
+    "actual": "('110 mg', (6, 12)). The same prefix passes the guard when followed by the full RE-LY effect clause in _noac_lower_dose_status.",
+    "id": "copps-r23:g1#1",
+    "record_id": "mc-570e4d83abd4e7dcd33e972d572fad75",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The literal gate misses counts inserted through setdefault. Its call handling checks keyword arguments and container arguments, but ignores a positional field name followed by a numeric literal.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source('row = {}\\nrow.setdefault(\"ai\", 20)\\n', 'harness/example.py'))",
+    "expected": "A COUNT_OR_EFFECT_KEY finding for ai=20 on line 2; executing this source inserts the hardcoded arm count.",
+    "actual": "[]; the CLI gate passes this source without requiring an allowlist entry.",
+    "id": "copps-r23:g1#2",
+    "record_id": "mc-570e4d83abd4e7dcd33e972d572fad75",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r24": {
+  "base": "630e622bf",
+  "head": "dbd7fc511",
+  "runs": {
+   "g1": {
+    "record_id": "mc-9a95a978b710bec11c718e2c6c3934bc",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "13c682a5702db7463b7b17bc19fb07e963f2b59283043d7085f3ad1707e476f6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded",
+    "severity": "P1",
+    "claim": "The number-continuation guard omits the middle-dot decimal separator, so a 0·110 mg dose is accepted as the fixed 110 mg arm. The caller consequently attributes its effect to the wrong arm.",
+    "failing_input": "from harness.scope_identity import _first_unbounded\ntext = '0·110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'\nm = _first_unbounded(r'110 mg of dabigatran', text)\nprint(None if m is None else (m.start(), m.group(0)))",
+    "expected": "None: 110 is part of the decimal dose 0·110, not an independently stated 110 mg dose.",
+    "actual": "(2, '110 mg of dabigatran'). The complete production effect pattern also matches at this position, setting rely_found=True.",
+    "id": "copps-r24:g1#1",
+    "record_id": "mc-9a95a978b710bec11c718e2c6c3934bc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Constant-only f-strings bypass the literal sweep. Hardcoded arm counts reach generated text without any finding, allowing the validation command to succeed.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"summary = f'Deaths {20}/{169} versus {37}/{167}'\", 'harness/example.py'))",
+    "expected": "Findings identifying the hardcoded count pairs 20/169 and 37/167, making them subject to the allowlist gate.",
+    "actual": "[]: the numeric constants occur inside FormattedValue nodes, while each inspected string constant contains only a fragment of the rendered count text.",
+    "id": "copps-r24:g1#2",
+    "record_id": "mc-9a95a978b710bec11c718e2c6c3934bc",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r25": {
+  "base": "630e622bf",
+  "head": "5a5f61774",
+  "runs": {
+   "g1": {
+    "record_id": "mc-122da70f212797f1eaf838096d83ff90",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "688e3fea0ac6a4750a3b5f5229871b2d897132f3b01b867027cbfd66df1b849f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_first_unbounded / _noac_lower_dose_status",
+    "severity": "P1",
+    "claim": "Dose alternatives with repeated units bypass the numeric-prefix guard, allowing a mixed-dose effect to be attributed to the fixed 110 mg arm.",
+    "failing_input": "from harness.scope_identity import _first_unbounded\ntext = 'Patients received 75 mg or 110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11).'\nm = _first_unbounded(r'110 mg of dabigatran', text)\nprint(None if m is None else m.group(0))",
+    "expected": "None: '75 mg or 110 mg' does not establish a fixed 110 mg arm.",
+    "actual": "Prints '110 mg of dabigatran'. The prefix guard cannot cross 'mg'; the full extraction pattern also matches this sentence, causing _noac_lower_dose_status to append effect 0.91 under arm 'dabigatran 110 mg'.",
+    "id": "copps-r25:g1#1",
+    "record_id": "mc-122da70f212797f1eaf838096d83ff90",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Constant f-string interpolations with format specifications evade the literal gate, even when they render exact hardcoded counts.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"label = f'Deaths {20:d}/{169:d}'\", 'harness/example.py'))",
+    "expected": "A COUNT_PAIR_TEXT finding with value '20/169'.",
+    "actual": "[]: formatted interpolations become NUL separators, so the hardcoded count pair is undetected.",
+    "id": "copps-r25:g1#2",
+    "record_id": "mc-122da70f212797f1eaf838096d83ff90",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "Treating the first two positional arguments of every call as a field assignment falsely flags ordinary string searches and can fail the validation command.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nprint(sweep_source(\"offset = abstract.find('or', 1)\", 'harness/example.py'))",
+    "expected": "[]: 1 is a string-search starting offset, not a trial count or odds ratio.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_OR_EFFECT_KEY', 'key': 'or', 'value': 1}]. Unless allowlisted, this finding makes the command exit with status 1.",
+    "id": "copps-r25:g1#3",
+    "record_id": "mc-122da70f212797f1eaf838096d83ff90",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r26": {
+  "base": "630e622bf",
+  "head": "2a3770e59",
+  "runs": {
+   "g1": {
+    "record_id": "mc-110050dd36d37f81102abb4a6e3f17a2",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "5c977f348ee009b7b9a00da02b457f12ca3d84bbbad8f65de06f8a8d50bd27cf"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_render / sweep_source",
+    "severity": "P1",
+    "claim": "The sweep misses hardcoded negative effects in constant f-strings. Python represents negative literals as UnaryOp nodes, which _render replaces with a break instead of rendering. The validation gate therefore passes this unallowlisted effect.",
+    "failing_input": "sweep_source(\"text = f'SMD {-0.35:.2f} ({-0.50:.2f}–{-0.20:.2f})'\", 'harness/example.py')",
+    "expected": "An EFFECT_TUPLE_TEXT finding for '-0.35 (-0.50–-0.20)'.",
+    "actual": "[]",
+    "id": "copps-r26:g1#1",
+    "record_id": "mc-110050dd36d37f81102abb4a6e3f17a2",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "String constants inside f-string interpolations are scanned again independently of their formatting. This flags a count that the rendered string does not contain and can incorrectly fail validation.",
+    "failing_input": "sweep_source(\"text = f\\\"{'20/169':.2}\\\"\", 'harness/example.py')",
+    "expected": "[]: the f-string renders as '20', containing no count pair.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '20/169'}]",
+    "id": "copps-r26:g1#2",
+    "record_id": "mc-110050dd36d37f81102abb4a6e3f17a2",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r27": {
+  "base": "630e622bf",
+  "head": "92a043077",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a735f960a736ed26fcb1ab43e7433624",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "afefd12f7c0fb9a933b7624a7564bbad4c5b3d09939a2c403ca4273043fe2c30"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The sweep misses literal count assignments through Python's built-in setattr, allowing hardcoded arm counts through the gate.",
+    "failing_input": "sweep_source(\"setattr(study, 'ai', 20)\", 'harness/example.py')",
+    "expected": "A COUNT_OR_EFFECT_KEY finding with key 'ai' and value 20.",
+    "actual": "[]; setattr has no keyword arguments, its function is not an ast.Attribute, and its positional arguments are not literal pair containers.",
+    "id": "copps-r27:g1#1",
+    "record_id": "mc-a735f960a736ed26fcb1ab43e7433624",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_scan_text",
+    "severity": "P2",
+    "claim": "The date exemption misclassifies ordinary MM/DD/YYYY dates as hardcoded counts, causing the validation command to reject legitimate source text.",
+    "failing_input": "sweep_source(\"message = 'Report downloaded 12/31/2025'\", 'harness/example.py')",
+    "expected": "[]; the string contains a date, not an arm count.",
+    "actual": "[{'file': 'harness/example.py', 'line': 1, 'kind': 'COUNT_PAIR_TEXT', 'value': '12/31'}]. Although the trailing year is detected, the exemption requires the second component to be at most 12. Without an allowlist entry, this finding makes the command exit 1.",
+    "id": "copps-r27:g1#2",
+    "record_id": "mc-a735f960a736ed26fcb1ab43e7433624",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r28": {
+  "base": "630e622bf",
+  "head": "0d1f53db9",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4b44a5735f06aac3780b19f36d1457e7",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "667a6df604d7391efa3b1513a08d9f922066c608536a1c3d573e6254860275a6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source",
+    "severity": "P2",
+    "claim": "The f-string deduplication suppresses string literals inside conditional interpolations, although _render cannot render those expressions. Hardcoded counts therefore escape the validation sweep.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nsrc = \"show = True\\nsummary = f\\\"{'Deaths 20/169' if show else ''}\\\"\"\nprint(sweep_source(src, 'harness/example.py'))",
+    "expected": "A COUNT_PAIR_TEXT finding for '20/169' on line 2: running the supplied source produces summary == 'Deaths 20/169'.",
+    "actual": "[] (deduced from the supplied code; local execution was blocked). The conditional expression renders as a null separator for scanning, while fparts prevents its underlying string literals from being scanned independently.",
+    "id": "copps-r28:g1#1",
+    "record_id": "mc-4b44a5735f06aac3780b19f36d1457e7",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r29": {
+  "base": "630e622bf",
+  "head": "08d108293",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0abb8c31f1b94f37bcaaad5687cfa135",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "9938ab77a8322c411bb070eb5a973ba30b9237ada2dded6415237a23dcbfcf01"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "sweep_source / _render",
+    "severity": "P2",
+    "claim": "A dynamic f-string format specification hides a hardcoded count pair. `_render` returns a break for the unresolved specification, but `fparts` still suppresses scanning the underlying string literal, allowing the validation gate to pass.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nsrc = \"width = 20\\nlabel = f\\\"{'Deaths 20/169':{width}}\\\"\"\nsweep_source(src, 'harness/example.py')",
+    "expected": "A COUNT_PAIR_TEXT finding for '20/169' on line 2; executing the supplied source renders that literal count pair.",
+    "actual": "[]",
+    "id": "copps-r29:g1#1",
+    "record_id": "mc-0abb8c31f1b94f37bcaaad5687cfa135",
+    "verdict": null
+   }
+  ]
+ },
+ "copps-r30": {
+  "base": "630e622bf",
+  "head": "63ffcd9d2",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e53a6155b40731f2cede3ac06cbe2d3b",
+    "state": "RAN_OK",
+    "files": [
+     "harness/comparator_second_pass.py",
+     "harness/known_missing.py",
+     "harness/recorded_verification.py",
+     "harness/scope_identity.py",
+     "scripts/ast_literal_sweep.py"
+    ],
+    "prompt_sha256": "415c5e9bdf01506d20b6189dd2a02917e17f605273ed58e2d5d4c97a62e05266"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/scope_identity.py",
+    "function": "_noac_lower_dose_status",
+    "severity": "P2",
+    "claim": "A matching arm verification missing its required clause silently becomes 'effect not found'. The registry validator accepts the entry, and `.get('clause') or ''` hides the malformed verification instead of reporting a broken registry.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport hashlib\nfrom harness.scope_identity import _noac_lower_dose_status\n\nclause = '110 mg of dabigatran (relative risk with dabigatran, 0.91; 95% confidence interval, 0.74 to 1.11)'\nentry = {'pmid': '19717844', 'held_text_sha256': hashlib.sha256(('RE-LY ' + clause).encode()).hexdigest(), 'claim': 'RELY_FIXED_110MG_ARM_CLAUSE'}\nrecords = {'records': [{'id': '19717844', 'title': 'RE-LY', 'abstract': clause}]}\nwith patch('builtins.open', mock_open(read_data='{}')), patch('harness.recorded_verification.json.load', return_value={'entries': [entry]}):\n    result = _noac_lower_dose_status(records)\n    print(result['status'])",
+    "expected": "Raise a registry-validation error because the matching RELY_FIXED_110MG_ARM_CLAUSE verification has no clause.",
+    "actual": "Returns NOT_COMPUTED_SOURCE_INCOMPLETE without an error; constructs the reason 'RE-LY 110 mg effect not found; ENGAGE low-dose edoxaban effect not found in the committed source.'",
+    "id": "copps-r30:g1#1",
+    "record_id": "mc-e53a6155b40731f2cede3ac06cbe2d3b",
+    "verdict": null
+   },
+   {
+    "file": "scripts/ast_literal_sweep.py",
+    "function": "_unpack",
+    "severity": "P2",
+    "claim": "Nested starred literal unpacking escapes the hardcoded-count gate. Flattening expands only one level, leaving an inner Starred node; the resulting length mismatch discards every assignment.",
+    "failing_input": "from scripts.ast_literal_sweep import sweep_source\nsrc = \"row = {}\\nrow['ai'], row['n1i'] = (*(*[20, 169],),)\\n\"\nprint(sweep_source(src, 'harness/example.py'))\nns = {}\nexec(src, ns)\nprint(ns['row'])",
+    "expected": "COUNT_OR_EFFECT_KEY findings for ai=20 and n1i=169, allowing the gate to reject these unallowlisted hardcoded counts.",
+    "actual": "The sweep returns []; executing the scanned source produces {'ai': 20, 'n1i': 169}.",
+    "id": "copps-r30:g1#2",
+    "record_id": "mc-e53a6155b40731f2cede3ac06cbe2d3b",
+    "verdict": null
+   }
+  ]
  }
 }
