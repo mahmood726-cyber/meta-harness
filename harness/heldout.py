@@ -56,7 +56,19 @@ def _posix(path: str) -> str:
     return path.replace("\\", "/")
 
 
-def _run_git(root: str, args: list[str]) -> str:
+_GIT_KEEP = ("GIT_TERMINAL_PROMPT", "GIT_ASKPASS", "GIT_SSH_COMMAND")
+
+
+def _isolated_git_env() -> dict:
+    """The environment for git in a SCRATCH directory: no inherited GIT_DIR / GIT_INDEX_FILE / GIT_WORK_TREE.
+    2026-10-11: verify_all's held-out limb runs self_test IN-PROCESS under the pre-commit hook, where tests/conftest.py's
+    scrub never runs; self_test's 'git add probe.txt' in a temp dir went into the LIVE index the hook had exported
+    (seen as 'AD probe.txt' staged in a lane worktree). Only scratch calls are isolated: a scan of the live repository
+    keeps the hook's environment, which is what lets it see the commit being made."""
+    return {k: v for k, v in os.environ.items() if not k.startswith("GIT_") or k in _GIT_KEEP}
+
+
+def _run_git(root: str, args: list[str], isolate: bool = False) -> str:
     proc = subprocess.run(
         ["git", *args],
         cwd=root,
@@ -64,6 +76,7 @@ def _run_git(root: str, args: list[str]) -> str:
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=_isolated_git_env() if isolate else None,
     )
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout or "").strip()
@@ -187,20 +200,21 @@ def _is_binary(blob: bytes) -> bool:
     return b"\0" in blob
 
 
-def _scan_tracked_paths(root: str) -> Iterable[str]:
-    for raw_path in _run_git(root, ["ls-files"]).splitlines():
+def _scan_tracked_paths(root: str, isolate: bool = False) -> Iterable[str]:
+    for raw_path in _run_git(root, ["ls-files"], isolate=isolate).splitlines():
         path = _posix(raw_path)
         if path == _posix(REGISTRY_PATH):
             continue
         yield path
 
 
-def scan_tree(root, key: str, registry: dict) -> list[dict]:
-    """Scan every tracked text file for sealed identifiers without revealing them."""
+def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dict]:
+    """Scan every tracked text file for sealed identifiers without revealing them. isolate: root is a SCRATCH repository
+    (self_test), so git must address it by cwd and never through an inherited GIT_DIR / GIT_INDEX_FILE."""
     root = _root_path(root)
     hits = []
     match = _Matcher(key, registry)
-    for path in _scan_tracked_paths(root):
+    for path in _scan_tracked_paths(root, isolate=isolate):
         abs_path = os.path.join(root, *path.split("/"))
         try:
             blob = open(abs_path, "rb").read()
@@ -256,12 +270,12 @@ def self_test(key: str, registry: dict) -> tuple[bool, str]:
     if sealed_canary not in _tokens(registry):
         return False, "canary not sealed -- detector unproven"
     with tempfile.TemporaryDirectory(prefix="heldout-canary-") as tmp:
-        _run_git(tmp, ["init"])
+        _run_git(tmp, ["init"], isolate=True)
         probe = os.path.join(tmp, "probe.txt")
         with open(probe, "w", encoding="utf-8", newline="\n") as f:
             f.write(canary(key) + "\n")
-        _run_git(tmp, ["add", "probe.txt"])
-        hits = scan_tree(tmp, key, registry)
+        _run_git(tmp, ["add", "probe.txt"], isolate=True)
+        hits = scan_tree(tmp, key, registry, isolate=True)
     if any(hit.get("identifier_hmac") == sealed_canary for hit in hits):
         return True, "canary matched sealed token through scan_tree"
     return False, "canary did not match through scan_tree -- detector unproven"
