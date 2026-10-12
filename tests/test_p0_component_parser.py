@@ -318,3 +318,25 @@ def test_PLANT_a_plural_passive_subject_runs_across_commas():
                                        "test) without parsing the sentence")
 def test_known_limit_disjunctive_singular_subject():
     assert C.excluded("stroke or myocardial infarction was excluded") == {"stroke", "myocardial infarction"}
+
+
+# ---------------------------------------------------------------- codex / agy m2comb-cap-r3 (the last round; failed on 3678d754c)
+def test_PLANT_a_comma_and_starts_a_new_clause_for_a_plural_subject():
+    assert "cardiovascular death was counted" in C.strip_exclusions(
+        "cardiovascular death was counted, and stroke and myocardial infarction were excluded.")
+    assert C.excluded("The primary endpoint was MACE, and stroke and myocardial infarction were excluded") == \
+        {"stroke", "myocardial infarction"}
+
+
+def test_PLANT_the_passive_tail_never_swallows_the_retained_composite():
+    out = C.strip_exclusions("stroke was excluded from the composite of cardiovascular death and myocardial infarction.")
+    assert "cardiovascular death and myocardial infarction" in out and "stroke" not in out
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex m2comb-cap-r3 #2, agy #3): an introductory population phrase before "
+                                       "a PLURAL subject ('Among patients with diabetes, stroke and MI were excluded') reads "
+                                       "as eligibility -- it cannot be told from 'patients with prior stroke, MI or TIA were "
+                                       "excluded' without parsing the sentence")
+def test_known_limit_introductory_population_before_a_plural_subject():
+    assert C.excluded("Among patients with diabetes, stroke and myocardial infarction were excluded") == \
+        {"stroke", "myocardial infarction"}

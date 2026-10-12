@@ -170,8 +170,10 @@ _POPULATION_SUBJECT = re.compile(r"\b(?:patients?|participants?|subjects?|indivi
                                  r"anyone|history|prior|previous|pregnan\w*|children|adults?)\b", re.I)
 
 
-_SUBJECT_BOUNDARY = re.compile(r"\b(?:but|while|whereas|although|comprised|comprising|consisted of|consisting of|"
-                               r"defined as|including|included)\b", re.I)
+# ', and' / ', or' / ', but' opens a NEW coordinate clause ('CV death was counted, and stroke and MI were excluded':
+# codex m2comb-cap-r3 #1, agy #1); the plain conjunctions inside a subject ('stroke and MI') do not
+_SUBJECT_BOUNDARY = re.compile(r",\s*(?:and|or|but)\b|\b(?:but|while|whereas|although|comprised|comprising|consisted of|"
+                               r"consisting of|defined as|including|included)\b", re.I)
 
 
 def _endpoint_exclusions(text):
@@ -202,7 +204,14 @@ def _endpoint_exclusions(text):
             start = max(start, m.start())
         if _POPULATION_SUBJECT.search(text[start:verb]):
             continue
-        yield start, m.end()
+        # the clause ends at 'excluded': what follows ('from the composite of CV death and MI') names the RETAINED
+        # components and is never stripped (codex m2comb-cap-r3 #3)
+        end = m.start() + v.end()
+        # ... but its own 'from the (primary) outcome / endpoint / composite' goes with it (left behind, the enumerator read
+        # it as an unknown component), stopping before any 'of <components>'
+        t = re.match(r"\s+from\s+the\s+(?:[a-z-]+\s+){0,2}?(?:outcome|endpoint|end point|composite|analysis)\b", text[end:],
+                     re.I)
+        yield start, end + (t.end() if t else 0)
 
 
 def excluded(text: str | None) -> set[str]:
