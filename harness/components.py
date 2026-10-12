@@ -170,6 +170,12 @@ _POPULATION_SUBJECT = re.compile(r"\b(?:patients?|participants?|subjects?|indivi
                                  r"anyone|history|prior|previous|pregnan\w*|children|adults?)\b", re.I)
 
 
+# ', and' / ', or' / ', but' opens a NEW coordinate clause ('CV death was counted, and stroke and MI were excluded':
+# codex m2comb-cap-r3 #1, agy #1); the plain conjunctions inside a subject ('stroke and MI') do not
+_SUBJECT_BOUNDARY = re.compile(r",\s*(?:and|or|but)\b|\b(?:but|while|whereas|although|comprised|comprising|consisted of|"
+                               r"consisting of|defined as|including|included)\b", re.I)
+
+
 def _endpoint_exclusions(text):
     """(start, end) of each ENDPOINT exclusion clause in text. A passive one ('stroke and MI were excluded') spans its whole
     conjoined subject back to the nearest comma / bracket / clause mark (agy m2w4-cap-r1 #2: only 'MI' was excluded)."""
@@ -179,18 +185,33 @@ def _endpoint_exclusions(text):
             yield m.start(), m.end()
             continue
         verb = m.start() + v.start()
-        # the population test reads the WHOLE subject -- from the clause start to the verb, across 'and' ('patients with
-        # diabetes and stroke were excluded': codex m2w4-cap-r1 #1) -- and ONLY the subject, never words after the verb
-        # ('stroke was excluded from the endpoint in patients with diabetes' is an endpoint exclusion: #2)
-        clause = max(text.rfind(c, 0, m.start()) for c in ".;:") + 1
-        if _POPULATION_SUBJECT.search(text[clause:verb]):
+        # The verb's NUMBER decides the SUBJECT, and the population test reads that subject and nothing else (never words
+        # after the verb: codex m2w4-cap-r1 #2):
+        #  - PLURAL ('stroke, MI and CV death WERE excluded'; 'patients with diabetes and stroke WERE excluded') -- the
+        #    subject runs back across commas and 'and' to the clause start or a defining verb (agy m2w4 #2, codex m2comb #3,
+        #    codex m2w4 #1);
+        #  - SINGULAR ('stroke WAS excluded') -- one noun phrase, bounded by any comma or but / while / whereas / although
+        #    ('CV death was included but stroke was excluded', 'among patients with diabetes, stroke was excluded':
+        #    codex m2comb #1 #2, agy m2comb #2); a list before it ('defined as CV death and MI and nonfatal stroke was
+        #    excluded') keeps its earlier items (codex's W4 test).
+        plural = re.match(r"\s(?:were|are)\b", v.group(0))
+        marks = ".;:()" if plural else ".;:(),"
+        start = max(text.rfind(c, 0, verb) for c in marks) + 1
+        b = list(_SUBJECT_BOUNDARY.finditer(text, start, verb))
+        if b:
+            start = b[-1].end()
+        if not plural:
+            start = max(start, m.start())
+        if _POPULATION_SUBJECT.search(text[start:verb]):
             continue
-        # the verb's NUMBER decides the subject: 'stroke and MI WERE excluded' is one conjoined subject (agy m2w4-cap-r1 #2),
-        # 'defined as CV death and MI and nonfatal stroke WAS excluded' is a list, then a new clause on its last item
-        if re.match(r"\s(?:were|are)\b", v.group(0)):
-            yield max(text.rfind(c, 0, m.start()) for c in ".;:,()") + 1, m.end()
-        else:
-            yield m.start(), m.end()
+        # the clause ends at 'excluded': what follows ('from the composite of CV death and MI') names the RETAINED
+        # components and is never stripped (codex m2comb-cap-r3 #3)
+        end = m.start() + v.end()
+        # ... but its own 'from the (primary) outcome / endpoint / composite' goes with it (left behind, the enumerator read
+        # it as an unknown component), stopping before any 'of <components>'
+        t = re.match(r"\s+from\s+the\s+(?:[a-z-]+\s+){0,2}?(?:outcome|endpoint|end point|composite|analysis)\b", text[end:],
+                     re.I)
+        yield start, end + (t.end() if t else 0)
 
 
 def excluded(text: str | None) -> set[str]:
