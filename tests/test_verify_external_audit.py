@@ -176,3 +176,21 @@ def test_PLANT_a_null_or_missing_auditor_value_is_a_fail_not_a_crash():
     bad = vea._compare({"primary": {"HR": None, "note": "n/a"}}, cmp_, {}, set(), rows)
     assert bad == 3 and [r["verdict"] for r in rows] == ["FAIL"] * 3
     assert all("NON_NUMERIC_OUTPUT" in r["detail"] or "MISSING_OUTPUT_FIELD" in r["detail"] for r in rows)
+
+
+# ---------------------------------------------------------------- codex pr62-cap-r3 (stop at three)
+def test_PLANT_a_huge_integer_is_a_fail_not_an_overflow():
+    rows = []
+    bad = vea._compare({"HR": 10 ** 400}, [("large HR", "doac-vte-recurrence", None, "estimate", ("HR",))], {}, set(), rows)
+    assert bad == 1 and rows[0]["verdict"] == "FAIL" and "NON_NUMERIC_OUTPUT" in rows[0]["detail"]
+
+
+def test_PLANT_a_missing_committed_reference_is_a_fail_not_a_crash(monkeypatch, tmp_path):
+    import hashlib
+    ext = _bundle_only(monkeypatch, tmp_path, "review12")
+    (ext / "review12" / "results.json").unlink()
+    sums = ext / "SHA256SUMS"
+    sums.write_text("".join(ln + "\n" for ln in sums.read_text(encoding="utf-8").splitlines()
+                            if not ln.endswith("*review12/results.json")), encoding="utf-8")
+    rows, bad = vea.run()
+    assert bad >= 1 and any(r["verdict"] == "FAIL" and "MISSING_REFERENCE" in r["detail"] for r in rows)

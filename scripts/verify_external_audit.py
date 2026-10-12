@@ -158,12 +158,15 @@ def _compare(out, compares, superseded, signed, rows):
                          "detail": f"MISSING_OUTPUT_FIELD: {'/'.join(map(str, path))}"})
             bad += 1
             continue
-        if isinstance(raw, bool) or not isinstance(raw, (int, float)) or not math.isfinite(raw):
+        try:                                  # a huge JSON integer overflows float() (codex pr62-cap-r3 #2)
+            aud = float(raw) if not isinstance(raw, bool) and isinstance(raw, (int, float)) else None
+        except OverflowError:
+            aud = None
+        if aud is None or not math.isfinite(aud):
             rows.append({"check": label, "verdict": "FAIL", "auditor": None, "served": None,
-                         "detail": f"NON_NUMERIC_OUTPUT: {'/'.join(map(str, path))} = {raw!r}"[:200]})
+                         "detail": f"NON_NUMERIC_OUTPUT: {'/'.join(map(str, path))} = {str(raw)[:60]!r}"})
             bad += 1
             continue
-        aud = float(raw)
         srv = _served(slug, outcome).get(field)
         ok = srv is not None and math.isfinite(aud) and abs(aud - float(srv)) <= TOL
         sup_ok = _valid_supersession(superseded.get(label), srv, signed)
@@ -228,7 +231,15 @@ def run_bundles(sums, superseded, signed):
                              "detail": f"MALFORMED_OUTPUT: {produced} is not JSON ({str(e)[:120]})"})
                 bad += 1
                 continue
-        diffs = _same_json(_drop(out, ignore), _drop(json.load(open(os.path.join(base, committed), encoding="utf-8")), ignore))
+        # the committed reference must exist and parse: a bundle pinned without it crashed here (codex pr62-cap-r3 #1)
+        try:
+            ref = json.load(open(os.path.join(base, committed), encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            rows.append({"check": f"{d}/{script} reproduces {committed}", "verdict": "FAIL",
+                         "detail": f"MISSING_REFERENCE: committed {committed} unreadable ({type(e).__name__})"})
+            bad += 1
+            continue
+        diffs = _same_json(_drop(out, ignore), _drop(ref, ignore))
         rows.append({"check": f"{d}/{script} reproduces {committed}", "verdict": "PASS" if not diffs else "FAIL",
                      "detail": "; ".join(diffs[:5])})
         bad += bool(diffs)
