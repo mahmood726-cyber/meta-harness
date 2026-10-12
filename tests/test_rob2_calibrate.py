@@ -50,3 +50,21 @@ def test_PLANT_rob1_d1_is_the_worse_of_sequence_and_concealment():
     assert d == {"D1": S, "D2": L, "D4": H, "D3": L, "D5": L}            # 'Other bias' maps to nothing
     row["cells"]["Allocation concealment (selection bias)"] = "not shown"
     assert rc.reference_domains(row, cols)["D1"] is None                  # an unreadable part leaves the domain unknown
+
+
+
+
+def test_PLANT_kappa_is_defined_when_one_rater_is_constant():
+    # codex round 4: kappa = (po - pe) / (1 - pe) is defined whenever pe < 1 (the round-3 'either rater' change was wrong)
+    import rob2_calibrate as cal
+    k = cal.kappa([("LOW", "LOW"), ("LOW", "HIGH")])
+    assert k["kappa"] == 0.0 and k["po"] == 0.5 and k["pe"] == 0.5
+    assert cal.kappa([("LOW", "LOW"), ("LOW", "LOW")])["kappa"] is None          # pe = 1: undefined
+
+
+def test_PLANT_kappa_ci_uses_the_non_null_variance():
+    # Fleiss, Cohen & Everitt (1969) non-null variance; hand-checked: 45/5/5/45 -> kappa 0.8, SE 0.06, CI [0.682, 0.918]
+    import rob2_calibrate as cal
+    pairs = [("LOW", "LOW")] * 45 + [("LOW", "HIGH")] * 5 + [("HIGH", "LOW")] * 5 + [("HIGH", "HIGH")] * 45
+    k = cal.kappa(pairs)
+    assert k["kappa"] == 0.8 and k["ci"] == [0.682, 0.918]

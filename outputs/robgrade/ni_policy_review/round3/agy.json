@@ -1,0 +1,21 @@
+{
+ "record_id": "mc-37c1b8eecac54a9b11b673a0a6844a56",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:judge_d1",
+   "claim": "judge_d1 maps answers 1.1 N/PN, 1.2 Y/PY, 1.3 Y/PY to SOME_CONCERNS instead of HIGH. Line 249 prematurely returns SOME_CONCERNS on 1.3 Y/PY without verifying that the sequence generation was random (1.1 Y/PY), violating the rule that a non-random sequence generation accompanied by baseline imbalances constitutes High risk of bias. Furthermore, this algorithmic defect corrupts ni_label by falsely categorizing trials with 1.1 N, 1.2 NI, 1.3 Y as NI-driven (erroneously calculating that resolving 1.2 NI to Y would reduce HIGH to SOME_CONCERNS when it must remain HIGH).",
+   "guidance_basis": "RoB 2 full guidance (22 August 2019), Table 3 ('Criteria for reaching domain-level risk-of-bias judgements') and Table 4 ('Mapping of signalling questions to suggested risk-of-bias judgements for bias arising from the randomization process', row for 1.1 N/PN, 1.2 Y/PY, 1.3 Y/PY -> High risk of bias). Table 3 defines High risk of bias as: 'The allocation sequence was not concealed; or The allocation sequence was not random or there was no information about allocation concealment, and baseline differences between intervention groups suggest a problem with the randomization process.' Condition (ii) for Some concerns explicitly requires: 'Baseline differences between intervention groups suggest a problem with the randomization process, but the allocation sequence was random and concealed.'",
+   "failing_test": "rf.judge_d1({'1.1': {'answer': 'N'}, '1.2': {'answer': 'Y'}, '1.3': {'answer': 'Y'}})[0] -> expected 'HIGH', actual 'SOME_CONCERNS'"
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_calibrate.py:kappa",
+   "claim": "kappa() uses logical 'and' instead of 'or' when checking whether raters used a single category ('if sum(1 for x in ra if x > 0) < 2 and sum(1 for x in cb if x > 0) < 2:'). When only one rater uses a single category, the function computes and outputs kappa as 0.0 rather than returning None (undefined), directly violating the docstring specification and the statistical definition where zero marginal variance renders Cohen's kappa degenerate.",
+   "guidance_basis": "Documented contract in scripts/rob2_calibrate.py ('kappa is undefined when either rater uses one category only (reported as such, never as 0 or 1)') and the standard statistical formulation of Cohen's kappa (Cohen 1960; Fleiss, Cohen & Everitt 1969).",
+   "failing_test": "cal.kappa([('LOW', 'LOW'), ('LOW', 'SOME_CONCERNS')]) -> expected {'kappa': None, 'why': 'one rater used one category only'}, actual {'kappa': 0.0, ...}"
+  }
+ ]
+}

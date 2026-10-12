@@ -1,0 +1,56 @@
+{
+ "record_id": "mc-e8baae4418a8db787ff4ba1f89eb5de0",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "outputs/robgrade/NI_POLICY.md:P1, section 3; outputs/robgrade/ni_policy_review/RESPONSES.md:codex3",
+   "claim": "The declined finding remains valid. A blanket prohibition on contextual PY/PN answers changes the guidance-defined NI response. Disclosing that departure does not make this a conforming RoB 2 assessment, and the sensitivity label cannot correct the original answers.",
+   "guidance_basis": "[Handbook §8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits NI only when a contextual probability judgement would be unreasonable. [Full guidance §1.1 and Box 4, rows 1.1–1.2](https://facenteconsulting.com/wp-content/uploads/20190822_RoB_2.0_guidance_parallel_trial.pdf) explicitly permit contextual judgements; direct quotations are preferred, not universally required.",
+   "failing_test": "An assessor documents a reasonable PY for concealment using the Handbook's experienced-CTU example, without a direct statement of concealment; 1.1=Y and 1.3=N -> permit the justified 1.2=PY and D1=LOW. The policy instead requires NI and produces SOME_CONCERNS."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:assessment, answer, _a; outputs/robgrade/ni_policy_review/RESPONSES.md:codex4",
+   "claim": "The response-vocabulary fix is incomplete. Asked 3.2 is still stored as NI when unanswered. Skipped NI answers are converted to NA only when how='unanswered', so reader-supplied NI survives. Conversely, NA is accepted for mandatory questions and can produce a spurious LOW judgement. The tests cover default-filled skipped answers, not these cases.",
+   "guidance_basis": "[BMJ Table 1](https://eprints.whiterose.ac.uk/id/eprint/150579/1/bmj.l4898.full.pdf) excludes NI for 3.2 and NA for mandatory questions. Full-guidance Tables 6/10/12 specify skipped cells as NA. There is a source discrepancy: BMJ Table 1 and full-guidance Box 6/Table 6 differ on D2's 2.4/2.5 branch conditions; the revised branching correctly follows the full guidance.",
+   "failing_test": "assessment with 3.1=N and omitted 3.2 -> stored 3.2=N under the declared no-evidence policy, not NI. With 3.1=Y and supplied 3.3={answer:'NI',how:'reader'} -> stored 3.3=NA. With D1={1.1:Y,1.2:NA,1.3:N} -> reject the inapplicable NA; currently judge_d1 returns LOW."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ni_score.py:check_prereg, rebuild, main",
+   "claim": "The scorer does not establish that it replays frozen, committed inputs. Its guard covers code and policy files, but not the answers, comparator transcriptions, TEST split or v3 baseline. Recomputing a judgement from editable answers proves internal consistency only. Coordinated answer/judgement/label edits, comparator edits and split changes pass.",
+   "guidance_basis": "NI_POLICY section 4 promises replay of recorded TEST answers from the frozen engine and committed objects. This is a reproducibility failure against that registration, rather than a Cochrane algorithm rule.",
+   "failing_test": "After registration, change a stored D1 answer 1.2 from NI to Y and update its judgement/label consistently from SOME_CONCERNS/true to LOW/false -> refuse because frozen input changed. Current check_prereg and rebuild accept it. Editing only a comparator cell likewise must be detected."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ni_score.py:rebuild",
+   "claim": "Duplicate detection operates separately within each slug iteration. Repeating a slug on the command line duplicates its pairs without refusal, weighting that topic twice in the pooled agreement and strata.",
+   "guidance_basis": "NI_POLICY section 4 and the scorer's documented contract require rejection of duplicate topic/trial/domain pairs.",
+   "failing_test": "With one authentic pair returned for slug s, rebuild(['s','s'], {'1'}) -> SystemExit for duplicate ('s','1','D1'). Currently it returns the pair twice."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ni_score.py:main",
+   "claim": "The v3 versus v3.1 comparison need not use identical pairs. v3_all includes the entire calibration_v3.json, regardless of requested slugs or current exclusions, while v3.1 uses only rebuilt pairs. Missing baseline keys are silently omitted from the moved list. Differences in coverage can therefore masquerade as effects of algorithm corrections.",
+   "guidance_basis": "P0 and section 4 require reporting the algorithm corrections separately. Isolating that change requires the same pair identities and comparator judgements under both versions.",
+   "failing_test": "Baseline has s/D1 agreeing and t/D1 disagreeing; score only s, whose judgement is unchanged -> both versions must report 1/1 and zero moves. Currently v3 reports 1/2 and v3.1 reports 1/1. A current pair absent from the baseline should trigger refusal or an explicit unmatched-baseline category."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ni_score.py:main; outputs/robgrade/ni_policy_review/RESPONSES.md:codex7",
+   "claim": "RESPONSES.md says the outcome-matching limitation is disclosed in NI_SCORE.md, but the report generator contains no such disclosure. Naming the comparator's tool does not explain that PMID matching leaves the assessed outcome, time point and numerical result unverified.",
+   "guidance_basis": "[Handbook §8.2.1](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) makes assessments result-specific. The acknowledged limitation must accompany the reported agreement, which otherwise can be mistaken for agreement on the same result.",
+   "failing_test": "Generate a report for PMID-matched pairs lacking comparator result identifiers -> report explicitly states that result identity is unverified and the counts do not establish same-result agreement. The current generated report omits this qualification."
+  },
+  {
+   "severity": "MINOR",
+   "where": "outputs/robgrade/NI_POLICY.md:P2, section 3; robgrade/rob2_formal.py:NI-policy comment; tests/test_rob2_ni_policy.py:module docstring",
+   "claim": "The causal interpretation rejected in round 1 remains in several places: severity is attributed to missing information rather than anything reported. P5 correctly disclaims this, but does not remove the contradictory assertions. The counterfactual is a useful operational sensitivity measure, not proof that concerns mainly arise from missing reporting.",
+   "guidance_basis": "[Full-guidance Table 6](https://facenteconsulting.com/wp-content/uploads/20190822_RoB_2.0_guidance_parallel_trial.pdf) permits favourable awareness resolution to close a branch containing reported harmful deviations. Its mapping does not establish causal attribution.",
+   "failing_test": "D2={2.1:NI,2.2:N,2.3:Y,2.4:Y,2.5:N,2.6:Y,2.7:NA} -> HIGH, NI-driven=true, favourable result=LOW. Documentation must describe this as conditional sensitivity while retaining the reported deviations as concerns; assertions that the severity is not from anything reported fail this example."
+  }
+ ]
+}

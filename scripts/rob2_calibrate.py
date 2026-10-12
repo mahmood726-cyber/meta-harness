@@ -17,7 +17,8 @@ unresolved or 'not shown'; a column the mapping cannot place.
 
 Statistics per domain: n, raw agreement, Cohen's kappa (unweighted) and linear-weighted kappa on the ordinal
 LOW < SOME_CONCERNS < HIGH, each with its asymptotic 95% CI (Fleiss, Cohen & Everitt 1969 variance); kappa is
-undefined when either rater uses one category only (reported as such, never as 0 or 1).
+undefined only when the expected agreement is 1 (reported as such, never as 0 or 1); one rater using a single category
+leaves kappa defined (often 0) and uninformative (codex review, round 4, correcting a round-3 change).
 
     python scripts/rob2_calibrate.py [SLUG ...]     -> outputs/robgrade/calibration.json + CALIBRATION.md
 """
@@ -90,18 +91,18 @@ def kappa(pairs, weighted=False):
         obs[idx[a]][idx[b]] += 1 / n
     ra = [sum(obs[i]) for i in range(k)]
     cb = [sum(obs[i][j] for i in range(k)) for j in range(k)]
-    if sum(1 for x in ra if x > 0) < 2 and sum(1 for x in cb if x > 0) < 2:
-        return {"kappa": None, "why": "both raters used one category only"}
     w = [[1 - abs(i - j) / (k - 1) if weighted else (1.0 if i == j else 0.0) for j in range(k)] for i in range(k)]
     po = sum(w[i][j] * obs[i][j] for i in range(k) for j in range(k))
     pe = sum(w[i][j] * ra[i] * cb[j] for i in range(k) for j in range(k))
-    if pe >= 1:
+    if pe >= 1 - 1e-9:                              # pe is a float sum of 1/n terms (0.99999... for 1)
         return {"kappa": None, "why": "expected agreement is 1"}
     kap = (po - pe) / (1 - pe)
-    # Fleiss, Cohen & Everitt (1969) asymptotic variance (general weighted form)
+    # Fleiss, Cohen & Everitt (1969) NON-NULL asymptotic variance (weighted form), for the CI around the estimate; the
+    # earlier code used the null (kappa = 0) variance, too wide away from 0 (codex review, round 4; hand-checked:
+    # 45/5/5/45 -> kappa 0.8, SE 0.06)
     wi = [sum(cb[j] * w[i][j] for j in range(k)) for i in range(k)]
     wj = [sum(ra[i] * w[i][j] for i in range(k)) for j in range(k)]
-    s = sum(ra[i] * cb[j] * (w[i][j] - (wi[i] + wj[j])) ** 2 for i in range(k) for j in range(k)) - pe ** 2
+    s = sum(obs[i][j] * (w[i][j] - (wi[i] + wj[j]) * (1 - kap)) ** 2 for i in range(k) for j in range(k))         - (kap - pe * (1 - kap)) ** 2
     se = math.sqrt(max(s, 0) / (n * (1 - pe) ** 2))
     return {"kappa": round(kap, 3), "ci": [round(kap - 1.96 * se, 3), round(kap + 1.96 * se, 3)], "po": round(po, 3),
             "pe": round(pe, 3)}
@@ -130,7 +131,9 @@ def pairs_for(slug):
             src = {str(a.get("source_ref") or "").split(":")[0] for a in ans if a.get("answer") not in ("NI", "NA", None)}
             rec = {"slug": slug, "pmid": pmid, "label": lab, "domain": d, "ours": mine, "theirs": theirs, "tool": tool,
                    "ni_answers": sum(1 for a in ans if a.get("answer") == "NI"), "questions": len(ans),
-                   "source_kinds": sorted(src), "from_full_text": "fulltext" in src}
+                   "source_kinds": sorted(src), "from_full_text": "fulltext" in src,
+                   # the NI policy label (outputs/robgrade/NI_POLICY.md); None for a domain the policy does not label
+                   "ni_driven": (o["domains"][d].get("ni") or {}).get("ni_driven")}
             if mine not in CATS:
                 excluded.append(dict(rec, why="ours " + str(mine)))
             elif theirs not in CATS:

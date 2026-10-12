@@ -68,9 +68,16 @@ def side(a):
     return "Y" if a in ("Y", "PY") else "N" if a in ("N", "PN") else a
 
 
+# asked whatever the other answers (BMJ 2019 Table 1): NA is never a valid answer to these (codex review, round 2)
+ALWAYS_ASKED = {"1.1", "1.2", "1.3", "2.1", "2.2", "2.6", "3.1", "4.1", "4.2", "5.1", "5.2", "5.3"}
+NO_EVIDENCE_HOW = "no evidence found (3.2 offers no NI: the absence of evidence is the answer N)"
+
+
 def _a(ans, q):
     v = ans.get(q)
     v = v.get("answer") if isinstance(v, dict) else v
+    if v == "NA" and q in ALWAYS_ASKED:
+        return "NI"                             # NA on an always-asked question is missing information, never a pass
     return v if v in ANSWERS else "NI"          # an unanswered question is NO INFORMATION, never a favourable default
 
 
@@ -102,15 +109,17 @@ def judge_d2(ans):
         p1, why1 = LOW, "2.1 and 2.2 N/PN: participants and carers unaware"
     elif a23 == "N":
         p1, why1 = LOW, "2.3 N/PN: no deviations arising from the trial context"
-    elif a23 == "Y" and a24 == "Y" and a25 in ("N", "NI"):
-        p1, why1 = HIGH, "2.3 Y/PY, 2.4 Y/PY, 2.5 N/PN/NI: unbalanced deviations affecting the outcome"
+    elif a23 == "Y" and a24 in ("Y", "NI") and a25 in ("N", "NI"):
+        # RoB 2 guidance Table 6, part 1 last row: 2.4 Y/PY/NI with 2.5 N/PN/NI -> High (codex review, 12 Oct)
+        p1, why1 = HIGH, "2.3 Y/PY, 2.4 Y/PY/NI, 2.5 N/PN/NI: unbalanced deviations that may affect the outcome"
     else:
         p1, why1 = SOME, "awareness without information that excludes outcome-relevant deviations"
     # Part 2: analysis
     if a26 == "Y":
         p2, why2 = LOW, "2.6 Y/PY: appropriate analysis (ITT / modified ITT)"
-    elif a27 == "Y":
-        p2, why2 = HIGH, "2.6 N/PN/NI and 2.7 Y/PY: substantial impact of not analysing as randomised"
+    elif a27 in ("Y", "NI"):
+        # RoB 2 guidance Table 6, part 2: 2.6 N/PN/NI with 2.7 Y/PY/NI -> High (codex review, 12 Oct)
+        p2, why2 = HIGH, "2.6 N/PN/NI and 2.7 Y/PY/NI: potential substantial impact of not analysing as randomised"
     else:
         p2, why2 = SOME, "2.6 N/PN/NI and 2.7 N/PN/NI"
     j = _worst(p1, p2)
@@ -136,9 +145,10 @@ def judge_d4(ans):
         return HIGH, "4.1 Y/PY: inappropriate measurement method"
     if a42 == "Y":
         return HIGH, "4.2 Y/PY: ascertainment could differ between groups"
-    unclear = a41 == "NI" or a42 == "NI"
+    # RoB 2 guidance Table 12: 4.1 NI is grouped with N/PN; only 4.2 NI sets the 'some concerns' floor (codex review)
+    unclear = a42 == "NI"
     base = SOME if unclear else LOW
-    why = "4.1 or 4.2 NI" if unclear else "4.1 and 4.2 N/PN"
+    why = "4.2 NI" if unclear else "4.1 N/PN/NI and 4.2 N/PN"
     if a43 == "N":
         return base, f"{why}; 4.3 N/PN: assessors unaware"
     if a44 == "N":
@@ -170,8 +180,102 @@ def overall(domain_judgements):
     if missing:
         return {"judgement": "NOT_ESTABLISHED", "flags": [], "missing_domains": missing}
     worst = _worst(*(js[d] for d in DOMAINS))
-    flags = ["MULTIPLE_SOME_CONCERNS_FOR_REVIEW"] if worst == SOME and sum(js[d] == SOME for d in DOMAINS) >= 3 else []
+    # 'multiple' domains (BMJ 2019 Table 3) is two or more (codex review, 12 Oct; was >= 3, an unsourced threshold)
+    flags = ["MULTIPLE_SOME_CONCERNS_FOR_REVIEW"] if worst == SOME and sum(js[d] == SOME for d in DOMAINS) >= 2 else []
     return {"judgement": worst, "flags": flags, "missing_domains": []}
+
+
+# ------------------------------------------------------------------------------------------------ NI policy
+# outputs/robgrade/NI_POLICY.md (Mahmood 12 Oct, decision (b)). The policy NEVER changes a judgement: the algorithm's
+# proposal stands (Handbook 8.2.3 asks for reasons to depart from it, and missing information is not one). It LABELS a
+# judgement NI-driven when resolving the domain's asked NI answers to Table 1's lower-risk response would lower it: a
+# sensitivity of the algorithm's output to the missing answers, not a causal attribution (NI_POLICY P5).
+# Table 1 (Sterne et al., BMJ 2019;366:l4898): the lower-risk response to each signalling question.
+FAVOURABLE = {q: ("Y" if q in ("1.1", "1.2", "2.5", "2.6", "3.1", "3.2", "5.1") else "N") for q in QUESTIONS}
+# Table 1 offers no NI for 3.2 ('is there EVIDENCE that the result was not biased'): no evidence IS the answer N
+NI_NOT_AN_OPTION = {"3.2"}
+
+
+def applicable(dom, ans):
+    """The signalling questions the tool ASKS, given the answers (BMJ 2019 Table 1 and the full guidance's Tables 6, 10
+    and 12). A question the branching skips is NA, never NI: it is not missing information.
+    The two sources DIFFER on D2 (codex round 3): BMJ Table 1 asks 2.4 after 2.3 Y/PY/NI and 2.5 after 2.4 Y/PY; the
+    full guidance (Box 6, Table 6) asks 2.4 only after 2.3 Y/PY and 2.5 after 2.4 Y/PY/NI. The full guidance -- the
+    later, detailed text whose Table 6 maps every combination -- is followed here."""
+    s = lambda q: side(_a(ans, q))
+    qs = list(DOMAINS[dom])
+    if dom == "D2":
+        qs = ["2.1", "2.2"]
+        if s("2.1") != "N" or s("2.2") != "N":                    # 2.3 if Y/PY/NI to 2.1 or 2.2
+            qs.append("2.3")
+            if s("2.3") == "Y":                                  # 2.4 if Y/PY to 2.3 (Table 6: 2.3 NI -> 2.4 NA)
+                qs.append("2.4")
+                if s("2.4") in ("Y", "NI"):                      # 2.5 if Y/PY/NI to 2.4 (Table 6)
+                    qs.append("2.5")
+        qs.append("2.6")
+        if s("2.6") != "Y":                                      # 2.7 if N/PN/NI to 2.6
+            qs.append("2.7")
+    elif dom == "D3":
+        qs = ["3.1"]
+        if s("3.1") != "Y":                                      # 3.2 if N/PN/NI to 3.1
+            qs.append("3.2")
+            if s("3.2") != "Y":                                  # 3.3 if N/PN to 3.2 (3.2 has no NI: none is N)
+                qs.append("3.3")
+                if s("3.3") != "N":                              # 3.4 if Y/PY/NI to 3.3
+                    qs.append("3.4")
+    elif dom == "D4":
+        qs = ["4.1", "4.2"]
+        if s("4.1") != "Y" and s("4.2") != "Y":                  # 4.3 if N/PN/NI to 4.1 and 4.2
+            qs.append("4.3")
+            if s("4.3") != "N":                                  # 4.4 if Y/PY/NI to 4.3
+                qs.append("4.4")
+                if s("4.4") != "N":                              # 4.5 if Y/PY/NI to 4.4
+                    qs.append("4.5")
+    return qs
+
+
+def _ni_qs(dom, ans):
+    return [q for q in applicable(dom, ans) if q not in NI_NOT_AN_OPTION and _a(ans, q) == "NI"]
+
+
+def _resolved(ans, qs):
+    return dict(ans, **{q: {"answer": FAVOURABLE[q]} for q in qs})
+
+
+def _resolve_all(dom, ans):
+    """Resolve every ASKED NI answer to its lower-risk response, repeating while a resolution opens a new asked NI."""
+    for _ in range(len(DOMAINS[dom]) + 1):
+        qs = _ni_qs(dom, ans)
+        if not qs:
+            break
+        ans = _resolved(ans, qs)
+    return ans
+
+
+def ni_label(dom, ans):
+    """{judgement, ni_driven, if_ni_resolved_favourably, ni_questions, decisive_ni_questions} for one domain, on the
+    normalised answers (the same vocabulary the assessment object holds).
+    ni_questions = the ASKED questions answered NI (a skipped question is NA). decisive = those whose resolution ALONE
+    lowers the judgement; empty while ni_driven is true means only their JOINT resolution lowers it. This is a
+    sensitivity of the algorithm's output to the missing answers, not a causal attribution (codex review, 12 Oct)."""
+    ans = normalize_answers(dom, ans)
+    j = JUDGE[dom](ans)[0]
+    qs = _ni_qs(dom, ans)
+    best = JUDGE[dom](_resolve_all(dom, ans))[0]
+    decisive = [q for q in qs if ORDER[JUDGE[dom](_resolved(ans, [q]))[0]] < ORDER[j]]
+    return {"judgement": j, "ni_driven": ORDER[best] < ORDER[j], "if_ni_resolved_favourably": best,
+            "ni_questions": qs, "decisive_ni_questions": decisive}
+
+
+def overall_ni(domain_objects):
+    """The overall judgement is NI-driven when the overall over the domains' NI-resolved judgements is lower. None when
+    the overall is not established (a domain INSUFFICIENT_OPEN_SOURCE is not an NI answer: D8 kept it from a reader)."""
+    if set(domain_objects) != set(DOMAINS) or any(o.get("ni") is None for o in domain_objects.values()):
+        return None
+    actual = overall({d: o["judgement"] for d, o in domain_objects.items()})["judgement"]
+    best = overall({d: o["ni"]["if_ni_resolved_favourably"] for d, o in domain_objects.items()})["judgement"]
+    return {"ni_driven": ORDER[best] < ORDER[actual], "if_ni_resolved_favourably": best,
+            "ni_driven_domains": sorted(d for d, o in domain_objects.items() if o["ni"]["ni_driven"])}
 
 
 # ------------------------------------------------------------------------------------------------ assessment object
@@ -181,7 +285,7 @@ def answer(value, *, how, span=None, source_ref=None, source_sha256=None, rule_i
     span is in; NI may stand alone (it is the absence of information). NA only where the tool's branch skips it."""
     if value not in ANSWERS:
         raise ValueError(f"answer {value!r} not in {ANSWERS}")
-    if value in ("Y", "PY", "PN", "N") and not (span and source_sha256):
+    if value in ("Y", "PY", "PN", "N") and not (span and source_sha256) and not (value == "N" and how == NO_EVIDENCE_HOW):
         raise ValueError(f"a {value} answer needs a verbatim span and its source sha256 (how={how})")
     return {"answer": value, "how": how, "span": span, "source_ref": source_ref, "source_sha256": source_sha256,
             "rule_id": rule_id, "records": list(records or []), "note": note}
@@ -190,18 +294,53 @@ def answer(value, *, how, span=None, source_ref=None, source_sha256=None, rule_i
 def domain_object(dom, answers, insufficient=False, why=None):
     if insufficient:
         return {"domain": dom, "name": DOMAIN_NAMES[dom], "judgement": INSUFFICIENT, "path": why or
-                "no open source carries the information this domain needs (D8)", "answers": answers}
+                "no open source carries the information this domain needs (D8)", "answers": answers, "ni": None}
+    answers = normalize_answers(dom, answers)          # judge and label the SAME answers at every entry (codex round 5)
     j, path = JUDGE[dom](answers)
-    return {"domain": dom, "name": DOMAIN_NAMES[dom], "judgement": j, "path": path, "answers": answers}
+    lab = ni_label(dom, answers)
+    return {"domain": dom, "name": DOMAIN_NAMES[dom], "judgement": j, "path": path, "answers": answers,
+            "ni": {k: v for k, v in lab.items() if k != "judgement"}}
+
+
+def normalize_answers(dom, ans):
+    """The response vocabulary the tool allows, at every entry (agy round 1, codex round 2), judgement-neutral (proven
+    exhaustively in tests/test_rob2_algorithm_guidance.py):
+      a question the branching skips is NA, whatever was supplied as NI (not missing information);
+      NA on an ASKED question is NI (it was not answered; this corrects an inadmissible input and can raise severity);
+      3.2 asked but answered NI or not at all is N: the tool offers no NI there, and no evidence is the answer N."""
+    for _ in range(len(DOMAINS[dom]) + 2):            # to a fixpoint: a correction can open a branch (codex round 4)
+        nxt = _normalize_once(dom, ans)
+        if {q: (a.get("answer") if isinstance(a, dict) else a) for q, a in nxt.items()} ==                 {q: (a.get("answer") if isinstance(a, dict) else a) for q, a in ans.items()}:
+            return nxt
+        ans = nxt
+    return ans
+
+
+def _normalize_once(dom, ans):
+    asked = applicable(dom, ans)
+    out = {}
+    for q, a in ans.items():
+        v = a.get("answer") if isinstance(a, dict) else a
+        if q not in asked and v in ("NI", None):
+            a = answer("NA", how="not asked (the tool's branching skips it)")
+        elif q in asked and v == "NA":
+            # NA is only for a question the branching skips: NA to an ASKED question is no information (codex round 3:
+            # 2.7 NA after 2.6 N read as a pass; Table 6 part 2 gives 2.7 NI High). This CAN raise a judgement.
+            a = answer("NI", how="NA given to an asked question: read as no information")
+        elif q == "3.2" and q in asked and v in ("NI", None):
+            a = answer("N", how=NO_EVIDENCE_HOW)
+        out[q] = a
+    return out
 
 
 def assessment(trial_id, outcome, answers_by_q, insufficient_domains=()):
     """answers_by_q: {qid: answer(...)}. -> the per-trial per-outcome RoB 2 object (family FAMILY)."""
     doms = {}
     for d, qs in DOMAINS.items():
-        doms[d] = domain_object(d, {q: answers_by_q.get(q) or answer("NI", how="unanswered") for q in qs},
-                                insufficient=d in insufficient_domains)
+        ans = normalize_answers(d, {q: answers_by_q.get(q) or answer("NI", how="unanswered") for q in qs})
+        doms[d] = domain_object(d, ans, insufficient=d in insufficient_domains)
     ov = overall({d: o["judgement"] for d, o in doms.items()})
+    ov["ni"] = overall_ni(doms)
     obj = {"family": FAMILY, "trial": trial_id, "outcome": outcome, "domains": doms, "overall": ov}
     obj["sha256"] = hashlib.sha256(json.dumps(obj, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
     return obj

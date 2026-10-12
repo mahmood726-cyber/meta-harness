@@ -1,0 +1,63 @@
+{
+ "record_id": "mc-c9a95cbd14fb7568071412fad6372245",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:judge_d4",
+   "claim": "judge_d4 maps question 4.5 'No information' (NI) to HIGH risk of bias (lines 248-250: 'if a45 == \"N\": return SOME' and falling through to 'return HIGH, \"4.4 Y/PY/NI and 4.5 Y/PY/NI: assessment likely influenced\"').",
+   "guidance_basis": "Under the RoB 2 guidance (Sterne et al., BMJ 2019;366:l4898, Domain 4 algorithm and Table 1; riskofbias.info full guidance Section 4.4; Cochrane Handbook Chapter 8, section 8.2.3), High risk of bias in Domain 4 requires evidence that the measurement method was inappropriate (4.1 Y/PY), that measurement differed between groups (4.2 Y/PY), or that assessment was LIKELY to have been influenced by knowledge of intervention received (4.5 Y/PY). When outcome assessor awareness is not reported or unknown (4.3 NI, 4.4 NI, 4.5 NI), Cochrane Handbook 8.2.3 dictates that NI represents no evidence of a problem, and the RoB 2 algorithm explicitly maps 4.5 NI to 'Some concerns', never 'High risk of bias'. Furthermore, tests/test_rob2_ni_policy.py:test_PLANT_d4_unknown_assessor_awareness codifies this guidance violation by asserting an expected value of HIGH for 4.3 NI, 4.4 NI, 4.5 NI.",
+   "failing_test": "rf.judge_d4({\"4.1\": {\"answer\": \"N\"}, \"4.2\": {\"answer\": \"N\"}, \"4.3\": {\"answer\": \"NI\"}, \"4.4\": {\"answer\": \"NI\"}, \"4.5\": {\"answer\": \"NI\"}})[0] -> expected \"SOME_CONCERNS\", got \"HIGH\""
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:judge_d3",
+   "claim": "judge_d3 maps question 3.4 'No information' (NI) to HIGH risk of bias (lines 230-233: 'if a34 == \"N\": return SOME' and falling through to 'return HIGH, \"3.3 Y/PY/NI and 3.4 Y/PY/NI: missingness likely depended on the true value\"').",
+   "guidance_basis": "Under the RoB 2 guidance (Sterne et al., BMJ 2019;366:l4898, Domain 3 algorithm; riskofbias.info full guidance Section 3.4; Cochrane Handbook Chapter 8, section 8.2.3), High risk of bias in Domain 3 requires 3.4 to be 'Yes' or 'Probably yes' (that missingness in the outcome was LIKELY to depend on its true value). When 3.4 is 'No information' (NI), the RoB 2 algorithm maps to 'Some concerns'. Cochrane Handbook 8.2.3 specifies that where a question checks for a problem (likelihood of biased missingness), NI represents no evidence of that problem and cannot sustain a High risk judgement. tests/test_rob2_ni_policy.py:test_PLANT_d3_all_ni codifies this error by expecting HIGH for an all-NI Domain 3 and claiming 3.4 alone lowers HIGH to SOME.",
+   "failing_test": "rf.judge_d3({\"3.1\": {\"answer\": \"NI\"}, \"3.2\": {\"answer\": \"NI\"}, \"3.3\": {\"answer\": \"NI\"}, \"3.4\": {\"answer\": \"NI\"}})[0] -> expected \"SOME_CONCERNS\", got \"HIGH\""
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:judge_d2",
+   "claim": "judge_d2 Part 1 misclassifies deviations from intended interventions: (1) it assigns SOME_CONCERNS instead of LOW when 2.4 is 'N' (deviations were not likely to have affected the outcome), and (2) it assigns SOME_CONCERNS instead of HIGH when 2.3 is 'Y', 2.4 is 'NI', and 2.5 is 'N' (unbalanced contextual deviations) because line 207 strictly requires a24 == 'Y'.",
+   "guidance_basis": "Under the RoB 2 guidance (Sterne et al. BMJ 2019; riskofbias.info algorithm for Domain 2, effect of assignment): (1) Question 2.4 checks whether contextual deviations were likely to have affected the outcome; if answered 'No/Probably no' (Table 1 lower-risk response), Part 1 is Low risk of bias because outcome-relevant deviations are ruled out. judge_d2 falls through to 'else: SOME'. (2) Question 2.5 is gated by 'If Y/PY/NI to 2.4' (verbatim in QUESTIONS['2.5']); if contextual deviations occurred (2.3 Y/PY), their outcome impact is unknown (2.4 NI), and they were unbalanced (2.5 N/PN/NI), the RoB 2 algorithm maps to High risk of bias. Line 207 checks only 'a23 == \"Y\" and a24 == \"Y\" and a25 in (\"N\", \"NI\")' and incorrectly downgrades unbalanced deviations with 2.4 NI to Some concerns.",
+   "failing_test": "rf.judge_d2({\"2.1\": {\"answer\": \"Y\"}, \"2.2\": {\"answer\": \"Y\"}, \"2.3\": {\"answer\": \"Y\"}, \"2.4\": {\"answer\": \"N\"}, \"2.5\": {\"answer\": \"NA\"}, \"2.6\": {\"answer\": \"Y\"}, \"2.7\": {\"answer\": \"NA\"}})[0] -> expected \"LOW\", got \"SOME_CONCERNS\""
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:judge_d2",
+   "claim": "judge_d2 Part 2 treats 2.7 'N' and 2.7 'NI' identically by assigning SOME_CONCERNS to both when 2.6 is not 'Y' (lines 212-217), preventing 2.7 from ever reaching Low risk or functioning as NI-driven.",
+   "guidance_basis": "Under Sterne et al. BMJ 2019 Table 1 and the RoB 2 Domain 2 algorithm: when an appropriate ITT analysis was not used (2.6 N/PN/NI), question 2.7 checks whether there was potential for a substantial impact on the result of failure to analyse as randomised. Table 1 explicitly designates 'No/Probably no' as the lower-risk response for 2.7. When 2.7 is N/PN, the failure had no substantial impact on the result, which the RoB 2 algorithm maps to Low risk for Part 2. Only when 2.7 is NI does Part 2 map to Some concerns. In judge_d2, line 217 maps '2.6 N/PN/NI and 2.7 N/PN/NI' to SOME, rendering resolution of 2.7 from NI to N completely inert and breaking ni_driven for analysis impact.",
+   "failing_test": "rf.judge_d2({\"2.1\": {\"answer\": \"N\"}, \"2.2\": {\"answer\": \"N\"}, \"2.3\": {\"answer\": \"NA\"}, \"2.4\": {\"answer\": \"NA\"}, \"2.5\": {\"answer\": \"NA\"}, \"2.6\": {\"answer\": \"N\"}, \"2.7\": {\"answer\": \"N\"}})[0] -> expected \"LOW\", got \"SOME_CONCERNS\""
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:judge_d1",
+   "claim": "judge_d1 assigns SOME_CONCERNS instead of HIGH when 1.1 is 'N' and 1.2 is 'Y' (line 195: 'if a11 == \"N\": return SOME, \"1.1 N/PN: sequence not random, though concealed\"').",
+   "guidance_basis": "Under the RoB 2 guidance (Sterne et al. BMJ 2019;366:l4898; riskofbias.info full guidance Section 1.4 'Algorithm for reaching a risk-of-bias judgement for Domain 1'), High risk of bias in Domain 1 is reached if 'The allocation sequence was not random (1.1 is No or Probably no)'. A non-random sequence (e.g. quasi-random allocation by date of birth, chart number, or alternation) cannot be redeemed by allocation concealment to achieve 'Some concerns' in RoB 2; the tool evaluates randomized trials, and non-random sequence generation is an explicit criterion for High risk of bias.",
+   "failing_test": "rf.judge_d1({\"1.1\": {\"answer\": \"N\"}, \"1.2\": {\"answer\": \"Y\"}, \"1.3\": {\"answer\": \"N\"}})[0] -> expected \"HIGH\", got \"SOME_CONCERNS\""
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_formal.py:assessment",
+   "claim": "assessment defaults omitted signalling questions to answer('NI', how='unanswered') (line 348), converting branch questions that are legitimately Not Applicable (NA) into NI and mislabelling the domain as having unaddressed NI questions.",
+   "guidance_basis": "Cochrane Handbook Chapter 8, section 8.2.3 and RoB 2 guidance state that signalling questions skipped by branching rules (e.g. 2.3-2.5 when 2.1 and 2.2 are No; 2.7 when 2.6 is Yes; 3.2-3.4 when 3.1 is Yes) are 'Not applicable' (NA), not 'No information' (NI). Defaulting skipped questions to NI causes _ni_qs to falsely list them under ni_questions and counterfactually resolve non-applicable questions.",
+   "failing_test": "rf.assessment(\"T1\", \"O1\", {\"1.1\": rf.answer(\"Y\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"1.2\": rf.answer(\"Y\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"1.3\": rf.answer(\"N\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"2.1\": rf.answer(\"N\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"2.2\": rf.answer(\"N\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"2.6\": rf.answer(\"Y\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"3.1\": rf.answer(\"Y\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"4.1\": rf.answer(\"N\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"4.2\": rf.answer(\"N\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"4.3\": rf.answer(\"N\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"5.1\": rf.answer(\"Y\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"5.2\": rf.answer(\"N\", how=\"t\", span=\"s\", source_sha256=\"0\"*64), \"5.3\": rf.answer(\"N\", how=\"t\", span=\"s\", source_sha256=\"0\"*64)})[\"domains\"][\"D2\"][\"ni\"][\"ni_questions\"] -> expected [], got [\"2.3\", \"2.4\", \"2.5\", \"2.7\"]"
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ni_score.py:main",
+   "claim": "scripts/rob2_ni_score.py passes all pairs in calibration.json to nip.two_way (line 434) without filtering to the 50 TEST trials, violating the pre-registration specification in NI_POLICY.md section 4.",
+   "guidance_basis": "NI_POLICY.md section 4 explicitly states: 'Data: the 50 TEST trials of the four CC comparators (outputs/robgrade/split.json), with the v3 frozen engine (outputs/robgrade/freeze_v3.json).' scripts/rob2_calibrate.py populates calibration.json across all available trials in the repository. Failing to filter by split.json test PMIDs leaks non-test calibration trials into the reported test score.",
+   "failing_test": "sc.main([\"<prereg_sha>\"]) scoring cal[\"pairs\"] containing non-test trials -> expected score computed only on pairs where pmid is in split.json[\"test\"], got score over all pairs in calibration.json"
+  },
+  {
+   "severity": "MINOR",
+   "where": "robgrade/rob2_formal.py:ni_label",
+   "claim": "decisive_ni_questions tests each NI question in isolation without respecting algorithm branching prerequisites, producing logically impossible single-question counterfactuals (e.g. testing downstream question 3.4 alone while 3.1, 3.2, and 3.3 remain NI).",
+   "guidance_basis": "In RoB 2 algorithms, signalling questions exist within hierarchical decision trees. Counterfactually evaluating downstream branch questions in isolation while parent questions remain NI contradicts the tree semantics of RoB 2 (as seen in test_PLANT_d3_all_ni where 3.4 is declared decisive despite 3.1-3.3 being unresolved NI).",
+   "failing_test": "rf.ni_label(\"D3\", {\"3.1\": {\"answer\": \"NI\"}, \"3.2\": {\"answer\": \"NI\"}, \"3.3\": {\"answer\": \"NI\"}, \"3.4\": {\"answer\": \"NI\"}})[\"decisive_ni_questions\"] -> expected [\"3.1\", \"3.3\"], got [\"3.1\", \"3.3\", \"3.4\"]"
+  }
+ ]
+}

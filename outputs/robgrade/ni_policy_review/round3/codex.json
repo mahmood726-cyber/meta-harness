@@ -1,0 +1,42 @@
+{
+ "record_id": "mc-9f9fa60276e65e62841115e16e9810de",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "outputs/robgrade/NI_POLICY.md:P1 and section 3; outputs/robgrade/ni_policy_review/RESPONSES.md:round-1 codex3 and round-2 codex0",
+   "claim": "The blanket prohibition on contextual PY/PN remains incompatible with the guidance. Disclosing or escalating the departure does not resolve it. It can manufacture NI-driven concerns where a justified probably response would avoid them.",
+   "guidance_basis": "[Handbook §8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits NI only when contextual PY/PN would be unreasonable. Its experienced-CTU example concerns allocation concealment. Full guidance §1.1 and Box 4, rows 1.1–1.2, likewise permit reasoned inference.",
+   "failing_test": "A large regulatory trial from an experienced CTU, with documented circumstances justifying PY for concealment despite omitted procedural details; 1.1=Y and 1.3=N -> permit justified 1.2=PY, yielding D1 LOW and ni_driven=false. The stated policy instead requires NI, yielding SOME_CONCERNS and ni_driven=true."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:normalize_answers, _a, judge_d2; tests/test_rob2_algorithm_guidance.py:test_PLANT_normalize_answers_is_judgement_neutral_exhaustively",
+   "claim": "NA is corrected only on always-asked questions. An applicable conditional question can retain NA and silently receive a less severe judgement than an unanswered question. The exhaustive neutrality test preserves this defect rather than validating admissible responses.",
+   "guidance_basis": "[Full guidance §1.1 and Table 6, part 2](https://facenteconsulting.com/wp-content/uploads/20190822_RoB_2.0_guidance_parallel_trial.pdf): 2.7 is required after 2.6=N/PN/NI; 2.7=NI gives HIGH. NA is reserved for skipped questions.",
+   "failing_test": "assessment with D2 answers {2.1:N, 2.2:N, 2.3:NA, 2.4:NA, 2.5:NA, 2.6:N, 2.7:NA} -> reject the invalid applicable NA, or normalize 2.7 to NI and return HIGH, ni_driven=true, favourable judgement=SOME_CONCERNS. Currently it returns SOME_CONCERNS and ni_driven=false."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ni_score.py:check_answers_frozen, rebuild; scripts/rob2_calibrate.py:pairs_for",
+   "claim": "The frozen-input checks do not freeze the scoring cohort or eligibility. check_answers_frozen iterates only surviving current records, so deleting a trial passes. Changing a domain to INSUFFICIENT_OPEN_SOURCE also passes the answer check and bypasses recomputation because rebuild validates only included pairs. Thus agreement can change through post-registration omissions without refusal; deleted trials are not even counted as excluded or unmatched.",
+   "guidance_basis": "NI_POLICY section 4 promises replay of a pre-specified TEST dataset with frozen inputs and accounted-for exclusions. These are implementation safeguards for that registration, not requirements supplied by a RoB 2 mapping table.",
+   "failing_test": "Freeze two matched TEST trials with unchanged answers, then delete one from the current objects -> check_answers_frozen must refuse the changed trial set; currently it passes. Alternatively change one scored domain's judgement to INSUFFICIENT_OPEN_SOURCE without changing its answers -> scoring must refuse the unexplained eligibility change; currently it excludes the pair."
+  },
+  {
+   "severity": "MINOR",
+   "where": "robgrade/rob2_formal.py:overall_ni",
+   "claim": "The promised null result for NOT_ESTABLISHED overall assessments is not implemented when a domain is absent. The function checks only objects that are present, then indexes ORDER with NOT_ESTABLISHED and raises KeyError.",
+   "guidance_basis": "NI_POLICY P4 and overall_ni's documented contract require no NI label when the overall is NOT_ESTABLISHED. overall() already recognizes missing domains.",
+   "failing_test": "overall_ni({}) -> None; currently raises KeyError('NOT_ESTABLISHED'). The same failure occurs with four otherwise valid labelled domains."
+  },
+  {
+   "severity": "MINOR",
+   "where": "robgrade/rob2_formal.py:applicable docstring; tests/test_rob2_algorithm_guidance.py:applicability source attribution; outputs/robgrade/NI_POLICY.md:P0",
+   "claim": "The applicability documentation presents BMJ Table 1 and the full guidance as agreeing, but their D2 branching conditions differ. The implementation correctly follows the full guidance here; its claimed joint source attribution needs an explicit discrepancy note.",
+   "guidance_basis": "[BMJ Table 1](https://eyes.cochrane.org/sites/eyes.cochrane.org/files/uploads/rob_2_bmj_sterne.pdf) asks 2.4 after 2.3=Y/PY/NI and 2.5 after 2.4=Y/PY. [Full guidance Box 6 and Table 6](https://facenteconsulting.com/wp-content/uploads/20190822_RoB_2.0_guidance_parallel_trial.pdf) instead exclude NI from the former trigger and include it in the latter.",
+   "failing_test": "Source-concordance check: 2.3=NI -> BMJ text asks 2.4, full guidance skips it; 2.3=Y and 2.4=NI -> BMJ text skips 2.5, full guidance asks it. Expected documentation explicitly identifies both discrepancies and selects the full guidance; current attribution asserts agreement."
+  }
+ ]
+}

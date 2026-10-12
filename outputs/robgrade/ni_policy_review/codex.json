@@ -1,0 +1,70 @@
+{
+ "record_id": "mc-d287ac35372379bc73ffc8dd46c19a56",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:judge_d2",
+   "claim": "Two NI branches incorrectly return SOME_CONCERNS instead of HIGH: 2.4=NI with unbalanced or unknown balance of deviations, and 2.7=NI following an inappropriate or unknown analysis. Consequently, ni_label can miss NI-driven HIGH judgements. Neither branch is tested.",
+   "guidance_basis": "Full guidance Table 6 includes NI with Y/PY at both branches. Its activation rules differ from BMJ Table 1: full guidance activates 2.4 only after Y/PY to 2.3, and 2.5 after Y/PY/NI to 2.4. Follow the full algorithm. [Guidance](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf#page=32), [BMJ Table 1](https://eprints.whiterose.ac.uk/id/eprint/150579/1/bmj.l4898.full.pdf#page=5).",
+   "failing_test": "D2 answers in question order: [Y,Y,Y,NI,N,Y,NA] -> judgement HIGH, ni_driven=true, favourable=SOME_CONCERNS, decisive=['2.4']; [N,N,NA,NA,NA,N,NI] -> HIGH, true, SOME_CONCERNS, decisive=['2.7']. Current code returns SOME_CONCERNS and false for both."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:judge_d4",
+   "claim": "The 'unclear' condition incorrectly treats 4.1=NI like 4.2=NI, creating an unsupported SOME_CONCERNS judgement and an artificial NI-driven label.",
+   "guidance_basis": "Table 12 groups 4.1=NI with N/PN; only 4.2=NI establishes this SOME_CONCERNS floor. [Full guidance, Table 12](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf#page=57).",
+   "failing_test": "ni_label('D4', {'4.1':'NI','4.2':'N','4.3':'N','4.4':'NA','4.5':'NA'}) -> judgement=LOW, ni_driven=false, favourable=LOW. Current result is SOME_CONCERNS, true, LOW."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:overall, overall_ni; outputs/robgrade/NI_POLICY.md:P1",
+   "claim": "The review flag misses exactly two SOME_CONCERNS domains, and the immutable final-output policy provides no way to implement a justified cumulative HIGH judgement. Taking the maximum is a valid default proposal, but does not implement the complete overall rule. Overall NI labels also cannot represent such reviewed judgements.",
+   "guidance_basis": "Multiple concerning domains can warrant HIGH when confidence is substantially reduced; there is no three-domain minimum. Proposed judgements require verification and permit justified changes. The Handbook does not impose P1's categorical prohibition. [Handbook §§8.2.3–8.2.4](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "{D1:SOME_CONCERNS,D2:SOME_CONCERNS,D3:LOW,D4:LOW,D5:LOW} -> default SOME_CONCERNS with MULTIPLE_SOME_CONCERNS_FOR_REVIEW. With a documented reviewer determination that the combined concerns substantially lower confidence -> final HIGH. Current code neither flags this input nor accepts the determination."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "outputs/robgrade/NI_POLICY.md:P1 and section 3; robgrade/rob2_formal.py:answer",
+   "claim": "The blanket 'never infers; no verbatim span means NI' rule changes the meaning of NI and prevents guidance-supported probability judgements. Disclosure makes this an acknowledged adaptation, not a faithful RoB 2 implementation. Its resulting NI labels describe the engine's evidence restrictions as well as missing reporting.",
+   "guidance_basis": "NI requires that a reasonable PY/PN judgement cannot be made. Written reasoning can support answers; verbatim quotations are preferred when possible, not universally mandatory. [Handbook §8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "A large, experienced-CTU trial with adequate contextual evidence supporting probably concealed allocation, but no explicit concealment sentence -> allow a justified 1.2=PY, retaining the contextual sources and reasoning. The policy instead mandates NI and can create SOME_CONCERNS."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/rob2_formal.py:_a, assessment, _ni_qs; tests/test_rob2_ni_policy.py:test_PLANT_3_2_is_never_resolved, test_PLANT_d3_all_ni, test_PLANT_d2_unreported_deviations",
+   "claim": "Excluding 3.2 from resolution is correct, but its forbidden NI value is still created, accepted and preserved. Branch applicability is also unenforced: skipped questions become NI, while NA on mandatory questions can produce LOW. The named tests use invalid response configurations and therefore are not valid hand-derived algorithm fixtures.",
+   "guidance_basis": "Question 3.2 has no NI option; NA identifies skipped questions. Conditional activation is part of the tool. [BMJ Table 1](https://eprints.whiterose.ac.uk/id/eprint/150579/1/bmj.l4898.full.pdf#page=5); D2's definitive activation rules are in [full guidance Box 6](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf#page=28).",
+   "failing_test": "D1=[NA,NA,NA] -> validation error, not LOW. D3={'3.1':'Y'} -> 3.2–3.4=NA and ni_questions=[], not missing-information entries. Active 3.2=NI -> reject or explicitly normalize to a justified N after checking for evidence. For 2.3=NI, 2.4 and 2.5 should be NA in the full-guidance fixture."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "outputs/robgrade/NI_POLICY.md:P2 and P5; robgrade/rob2_formal.py:ni_label",
+   "claim": "The counterfactual measures sensitivity to favourable resolution, not whether missing information mainly caused the judgement. Branch changes can bypass reported problems; false means no favourable decrease, not independence from missing information. The docstring also incorrectly says every NI question is causal whenever only joint resolution lowers severity.",
+   "guidance_basis": "The cited guidance does not define this attribution metric. Its requirement for justified, material-bias judgements does not establish P2/P5's causal interpretation. Present this as a custom sensitivity flag. [Handbook §8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "D2=[NI,N,Y,Y,N,Y,NA] -> HIGH becomes LOW by resolving 2.1, despite reported unbalanced outcome-relevant deviations: describe branch sensitivity, not concerns arising solely from missing reporting. D1=[N,NI,NI] -> flag=false, yet resolving 1.3 to Y raises SOME_CONCERNS to HIGH. D2=[NI,Y,NI,NA,NA,NI,N] -> joint favourable resolution lowers SOME_CONCERNS to LOW with decisive=[], but 2.1 is irrelevant; resolving just 2.3 and 2.6 suffices."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ni_score.py:check_prereg, main, key",
+   "claim": "The scoring guard freezes selected source files, but does not authenticate the scored data or recompute labels. It trusts mutable calibration files, ignores the TEST split and frozen-answer provenance, does not compare reference judgements, and collapses duplicate keys during validation while subsequently counting every duplicate. A passing guard does not establish replay of the registered experiment.",
+   "guidance_basis": "NI_POLICY section 4 commits to fixed TEST trials, frozen v3 answers and published comparators. These are reproducibility requirements of this policy, not additional Cochrane algorithm rules.",
+   "failing_test": "Starting with accepted calibration inputs, independently (a) flip ni_driven, (b) change theirs, or (c) duplicate one pair without changing its key/ours -> refuse or reconstruct from authenticated frozen inputs. Current code accepts all three. Changing both mutable calibration files to matching non-TEST records must also be refused."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_calibrate.py:pairs_for; scripts/rob2_ni_score.py:key",
+   "claim": "Comparator matching establishes trial identity only. It never establishes that both judgements concern the same outcome, time point, intervention contrast and numerical result. Consequently, even a RoB 2 comparator can generate disagreement unrelated to engine performance or NI.",
+   "guidance_basis": "RoB 2 assesses a specific result, not an undifferentiated trial. [Sterne et al., Box 1 and discussion](https://eprints.whiterose.ac.uk/id/eprint/150579/1/bmj.l4898.full.pdf).",
+   "failing_test": "Same slug and PMID, ours assessing blinded 12-month mortality and the reference assessing unblinded 6-week pain -> refuse a matched D4 pair or explicitly report an unmatched result; current matching accepts the pair."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ni_score.py:main; scripts/rob2_calibrate.py:main",
+   "claim": "The generated NI report calls the comparator judgements RoB 2 while accepting approximate RoB 1 mappings. The promised approximation warning is absent from both generated reports. The NI report also drops excluded and unmatched records, so 'all pairs' hides the evaluation's coverage limitations.",
+   "guidance_basis": "RoB 1 and RoB 2 domains and judgement categories are not interchangeable. [Handbook §8.8](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08). The code's own calibration contract promises disclosure and counted exclusions.",
+   "failing_test": "Calibration containing tool='RoB 1', mapped 'unclear' cells, one INSUFFICIENT_OPEN_SOURCE exclusion and one unmatched trial -> report the approximate cross-tool comparison and both coverage losses alongside the three strata. Current NI_SCORE.md omits these disclosures and labels the reference judgements RoB 2."
+  }
+ ]
+}

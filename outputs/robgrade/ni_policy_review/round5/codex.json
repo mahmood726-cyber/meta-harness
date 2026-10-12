@@ -1,0 +1,21 @@
+{
+ "record_id": "mc-67d1e0f4ea7f0996453c7c58cae8e31a",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "outputs/robgrade/NI_POLICY.md:P1, section 3; RESPONSES.md:codex3",
+   "claim": "The blanket prohibition on contextual PY/PN remains contrary to the guidance. Disclosing or escalating this departure does not resolve it: forcing NI when a justified probably-answer is available changes both judgements and NI-driven strata.",
+   "guidance_basis": "[Handbook §8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits NI only when contextual PY/PN would be unreasonable; its experienced-CTU concealment example explicitly permits PY.",
+   "failing_test": "Large regulatory trial run by an experienced CTU; concealment details absent, but assessor documents reasonable contextual PY for 1.2; 1.1=Y, 1.3=N -> permit 1.2=PY, D1=LOW, NI-driven=false. The policy instead mandates NI, SOME_CONCERNS, true."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_formal.py:domain_object, judge_d2",
+   "claim": "Normalization is still bypassed by domain_object and direct judge calls. domain_object judges raw answers but labels normalized answers, producing a contradictory object: SOME_CONCERNS with NI-driven=true and a favourable judgement also SOME_CONCERNS. The revision tests cover assessment and ni_label, missing this entry point.",
+   "guidance_basis": "[Full guidance Table 6, part 2](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf): 2.6=N/PN/NI and 2.7=Y/PY/NI gives HIGH. Under P0, an asked 2.7=NA must first become NI.",
+   "failing_test": "domain_object('D2', {'2.1':'N','2.2':'N','2.6':'N','2.7':'NA'}) -> normalized 2.7=NI, judgement=HIGH, ni_driven=true, if_ni_resolved_favourably=SOME_CONCERNS. Currently its judgement is SOME_CONCERNS."
+  }
+ ]
+}
