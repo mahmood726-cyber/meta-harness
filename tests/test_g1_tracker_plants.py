@@ -371,15 +371,26 @@ def test_a_stated_k_above_the_seed_count_is_the_comparator_N():
 
 
 def test_never_more_matches_than_the_comparator_N():
-    """12 seed candidates all matched, the comparator includes 10: which 10 is unresolved, so N is NOT shrunk under the
-    matches ('12 of 10'); the candidates stay the denominator and a finding names the unresolved membership."""
+    """12 seed candidates all matched, the comparator includes 10. N is the comparator's 10 (codex pr64-cap-r2 #2: keeping
+    the candidates as N was a known-wrong denominator); the coverage is never '12 of 10' -- it reads unresolved until the
+    comparator's own list is read, and G1 cannot hold on it."""
     o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 12, 12), 10, {"text": "10 randomized trials"}, "x")
-    assert o["k_matched"] <= o["N_comparator_trials"]
-    assert o["k_matched_of_comparator_N"] != "12 of 10" and o["N_candidates"] == 12
+    assert (o["N_comparator_trials"], o["N_candidates"], o["N_comparator_trials_basis"]) == (10, 12, "COMPARATOR_STATED_K")
+    assert o["k_matched_of_comparator_N"].startswith("unresolved") and "12 of 10" not in o["k_matched_of_comparator_N"]
     assert o["included_set_membership"] == "UNRESOLVED"
-    assert [f["finding"] for f in o["comparator_findings"]] == ["COMPARATOR_STATED_K_BELOW_MATCHED_SEED_CANDIDATES"]
+    assert [f["finding"] for f in o["comparator_findings"]] == ["COMPARATOR_STATED_K_BELOW_SEED_CANDIDATES",
+                                                                "COMPARATOR_STATED_K_BELOW_MATCHED_SEED_CANDIDATES"]
     assert gt.g1_status(dict(o, trials=[], N_eligible=12, open_gaps=[], slug="x"))["criteria"].get(
         "ALL_ELIGIBLE_MATCHED") is not True
+    assert gt._k_of_n(o, o["k_matched"]) == "unresolved (12 seed candidates matched) / 10"
+
+
+def test_seed_candidates_never_establish_membership_even_at_the_stated_count():
+    """codex pr64-cap-r2 #1: 2 seeds, '2 randomized trials', both matched -- equal counts do not say WHICH 2."""
+    o = gt.seed_candidate_n(dict(_seed_out("REFERENCE_SEED_CANDIDATES", 2, 2), N_eligible=2, open_gaps=[]), 2,
+                            {"text": "2 randomized trials"}, "x")
+    assert o["included_set_membership"] == "UNRESOLVED" and o["N_comparator_trials"] == 2
+    assert gt.g1_status(dict(o, trials=[], slug="x"))["criteria"]["ALL_ELIGIBLE_MATCHED"] is False
 
 
 def test_seed_candidate_n_is_idempotent():
