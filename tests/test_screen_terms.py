@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 
+import pytest
+
 from harness import screen_terms as st
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -123,3 +125,51 @@ def test_PLANT_a_double_dummy_arm_is_still_an_intervention_arm():
     inc = {"intervention_any": ["metformin"], "comparator_any": ["matching placebo"]}
     assert pm({"arms": ["clomiphene plus metformin plus placebo for letrozole", "letrozole plus placebo for metformin"]},
               inc, "") is None
+
+
+# ---------------------------------------------------------------- codex pr65-cap-r3 / agy pr65-cap-r3-agy (the last round)
+_INC = {"intervention_any": ["metformin"], "comparator_any": ["matching placebo"]}
+
+
+def test_PLANT_listed_arms_with_no_unmasked_intervention_arm_never_mask():
+    from harness.screen_terms import placebo_masks_intervention as pm
+    assert pm({"arms": ["clomiphene plus placebo for metformin", "letrozole plus placebo for metformin"]}, _INC, "") is None
+
+
+def test_PLANT_listed_arms_with_no_placebo_arm_are_not_overridden_by_text():
+    from harness.screen_terms import placebo_masks_intervention as pm
+    rec = {"arms": ["metformin 500 mg", "metformin 1000 mg"], "title": "Dose comparison of metformin"}
+    inc = {"intervention_any": ["metformin"], "comparator_any": ["placebo capsule"]}
+    assert pm(rec, inc, "Prior studies evaluated placebo for metformin, but this trial compared two active doses.") is None
+
+
+def test_PLANT_the_arm_list_outranks_the_intervention_inventory():
+    from harness.screen_terms import placebo_masks_intervention as pm
+    rec = {"interventions": ["metformin", "placebo for metformin"],
+           "arms": ["clomiphene plus metformin", "letrozole plus placebo for metformin"]}
+    assert pm(rec, _INC, "") is None
+
+
+def test_PLANT_an_unrestricted_synonym_is_not_suppressed_by_a_restricted_phrase():
+    from harness.screen_terms import expand
+    assert "t2dm" in (expand({"population_any": ["type 2 diabetes", "t2dm requiring insulin"]}).get("population_any_extra") or [])
+
+
+_LIMITS_R3 = [
+    ({"arms": ["metformin, clomiphene", "placebo for metformin, letrozole"]}, _INC, "",
+     "codex r3 #3: comma-separated agents inside one arm component"),
+    ({}, _INC, "clomiphene plus placebo versus clomiphene plus metformin plus letrozole.",
+     "codex r3 #4: text-only records -- no arm list to compare whole backgrounds"),
+    ({"arms": ["letrozole plus metformin", "letrozole plus placebo"]},
+     {"intervention_any": ["metformin"], "comparator_any": ["placebo plus clomiphene"]}, "",
+     "codex r3 #5: a comparator requirement naming a companion agent is reduced to 'placebo'"),
+]
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex pr65-cap-r3, stop at three): regex arm parsing; see _LIMITS_R3. "
+                                       "0 of 32 topics' decisions depend on these shapes (sweep); the durable fix is a typed "
+                                       "arm reader (architecture question, as P0's D20 option B)")
+@pytest.mark.parametrize("rec,inc,text,why", _LIMITS_R3)
+def test_known_limit_r3(rec, inc, text, why):
+    from harness.screen_terms import placebo_masks_intervention as pm
+    assert pm(rec, inc, text) is None, why

@@ -84,10 +84,12 @@ def expand(inc: dict) -> dict:
     if add:
         out["intervention_any"] = ia + add
     pa = [str(t) for t in (out.get("population_any") or []) + (out.get("population_any_extra") or [])]
-    plow = " ".join(t.lower() for t in pa)
+    have = {t.lower() for t in pa}
     padd = []
     for concept, syns in POP_SYNONYMS.items():
-        padd += [s for s in _alternatives(pa, concept, syns) if s.lower() not in plow and s not in padd]
+        # exact membership: a substring test let 't2dm requiring insulin' suppress the unrestricted 't2dm' that another
+        # alternative ('type 2 diabetes') needs (codex pr65-cap-r3 #6)
+        padd += [s for s in _alternatives(pa, concept, syns) if s.lower() not in have and s not in padd]
     if padd and out.get("population_any"):
         out["population_any_extra"] = list(out.get("population_any_extra") or []) + padd
     return out
@@ -115,13 +117,13 @@ def placebo_masks_intervention(rec: dict, inc: dict, text: str) -> dict | None:
         # ... on the SAME background: when the record's own arms show it, the placebo arm's background agents must
         # equal an intervention arm's ('clomiphene plus metformin' v 'letrozole plus placebo for metformin' is a
         # different background: codex pr65-cap-r1 #1). Arms not listed -> as before (the explicit wording stands).
-        arms = [p.lower() for p in parts]
+        arms = _arm_list(rec, parts)
         p_arms = [a for a in arms if re.search(explicit, a)]
         # an intervention arm is any arm carrying the intervention UNMASKED -- a double-dummy arm ('clomiphene plus
         # metformin plus placebo for letrozole') is one (codex pr65-cap-r2 #4: excluding every arm with 'placebo' emptied
         # the list and skipped the check)
         i_arms = [a for a in arms if re.search(iq, a) and not re.search(explicit, a)]
-        if p_arms and i_arms and not any(_background(a, iq) == _background(p, iq) for p in p_arms for a in i_arms):
+        if not _same_background(rec, p_arms, i_arms, iq):
             return None
         return {"term": "placebo (masks the intervention)", "span": hay[m.start():m.end()]}
     # (2) 'B plus placebo' paired with the SAME background combined with the intervention ('combination of X and B')
@@ -143,11 +145,11 @@ def placebo_masks_intervention(rec: dict, inc: dict, text: str) -> dict | None:
             if re.search(combo, low):
                 # ... and when the record lists its arms, the WHOLE background must be equal, not one shared agent
                 # ('clomiphene plus placebo' v 'clomiphene plus metformin plus letrozole': codex pr65-cap-r2 #3)
-                arms = [p.lower() for p in parts]
+                arms = _arm_list(rec, parts)
                 p_arms = [a for a in arms if re.search(rf"\b{b}\b", a) and re.search(r"\bplacebo\b", a)
                           and not re.search(iq, a)]
                 i_arms = [a for a in arms if re.search(iq, a) and not re.search(explicit, a)]
-                if p_arms and i_arms and not any(_background(a, iq) == _background(p, iq) for p in p_arms for a in i_arms):
+                if not _same_background(rec, p_arms, i_arms, iq):
                     continue
                 return {"term": f"placebo (masks the intervention; shared background {bg_core})",
                         "span": hay[pm.start():pm.end()]}
@@ -160,6 +162,22 @@ _SALTS = {"citrate", "sodium", "potassium", "calcium", "magnesium", "hydrochlori
           "phosphate", "acetate", "maleate", "fumarate", "succinate", "tartrate", "mesylate", "besylate", "tosylate",
           "bromide", "chloride", "propionate", "dipropionate", "furoate", "valerate", "extended-release", "immediate-release",
           "release", "extended", "sustained", "modified", "hcl"}
+
+
+def _arm_list(rec, parts):
+    """The arms to compare: the record's own ARM list when it has one -- an interventions INVENTORY ('metformin',
+    'placebo for metformin') is not a set of arms and its empty backgrounds compared equal (codex pr65-cap-r3 #2)."""
+    return [str(a).lower() for a in (rec.get("arms") or []) if a] or [p.lower() for p in parts]
+
+
+def _same_background(rec, p_arms, i_arms, iq):
+    """Whether a placebo arm and an intervention arm share the whole background. A record that LISTS its arms must show
+    both -- a placebo arm and an unmasked intervention arm -- or nothing is masked: wording elsewhere (prior studies in
+    the abstract) never overrides the listed arms (codex pr65-cap-r3 #1, agy pr65-cap-r3-agy #1). An inventory-only
+    record with either side missing stands as before."""
+    if p_arms and i_arms:
+        return any(_background(a, iq) == _background(p, iq) for p in p_arms for a in i_arms)
+    return not rec.get("arms")
 
 
 def _background(arm, iq):
