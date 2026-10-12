@@ -269,7 +269,9 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
     if expand_named_composites and generic:
         if (not comps and not shared.enumerated) or "3-point" in s or "three-point" in s:
             comps.update({"cardiovascular death", "myocardial infarction", "stroke"})
-        if "4-point" in s or "four-point" in s:
+        # ... and so does the 4-point label: an enumerated fourth item (heart failure hospitalization) is never joined by an
+        #     unstable angina the text does not name (agy p0-r5 #4)
+        if ("4-point" in s or "four-point" in s) and not shared.enumerated:
             comps.add("unstable angina")
     # (2) an enumerated item NO vocabulary maps is kept as a NOT_ESTABLISHED component, never dropped: the composite is then
     #     not the target unless the outcome declares near-match permission (the same rule that refuses ASCEND's TIA).
