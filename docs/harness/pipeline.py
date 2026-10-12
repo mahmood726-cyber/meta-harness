@@ -1259,16 +1259,24 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     # Failed canonical span checks are extraction debt for this trial+outcome.
     # Stop before candidate selection (including dose/abstract fallbacks), so the
     # rejected entry cannot affect either the pool or the other trials' estimand.
+    from .verified_inputs import entries as _vi_entries
     span_refusals = {}
     for data in (verified_effects, verified_arms):
-        for pid, entry in (data or {}).items():
-            if entry.get("span_refusal"):
-                span_refusals.setdefault(pid, []).append(entry["span_refusal"])
+        for pid, value in (data or {}).items():
+            for entry in _vi_entries(value):            # a multi-row (list) value too (agy m2w2a-cap-r1 #2)
+                if entry.get("span_refusal"):
+                    span_refusals.setdefault(pid, []).append(entry["span_refusal"])
+
+    def _refused_ids(d):
+        # an entry keyed by the record's NCT while the included record is its PMID is the same trial (agy m2w2a-cap-r1 #1)
+        nct = rec_by_id.get(d["id"], {}).get("nct")
+        return [k for k in (d["id"], nct) if k and k in span_refusals]
+
     candidate_index = {}
     eligibility_refusals = {}
     all_effect_candidates = []
     for d in included:
-        if d["id"] in span_refusals:
+        if _refused_ids(d):
             continue
         rec = rec_by_id.get(d["id"], {})
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
@@ -1295,8 +1303,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
         idstr = f"PMID {d['id']}" if d["id_type"] == "pmid" else d["id"]
-        if d["id"] in span_refusals:
-            evidence = span_refusals[d["id"]]
+        if _refused_ids(d):
+            evidence = [e for k in _refused_ids(d) for e in span_refusals[k]]
             absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent",
                            "state": "EXTRACTION_DEBT", "endpoint_admissibility": "ENDPOINT_UNBOUND",
                            "hand_binding_state": "ABSTAIN", **evidence[0],
