@@ -32,3 +32,21 @@ def test_PLANT_r1_1_a_screening_count_never_overrides_the_included_count():
     assert k("Of 20 studies screened, 4 randomized controlled trials were included.") == 4
     assert k("We identified 312 studies, of which 9 RCTs met the inclusion criteria.") == 9
     assert k("A total of 48 studies were assessed for eligibility") is None
+
+
+# ---------------------------------------------------------------- captain, codex pr53-cap-r1 #1 (P0) and #2 (P1)
+def test_of_n_studies_is_the_funnel_not_the_included_count():
+    assert gt.stated_k_from_text("Of 20 studies, 18 were excluded and 2 trials were included.") == (2, "2 trials")
+
+
+def test_an_exclusion_governs_only_its_own_count():
+    assert gt.stated_k_from_text("We included 5 studies and excluded 2 studies.") == (5, "5 studies")
+
+
+def test_a_total_of_and_analysis_of_stay_counts():
+    """Regression found by the captain's sweep of the fix itself: the first 'Of N' rule matched any '... of' before the
+    count and dropped two real comparators (36050741 colchicine-postop-af; 40959489 spironolactone, a G1 topic)."""
+    assert gt.stated_k_from_text("Results A total of 9 RCTs were included in this meta-analysis, enrolling a total of "
+                                 "2031 patients.") == (9, "9 RCTs")
+    assert gt.stated_k_from_text("In the analysis of nine RCTs, MRAs were associated with a 23% reduction in CV composite "
+                                 "outcomes") == (9, "nine RCTs")

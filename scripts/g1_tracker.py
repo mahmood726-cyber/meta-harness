@@ -3184,6 +3184,7 @@ _STATED_K = re.compile(r"(?<!phase )(?<!phase)\b(\d+|two|three|four|five|six|sev
                        r"(?:clinical\s+)?(?:trials|studies|RCTs)\b", re.I)
 
 
+_SUBCLAUSE = re.compile(r"[,;.]|\b(?:and|but|while|whereas)\b", re.I)
 _SCREENING = re.compile(r"\b(?:screened|identified|retrieved|assessed|excluded|records?|searched|potentially|"
                         r"full[- ]text|reviewed for eligibility)\b", re.I)
 
@@ -3194,9 +3195,15 @@ def stated_k_from_text(t):
     assessed') is skipped -- it is the search funnel, never the pooled set (codex r5-2-stated-k-r1 #1)."""
     t = t or ""
     for m in _STATED_K.finditer(t):
-        after = re.split(r"[,;.]", t[m.end():], maxsplit=1)[0][:80]
-        before = re.split(r"[,;.]", t[:m.start()])[-1][-80:]          # the same clause, either side of the count
+        # the count's OWN sub-clause, either side: a coordinating conjunction starts another clause with its own verb, so
+        # 'We included 5 studies and excluded 2 studies' never lets 'excluded' govern the 5 (codex pr53-cap-r1 #2)
+        after = _SUBCLAUSE.split(t[m.end():], maxsplit=1)[0][:80]
+        before = _SUBCLAUSE.split(t[:m.start()])[-1][-80:]
         if _SCREENING.search(after) or _SCREENING.search(before):
+            continue
+        # 'Of 20 studies, ...' -- 'Of' OPENING the clause -- names the search funnel's denominator (codex pr53-cap-r1 #1);
+        # 'A total of 9 RCTs were included' / 'In the analysis of nine RCTs' are the pooled set and stay counts
+        if re.fullmatch(r"\s*of\s*", before, re.I):
             continue
         w = m.group(1).lower()
         return (int(w) if w.isdigit() else _NUMW[w]), m.group(0)
