@@ -40,7 +40,10 @@ class _Restricted:
     @staticmethod
     def search(text):
         import html as _html
-        return _RESTRICTED_RE.search(_HYPHENS.sub("-", _html.unescape(str(text or ""))))
+        t = _HYPHENS.sub("-", _html.unescape(str(text or "")))
+        # a line break inside the licence name ('Non\nCommercial', 'BY-\nNC') is no boundary (codex d8lic-cap-r3 #1)
+        t = re.sub(r"-\s+", "-", re.sub(r"\s+", " ", t))
+        return _RESTRICTED_RE.search(t)
 
 
 _RESTRICTED = _Restricted()

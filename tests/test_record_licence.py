@@ -235,3 +235,13 @@ def test_known_limit_cc_by_permitting_non_commercial_reuse(tmp_path):
     from reproducible_ai import record_licence as rl
     w = "This article is licensed under CC BY 4.0, permitting commercial and non-commercial reuse."
     assert rl.jats_licence(_jats(tmp_path, w)) == "CC"
+
+
+def test_PLANT_a_line_wrapped_restriction_is_restricted(tmp_path):
+    """codex d8lic-cap-r3 #1 (stop at three): 'Creative Commons Attribution Non\nCommercial License' -- a line break inside
+    the licence name -- passed, and the broader Attribution match admitted it."""
+    from reproducible_ai import record_licence as rl
+    for w in ["Distributed under the Creative Commons Attribution Non\nCommercial License.",
+              "Creative Commons Attribution No\r\n  Derivatives", "CC BY-\nNC 4.0"]:
+        assert rl._RESTRICTED.search(w), repr(w)
+        assert rl.jats_licence(_jats(tmp_path, w)) != "CC", repr(w)
