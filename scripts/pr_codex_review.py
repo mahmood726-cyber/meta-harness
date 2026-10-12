@@ -70,6 +70,37 @@ def prompt(group, reader="codex"):
     return "".join(parts).encode("utf-8")
 
 
+_LIST_KEYS = ("findings", "defects")
+
+
+def parse_reply(raw):
+    """A reviewer's reply as a list of findings. Read as EMPTY only when it says so in a known key ('findings', or agy's
+    'defects': that key was once read as no findings, losing 18 agy defects in 5 runs) or as a bare list; any other
+    shape -- markdown, an unknown key, a second JSON object after the first -- is kept WHOLE as one UNSTRUCTURED finding
+    to reproduce by hand, never dropped."""
+    fenced = raw.strip()
+    if fenced.startswith("```") and fenced.endswith("```"):      # agy wraps JSON in a ```json fence
+        fenced = fenced.split("\n", 1)[1].rsplit("```", 1)[0] if "\n" in fenced else fenced.strip("`")
+    try:
+        resp = json.loads(fenced)
+    except ValueError:
+        resp = None
+    if isinstance(resp, list):                                   # agy may answer with the findings list itself
+        items = resp
+    elif isinstance(resp, dict) and any(isinstance(resp.get(k), list) for k in _LIST_KEYS):
+        items = [x for k in _LIST_KEYS if isinstance(resp.get(k), list) for x in resp[k]]
+    else:
+        items = [{"severity": "UNSTRUCTURED", "file": "-", "function": "-", "claim": raw,
+                  "failing_input": "(see claim)", "expected": "-", "actual": "-"}]
+    out = []
+    for f in items:
+        f = dict(f) if isinstance(f, dict) else {"severity": "UNSTRUCTURED", "claim": str(f)}
+        for k in ("severity", "file", "function", "claim", "failing_input", "expected", "actual"):
+            f.setdefault(k, "-")
+        out.append(f)
+    return out
+
+
 def main(argv):
     name = argv[argv.index("--name") + 1] if "--name" in argv else None
     data = json.load(open(PROP, encoding="utf-8")) if os.path.exists(PROP) else {}
@@ -110,22 +141,7 @@ def main(argv):
             if r["state"] != "RAN_OK":
                 continue
             raw = ms.replay(ms.load_record(os.path.join(REC_DIR, r["record_id"] + ".json"))).decode("utf-8")
-            fenced = raw.strip()
-            if fenced.startswith("```") and fenced.endswith("```"):      # agy wraps JSON in a ```json fence
-                fenced = fenced.split("\n", 1)[1].rsplit("```", 1)[0] if "\n" in fenced else fenced.strip("`")
-            try:
-                resp = json.loads(fenced)
-            except ValueError:
-                # a reply outside the schema (agy sometimes answers in markdown) is kept WHOLE as one finding to
-                # reproduce by hand -- never dropped, never read as "no findings"
-                resp = {"findings": [{"severity": "UNSTRUCTURED", "file": "-", "function": "-", "claim": raw,
-                                      "failing_input": "(see claim)", "expected": "-", "actual": "-"}]}
-            if isinstance(resp, list):                 # agy may answer with the findings list itself
-                resp = {"findings": resp}
-            for i, f in enumerate(resp.get("findings") or []):
-                f = f if isinstance(f, dict) else {"severity": "UNSTRUCTURED", "claim": str(f)}
-                for k in ("severity", "file", "function", "claim", "failing_input", "expected", "actual"):
-                    f.setdefault(k, "-")
+            for i, f in enumerate(parse_reply(raw)):
                 fid = f"{nm}:{gname}#{i + 1}"
                 entry["findings"].append(dict(f, id=fid, record_id=r["record_id"], verdict=entry["verdicts"].get(fid)))
         for f in entry["findings"]:

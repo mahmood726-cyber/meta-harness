@@ -7021,5 +7021,894 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "p0-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/g1/p0-component-parser-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d833192adfe3cedef3a13d0a3abe1a44",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/components.py",
+     "harness/rob2.py",
+     "harness/target_endpoint.py"
+    ],
+    "prompt_sha256": "280eb104a3a44696daf19c2db46d1567b3067c35cb6807b9a02e50ca329cf9fb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/components.py",
+    "function": "known",
+    "severity": "P0",
+    "claim": "The regex `\\bcv\\b.*death` improperly matches 'non-cv death' because the hyphen acts as a word boundary (`\\b` matches between `-` and `c`). This silently classifies an explicit exclusion ('non-cv death') as a canonical 'cardiovascular death' component.",
+    "failing_input": "non-cv death",
+    "expected_output": "set()",
+    "actual_output": "{'cardiovascular death'}",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r1-agy:g1#1",
+    "record_id": "mc-d833192adfe3cedef3a13d0a3abe1a44",
+    "verdict": null
+   },
+   {
+    "file": "harness/rob2.py",
+    "function": "_component_set",
+    "severity": "P1",
+    "claim": "The `_OTHER_KNOWN` regex in components.py intentionally masks union terms (like 'all-cause death') from `shared.unknown` to prevent double-counting in extraction. However, `rob2.py` only natively maps CV components and relies entirely on `shared.unknown` to retain unmapped items. Consequently, `rob2.py` silently drops these non-CV union terms completely, reducing a 2-point composite to a 1-point endpoint and wrongly allowing it to match.",
+    "failing_input": "composite of myocardial infarction and all-cause death",
+    "expected_output": "frozenset({'NONFATAL_MI', 'component not established: all-cause death'})",
+    "actual_output": "frozenset({'NONFATAL_MI'})",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r1-agy:g1#2",
+    "record_id": "mc-d833192adfe3cedef3a13d0a3abe1a44",
+    "verdict": null
+   }
+  ]
+ },
+ "p0-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/g1/p0-component-parser-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b9e08a6c7bf5edbc1ba2e7803387a874",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/components.py",
+     "harness/rob2.py",
+     "harness/target_endpoint.py"
+    ],
+    "prompt_sha256": "f2de2c50ed3a5cf898e76308966a525f79a9f0e920727febd3ef9d9600a56d65"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/target_endpoint.py",
+    "function": "_components_from_text",
+    "severity": "P1",
+    "claim": "Parenthetical stripping destroys enumerations defined completely within parentheses. This hides the composite's true explicit components, falsely triggers the empty-enumeration generic fallback, and hallucinates a default 3-point MACE instead of returning the unmapped component.",
+    "failing_input": "harness.target_endpoint._components_from_text(\"MACE (defined as cardiac interventions)\")",
+    "expected_output": "{'component not established: cardiac interventions'}",
+    "actual_output": "{'cardiovascular death', 'myocardial infarction', 'stroke'}",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r2-agy:g1#1",
+    "record_id": "mc-b9e08a6c7bf5edbc1ba2e7803387a874",
+    "verdict": null
+   },
+   {
+    "file": "harness/target_endpoint.py",
+    "function": "_components_from_text",
+    "severity": "P1",
+    "claim": "Stripping exclusions before checking for the generic fallback causes explicitly excluded default components to be hallucinated back into the outcome. The exclusion removal makes the component list look empty, triggering the full 3-point expansion.",
+    "failing_input": "harness.target_endpoint._components_from_text(\"MACE excluding stroke\")",
+    "expected_output": "{'cardiovascular death', 'myocardial infarction'}",
+    "actual_output": "{'cardiovascular death', 'myocardial infarction', 'stroke'}",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r2-agy:g1#2",
+    "record_id": "mc-b9e08a6c7bf5edbc1ba2e7803387a874",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "enumerated_items",
+    "severity": "P1",
+    "claim": "The sentence loop filters strictly by _COMPOSITE_CONTEXT. If a text names a generic composite in one sentence, and defines it in the next using a non-matching noun ('The endpoint comprised X.'), the second sentence is silently skipped. This drops the enumeration and triggers a false generic expansion.",
+    "failing_input": "harness.components.components(\"MACE. The endpoint comprised cardiac interventions.\", expand_generic=True)",
+    "expected_output": "Parsed(components=set(), unknown=['cardiac interventions'], enumerated=True, expanded_generic=False)",
+    "actual_output": "Parsed(components={'cardiovascular death', 'myocardial infarction', 'stroke'}, unknown=[], enumerated=False, expanded_generic=True)",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r2-agy:g1#3",
+    "record_id": "mc-b9e08a6c7bf5edbc1ba2e7803387a874",
+    "verdict": null
+   }
+  ]
+ },
+ "p0-r3-agy": {
+  "base": "origin/main",
+  "head": "origin/g1/p0-component-parser-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-619b51e41b2599d890871d93b1bd5809",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/components.py",
+     "harness/rob2.py",
+     "harness/target_endpoint.py"
+    ],
+    "prompt_sha256": "2822a3f6b1e2843bedf08a22ca71586ccbb212c7400bd7787ee6b63ad893b579"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/rob2.py",
+    "function": "_component_set",
+    "severity": "P1",
+    "claim": "Item recognition uses the UNION of both routes' vocabularies, so a composite either route already understood ... never becomes 'unknown'",
+    "input": "MACE defined as CV death, heart attack, or stroke",
+    "expected_output": "frozenset({'CV_DEATH', 'NONFATAL_MI', 'NONFATAL_STROKE'})",
+    "actual_output": "frozenset({'CV_DEATH', 'NONFATAL_MI', 'NONFATAL_STROKE', 'component not established: heart attack'})",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r3-agy:g1#1",
+    "record_id": "mc-619b51e41b2599d890871d93b1bd5809",
+    "verdict": null
+   },
+   {
+    "file": "harness/rob2.py",
+    "function": "_component_set",
+    "severity": "P1",
+    "claim": "Item recognition uses the UNION of both routes' vocabularies ... P0 changes only what neither route knew",
+    "input": "MACE defined as death from vascular causes, MI, and stroke",
+    "expected_output": "frozenset({'CV_DEATH', 'NONFATAL_MI', 'NONFATAL_STROKE'})",
+    "actual_output": "frozenset({'NONFATAL_MI', 'NONFATAL_STROKE'})",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r3-agy:g1#2",
+    "record_id": "mc-619b51e41b2599d890871d93b1bd5809",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "components",
+    "severity": "P0",
+    "claim": "a generic label expands to the default 3-point set only when the text enumerates nothing",
+    "input": "excluding MACE",
+    "expected_output": "Parsed(components=set(), unknown=[], enumerated=False, expanded_generic=False)",
+    "actual_output": "Parsed(components={'cardiovascular death', 'myocardial infarction', 'stroke'}, unknown=[], enumerated=False, expanded_generic=True)",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r3-agy:g1#3",
+    "record_id": "mc-619b51e41b2599d890871d93b1bd5809",
+    "verdict": null
+   }
+  ]
+ },
+ "pr79-cap-r1": {
+  "base": "origin/main",
+  "head": "origin/kgap/doi-ref-parens",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0521d6cecd4221effe2d27a211c2d0bb",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "reproducible_ai/record_licence.py"
+    ],
+    "prompt_sha256": "27a33813c480e9d8029966d0ac9f71e30eb044223e0f6290008831371343b14d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "reproducible_ai/record_licence.py",
+    "function": "_doi_in_ref / ref_licences",
+    "severity": "P1",
+    "claim": "Unconditionally stripping trailing punctuation can change DOI identity and return another record’s CC licence. The exact held DOI should be checked before treating its final characters as citation punctuation.",
+    "failing_input": "ref_licences('DOI 10.1234/example.', {}, {'10.1234/example.': 'all-rights-reserved', '10.1234/example': 'cc-by'})",
+    "expected": "[('DOI 10.1234/example.', 'all-rights-reserved')]",
+    "actual": "[('DOI 10.1234/example', 'cc-by')]",
+    "id": "pr79-cap-r1:g1#1",
+    "record_id": "mc-0521d6cecd4221effe2d27a211c2d0bb",
+    "verdict": null
+   }
+  ]
+ },
+ "pr62-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/pva/audit-bundles-r10-r25",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d99e87714f91325944d6771bbb9888db",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/verify_external_audit.py"
+    ],
+    "prompt_sha256": "e62a23f1e3a1171dee1f92cff2d266307a5e6fbdbe21e6bafbb6d268b76a6986"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/verify_external_audit.py",
+    "function": "run_bundles",
+    "severity": "P2 robustness",
+    "claim": "Uncaught exceptions from external bundle execution (timeout, missing output file, or malformed JSON) crash the entire verification harness instead of logging a failure for the bundle.",
+    "failing_input": "An auditor script that exits 0 without writing an output file (e.g., import sys; sys.exit(0)) or one that hangs (e.g., import time; time.sleep(601)).",
+    "expected_output": "The harness catches the missing file or timeout, appends a 'FAIL' verdict to rows for the bundle's run check, increments `bad`, and gracefully continues to the next bundle.",
+    "actual_output": "An uncaught FileNotFoundError (when opening `produced`) or subprocess.TimeoutExpired is raised, crashing the verification script and aborting all subsequent checks.",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr62-cap-r1-agy:g1#1",
+    "record_id": "mc-d99e87714f91325944d6771bbb9888db",
+    "verdict": null
+   }
+  ]
+ },
+ "pr79-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/doi-ref-parens",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c0032fd3cc866741a666a0cc38737d15",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "reproducible_ai/record_licence.py"
+    ],
+    "prompt_sha256": "e01429b1f1b4ab331e8e563189f204f93fdde0ccc022a238f7b963b1c1aab759"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "p0-r5-agy": {
+  "base": "origin/main",
+  "head": "origin/g1/p0-component-parser-2026-10-10",
+  "runs": {
+   "g1": {
+    "record_id": "mc-2654845aad64edc4b2b08ca9d4a9e916",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/components.py",
+     "harness/target_endpoint.py"
+    ],
+    "prompt_sha256": "fe8f0c3be2da0c7c7f02412c9ba0792c2486ed0d2509eef8eb24d30ab2138df9"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/components.py",
+    "function": "known",
+    "severity": "P1",
+    "claim": "In known(), s_cv strips 'non-cardiovascular' via re.sub(r'\\bnon-?\\s?cardiovascular\\b', 'noncv', s) but does not handle 'non-cv'. Because the hyphen in 'non-cv' is treated as a non-word boundary character, re.search(r'\\bcv\\b.*death|death.*\\bcv\\b', s_cv) matches 'cv' inside 'non-cv', erroneously classifying non-CV death as cardiovascular death.",
+    "failing_input": "non-cv death",
+    "expected_output": "set()",
+    "actual_output": "{'cardiovascular death'}",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r5-agy:g1#1",
+    "record_id": "mc-2654845aad64edc4b2b08ca9d4a9e916",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "components",
+    "severity": "P1",
+    "claim": "_EXCLUSION matches any 'excluding X' clause, including qualifier exclusions on individual components such as '(excluding silent myocardial infarction)'. excluded() runs known() on the exclusion match, which identifies 'myocardial infarction'. Line 189 then executes out.components -= excluded(s), which erroneously subtracts and deletes 'myocardial infarction' entirely from the composite endpoint.",
+    "failing_input": "composite of cardiovascular death, myocardial infarction (excluding silent myocardial infarction), and stroke",
+    "expected_output": "{'cardiovascular death', 'myocardial infarction', 'stroke'}",
+    "actual_output": "{'cardiovascular death', 'stroke'}",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r5-agy:g1#2",
+    "record_id": "mc-2654845aad64edc4b2b08ca9d4a9e916",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "enumerated_items",
+    "severity": "P1",
+    "claim": "In enumerated_items, line 141 deletes parenthetical groups unless matched by _DEFINING_CUE: s = re.sub(r'\\s*\\(([^()]*)\\)', lambda m: (' ' + m.group(1) + '. ') if _DEFINING_CUE.search(m.group(1)) else '', strip_exclusions(s)). While _ENUM_CUE includes 'including', _DEFINING_CUE omits 'including'. As a result, parenthetical definitions using 'including' (e.g. 'MACE (including ...)') are stripped before enumeration parsing, causing unmapped components to be dropped rather than captured in out.unknown as unestablished.",
+    "failing_input": "The primary endpoint was MACE (including cardiovascular death, myocardial infarction, stroke, and cardiac interventions).",
+    "expected_output": "['cardiac interventions']",
+    "actual_output": "[]",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r5-agy:g1#3",
+    "record_id": "mc-2654845aad64edc4b2b08ca9d4a9e916",
+    "verdict": null
+   },
+   {
+    "file": "harness/target_endpoint.py",
+    "function": "_components_from_text",
+    "severity": "P1",
+    "claim": "In _components_from_text, line 271 checks if '4-point' in s or 'four-point' in s: comps.add('unstable angina') unconditionally without checking not shared.enumerated. When a trial explicitly enumerates a 4-point composite endpoint with a different fourth component (such as heart failure hospitalization), _components_from_text erroneously adds 'unstable angina', expanding a 4-point composite into a 5-component set.",
+    "failing_input": "The primary endpoint was 4-point MACE, defined as cardiovascular death, myocardial infarction, stroke, or heart failure hospitalization.",
+    "expected_output": "{'cardiovascular death', 'heart failure hospitalization', 'myocardial infarction', 'stroke'}",
+    "actual_output": "{'cardiovascular death', 'heart failure hospitalization', 'myocardial infarction', 'stroke', 'unstable angina'}",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r5-agy:g1#4",
+    "record_id": "mc-2654845aad64edc4b2b08ca9d4a9e916",
+    "verdict": null
+   },
+   {
+    "file": "harness/components.py",
+    "function": "enumerated_items",
+    "severity": "P2",
+    "claim": "In enumerated_items, the clause boundary regex stops at '\\bwithin\\b' and '\\bduring\\b'. When an enumerated component contains a temporal qualifier (e.g. 'myocardial infarction within 30 days'), end truncates tail before 'within', discarding all subsequent enumerated components from the parsed item list.",
+    "failing_input": "The composite endpoint was defined as myocardial infarction within 30 days, stroke, or cardiovascular death.",
+    "expected_output": "['myocardial infarction within 30 days', 'stroke', 'cardiovascular death']",
+    "actual_output": "['myocardial infarction']",
+    "expected": "-",
+    "actual": "-",
+    "id": "p0-r5-agy:g1#5",
+    "record_id": "mc-2654845aad64edc4b2b08ca9d4a9e916",
+    "verdict": null
+   }
+  ]
+ },
+ "pr65-cap-r1": {
+  "base": "origin/main",
+  "head": "origin/kgap/screen-placebo-of-x",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4c27ec1cbeeb0858db215209fa506ad9",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/screen.py",
+     "harness/screen_terms.py",
+     "scripts/g1_screen_sweep.py"
+    ],
+    "prompt_sha256": "eb9bac55bc157b90dc8e092b35b89a70021043e32d74cee7d77ebf0b8f4f2392"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "The explicit-placebo branch accepts unequal backgrounds without checking the active arm. Its override can therefore satisfy the comparator gate for an ineligible contrast.",
+    "failing_input": "from harness.screen_terms import placebo_masks_intervention\nplacebo_masks_intervention({'interventions': ['clomiphene plus metformin', 'letrozole plus placebo for metformin']}, {'intervention_any': ['metformin'], 'comparator_any': ['matching placebo']}, '')",
+    "expected": "None: clomiphene and letrozole are different backgrounds.",
+    "actual": "{'term': 'placebo (masks the intervention)', 'span': 'placebo for metformin'}",
+    "id": "pr65-cap-r1:g1#1",
+    "record_id": "mc-4c27ec1cbeeb0858db215209fa506ad9",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "The combination branch treats any shared background word as proof of identical treatment. A shared salt name can incorrectly establish comparator eligibility.",
+    "failing_input": "from harness.screen_terms import placebo_masks_intervention\nplacebo_masks_intervention({'interventions': ['clomiphene citrate plus placebo', 'tamoxifen citrate plus metformin']}, {'intervention_any': ['metformin'], 'comparator_any': ['matching placebo']}, '')",
+    "expected": "None: clomiphene citrate and tamoxifen citrate are different background agents.",
+    "actual": "{'term': 'placebo (masks the intervention; shared background citrate)', 'span': 'clomiphene citrate plus placebo'}",
+    "id": "pr65-cap-r1:g1#2",
+    "record_id": "mc-4c27ec1cbeeb0858db215209fa506ad9",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "expand",
+    "severity": "P1",
+    "claim": "Substring-based population expansion turns a compound eligibility requirement into alternatives for its individual components. Both screeners then accept population terms that omit the required comorbidity.",
+    "failing_input": "from harness.screen_terms import expand\nout = expand({'population_any': ['type 2 diabetes with chronic kidney disease']})\nprint('t2dm' in out.get('population_any_extra', []))",
+    "expected": "False: isolated T2DM is not synonymous with type 2 diabetes with chronic kidney disease.",
+    "actual": "True: 't2dm' is added as an independent population alternative.",
+    "id": "pr65-cap-r1:g1#3",
+    "record_id": "mc-4c27ec1cbeeb0858db215209fa506ad9",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "expand",
+    "severity": "P2",
+    "claim": "Caching solely by dictionary identity returns obsolete eligibility terms after the caller updates that dictionary.",
+    "failing_input": "from harness.screen_terms import expand\ninc = {'intervention_any': ['finerenone']}\nexpand(inc)\ninc['intervention_any'] = ['dapagliflozin']\nprint(expand(inc)['intervention_any'])",
+    "expected": "['dapagliflozin', 'BMS-512148', 'BMS512148']",
+    "actual": "['finerenone', 'BAY94-8862', 'BAY 94-8862', 'BAY-94-8862', 'BAY948862']",
+    "id": "pr65-cap-r1:g1#4",
+    "record_id": "mc-4c27ec1cbeeb0858db215209fa506ad9",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_screen_sweep.py",
+    "function": "diff",
+    "severity": "P2",
+    "claim": "Dumped errors are strings, but diff processes them as decision arrays. Comparing [:2] hides different failures whenever their exception names share the first two characters.",
+    "failing_input": "import io\nfrom unittest.mock import patch\nfrom scripts.g1_screen_sweep import diff\nwith patch('builtins.open', side_effect=[io.StringIO('{\"topic\":{\"__error__\":\"ValueError: missing population\"}}'), io.StringIO('{\"topic\":{\"__error__\":\"ValueError: invalid comparator\"}}')]):\n    diff('old.json', 'new.json')",
+    "expected": "An explicit diagnostic showing the changed topic failure.",
+    "actual": "Prints '0 changed decisions over 1 topics' and an empty table because both errors reduce to 'Va'.",
+    "id": "pr65-cap-r1:g1#5",
+    "record_id": "mc-4c27ec1cbeeb0858db215209fa506ad9",
+    "verdict": null
+   }
+  ]
+ },
+ "pr65-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/screen-placebo-of-x",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6f4df73881fe0ccebf23ff611f141db8",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/screen.py",
+     "harness/screen_terms.py",
+     "scripts/g1_screen_sweep.py"
+    ],
+    "prompt_sha256": "d19cba832c9f3617ce840f63e57616ed0fe5b1dc194f5a1b4fb43fdbb15c460d"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr81-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/family-reconcile",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b55466122adf47ee9362a7e2fba6b531",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/trial_family.py",
+     "scripts/g1_family_reconcile_sweep.py"
+    ],
+    "prompt_sha256": "02f7321c0fe41b8add49151ca021ffaf833cf5a562e89cd49bdc96a53280fb96"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr64-cap-r1": {
+  "base": "origin/main",
+  "head": "origin/kgap/comparator-n-included",
+  "runs": {
+   "g1": {
+    "record_id": "mc-2110f7874e891fe415a076937bca7575",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/g1_comparator_n_sweep.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "fdc3592c3f5a30893b5fd9620097fae84f5cf5684440f570a42d4a9bb5848e7e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "seed_candidate_n",
+    "severity": "P0",
+    "claim": "The comparator's stated count is ignored when it exceeds the seed count, leaving the candidate count as the included-trial denominator.",
+    "failing_input": "seed_candidate_n({'comparator_set': {'state': 'REFERENCE_SEED_CANDIDATES'}, 'N_comparator_trials': 8, 'k_matched': 5}, 10, 'We included 10 randomized trials.', 'example')",
+    "expected": "N_comparator_trials=10 with basis COMPARATOR_STATED_K; N_candidates=8. Missing trial identities remain unresolved.",
+    "actual": "N_comparator_trials=8, N_candidates=8, and N_comparator_trials_basis='REFERENCE_SEED_CANDIDATES'.",
+    "id": "pr64-cap-r1:g1#1",
+    "record_id": "mc-2110f7874e891fe415a076937bca7575",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "seed_candidate_n",
+    "severity": "P0",
+    "claim": "Shrinking the denominator preserves matches against the candidate superset and presents them as matches against the included set, even producing an impossible numerator.",
+    "failing_input": "seed_candidate_n({'comparator_set': {'state': 'REFERENCE_SEED_CANDIDATES'}, 'N_comparator_trials': 12, 'k_matched': 12}, 10, 'We included 10 randomized trials.', 'example')",
+    "expected": "Preserve candidate matches separately and leave included-set matches unresolved until membership is established; do not report more than 10 matches out of 10 included trials.",
+    "actual": "N_comparator_trials=10, k_matched=12, and k_matched_of_comparator_N='12 of 10'.",
+    "id": "pr64-cap-r1:g1#2",
+    "record_id": "mc-2110f7874e891fe415a076937bca7575",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "seed_candidate_n",
+    "severity": "P2",
+    "claim": "Reapplying the helper destroys the original candidate count and mislabels the denominator's provenance. The new sweep reapplies it to stored outputs that topic() already processes with this helper.",
+    "failing_input": "o = {'comparator_set': {'state': 'REFERENCE_SEED_CANDIDATES'}, 'N_comparator_trials': 12, 'k_matched': 5}\nseed_candidate_n(o, 10, 'We included 10 randomized trials.', 'example')\nseed_candidate_n(o, 10, 'We included 10 randomized trials.', 'example')",
+    "expected": "After both calls: N_candidates=12, N_comparator_trials=10, and N_comparator_trials_basis='COMPARATOR_STATED_K'.",
+    "actual": "After the second call: N_candidates=10, N_comparator_trials=10, and N_comparator_trials_basis='REFERENCE_SEED_CANDIDATES'. The retained finding still reports seed_candidates=12.",
+    "id": "pr64-cap-r1:g1#3",
+    "record_id": "mc-2110f7874e891fe415a076937bca7575",
+    "verdict": null
+   }
+  ]
+ },
+ "pr53-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/g1/r5-2-stated-k",
+  "runs": {
+   "g1": {
+    "record_id": "mc-61c6ccdf8c6bd988a1503cf74c7aa264",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "286ccef53bc75c1e82b6961a41ebb07294e4028fefdca07847fa270d5147086e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "The update to _STATED_K uses (?<!phase )(?<!phase)\\b to avoid misinterpreting trial phases as trial counts (R5-2). However, hyphenated phases like 'Phase-3' (or slash-separated phases like 'Phase 2/3') have non-word punctuation immediately preceding the digit. The negative lookbehinds check 'hase-' or 'ase 2/' which do not match 'phase' or 'phase ', and \\b matches at the hyphen/digit boundary. Consequently, stated_k_from_text extracts k = 3 from 'Phase-3 randomized trials', allowing a trial phase designation to reach the result as a stated trial count.",
+    "input": "stated_k_from_text(\"We evaluated data from Phase-3 randomized trials.\")",
+    "expected_output": "(None, None)",
+    "actual_output": "(3, '3 randomized trials')",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r1-agy:g1#1",
+    "record_id": "mc-61c6ccdf8c6bd988a1503cf74c7aa264",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "_SCREENING is designed to filter out search funnel counts (such as retrieved or identified records) so that only the pooled/included trial count is extracted. However, _SCREENING matches the verb 'searched' but not the noun 'search', nor does it match terms like 'yielded' or 'found'. When an abstract states the search funnel using noun phrasing ('The search yielded 450 studies.'), neither 'before' ('The search yielded ') nor 'after' ('') matches _SCREENING. Because _STATED_K matches 'studies' as trials, stated_k_from_text extracts the search funnel count (450) as k and returns immediately, allowing a search funnel count to reach the result instead of the true included trial count.",
+    "input": "stated_k_from_text(\"The search yielded 450 studies. Twelve randomized trials were included.\")",
+    "expected_output": "(12, 'Twelve randomized trials')",
+    "actual_output": "(450, '450 studies')",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r1-agy:g1#2",
+    "record_id": "mc-61c6ccdf8c6bd988a1503cf74c7aa264",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P1",
+    "claim": "In systematic review abstracts, included trials are routinely reported as assessed for risk of bias or methodological quality in the same sentence without punctuation (e.g., 'Ten randomized trials were included and assessed for risk of bias.'). Because _SCREENING matches 'assessed' and 'after' extends to the end of the clause (' and assessed for risk of bias'), stated_k_from_text misclassifies the valid included trial count as a screening clause, skips it, and erroneously returns (None, None).",
+    "input": "stated_k_from_text(\"Ten randomized trials were included and assessed for risk of bias.\")",
+    "expected_output": "(10, 'Ten randomized trials')",
+    "actual_output": "(None, None)",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r1-agy:g1#3",
+    "record_id": "mc-61c6ccdf8c6bd988a1503cf74c7aa264",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P1",
+    "claim": "stated_k_from_text extracts clause context by splitting only on punctuation (re.split(r'[,;.]', ...)). When a screening clause and an inclusion clause are joined by a coordinating conjunction without punctuation ('We screened 20 studies and included 5 randomized trials.'), 'before' for the included trial count evaluates to 'We screened 20 studies and included '. Because 'screened' is present in 'before', _SCREENING matches and the included trial count is erroneously skipped, returning (None, None).",
+    "input": "stated_k_from_text(\"We screened 20 studies and included 5 randomized trials.\")",
+    "expected_output": "(5, '5 randomized trials')",
+    "actual_output": "(None, None)",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r1-agy:g1#4",
+    "record_id": "mc-61c6ccdf8c6bd988a1503cf74c7aa264",
+    "verdict": null
+   }
+  ]
+ },
+ "pr64-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/comparator-n-included",
+  "runs": {
+   "g1": {
+    "record_id": "mc-78ae17cd900aada1b1a80db0b65efaf9",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/g1_comparator_n_sweep.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "e9f0bf0a1f23eb16ec8f8500632feab04b8c319b92d5920793aa45415257102d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "[]\n[]\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr64-cap-r1-agy:g1#1",
+    "record_id": "mc-78ae17cd900aada1b1a80db0b65efaf9",
+    "verdict": null
+   }
+  ]
+ },
+ "heldout-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/fix/heldout-scratch-isolation-2026-10-12",
+  "runs": {
+   "g1": {
+    "record_id": "mc-8186572c25db23b7d6ae91611e7d7f96",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/heldout.py"
+    ],
+    "prompt_sha256": "618529677a4bcb1e77ffb618c263ed7a0e5de323639c9aa8b311440076489708"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr53-cap-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/g1/r5-2-stated-k",
+  "runs": {
+   "g1": {
+    "record_id": "mc-bd826273ed4d31e6d8901163a8d95b7c",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "5d9d6dcfb70a8196d5d6af97c800e282d73630e5c4c5aab3d026bdf8ed55c754"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "In _STATED_K, the negative lookbehinds (?<!phase )(?<!phase) only guard against 'phase ' with a single space or 'phase' with no space. When a trial phase is hyphenated (e.g., 'Phase-3'), slashed (e.g., 'Phase 2/3'), or ranged (e.g., 'Phase 2-3'), the character immediately preceding the digit 3 is '-' or '/', bypassing the lookbehinds while satisfying the word boundary \\b. The phase designation is incorrectly extracted as trial count k = 3.",
+    "input": "stated_k_from_text(\"We analyzed data from Phase-3 randomized trials.\")",
+    "expected_output": "(None, None)",
+    "actual_output": "(3, \"3 randomized trials\")",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r2-agy:g1#1",
+    "record_id": "mc-bd826273ed4d31e6d8901163a8d95b7c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "stated_k_from_text attempts to skip search funnel denominators using re.fullmatch(r'\\s*of\\s*', before, re.I). When a screening funnel clause opens with alternative prepositions such as 'Out of' or 'Among' (e.g., 'Out of 50 studies, 5 trials were included'), before ('Out of ') does not match r'\\s*of\\s*' and contains no words from _SCREENING. The search funnel denominator is returned as k instead of the included trial count.",
+    "input": "stated_k_from_text(\"Out of 50 studies, 5 trials were included.\")",
+    "expected_output": "(5, \"5 trials\")",
+    "actual_output": "(50, \"50 studies\")",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r2-agy:g1#2",
+    "record_id": "mc-bd826273ed4d31e6d8901163a8d95b7c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P1",
+    "claim": "_SCREENING matches \\bassessed\\b to filter funnel clauses such as '48 studies were assessed for eligibility'. However, in clinical abstracts 'assessed' is standard active voice for what included trials measured (e.g., '5 trials assessed mortality'). Because _SUBCLAUSE does not treat 'assessed' as a boundary, after contains ' assessed mortality', triggering _SCREENING.search(after) and incorrectly dropping the valid included trial count.",
+    "input": "stated_k_from_text(\"In this meta-analysis, 5 trials assessed mortality.\")",
+    "expected_output": "(5, \"5 trials\")",
+    "actual_output": "(None, None)",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r2-agy:g1#3",
+    "record_id": "mc-bd826273ed4d31e6d8901163a8d95b7c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P1",
+    "claim": "_SUBCLAUSE only splits on [,;.] and conjunctions, but not on parentheses '(' or ')'. When an abstract provides parenthetical screening/exclusion details immediately following the included count without an intervening comma or period, after includes the parenthetical text. _SCREENING matches 'records' or 'excluded' in after, causing the valid included count to be dropped.",
+    "input": "stated_k_from_text(\"A total of 5 trials were included (23 records excluded).\")",
+    "expected_output": "(5, \"5 trials\")",
+    "actual_output": "(None, None)",
+    "failing_input": "-",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r2-agy:g1#4",
+    "record_id": "mc-bd826273ed4d31e6d8901163a8d95b7c",
+    "verdict": null
+   }
+  ]
+ },
+ "pr53-cap-r3-agy": {
+  "base": "origin/main",
+  "head": "origin/g1/r5-2-stated-k",
+  "runs": {
+   "g1": {
+    "record_id": "mc-913014b4e6361be84e7552ba89a1b5b7",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "ec760bd536c6ead7de26f7bde3cd60b9fa83e2c0c9db5faaae78ae68444a262f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "Search funnel denominator opening with 'Of the ...' is not skipped because re.fullmatch(r'\\s*of\\s*', before, re.I) only matches literal 'of', causing the screening denominator to be returned as the included trial count k.",
+    "failing_input": "stated_k_from_text('Of the 20 studies, 5 trials were included.')",
+    "expected_output": [
+     5,
+     "5 trials"
+    ],
+    "actual_output": [
+     20,
+     "20 studies"
+    ],
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r3-agy:g1#1",
+    "record_id": "mc-913014b4e6361be84e7552ba89a1b5b7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "Screening clauses stating studies were 'reviewed' are not filtered out because _SCREENING requires the exact phrase 'reviewed for eligibility', even though _VERB treats 'reviewed' as a clause-bounding verb; this causes the reviewed screening count to be extracted as k instead of the included count.",
+    "failing_input": "stated_k_from_text('We reviewed 50 studies and included 5 trials.')",
+    "expected_output": [
+     5,
+     "5 trials"
+    ],
+    "actual_output": [
+     50,
+     "50 studies"
+    ],
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r3-agy:g1#2",
+    "record_id": "mc-913014b4e6361be84e7552ba89a1b5b7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "Negative lookbehinds (?<!phase )(?<!phase)(?<!phase-) on _STATED_K do not guard multi-phase designations containing slashes or hyphens (such as 'Phase 2/3'), causing trial phase designations to be misparsed as trial counts k = 3.",
+    "failing_input": "stated_k_from_text('Data from Phase 2/3 trials were pooled.')",
+    "expected_output": [
+     null,
+     null
+    ],
+    "actual_output": [
+     3,
+     "3 trials"
+    ],
+    "expected": "-",
+    "actual": "-",
+    "id": "pr53-cap-r3-agy:g1#3",
+    "record_id": "mc-913014b4e6361be84e7552ba89a1b5b7",
+    "verdict": null
+   }
+  ]
+ },
+ "pr64-cap-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/comparator-n-included",
+  "runs": {
+   "g1": {
+    "record_id": "mc-57b999cd8940d7bee1649635ce13cf3f",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "scripts/g1_comparator_n_sweep.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "59b9eb3048d14973f8b35285bba326316920314bb111904894e848a9adbd351c"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr64-cap-r3": {
+  "base": "origin/main",
+  "head": "origin/kgap/comparator-n-included",
+  "runs": {
+   "g1": {
+    "record_id": "mc-49ed5f7dadf48e5fc461e6f94240f38d",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/g1_comparator_n_sweep.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "643639f6f2e0e752c0154057db1c011559293ca7d6dd70a4e55fb6662c60eb12"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "seed_candidate_n",
+    "severity": "P0",
+    "claim": "When the comparator states no included-trial count, the early return preserves the seed-candidate count as N_comparator_trials. Reference seeds therefore supply an unsupported result denominator.",
+    "failing_input": "o = {'comparator_set': {'state': 'REFERENCE_SEED_CANDIDATES'}, 'N_comparator_trials': 3, 'k_matched': 2}\nr = seed_candidate_n(o, None, None, 'comparator')\nprint(r['N_comparator_trials'], r['N_candidates'], _k_of_n(r, 2))",
+    "expected": "The included-trial denominator and coverage are unresolved; 3 is retained only as the candidate count.",
+    "actual": "Prints: 3 3 2 / 3. Although included_set_membership becomes UNRESOLVED, the result still uses three candidates as the included-trial denominator.",
+    "id": "pr64-cap-r3:g1#1",
+    "record_id": "mc-49ed5f7dadf48e5fc461e6f94240f38d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "seed_candidate_n / _k_of_n",
+    "severity": "P0",
+    "claim": "When matched candidates do not exceed the stated included-trial total, the code reports them as matches within that total despite explicitly unresolved membership. Knowing the total does not establish that any matched candidate belongs to the included set.",
+    "failing_input": "o = {'comparator_set': {'state': 'REFERENCE_SEED_CANDIDATES'}, 'N_comparator_trials': 3, 'k_matched': 2}\nr = seed_candidate_n(o, 2, 'We included two randomized trials.', 'comparator')\nprint(r['included_set_membership'], r['k_matched_of_comparator_N'], _k_of_n(r, 2))",
+    "expected": "The denominator is 2, but coverage remains unresolved: two seed candidates matched, with no established included-set membership.",
+    "actual": "Prints: UNRESOLVED 2 of 2 2 / 2. Both coverage representations assert an unsupported included-set numerator.",
+    "id": "pr64-cap-r3:g1#2",
+    "record_id": "mc-49ed5f7dadf48e5fc461e6f94240f38d",
+    "verdict": null
+   }
+  ]
+ },
+ "pr64-cap-r3-agy": {
+  "base": "origin/main",
+  "head": "origin/kgap/comparator-n-included",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a114e341be2c13216f9c937c234098c7",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/g1_comparator_n_sweep.py",
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "c1853f0bad5a981ae3f3b258c7ca94fb0b3f13287a99e84a7a064449c4100cab"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "[]\n[]\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr64-cap-r3-agy:g1#1",
+    "record_id": "mc-a114e341be2c13216f9c937c234098c7",
+    "verdict": null
+   }
+  ]
  }
 }
