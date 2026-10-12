@@ -3178,8 +3178,9 @@ def name_reference_seeds_outside_membership(slug, comp, trials, T):
 
 
 # R5-2 (9 Oct): 'Phase 3' is a phase, never a count -- Makam's 'data from Phase 3 randomized trials' was read as k = 3.
+# A combined designation ('Phase 2/3 studies') is a phase too: the number never follows a slash (codex pr53-cap-r3 #6).
 # The number must not follow 'phase' (as _KTRIALS already required); 'studies' and 'RCTs' count as trials too.
-_STATED_K = re.compile(r"(?<!phase )(?<!phase)(?<!phase-)\b(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
+_STATED_K = re.compile(r"(?<!phase )(?<!phase)(?<!phase-)(?<!/)\b(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
                        r"(?:phase\s*(?:3|III)\s+|randomi[sz]ed\s+(?:controlled\s+)?|placebo-controlled\s+|eligible\s+)*"
                        r"(?:clinical\s+)?(?:trials|studies|RCTs)\b", re.I)
 
@@ -3224,12 +3225,15 @@ def stated_k_from_text(t):
         # an explicit inclusion verb in the count's own clause outranks a screening word ('We included 5 studies after
         # full-text review': codex pr53-cap-r2 #2), unless that clause also says excluded
         own = before + " " + after
+        # ... and a NEGATED inclusion ('20 studies were not included') is never the pooled set (codex pr53-cap-r3 #4)
+        if re.search(r"\bnot\s+(?:\w+\s+)?(?:included|pooled|analy[sz]ed)\b", own, re.I):
+            continue
         explicit_inclusion = _INCLUDED.search(own) and not re.search(r"\bexcluded\b", own, re.I)
         if (_SCREENING.search(after) or _SCREENING.search(before)) and not explicit_inclusion:
             continue
         # 'Of 20 studies, ...' -- 'Of' OPENING the clause -- names the search funnel's denominator (codex pr53-cap-r1 #1);
         # 'A total of 9 RCTs were included' / 'In the analysis of nine RCTs' are the pooled set and stay counts
-        if re.fullmatch(r"\s*of\s*", before, re.I):
+        if re.fullmatch(r"\s*of(?:\s+the)?\s*", before, re.I):        # 'Of the 20 studies' too (codex pr53-cap-r3 #3)
             continue
         w = m.group(1).lower()
         return (int(w) if w.isdigit() else _NUMW[w]), m.group(0)

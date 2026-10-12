@@ -1,6 +1,7 @@
 """R5-2: the comparator's own stated trial count (g1_tracker.stated_k_from_text). 'Phase 3' is a phase, never a count:
 Makam (29795629) prints 'We used data from Phase 3 randomized trials ...' and was read as k = 3 ('3 randomized trials')."""
 import os
+import pytest
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -63,3 +64,35 @@ def test_an_explicit_inclusion_outranks_a_screening_word():
 
 def test_a_hyphenated_phase_is_never_a_count():
     assert gt.stated_k_from_text("Data from phase-3 RCTs were pooled. We included 8 trials.") == (8, "8 trials")
+
+
+# ---------------------------------------------------------------- codex pr53-cap-r3 (each failed on e89f3d5dc)
+def test_of_the_denominator_is_the_funnel():
+    assert gt.stated_k_from_text("Of the 20 studies, 5 studies were included.") == (5, "5 studies")
+
+
+def test_a_negated_inclusion_is_not_the_pooled_count():
+    assert gt.stated_k_from_text("20 studies were not included. We included 5 studies.") == (5, "5 studies")
+
+
+def test_a_combined_phase_designation_is_not_a_count():
+    assert gt.stated_k_from_text("We included data from Phase 2/3 studies.") == (None, None)
+
+
+# ---------------------------------------------------------------- KNOWN LIMITS at stop-at-three (codex pr53-cap-r3 #1 #2 #5)
+# A regex clause splitter over free text cannot close every phrasing. The sweep of the PR's own 20 comparator abstracts shows
+# none of these shapes (0 of 20 change). Strict xfails: if one starts passing, the limit is gone and the marker must go.
+_LIMITS = [
+    ("We identified 20 studies of which 5 studies were included.", (5, "5 studies"),
+     "#1 an inclusion verb governing a LATER count is read as governing the earlier one"),
+    ("We excluded 20 studies and 5 studies that were duplicates. We included 2 studies.", (2, "2 studies"),
+     "#2 a relative-clause verb after a shared exclusion list severs the list"),
+    ("We excluded, after full-text review, 20 studies. We included 5 studies.", (5, "5 studies"),
+     "#5 a parenthetical between commas cuts the governing verb off"),
+]
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex pr53-cap-r3): see _LIMITS")
+@pytest.mark.parametrize("text,want,why", _LIMITS)
+def test_known_limit(text, want, why):
+    assert gt.stated_k_from_text(text) == want, why
