@@ -160,6 +160,9 @@ def _compare(out, compares, superseded, signed, rows):
     return bad
 
 
+BUNDLE_TIMEOUT_S = 600
+
+
 def run_bundles(sums, superseded, signed):
     import shutil
     rows, bad = [], 0
@@ -179,14 +182,38 @@ def run_bundles(sums, superseded, signed):
         with tempfile.TemporaryDirectory() as td:
             work = os.path.join(td, d)
             shutil.copytree(base, work)
-            p = subprocess.run([sys.executable, os.path.join(work, script)], capture_output=True, text=True,
-                               encoding="utf-8", errors="replace", cwd=work, timeout=600,
-                               env=dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1"))
+            # the expected outputs are DELETED before the run: the copy carried the committed results.json, so a script
+            # that wrote nothing 'reproduced' it by comparing the stale copy with itself (codex pr62-cap-r1 #1)
+            for name in {produced, committed}:
+                if os.path.exists(os.path.join(work, name)):
+                    os.remove(os.path.join(work, name))
+            # a timeout, a missing output or malformed JSON is a per-bundle FAIL with a typed reason, never a crash and
+            # never a pass (agy pr62-cap-r1-agy #1)
+            try:
+                p = subprocess.run([sys.executable, os.path.join(work, script)], capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace", cwd=work, timeout=BUNDLE_TIMEOUT_S,
+                                   env=dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1"))
+            except subprocess.TimeoutExpired:
+                rows.append({"check": f"{d}/{script} run", "verdict": "FAIL",
+                             "detail": f"TIMEOUT: no result within {BUNDLE_TIMEOUT_S} s"})
+                bad += 1
+                continue
             if p.returncode != 0:
                 rows.append({"check": f"{d}/{script} run", "verdict": "FAIL", "detail": (p.stderr or p.stdout)[-600:]})
                 bad += 1
                 continue
-            out = json.load(open(os.path.join(work, produced), encoding="utf-8"))
+            if not os.path.isfile(os.path.join(work, produced)):
+                rows.append({"check": f"{d}/{script} run", "verdict": "FAIL",
+                             "detail": f"NOT_WRITTEN: the script exited 0 but did not write {produced}"})
+                bad += 1
+                continue
+            try:
+                out = json.load(open(os.path.join(work, produced), encoding="utf-8"))
+            except ValueError as e:
+                rows.append({"check": f"{d}/{script} run", "verdict": "FAIL",
+                             "detail": f"MALFORMED_OUTPUT: {produced} is not JSON ({str(e)[:120]})"})
+                bad += 1
+                continue
         diffs = _same_json(_drop(out, ignore), _drop(json.load(open(os.path.join(base, committed), encoding="utf-8")), ignore))
         rows.append({"check": f"{d}/{script} reproduces {committed}", "verdict": "PASS" if not diffs else "FAIL",
                      "detail": "; ".join(diffs[:5])})

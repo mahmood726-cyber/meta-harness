@@ -129,3 +129,39 @@ def test_PLANT_ignored_paths_drop_only_what_they_name():
     ref = {"runtime": {"numpy": "2.3.5"}, "pool": {"estimate": 0.80}}
     assert vea._same_json(vea._drop(out, [("runtime",)]), vea._drop(ref, [("runtime",)])) != []
     assert vea._same_json(vea._drop(out, [("runtime",)]), vea._drop(dict(ref, pool={"estimate": 0.81}), [("runtime",)])) == []
+
+
+# ---------------------------------------------------------------- captain review: the bundle gate could not fail
+# codex pr62-cap-r1 #1: run_bundles copied the bundle INCLUDING its committed results.json into the run dir, so a script that
+# writes nothing 'reproduced' it by comparing the stale copy with itself. agy pr62-cap-r1-agy #1: a timeout, a missing
+# output or malformed JSON crashed the whole verifier. Each must be a per-bundle FAIL with a typed reason.
+def _swap_script(monkeypatch, tmp_path, body):
+    import hashlib
+    ext = _bundle_only(monkeypatch, tmp_path, "review12")
+    p = ext / "review12" / "checks.py"
+    p.write_text(body, encoding="utf-8")
+    h = hashlib.sha256(p.read_bytes()).hexdigest()
+    sums = ext / "SHA256SUMS"
+    sums.write_text("".join((f"{h} *review12/checks.py\n" if ln.endswith("*review12/checks.py") else ln + "\n")
+                            for ln in sums.read_text(encoding="utf-8").splitlines()), encoding="utf-8")
+    return ext
+
+
+def test_PLANT_a_script_that_writes_nothing_fails(monkeypatch, tmp_path):
+    _swap_script(monkeypatch, tmp_path, "pass\n")
+    rows, bad = vea.run()
+    assert bad >= 1 and any(r["verdict"] == "FAIL" and "NOT_WRITTEN" in r["detail"] for r in rows)
+    assert not any(r["verdict"] == "PASS" and "reproduces" in r["check"] for r in rows)
+
+
+def test_PLANT_malformed_output_is_a_fail_not_a_crash(monkeypatch, tmp_path):
+    _swap_script(monkeypatch, tmp_path, "open('results.json', 'w').write('{not json')\n")
+    rows, bad = vea.run()
+    assert bad >= 1 and any(r["verdict"] == "FAIL" and "MALFORMED_OUTPUT" in r["detail"] for r in rows)
+
+
+def test_PLANT_a_timeout_is_a_fail_not_a_crash(monkeypatch, tmp_path):
+    _swap_script(monkeypatch, tmp_path, "import time\ntime.sleep(30)\n")
+    monkeypatch.setattr(vea, "BUNDLE_TIMEOUT_S", 2)
+    rows, bad = vea.run()
+    assert bad >= 1 and any(r["verdict"] == "FAIL" and "TIMEOUT" in r["detail"] for r in rows)
