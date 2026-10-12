@@ -149,7 +149,21 @@ def _drop(obj, paths):
 def _compare(out, compares, superseded, signed, rows):
     bad = 0
     for label, slug, outcome, field, path in compares:
-        aud = float(_dig(out, path))
+        # a missing or non-numeric auditor value is a FAIL row with a typed reason, never a crash that stops every later
+        # bundle (codex pr62-cap-r2 #1: valid JSON with 'HR': null reached float())
+        try:
+            raw = _dig(out, path)
+        except (KeyError, IndexError, TypeError):
+            rows.append({"check": label, "verdict": "FAIL", "auditor": None, "served": None,
+                         "detail": f"MISSING_OUTPUT_FIELD: {'/'.join(map(str, path))}"})
+            bad += 1
+            continue
+        if isinstance(raw, bool) or not isinstance(raw, (int, float)) or not math.isfinite(raw):
+            rows.append({"check": label, "verdict": "FAIL", "auditor": None, "served": None,
+                         "detail": f"NON_NUMERIC_OUTPUT: {'/'.join(map(str, path))} = {raw!r}"[:200]})
+            bad += 1
+            continue
+        aud = float(raw)
         srv = _served(slug, outcome).get(field)
         ok = srv is not None and math.isfinite(aud) and abs(aud - float(srv)) <= TOL
         sup_ok = _valid_supersession(superseded.get(label), srv, signed)

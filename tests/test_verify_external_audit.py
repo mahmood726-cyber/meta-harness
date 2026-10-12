@@ -165,3 +165,14 @@ def test_PLANT_a_timeout_is_a_fail_not_a_crash(monkeypatch, tmp_path):
     monkeypatch.setattr(vea, "BUNDLE_TIMEOUT_S", 2)
     rows, bad = vea.run()
     assert bad >= 1 and any(r["verdict"] == "FAIL" and "TIMEOUT" in r["detail"] for r in rows)
+
+
+def test_PLANT_a_null_or_missing_auditor_value_is_a_fail_not_a_crash():
+    """codex pr62-cap-r2 #1: valid JSON with 'HR': null reached float() and crashed the whole verifier."""
+    cmp_ = [("x null", "doac-vte-recurrence", None, "estimate", ("primary", "HR")),
+            ("x missing", "doac-vte-recurrence", None, "estimate", ("primary", "absent")),
+            ("x text", "doac-vte-recurrence", None, "estimate", ("primary", "note"))]
+    rows = []
+    bad = vea._compare({"primary": {"HR": None, "note": "n/a"}}, cmp_, {}, set(), rows)
+    assert bad == 3 and [r["verdict"] for r in rows] == ["FAIL"] * 3
+    assert all("NON_NUMERIC_OUTPUT" in r["detail"] or "MISSING_OUTPUT_FIELD" in r["detail"] for r in rows)
