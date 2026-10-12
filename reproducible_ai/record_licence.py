@@ -28,8 +28,22 @@ _DECLARED = re.compile(r"PMID\s*(\d{4,9})\b[^\"]{0,80}?full[ -]?text", re.I)
 
 # ONE restriction pattern for every licence reader (jats_licence, licences(), g1_trial_acquire.pmc_copy): three diverging
 # copies let 'Non Commercial' (spaced) and 'no commercial reuse' through one reader or another (codex/agy d8lic-cap-r1)
-_RESTRICTED = re.compile(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)|Non[- ]?Commercial|No[- ]?Deriv|Share[- ]?Alike|"
-                         r"\bCC[ -]BY[ -](?:NC|ND|SA)\b|no[- ]commercial[- ]re-?use", re.I)
+_RESTRICTED_RE = re.compile(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)|Non[- ]?Commercial|No[- ]?Deriv|Share[- ]?Alike|"
+                            r"\bCC[ -]BY[ -](?:NC|ND|SA)\b|no[- ]commercial[- ]re-?use", re.I)
+_HYPHENS = re.compile("[‐‑‒–—−­]")
+
+
+class _Restricted:
+    """search() on the statement as a READER sees it: entities unescaped ('Non&#x2011;Commercial') and every Unicode hyphen
+    folded to '-' before matching -- the raw XML hid an NC licence behind a non-breaking hyphen (codex d8lic-cap-r2 #2)."""
+
+    @staticmethod
+    def search(text):
+        import html as _html
+        return _RESTRICTED_RE.search(_HYPHENS.sub("-", _html.unescape(str(text or ""))))
+
+
+_RESTRICTED = _Restricted()
 
 
 def licences(index_path=INDEX):

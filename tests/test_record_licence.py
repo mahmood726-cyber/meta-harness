@@ -2,6 +2,7 @@
 record_licence.py). Incident 5 Oct: mc-dcb6796c carried SMART's author-manuscript text (24,886 bytes) into the public repo.
 Every tracked record is checked; the existing debt is listed by id in registry/record_licence_exceptions.json (it may only
 shrink); a new violation fails the unit-test limb, so the pre-commit hook and CI refuse it."""
+import pytest
 import base64
 import json
 import os
@@ -213,3 +214,24 @@ def test_PLANT_one_restriction_pattern_for_every_reader(tmp_path):
         p = tmp_path / "i.json"
         p.write_text(_json.dumps({"1": {"copy_licence": "CC", "copy_statement": w}}), encoding="utf-8")
         assert rl.licences(str(p))["1"] != "CC", w
+
+
+# ---------------------------------------------------------------- codex d8lic-cap-r2
+def test_PLANT_an_entity_encoded_or_unicode_hyphen_restriction_is_restricted(tmp_path):
+    """r2 #2: 'Non&#x2011;Commercial' (a non-breaking hyphen, entity-encoded) passed the restriction check and the broader
+    'Creative Commons Attribution' match admitted the NC licence."""
+    from reproducible_ai import record_licence as rl
+    for w in ["Creative Commons Attribution Non&#x2011;Commercial 4.0 International License (CC BY&#x2011;NC).",
+              "Creative Commons Attribution Non\u2011Commercial License", "CC BY\u2013NC\u2013ND 4.0",
+              "Creative Commons Attribution No&#8209;Derivatives"]:
+        assert rl._RESTRICTED.search(w), w
+        assert rl.jats_licence(_jats(tmp_path, w)) != "CC", w
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex d8lic-cap-r2 #1): a CC BY grant worded 'permitting commercial and "
+                                       "non-commercial reuse' is read as restricted -- the error is fail-CLOSED (a CC BY "
+                                       "text is withheld from prompts), never open")
+def test_known_limit_cc_by_permitting_non_commercial_reuse(tmp_path):
+    from reproducible_ai import record_licence as rl
+    w = "This article is licensed under CC BY 4.0, permitting commercial and non-commercial reuse."
+    assert rl.jats_licence(_jats(tmp_path, w)) == "CC"
