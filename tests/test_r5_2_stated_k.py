@@ -50,3 +50,16 @@ def test_a_total_of_and_analysis_of_stay_counts():
                                  "2031 patients.") == (9, "9 RCTs")
     assert gt.stated_k_from_text("In the analysis of nine RCTs, MRAs were associated with a 23% reduction in CV composite "
                                  "outcomes") == (9, "nine RCTs")
+
+
+# ---------------------------------------------------------------- captain review round 2 (codex pr53-cap-r2 #1-#3)
+def test_a_shared_exclusion_verb_governs_every_coordinated_count():
+    assert gt.stated_k_from_text("We excluded 20 studies and 5 RCTs. We included 3 trials.") == (3, "3 trials")
+
+
+def test_an_explicit_inclusion_outranks_a_screening_word():
+    assert gt.stated_k_from_text("We included 5 studies after full-text review.") == (5, "5 studies")
+
+
+def test_a_hyphenated_phase_is_never_a_count():
+    assert gt.stated_k_from_text("Data from phase-3 RCTs were pooled. We included 8 trials.") == (8, "8 trials")

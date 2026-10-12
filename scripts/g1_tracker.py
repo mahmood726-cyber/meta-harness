@@ -3179,12 +3179,35 @@ def name_reference_seeds_outside_membership(slug, comp, trials, T):
 
 # R5-2 (9 Oct): 'Phase 3' is a phase, never a count -- Makam's 'data from Phase 3 randomized trials' was read as k = 3.
 # The number must not follow 'phase' (as _KTRIALS already required); 'studies' and 'RCTs' count as trials too.
-_STATED_K = re.compile(r"(?<!phase )(?<!phase)\b(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
+_STATED_K = re.compile(r"(?<!phase )(?<!phase)(?<!phase-)\b(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
                        r"(?:phase\s*(?:3|III)\s+|randomi[sz]ed\s+(?:controlled\s+)?|placebo-controlled\s+|eligible\s+)*"
                        r"(?:clinical\s+)?(?:trials|studies|RCTs)\b", re.I)
 
 
-_SUBCLAUSE = re.compile(r"[,;.]|\b(?:and|but|while|whereas)\b", re.I)
+# a clause ends at punctuation or 'but/while/whereas'; 'and' ends one only when the coordinated part (up to the next
+# punctuation) carries its OWN verb ('...18 were excluded and 2 trials were included'; '...5 studies and excluded 2'),
+# never in a list sharing one verb ('We excluded 20 studies and 5 RCTs': codex pr53-cap-r2 #1)
+_SUBCLAUSE = re.compile(r"[,;.]|\b(?:but|while|whereas)\b", re.I)
+_VERB = re.compile(r"\b(?:were|was|included|excluded|identified|screened|retrieved|assessed|pooled|analy[sz]ed|"
+                   r"reviewed)\b", re.I)
+
+
+def _clause_bounds(t, start, end):
+    """(before, after) of the count at t[start:end] inside its own clause (see _SUBCLAUSE / _VERB)."""
+    before = _SUBCLAUSE.split(t[:start])[-1]
+    after = _SUBCLAUSE.split(t[end:], maxsplit=1)[0]
+    tail = _SUBCLAUSE.split(t[start:], maxsplit=1)[0]          # this count's coordinated part, to the next punctuation
+    for m in reversed(list(re.finditer(r"\band\b", before, re.I))):
+        if _VERB.search(before[m.end():] + tail):
+            before = before[m.end():]                     # the 'and' starts this count's own clause
+            break
+    a = re.search(r"\band\b", after, re.I)
+    if a and _VERB.search(after[a.end():]):
+        after = after[:a.start()]                          # a following 'and <verb...>' is another clause
+    return before[-80:], after[:80]
+
+
+_INCLUDED = re.compile(r"\b(?:included|pooled|analy[sz]ed|comprised)\b", re.I)
 _SCREENING = re.compile(r"\b(?:screened|identified|retrieved|assessed|excluded|records?|searched|potentially|"
                         r"full[- ]text|reviewed for eligibility)\b", re.I)
 
@@ -3197,9 +3220,12 @@ def stated_k_from_text(t):
     for m in _STATED_K.finditer(t):
         # the count's OWN sub-clause, either side: a coordinating conjunction starts another clause with its own verb, so
         # 'We included 5 studies and excluded 2 studies' never lets 'excluded' govern the 5 (codex pr53-cap-r1 #2)
-        after = _SUBCLAUSE.split(t[m.end():], maxsplit=1)[0][:80]
-        before = _SUBCLAUSE.split(t[:m.start()])[-1][-80:]
-        if _SCREENING.search(after) or _SCREENING.search(before):
+        before, after = _clause_bounds(t, m.start(), m.end())
+        # an explicit inclusion verb in the count's own clause outranks a screening word ('We included 5 studies after
+        # full-text review': codex pr53-cap-r2 #2), unless that clause also says excluded
+        own = before + " " + after
+        explicit_inclusion = _INCLUDED.search(own) and not re.search(r"\bexcluded\b", own, re.I)
+        if (_SCREENING.search(after) or _SCREENING.search(before)) and not explicit_inclusion:
             continue
         # 'Of 20 studies, ...' -- 'Of' OPENING the clause -- names the search funnel's denominator (codex pr53-cap-r1 #1);
         # 'A total of 9 RCTs were included' / 'In the analysis of nine RCTs' are the pooled set and stay counts
