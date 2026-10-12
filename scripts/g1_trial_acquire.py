@@ -300,8 +300,8 @@ def pmc_copy(pmid):
     stmt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", perm)).strip()[:300] or None
     # D8: NonCommercial / NoDerivatives / ShareAlike are Creative Commons but never open for a prompt (D8 incident #2/#3,
     # 12 Oct: this writer recorded 7 NC/ND copies as 'CC'); restricted wins over any CC BY wording
-    if re.search(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)|Non-?Commercial|No-?Deriv|Share-?Alike|"
-                 r"\bCC[ -]BY[ -](?:NC|ND|SA)\b|no commercial re-?use", perm, re.I):
+    from reproducible_ai.record_licence import _RESTRICTED       # the ONE shared pattern (d8lic-cap-r1)
+    if _RESTRICTED.search(perm):
         lic = "CC_RESTRICTED"
     elif re.search(r"creativecommons\.org/(?:licenses/by/|publicdomain/)", perm):
         lic = "CC"

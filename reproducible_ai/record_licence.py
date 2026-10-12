@@ -26,8 +26,10 @@ DECLARED_MIN = 6000      # a declared full-text prompt shorter than this holds a
 _DECLARED = re.compile(r"PMID\s*(\d{4,9})\b[^\"]{0,80}?full[ -]?text", re.I)
 
 
-_RESTRICTED = re.compile(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)|Non-?Commercial|No-?Deriv|Share-?Alike|"
-                         r"\bCC[ -]BY[ -](?:NC|ND|SA)\b|no commercial re-?use", re.I)
+# ONE restriction pattern for every licence reader (jats_licence, licences(), g1_trial_acquire.pmc_copy): three diverging
+# copies let 'Non Commercial' (spaced) and 'no commercial reuse' through one reader or another (codex/agy d8lic-cap-r1)
+_RESTRICTED = re.compile(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)|Non[- ]?Commercial|No[- ]?Deriv|Share[- ]?Alike|"
+                         r"\bCC[ -]BY[ -](?:NC|ND|SA)\b|no[- ]commercial[- ]re-?use", re.I)
 
 
 def licences(index_path=INDEX):
@@ -160,8 +162,7 @@ def jats_licence(path):
     # D8: only CC BY / CC0 enters a prompt. A NonCommercial / NoDerivatives / ShareAlike licence is Creative Commons but
     # NOT open for us -- returning 'CC' for any creativecommons.org licence sent CC BY-NC (32720823) and CC BY-NC-ND
     # (28456509) full texts to codex / agy (D8 incident #2, robgrade lane, 12 Oct). Restricted wins over any CC BY wording.
-    if (re.search(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)", perm, re.I)
-            or re.search(r"Non-?Commercial|No-?Deriv|Share-?Alike|\bCC[ -]BY[ -](?:NC|ND|SA)\b", perm, re.I)):
+    if _RESTRICTED.search(perm):
         return "CC_RESTRICTED"
     # the licence named by URL, or IN WORDS inside the article's own <permissions> ('distributed under the terms of the
     # Creative Commons Attribution License (CC BY)': 19 open articles had no URL, 6 Oct); never words outside <permissions>

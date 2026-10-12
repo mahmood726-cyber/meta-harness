@@ -197,3 +197,19 @@ def test_PLANT_an_index_entry_marked_CC_with_an_NC_statement_never_opens_a_promp
     real = rl.licences()
     for pmid in ("20668840", "21115589", "26330422", "29246960", "31290965", "33472855", "35475258"):
         assert real.get(pmid) != "CC", pmid
+
+
+def test_PLANT_one_restriction_pattern_for_every_reader(tmp_path):
+    """codex / agy d8lic-cap-r1: the three readers carried different patterns -- 'Non Commercial' (spaced) passed the
+    prompt guard, and jats_licence missed 'no commercial reuse'. One shared pattern now."""
+    import json as _json
+    from reproducible_ai import record_licence as rl
+    words = ["Creative Commons Attribution Non Commercial License", "Creative Commons Attribution No Derivatives License",
+             "Creative Commons Attribution Share Alike License", "Creative Commons Attribution License; no commercial reuse",
+             "CC BY-NC-ND 4.0", "CC BY NC 4.0"]
+    for w in words:
+        assert rl._RESTRICTED.search(w), w
+        assert rl.jats_licence(_jats(tmp_path, w)) != "CC", w
+        p = tmp_path / "i.json"
+        p.write_text(_json.dumps({"1": {"copy_licence": "CC", "copy_statement": w}}), encoding="utf-8")
+        assert rl.licences(str(p))["1"] != "CC", w
