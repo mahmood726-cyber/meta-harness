@@ -279,3 +279,21 @@ def test_PLANT_a_passive_POPULATION_exclusion_removes_no_component():
     # the endpoint's OWN passive exclusion still counts (battery W4)
     assert "stroke" not in C.components("The composite of cardiovascular death, myocardial infarction and stroke; nonfatal "
                                          "stroke was excluded.").components
+
+
+# ---------------------------------------------------------------- codex m2w4-cap-r1 (each failed on 49b98d160)
+def test_PLANT_the_population_guard_reads_the_whole_subject_and_only_the_subject():
+    assert list(C._endpoint_exclusions("patients with diabetes and stroke were excluded.")) == []      # #1
+    assert len(list(C._endpoint_exclusions("stroke was excluded from the endpoint in patients with diabetes."))) == 1  # #2
+
+
+def test_PLANT_a_passive_exclusion_stops_before_a_following_inclusion_clause():
+    out = C.strip_exclusions("stroke was excluded but myocardial infarction was included.")                         # #3
+    assert "myocardial infarction was included" in out and "stroke" not in out
+
+
+def test_PLANT_a_conjoined_passive_exclusion_excludes_every_named_component():
+    """agy m2w4-cap-r1 #2: 'Stroke and MI were excluded' excluded only MI."""
+    assert {"stroke", "myocardial infarction"} <= C.excluded("Stroke and myocardial infarction were excluded.")
+    # a definition list before a bracket / comma is never swallowed into the subject
+    assert C.excluded("MACE (cardiovascular death, myocardial infarction, stroke) and stroke was excluded.") == {"stroke"}

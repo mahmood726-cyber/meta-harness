@@ -159,7 +159,9 @@ _EXCLUSION = re.compile(
     r"\b(?:excluding|except(?: for)?|other than|not including)\b[^,.;)]*"
     # Passive exclusions name the component BEFORE the verb (M2 W4a/W4b).
     # Stop at list/clause boundaries so included components are not swallowed.
-    r"|\b(?:(?!\b(?:and|or)\b)[^,.;()])+?\s+(?:was|were|is|are)\s+excluded\b[^,.;)]*")
+    # The tail stops at a following clause ('... was excluded BUT myocardial infarction was included': codex m2w4-cap-r1 #3).
+    r"|\b(?:(?!\b(?:and|or)\b)[^,.;()])+?\s+(?:was|were|is|are)\s+excluded\b"
+    r"(?:(?!\b(?:but|while|whereas|although|and)\b)[^,.;)])*")
 
 
 # a passive exclusion whose SUBJECT is a population is an eligibility criterion, never an endpoint exclusion: 'Patients with
@@ -169,22 +171,41 @@ _POPULATION_SUBJECT = re.compile(r"\b(?:patients?|participants?|subjects?|indivi
 
 
 def _endpoint_exclusions(text):
+    """(start, end) of each ENDPOINT exclusion clause in text. A passive one ('stroke and MI were excluded') spans its whole
+    conjoined subject back to the nearest comma / bracket / clause mark (agy m2w4-cap-r1 #2: only 'MI' was excluded)."""
     for m in _EXCLUSION.finditer(text):
-        if re.search(r"\s(?:was|were|is|are)\s+excluded\b", m.group(0)) and _POPULATION_SUBJECT.search(m.group(0)):
+        v = re.search(r"\s(?:was|were|is|are)\s+excluded\b", m.group(0))
+        if not v:
+            yield m.start(), m.end()
             continue
-        yield m
+        verb = m.start() + v.start()
+        # the population test reads the WHOLE subject -- from the clause start to the verb, across 'and' ('patients with
+        # diabetes and stroke were excluded': codex m2w4-cap-r1 #1) -- and ONLY the subject, never words after the verb
+        # ('stroke was excluded from the endpoint in patients with diabetes' is an endpoint exclusion: #2)
+        clause = max(text.rfind(c, 0, m.start()) for c in ".;:") + 1
+        if _POPULATION_SUBJECT.search(text[clause:verb]):
+            continue
+        # the verb's NUMBER decides the subject: 'stroke and MI WERE excluded' is one conjoined subject (agy m2w4-cap-r1 #2),
+        # 'defined as CV death and MI and nonfatal stroke WAS excluded' is a list, then a new clause on its last item
+        if re.match(r"\s(?:were|are)\b", v.group(0)):
+            yield max(text.rfind(c, 0, m.start()) for c in ".;:,()") + 1, m.end()
+        else:
+            yield m.start(), m.end()
 
 
 def excluded(text: str | None) -> set[str]:
     """Components an exclusion clause names: they stay out even after a generic label expands (codex/agy p0-r2 #2)."""
-    return set().union(*[known(m.group(0)) for m in _endpoint_exclusions(_fold(text))]) if text else set()
+    if not text:
+        return set()
+    t = _fold(text)
+    return set().union(*[known(t[a:b]) for a, b in _endpoint_exclusions(t)])
 
 
 def strip_exclusions(s: str) -> str:
     """Remove exclusion clauses: an excluded component is not a named one (codex p0-r1 #5, M2 W4)."""
     s = s or ""
-    for m in reversed(list(_endpoint_exclusions(s))):
-        s = s[:m.start()] + " " + s[m.end():]
+    for a, b in reversed(list(_endpoint_exclusions(s))):
+        s = s[:a] + " " + s[b:]
     return s
 
 
