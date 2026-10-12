@@ -148,3 +148,52 @@ def test_PLANT_any_sentence_punctuation_after_an_unbalanced_paren_is_dropped():
     from reproducible_ai import record_licence as rl
     assert rl.ref_licences("report (DOI 10.1234/example): held text", {}, {"10.1234/example": "cc-by"}) == \
         [("DOI 10.1234/example", "cc-by")]
+
+
+# ---------------------------------------------------------------- D8 incident #2 (robgrade lane, 12 Oct): NC / ND reached prompts
+# jats_licence returned 'CC' for ANY creativecommons.org licence and _is_open accepted any string starting with 'cc', so
+# CC BY-NC (PMID 32720823) and CC BY-NC-ND (PMID 28456509) full texts were sent to codex / agy (quarantined, never
+# committed). D8: only CC BY / CC0 text enters a prompt.
+def _jats(tmp_path, perm):
+    p = tmp_path / "a.xml"
+    p.write_text(f"<article><front><permissions>{perm}</permissions></front></article>", encoding="utf-8")
+    return str(p)
+
+
+def test_PLANT_non_commercial_and_no_derivatives_jats_are_not_open(tmp_path):
+    from reproducible_ai import record_licence as rl
+    for perm in ['<license xlink:href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</license>',
+                 '<license xlink:href="http://creativecommons.org/licenses/by-nc-nd/4.0/"/>',
+                 '<license xlink:href="https://creativecommons.org/licenses/by-sa/4.0/"/>',
+                 "This is an open access article under the Creative Commons Attribution-NonCommercial License.",
+                 "Creative Commons Attribution-NoDerivatives 4.0 International"]:
+        assert rl.jats_licence(_jats(tmp_path, perm)) != "CC", perm
+    for perm in ['<license xlink:href="https://creativecommons.org/licenses/by/4.0/"/>',
+                 '<license xlink:href="https://creativecommons.org/publicdomain/zero/1.0/"/>',
+                 "distributed under the terms of the Creative Commons Attribution License (CC BY)"]:
+        assert rl.jats_licence(_jats(tmp_path, perm)) == "CC", perm
+
+
+def test_PLANT_only_cc_by_and_cc0_licence_strings_are_open():
+    from reproducible_ai import record_licence as rl
+    for lic in ("cc-by-nc", "cc-by-nc-nd", "cc-by-nd", "cc-by-sa", "cc-by-nc-sa", "CC BY-NC 4.0", "implied-oa", None, ""):
+        assert not rl._is_open(lic), lic
+    for lic in ("CC", "cc-by", "cc0", "CC-BY", "cc-by-4.0"):
+        assert rl._is_open(lic), lic
+
+
+def test_PLANT_an_index_entry_marked_CC_with_an_NC_statement_never_opens_a_prompt(tmp_path):
+    """7 of 16 'CC' entries in outputs/k_gap/fulltext_index.json on main carry an NC / ND statement (e.g. 33472855 'Re-use
+    permitted under CC BY-NC. No commercial re-use'); mc-b4d4124b (29 Sep) sent that text to codex."""
+    import json as _json
+    from reproducible_ai import record_licence as rl
+    p = tmp_path / "idx.json"
+    p.write_text(_json.dumps({"1": {"copy_licence": "CC", "copy_statement": "Re-use permitted under CC BY-NC. No commercial re-use."},
+                              "2": {"copy_licence": "CC", "copy_statement": "https://creativecommons.org/licenses/by-nc-nd/4.0/"},
+                              "3": {"copy_licence": "CC", "copy_statement": "https://creativecommons.org/licenses/by/4.0/"}}),
+                 encoding="utf-8")
+    lic = rl.licences(str(p))
+    assert lic["1"] != "CC" and lic["2"] != "CC" and lic["3"] == "CC"
+    real = rl.licences()
+    for pmid in ("20668840", "21115589", "26330422", "29246960", "31290965", "33472855", "35475258"):
+        assert real.get(pmid) != "CC", pmid

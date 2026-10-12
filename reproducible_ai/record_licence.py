@@ -26,9 +26,18 @@ DECLARED_MIN = 6000      # a declared full-text prompt shorter than this holds a
 _DECLARED = re.compile(r"PMID\s*(\d{4,9})\b[^\"]{0,80}?full[ -]?text", re.I)
 
 
+_RESTRICTED = re.compile(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)|Non-?Commercial|No-?Deriv|Share-?Alike|"
+                         r"\bCC[ -]BY[ -](?:NC|ND|SA)\b|no commercial re-?use", re.I)
+
+
 def licences(index_path=INDEX):
+    """PMID -> the copy's licence for the PROMPT guard. An entry marked 'CC' whose own recorded permissions statement names
+    a NonCommercial / NoDerivatives / ShareAlike licence is CC_RESTRICTED here: 7 of 16 'CC' entries on main were NC/ND
+    (D8 incident #2, 12 Oct). The index itself is not rewritten (its other readers feed served pools: a signed change)."""
     idx = json.load(open(index_path, encoding="utf-8")) if os.path.exists(index_path) else {}
-    return {str(p): (e or {}).get("copy_licence") for p, e in idx.items()}
+    return {str(p): ("CC_RESTRICTED" if (e or {}).get("copy_licence") == "CC"
+                     and _RESTRICTED.search(str((e or {}).get("copy_statement") or "")) else (e or {}).get("copy_licence"))
+            for p, e in idx.items()}
 
 
 def _prompt_text(record):
@@ -148,9 +157,15 @@ def jats_licence(path):
     except OSError:
         return "NOT_HELD"
     perm = " ".join(re.findall(r"<permissions>.*?</permissions>", x, re.S))
+    # D8: only CC BY / CC0 enters a prompt. A NonCommercial / NoDerivatives / ShareAlike licence is Creative Commons but
+    # NOT open for us -- returning 'CC' for any creativecommons.org licence sent CC BY-NC (32720823) and CC BY-NC-ND
+    # (28456509) full texts to codex / agy (D8 incident #2, robgrade lane, 12 Oct). Restricted wins over any CC BY wording.
+    if (re.search(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)", perm, re.I)
+            or re.search(r"Non-?Commercial|No-?Deriv|Share-?Alike|\bCC[ -]BY[ -](?:NC|ND|SA)\b", perm, re.I)):
+        return "CC_RESTRICTED"
     # the licence named by URL, or IN WORDS inside the article's own <permissions> ('distributed under the terms of the
     # Creative Commons Attribution License (CC BY)': 19 open articles had no URL, 6 Oct); never words outside <permissions>
-    return "CC" if (re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", perm)
+    return "CC" if (re.search(r"creativecommons\.org/(?:licenses/by/|publicdomain/)", perm)
                     or re.search(r"Creative\s+Commons\s+(?:Attribution|Zero|CC0)|\bCC0\b|\bCC[ -]BY\b", perm)) else "NOT_OPEN"
 
 
@@ -217,7 +232,10 @@ def ref_licences(ref, lic, dlic):
 
 
 def _is_open(licence):
-    return licence == "CC" or str(licence or "").startswith("cc")
+    """D8: CC BY or CC0 only. Any string starting with 'cc' let Unpaywall's 'cc-by-nc' / 'cc-by-nc-nd' / 'cc-by-sa' open a
+    prompt (D8 incident #2, 12 Oct)."""
+    lic = str(licence or "").strip().lower()
+    return lic == "cc" or bool(re.fullmatch(r"cc[- ]?by(?:[- ]\d(?:\.\d)?)?|cc0(?:[- ]\d(?:\.\d)?)?", lic))
 
 
 def text_block_problems(record, dlic=None, lic=None):
