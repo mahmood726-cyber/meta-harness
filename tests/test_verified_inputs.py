@@ -53,3 +53,34 @@ def test_span_refusal_blocks_fallbacks_and_preserves_evidence(tmp_path, monkeypa
     entry.update(source_span=held, document_ref="records.json", span_refusal=evidence)
     path.write_text(json.dumps({"fixture": entry}), encoding="utf-8")
     assert "span_refusal" not in verified_inputs.load("synthetic", cache_root=tmp_path)[filename]["fixture"]
+
+
+def _refused(tmp_path):
+    held = "Synthetic harm: risk ratio 0.5 (95% CI 0.2 to 0.9)."
+    return held, {"outcome": "Synthetic harm", "kind": "extracted_effect", "effect": 0.5, "ci_low": 0.2, "ci_high": 0.9,
+                  "scale": "RR", "source_span": held + " stale", "document_ref": "records.json", "source_level": 1,
+                  "span_refusal": {"reason_code": "ENDPOINT_UNBOUND", "reason": "absent", "document_ref": "records.json",
+                                   "source_span": held + " stale"}}
+
+
+def test_PLANT_a_refusal_keyed_by_the_trials_NCT_is_seen_for_its_PMID_record(tmp_path, monkeypatch):
+    """agy m2w2a-cap-r1 #1: an entry keyed by the record's NCT while the included record is its PMID was never matched, so
+    the refusal was not shown and the trial quietly fell back to abstract extraction."""
+    held, entry = _refused(tmp_path)
+    monkeypatch.setattr(pipeline, "_source_effect_candidates",
+                        lambda *a, **k: pytest.fail("a refused trial reached candidate selection"))
+    out = pipeline._build_outcome({"name": "Synthetic harm", "keywords": ["harm"], "estimand": "RR"}, "harm",
+                                  [{"id": "111", "id_type": "pmid"}], {"111": {"abstract": held, "nct": "NCT00001"}},
+                                  ["drug"], ["placebo"], verified_effects={"NCT00001": entry}, verified_arms={})
+    assert not out["trials"] and out["declared_absent_trials"][0]["state"] == "EXTRACTION_DEBT"
+
+
+def test_PLANT_a_multi_row_verified_entry_does_not_crash_the_refusal_scan(tmp_path, monkeypatch):
+    """agy m2w2a-cap-r1 #2: a list of rows per trial (multi-arm) reached entry.get() -> AttributeError."""
+    held, entry = _refused(tmp_path)
+    monkeypatch.setattr(pipeline, "_source_effect_candidates",
+                        lambda *a, **k: pytest.fail("a refused trial reached candidate selection"))
+    out = pipeline._build_outcome({"name": "Synthetic harm", "keywords": ["harm"], "estimand": "RR"}, "harm",
+                                  [{"id": "111", "id_type": "pmid"}], {"111": {"abstract": held}}, ["drug"], ["placebo"],
+                                  verified_effects={"111": [entry, dict(entry, outcome="Other outcome", span_refusal=None)]}, verified_arms={})
+    assert not out["trials"] and out["declared_absent_trials"][0]["state"] == "EXTRACTION_DEBT"
