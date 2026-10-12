@@ -1268,9 +1268,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                     span_refusals.setdefault(pid, []).append(entry["span_refusal"])
 
     def _refused_ids(d):
-        # an entry keyed by the record's NCT while the included record is its PMID is the same trial (agy m2w2a-cap-r1 #1)
-        nct = rec_by_id.get(d["id"], {}).get("nct")
-        return [k for k in (d["id"], nct) if k and k in span_refusals]
+        # an entry keyed by the record's NCT while the included record is its PMID is the same trial (agy m2w2a-cap-r1 #1),
+        # and the symmetric case: keyed by the PMID of an NCT-indexed record (agy m2comb-cap-r2 #1)
+        rec = rec_by_id.get(d["id"], {})
+        return [k for k in dict.fromkeys((d["id"], rec.get("nct"), rec.get("pmid"))) if k and k in span_refusals]
 
     candidate_index = {}
     eligibility_refusals = {}
