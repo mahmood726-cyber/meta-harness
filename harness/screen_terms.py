@@ -47,15 +47,15 @@ POP_SYNONYMS = {
     "postpartum haemorrhage": ["postpartum hemorrhage", "post-partum haemorrhage", "post-partum hemorrhage"],
 }
 
-_CACHE: dict = {}
+# a population term joining two requirements ('type 2 diabetes WITH chronic kidney disease'): a synonym for one component
+# must keep the other -- adding a bare 't2dm' admitted isolated T2DM (codex pr65-cap-r1 #3)
+_CONJ = re.compile(r"\b(?:with|and|plus|without|in|having)\b")
 
 
 def expand(inc: dict) -> dict:
-    """A copy of the include object with the typed codes/synonyms added (never removed); the original is untouched."""
-    key = id(inc)
-    hit = _CACHE.get(key)
-    if hit is not None and hit[0] is inc:
-        return hit[1]
+    """A copy of the include object with the typed codes/synonyms added (never removed); the original is untouched.
+    Recomputed from the CONTENT every call: a cache keyed by object identity returned stale terms after the dict was
+    mutated (codex pr65-cap-r1 #4)."""
     out = dict(inc or {})
     ia = [str(t) for t in out.get("intervention_any") or []]
     low = " ".join(t.lower() for t in ia)
@@ -64,10 +64,20 @@ def expand(inc: dict) -> dict:
         out["intervention_any"] = ia + add
     pa = [str(t) for t in (out.get("population_any") or []) + (out.get("population_any_extra") or [])]
     plow = " ".join(t.lower() for t in pa)
-    padd = [s for concept, syns in POP_SYNONYMS.items() if concept in plow for s in syns if s not in plow]
+    padd = []
+    for concept, syns in POP_SYNONYMS.items():
+        terms = [t.lower() for t in pa if concept in t.lower()]
+        if not terms:
+            continue
+        if any(not _CONJ.search(t) for t in terms):
+            # the concept stands as a term of its own or as the head of one ('type 2 diabetes mellitus',
+            # 'postmenopausal osteoporosis'): its synonyms stand alone, as before
+            padd += [s for s in syns if s not in plow and s not in padd]
+        else:
+            # ONLY inside conjunctions: the synonym replaces the component and the conjunction survives
+            padd += [c for t in terms for s in syns for c in [t.replace(concept, s)] if c not in plow and c not in padd]
     if padd and out.get("population_any"):
         out["population_any_extra"] = list(out.get("population_any_extra") or []) + padd
-    _CACHE[key] = (inc, out)
     return out
 
 
@@ -87,14 +97,25 @@ def placebo_masks_intervention(rec: dict, inc: dict, text: str) -> dict | None:
     low = hay.lower()
     iq = "|".join(re.escape(i) for i in ints)
     # (1) an explicit placebo OF the intervention
-    m = re.search(rf"(?:matching\s+)?placebo\s+(?:for|to|of)\s+(?:{iq})|(?:{iq})[\s-]*(?:matching\s+)?placebo\b", low)
+    explicit = rf"(?:matching\s+)?placebo\s+(?:for|to|of)\s+(?:{iq})|(?:{iq})[\s-]*(?:matching\s+)?placebo\b"
+    m = re.search(explicit, low)
     if m:
+        # ... on the SAME background: when the record's own arms show it, the placebo arm's background agents must
+        # equal an intervention arm's ('clomiphene plus metformin' v 'letrozole plus placebo for metformin' is a
+        # different background: codex pr65-cap-r1 #1). Arms not listed -> as before (the explicit wording stands).
+        arms = [p.lower() for p in parts]
+        p_arms = [a for a in arms if re.search(explicit, a)]
+        i_arms = [a for a in arms if re.search(iq, a) and "placebo" not in a]
+        if p_arms and i_arms and not any(_background(a, iq) == _background(p, iq) for p in p_arms for a in i_arms):
+            return None
         return {"term": "placebo (masks the intervention)", "span": hay[m.start():m.end()]}
     # (2) 'B plus placebo' paired with the SAME background combined with the intervention ('combination of X and B')
     for pm in re.finditer(rf"\b([a-z][a-z-]*(?:\s+[a-z][a-z-]*)?){_JOIN}placebo\b", low):
         # the background agent is the LAST one or two words before '+ placebo' ('clomiphene citrate plus placebo');
         # a lazy wider capture took 'syndrome to receive clomiphene citrate' and tested 'syndrome'
-        words = [w for w in pm.group(1).split() if len(w) >= 4 and w not in _STOP]
+        # a salt or form ('citrate', 'sodium') is not an agent: 'clomiphene citrate' and 'tamoxifen citrate' share a word,
+        # never a background (codex pr65-cap-r1 #2)
+        words = [w for w in pm.group(1).split() if len(w) >= 4 and w not in _STOP and w not in _SALTS]
         if not words or re.search(iq, pm.group(1)):    # a placebo masking ANOTHER agent: the intervention is in this
             continue                                    # arm, so it is not masked -- never a contrast
         for bg_core in words:
@@ -112,3 +133,21 @@ def placebo_masks_intervention(rec: dict, inc: dict, text: str) -> dict | None:
 
 _STOP = {"receive", "received", "either", "with", "group", "groups", "patients", "subjects", "women", "arms", "alone",
          "dose", "doses", "daily", "oral", "tablet", "tablets", "therapy", "treatment", "matching"}
+_SALTS = {"citrate", "sodium", "potassium", "calcium", "magnesium", "hydrochloride", "hydrobromide", "sulfate", "sulphate",
+          "phosphate", "acetate", "maleate", "fumarate", "succinate", "tartrate", "mesylate", "besylate", "tosylate",
+          "bromide", "chloride", "propionate", "dipropionate", "furoate", "valerate", "extended-release", "immediate-release",
+          "release", "extended", "sustained", "modified", "hcl"}
+
+
+def _background(arm, iq):
+    """The background AGENTS of one arm: its joined components ('A plus B', 'A + B', 'A with B') other than the
+    intervention and the placebo, each keyed by its first drug word -- salts / forms / dose words are not agents."""
+    out = set()
+    for comp in re.split(_JOIN, arm):
+        if re.search(iq, comp) or "placebo" in comp:
+            continue
+        w = next((w for w in re.findall(r"[a-z][a-z-]+", comp) if len(w) >= 4 and w not in _STOP and w not in _SALTS),
+                 None)
+        if w:
+            out.add(w)
+    return out

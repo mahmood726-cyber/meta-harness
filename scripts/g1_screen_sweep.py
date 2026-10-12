@@ -45,10 +45,15 @@ def diff(old_p, new_p):
     for slug in sorted(set(old) | set(new)):
         o, w = old.get(slug, {}), new.get(slug, {})
         for rid in sorted(set(o) | set(w)):
-            if o.get(rid, [None, None])[:2] != w.get(rid, [None, None])[:2]:
+            ov, wv = o.get(rid, ["-", "-"]), w.get(rid, ["-", "-"])
+            # an error is a whole STRING ('__error__': 'ValueError: ...'): slicing it [:2] made every failure 'Va', so two
+            # different failures read as equal (codex pr65-cap-r1 #5). Compare and print it whole.
+            key = lambda v: v if isinstance(v, str) else list(v[:2])
+            if key(ov) != key(wv):
                 n += 1
-                md.append(f"| {slug} | {rid} | {'/'.join(map(str, o.get(rid, ['-', '-'])[:2]))} | "
-                          f"{'/'.join(map(str, w.get(rid, ['-', '-'])[:2]))} | {(w.get(rid) or ['', '', ''])[2][:120]} |")
+                show = lambda v: v if isinstance(v, str) else "/".join(map(str, v[:2]))
+                reason = wv if isinstance(wv, str) else (list(wv) + ["", "", ""])[2][:120]
+                md.append(f"| {slug} | {rid} | {show(ov)} | {show(wv)} | {reason} |")
     print(f"{n} changed decisions over {len(set(old) | set(new))} topics")
     print("\n".join(md))
 

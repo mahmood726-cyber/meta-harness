@@ -2,7 +2,11 @@
 Real held record text where one exists (Legro 17287476 metformin; ARTS-DN Japan NCT01968668)."""
 from __future__ import annotations
 
+import os
+
 from harness import screen_terms as st
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 LEGRO = ("We randomly assigned 626 infertile women with the polycystic ovary syndrome to receive clomiphene citrate plus "
          "placebo, extended-release metformin plus placebo, or a combination of metformin and clomiphene for up to 6 months.")
@@ -47,3 +51,47 @@ def test_explicit_placebo_for_the_intervention():
     got = st.placebo_masks_intervention({"interventions": ["Potassium Chloride + Placebo for Empagliflozin"]},
                                         {"intervention_any": ["empagliflozin"], "comparator_any": ["placebo group"]}, "")
     assert got and "masks the intervention" in got["term"]
+
+
+# ---------------------------------------------------------------- codex pr65-cap-r1 (each failed on 3560d2a6d)
+def test_PLANT_explicit_placebo_needs_the_same_background():
+    from harness.screen_terms import placebo_masks_intervention as pm
+    inc = {"intervention_any": ["metformin"], "comparator_any": ["matching placebo"]}
+    assert pm({"interventions": ["clomiphene plus metformin", "letrozole plus placebo for metformin"]}, inc, "") is None
+    # the same background on both arms still masks
+    assert pm({"interventions": ["clomiphene plus metformin", "clomiphene plus placebo for metformin"]}, inc, "") is not None
+
+
+def test_PLANT_a_shared_salt_word_is_not_a_shared_background():
+    from harness.screen_terms import placebo_masks_intervention as pm
+    inc = {"intervention_any": ["metformin"], "comparator_any": ["matching placebo"]}
+    assert pm({"interventions": ["clomiphene citrate plus placebo", "tamoxifen citrate plus metformin"]}, inc, "") is None
+    assert pm({"interventions": ["clomiphene citrate plus placebo", "clomiphene citrate plus metformin"]}, inc, "") is not None
+
+
+def test_PLANT_a_compound_population_is_never_split_by_a_synonym():
+    from harness.screen_terms import expand
+    extra = expand({"population_any": ["type 2 diabetes with chronic kidney disease"]}).get("population_any_extra") or []
+    assert "t2dm" not in extra
+    assert "t2dm with chronic kidney disease" in extra                 # the conjunction survives
+    assert "t2dm" in (expand({"population_any": ["type 2 diabetes"]}).get("population_any_extra") or [])
+
+
+def test_PLANT_expand_reads_the_current_content_not_a_stale_cache():
+    from harness.screen_terms import expand
+    inc = {"intervention_any": ["finerenone"]}
+    expand(inc)
+    inc["intervention_any"] = ["dapagliflozin"]
+    assert not any("BAY" in t for t in expand(inc)["intervention_any"])
+
+
+def test_PLANT_sweep_diff_compares_whole_error_strings(capsys, tmp_path):
+    import importlib.util
+    s = importlib.util.spec_from_file_location("gss", os.path.join(ROOT, "scripts", "g1_screen_sweep.py"))
+    gss = importlib.util.module_from_spec(s)
+    s.loader.exec_module(gss)
+    (tmp_path / "o.json").write_text('{"topic": {"__error__": "ValueError: missing population"}}', encoding="utf-8")
+    (tmp_path / "n.json").write_text('{"topic": {"__error__": "ValueError: invalid comparator"}}', encoding="utf-8")
+    gss.diff(str(tmp_path / "o.json"), str(tmp_path / "n.json"))
+    out = capsys.readouterr().out
+    assert out.startswith("1 changed") and "invalid comparator" in out and "missing population" in out
