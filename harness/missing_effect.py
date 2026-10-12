@@ -202,7 +202,9 @@ def enrich_from_cache(root: str, slug: str, rows: list[dict[str, Any]]) -> list[
         hit = None
         for key in _candidate_keys(row):
             from .verified_inputs import entries
-            candidates = entries(effects.get(key))
+            # a row whose canonical span failed its held-document check is refused (verified_inputs.load marks it
+            # span_refusal instead of raising for the whole topic): never copy its numbers anywhere
+            candidates = [e for e in entries(effects.get(key)) if not e.get("span_refusal")]
             target = row.get("outcome") or primary_name
             if target:
                 # Never borrow an unrelated harm effect, including singleton inputs.

@@ -1256,10 +1256,20 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     verified_arms = _verified_for_outcome(verified_arms, spec.get("name"))
     verified_effects = _verified_for_outcome(verified_effects, spec.get("name"))
     trials, absent = [], []
+    # Failed canonical span checks are extraction debt for this trial+outcome.
+    # Stop before candidate selection (including dose/abstract fallbacks), so the
+    # rejected entry cannot affect either the pool or the other trials' estimand.
+    span_refusals = {}
+    for data in (verified_effects, verified_arms):
+        for pid, entry in (data or {}).items():
+            if entry.get("span_refusal"):
+                span_refusals.setdefault(pid, []).append(entry["span_refusal"])
     candidate_index = {}
     eligibility_refusals = {}
     all_effect_candidates = []
     for d in included:
+        if d["id"] in span_refusals:
+            continue
         rec = rec_by_id.get(d["id"], {})
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
         ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
@@ -1285,6 +1295,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
         idstr = f"PMID {d['id']}" if d["id_type"] == "pmid" else d["id"]
+        if d["id"] in span_refusals:
+            evidence = span_refusals[d["id"]]
+            absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent",
+                           "state": "EXTRACTION_DEBT", "endpoint_admissibility": "ENDPOINT_UNBOUND",
+                           "hand_binding_state": "ABSTAIN", **evidence[0],
+                           "span_refusals": evidence})
+            continue
         # PRE-SPECIFIED DOSE (documented rule, TOP of the hierarchy): a multi-dose trial's abstract
         # headline may report a dose other than the one this review pools by a declared rule (the
         # APPROVED dose). Where a committed dose_selection entry names the dose + a verified effect+CI
