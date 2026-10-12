@@ -95,3 +95,31 @@ def test_PLANT_sweep_diff_compares_whole_error_strings(capsys, tmp_path):
     gss.diff(str(tmp_path / "o.json"), str(tmp_path / "n.json"))
     out = capsys.readouterr().out
     assert out.startswith("1 changed") and "invalid comparator" in out and "missing population" in out
+
+
+# ---------------------------------------------------------------- codex pr65-cap-r2 (each failed on 20105a0ce)
+def test_PLANT_a_qualified_population_keeps_its_qualifier():
+    from harness.screen_terms import expand
+    extra = expand({"population_any": ["type 2 diabetes requiring insulin"]}).get("population_any_extra") or []
+    assert "t2dm" not in extra and "t2dm requiring insulin" in extra
+
+
+def test_PLANT_a_drug_combination_keeps_its_partner_in_the_code_alternative():
+    from harness.screen_terms import expand
+    ia = expand({"intervention_any": ["finerenone plus spironolactone"]})["intervention_any"]
+    assert "BAY94-8862" not in ia and "BAY94-8862 plus spironolactone" in ia
+    assert "BAY94-8862" in expand({"intervention_any": ["finerenone"]})["intervention_any"]     # a bare INN still expands
+
+
+def test_PLANT_implicit_placebo_needs_the_whole_background_equal():
+    from harness.screen_terms import placebo_masks_intervention as pm
+    inc = {"intervention_any": ["metformin"], "comparator_any": ["matching placebo"]}
+    assert pm({"arms": ["clomiphene plus placebo", "clomiphene plus metformin plus letrozole"]}, inc, "") is None
+    assert pm({"arms": ["clomiphene plus placebo", "clomiphene plus metformin"]}, inc, "") is not None
+
+
+def test_PLANT_a_double_dummy_arm_is_still_an_intervention_arm():
+    from harness.screen_terms import placebo_masks_intervention as pm
+    inc = {"intervention_any": ["metformin"], "comparator_any": ["matching placebo"]}
+    assert pm({"arms": ["clomiphene plus metformin plus placebo for letrozole", "letrozole plus placebo for metformin"]},
+              inc, "") is None

@@ -47,9 +47,28 @@ POP_SYNONYMS = {
     "postpartum haemorrhage": ["postpartum hemorrhage", "post-partum haemorrhage", "post-partum hemorrhage"],
 }
 
-# a population term joining two requirements ('type 2 diabetes WITH chronic kidney disease'): a synonym for one component
-# must keep the other -- adding a bare 't2dm' admitted isolated T2DM (codex pr65-cap-r1 #3)
-_CONJ = re.compile(r"\b(?:with|and|plus|without|in|having)\b")
+# A synonym / code stands ALONE only for a term that IS the concept, up to words naming the same concept ('type 2 diabetes
+# mellitus', 'postmenopausal osteoporosis', 'primary insomnia', 'chronic kidney diseases', 'finerenone tablets'). Any other
+# word is a REQUIREMENT the alternative must keep, so the synonym replaces the concept in place: 'type 2 diabetes with
+# chronic kidney disease' -> 't2dm with chronic kidney disease' (codex pr65-cap-r1 #3), 'type 2 diabetes requiring
+# insulin' -> 't2dm requiring insulin' (r2 #1), 'finerenone plus spironolactone' -> 'BAY94-8862 plus spironolactone' (r2 #2).
+_SAME_CONCEPT = {"mellitus", "primary", "postmenopausal", "nonvalvular", "non-valvular", "s", "tablet", "tablets",
+                 "capsule", "capsules", "oral", "injection"}
+
+
+def _stands_alone(term, concept):
+    rest = re.sub(re.escape(concept), " ", term, count=1, flags=re.I)
+    return all(w in _SAME_CONCEPT or w in _SALTS for w in re.findall(r"[a-z0-9-]+", rest.lower()))
+
+
+def _alternatives(terms, concept, subs):
+    """The alternatives to add for one concept over the include terms that name it."""
+    named = [t for t in terms if concept in t.lower()]
+    if not named:
+        return []
+    if any(_stands_alone(t, concept) for t in named):
+        return list(subs)
+    return [re.sub(re.escape(concept), s, t, flags=re.I) for t in named for s in subs]
 
 
 def expand(inc: dict) -> dict:
@@ -58,24 +77,17 @@ def expand(inc: dict) -> dict:
     mutated (codex pr65-cap-r1 #4)."""
     out = dict(inc or {})
     ia = [str(t) for t in out.get("intervention_any") or []]
-    low = " ".join(t.lower() for t in ia)
-    add = [c for inn, codes in DEV_CODES.items() if inn in low for c in codes if c.lower() not in low]
+    low = {t.lower() for t in ia}
+    add = []
+    for inn, codes in DEV_CODES.items():
+        add += [c for c in _alternatives(ia, inn, codes) if c.lower() not in low and c not in add]
     if add:
         out["intervention_any"] = ia + add
     pa = [str(t) for t in (out.get("population_any") or []) + (out.get("population_any_extra") or [])]
     plow = " ".join(t.lower() for t in pa)
     padd = []
     for concept, syns in POP_SYNONYMS.items():
-        terms = [t.lower() for t in pa if concept in t.lower()]
-        if not terms:
-            continue
-        if any(not _CONJ.search(t) for t in terms):
-            # the concept stands as a term of its own or as the head of one ('type 2 diabetes mellitus',
-            # 'postmenopausal osteoporosis'): its synonyms stand alone, as before
-            padd += [s for s in syns if s not in plow and s not in padd]
-        else:
-            # ONLY inside conjunctions: the synonym replaces the component and the conjunction survives
-            padd += [c for t in terms for s in syns for c in [t.replace(concept, s)] if c not in plow and c not in padd]
+        padd += [s for s in _alternatives(pa, concept, syns) if s.lower() not in plow and s not in padd]
     if padd and out.get("population_any"):
         out["population_any_extra"] = list(out.get("population_any_extra") or []) + padd
     return out
@@ -105,7 +117,10 @@ def placebo_masks_intervention(rec: dict, inc: dict, text: str) -> dict | None:
         # different background: codex pr65-cap-r1 #1). Arms not listed -> as before (the explicit wording stands).
         arms = [p.lower() for p in parts]
         p_arms = [a for a in arms if re.search(explicit, a)]
-        i_arms = [a for a in arms if re.search(iq, a) and "placebo" not in a]
+        # an intervention arm is any arm carrying the intervention UNMASKED -- a double-dummy arm ('clomiphene plus
+        # metformin plus placebo for letrozole') is one (codex pr65-cap-r2 #4: excluding every arm with 'placebo' emptied
+        # the list and skipped the check)
+        i_arms = [a for a in arms if re.search(iq, a) and not re.search(explicit, a)]
         if p_arms and i_arms and not any(_background(a, iq) == _background(p, iq) for p in p_arms for a in i_arms):
             return None
         return {"term": "placebo (masks the intervention)", "span": hay[m.start():m.end()]}
@@ -126,6 +141,14 @@ def placebo_masks_intervention(rec: dict, inc: dict, text: str) -> dict | None:
             combo = (rf"\b(?:{iq})(?:\s+[a-z-]+)?{_JOIN}(?:[a-z-]+\s+)?{b}\b|\b{b}(?:\s+[a-z-]+)?{_JOIN}(?:[a-z-]+\s+)?(?:{iq})\b"
                      rf"|combination of (?:{iq}) and {b}|combination of {b} and (?:{iq})")
             if re.search(combo, low):
+                # ... and when the record lists its arms, the WHOLE background must be equal, not one shared agent
+                # ('clomiphene plus placebo' v 'clomiphene plus metformin plus letrozole': codex pr65-cap-r2 #3)
+                arms = [p.lower() for p in parts]
+                p_arms = [a for a in arms if re.search(rf"\b{b}\b", a) and re.search(r"\bplacebo\b", a)
+                          and not re.search(iq, a)]
+                i_arms = [a for a in arms if re.search(iq, a) and not re.search(explicit, a)]
+                if p_arms and i_arms and not any(_background(a, iq) == _background(p, iq) for p in p_arms for a in i_arms):
+                    continue
                 return {"term": f"placebo (masks the intervention; shared background {bg_core})",
                         "span": hay[pm.start():pm.end()]}
     return None
