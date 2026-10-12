@@ -3178,17 +3178,21 @@ def name_reference_seeds_outside_membership(slug, comp, trials, T):
 
 
 # R5-2 (9 Oct): 'Phase 3' is a phase, never a count -- Makam's 'data from Phase 3 randomized trials' was read as k = 3.
-# A combined designation ('Phase 2/3 studies') is a phase too: the number never follows a slash (codex pr53-cap-r3 #6).
+# A combined or ranged designation ('Phase 2/3', 'Phase 2-3') is a phase too: the number never follows a slash or a hyphen
+# (codex pr53-cap-r3 #6; agy pr53-cap-r2 #1).
 # The number must not follow 'phase' (as _KTRIALS already required); 'studies' and 'RCTs' count as trials too.
-_STATED_K = re.compile(r"(?<!phase )(?<!phase)(?<!phase-)(?<!/)\b(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
+_STATED_K = re.compile(r"(?<!phase )(?<!phase)(?<!phase-)(?<![/-])\b(\d+|(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)"
+                       r"(?:[-\s](?:one|two|three|four|five|six|seven|eight|nine))?|thirteen|fourteen|fifteen|sixteen|"
+                       r"seventeen|eighteen|nineteen|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+"
                        r"(?:phase\s*(?:3|III)\s+|randomi[sz]ed\s+(?:controlled\s+)?|placebo-controlled\s+|eligible\s+)*"
                        r"(?:clinical\s+)?(?:trials|studies|RCTs)\b", re.I)
 
 
 # a clause ends at punctuation or 'but/while/whereas'; 'and' ends one only when the coordinated part (up to the next
 # punctuation) carries its OWN verb ('...18 were excluded and 2 trials were included'; '...5 studies and excluded 2'),
-# never in a list sharing one verb ('We excluded 20 studies and 5 RCTs': codex pr53-cap-r2 #1)
-_SUBCLAUSE = re.compile(r"[,;.]|\b(?:but|while|whereas)\b", re.I)
+# never in a list sharing one verb ('We excluded 20 studies and 5 RCTs': codex pr53-cap-r2 #1); a parenthesis bounds a
+# clause too ('Five trials (after 120 records were excluded) were included': agy pr53-cap-r2 #4)
+_SUBCLAUSE = re.compile(r"[,;.()]|\b(?:but|while|whereas)\b", re.I)
 _VERB = re.compile(r"\b(?:were|was|included|excluded|identified|screened|retrieved|assessed|pooled|analy[sz]ed|"
                    r"reviewed)\b", re.I)
 
@@ -3209,8 +3213,10 @@ def _clause_bounds(t, start, end):
 
 
 _INCLUDED = re.compile(r"\b(?:included|pooled|analy[sz]ed|comprised)\b", re.I)
-_SCREENING = re.compile(r"\b(?:screened|identified|retrieved|assessed|excluded|records?|searched|potentially|"
-                        r"full[- ]text|reviewed for eligibility)\b", re.I)
+# 'search' / 'yielded' (the noun-phrased funnel 'The search yielded 450 studies') and a bare 'reviewed' ('We reviewed 50
+# studies and included 5') are the funnel too (agy pr53-cap-r1 #2, r3 #2: lost by the review runner, recovered 12 Oct)
+_SCREENING = re.compile(r"\b(?:screened|identified|retrieved|assessed|excluded|records?|searched|search|yielded|"
+                        r"potentially|full[- ]text|reviewed)\b", re.I)
 
 
 def stated_k_from_text(t):
@@ -3233,11 +3239,28 @@ def stated_k_from_text(t):
             continue
         # 'Of 20 studies, ...' -- 'Of' OPENING the clause -- names the search funnel's denominator (codex pr53-cap-r1 #1);
         # 'A total of 9 RCTs were included' / 'In the analysis of nine RCTs' are the pooled set and stay counts
-        if re.fullmatch(r"\s*of(?:\s+the)?\s*", before, re.I):        # 'Of the 20 studies' too (codex pr53-cap-r3 #3)
+        # 'Of the 20' (codex pr53-cap-r3 #3), 'Out of 50', 'Among 50' (agy pr53-cap-r2 #2) too
+        if re.fullmatch(r"\s*(?:(?:out\s+)?of|among)(?:\s+the)?\s*", before, re.I):
             continue
-        w = m.group(1).lower()
-        return (int(w) if w.isdigit() else _NUMW[w]), m.group(0)
+        return _count_word(m.group(1)), m.group(0)
     return None, None
+
+
+_UNITS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9}
+_TEENS = {"ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+          "seventeen": 17, "eighteen": 18, "nineteen": 19}
+_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
+
+
+def _count_word(w):
+    """'28' / 'eight' / 'Twenty-eight' / 'twenty eight' -> int ('Twenty-eight' was read as 8: omega3 35905212)."""
+    w = w.lower()
+    if w.isdigit():
+        return int(w)
+    parts = re.split(r"[-\s]+", w)
+    if len(parts) == 2:
+        return _TENS[parts[0]] + _UNITS[parts[1]]
+    return _UNITS.get(w) or _TEENS.get(w) or _TENS[w]
 
 
 def comparator_stated_k(comp):

@@ -96,3 +96,32 @@ _LIMITS = [
 @pytest.mark.parametrize("text,want,why", _LIMITS)
 def test_known_limit(text, want, why):
     assert gt.stated_k_from_text(text) == want, why
+
+
+# ---------------------------------------------------------------- agy pr53-cap-r1..r3 (LOST by the review runner's parser:
+# agy answered {"defects": [...]} and only 'findings' was read; recovered 12 Oct). Each failed on 2a4ab1299.
+@pytest.mark.parametrize("text,want", [
+    ("The search yielded 450 studies. We included 5 trials.", (5, "5 trials")),             # r1 #2 noun 'search'
+    ("Data from Phase 2-3 trials were pooled. We included 8 trials.", (8, "8 trials")),     # r2 #1 a phase range
+    ("Out of 50 studies, 5 trials were included.", (5, "5 trials")),                       # r2 #2
+    ("Among 50 studies, 5 trials were included.", (5, "5 trials")),                         # r2 #2
+    ("Five trials (after 120 records were excluded) were included.", (5, "Five trials")),   # r2 #4 parenthetical
+    ("We reviewed 50 studies and included 5 trials.", (5, "5 trials")),                     # r3 #2 bare 'reviewed'
+])
+def test_agy_recovered(text, want):
+    assert gt.stated_k_from_text(text) == want
+
+
+# 'Twenty-eight randomized controlled trials' was read as 8 (omega3 35905212), 'Forty-two studies' as 2 (probiotics 34385227),
+# 'Twenty-two studies' as 2 (ticagrelor 28545073): three FALSE stated-v-enumerated disagreements in the PR's own record.
+# Exposed by the hyphen guard for agy pr53-cap-r2 #1; a compound number word is read whole.
+@pytest.mark.parametrize("text,want", [
+    ("Twenty-eight randomized controlled trials involving 136,965 individuals were selected.",
+     (28, "Twenty-eight randomized controlled trials")),
+    ("Forty-two studies (11,305 participants) were included in this review.", (42, "Forty-two studies")),
+    ("Twenty-two studies with 35004 participants were included.", (22, "Twenty-two studies")),
+    ("Seventeen trials were included.", (17, "Seventeen trials")),
+    ("Thirty trials were included.", (30, "Thirty trials")),
+])
+def test_a_compound_number_word_is_read_whole(text, want):
+    assert gt.stated_k_from_text(text) == want
