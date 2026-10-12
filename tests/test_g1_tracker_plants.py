@@ -1,6 +1,7 @@
 """PLANTS for the tracker defects found by the cross-vendor reviews of 3 Oct (codex 8, agy/Gemini 2: one agy finding
 refuted -- its excerpt lacked as_row) and by the 31-topic batch (an MD trial pooled from arm means read as 'not pooled').
 Each test is the reproduction, asserting the requirement."""
+import pytest
 import os
 import sys
 
@@ -345,7 +346,7 @@ def test_PLANT_r17_reference_seed_candidates_never_count_as_the_comparator_N():
     o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 12), 10, span, "41203232")
     assert o["N_comparator_trials"] == 10 and o["N_candidates"] == 12
     assert o["N_comparator_trials_basis"] == "COMPARATOR_STATED_K"
-    assert o["k_matched_of_comparator_N"] == "3 of 10"
+    assert o["k_matched_of_comparator_N"].startswith("unresolved")          # never "3 of 10": codex pr64-cap-r3 #2
     f = [x for x in o["comparator_findings"] if x["finding"] == "COMPARATOR_STATED_K_BELOW_SEED_CANDIDATES"]
     assert len(f) == 1 and f[0]["stated_k"] == 10 and f[0]["seed_candidates"] == 12 and f[0]["span"] == span
 
@@ -401,5 +402,28 @@ def test_seed_candidate_n_is_idempotent():
     gt.seed_candidate_n(o, 10, {"text": "10 randomized trials"}, "x")
     assert {k: o[k] for k in once} == once == {"N_comparator_trials": 10, "N_candidates": 12,
                                                "N_comparator_trials_basis": "COMPARATOR_STATED_K",
-                                               "k_matched_of_comparator_N": "5 of 10"}
+                                               "k_matched_of_comparator_N":
+                                                   "unresolved: 5 of 12 seed candidates matched; the comparator states 10"}
     assert len(o["comparator_findings"]) == n_find
+
+
+# ---------------------------------------------------------------- codex pr64-cap-r3 (the last round; each failed on 86745b460)
+def test_coverage_against_seed_candidates_is_unresolved_at_any_count():
+    """r3 #2: 2 of 3 seeds matched and '2 randomized trials' stated -- knowing the total does not put either matched seed
+    in the included set: never '2 of 2'."""
+    o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 3, 2), 2, {"text": "two randomized trials"}, "x")
+    assert o["N_comparator_trials"] == 2 and o["k_matched_of_comparator_N"].startswith("unresolved")
+    assert gt._k_of_n(o, 2).startswith("unresolved")
+
+
+def test_no_stated_k_keeps_coverage_unresolved():
+    o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 3, 2), None, None, "x")
+    assert o["k_matched_of_comparator_N"].startswith("unresolved") and gt._k_of_n(o, 2).startswith("unresolved")
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex pr64-cap-r3 #1): with no stated k the numeric N field still holds "
+                                       "the candidate count (labelled REFERENCE_SEED_CANDIDATES, coverage 'unresolved'); "
+                                       "a None N would break every N consumer -- 1 of 32 topics (corticosteroids-cap)")
+def test_known_limit_no_stated_k_has_no_numeric_N():
+    o = gt.seed_candidate_n(_seed_out("REFERENCE_SEED_CANDIDATES", 3, 2), None, None, "x")
+    assert o["N_comparator_trials"] is None

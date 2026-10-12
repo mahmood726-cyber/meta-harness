@@ -3229,9 +3229,13 @@ def seed_candidate_n(out, sk, sspan, comp):
         return out
     cand = out["N_candidates"] = out["N_comparator_trials"]
     out["included_set_membership"] = "UNRESOLVED"       # seeds never say WHICH trials, at any count (codex pr64-cap-r2 #1)
+    k = out.get("k_matched") or 0
+    # ... so coverage is never 'k of N' against them, whatever the counts (codex pr64-cap-r3 #1 #2)
+    out["k_matched_of_comparator_N"] = (f"unresolved: {k} of {cand} seed candidates matched"
+                                        + (f"; the comparator states {sk}" if sk is not None else
+                                           "; the comparator states no count"))
     if sk is None or sk == cand:
         return out
-    k = out.get("k_matched") or 0
     if sk < cand:
         out["comparator_findings"] = (out.get("comparator_findings") or []) + [{
             "finding": "COMPARATOR_STATED_K_BELOW_SEED_CANDIDATES", "trial": "(the comparator set)", "comparator": comp,
@@ -3246,8 +3250,6 @@ def seed_candidate_n(out, sk, sspan, comp):
                      "until its own list is read from an open text"}]
     out["N_comparator_trials"] = sk
     out["N_comparator_trials_basis"] = "COMPARATOR_STATED_K"
-    out["k_matched_of_comparator_N"] = (f"{k} of {sk}" if k <= sk else
-                                        f"unresolved: {k} seed candidates matched; the comparator includes {sk}")
     return out
 
 
@@ -4146,10 +4148,12 @@ def scope_difference_line(d):
 
 
 def _k_of_n(o, k):
-    """'k / N' for a table cell; a k above N (seed candidates matched beyond the comparator's stated count) reads
-    unresolved, never '12 / 10' (codex pr64-cap-r2 #2)."""
+    """'k / N' for a table cell. Against seed candidates (membership UNRESOLVED) it reads unresolved at ANY count, never
+    '12 / 10' (codex pr64-cap-r2 #2) nor '2 / 2' (r3 #2)."""
     n = o["N_comparator_trials"]
-    return f"{k} / {n}" if k <= n else f"unresolved ({k} seed candidates matched) / {n}"
+    if k > n or o.get("included_set_membership") == "UNRESOLVED":
+        return f"unresolved ({k} seed candidates matched) / {n}"
+    return f"{k} / {n}"
 
 
 def table():
