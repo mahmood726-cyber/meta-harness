@@ -100,3 +100,51 @@ def test_jats_licence_reads_a_creative_commons_licence_named_in_words(tmp_path):
                       "<body>Creative Commons Attribution License (CC BY)</body></article>", encoding="utf-8")
     assert rl.jats_licence(str(words)) == "CC"
     assert rl.jats_licence(str(closed)) == "NOT_OPEN"          # words OUTSIDE <permissions> never count
+
+
+def test_PLANT_a_doi_with_its_own_parentheses_is_declared_whole():
+    """'[^\s)]+' cut a Lancet-family DOI at its own '(' block: 10.1016/s2213-8587(25)00222-0 -> '...(25', so a CC BY text
+    was refused (sglt2-ckd swap full read, 10 Oct). The whole DOI is read; '(DOI 10.1/cc)' still drops only the closing
+    paren of its wrapper; and fail-closed is unchanged (a non-CC or unheld DOI is still refused)."""
+    assert rl._doi_in_ref("DOI 10.1016/s2213-8587(25)00222-0 (D17 host-page CC licence; https://x)") == \
+        "10.1016/s2213-8587(25)00222-0"
+    assert rl._doi_in_ref("outputs/k_gap/_upw (DOI 10.1/cc)") == "10.1/cc"
+    assert rl._doi_in_ref("(DOI 10.1016/s2213-8587(25)00222-0)") == "10.1016/s2213-8587(25)00222-0"
+    body = "Trial results text. " * 400
+    p = "INSTR\n<<<TEXT\n" + body + "\nTEXT>>>\n"
+    rec = lambda ref: {"record_id": "mc-par", "prompt": {"b64": base64.b64encode(p.encode()).decode()},  # noqa: E731
+                       "input_digests": [{"ref": ref, "what": "held text shown whole"}]}
+    dl = {"10.1016/s2213-8587(25)00222-0": "cc-by", "10.1016/s0140-6736(24)00001-x": "other-oa"}
+    assert rl.text_block_problems(rec("DOI 10.1016/s2213-8587(25)00222-0 (D17)"), dl, {}) == []
+    assert rl.text_block_problems(rec("DOI 10.1016/s0140-6736(24)00001-x (D17)"), dl, {})      # not CC: refused
+    assert rl.text_block_problems(rec("DOI 10.1016/s9999-9999(99)99999-9 (D17)"), dl, {})      # not held: refused
+
+
+def test_PLANT_the_exact_held_doi_wins_over_a_stripped_form():
+    """codex pr79-cap-r1 #1: stripping trailing punctuation unconditionally turned 'DOI 10.1234/example.' into the DIFFERENT
+    held DOI '10.1234/example' and took its cc-by licence -- a wrong CC licence lets non-CC text into a prompt (D8)."""
+    from reproducible_ai import record_licence as rl
+    dlic = {"10.1234/example.": "all-rights-reserved", "10.1234/example": "cc-by"}
+    assert rl.ref_licences("DOI 10.1234/example.", {}, dlic) == [("DOI 10.1234/example.", "all-rights-reserved")]
+    # citation punctuation is still dropped when the exact token is NOT held
+    assert rl.ref_licences("see (DOI 10.1234/example).", {}, {"10.1234/example": "cc-by"}) == [("DOI 10.1234/example", "cc-by")]
+    # a DOI held by no form stays unresolved (fail closed), never borrowed
+    assert rl.ref_licences("DOI 10.9/none.", {}, {}) == [("DOI 10.9/none.", None)]
+
+
+def test_PLANT_a_trailing_period_is_never_assumed_to_be_punctuation():
+    """codex pr79-cap-r2 #1: with the exact 'DOI 10.1234/example.' unheld, dropping the period borrowed the cc-by of the
+    held '10.1234/example'. A period is punctuation only OUTSIDE an unbalanced ')' ('(DOI 10.1/x).'); otherwise the
+    declared token is read exactly and fails closed."""
+    from reproducible_ai import record_licence as rl
+    assert rl.ref_licences("DOI 10.1234/example.", {}, {"10.1234/example": "cc-by"}) == [("DOI 10.1234/example.", None)]
+    lancet = "10.1016/s2213-8587(25)00222-0"
+    assert rl.ref_licences(f"report (DOI {lancet}).", {}, {lancet: "cc-by"}) == [(f"DOI {lancet}", "cc-by")]
+
+
+def test_PLANT_any_sentence_punctuation_after_an_unbalanced_paren_is_dropped():
+    """codex pr79-cap-r3 #1 (stop at three): '(DOI 10.1234/example): held text' kept '):' and refused a held CC text --
+    main read it. Punctuation OUTSIDE an unbalanced ')' is any of . , ; : ! ?"""
+    from reproducible_ai import record_licence as rl
+    assert rl.ref_licences("report (DOI 10.1234/example): held text", {}, {"10.1234/example": "cc-by"}) == \
+        [("DOI 10.1234/example", "cc-by")]
