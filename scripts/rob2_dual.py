@@ -189,7 +189,8 @@ def items(slug, pmids=None):
     for p in pmids:
         nct = ncts.get(p)
         rows = {"designs": {k: v for k, v in designs[nct].items() if k != "id"}} if nct in designs else {}
-        srcs = rt.trial_sources(slug, p, nct=nct, registry_rows=rows, registry_text=texts.get(nct), ft_licences=lic)
+        srcs = rt.trial_sources(slug, p, nct=nct, registry_rows=rows, registry_text=texts.get(nct), ft_licences=lic,
+                                local_store=bool(os.environ.get("ROBGRADE_LOCAL_FT")))
         m5 = ((machine.get(p) or {}).get("domains") or {}).get("D5_selective_reporting")
         out.append({"slug": slug, "pmid": p, "nct": nct, "outcome": outcome, "sources": srcs, "machine_d5": m5,
                     "key": f"{slug}::{p}::{outcome}"})
@@ -356,7 +357,7 @@ def assemble(item, typed, conflicts, agreed, adjudicated, runs):
 
 
 def process(item, runs, live, pools):
-    typed, conflicts = rt.typed_answers(item["sources"], item.get("machine_d5"))
+    typed, conflicts = rt.typed_answers(item["sources"], item.get("machine_d5"), outcome=item.get("outcome"))
     r = dict(runs.get(item["key"]) or {})
     if not open_sources(item):
         return assemble(item, typed, conflicts, {}, {}, r), r
@@ -394,6 +395,29 @@ def calibration_pmids(slug):
     return sorted({r["pmid"] for r in rows if r.get("pmid")})
 
 
+def redact_closed_spans(obj, item):
+    """A committed object never carries text of a source that is not CC. An answer read (by regex) from a NON-CC full
+    text keeps the sha256 of its span and the span's character offset in that text -- not the span: anyone holding the
+    same open-access copy (whose sha256 the answer cites) can re-find and check it, and nothing non-CC is published.
+    The object's sha256 is recomputed over the redacted form. Returns the number of spans redacted."""
+    srcs = {s["id"]: s for s in item["sources"]}
+    n = 0
+    for dom in obj["domains"].values():
+        for a in dom["answers"].values():
+            s = srcs.get(a.get("source_ref"))
+            span = a.get("span")
+            if not span or not s or s["kind"] != "fulltext" or str(s.get("licence") or "").startswith("CC"):
+                continue
+            a["span_redacted"] = {"why": "the source text is not CC-licensed: the span is not published",
+                                  "span_sha256": rt.sha(span), "start": s["text"].find(span), "length": len(span)}
+            a["span"] = None
+            n += 1
+    if n:
+        obj.pop("sha256", None)
+        obj["sha256"] = hashlib.sha256(json.dumps(obj, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    return n
+
+
 def main(argv):
     live = "--run" in argv
     calib = "--calibration" in argv
@@ -408,6 +432,7 @@ def main(argv):
         results = {}
         for it, (obj, r) in zip(its, driver.map(lambda i: process(i, runs, live, pools), its)):
             runs[it["key"]] = r
+            redact_closed_spans(obj, it)
             results[it["pmid"]] = obj
             print(slug, it["pmid"], obj["overall"]["judgement"], {d: o["judgement"] for d, o in obj["domains"].items()},
                   {w: (x or {}).get("state") for w, x in r.items()}, flush=True)
