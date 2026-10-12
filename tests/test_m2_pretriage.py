@@ -82,3 +82,22 @@ def test_PLANT_scientific_notation_and_unspaced_commas_are_not_split():
 
 def test_PLANT_a_denominator_only_answer_is_not_a_bind():
     assert not _b("We randomized 100 patients per arm. Mortality results are not yet available.", n_t=100, n_c=100)
+
+
+# ---------------------------------------------------------------- codex / agy m2pre-cap-r3 (the last round; failed on 90f56cc7a)
+def test_PLANT_counts_are_whole_numbers_and_ranges_with_to_are_percentages():
+    assert not _b("Kaplan-Meier mortality probability: treatment 0.12; control 0.15.", events_t=0.12, events_c=0.15)
+    assert not _b("Mortality was 12 to 15% in the intervention arm", events_t=12)
+
+
+def test_PLANT_signed_exponents_and_thousands_decimals():
+    assert not _b("Hazard ratio 1e-2.", effect=2)
+    assert not _b("Difference was significant at p < 1e-5 across all cohorts", events_t=5)
+    assert _b("Mean difference 1,234.5.", effect=1234.5)
+    assert not _b("Mean difference 1,234.5.", effect=0.5)
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex m2pre-cap-r3 #1): a percentage named only in a HEADING "
+                                       "('Deaths (%): treatment 12') is read as a count; the signer sees the span")
+def test_known_limit_percentage_heading():
+    assert not _b("Deaths (%): treatment 12; control 15.", events_t=12, events_c=15)

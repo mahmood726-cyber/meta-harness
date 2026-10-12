@@ -67,7 +67,7 @@ def _main_files(d):
 
 
 def unbound_rows():
-    p = subprocess.run(["git", "ls-tree", "--name-only", "origin/main", "docs/reviews/"], cwd=ROOT,
+    p = subprocess.run(["git", "ls-tree", "-d", "--name-only", "origin/main", "docs/reviews/"], cwd=ROOT,   # dirs only
                        capture_output=True, text=True)
     if p.returncode != 0 or not p.stdout.split():
         raise RuntimeError(f"cannot enumerate docs/reviews on origin/main: {p.stderr[:200]!r}")
@@ -76,7 +76,7 @@ def unbound_rows():
         if f"{d}/review.json" not in _main_files(d):
             continue                                     # not a review directory (an absent file, never a read error)
         rev = _git_json(f"{d}/review.json", required=True)
-        topic = _git_json(f"topics/{d.split('/')[-1]}.json") or {}
+        topic = _git_json(f"topics/{d.split('/')[-1]}.json", required=True)   # never silently {} (codex m2pre-cap-r3 #5)
         specs = [topic.get("primary_outcome") or {}] + list(topic.get("secondary_outcomes") or [])
         for o in rev.get("outcomes") or []:
             if (o.get("result") or {}).get("estimate") is None:
@@ -168,14 +168,17 @@ def check_bind(ans, text):
     # never an event count or denominator (codex/agy m2pre-cap-r1, r2)
     norm = span.replace("·", ".").replace("−", "-").replace("–", "-")
     toks = []
-    for m in re.finditer(r"((?:(?<![\w.])-)?(?:\d{1,3}(?:,\d{3})+(?!\d)|\d+(?:\.\d+)?|\.\d+))", norm):
-        tail, head = norm[m.end():m.end() + 24], norm[max(0, m.start() - 2):m.start()]
+    # ('1,234.5' is ONE number; a signed exponent '1e-2' is notation, never a '2': codex/agy m2pre-cap-r3)
+    for m in re.finditer(r"((?:(?<![\w.])-)?(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?(?!\d)|\d+(?:\.\d+)?|\.\d+))", norm):
+        tail, head = norm[m.end():m.end() + 24], norm[max(0, m.start() - 4):m.start()]
         if re.match(r"[eE][-+]?\d", tail) or re.search(r"\d[eE][-+]?$", head):
             continue                                            # a piece of scientific notation
-        pct = bool(re.match(r"\s*(?:%|percent\b|per cent\b|-\s*\d+(?:\.\d+)?\s*%)", tail, re.I))
+        pct = bool(re.match(r"\s*(?:%|percent\b|per cent\b|(?:-|to)\s*\d+(?:\.\d+)?\s*(?:%|percent\b))", tail, re.I))
         toks.append((float(m.group(1).replace(",", "")), pct))
     counts = {"events_t", "n_t", "events_c", "n_c"}
     for k, v in nums.items():
+        if k in counts and (v < 0 or abs(v - round(v)) > 1e-9):
+            return False, f"{k}={v} is not a count (a count is a whole number: a probability or rate is never one)"
         if not any(abs(v - x) < 1e-9 and not (pct and k in counts) for x, pct in toks):
             return False, f"{k}={v} not in the span" + (" (only as a percentage)" if k in counts and any(
                 abs(v - x) < 1e-9 for x, _ in toks) else "")
