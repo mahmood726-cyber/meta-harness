@@ -140,3 +140,11 @@ def test_PLANT_a_trailing_period_is_never_assumed_to_be_punctuation():
     assert rl.ref_licences("DOI 10.1234/example.", {}, {"10.1234/example": "cc-by"}) == [("DOI 10.1234/example.", None)]
     lancet = "10.1016/s2213-8587(25)00222-0"
     assert rl.ref_licences(f"report (DOI {lancet}).", {}, {lancet: "cc-by"}) == [(f"DOI {lancet}", "cc-by")]
+
+
+def test_PLANT_any_sentence_punctuation_after_an_unbalanced_paren_is_dropped():
+    """codex pr79-cap-r3 #1 (stop at three): '(DOI 10.1234/example): held text' kept '):' and refused a held CC text --
+    main read it. Punctuation OUTSIDE an unbalanced ')' is any of . , ; : ! ?"""
+    from reproducible_ai import record_licence as rl
+    assert rl.ref_licences("report (DOI 10.1234/example): held text", {}, {"10.1234/example": "cc-by"}) == \
+        [("DOI 10.1234/example", "cc-by")]

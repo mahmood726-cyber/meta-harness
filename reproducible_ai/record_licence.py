@@ -128,7 +128,7 @@ def _doi_candidates(ref):
     out = [m.group(1)]
     d = m.group(1)
     while True:
-        t = re.search(r"\)[.,;]*$", d)
+        t = re.search(r"\)[.,;:!?]*$", d)                  # '(DOI 10.1/x): text' too (codex pr79-cap-r3 #1)
         if not (t and d.count(")") > d.count("(")):
             break
         d = d[:t.start()]
