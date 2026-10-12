@@ -226,9 +226,9 @@
       }
      },
      "domain": "D3",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias due to missing outcome data",
-     "path": "3.3 Y/PY/NI and 3.4 Y/PY/NI: missingness likely depended on the true value"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D4": {
      "answers": {
@@ -343,9 +343,9 @@
       }
      },
      "domain": "D5",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in selection of the reported result",
-     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
+     "path": "no open source carries the information this domain needs (D8)"
     }
    },
    "family": "formal-rob2-v1",
@@ -353,8 +353,11 @@
    "outcome": "Heart-failure hospitalization",
    "overall": {
     "flags": [],
-    "judgement": "HIGH",
-    "missing_domains": []
+    "judgement": "NOT_ESTABLISHED",
+    "missing_domains": [
+     "D3",
+     "D5"
+    ]
    },
    "runs": {
     "adjudicator": {
@@ -379,7 +382,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "8dd77f0f8d8967edc143684749c1a2250599510b22913e2a07a97700d95b1bd9",
+   "sha256": "bbd883b947ff4117173d98b1b63a32e4c2658cf69b2e84f456f04bb9485ae85c",
    "sources": [
     {
      "id": "abstract:PMID 19920054",
@@ -387,6 +390,13 @@
      "licence": "PubMed abstract (abstract policy)",
      "open_for_prompt": true,
      "sha256": "ab7346f020f85aa354226cf2b3f1325c6721e229e863d37aeb4be81df393d110"
+    },
+    {
+     "id": "fulltext:PMID 19920054",
+     "kind": "fulltext",
+     "licence": "NOT_OPEN (no licence stated) -- LOCAL STORE, not in the bundle (Unpaywall OA copy)",
+     "open_for_prompt": false,
+     "sha256": "425d45ddf0a8f5fbc559737b2dd464760965eebc92be4060d49d71ba0f49fb09"
     },
     {
      "id": "registry:NCT02998697:designs",
@@ -427,17 +437,16 @@
     "4.3": "dual-agreed",
     "4.4": "adjudicated",
     "4.5": "adjudicated",
-    "5.1": "dual-agreed",
+    "5.1": "typed",
     "5.2": "adjudicated",
-    "5.3": "adjudicated"
+    "5.3": "typed"
    },
    "disagreements": [
     "4.1",
     "4.2",
     "4.4",
     "4.5",
-    "5.2",
-    "5.3"
+    "5.2"
    ],
    "domains": {
     "D1": {
@@ -450,7 +459,13 @@
        "rule_id": "regex:sequence_generation_v1",
        "source_ref": "fulltext:PMID 25176939",
        "source_sha256": "d48233c8949acc1f9a838fa71854bd3cf39e50119b0f1dc84389ce351dbf91cc",
-       "span": "Randomization was achieved using a central interactive voice response system to allocate patients to treatment groups and avoid selection bias."
+       "span": null,
+       "span_redacted": {
+        "length": 143,
+        "span_sha256": "727125a6611375a1f13974a395e0d46516e5e400b7bb3d9875003ca9c38be11b",
+        "start": 23009,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "1.2": {
        "answer": "Y",
@@ -460,7 +475,13 @@
        "rule_id": "regex:allocation_concealment_v1",
        "source_ref": "fulltext:PMID 25176939",
        "source_sha256": "d48233c8949acc1f9a838fa71854bd3cf39e50119b0f1dc84389ce351dbf91cc",
-       "span": "Randomization was achieved using a central interactive voice response system to allocate patients to treatment groups and avoid selection bias."
+       "span": null,
+       "span_redacted": {
+        "length": 143,
+        "span_sha256": "727125a6611375a1f13974a395e0d46516e5e400b7bb3d9875003ca9c38be11b",
+        "start": 23009,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "1.3": {
        "answer": "NI",
@@ -543,14 +564,20 @@
        "span": null
       },
       "2.6": {
-       "answer": "PY",
+       "answer": "Y",
        "how": "typed-regex",
        "note": "read by regex from a text not open for prompts (D8 allows regex)",
        "records": [],
-       "rule_id": "regex:itt_v1",
+       "rule_id": "regex:itt_stated_v2",
        "source_ref": "fulltext:PMID 25176939",
        "source_sha256": "d48233c8949acc1f9a838fa71854bd3cf39e50119b0f1dc84389ce351dbf91cc",
-       "span": "0 total) to allow for some loss of information due to early study discontinuation.</p><p>The primary efficacy analysis was performed according to the intention-to-treat principle (ITT) on the full-analysis set (FAS), including all subjects who were randomized and in whom investigational drug treatme"
+       "span": null,
+       "span_redacted": {
+        "length": 298,
+        "span_sha256": "d374d1907db6a23c52b1c12ce57fee20ac76dda6b4f4e79751d24ccb3cc144bf",
+        "start": 29815,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.7": {
        "answer": "NI",
@@ -708,17 +735,20 @@
     "D5": {
      "answers": {
       "5.1": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-40276defd1262b6bdf2c02373bfaf6ce",
-        "mc-816c5f6319f8f471f8d2aee8a8c6c404"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "PY",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:sap_predefined_v1",
+       "source_ref": "fulltext:PMID 25176939",
+       "source_sha256": "d48233c8949acc1f9a838fa71854bd3cf39e50119b0f1dc84389ce351dbf91cc",
+       "span": null,
+       "span_redacted": {
+        "length": 123,
+        "span_sha256": "1f2bc685c479146e71d472d9f58355676a59c5cf730a9bf3366bebf96b148a69",
+        "start": 20696,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "5.2": {
        "answer": "NI",
@@ -734,23 +764,26 @@
        "span": null
       },
       "5.3": {
-       "answer": "NI",
-       "how": "adjudicated",
-       "note": null,
-       "records": [
-        "mc-40276defd1262b6bdf2c02373bfaf6ce",
-        "mc-816c5f6319f8f471f8d2aee8a8c6c404"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "PN",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:sap_fixes_the_analysis_v1",
+       "source_ref": "fulltext:PMID 25176939",
+       "source_sha256": "d48233c8949acc1f9a838fa71854bd3cf39e50119b0f1dc84389ce351dbf91cc",
+       "span": null,
+       "span_redacted": {
+        "length": 123,
+        "span_sha256": "1f2bc685c479146e71d472d9f58355676a59c5cf730a9bf3366bebf96b148a69",
+        "start": 20696,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       }
      },
      "domain": "D5",
-     "judgement": "INSUFFICIENT_OPEN_SOURCE",
+     "judgement": "SOME_CONCERNS",
      "name": "Bias in selection of the reported result",
-     "path": "no open source carries the information this domain needs (D8)"
+     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
     }
    },
    "family": "formal-rob2-v1",
@@ -760,8 +793,7 @@
     "flags": [],
     "judgement": "NOT_ESTABLISHED",
     "missing_domains": [
-     "D3",
-     "D5"
+     "D3"
     ]
    },
    "runs": {
@@ -787,7 +819,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "a99c841ec1cf3a6d87f37a108d12818424d630c4041a0b461a965cbd41110637",
+   "sha256": "08fdaa6995893ae57076e8605fe429852cce67f9fed7821fe5d21efbd4bcc5a1",
    "sources": [
     {
      "id": "abstract:PMID 25176939",
@@ -1050,9 +1082,9 @@
       }
      },
      "domain": "D3",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias due to missing outcome data",
-     "path": "3.3 Y/PY/NI and 3.4 Y/PY/NI: missingness likely depended on the true value"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D4": {
      "answers": {
@@ -1168,9 +1200,9 @@
       }
      },
      "domain": "D5",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in selection of the reported result",
-     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
+     "path": "no open source carries the information this domain needs (D8)"
     }
    },
    "family": "formal-rob2-v1",
@@ -1178,8 +1210,11 @@
    "outcome": "Heart-failure hospitalization",
    "overall": {
     "flags": [],
-    "judgement": "HIGH",
-    "missing_domains": []
+    "judgement": "NOT_ESTABLISHED",
+    "missing_domains": [
+     "D3",
+     "D5"
+    ]
    },
    "runs": {
     "adjudicator": {
@@ -1204,7 +1239,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "07561e494c481b9bb8094fd517eaa798ad9866e6436219326d8624172bc5e69a",
+   "sha256": "e131630187e1bad760ab0781b2eb7855a470a97b0685b22c052804fb43280a6e",
    "sources": [
     {
      "id": "abstract:PMID 33197395",
@@ -1212,6 +1247,13 @@
      "licence": "PubMed abstract (abstract policy)",
      "open_for_prompt": true,
      "sha256": "e351d7497c915011c900fef1ae7bb130ac220eaacf8b759e6d0cf3ce804d8795"
+    },
+    {
+     "id": "fulltext:PMID 33197395",
+     "kind": "fulltext",
+     "licence": "NOT_OPEN (no licence stated) -- LOCAL STORE, not in the bundle (Unpaywall OA copy)",
+     "open_for_prompt": false,
+     "sha256": "f44a324a5ea9ebbbfb5c5d177958dcf043619da6b6898a712cfe897aaa52df98"
     },
     {
      "id": "registry:NCT02937454:designs",
@@ -1322,7 +1364,13 @@
        "rule_id": "regex:double_blind_v1",
        "source_ref": "fulltext:PMID 34080008",
        "source_sha256": "73c4c2033e0b290daff83d7d777bf876dae3ad41e2c563a7e06bb5815ac327b3",
-       "span": "<article-title>Ferric carboxymaltose for iron deficiency at discharge after acute heart failure: a multicentre, double-blind, randomised, controlled trial</article-title>."
+       "span": null,
+       "span_redacted": {
+        "length": 171,
+        "span_sha256": "803fac88979c014e7b3f5154fe153fb342771ad9709318a81449809b49ff8145",
+        "start": 102596,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.2": {
        "answer": "PN",
@@ -1332,7 +1380,13 @@
        "rule_id": "regex:double_blind_v1",
        "source_ref": "fulltext:PMID 34080008",
        "source_sha256": "73c4c2033e0b290daff83d7d777bf876dae3ad41e2c563a7e06bb5815ac327b3",
-       "span": "<article-title>Ferric carboxymaltose for iron deficiency at discharge after acute heart failure: a multicentre, double-blind, randomised, controlled trial</article-title>."
+       "span": null,
+       "span_redacted": {
+        "length": 171,
+        "span_sha256": "803fac88979c014e7b3f5154fe153fb342771ad9709318a81449809b49ff8145",
+        "start": 102596,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.3": {
        "answer": "NI",
@@ -1381,7 +1435,13 @@
        "rule_id": "regex:itt_v1",
        "source_ref": "fulltext:PMID 34080008",
        "source_sha256": "73c4c2033e0b290daff83d7d777bf876dae3ad41e2c563a7e06bb5815ac327b3",
-       "span": ".</p></sec></sec><sec sec-type=\"results\"><title>Results</title><sec><title>Baseline characteristics</title><p>Among the 1108 patients included in the modified intention-to-treat AFFIRM-AHF analysis, a baseline KCCQ-12 was completed for 1058 (95%) patients (535 and 523 in the FCM and placebo groups,"
+       "span": null,
+       "span_redacted": {
+        "length": 299,
+        "span_sha256": "0cd52e596bcab6f6716d2f0f9824e2dd726950cabf8550cb67762be349f0a6c6",
+        "start": 35279,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.7": {
        "answer": "NI",
@@ -1619,7 +1679,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "10cb2df57931bb17341a8bb0d94565a1209fea71c3875e1bad9efd40c0079a9b",
+   "sha256": "71fccb928bb60cf6017f5e60eee1fb9bc21b3bb00b5d1166826f9e13704553ff",
    "sources": [
     {
      "id": "abstract:PMID 34080008",

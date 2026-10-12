@@ -1,0 +1,43 @@
+{
+ "record_id": "mc-bcba1341c139cdccd11363141aac09ff",
+ "n_gaps": 32,
+ "rules": [
+  {
+   "rule_id": "regex:baseline_generally_balanced_v1",
+   "question": "1.3",
+   "answer": "PN",
+   "pattern": "\\A[ \\t]{0,4}(?:In (?:this|the present) (?:trial|study), )?baseline characteristics were generally well[- ]balanced between the (?:two )?(?:treatment |intervention |randomi[sz]ed )?groups(?: \\(Table [1-9][0-9]{0,2} ?\\))?\\.?[ \\t]{0,4}\\Z",
+   "rationale": "The qualified statement of overall baseline balance supports PN for evidence of a randomisation problem, independently of the outcome. Whole-sentence matching excludes qualifications and other-trial attributions. This interpretation follows the baseline-evidence distinction in [Cochrane Handbook chapter 8](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "fires_on": [
+    "Baseline characteristics were generally well balanced between the two groups (Table 1 ).",
+    "In this trial, baseline characteristics were generally well-balanced between the treatment groups."
+   ],
+   "must_not_fire_on": [
+    "Baseline characteristics were not generally well balanced between the two groups (Table 1 ).",
+    "In a previous trial, baseline characteristics were generally well balanced between the two groups.",
+    "Baseline characteristics were generally well balanced between the two groups in another trial.",
+    "Baseline characteristics were generally well balanced between the two groups, except for a major prognostic imbalance.",
+    "Baseline characteristics were generally well balanced between the two groups after propensity-score matching."
+   ]
+  },
+  {
+   "rule_id": "regex:baseline_demographic_clinical_similarity_v1",
+   "question": "1.3",
+   "answer": "N",
+   "pattern": "\\A[ \\t]{0,4}(?:In (?:this|the present) (?:trial|study), )?at baseline, the (?!(?:historical|external|previous|prior|other)\\b)(?:[a-z][a-z0-9-]{0,24}|active treatment) and (?:placebo|control) groups were (?:similar|comparable) with respect to (?:demographic and clinical|clinical and demographic) characteristics(?: \\(Table [1-9][0-9]{0,2} ?\\))?\\.?[ \\t]{0,4}\\Z",
+   "rationale": "An unqualified report of baseline similarity covering both demographic and clinical characteristics supports N for baseline differences suggesting a randomisation problem. The pattern requires the baseline-first construction missed by the existing rule and rejects appended exceptions or external-trial attribution.",
+   "fires_on": [
+    "At baseline, the LcS and placebo groups were similar with respect to demographic and clinical characteristics",
+    "At baseline, the intervention and control groups were comparable with respect to clinical and demographic characteristics (Table 2)."
+   ],
+   "must_not_fire_on": [
+    "At baseline, the LcS and placebo groups were not similar with respect to demographic and clinical characteristics.",
+    "In a previous trial, at baseline, the LcS and placebo groups were similar with respect to demographic and clinical characteristics.",
+    "At baseline, the LcS and placebo groups were similar with respect to demographic and clinical characteristics in the earlier trial.",
+    "At baseline, the LcS and placebo groups were similar with respect to demographic and clinical characteristics, except for disease severity.",
+    "At baseline, the LcS and placebo groups were similar with respect to demographic characteristics.",
+    "At follow-up, the intervention and control groups were comparable with respect to demographic and clinical characteristics."
+   ]
+  }
+ ]
+}

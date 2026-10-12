@@ -1,21 +1,21 @@
 # RoB 2 calibration v published comparator judgements
 
-Topics: probiotics-aad-prevention, ticagrelor-vs-clopidogrel-acs, iv-iron-hfref-hosp, balanced-crystalloids-vs-saline-mortality. Reference tools: probiotics-aad-prevention: ?; ticagrelor-vs-clopidogrel-acs: ?; iv-iron-hfref-hosp: Not stated; balanced-crystalloids-vs-saline-mortality: ?
+Topics: balanced-crystalloids-vs-saline-mortality, iv-iron-hfref-hosp, probiotics-aad-prevention, ticagrelor-vs-clopidogrel-acs. Reference tools: balanced-crystalloids-vs-saline-mortality: ?; iv-iron-hfref-hosp: Not stated; probiotics-aad-prevention: ?; ticagrelor-vs-clopidogrel-acs: ?
 
 | domain | n pairs | raw agreement | kappa (95% CI) | linear-weighted kappa (95% CI) | excluded |
 |---|---|---|---|---|---|
-| D1 | 47 | 0.553 | 0.092 (-0.023, 0.207) | 0.095 (-0.021, 0.212) | 3 |
-| D2 | 48 | 0.375 | 0.109 (-0.014, 0.233) | 0.107 (-0.019, 0.232) | 2 |
-| D3 | 45 | 0.267 | 0.041 (-0.063, 0.144) | 0.045 (-0.07, 0.16) | 5 |
-| D4 | 49 | 0.224 | 0.014 (-0.085, 0.114) | 0.075 (-0.002, 0.153) | 1 |
-| D5 | 43 | 0.07 | -0.0 (-0.0, 0.0) | -0.0 (-0.0, 0.0) | 7 |
+| D1 | 45 | 0.556 | 0.102 (-0.062, 0.266) | 0.109 (-0.057, 0.275) | 5 |
+| D2 | 47 | 0.447 | 0.15 (0.006, 0.295) | 0.149 (0.002, 0.296) | 3 |
+| D3 | 37 | 0.324 | 0.07 (-0.066, 0.207) | 0.079 (-0.075, 0.233) | 13 |
+| D4 | 46 | 0.239 | 0.016 (-0.091, 0.122) | 0.08 (-0.003, 0.163) | 4 |
+| D5 | 35 | 0.057 | -0.0 (-0.0, 0.0) | -0.0 (-0.0, 0.0) | 15 |
 
 | domain | share of answers NI | kappa, any answer from a full text (n) | kappa, abstract/registry only (n) |
 |---|---|---|---|
-| D1 | 0.801 | undefined (1) | 0.049 (46) |
-| D2 | 0.321 | undefined (5) | 0.067 (43) |
-| D3 | 0.5 | undefined (0) | 0.041 (45) |
-| D4 | 0.567 | undefined (0) | 0.014 (49) |
-| D5 | 1.0 | undefined (0) | -0.0 (43) |
+| D1 | 0.748 | -0.077 (7) | 0.067 (38) |
+| D2 | 0.295 | 1.0 (10) | 0.068 (37) |
+| D3 | 0.473 | undefined (0) | 0.07 (37) |
+| D4 | 0.539 | undefined (1) | 0.009 (45) |
+| D5 | 0.981 | undefined (1) | 0.0 (34) |
 
 Unmatched trials (in our pool, not bound to exactly one reference row): 9

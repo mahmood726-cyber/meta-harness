@@ -172,6 +172,25 @@ def aact_designs(ncts):
     return {n: _AACT_DESIGNS.get(n) for n in ncts if n}
 
 
+def _slug_ncts(slug, pmids):
+    """{pmid: nct}: the served cache's NCT, else AACT study_references (one load, cached)."""
+    machine = _j(os.path.join(ROOT, "cache", slug, "rob2.json")).get("trials", {})
+    ncts = {p: (machine.get(p) or {}).get("nct") for p in pmids}
+    extra = aact_nct_for([p for p in pmids if not ncts.get(p)])
+    ncts.update({p: n for p, n in extra.items() if n})
+    return ncts
+
+
+def prefetch_registry(slug_pmids):
+    """ONE pass over the AACT designs / summaries / descriptions tables for every trial of every topic about to run.
+    registry_texts and aact_designs cache by NCT, so a topic-by-topic loop otherwise rescans those multi-GB tables for
+    each topic's new NCTs (2026-10-12: ~10 minutes per topic, most of a DEV run's wall clock)."""
+    ncts = sorted({n for slug, pm in slug_pmids for n in _slug_ncts(slug, pm or served_primary(slug)[1]).values() if n})
+    aact_designs(ncts)
+    registry_texts(ncts)
+    return ncts
+
+
 def items(slug, pmids=None):
     outcome, pool = served_primary(slug)
     pmids = pmids or pool
@@ -189,7 +208,9 @@ def items(slug, pmids=None):
     for p in pmids:
         nct = ncts.get(p)
         rows = {"designs": {k: v for k, v in designs[nct].items() if k != "id"}} if nct in designs else {}
-        srcs = rt.trial_sources(slug, p, nct=nct, registry_rows=rows, registry_text=texts.get(nct), ft_licences=lic)
+        srcs = rt.trial_sources(slug, p, nct=nct, registry_rows=rows, registry_text=texts.get(nct), ft_licences=lic,
+                                local_store=("open_cc" if os.environ.get("ROBGRADE_DEV_OPEN_CC") and p in _dev_set()
+                                             else bool(os.environ.get("ROBGRADE_LOCAL_FT"))))
         m5 = ((machine.get(p) or {}).get("domains") or {}).get("D5_selective_reporting")
         out.append({"slug": slug, "pmid": p, "nct": nct, "outcome": outcome, "sources": srcs, "machine_d5": m5,
                     "key": f"{slug}::{p}::{outcome}"})
@@ -356,7 +377,7 @@ def assemble(item, typed, conflicts, agreed, adjudicated, runs):
 
 
 def process(item, runs, live, pools):
-    typed, conflicts = rt.typed_answers(item["sources"], item.get("machine_d5"))
+    typed, conflicts = rt.typed_answers(item["sources"], item.get("machine_d5"), outcome=item.get("outcome"))
     r = dict(runs.get(item["key"]) or {})
     if not open_sources(item):
         return assemble(item, typed, conflicts, {}, {}, r), r
@@ -384,6 +405,26 @@ def process(item, runs, live, pools):
     return obj, r
 
 
+_DEV = None
+
+
+def _dev_set():
+    """DEV trials of the frozen split (outputs/robgrade/split.json); a TEST trial is never opened to a prompt here."""
+    global _DEV
+    if _DEV is None:
+        sp = os.path.join(ROOT, "outputs", "robgrade", "split.json")
+        _DEV = set(_j(sp)["dev"]) if os.path.exists(sp) else set()
+    return _DEV
+
+
+def dev_pmids(slug):
+    """DEV trials in ANY served outcome of this topic."""
+    r = _j(os.path.join(ROOT, "docs", "reviews", slug, "review.json"))
+    pm = {m.group(1) for o in r.get("outcomes") or [] for t in o.get("trials") or []
+          for m in [re.search(r"PMID (\d+)", str(t.get("id")))] if m}
+    return sorted(pm & _dev_set())
+
+
 def calibration_pmids(slug):
     """Every trial the comparator's RoB figure rates (outputs/robgrade/reference/<slug>.json), bound to a PMID, for which
     an abstract is held -- in the served pool or not: the engine applies to any RCT, so it is calibrated on all of them."""
@@ -394,6 +435,29 @@ def calibration_pmids(slug):
     return sorted({r["pmid"] for r in rows if r.get("pmid")})
 
 
+def redact_closed_spans(obj, item):
+    """A committed object never carries text of a source that is not CC. An answer read (by regex) from a NON-CC full
+    text keeps the sha256 of its span and the span's character offset in that text -- not the span: anyone holding the
+    same open-access copy (whose sha256 the answer cites) can re-find and check it, and nothing non-CC is published.
+    The object's sha256 is recomputed over the redacted form. Returns the number of spans redacted."""
+    srcs = {s["id"]: s for s in item["sources"]}
+    n = 0
+    for dom in obj["domains"].values():
+        for a in dom["answers"].values():
+            s = srcs.get(a.get("source_ref"))
+            span = a.get("span")
+            if not span or not s or s["kind"] != "fulltext" or str(s.get("licence") or "").startswith("CC"):
+                continue
+            a["span_redacted"] = {"why": "the source text is not CC-licensed: the span is not published",
+                                  "span_sha256": rt.sha(span), "start": s["text"].find(span), "length": len(span)}
+            a["span"] = None
+            n += 1
+    if n:
+        obj.pop("sha256", None)
+        obj["sha256"] = hashlib.sha256(json.dumps(obj, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    return n
+
+
 def main(argv):
     live = "--run" in argv
     calib = "--calibration" in argv
@@ -402,17 +466,41 @@ def main(argv):
     pools = {"codex": cf.ThreadPoolExecutor(CODEX_WORKERS), "agy": cf.ThreadPoolExecutor(AGY_WORKERS),
              "adjudicator": None}
     driver = cf.ThreadPoolExecutor(max(CODEX_WORKERS, AGY_WORKERS))
+    dev = "--dev" in argv
+    out_dir = os.path.join(OUT_DIR, "dev") if dev else OUT_DIR       # DEV never overwrites the calibration objects
+    if dev:
+        prefetch_registry([(slug, dev_pmids(slug)) for slug in slugs])
+    batches = []
     for slug in slugs:
-        its = items(slug, sorted(set(served_primary(slug)[1]) | set(calibration_pmids(slug))) if calib else None)
-        its = [i for i in its if any(s["kind"] == "abstract" for s in i["sources"])] if calib else its
+        if dev:
+            pm = dev_pmids(slug)
+            its = items(slug, pm) if pm else []
+            # DEV silver labels: only trials whose CC full text the readers may see, and only a LOCAL-STORE copy whose PMC
+            # permissions this lane read itself: a repo-cache text inherits the shared index's licence, which can
+            # disagree with registry/tracked_fulltext_licences.json (esketamine 37025256: index CC, tracked NOT_CC) --
+            # a disagreement is treated as closed
+            its = [i for i in its if any(s["kind"] == "fulltext" and s["open_for_prompt"] and s.get("local_store")
+                                         for s in i["sources"])]
+            if not its:
+                continue
+        else:
+            its = items(slug, sorted(set(served_primary(slug)[1]) | set(calibration_pmids(slug))) if calib else None)
+            its = [i for i in its if any(s["kind"] == "abstract" for s in i["sources"])] if calib else its
+        batches.append((slug, its))
+    # every topic's items go to the pools together (8 codex workers busy, not 1-3), and each topic's objects are
+    # saved as soon as its own last item lands, so a stopped run keeps every finished topic
+    futs = {(slug, n): driver.submit(process, it, runs, live, pools) for slug, its in batches for n, it in enumerate(its)}
+    for slug, its in batches:
         results = {}
-        for it, (obj, r) in zip(its, driver.map(lambda i: process(i, runs, live, pools), its)):
+        for n, it in enumerate(its):
+            obj, r = futs[(slug, n)].result()
             runs[it["key"]] = r
+            redact_closed_spans(obj, it)
             results[it["pmid"]] = obj
             print(slug, it["pmid"], obj["overall"]["judgement"], {d: o["judgement"] for d, o in obj["domains"].items()},
                   {w: (x or {}).get("state") for w, x in r.items()}, flush=True)
         _save(RUNS, runs)
-        _save(os.path.join(OUT_DIR, f"{slug}.json"), {"slug": slug, "family": rf.FAMILY, "outcome": its[0]["outcome"] if its else None,
+        _save(os.path.join(out_dir, f"{slug}.json"), {"slug": slug, "family": rf.FAMILY, "outcome": its[0]["outcome"] if its else None,
                                                       "trials": results})
     for p in pools.values():
         if p:

@@ -83,6 +83,24 @@ def test_typed_answers_take_precedence_and_insufficient_open_source():
     assert obj["domains"]["D1"]["judgement"] == rf.SOME
 
 
+def test_PLANT_a_span_from_a_non_cc_full_text_is_never_published():
+    it = _item(abstract=None, full_open=False)
+    typed, conflicts = rt.typed_answers(it["sources"])
+    obj = rd.assemble(it, typed, conflicts, {}, {}, {})
+    span = obj["domains"]["D1"]["answers"]["1.1"]["span"]
+    assert span and span in FULL_CLOSED
+    assert rd.redact_closed_spans(obj, it) >= 1
+    a = obj["domains"]["D1"]["answers"]["1.1"]
+    assert a["span"] is None and a["span_redacted"]["span_sha256"] == rt.sha(span)
+    assert FULL_CLOSED[a["span_redacted"]["start"]:a["span_redacted"]["start"] + a["span_redacted"]["length"]] == span
+    assert FULL_CLOSED not in json.dumps(obj) and span not in json.dumps(obj)
+    # a CC full text's span is kept
+    it2 = _item(abstract=None, full_open=True)
+    typed2, c2 = rt.typed_answers(it2["sources"])
+    obj2 = rd.assemble(it2, typed2, c2, {}, {}, {})
+    assert rd.redact_closed_spans(obj2, it2) == 0
+
+
 def test_without_a_closed_full_text_an_unanswered_domain_is_judged_on_NI():
     it = _item(full=None)
     obj = rd.assemble(it, {}, [], {}, {}, {})

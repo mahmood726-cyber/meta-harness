@@ -2498,9 +2498,9 @@
       }
      },
      "domain": "D1",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias arising from the randomization process",
-     "path": "1.2 NI: concealment not reported"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D2": {
      "answers": {
@@ -2597,9 +2597,9 @@
       }
      },
      "domain": "D2",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias due to deviations from intended interventions (effect of assignment)",
-     "path": "part 1 SOME_CONCERNS (awareness without information that excludes outcome-relevant deviations); part 2 SOME_CONCERNS (2.6 N/PN/NI and 2.7 N/PN/NI)"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D3": {
      "answers": {
@@ -2657,9 +2657,9 @@
       }
      },
      "domain": "D3",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias due to missing outcome data",
-     "path": "3.3 Y/PY/NI and 3.4 Y/PY/NI: missingness likely depended on the true value"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D4": {
      "answers": {
@@ -2779,9 +2779,9 @@
       }
      },
      "domain": "D5",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in selection of the reported result",
-     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
+     "path": "no open source carries the information this domain needs (D8)"
     }
    },
    "family": "formal-rob2-v1",
@@ -2789,8 +2789,13 @@
    "outcome": "Antibiotic-associated diarrhoea",
    "overall": {
     "flags": [],
-    "judgement": "HIGH",
-    "missing_domains": []
+    "judgement": "NOT_ESTABLISHED",
+    "missing_domains": [
+     "D1",
+     "D2",
+     "D3",
+     "D5"
+    ]
    },
    "runs": {
     "adjudicator": {
@@ -2815,7 +2820,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "4c36ef59197663f35fe577a2d2c3db404f0793bbf0a7fba4dd9792918040497b",
+   "sha256": "ee0147278e7edf73a2f4a7f575c3295bd237b62b8283280a1ae3aeced73cd76d",
    "sources": [
     {
      "id": "abstract:PMID 16437727",
@@ -2823,6 +2828,13 @@
      "licence": "PubMed abstract (abstract policy)",
      "open_for_prompt": true,
      "sha256": "78a829115d0acaac0ec4a8ecfbe20e5f93c1b898d365f1279aca5d23d89e9b09"
+    },
+    {
+     "id": "fulltext:PMID 16437727",
+     "kind": "fulltext",
+     "licence": "NOT_OPEN (no licence stated) -- LOCAL STORE, not in the bundle (Unpaywall OA copy)",
+     "open_for_prompt": false,
+     "sha256": "a231165e0124e953955665775f4d0f0bf779e2600345f6cc1c97479cd1392f8e"
     }
    ],
    "trial": "PMID 16437727",
@@ -3635,14 +3647,14 @@
   "17604300": {
    "answer_provenance": {
     "1.1": "typed",
-    "1.2": "dual-agreed",
+    "1.2": "typed",
     "1.3": "dual-agreed",
     "2.1": "typed",
     "2.2": "typed",
     "2.3": "dual-agreed",
     "2.4": "dual-agreed",
     "2.5": "dual-agreed",
-    "2.6": "dual-agreed",
+    "2.6": "typed",
     "2.7": "dual-agreed",
     "3.1": "adjudicated",
     "3.2": "dual-agreed",
@@ -3675,17 +3687,20 @@
        "span": "allocation: RANDOMIZED"
       },
       "1.2": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-34c09e757e2efb50810e3eaa9f355ac4",
-        "mc-d79ffb6a45a5107e2f78d6af11669c60"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "Y",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:allocation_concealment_v2",
+       "source_ref": "fulltext:PMID 17604300",
+       "source_sha256": "619ca0e8a58800c961ea03bc36a94e264700839fd7f5a7925c4d947fc13b2341",
+       "span": null,
+       "span_redacted": {
+        "length": 159,
+        "span_sha256": "425834e0e7c057f1c25879b7aa10f9786d09f14cf0ade963dc71614a00bea5bf",
+        "start": 11584,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "1.3": {
        "answer": "NI",
@@ -3702,9 +3717,9 @@
       }
      },
      "domain": "D1",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "LOW",
      "name": "Bias arising from the randomization process",
-     "path": "1.2 NI: concealment not reported"
+     "path": "1.2 Y/PY, 1.3 N/PN/NI, 1.1 Y/PY/NI"
     },
     "D2": {
      "answers": {
@@ -3768,17 +3783,20 @@
        "span": null
       },
       "2.6": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-34c09e757e2efb50810e3eaa9f355ac4",
-        "mc-d79ffb6a45a5107e2f78d6af11669c60"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "PY",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:itt_v1",
+       "source_ref": "fulltext:PMID 17604300",
+       "source_sha256": "619ca0e8a58800c961ea03bc36a94e264700839fd7f5a7925c4d947fc13b2341",
+       "span": null,
+       "span_redacted": {
+        "length": 110,
+        "span_sha256": "1a6a30d057291ec9de1f76b6fc6d050e1a34f7449d0be403a6ed1e57ccc2e4d1",
+        "start": 16893,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.7": {
        "answer": "NI",
@@ -3795,9 +3813,9 @@
       }
      },
      "domain": "D2",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "LOW",
      "name": "Bias due to deviations from intended interventions (effect of assignment)",
-     "path": "part 1 LOW (2.1 and 2.2 N/PN: participants and carers unaware); part 2 SOME_CONCERNS (2.6 N/PN/NI and 2.7 N/PN/NI)"
+     "path": "part 1 LOW (2.1 and 2.2 N/PN: participants and carers unaware); part 2 LOW (2.6 Y/PY: appropriate analysis (ITT / modified ITT))"
     },
     "D3": {
      "answers": {
@@ -3929,9 +3947,9 @@
       }
      },
      "domain": "D4",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in measurement of the outcome",
-     "path": "4.4 Y/PY/NI and 4.5 Y/PY/NI: assessment likely influenced"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D5": {
      "answers": {
@@ -3976,9 +3994,9 @@
       }
      },
      "domain": "D5",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in selection of the reported result",
-     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
+     "path": "no open source carries the information this domain needs (D8)"
     }
    },
    "family": "formal-rob2-v1",
@@ -3986,8 +4004,11 @@
    "outcome": "Antibiotic-associated diarrhoea",
    "overall": {
     "flags": [],
-    "judgement": "HIGH",
-    "missing_domains": []
+    "judgement": "NOT_ESTABLISHED",
+    "missing_domains": [
+     "D4",
+     "D5"
+    ]
    },
    "runs": {
     "adjudicator": {
@@ -4012,7 +4033,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "d7bfc2e5e169f708f93ee1c9301e5ab48ce885662c573979d6f71cd85f880cb3",
+   "sha256": "0595fc30737b1129826a026cbaa2531e2de9eaf278660630eaa6ea91a93fdf5f",
    "sources": [
     {
      "id": "abstract:PMID 17604300",
@@ -4020,6 +4041,13 @@
      "licence": "PubMed abstract (abstract policy)",
      "open_for_prompt": true,
      "sha256": "c1a0f4b580a706bc5df12075013e1da3e66b247384c62f7557a26eb9439fd05a"
+    },
+    {
+     "id": "fulltext:PMID 17604300",
+     "kind": "fulltext",
+     "licence": "NOT_OPEN (no licence stated) -- LOCAL STORE, not in the bundle (Unpaywall OA copy)",
+     "open_for_prompt": false,
+     "sha256": "619ca0e8a58800c961ea03bc36a94e264700839fd7f5a7925c4d947fc13b2341"
     },
     {
      "id": "registry:NCT01792739:designs",
@@ -4529,9 +4557,9 @@
       }
      },
      "domain": "D1",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias arising from the randomization process",
-     "path": "1.2 NI: concealment not reported"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D2": {
      "answers": {
@@ -4682,9 +4710,9 @@
       }
      },
      "domain": "D3",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias due to missing outcome data",
-     "path": "3.3 Y/PY/NI and 3.4 Y/PY/NI: missingness likely depended on the true value"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D4": {
      "answers": {
@@ -4804,9 +4832,9 @@
       }
      },
      "domain": "D5",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in selection of the reported result",
-     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
+     "path": "no open source carries the information this domain needs (D8)"
     }
    },
    "family": "formal-rob2-v1",
@@ -4814,8 +4842,12 @@
    "outcome": "Antibiotic-associated diarrhoea",
    "overall": {
     "flags": [],
-    "judgement": "HIGH",
-    "missing_domains": []
+    "judgement": "NOT_ESTABLISHED",
+    "missing_domains": [
+     "D1",
+     "D3",
+     "D5"
+    ]
    },
    "runs": {
     "adjudicator": {
@@ -4840,7 +4872,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "e6376731626be903d8bd01cfead93563293372b0bb46b03b543310864b485d02",
+   "sha256": "1f1464d010337576ac24e6afb1a484ce5c5849a3f4e7206a258ef7ff840bd9b6",
    "sources": [
     {
      "id": "abstract:PMID 17900321",
@@ -4848,6 +4880,13 @@
      "licence": "PubMed abstract (abstract policy)",
      "open_for_prompt": true,
      "sha256": "5a679b1b7a0acd636535a741c5658b068f728972f6cc1f836fff53df2d6837d0"
+    },
+    {
+     "id": "fulltext:PMID 17900321",
+     "kind": "fulltext",
+     "licence": "NOT_OPEN (no licence stated) -- LOCAL STORE, not in the bundle (Unpaywall OA copy)",
+     "open_for_prompt": false,
+     "sha256": "9ee887b7619e6ab8e012d392e76f43046f894112306789e9b1100a4aedc5b9ee"
     }
    ],
    "trial": "PMID 17900321",
@@ -5796,11 +5835,11 @@
        "span": null
       },
       "2.6": {
-       "answer": "PY",
+       "answer": "Y",
        "how": "typed-regex",
        "note": null,
        "records": [],
-       "rule_id": "regex:itt_v1",
+       "rule_id": "regex:itt_stated_v2",
        "source_ref": "abstract:PMID 18410562",
        "source_sha256": "67f9182f2a29b5621fdb3fc81d0bd698cf5445b3316f417ba39ec523b621ed71",
        "span": "Analyses were by intention to treat."
@@ -6037,7 +6076,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "2185e381642a3d60863cc729a136cdaeac636ca99bb5567cad4a4a6eb3902551",
+   "sha256": "c103166f2a55a834c52a5c6032a0b62dbd2b895c3b98ee93740a622d4b66d14e",
    "sources": [
     {
      "id": "abstract:PMID 18410562",
@@ -7665,7 +7704,7 @@
    "answer_provenance": {
     "1.1": "adjudicated",
     "1.2": "dual-agreed",
-    "1.3": "dual-agreed",
+    "1.3": "typed",
     "2.1": "typed",
     "2.2": "typed",
     "2.3": "dual-agreed",
@@ -7679,7 +7718,7 @@
     "3.4": "dual-agreed",
     "4.1": "dual-agreed",
     "4.2": "dual-agreed",
-    "4.3": "dual-agreed",
+    "4.3": "typed",
     "4.4": "dual-agreed",
     "4.5": "dual-agreed",
     "5.1": "dual-agreed",
@@ -7722,23 +7761,26 @@
        "span": null
       },
       "1.3": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-21e431fa2a636c0c490ff0e261ed0ae1",
-        "mc-f108556eae0bb289543820af4ea7a215"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "N",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:baseline_balanced_v1",
+       "source_ref": "fulltext:PMID 21165295",
+       "source_sha256": "4a83ee3dbf9df85006b748186ed92bfa96df59208919b48379e15cc74ea631eb",
+       "span": null,
+       "span_redacted": {
+        "length": 155,
+        "span_sha256": "ecd2d5febd41b1951cc1d067322d85b2be212d81ffd5b147ab9c697d962f81bd",
+        "start": 23061,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       }
      },
      "domain": "D1",
-     "judgement": "INSUFFICIENT_OPEN_SOURCE",
+     "judgement": "SOME_CONCERNS",
      "name": "Bias arising from the randomization process",
-     "path": "no open source carries the information this domain needs (D8)"
+     "path": "1.2 NI: concealment not reported"
     },
     "D2": {
      "answers": {
@@ -7809,7 +7851,13 @@
        "rule_id": "regex:itt_v1",
        "source_ref": "fulltext:PMID 21165295",
        "source_sha256": "4a83ee3dbf9df85006b748186ed92bfa96df59208919b48379e15cc74ea631eb",
-       "span": ">=0.72). There were no significant differences in antibiotic use between the 2 groups.</p></sec><sec><title>Analysis of outcome measures</title><p>In ITT analysis (n=214), AAD-1 developed in 4 (3.9%) of 103 patients in the <italic toggle=\"yes\">Lactobacillus</italic> group and in 8 (7.2%) of 111 pati"
+       "span": null,
+       "span_redacted": {
+        "length": 300,
+        "span_sha256": "7fe71c816b4418bb1f7625923f077a1a1d5e6fb812439c7bff4149fd8acf96e2",
+        "start": 23861,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.7": {
        "answer": "NI",
@@ -7919,17 +7967,20 @@
        "span": "Patients recorded bowel frequency and stool consistency daily for 14 days."
       },
       "4.3": {
-       "answer": "PN",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-21e431fa2a636c0c490ff0e261ed0ae1",
-        "mc-f108556eae0bb289543820af4ea7a215"
-       ],
-       "rule_id": null,
-       "source_ref": "abstract:PMID 21165295",
-       "source_sha256": "5c72287f0ccd1f2744149c564839563caed6ebada737eaf87704583fedfd1f53",
-       "span": "multicenter, randomized, placebo-controlled, double-blind trial"
+       "answer": "N",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:assessors_blinded_v2",
+       "source_ref": "fulltext:PMID 21165295",
+       "source_sha256": "4a83ee3dbf9df85006b748186ed92bfa96df59208919b48379e15cc74ea631eb",
+       "span": null,
+       "span_redacted": {
+        "length": 185,
+        "span_sha256": "6343d750ff1a0b55ab35e7aaa407d540248b0dfc7def1d4a50930612f3201bb2",
+        "start": 20858,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "4.4": {
        "answer": "NA",
@@ -8018,7 +8069,6 @@
     "flags": [],
     "judgement": "NOT_ESTABLISHED",
     "missing_domains": [
-     "D1",
      "D5"
     ]
    },
@@ -8045,7 +8095,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "e82b8da3b37284477840cca124c50ff88d8d413dd3cb8d768b6ec7cfa8aa7696",
+   "sha256": "61dfc49d1ef2ccaf50713452e616770850260ebd634b674f446699b11f8fb0d9",
    "sources": [
     {
      "id": "abstract:PMID 21165295",
@@ -8557,7 +8607,13 @@
        "rule_id": "regex:double_blind_v1",
        "source_ref": "fulltext:PMID 22371721",
        "source_sha256": "75a745b822d9da2d0c98ffa14aca62cf5503d26b0fbe1ec5deab67c4adb44577",
-       "span": "rticle-categories><title-group><article-title>Efficacy of BIO K+ CL1285<sup><sup>®</sup></sup> in the reduction of antibiotic-associated diarrhea – a placebo controlled double-blind randomized, multi-center study</article-title></title-group><contrib-group><contrib contrib-type=\"author\" corresp=\"yes"
+       "span": null,
+       "span_redacted": {
+        "length": 300,
+        "span_sha256": "d52aa7b927f9e7b938d6090eaafebbc1cc11e6bd387bed25b62640b08b83edc1",
+        "start": 1443,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.2": {
        "answer": "PN",
@@ -8567,7 +8623,13 @@
        "rule_id": "regex:double_blind_v1",
        "source_ref": "fulltext:PMID 22371721",
        "source_sha256": "75a745b822d9da2d0c98ffa14aca62cf5503d26b0fbe1ec5deab67c4adb44577",
-       "span": "rticle-categories><title-group><article-title>Efficacy of BIO K+ CL1285<sup><sup>®</sup></sup> in the reduction of antibiotic-associated diarrhea – a placebo controlled double-blind randomized, multi-center study</article-title></title-group><contrib-group><contrib contrib-type=\"author\" corresp=\"yes"
+       "span": null,
+       "span_redacted": {
+        "length": 300,
+        "span_sha256": "d52aa7b927f9e7b938d6090eaafebbc1cc11e6bd387bed25b62640b08b83edc1",
+        "start": 1443,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.3": {
        "answer": "NI",
@@ -8616,7 +8678,13 @@
        "rule_id": "regex:itt_v1",
        "source_ref": "fulltext:PMID 22371721",
        "source_sha256": "75a745b822d9da2d0c98ffa14aca62cf5503d26b0fbe1ec5deab67c4adb44577",
-       "span": "ere obtained by a self administered diary and standardized telephone interview.</p><p>All statistical analyses were conducted on the Intent to Treat (ITT) population that was comprised of any patient that received at least one dose of the study product, a minimum of three days antibiotic treatment a"
+       "span": null,
+       "span_redacted": {
+        "length": 300,
+        "span_sha256": "68cae97bfd0cbcd4f4da7c70431e500ba9438da4186979c393646996843be5de",
+        "start": 17312,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.7": {
        "answer": "NI",
@@ -8853,7 +8921,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "55ba03585718271df3454e140e51fd90b692599fd8a77886dc6aadebfc90d360",
+   "sha256": "508b5fa9f3dfc1b3eafe0a22b2fa582960bc89310089bd0583f9c9147bcca610",
    "sources": [
     {
      "id": "abstract:PMID 22371721",
@@ -9414,11 +9482,11 @@
        "span": null
       },
       "2.6": {
-       "answer": "PY",
+       "answer": "Y",
        "how": "typed-regex",
        "note": null,
        "records": [],
-       "rule_id": "regex:itt_v1",
+       "rule_id": "regex:itt_stated_v2",
        "source_ref": "abstract:PMID 23618760",
        "source_sha256": "01cf3f3b8083f0fc06614545d0ee5c5138706cb7518259f2f79d70e407662a58",
        "span": "On intention-to-treat analysis the difference in AAD incidence (4.3% active vs 8.9% placebo; P = 0.19) was not significant."
@@ -9651,7 +9719,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "945e90d1354aa4c08ef9e955efdb86c1bbe228c6f26072831482b3abb0600f3f",
+   "sha256": "e3d08e8d9e59f4e59b2de1d12f3462e399e1ea25697dfb44bf775884b86281c1",
    "sources": [
     {
      "id": "abstract:PMID 23618760",
@@ -11280,7 +11348,7 @@
   "26973849": {
    "answer_provenance": {
     "1.1": "typed",
-    "1.2": "dual-agreed",
+    "1.2": "typed",
     "1.3": "dual-agreed",
     "2.1": "typed",
     "2.2": "typed",
@@ -11322,17 +11390,20 @@
        "span": "allocation: RANDOMIZED"
       },
       "1.2": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-3ed03c61cdc2ccfb2c7eb871013246ef",
-        "mc-e9d31111229c3ac932fb3d3ee82a5321"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "Y",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:allocation_concealment_v3",
+       "source_ref": "fulltext:PMID 26973849",
+       "source_sha256": "e3ccc8bd2ce25729943d11525bc0c9a2d365f83166854fb68cccf7bf857471c6",
+       "span": null,
+       "span_redacted": {
+        "length": 164,
+        "span_sha256": "00f1796e71949f9a3d2584d05d9dd6d34686e9d319768387d4b61e53993d9523",
+        "start": 30129,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "1.3": {
        "answer": "NI",
@@ -11349,9 +11420,9 @@
       }
      },
      "domain": "D1",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "LOW",
      "name": "Bias arising from the randomization process",
-     "path": "1.2 NI: concealment not reported"
+     "path": "1.2 Y/PY, 1.3 N/PN/NI, 1.1 Y/PY/NI"
     },
     "D2": {
      "answers": {
@@ -11415,14 +11486,20 @@
        "span": null
       },
       "2.6": {
-       "answer": "PY",
+       "answer": "Y",
        "how": "typed-regex",
        "note": "read by regex from a text not open for prompts (D8 allows regex)",
        "records": [],
-       "rule_id": "regex:itt_v1",
+       "rule_id": "regex:itt_stated_v2",
        "source_ref": "fulltext:PMID 26973849",
        "source_sha256": "e3ccc8bd2ce25729943d11525bc0c9a2d365f83166854fb68cccf7bf857471c6",
-       "span": "This analysis is based on data of 477 participants who were recruited and observed until trial termination.</p><p>Data were analyzed for each of the 3 diarrhea definitions and according to the intention-to-treat principle (ITT)."
+       "span": null,
+       "span_redacted": {
+        "length": 228,
+        "span_sha256": "d9e064d35a40210814f0c333b0152e1546da7082749cfba09434235e1786048a",
+        "start": 35847,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.7": {
        "answer": "NI",
@@ -11655,7 +11732,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "5ceb939d0de40336e08711157020ea128ddc173edbb23a2632a7b33d8692ec47",
+   "sha256": "9f3b178b3ffe38bf6b915231bdbaba7df7525990e422d92e91ba8c18500304f1",
    "sources": [
     {
      "id": "abstract:PMID 26973849",
@@ -11699,7 +11776,7 @@
     "2.3": "dual-agreed",
     "2.4": "dual-agreed",
     "2.5": "dual-agreed",
-    "2.6": "dual-agreed",
+    "2.6": "typed",
     "2.7": "dual-agreed",
     "3.1": "dual-agreed",
     "3.2": "dual-agreed",
@@ -11768,9 +11845,9 @@
       }
      },
      "domain": "D1",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias arising from the randomization process",
-     "path": "1.2 NI: concealment not reported"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D2": {
      "answers": {
@@ -11834,17 +11911,20 @@
        "span": null
       },
       "2.6": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-d59b7c8be225b25fd1890543db176f66",
-        "mc-906e9e9457fc60baa87269d3a0aefff3"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "PY",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:itt_v1",
+       "source_ref": "fulltext:PMID 27169634",
+       "source_sha256": "357b5652dc9835b0054a8ee0c6983edeae400567519cc0442d86e3ed6549192f",
+       "span": null,
+       "span_redacted": {
+        "length": 63,
+        "span_sha256": "db2261e54c5e06364e63116e71ff3aa1f8fa85c9928334a34a63cc312cfc3a42",
+        "start": 26198,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.7": {
        "answer": "NI",
@@ -11861,9 +11941,9 @@
       }
      },
      "domain": "D2",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "LOW",
      "name": "Bias due to deviations from intended interventions (effect of assignment)",
-     "path": "part 1 LOW (2.1 and 2.2 N/PN: participants and carers unaware); part 2 SOME_CONCERNS (2.6 N/PN/NI and 2.7 N/PN/NI)"
+     "path": "part 1 LOW (2.1 and 2.2 N/PN: participants and carers unaware); part 2 LOW (2.6 Y/PY: appropriate analysis (ITT / modified ITT))"
     },
     "D3": {
      "answers": {
@@ -11921,9 +12001,9 @@
       }
      },
      "domain": "D3",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias due to missing outcome data",
-     "path": "3.3 Y/PY/NI and 3.4 Y/PY/NI: missingness likely depended on the true value"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D4": {
      "answers": {
@@ -12042,9 +12122,9 @@
       }
      },
      "domain": "D5",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in selection of the reported result",
-     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
+     "path": "no open source carries the information this domain needs (D8)"
     }
    },
    "family": "formal-rob2-v1",
@@ -12052,8 +12132,12 @@
    "outcome": "Antibiotic-associated diarrhoea",
    "overall": {
     "flags": [],
-    "judgement": "HIGH",
-    "missing_domains": []
+    "judgement": "NOT_ESTABLISHED",
+    "missing_domains": [
+     "D1",
+     "D3",
+     "D5"
+    ]
    },
    "runs": {
     "adjudicator": {
@@ -12078,7 +12162,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "edb5c789621ebbce756a4128202b257416acfdef7e84c5436556e47674a8fb40",
+   "sha256": "7b1ecda20c592b69ad8f3bb5c22efbb62b688285bcb8c40d93c31d3b949f84e9",
    "sources": [
     {
      "id": "abstract:PMID 27169634",
@@ -12086,6 +12170,13 @@
      "licence": "PubMed abstract (abstract policy)",
      "open_for_prompt": true,
      "sha256": "b269985d4360b27390b61bac8e87f460d04cf8f4197ab4f96c085fdff99b053f"
+    },
+    {
+     "id": "fulltext:PMID 27169634",
+     "kind": "fulltext",
+     "licence": "NOT_OPEN (no licence stated) -- LOCAL STORE, not in the bundle (Unpaywall OA copy)",
+     "open_for_prompt": false,
+     "sha256": "357b5652dc9835b0054a8ee0c6983edeae400567519cc0442d86e3ed6549192f"
     }
    ],
    "trial": "PMID 27169634",
@@ -12093,7 +12184,7 @@
   },
   "30439760": {
    "answer_provenance": {
-    "1.1": "adjudicated",
+    "1.1": "typed",
     "1.2": "dual-agreed",
     "1.3": "dual-agreed",
     "2.1": "typed",
@@ -12101,7 +12192,7 @@
     "2.3": "adjudicated",
     "2.4": "dual-agreed",
     "2.5": "dual-agreed",
-    "2.6": "dual-agreed",
+    "2.6": "typed",
     "2.7": "dual-agreed",
     "3.1": "dual-agreed",
     "3.2": "dual-agreed",
@@ -12117,7 +12208,6 @@
     "5.3": "dual-agreed"
    },
    "disagreements": [
-    "1.1",
     "2.3",
     "3.3",
     "3.4",
@@ -12131,17 +12221,20 @@
     "D1": {
      "answers": {
       "1.1": {
-       "answer": "NI",
-       "how": "adjudicated",
-       "note": null,
-       "records": [
-        "mc-66d4edbc2083bf11dea5e85d4dacc390",
-        "mc-da337941e9f1a5a89a79586da561c351"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "Y",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:sequence_generation_v2",
+       "source_ref": "fulltext:PMID 30439760",
+       "source_sha256": "47ff3350c72d739cbfc79af65a1927ef165b14a59522a79b356b5a0bd84f124b",
+       "span": null,
+       "span_redacted": {
+        "length": 83,
+        "span_sha256": "7138f97991cde51c6ce32f744beae316d9120ed9afd5218a27247599e5e3e700",
+        "start": 8285,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "1.2": {
        "answer": "NI",
@@ -12237,17 +12330,20 @@
        "span": null
       },
       "2.6": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-66d4edbc2083bf11dea5e85d4dacc390",
-        "mc-da337941e9f1a5a89a79586da561c351"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "Y",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:itt_stated_v2",
+       "source_ref": "fulltext:PMID 30439760",
+       "source_sha256": "47ff3350c72d739cbfc79af65a1927ef165b14a59522a79b356b5a0bd84f124b",
+       "span": null,
+       "span_redacted": {
+        "length": 41,
+        "span_sha256": "50bc3403cb72470f380a2d03e284499e2b1495ba34232dddfbfa9ddc4b383076",
+        "start": 12828,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.7": {
        "answer": "NI",
@@ -12264,9 +12360,9 @@
       }
      },
      "domain": "D2",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "LOW",
      "name": "Bias due to deviations from intended interventions (effect of assignment)",
-     "path": "part 1 LOW (2.1 and 2.2 N/PN: participants and carers unaware); part 2 SOME_CONCERNS (2.6 N/PN/NI and 2.7 N/PN/NI)"
+     "path": "part 1 LOW (2.1 and 2.2 N/PN: participants and carers unaware); part 2 LOW (2.6 Y/PY: appropriate analysis (ITT / modified ITT))"
     },
     "D3": {
      "answers": {
@@ -12324,9 +12420,9 @@
       }
      },
      "domain": "D3",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias due to missing outcome data",
-     "path": "3.3 Y/PY/NI and 3.4 Y/PY/NI: missingness likely depended on the true value"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D4": {
      "answers": {
@@ -12397,9 +12493,9 @@
       }
      },
      "domain": "D4",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in measurement of the outcome",
-     "path": "4.4 Y/PY/NI and 4.5 Y/PY/NI: assessment likely influenced"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D5": {
      "answers": {
@@ -12444,9 +12540,9 @@
       }
      },
      "domain": "D5",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in selection of the reported result",
-     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
+     "path": "no open source carries the information this domain needs (D8)"
     }
    },
    "family": "formal-rob2-v1",
@@ -12454,8 +12550,12 @@
    "outcome": "Antibiotic-associated diarrhoea",
    "overall": {
     "flags": [],
-    "judgement": "HIGH",
-    "missing_domains": []
+    "judgement": "NOT_ESTABLISHED",
+    "missing_domains": [
+     "D3",
+     "D4",
+     "D5"
+    ]
    },
    "runs": {
     "adjudicator": {
@@ -12480,7 +12580,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "6cc0c10d8cbb18c24ef8f161b831e629bc12d4b0d68d89673d8cf82d4f9b9019",
+   "sha256": "9d2b9110ef7409e76df280b70ec1b1c449da73727f86bfb184fadc25a293f08f",
    "sources": [
     {
      "id": "abstract:PMID 30439760",
@@ -12488,6 +12588,13 @@
      "licence": "PubMed abstract (abstract policy)",
      "open_for_prompt": true,
      "sha256": "f5207cb13ae8f1d9c3cfbf61e72d8bc8a1b0fac0599b244769ab703c9394c9d2"
+    },
+    {
+     "id": "fulltext:PMID 30439760",
+     "kind": "fulltext",
+     "licence": "NOT_OPEN (no licence stated) -- LOCAL STORE, not in the bundle (Unpaywall OA copy)",
+     "open_for_prompt": false,
+     "sha256": "47ff3350c72d739cbfc79af65a1927ef165b14a59522a79b356b5a0bd84f124b"
     }
    ],
    "trial": "PMID 30439760",
@@ -12906,7 +13013,7 @@
     "2.3": "dual-agreed",
     "2.4": "dual-agreed",
     "2.5": "dual-agreed",
-    "2.6": "dual-agreed",
+    "2.6": "typed",
     "2.7": "dual-agreed",
     "3.1": "dual-agreed",
     "3.2": "dual-agreed",
@@ -13042,17 +13149,14 @@
        "span": null
       },
       "2.6": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-41b68757cd1fba6bc301e795f4340580",
-        "mc-c50b620ae2e4b0b413c20196f964a604"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "PY",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:itt_v1",
+       "source_ref": "fulltext:PMID 32897519",
+       "source_sha256": "89a08346e339656f57608c484ef06f7ecc9274fc5bef26c5358897872e1639bc",
+       "span": "Statistical Analysis The primary efficacy analysis was conducted in the intent-to-treat (ITT) population, which comprised all randomized patients who received at least one dose of the study drug and for whom at least one post-baseline efficacy assessment was available."
       },
       "2.7": {
        "answer": "NI",
@@ -13069,9 +13173,9 @@
       }
      },
      "domain": "D2",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "LOW",
      "name": "Bias due to deviations from intended interventions (effect of assignment)",
-     "path": "part 1 LOW (2.1 and 2.2 N/PN: participants and carers unaware); part 2 SOME_CONCERNS (2.6 N/PN/NI and 2.7 N/PN/NI)"
+     "path": "part 1 LOW (2.1 and 2.2 N/PN: participants and carers unaware); part 2 LOW (2.6 Y/PY: appropriate analysis (ITT / modified ITT))"
     },
     "D3": {
      "answers": {
@@ -13129,9 +13233,9 @@
       }
      },
      "domain": "D3",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias due to missing outcome data",
-     "path": "3.3 Y/PY/NI and 3.4 Y/PY/NI: missingness likely depended on the true value"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D4": {
      "answers": {
@@ -13250,9 +13354,9 @@
       }
      },
      "domain": "D5",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in selection of the reported result",
-     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
+     "path": "no open source carries the information this domain needs (D8)"
     }
    },
    "family": "formal-rob2-v1",
@@ -13260,8 +13364,11 @@
    "outcome": "Antibiotic-associated diarrhoea",
    "overall": {
     "flags": [],
-    "judgement": "HIGH",
-    "missing_domains": []
+    "judgement": "NOT_ESTABLISHED",
+    "missing_domains": [
+     "D3",
+     "D5"
+    ]
    },
    "runs": {
     "adjudicator": {
@@ -13286,7 +13393,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "349bec30e4e9b240e4c0e32a5adcf8ed92ba9832bfa5f22032e7b4d4a1b37004",
+   "sha256": "6a05021fd359f68e63c366b7fd2590ed530245da050536cb877a13eede088dd8",
    "sources": [
     {
      "id": "abstract:PMID 32897519",
@@ -13294,6 +13401,13 @@
      "licence": "PubMed abstract (abstract policy)",
      "open_for_prompt": true,
      "sha256": "17778577600cca68f073a8b5e1becdd072b74fadbe315d69beed07c07c7c287d"
+    },
+    {
+     "id": "fulltext:PMID 32897519",
+     "kind": "fulltext",
+     "licence": "CC -- LOCAL STORE, not in the bundle (PMC)",
+     "open_for_prompt": false,
+     "sha256": "89a08346e339656f57608c484ef06f7ecc9274fc5bef26c5358897872e1639bc"
     }
    ],
    "trial": "PMID 32897519",
@@ -13301,11 +13415,11 @@
   },
   "32944084": {
    "answer_provenance": {
-    "1.1": "adjudicated",
+    "1.1": "typed",
     "1.2": "dual-agreed",
     "1.3": "dual-agreed",
-    "2.1": "dual-agreed",
-    "2.2": "dual-agreed",
+    "2.1": "typed",
+    "2.2": "typed",
     "2.3": "dual-agreed",
     "2.4": "dual-agreed",
     "2.5": "dual-agreed",
@@ -13324,24 +13438,19 @@
     "5.2": "dual-agreed",
     "5.3": "dual-agreed"
    },
-   "disagreements": [
-    "1.1"
-   ],
+   "disagreements": [],
    "domains": {
     "D1": {
      "answers": {
       "1.1": {
-       "answer": "NI",
-       "how": "adjudicated",
-       "note": null,
-       "records": [
-        "mc-4cf015846a9abb13629d2057b6e1f02d",
-        "mc-91e6f68a04e83da74514ca72b86630f7"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "Y",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:sequence_generation_v1",
+       "source_ref": "fulltext:PMID 32944084",
+       "source_sha256": "42454889d4b9db68e09645b538eb2c8d20b87615a86b545354df48bd10375a22",
+       "span": "A random number was generated using a random number table."
       },
       "1.2": {
        "answer": "NI",
@@ -13378,30 +13487,24 @@
     "D2": {
      "answers": {
       "2.1": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-4cf015846a9abb13629d2057b6e1f02d",
-        "mc-91e6f68a04e83da74514ca72b86630f7"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "Y",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:open_label_v1",
+       "source_ref": "fulltext:PMID 32944084",
+       "source_sha256": "42454889d4b9db68e09645b538eb2c8d20b87615a86b545354df48bd10375a22",
+       "span": "Methods Trial design and oversight This trial was an open-label, prospective, randomized trial conducted in our hospital from January 2016 through December 2017."
       },
       "2.2": {
-       "answer": "NI",
-       "how": "dual-agreed",
-       "note": null,
-       "records": [
-        "mc-4cf015846a9abb13629d2057b6e1f02d",
-        "mc-91e6f68a04e83da74514ca72b86630f7"
-       ],
-       "rule_id": null,
-       "source_ref": null,
-       "source_sha256": null,
-       "span": null
+       "answer": "Y",
+       "how": "typed-regex",
+       "note": "read by regex from a text not open for prompts (D8 allows regex)",
+       "records": [],
+       "rule_id": "regex:open_label_v1",
+       "source_ref": "fulltext:PMID 32944084",
+       "source_sha256": "42454889d4b9db68e09645b538eb2c8d20b87615a86b545354df48bd10375a22",
+       "span": "Methods Trial design and oversight This trial was an open-label, prospective, randomized trial conducted in our hospital from January 2016 through December 2017."
       },
       "2.3": {
        "answer": "NI",
@@ -13530,9 +13633,9 @@
       }
      },
      "domain": "D3",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias due to missing outcome data",
-     "path": "3.3 Y/PY/NI and 3.4 Y/PY/NI: missingness likely depended on the true value"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D4": {
      "answers": {
@@ -13603,9 +13706,9 @@
       }
      },
      "domain": "D4",
-     "judgement": "HIGH",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in measurement of the outcome",
-     "path": "4.4 Y/PY/NI and 4.5 Y/PY/NI: assessment likely influenced"
+     "path": "no open source carries the information this domain needs (D8)"
     },
     "D5": {
      "answers": {
@@ -13650,9 +13753,9 @@
       }
      },
      "domain": "D5",
-     "judgement": "SOME_CONCERNS",
+     "judgement": "INSUFFICIENT_OPEN_SOURCE",
      "name": "Bias in selection of the reported result",
-     "path": "5.1 N/PN/NI, or 5.2/5.3 NI"
+     "path": "no open source carries the information this domain needs (D8)"
     }
    },
    "family": "formal-rob2-v1",
@@ -13660,8 +13763,12 @@
    "outcome": "Antibiotic-associated diarrhoea",
    "overall": {
     "flags": [],
-    "judgement": "HIGH",
-    "missing_domains": []
+    "judgement": "NOT_ESTABLISHED",
+    "missing_domains": [
+     "D3",
+     "D4",
+     "D5"
+    ]
    },
    "runs": {
     "adjudicator": {
@@ -13686,7 +13793,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "ffdea6350d20a2755f38dade66e6339cccb342c139d3f4d4abea18eaf754787c",
+   "sha256": "ff793557f77d50222824557a5f1454f01654325f8ebd2f0946fd1ed54c3e1797",
    "sources": [
     {
      "id": "abstract:PMID 32944084",
@@ -13694,6 +13801,13 @@
      "licence": "PubMed abstract (abstract policy)",
      "open_for_prompt": true,
      "sha256": "5eb96ec1839457aa60fef20f0037a2e54f621d204474da014da266c21a7476f8"
+    },
+    {
+     "id": "fulltext:PMID 32944084",
+     "kind": "fulltext",
+     "licence": "CC -- LOCAL STORE, not in the bundle (PMC)",
+     "open_for_prompt": false,
+     "sha256": "42454889d4b9db68e09645b538eb2c8d20b87615a86b545354df48bd10375a22"
     }
    ],
    "trial": "PMID 32944084",
@@ -14257,14 +14371,20 @@
        "span": null
       },
       "2.6": {
-       "answer": "PY",
+       "answer": "Y",
        "how": "typed-regex",
        "note": "read by regex from a text not open for prompts (D8 allows regex)",
        "records": [],
-       "rule_id": "regex:itt_v1",
+       "rule_id": "regex:itt_stated_v2",
        "source_ref": "fulltext:PMID 39529939",
        "source_sha256": "ec2753dffb8a8ea154ef21a57c92a78e5bd81a612e5ba25e1a3a22998bd4a0d8",
-       "span": "er the end of antibiotic treatment (participants who had received at least 75% of the total planned dose of the studied probiotic mix/placebo) (ie, a modified intention-to-treat population). Participants who discontinued early because of insufficient efficacy (including severe diarrhea requiring tre"
+       "span": null,
+       "span_redacted": {
+        "length": 300,
+        "span_sha256": "e6e6874f639b4fec6b9bca421e61303ecbefd23e39a00bef75647af83c2e276a",
+        "start": 31779,
+        "why": "the source text is not CC-licensed: the span is not published"
+       }
       },
       "2.7": {
        "answer": "NA",
@@ -14499,7 +14619,7 @@
      "state": "RAN_OK"
     }
    },
-   "sha256": "371c8baf3a80d847ad6cc9e17730c57d8bdb5880d43d9a02daaa7d0ce046f602",
+   "sha256": "24b66779e23c3620665219d2975a575623a1638d7c021af0d7e64d00fb9e1cce",
    "sources": [
     {
      "id": "abstract:PMID 39529939",

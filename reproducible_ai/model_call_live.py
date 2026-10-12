@@ -385,26 +385,47 @@ def _agy_version() -> str:
         return f"UNKNOWN ({type(exc).__name__})"
 
 
+# Windows caps a command line at 32,767 characters: a prompt carrying a full text cannot be the --print argument
+# (2026-10-12: WinError 206 on every RoB 2 full-text reading). Such a prompt is written to PROMPT.txt in the call's own
+# empty work dir (as an image is) and the --print argument is this FIXED instruction; the record keeps the prompt bytes,
+# the delivery and the instruction. A prompt that fits is passed exactly as before, so every earlier record replays.
+AGY_ARGV_MAX = 24000
+AGY_PROMPT_FILE_INSTRUCTION = ("Your complete task is in the file PROMPT.txt in the current directory. Read that whole "
+                               "file and do exactly what it says. Reply only as it instructs.")
+
+
 def agy_runner(prompt: bytes, schema: dict, timeout_s: int, images: tuple = ()) -> dict:
-    """Run one `agy --print`. Returns {rc, stdout, stderr, log, argv}; bytes throughout. The prompt is the --print value
-    (agy reads no prompt from stdin in text mode); stdin is the null device."""
+    """Run one `agy --print`. Returns {rc, stdout, stderr, log, argv, prompt_delivery}; bytes throughout. The prompt is
+    the --print value when it fits the command line, else PROMPT.txt in the work dir; stdin is the null device. A launch
+    that fails (no client, a command line too long) is returned as data (rc -2), never raised: a failure is a record."""
     work = Path(tempfile.mkdtemp(prefix="mcall-", dir=os.environ.get("MODEL_CALL_WORKDIR") or None))
     try:
         prepare_workdir(work, schema)
         for n, src in enumerate(images or ()):
             shutil.copyfile(src, work / f"image_{n}{os.path.splitext(str(src))[1].lower()}")
         log = work / "agy.log"
-        argv = [_agy_exe(), "--print", prompt.decode("utf-8"), "--output-format", "json", "--sandbox",
+        text = prompt.decode("utf-8")
+        if len(text) > AGY_ARGV_MAX:
+            (work / "PROMPT.txt").write_bytes(prompt)
+            arg, delivery = AGY_PROMPT_FILE_INSTRUCTION, {"via": "file PROMPT.txt in the work dir",
+                                                          "file_sha256": hashlib.sha256(prompt).hexdigest(),
+                                                          "instruction": AGY_PROMPT_FILE_INSTRUCTION}
+        else:
+            arg, delivery = text, {"via": "argv (--print)"}
+        argv = ["agy", "--print", arg, "--output-format", "json", "--sandbox",
                 "--disable-slash-commands", "--print-timeout", f"{int(timeout_s)}s", "--log-file", str(log)]
         try:
+            argv[0] = _agy_exe()
             p = subprocess.run(argv, cwd=str(work), capture_output=True, timeout=timeout_s + 60, stdin=subprocess.DEVNULL)
             rc, so, se = p.returncode, p.stdout, p.stderr
         except subprocess.TimeoutExpired as exc:
             rc, so, se = -9, exc.stdout or b"", (exc.stderr or b"") + f"\nTIMEOUT after {timeout_s}s".encode()
+        except (OSError, ValueError) as exc:
+            rc, so, se = -2, b"", f"LAUNCH FAILED: {type(exc).__name__}: {exc}".encode()
         lg = log.read_bytes() if log.exists() else b""
-        red = ["agy", "--print", f"<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>"] + \
-              [a.replace(str(work), "<workdir>") for a in argv[3:]]
-        return {"rc": rc, "stdout": so, "stderr": se, "log": lg, "argv": red}
+        shown = f"<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>" if delivery["via"].startswith("argv") else arg
+        red = ["agy", "--print", shown] + [a.replace(str(work), "<workdir>") for a in argv[3:]]
+        return {"rc": rc, "stdout": so, "stderr": se, "log": lg, "argv": red, "prompt_delivery": delivery}
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -467,8 +488,12 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
         params={"sandbox": True, "output_format": "json", "json_schema_flag": False, "slash_commands": False,
                 "output_schema": schema, "timeout_s": timeout_s,
                 "workdir_files": {"LANE_CONTEXT.md": LANE_CONTEXT_SHA256, "schema.json": "the output_schema above",
-                                  **{f"image_{n}": h for n, h in enumerate(image_digests)}},
-                **({"attached_images_sha256": image_digests} if image_digests else {})},
+                                  **{f"image_{n}": h for n, h in enumerate(image_digests)},
+                                  **({"PROMPT.txt": (r.get("prompt_delivery") or {}).get("file_sha256")}
+                                     if str((r.get("prompt_delivery") or {}).get("via", "")).startswith("file") else {})},
+                **({"attached_images_sha256": image_digests} if image_digests else {}),
+                **({"prompt_delivery": r["prompt_delivery"]}
+                   if str((r.get("prompt_delivery") or {}).get("via", "")).startswith("file") else {})},
         not_controllable=list(AGY_NOT_CONTROLLABLE),
         client={"name": "agy --print", "version": client_version or _agy_version(), "argv": r.get("argv")},
         request_utc=t0, response_utc=t1, caller=caller, input_digests=digests, state=state, error=err,

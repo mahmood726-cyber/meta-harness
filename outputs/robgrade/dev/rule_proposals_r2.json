@@ -1,0 +1,61 @@
+{
+ "record_id": "mc-98d7ef55af2c4774d435f7d5d3d8dd50",
+ "n_gaps": 32,
+ "rules": [
+  {
+   "rule_id": "regex:baseline_qualified_or_demographic_balance_v1",
+   "question": "1.3",
+   "answer": "PN",
+   "pattern": "\\A(?=[^\\r\\n]{1,1000}\\Z)(?![^\\r\\n]{0,1000}\\b(?:no|not|never|neither|without|except|but|however|although|despite|only|partially|some|unblinded|unmasked|previous|prior|earlier|other|another|separate|published|historical|external|pilot|protocol|planned|expected|assumed|hypothetical|if|whether|would|could|should|might|may|reportedly|claimed|suggested|denied|incorrectly|falsely)\\b)(?![^\\r\\n]{0,1000}(?:\\bet al\\b|(?<!this )\\b(?:trials?|stud(?:y|ies))\\b))[^\\r\\n]{0,300}?\\b(?:baseline characteristics were generally (?:well[- ]balanced|balanced|similar|comparable)|(?:baseline )?demographic and anthropometric characteristics of (?:the )?randomi[sz]ed (?:patients|participants) were (?:similar|comparable|(?:generally )?well[- ]balanced)) between the (?:two )?(?:treatment |intervention )?groups\\b",
+   "rationale": "Extends baseline_balanced_v1 to qualified balance and demographic–anthropometric comparisons it misses, preserving the readers' PN. Anchors implement bounded sentence-level context exclusions, rather than matching an exact report sentence.",
+   "fires_on": [
+    "Baseline characteristics were generally well balanced between the two groups (Table 1 ).",
+    "Demographic and anthropometric characteristics of randomized patients were similar between the two treatment groups (Table 2 ).",
+    "Demographic and anthropometric characteristics of the randomised participants were comparable between the intervention groups."
+   ],
+   "must_not_fire_on": [
+    "Baseline characteristics were not generally well balanced between the two groups.",
+    "In a previous trial, baseline characteristics were generally well balanced between the two groups.",
+    "Baseline characteristics were similar between the two groups.",
+    "Demographic and anthropometric characteristics of randomized patients were expected to be similar between the two treatment groups.",
+    "Baseline characteristics were generally well balanced between the two groups, but allocation was manipulated."
+   ]
+  },
+  {
+   "rule_id": "regex:baseline_demographic_clinical_comparison_v1",
+   "question": "1.3",
+   "answer": "N",
+   "pattern": "\\A(?=[^\\r\\n]{1,1000}\\Z)(?![^\\r\\n]{0,1000}\\b(?:no|not|never|neither|without|except|but|however|although|despite|only|partially|some|unblinded|unmasked|previous|prior|earlier|other|another|separate|published|historical|external|pilot|protocol|planned|expected|assumed|hypothetical|if|whether|would|could|should|might|may|reportedly|claimed|suggested|denied|incorrectly|falsely)\\b)(?![^\\r\\n]{0,1000}(?:\\bet al\\b|(?<!this )\\b(?:trials?|stud(?:y|ies))\\b))[^\\r\\n]{0,300}?\\bat baseline,? the (?:[a-z0-9][a-z0-9-]{0,24} ){1,3}and (?:[a-z0-9][a-z0-9-]{0,24} ){1,3}groups were (?:similar|comparable|well[- ]balanced) (?:with respect to|in terms of) (?:their )?demographic and clinical characteristics\\b",
+   "rationale": "Extends baseline_balanced_v1 to comparisons placing baseline before the named groups. Requires an unqualified comparison covering demographic and clinical characteristics, preserving the readers' N.",
+   "fires_on": [
+    "At baseline, the LcS and placebo groups were similar with respect to demographic and clinical characteristics",
+    "At baseline the intervention and control groups were comparable in terms of their demographic and clinical characteristics."
+   ],
+   "must_not_fire_on": [
+    "At baseline, the LcS and placebo groups were not similar with respect to demographic and clinical characteristics.",
+    "In another study, at baseline, the intervention and control groups were comparable in terms of their demographic and clinical characteristics.",
+    "At baseline, the LcS and placebo groups were similar with respect to demographic characteristics.",
+    "At follow-up, the intervention and control groups were comparable in terms of their demographic and clinical characteristics."
+   ]
+  },
+  {
+   "rule_id": "regex:assessors_blinded_relative_clause_v1",
+   "question": "4.3",
+   "answer": "N",
+   "pattern": "\\A(?=[^\\r\\n]{1,1000}\\Z)(?![^\\r\\n]{0,1000}\\b(?:no|not|never|neither|without|except|but|however|although|despite|only|partially|some|unblinded|unmasked|previous|prior|earlier|other|another|separate|published|historical|external|pilot|protocol|planned|expected|assumed|hypothetical|if|whether|would|could|should|might|may|reportedly|claimed|suggested|denied|incorrectly|falsely)\\b)(?![^\\r\\n]{0,1000}(?:\\bet al\\b|(?<!this )\\b(?:trials?|stud(?:y|ies))\\b))[^\\r\\n]{0,300}?\\b(?:assessed|evaluated|adjudicated) by (?:the|two|three|four|[2-9]) (?:independent )?(?:cardiologists|adjudicators|(?:clinical events |endpoint )?committee members) (?:who )?were (?:blinded to(?: \\(unaware of\\))?|masked to|unaware of) (?:the )?(?:treatment|intervention) (?:allocation|assignment)\\b",
+   "rationale": "Extends assessors_blinded_v1/v2 to named evaluating professionals followed by a relative clause. Requires an explicit assessment role and blinding to treatment allocation, supporting N; independence or participant blinding alone does not qualify.",
+   "fires_on": [
+    "The patients’ MACE was evaluated by two independent cardiologists who were blinded to (unaware of) the treatment allocation.",
+    "All outcomes were assessed by three independent adjudicators who were unaware of treatment assignment.",
+    "All endpoints were evaluated by the committee members who were masked to the intervention allocation."
+   ],
+   "must_not_fire_on": [
+    "The patients’ MACE was evaluated by two independent cardiologists who were not blinded to the treatment allocation.",
+    "In a previous trial, all outcomes were assessed by three independent adjudicators who were unaware of treatment assignment.",
+    "All endpoints were evaluated by the committee members who were masked to the participants' baseline risk.",
+    "Participants were unaware of treatment assignment.",
+    "There was no independent committee; all endpoints were evaluated by the committee members who were masked to the intervention allocation."
+   ]
+  }
+ ]
+}
