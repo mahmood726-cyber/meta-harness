@@ -25,12 +25,27 @@ from harness import http  # noqa: E402
 EMAIL = "meta-harness@example.org"
 import glob  # noqa: E402
 
-# scope: the phase-1 funnel's identity-less MISSING trials (no NCT) that carry a PMID
+# scope (default): the phase-1 funnel's identity-less MISSING trials (no NCT) that carry a PMID.
+# --registered: the REGISTERED trials (an NCT) phases 1-2 did not fill, that carry a PMID (the source ladder's phase 3 is
+# the remainder, not only the identity-less) -> PHASE3_OPEN_CENSUS_REGISTERED.json
+REGISTERED = "--registered" in sys.argv
+
+
+def _admitted(slug):
+    out = set()
+    for sub in ("g1_acquired_registry", "g1_acquired_regulator"):
+        p_ = os.path.join(ROOT, "registry", sub, f"{slug}.json")
+        if os.path.exists(p_):
+            out |= {r["label"] for r in json.load(open(p_, encoding="utf-8")).get("rows") or [] if r.get("verdict") == "ADMITTED"}
+    return out
+
+
 scope = []
 for _f in sorted(glob.glob(os.path.join(ROOT, "outputs", "k_gap", "registry_fill", "*.funnel.json"))):
     _d = json.load(open(_f, encoding="utf-8"))
-    scope += [dict(r, slug=_d["slug"]) for r in _d["rows"] if r.get("stage") == "MISSING" and r.get("pmid")
-              and not r.get("ncts")]
+    _done = _admitted(_d["slug"])
+    scope += [dict(r, slug=_d["slug"]) for r in _d["rows"] if r.get("pmid") and r["label"] not in _done and
+              ((bool(r.get("ncts")) and REGISTERED) or (not REGISTERED and r.get("stage") == "MISSING" and not r.get("ncts")))]
 idx = json.load(open("outputs/k_gap/fulltext_index.json", encoding="utf-8"))
 MODEL_OK = ("cc-by", "cc0", "cc by", "public-domain", "pd")
 
@@ -110,5 +125,7 @@ for t in scope:
 
 out = {"retrieved": time.strftime("%Y-%m-%d"), "n": len(rows), "class": dict(collections.Counter(r["class"] for r in rows)),
        "pmcid_not_in_held_index": sum(r["new_vs_held"] for r in rows), "rows": rows}
-json.dump(out, open(os.path.join(ROOT, "outputs", "k_gap", "registry_fill", "PHASE3_OPEN_CENSUS.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+json.dump(out, open(os.path.join(ROOT, "outputs", "k_gap", "registry_fill",
+                                 "PHASE3_OPEN_CENSUS_REGISTERED.json" if REGISTERED else "PHASE3_OPEN_CENSUS.json"),
+                    "w", encoding="utf-8"), indent=1, ensure_ascii=False)
 print("CENSUS", out["class"], "pmcid not in held index:", out["pmcid_not_in_held_index"])

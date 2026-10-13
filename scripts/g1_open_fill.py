@@ -32,8 +32,12 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
-CENSUS = os.path.join(ROOT, "outputs", "k_gap", "registry_fill", "PHASE3_OPEN_CENSUS.json")
-OUT = os.path.join(ROOT, "outputs", "k_gap", "registry_fill", "phase3")
+# --registered: the registered trials (an NCT) phases 1-2 did not fill (g1_open_census.py --registered)
+_REG = "--registered" in sys.argv
+MODEL = "--model" in sys.argv          # run the codex + agy readers on CC BY / CC0 text the typed step could not read
+CENSUS = os.path.join(ROOT, "outputs", "k_gap", "registry_fill",
+                      "PHASE3_OPEN_CENSUS_REGISTERED.json" if _REG else "PHASE3_OPEN_CENSUS.json")
+OUT = os.path.join(ROOT, "outputs", "k_gap", "registry_fill", "phase3_registered" if _REG else "phase3")
 WINDOW = 1800
 _SCREENING = re.compile(r"^(?:SCREENER_ERROR|SCREENED_OUT_UNAUDITED|INSUFFICIENT_RECORD)")
 MODEL_LICENCES = ("CC_BY_OR_CC0",)
@@ -88,6 +92,113 @@ def typed_read(text, origin, cfg):
     return None, None, None
 
 
+EVIDENCE_BUDGET = 20000        # chars of open text shown to BOTH readers (agy's prompt travels on the ~32k Windows command line)
+REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "open_fill")
+CALLS = os.path.join(OUT, "_calls.json")
+
+
+def _call(prompt, reader, purpose, digest):
+    """One recorded reader call (reused by model + prompt digest). The evidence is the trial's OWN CC BY / CC0 open text
+    (D8): the licence guard in model_call_live still checks every shown source."""
+    from reproducible_ai import model_call_live as mcl
+    from reproducible_ai import model_source as ms
+    import g1_trial_acquire as ta
+    tag, model, eff = reader
+    idx = json.load(open(CALLS, encoding="utf-8")) if os.path.exists(CALLS) else {}
+    key = f"{model}|{hashlib.sha256(prompt).hexdigest()}"
+    if key in idx and os.path.exists(os.path.join(REC_DIR, idx[key] + ".json")):
+        return ms.load_record(os.path.join(REC_DIR, idx[key] + ".json"))
+    caller = {"file": "scripts/g1_open_fill.py", "line": f"reader {tag}", "purpose": purpose}
+    dig = [{"ref": "evidence", "sha256": digest, "what": "inline evidence: the trial's own CC BY / CC0 open full text "
+                                                        "(windows), AACT rows, meta rows"}]
+    if model == "agy":
+        p = prompt + ("\n\n=== ANSWER FORMAT ===\nAnswer with ONLY one JSON object (no prose, no code fence) matching "
+                      "this JSON schema exactly:\n" + json.dumps(ta.SCHEMA, sort_keys=True)).encode("utf-8")
+        if len(p.decode("utf-8")) > 30000:
+            return {"state": "PROMPT_TOO_LONG_FOR_AGY_CLI", "record_id": None, "chars": len(p)}
+        rec = mcl.agy_call(p, schema=ta.SCHEMA, caller=caller, input_digests=dig, timeout_s=900)
+    else:
+        rec = mcl.call(prompt, schema=ta.SCHEMA, model=model, effort=eff, caller=caller, input_digests=dig,
+                       timeout_s=1800)
+    ms.write_record(rec, REC_DIR)
+    if rec.get("state") == "RAN_OK":
+        idx = json.load(open(CALLS, encoding="utf-8")) if os.path.exists(CALLS) else {}
+        idx[key] = rec["record_id"]
+        os.makedirs(OUT, exist_ok=True)
+        json.dump(idx, open(CALLS, "w", encoding="utf-8", newline="\n"), indent=0, sort_keys=True)
+    return rec
+
+
+def _tuple(resp):
+    return tuple(None if resp.get(k) is None else str(resp.get(k)).strip()
+                 for k in ("events_t", "n_t", "events_c", "n_c", "effect", "lower", "upper"))
+
+
+def model_read(slug, cfg, label):
+    """Codex + agy over the trial's own CC BY / CC0 text (the SAME evidence), each answer through g1_trial_acquire.gate
+    (the whole held text); an adjudicator on disagreement whose answer must equal one gated reader's tuple."""
+    import g1_trial_acquire as ta
+    import g1_registry_fill as rf
+    o, ts = ta.targets(slug, None)
+    t = dict(next(x for x in ts if x["label"] == label), slug=slug)
+    ev, held = ta.evidence(t, cfg, ta.comparator_pmid(slug, o))
+    ft = ev.get("full_text") or {}
+    if not ft.get("text"):
+        return {"decision": "MODEL_NOT_SHOWN:" + str(ft.get("state"))}
+    if len(ft["text"]) > EVIDENCE_BUDGET:
+        ft["text"] = ta._windows(held["text"], held["terms"])[:EVIDENCE_BUDGET]
+        ft["shown_chars"] = len(ft["text"])
+    body = json.dumps(ev, ensure_ascii=False, indent=0, default=str)
+    prompt = (ta.INSTR + "\n\n=== EVIDENCE ===\n" + body).encode("utf-8")
+    dg = hashlib.sha256(prompt).hexdigest()
+    purpose = f"k-gap phase 3 open text {slug} / {label[:50]}"
+    out, gated = {"evidence_sha256": dg, "readers": {}}, {}
+    for r in (rf.READER_A, rf.READER_B):
+        rec = _call(prompt, r, purpose + f" (reader {r[0]})", dg)
+        resp = rf._answer(rec) if rec.get("state") == "RAN_OK" else None
+        try:
+            v, adm = ta.gate(resp, held, cfg, slug) if resp else ("UNPARSEABLE", None)
+        except Exception as exc:  # noqa: BLE001 - a malformed answer is refused, never fatal
+            v, adm = f"REFUSED:GATE_ERROR:{type(exc).__name__}", None
+        out["readers"][r[0]] = {"record_id": rec.get("record_id"), "state": rec.get("state"), "gate": v,
+                                "answer": {k: (resp or {}).get(k) for k in ("verdict", "source", "measure", "events_t",
+                                                                            "n_t", "events_c", "n_c", "effect", "lower",
+                                                                            "upper", "outcome_as_stated",
+                                                                            "timepoint_as_stated", "why")}}
+        if v == "ADMITTED":
+            gated[r[0]] = (resp, adm)
+    if any(v["state"] != "RAN_OK" for v in out["readers"].values()):
+        out["decision"] = "WAITING_READER_UNAVAILABLE"
+    elif len(gated) == 2 and _tuple(gated["A"][0]) == _tuple(gated["B"][0]):
+        out["decision"], out["admitted_candidate"] = "MODEL_ADMITTED_BOTH_READERS", gated["A"][1]
+    elif gated:
+        adj = (rf.ADJ_INSTR + "\n\n=== TASK ===\n" + ta.INSTR + "\n\n=== READER ANSWERS ===\n" + json.dumps(
+            {k: v["answer"] for k, v in out["readers"].items()}, ensure_ascii=False) + "\n\n=== EVIDENCE ===\n" + body
+               ).encode("utf-8")
+        rec = _call(adj, rf.ADJUDICATOR, purpose + " (adjudicator)", hashlib.sha256(adj).hexdigest())
+        resp = rf._answer(rec) if rec.get("state") == "RAN_OK" else None
+        match = next((k for k, (rr, _a) in gated.items() if resp and _tuple(rr) == _tuple(resp)), None)
+        out["adjudication"] = {"record_id": rec.get("record_id"), "state": rec.get("state"), "agrees_with": match}
+        if match:
+            out["decision"], out["admitted_candidate"] = f"MODEL_ADMITTED_ADJUDICATED_WITH_{match}", gated[match][1]
+        else:
+            out["decision"] = "MODEL_NOT_ADMITTED_READERS_DISAGREE"
+    else:
+        out["decision"] = "MODEL_NOT_ADMITTED_NO_GATED_READING"
+    if out.get("admitted_candidate"):
+        rw = out["admitted_candidate"].pop("row", None)
+        if rw is not None:
+            out["admitted_candidate"]["value"] = {k: getattr(rw, k) for k in ("measure", "effect", "lower", "upper",
+                                                                               "events_t", "n_t", "events_c", "n_c")}
+    return out
+
+
+def unit_of_analysis_refused(r, value):
+    """The tracker refuses an acquired tuple of UNADJUSTED COUNTS from a cluster design (g1_tracker.acquired_merge:
+    UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE); such a find is never called admissible here (SALT and SMART, 13 Oct)."""
+    return str(r.get("blocker_now") or "").startswith("UNIT_OF_ANALYSIS") and (value or {}).get("events_t") is not None
+
+
 def run_trial(slug, cfg, r):
     import g1_trial_acquire as ta
     out = {"label": r["label"], "pmid": r["pmid"], "phase": None, "census_class": r["class"],
@@ -137,9 +248,18 @@ def run_trial(slug, cfg, r):
             return dict(out, stage="TYPED", decision="TYPED_REFUSED_SUBPOPULATION", note=short)
         out.update(stage="TYPED", typed={"reader": reader, "value": rr, "span": (span or "")[:600]},
                    phase=f"3_OPEN:{origin}")
+        if unit_of_analysis_refused(r, rr):
+            return dict(out, decision="TYPED_FOUND_REFUSED_UNIT_OF_ANALYSIS")
         return dict(out, decision="TYPED_FOUND_ADMISSIBLE" if src.get("admissible") else "TYPED_FOUND_PENDING_RULING")
     if src.get("model_ok"):
-        return dict(out, decision="TYPED_NONE_MODEL_ELIGIBLE")
+        if not MODEL:
+            return dict(out, decision="TYPED_NONE_MODEL_ELIGIBLE")
+        m = model_read(slug, cfg, r["label"])
+        val = (m.get("admitted_candidate") or {}).get("value")
+        if val and unit_of_analysis_refused(r, val):
+            m["decision"] = "MODEL_FOUND_REFUSED_UNIT_OF_ANALYSIS"
+        return dict(out, stage="MODEL", model=m, decision=m["decision"],
+                    phase=f"3_OPEN:{origin}" if m.get("admitted_candidate") else None)
     return dict(out, decision="TYPED_NONE_NOT_MODEL_LICENSED")
 
 

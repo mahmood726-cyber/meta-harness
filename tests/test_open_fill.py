@@ -51,3 +51,16 @@ def test_PLANT_an_unlicensed_copys_find_is_pending_never_admissible(monkeypatch)
     assert of.run_trial("t", CFG, dict(base, unpaywall={"license": "cc-by"}))["decision"] == "TYPED_NONE_MODEL_ELIGIBLE"
     assert of.run_trial("t", CFG, dict(base, unpaywall={"license": "cc-by-nc"}))["decision"] == \
         "TYPED_NONE_NOT_MODEL_LICENSED"
+
+
+def test_PLANT_cluster_design_counts_are_never_admissible(monkeypatch):
+    # SMART / SALT (cluster crossover): the tracker refuses unadjusted counts (UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE);
+    # phase 3 found SMART's whole-trial counts in its author manuscript and must not call them admissible (13 Oct)
+    import g1_trial_acquire as ta
+    from kgap import k_gap
+    monkeypatch.setattr(ta, "outcome_row_terms", lambda cfg: ["ovulation"])
+    monkeypatch.setattr(ta, "posted_population_short", lambda *a: None)
+    monkeypatch.setattr(k_gap, "unpaywall_text", lambda *a, **k: {"state": "OK", "text": PROSE})
+    r = {"label": "S", "pmid": "1", "class": "OPEN_CC_OTHER_REGEX_ONLY", "europepmc": {"doi": "10.1/x"},
+         "unpaywall": {"license": "cc-by-nc"}, "blocker_now": "UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE:cluster_crossover"}
+    assert of.run_trial("t", CFG, r)["decision"] == "TYPED_FOUND_REFUSED_UNIT_OF_ANALYSIS"
