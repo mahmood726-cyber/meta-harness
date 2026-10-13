@@ -173,3 +173,35 @@ def test_typed_first_admits_a_regulator_table_without_a_model_and_checks_the_ran
     assert v == "ADMITTED" and adm["kind"] == "REGULATORY_TABLE" and adm["row"].events_t == 58 and adm["url"] == FDA
     monkeypatch.setattr(ga, "posted_population_short", lambda *a: {"randomised_total": 900})
     assert ga.typed_first(t, cfg, held) == (None, None)                       # a subpopulation is never the trial's
+
+
+def test_gba_amnog_documents_are_typed_only_and_discovered_from_gbas_own_search_words():
+    # G-BA Impressum (13 Oct 2026): citing and linking only, so the AMNOG documents are held, never shown to a model
+    u = "https://www.g-ba.de/downloads/92-975-4/2011-06-30_Modul4-A_Ticagrelor.pdf"
+    assert rs.agency_of(u) == "GBA" and rs.licence_of(u) == "GBA_IQWIG_CITE_AND_LINK_ONLY"
+    assert not rs.prompt_open(u) and not rs.prompt_open(u, {"licence": rs.licence_from_text(u, "Creative Commons Attribution")})
+    words = ["Ticagrelor", "Icosapent-Ethyl", "Evolocumab", "Tiotropium", "Ticagrelorum X"]
+    assert rs.gba_search_words("ticagrelor", words) == ["Ticagrelor"]
+    assert rs.gba_search_words("icosapent ethyl", words) == ["Icosapent-Ethyl"]
+    assert rs.gba_search_words("tico", words) == []
+    listing = '<a href="/bewertungsverfahren/nutzenbewertung/18/">x</a><a href="/bewertungsverfahren/nutzenbewertung/225/">y</a>'
+    assert rs.gba_procedures(listing) == ["18", "225"]
+    page = ('<a href="/downloads/92-975-1/M1.pdf">Modul 1<span>(PDF)</span></a>'
+            '<a href="/downloads/92-975-4/M4.pdf">Mo&shy;dul 4<span>(PDF 4 MB)</span></a>'
+            '<a href="/downloads/92-975-5/NB.pdf">Nutzen­bewertung IQWiG(PDF)</a>'
+            '<a href="/downloads/40-268-1/ZD.pdf">Zusammenfassende Dokumentation</a>')
+    assert rs.gba_docs(page) == ["https://www.g-ba.de/downloads/92-975-4/M4.pdf",
+                                 "https://www.g-ba.de/downloads/92-975-5/NB.pdf"]
+
+
+def test_PLANT_a_programme_token_never_names_a_sibling_trial():
+    # 13 Oct (G-BA pilot): 'ODYSSEY' / 'COMBO' / 'JAPAN' were each a name, so every ODYSSEY trial was 'named' in every
+    # alirocumab document, and the gate's named-near-the-quote check could pass a COMBO II quote for COMBO I
+    combo2 = "In ODYSSEY COMBO II the rate was 4/241 v 16/479. Table: COMBO II 4/241."
+    for lab, nct in [("ODYSSEY COMBO I NCT01644175", "NCT01644175"), ("ODYSSEY JAPAN NCT02107898", "NCT02107898"),
+                     ("ODYSSEY FH I NCT01623115", "NCT01623115")]:
+        assert rs.named_at(combo2, rs.trial_names(lab, [nct])) == [], lab
+    names = rs.trial_names("ODYSSEY COMBO I NCT01644175", ["NCT01644175"])
+    assert rs.named_at("Study ODYSSEY COMBO I randomised 316.", names) and rs.named_at("COMBO I: 6/207 v 3/107", names)
+    assert rs.named_at("FH I 3/163", rs.trial_names("ODYSSEY FH I NCT01623115", ["NCT01623115"]))
+    assert "DESCARTES" in rs.trial_names("DESCARTES NCT01516879", ["NCT01516879"])      # a one-word acronym still names

@@ -35,11 +35,17 @@ sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 SOURCES = os.path.join(ROOT, "registry", "regulatory_sources.json")
 IDCACHE = os.path.join(ROOT, "outputs", "k_gap", "_reg", "id_information.json")
 HOST_AGENCY = {"www.accessdata.fda.gov": "FDA", "accessdata.fda.gov": "FDA", "www.fda.gov": "FDA",
-               "www.ema.europa.eu": "EMA", "ema.europa.eu": "EMA", "www.nice.org.uk": "NICE", "nice.org.uk": "NICE"}
+               "www.ema.europa.eu": "EMA", "ema.europa.eu": "EMA", "www.nice.org.uk": "NICE", "nice.org.uk": "NICE",
+               "www.g-ba.de": "GBA", "g-ba.de": "GBA"}
 # NICE documents (committee papers with the ERG / EAG report, final appraisal determinations, guideline evidence
 # reviews) carry '(c) NICE ... subject to Notice of rights' and reproduce company-submission material: NOT open unless the
 # document's OWN text states the Open Government Licence or a CC licence (licence_from_text, read when it is held)
-AGENCY_LICENCE = {"FDA": "US_GOV_PUBLIC_DOMAIN", "EMA": "EMA_REUSE_WITH_ACKNOWLEDGEMENT", "NICE": "NICE_NOTICE_OF_RIGHTS"}
+# G-BA (www.g-ba.de/sys/impressum, read 13 Oct 2026): 'Alle Inhalte ... sind urheberrechtlich ... geschuetzt'; reuse
+# beyond copyright's limits needs G-BA's or the author's consent, and only citing and linking are permitted. The AMNOG
+# documents it hosts (manufacturer Modul 4 dossiers, IQWiG Nutzenbewertungen, whose own Impressum likewise permits only
+# citing and linking) are therefore held for TYPED extraction only, never shown to a model.
+AGENCY_LICENCE = {"FDA": "US_GOV_PUBLIC_DOMAIN", "EMA": "EMA_REUSE_WITH_ACKNOWLEDGEMENT", "NICE": "NICE_NOTICE_OF_RIGHTS",
+                  "GBA": "GBA_IQWIG_CITE_AND_LINK_ONLY"}
 # licences a model may be shown (the prompt goes into a public record). EMA: Mahmood 6 Oct ('European drug agency can
 # be used'); EMA's terms authorise reproduction provided the source is acknowledged, so every shown EMA window carries
 # EMA_ACK (reproducible_ai/record_licence.regulatory_window_problem refuses one without it)
@@ -170,6 +176,54 @@ def nice_urls(agent):
     return [u for g in nice_guidance(agent) for u in nice_docs(g)]
 
 
+GBA = "https://www.g-ba.de"
+GBA_NB = GBA + "/bewertungsverfahren/nutzenbewertung/"
+MAX_GBA_PROCEDURES = 8
+# the AMNOG documents that hold per-trial results: the manufacturer's Modul 4 (its trial tables), IQWiG's benefit
+# assessment and any IQWiG addendum. Modul 1-3, resolutions, minutes and the summary documentation are not read.
+_GBA_DOC = re.compile(r"^(?:Modul\s*4|Nutzenbewertung IQWiG|Addendum zur Nutzenbewertung)", re.I)
+
+
+def _gba_fold(s):
+    return re.sub(r"[\s\-]+", " ", (s or "").replace("­", "")).strip().casefold()
+
+
+def gba_search_words(agent, words):
+    """The G-BA search words (its own suchworte.json; the search is case-sensitive and exact) that ARE this INN:
+    equal after folding case / hyphens ('Icosapent-Ethyl' = 'icosapent ethyl'), or the INN followed by a salt word.
+    No fuzzy match."""
+    a = _gba_fold(agent)
+    return [w for w in words if _gba_fold(w) == a or _gba_fold(w).startswith(a + " ")]
+
+
+def gba_procedures(listing_html):
+    return list(dict.fromkeys(re.findall(r'href="(?:https://www\.g-ba\.de)?/bewertungsverfahren/nutzenbewertung/(\d+)/"',
+                                         listing_html)))
+
+
+def gba_docs(procedure_html):
+    out = []
+    for href, label in re.findall(r'<a[^>]+href="((?:https://www\.g-ba\.de)?/downloads/[^"]+\.pdf)"[^>]*>(.*?)</a>',
+                                  procedure_html, re.S | re.I):
+        lab = _ws(re.sub(r"<[^>]+>|&shy;|­|​", "", label))
+        if _GBA_DOC.match(lab):
+            out.append(href if href.startswith("http") else GBA + href)
+    return list(dict.fromkeys(out))
+
+
+def gba_urls(agent):
+    """AMNOG (section 35a SGB V) documents for an INN, discovered through G-BA's own search words and procedure pages."""
+    from urllib.parse import quote
+    try:
+        words = json.loads(_nice_html(GBA_NB + "suchworte.json") or "[]")
+    except ValueError:
+        return []
+    procs = []
+    for w in gba_search_words(agent, words):
+        procs += gba_procedures(_nice_html(GBA_NB + "?suchwort=" + quote(w)))
+    return [u for p in list(dict.fromkeys(procs))[:MAX_GBA_PROCEDURES] for u in gba_docs(_nice_html(GBA_NB + p + "/"))]
+
+
 def topic_agents(cfg):
     a = cfg.get("intervention_agents") or cfg.get("intervention_terms") or []
     return [x for x in (list(a.keys()) if isinstance(a, dict) else a) if len(x) >= 4]
@@ -184,6 +238,7 @@ def hold_topic(slug, cfg, fetch=True):
     for a in agents:
         urls += fda_review_urls(a) if fetch else []
         urls += nice_urls(a) if fetch else []
+        urls += gba_urls(a) if fetch else []
     try:
         ema = rp._j_ema() if fetch else []
         urls += [u for p in rp.ema_products(agents, ema) for u in rp.ema_docs(p)]
@@ -253,13 +308,43 @@ def study_codes(ncts):
 _GENERIC = re.compile(r"^(?:study|trial|protocol|phase|cohort|part|the|and)$", re.I)
 
 
+_ACR_TOK = re.compile(r"[A-Z0-9][A-Z0-9-]*")
+
+
+def _label_acronyms(label):
+    """The label's acronym PHRASES (maximal runs of upper-case / numeral tokens, NCT ids and bare years excluded). A run of
+    several tokens names the trial only WHOLE ('ODYSSEY COMBO I'), or without its programme prefix when two or more
+    tokens remain ('COMBO I', 'FH II'); a lone programme or fragment token ('ODYSSEY', 'COMBO', 'JAPAN') never does: it
+    names every sibling trial (13 Oct, G-BA pilot). A one-token acronym ('DESCARTES') and a hyphenated mixed-case
+    acronym ('BACC-Bay') name the trial as before."""
+    out, run = set(), []
+
+    def flush():
+        if len(run) == 1:
+            out.add(run[0])
+        elif len(run) > 1:
+            out.add(" ".join(run))
+            if len(run) > 2:
+                out.add(" ".join(run[1:]))
+        run.clear()
+    for tok in re.findall(r"[A-Za-z0-9][A-Za-z0-9-]*", re.sub(r"\s+-\s+", "-", label or "")):
+        acr = _ACR_TOK.fullmatch(tok) and re.search(r"[A-Z]", tok) and not re.fullmatch(r"NCT\d+", tok)
+        if acr:
+            run.append(tok)
+            continue
+        flush()
+        if re.fullmatch(r"[A-Z]{3,}-[A-Za-z0-9]+", tok):
+            out.add(tok)
+    flush()
+    return out
+
+
 def trial_names(label, ncts, acronym=None, codes=()):
     """Strings that NAME this trial in a document. A code shorter than 5 characters or a bare number names nothing."""
     names = set(n for n in ncts if n)
     if acronym:
         names.add(acronym)
-    for tok in re.findall(r"\b[A-Z][A-Z0-9]{2,}(?:-[A-Z0-9]+)*\b", label or ""):
-        names.add(tok)
+    names |= _label_acronyms(label)
     for c in codes:
         c = c.strip()
         if len(c) >= 5 and not c.isdigit() and not _GENERIC.match(c):
