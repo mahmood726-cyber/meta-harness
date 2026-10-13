@@ -26,41 +26,8 @@ DECLARED_MIN = 6000      # a declared full-text prompt shorter than this holds a
 _DECLARED = re.compile(r"PMID\s*(\d{4,9})\b[^\"]{0,80}?full[ -]?text", re.I)
 
 
-# ONE restriction pattern for every licence reader (jats_licence, licences(), g1_trial_acquire.pmc_copy): three diverging
-# copies let 'Non Commercial' (spaced) and 'no commercial reuse' through one reader or another (codex/agy d8lic-cap-r1)
-_RESTRICTED_RE = re.compile(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)|Non[- ]?Commercial|No[- ]?Deriv|Share[- ]?Alike|"
-                            r"\bCC[ -]BY[ -](?:NC|ND|SA)\b|no[- ]commercial[- ]re-?use", re.I)
-_HYPHENS = re.compile("[‐‑‒–—−­]")
-
-
-class _Restricted:
-    """search() on the statement as a READER sees it: entities unescaped ('Non&#x2011;Commercial') and every Unicode hyphen
-    folded to '-' before matching -- the raw XML hid an NC licence behind a non-breaking hyphen (codex d8lic-cap-r2 #2)."""
-
-    @staticmethod
-    def search(text):
-        import html as _html
-        t = _HYPHENS.sub("-", _html.unescape(str(text or "")))
-        # a line break inside the licence name ('Non\nCommercial', 'BY-\nNC') is no boundary (codex d8lic-cap-r3 #1)
-        t = re.sub(r"-\s+", "-", re.sub(r"\s+", " ", t))
-        return _RESTRICTED_RE.search(t)
-
-
-_RESTRICTED = _Restricted()
-
-_CC_URL = re.compile(r"creativecommons\.org/", re.I)
-_CC_WORDS = re.compile(r"Creative\s+Commons|\bCC[ -]BY", re.I)
-_NEGATED = re.compile(r"\b(?:not|no|neither|nor|without|never|isn't|aren't)\b[^.;]{0,40}$", re.I)
-
-
-def names_creative_commons(perm: str) -> bool:
-    """True when a permissions statement GRANTS a Creative Commons licence: a creativecommons.org licence link, or the
-    words with no negation before them in the same clause. 'not distributed under a Creative Commons licence' names it
-    only to deny it (codex d8x-cap-r2 #1): such a copy is closed, never CC_RESTRICTED (which typed readers accept)."""
-    t = str(perm or "")
-    if _CC_URL.search(t):
-        return True
-    return any(not _NEGATED.search(t[max(0, m.start() - 60):m.start()]) for m in _CC_WORDS.finditer(t))
+from harness.copy_licence import (_CC_URL, _CC_WORDS, _HYPHENS, _NEGATED, _RESTRICTED, _RESTRICTED_RE,  # noqa: E402,F401
+                                    _Restricted, _is_open, names_creative_commons)
 
 
 def licences(index_path=INDEX):
@@ -261,13 +228,6 @@ def ref_licences(ref, lic, dlic):
         d = next((c for c in cands if c.lower() in dlic), cands[-1])    # exact held DOI first; never a borrowed licence
         return [(f"DOI {d}", dlic.get(d.lower()))]
     return []
-
-
-def _is_open(licence):
-    """D8: CC BY or CC0 only. Any string starting with 'cc' let Unpaywall's 'cc-by-nc' / 'cc-by-nc-nd' / 'cc-by-sa' open a
-    prompt (D8 incident #2, 12 Oct)."""
-    lic = str(licence or "").strip().lower()
-    return lic == "cc" or bool(re.fullmatch(r"cc[- ]?by(?:[- ]\d(?:\.\d)?)?|cc0(?:[- ]\d(?:\.\d)?)?", lic))
 
 
 def text_block_problems(record, dlic=None, lic=None):

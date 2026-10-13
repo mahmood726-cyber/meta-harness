@@ -8,7 +8,7 @@ text only when that copy is marked CC:
                  -> UPW_NOT_CC
 Deterministic typed reading of a held copy (regex rungs) is unaffected: nothing it reads enters a record.
 D8 (13 Oct): only CC BY / CC0 is 'CC' here. A NonCommercial / NoDerivatives / ShareAlike copy is CC_RESTRICTED, by the
-ONE restriction pattern reproducible_ai/record_licence uses (this module called every Creative Commons copy 'CC' in
+ONE restriction pattern defined below and shared with reproducible_ai/record_licence (this module called every Creative Commons copy 'CC' in
 three places: the PMC classifier, the cached index, Unpaywall -- pmc_licence('21115589'), CC BY-NC, returned 'CC')."""
 from __future__ import annotations
 
@@ -17,9 +17,56 @@ import os
 import re
 import time
 
-from reproducible_ai.record_licence import _RESTRICTED, _is_open, names_creative_commons
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+# The ONE licence rule (D8: only CC BY / CC0 enters a prompt). It lives HERE, in harness, because harness modules may
+# not import the reproducible_ai package (tests/test_model_source.py); reproducible_ai/record_licence imports it from
+# this module, so every licence reader still applies exactly one pattern (codex/agy d8lic-cap-r1).
+# ONE restriction pattern for every licence reader (jats_licence, licences(), g1_trial_acquire.pmc_copy): three diverging
+# copies let 'Non Commercial' (spaced) and 'no commercial reuse' through one reader or another (codex/agy d8lic-cap-r1)
+_RESTRICTED_RE = re.compile(r"creativecommons\.org/licenses/by-(?:nc|nd|sa)|Non[- ]?Commercial|No[- ]?Deriv|Share[- ]?Alike|"
+                            r"\bCC[ -]BY[ -](?:NC|ND|SA)\b|no[- ]commercial[- ]re-?use", re.I)
+_HYPHENS = re.compile("[‐‑‒–—−­]")
+
+
+class _Restricted:
+    """search() on the statement as a READER sees it: entities unescaped ('Non&#x2011;Commercial') and every Unicode hyphen
+    folded to '-' before matching -- the raw XML hid an NC licence behind a non-breaking hyphen (codex d8lic-cap-r2 #2)."""
+
+    @staticmethod
+    def search(text):
+        import html as _html
+        t = _HYPHENS.sub("-", _html.unescape(str(text or "")))
+        # a line break inside the licence name ('Non\nCommercial', 'BY-\nNC') is no boundary (codex d8lic-cap-r3 #1)
+        t = re.sub(r"-\s+", "-", re.sub(r"\s+", " ", t))
+        return _RESTRICTED_RE.search(t)
+
+
+_RESTRICTED = _Restricted()
+
+_CC_URL = re.compile(r"creativecommons\.org/", re.I)
+_CC_WORDS = re.compile(r"Creative\s+Commons|\bCC[ -]BY", re.I)
+_NEGATED = re.compile(r"\b(?:not|no|neither|nor|without|never|isn't|aren't)\b[^.;]{0,40}$", re.I)
+
+
+def names_creative_commons(perm: str) -> bool:
+    """True when a permissions statement GRANTS a Creative Commons licence: a creativecommons.org licence link, or the
+    words with no negation before them in the same clause. 'not distributed under a Creative Commons licence' names it
+    only to deny it (codex d8x-cap-r2 #1): such a copy is closed, never CC_RESTRICTED (which typed readers accept)."""
+    t = str(perm or "")
+    if _CC_URL.search(t):
+        return True
+    return any(not _NEGATED.search(t[max(0, m.start() - 60):m.start()]) for m in _CC_WORDS.finditer(t))
+
+
+def _is_open(licence):
+    """D8: CC BY or CC0 only. Any string starting with 'cc' let Unpaywall's 'cc-by-nc' / 'cc-by-nc-nd' / 'cc-by-sa' open a
+    prompt (D8 incident #2, 12 Oct)."""
+    lic = str(licence or "").strip().lower()
+    return lic == "cc" or bool(re.fullmatch(r"cc[- ]?by(?:[- ]\d(?:\.\d)?)?|cc0(?:[- ]\d(?:\.\d)?)?", lic))
+
 INDEX = os.path.join(ROOT, "outputs", "k_gap", "fulltext_index.json")
 
 
