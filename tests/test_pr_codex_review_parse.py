@@ -64,9 +64,23 @@ def test_plant_an_agy_call_is_licence_checked_first(monkeypatch, tmp_path):
     """mcl.agy_call has no licence guard (mcl.call has one at call time): the runner checks the exact prompt with the
     shared D8 guard and refuses the call on any problem -- agy is never reached."""
     import pr_codex_review as r
-    monkeypatch.setattr(r, "groups", lambda *a: [("g1", [("harness/a.py", "+x\n")])])
+    monkeypatch.setattr(r, "groups", lambda *a, **k: [("g1", [("harness/a.py", "+x\n")])])
     monkeypatch.setattr(r.record_licence, "record_problems", lambda rec, *a, **k: ["carries NC text"])
     monkeypatch.setattr(r.mcl, "agy_call", lambda *a, **k: (_ for _ in ()).throw(AssertionError("agy was called")))
     monkeypatch.setattr(r, "PROP", str(tmp_path / "p.json"))
     with pytest.raises(SystemExit, match="D8: refusing an agy call"):
         r.main(["--run", "--reader", "agy", "--name", "t", "--base", "b", "--head", "h"])
+
+
+def test_plant_an_agy_group_fits_one_windows_command_line(monkeypatch):
+    """agy takes its prompt as the --print ARGUMENT (no stdin in text mode): a 60,000-char group raised WinError 206
+    'filename or extension is too long' and pr99-cap-r1-agy reviewed nothing (13 Oct). agy groups are capped, and a file
+    diff over the cap is split at line boundaries into numbered parts -- every line is still read, none truncated."""
+    import pr_codex_review as r
+    big = "".join(f"+line {i} " + "x" * 80 + "\n" for i in range(700))          # ~62,000 chars, one file
+    monkeypatch.setattr(r, "_git", lambda *a: "harness/a.py\n" if "--name-only" in a else big)
+    gs = r.groups("b", "h", (), limit=r.AGY_GROUP_CHARS)
+    parts = [d for _, g in gs for _, d in g]
+    assert all(len(d) <= r.AGY_GROUP_CHARS for d in parts) and len(parts) >= 3
+    assert "".join(parts) == big                                               # nothing dropped, nothing truncated
+    assert r.AGY_GROUP_CHARS + 8000 < 32767                                    # room for the preface and instructions

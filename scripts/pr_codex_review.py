@@ -31,14 +31,38 @@ PROP = os.path.join(ROOT, "registry", "model_proposals", "pr_codex_review.json")
 REC_DIR = os.path.join(ROOT, ms.RECORD_DIR)
 CODE_DIRS = ("scripts/", "harness/", "reproducible_ai/", "kgap/")
 GROUP_CHARS = 60000
+# agy takes its prompt as the --print ARGUMENT (no stdin in text mode) and one Windows command line is 32,767 chars: a
+# 60,000-char group raised WinError 206 and pr99-cap-r1-agy reviewed nothing (13 Oct)
+AGY_GROUP_CHARS = 20000
+
+
+def _pieces(d, limit):
+    """A file diff in pieces of <= limit chars, split at line boundaries (a single over-long line is cut): every line is
+    read, none truncated."""
+    out, cur = [], ""
+    for ln in d.splitlines(keepends=True):
+        while len(ln) > limit:
+            if cur:
+                out.append(cur)
+                cur = ""
+            out.append(ln[:limit])
+            ln = ln[limit:]
+        if len(cur) + len(ln) > limit:
+            out.append(cur)
+            cur = ""
+        cur += ln
+    if cur:
+        out.append(cur)
+    return out
 
 
 def _git(*a):
     return subprocess.run(["git", *a], cwd=ROOT, capture_output=True, check=True, stdin=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
 
 
-def groups(base, head, extra_dirs=()):
-    """[(group name, [(file, diff text)])]: every changed code file's diff, packed into groups of <= GROUP_CHARS.
+def groups(base, head, extra_dirs=(), limit=GROUP_CHARS):
+    """[(group name, [(file, diff text)])]: every changed code file's diff, packed into groups of <= `limit` chars; a
+    file diff over `limit` is split into numbered parts at line boundaries (it used to be truncated).
     `extra_dirs` (--dirs tests/,registry/m3/) adds those prefixes, and there .py / .json / .md files are read too: a PR
     whose change is a test, a registry record or a protocol text is reviewed on request (#97, #98, 13 Oct)."""
     def wanted(f):
@@ -53,12 +77,14 @@ def groups(base, head, extra_dirs=()):
         d = _git("diff", f"{base}...{head}", "--", f)
         if not d.strip():
             continue
-        d = d if len(d) <= GROUP_CHARS else d[:GROUP_CHARS] + "\n[... diff truncated; the reviewer saw the first part only]\n"
-        if cur and size + len(d) > GROUP_CHARS:
-            out.append(cur)
-            cur, size = [], 0
-        cur.append((f, d))
-        size += len(d)
+        ps = _pieces(d, limit)
+        for i, p in enumerate(ps):
+            name = f if len(ps) == 1 else f"{f} (part {i + 1} of {len(ps)})"
+            if cur and size + len(p) > limit:
+                out.append(cur)
+                cur, size = [], 0
+            cur.append((name, p))
+            size += len(p)
     if cur:
         out.append(cur)
     return [(f"g{i + 1}", g) for i, g in enumerate(out)]
@@ -119,7 +145,7 @@ def main(argv):
         if reader not in ("codex", "agy"):
             raise SystemExit(f"unknown reader {reader}")
         extra = tuple(d for d in (argv[argv.index("--dirs") + 1].split(",") if "--dirs" in argv else []) if d)
-        gs = groups(base, head, extra)
+        gs = groups(base, head, extra, limit=AGY_GROUP_CHARS if reader == "agy" else GROUP_CHARS)
         entry = data.setdefault(name, {"base": base, "head": head, "runs": {}, "verdicts": {}})
         entry.update(base=base, head=head)
 

@@ -9308,5 +9308,461 @@
     "verdict": null
    }
   ]
+ },
+ "pr98-cap-r1": {
+  "base": "c715a5d59e5d2f246042776b1f16df0fcd34a3af",
+  "head": "cea1a457b771f0adfbd0c01a5efce3a78382d3c3",
+  "runs": {
+   "g1": {
+    "record_id": "mc-5c0e935dae42b8e4751fc1bc5692bd0b",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "registry/regex_freeze.json",
+     "tests/test_regex_freeze.py"
+    ],
+    "prompt_sha256": "25bb8dbdd3a6f6c5df2dc8b71142c206a9fcdf7115f0fd26b679e77e78f5fd0b"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "tests/test_regex_freeze.py",
+    "function": "freeze_problems",
+    "severity": "P2",
+    "claim": "The plant-existence check accepts text inside a string literal as a function definition. A nonexistent plant can therefore authorize a changed parser.",
+    "failing_input": "import json, runpy\nm = runpy.run_path('tests/test_regex_freeze.py')\nd = json.load(open(m['FREEZE'], encoding='utf-8'))\nd['failure_classes'] = [{'id': 'X', 'file': 'harness/components.py', 'found': '2026-10-13', 'what': 'Changed parser', 'plant': 'tests/test_regex_freeze.py::{name}', 'new_blob': 'f' * 40}]\nprint(m['freeze_problems'](d, blob=lambda f: 'f' * 40 if f == 'harness/components.py' else d['frozen'][f]))",
+    "expected": "A problem reporting that the plant does not exist; there is no test function named '{name}'.",
+    "actual": "Returns []. The validator's own source contains the literal substring 'def {name}(', satisfying its substring check.",
+    "id": "pr98-cap-r1:g1#1",
+    "record_id": "mc-5c0e935dae42b8e4751fc1bc5692bd0b",
+    "verdict": null
+   },
+   {
+    "file": "tests/test_regex_freeze.py",
+    "function": "freeze_problems",
+    "severity": "P2",
+    "claim": "The gate does not enforce the declared append-only policy: replacing the original frozen hashes admits changed parsers without any failure class. It never compares the baseline against frozen_at or another historical source.",
+    "failing_input": "import json, runpy\nm = runpy.run_path('tests/test_regex_freeze.py')\nd = json.load(open(m['FREEZE'], encoding='utf-8'))\nchanged = {'harness/components.py', 'docs/harness/components.py'}\nobserved = dict(d['frozen'])\nfor f in changed:\n    observed[f] = 'f' * 40\n    d['frozen'][f] = 'f' * 40\nprint(m['freeze_problems'](d, blob=observed.__getitem__))",
+    "expected": "Reject replacement of the frozen baseline without an appended failure class and plant.",
+    "actual": "Returns [] with failure_classes still empty. Updating both baseline hashes also preserves the equality checked by test_mirrors_are_frozen_with_their_sources.",
+    "id": "pr98-cap-r1:g1#2",
+    "record_id": "mc-5c0e935dae42b8e4751fc1bc5692bd0b",
+    "verdict": null
+   }
+  ]
+ },
+ "b1-cap-r1": {
+  "base": "f694220a7e4ccfe961ae5f11c58bd4a2b170eb24",
+  "head": "1980a1732db0a83dd205cccba45ae77629e61110",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7fc5d864c60d290e82cb428144dc5f20",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/extractor_replay.py",
+     "tests/test_b1_replay.py"
+    ],
+    "prompt_sha256": "965de0b69294ebeb7c59010f77f4201796213b9df95ec3e77f4f728cc13b0054"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extractor_replay.py",
+    "function": "read_cache_ae_clause",
+    "severity": "P0",
+    "claim": "The optional second sentence is ignored even when it explicitly identifies Kaplan–Meier percentages and contradicts the inferred denominators.",
+    "failing_input": "read_cache_ae_clause('Adverse events were similar between Drug and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that the percentages are Kaplan-Meier estimates, with 200 patients in each arm.', {'reader': 'ae_patient_percentages', 'outcome': 'Adverse events', 'arm_t': 'Drug', 'arm_c': 'placebo'})",
+    "expected": "Raise ReadRefused: Kaplan–Meier percentages cannot identify integer population denominators; the text explicitly states 200 patients per arm.",
+    "actual": "Returns {'ai': 44, 'n1i': 162, 'ci': 38, 'n2i': 162}.",
+    "id": "b1-cap-r1:g1#1",
+    "record_id": "mc-7fc5d864c60d290e82cb428144dc5f20",
+    "verdict": null
+   },
+   {
+    "file": "tests/test_b1_replay.py",
+    "function": "test_cache_edits_preserve_all_original_values_and_quotes",
+    "severity": "P2",
+    "claim": "The preservation test fails on a clean checkout after the converted cache metadata is committed because HEAD already contains the metadata that the test deletes only from 'after'.",
+    "failing_input": "With the converted cache rows containing document_sha256 and replay committed in HEAD and an unchanged working tree, run: pytest tests/test_b1_replay.py::test_cache_edits_preserve_all_original_values_and_quotes",
+    "expected": "Pass: the committed and working-tree cache contents are identical.",
+    "actual": "Fails with 'non-metadata cache change FAIL': 'before' retains document_sha256 and replay, while 'after' has both keys removed.",
+    "id": "b1-cap-r1:g1#2",
+    "record_id": "mc-7fc5d864c60d290e82cb428144dc5f20",
+    "verdict": null
+   }
+  ]
+ },
+ "pr98-cap-r1-agy": {
+  "base": "c715a5d59e5d2f246042776b1f16df0fcd34a3af",
+  "head": "cea1a457b771f0adfbd0c01a5efce3a78382d3c3",
+  "runs": {
+   "g1": {
+    "record_id": "mc-efb56768c812e853e40bbffc659ada23",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "registry/regex_freeze.json",
+     "tests/test_regex_freeze.py"
+    ],
+    "prompt_sha256": "3e564c381d2b90bf97c6b866cfbb0ce10a2dfe0c5c0aa1663e53aaab7abedfa1"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr97-cap-r1": {
+  "base": "c715a5d59e5d2f246042776b1f16df0fcd34a3af",
+  "head": "6df1fb448025eda84da7db8071420736f61d5c46",
+  "runs": {
+   "g1": {
+    "record_id": "mc-dfefd75f1c6173f2b734fef36580f9ca",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "registry/m3/AMENDMENTS.md"
+    ],
+    "prompt_sha256": "eedcab8373049d828dd7e52febdf6960dd57110274b24d666e1e1832e5506cd8"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr97-cap-r1-agy": {
+  "base": "c715a5d59e5d2f246042776b1f16df0fcd34a3af",
+  "head": "6df1fb448025eda84da7db8071420736f61d5c46",
+  "runs": {
+   "g1": {
+    "record_id": "mc-685210f84d2ca917c37d6b9be2875837",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "registry/m3/AMENDMENTS.md"
+    ],
+    "prompt_sha256": "6a4acc686def57c22480e5eaf36c50bc6fb08cc05d4c33e075aa4c750b0cdc30"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "b1-cap-r1-agy": {
+  "base": "f694220a7e4ccfe961ae5f11c58bd4a2b170eb24",
+  "head": "1980a1732db0a83dd205cccba45ae77629e61110",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ab9cecbdf1f12b51a00b9fdfdfda6c11",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/extractor_replay.py",
+     "tests/test_b1_replay.py"
+    ],
+    "prompt_sha256": "0b92bb54870a1bab9525850d2115f346f85e1e5f6cbf4292c411c4059768b5de"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr98-cap-r2": {
+  "base": "c715a5d59e5d2f246042776b1f16df0fcd34a3af",
+  "head": "2dde4326a93c3c2b06fbc23191711c41e95f1913",
+  "runs": {
+   "g1": {
+    "record_id": "mc-e1253f205c1d3eaaea28ab1fb695e6ed",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "registry/regex_freeze.json",
+     "tests/test_regex_freeze.py"
+    ],
+    "prompt_sha256": "bd7d79e25716be96c3a62b42c6adb6dbc5c298ad4b5f7f8e24bb3534971d9214"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "tests/test_regex_freeze.py",
+    "function": "freeze_problems / _baseline",
+    "severity": "P2",
+    "claim": "The baseline is not anchored independently of the editable registry. Changing both frozen_at and frozen admits a committed parser change with no failure class, bypassing the claimed immutable-baseline check.",
+    "failing_input": "import pathlib, subprocess, tempfile, runpy\nm = runpy.run_path('tests/test_regex_freeze.py')\nwith tempfile.TemporaryDirectory() as root:\n    def git(*args):\n        return subprocess.run(['git', *args], cwd=root, check=True, capture_output=True, text=True).stdout.strip()\n    git('init')\n    p = pathlib.Path(root, 'parser.py')\n    p.write_text('VALUE = 1\\n', encoding='utf-8')\n    git('add', 'parser.py')\n    git('-c', 'user.name=Reviewer', '-c', 'user.email=review@example.org', 'commit', '-m', 'original')\n    doc = {'frozen_at': git('rev-parse', 'HEAD'), 'frozen': {'parser.py': git('hash-object', 'parser.py')}, 'failure_classes': []}\n    p.write_text('VALUE = 2\\n', encoding='utf-8')\n    git('add', 'parser.py')\n    git('-c', 'user.name=Reviewer', '-c', 'user.email=review@example.org', 'commit', '-m', 'unlogged change')\n    doc['frozen_at'] = git('rev-parse', 'HEAD')\n    doc['frozen']['parser.py'] = git('hash-object', 'parser.py')\n    print(m['freeze_problems'](doc, root=root, blob=lambda f: git('hash-object', '--', f), baseline=m['_baseline'](doc, root)))",
+    "expected": "A nonempty problem list rejecting the rewritten baseline and unlogged parser change.",
+    "actual": "[]: both comparisons accept the newly declared baseline.",
+    "id": "pr98-cap-r2:g1#1",
+    "record_id": "mc-e1253f205c1d3eaaea28ab1fb695e6ed",
+    "verdict": null
+   },
+   {
+    "file": "tests/test_regex_freeze.py",
+    "function": "_test_functions / freeze_problems",
+    "severity": "P2",
+    "claim": "The plant check accepts ordinary helper functions that pytest never collects. An unlogged parser change can therefore be admitted without even naming an executable regression test.",
+    "failing_input": "import json, runpy\nm = runpy.run_path('tests/test_regex_freeze.py')\nwith open(m['FREEZE'], encoding='utf-8') as <outside-workdir>/n    doc = json.load(f)\ndoc['failure_classes'] = [{'id': 'X', 'file': 'harness/components.py', 'found': '2026-10-13', 'what': 'parser change', 'plant': 'tests/test_regex_freeze.py::_blob', 'new_blob': 'f' * 40}]\nedited = lambda f: 'f' * 40 if f == 'harness/components.py' else m['_blob'](f)\nprint(m['freeze_problems'](doc, blob=edited))",
+    "expected": "A nonempty problem list rejecting _blob as a plant because it is a helper, not a collected test.",
+    "actual": "[] for the supplied baseline: _test_functions includes _blob, so the simulated changed parser blob is admitted.",
+    "id": "pr98-cap-r2:g1#2",
+    "record_id": "mc-e1253f205c1d3eaaea28ab1fb695e6ed",
+    "verdict": null
+   }
+  ]
+ },
+ "pr98-cap-r2-agy": {
+  "base": "c715a5d59e5d2f246042776b1f16df0fcd34a3af",
+  "head": "2dde4326a93c3c2b06fbc23191711c41e95f1913",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b7ef053212b179acc2b9da6784120562",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "registry/regex_freeze.json",
+     "tests/test_regex_freeze.py"
+    ],
+    "prompt_sha256": "03d346368202017ff2488c7296dd30c8f6018657ed68ab71f62222dda514cec9"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "b1-cap-r1-agy2": {
+  "base": "f694220a7e4ccfe961ae5f11c58bd4a2b170eb24",
+  "head": "61f73147eaf24ff484bc80731c1a880e69765601",
+  "runs": {
+   "g1": {
+    "record_id": "mc-224fed4050b9d5a145e80dd87a9926af",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/extractor_replay.py",
+     "harness/pipeline.py",
+     "tests/test_b1_replay.py"
+    ],
+    "prompt_sha256": "0e52411d45c6dae132dc1e073d7c706e7e23472346ed9d0ba3c888bd6d200dbf"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "pr98-cap-r3": {
+  "base": "c715a5d59e5d2f246042776b1f16df0fcd34a3af",
+  "head": "ba6efae8d5116a0e5d3250d1bb713f0f5ca2fc25",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a0298cfdcd5a6e95a676a35b4735974c",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "registry/regex_freeze.json",
+     "tests/test_regex_freeze.py"
+    ],
+    "prompt_sha256": "028ec50b23c83661b91db0a4be678723e73d3e512064c4c47fec390d9466798e"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "tests/test_regex_freeze.py",
+    "function": "_test_functions",
+    "severity": "P2",
+    "claim": "The plant check accepts tests explicitly excluded from pytest collection. A frozen parser change can therefore be admitted using a regression test that never runs.",
+    "failing_input": "import runpy\nfrom unittest.mock import patch, mock_open\nm = runpy.run_path('tests/test_regex_freeze.py')\ndoc = {'frozen_at': m['FROZEN_AT'], 'frozen': {'harness/components.py': 'a'*40}, 'failure_classes': [{'id': 'X', 'file': 'harness/components.py', 'found': '2026-10-13', 'what': 'regression', 'plant': 'tests/test_disabled.py::test_regression', 'new_blob': 'b'*40}]}\nsource = 'def test_regression():\\n    assert False\\ntest_regression.__test__ = False\\n'\nwith patch('builtins.open', mock_open(read_data=source)):\n    print(m['freeze_problems'](doc, blob=lambda f: 'b'*40, baseline=doc['frozen']))",
+    "expected": "A problem rejecting the plant: pytest excludes test_regression because its __test__ attribute is False.",
+    "actual": "[] — the AST check accepts the function definition and ignores its exclusion from collection.",
+    "id": "pr98-cap-r3:g1#1",
+    "record_id": "mc-a0298cfdcd5a6e95a676a35b4735974c",
+    "verdict": null
+   },
+   {
+    "file": "tests/test_regex_freeze.py",
+    "function": "freeze_problems",
+    "severity": "P2",
+    "claim": "The gate does not enforce append-only failure history. Rewriting an existing failure class's new_blob authorizes another parser change without adding a failure class or plant.",
+    "failing_input": "import runpy\nm = runpy.run_path('tests/test_regex_freeze.py')\ndoc = {'frozen_at': m['FROZEN_AT'], 'frozen': {'harness/components.py': 'a'*40}, 'failure_classes': [{'id': 'X', 'file': 'harness/components.py', 'found': '2026-10-13', 'what': 'original regression', 'plant': 'tests/test_regex_freeze.py::test_plant_an_unlogged_change_is_refused', 'new_blob': 'b'*40}]}\nprint(m['freeze_problems'](doc, blob=lambda f: 'b'*40, baseline=doc['frozen']))\ndoc['failure_classes'][0]['new_blob'] = 'c'*40\nprint(m['freeze_problems'](doc, blob=lambda f: 'c'*40, baseline=doc['frozen']))",
+    "expected": "The initial logged change passes. After that entry is recorded, replacing its blob must be rejected; the subsequent parser change requires an appended failure class under the registry's stated policy.",
+    "actual": "Both calls return []. Only the original frozen baseline is checked against history; existing failure-class entries have no immutability check.",
+    "id": "pr98-cap-r3:g1#2",
+    "record_id": "mc-a0298cfdcd5a6e95a676a35b4735974c",
+    "verdict": null
+   }
+  ]
+ },
+ "pr99-cap-r1": {
+  "base": "c715a5d59e5d2f246042776b1f16df0fcd34a3af",
+  "head": "62d12df03c267f0872a5e29ff8b05587e97cbcb0",
+  "runs": {
+   "g1": {
+    "record_id": "mc-d5c03902a5d84a9967dc70b2ffb2c3ae",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/screen.py",
+     "harness/screen_terms.py",
+     "harness/trial_family.py",
+     "scripts/g1_comparator_n_sweep.py",
+     "scripts/g1_denominator_ledger.py",
+     "scripts/g1_family_reconcile_sweep.py",
+     "scripts/g1_screen_sweep.py",
+     "scripts/g1_tracker.py",
+     "tests/test_family_reconcile.py"
+    ],
+    "prompt_sha256": "660e857f33eae5ae4b0cbdacad9cd4fa03b1cbd8eafd64ba185e102abd2b59fc"
+   },
+   "g2": {
+    "record_id": "mc-368ec642d62a224f1ef437b6eb721aff",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "tests/test_g1_denominator.py",
+     "tests/test_g1_tracker_plants.py",
+     "tests/test_r5_2_stated_k.py",
+     "tests/test_screen_placebo_of_x.py",
+     "tests/test_screen_terms.py",
+     "tests/test_trial_family_contract.py"
+    ],
+    "prompt_sha256": "3948d3a2819a4e94272616f4a35fb886b1461e4524bc3c00d1381c3650dcd4ac"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "A thousands-separated count is truncated at the comma. seed_candidate_n can then use the truncated value as N_comparator_trials.",
+    "failing_input": "stated_k_from_text('We included 1,200 studies.')",
+    "expected": "(1200, '1,200 studies')",
+    "actual": "(200, '200 studies')",
+    "id": "pr99-cap-r1:g1#1",
+    "record_id": "mc-d5c03902a5d84a9967dc70b2ffb2c3ae",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "The phase guards miss a spaced slash, allowing a phase designation to become the comparator's included-trial count.",
+    "failing_input": "stated_k_from_text('Phase 2 / 3 studies were included.')",
+    "expected": "(None, None): no study count is stated.",
+    "actual": "(3, '3 studies')",
+    "id": "pr99-cap-r1:g1#2",
+    "record_id": "mc-d5c03902a5d84a9967dc70b2ffb2c3ae",
+    "verdict": null
+   },
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "Negation handling recognizes 'not' but misses 'never'. The parser returns the explicitly non-included count instead of the included count.",
+    "failing_input": "stated_k_from_text('Ten studies were never included. Five trials were included.')",
+    "expected": "(5, 'Five trials')",
+    "actual": "(10, 'Ten studies')",
+    "id": "pr99-cap-r1:g1#3",
+    "record_id": "mc-d5c03902a5d84a9967dc70b2ffb2c3ae",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention / _background",
+    "severity": "P1",
+    "claim": "Comma-separated background drugs disappear because _background discards the entire component containing the intervention. Unequal backgrounds consequently compare as two empty sets and satisfy the comparator override.",
+    "failing_input": "placebo_masks_intervention({'arms': ['metformin, clomiphene', 'placebo for metformin, letrozole']}, {'intervention_any': ['metformin'], 'comparator_any': ['placebo']}, '')",
+    "expected": "None: clomiphene and letrozole are different backgrounds.",
+    "actual": "{'term': 'placebo (masks the intervention)', 'span': 'placebo for metformin'}",
+    "id": "pr99-cap-r1:g1#4",
+    "record_id": "mc-d5c03902a5d84a9967dc70b2ffb2c3ae",
+    "verdict": null
+   },
+   {
+    "file": "harness/screen_terms.py",
+    "function": "placebo_masks_intervention",
+    "severity": "P1",
+    "claim": "Any comparator term containing 'placebo' activates an unrestricted placebo override, dropping additional protocol requirements such as a specified background drug.",
+    "failing_input": "placebo_masks_intervention({'arms': ['letrozole plus metformin', 'letrozole plus placebo for metformin']}, {'intervention_any': ['metformin'], 'comparator_any': ['clomiphene plus placebo']}, '')",
+    "expected": "None: neither arm supplies the required clomiphene comparator.",
+    "actual": "{'term': 'placebo (masks the intervention)', 'span': 'placebo for metformin'}",
+    "id": "pr99-cap-r1:g1#5",
+    "record_id": "mc-d5c03902a5d84a9967dc70b2ffb2c3ae",
+    "verdict": null
+   }
+  ]
+ },
+ "pr98-cap-r3-agy": {
+  "base": "c715a5d59e5d2f246042776b1f16df0fcd34a3af",
+  "head": "ba6efae8d5116a0e5d3250d1bb713f0f5ca2fc25",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6c53bc8d172063e7f71696ea70abe56a",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "registry/regex_freeze.json",
+     "tests/test_regex_freeze.py"
+    ],
+    "prompt_sha256": "4cd0811e6d8b3d154809526ee27ce4f85277b0b62d2d24754bb9d9c19efe3e85"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "{\n  \"defects\": [\n    {\n      \"file\": \"tests/test_regex_freeze.py\",\n      \"function\": \"test_mirrors_are_frozen_with_their_sources\",\n      \"severity\": \"P2\",\n      \"claim\": \"The gate test_mirrors_are_frozen_with_their_sources is a gate that can only pass: it asserts equality between the static baseline entries in regex_freeze.json['frozen'] rather than comparing current disk contents or effective post-failure-class blobs. Because regex_freeze.json['frozen'] is an immutable baseline that cannot be rewritten, this test compares identical hardcoded strings and passes even when a source and its mirror diverge.\",\n      \"input\": \"State where harness/components.py is updated to blob 'f'*40 with a valid logged failure class in regex_freeze.json while docs/harness/components.py remains at the baseline blob '43fa571b0683c5e98647cf2a42a3aa1d981f91b2'; call test_mirrors_are_frozen_with_their_sources()\",\n      \"expected\": \"AssertionError (or test failure) because docs/harness/components.py diverges from harness/components.py\",\n      \"actual\": \"Passes without error (returns None)\"\n    }\n  ]\n}\n{\n  \"defects\": [\n    {\n      \"file\": \"tests/test_regex_freeze.py\",\n      \"function\": \"test_mirrors_are_frozen_with_their_sources\",\n      \"severity\": \"P2\",\n      \"claim\": \"The gate test_mirrors_are_frozen_with_their_sources is a gate that can only pass: it asserts equality between the static baseline entries in regex_freeze.json['frozen'] rather than comparing current disk contents or effective post-failure-class blobs. Because regex_freeze.json['frozen'] is an immutable baseline that cannot be rewritten, this test compares identical hardcoded strings and passes even when a source and its mirror diverge.\",\n      \"input\": \"State where harness/components.py is updated to blob 'f'*40 with a valid logged failure class in regex_freeze.json while docs/harness/components.py remains at the baseline blob '43fa571b0683c5e98647cf2a42a3aa1d981f91b2'; call test_mirrors_are_frozen_with_their_sources()\",\n      \"expected\": \"AssertionError (or test failure) because docs/harness/components.py diverges from harness/components.py\",\n      \"actual\": \"Passes without error (returns None)\"\n    }\n  ]\n}\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "pr98-cap-r3-agy:g1#1",
+    "record_id": "mc-6c53bc8d172063e7f71696ea70abe56a",
+    "verdict": null
+   }
+  ]
+ },
+ "d8x-cap-r1": {
+  "base": "ec8e1d493a80b060f4c9b3b98ac8b399aad7dd26",
+  "head": "52cd69fae1ad0ebd5afaa44133012f70e9939129",
+  "runs": {
+   "g1": {
+    "record_id": "mc-954c0ae090a767aa72a92b17c558c920",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/copy_licence.py",
+     "scripts/d8_redact_incident3.py",
+     "tests/test_copy_licence.py",
+     "tests/test_copy_licence_d8.py",
+     "tests/test_d8_incident3.py"
+    ],
+    "prompt_sha256": "8c6320fc9fce3fe6f4b512eb27bdb0e3f431e38cd583bc816b48989e7e41719a"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/d8_redact_incident3.py",
+    "function": "_tracked / _refs",
+    "severity": "P2",
+    "claim": "Git failures silently become empty results. A failed inventory skips redaction; a failed reference search lets redact delete the original record without updating references.",
+    "failing_input": "from unittest.mock import patch\nfrom subprocess import CompletedProcess\nfrom scripts import d8_redact_incident3 as d\nwith patch.object(d.subprocess, 'run', return_value=CompletedProcess([], 128, stdout='', stderr='fatal: not a git repository')):\n    print(d._tracked('mc-old'))\n    print(d._refs('mc-old'))",
+    "expected": "Raise an error for exit status 128 instead of interpreting it as no matching records or references.",
+    "actual": "Both calls return []. Neither checks the return code or reports stderr.",
+    "id": "d8x-cap-r1:g1#1",
+    "record_id": "mc-954c0ae090a767aa72a92b17c558c920",
+    "verdict": null
+   },
+   {
+    "file": "scripts/d8_redact_incident3.py",
+    "function": "main",
+    "severity": "P2",
+    "claim": "Processing another batch replaces the existing incident record list, losing the audit mapping for previously redacted records. Copying prev does not preserve records because the new records field overwrites it.",
+    "failing_input": "import json\nfrom unittest.mock import patch, mock_open\nfrom scripts import d8_redact_incident3 as d\nprevious = {'incidents': [{'id': 'D8-3', 'records': [{'old': 'mc-a', 'new': 'mc-b', 'sources': []}]}]}\nm = mock_open(read_data=json.dumps(previous))\nwith patch('builtins.open', m), patch.object(d.os.path, 'exists', return_value=True), patch.object(d, 'incident_class', return_value={'mc-c': []}), patch.object(d, 'redact', return_value={'old': 'mc-c', 'new': 'mc-d', 'sources': []}), patch.object(d.subprocess, 'run'), patch.object(d, 'withdraw_reads', return_value=0):\n    d.main()\n    print(json.loads(m().write.call_args.args[0])['incidents'][0]['records'])",
+    "expected": "The incident ledger retains both mc-a → mc-b and mc-c → mc-d; withdrawal considers both redacted record IDs.",
+    "actual": "The ledger contains only [{'old': 'mc-c', 'new': 'mc-d', 'sources': []}]. withdraw_reads receives only {'mc-d'}.",
+    "id": "d8x-cap-r1:g1#2",
+    "record_id": "mc-954c0ae090a767aa72a92b17c558c920",
+    "verdict": null
+   }
+  ]
  }
 }
