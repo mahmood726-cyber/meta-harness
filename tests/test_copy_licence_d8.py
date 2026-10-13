@@ -77,3 +77,11 @@ def test_known_limit_a_denied_licence_with_a_cc_link():
     denied = ("<permissions><copyright-statement>This article is not distributed under "
               "https://creativecommons.org/licenses/by-nc/4.0/. Non-commercial use only.</copyright-statement></permissions>")
     assert cl.classify_permissions(denied)[0] == "NOT_OPEN"
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (agy d8x-cap-r3-agy; review stops at three): a denial AFTER the name "
+                                       "('Creative Commons licences do not apply') is not read as a denial")
+def test_known_limit_a_trailing_denial_of_creative_commons():
+    closed = ("<permissions><license-p>Creative Commons licences do not apply to this article. Non-commercial use only."
+              "</license-p></permissions>")
+    assert cl.classify_permissions(closed)[0] == "NOT_OPEN"
