@@ -1,0 +1,42 @@
+{
+ "record_id": "mc-37d2f425221603f11da626f0da4a49e0",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "An explicitly unsupported outside-source assertion still passes verification and can survive two-reader agreement and scorer replay. Declaring this a residual does not enforce C3's source-only requirement.",
+   "guidance_basis": "C3 prohibits unseen-source reliance. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) requires circumstances supporting a reasonable probability judgement; a quoted omission supplies none.",
+   "failing_test": "Only source/quote: 'Randomisation details were omitted.'; 1.2 PY; rationale: 'The original manuscript confirms randomisation was concealed.' -> NI. Currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question",
+   "claim": "The 4.3 topic gate rejects contextual awareness inferred from distinguishable interventions and participant-reported outcomes. The repeated out-of-A2-scope decline leaves this guidance conflict unresolved.",
+   "guidance_basis": "[RoB 2 guidance](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf), section 7.1 and question 4.3: participants assess participant-reported outcomes; distinguishable surgical and nonsurgical treatments can establish awareness.",
+   "failing_test": "4.3 PY; quote: 'Participants received surgery or physiotherapy and rated their own pain.'; rationale: 'Participants can distinguish surgery from physiotherapy when rating pain.' -> retain PY. Currently NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "tests/test_rob2_contextual.py:test_PLANT_r6_mechanism_wording_with_commonly_at_3_4",
+   "claim": "The final assertion wrongly requires NI solely because a grounded concealment rationale contains 'commonly'. The USUAL filter confuses inference from a reported mechanism with unsupported assumptions about trials generally.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits reasonable contextual PY/PN. [RoB 2 question 1.2](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf) recognizes centrally administered allocation mechanisms.",
+   "failing_test": "Existing SRC and QUOTE; 1.2 PY; rationale: 'central web-based randomisation is commonly concealed' -> retain contextual PY, not the test's NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:parse_reply",
+   "claim": "The round-14 guard treats any earlier undecodable prose brace as proof that a later prose mention of 'answers' belongs to a broken object. Combining two individually supported prose forms therefore voids a valid reading.",
+   "guidance_basis": "SIGNING_A2.md part 1 promises to ignore surrounding prose. C4 must not lose a readable reader and its decision because of unrelated prose punctuation.",
+   "failing_test": "parse_reply('Note {draft}. The field \"answers\": holds rows.\\n' + json.dumps(REPLY)) -> REPLY. Currently None."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:contextual_note",
+   "claim": "Closed-branch contextual decisions remain invisible: rendering ignores both closed_contextual and contextual_audit. The A2 storage test does not establish visibility, and deferring rendering leaves the 'never silent' requirement unmet.",
+   "guidance_basis": "C5 and the signed decision require every contextual answer to be stored and shown with its quoted context. Historical decisions can be displayed as inactive without changing the final NA answer.",
+   "failing_test": "Render the object from test_PLANT_a2r8_a_closed_branch_keeps_its_contextual_decision_visible -> show 3.3's contextual PY, quote and source, marked closed/NA. Currently omitted."
+  }
+ ]
+}

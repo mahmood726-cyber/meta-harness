@@ -1,0 +1,474 @@
+diff --git a/robgrade/contextual.py b/robgrade/contextual.py
+index c3146e306..133732194 100644
+--- a/robgrade/contextual.py
++++ b/robgrade/contextual.py
+@@ -7,6 +7,7 @@ with a verbatim context quote from an open source that the rationale refers to;
+ never silently, with every reader's context.
+ """
+ import copy
++import json
+ import re
+ import unicodedata
+ 
+@@ -99,6 +100,92 @@ def ni_targets(obj):
+     return out
+ 
+ 
++def parse_reply(raw):
++    """THE parser for a model's reply (amendment A2, signed 13 Oct): the JSON object in the reply, whatever prose or
++    code fence surrounds it, if it carries an "answers" list; else None. The pipeline, the scorer and the dual reading
++    all call this one function, so they can never disagree about what a model said (agy prefixed 15 of 58 contextual
++    replies with prose, which the old strict parser read as no answer at all)."""
++    t = raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw or "")
++    # every JSON object that decodes at a '{' (prose and braces around it are skipped -- codex A2 review); a duplicate
++    # key makes an object ambiguous; exactly ONE distinct answer object is an answer, two or more are ambiguous
++    plain, strict = json.JSONDecoder(), json.JSONDecoder(object_pairs_hook=_no_duplicate_keys)
++    found, spans, failed, i = [], [], [], 0
++    while True:
++        i = t.find("{", i)
++        if i < 0:
++            break
++        try:
++            obj, end = plain.raw_decode(t, i)
++        except ValueError:
++            if _starts_answers_envelope(t, i):        # a broken answer envelope: the reply is unreadable (codex A2 r9)
++                return None
++            failed.append(i)                           # an object that does not decode (codex A2 r14)
++            i += 1
++            continue
++        if not (isinstance(obj, dict) and "answers" in obj):
++            i += 1                                     # not an answer envelope: an answer object may sit inside it
++            continue
++        # an answer ENVELOPE: it must be well formed, or the whole reply is unreadable (codex A2 review, round 8) --
++        # no duplicate key anywhere in it, an answers LIST, every row an object; scanning resumes AFTER it, never inside
++        try:
++            strict.raw_decode(t[i:end])
++        except (ValueError, _DuplicateKey):
++            return None
++        if not isinstance(obj["answers"], list) or not all(isinstance(r, dict) for r in obj["answers"]):
++            return None
++        # (codex A2 r12) a row field of the wrong type (an answer that is a list, ...) is a malformed reply, never a
++        # crash in verify and never a guess
++        if any(not isinstance(r.get(k), (str, type(None))) for r in obj["answers"] for k in _ROW_TEXT):
++            return None
++        if obj not in found:
++            found.append(obj)
++        spans.append((i, end))
++        i = end
++    # (codex A2 r10) an "answers" key OUTSIDE every well-formed envelope is a broken envelope, whatever key it starts
++    # with ({"notes": "", "answers": ... cut off): the reply is unreadable rather than read from a fragment of it
++    # (codex A2 r14) ... it is part of a broken object when an object opened BEFORE it failed to decode; with no
++    # failed '{' before it, it is a key merely MENTIONED in prose and is ignored (the signed promise to ignore prose)
++    if any(not any(s <= k < e for s, e in spans) and any(f < k for f in failed) for k in _answers_keys(t)):
++        return None
++    return found[0] if len(found) == 1 else None
++
++
++class _DuplicateKey(ValueError):
++    pass
++
++
++# a JSON object KEY: a string literal followed by ':' -- compared DECODED, so an escaped spelling ("answers") is
++# the same key (codex A2 r11)
++_ROW_TEXT = ("qid", "answer", "quote", "source_id", "rationale")     # text fields of an answer row (or absent/null)
++_KEY = re.compile(r'"((?:[^"\\]|\\.)*)"\s*:')
++
++
++def _is_answers(literal):
++    try:
++        return json.loads('"' + literal + '"') == "answers"
++    except ValueError:
++        return False
++
++
++def _answers_keys(t):
++    """Positions of every key-like string in `t` that decodes to "answers" (whether it belongs to a broken object or
++    is merely mentioned in prose is decided by the caller, codex A2 r13-r14)."""
++    return [m.start() for m in _KEY.finditer(t) if _is_answers(m.group(1))]
++
++
++def _starts_answers_envelope(t, i):
++    """`t[i]` is '{' and its first key decodes to "answers"."""
++    m = _KEY.match(t, i + 1 + (len(t[i + 1:]) - len(t[i + 1:].lstrip())))
++    return bool(m and _is_answers(m.group(1)))
++
++
++def _no_duplicate_keys(pairs):
++    keys = [k for k, _ in pairs]
++    if len(keys) != len(set(keys)):
++        raise _DuplicateKey(f"duplicate keys {sorted({k for k in keys if keys.count(k) > 1})}")
++    return dict(pairs)
++
++
+ def _norm(s):
+     """The SAME normalisation as scripts/rob2_dual._norm (NFKC, case, dashes, whitespace): one quote, one verdict."""
+     s = unicodedata.normalize("NFKC", s or "").lower()
+@@ -123,7 +210,12 @@ def verify(reading, sources, targets):
+     srcs = {s["id"]: s for s in sources if s.get("open_for_prompt")}
+     targets = list(targets)
+     out = {}
+-    for a in (reading or {}).get("answers") or []:
++    rows = [a for a in (reading or {}).get("answers") or [] if isinstance(a, dict)]
++    # two rows for one question with different answers are ambiguous: NI, whichever comes first (codex A2 review)
++    for q in targets:
++        if len({a.get("answer") for a in rows if a.get("qid") == q}) > 1:
++            out[q] = {"answer": "NI", "dropped": {"why": "AMBIGUOUS_CONFLICTING_ROWS"}}
++    for a in rows:
+         q, v = a.get("qid"), a.get("answer")
+         if q not in targets or q in out:
+             continue
+@@ -207,6 +299,8 @@ def apply(obj, contextual, records):
+             raise ValueError(f"{q} is not an asked NI question: a contextual answer may only replace NI")
+         audit[q] = {"answer": c["answer"], "decided_by": c.get("decided_by"), "rationale": c.get("rationale"),
+                     "records": list(records.get(q) or [])}
++        if c.get("context"):                           # the quotes stay with the decision (codex A2 review, round 8)
++            audit[q]["context"] = copy.deepcopy(c["context"])
+         if c["answer"] not in CONTEXTUAL:
+             continue
+         a = rf.answer(c["answer"], how=HOW, span=c["quote"], source_ref=c["source_id"], source_sha256=c["source_sha256"],
+@@ -218,7 +312,11 @@ def apply(obj, contextual, records):
+         asked = rf.applicable(d, {q: answers.get(q) or {"answer": "NI"} for q in qs})
+         for q in qs:
+             if q not in asked and (answers.get(q) or {}).get("basis") == "contextual":
++                closed = answers[q]
+                 answers[q] = rf.answer("NA", how="not asked once an upstream question was answered contextually")
++                # never silent: the contextual decision on a branch since closed stays visible (codex A2 review)
++                answers[q]["closed_contextual"] = {"answer": closed["answer"], "context": closed.get("context") or [],
++                                                   "span": closed.get("span")}
+     new = rf.assessment(obj["trial"], obj["outcome"], answers, insufficient_domains=insufficient)
+     # EXTEND the incoming audit: a later pass must not erase an earlier pass's decisions
+     new["contextual_audit"] = dict(copy.deepcopy(obj.get("contextual_audit") or {}), **audit)
+diff --git a/scripts/rob2_contextual.py b/scripts/rob2_contextual.py
+index d4aca6a6c..302f53e23 100644
+--- a/scripts/rob2_contextual.py
++++ b/scripts/rob2_contextual.py
+@@ -110,7 +110,7 @@ def _reading(run):
+     """The recorded reply of a CONTEXTUAL call (this pass's own record store), parsed; None when absent or failed."""
+     if not run or run.get("state") != "RAN_OK":
+         return None
+-    return rd.parse(ms.replay(ms.load_record(os.path.join(REC_DIR, run["record_id"] + ".json"))))
++    return cx.parse_reply(ms.replay(ms.load_record(os.path.join(REC_DIR, run["record_id"] + ".json"))))   # A2: THE parser
+ 
+ 
+ def record_prompt_sha256(rid):
+@@ -136,6 +136,10 @@ def fresh(run, prompt_bytes):
+ MAX_PASSES = 3
+ 
+ 
++class MissingAdjudication(RuntimeError):
++    """A replayed disagreement has no adjudication attempt on record (codex A2 r11)."""
++
++
+ def pass_decisions(a, b, adj, targets):
+     """The pass's decisions. A reader whose record is missing or failed (None) VOIDS the pass: no contextual answer,
+     and never an adjudication between one reader and nobody (codex round 5)."""
+@@ -153,8 +157,11 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
+         for w, f in futs.items():
+             run[w] = f.result()
+     fc, fa = fresh(run.get("codex"), p), fresh(run.get("agy"), p)
+-    a = cx.verify(_reading(fc), srcs, targets) if fc else None
+-    b = cx.verify(_reading(fa), srcs, targets) if fa else None
++    # an UNREADABLE reply (no single answer object) is a missing reading, not an all-NI one: it voids the pass, so it
++    # can never manufacture a disagreement (codex A2 review)
++    ra, rb = (_reading(fc) if fc else None), (_reading(fa) if fa else None)
++    a = cx.verify(ra, srcs, targets) if ra is not None else None
++    b = cx.verify(rb, srcs, targets) if rb is not None else None
+     # a disagreement is two DIFFERENT verified answers of two PRESENT readers; agreement (PY/PN or NI) never goes to the
+     # adjudicator, and a missing reader voids the pass (pass_decisions)
+     dis = {q: {"reader 1": a[q], "reader 2": b[q]} for q in targets if a[q]["answer"] != b[q]["answer"]} \
+@@ -162,10 +169,20 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
+     adj = {}
+     if dis:
+         pa = prompt(item, sorted(dis), "adjudicator", dis)
++        # (codex A2 r11) a REPLAY meeting a disagreement that was never put to the adjudicator (no attempt on THIS
++        # prompt, e.g. only a superseded adjudication of other readings) cannot reproduce the pipeline: it refuses,
++        # rather than recording NI where the live pipeline would have adjudicated. A recorded failed attempt is NI.
++        # (codex A2 r12) the attempt must be a HELD record whose own prompt is this one, not only a manifest hash
++        aj, want = run.get("adjudicator") or {}, hashlib.sha256(pa).hexdigest()
++        if not live and not (aj.get("prompt_sha256") == want and aj.get("record_id")
++                             and record_prompt_sha256(aj["record_id"]) == want):
++            raise MissingAdjudication(f"{item['pmid']}: {sorted(dis)} disagree and were never adjudicated")
+         if live and not fresh(run.get("adjudicator"), pa):
+             run["adjudicator"] = pools["codex"].submit(call, item, "adjudicator", pa, sorted(dis)).result()
+         adj_run = fresh(run.get("adjudicator"), pa)
+-        adj = cx.verify(_reading(adj_run), srcs, sorted(dis)) if adj_run else {}   # no record: nothing is the adjudicator's
++        rj = _reading(adj_run) if adj_run else None
++        # no record, or (codex A2 r10) an UNREADABLE reply: nothing is the adjudicator's -- never an adjudicator NI
++        adj = cx.verify(rj, srcs, sorted(dis)) if rj is not None else {}
+     c = pass_decisions(a, b, adj, targets)
+     recs = {q: [run[w]["record_id"] for w in ("codex", "agy") if fresh(run.get(w), p)] +
+                ([run["adjudicator"]["record_id"]] if c[q].get("decided_by") == "adjudicator" else []) for q in c}
+@@ -201,6 +218,35 @@ def process(item, obj, runs, live, pools):
+     return cur, r, c_all
+ 
+ 
++class _NotRun:
++    def result(self):
++        return {"state": "NOT_RUN", "record_id": None, "prompt_sha256": None}
++
++
++def preflight(item, obj, runs):
++    """[(pass index, role)] of every call a live re-run of this trial would make, WITHOUT making any (codex A2 review):
++    held fresh records are reused; a stale or missing reader is listed. Adjudications are listed only where both
++    readers are already held, so a pass whose readers must be called may need one more (a lower bound, stated)."""
++    calls = []
++    r = dict(runs.get(item["key"]) or {})
++    passes = list(r.get("passes") or [])
++    srcs = rd.open_sources(item)
++    cur, decided = obj, set()
++    for k in range(MAX_PASSES):
++        targets = [q for q in cx.ni_targets(cur) if q not in decided]
++        if not targets:
++            break
++
++        class _Recorder:
++            def submit(self, fn, it, who, p, t, _k=k):
++                calls.append((_k, who))
++                return _NotRun()
++        run = dict(passes[k]) if k < len(passes) else {}
++        cur, _, _ = _one_pass(item, cur, targets, run, True, {"codex": _Recorder(), "agy": _Recorder()}, srcs)
++        decided |= set(targets)
++    return calls
++
++
+ def main(argv):
+     live = "--run" in argv
+     slugs = [a for a in argv if not a.startswith("--")]
+diff --git a/scripts/rob2_ctx_score.py b/scripts/rob2_ctx_score.py
+index 779e9dbd3..899be075c 100644
+--- a/scripts/rob2_ctx_score.py
++++ b/scripts/rob2_ctx_score.py
+@@ -51,6 +51,131 @@ def _git(*a):
+     return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True, encoding="utf-8")
+ 
+ 
++AMENDMENTS = os.path.join(ROOT, "outputs", "robgrade", "AMENDMENTS.json")
++
++
++# The ONLY frozen files an amendment may change (codex A2 review): the code A2 fixes. The rule text, the inputs (split,
++# comparators, the v3.1 objects and calibration), the tests and every other frozen file can never be amended this way.
++AMENDABLE = ("robgrade/contextual.py", "scripts/rob2_contextual.py", "scripts/rob2_ctx_score.py", "scripts/rob2_dual.py")
++SIGNER = "Mahmood"
++
++
++AMENDMENTS_REL = "outputs/robgrade/AMENDMENTS.json"
++
++
++def _signed_amendments(sha):
++    """The amendment entries against this pre-registration SIGNED BY MAHMOOD, read from the COMMITTED history (HEAD),
++    never from the editable working tree (codex A2 review, round 9): an amendment exists only once it has passed the
++    hook into a commit."""
++    out = _git("show", f"HEAD:{AMENDMENTS_REL}")
++    if out.returncode != 0:
++        return []
++    return [a for a in json.loads(out.stdout)["amendments"]
++            if a.get("prereg") == sha and (a.get("signed") or {}).get("by") == SIGNER]
++
++
++def declared(sha, f):
++    """(amendment A2, signed 13 Oct) An AMENDABLE frozen file may differ from the pre-registration ONLY by a declared
++    amendment signed by Mahmood naming it, the pre-registration, its git blob there and its git blob now, AND the sha256
++    of exactly the reviewed change (the file's git diff from the pre-registration; codex A2 review, round 8). Residual,
++    stated: a signature here is a record in the repository, not a cryptographic one."""
++    import hashlib
++    if f not in AMENDABLE:
++        return False
++    if _git("diff", "--quiet", "HEAD", "--", f).returncode != 0:     # the file in use IS the committed one (round 9)
++        return False
++    old = _git("rev-parse", f"{sha}:{f}").stdout.strip()
++    cur = _git("rev-parse", f"HEAD:{f}").stdout.strip()
++    patch = hashlib.sha256(_git("diff", sha, "HEAD", "--", f).stdout.encode("utf-8")).hexdigest()
++    return any(a.get("file") == f and a.get("from_blob") == old and a.get("to_blob") == cur
++               and a.get("patch_sha256") == patch for a in _signed_amendments(sha))
++
++
++def _legacy_strict(text):
++    """The pre-A2 pipeline parser (scripts/rob2_dual.parse before A2): strict JSON, optionally in one code fence."""
++    import re
++    t = (text or "").strip()
++    m = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", t, re.S)
++    try:
++        d = json.loads(m.group(1) if m else t)
++    except ValueError:
++        return None
++    return d if isinstance(d, dict) and isinstance(d.get("answers"), list) else None
++
++
++UNREAD = {"answer": "NI", "rationale": None}           # what the old pipeline's verify(None) gave an unread reader
++
++
++def defect_caused(rid, load, held_ids):
++    """(codex A2 review, round 8) True only when this adjudication was CAUSED by the parser defect: its recorded
++    prompt shows one reader as the unread signature on EVERY question it decided, and that reader's held record for
++    the same trial and outcome is unreadable to the old strict parser yet readable to the A2 parser."""
++    import re
++    import rob2_contextual as rc
++    rec = load(rid)
++    reg = registered(rec, "adjudicator") if rec else None
++    if not reg or not reg[1]:
++        return False
++    targets, readings = reg
++    t = rec["prompt_text"]
++    evidence = t[t.index(rc.EVIDENCE_MARK):]
++    trial = re.search(r"^TRIAL: (\S+)", rec["prompt_text"], re.M).group(1)
++    outcome = re.search(r"^OUTCOME: (.*)$", rec["prompt_text"], re.M).group(1)
++    for slot, role in (("reader 1", "codex"), ("reader 2", "agy")):
++        if not all((readings.get(q) or {}).get(slot) == UNREAD for q in targets):
++            continue
++        cands = []
++        for hid in held_ids:
++            h = load(hid)
++            if not (h and h["caller"]["line"] == f"call:{role}" and h["state"] == "RAN_OK" and _bound_to(h, trial, outcome)):
++                continue
++            reg_h = registered(h, "reader")            # the reader call of THE SAME PASS: its targets cover these
++            if not reg_h or not set(targets) <= set(reg_h[0]):
++                continue
++            # (codex A2 r10) ... made BEFORE the adjudication, on the SAME evidence block the adjudicator was shown
++            if _utc(h["request_utc"]) >= _utc(rec["request_utc"]):
++                continue
++            ht = h["prompt_text"]
++            if rc.EVIDENCE_MARK not in ht or ht[ht.index(rc.EVIDENCE_MARK):] != evidence:
++                continue
++            cands.append(h)
++        # (codex A2 r13) ... and it must be the UNIQUE such call: with two candidate attempts, which reply the
++        # adjudicator was shown is not proven, and the adjudication stays genuine (fail closed)
++        if len(cands) != 1:
++            continue
++        for h in cands:
++            if _legacy_strict(h["reply"]) is not None or cx.parse_reply(h["reply"]) is None:
++                continue
++            # ... and under A2 that reader really SAID something on these questions (codex A2 r9): a reader that gave
++            # no answer is unread under both parsers, so its adjudication was genuine, not the defect's
++            # (codex A2 r10) compared by ANSWER: the defect turned a verified PY/PN into the unread NI; a reply whose
++            # verified answer is NI anyway (explicit, or failing verification) was NI under both parsers
++            now = cx.verify(cx.parse_reply(h["reply"]), _sources(h), targets)
++            if any(now[q]["answer"] != "NI" for q in targets):
++                return True
++    return False
++
++
++def check_superseded(superseded, held, roles, times, amended_iso, defect=None):
++    """(codex A2 review) A superseded record must be HELD, RAN_OK, an ADJUDICATOR record, made BEFORE the amendment was
++    applied, and (round 8) PROVEN caused by the parser defect (`defect`): supersession can never exempt a reader, a
++    missing id, a later decision, or a genuine adjudication."""
++    for rid in sorted(superseded):
++        if defect is not None and rid in held and not defect(rid):
++            raise SystemExit(f"REFUSED: superseded record {rid} is not shown to be caused by the parser defect")
++        if rid not in held:
++            raise SystemExit(f"REFUSED: superseded record {rid} is not held")
++        if held[rid] != "RAN_OK" or roles.get(rid) != "adjudicator":
++            raise SystemExit(f"REFUSED: superseded record {rid} is not a RAN_OK adjudicator record")
++        if _utc(times[rid]) >= _utc(amended_iso):
++            raise SystemExit(f"REFUSED: superseded record {rid} was made after the amendment was applied")
++
++
++def superseded_records(sha):
++    """(A2) Records made under a defect and SUPERSEDED by a signed amendment: kept, listed, never read."""
++    return {rid for a in _signed_amendments(sha) for rid in a.get("superseded_records") or []}
++
++
+ def check_prereg(sha):
+     full = _git("rev-parse", sha).stdout.strip()
+     added = [x for x in _git("log", "--diff-filter=A", "--format=%H", "--", POLICY_FILES[0]).stdout.split() if x]
+@@ -62,7 +187,8 @@ def check_prereg(sha):
+     absent = [f for f in POLICY_FILES + INPUT_FILES if _git("cat-file", "-e", f"{sha}:{f}").returncode != 0]
+     if absent:
+         raise SystemExit(f"REFUSED: frozen files not in the pre-registration {sha}: {absent}")
+-    changed = [f for f in POLICY_FILES + INPUT_FILES if _git("diff", "--quiet", sha, "--", f).returncode != 0]
++    changed = [f for f in POLICY_FILES + INPUT_FILES if _git("diff", "--quiet", sha, "--", f).returncode != 0
++               and not declared(full, f)]
+     if changed:
+         raise SystemExit(f"REFUSED: files differ from the pre-registration {sha}: {changed}")
+     return full
+@@ -111,12 +237,7 @@ def _bound_to(rec, trial, outcome):
+ def _verified(rec, qid):
+     """The recorded reply put through the SAME verify() as the pipeline (codex round 2): an empty quote, a generic or
+     unreferenced rationale, a quote not in the shown source -- all NI here as there."""
+-    t = rec["reply"].strip()
+-    try:
+-        reply = json.loads(t[t.index("{"):t.rindex("}") + 1])
+-    except ValueError:
+-        reply = None
+-    return cx.verify(reply, _sources(rec), [qid])[qid]
++    return cx.verify(cx.parse_reply(rec["reply"]), _sources(rec), [qid])[qid]      # A2: THE parser, as the pipeline
+ 
+ 
+ def registered(rec, kind):
+@@ -327,11 +448,16 @@ def check_manifest(runs, held):
+         raise SystemExit(f"REFUSED: held records not referenced by the run manifest: {missing}")
+ 
+ 
+-def check_consumed(consumed, held):
++def check_consumed(consumed, held, superseded=frozenset()):
+     """(codex round 6) Every held post-registration RAN_OK record must have been READ by the replay: a decision record
+     parked where the replay never reads it (e.g. an unexecuted pass) would be an omission. A RAN_ERROR record is a
+-    failed attempt (a retry) and carries no decision: it is accounted for, never refused."""
+-    unread = sorted(rid for rid, state in held.items() if state == "RAN_OK" and rid not in set(consumed))
++    failed attempt (a retry) and carries no decision: it is accounted for, never refused.
++    (A2) A record SUPERSEDED by a signed amendment is accounted for too -- kept and listed -- but it must NOT be read."""
++    read_superseded = sorted(set(consumed) & set(superseded))
++    if read_superseded:
++        raise SystemExit(f"REFUSED: superseded records were read by the replay: {read_superseded}")
++    unread = sorted(rid for rid, state in held.items()
++                    if state == "RAN_OK" and rid not in set(consumed) and rid not in set(superseded))
+     if unread:
+         raise SystemExit(f"REFUSED: held RAN_OK records not consumed by the replay: {unread}")
+     return sorted(rid for rid, state in held.items() if state != "RAN_OK")
+@@ -376,12 +502,20 @@ def main(argv):
+     after = prereg_time(sha)
+     test = set(json.load(open(os.path.join(ROOT, "outputs", "robgrade", "split.json"), encoding="utf-8"))["test"])
+     regen, runs, consumed = replay_all(TOPICS)
+-    held = {}
++    held, roles, times = {}, {}, {}
+     for f in __import__("glob").glob(os.path.join(REC_DIR, "mc-*.json")):
+-        rec = load_record(os.path.basename(f)[:-5])
++        rid = os.path.basename(f)[:-5]
++        rec = load_record(rid)
+         if _utc(rec["request_utc"]) > _utc(after):
+-            held[os.path.basename(f)[:-5]] = rec["state"]
+-    failed_attempts = check_consumed(consumed, held)    # every post-registration decision record was READ
++            held[rid], roles[rid], times[rid] = rec["state"], rec["caller"]["line"].split(":")[-1], rec["request_utc"]
++    superseded = superseded_records(sha)              # A2: kept, listed, never read
++    if superseded:                                    # only held, earlier ADJUDICATIONS can be superseded
++        applied = [a.get("applied_utc") for a in _signed_amendments(sha) if a.get("superseded_records")]
++        if not applied or not all(applied):
++            raise SystemExit("REFUSED: superseded records are declared without the amendment's applied_utc")
++        check_superseded(superseded, held, roles, times, min(applied),
++                         defect=lambda rid: defect_caused(rid, load_record, list(held)))
++    failed_attempts = check_consumed(consumed, held, superseded)    # every other post-registration decision record was READ
+     check_consumed_times(consumed, after)               # and everything READ postdates the pre-registration
+     counts = collections.Counter()
+     for s in TOPICS:
+@@ -398,7 +532,8 @@ def main(argv):
+     res = {"preregistration_commit": sha, "topics": TOPICS, "tools": tools, "two_way": t, "two_way_v31": t31,
+            "contextual_answers_by_question": dict(sorted(counts.items())), "moved_from_v31": moved,
+            "excluded": len(excluded), "unmatched_trials": len(unmatched), "result_identity": DISCLOSURE,
+-           "failed_attempts_accounted": failed_attempts, "records_consumed": len(set(consumed))}
++           "failed_attempts_accounted": failed_attempts, "records_consumed": len(set(consumed)),
++           "superseded_records_A2": sorted(superseded)}
+     with open(os.path.join(ROOT, "outputs", "robgrade", "ctx_score.json"), "w", encoding="utf-8", newline="\n") as fh:
+         json.dump(res, fh, indent=1)
+     f = lambda c: f"{c['agree']} / {c['N']}"
+diff --git a/scripts/rob2_dual.py b/scripts/rob2_dual.py
+index fc26d8667..96cf6d6e6 100644
+--- a/scripts/rob2_dual.py
++++ b/scripts/rob2_dual.py
+@@ -281,14 +281,10 @@ def _call(item, who, prompt):
+ 
+ 
+ def parse(raw):
+-    t = raw.decode("utf-8", "replace").strip()
+-    m = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", t, re.S)
+-    t = m.group(1) if m else t
+-    try:
+-        d = json.loads(t)
+-    except ValueError:
+-        return None
+-    return d if isinstance(d, dict) and isinstance(d.get("answers"), list) else None
++    """A reply's answers: delegates to THE one parser, robgrade.contextual.parse_reply (amendment A2, signed 13 Oct).
++    The old strict parser read a reply with prose before its JSON as no answer at all."""
++    from robgrade import contextual as cx
++    return cx.parse_reply(raw)
+ 
+ 
+ def replay(run):

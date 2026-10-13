@@ -1,0 +1,42 @@
+{
+ "record_id": "mc-7949941111634c8a74d6b6d7061f29fa",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "Explicit reliance on an unseen source still passes. Quote matching, shared vocabulary, two-reader agreement and replay do not establish that the quoted context supports the answer. Declaring this residual does not satisfy the rule that NI remains without context.",
+   "guidance_basis": "C3 excludes memory and outside sources. Contextual probability requires reasonable support from the trial circumstances, not merely a matching quotation: [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "1.2=PY; sole source/quote='Randomisation details were omitted.'; rationale='Randomisation was concealed according to the original manuscript.' -> NI. Currently verifies as PY, including when both readers supply it."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question",
+   "claim": "The 4.3 topic gate rejects valid contextual inference for participant-reported outcomes. Restricting setting-based reasoning to four questions is not guidance-faithful. The earlier out-of-A2 decline leaves this rule defect unresolved.",
+   "guidance_basis": "Participants are the assessors for participant-reported outcomes; awareness can follow from distinguishable interventions. [RoB 2 guidance, §7.1 and Table 11](https://facenteconsulting.com/wp-content/uploads/20190822_RoB_2.0_guidance_parallel_trial.pdf).",
+   "failing_test": "Asked 4.3=NI; quote='Participants received surgery or physiotherapy and reported their pain.'; PY rationale explaining that participants distinguish these treatments and assess their own pain -> accept contextual PY. Currently returns NI because the quote lacks a listed stem."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:defect_caused",
+   "claim": "An earlier matching reader call is not proof that it supplied the unread slot in this adjudication. The search can select another attempt with the same targets and evidence, falsely qualifying a genuine adjudication for supersession. Bind the proof to the original pass's reader record IDs.",
+   "guidance_basis": "C4 binds decisions to their actual recorded readings. Signed A2 permits superseding defect-caused adjudications, not any adjudication for which a different earlier reader record could explain the defect.",
+   "failing_test": "Original agy record is strict JSON with an empty answers list; its disagreement is genuine. Add an earlier, unused prose-prefixed agy PY with identical trial/outcome/targets/evidence -> defect_caused must remain False. Currently returns True."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:contextual_note",
+   "claim": "Closed-branch contextual decisions remain invisible in the rendered assessment. The renderer ignores closed_contextual and contextual_audit. The A2 storage test therefore does not establish 'never silent'; deferring rendering leaves the stated display requirement unmet.",
+   "guidance_basis": "C5 and the user's decision require every contextual answer to be stored and shown as contextual with its quotation. Retaining data alone meets only the storage requirement.",
+   "failing_test": "Apply contextual PY to 3.1 and 3.3 together, closing 3.3; render the resulting object -> show 3.3's contextual decision and quote, explicitly marked as subsequently not applicable. Currently neither appears."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:parse_reply",
+   "claim": "The outside-envelope regex mistakes an ordinary prose mention of a key for a malformed JSON envelope. This voids an otherwise unique, valid reading. The conservative-default decline contradicts A2's signed promise to ignore surrounding prose; no observed impact on held replies does not establish correctness.",
+   "guidance_basis": "SIGNING_A2.md part 1 specifies extraction of the JSON answer object with surrounding prose ignored. C4 should void an unreadable reading, not a clearly readable object solely because its introduction names a field.",
+   "failing_test": "'The \"answers\": array follows.\\n' + json.dumps(REPLY) -> REPLY. Currently returns None, causing the whole contextual pass to be voided."
+  }
+ ]
+}

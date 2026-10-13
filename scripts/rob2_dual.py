@@ -281,14 +281,10 @@ def _call(item, who, prompt):
 
 
 def parse(raw):
-    t = raw.decode("utf-8", "replace").strip()
-    m = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", t, re.S)
-    t = m.group(1) if m else t
-    try:
-        d = json.loads(t)
-    except ValueError:
-        return None
-    return d if isinstance(d, dict) and isinstance(d.get("answers"), list) else None
+    """A reply's answers: delegates to THE one parser, robgrade.contextual.parse_reply (amendment A2, signed 13 Oct).
+    The old strict parser read a reply with prose before its JSON as no answer at all."""
+    from robgrade import contextual as cx
+    return cx.parse_reply(raw)
 
 
 def replay(run):

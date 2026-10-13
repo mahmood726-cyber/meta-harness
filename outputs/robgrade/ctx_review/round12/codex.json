@@ -1,0 +1,49 @@
+{
+ "record_id": "mc-9a0876e83405261ea6d030c9e96c95f1",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_contextual.py:_one_pass",
+   "claim": "The new MissingAdjudication guard trusts the manifest hash without verifying a held attempt. An entry containing only the expected prompt hash bypasses it and leaves a genuine disagreement NI. The r11 failed-adjudication test also supplies no held record, so its unconditional NI expectation is unsafe.",
+   "guidance_basis": "C4 requires recorded adjudication of genuine disagreements. A2 permits superseding defect-caused records only with genuine disagreements subsequently adjudicated; manifest metadata is not evidence of an attempt.",
+   "failing_test": "Two fresh readers disagree; adjudicator entry contains the expected prompt_sha256 but no held record -> raise MissingAdjudication. Currently returns NI; consumed-record checks do not detect the nonexistent attempt."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question, verify",
+   "claim": "The lexical gates still force NI on guidance-supported contextual reasoning. Question 4.3 rejects awareness inferred from distinguishable interventions for participant-reported outcomes. The USUAL filter likewise rejects legitimate outcome-measurement mechanisms. Declining these as outside A2 leaves the rule defective.",
+   "guidance_basis": "RoB 2 identifies participants as assessors of participant-reported outcomes and permits reasoning from outcome characteristics. [Guidance, Box 10](https://facenteconsulting.com/wp-content/uploads/20190822_RoB_2.0_guidance_parallel_trial.pdf#page=54).",
+   "failing_test": "4.3 PY; quote='Participants received surgery or physiotherapy and rated their own pain'; rationale='Participants can distinguish surgery from physiotherapy' -> retain PY. Currently NI because no 4.3 topic stem occurs."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "Explicit reliance on an unseen source still passes. Matching a topic and one quoted word does not ground the inference; two agreeing readers and replay repeat the same unchecked assertion. The stated residual and A2 scope decline do not satisfy C3's prohibition.",
+   "guidance_basis": "C3 requires reasoning from shown sources and retaining NI without supporting context. Handbook 8.2.3 requires a reasonable contextual judgement. [Handbook](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Only shown source says 'Randomisation details were omitted.' Submit 1.2 PY quoting that sentence, rationale='The original manuscript confirms that randomisation used concealed allocation' -> NI. Currently PY."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:contextual_note, render",
+   "claim": "Closed-branch contextual decisions remain invisible: the renderer reads neither closed_contextual nor contextual_audit. A2 preserves their data, but its storage-only test does not establish visibility. The earlier decline explicitly leaves 'never silent' unmet.",
+   "guidance_basis": "C5 and the signed decision require every contextual answer to be stored and shown as contextual. Marking a decision superseded by branch closure should preserve its displayed context without presenting it as an active answer.",
+   "failing_test": "Apply contextual PY to 3.1 and 3.3 together, closing 3.3; render the result -> show 3.3's contextual decision, quote and source, labelled inactive. Currently all displayed traces of that decision disappear."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:parse_reply, verify",
+   "claim": "Malformed rows pass the parser's dictionary-only check and can crash verification. For example, a list-valued answer reaches the set comprehension and raises TypeError. The malformed-reply tests cover row containers but not required field types.",
+   "guidance_basis": "The registered reply schema requires string fields and enumerated answers. A2 treats unreadable replies as failed readings that void the pass; malformed fields should follow that path consistently.",
+   "failing_test": "parse_reply('{\"answers\":[{\"qid\":\"1.2\",\"answer\":[]}]}') -> None and a voided pass. Currently returns an object; verify(..., targets=['1.2']) raises TypeError."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:_answers_keys, parse_reply",
+   "claim": "The global key regex mistakes a key mentioned in prose for a broken JSON envelope, discarding an otherwise unique valid answer. The r11 decline calls this ambiguous, but no competing answer or malformed envelope exists. This preserves a prose-dependent exclusion in the parser intended to remove it.",
+   "guidance_basis": "Signed A2 part 1 specifies extracting the JSON answer while ignoring surrounding prose. Conservatively rejecting malformed envelopes does not justify treating ordinary explanatory prose as an envelope.",
+   "failing_test": "'The \"answers\": field contains the ratings.\\n' + json.dumps(REPLY) -> REPLY. Currently None, voiding the contextual pass despite a complete, unique answer object."
+  }
+ ]
+}

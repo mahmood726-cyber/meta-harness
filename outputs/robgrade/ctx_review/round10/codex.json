@@ -1,0 +1,63 @@
+{
+ "record_id": "mc-fae0d04742a8b0f1fa7d36b8a59f9f61",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:declared",
+   "claim": "Committing a declaration does not authenticate approval of the reviewed A2 patch. Changed rule logic plus recomputed blobs/diff hashes and copied signer metadata still passes. The four-file allowlist includes the rule's implementation.",
+   "guidance_basis": "A2 authorizes a reviewed implementation correction, not arbitrary changes to the pre-registered rule. Repository membership and a self-declared digest do not establish that authorization.",
+   "failing_test": "Commit an unapproved change to contextual.verify with matching declaration hashes and signed.by='Mahmood' -> declared must reject; currently accepts."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:defect_caused",
+   "claim": "Comparing the entire verified dictionary with UNREAD mistakes NI rationale/drop metadata for a changed answer. The r8 supersession test incorrectly expects True despite supplying no sources: its PY verifies as NI, so the original PY-versus-NI disagreement remains genuine.",
+   "guidance_basis": "A2 permits superseding adjudications caused by the parser defect. A metadata difference alone does not establish that the defect caused a disagreement.",
+   "failing_test": "test_PLANT_a2r8_supersession_must_be_proven_defect_caused's first fixture, with sources=[] -> False, not True. Also test prose-prefixed explicit NI with a rationale -> no proof of a defect-caused disagreement."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:defect_caused",
+   "claim": "Target-set inclusion does not identify the original reader call. An unrelated or later reader with the same trial/outcome and overlapping targets can justify supersession. Evidence, original record identity and temporal ordering are not matched; the r9 fix tests only disjoint targets.",
+   "guidance_basis": "C4 binds decisions to exact recorded prompts. A2 requires proving that the original adjudication was caused by the defect, not finding another compatible reader record.",
+   "failing_test": "J used reader R1; provide a prose-prefixed R2 made after J, with identical trial/outcome/targets but different evidence -> defect_caused must return False; currently can return True."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:parse_reply",
+   "claim": "The broken-envelope guard recognizes only envelopes whose first key is answers. A malformed envelope beginning with notes can still expose an embedded answer object, recreating the extraction defect that round 9 claims to fix.",
+   "guidance_basis": "A2's fail-closed parser contract requires malformed answer envelopes to be unreadable. Unreadable readers must not manufacture agreement or disagreement.",
+   "failing_test": "parse_reply('{\"notes\":\"\",\"answers\":' + json.dumps(REPLY) + ',') -> None; currently returns the embedded REPLY. Repeat the existing r9 malformed-envelope tests with notes first."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "Explicit reliance on an unseen source still passes when the rationale repeats a quoted topic word. Calling this a residual does not make the answer grounded: both readers and scorer replay can reproduce the same unsupported assertion.",
+   "guidance_basis": "C3 already prohibits memory and unseen sources. Handbook 8.2.3 requires circumstances that justify the judgement: [Handbook](https://training.cochrane.org/handbook/current/chapter-08). Enforcing this existing restriction is not a new rule.",
+   "failing_test": "Only source/quote: 'Randomisation details were omitted.' Submit 1.2 PY, rationale 'Randomisation used concealed allocation according to the original manuscript.' -> NI; currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question",
+   "claim": "The 4.3 topic gate rejects valid participant-assessor reasoning. The out-of-A2-scope decline leaves a real guidance defect unresolved; the same intervention context accepted for participant awareness is rejected when those participants report the outcome.",
+   "guidance_basis": "RoB 2 question 4.3 identifies participants as assessors for participant-reported outcomes. [Guidance, Box 10](https://facenteconsulting.com/wp-content/uploads/20190822_RoB_2.0_guidance_parallel_trial.pdf). A separate rule amendment may be needed, but NI is not justified here.",
+   "failing_test": "Quote: 'Participants received surgery or physiotherapy and reported their pain.' For 4.3, PY with rationale that participants can distinguish these interventions -> retain contextual PY; currently NI because no permitted topic stem occurs."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:contextual_note",
+   "claim": "Closed-branch contextual decisions remain invisible in the rendered output. The renderer reads neither closed_contextual nor contextual_audit. The A2 test checks storage only, so its claim that the decision stays visible is untested and false.",
+   "guidance_basis": "C5 and the user's decision require every contextual answer to be stored and shown as contextual. Declining rendering as outside A2's file scope leaves that requirement unmet.",
+   "failing_test": "Apply contextual 3.1 PY and 3.3 PY together, closing 3.3, then render -> show 3.3's contextual decision, quote/source and superseded applicability; currently only 3.1 appears."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_contextual.py:_one_pass",
+   "claim": "Unreadable adjudicator replies are still converted into an adjudicator-owned NI decision. The new unreadable-reader handling does not cover this path: verify(None) supplies NI and combine attributes it to the adjudicator, although no readable decision exists.",
+   "guidance_basis": "C4 records the adjudicator's actual decision, including an explicit NI. Failure to parse a decision is not an NI response; A2's shared parser must preserve that distinction in the audit.",
+   "failing_test": "Readers verify PY versus PN; fresh RAN_OK adjudicator reply is malformed and parses as None -> final NI with an unreadable/no-decision audit status; currently decided_by='adjudicator'."
+  }
+ ]
+}

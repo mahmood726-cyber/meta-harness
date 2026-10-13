@@ -1,0 +1,56 @@
+{
+ "record_id": "mc-bdaf87f28dbe0f11e9b6b4a9d31542b4",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:main/check_superseded",
+   "claim": "A superseded adjudication can be dropped without recording its required replacement. If corrected readers still disagree, replay without an adjudicator yields NI; both readers count as consumed and the superseded record is exempt. The scorer accepts this selective omission.",
+   "guidance_basis": "SIGNING_A2.md parts 3–4 require a new recorded adjudication for genuine disagreements. Accounting for the old record does not account for its replacement decision.",
+   "failing_test": "Readers verify PY and prose-prefixed PN; old adjudicator saw PY/NI. Supersede the old adjudication, omit the replacement, and score replayed NI -> REFUSED until a fresh adjudication is recorded."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:_signed_amendments/declared",
+   "claim": "Committed metadata still self-authorizes amendments. Anyone able to commit can copy Mahmood's signer field and recompute the blobs and patch hash for an unapproved change, including changes to the contextual rule inside contextual.py. No check binds approval to the independently reviewed A2 patch.",
+   "guidance_basis": "A2 authorizes the reviewed defect fix, not arbitrary changes to the four amendable files. A matching digest proves consistency, not approval; the round-10 decline leaves this distinction unenforced.",
+   "failing_test": "Change verify() eligibility, recompute declaration hashes, copy signed.by='Mahmood', and commit without further approval -> declared() must return False; currently it returns True."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:parse_reply",
+   "claim": "The broken-envelope guards recognize only the literal spelling of 'answers'. A truncated envelope using a valid JSON Unicode escape bypasses both guards, allowing an embedded answer object to become the reading. This can manufacture a disagreement instead of voiding the pass.",
+   "guidance_basis": "C4 and A2's unreadable-reply fix require malformed readings to void the pass. JSON key escapes do not change the decoded key's meaning.",
+   "failing_test": "Raw reply {\"\\u0061nswers\":[{\"answers\":[]} -> parse_reply returns None; currently it extracts {\"answers\":[]} from the unfinished outer envelope."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "An explicitly unseen-source rationale still passes when it shares a topic word with a quoted omission. Two readers repeating it also pass record verification. This is identifiable outside-source reliance, not merely uncertainty about a legitimate contextual inference.",
+   "guidance_basis": "C3 forbids outside-source reliance. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) requires a reasonable judgement supported by trial circumstances. Declaring the gap out of A2 scope does not resolve it.",
+   "failing_test": "1.2 PY; sole source/quote='Randomisation details were omitted'; rationale='The original manuscript confirms randomisation was concealed' -> NI. Current verify() accepts PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question/SETTING_BASED",
+   "claim": "The topic gate still rejects supported awareness judgements for participant-reported outcomes at 4.3. The same intervention context accepted for participant awareness at 2.1 is rejected when those participants are the outcome assessors.",
+   "guidance_basis": "[Handbook 8.6](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) identifies participants as assessors of participant-reported outcomes and discusses surgery versus medical management. The A2 scope decline leaves a guidance incompatibility.",
+   "failing_test": "4.3 PY; quote='Participants received surgery or physiotherapy and reported their pain'; rationale='Participants reporting pain could distinguish surgery from physiotherapy' -> retain contextual PY; currently NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:contextual_note/render",
+   "claim": "Closed-branch contextual decisions remain invisible in the rendered output. The renderer reads neither closed_contextual nor contextual_audit. The A2 test verifies storage only, so it does not establish the promised 'never silent' display.",
+   "guidance_basis": "C5 and the user's decision require every contextual answer to be stored and shown as contextual. Deferring rendering to another signing does not satisfy this review's display requirement.",
+   "failing_test": "Apply contextual 3.1 PY and 3.3 PY together, closing 3.3; render the result -> show 3.3's contextual decision, quote and source as superseded by branch closure. Currently they are absent."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:parse_reply",
+   "claim": "The final regex treats an 'answers' key mentioned in ordinary prose as a broken JSON envelope. Consequently a unique, valid answer object can still be discarded solely because of its prose prefix—the class of defect A2 is intended to fix.",
+   "guidance_basis": "SIGNING_A2.md part 1 permits surrounding prose. The parser must distinguish prose from malformed answer envelopes rather than treating every literal key mention as JSON structure.",
+   "failing_test": "Prefix a valid REPLY with 'The JSON uses \"answers\": for the response list.\\n' -> parse_reply returns REPLY; currently it returns None and voids the pass."
+  }
+ ]
+}

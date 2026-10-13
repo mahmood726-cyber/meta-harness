@@ -51,6 +51,131 @@ def _git(*a):
     return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True, encoding="utf-8")
 
 
+AMENDMENTS = os.path.join(ROOT, "outputs", "robgrade", "AMENDMENTS.json")
+
+
+# The ONLY frozen files an amendment may change (codex A2 review): the code A2 fixes. The rule text, the inputs (split,
+# comparators, the v3.1 objects and calibration), the tests and every other frozen file can never be amended this way.
+AMENDABLE = ("robgrade/contextual.py", "scripts/rob2_contextual.py", "scripts/rob2_ctx_score.py", "scripts/rob2_dual.py")
+SIGNER = "Mahmood"
+
+
+AMENDMENTS_REL = "outputs/robgrade/AMENDMENTS.json"
+
+
+def _signed_amendments(sha):
+    """The amendment entries against this pre-registration SIGNED BY MAHMOOD, read from the COMMITTED history (HEAD),
+    never from the editable working tree (codex A2 review, round 9): an amendment exists only once it has passed the
+    hook into a commit."""
+    out = _git("show", f"HEAD:{AMENDMENTS_REL}")
+    if out.returncode != 0:
+        return []
+    return [a for a in json.loads(out.stdout)["amendments"]
+            if a.get("prereg") == sha and (a.get("signed") or {}).get("by") == SIGNER]
+
+
+def declared(sha, f):
+    """(amendment A2, signed 13 Oct) An AMENDABLE frozen file may differ from the pre-registration ONLY by a declared
+    amendment signed by Mahmood naming it, the pre-registration, its git blob there and its git blob now, AND the sha256
+    of exactly the reviewed change (the file's git diff from the pre-registration; codex A2 review, round 8). Residual,
+    stated: a signature here is a record in the repository, not a cryptographic one."""
+    import hashlib
+    if f not in AMENDABLE:
+        return False
+    if _git("diff", "--quiet", "HEAD", "--", f).returncode != 0:     # the file in use IS the committed one (round 9)
+        return False
+    old = _git("rev-parse", f"{sha}:{f}").stdout.strip()
+    cur = _git("rev-parse", f"HEAD:{f}").stdout.strip()
+    patch = hashlib.sha256(_git("diff", sha, "HEAD", "--", f).stdout.encode("utf-8")).hexdigest()
+    return any(a.get("file") == f and a.get("from_blob") == old and a.get("to_blob") == cur
+               and a.get("patch_sha256") == patch for a in _signed_amendments(sha))
+
+
+def _legacy_strict(text):
+    """The pre-A2 pipeline parser (scripts/rob2_dual.parse before A2): strict JSON, optionally in one code fence."""
+    import re
+    t = (text or "").strip()
+    m = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", t, re.S)
+    try:
+        d = json.loads(m.group(1) if m else t)
+    except ValueError:
+        return None
+    return d if isinstance(d, dict) and isinstance(d.get("answers"), list) else None
+
+
+UNREAD = {"answer": "NI", "rationale": None}           # what the old pipeline's verify(None) gave an unread reader
+
+
+def defect_caused(rid, load, held_ids):
+    """(codex A2 review, round 8) True only when this adjudication was CAUSED by the parser defect: its recorded
+    prompt shows one reader as the unread signature on EVERY question it decided, and that reader's held record for
+    the same trial and outcome is unreadable to the old strict parser yet readable to the A2 parser."""
+    import re
+    import rob2_contextual as rc
+    rec = load(rid)
+    reg = registered(rec, "adjudicator") if rec else None
+    if not reg or not reg[1]:
+        return False
+    targets, readings = reg
+    t = rec["prompt_text"]
+    evidence = t[t.index(rc.EVIDENCE_MARK):]
+    trial = re.search(r"^TRIAL: (\S+)", rec["prompt_text"], re.M).group(1)
+    outcome = re.search(r"^OUTCOME: (.*)$", rec["prompt_text"], re.M).group(1)
+    for slot, role in (("reader 1", "codex"), ("reader 2", "agy")):
+        if not all((readings.get(q) or {}).get(slot) == UNREAD for q in targets):
+            continue
+        cands = []
+        for hid in held_ids:
+            h = load(hid)
+            if not (h and h["caller"]["line"] == f"call:{role}" and h["state"] == "RAN_OK" and _bound_to(h, trial, outcome)):
+                continue
+            reg_h = registered(h, "reader")            # the reader call of THE SAME PASS: its targets cover these
+            if not reg_h or not set(targets) <= set(reg_h[0]):
+                continue
+            # (codex A2 r10) ... made BEFORE the adjudication, on the SAME evidence block the adjudicator was shown
+            if _utc(h["request_utc"]) >= _utc(rec["request_utc"]):
+                continue
+            ht = h["prompt_text"]
+            if rc.EVIDENCE_MARK not in ht or ht[ht.index(rc.EVIDENCE_MARK):] != evidence:
+                continue
+            cands.append(h)
+        # (codex A2 r13) ... and it must be the UNIQUE such call: with two candidate attempts, which reply the
+        # adjudicator was shown is not proven, and the adjudication stays genuine (fail closed)
+        if len(cands) != 1:
+            continue
+        for h in cands:
+            if _legacy_strict(h["reply"]) is not None or cx.parse_reply(h["reply"]) is None:
+                continue
+            # ... and under A2 that reader really SAID something on these questions (codex A2 r9): a reader that gave
+            # no answer is unread under both parsers, so its adjudication was genuine, not the defect's
+            # (codex A2 r10) compared by ANSWER: the defect turned a verified PY/PN into the unread NI; a reply whose
+            # verified answer is NI anyway (explicit, or failing verification) was NI under both parsers
+            now = cx.verify(cx.parse_reply(h["reply"]), _sources(h), targets)
+            if any(now[q]["answer"] != "NI" for q in targets):
+                return True
+    return False
+
+
+def check_superseded(superseded, held, roles, times, amended_iso, defect=None):
+    """(codex A2 review) A superseded record must be HELD, RAN_OK, an ADJUDICATOR record, made BEFORE the amendment was
+    applied, and (round 8) PROVEN caused by the parser defect (`defect`): supersession can never exempt a reader, a
+    missing id, a later decision, or a genuine adjudication."""
+    for rid in sorted(superseded):
+        if defect is not None and rid in held and not defect(rid):
+            raise SystemExit(f"REFUSED: superseded record {rid} is not shown to be caused by the parser defect")
+        if rid not in held:
+            raise SystemExit(f"REFUSED: superseded record {rid} is not held")
+        if held[rid] != "RAN_OK" or roles.get(rid) != "adjudicator":
+            raise SystemExit(f"REFUSED: superseded record {rid} is not a RAN_OK adjudicator record")
+        if _utc(times[rid]) >= _utc(amended_iso):
+            raise SystemExit(f"REFUSED: superseded record {rid} was made after the amendment was applied")
+
+
+def superseded_records(sha):
+    """(A2) Records made under a defect and SUPERSEDED by a signed amendment: kept, listed, never read."""
+    return {rid for a in _signed_amendments(sha) for rid in a.get("superseded_records") or []}
+
+
 def check_prereg(sha):
     full = _git("rev-parse", sha).stdout.strip()
     added = [x for x in _git("log", "--diff-filter=A", "--format=%H", "--", POLICY_FILES[0]).stdout.split() if x]
@@ -62,7 +187,8 @@ def check_prereg(sha):
     absent = [f for f in POLICY_FILES + INPUT_FILES if _git("cat-file", "-e", f"{sha}:{f}").returncode != 0]
     if absent:
         raise SystemExit(f"REFUSED: frozen files not in the pre-registration {sha}: {absent}")
-    changed = [f for f in POLICY_FILES + INPUT_FILES if _git("diff", "--quiet", sha, "--", f).returncode != 0]
+    changed = [f for f in POLICY_FILES + INPUT_FILES if _git("diff", "--quiet", sha, "--", f).returncode != 0
+               and not declared(full, f)]
     if changed:
         raise SystemExit(f"REFUSED: files differ from the pre-registration {sha}: {changed}")
     return full
@@ -111,12 +237,7 @@ def _bound_to(rec, trial, outcome):
 def _verified(rec, qid):
     """The recorded reply put through the SAME verify() as the pipeline (codex round 2): an empty quote, a generic or
     unreferenced rationale, a quote not in the shown source -- all NI here as there."""
-    t = rec["reply"].strip()
-    try:
-        reply = json.loads(t[t.index("{"):t.rindex("}") + 1])
-    except ValueError:
-        reply = None
-    return cx.verify(reply, _sources(rec), [qid])[qid]
+    return cx.verify(cx.parse_reply(rec["reply"]), _sources(rec), [qid])[qid]      # A2: THE parser, as the pipeline
 
 
 def registered(rec, kind):
@@ -327,11 +448,16 @@ def check_manifest(runs, held):
         raise SystemExit(f"REFUSED: held records not referenced by the run manifest: {missing}")
 
 
-def check_consumed(consumed, held):
+def check_consumed(consumed, held, superseded=frozenset()):
     """(codex round 6) Every held post-registration RAN_OK record must have been READ by the replay: a decision record
     parked where the replay never reads it (e.g. an unexecuted pass) would be an omission. A RAN_ERROR record is a
-    failed attempt (a retry) and carries no decision: it is accounted for, never refused."""
-    unread = sorted(rid for rid, state in held.items() if state == "RAN_OK" and rid not in set(consumed))
+    failed attempt (a retry) and carries no decision: it is accounted for, never refused.
+    (A2) A record SUPERSEDED by a signed amendment is accounted for too -- kept and listed -- but it must NOT be read."""
+    read_superseded = sorted(set(consumed) & set(superseded))
+    if read_superseded:
+        raise SystemExit(f"REFUSED: superseded records were read by the replay: {read_superseded}")
+    unread = sorted(rid for rid, state in held.items()
+                    if state == "RAN_OK" and rid not in set(consumed) and rid not in set(superseded))
     if unread:
         raise SystemExit(f"REFUSED: held RAN_OK records not consumed by the replay: {unread}")
     return sorted(rid for rid, state in held.items() if state != "RAN_OK")
@@ -376,12 +502,20 @@ def main(argv):
     after = prereg_time(sha)
     test = set(json.load(open(os.path.join(ROOT, "outputs", "robgrade", "split.json"), encoding="utf-8"))["test"])
     regen, runs, consumed = replay_all(TOPICS)
-    held = {}
+    held, roles, times = {}, {}, {}
     for f in __import__("glob").glob(os.path.join(REC_DIR, "mc-*.json")):
-        rec = load_record(os.path.basename(f)[:-5])
+        rid = os.path.basename(f)[:-5]
+        rec = load_record(rid)
         if _utc(rec["request_utc"]) > _utc(after):
-            held[os.path.basename(f)[:-5]] = rec["state"]
-    failed_attempts = check_consumed(consumed, held)    # every post-registration decision record was READ
+            held[rid], roles[rid], times[rid] = rec["state"], rec["caller"]["line"].split(":")[-1], rec["request_utc"]
+    superseded = superseded_records(sha)              # A2: kept, listed, never read
+    if superseded:                                    # only held, earlier ADJUDICATIONS can be superseded
+        applied = [a.get("applied_utc") for a in _signed_amendments(sha) if a.get("superseded_records")]
+        if not applied or not all(applied):
+            raise SystemExit("REFUSED: superseded records are declared without the amendment's applied_utc")
+        check_superseded(superseded, held, roles, times, min(applied),
+                         defect=lambda rid: defect_caused(rid, load_record, list(held)))
+    failed_attempts = check_consumed(consumed, held, superseded)    # every other post-registration decision record was READ
     check_consumed_times(consumed, after)               # and everything READ postdates the pre-registration
     counts = collections.Counter()
     for s in TOPICS:
@@ -398,7 +532,8 @@ def main(argv):
     res = {"preregistration_commit": sha, "topics": TOPICS, "tools": tools, "two_way": t, "two_way_v31": t31,
            "contextual_answers_by_question": dict(sorted(counts.items())), "moved_from_v31": moved,
            "excluded": len(excluded), "unmatched_trials": len(unmatched), "result_identity": DISCLOSURE,
-           "failed_attempts_accounted": failed_attempts, "records_consumed": len(set(consumed))}
+           "failed_attempts_accounted": failed_attempts, "records_consumed": len(set(consumed)),
+           "superseded_records_A2": sorted(superseded)}
     with open(os.path.join(ROOT, "outputs", "robgrade", "ctx_score.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump(res, fh, indent=1)
     f = lambda c: f"{c['agree']} / {c['N']}"

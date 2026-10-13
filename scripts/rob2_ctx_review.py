@@ -23,6 +23,9 @@ FILES = ["outputs/robgrade/CONTEXTUAL_POLICY.md", "robgrade/contextual.py", "scr
          "scripts/rob2_ctx_score.py", "tests/test_rob2_contextual.py", "robgrade/rob2_tab.py", "tests/test_rob2_tab.py"]
 if ROUND > 1:
     FILES.append("outputs/robgrade/ctx_review/RESPONSES.md")
+if ROUND >= 7:      # amendment A2 (signed 13 Oct): reviewed BEFORE it is applied
+    FILES += ["outputs/robgrade/SIGNING_A2.md", "outputs/robgrade/ctx_review/A2_DIFF.patch",
+              "tests/test_rob2_amendment_a2.py"]
 OUT = os.path.join(ROOT, "outputs", "robgrade", "ctx_review", *([f"round{ROUND}"] if ROUND > 1 else []))
 REC = os.path.join(ROOT, "evidence", "model_calls", "robgrade_ctx")
 
@@ -61,8 +64,19 @@ revision broke.
 """
 
 
+A2_REVIEW = """
+AMENDMENT A2 (signed by Mahmood, 13 Oct; SIGNING_A2.md). Review it BEFORE it is applied: A2_DIFF.patch is the exact
+change to the pre-registered files. Its four parts: (1) one reply parser everywhere (contextual.parse_reply); (2) the
+contextual scorer accepts declared, signed amendments; (3) the adjudications caused by the defect are kept and
+declared superseded (accounted for, never read); (4) a re-run reusing every fresh reader record, with new calls only
+for genuine disagreements. Check: does any part change the pre-registered RULE rather than fix the defect; can the
+amendment mechanism or the superseded list be abused to drop a decision; is the parser right on prose-prefixed,
+fenced, multi-object or malformed replies; are the A2 tests' expected values right.
+"""
+
+
 def prompt():
-    parts = [INSTR] + ([REVISION] if ROUND > 1 else [])
+    parts = [INSTR] + ([REVISION] if ROUND > 1 else []) + ([A2_REVIEW] if ROUND >= 7 else [])
     for f in FILES:
         parts.append(f"\n\n===== FILE {f} =====\n" + open(os.path.join(ROOT, f), encoding="utf-8").read())
     return "".join(parts).encode("utf-8")

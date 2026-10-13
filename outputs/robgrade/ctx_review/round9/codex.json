@@ -1,0 +1,56 @@
+{
+ "record_id": "mc-e12cd0a295ae89ff929e8a1f84ab4f2e",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:declared",
+   "claim": "The patch hash does not bind changes to an approved review: AMENDMENTS.json is editable alongside the code. Recomputing both hashes while retaining signed.by='Mahmood' authorizes an unreviewed rule change. The claimed commit-history trust root is never checked.",
+   "guidance_basis": "A2 authorizes the reviewed defect fix, not arbitrary changes to the four amendable files. Pre-registration requires an independently anchored approval record.",
+   "failing_test": "Modify an approved code file again; update to_blob and patch_sha256 in the uncommitted declaration, retaining signature metadata -> declared() must return False; currently True."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:defect_caused",
+   "claim": "Unreadable under the old parser does not prove an adjudication was defect-caused. A prose-prefixed empty answers list verifies to exactly the same NI signature under A2. Its genuine adjudication can nevertheless be superseded and omitted. Matching only trial/outcome also admits unrelated reader passes.",
+   "guidance_basis": "C4 preserves genuine adjudications; A2 permits supersession only for decisions invalidated by the parser defect. Establish the exact originating readers and whether corrected readings invalidate the adjudication.",
+   "failing_test": "Reader 1 verifies PY; reader 2 replies 'Prose {\"answers\":[],\"notes\":\"\"}', verifying to UNREAD under both pipelines; their adjudication is PN -> defect_caused() must be False; currently True."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:parse_reply",
+   "claim": "The malformed-envelope fix only handles envelopes that plain.raw_decode can decode. A syntactically broken outer answer envelope is skipped, allowing its embedded answer object to be promoted to the reply. Round-8 tests cover structural errors but miss this syntax-error path.",
+   "guidance_basis": "A2's stated parser contract makes malformed answer envelopes unreadable; C4 requires an unreadable reader to void the pass, not supply an extracted decision.",
+   "failing_test": "Let valid=json.dumps(REPLY). parse_reply('{\"answers\":' + valid + ',') -> None because the outer envelope is malformed; currently returns REPLY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "Explicit reliance on an unseen source still passes every gate. Re-verification and two-reader agreement repeat the lexical checks without establishing that the inference rests on the quote. The round-8 scope decline leaves a concrete C3 violation.",
+   "guidance_basis": "C3 forbids outside-source reasoning. Contextual probability must be reasonable from the supplied circumstances, not an unsupported assertion. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08)",
+   "failing_test": "Q1.2 PY; quoted source: 'Randomisation details were omitted.'; rationale: 'Randomisation was concealed according to the original manuscript.'; manuscript not supplied -> NI; currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question",
+   "claim": "Q4.3 still rejects valid contextual awareness reasoning for participant-reported outcomes because it lacks a topic-gate exemption. Declining this as outside A2 preserves a guidance defect; it does not resolve it.",
+   "guidance_basis": "Participants are the assessors of participant-reported outcomes; awareness can follow from distinguishable interventions. [RoB 2 guidance, Q4.3 and section 7.1](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf)",
+   "failing_test": "Q4.3 PY; quote: 'Participants received surgery or physiotherapy and reported their own pain.'; rationale: 'Participants reporting their own pain could distinguish surgery from physiotherapy.' -> retain PY; currently NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "tests/test_rob2_contextual.py:test_r4_registered_protocol_context_is_a_readers_judgement",
+   "claim": "The PY pin supplies justification only for a plan's existence. It supplies none for this result following that plan, or the published SAP being finalized before unblinding. Calling the assertion mechanical admissibility leaves the clinically important acceptance condition untested.",
+   "guidance_basis": "Q5.1 concerns both conformity of this result to the plan and its timing; registration alone does not establish both. [RoB 2 guidance, Q5.1](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf)",
+   "failing_test": "Use the pin's registered-protocol quote and rationale, with no information linking the assessed analysis to the plan or establishing SAP timing -> NI pending adequate justification; current test requires PY."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:contextual_note",
+   "claim": "Closed contextual decisions remain invisible in the rendered page. apply() now retains closed_contextual and audit contexts, but contextual_note() skips every answer lacking basis='contextual'. The round-8 'visible' test checks storage only.",
+   "guidance_basis": "C5 and the signed decision require every contextual answer and quoted context to be shown. Deferring rendering beyond A2 does not satisfy the reviewed implementation's 'never silent' requirement.",
+   "failing_test": "Apply contextual PY to 3.1 and 3.3 so 3.3 closes to NA; render the resulting object -> show the closed 3.3 contextual decision, quote and source; currently omitted."
+  }
+ ]
+}

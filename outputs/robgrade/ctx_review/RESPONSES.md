@@ -136,3 +136,152 @@ that as the Handbook 8.2.3 judgement Mahmood signed for, and declares it as the 
 every quote, so a reader can judge it.
 
 The round-6 fixes were not themselves re-reviewed; they are covered by their tests and by the end-to-end check below.
+
+## Amendment A2 review, round 7 (13 Oct 2026): codex REVISE (8); agy RAN_ERROR (recorded)
+
+A2 was signed by Mahmood (via Dispatch, 13 Oct, outputs/robgrade/SIGNING_A2.md) as a DEFECT FIX. It is reviewed here
+BEFORE it is applied. A finding that would change the pre-registered RULE is out of scope.
+
+Answered: 6 ACCEPTED, 1 DECLINED as out of scope, 1 DECLINED (the standing question). 9 failing-first tests in
+tests/test_rob2_amendment_a2.py: 7 failed on the reviewed code; 2 already passed for the wrong reason and are kept
+as pins.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | any signed-looking entry could amend ANY frozen file, inputs included | ACCEPTED. Only the four A2 code files are AMENDABLE (contextual.py, rob2_contextual.py, rob2_ctx_score.py, rob2_dual.py). The rule text, the inputs (split, comparators, v3.1 objects, calibration) and the tests never are. Only the signer "Mahmood" counts. | test_PLANT_a2r_only_the_a2_code_files_can_be_declared, test_PLANT_a2r_only_mahmoods_signature_counts |
+| codex1 | supersession could exempt a reader, or an id that is not held | ACCEPTED. A superseded record must be held, RAN_OK, an ADJUDICATOR record, and made before the amendment's declared applied_utc. | test_PLANT_a2r_a_superseded_record_must_be_a_held_earlier_adjudication |
+| codex2 | an unreadable RAN_OK reply still became an all-NI reader and could create a disagreement | ACCEPTED. An unreadable reply (no single answer object) voids the pass, like a missing reader: no contextual answer, no adjudication. | test_PLANT_a2r_an_unreadable_reply_voids_the_pass_like_a_missing_reader, test_PLANT_a2r_two_answer_objects_are_ambiguous |
+| codex4 | duplicate keys or duplicate question rows are resolved silently | ACCEPTED. A duplicate key makes an object ambiguous (rejected), and two rows for one question with different answers give NI (AMBIGUOUS_CONFLICTING_ROWS), in either order. | test_PLANT_a2r_duplicate_keys_are_ambiguous, test_PLANT_a2r_conflicting_rows_for_one_question_are_ni |
+| codex6 | braces in surrounding prose break the first-brace/last-brace slice | ACCEPTED. The parser decodes every candidate object (json raw_decode at each '{'); exactly one distinct answer object is an answer, and two or more are ambiguous. | test_PLANT_a2r_braces_in_prose_do_not_hide_the_answer_object |
+| codex7 | the re-run may need new READER calls, not only adjudications; the source-text test proves nothing | ACCEPTED. `preflight()` lists every call a live re-run would make, without making any: stale or missing readers, and adjudications where both readers are held (a stated lower bound). The re-run is preceded by this preflight, and its counts are reported. | test_PLANT_a2r_preflight_lists_every_call_the_rerun_would_make |
+| codex3 | add 4.3 to the setting-based questions | DECLINED, OUT OF SCOPE. It would change the pre-registered RULE, and A2 is signed as a defect fix only. Recorded for a future amendment, Mahmood's call. | -- |
+| codex5 | the registered-protocol judgement | DECLINED (standing; rounds 4-6). | -- |
+
+## Amendment A2 review, round 8 (13 Oct 2026): codex REVISE (7); agy RAN_ERROR ("Individual quota reached", recorded)
+
+Answered: 4 ACCEPTED, 1 ACCEPTED with a stated residual, 2 DECLINED as out of A2's signed scope. 5 failing-first
+tests (5 failed on the reviewed code, then pass).
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | any earlier adjudication could be declared superseded, a genuine one included | ACCEPTED. A superseded adjudication must be PROVEN defect-caused (`defect_caused`). Its recorded prompt must show one reader as the unread signature ({"answer": "NI", "rationale": null}) on every question it decided, and that reader's held record for the same trial and outcome must be unreadable to the OLD strict parser yet readable to the A2 parser. | test_PLANT_a2r8_supersession_must_be_proven_defect_caused |
+| codex1 | an editable declaration with copied signature metadata could authorise any change to amendable code | ACCEPTED, with a residual. Each declaration carries the sha256 of exactly the reviewed change (the file's git diff from the pre-registration), recomputed by the scorer, so no change after review can be declared under it. RESIDUAL, stated: the signature is a record in the repository, not a cryptographic one; the commit history is the trust root. | test_PLANT_a2r8_declarations_are_bound_to_the_reviewed_patch |
+| codex3 | after rejecting a duplicate-key envelope, the parser scanned inside it and could accept an embedded answer object | ACCEPTED. A malformed answer envelope (a duplicate key, answers not a list, a row not an object) makes the whole reply unreadable. Decoding resumes AFTER an envelope, never inside it. | test_PLANT_a2r8_a_malformed_envelope_makes_the_reply_ambiguous |
+| codex4 | `{"answers": [42]}` was a readable all-NI reader | ACCEPTED: every row must be an object, or the reply is unreadable (and voids the pass). | test_PLANT_a2r8_a_row_that_is_not_an_object_makes_the_reply_unreadable |
+| codex6 | closing a branch dropped that contextual decision's quotes | ACCEPTED for the DATA: the audit keeps each decision's contexts, and the NA answer on a closed branch carries the closed decision. RENDERING it is out of A2's scope (robgrade/rob2_tab.py is frozen and not amendable); it goes with the served-tab signing. | test_PLANT_a2r8_a_closed_branch_keeps_its_contextual_decision_visible |
+| codex2 | "the original manuscript confirms..." still passes | DECLINED, out of scope: extending the memory markers changes the pre-registered RULE. The standing residual applies; recorded for a future amendment. | -- |
+| codex5 | 4.3 / "commonly" | DECLINED, out of scope (as round 7): a rule change, recorded for a future amendment. | -- |
+
+## Amendment A2 review, round 9 (13 Oct 2026): codex REVISE (7); agy RAN_ERROR (quota, reset 16 min later; recorded)
+
+Answered: 3 ACCEPTED, 3 DECLINED as out of A2's signed scope, 1 DECLINED (standing). 4 failing-first tests (4
+failed on the reviewed code, then pass).
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | the declaration file is editable alongside the code; the claimed trust root (history) is never checked | ACCEPTED. Declarations are read from the COMMITTED HEAD, never from the working tree, and the amended file in use must equal its HEAD version. An amendment exists only once it has passed the hook into a commit. A2 is therefore committed BEFORE the re-run and the score. | test_PLANT_a2r9_declarations_are_read_from_the_committed_history |
+| codex1 | "unreadable to the old parser" does not prove a defect-caused adjudication (a reader that gave no answer is unread under both); matching trial/outcome admits other passes | ACCEPTED. The reader record must be THE SAME PASS's reader call (its registered targets cover the adjudicated questions). Under A2 its re-verified reading must DIFFER from the unread signature: a reader that really gave no answer leaves the adjudication genuine. | test_PLANT_a2r9_a_genuinely_empty_reader_is_not_a_defect, test_PLANT_a2r9_the_reader_record_must_be_for_the_same_pass |
+| codex2 | a syntactically broken outer answer envelope lets an embedded object through | ACCEPTED. Any `{"answers":` start that fails to decode makes the reply unreadable. | test_PLANT_a2r9_a_broken_outer_envelope_makes_the_reply_unreadable |
+| codex3 | "according to the original manuscript" (memory markers) | DECLINED, out of scope (a RULE change). The residual is stated; recorded for a future amendment. | -- |
+| codex4 | 4.3 setting-based | DECLINED, out of scope (a RULE change); recorded for a future amendment. | -- |
+| codex6 | rendering closed-branch decisions | DECLINED, out of scope (robgrade/rob2_tab.py is frozen and not amendable). The data is kept (round 8); rendering goes with the served-tab signing. | -- |
+| codex5 | the registered-protocol judgement | DECLINED (standing). | -- |
+
+Recorded for Mahmood, as candidates for a future amendment to the RULE (not A2): extend the memory markers to
+references to unseen sources; 4.3 as setting-based; "commonly" in mechanism wording; render closed-branch decisions.
+
+## Amendment A2 review, round 10 (13 Oct 2026): codex REVISE (8); agy ACCEPT
+
+Answered: 4 ACCEPTED, 1 DECLINED with the standing stated residual, 3 DECLINED as out of A2's signed scope. 4
+failing-first tests, plus 1 corrected expectation (5 failed on the reviewed code, then all 30 A2 tests pass; 331 lane
+tests pass). The stricter parser changes how 0 of the 155 held contextual replies read. Under the stricter criterion
+all 11 superseded adjudications are still proven defect-caused (dry declaration).
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex1 | defect_caused compared whole dicts, so an NI with a rationale counted as "changed"; the r8 test expected True although its reader saw no sources | ACCEPTED. The comparison is now by ANSWER. A defect-caused adjudication needs the hidden reply's A2-verified answer to be PY/PN where the unread signature gave NI. The r8 expectation was WRONG: with no sources the PY verifies to NI, so the disagreement was genuine. It is corrected to False, and the defect case is tested with a reader whose source is in its prompt. | test_PLANT_a2r10_a_defect_needs_a_changed_ANSWER; corrected test_PLANT_a2r8_supersession_must_be_proven_defect_caused |
+| codex2 | target inclusion does not identify the original reader call (time, evidence) | ACCEPTED. The reader record must also PREDATE the adjudication and carry the SAME evidence block the adjudicator was shown. | test_PLANT_a2r10_the_reader_must_predate_the_adjudication_and_share_its_evidence |
+| codex3 | a broken envelope whose first key is not "answers" escapes the guard | ACCEPTED. Any `"answers":` key outside every well-formed envelope makes the reply unreadable, whatever key the envelope starts with. | test_PLANT_a2r10_a_broken_envelope_with_another_first_key_is_unreadable |
+| codex7 | an unreadable adjudicator reply became an adjudicator-owned NI | ACCEPTED. An unreadable adjudicator reply decides nothing, and the question is NI as "no contextual answer agreed". The record is still read (consumed), but it is never cited as a decision. | test_PLANT_a2r10_an_unreadable_adjudicator_reply_decides_nothing |
+| codex0 | a committed declaration does not authenticate approval | DECLINED, standing stated residual (round 8). The signature is a repository record, not a cryptographic one. Each declaration binds the exact reviewed patch (sha256), is read only from committed HEAD, and enters history only through the hook. The trust root is the commit history and Mahmood's relayed signature, which is recorded verbatim in SIGNING_A2.md. | -- |
+| codex4 | unseen-source reliance (memory markers) | DECLINED, out of scope (a RULE change); recorded for a future amendment. | -- |
+| codex5 | 4.3 setting-based | DECLINED, out of scope (a RULE change); recorded for a future amendment. | -- |
+| codex6 | closed-branch decisions are not rendered; the round-8 test checks storage only | DECLINED, out of scope (robgrade/rob2_tab.py is frozen). Codex is right that the round-8 wording "visible" overstated it: the decision is KEPT IN THE DATA, not rendered. Rendering goes with the served-tab signing. | -- |
+
+## Amendment A2 review, round 11 (13 Oct 2026): codex REVISE (7); agy ACCEPT
+
+Answered: 2 ACCEPTED, 1 DECLINED with the standing stated residual, 1 DECLINED by design, 3 DECLINED as out of A2's
+signed scope. 2 failing-first tests, plus 1 companion (2 failed on the reviewed code, then all 33 A2 tests pass; 334
+lane tests pass). One round-10 fixture gained the prompt hash its run entry would really carry; its assertion is
+unchanged. The changes alter the reading of 0 of 155 held replies, and the preflight is unchanged (7 adjudications).
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | a superseded adjudication could be replaced by NI if the corrected readers still disagree and no new adjudication exists | ACCEPTED. A REPLAY that meets a disagreement with no adjudication attempt on THAT prompt (none at all, or only a superseded one of other readings) raises MissingAdjudication: the scorer cannot reproduce the pipeline and refuses. A recorded FAILED attempt on that prompt remains an honest NI. | test_PLANT_a2r11_a_replayed_disagreement_never_adjudicated_refuses, test_PLANT_a2r11_a_recorded_failed_adjudication_is_an_honest_NI |
+| codex2 | an escaped key ("\u0061nswers") bypasses the broken-envelope guards | ACCEPTED. Keys are compared DECODED: any object key that decodes to "answers" counts, in the envelope-start check and in the outside-every-envelope check. A well-formed envelope written with the escaped key is still read. | test_PLANT_a2r11_an_escaped_answers_key_is_still_an_envelope |
+| codex6 | an "answers": key mentioned in prose voids an otherwise unique reply | DECLINED, by design. A reply that carries an answers key outside every well-formed envelope is ambiguous, so it is read as unreadable, which voids the pass and leaves NI: the conservative default, never a manufactured answer. Measured impact: 0 of 155 held replies. | -- |
+| codex1 | committed metadata self-authorises amendments | DECLINED, standing stated residual. The scorer is itself amendable code: anyone able to commit could also change this check, so no in-repository check can authenticate its own author. The trust root is the commit history, the hook, and Mahmood's relayed signature recorded in SIGNING_A2.md. Each declaration binds the exact reviewed patch. | -- |
+| codex3 | unseen-source reliance | DECLINED, out of scope (a RULE change); recorded for a future amendment. | -- |
+| codex4 | 4.3 setting-based | DECLINED, out of scope (a RULE change); recorded for a future amendment. | -- |
+| codex5 | closed-branch rendering | DECLINED, out of scope (rob2_tab.py is frozen); stored, not rendered (round 10 wording). | -- |
+
+## Amendment A2 review, round 12 (13 Oct 2026): codex REVISE (6); agy ACCEPT
+
+Answered: 2 ACCEPTED, 1 DECLINED by design (repeated), 3 DECLINED as out of A2's signed scope or the standing residual.
+2 failing-first tests (2 failed on the reviewed code, then all 35 A2 tests pass). The round-10 and round-11 fixtures
+now state that their adjudicator records are held (the new contract); their assertions are unchanged. The parser
+changes since round 9 alter the reading of 0 of 391 held replies (155 contextual; 236 dual, NI and reference).
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | the MissingAdjudication guard trusted a manifest hash; an entry with no held record passed | ACCEPTED. The attempt must be a HELD record whose own recorded prompt is this prompt; a manifest hash alone, or a held record of another prompt, is no adjudication, and the replay refuses. The r11 failed-attempt case now holds its record. | test_PLANT_a2r12_a_manifest_hash_without_a_held_attempt_is_no_adjudication |
+| codex4 | a row with a list-valued answer passes the parser and crashes verify | ACCEPTED. Every text field of a row (qid, answer, quote, source_id, rationale) must be a string, null or absent; otherwise the reply is malformed and unreadable (it voids the pass). | test_PLANT_a2r12_a_row_field_of_the_wrong_type_makes_the_reply_unreadable |
+| codex5 | a prose mention of an "answers" key voids a unique reply | DECLINED, by design (round 11): an answers key outside every well-formed envelope makes the reply ambiguous, so it voids the pass and leaves NI. It cannot manufacture an answer. Impact: 0 of 391 held replies. | -- |
+| codex1 | 4.3 / USUAL filter | DECLINED, out of scope (a RULE change); recorded for a future amendment. | -- |
+| codex2 | unseen-source reliance | DECLINED, out of scope (a RULE change); the stated residual stands; recorded for a future amendment. | -- |
+| codex3 | closed-branch rendering | DECLINED, out of scope (rob2_tab.py is frozen); stored, not rendered. | -- |
+
+## Amendment A2 review, round 13 (13 Oct 2026): codex REVISE (5); agy ACCEPT
+
+Answered: 2 ACCEPTED, 3 DECLINED as out of A2's signed scope. 2 failing-first tests (2 failed on the reviewed code,
+then all 37 A2 tests pass). Unchanged reading of 391 of 391 held replies. Under the stricter proof, exactly 11 of the
+39 held adjudications are still proven defect-caused.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex2 | an earlier matching reader is not proof that it supplied the unread slot | ACCEPTED. The defect-run reader must be the UNIQUE held call that matches: same role, trial and outcome, registered targets covering the adjudicated ones, earlier, same evidence block. Two candidate attempts leave which reply the adjudicator saw unproven, so the adjudication stays genuine (fail closed). | test_PLANT_a2r13_the_defect_reader_must_be_the_UNIQUE_candidate |
+| codex4 | a prose mention of the key voids a valid reply, contrary to A2's signed promise to ignore prose | ACCEPTED (the earlier decline is withdrawn: the signed text promises it). Only an object KEY counts: an "answers" key that opens an object or follows a comma. A key merely mentioned in prose is ignored, while a broken object's answers key still voids the reply (round 9-11 tests unchanged). | test_PLANT_a2r13_a_key_mentioned_in_prose_is_not_a_broken_envelope |
+| codex0 | unseen-source reliance | DECLINED, out of scope (a RULE change); the stated residual stands; recorded for a future amendment. | -- |
+| codex1 | 4.3 setting-based | DECLINED, out of scope (a RULE change); recorded for a future amendment. | -- |
+| codex3 | closed-branch rendering | DECLINED, out of scope (rob2_tab.py is frozen); stored, not rendered. | -- |
+
+## Amendment A2 review, round 14 (13 Oct 2026): codex REVISE (5); agy ACCEPT
+
+Answered: 1 ACCEPTED, 4 DECLINED as out of A2's signed scope. 1 failing-first test (it failed on the reviewed code, then
+all 38 A2 tests pass). Unchanged reading of 391 of 391 held replies.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | the round-13 boundary (key after '{' or ',') let a broken object with a MISSING comma through | ACCEPTED, and the round-13 boundary is withdrawn: it was the wrong distinction. An "answers" key outside every well-formed envelope now voids the reply when an object opened BEFORE it failed to decode, so the key belongs to a broken object (missing comma, stray brace in a string, cut-off reply). With no failed '{' before it, it is a key merely mentioned in prose and is ignored. | test_PLANT_a2r14_a_broken_object_missing_its_comma_is_still_broken |
+| codex3 | the frozen round-6 test requires NI for "commonly" in a mechanism rationale | DECLINED, out of scope. tests/test_rob2_contextual.py is frozen with the pre-registered RULE; changing what the USUAL filter rejects is a rule amendment. Recorded for a future amendment (as rounds 7-13). | -- |
+| codex1 | unseen-source reliance | DECLINED, out of scope (a RULE change); the stated residual stands; recorded for a future amendment. | -- |
+| codex2 | 4.3 setting-based | DECLINED, out of scope (a RULE change); recorded for a future amendment. | -- |
+| codex4 | closed-branch rendering | DECLINED, out of scope (rob2_tab.py is frozen); stored, not rendered. | -- |
+
+## Amendment A2 review, round 15 (13 Oct 2026): codex REVISE (5); agy ACCEPT -- review closed, A2 applied
+
+Answered: 5 DECLINED (1 by design, 4 out of A2's signed scope). No new finding that could change an answer.
+
+| # | finding | response |
+|---|---|---|
+| codex3 | an undecodable prose brace before a prose mention of the key voids a valid reading | DECLINED, by design. Rounds 13 and 14 show that no syntactic rule separates "key of a broken object" from "key mentioned in prose" in every case. Each error has a direction: treating a broken object as prose READS an answer from a fragment (round 14's finding), while treating prose as broken VOIDS the pass and leaves NI. The parser takes the second; it cannot manufacture an answer. Measured impact: 0 of 391 held replies. |
+| codex0 | unseen-source reliance | DECLINED, out of scope (a RULE change); the stated residual stands. |
+| codex1 | 4.3 setting-based | DECLINED, out of scope (a RULE change). |
+| codex2 | "commonly" in the frozen round-6 test | DECLINED, out of scope (a RULE change). |
+| codex4 | closed-branch rendering | DECLINED, out of scope (rob2_tab.py is frozen); stored, not rendered. |
+
+Closing the A2 review: agy has ACCEPTED every round since 10. Codex's remaining findings are the four RULE-scope
+items that A2's signature does not cover, plus one fail-closed design choice. Recorded for Mahmood as candidates for a
+future amendment to the RULE: (1) memory markers for references to unseen sources; (2) 4.3 as setting-based;
+(3) "commonly" in mechanism wording (and the frozen round-6 test that encodes it); (4) rendering closed-branch
+decisions on the served tab.

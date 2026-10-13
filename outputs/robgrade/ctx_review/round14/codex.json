@@ -1,0 +1,42 @@
+{
+ "record_id": "mc-310ffd1027cce318d654294ee08f3454",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:parse_reply,_answers_keys",
+   "claim": "The round-13 boundary check reopens malformed-envelope extraction. If a comma before the outer answers key is missing, that key is ignored and a valid inner envelope is accepted. An unreadable reader can therefore become an all-NI reading and manufacture an adjudication.",
+   "guidance_basis": "A2 part 1 and C4 require unreadable replies to void the pass. The accepted round-9/10 fixes prohibit recovering an answer from a broken answer envelope.",
+   "failing_test": "parse_reply('{\"notes\": \"\" \"answers\": [{\"answers\": []}]') -> None; currently returns {\"answers\": []}."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "Explicit reliance on an unshown manuscript still passes when paired with a quoted omission. Topic and word overlap establish neither contextual support nor freedom from outside-source inference; agreement and replay preserve this acceptance. The scope decline leaves this rule defect unresolved.",
+   "guidance_basis": "C3 excludes unshown sources and requires supporting context. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits reasonable contextual judgements, not unsupported trial-specific assertions.",
+   "failing_test": "1.2 PY; sole source and quote: 'Randomisation details were omitted.'; rationale: 'The original manuscript confirms randomisation was concealed.' -> NI; currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question",
+   "claim": "The 4.3 topic gate rejects awareness inferred from distinguishable interventions when participants report their own outcomes. Exempting 2.1 but retaining this restriction for 4.3 produces inconsistent assessments of the same documented circumstances. Deferring a rule amendment does not establish guidance compliance.",
+   "guidance_basis": "[RoB 2 guidance, Box 10, question 4.3](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf): participants are the assessors for participant-reported outcomes.",
+   "failing_test": "4.3 PY; quote: 'Participants received surgery or physiotherapy and reported their own pain.'; rationale: 'Participants reporting their own pain could distinguish surgery from physiotherapy.' -> contextual PY; currently NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "tests/test_rob2_contextual.py:test_PLANT_r6_mechanism_wording_with_commonly_at_3_4",
+   "claim": "The second assertion wrongly requires NI solely because a concealment rationale contains 'commonly'. It reasons from the trial's quoted allocation method, rather than assuming an unreported procedure from what trials usually do. The USUAL filter rejects supported inference based on wording.",
+   "guidance_basis": "[RoB 2 guidance, section 4.3.2 and Table 2](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf) identify central randomization as a concealment method; probability wording does not invalidate that context.",
+   "failing_test": "Existing fixture: 1.2 PY, quote 'central web-based randomisation', rationale 'central web-based randomisation is commonly concealed' -> PY; the test currently expects NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:contextual_note,render",
+   "claim": "Closed-branch contextual decisions remain invisible in the HTML. The renderer ignores closed_contextual and contextual_audit. A2 preserves their data, but the round-8 test checks storage only; the later scope declines do not satisfy the requested display guarantee.",
+   "guidance_basis": "C5 and the user's 'never silent' requirement require contextual decisions and their quoted context to be shown. Closing a branch may make the answer NA without concealing its recorded contextual decision.",
+   "failing_test": "Apply contextual PY to 3.1 and 3.3 together, then render: -> show 3.3's contextual PY and quote, labelled superseded by branch closure; currently only 3.1 is displayed."
+  }
+ ]
+}

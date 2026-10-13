@@ -7,6 +7,7 @@ with a verbatim context quote from an open source that the rationale refers to; 
 never silently, with every reader's context.
 """
 import copy
+import json
 import re
 import unicodedata
 
@@ -99,6 +100,92 @@ def ni_targets(obj):
     return out
 
 
+def parse_reply(raw):
+    """THE parser for a model's reply (amendment A2, signed 13 Oct): the JSON object in the reply, whatever prose or
+    code fence surrounds it, if it carries an "answers" list; else None. The pipeline, the scorer and the dual reading
+    all call this one function, so they can never disagree about what a model said (agy prefixed 15 of 58 contextual
+    replies with prose, which the old strict parser read as no answer at all)."""
+    t = raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw or "")
+    # every JSON object that decodes at a '{' (prose and braces around it are skipped -- codex A2 review); a duplicate
+    # key makes an object ambiguous; exactly ONE distinct answer object is an answer, two or more are ambiguous
+    plain, strict = json.JSONDecoder(), json.JSONDecoder(object_pairs_hook=_no_duplicate_keys)
+    found, spans, failed, i = [], [], [], 0
+    while True:
+        i = t.find("{", i)
+        if i < 0:
+            break
+        try:
+            obj, end = plain.raw_decode(t, i)
+        except ValueError:
+            if _starts_answers_envelope(t, i):        # a broken answer envelope: the reply is unreadable (codex A2 r9)
+                return None
+            failed.append(i)                           # an object that does not decode (codex A2 r14)
+            i += 1
+            continue
+        if not (isinstance(obj, dict) and "answers" in obj):
+            i += 1                                     # not an answer envelope: an answer object may sit inside it
+            continue
+        # an answer ENVELOPE: it must be well formed, or the whole reply is unreadable (codex A2 review, round 8) --
+        # no duplicate key anywhere in it, an answers LIST, every row an object; scanning resumes AFTER it, never inside
+        try:
+            strict.raw_decode(t[i:end])
+        except (ValueError, _DuplicateKey):
+            return None
+        if not isinstance(obj["answers"], list) or not all(isinstance(r, dict) for r in obj["answers"]):
+            return None
+        # (codex A2 r12) a row field of the wrong type (an answer that is a list, ...) is a malformed reply, never a
+        # crash in verify and never a guess
+        if any(not isinstance(r.get(k), (str, type(None))) for r in obj["answers"] for k in _ROW_TEXT):
+            return None
+        if obj not in found:
+            found.append(obj)
+        spans.append((i, end))
+        i = end
+    # (codex A2 r10) an "answers" key OUTSIDE every well-formed envelope is a broken envelope, whatever key it starts
+    # with ({"notes": "", "answers": ... cut off): the reply is unreadable rather than read from a fragment of it
+    # (codex A2 r14) ... it is part of a broken object when an object opened BEFORE it failed to decode; with no
+    # failed '{' before it, it is a key merely MENTIONED in prose and is ignored (the signed promise to ignore prose)
+    if any(not any(s <= k < e for s, e in spans) and any(f < k for f in failed) for k in _answers_keys(t)):
+        return None
+    return found[0] if len(found) == 1 else None
+
+
+class _DuplicateKey(ValueError):
+    pass
+
+
+# a JSON object KEY: a string literal followed by ':' -- compared DECODED, so an escaped spelling ("answers") is
+# the same key (codex A2 r11)
+_ROW_TEXT = ("qid", "answer", "quote", "source_id", "rationale")     # text fields of an answer row (or absent/null)
+_KEY = re.compile(r'"((?:[^"\\]|\\.)*)"\s*:')
+
+
+def _is_answers(literal):
+    try:
+        return json.loads('"' + literal + '"') == "answers"
+    except ValueError:
+        return False
+
+
+def _answers_keys(t):
+    """Positions of every key-like string in `t` that decodes to "answers" (whether it belongs to a broken object or
+    is merely mentioned in prose is decided by the caller, codex A2 r13-r14)."""
+    return [m.start() for m in _KEY.finditer(t) if _is_answers(m.group(1))]
+
+
+def _starts_answers_envelope(t, i):
+    """`t[i]` is '{' and its first key decodes to "answers"."""
+    m = _KEY.match(t, i + 1 + (len(t[i + 1:]) - len(t[i + 1:].lstrip())))
+    return bool(m and _is_answers(m.group(1)))
+
+
+def _no_duplicate_keys(pairs):
+    keys = [k for k, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise _DuplicateKey(f"duplicate keys {sorted({k for k in keys if keys.count(k) > 1})}")
+    return dict(pairs)
+
+
 def _norm(s):
     """The SAME normalisation as scripts/rob2_dual._norm (NFKC, case, dashes, whitespace): one quote, one verdict."""
     s = unicodedata.normalize("NFKC", s or "").lower()
@@ -123,7 +210,12 @@ def verify(reading, sources, targets):
     srcs = {s["id"]: s for s in sources if s.get("open_for_prompt")}
     targets = list(targets)
     out = {}
-    for a in (reading or {}).get("answers") or []:
+    rows = [a for a in (reading or {}).get("answers") or [] if isinstance(a, dict)]
+    # two rows for one question with different answers are ambiguous: NI, whichever comes first (codex A2 review)
+    for q in targets:
+        if len({a.get("answer") for a in rows if a.get("qid") == q}) > 1:
+            out[q] = {"answer": "NI", "dropped": {"why": "AMBIGUOUS_CONFLICTING_ROWS"}}
+    for a in rows:
         q, v = a.get("qid"), a.get("answer")
         if q not in targets or q in out:
             continue
@@ -207,6 +299,8 @@ def apply(obj, contextual, records):
             raise ValueError(f"{q} is not an asked NI question: a contextual answer may only replace NI")
         audit[q] = {"answer": c["answer"], "decided_by": c.get("decided_by"), "rationale": c.get("rationale"),
                     "records": list(records.get(q) or [])}
+        if c.get("context"):                           # the quotes stay with the decision (codex A2 review, round 8)
+            audit[q]["context"] = copy.deepcopy(c["context"])
         if c["answer"] not in CONTEXTUAL:
             continue
         a = rf.answer(c["answer"], how=HOW, span=c["quote"], source_ref=c["source_id"], source_sha256=c["source_sha256"],
@@ -218,7 +312,11 @@ def apply(obj, contextual, records):
         asked = rf.applicable(d, {q: answers.get(q) or {"answer": "NI"} for q in qs})
         for q in qs:
             if q not in asked and (answers.get(q) or {}).get("basis") == "contextual":
+                closed = answers[q]
                 answers[q] = rf.answer("NA", how="not asked once an upstream question was answered contextually")
+                # never silent: the contextual decision on a branch since closed stays visible (codex A2 review)
+                answers[q]["closed_contextual"] = {"answer": closed["answer"], "context": closed.get("context") or [],
+                                                   "span": closed.get("span")}
     new = rf.assessment(obj["trial"], obj["outcome"], answers, insufficient_domains=insufficient)
     # EXTEND the incoming audit: a later pass must not erase an earlier pass's decisions
     new["contextual_audit"] = dict(copy.deepcopy(obj.get("contextual_audit") or {}), **audit)

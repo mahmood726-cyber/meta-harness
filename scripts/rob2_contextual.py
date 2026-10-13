@@ -110,7 +110,7 @@ def _reading(run):
     """The recorded reply of a CONTEXTUAL call (this pass's own record store), parsed; None when absent or failed."""
     if not run or run.get("state") != "RAN_OK":
         return None
-    return rd.parse(ms.replay(ms.load_record(os.path.join(REC_DIR, run["record_id"] + ".json"))))
+    return cx.parse_reply(ms.replay(ms.load_record(os.path.join(REC_DIR, run["record_id"] + ".json"))))   # A2: THE parser
 
 
 def record_prompt_sha256(rid):
@@ -136,6 +136,10 @@ def fresh(run, prompt_bytes):
 MAX_PASSES = 3
 
 
+class MissingAdjudication(RuntimeError):
+    """A replayed disagreement has no adjudication attempt on record (codex A2 r11)."""
+
+
 def pass_decisions(a, b, adj, targets):
     """The pass's decisions. A reader whose record is missing or failed (None) VOIDS the pass: no contextual answer,
     and never an adjudication between one reader and nobody (codex round 5)."""
@@ -153,8 +157,11 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
         for w, f in futs.items():
             run[w] = f.result()
     fc, fa = fresh(run.get("codex"), p), fresh(run.get("agy"), p)
-    a = cx.verify(_reading(fc), srcs, targets) if fc else None
-    b = cx.verify(_reading(fa), srcs, targets) if fa else None
+    # an UNREADABLE reply (no single answer object) is a missing reading, not an all-NI one: it voids the pass, so it
+    # can never manufacture a disagreement (codex A2 review)
+    ra, rb = (_reading(fc) if fc else None), (_reading(fa) if fa else None)
+    a = cx.verify(ra, srcs, targets) if ra is not None else None
+    b = cx.verify(rb, srcs, targets) if rb is not None else None
     # a disagreement is two DIFFERENT verified answers of two PRESENT readers; agreement (PY/PN or NI) never goes to the
     # adjudicator, and a missing reader voids the pass (pass_decisions)
     dis = {q: {"reader 1": a[q], "reader 2": b[q]} for q in targets if a[q]["answer"] != b[q]["answer"]} \
@@ -162,10 +169,20 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
     adj = {}
     if dis:
         pa = prompt(item, sorted(dis), "adjudicator", dis)
+        # (codex A2 r11) a REPLAY meeting a disagreement that was never put to the adjudicator (no attempt on THIS
+        # prompt, e.g. only a superseded adjudication of other readings) cannot reproduce the pipeline: it refuses,
+        # rather than recording NI where the live pipeline would have adjudicated. A recorded failed attempt is NI.
+        # (codex A2 r12) the attempt must be a HELD record whose own prompt is this one, not only a manifest hash
+        aj, want = run.get("adjudicator") or {}, hashlib.sha256(pa).hexdigest()
+        if not live and not (aj.get("prompt_sha256") == want and aj.get("record_id")
+                             and record_prompt_sha256(aj["record_id"]) == want):
+            raise MissingAdjudication(f"{item['pmid']}: {sorted(dis)} disagree and were never adjudicated")
         if live and not fresh(run.get("adjudicator"), pa):
             run["adjudicator"] = pools["codex"].submit(call, item, "adjudicator", pa, sorted(dis)).result()
         adj_run = fresh(run.get("adjudicator"), pa)
-        adj = cx.verify(_reading(adj_run), srcs, sorted(dis)) if adj_run else {}   # no record: nothing is the adjudicator's
+        rj = _reading(adj_run) if adj_run else None
+        # no record, or (codex A2 r10) an UNREADABLE reply: nothing is the adjudicator's -- never an adjudicator NI
+        adj = cx.verify(rj, srcs, sorted(dis)) if rj is not None else {}
     c = pass_decisions(a, b, adj, targets)
     recs = {q: [run[w]["record_id"] for w in ("codex", "agy") if fresh(run.get(w), p)] +
                ([run["adjudicator"]["record_id"]] if c[q].get("decided_by") == "adjudicator" else []) for q in c}
@@ -199,6 +216,35 @@ def process(item, obj, runs, live, pools):
     r["passes"] = passes[:executed]                     # a pass the replay does not execute is not kept (codex round 6)
     r["consumed"] = consumed
     return cur, r, c_all
+
+
+class _NotRun:
+    def result(self):
+        return {"state": "NOT_RUN", "record_id": None, "prompt_sha256": None}
+
+
+def preflight(item, obj, runs):
+    """[(pass index, role)] of every call a live re-run of this trial would make, WITHOUT making any (codex A2 review):
+    held fresh records are reused; a stale or missing reader is listed. Adjudications are listed only where both
+    readers are already held, so a pass whose readers must be called may need one more (a lower bound, stated)."""
+    calls = []
+    r = dict(runs.get(item["key"]) or {})
+    passes = list(r.get("passes") or [])
+    srcs = rd.open_sources(item)
+    cur, decided = obj, set()
+    for k in range(MAX_PASSES):
+        targets = [q for q in cx.ni_targets(cur) if q not in decided]
+        if not targets:
+            break
+
+        class _Recorder:
+            def submit(self, fn, it, who, p, t, _k=k):
+                calls.append((_k, who))
+                return _NotRun()
+        run = dict(passes[k]) if k < len(passes) else {}
+        cur, _, _ = _one_pass(item, cur, targets, run, True, {"codex": _Recorder(), "agy": _Recorder()}, srcs)
+        decided |= set(targets)
+    return calls
 
 
 def main(argv):

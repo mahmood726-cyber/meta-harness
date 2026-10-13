@@ -1,0 +1,63 @@
+{
+ "record_id": "mc-ae154b0a7b641f89f14f699fedd7bfa8",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:_signed_amendments,declared",
+   "claim": "Any nonempty signed.by authorizes arbitrary frozen-file changes through editable AMENDMENTS.json. Neither the approved A2 patch nor its permitted files constrain acceptance; even baseline and comparator changes can pass.",
+   "guidance_basis": "A2 authorizes a specific implementation repair while preserving the registered rule and inputs. A signer-name field alone does not establish authorization for another change.",
+   "failing_test": "Edit calibration_v31.json and add matching blob hashes with signed.by='someone' -> REFUSED as outside approved A2; currently declared() accepts."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:superseded_records,check_consumed",
+   "claim": "Supersession can exempt any reader or adjudicator without proving a parser-caused defect or replacement. Listed records need not even remain held. Removing a reader from the manifest and listing it as superseded can restore NI and pass replay.",
+   "guidance_basis": "A2 permits retaining and superseding defect-affected adjudications, not dropping arbitrary decisions. C4 requires both readers; section 3 requires accounting for recorded decisions.",
+   "failing_test": "held={c:RAN_OK,a:RAN_OK}, consumed={a}, superseded={c} -> REFUSED: c is a reader. Also superseded={missing_id} -> REFUSED: superseded record is not held."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_contextual.py:_one_pass",
+   "claim": "An unparseable RAN_OK reply becomes a verified NI reading through verify(None). It can then create a disagreement and support adjudication. Thus A2 retains the same false-disagreement mechanism for malformed or multi-object replies.",
+   "guidance_basis": "C4 requires two actual readings and voids a failed reader. A parsing failure is not an assessor's NI judgement and must remain distinguishable from one.",
+   "failing_test": "Reader 1 gives verified PY; reader 2 returns two JSON objects; adjudicator gives PY -> void/refuse the pass pending a valid second reading, not contextual PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question,SETTING_BASED",
+   "claim": "The setting exemption omits outcome-assessor awareness. Valid context identifying participants as assessors and showing distinguishable interventions is rejected at 4.3 unless it happens to contain a whitelisted stem.",
+   "guidance_basis": "[Handbook 8.6](https://training.cochrane.org/handbook/current/chapter-08): participants are assessors of participant-reported outcomes; intervention distinguishability informs their awareness.",
+   "failing_test": "4.3 PY; quote='Participants rated pain after surgery or physiotherapy'; rationale='Participants rated their own pain and could distinguish surgery from physiotherapy' -> retain contextual PY; currently NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:parse_reply,verify",
+   "claim": "Conflicting answers are silently selected: json.loads keeps the last duplicate object key, while verify keeps the first duplicate qid. An ambiguous reply can therefore become an accepted contextual decision. A2 tests omit both cases.",
+   "guidance_basis": "C4 and A2 require faithful recovery of each reader's decision. Choosing one of conflicting answers by JSON or array ordering does not establish that decision.",
+   "failing_test": "Reply contains two 1.2 rows, one PY and one PN, both with valid contexts -> reject as ambiguous, independent of ordering. Duplicate 'answer' keys with PY/PN must also be rejected."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "tests/test_rob2_contextual.py:test_r4_registered_protocol_context_is_a_readers_judgement",
+   "claim": "The acceptance pin and repeated declines conflate protocol/SAP existence with support for 5.1. The fixture supplies neither conformity to the plan nor SAP finalization before unblinding. Calling this a lexical-gate test does not validate its methodological expectation.",
+   "guidance_basis": "[Cochrane 5.1 FAQ](https://www.cochrane.org/learn/courses-and-resources/cochrane-methodology/risk-bias/about-risk-bias-2-rob-2): knowing a plan exists does not establish adherence; insufficient plan details warrant NI.",
+   "failing_test": "Only evidence: a protocol was registered before enrolment and an SAP was published; no contents, adherence evidence or SAP timing -> 5.1 NI, not a methodologically validated PY."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:parse_reply",
+   "claim": "First-brace/last-brace slicing cannot reliably extract JSON surrounded by prose. Braces in introductory or trailing text cause a valid, unambiguous answer object to be discarded, contrary to A2's parser contract.",
+   "guidance_basis": "A2 part 1 explicitly permits prose surrounding the answer object. Extraction must distinguish surrounding text from JSON without selecting among conflicting answer objects.",
+   "failing_test": "'Note {draft}.\\n' + json.dumps(REPLY) -> REPLY; likewise json.dumps(REPLY) + '\\nNote {end}.' -> REPLY. Both currently return None."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_contextual.py:_one_pass; tests/test_rob2_amendment_a2.py:test_PLANT_a2_reader_prompts_are_unchanged_by_the_amendment",
+   "claim": "The adjudication-only rerun claim is not enforced. Corrected answers can change later-pass targets, making reader prompts stale or opening entirely new reader passes. The test merely searches prompt-builder source text and cannot establish record reuse.",
+   "guidance_basis": "A2 part 4 limits new calls to genuine disagreements; C4 also requires assessment of newly opened NI questions. These requirements need reconciliation before the rerun.",
+   "failing_test": "Corrected agreement changes 2.3 from NI to PY and opens 2.4/2.5 -> preflight reports required new reader calls and blocks an adjudication-only rerun; current live path calls both readers."
+  }
+ ]
+}

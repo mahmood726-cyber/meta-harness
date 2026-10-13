@@ -1,0 +1,56 @@
+{
+ "record_id": "mc-ba40e649c69921087c46d6e3aa2d3095",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_superseded",
+   "claim": "Any earlier adjudication can be exempted, including one resolving a genuine disagreement unaffected by the parser defect. Removing it from the manifest and listing it as superseded lets replay retain NI and pass scoring. The A2 test establishes only role and age, not legitimate supersession.",
+   "guidance_basis": "Signed A2 permits superseding defect-affected adjudications and requires adjudication of genuine disagreements. C4 and the consumption gate prohibit selectively dropping decisions.",
+   "failing_test": "Fresh readers disagree PY/PN; their valid pre-A2 adjudication decides PY. Remove its manifest entry and declare it superseded without replacement -> REFUSED. Current role/time and consumption checks accept this omission."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:declared",
+   "claim": "The file allowlist does not protect the answering rule: all substantive contextual rules reside in amendable code. An editable entry claiming signed.by='Mahmood' and supplying matching blobs authorizes arbitrary semantic changes without binding them to the reviewed A2 patch or independently recorded approval.",
+   "guidance_basis": "Signed A2 authorizes the specified implementation repair. Preserving the policy Markdown while changing executable eligibility or verification rules does not preserve the pre-registration.",
+   "failing_test": "Change contextual.verify to accept unquoted PY; add matching from_blob/to_blob and copied Mahmood signature metadata -> declared must reject absent approval of that exact change. It currently returns True."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "A quote documenting missing information can support a wholly external assertion under the lexical checks. Two readers repeating it pass verification and replay. The acknowledged residual therefore includes accepting answers with no supporting context, not merely uncertainty about a reasonable contextual inference.",
+   "guidance_basis": "[Handbook 8.2.3](https://training.cochrane.org/handbook/current/chapter-08) permits reasonable judgements from trial circumstances. C3 excludes assertions drawn from outside the shown sources; matching words does not establish that connection.",
+   "failing_test": "Only source/quote: 'Randomisation details were omitted.' Q1.2=PY; rationale: 'The original manuscript confirms randomisation used concealed allocation.' -> NI. Current checks accept PY, including when both readers repeat it."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:parse_reply",
+   "claim": "After rejecting an object containing duplicate keys, scanning resumes inside that rejected object. An embedded answers object can then be accepted as the reply. Thus duplicate-key rejection does not actually make the containing reply unreadable, and malformed envelopes can supply decisions.",
+   "guidance_basis": "A2 explicitly treats duplicate-key objects as ambiguous and unreadable replies as missing readings. Selecting a nested fragment contradicts that fail-closed repair.",
+   "failing_test": "parse_reply('{\"answers\":{\"answers\":[]},\"answers\":[]}') -> None. Current result is {'answers': []}. Replacing the inner empty list with a valid contextual row similarly rescues that decision."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_contextual.py:_one_pass",
+   "claim": "The unreadable-reader fix checks only whether parsing returned an object. An answers list containing only malformed rows is filtered into an all-NI reading, so one real reader plus an adjudicator can still decide. The unreadable-reply test covers None but misses this path.",
+   "guidance_basis": "C4 and A2 distinguish an unavailable reading from a substantive NI response. A malformed payload does not establish a second reader's verified answer or a genuine disagreement.",
+   "failing_test": "Reader A gives valid PY; reader B returns {\"answers\":[42]}; adjudicator gives PY -> void the pass and do not adjudicate. Current code treats B as NI and accepts the adjudicated PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The lexical gates still reject justified contextual reasoning. Q4.3 excludes participant-assessor awareness inferred from self-reported outcomes and distinguishable interventions. The round-6 test also wrongly requires NI merely because a central-randomisation rationale says 'commonly'. Deferring rule changes outside A2 does not resolve these methods defects.",
+   "guidance_basis": "[RoB 2 guidance](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf), Q4.3 identifies participants as assessors for participant-reported outcomes; section 4.3.2 supports concealment from central randomisation. Neither inference depends on avoiding a particular adverb.",
+   "failing_test": "Q4.3 quote: 'Participants received surgery or physiotherapy and reported their own pain'; grounded awareness rationale -> allow PY, currently NI. The round-6 central web-based randomisation/'commonly concealed' fixture should likewise permit PY."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:apply",
+   "claim": "Closing a branch replaces its contextual answer with NA after the audit has retained only answer, decider, rationale and record IDs. Its quotes, source metadata and contextual basis disappear from the assessment, and the renderer omits the decision entirely. Held raw records do not satisfy the promised visible contextual history.",
+   "guidance_basis": "C5 requires contextual decisions to retain their quoted context and be disclosed. Making a question inapplicable can remove its scoring effect without erasing its contextual provenance.",
+   "failing_test": "In one pass, decide 3.1=PY and 3.3=PY with both readers' contexts -> 3.3 becomes NA, but its inactive contextual decision and both quotes remain available in the audit/display. Currently neither retains/shows those contexts."
+  }
+ ]
+}
