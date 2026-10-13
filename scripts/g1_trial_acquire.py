@@ -298,7 +298,14 @@ def pmc_copy(pmid):
             xml = ""
     perm = " ".join(re.findall(r"<permissions>.*?</permissions>", xml, re.S))
     stmt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", perm)).strip()[:300] or None
-    if re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", perm):
+    # D8: NonCommercial / NoDerivatives / ShareAlike are Creative Commons but never open for a prompt (D8 incident #2/#3,
+    # 12 Oct: this writer recorded 7 NC/ND copies as 'CC'); restricted wins over any CC BY wording
+    from reproducible_ai.record_licence import _RESTRICTED, names_creative_commons   # ONE shared rule (d8lic-cap-r1)
+    # CC_RESTRICTED only when the permissions NAME Creative Commons; a closed 'Non-commercial use only' copy is not
+    # Creative Commons at all (agy d8x-cap-r1-agy, the same rule as harness/copy_licence.classify_permissions)
+    if _RESTRICTED.search(perm) and names_creative_commons(perm):
+        lic = "CC_RESTRICTED"
+    elif re.search(r"creativecommons\.org/(?:licenses/by/|publicdomain/)", perm):
         lic = "CC"
     elif re.search(r"available for text mining", stmt or "", re.I) and re.search(r'article-type="[^"]*"', xml) and \
             re.search(r"\bmanuscript\b", xml, re.I):
