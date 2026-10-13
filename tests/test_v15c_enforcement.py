@@ -106,3 +106,51 @@ def test_plant_a_unanimous_panel_whose_numbers_are_in_the_span_is_not_refused_as
         assert d[key]["decision"] == "REFUSE", key            # the bound numbers are not the served ones / empty binds
     four = d[("probiotics-aad-prevention", "PMID 15740542")]["located"]
     assert four["ai"] == "four" and four["n1i"] == "119"
+
+
+def test_plant_r1_a_percentage_is_never_located_as_a_count():
+    """codex v15cenf-cap-r1 #1 (P0): locate matched by VALUE, so '4%' and '8%' passed as death counts. A count is located
+    only as one side of an 'X of N' pair (digits or a number word); no number followed by % is ever used."""
+    import v15c_decisions as g
+    span = "Deaths occurred in 4% (of 119) and 8% (of 120) of patients."
+    assert g.locate(span, {"ai": 4, "n1i": 119, "ci": 8, "n2i": 120}) is None
+    ok = g.locate("four of 119 (3.4%) vs. 22 of 127 (17.3%)", {"ai": 4, "n1i": 119, "ci": 22, "n2i": 127})
+    assert ok == {"ai": "four", "n1i": "119", "ci": "22", "n2i": "127"}
+    assert g.locate("RR 0.33, 95% CI 0.1-1.06", {"effect": 0.33, "ci_low": 0.1, "ci_high": 1.06}) is not None
+    assert g.locate("a 33% fall (RR 0.5, 0.2-0.9)", {"effect": 33}) is None
+
+
+def test_plant_r1_a_signed_keep_admits_only_the_signed_numbers():
+    """codex v15cenf-cap-r1 #2 (P0): KEEP / EPAR admitted by paper identity whatever the served numbers were; a
+    regenerated row with other numbers would have been 'signed'. The signed value is pinned and must equal the row's."""
+    import pytest
+    import v15c_decisions as g
+    row = {"slug": "noac-vs-warfarin-af-stroke", "id": "PMID 19717844", "outcome": "Stroke or systemic embolism",
+           "served": {"effect": 0.01, "ci_low": 0.005, "ci_high": 0.02}, "proposal": {}}
+    with pytest.raises(SystemExit):
+        g.decide("REFUSE", row)
+
+
+def test_plant_r1_an_edited_decisions_file_stops_the_build(tmp_path):
+    """codex v15cenf-cap-r1 #4 (P0): only the header was checked, so an edited row passed under the original header. The
+    file's sha256 is pinned in the gate (enforcement.DECISIONS_SHA256); the committed file must match it."""
+    import hashlib
+    import pytest
+    assert hashlib.sha256(open(DEC, "rb").read()).hexdigest() == enf.DECISIONS_SHA256
+    doc = json.load(open(DEC, encoding="utf-8"))
+    doc["rows"][0]["served"] = {"effect": 0.01}
+    p = tmp_path / "edited.json"
+    p.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    with pytest.raises(enf.EnforcementError):
+        enf.decisions(str(p), pinned=True)
+
+
+def test_plant_r1_an_admitted_row_is_revalidated_on_every_pass(tmp_path):
+    """codex v15cenf-cap-r1 #5 (P0): apply() marked an admitted row SIGNED_BINDING and a second pass skipped it, so a
+    number changed after admission stayed pooled. A SIGNED_BINDING row is checked again against its snapshot."""
+    t = _t("PMID 1")
+    kept, absent = _apply(tmp_path, [ADMIT], [t])
+    assert kept and kept[0]["endpoint_admissibility"] == "SIGNED_BINDING"
+    kept[0]["effect"] = 0.81
+    kept2, absent2 = _apply(tmp_path, [ADMIT], kept)
+    assert kept2 == [] and "not the numbers the signed decision admitted" in absent2[0]["reason"]

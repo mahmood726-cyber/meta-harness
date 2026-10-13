@@ -36,6 +36,10 @@ REFUSE_SIGNED = {("dpp4-mace-t2d", "26052984"): "TECOS: the stated composite add
 KEEP_SIGNED = {("noac-vs-warfarin-af-stroke", "19717844"): "RE-LY: kept (signed). The abstract states RR 0.66 (0.53 to "
                                                            "0.82) for dabigatran 150 mg v warfarin; agy bound it, codex "
                                                            "and the adjudicator refused on RR v HR"}
+# the numbers each signed keep signs, as the signed packet states them (v15c packet: RE-LY "RR 0.66 (0.53 to 0.82)";
+# ENGAGE "Served 0.87 (0.744-1.017) is the SIGNED V12-01 value")
+SIGNED_SNAPSHOT = {("noac-vs-warfarin-af-stroke", "19717844"): {"effect": 0.66, "ci_low": 0.53, "ci_high": 0.82},
+                   ("noac-vs-warfarin-af-stroke", "24251359"): {"effect": 0.87, "ci_low": 0.744, "ci_high": 1.017}}
 CONVERSION_SIGNED = {("colchicine-recurrent-pericarditis", "21873705")}
 EPAR_SIGNED = {("noac-vs-warfarin-af-stroke", "24251359"): "ENGAGE AF-TIMI 48: the signed V12-01 value (EMA EPAR "
                                                            "printed 95% CI); the abstract prints the 97.5% CI"}
@@ -89,16 +93,33 @@ def _readers_agree_on_served(row):
 def locate(span, served):
     """{served key: the token in the verbatim span that states it} -- digits (unicode minus folded) or an English number
     word (zero..twenty, recorded as the word); None when any served number is not stated in the span."""
+    # ROLE, not just value (codex v15cenf-cap-r1 #1: '4%' passed as a death count of 4). A count is located only as one
+    # side of an 'X of N' pair (events of denominator); an effect / CI bound only as a number NOT followed by '%'
     s = (span or "").replace("−", "-").replace("–", "-")
-    nums = [(float(m.group(0)), m.group(0)) for m in re.finditer(r"(?:(?<![\d.])-)?\d+(?:\.\d+)?", s)]
-    words = [(float(_WORDS[m.group(0).lower()]), m.group(0).lower())
-             for m in re.finditer(r"\b(" + "|".join(_WORDS) + r")\b", s, re.I)]
+    word = r"(?:\d+|" + "|".join(_WORDS) + r")"
+    pairs = [(m.group(1), m.group(2)) for m in re.finditer(r"\b(" + word + r")\s+of\s+(\d[\d,]*)\b", s, re.I)]
+
+    def val(tok):
+        tok = tok.lower().replace(",", "")
+        return float(_WORDS[tok]) if tok in _WORDS else float(tok)
+    effects = [(float(m.group(0)), m.group(0)) for m in re.finditer(r"(?:(?<![\d.])-)?\d+(?:\.\d+)?(?!\d|\s*%)", s)]
     out = {}
-    for k, v in served.items():
-        hit = next((tok for x, tok in nums + words if abs(x - float(v)) < 1e-9), None)
-        if hit is None:
-            return None
-        out[k] = hit
+    for ev, den in (("ai", "n1i"), ("ci", "n2i")):
+        if ev in served or den in served:
+            hit = next(((e, n) for e, n in pairs if (ev not in served or abs(val(e) - float(served[ev])) < 1e-9)
+                        and (den not in served or abs(val(n) - float(served[den])) < 1e-9)), None)
+            if hit is None:
+                return None
+            if ev in served:
+                out[ev] = hit[0].lower()
+            if den in served:
+                out[den] = hit[1]
+    for k in ("effect", "ci_low", "ci_high"):
+        if k in served:
+            hit = next((tok for x, tok in effects if abs(x - float(served[k])) < 1e-9), None)
+            if hit is None:
+                return None
+            out[k] = hit
     return out
 
 
@@ -111,10 +132,12 @@ def decide(cls, row):
             "source_sha256": row.get("source_sha256")}
     if key in REFUSE_SIGNED:
         return dict(base, decision="REFUSE", kind="refused_on_evidence", basis="signed refusal: " + REFUSE_SIGNED[key])
-    if key in KEEP_SIGNED:
-        return dict(base, decision="ADMIT", basis=KEEP_SIGNED[key])
-    if key in EPAR_SIGNED:
-        return dict(base, decision="ADMIT", basis=EPAR_SIGNED[key])
+    if key in KEEP_SIGNED or key in EPAR_SIGNED:
+        # a signed keep signs THESE numbers, not the paper (codex v15cenf-cap-r1 #2): the row must serve exactly the
+        # value the signed packet states, or generation stops -- never a signature for numbers nobody saw
+        if base["served"] != SIGNED_SNAPSHOT[key]:
+            raise SystemExit(f"{key}: served {base['served']} is not the signed {SIGNED_SNAPSHOT[key]} -- not admitted")
+        return dict(base, decision="ADMIT", basis=(KEEP_SIGNED.get(key) or EPAR_SIGNED[key]))
     if key in CONVERSION_SIGNED:
         if not _conversion_ok(row):
             raise SystemExit(f"{key}: the served value is not the exact conversion of the stated RRR -- not admitted")
