@@ -447,6 +447,15 @@ def test_every_committed_record_replays_or_is_a_recorded_error(offline):
     for p in recs:
         r = ms.load_record(p)
         assert p.stem == r["record_id"], f"{p.name}: file name is not the record's content id"
+        if r.get("d8_redaction"):
+            # a NAMED redaction (D8 incident #3, registry/d8_incidents.json): the prompt's bytes are withheld -- that is
+            # its ONLY problem -- its sha256 and length are kept, and the response still verifies against its own digest
+            assert ms.record_problems(r) == ["prompt: no stored bytes (the stored prompt is lost -- this record cannot "
+                                             "replay)"], p.name
+            assert r["prompt"]["b64"] is None and len(r["prompt"]["sha256"]) == 64, p.name
+            assert r["d8_redaction"].get("incident") and r["d8_redaction"].get("original_record_id"), p.name
+            ms._unblob(r["response"], "response")
+            continue
         assert ms.record_problems(r) == [], p.name
         if r["state"] == "RAN_OK":
             ms.replay(r)
