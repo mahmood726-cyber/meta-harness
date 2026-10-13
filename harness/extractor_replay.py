@@ -190,7 +190,9 @@ def read_cache_ae_clause(span: str, spec: dict[str, str]) -> dict[str, int]:
         # qualifier of how the percentages were computed or of whom
         bare = re.sub(r"\b\d+(?:[   ]|-)?(?:weeks?|months?|days?|years?|hours?)\b", " ", tail, flags=re.I)
         if (re.search(r"\d", bare)
-                or re.search(r"\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|"
+                # every English number word, the teens included (agy b1-cap-r2-agy: 'fourteen patients' passed)
+                or re.search(r"\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|"
+                             r"fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|"
                              r"fifty|sixty|seventy|eighty|ninety|hundred|thousand|dozen|half)\b", bare, re.I)
                 or re.search(r"Kaplan|Meier|estimat|cumulative|life[- ]?table|incidence|weight|adjust|standardi|"
                              r"model|imput|\bper (?:arm|group)\b|\beach (?:arm|group)\b|denominator|populat", bare, re.I)):

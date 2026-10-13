@@ -318,3 +318,14 @@ def test_plant_round2_a_malformed_row_of_the_trial_refuses():
     text = head + "1|NCT1|EG000|deaths|x|1|162|a|b\n2|NCT1|EG001|deaths|x|2|200|a\n"
     with pytest.raises(xr.ReadRefused):
         xr._aact_at_risk(text, "NCT1")
+
+
+def test_plant_round2_agy_teen_number_words_count_as_counts():
+    """agy b1-cap-r2-agy (P0): the number-word list skipped thirteen..nineteen, so 'fourteen patients withdrew' in the
+    interpretive sentence passed the no-count rule."""
+    from harness.extractor_replay import ReadRefused, read_cache_ae_clause
+    spec = {"reader": "ae_patient_percentages", "outcome": "Adverse events", "arm_t": "Drug", "arm_c": "placebo"}
+    head = "Adverse events were similar between Drug and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively)."
+    for w in ("thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"):
+        with pytest.raises(ReadRefused):
+            read_cache_ae_clause(head + f" These results indicate that {w} patients withdrew.", spec)
