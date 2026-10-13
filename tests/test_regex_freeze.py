@@ -1,5 +1,6 @@
 """V1 regex freeze (Mahmood, 13 Oct, ruling 6): the definition-sentence parsers change only with a logged failure class
 whose plant test exists, and the class records the file's new blob. Uncertain sentences abstain rather than parse harder."""
+import ast
 import json
 import os
 import subprocess
@@ -13,18 +14,42 @@ def _blob(path, root=ROOT):
                           check=True).stdout.strip()
 
 
-def freeze_problems(doc, blob=_blob, root=ROOT):
-    """[problem] -- empty when every frozen file's bytes are its last recorded blob and every class names a plant."""
+def _test_functions(path):
+    """Top-level function names DEFINED in a test file (parsed, so a name inside a string or comment is not one)."""
+    try:
+        tree = ast.parse(open(path, encoding="utf-8").read())
+    except (OSError, SyntaxError):
+        return set()
+    return {n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+
+
+def _baseline(doc, root):
+    """{file: blob} as git stored it at `frozen_at` -- the registry's own `frozen` map is a claim checked against this."""
+    out = {}
+    for f in doc["frozen"]:
+        r = subprocess.run(["git", "rev-parse", f"{doc.get('frozen_at')}:{f}"], cwd=root, capture_output=True, text=True)
+        out[f] = r.stdout.strip() if r.returncode == 0 else None
+    return out
+
+
+def freeze_problems(doc, blob=_blob, root=ROOT, baseline=None):
+    """[problem] -- empty when every frozen file's bytes are its last recorded blob, the recorded baseline is what git
+    held at `frozen_at`, and every class names a plant that is a real test function."""
     expected = dict(doc["frozen"])
     out = []
+    if baseline is None and root == ROOT:
+        baseline = _baseline(doc, root)
+    for f, b in (baseline or {}).items():
+        if doc["frozen"].get(f) != b:
+            out.append(f"{f}: the frozen baseline {str(doc['frozen'].get(f))[:12]} is not what git held at frozen_at "
+                       f"({str(b)[:12]}) -- the baseline is never rewritten; a change is a logged failure class")
     for i, c in enumerate(doc.get("failure_classes") or []):
         for k in ("id", "file", "found", "what", "plant", "new_blob"):
             if not c.get(k):
                 out.append(f"failure class {i} has no {k!r}")
         plant = str(c.get("plant") or "")
         tf, _, name = plant.partition("::")
-        if not (tf and name and os.path.exists(os.path.join(root, tf))
-                and f"def {name}(" in open(os.path.join(root, tf), encoding="utf-8").read()):
+        if not (tf and name and name in _test_functions(os.path.join(root, tf))):
             out.append(f"failure class {c.get('id')}: plant {plant!r} does not exist")
         if c.get("file") in expected:
             expected[c["file"]] = c.get("new_blob")
@@ -82,3 +107,22 @@ def test_an_ambiguous_definition_abstains_rather_than_picking_one():
              "ordinal": None, "timepoint": "36 months", "population": None}]
     res = te._resolve_reference("The primary endpoint occurred in 10% v 12%.", pool)
     assert res["selected"] is None and len(res["record"]["unresolved_alternatives"]) == 2
+
+
+def test_plant_a_plant_named_only_inside_a_string_is_refused(tmp_path):
+    """codex pr98-cap-r1 #1: 'def {name}(' as TEXT (a string literal, a comment) passed the plant check."""
+    tf = tmp_path / "tests" / "test_x.py"
+    tf.parent.mkdir()
+    tf.write_text('S = "def test_ghost(): pass"\n# def test_ghost2():\n', encoding="utf-8")
+    doc = {"frozen": {}, "failure_classes": [{"id": "X", "file": "f.py", "found": "d", "what": "w",
+                                              "plant": "tests/test_x.py::test_ghost", "new_blob": "a" * 40}]}
+    assert any("does not exist" in p for p in freeze_problems(doc, blob=lambda f: "a" * 40, root=str(tmp_path)))
+
+
+def test_plant_a_rewritten_baseline_is_refused():
+    """codex pr98-cap-r1 #2: rewriting `frozen` itself admitted a changed parser with no failure class. The baseline is
+    whatever the files were at `frozen_at`, read from git -- never the registry's own claim."""
+    doc = json.load(open(FREEZE, encoding="utf-8"))
+    doc["frozen"]["harness/components.py"] = doc["frozen"]["docs/harness/components.py"] = "f" * 40
+    probs = freeze_problems(doc, blob=lambda f: "f" * 40 if f.endswith("components.py") else _blob(f))
+    assert any("baseline" in p for p in probs), probs
