@@ -195,11 +195,14 @@ def test_long_spans_fail_closed_with_available_grammars(case):
                                           "arm_t": m[1], "arm_c": m[2]})
 
 
+PRE_B1 = "f694220a7e4ccfe961ae5f11c58bd4a2b170eb24"   # #84 head: the cache before B1 converted any row
+
+
 def test_cache_edits_preserve_all_original_values_and_quotes():
     __tracebackhide__ = True
     for slug in {case[0] for case in CASES[:2]}:
         rel = f"cache/{slug}/verified_arms.json"
-        before = json.loads(subprocess.check_output(["git", "show", f"HEAD:{rel}"], cwd=ROOT))
+        before = json.loads(subprocess.check_output(["git", "show", f"{PRE_B1}:{rel}"], cwd=ROOT))
         after = json.loads((ROOT / rel).read_text(encoding="utf-8"))
         for case in [c for c in CASES[:2] if c[0] == slug]:
             old = next(r for r in vi.entries(before[case[1]]) if r["outcome"] == case[2])
@@ -209,3 +212,29 @@ def test_cache_edits_preserve_all_original_values_and_quotes():
             new.pop("replay")
         if before != after:
             pytest.fail("non-metadata cache change FAIL", pytrace=False)
+
+
+def test_plant_an_interpretive_sentence_that_qualifies_the_percentages_is_refused():
+    """codex b1-cap-r1 #1 (P0): the optional second sentence was accepted whatever it said, so 'the percentages are
+    Kaplan-Meier estimates, with 200 patients in each arm' still yielded denominators derived from the percentages."""
+    from harness.extractor_replay import ReadRefused, read_cache_ae_clause
+    spec = {"reader": "ae_patient_percentages", "outcome": "Adverse events", "arm_t": "Drug", "arm_c": "placebo"}
+    head = "Adverse events were similar between Drug and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively)."
+    for tail in (" These results indicate that the percentages are Kaplan-Meier estimates, with 200 patients in each arm.",
+                 " These results indicate that cumulative incidence was estimated at 12 months.",
+                 " These results indicate that 200 patients were treated in each arm."):
+        with pytest.raises(ReadRefused):
+            read_cache_ae_clause(head + tail, spec)
+    # the real permitted quote's interpretation (a duration, no denominator, no estimate) still reads
+    real = head + (" These results indicate that 12 weeks of dapagliflozin treatment significantly improved "
+                   "patient-reported symptoms, physical limitations and exercise function and was well tolerated in "
+                   "chronic HFpEF.")
+    assert read_cache_ae_clause(real, spec)["ai"] == 44
+
+
+def test_plant_the_preservation_check_is_pinned_to_the_pre_b1_commit():
+    """codex b1-cap-r1 #2: the preservation check diffed HEAD against the working tree, so it went red the moment the
+    conversion was committed. It now reads the cache as it was before B1 (PRE_B1)."""
+    assert PRE_B1 == "f694220a7" or len(PRE_B1) == 40
+    out = subprocess.run(["git", "cat-file", "-t", PRE_B1], cwd=ROOT, capture_output=True, text=True)
+    assert out.stdout.strip() == "commit"

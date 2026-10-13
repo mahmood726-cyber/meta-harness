@@ -179,10 +179,16 @@ def read_cache_ae_clause(span: str, spec: dict[str, str]) -> dict[str, int]:
         rx = (r"Adverse events were similar between " + arm_t + r" and " + arm_c + r" \("
               + integer + r" \(" + pct + r"%\) versus " + integer + r" \(" + pct
               + r"%\) patients, respectively\)\.")
-        m = re.fullmatch(rx + r"(?: These results indicate that [^.\r\n]+\.)?", span)
+        m = re.fullmatch(rx + r"(?P<tail> These results indicate that [^.\r\n]+\.)?", span)
         if not m:
             raise ReadRefused("unsupported patient-percentage clause")
-        et, pt, ec, pc = m.groups()
+        # the interpretation may say nothing that changes what the percentages are or how many patients they are of:
+        # estimate wording, or a stated patient count, makes a derived denominator wrong (codex b1-cap-r1 #1, P0)
+        tail = m.group("tail") or ""
+        if re.search(r"Kaplan|Meier|estimat|cumulative|life[- ]?table|incidence|\bper arm\b|\beach arm\b|"
+                     r"\d[\d,]*\s+(?:patients|participants|subjects|people|individuals)\b", tail, re.I):
+            raise ReadRefused("the interpretive sentence qualifies the percentages or states a denominator")
+        et, pt, ec, pc = m.group(1), m.group(2), m.group(3), m.group(4)
         et, ec = int(et), int(ec)
         nt, nc = _unique_denominator(et, pt), _unique_denominator(ec, pc)
     else:
