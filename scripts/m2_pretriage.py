@@ -143,7 +143,9 @@ def _parse(rec):
     raw = ms.replay(rec).decode("utf-8").strip()
     # a reply may PRECEDE its JSON with prose ("I will check the directory contents.\n```json ..."): agy did, 13 Oct, and
     # the row read 'not a bind' although agy had bound the same numbers -- a parser failure scored as a model's answer.
-    # The first fenced block, else the first decodable object; never a guess past that.
+    # The first fenced block, else the FIRST object only: if that fails to decode the reply is UNPARSEABLE -- a later
+    # brace is NESTED inside it, and promoting a nested example turned a malformed refusal into a BIND (codex
+    # v15cpre-cap-r1 #1)
     cands = re.findall(r"```(?:json)?\s*\n(.*?)\n\s*```", raw, re.S) + [raw]
     for c in cands:
         try:
@@ -151,14 +153,13 @@ def _parse(rec):
         except ValueError:
             pass
         i = c.find("{")
-        while i >= 0:
+        if i >= 0:
             try:
                 obj, _ = json.JSONDecoder().raw_decode(c[i:])
                 if isinstance(obj, dict):
                     return obj
             except ValueError:
                 pass
-            i = c.find("{", i + 1)
     return {"decision": "UNPARSEABLE", "raw": raw[:500]}
 
 
@@ -267,8 +268,11 @@ def reclassify(row):
     """Rebuild one row's state from its STORED records with the CURRENT parser and bind check, against the same source
     bytes (sha-checked) -- no model call. 13 Oct: pretriage.json was written at d9367bded and the bind check changed in
     three review rounds after it; the committed states were never regenerated."""
-    if row.get("state") == "NEEDS_OPEN_SOURCE" or not row.get("codex_record"):
+    if row.get("state") == "NEEDS_OPEN_SOURCE":
         return dict(row)
+    if not row.get("codex_record") or not row.get("agy_record"):
+        # no stored reads to rebuild agreement from: the committed state is never carried over (codex v15cpre-cap-r1 #2)
+        return dict(row, state="UNRESOLVED", why="the stored reader records are missing; agreement cannot be rebuilt")
     src = open_source(row)
     if not src or src[2] != row.get("source_sha256"):
         return dict(row, state="UNRESOLVED", why="source bytes differ from the bytes the readers were shown")
