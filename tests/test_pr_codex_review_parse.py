@@ -4,6 +4,8 @@ never read as empty unless it says so in a key the runner knows; anything else i
 import os
 import sys
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
 import pr_codex_review as R  # noqa: E402
 
@@ -45,3 +47,26 @@ def test_a_later_runner_never_drops_an_earlier_runners_entry(tmp_path, monkeypat
     snapshot_b["b-run"] = {"runs": {"g1": 2}}
     R.write_entries(snapshot_b, "b-run")
     assert set(json.loads(p.read_text(encoding="utf-8"))) == {"old", "a-run", "b-run"}
+
+
+def test_plant_a_test_or_registry_only_pr_is_reviewed_when_asked(monkeypatch):
+    """#97 / #98 (13 Oct) changed only tests/ and registry/: the code-only filter gave 0 groups, so the PR had no
+    review at all. --dirs adds those prefixes (and .json / .md there); without it the default is unchanged."""
+    import pr_codex_review as r
+    names = "tests/test_regex_freeze.py\nregistry/regex_freeze.json\ndocs/harness/x.py\nharness/a.py\n"
+    monkeypatch.setattr(r, "_git", lambda *a: names if "--name-only" in a else f"+diff of {a[-1]}\n")
+    assert [f for _, g in r.groups("b", "h") for f, _ in g] == ["harness/a.py"]
+    got = [f for _, g in r.groups("b", "h", ("tests/", "registry/")) for f, _ in g]
+    assert got == ["tests/test_regex_freeze.py", "registry/regex_freeze.json", "harness/a.py"]
+
+
+def test_plant_an_agy_call_is_licence_checked_first(monkeypatch, tmp_path):
+    """mcl.agy_call has no licence guard (mcl.call has one at call time): the runner checks the exact prompt with the
+    shared D8 guard and refuses the call on any problem -- agy is never reached."""
+    import pr_codex_review as r
+    monkeypatch.setattr(r, "groups", lambda *a: [("g1", [("harness/a.py", "+x\n")])])
+    monkeypatch.setattr(r.record_licence, "record_problems", lambda rec, *a, **k: ["carries NC text"])
+    monkeypatch.setattr(r.mcl, "agy_call", lambda *a, **k: (_ for _ in ()).throw(AssertionError("agy was called")))
+    monkeypatch.setattr(r, "PROP", str(tmp_path / "p.json"))
+    with pytest.raises(SystemExit, match="D8: refusing an agy call"):
+        r.main(["--run", "--reader", "agy", "--name", "t", "--base", "b", "--head", "h"])

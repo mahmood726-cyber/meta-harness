@@ -8880,5 +8880,433 @@
     "verdict": null
    }
   ]
+ },
+ "m2pre-cap-r1": {
+  "base": "origin/main",
+  "head": "origin/m2/pretriage-2026-10-13",
+  "runs": {
+   "g1": {
+    "record_id": "mc-33bf26457c3cb879fd603c9e99bb181c",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/m2_pretriage.py"
+    ],
+    "prompt_sha256": "d39a0d7db024870cf365d46ab8c991cedcb5797afa575601a11fdba466c221c3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P1",
+    "claim": "Percentage estimates pass as death counts because validation checks only numeric token membership. Matching reader answers then qualify for AGREED_BIND.",
+    "failing_input": "check_bind({'decision': 'BIND', 'span': 'Kaplan-Meier mortality was 12% versus 8%.', 'numbers': {'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None, 'events_t': 12, 'n_t': None, 'events_c': 8, 'n_c': None}, 'reason_code': 'NONE', 'why': ''}, 'Kaplan-Meier mortality was 12% versus 8%.')",
+    "expected": "Reject: neither percentage is an observed death count.",
+    "actual": "(True, 'ok')",
+    "id": "m2pre-cap-r1:g1#1",
+    "record_id": "mc-33bf26457c3cb879fd603c9e99bb181c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P1",
+    "claim": "The gate accepts arm denominators drawn from different analysis populations.",
+    "failing_input": "s = 'Randomised: treatment 100, control 100. Safety population: treatment 90, control 80. Safety deaths: treatment 9, control 8.'; check_bind({'decision': 'BIND', 'span': s, 'numbers': {'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None, 'events_t': 9, 'n_t': 100, 'events_c': 8, 'n_c': 80}, 'reason_code': 'NONE', 'why': ''}, s)",
+    "expected": "Reject: treatment uses the randomised denominator while control uses the safety denominator; the stated safety counts require denominators 90 and 80.",
+    "actual": "(True, 'ok')",
+    "id": "m2pre-cap-r1:g1#2",
+    "record_id": "mc-33bf26457c3cb879fd603c9e99bb181c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P1",
+    "claim": "Numeric tokenization discards minus signs, allowing a sign-reversed effect to pass and rejecting the correctly signed effect.",
+    "failing_input": "s = 'Mean difference was -0.25.'; a = {'decision': 'BIND', 'span': s, 'numbers': {'effect': 0.25, 'ci_low': None, 'ci_high': None, 'measure': 'MD', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': ''}; print(check_bind(a, s)); a['numbers']['effect'] = -0.25; print(check_bind(a, s))",
+    "expected": "Reject positive 0.25; accept the source-stated negative -0.25.",
+    "actual": "First: (True, 'ok'). Second: (False, 'effect=-0.25 not in the span').",
+    "id": "m2pre-cap-r1:g1#3",
+    "record_id": "mc-33bf26457c3cb879fd603c9e99bb181c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind / triage",
+    "severity": "P1",
+    "claim": "A schema-valid BIND containing no numbers passes. Two such responses produce AGREED_BIND despite providing no outcome result.",
+    "failing_input": "s = 'This report describes recruitment only.'; check_bind({'decision': 'BIND', 'span': s, 'numbers': dict.fromkeys(['effect', 'ci_low', 'ci_high', 'measure', 'events_t', 'n_t', 'events_c', 'n_c']), 'reason_code': 'NONE', 'why': ''}, s)",
+    "expected": "Reject a BIND without numeric outcome evidence; identical empty readings must not establish a binding.",
+    "actual": "(True, 'ok'); triage's same_nums condition also succeeds when both readers return this answer.",
+    "id": "m2pre-cap-r1:g1#4",
+    "record_id": "mc-33bf26457c3cb879fd603c9e99bb181c",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "_git_json / unbound_rows",
+    "severity": "P2",
+    "claim": "Git failures silently become missing data or an empty review queue, making failed enumeration indistinguishable from having no unbound rows.",
+    "failing_input": "from unittest.mock import patch\nfrom subprocess import CompletedProcess\nimport scripts.m2_pretriage as m\nwith patch.object(m.subprocess, 'run', return_value=CompletedProcess([], 128, stdout='', stderr='fatal: Not a valid object name origin/main')):\n    print(m._git_json('docs/reviews/demo/review.json'))\n    print(m.unbound_rows())",
+    "expected": "Surface the Git failure and stop triage instead of reporting successful absence.",
+    "actual": "_git_json returns None; unbound_rows returns []. main consequently reports 'STATES: {} of 0 rows' without a failure.",
+    "id": "m2pre-cap-r1:g1#5",
+    "record_id": "mc-33bf26457c3cb879fd603c9e99bb181c",
+    "verdict": null
+   }
+  ]
+ },
+ "m2pre-cap-r1-agy": {
+  "base": "origin/main",
+  "head": "origin/m2/pretriage-2026-10-13",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4f94e7b9c09c0f2752263928f095d15d",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/m2_pretriage.py"
+    ],
+    "prompt_sha256": "f7604b1e46aa113d50f8e59e8de1494cf3b38d52a3589c6ef68bb27921fd9294"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P1",
+    "claim": "check_bind extracts tokens using re.findall(r\"\\d[\\d,]*(?:\\.\\d+)?\", span.replace(\"·\", \".\")), which only matches leading digits and drops negative signs. When a trial result reports a negative effect estimate or confidence limit (such as mean differences or risk differences), tokens contains only positive numbers, causing check_bind to falsely reject valid BIND proposals.",
+    "failing_input": "ans = {'decision': 'BIND', 'span': 'mean difference -0.5 (95% CI -1.2 to 0.2)', 'numbers': {'effect': -0.5, 'ci_low': -1.2, 'ci_high': 0.2, 'measure': 'MD', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': 'Reported MD'}; text = 'The trial showed a mean difference -0.5 (95% CI -1.2 to 0.2).'; check_bind(ans, text)",
+    "expected_output": "(True, 'ok')",
+    "actual_output": "(False, 'effect=-0.5 not in the span')",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r1-agy:g1#1",
+    "record_id": "mc-4f94e7b9c09c0f2752263928f095d15d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P1",
+    "claim": "The numeric validation gate in check_bind can only pass when all numbers in a BIND proposal are null. The loop iterates over items in numbers and only checks values satisfying isinstance(v, (int, float)). When all numbers are None, the loop never validates anything and returns (True, 'ok'), allowing narrative text without any quantitative outcome numbers to bind to a meta-analysis row.",
+    "failing_input": "ans = {'decision': 'BIND', 'span': 'Overall survival was not significantly different between arms.', 'numbers': {'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None, 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': 'Outcome mentioned'}; text = 'Overall survival was not significantly different between arms.'; check_bind(ans, text)",
+    "expected_output": "(False, 'no numbers provided in bind proposal')",
+    "actual_output": "(True, 'ok')",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r1-agy:g1#2",
+    "record_id": "mc-4f94e7b9c09c0f2752263928f095d15d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P1",
+    "claim": "The token extraction pattern r\"\\d[\\d,]*(?:\\.\\d+)?\" requires a leading digit and fails on decimal fractions written without a leading zero (e.g., .75). The regex matches only the digits after the period as an integer token (75.0), causing check_bind to reject the valid number 0.75.",
+    "failing_input": "ans = {'decision': 'BIND', 'span': 'hazard ratio was .75 (95% CI .60 to .95)', 'numbers': {'effect': 0.75, 'ci_low': 0.60, 'ci_high': 0.95, 'measure': 'HR', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': 'Reported HR'}; text = 'hazard ratio was .75 (95% CI .60 to .95)'; check_bind(ans, text)",
+    "expected_output": "(True, 'ok')",
+    "actual_output": "(False, 'effect=0.75 not in the span')",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r1-agy:g1#3",
+    "record_id": "mc-4f94e7b9c09c0f2752263928f095d15d",
+    "verdict": null
+   }
+  ]
+ },
+ "m2pre-cap-r2": {
+  "base": "origin/main",
+  "head": "origin/m2/pretriage-2026-10-13",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6555cdfec55087209ea90886383f9388",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/m2_pretriage.py"
+    ],
+    "prompt_sha256": "458d56c42d21c93e83de6dd6aa47a9c69b40f111966ac6c9a4baf0e31496431f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "Percentages and Kaplan–Meier estimates are accepted as death counts when percentages use the word 'percent'. Only the '%' suffix is excluded.",
+    "failing_input": "from scripts.m2_pretriage import check_bind\ns = 'Kaplan-Meier mortality was 12 percent in treatment and 8 percent in control; 100 patients were randomized per arm.'\na = {'decision': 'BIND', 'span': s, 'numbers': dict(effect=None, ci_low=None, ci_high=None, measure=None, events_t=12, n_t=100, events_c=8, n_c=100), 'reason_code': 'NONE', 'why': ''}\ncheck_bind(a, s)",
+    "expected": "Reject: the source reports estimated percentages, not 12 and 8 observed deaths.",
+    "actual": "Returns (True, 'ok'). Identical answers from both readers are promoted to AGREED_BIND with these unsupported counts.",
+    "id": "m2pre-cap-r2:g1#1",
+    "record_id": "mc-6555cdfec55087209ea90886383f9388",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "Numeric presence does not establish denominator population. Safety-population deaths can be paired with randomized denominators and accepted.",
+    "failing_input": "from scripts.m2_pretriage import check_bind\ns = 'Treatment: 100 randomized, 90 safety participants, 9 deaths in the safety population. Control: 100 randomized, 80 safety participants, 8 deaths in the safety population.'\na = {'decision': 'BIND', 'span': s, 'numbers': dict(effect=None, ci_low=None, ci_high=None, measure=None, events_t=9, n_t=100, events_c=8, n_c=100), 'reason_code': 'NONE', 'why': ''}\ncheck_bind(a, s)",
+    "expected": "Reject the mixed populations. The reported safety results are 9/90 and 8/80; randomized-population death counts are not established.",
+    "actual": "Returns (True, 'ok') for 9/100 and 8/100.",
+    "id": "m2pre-cap-r2:g1#2",
+    "record_id": "mc-6555cdfec55087209ea90886383f9388",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "The numeric regex splits scientific notation into separate numbers, allowing a numeric fragment to validate a count the source never states.",
+    "failing_input": "from scripts.m2_pretriage import check_bind\ns = 'Treatment deaths: 1e2 of 500; control deaths: 80 of 500.'\na = {'decision': 'BIND', 'span': s, 'numbers': dict(effect=None, ci_low=None, ci_high=None, measure=None, events_t=1, n_t=500, events_c=80, n_c=500), 'reason_code': 'NONE', 'why': ''}\ncheck_bind(a, s)",
+    "expected": "Reject events_t=1: '1e2' is a single numeric expression, not a statement of one death.",
+    "actual": "Returns (True, 'ok'); the regex tokenizes '1e2' as separate values 1 and 2.",
+    "id": "m2pre-cap-r2:g1#3",
+    "record_id": "mc-6555cdfec55087209ea90886383f9388",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind / triage",
+    "severity": "P1",
+    "claim": "A denominator-only answer passes the binding gate even when the source explicitly says outcome results are unavailable. Reader agreement then classifies it as AGREED_BIND.",
+    "failing_input": "from scripts.m2_pretriage import check_bind\ns = 'We randomized 100 patients per arm. Mortality results are not yet available.'\na = {'decision': 'BIND', 'span': s, 'numbers': dict(effect=None, ci_low=None, ci_high=None, measure=None, events_t=None, n_t=100, events_c=None, n_c=100), 'reason_code': 'NONE', 'why': ''}\ncheck_bind(a, s)\n# In triage, let both parsed reader responses equal a.",
+    "expected": "Reject the bind: neither an outcome effect nor event counts are reported. Matching denominators alone cannot establish outcome admissibility.",
+    "actual": "check_bind returns (True, 'ok'). With both responses equal to a, triage returns state='AGREED_BIND'.",
+    "id": "m2pre-cap-r2:g1#4",
+    "record_id": "mc-6555cdfec55087209ea90886383f9388",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "unbound_rows",
+    "severity": "P2",
+    "claim": "Every nonzero git cat-file exit is treated as an absent review file. Repository/object-read failures silently remove reviews from the audit, including returning an apparently successful empty result.",
+    "failing_input": "import subprocess\nfrom unittest.mock import patch\nfrom scripts import m2_pretriage as m\nresponses = [\n    subprocess.CompletedProcess(args=[], returncode=0, stdout='docs/reviews/demo\\n', stderr=''),\n    subprocess.CompletedProcess(args=[], returncode=128, stdout='', stderr='fatal: unable to read tree object')\n]\nwith patch.object(m.subprocess, 'run', side_effect=responses):\n    result = m.unbound_rows()\nprint(result)",
+    "expected": "Raise an error for the failed repository read; an unreadable review must not be classified as absent.",
+    "actual": "Returns and prints []. The cat-file failure is discarded by continue.",
+    "id": "m2pre-cap-r2:g1#5",
+    "record_id": "mc-6555cdfec55087209ea90886383f9388",
+    "verdict": null
+   }
+  ]
+ },
+ "m2pre-cap-r2-agy": {
+  "base": "origin/main",
+  "head": "origin/m2/pretriage-2026-10-13",
+  "runs": {
+   "g1": {
+    "record_id": "mc-4d6696c6f3e2ad4838eddafa421d5eeb",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/m2_pretriage.py"
+    ],
+    "prompt_sha256": "f351efdc6d32ab6201c11a978b37ef899fddd3a249fc4af6078622295a6d55ed"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "In percentage ranges (e.g. '12-15%'), the first number is tokenized with pct=False because '%' only directly follows the second number. This allows check_bind to accept a percentage as an event count or denominator (events_t, events_c, n_t, n_c), directly violating the standard that a percentage is never a count.",
+    "failing_input": "ans = {'decision': 'BIND', 'span': 'mortality was 12-15%', 'numbers': {'events_t': 12, 'n_t': None, 'events_c': None, 'n_c': None, 'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None}, 'reason_code': 'NONE', 'why': ''}\ntext = 'mortality was 12-15%'\ncheck_bind(ans, text)",
+    "expected_output": "(False, 'events_t=12 not in the span (only as a percentage)')",
+    "actual_output": "(True, 'ok')",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r2-agy:g1#1",
+    "record_id": "mc-4d6696c6f3e2ad4838eddafa421d5eeb",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "The regex greedy tokenization (\\d[\\d,]*(?:\\.\\d+)?|\\.\\d+) followed by replace(',', '') assumes all commas are thousands separators. For unspaced comma-separated values (e.g. 'grades 1,2' or 'arms 1,2'), it merges the distinct tokens into a phantom composite number (12.0) not present in the source text, accepting hallucinated counts.",
+    "failing_input": "ans = {'decision': 'BIND', 'span': 'grades 1,2 adverse events', 'numbers': {'events_t': 12, 'n_t': None, 'events_c': None, 'n_c': None, 'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None}, 'reason_code': 'NONE', 'why': ''}\ntext = 'grades 1,2 adverse events'\ncheck_bind(ans, text)",
+    "expected_output": "(False, 'events_t=12 not in the span')",
+    "actual_output": "(True, 'ok')",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r2-agy:g1#2",
+    "record_id": "mc-4d6696c6f3e2ad4838eddafa421d5eeb",
+    "verdict": null
+   }
+  ]
+ },
+ "m2pre-cap-r3": {
+  "base": "origin/main",
+  "head": "origin/m2/pretriage-2026-10-13",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ade92df685e1f75072f406e9d5211fe5",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/m2_pretriage.py"
+    ],
+    "prompt_sha256": "4fb793ac1213e14c62f5a08453280507e1954436226c8a3cd36d87cd850acb76"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "Percentage headings and Kaplan–Meier probabilities are accepted as event counts. Percentage detection only examines characters immediately after each number; count fields receive no additional clinical-type validation.",
+    "failing_input": "for text, t, c in [('Deaths (%): treatment 12; control 15.', 12, 15), ('Kaplan-Meier mortality probability: treatment 0.12; control 0.15.', 0.12, 0.15)]:\n    ans = {'decision': 'BIND', 'span': text, 'numbers': {'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None, 'events_t': t, 'n_t': None, 'events_c': c, 'n_c': None}, 'reason_code': 'NONE', 'why': ''}\n    print(check_bind(ans, text))",
+    "expected": "Both bindings rejected: neither source states death counts.",
+    "actual": "Both calls return (True, 'ok'). Identical reader answers can therefore become AGREED_BIND proposals containing these false counts.",
+    "id": "m2pre-cap-r3:g1#1",
+    "record_id": "mc-ade92df685e1f75072f406e9d5211fe5",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "Denominators from different analysis populations can be combined because numbers are checked as an unordered collection without retaining their denominator kinds.",
+    "failing_input": "text = 'Treatment: 100 randomised, safety population 90, with 3 deaths. Control: 100 randomised, safety population 80, with 5 deaths.'\nans = {'decision': 'BIND', 'span': text, 'numbers': {'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None, 'events_t': 3, 'n_t': 90, 'events_c': 5, 'n_c': 100}, 'reason_code': 'NONE', 'why': ''}\ncheck_bind(ans, text)",
+    "expected": "Reject: treatment uses the safety denominator while control uses the randomised denominator. The stated safety comparison is 3/90 versus 5/80.",
+    "actual": "(True, 'ok'), accepting 3/90 versus 5/100.",
+    "id": "m2pre-cap-r3:g1#2",
+    "record_id": "mc-ade92df685e1f75072f406e9d5211fe5",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "A signed scientific exponent is accepted as a standalone result. The two-character lookbehind slice cannot contain the digit, exponent marker, and sign required by the scientific-notation exclusion.",
+    "failing_input": "text = 'Hazard ratio 1e-2.'\nans = {'decision': 'BIND', 'span': text, 'numbers': {'effect': 2, 'ci_low': None, 'ci_high': None, 'measure': 'HR', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': ''}\ncheck_bind(ans, text)",
+    "expected": "Reject effect=2: the source states 1e-2, not 2.",
+    "actual": "(True, 'ok'). The tokenizer discards the mantissa but retains the exponent as the token 2.",
+    "id": "m2pre-cap-r3:g1#3",
+    "record_id": "mc-ade92df685e1f75072f406e9d5211fe5",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "A decimal containing a thousands separator is split into two unrelated numeric tokens, allowing results that the source never states.",
+    "failing_input": "text = 'Mean difference 1,234.5.'\nfor value in (1234, 0.5):\n    ans = {'decision': 'BIND', 'span': text, 'numbers': {'effect': value, 'ci_low': None, 'ci_high': None, 'measure': 'MD', 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': ''}\n    print(check_bind(ans, text))",
+    "expected": "Reject both values: the sole stated estimate is 1234.5.",
+    "actual": "Both calls return (True, 'ok'). The tokenizer produces 1234 and 0.5 from the single numeric literal.",
+    "id": "m2pre-cap-r3:g1#4",
+    "record_id": "mc-ade92df685e1f75072f406e9d5211fe5",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "_git_json / unbound_rows",
+    "severity": "P2",
+    "claim": "Optional topic reads turn every Git failure into an absent topic. unbound_rows then substitutes {}, silently removing target timepoint, population, and keywords when those fields depend on the topic.",
+    "failing_input": "from unittest.mock import patch\nfrom subprocess import CompletedProcess\nimport scripts.m2_pretriage as m\nfailure = CompletedProcess(args=['git'], returncode=128, stdout=b'', stderr=b'fatal: unable to read object')\nwith patch.object(m.subprocess, 'run', return_value=failure):\n    print(m._git_json('topics/demo.json'))",
+    "expected": "Raise a read error. Only a confirmed missing optional file should be treated as absent.",
+    "actual": "Returns None. The topic read in unbound_rows converts this to {} and continues.",
+    "id": "m2pre-cap-r3:g1#5",
+    "record_id": "mc-ade92df685e1f75072f406e9d5211fe5",
+    "verdict": null
+   }
+  ]
+ },
+ "m2pre-cap-r3-agy": {
+  "base": "origin/main",
+  "head": "origin/m2/pretriage-2026-10-13",
+  "runs": {
+   "g1": {
+    "record_id": "mc-85847eafe73d92fa8e287845fef65efc",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "scripts/m2_pretriage.py"
+    ],
+    "prompt_sha256": "4ddb23cfddbc0598bedbc480694792475db7dfea6320e891fe7b8b6cc872b320"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "A percentage in a '12 to 15%' range or '12-15 percent' is never accepted as an event count or denominator",
+    "failing_input": "ans = {'decision': 'BIND', 'span': 'Mortality was 12 to 15% in the intervention arm', 'numbers': {'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None, 'events_t': 12, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': 'test'}; text = 'TITLE: A\\nABSTRACT: Mortality was 12 to 15% in the intervention arm'; check_bind(ans, text)",
+    "expected_output": "(False, 'events_t=12 not in the span (only as a percentage)')",
+    "actual_output": "(True, 'ok')",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r3-agy:g1#1",
+    "record_id": "mc-85847eafe73d92fa8e287845fef65efc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "A Kaplan-Meier estimate or survival probability is never accepted as an event count",
+    "failing_input": "ans = {'decision': 'BIND', 'span': 'The 1-year cumulative incidence of death by Kaplan-Meier analysis was 0.15', 'numbers': {'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None, 'events_t': 0.15, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': 'test'}; text = 'TITLE: A\\nABSTRACT: The 1-year cumulative incidence of death by Kaplan-Meier analysis was 0.15'; check_bind(ans, text)",
+    "expected_output": "(False, 'events_t=0.15 not an integer count')",
+    "actual_output": "(True, 'ok')",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r3-agy:g1#2",
+    "record_id": "mc-85847eafe73d92fa8e287845fef65efc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P0",
+    "claim": "Scientific notation with a signed exponent ('1e-5') is never split into numbers",
+    "failing_input": "ans = {'decision': 'BIND', 'span': 'Difference was significant at p < 1e-5 across all cohorts', 'numbers': {'effect': None, 'ci_low': None, 'ci_high': None, 'measure': None, 'events_t': 5, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': 'test'}; text = 'TITLE: A\\nABSTRACT: Difference was significant at p < 1e-5 across all cohorts'; check_bind(ans, text)",
+    "expected_output": "(False, 'events_t=5 not in the span')",
+    "actual_output": "(True, 'ok')",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r3-agy:g1#3",
+    "record_id": "mc-85847eafe73d92fa8e287845fef65efc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "check_bind",
+    "severity": "P1",
+    "claim": "Numbers with thousands commas and decimals (such as 1,234.5) are preserved and matched rather than split into two numbers",
+    "failing_input": "ans = {'decision': 'BIND', 'span': 'The mean total dose administered was 1,234.5 mg', 'numbers': {'effect': 1234.5, 'ci_low': None, 'ci_high': None, 'measure': None, 'events_t': None, 'n_t': None, 'events_c': None, 'n_c': None}, 'reason_code': 'NONE', 'why': 'test'}; text = 'TITLE: A\\nABSTRACT: The mean total dose administered was 1,234.5 mg'; check_bind(ans, text)",
+    "expected_output": "(True, 'ok')",
+    "actual_output": "(False, 'effect=1234.5 not in the span')",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r3-agy:g1#4",
+    "record_id": "mc-85847eafe73d92fa8e287845fef65efc",
+    "verdict": null
+   },
+   {
+    "file": "scripts/m2_pretriage.py",
+    "function": "_main_files",
+    "severity": "P2",
+    "claim": "Non-directory files under docs/reviews are skipped rather than crashing unbound_rows with a git ls-tree RuntimeError",
+    "failing_input": "_main_files('docs/reviews/index.html')",
+    "expected_output": "set() (or skipping non-tree entries without raising)",
+    "actual_output": "RuntimeError: git ls-tree origin/main:docs/reviews/index.html failed: 'fatal: not a tree object'",
+    "expected": "-",
+    "actual": "-",
+    "id": "m2pre-cap-r3-agy:g1#5",
+    "record_id": "mc-85847eafe73d92fa8e287845fef65efc",
+    "verdict": null
+   }
+  ]
  }
 }

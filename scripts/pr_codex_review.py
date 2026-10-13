@@ -11,6 +11,7 @@ Writes registry/model_proposals/pr_codex_review.json ({name: {runs, findings}}).
 """
 from __future__ import annotations
 
+import base64
 import concurrent.futures as cf
 import hashlib
 import io
@@ -23,6 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from reproducible_ai import model_call_live as mcl  # noqa: E402
 from reproducible_ai import model_source as ms  # noqa: E402
+from reproducible_ai import record_licence  # noqa: E402
 import g1_codex_review as base_review  # noqa: E402
 
 PROP = os.path.join(ROOT, "registry", "model_proposals", "pr_codex_review.json")
@@ -35,10 +37,17 @@ def _git(*a):
     return subprocess.run(["git", *a], cwd=ROOT, capture_output=True, check=True, stdin=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
 
 
-def groups(base, head):
-    """[(group name, [(file, diff text)])]: every changed code file's diff, packed into groups of <= GROUP_CHARS."""
-    files = [f for f in _git("diff", "--name-only", f"{base}...{head}").split()
-             if f.endswith(".py") and f.startswith(CODE_DIRS) and not f.startswith("docs/")]
+def groups(base, head, extra_dirs=()):
+    """[(group name, [(file, diff text)])]: every changed code file's diff, packed into groups of <= GROUP_CHARS.
+    `extra_dirs` (--dirs tests/,registry/m3/) adds those prefixes, and there .py / .json / .md files are read too: a PR
+    whose change is a test, a registry record or a protocol text is reviewed on request (#97, #98, 13 Oct)."""
+    def wanted(f):
+        if f.startswith("docs/"):
+            return False
+        if f.endswith(".py") and f.startswith(CODE_DIRS):
+            return True
+        return bool(extra_dirs) and f.startswith(tuple(extra_dirs)) and f.endswith((".py", ".json", ".md"))
+    files = [f for f in _git("diff", "--name-only", f"{base}...{head}").split() if wanted(f)]
     out, cur, size = [], [], 0
     for f in files:
         d = _git("diff", f"{base}...{head}", "--", f)
@@ -109,7 +118,8 @@ def main(argv):
         reader = argv[argv.index("--reader") + 1] if "--reader" in argv else "codex"
         if reader not in ("codex", "agy"):
             raise SystemExit(f"unknown reader {reader}")
-        gs = groups(base, head)
+        extra = tuple(d for d in (argv[argv.index("--dirs") + 1].split(",") if "--dirs" in argv else []) if d)
+        gs = groups(base, head, extra)
         entry = data.setdefault(name, {"base": base, "head": head, "runs": {}, "verdicts": {}})
         entry.update(base=base, head=head)
 
@@ -121,6 +131,12 @@ def main(argv):
             digests = [{"ref": f"git diff {base[:12]}...{head[:12]} -- {f}",
                         "sha256": hashlib.sha256(d.encode("utf-8")).hexdigest(), "what": "reviewed diff"} for f, d in files]
             if reader == "agy":
+                # mcl.agy_call has no licence guard of its own (mcl.call applies one at call time): the shared D8 check
+                # runs on the exact prompt first, and a problem refuses the call
+                probs = record_licence.record_problems({"record_id": f"{name}:{gname}", "input_digests": digests,
+                                                        "prompt": {"b64": base64.b64encode(p).decode("ascii")}})
+                if probs:
+                    raise SystemExit("D8: refusing an agy call -- " + "; ".join(probs))
                 rec = mcl.agy_call(p, schema=base_review.SCHEMA, caller=caller, input_digests=digests, timeout_s=1800)
             else:
                 rec = mcl.call(p, schema=base_review.SCHEMA, model=base_review.MODEL, effort=base_review.EFFORT,
