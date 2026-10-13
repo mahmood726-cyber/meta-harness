@@ -7,6 +7,9 @@ import subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FREEZE = os.path.join(ROOT, "registry", "regex_freeze.json")
+# The baseline commit is pinned IN THE GATE, not only in the registry it checks: re-anchoring the freeze is then an edit
+# to this file, visible in review (codex pr98-cap-r2 #1; known limit: any in-repo gate can itself be edited).
+FROZEN_AT = "c715a5d59e5d2f246042776b1f16df0fcd34a3af"
 
 
 def _blob(path, root=ROOT):
@@ -20,7 +23,9 @@ def _test_functions(path):
         tree = ast.parse(open(path, encoding="utf-8").read())
     except (OSError, SyntaxError):
         return set()
-    return {n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    # a COLLECTED test only: a helper (`_blob`) is never run, so it can never fail first (codex pr98-cap-r2 #2)
+    return {n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and n.name.startswith("test")}
 
 
 def _baseline(doc, root):
@@ -37,6 +42,9 @@ def freeze_problems(doc, blob=_blob, root=ROOT, baseline=None):
     held at `frozen_at`, and every class names a plant that is a real test function."""
     expected = dict(doc["frozen"])
     out = []
+    if root == ROOT and doc.get("frozen_at") != FROZEN_AT:
+        out.append(f"frozen_at {doc.get('frozen_at')!r} != the gate's pinned {FROZEN_AT[:12]}: the baseline is never "
+                   "re-anchored; a parser change is a logged failure class")
     if baseline is None and root == ROOT:
         baseline = _baseline(doc, root)
     for f, b in (baseline or {}).items():
@@ -126,3 +134,20 @@ def test_plant_a_rewritten_baseline_is_refused():
     doc["frozen"]["harness/components.py"] = doc["frozen"]["docs/harness/components.py"] = "f" * 40
     probs = freeze_problems(doc, blob=lambda f: "f" * 40 if f.endswith("components.py") else _blob(f))
     assert any("baseline" in p for p in probs), probs
+
+
+def test_plant_a_helper_is_not_a_plant():
+    """codex pr98-cap-r2 #2: `_blob` (a helper, never collected) was accepted as a plant."""
+    doc = json.load(open(FREEZE, encoding="utf-8"))
+    doc["failure_classes"] = [{"id": "X", "file": "harness/components.py", "found": "d", "what": "w",
+                               "plant": "tests/test_regex_freeze.py::_blob", "new_blob": "f" * 40}]
+    probs = freeze_problems(doc, blob=lambda f: "f" * 40 if f == "harness/components.py" else _blob(f))
+    assert any("does not exist" in p for p in probs), probs
+
+
+def test_plant_moving_frozen_at_with_the_hashes_is_refused():
+    """codex pr98-cap-r2 #1: rewriting frozen_at AND frozen together re-anchored the baseline. frozen_at is pinned HERE,
+    in the gate: moving it is an edit to this file, visible in review (known limit: any in-repo gate can be edited)."""
+    doc = json.load(open(FREEZE, encoding="utf-8"))
+    doc["frozen_at"] = "HEAD"
+    assert any("frozen_at" in p for p in freeze_problems(doc))
