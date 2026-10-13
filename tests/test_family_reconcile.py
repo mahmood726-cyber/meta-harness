@@ -39,14 +39,30 @@ def test_a_registration_record_counts_as_the_familys_own_record():
     assert tf.reconcile_family_eligibility(review, nodes) == []
 
 
+PRE_RECONCILE = "c715a5d59e5d2f246042776b1f16df0fcd34a3af"   # main before #81 landed: the noac page served 12
+
+
 def test_PLANT_noac_served_review_reproduces_12_to_7():
-    """Review 13 on the served noac page: 12 structurally eligible families, 7 with an included record."""
-    r = json.load(open(os.path.join(ROOT, "docs", "reviews", "noac-vs-warfarin-af-stroke", "review.json"), encoding="utf-8"))
+    """Review 13 on the served noac page: 12 structurally eligible families, 7 with an included record.
+    The control reads the page AS SERVED BEFORE THIS GATE (pinned by commit): read live, it retired itself the moment
+    #81 landed and the served page became 7 (V15-B integration, 13 Oct) -- a control must be pinned, not live."""
+    import subprocess
+    out = subprocess.run(["git", "show", f"{PRE_RECONCILE}:docs/reviews/noac-vs-warfarin-af-stroke/review.json"],
+                         cwd=ROOT, capture_output=True, check=True).stdout
+    r = json.loads(out)
     nodes = copy.deepcopy(r["trial_families"])
     before = sum((f.get("eligibility") or {}).get("state") == "ELIGIBLE" for f in nodes)
     demoted = tf.reconcile_family_eligibility(r, nodes)
     after = sum((f.get("eligibility") or {}).get("state") == "ELIGIBLE" for f in nodes)
     assert (before, after, len(demoted)) == (12, 7, 5)
+
+
+def test_the_served_noac_page_is_reconciled():
+    """The landed state: the served page carries the reconciled count, and reconciling it again changes nothing."""
+    r = json.load(open(os.path.join(ROOT, "docs", "reviews", "noac-vs-warfarin-af-stroke", "review.json"), encoding="utf-8"))
+    nodes = copy.deepcopy(r["trial_families"])
+    assert sum((f.get("eligibility") or {}).get("state") == "ELIGIBLE" for f in nodes) == 7
+    assert tf.reconcile_family_eligibility(r, nodes) == []
 
 
 def test_PLANT_no_record_level_screen_means_abstain_not_demote():
