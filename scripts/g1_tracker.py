@@ -1353,18 +1353,31 @@ def acquired_rows(slug):
     """ADMITTED rows of the acquisition lane (registry/g1_acquired/<slug>.json; scripts/g1_trial_acquire.py on
     g1/finish-line), indexed by trial label AND by registered identity ('PMID <n>', '<NCT>'): a replaced comparator
     renames its units, the trial's identity does not change."""
-    p = os.path.join(ROOT, "registry", "g1_acquired", f"{slug}.json")
-    if not os.path.exists(p):
-        return {}
+    # two writers, two files: the acquisition lane (scripts/g1_trial_acquire.py rewrites its own file whole on replay) and
+    # the registry fill (scripts/g1_registry_fill.py: AACT posted results, two independent readers, 13 Oct). Kept apart
+    # so one writer's replay never erases the other's admitted rows.
+    paths = [os.path.join(ROOT, "registry", d, f"{slug}.json") for d in ("g1_acquired", "g1_acquired_registry")]
     by = {}
-    for r in _j(p).get("rows") or []:
-        if r.get("verdict") != "ADMITTED" or not r.get("admitted"):
+
+    def same(a, b):
+        # the SAME admission arriving from both writers is one row, not an ambiguity: the same TRIAL (same label, or a
+        # shared registration) admitted from the same named source record with the same value. Two different trials
+        # sharing a report PMID stay ambiguous (test_a_pmid_two_admitted_rows_share_resolves_to_neither).
+        sa, sb = (a.get("admitted") or {}), (b.get("admitted") or {})
+        same_trial = a.get("label") == b.get("label") or bool(set(a.get("ncts") or []) & set(b.get("ncts") or []))
+        return bool(sa.get("source")) and sa.get("source") == sb.get("source") and sa.get("value") == sb.get("value") \
+            and same_trial
+    for p in paths:
+        if not os.path.exists(p):
             continue
-        for k in [r.get("label")] + ([f"PMID {r['pmid']}"] if r.get("pmid") else []) + list(r.get("ncts") or []):
-            if k:
-                by.setdefault(k, [])
-                if not any(x is r for x in by[k]):
-                    by[k].append(r)
+        for r in _j(p).get("rows") or []:
+            if r.get("verdict") != "ADMITTED" or not r.get("admitted"):
+                continue
+            for k in [r.get("label")] + ([f"PMID {r['pmid']}"] if r.get("pmid") else []) + list(r.get("ncts") or []):
+                if k:
+                    by.setdefault(k, [])
+                    if not any(x is r or same(x, r) for x in by[k]):
+                        by[k].append(r)
     # a key two admitted rows share (one report of two trials: PMID 123 for trials A and B) names NEITHER: it is marked
     # ambiguous and never resolves (codex review 6 Oct, merge-ede33d9b2:g2#1, reproduced)
     return {k: (v[0] if len(v) == 1 else AMBIGUOUS_ACQUIRED) for k, v in by.items()}
