@@ -1,5 +1,7 @@
 # k-gap fill: cumulative funnel by source phase (13 Oct 2026)
 
+**Phase 2 is CLOSED** (Mahmood, 13 Oct). Every regulator was either run or recorded as not attempted, with its reason.
+
 Population: comparator trials we do not pool and that are not named out of scope (`g1_trial_acquire.targets`): **141** over 32 topics.
 
 | phase | source | reached | n of N | admitted |
@@ -8,7 +10,7 @@ Population: comparator trials we do not pool and that are not named out of scope
 | 2 | FDA (Drugs@FDA reviews + labels) | named 11 / 140 -> typed 0 -> read 10 | | 0 |
 | 2 | EMA (EPARs) | named 8 / 136 -> typed 0 -> read 9 (incl. 1 read of a trial no longer named) | | 0 |
 | 2 | IQWiG / G-BA (AMNOG; typed-only) | 5 topics with procedures; named 13 / 67 -> typed 0 | | 0 |
-| 2 | PMDA | not run: PMDA terms forbid automated download. 3 pilot review reports identified; permission and a PDL 1.0 ruling are needed | | -- |
+| 2 | PMDA | not attempted: terms forbid automated download; skipped by Mahmood 13 Oct | | -- |
 | 2 | Health Canada (clinical information portal) | not attempted: account required (Mahmood, 13 Oct: skip) | | -- |
 | 2 | EMA Policy 0070 (clinical data packages) | not attempted: account required (Mahmood, 13 Oct: skip) | | -- |
 | 2 | NICE (typed-only) | named 21 / 140 -> typed 0 | | 0 |
@@ -26,5 +28,4 @@ Population: comparator trials we do not pool and that are not named out of scope
 1. population named by enrollment equality (phase 1, SALT);
 2. ASCEND: take the trial's PRIMARY outcome when several bound outcomes each give one gated pair (#103);
 3. deterministic reading of bronze / green open copies with no licence. Mahmood's ladder says "other OA text is regex-only", but the `OPEN_COPY` gate refuses them (19 trials);
-4. PMDA: download permission for 3 named review reports, and PDL 1.0 for prompts;
-5. comparator label defects: ODYSSEY JAPAN's NCT02017898 should be NCT02107898.
+4. comparator label defects: ODYSSEY JAPAN's NCT02017898 should be NCT02107898.
