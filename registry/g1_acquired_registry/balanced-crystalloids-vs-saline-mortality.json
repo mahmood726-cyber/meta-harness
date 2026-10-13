@@ -1,6 +1,6 @@
 {
  "slug": "balanced-crystalloids-vs-saline-mortality",
- "written": "2026-10-13T12:15:31Z",
+ "written": "2026-10-13T16:10:45Z",
  "writer": "scripts/g1_registry_fill.py",
  "rule": "registry-only PRIMARY source (AACT posted results), two independent readers (codex + agy) each gate-verified by g1_trial_acquire.gate, adjudicated on disagreement; analysis population named",
  "aact_snapshot": "2026-08-30",
@@ -60,6 +60,7 @@
      }
     }
    },
+   "deterministic_pairs": 0,
    "decision": "NOT_ADMITTED_NO_GATED_READING",
    "verdict": "NOT_ADMITTED",
    "phase": "1_REGISTRY:AACT",
@@ -89,66 +90,14 @@
     "NCT02345486"
    ],
    "evidence_sha256": "4cb4866dfdc1dca1a2d8d2839a10544e44ef2862da2bbe4eb8787e4cae014dc9",
-   "readers": {
-    "A": {
-     "record_id": "mc-87009d20e96bda17b11f8514e4e8ebb0",
-     "state": "RAN_OK",
-     "model": "gpt-6-astra",
-     "gate": "UNSURE",
-     "answer": {
-      "verdict": "UNSURE",
-      "source_ref": "NCT02345486",
-      "aact_outcome_id": "258389389",
-      "measure": "NONE",
-      "events_t": null,
-      "n_t": null,
-      "events_c": null,
-      "n_c": null,
-      "effect": null,
-      "lower": null,
-      "upper": null,
-      "outcome_as_stated": "In-hospital Mortality",
-      "timepoint_as_stated": "30 days",
-      "population_as_stated": "",
-      "why": "Mortality participant counts are posted, but the protocol intervention is unspecified, preventing experimental/control assignment. No HR or analysis-population description is posted."
-     }
-    },
-    "B": {
-     "record_id": "mc-eebd270e43af225f67bc1d770720fc20",
-     "state": "RAN_OK",
-     "model": "Gemini 3.8 Flash (High)",
-     "gate": "ADMITTED",
-     "answer": {
-      "verdict": "FOUND",
-      "source_ref": "NCT02345486",
-      "aact_outcome_id": "258389389",
-      "measure": "COUNTS",
-      "events_t": 72,
-      "n_t": 520,
-      "events_c": 68,
-      "n_c": 454,
-      "effect": null,
-      "lower": null,
-      "upper": null,
-      "outcome_as_stated": "In-hospital Mortality",
-      "timepoint_as_stated": "30 days",
-      "population_as_stated": "",
-      "why": "In-hospital mortality (death prior to hospital discharge or day 30) posted with participant counts for physiologically balanced fluid (72/520) vs 0.9% sodium chloride (68/454)."
-     }
-    }
-   },
-   "adjudication": {
-    "record_id": "mc-2d668d767c84f8493bdb2d7ebdcf18bd",
-    "state": "RAN_OK",
-    "gate": "ADMITTED",
-    "agrees_with_reader": "B"
-   },
-   "decision": "ADMITTED_ADJUDICATED_WITH_B",
+   "readers": {},
+   "deterministic_pairs": 1,
+   "decision": "ADMITTED_DETERMINISTIC_ARM_PICK",
    "admitted": {
     "kind": "AACT",
     "source": "AACT AACT 2026-08-30 NCT02345486 outcome 258389389",
     "span": "In-hospital Mortality: groups [(68, 454), (72, 520)]",
-    "quote": "\"groups\": [\n{\n\"group\": \"837697767\",\n\"title\": \"0.9% Sodium Chloride\",\n\"count\": 68,\n\"n\": 454\n},\n{\n\"group\": \"837697768\",\n\"title\": \"Physiologically Balanced Fluid\",\n\"count\": 72,\n\"n\": 520\n}\n],",
+    "quote": "[{\"group\": \"837697768\", \"title\": \"Physiologically Balanced Fluid\", \"count\": 72, \"n\": 520}, {\"group\": \"837697767\", \"title\": \"0.9% Sodium Chloride\", \"count\": 68, \"n\": 454}]",
     "time_frame": "30 days",
     "analysis_population_registry": "ALL_RANDOMISED (typed): posted analysed 520 + 454 = 974 = actual enrollment 974 (CT.gov API v2 NCT02345486, response sha256 a945eeda6736)",
     "comparator_counts_check": null,
@@ -173,24 +122,8 @@
    },
    "verdict": "ADMITTED",
    "phase": "1_REGISTRY:AACT",
-   "record_id": "mc-87009d20e96bda17b11f8514e4e8ebb0",
-   "model": {
-    "verdict": "UNSURE",
-    "source_ref": "NCT02345486",
-    "aact_outcome_id": "258389389",
-    "measure": "NONE",
-    "events_t": null,
-    "n_t": null,
-    "events_c": null,
-    "n_c": null,
-    "effect": null,
-    "lower": null,
-    "upper": null,
-    "outcome_as_stated": "In-hospital Mortality",
-    "timepoint_as_stated": "30 days",
-    "population_as_stated": "",
-    "why": "Mortality participant counts are posted, but the protocol intervention is unspecified, preventing experimental/control assignment. No HR or analysis-population description is posted."
-   }
+   "record_id": null,
+   "model": null
   }
  ]
 }

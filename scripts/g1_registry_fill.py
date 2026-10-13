@@ -434,8 +434,37 @@ def _gated(resp, held, cfg, slug):
     return v, adm
 
 
+def arm_pairs(bound, held, passes):
+    """Every (experimental, control) tuple of POSTED group counts under the bound outcomes that `passes` (the full gate +
+    arm identity). Deterministic, no model: a registry posting IS a table. Used first; only a UNIQUE survivor is admitted
+    (ASCEND, 13 Oct: neither reader returned the omega-3 pair 689/7740 v 712/7740 posted under the bound outcome)."""
+    out, seen = [], set()
+    for n, oid in bound:
+        reg = (held["aact"].get(n) or {}).get("_reg") or {}
+        o = (reg.get("outcomes") or {}).get(oid) or {}
+        groups = [g for g in reg.get("groups", {}).get(oid) or [] if g.get("count") is not None and g.get("n")]
+        for gt_ in groups:
+            for gc in groups:
+                if gt_ is gc:
+                    continue
+                resp = {"verdict": "FOUND", "source": "AACT", "source_ref": n, "aact_outcome_id": oid, "measure": "COUNTS",
+                        "events_t": gt_["count"], "n_t": gt_["n"], "events_c": gc["count"], "n_c": gc["n"],
+                        "effect": None, "lower": None, "upper": None, "outcome_as_stated": o.get("title"),
+                        "timepoint_as_stated": o.get("time_frame"), "population_as_stated": "",
+                        # the quote is the two posted groups as HELD (id, title, count, n): record bytes, not a model's
+                        "quote": json.dumps([{"group": g["group"], "title": (reg.get("group_titles") or {}).get(
+                            str(g["group"])), "count": g["count"], "n": g["n"]} for g in (gt_, gc)], ensure_ascii=False),
+                        "why": "deterministic arm pick: the unique posted pair every gate passes"}
+                key = (n, oid, gt_["count"], gt_["n"], gc["count"], gc["n"])
+                if key not in seen and passes(resp):
+                    seen.add(key)
+                    out.append(resp)
+    return out
+
+
 def run_trial(slug, cfg, comp, frow):
-    """Stage 4 for one trial that reached OUTCOME: two independent readers, gate each, adjudicate on disagreement."""
+    """Stage 4 for one trial that reached OUTCOME: DETERMINISTIC first (arm_pairs: a unique posted pair every gate
+    passes, no model); else two independent readers, gate each, adjudicate on disagreement."""
     import g1_trial_acquire as ta
     po = cfg.get("primary_outcome") or {}
     aact = ta.aact_evidence(frow["ncts"])
@@ -464,7 +493,13 @@ def run_trial(slug, cfg, comp, frow):
     purpose = f"k-gap registry fill {slug} / {frow['label'][:50]}"
     out = {"label": frow["label"], "pmid": frow["pmid"], "ncts": frow["ncts"], "evidence_sha256": dg, "readers": {}}
     gated = {}
-    for r in (READER_A, READER_B):
+    picks = arm_pairs(sorted(keep), held, lambda rr: _gated(rr, held, cfg, slug)[0] == "ADMITTED")
+    out["deterministic_pairs"] = len(picks)
+    chosen = None
+    if len(picks) == 1:
+        v, adm = _gated(picks[0], held, cfg, slug)
+        chosen, out["decision"] = (picks[0], adm), "ADMITTED_DETERMINISTIC_ARM_PICK"
+    for r in (() if chosen else (READER_A, READER_B)):
         rec = _call(prompt, r, purpose + f" (reader {r[0]})", dg)
         resp = _answer(rec)
         v, adm = _gated(resp, held, cfg, slug)
@@ -478,9 +513,10 @@ def run_trial(slug, cfg, comp, frow):
         if v == "ADMITTED":
             gated[r[0]] = (resp, adm)
     agree = len(gated) == 2 and _tuple(gated["A"][0]) == _tuple(gated["B"][0])
-    chosen = None
     unavailable = [k for k, v in out["readers"].items() if v["state"] != "RAN_OK"]
-    if unavailable:
+    if chosen:
+        pass                                              # the deterministic pick: no reader was asked
+    elif unavailable:
         # a reader that did not RUN (quota, client error) is not a reader that disagreed: never admit on one family's
         # reading plus a same-family adjudicator. The trial waits for the second reader (re-run is idempotent per record)
         out["decision"] = "WAITING_READER_UNAVAILABLE:" + ",".join(unavailable)
