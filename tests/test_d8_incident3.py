@@ -66,4 +66,8 @@ def test_a_read_resting_on_a_redacted_record_no_longer_upgrades_the_row():
     news = {r["new"] for r in _incident()["records"]}
     reads = json.load(open(os.path.join(ROOT, "registry", "provenance_recorded_reads.json"), encoding="utf-8"))["reads"]
     hit = [r for r in reads.values() if r.get("record_id") in news]
-    assert hit and all(r["state"] == "WITHDRAWN_D8_3" and "NOT CC BY / CC0" in r["shown"] for r in hit)
+    # a read still resting on a redacted record is withdrawn; omega3 21115589 was then RE-READ from its open abstract
+    # (mc-46a94e46, 'abstract only; held copy not CC: CC_RESTRICTED') and that read replaced it
+    assert all(r["state"] == "WITHDRAWN_D8_3" and "NOT CC BY / CC0" in r["shown"] for r in hit)
+    o = reads["omega3-cardiovascular-events|21115589|Major vascular events / MACE"]
+    assert o["record_id"] not in news and o["shown"].startswith("trial report PMID 21115589 (abstract only")
