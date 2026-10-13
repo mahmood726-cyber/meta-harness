@@ -6,6 +6,8 @@ import json
 import os
 import subprocess
 
+import pytest
+
 from reproducible_ai import model_source as ms
 from reproducible_ai import record_licence as rl
 
@@ -151,3 +153,14 @@ def test_plant_the_audit_search_must_run_to_count_as_clean(monkeypatch):
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: _P())
     with pytest.raises(RuntimeError):
         _grep_ids(["mc-x"])
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex d8x-cap-r3 #2; review stops at three): git output is split on "
+                                       "whitespace, so a tracked path containing a space is broken in two")
+def test_known_limit_a_path_with_a_space(monkeypatch):
+    import importlib
+    import sys as _s
+    _s.path.insert(0, os.path.join(ROOT, "scripts"))
+    d8 = importlib.import_module("d8_redact_incident3")
+    monkeypatch.setattr(d8, "_git", lambda *a, **k: "docs/read notes.json\n")
+    assert d8._refs("mc-old") == ["docs/read notes.json"]

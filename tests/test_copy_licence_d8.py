@@ -66,3 +66,14 @@ def test_plant_a_denied_creative_commons_licence_is_not_one():
               "Commons licence. Non-commercial use only.</copyright-statement></permissions>")
     assert cl.classify_permissions(denied)[0] == "NOT_OPEN"
     assert cl.classify_permissions(NC)[0] == "CC_RESTRICTED"
+
+
+import pytest  # noqa: E402
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex d8x-cap-r3 #1; review stops at three): a creativecommons.org "
+                                       "URL is taken as a grant even when the clause denies it")
+def test_known_limit_a_denied_licence_with_a_cc_link():
+    denied = ("<permissions><copyright-statement>This article is not distributed under "
+              "https://creativecommons.org/licenses/by-nc/4.0/. Non-commercial use only.</copyright-statement></permissions>")
+    assert cl.classify_permissions(denied)[0] == "NOT_OPEN"
