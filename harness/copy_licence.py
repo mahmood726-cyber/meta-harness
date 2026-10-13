@@ -17,7 +17,7 @@ import os
 import re
 import time
 
-from reproducible_ai.record_licence import _RESTRICTED, _is_open
+from reproducible_ai.record_licence import _RESTRICTED, _is_open, names_creative_commons
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX = os.path.join(ROOT, "outputs", "k_gap", "fulltext_index.json")
@@ -30,7 +30,7 @@ def classify_permissions(xml: str) -> tuple:
     # CC_RESTRICTED is a Creative Commons licence that restricts reuse: the permissions must NAME Creative Commons. A closed
     # copy that merely says 'Non-commercial use only' is NOT_OPEN (agy d8x-cap-r1-agy: typed readers accept
     # CC_RESTRICTED, so the closed copy would have been read)
-    if _RESTRICTED.search(perm) and re.search(r"creativecommons\.org/|Creative\s+Commons|\bCC[ -]BY", perm, re.I):
+    if _RESTRICTED.search(perm) and names_creative_commons(perm):
         return "CC_RESTRICTED", stmt
     if re.search(r"creativecommons\.org/(?:licenses/by/|publicdomain/)", perm):
         return "CC", stmt

@@ -48,6 +48,20 @@ class _Restricted:
 
 _RESTRICTED = _Restricted()
 
+_CC_URL = re.compile(r"creativecommons\.org/", re.I)
+_CC_WORDS = re.compile(r"Creative\s+Commons|\bCC[ -]BY", re.I)
+_NEGATED = re.compile(r"\b(?:not|no|neither|nor|without|never|isn't|aren't)\b[^.;]{0,40}$", re.I)
+
+
+def names_creative_commons(perm: str) -> bool:
+    """True when a permissions statement GRANTS a Creative Commons licence: a creativecommons.org licence link, or the
+    words with no negation before them in the same clause. 'not distributed under a Creative Commons licence' names it
+    only to deny it (codex d8x-cap-r2 #1): such a copy is closed, never CC_RESTRICTED (which typed readers accept)."""
+    t = str(perm or "")
+    if _CC_URL.search(t):
+        return True
+    return any(not _NEGATED.search(t[max(0, m.start() - 60):m.start()]) for m in _CC_WORDS.finditer(t))
+
 
 def licences(index_path=INDEX):
     """PMID -> the copy's licence for the PROMPT guard. An entry marked 'CC' whose own recorded permissions statement names

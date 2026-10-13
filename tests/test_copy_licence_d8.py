@@ -57,3 +57,12 @@ def test_plant_a_closed_copy_saying_non_commercial_is_not_creative_commons():
     assert cl.classify_permissions(closed)[0] == "NOT_OPEN"
     assert not cl.typed_may_read(cl.classify_permissions(closed)[0])
     assert cl.classify_permissions(NC)[0] == "CC_RESTRICTED"
+
+
+def test_plant_a_denied_creative_commons_licence_is_not_one():
+    """codex d8x-cap-r2 #1 (P1): 'not distributed under a Creative Commons licence ... non-commercial use only' NAMES
+    Creative Commons only to deny it; it is a closed copy, never CC_RESTRICTED (which typed readers accept)."""
+    denied = ("<permissions><copyright-statement>(c) 2021 Publisher. This article is not distributed under a Creative "
+              "Commons licence. Non-commercial use only.</copyright-statement></permissions>")
+    assert cl.classify_permissions(denied)[0] == "NOT_OPEN"
+    assert cl.classify_permissions(NC)[0] == "CC_RESTRICTED"

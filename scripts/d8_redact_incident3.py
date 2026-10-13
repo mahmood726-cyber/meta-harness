@@ -108,10 +108,13 @@ def redact(old, sources):
     assert red["response"] == rec["response"], "response changed"
     probs = ms.record_problems(red)
     assert len(probs) == 1 and probs[0].startswith("prompt: no stored bytes"), probs
+    # every reference is found BEFORE anything moves: a failing search leaves the original and its references intact
+    # (codex d8x-cap-r2 #2: it ran after os.remove, so a failure left references dangling and no ledger mapping)
+    refs = [f for f in _refs(old) if f != "registry/held_record_ids.json"]
     newpath = os.path.join(os.path.dirname(path), new + ".json")
     open(newpath, "w", encoding="ascii", newline="\n").write(json.dumps(red, indent=1, sort_keys=True, ensure_ascii=True) + "\n")
     os.remove(path)
-    for f in [f for f in _refs(old) if f != "registry/held_record_ids.json"]:
+    for f in refs:
         fp = os.path.join(ROOT, f)
         if f.endswith(".jsonl"):
             lines = []

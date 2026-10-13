@@ -51,10 +51,19 @@ def test_every_redacted_record_withholds_the_prompt_and_keeps_its_hash():
         assert ms.record_problems(rec) == ["prompt: no stored bytes (the stored prompt is lost -- this record cannot replay)"]
 
 
+def _grep_ids(ids):
+    """Files naming any of `ids`. git grep exits 1 for none; any other failure RAISES -- a search that did not run is
+    never 'no surviving id' (codex d8x-cap-r2 #3)."""
+    p = subprocess.run(["git", "grep", "-l", *[a for i in ids for a in ("-e", i)]], cwd=ROOT, capture_output=True,
+                       text=True)
+    if p.returncode not in (0, 1):
+        raise RuntimeError(f"git grep failed ({p.returncode}): {p.stderr.strip()[:200]}")
+    return p.stdout.split()
+
+
 def test_no_old_id_survives_outside_the_audit_trail():
     olds = [r["old"] for r in _incident()["records"]]
-    args = [a for o in olds for a in ("-e", o)]
-    out = subprocess.run(["git", "grep", "-l", *args], cwd=ROOT, capture_output=True, text=True).stdout.split()
+    out = _grep_ids(olds)
     news = {r["new"] for r in _incident()["records"]}
     allowed = {"registry/d8_incidents.json", "scripts/d8_redact_incident3.py", "tests/test_d8_incident3.py",
                "tests/test_record_licence.py"}                               # a docstring naming the incident
@@ -108,3 +117,37 @@ def test_plant_a_later_batch_keeps_the_earlier_records(tmp_path, monkeypatch):
     d8.main()
     recs = json.loads(led.read_text("utf-8"))["incidents"][0]["records"]
     assert {r["old"] for r in recs} == {"mc-a", "mc-c"} and seen["news"] == {"mc-b", "mc-d"}
+
+
+def test_plant_references_are_found_before_the_original_is_removed(monkeypatch, tmp_path):
+    """codex d8x-cap-r2 #2: redact() removed the original record, THEN searched for references -- a failing search left
+    the references dangling and the ledger without the mapping. The search now runs first; on failure nothing moves."""
+    import importlib
+    import sys as _s
+    import pytest
+    _s.path.insert(0, os.path.join(ROOT, "scripts"))
+    d8 = importlib.import_module("d8_redact_incident3")
+    rec_path = tmp_path / "mc-old.json"
+    rec_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(d8, "ROOT", str(tmp_path))
+    monkeypatch.setattr(d8, "_tracked", lambda name: ["mc-old.json"])
+    monkeypatch.setattr(d8.ms, "load_record", lambda p: {"record_id": "mc-old", "prompt": {"sha256": "s", "bytes": 1},
+                                                         "response": {"b64": ""}})
+    monkeypatch.setattr(d8.ms, "record_id_of", lambda r: "mc-new")
+    monkeypatch.setattr(d8.ms, "record_problems", lambda r: ["prompt: no stored bytes"])
+    monkeypatch.setattr(d8, "_refs", lambda old: (_ for _ in ()).throw(RuntimeError("git grep failed")))
+    with pytest.raises(RuntimeError):
+        d8.redact("mc-old", [])
+    assert rec_path.exists() and not (tmp_path / "mc-new.json").exists()
+
+
+def test_plant_the_audit_search_must_run_to_count_as_clean(monkeypatch):
+    """codex d8x-cap-r2 #3: test_no_old_id_survives_outside_the_audit_trail read a failing git grep (exit 128) as 'no
+    surviving id'. The helper it now uses raises unless git answered (0 found, 1 none)."""
+    import pytest
+
+    class _P:
+        returncode, stdout, stderr = 128, "", "fatal"
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _P())
+    with pytest.raises(RuntimeError):
+        _grep_ids(["mc-x"])
