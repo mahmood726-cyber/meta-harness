@@ -1356,7 +1356,8 @@ def acquired_rows(slug):
     # two writers, two files: the acquisition lane (scripts/g1_trial_acquire.py rewrites its own file whole on replay) and
     # the registry fill (scripts/g1_registry_fill.py: AACT posted results, two independent readers, 13 Oct). Kept apart
     # so one writer's replay never erases the other's admitted rows.
-    paths = [os.path.join(ROOT, "registry", d, f"{slug}.json") for d in ("g1_acquired", "g1_acquired_registry")]
+    paths = [os.path.join(ROOT, "registry", d, f"{slug}.json") for d in ("g1_acquired", "g1_acquired_registry",
+                                                                           "g1_acquired_regulator")]
     by = {}
 
     def same(a, b):

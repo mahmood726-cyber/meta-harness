@@ -61,3 +61,16 @@ def test_answer_parser_takes_the_json_after_prose():
         assert rf._answer(rec) == {"verdict": "FOUND", "events_t": 72}
     finally:
         ms.replay = orig
+
+
+def test_PLANT_tracker_reads_phase2_regulator_rows(tmp_path):
+    """registry/g1_acquired_regulator/<slug>.json (scripts/g1_regulator_fill.py, phase 2) is read by acquired_rows."""
+    import json
+    from unittest.mock import patch
+    import g1_tracker as g
+    row = {"label": "REG [1]", "pmid": "7", "ncts": ["NCT00000007"], "verdict": "ADMITTED", "phase": "2_REGULATOR:FDA",
+           "admitted": {"kind": "REGULATORY", "source": "FDA review x", "value": {"events_t": 1, "n_t": 9}}}
+    os.makedirs(tmp_path / "registry" / "g1_acquired_regulator")
+    (tmp_path / "registry" / "g1_acquired_regulator" / "t.json").write_text(json.dumps({"rows": [row]}), encoding="utf-8")
+    with patch.object(g, "ROOT", str(tmp_path)):
+        assert g.acquired_rows("t")["NCT00000007"]["phase"] == "2_REGULATOR:FDA"
