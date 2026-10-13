@@ -2,6 +2,7 @@
 record_licence.py). Incident 5 Oct: mc-dcb6796c carried SMART's author-manuscript text (24,886 bytes) into the public repo.
 Every tracked record is checked; the existing debt is listed by id in registry/record_licence_exceptions.json (it may only
 shrink); a new violation fails the unit-test limb, so the pre-commit hook and CI refuse it."""
+import pytest
 import base64
 import json
 import os
@@ -148,3 +149,99 @@ def test_PLANT_any_sentence_punctuation_after_an_unbalanced_paren_is_dropped():
     from reproducible_ai import record_licence as rl
     assert rl.ref_licences("report (DOI 10.1234/example): held text", {}, {"10.1234/example": "cc-by"}) == \
         [("DOI 10.1234/example", "cc-by")]
+
+
+# ---------------------------------------------------------------- D8 incident #2 (robgrade lane, 12 Oct): NC / ND reached prompts
+# jats_licence returned 'CC' for ANY creativecommons.org licence and _is_open accepted any string starting with 'cc', so
+# CC BY-NC (PMID 32720823) and CC BY-NC-ND (PMID 28456509) full texts were sent to codex / agy (quarantined, never
+# committed). D8: only CC BY / CC0 text enters a prompt.
+def _jats(tmp_path, perm):
+    p = tmp_path / "a.xml"
+    p.write_text(f"<article><front><permissions>{perm}</permissions></front></article>", encoding="utf-8")
+    return str(p)
+
+
+def test_PLANT_non_commercial_and_no_derivatives_jats_are_not_open(tmp_path):
+    from reproducible_ai import record_licence as rl
+    for perm in ['<license xlink:href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</license>',
+                 '<license xlink:href="http://creativecommons.org/licenses/by-nc-nd/4.0/"/>',
+                 '<license xlink:href="https://creativecommons.org/licenses/by-sa/4.0/"/>',
+                 "This is an open access article under the Creative Commons Attribution-NonCommercial License.",
+                 "Creative Commons Attribution-NoDerivatives 4.0 International"]:
+        assert rl.jats_licence(_jats(tmp_path, perm)) != "CC", perm
+    for perm in ['<license xlink:href="https://creativecommons.org/licenses/by/4.0/"/>',
+                 '<license xlink:href="https://creativecommons.org/publicdomain/zero/1.0/"/>',
+                 "distributed under the terms of the Creative Commons Attribution License (CC BY)"]:
+        assert rl.jats_licence(_jats(tmp_path, perm)) == "CC", perm
+
+
+def test_PLANT_only_cc_by_and_cc0_licence_strings_are_open():
+    from reproducible_ai import record_licence as rl
+    for lic in ("cc-by-nc", "cc-by-nc-nd", "cc-by-nd", "cc-by-sa", "cc-by-nc-sa", "CC BY-NC 4.0", "implied-oa", None, ""):
+        assert not rl._is_open(lic), lic
+    for lic in ("CC", "cc-by", "cc0", "CC-BY", "cc-by-4.0"):
+        assert rl._is_open(lic), lic
+
+
+def test_PLANT_an_index_entry_marked_CC_with_an_NC_statement_never_opens_a_prompt(tmp_path):
+    """7 of 16 'CC' entries in outputs/k_gap/fulltext_index.json on main carry an NC / ND statement (e.g. 33472855 'Re-use
+    permitted under CC BY-NC. No commercial re-use'); mc-b4d4124b (29 Sep) sent that text to codex."""
+    import json as _json
+    from reproducible_ai import record_licence as rl
+    p = tmp_path / "idx.json"
+    p.write_text(_json.dumps({"1": {"copy_licence": "CC", "copy_statement": "Re-use permitted under CC BY-NC. No commercial re-use."},
+                              "2": {"copy_licence": "CC", "copy_statement": "https://creativecommons.org/licenses/by-nc-nd/4.0/"},
+                              "3": {"copy_licence": "CC", "copy_statement": "https://creativecommons.org/licenses/by/4.0/"}}),
+                 encoding="utf-8")
+    lic = rl.licences(str(p))
+    assert lic["1"] != "CC" and lic["2"] != "CC" and lic["3"] == "CC"
+    real = rl.licences()
+    for pmid in ("20668840", "21115589", "26330422", "29246960", "31290965", "33472855", "35475258"):
+        assert real.get(pmid) != "CC", pmid
+
+
+def test_PLANT_one_restriction_pattern_for_every_reader(tmp_path):
+    """codex / agy d8lic-cap-r1: the three readers carried different patterns -- 'Non Commercial' (spaced) passed the
+    prompt guard, and jats_licence missed 'no commercial reuse'. One shared pattern now."""
+    import json as _json
+    from reproducible_ai import record_licence as rl
+    words = ["Creative Commons Attribution Non Commercial License", "Creative Commons Attribution No Derivatives License",
+             "Creative Commons Attribution Share Alike License", "Creative Commons Attribution License; no commercial reuse",
+             "CC BY-NC-ND 4.0", "CC BY NC 4.0"]
+    for w in words:
+        assert rl._RESTRICTED.search(w), w
+        assert rl.jats_licence(_jats(tmp_path, w)) != "CC", w
+        p = tmp_path / "i.json"
+        p.write_text(_json.dumps({"1": {"copy_licence": "CC", "copy_statement": w}}), encoding="utf-8")
+        assert rl.licences(str(p))["1"] != "CC", w
+
+
+# ---------------------------------------------------------------- codex d8lic-cap-r2
+def test_PLANT_an_entity_encoded_or_unicode_hyphen_restriction_is_restricted(tmp_path):
+    """r2 #2: 'Non&#x2011;Commercial' (a non-breaking hyphen, entity-encoded) passed the restriction check and the broader
+    'Creative Commons Attribution' match admitted the NC licence."""
+    from reproducible_ai import record_licence as rl
+    for w in ["Creative Commons Attribution Non&#x2011;Commercial 4.0 International License (CC BY&#x2011;NC).",
+              "Creative Commons Attribution Non\u2011Commercial License", "CC BY\u2013NC\u2013ND 4.0",
+              "Creative Commons Attribution No&#8209;Derivatives"]:
+        assert rl._RESTRICTED.search(w), w
+        assert rl.jats_licence(_jats(tmp_path, w)) != "CC", w
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex d8lic-cap-r2 #1): a CC BY grant worded 'permitting commercial and "
+                                       "non-commercial reuse' is read as restricted -- the error is fail-CLOSED (a CC BY "
+                                       "text is withheld from prompts), never open")
+def test_known_limit_cc_by_permitting_non_commercial_reuse(tmp_path):
+    from reproducible_ai import record_licence as rl
+    w = "This article is licensed under CC BY 4.0, permitting commercial and non-commercial reuse."
+    assert rl.jats_licence(_jats(tmp_path, w)) == "CC"
+
+
+def test_PLANT_a_line_wrapped_restriction_is_restricted(tmp_path):
+    """codex d8lic-cap-r3 #1 (stop at three): 'Creative Commons Attribution Non\nCommercial License' -- a line break inside
+    the licence name -- passed, and the broader Attribution match admitted it."""
+    from reproducible_ai import record_licence as rl
+    for w in ["Distributed under the Creative Commons Attribution Non\nCommercial License.",
+              "Creative Commons Attribution No\r\n  Derivatives", "CC BY-\nNC 4.0"]:
+        assert rl._RESTRICTED.search(w), repr(w)
+        assert rl.jats_licence(_jats(tmp_path, w)) != "CC", repr(w)

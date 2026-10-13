@@ -10,8 +10,12 @@ from harness import copy_licence as cl  # noqa: E402
 
 
 def test_unpaywall_licence_open_only_when_creative_commons_or_public_domain():
-    assert cl.upw_open({"license": "cc-by"}) and cl.upw_open({"license": "cc-by-nc-nd"})
+    assert cl.upw_open({"license": "cc-by"}) and cl.upw_open({"license": "cc0"})
     assert cl.upw_open({"license": "public-domain"})
+    # D8 (13 Oct): this line used to ASSERT cc-by-nc-nd was open -- the defect itself, pinned as a requirement. Only CC BY
+    # / CC0 / public domain may reach a model prompt (tests/test_copy_licence_d8.py).
+    for x in ("cc-by-nc-nd", "cc-by-nc", "cc-by-nd", "cc-by-sa"):
+        assert not cl.upw_open({"license": x}), x
     for x in ({"license": None}, {"license": "publisher-specific-oa"}, {"license": "implied-oa"}, {}):
         assert not cl.upw_open(x)
 
