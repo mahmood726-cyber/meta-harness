@@ -1,0 +1,35 @@
+{
+ "record_id": "mc-2b17861f6ffd81c1a5244771aeade1bb",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "Line 713 requires `rf._a(bd['answers'], q) == 'NI'` when a question on a closed branch becomes NA. If an upstream question was NI in v3.1, downstream questions could have valid direct non-NI answers (e.g., 3.2 has no NI option and must be Y/PY/PN/N; 4.4 is N for objective outcomes). When the upstream question is resolved contextually to close the branch, line 713 rejects the valid transition of downstream questions to NA and falsely aborts scoring with REFUSED at line 723.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 and RoB 2 guidance (Sterne et al. 2019): Signalling question 3.2 has no NI option (rf.NI_NOT_AN_OPTION; must be Y/PY/PN/N). When 3.1 is resolved contextually to Probably Yes (data available for nearly all participants), question 3.2 is no longer applicable (NA). Branch closing must allow previously asked non-NI questions to transition to NA.",
+   "failing_test": "Input: Baseline `bd` with 3.1 NI and 3.2 Y; contextual assessment `dom` where 3.1 is contextual PY and 3.2 is NA. Expected: `check_contextual_doc` accepts the valid branch closing and returns `{'3.1': 1}`. Actual: Raises `SystemExit: REFUSED: ... 3.2: changed from v3.1 other than NI -> documented contextual PY/PN`."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_contextual.py:process",
+   "claim": "Line 459 checks manifest fields `(r.get(w) or {}).get('state') == 'RAN_OK' and r[w]['prompt_sha256'] == ps` rather than calling `fresh(r.get(w), p)`. If a record file on disk in REC_DIR is deleted or its unblobbed prompt hash drifted from runs.json, line 459 skips invoking the live call. Lines 462-463 then evaluate `fresh()` to None, silently dropping reader w's contribution to NI. Line 469 for the adjudicator correctly verifies disk freshness via `not fresh(r.get('adjudicator'), pa)`.",
+   "guidance_basis": "Pre-registered policy section 2 C4 and RESPONSES.md codex0: A recorded call is used only when the held record on disk verifies for the exact prompt (`fresh()`). The dispatch condition in `process()` must use `not fresh(r.get(w), p)` so live runs re-execute when held records are absent or stale on disk.",
+   "failing_test": "Input: `r = {'codex': {'state': 'RAN_OK', 'record_id': 'missing', 'prompt_sha256': ps}}` with `missing.json` absent from REC_DIR, executed with `live=True`. Expected: `pools['codex'].submit` is called to generate the record. Actual: `pools['codex'].submit` is skipped; `fresh()` returns None; reader codex's answers silently drop to NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "Line 725 evaluates `_utc(record_time(rid))` before calling `check(q, a)` at line 727. When a cited record is missing from disk, `load_record(rid)` returns None, causing `record_time(rid)` (line 691: `lambda rid: load_record(rid)['request_utc']`) to raise an unhandled `TypeError: 'NoneType' object is not subscriptable`. This unhandled crash bypasses the pre-registered refusal in `verify_records` (line 647: `REFUSED: {qid}: a cited record is missing or not RAN_OK`).",
+   "guidance_basis": "Pre-registered policy section 3: The scorer must refuse any contextual answer whose records are missing or not held on disk with a clean refusal error (`REFUSED: {qid}: a cited record is missing or not RAN_OK`), rather than crashing with an unhandled TypeError.",
+   "failing_test": "Input: Contextual answer citing record ID `'missing'` where `'missing.json'` is absent from REC_DIR, checked via `check_contextual_doc`. Expected: Raises `SystemExit: REFUSED: ... a cited record is missing or not RAN_OK`. Actual: Crashes with `TypeError: 'NoneType' object is not subscriptable` at line 725."
+  },
+  {
+   "severity": "MINOR",
+   "where": "scripts/rob2_ctx_score.py:verify_records",
+   "claim": "Line 650 collapses `recs.values()` into a dictionary keyed by caller name (`r['caller']['line'].split(':')[1]`). If `a['records']` contains duplicate or extraneous records for the same reader, earlier records are silently overwritten without validating uniqueness or total record count (which should be exactly 2 for agreed answers or 3 for adjudicated answers).",
+   "guidance_basis": "Pre-registered policy section 2 C4 and section 3 require the contextual answer to stand strictly on both blind readers' records (and the adjudicator's when decided), without extraneous, duplicate, or unverified records.",
+   "failing_test": "Input: Contextual answer `a` with `records = ['mc-codex-1', 'mc-agy-1', 'mc-codex-2']` where `mc-codex-1` did not verify as the answer. Expected: `verify_records` raises SystemExit rejecting extraneous or conflicting records. Actual: `by['codex']` silently overwrites `mc-codex-1` with `mc-codex-2`, passing verification."
+  }
+ ]
+}

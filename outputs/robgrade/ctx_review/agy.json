@@ -1,0 +1,63 @@
+{
+ "record_id": "mc-273128fe372a467a5e7b9468185fad3b",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:combine",
+   "claim": "combine allows an adjudicator to override agreement when both readers answered NI. Line 153 only checks agreement on CONTEXTUAL (PY/PN). When readers agree on NI, line 155 accepts an adjudicator PY/PN, violating the rule that the adjudicator only decides disagreements and never overrides agreement.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 and Policy C4 ('The adjudicator decides only a disagreement; it never overrides agreement', and 'Anything else stays NI'). Consensus between readers that context is absent must stay NI.",
+   "failing_test": "cx.combine({'1.2': {'answer': 'NI'}}, {'1.2': {'answer': 'NI'}}, {'1.2': {'answer': 'PY', 'quote': 'text', 'source_id': 's1'}})['1.2']['answer'] -> expected 'NI' (readers agreed), actual returns 'PY' with decided_by='adjudicator'"
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "The scorer claims to refuse 'a contextual answer without a verified quote' (Policy section 3), but line 441 only checks bool(a.get('span')) and bool(a.get('source_sha256')). It never verifies that the quote exists in the source text or that source_sha256 matches actual open sources.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 and Policy Section 3 ('The scorer refuses: a contextual answer without a verified quote'). Contextual judgements must be grounded in verified source evidence; accepting unverified quotes allows fabricated text to alter scores.",
+   "failing_test": "cs.check_contextual_doc('s', base, ctx_with_fabricated_quote_not_in_sources, AFTER) -> expected SystemExit('REFUSED: ... unverified quote'), actual passes without error and increments counts"
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "Lines 448-449 evaluate lab = rf.ni_label(...) if dom['judgement'] != rf.INSUFFICIENT else None. If a stored domain judgement is tampered to rf.INSUFFICIENT, lab becomes None, completely bypassing the recomputation check and allowing invalid judgements to escape refusal.",
+   "guidance_basis": "Policy Section 3 ('The scorer refuses: any answer that differs from the v3.1 baseline... recomputed judgements and labels'). Setting a domain to INSUFFICIENT suppresses its scoring without verifying that open sources are actually insufficient.",
+   "failing_test": "ctx['trials']['1']['domains']['D1']['judgement'] = rf.INSUFFICIENT for a trial with complete baseline answers -> expected SystemExit('REFUSED: ... stored judgement/label != recomputed'), actual passes without refusal"
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "verify enforces the minimum quote length (len(_norm(quote)) < 8) but omits the upper bound check (> 300 characters), accepting quotes of arbitrary length despite Policy C3 pre-registering 8-300 characters.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 and Policy C3 ('Each contextual answer quotes, verbatim, the context it rests on (8-300 characters)'). Concise excerpts prevent quote dumping and unverified large-text passages from masking hallucinated inferences.",
+   "failing_test": "cx.verify({'answers': [{'qid': '1.2', 'answer': 'PY', 'quote': 'a' * 301, 'source_id': SRC['id']}]}, [SRC_WITH_350_A], ['1.2'])['1.2']['answer'] -> expected 'NI' (quote > 300 chars dropped), actual returns 'PY'"
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:main",
+   "claim": "main() hardcodes reading assessment objects from outputs/robgrade/rob2/{slug}.json (baseline v3.1) instead of outputs/robgrade/rob2_ctx/{slug}.json, meaning the preview HTML will never contain any contextual notes or evidence quotes.",
+   "guidance_basis": "Policy C5 ('Never silent. A contextual answer is stored with basis contextual... The served label names it, e.g. Low (contextual: 1.2 probably yes), with the quote shown beside it'). Previews must render contextual answers and quotes.",
+   "failing_test": "rob2_tab.main([slug]) when rob2_ctx/{slug}.json contains contextual answers -> expected generated HTML in tab_preview/{slug}.html contains '[contextual: ...]', actual HTML contains no contextual annotations because baseline rob2 was loaded"
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:combine",
+   "claim": "When an adjudicator resolves a disagreement by deciding NI, combine falls through to decided_by='no contextual answer agreed', discarding the adjudicator's decision and causing scripts/rob2_contextual.py to omit the adjudicator's record ID from stored records.",
+   "guidance_basis": "Policy C4 ('adjudicator... decides PY, PN or NI') and Policy C5 ('stored with... both readers' record ids, and the rationale'). Explicit adjudication of NI must be recorded and audited rather than treated as a lack of agreement.",
+   "failing_test": "cx.combine({'1.2': {'answer': 'PY'}}, {'1.2': {'answer': 'PN'}}, {'1.2': {'answer': 'NI', 'rationale': 'no context'}})['1.2']['decided_by'] -> expected 'adjudicator', actual returns 'no contextual answer agreed'"
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "check_contextual_doc only iterates over dom['answers'].items() in ctx. If an answer present in baseline b['domains'][d]['answers'] is deleted from ctx, the missing question is never evaluated and the deletion is not refused.",
+   "guidance_basis": "Policy Section 3 ('The scorer refuses: any answer that differs from the v3.1 baseline other than an NI that became a contextual PY/PN'). Removing baseline questions violates isolation and data integrity.",
+   "failing_test": "del ctx['trials']['1']['domains']['D1']['answers']['1.3'] -> expected SystemExit('REFUSED: ... changed from v3.1'), actual passes without raising SystemExit"
+  },
+  {
+   "severity": "MINOR",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "verify omits target questions missing from the reading input from its return dictionary rather than returning them as {'answer': 'NI'}, violating its docstring contract to return an answer entry for all TARGET questions.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 and Policy C1/C6 (unaddressed target questions remain NI). Targets without valid readings must explicitly default to NI in the verified mapping.",
+   "failing_test": "cx.verify({'answers': []}, [SRC], ['1.2']) -> expected {'1.2': {'answer': 'NI'}}, actual returns {}"
+  }
+ ]
+}

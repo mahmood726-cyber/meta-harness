@@ -1,0 +1,56 @@
+{
+ "record_id": "mc-8a449731c07b300b3aa54487df918dd7",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "Quote membership does not establish support for the inference. An irrelevant quotation plus a memory-based or 'trials usually' rationale passes, even with both readers agreeing. Empty rationales also pass.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08): contextual PY/PN requires a reasonable judgement supported by the trial's circumstances; C3 excludes memory and generic assumptions.",
+   "failing_test": "Both readers answer 5.1=PY, quote 'central web-based randomisation' from SRC, rationale='Trials usually prespecify analyses' -> retain NI without context supporting analysis-plan timing and adherence."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "The scorer checks only nonempty provenance fields and record timestamps. It never verifies source text/hash, reader identities, recorded answers, or adjudication. The acceptance test incorrectly treats one record, mc-new, as sufficient.",
+   "guidance_basis": "C3-C5 require verified quoted context and both reader records, with adjudication on disagreement. Handbook 8.2.3 requires supporting information for responses.",
+   "failing_test": "_docs(), replace the span with invented text and retain the single recent mc-new record -> REFUSED, even when its timestamp is after registration."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "Comparison visits only answers present in the contextual object. Deleted direct answers escape comparison; domain sets and trial/outcome metadata are also unchecked. This does not enforce that every direct answer remains unchanged.",
+   "guidance_basis": "C1 and scoring condition (b) permit only NI -> contextual PY/PN. [Handbook 8.2.1](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) makes assessments specific to a result.",
+   "failing_test": "From _docs(), delete D1.answers['1.3']; 1.1=Y and 1.2=PY still yield Low with missing 1.3 -> REFUSED for deleting a direct answer, rather than accepted."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "Setting an assessed domain to INSUFFICIENT bypasses recomputation entirely and can remove its comparison pair. Overall judgements and most NI-label fields are likewise never validated.",
+   "guidance_basis": "Scoring condition (c) promises recomputed judgements and labels. [Handbook 8.2.3-8.2.4](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) defines domain and overall mappings.",
+   "failing_test": "From _docs(), change only D1.judgement to rf.INSUFFICIENT -> REFUSED; the baseline assessed this domain and the stored answers still imply Low."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_contextual.py:process",
+   "claim": "Replay checks no prompt hashes. Old reader or adjudicator records can be reused after the outcome, targets, evidence or competing readings change. Finding the quote in current sources does not establish that those sources were shown in the recorded call.",
+   "guidance_basis": "C3 requires a source shown to that reader; C4 requires adjudication of the actual disagreement. Handbook 8.2.1 requires assessment of the specified result.",
+   "failing_test": "live=False with cached RAN_OK readings whose prompt_sha256 differs from the current prompt, but whose quotations still match -> reject stale records or leave NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:check_prereg",
+   "claim": "The freeze omits executable dependencies including rob2_calibrate.py and rob2_dual.py. Pair construction or evidence handling can change after registration while check_prereg passes. The contextual renderer and its tests are also omitted.",
+   "guidance_basis": "CONTEXTUAL_POLICY status and section 3 promise unchanged registered code/tests and frozen comparisons. This is an implementation failure of the chosen pre-registration contract.",
+   "failing_test": "After the anchor, modify scripts/rob2_calibrate.py:pairs_for to alter comparator judgements, leaving listed files unchanged -> check_prereg must REFUSE."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:main",
+   "claim": "The command reads outputs/robgrade/rob2, whereas contextual assessments are written to rob2_ctx. The supplied display path therefore renders baseline assessments; helper-level label tests do not establish that contextual answers reach the displayed output.",
+   "guidance_basis": "C5 requires every contextual answer and quote to be shown. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) requires supporting information alongside responses.",
+   "failing_test": "Baseline has 1.2=NI; rob2_ctx has documented contextual 1.2=PY. Run the contextual display workflow -> rendered output must contain 'contextual: 1.2 probably yes' and its quote."
+  }
+ ]
+}

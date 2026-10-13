@@ -1,0 +1,49 @@
+{
+ "record_id": "mc-de7a72f138eb8f6c0b7d6d81859fc62d",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "tests/test_rob2_contextual.py:test_r4_registered_protocol_context_is_a_readers_judgement",
+   "claim": "The declined finding remains: this rationale supports only existence of a prespecified plan, not whether this result followed it or when the SAP was finalized. Calling the assertion an admissibility pin does not prevent two such replies from becoming a scored 5.1 PY.",
+   "guidance_basis": "Question 5.1 concerns accordance with analysis intentions finalized before unblinded outcome data. Registration alone does not address both requirements. [RoB 2, §8.3 and Box 11](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf).",
+   "failing_test": "Both readers return the pin's quote and rationale for 5.1, with no further supporting context -> NI; currently PY can survive verification and scoring."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "A quoted omission plus an unsupported external assertion still passes. Topic matching and one shared word establish neither contextual support nor source-only reasoning. Two matching replies and replay merely reproduce this defect; the declared residual does not enforce C3.",
+   "guidance_basis": "Handbook 8.2.3 requires a reasonable probability judgement from trial circumstances; C3 additionally excludes unprovided sources and trial memory. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "1.2 PY; sole source/quote='Randomisation details were omitted.'; rationale='Randomisation used concealed allocation according to an earlier article.' -> NI. All current lexical checks accept PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question; verify",
+   "claim": "The lexical restrictions also force unjustified NI answers. The topic gate excludes intervention context supporting participant awareness. GENERIC rejects legitimate clinical mechanisms merely containing 'commonly', despite the round-5 reversal permitting that reasoning.",
+   "guidance_basis": "Contextual judgement is not restricted to specified vocabulary. Surgical versus nonsurgical interventions inform awareness; schizophrenia-related dropout is an explicit 3.4 example. [RoB 2, §5.1.3 and Box 8](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf).",
+   "failing_test": "2.1 PY, quote='Participants received surgery or physiotherapy.', rationale='Participants could distinguish surgery from physiotherapy.' -> PY. Also add 'commonly' before 'make dropout more likely' in the valid schizophrenia rationale -> retain PY. Both currently become NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_manifest; scripts/rob2_contextual.py:process",
+   "claim": "The round-5 omission fix checks reference membership, not execution. Accepted records can be parked in an unused later pass. An empty first pass leaves NI and marks its targets decided, so replay ignores the parked decisions and accepts their omission.",
+   "guidance_basis": "Policy C4 and section 3 require replay of the registered decisions and prohibit selective omission. Merely listing a record does not establish that its decision contributed to the assessment.",
+   "failing_test": "For a baseline with NI targets, use passes=[{}, {'codex': valid_PY_record, 'agy': valid_PY_record}]. Score the resulting NI objects -> REFUSE unused applicable records. Currently manifest coverage and replay equality both pass."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "Pre-registration timing is checked only for surviving contextual PY/PN answers. Records deciding NI, including decisions that prevent contextual changes, can predate registration and still determine the scored assessment. Listing only post-registration records in held does not reject older records used by replay.",
+   "guidance_basis": "The user's decision and policy section 3 require pre-registration before contextual re-scoring and prohibit using records that predate it. This applies to assessment decisions, including NI.",
+   "failing_test": "Both fresh, registered reader records predate the anchor and answer NI; retain their replayed audit and reference both in the manifest -> REFUSE. Currently no changed PY/PN answer triggers the timestamp check."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_contextual.py:call; scripts/rob2_ctx_score.py:check_manifest",
+   "claim": "Normal retries make the pipeline unscorable. call() stores every failed attempt but returns only the final record; the manifest therefore omits earlier attempts. The new all-held-records check rejects a successfully recovered run.",
+   "guidance_basis": "Policy C4 distinguishes failed calls from valid reader decisions. The registered retry procedure must preserve attempts with their disposition while allowing valid completed readings to be assessed.",
+   "failing_test": "A post-registration call returns RAN_ERROR, then RAN_OK; both records are stored and the final record enters the manifest -> scoring succeeds with the failed attempt explicitly accounted for. Currently check_manifest refuses the failed attempt as omitted."
+  }
+ ]
+}

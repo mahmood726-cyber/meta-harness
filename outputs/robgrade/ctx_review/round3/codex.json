@@ -1,0 +1,56 @@
+{
+ "record_id": "mc-0df95371f4f4b31349ef6616bbe39b06",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify, refers_to",
+   "claim": "The round-2 fix still accepts explicitly memory-based reasoning. One shared word and an incomplete blacklist do not establish that the quote supports the answer. Two readers repeating this unsupported inference pass the scorer.",
+   "guidance_basis": "[Handbook 8.2.3](https://training.cochrane.org/handbook/current/chapter-08): PY/PN must be reasonable given the trial's circumstances. C3 explicitly excludes memory; disclosing this residual does not enforce that restriction.",
+   "failing_test": "5.1=PY; quote='central web-based randomisation'; rationale='My training data confirms central randomisation followed the prespecified analysis plan'; both readers agree -> NI, because the shown context supplies no basis for 5.1. Currently PY passes."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:ni_targets, apply; scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "The branch fix handles closure only. Contextual 2.3=PY can activate previously NA questions 2.4 and 2.5. They are excluded from the original targets, and the scorer forbids their necessary NA-to-NI transitions. Retaining NA instead leaves applicable questions unanswered.",
+   "guidance_basis": "[RoB 2 guidance](https://www.riskofbias.info/welcome/rob-2-0-tool/current-version-of-rob-2), Box 6/Table 6: 2.4 follows Y/PY at 2.3; 2.5 follows Y/PY/NI at 2.4. Applicability must be recomputed in both directions.",
+   "failing_test": "Baseline 2.1=Y, 2.3=NI, 2.4=NA, 2.5=NA; verified contextual 2.3=PY -> activate 2.4 and 2.5, use NI where unsupported, and accept these registered applicability transitions. Add a branch-opening integration test."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:verify_records, _bound_to",
+   "claim": "The scorer binds records only to trial/outcome text. It does not enforce the registered reader prompt, question list, blindness, or that an adjudicator saw the cited readings. Pipeline fresh() checks do not protect independently supplied scored objects.",
+   "guidance_basis": "C4 requires exact-prompt reuse, blind readers and adjudication of their actual disagreement. Pre-registration must cover the decision procedure actually scored, not merely the unchanged prompt-generating code.",
+   "failing_test": "Supply valid post-registration records for the same trial/outcome, but an adjudicator prompt containing different reader answers from the cited records -> REFUSED. Currently matching replies, quotes and trial/outcome suffice."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify, GENERIC",
+   "claim": "The blacklist also rejects legitimate contextual reasoning. It treats phrases such as 'are known' as proof of trial-memory leakage even when they express the clinical mechanism explicitly endorsed by RoB 2.",
+   "guidance_basis": "[RoB 2 guidance](https://www.riskofbias.info/welcome/rob-2-0-tool/current-version-of-rob-2), Box 8, question 3.4: persistent schizophrenia symptoms making dropout more likely is an explicit contextual example. General clinical knowledge is not unverified knowledge of this trial.",
+   "failing_test": "Applicable 3.4, schizophrenia symptom outcome; quote='patients with schizophrenia'; rationale='In schizophrenia, continuing symptoms are known to increase dropout, making missingness depend on the outcome'; PY -> retain as eligible contextual reasoning, not automatic NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:_sources, verify_records",
+   "claim": "A second reader's context can lack any recorded source digest. _sources assigns None, verify propagates it, and verify_records accepts a matching None in the stored context. Only the first context's top-level hash must be nonempty.",
+   "guidance_basis": "C3/C5 and scoring section 3 require every deciding context's source SHA-256 to be an input of its recorded call. The accepted round-1 provenance fix does not enforce this for all contexts.",
+   "failing_test": "Two agreeing PY records; reader 1 has a valid digest; reader 2 has input_digests=[] and stored context[1].source_sha256=null -> REFUSED. Currently verify_records accepts."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:verify_records; tests/test_rob2_contextual.py:_stored",
+   "claim": "Stored rationales are not verified against deciding replies. The 'authentic' fixture actually omits both context rationales and uses an unrelated note, yet passes. Deleting or replacing the documented reasoning therefore escapes the scorer.",
+   "guidance_basis": "[Handbook 8.2.3](https://training.cochrane.org/handbook/current/chapter-08) requires supporting justification. C5 requires stored rationales; the round-2 response claims stored contexts exactly match verified contexts.",
+   "failing_test": "Start with valid agreeing records; delete context[*].rationale or replace it with unsupported reasoning while preserving quotes/hashes -> REFUSED. Update _stored() and add rationale-tampering tests."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/rob2_tab.py:contextual_note",
+   "claim": "The renderer ignores the context array and displays only span, which represents reader 1. When readers agree using different sources, reader 2's supporting quote is never shown. The stated public check on each quote's relevance is therefore incomplete.",
+   "guidance_basis": "C3 makes visible quoted context a defence against unsupported inference; C4 stores both deciding contexts and C5 requires contextual disclosure. The different-source revision needs corresponding display coverage.",
+   "failing_test": "Render the result of test_PLANT_r2_agreement_from_two_sources_keeps_both_contexts -> HTML contains both QUOTE and QUOTE_B, with source attribution. Currently QUOTE_B is absent."
+  }
+ ]
+}

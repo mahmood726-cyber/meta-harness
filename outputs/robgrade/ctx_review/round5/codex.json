@@ -1,0 +1,49 @@
+{
+ "record_id": "mc-5191ed700494aa1c2931f97e7a5fcf16",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "tests/test_rob2_contextual.py:test_r4_registered_protocol_context_is_a_readers_judgement",
+   "claim": "The expected PY is unjustified, and the round-4 decline does not resolve this. Registration and SAP publication establish neither the SAP's timing nor adherence for this result. The fixture supplies no plan contents or alternative result-specific justification.",
+   "guidance_basis": "SQ 5.1 concerns analysis in accordance with a plan finalized before unblinded data were available. Knowing a plan exists is insufficient. [Cochrane SQ 5.1 FAQ](https://www.cochrane.org/learn/courses-and-resources/cochrane-methodology/risk-bias/about-risk-bias-2-rob-2).",
+   "failing_test": "Existing test: quote 'A protocol was registered before enrolment', with only SAP publication asserted and no analysis details -> NI, not PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:registered,_sources,verify_records",
+   "claim": "The scorer rebuilds only the prompt head. Evidence text and input digests are accepted from the record itself, and every embedded source is marked open. Consequently, calls using substituted evidence, additional instructions inside evidence, or an unauthorized source can satisfy the registered-prompt checks.",
+   "guidance_basis": "C3 requires the authorized open sources; C4 requires the registered prompts. Handbook 8.2.3 requires supporting information for the judgement. Matching a quote to an arbitrary recorded evidence block establishes neither source authenticity nor compliance with the registered evidence selection.",
+   "failing_test": "Hold two RAN_OK calls with the correct head but substituted source text under an existing source id/digest; store matching PY contexts -> scorer must refuse the evidence mismatch. Current checks accept it."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify,refers_to,about_question",
+   "claim": "Explicit reliance on prior knowledge still passes. A topic keyword and shared word establish lexical overlap, not that the quote supports the inference. Two agreeing readers and re-running the same checks do not resolve this leakage; the earlier fixes leave C3 unenforced.",
+   "guidance_basis": "C3 prohibits trial-memory answers. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits probability judgements justified by trial circumstances, not unsupported assertions attached to relevant vocabulary.",
+   "failing_test": "1.2 PY; exact source quote 'Randomisation details were omitted.'; rationale 'Prior knowledge of this trial confirms randomisation was concealed.' -> NI. verify currently retains PY, and matching reader records also pass."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:QUESTION_TERMS,about_question",
+   "claim": "The clinical-knowledge decline is too broad. Quoted clinical circumstances can justify an inference explicitly endorsed by RoB 2 without containing a missingness keyword. The gate rejects the guidance's schizophrenia example despite the trial context being quoted.",
+   "guidance_basis": "SQ 3.4 explicitly recognizes schizophrenia treatment trials as circumstances supporting outcome-dependent dropout. This is applying guidance to documented context, not recalling trial facts. [RoB 2 guidance, Box 8](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf).",
+   "failing_test": "For an applicable 3.4 assessing schizophrenia symptoms: quote 'A trial of treatment for schizophrenia'; rationale 'In schizophrenia, continuing symptoms make dropout more likely'; proposed PY -> retain contextual PY. The topic gate returns NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc,main",
+   "claim": "The scorer verifies retained changes but never reconstructs the registered run. An agreed contextual answer can be selectively omitted by restoring baseline NI and removing its audit entry. The round-4 audit fix catches contradictions only when the contradicting audit survives.",
+   "guidance_basis": "C4 requires agreed verified answers to be applied, and section 3 promises scoring of the pre-registered rule. Accepting selectively omitted decisions permits an unregistered selection of changes and invalidates the claimed reproducibility.",
+   "failing_test": "Run manifest and held records contain two verified PY readings for 1.2. Restore 1.2 to baseline NI, delete its audit entry, and recompute labels -> scorer must refuse omission of the recorded decision; currently it accepts."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_contextual.py:_one_pass",
+   "claim": "A missing or failed reader is converted to NI and treated as a substantive disagreement. An adjudicator can then produce a contextual answer with only one successful reader. The scorer subsequently refuses it, but the pipeline has already emitted an assessment that violates C4.",
+   "guidance_basis": "C4 requires two verified readings and says other cases remain NI. Failure to obtain a reading is not a reader's NI judgement. The existing single-reader test covers scorer refusal, not prevention in the live pipeline.",
+   "failing_test": "codex has fresh verified PY; agy is RAN_ERROR or absent; adjudicator returns fresh verified PY -> final answer must remain NI without contextual basis. _one_pass currently applies PY with codex and adjudicator records only."
+  }
+ ]
+}

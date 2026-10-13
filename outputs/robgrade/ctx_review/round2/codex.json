@@ -1,0 +1,63 @@
+{
+ "record_id": "mc-7541d527c49e13252025c8f09d53b108",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:verify_records; scripts/rob2_contextual.py:fresh",
+   "claim": "Records are not bound to the assessed trial, outcome or expected prompt. The scorer checks question/source fields only; fresh() trusts the run manifest's hash rather than comparing the loaded record's actual prompt. The stale-record fix remains incomplete.",
+   "guidance_basis": "[Handbook §8.2.1](https://training.cochrane.org/handbook/current/chapter-08) makes assessments result-specific. C4 additionally requires the exact recorded prompt.",
+   "failing_test": "Attach post-registration 4.5 records assessing pain to a mortality assessment using the same source and question ID -> refuse the mismatched outcome, even if the run manifest supplies the current prompt hash."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:verify_records",
+   "claim": "An editable note selects adjudication, but the scorer never checks that the readers disagreed. Two readers agreeing NI plus an adjudicator answering PY passes when note starts with 'adjudicator', bypassing the repaired combine() rule.",
+   "guidance_basis": "Policy C4 forbids adjudication from overriding agreement. The scored result must reproduce the registered decision procedure; the combine() unit test does not establish this.",
+   "failing_test": "Both RAN_OK readers answer NI; a third record answers PY with valid context; stored answer is PY with note='adjudicator: ...' -> scorer refuses; final answer remains NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:verify_records",
+   "claim": "Recorded replies bypass verify(): empty quotes pass substring checks, rationales are unchecked, and the displayed quote need not equal the deciding reply's quote. Consequently, rejected readings or substituted supporting text can pass the scoring gate.",
+   "guidance_basis": "[Handbook §8.2.3](https://training.cochrane.org/handbook/current/chapter-08) requires supporting justification. C3 requires a verified context quote and rationale; C5 requires preserving that support.",
+   "failing_test": "Both records say PY from the named source but quote='' and rationale=''; stored answer supplies QUOTE and a fabricated note -> refuse, since replay through verify() yields NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The blacklist does not enforce the no-memory rule. An explicit memory-based rationale or an unlisted generalization passes with an irrelevant verbatim quote. Two readers repeating that inference can then pass the scorer. Declaring relevance a residual judgement does not resolve this explicit violation.",
+   "guidance_basis": "[Handbook §8.2.3](https://training.cochrane.org/handbook/current/chapter-08) permits reasonable contextual inference. C3/C6 require NI without supporting supplied context and explicitly exclude memory.",
+   "failing_test": "For 5.1, use SRC and QUOTE about randomisation, answer PY, rationale='I remember that this trial followed its prospectively finalized analysis plan' -> NI; currently verify() accepts PY."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:check_prereg",
+   "claim": "The freeze checks differences without proving every required file existed in the registration commit. Git diff ignores untracked files, so a dependency absent at registration but subsequently supplied untracked can pass. The freeze-membership test misses this.",
+   "guidance_basis": "The user's prospective-rule requirement and policy §3 require the actual rule, tests and frozen inputs to exist unchanged at registration. An empty diff does not establish that.",
+   "failing_test": "Commit the policy while omitting a required dependency; later create that dependency untracked and call check_prereg(anchor) -> refuse because the dependency was absent from the anchor."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:verify_records",
+   "claim": "Valid agreement using different sources is rejected. combine() retains reader A's source, but the scorer requires reader B to name that same source. C4 requires agreement on PY/PN with independently verified quotes, not identical source selection.",
+   "guidance_basis": "Policy C4 permits two independently supported matching answers. [RoB 2 §1.1.1](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf) requires support for responses, not identical citations.",
+   "failing_test": "Codex answers 1.2 PY with valid context from source A; agy answers PY with valid context from source B -> combine, apply and scoring succeed, retaining both records and verifying each against its own source."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:apply; scripts/rob2_contextual.py:main",
+   "claim": "The adjudicated-NI fix stops at combine(). apply() discards the NI decision and its record links; main() persists only its answer value in contextual. The assessment therefore loses the adjudicator's rationale and decision attribution, despite the unit test passing.",
+   "guidance_basis": "C4 explicitly requires an adjudicator's NI to be recorded as its own decision. [RoB 2 §1.1.1](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf) calls for supporting explanations.",
+   "failing_test": "Readers PY/PN; adjudicator NI with rationale='insufficient context' -> saved contextual decision audit retains decided_by, rationale and all record IDs while preserving the baseline NI answer."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "outputs/robgrade/CONTEXTUAL_POLICY.md:§3 expectation",
+   "claim": "The claim that judgements can move only where NI was decisive is false under the implemented favourable-resolution definition. An NI that currently contributes no concern can become an adverse contextual answer and worsen the judgement.",
+   "guidance_basis": "[RoB 2 Table 4](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf) maps D1 Y/Y/NI to Low and Y/Y/PY to Some concerns.",
+   "failing_test": "Baseline D1=(1.1 Y, 1.2 Y, 1.3 NI), ni_driven=false; replace 1.3 with supported contextual PY -> SOME_CONCERNS. The registered expectation must allow movement outside baseline NI-driven pairs."
+  }
+ ]
+}

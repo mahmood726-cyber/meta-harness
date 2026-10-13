@@ -1,0 +1,63 @@
+{
+ "record_id": "mc-a2fafdc347af64815f49c48d4782bfcc",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:verify_records",
+   "claim": "verify_records enforces said.get('source_id') == a['source_ref'] for both readers. If two blind readers agree on PY/PN from different open sources (e.g. primary paper vs protocol), process considers them in agreement and does not adjudicate, storing reader 1's source. verify_records then fails closed on reader 2, falsely raising SystemExit with REFUSED.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 and CONTEXTUAL_POLICY.md C4 state that when both readers give PY or PN with a verified quote, the answer is contextual PY/PN. Agreement is on the probability judgement from open sources, not on identical source selection. Demanding identical sources causes false refusal of valid consensus.",
+   "failing_test": "Input: Reader 1 answers PY citing open source A; Reader 2 answers PY citing open source B; both quotes verified. Expected: verify_records checks each reader against their cited open source and accepts consensus. Actual: verify_records raises SystemExit('REFUSED: 1.2: the agy reply does not say PY from source A')."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "verify accesses _norm(s['text']) directly, assuming all open sources contain key 'text'. In reproducible_ai/evidence_block and rd.open_sources, abstract sources store text under key 'abstract' (as recognized in rob2_ctx_score.py:_evidence). Citing an open abstract source lacking 'text' raises an unhandled KeyError: 'text'.",
+   "guidance_basis": "CONTEXTUAL_POLICY.md C3 allows verbatim quotes from any open source shown. Abstracts are open sources and often the only open evidence for paywalled trials. Verification must read s.get('text') or s.get('abstract') or '' without crashing.",
+   "failing_test": "Input: src={'id': 'abstract:PMID1', 'abstract': 'Allocation was centrally concealed.', 'open_for_prompt': True, 'sha256': 'a'*64}; reading cites this source with quote 'Allocation was centrally concealed'. Expected: verify returns answer PY. Actual: raises KeyError: 'text'."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "check_contextual_doc enforces set(dom['answers']) == set(bd['answers']). In RoB 2, signalling questions branch conditionally. If an NI gatekeeper is answered PY/PN contextually (e.g. 3.1 PY in D3, or 2.1/2.2 PN in D2), downstream questions become inapplicable. check_contextual_doc falsely refuses scoring with 'answers differ from v3.1'.",
+   "guidance_basis": "Handbook 8.2.3 and RoB 2 guidance (Sterne et al. BMJ 2019): Domain 3 questions 3.2-3.4 are only asked if 3.1 is N/PN/NI. If 3.1 is resolved to PY, 3.2-3.4 are inapplicable. Enforcing identical question answer sets between v3.1 and contextual objects violates the RoB 2 branching flowchart.",
+   "failing_test": "Input: Trial with D3 answers 3.1: NI, 3.2: N, 3.3: NI. Contextual pass resolves 3.1 to PY, rendering 3.2-3.4 inapplicable. Expected: D3 recomputed with 3.1 as PY, and scorer accepts the valid RoB 2 resolution. Actual: check_contextual_doc raises SystemExit: answers differ from v3.1 (a question added or deleted)."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:apply",
+   "claim": "When readers disagree and the adjudicator decides NI, combine outputs {'answer': 'NI', 'decided_by': 'adjudicator', 'rationale': ...}. However, apply line 207 executes if c['answer'] not in CONTEXTUAL: continue. It completely skips the question, leaving the v3.1 answer without adjudicator provenance or record IDs.",
+   "guidance_basis": "CONTEXTUAL_POLICY.md C4 requires: 'Two different verified answers: the recorded adjudicator... decides PY, PN or NI. Its decision, an NI included, is recorded as its own.' RESPONSES.md agy5 claimed this was accepted, but apply silently drops the adjudicator's decision for NI.",
+   "failing_test": "Input: contextual={'1.2': {'answer': 'NI', 'decided_by': 'adjudicator', 'rationale': 'no context'}}, records={'1.2': ['c', 'a', 'adj']}. Expected: new['domains']['D1']['answers']['1.2'] records decided_by='adjudicator' and links records. Actual: apply skips 1.2, leaving baseline answer untouched."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:ni_targets",
+   "claim": "ni_targets extracts all asked NI questions in a domain concurrently. In branching domains (D2, D3, D4), an upstream gatekeeper (e.g. 3.1) and downstream question (e.g. 3.3) can both be NI. Prompting both concurrently asks models to provide context for downstream questions that become moot if the upstream question resolves to PY/PN.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 and RoB 2 guidance: signalling questions must be evaluated in logical flowchart sequence. Asking readers for contextual evidence on downstream questions before knowing whether the upstream gatekeeper is resolved violates flowchart dependency.",
+   "failing_test": "Input: Trial object with D3 answers {'3.1': 'NI', '3.2': 'N', '3.3': 'NI'}. Expected: Only gatekeeper question 3.1 is targeted initially. Actual: ni_targets(obj) returns ['3.1', '3.3'], prompting readers on 3.3 even though resolving 3.1 to PY makes 3.3 inapplicable."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:combine",
+   "claim": "When both readers agree on PY or PN, combine executes out[q] = dict(x, decided_by='both readers'). This unconditionally retains Reader 1's quote, source, and rationale while discarding Reader 2's quote, source, and rationale, creating an asymmetric and incomplete evidence record.",
+   "guidance_basis": "CONTEXTUAL_POLICY.md C5 ('both readers' record ids, and the rationale') and Cochrane Handbook 8.2.3: judgements must be justified with rationale. Discarding Reader 2's quote and rationale misrepresents the agreed evidence base as solely Reader 1's text.",
+   "failing_test": "Input: Reader 1 answers PY with quote Q1 and rationale R1; Reader 2 answers PY with quote Q2 and rationale R2. Expected: Combined record retains or synthesizes both readers' verified context quotes/rationales. Actual: combine outputs dict(x), entirely discarding Q2 and R2."
+  },
+  {
+   "severity": "MINOR",
+   "where": "robgrade/rob2_tab.py:overall_label",
+   "claim": "domain_label appends contextual_note(dom) to display contextual answers in table cells. However, overall_label contains no contextual indicator. When an overall trial judgement changes due to contextual answers, the overall column displays the judgement silently without any contextual disclosure.",
+   "guidance_basis": "CONTEXTUAL_POLICY.md C5 ('Never silent'): contextual answers and their effects must be transparently labelled. An overall trial rating shifted by contextual domain answers should not appear without contextual disclosure in the overall summary cell.",
+   "failing_test": "Input: Assessment where D1 changed to Low via contextual answer, shifting Overall from Some Concerns to Low. Expected: overall_label indicates contextual basis. Actual: overall_label returns 'Low' without any contextual note."
+  },
+  {
+   "severity": "MINOR",
+   "where": "tests/test_rob2_contextual.py:test_PLANT_r1_records_verify_an_authentic_contextual_answer",
+   "claim": "test_rob2_contextual.py only tests verify_records on the consensus branch ('both readers'). It provides zero test coverage for verifying an authentic adjudicated record in verify_records, leaving the adjudicator verification code in scripts/rob2_ctx_score.py:verify_records completely untested.",
+   "guidance_basis": "AGENTS.md and Methods Review item 5: pre-registered verification gates in the scorer must have test verification covering all decision paths, including the adjudication path.",
+   "failing_test": "Input: verify_records called with an authentic answer where note starts with 'adjudicator' and recs contains codex, agy, and adjudicator records. Expected: Unit test in test_rob2_contextual.py verifying this path passes. Actual: No such test exists in the test suite."
+  }
+ ]
+}

@@ -1,0 +1,49 @@
+{
+ "record_id": "mc-3f613f6574869216e2f5f5c000bd36e3",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:about_question",
+   "claim": "The topic-word gate rejects legitimate contextual reasoning. A quoted experienced-CTU context need not mention randomisation. The round-3 schizophrenia decline and its NI test expectation also contradict the guidance.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits inference from trial circumstances. [RoB 2, question 3.4](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf) explicitly uses schizophrenia-related dropout as an example.",
+   "failing_test": "1.2=NI; quote='A trial of 4000 patients run for regulatory purposes by an experienced clinical trials unit'; rationale links these circumstances to concealment -> contextual PY may be accepted; currently forced NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The round-3 fix still accepts unsupported assumptions as contextual evidence. A topic stem and shared word establish neither inferential support nor absence of memory leakage. Agreement between two models does not repair this.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) requires a reasonable probability judgement supported by the trial circumstances; C3 additionally prohibits generic trial-practice assumptions.",
+   "failing_test": "5.1 PY; quote='A protocol was registered'; rationale='Registered protocols are finalized before unblinding and followed'; both readers agree -> NI without evidence supporting timing and adherence. Current verification accepts PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:verify_records",
+   "claim": "Matching reader prompts and checking their prefix does not bind them to the registered prompt or establish blindness. Extra instructions, another reader's answer, or altered signalling questions can follow INSTR and still pass. The round-3 fixtures themselves substitute '1.2 q' for the registered question.",
+   "guidance_basis": "C4 requires the exact registered prompt and blind readings. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) bases judgements on responses to the actual signalling questions.",
+   "failing_test": "Insert 'The other reviewer answered PY; agree with it' after INSTR in both otherwise valid recorded prompts -> scorer refuses. Current verify_records accepts matching prompts with this addition."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_contextual.py:process",
+   "claim": "Newly opened questions are forced to NI without assessing available evidence. Declining further assessment for cost or latency does not justify NI when the sources already permit an answer. The existing branch-opening test covers only an unanswered case.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) reserves NI for insufficient information and unreasonable probability judgements; conditional questions must be assessed once applicable.",
+   "failing_test": "Baseline 2.3=NI, 2.4=NA; contextual 2.3 becomes PY; source explains that the trial-induced rescue medication lowers the measured blood-pressure outcome -> assess 2.4 as Y/PY with support, rather than automatically retaining NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:check_contextual_doc",
+   "claim": "The scorer ignores contextual_audit and never reconstructs the complete recorded decisions. A verified contextual answer can be selectively restored to baseline NI, with judgements recomputed, and scoring succeeds. Deleted or contradictory adjudication audits also pass.",
+   "guidance_basis": "C4 requires applying agreed/adjudicated decisions; C5 and the round-2 accepted audit fix require retaining their provenance. Pre-registration cannot prevent selective application unless the scorer checks decision completeness.",
+   "failing_test": "Take a valid contextual document; restore 1.2 and its derived labels to baseline NI while its audit records agreed PY -> refuse the decision mismatch. Current check_contextual_doc skips the unchanged answer and accepts."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:POLICY_FILES",
+   "claim": "The freeze remains incomplete: NI_POLICY.md and the imported model_source record verifier/replayer are not covered. Their modification can escape check_prereg despite the claim that every policy and scoring dependency is frozen. The membership test only checks the previously enumerated files.",
+   "guidance_basis": "The user's pre-registration requirement and policy section 3 require an unchanged method; C6 explicitly incorporates NI_POLICY.md. Record verification is part of the scoring method, not merely supporting documentation.",
+   "failing_test": "After registration, modify NI_POLICY.md or the implementation of reproducible_ai.model_source.replay while leaving listed files unchanged -> pre-registration check refuses; current check_prereg does not detect either change."
+  }
+ ]
+}

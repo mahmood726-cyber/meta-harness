@@ -47,3 +47,36 @@ def test_PLANT_overall_label_names_the_domains_and_the_review_flag():
 def test_PLANT_the_preview_never_writes_to_docs():
     src = open(os.path.join(ROOT, "robgrade", "rob2_tab.py"), encoding="utf-8").read()
     assert '"docs"' not in src and "'docs'" not in src
+
+
+# ---- contextual answers (CONTEXTUAL_POLICY C5): never silent
+def test_PLANT_a_contextual_answer_is_named_in_the_label():
+    a = rf.answer("PY", how="contextual", span="central web-based randomisation", source_sha256="a" * 64)
+    a["basis"] = "contextual"
+    d = rf.domain_object("D1", {"1.1": {"answer": "Y", "span": "s", "source_sha256": "0" * 64}, "1.2": a,
+                                "1.3": {"answer": "N", "span": "s", "source_sha256": "0" * 64}})
+    assert tab.domain_label(d) == "Low [contextual: 1.2 probably yes, from 'central web-based randomisation']"
+
+
+def test_PLANT_contextual_and_ni_driven_are_both_shown():
+    # 5.1 PY (contextual) with 5.2 NI: Some concerns, and Low if 5.2 were N -- NI-driven (guidance Table 14)
+    a = rf.answer("PY", how="contextual", span="a registered statistical analysis plan", source_sha256="a" * 64)
+    a["basis"] = "contextual"
+    d = rf.domain_object("D5", {"5.1": a, "5.2": {"answer": "NI"}, "5.3": {"answer": "N", "span": "s", "source_sha256": "0" * 64}})
+    lab = tab.domain_label(d)
+    assert lab.startswith("Some concerns (NI-driven: 5.2 not reported;") and "[contextual: 5.1 probably yes, from" in lab
+
+
+def test_PLANT_the_contextual_preview_renders_the_contextual_objects(tmp_path, monkeypatch):
+    # codex/agy round 1: the display path must read the contextual objects, and the note must reach the HTML
+    import json
+    a = rf.answer("PY", how="contextual", span="central web-based randomisation", source_sha256="a" * 64)
+    a["basis"] = "contextual"
+    o = rf.assessment("PMID 1", "o", {"1.1": rf.answer("Y", how="t", span="s", source_sha256="0" * 64), "1.2": a,
+                                      "1.3": rf.answer("N", how="t", span="s", source_sha256="0" * 64)})
+    (tmp_path / "outputs" / "robgrade" / "rob2_ctx").mkdir(parents=True)
+    (tmp_path / "outputs" / "robgrade" / "rob2_ctx" / "s.json").write_text(json.dumps({"trials": {"1": o}}), encoding="utf-8")
+    monkeypatch.setattr(tab, "ROOT", str(tmp_path))
+    tab.main(["--ctx", "s"])
+    out = (tmp_path / "outputs" / "robgrade" / "tab_preview_ctx" / "s.html").read_text(encoding="utf-8")
+    assert "[contextual: 1.2 probably yes, from &#x27;central web-based randomisation&#x27;]" in out
