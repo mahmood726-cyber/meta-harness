@@ -11,6 +11,8 @@ so (DISPATCH_V14_EXTRACTOR_ROUTE: a script-typed `*_verified` row was HAND_ENTER
   label_adr_table        an adverse-reaction row of a held regulatory label table: caption naming the trial, then the
                          arm header 'Brand N = n ... Comparator N = n', then the row '<label> n (p) n (p)', each printed
                          p reconciling with n / N (V14-03, finerenone FIDELIO-DKD hyperkalaemia)
+  cache_ae_clause        a committed safety clause: explicit per-arm fractions or patient counts with percentages
+                         that uniquely identify integer denominators; cache bytes and selected text are pinned
 """
 from __future__ import annotations
 
@@ -18,10 +20,12 @@ import hashlib
 import json
 import os
 import re
+from fractions import Fraction
+from pathlib import Path
 from typing import Any
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REPLAY_PROV = frozenset({"held_abstract_clause", "held_fulltext_clause", "label_adr_table"})
+REPLAY_PROV = frozenset({"held_abstract_clause", "held_fulltext_clause", "label_adr_table", "cache_ae_clause"})
 _HELD = {"held_abstract_clause": "outputs/held_abstracts/", "held_fulltext_clause": "outputs/held_fulltexts/",
          "label_adr_table": "outputs/held_labels/"}
 _MANIFEST_SHA = {"held_abstract_clause": "sha256", "held_fulltext_clause": "sha256", "label_adr_table": "text_sha256"}
@@ -124,6 +128,105 @@ def read_label_adr_table(text: str, spec: dict[str, str]) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------------------------------------------------- replay
+def _unique_denominator(events: int, percentage: str) -> int:
+    """Invert a rounded percentage only when exactly one integer N is possible.
+
+    Include both rounding boundaries conservatively: the quote does not specify
+    its tie-breaking convention. Zero percentages cannot identify a denominator.
+    """
+    p = Fraction(percentage)
+    half_unit = Fraction(1, 2 * 10 ** (len(percentage.split('.')[1]) if '.' in percentage else 0))
+    if events <= 0 or p <= half_unit or p > 100:
+        raise ReadRefused("percentage does not identify one denominator")
+    lower = events * 100 / (p + half_unit)
+    upper = events * 100 / (p - half_unit)
+    lo = max(events, -(-lower.numerator // lower.denominator))
+    hi = upper.numerator // upper.denominator
+    if lo != hi:
+        raise ReadRefused("rounded percentage permits multiple denominators")
+    return lo
+
+
+def read_cache_ae_clause(span: str, spec: dict[str, str]) -> dict[str, int]:
+    """Two patient-count grammars designed from permitted short committed quotes.
+
+    No served numbers are inputs. Arm names and endpoint identity are literal
+    selectors. Unsupported prose/tables are refused, not searched for matching digits.
+    """
+    if not isinstance(spec, dict) or spec.get("outcome") not in ("Adverse events", "Any adverse events"):
+        raise ReadRefused("unsupported adverse-event endpoint")
+    if any(not isinstance(spec.get(k), str) or not spec[k].strip() for k in ("arm_t", "arm_c")):
+        raise ReadRefused("missing literal arm names")
+    arm_t, arm_c = (re.escape(spec[k]) for k in ("arm_t", "arm_c"))
+    integer = r"(0|[1-9]\d*)"
+    pct = r"(\d+(?:\.\d+)?)"
+    if spec.get("reader") == "ae_safety_fractions":
+        rx = (r"Of " + integer + r" participants included in the safety analysis, only " + pct
+              + r"% \(" + integer + r"/" + integer + r"\) experienced an AE: " + pct + r"% \("
+              + integer + r"/" + integer + r"\) in the " + arm_t + r" and " + pct + r"% \("
+              + integer + r"/" + integer + r"\) in the " + arm_c + r" group\.")
+        m = re.fullmatch(rx, span)
+        if not m:
+            raise ReadRefused("unsupported safety-fraction clause")
+        total, p, events, denom, pt, et, nt, pc, ec, nc = m.groups()
+        total, events, denom, et, nt, ec, nc = map(int, (total, events, denom, et, nt, ec, nc))
+        if (total != denom or total != nt + nc or events != et + ec
+                or not 0 <= et <= nt or not 0 <= ec <= nc
+                or not all(_pct_ok(n, d, q) for n, d, q in ((events, denom, p), (et, nt, pt), (ec, nc, pc)))):
+            raise ReadRefused("safety counts, totals or percentages disagree")
+    elif spec.get("reader") == "ae_patient_percentages":
+        # The second sentence of the permitted quote is interpretation, not a denominator.
+        rx = (r"Adverse events were similar between " + arm_t + r" and " + arm_c + r" \("
+              + integer + r" \(" + pct + r"%\) versus " + integer + r" \(" + pct
+              + r"%\) patients, respectively\)\.")
+        m = re.fullmatch(rx + r"(?: These results indicate that [^.\r\n]+\.)?", span)
+        if not m:
+            raise ReadRefused("unsupported patient-percentage clause")
+        et, pt, ec, pc = m.groups()
+        et, ec = int(et), int(ec)
+        nt, nc = _unique_denominator(et, pt), _unique_denominator(ec, pc)
+    else:
+        raise ReadRefused("unknown adverse-event reader")
+    return {"ai": et, "n1i": nt, "ci": ec, "n2i": nc}
+
+
+def _cache_held_text(t: dict[str, Any], root: str) -> tuple[str, str]:
+    """Pin cache bytes independently of the row, then select one PMID abstract if needed."""
+    ref = t.get("document_ref")
+    spec = t.get("replay") or {}
+    if not isinstance(ref, str) or not re.fullmatch(r"cache/[a-z0-9-]+/(?:records\.json|ft_\d+\.txt)", ref):
+        raise ReadRefused("not an allowed cache document")
+    if not isinstance(spec, dict) or not re.fullmatch(r"\d+", str(spec.get("pmid", ""))):
+        raise ReadRefused("missing PMID selector")
+    pid = spec["pmid"]
+    if str(t.get("id", "")).removeprefix("PMID ") != pid:
+        raise ReadRefused("row and document PMID selectors differ")
+    path = Path(root) / ref
+    if not path.resolve().is_relative_to(Path(root).resolve()):
+        raise ReadRefused("cache document escapes root")
+    try:
+        raw = path.read_bytes()
+        manifest = json.loads((Path(root) / "cache" / "b1_replay_manifest.json").read_text(encoding="utf-8"))
+        pin = manifest["documents"][ref]
+        pinned = pin["sha256"]
+        if hashlib.sha256(raw).hexdigest() != pinned or t.get("document_sha256") != pinned:
+            raise ReadRefused("cache document digest differs from pinned bytes")
+        text = raw.decode("utf-8")
+        if ref.endswith("records.json"):
+            records = [r for r in json.loads(text)["records"] if str(r.get("id")) == pid]
+            if len(records) != 1 or not isinstance(records[0].get("abstract"), str):
+                raise ReadRefused("PMID does not select exactly one held abstract")
+            text = records[0]["abstract"]
+        elif not ref.endswith(f"/ft_{pid}.txt"):
+            raise ReadRefused("fulltext filename and PMID differ")
+        if hashlib.sha256(text.encode("utf-8")).hexdigest() != pin["text_sha256"]:
+            raise ReadRefused("selected text differs from pinned digest")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        # Never include source text (including JSON decoder snippets) in diagnostics.
+        raise ReadRefused("cache document or pinned manifest failed validation") from None
+    return text, pinned
+
+
 def _held_text(kind: str, ref: str, root: str) -> tuple[str, str]:
     ref = str(ref or "")
     if not ref.startswith(_HELD[kind]) or ".." in ref or ref.count("/") != 2:
@@ -154,15 +257,27 @@ def replay(t: dict[str, Any], root: str = ROOT) -> tuple[bool, str]:
     if kind not in REPLAY_PROV:
         return False, f"{kind!r} is not a replayable extractor"
     try:
-        text, pinned = _held_text(kind, t.get("document_ref"), root)
-        sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        if kind == "cache_ae_clause":
+            text, pinned = _cache_held_text(t, root)
+            sha = pinned  # raw bytes already checked, before selecting a records.json abstract
+        else:
+            text, pinned = _held_text(kind, t.get("document_ref"), root)
+            sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
         if sha != pinned or t.get("document_sha256") != pinned:
             raise ReadRefused(f"held text sha256 {sha[:12]} / row {str(t.get('document_sha256'))[:12]} != pinned "
                               f"{pinned[:12]}")
         span = str(t.get("source_span") or "")
         if not span or span not in text:
             raise ReadRefused("the row's source_span is not verbatim in the held text")
-        if kind in _CLAUSE_KINDS:
+        if kind == "cache_ae_clause":
+            if any(t.get(k) is not None for k in ("effect", "ci_low", "ci_high")):
+                raise ReadRefused("an adverse-event count clause never serves an effect")
+            if t.get("outcome") is not None and t["outcome"] != (t.get("replay") or {}).get("outcome"):
+                raise ReadRefused("row and replay endpoint selectors differ")
+            want = read_cache_ae_clause(span, t.get("replay") or {})
+            if any(type(t.get(k)) is not int or t[k] != v for k, v in want.items()):
+                raise ReadRefused("re-derived counts differ from served integers")
+        elif kind in _CLAUSE_KINDS:
             # this kind serves an effect and its CI only: a row carrying counts is not a clause read (extr-r1#1)
             if any(t.get(k) is not None for k in ("ai", "n1i", "ci", "n2i")):
                 raise ReadRefused("a held_abstract_clause row serves an effect and its CI, never counts")
