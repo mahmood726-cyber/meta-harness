@@ -85,3 +85,20 @@ def test_known_limit_a_trailing_denial_of_creative_commons():
     closed = ("<permissions><license-p>Creative Commons licences do not apply to this article. Non-commercial use only."
               "</license-p></permissions>")
     assert cl.classify_permissions(closed)[0] == "NOT_OPEN"
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (agy d8x-cap-r3-agy2 #2; stop at three): 'without' / 'no' before the "
+                                       "name in a NON-negating phrase ('without restriction') reads as a denial -- a "
+                                       "restricted CC copy becomes NOT_OPEN (fail-closed: never reaches a prompt)")
+def test_known_limit_a_non_negating_without_before_creative_commons():
+    perm = ("<permissions><license-p>Freely available without restriction under the Creative Commons Attribution "
+            "Non-Commercial licence.</license-p></permissions>")
+    assert cl.classify_permissions(perm)[0] == "CC_RESTRICTED"
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (agy d8x-cap-r3-agy2 #5; stop at three): the CC-naming check reads raw "
+                                       "text, so an entity-escaped 'CC&#x2011;BY&#x2011;NC' with no link is NOT_OPEN "
+                                       "(fail-closed: never reaches a prompt)")
+def test_known_limit_an_escaped_hyphen_in_the_licence_name():
+    perm = "<permissions><license-p>This article is licensed CC&#x2011;BY&#x2011;NC 4.0.</license-p></permissions>"
+    assert cl.classify_permissions(perm)[0] == "CC_RESTRICTED"
