@@ -141,3 +141,20 @@ def test_known_limit_spaced_minus_percentage_difference():
                             "numbers": {"effect": -8, "ci_low": -20, "ci_high": 4}},
                            "a risk difference - 8%, 95% confidence interval - 20% to 4% b")
     assert ok, why
+
+
+def test_PLANT_a_malformed_reply_never_yields_its_nested_example(monkeypatch):
+    """codex v15cpre-cap-r1 #1 (P1): after a malformed OUTER object failed to decode, the brace scan promoted a nested
+    example inside it to the answer -- a malformed refusal became a BIND. Only the first object is ever decoded."""
+    raw = ('Answer: {"decision": "REFUSE", "example": {"decision": "BIND", "span": "12 deaths", '
+           '"numbers": {"events_t": 12}}, "why": ')                       # the OUTER object is truncated
+    assert t._parse(_rec(raw, monkeypatch))["decision"] == "UNPARSEABLE"
+
+
+def test_PLANT_a_row_without_its_stored_records_is_not_kept_as_agreed():
+    """codex v15cpre-cap-r1 #2 (P1): reclassify kept the committed state of a row with no codex_record -- an AGREED_BIND
+    with no stored evidence stayed CONFIRMS_SERVED. Without the records agreement cannot be rebuilt: UNRESOLVED."""
+    row = {"slug": "s", "outcome": "o", "id": "PMID 1", "state": "AGREED_BIND", "served": {"effect": 0.5},
+           "proposal": {"numbers": {"effect": 0.5}}}
+    assert t.reclassify(row)["state"] == "UNRESOLVED"
+    assert t.reclassify(dict(row, state="NEEDS_OPEN_SOURCE"))["state"] == "NEEDS_OPEN_SOURCE"
