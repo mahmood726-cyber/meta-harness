@@ -13,7 +13,7 @@ Pilot: pcsk9, omega3, corticosteroids-covid (the most open copies, one active G1
 | colchicine-postop-af | 1 | 1 | 1 | 0 | 0 | 0 | 0 |
 | colchicine-secondary-cv-prevention | 2 | 2 | 2 | 1 | 0 | 0 | 0 |
 | corticosteroids-cap-mortality | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
-| corticosteroids-covid19-mortality | 4 | 4 | 4 | 4 | 0 | 0 | 0 |
+| corticosteroids-covid19-mortality | 4 | 4 | 4 | 4 | 1 | 0 | 0 |
 | iv-iron-hfref-hosp | 2 | 2 | 2 | 2 | 0 | 1 | 0 |
 | metformin-pcos-ovulation | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
 | omega3-cardiovascular-events | 10 | 8 | 3 | 2 | 0 | 0 | 0 |
@@ -21,11 +21,11 @@ Pilot: pcsk9, omega3, corticosteroids-covid (the most open copies, one active G1
 | probiotics-aad-prevention | 2 | 1 | 1 | 1 | 0 | 0 | 0 |
 | statins-primary-prevention-elderly | 3 | 2 | 2 | 1 | 0 | 0 | 0 |
 | ticagrelor-vs-clopidogrel-acs | 3 | 2 | 0 | 0 | 0 | 0 | 0 |
-| **total** | 42 | 31 | 21 | 15 | 1 | 1 | 0 |
+| **total** | 42 | 31 | 21 | 15 | 2 | 1 | 0 |
 
-**Funnel:** 42 -> open copy 31 -> not eligibility-blocked 21 -> text held 15 -> typed find 1 -> model read 1 -> **admissible 0**.
+**Funnel:** 42 -> open copy 31 -> not eligibility-blocked 21 -> text held 15 -> typed find 2 -> model read 1 -> **admissible 0**.
 
-**Decisions by count:** {"TYPED_FOUND_REFUSED_UNIT_OF_ANALYSIS": 1, "NOT_OPEN": 11, "NO_TEXT_LAYER_OR_NOT_FETCHED": 6, "TYPED_NONE_NOT_MODEL_LICENSED": 12, "MODEL_NOT_SHOWN:HELD_NOT_OPEN_LICENSED": 1, "MODEL_NOT_ADMITTED_NO_GATED_READING": 1, "ELIGIBILITY_BLOCKED_QUEUED_TO_SCREENING": 10}
+**Decisions by count:** {"TYPED_FOUND_REFUSED_UNIT_OF_ANALYSIS": 1, "NOT_OPEN": 11, "NO_TEXT_LAYER_OR_NOT_FETCHED": 6, "TYPED_NONE_NOT_MODEL_LICENSED": 11, "TYPED_FOUND_PENDING_RULING": 1, "MODEL_NOT_SHOWN:HELD_NOT_OPEN_LICENSED": 1, "MODEL_NOT_ADMITTED_NO_GATED_READING": 1, "ELIGIBILITY_BLOCKED_QUEUED_TO_SCREENING": 10}
 
 **The finds and the model reads:**
 - **SMART (balanced-crystalloids):** the whole-trial count, read deterministically from the PMC author manuscript (its
@@ -38,10 +38,26 @@ Pilot: pcsk9, omega3, corticosteroids-covid (the most open copies, one active G1
   confirms the decisive sentence was in the shown evidence.
 - **REMAP-CAP hydrocortisone (corticosteroids-covid, ACTIVE):** CC BY by Unpaywall, but the held copy is a university
   repository landing page. The harness does not show it (`HELD_NOT_OPEN_LICENSED`), so there was no model read.
-- **CoDEX, CAPE COVID, Metcovid (corticosteroids-covid, ACTIVE):** open copies with no licence. For CoDEX and CAPE COVID
-  the Unpaywall copy is the PMC article web page (an emergency-licence PMC copy outside the OA subset), collapsed to a
-  single line by the HTML-to-text step, so the line-based typed reader cannot see their tables. Any find there would be
-  PENDING_RULING (no licence) in any case. They had been "NO_OPEN_SOURCE" in the acquisition lane through the DOI lookup
-  gap.
+- **CoDEX (corticosteroids-covid, ACTIVE): TYPED_FOUND_PENDING_RULING.** Its copy is the JAMA article as PMC hosts it
+  (emergency licence, outside the OA subset; Unpaywall: no licence). After the HTML layout fix (below), table_tuple
+  reads the all-cause mortality row of its outcomes table deterministically. The arm totals equal the randomised
+  population. **Not admitted:** an unlicensed copy's find waits on the Captain's ruling (decision 1 of the dispatch).
+- **CAPE COVID (corticosteroids-covid, ACTIVE):** its table now reads, but its death row is at day 21 (the protocol is
+  28 days), so it does not match. A named-divergence question, not proposed.
+- **Metcovid (corticosteroids-covid, ACTIVE):** an open copy with no licence; no table row reached.
 
-**Phase 3, second scope: 0 admissible.**
+**Parser defect fixed: HTML to text** (`kgap/k_gap._html_text`, HTML_LAYOUT 3; planted in
+`tests/test_html_text_layout.py`).
+- **Layout 1** flattened every tag and newline of an HTML copy into ONE line, so no line- or table-based reader could
+  see a table in any HTML copy.
+- **Layout 2** put rows on lines but left blank lines and one-cell section rows ('Primary outcome') without '|'; the
+  table reader then ended the table at the first section row.
+- **Layout 3:** rows on lines, cells '|'-separated, no blank lines, and section rows keep '|'.
+
+A cached copy under an older layout is re-fetched, never reused. The runner now runs table_tuple on any text that keeps
+'|' rows, not only on PMC text (planted).
+
+All **12** phase-3 trials whose text came from an HTML copy were re-read under layout 3 (`PHASE3_HTML_REREAD.json`):
+1 find (CoDEX, pending ruling); 11 nothing (landing pages, a day-21 row, prose only).
+
+**Phase 3, second scope: 0 admissible; 1 find pending the unlicensed-copy ruling (CoDEX).**

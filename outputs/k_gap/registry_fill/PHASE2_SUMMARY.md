@@ -16,7 +16,7 @@ Population: comparator trials we do not pool and that are not named out of scope
 | 2 | NICE (typed-only) | named 21 / 140 -> typed 0 | | 0 |
 | 3 | open sources, identity-less trials | 61 PMID-bearing identity-less trials: 23 with an open copy, 1 CC BY. Under the current gates, 0 readable acquisition targets with text | | 0 |
 | 4 | published metas (SECONDARY) | not started | | -- |
-| 3 | open sources, registered trials | 42 -> open 31 -> text 15 -> typed 1 -> model read 1 | | 0 |
+| 3 | open sources, registered trials | 42 -> open 31 -> text 15 -> typed 2 (1 refused on unit of analysis: SMART; 1 pending the unlicensed-copy ruling: CoDEX) -> model read 1 | | 0 |
 | **cumulative** | | | | **0 of 141 counted** (1 passed the acquisition gates and was refused by the tracker on unit of analysis) |
 
 **Where the missing trials stand:**

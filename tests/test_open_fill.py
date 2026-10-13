@@ -64,3 +64,14 @@ def test_PLANT_cluster_design_counts_are_never_admissible(monkeypatch):
     r = {"label": "S", "pmid": "1", "class": "OPEN_CC_OTHER_REGEX_ONLY", "europepmc": {"doi": "10.1/x"},
          "unpaywall": {"license": "cc-by-nc"}, "blocker_now": "UNIT_OF_ANALYSIS_ADJUSTMENT_UNAVAILABLE:cluster_crossover"}
     assert of.run_trial("t", CFG, r)["decision"] == "TYPED_FOUND_REFUSED_UNIT_OF_ANALYSIS"
+
+
+def test_PLANT_an_html_copys_table_is_read_by_the_table_reader(monkeypatch):
+    # 13 Oct: after the HTML layout fix the CoDEX page kept its tables, but the runner only tried table_tuple on PMC text
+    import g1_trial_acquire as ta
+    from kgap import k_gap
+    page = ("<p>Results.</p><table><tr><th>Outcome</th><th>Drug A (n = 200)</th><th>Control B (n = 200)</th></tr>"
+            "<tr><td>Ovulation rate</td><td>40 (20.0)</td><td>50 (25.0)</td></tr></table>")
+    monkeypatch.setattr(ta, "outcome_row_terms", lambda cfg: ["ovulation rate", "ovulation"])
+    rr, _span, reader = of.typed_read(k_gap._html_text(page), "UNPAYWALL", CFG)
+    assert reader == "table_tuple" and rr == {"events_t": 40, "n_t": 200, "events_c": 50, "n_c": 200}

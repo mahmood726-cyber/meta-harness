@@ -77,7 +77,9 @@ def typed_read(text, origin, cfg):
     import g1_regulatory_source as rs
     po = cfg.get("primary_outcome") or {}
     terms = ta.outcome_row_terms(cfg)
-    if origin == "PMC":
+    # a table is read wherever the text KEEPS one: PMC structured text, and (since kgap.k_gap HTML layout 2) an HTML copy
+    # whose rows are '|' lines. A PDF's text has no delimiters and stays prose-only
+    if origin == "PMC" or "|" in (text or ""):
         tt = ta.table_tuple(text, terms, po.get("timepoint"))
         if tt:
             return tt[1], tt[2], "table_tuple"
