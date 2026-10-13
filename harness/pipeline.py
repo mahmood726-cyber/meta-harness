@@ -526,8 +526,9 @@ _NAMED_HELD_PATH = re.compile(r"^\s*(?P<path>cache/[\w.-]+/[\w.-]+\.(?:json|txt)
                               r"(?:\s+\w+)?\s*\(?(?:PMID[\s-]?(?P<pid>\d{7,8}))?")
 _HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level", "kind", "ci_pct",
                 "comparator_direction", "analysis_set", "adjudication", "verification",
-                # the typed-read spec a replayable extractor row is re-derived with (harness/extractor_replay)
-                "replay")
+                # the typed-read spec a replayable extractor row is re-derived with (harness/extractor_replay), and the
+                # held source of a percentage clause's denominator (agy b1-cap-r1-agy2: a percentage is never a count)
+                "replay", "denominator_source")
 
 
 def _hand_fields(entry, slug, pid, rec=None):

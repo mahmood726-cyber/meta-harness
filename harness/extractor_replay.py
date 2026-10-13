@@ -233,6 +233,49 @@ def _cache_held_text(t: dict[str, Any], root: str) -> tuple[str, str]:
     return text, pinned
 
 
+AACT_TOTALS = "outputs/handover/in3/aact/reported_event_totals.txt"
+
+
+def _aact_at_risk(text: str, nct: str) -> int:
+    """The ONE subjects_at_risk the held AACT reported-event totals state for every row of `nct`; refused when the NCT
+    is absent, a value is blank or not an integer, or the groups state different values (that would need a group-to-arm
+    mapping this reader does not have)."""
+    lines = text.splitlines()
+    if not lines:
+        raise ReadRefused("empty AACT totals")
+    head = lines[0].split("|")
+    try:
+        i_nct, i_risk = head.index("nct_id"), head.index("subjects_at_risk")
+    except ValueError:
+        raise ReadRefused("AACT totals lack nct_id / subjects_at_risk columns") from None
+    vals = set()
+    for ln in lines[1:]:
+        f = ln.split("|")
+        if len(f) == len(head) and f[i_nct] == nct:
+            if not re.fullmatch(r"[1-9]\d*", f[i_risk]):
+                raise ReadRefused("an AACT row of the NCT has no integer subjects_at_risk")
+            vals.add(int(f[i_risk]))
+    if len(vals) != 1:
+        raise ReadRefused("the held AACT totals state no single subjects_at_risk for the NCT")
+    return vals.pop()
+
+
+def _held_denominator(t: dict[str, Any], root: str) -> int:
+    """The denominator a percentage clause is OF, read from the held AACT totals the row names (sha-pinned in the B1
+    manifest): a percentage is never the source of a count (agy b1-cap-r1-agy2, P0)."""
+    ds = t.get("denominator_source")
+    if not isinstance(ds, dict) or ds.get("document_ref") != AACT_TOTALS or not re.fullmatch(r"NCT\d{8}", str(ds.get("nct"))):
+        raise ReadRefused("no held AACT denominator source")
+    try:
+        raw = (Path(root) / AACT_TOTALS).read_bytes()
+        manifest = json.loads((Path(root) / "cache" / "b1_replay_manifest.json").read_text(encoding="utf-8"))
+        if hashlib.sha256(raw).hexdigest() != manifest["documents"][AACT_TOTALS]["sha256"]:
+            raise ReadRefused("AACT totals digest differs from pinned bytes")
+        return _aact_at_risk(raw.decode("utf-8"), ds["nct"])
+    except (OSError, ValueError, KeyError, TypeError):
+        raise ReadRefused("AACT totals or pinned manifest failed validation") from None
+
+
 def _held_text(kind: str, ref: str, root: str) -> tuple[str, str]:
     ref = str(ref or "")
     if not ref.startswith(_HELD[kind]) or ".." in ref or ref.count("/") != 2:
@@ -281,6 +324,11 @@ def replay(t: dict[str, Any], root: str = ROOT) -> tuple[bool, str]:
             if t.get("outcome") is not None and t["outcome"] != (t.get("replay") or {}).get("outcome"):
                 raise ReadRefused("row and replay endpoint selectors differ")
             want = read_cache_ae_clause(span, t.get("replay") or {})
+            if (t.get("replay") or {}).get("reader") == "ae_patient_percentages":
+                # the inverted percentages are a CROSS-CHECK; the denominator is the held AACT at-risk count
+                n = _held_denominator(t, root)
+                if want["n1i"] != n or want["n2i"] != n:
+                    raise ReadRefused("percentage-derived denominators disagree with the held AACT at-risk count")
             if any(type(t.get(k)) is not int or t[k] != v for k, v in want.items()):
                 raise ReadRefused("re-derived counts differ from served integers")
         elif kind in _CLAUSE_KINDS:

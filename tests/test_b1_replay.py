@@ -130,9 +130,14 @@ def test_held_bytes_and_manifest_are_independently_required(tmp_path, plant):
     sha = hashlib.sha256(raw).hexdigest()
     row["document_sha256"] = sha
     path.write_bytes(raw)
+    # the percentage clause's denominator is read from the held AACT totals: the fixture holds them, pinned
+    aact = (ROOT / xr.AACT_TOTALS).read_bytes()
+    (tmp_path / xr.AACT_TOTALS).parent.mkdir(parents=True)
+    (tmp_path / xr.AACT_TOTALS).write_bytes(aact)
+    aact_pin = {xr.AACT_TOTALS: {"sha256": hashlib.sha256(aact).hexdigest(), "text_sha256": hashlib.sha256(aact).hexdigest()}}
     manifest = tmp_path / "cache" / "b1_replay_manifest.json"
     manifest.write_text(json.dumps({"documents": {row["document_ref"]: {
-        "sha256": sha, "text_sha256": text_sha}}}), encoding="utf-8")
+        "sha256": sha, "text_sha256": text_sha}, **aact_pin}}), encoding="utf-8")
     if not xr.replay(row, str(tmp_path))[0]:
         pytest.fail("fixture baseline FAIL", pytrace=False)
     if plant == "bytes":
@@ -238,3 +243,30 @@ def test_plant_the_preservation_check_is_pinned_to_the_pre_b1_commit():
     assert PRE_B1 == "f694220a7" or len(PRE_B1) == 40
     out = subprocess.run(["git", "cat-file", "-t", PRE_B1], cwd=ROOT, capture_output=True, text=True)
     assert out.stdout.strip() == "commit"
+
+
+def test_plant_a_percentage_derived_denominator_needs_the_held_aact_at_risk():
+    """agy b1-cap-r1-agy2 (P0): the 162s were COMPUTED by inverting rounded percentages -- 162 is printed nowhere in the
+    quote. The row's own basis is the held AACT safety totals; the replay now reads N there (one subjects_at_risk value
+    across every row of the NCT, sha-pinned) and accepts the inversion only as a cross-check that must agree."""
+    row = _row(CASES[0])
+    assert xr.replay(row)[0] is True                                  # the real row: AACT states 162 for every group
+    for nct in ("NCT00291330",                                        # held, but its groups state different at-risk
+                "NCT99999999"):                                       # not in the held file
+        bad = copy.deepcopy(row)
+        bad["denominator_source"]["nct"] = nct
+        assert xr.replay(bad)[0] is False, nct
+    gone = copy.deepcopy(row)
+    gone.pop("denominator_source")
+    assert xr.replay(gone)[0] is False
+
+
+def test_plant_the_aact_at_risk_reader_refuses_mixed_or_absent_values():
+    head = "id|nct_id|ctgov_group_code|event_type|classification|subjects_affected|subjects_at_risk|created_at|updated_at\n"
+    same = head + "1|NCT1|EG000|deaths|x|1|162|a|b\n2|NCT1|EG001|deaths|x|2|162|a|b\n"
+    mixed = head + "1|NCT1|EG000|deaths|x|1|162|a|b\n2|NCT1|EG001|deaths|x|2|161|a|b\n"
+    blank = head + "1|NCT1|EG000|deaths|x|||a|b\n"
+    assert xr._aact_at_risk(same, "NCT1") == 162
+    for text in (mixed, blank, same.replace("NCT1", "NCT2")):
+        with pytest.raises(xr.ReadRefused):
+            xr._aact_at_risk(text, "NCT1")
