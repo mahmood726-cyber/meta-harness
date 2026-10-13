@@ -154,3 +154,34 @@ def test_plant_r1_an_admitted_row_is_revalidated_on_every_pass(tmp_path):
     kept[0]["effect"] = 0.81
     kept2, absent2 = _apply(tmp_path, [ADMIT], kept)
     assert kept2 == [] and "not the numbers the signed decision admitted" in absent2[0]["reason"]
+
+
+def test_plant_r2_no_number_is_read_out_of_a_decimal():
+    """codex v15cenf-cap-r2 #1 / agy #1 (P0): '33.3%' and '5.0%' yielded effects 33 and 5 (the regex backtracked to the
+    integer part); codex #2 (P0): '0.4 of 119' yielded a count of 4 (the count started after the decimal point)."""
+    import v15c_decisions as g
+    assert g.locate("mortality fell by 33.3%", {"effect": 33}) is None
+    assert g.locate("mortality was 5.0%", {"effect": 5.0}) is None
+    assert g.locate("rates 0.4 of 119 and 0.8 of 120", {"ai": 4, "n1i": 119, "ci": 8, "n2i": 120}) is None
+    assert g.locate("RR 0.33, 95% CI 0.1-1.06.", {"effect": 0.33, "ci_low": 0.1, "ci_high": 1.06}) is not None
+
+
+def test_plant_r2_each_arm_needs_its_own_pair():
+    """agy v15cenf-cap-r2-agy #2 (P1): one 'X of N' pair located BOTH arms when their numbers were equal -- a span naming
+    one arm 'stated' the other. Each arm takes a different pair."""
+    import v15c_decisions as g
+    assert g.locate("10 of 100 in the intervention group", {"ai": 10, "n1i": 100, "ci": 10, "n2i": 100}) is None
+    assert g.locate("10 of 100 v 10 of 100", {"ai": 10, "n1i": 100, "ci": 10, "n2i": 100}) is not None
+
+
+def test_plant_r2_a_cached_unpinned_load_never_answers_a_pinned_call(tmp_path):
+    """codex v15cenf-cap-r2 #3 (P0): the cache was consulted before the pin, so an edited file loaded unpinned once was
+    then accepted by a pinned call. The pin is checked on every pinned call."""
+    import pytest
+    doc = json.load(open(DEC, encoding="utf-8"))
+    doc["rows"][0]["served"] = {"effect": 0.01}
+    p = tmp_path / "edited.json"
+    p.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    enf.decisions(str(p), pinned=False)
+    with pytest.raises(enf.EnforcementError):
+        enf.decisions(str(p), pinned=True)

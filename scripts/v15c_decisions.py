@@ -97,23 +97,30 @@ def locate(span, served):
     # side of an 'X of N' pair (events of denominator); an effect / CI bound only as a number NOT followed by '%'
     s = (span or "").replace("−", "-").replace("–", "-")
     word = r"(?:\d+|" + "|".join(_WORDS) + r")"
-    pairs = [(m.group(1), m.group(2)) for m in re.finditer(r"\b(" + word + r")\s+of\s+(\d[\d,]*)\b", s, re.I)]
+    # no number is read out of a decimal: a match may not START after a digit or '.' (codex r2 #2: '0.4 of 119' gave 4)
+    # nor END before '.<digit>' / a digit / '%' (codex r2 #1, agy r2 #1: '33.3%' backtracked to 33)
+    pairs = [(m.start(), m.group(1), m.group(2)) for m in
+             re.finditer(r"(?<![\d.])\b(" + word + r")\s+of\s+(\d[\d,]*)\b(?!\.\d)", s, re.I)]
 
     def val(tok):
         tok = tok.lower().replace(",", "")
         return float(_WORDS[tok]) if tok in _WORDS else float(tok)
-    effects = [(float(m.group(0)), m.group(0)) for m in re.finditer(r"(?:(?<![\d.])-)?\d+(?:\.\d+)?(?!\d|\s*%)", s)]
-    out = {}
+    effects = [(float(m.group(0)), m.group(0)) for m in
+               re.finditer(r"(?:(?<![\d.])-)?(?<![\d.])\d+(?:\.\d+)?(?![\d%]|\.\d|\s+%)", s)]
+    out, used = {}, set()
     for ev, den in (("ai", "n1i"), ("ci", "n2i")):
         if ev in served or den in served:
-            hit = next(((e, n) for e, n in pairs if (ev not in served or abs(val(e) - float(served[ev])) < 1e-9)
+            # each arm takes its OWN pair (agy r2 #2: one '10 of 100' located both arms when their numbers were equal)
+            hit = next(((pos, e, n) for pos, e, n in pairs if pos not in used
+                        and (ev not in served or abs(val(e) - float(served[ev])) < 1e-9)
                         and (den not in served or abs(val(n) - float(served[den])) < 1e-9)), None)
             if hit is None:
                 return None
+            used.add(hit[0])
             if ev in served:
-                out[ev] = hit[0].lower()
+                out[ev] = hit[1].lower()
             if den in served:
-                out[den] = hit[1]
+                out[den] = hit[2]
     for k in ("effect", "ci_low", "ci_high"):
         if k in served:
             hit = next((tok for x, tok in effects if abs(x - float(served[k])) < 1e-9), None)
