@@ -301,7 +301,9 @@ def pmc_copy(pmid):
     # D8: NonCommercial / NoDerivatives / ShareAlike are Creative Commons but never open for a prompt (D8 incident #2/#3,
     # 12 Oct: this writer recorded 7 NC/ND copies as 'CC'); restricted wins over any CC BY wording
     from reproducible_ai.record_licence import _RESTRICTED       # the ONE shared pattern (d8lic-cap-r1)
-    if _RESTRICTED.search(perm):
+    # CC_RESTRICTED only when the permissions NAME Creative Commons; a closed 'Non-commercial use only' copy is not
+    # Creative Commons at all (agy d8x-cap-r1-agy, the same rule as harness/copy_licence.classify_permissions)
+    if _RESTRICTED.search(perm) and re.search(r"creativecommons\.org/|Creative\s+Commons|\bCC[ -]BY", perm, re.I):
         lic = "CC_RESTRICTED"
     elif re.search(r"creativecommons\.org/(?:licenses/by/|publicdomain/)", perm):
         lic = "CC"

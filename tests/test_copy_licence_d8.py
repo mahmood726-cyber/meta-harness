@@ -46,3 +46,14 @@ def test_the_live_omega3_copy_is_restricted():
 
 def test_a_typed_reader_still_reads_a_restricted_copy():
     assert cl.typed_may_read("CC_RESTRICTED") and cl.typed_may_read("CC") and not cl.typed_may_read("NOT_OPEN")
+
+
+def test_plant_a_closed_copy_saying_non_commercial_is_not_creative_commons():
+    """agy d8x-cap-r1-agy (P1): 'All rights reserved. Non-commercial use only.' matched the restriction pattern and became
+    CC_RESTRICTED -- which typed readers accept -- widening typed access to a CLOSED copy. CC_RESTRICTED needs a
+    Creative Commons licence actually named."""
+    closed = ("<permissions><copyright-statement>(c) 2020 Publisher. All rights reserved. Non-commercial use only."
+              "</copyright-statement></permissions>")
+    assert cl.classify_permissions(closed)[0] == "NOT_OPEN"
+    assert not cl.typed_may_read(cl.classify_permissions(closed)[0])
+    assert cl.classify_permissions(NC)[0] == "CC_RESTRICTED"

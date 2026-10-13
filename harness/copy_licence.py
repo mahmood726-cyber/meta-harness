@@ -27,7 +27,10 @@ def classify_permissions(xml: str) -> tuple:
     """(licence, statement) from a PMC article XML's <permissions> -- the rule g1_trial_acquire.pmc_copy applies."""
     perm = " ".join(re.findall(r"<permissions>.*?</permissions>", xml or "", re.S))
     stmt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", perm)).strip()[:300] or None
-    if _RESTRICTED.search(perm):
+    # CC_RESTRICTED is a Creative Commons licence that restricts reuse: the permissions must NAME Creative Commons. A closed
+    # copy that merely says 'Non-commercial use only' is NOT_OPEN (agy d8x-cap-r1-agy: typed readers accept
+    # CC_RESTRICTED, so the closed copy would have been read)
+    if _RESTRICTED.search(perm) and re.search(r"creativecommons\.org/|Creative\s+Commons|\bCC[ -]BY", perm, re.I):
         return "CC_RESTRICTED", stmt
     if re.search(r"creativecommons\.org/(?:licenses/by/|publicdomain/)", perm):
         return "CC", stmt

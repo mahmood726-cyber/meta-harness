@@ -74,14 +74,22 @@ def incident_class():
 LEDGER = os.path.join(ROOT, "registry", "d8_incidents.json")
 
 
+def _git(*args, ok=(0,)):
+    """git's stdout; a failed query is an ERROR, never an empty answer (codex d8x-cap-r1 #1: a failed reference search
+    read as 'no reference' would delete a record and leave every reference dangling). `git grep` exits 1 for 'none'."""
+    p = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True)
+    if p.returncode not in ok:
+        raise RuntimeError(f"git {' '.join(args)} failed ({p.returncode}): {p.stderr.strip()[:200]}")
+    return p.stdout
+
+
 def _tracked(name):
-    out = subprocess.run(["git", "ls-files", f"*{name}*"], cwd=ROOT, capture_output=True, text=True).stdout.split()
+    out = _git("ls-files", f"*{name}*").split()
     return [p for p in out if p.endswith(".json") and os.path.basename(p) == name + ".json"]
 
 
 def _refs(old):
-    return [p for p in subprocess.run(["git", "grep", "-l", old], cwd=ROOT, capture_output=True, text=True).stdout.split()
-            if not p.endswith(old + ".json")]
+    return [p for p in _git("grep", "-l", old, ok=(0, 1)).split() if not p.endswith(old + ".json")]
 
 
 def redact(old, sources):
@@ -147,14 +155,19 @@ def main():
     led = json.load(open(LEDGER, encoding="utf-8")) if os.path.exists(LEDGER) else {"incidents": []}
     prev = next((i for i in led["incidents"] if i.get("id") == "D8-3"), None)
     if done:
+        # a later batch ADDS to the record list, never replaces it (codex d8x-cap-r1 #2: the first batch's audit mapping
+        # and the reads it must keep withdrawn were lost)
+        merged = {r["old"]: r for r in (prev or {}).get("records") or []}
+        merged.update({r["old"]: r for r in done})
+        allrecs = list(merged.values())
         entry = dict(prev or {}, **{
             "id": "D8-3", "found": "2026-10-12 (captain audit after the robgrade lane's D8 incident #2)",
-            "what": f"{len(done)} committed model-call records sent text from copies not CC BY / CC0 to a model; the 13 "
+            "what": f"{len(allrecs)} committed model-call records sent text from copies not CC BY / CC0 to a model; the 13 "
                     "Oct summary said 13 (a fingerprint-audit reach figure); the shared guard's own list is the class",
             "cause": "jats_licence / _is_open / g1_trial_acquire counted any creativecommons.org licence (or any 'cc*' "
                      "string) as open; fixed in PR #94 (one restriction pattern; only CC BY / CC0 opens a prompt)",
             "decision": DECISION, "remedy": "redacted going forward (prompt bytes withheld, hashes kept); git history "
-                                            "not rewritten", "records": sorted(done, key=lambda r: r["old"])})
+                                            "not rewritten", "records": sorted(allrecs, key=lambda r: r["old"])})
         led["incidents"] = [i for i in led["incidents"] if i.get("id") != "D8-3"] + [entry]
         open(LEDGER, "w", encoding="utf-8", newline="\n").write(json.dumps(led, indent=1, ensure_ascii=False) + "\n")
         # the held index is generated from the store (harness/review_tabs reads it; tests keep it equal to the store)

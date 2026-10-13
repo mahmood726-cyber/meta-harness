@@ -71,3 +71,40 @@ def test_a_read_resting_on_a_redacted_record_no_longer_upgrades_the_row():
     assert all(r["state"] == "WITHDRAWN_D8_3" and "NOT CC BY / CC0" in r["shown"] for r in hit)
     o = reads["omega3-cardiovascular-events|21115589|Major vascular events / MACE"]
     assert o["record_id"] not in news and o["shown"].startswith("trial report PMID 21115589 (abstract only")
+
+
+def test_plant_a_failing_git_query_is_an_error_not_an_empty_answer(monkeypatch):
+    """codex d8x-cap-r1 #1: _tracked / _refs read a git failure (exit 128) as 'no record' / 'no reference' -- a failed
+    reference search would let redact() delete a record and leave every reference dangling."""
+    import importlib
+    import sys as _s
+    _s.path.insert(0, os.path.join(ROOT, "scripts"))
+    d8 = importlib.import_module("d8_redact_incident3")
+
+    class _P:
+        returncode, stdout, stderr = 128, "", "fatal: not a git repository"
+    monkeypatch.setattr(d8.subprocess, "run", lambda *a, **k: _P())
+    import pytest
+    for fn in (d8._tracked, d8._refs):
+        with pytest.raises(RuntimeError):
+            fn("mc-x")
+
+
+def test_plant_a_later_batch_keeps_the_earlier_records(tmp_path, monkeypatch):
+    """codex d8x-cap-r1 #2: a second run that redacts more records replaced the ledger's list, losing the audit
+    mapping (and the reads to withdraw) of the first batch."""
+    import importlib
+    import sys as _s
+    _s.path.insert(0, os.path.join(ROOT, "scripts"))
+    d8 = importlib.import_module("d8_redact_incident3")
+    led = tmp_path / "l.json"
+    led.write_text(json.dumps({"incidents": [{"id": "D8-3", "records": [{"old": "mc-a", "new": "mc-b"}]}]}), "utf-8")
+    monkeypatch.setattr(d8, "LEDGER", str(led))
+    monkeypatch.setattr(d8, "incident_class", lambda: {"mc-c": []})
+    monkeypatch.setattr(d8, "redact", lambda o, v: {"old": o, "new": "mc-d", "sources": v})
+    seen = {}
+    monkeypatch.setattr(d8, "withdraw_reads", lambda news: seen.setdefault("news", set(news)) and 0)
+    monkeypatch.setattr(d8.subprocess, "run", lambda *a, **k: None)
+    d8.main()
+    recs = json.loads(led.read_text("utf-8"))["incidents"][0]["records"]
+    assert {r["old"] for r in recs} == {"mc-a", "mc-c"} and seen["news"] == {"mc-b", "mc-d"}
