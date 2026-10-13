@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -63,6 +64,44 @@ def _conversion_ok(row):
     return want == (s.get("effect"), s.get("ci_low"), s.get("ci_high"))
 
 
+_SERVED_OF = {"effect": "effect", "ci_low": "ci_low", "ci_high": "ci_high",
+              "events_t": "ai", "n_t": "n1i", "events_c": "ci", "n_c": "n2i"}
+_WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen "
+                                      "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+
+
+def _readers_agree_on_served(row):
+    """Every reader (codex, agy, adjudicator where called) bound EVERY served number, and to the served value."""
+    served = {k: v for k, v in (row.get("served") or {}).items() if v is not None}
+    readers = [row.get(r) for r in ("codex", "agy", "adjudicator") if row.get(r)]
+    if not served or len(readers) < 2:
+        return False
+    for rd in readers:
+        if (rd or {}).get("decision") != "BIND":
+            return False
+        bound = {_SERVED_OF[k]: v for k, v in ((rd.get("numbers") or {}).items()) if k in _SERVED_OF
+                 and isinstance(v, (int, float)) and not isinstance(v, bool)}
+        if any(k not in bound or abs(float(bound[k]) - float(v)) > 1e-9 for k, v in served.items()):
+            return False
+    return True
+
+
+def locate(span, served):
+    """{served key: the token in the verbatim span that states it} -- digits (unicode minus folded) or an English number
+    word (zero..twenty, recorded as the word); None when any served number is not stated in the span."""
+    s = (span or "").replace("−", "-").replace("–", "-")
+    nums = [(float(m.group(0)), m.group(0)) for m in re.finditer(r"(?:(?<![\d.])-)?\d+(?:\.\d+)?", s)]
+    words = [(float(_WORDS[m.group(0).lower()]), m.group(0).lower())
+             for m in re.finditer(r"\b(" + "|".join(_WORDS) + r")\b", s, re.I)]
+    out = {}
+    for k, v in served.items():
+        hit = next((tok for x, tok in nums + words if abs(x - float(v)) < 1e-9), None)
+        if hit is None:
+            return None
+        out[k] = hit
+    return out
+
+
 def decide(cls, row):
     key = (row["slug"], _pmid(row))
     base = {"slug": row["slug"], "outcome": row["outcome"], "id": row["id"], "label": row.get("label"),
@@ -96,6 +135,16 @@ def decide(cls, row):
                     recommendation="refuse the served number; the bound numbers are a candidate for a signed admission",
                     bound=(row.get("proposal") or {}).get("numbers"))
     if cls == "UNRESOLVED":
+        # the signed rule refuses where the panel DISAGREES or the source is ABSENT. A row the bind checker could not
+        # confirm (number words: 'four of 119') but on which every reader bound the served numbers, each stated in the
+        # verbatim span, is neither: admitted, with the token that states each number recorded
+        loc = locate(base["span"], base["served"]) if _readers_agree_on_served(row) else None
+        if loc:
+            return dict(base, decision="ADMIT", located=loc,
+                        basis="panel unanimous on every served number (codex, agy, adjudicator); each served number is "
+                              "stated in the verbatim span of the held abstract (located: " +
+                              ", ".join(f"{k}={v}" for k, v in loc.items()) + "); the bind checker's number-word limit "
+                              "is a logged V1 failure class, not a disagreement")
         return dict(base, decision="REFUSE", kind="abstain",
                     basis=f"no agreed, checkable reading ({row['state']}; checks: codex {row.get('codex_bind_check')}, "
                           f"agy {row.get('agy_bind_check')}, adjudicator {row.get('adjudicator_check')})",

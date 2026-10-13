@@ -80,7 +80,7 @@ def test_the_committed_decisions_are_the_generator_output():
     doc = g.build()
     want = json.dumps(doc, indent=1, ensure_ascii=False) + "\n"
     assert open(DEC, encoding="utf-8").read() == want
-    assert (doc["n"], doc["admit"], doc["refuse"]) == (77, 57, 20)
+    assert (doc["n"], doc["admit"], doc["refuse"]) == (77, 60, 17)
 
 
 def test_plant_the_served_dpp4_pool_no_longer_carries_tecos():
@@ -90,3 +90,19 @@ def test_plant_the_served_dpp4_pool_no_longer_carries_tecos():
     o = [x for x in r["outcomes"] if x.get("name") == "3-point major adverse cardiovascular events"][0]
     assert all("26052984" not in str(t.get("id")) for t in o.get("trials") or [])
     assert any("26052984" in str(a.get("id")) and a.get("state") == "REFUSED_ON_EVIDENCE" for a in o.get("declared_absent_trials") or [])
+
+
+def test_plant_a_unanimous_panel_whose_numbers_are_in_the_span_is_not_refused_as_unresolved():
+    """The signed rule refuses where the panel DISAGREES or the source is ABSENT. Three probiotics rows were 'unresolved'
+    only because the bind checker cannot read number words ('four of 119') -- codex, agy and the adjudicator bound the
+    same numbers, equal to the served ones. Refusing them flipped the served AAD conclusion across the null (0.62 ->
+    0.85, CI 0.65-1.10). They are admitted, each served number located in the verbatim span (word recorded)."""
+    d = {(r["slug"], str(r["id"])): r for r in json.load(open(DEC, encoding="utf-8"))["rows"]}
+    for pid in ("15740542", "18026577", "18410562"):
+        r = d[("probiotics-aad-prevention", f"PMID {pid}")]
+        assert r["decision"] == "ADMIT" and r["located"], pid
+    for key in (("metformin-pcos-ovulation", "PMID 16769748"), ("metformin-pcos-ovulation", "PMID 19522426"),
+                ("ticagrelor-vs-clopidogrel-acs", "PMID 19717846")):
+        assert d[key]["decision"] == "REFUSE", key            # the bound numbers are not the served ones / empty binds
+    four = d[("probiotics-aad-prevention", "PMID 15740542")]["located"]
+    assert four["ai"] == "four" and four["n1i"] == "119"
