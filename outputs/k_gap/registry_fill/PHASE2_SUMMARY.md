@@ -9,7 +9,8 @@ Population: comparator trials we do not pool and that are not named out of scope
 | 2 | EMA (EPARs) | named 8 / 136 -> typed 0 -> read 9 (incl. 1 read of a trial no longer named) | | 0 |
 | 2 | IQWiG / G-BA (AMNOG; typed-only) | 5 topics with procedures; named 13 / 67 -> typed 0 | | 0 |
 | 2 | PMDA | not run: PMDA terms forbid automated download. 3 pilot review reports identified; permission and a PDL 1.0 ruling are needed | | -- |
-| 2 | Health Canada | not run: needs an account (Mahmood) | | -- |
+| 2 | Health Canada (clinical information portal) | not attempted: account required (Mahmood, 13 Oct: skip) | | -- |
+| 2 | EMA Policy 0070 (clinical data packages) | not attempted: account required (Mahmood, 13 Oct: skip) | | -- |
 | 2 | NICE (typed-only) | named 21 / 140 -> typed 0 | | 0 |
 | 3 | open sources (started) | 61 PMID-bearing identity-less trials: 23 with an open copy, 1 CC BY. Under the current gates, 0 readable acquisition targets with text | | 0 |
 | 4 | published metas (SECONDARY) | not started | | -- |
@@ -26,5 +27,4 @@ Population: comparator trials we do not pool and that are not named out of scope
 2. ASCEND: take the trial's PRIMARY outcome when several bound outcomes each give one gated pair (#103);
 3. deterministic reading of bronze / green open copies with no licence. Mahmood's ladder says "other OA text is regex-only", but the `OPEN_COPY` gate refuses them (19 trials);
 4. PMDA: download permission for 3 named review reports, and PDL 1.0 for prompts;
-5. Health Canada: an account;
-6. comparator label defects: ODYSSEY JAPAN's NCT02017898 should be NCT02107898; corticosteroids-cap "Ampicillin dosage and use".
+5. comparator label defects: ODYSSEY JAPAN's NCT02017898 should be NCT02107898; corticosteroids-cap "Ampicillin dosage and use".

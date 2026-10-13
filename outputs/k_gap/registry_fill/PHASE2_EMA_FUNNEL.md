@@ -25,4 +25,4 @@ Every read ended with both readers giving `SOURCE_ABSENT`. Their recorded reason
 - pcsk9 (ODYSSEY COMBO I, LONG TERM, FH I, FH II, HIGH FH, JAPAN; DESCARTES): the EPAR windows hold design, baseline, PK/bioequivalence and pooled adverse-event tables. None holds a per-trial MACE count or HR for the randomised population.
 - omega3 (OMEGA / Rauch, ASCEND): the trials are cited qualitatively ("generally null results"), with no trial-level numbers.
 
-EMA Policy 0070 clinical-data packages need an account, which the lane does not hold. That is flagged to Mahmood.
+EMA Policy 0070 clinical-data packages: **not attempted: account required (Mahmood, 13 Oct: skip)**. This run covers EPARs only.

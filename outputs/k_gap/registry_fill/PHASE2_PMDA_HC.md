@@ -1,4 +1,4 @@
-# k-gap phase 2: PMDA and Health Canada (13 Oct 2026). No route can be run by the lane
+# k-gap phase 2: PMDA, Health Canada and EMA Policy 0070 (13 Oct 2026). No route can be run by the lane
 
 ## PMDA (Japan)
 
@@ -25,9 +25,9 @@
 
 Once downloaded, the harness holds each by file (sha256, URL, retrieval date) for the typed reader.
 
-## Health Canada (Clinical Information portal)
+## Health Canada (clinical information portal) and EMA Policy 0070 (clinical data packages)
 
-The portal releases clinical data only to registered users who accept its terms. The lane cannot create accounts or accept terms on anyone's behalf, so this route is **blocked on an account**. That is for Mahmood, as already flagged.
+**not attempted: account required (Mahmood, 13 Oct: skip).** Both release clinical data only to registered users who accept their terms. The lane cannot create accounts or accept terms on anyone's behalf, and Mahmood has ruled that neither is pursued. This closes them for phase 2.
 
 ## NICE, IQWiG / G-BA
 
