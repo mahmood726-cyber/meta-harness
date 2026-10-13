@@ -6,13 +6,18 @@ text only when that copy is marked CC:
                  a COVID-19 emergency deposit, 'all rights reserved' or unread terms -> not CC
   Unpaywall copy the location's license is cc-* or public-domain -> CC; anything else (None, publisher-specific, implied)
                  -> UPW_NOT_CC
-Deterministic typed reading of a held copy (regex rungs) is unaffected: nothing it reads enters a record."""
+Deterministic typed reading of a held copy (regex rungs) is unaffected: nothing it reads enters a record.
+D8 (13 Oct): only CC BY / CC0 is 'CC' here. A NonCommercial / NoDerivatives / ShareAlike copy is CC_RESTRICTED, by the
+ONE restriction pattern reproducible_ai/record_licence uses (this module called every Creative Commons copy 'CC' in
+three places: the PMC classifier, the cached index, Unpaywall -- pmc_licence('21115589'), CC BY-NC, returned 'CC')."""
 from __future__ import annotations
 
 import json
 import os
 import re
 import time
+
+from reproducible_ai.record_licence import _RESTRICTED, _is_open
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX = os.path.join(ROOT, "outputs", "k_gap", "fulltext_index.json")
@@ -22,7 +27,9 @@ def classify_permissions(xml: str) -> tuple:
     """(licence, statement) from a PMC article XML's <permissions> -- the rule g1_trial_acquire.pmc_copy applies."""
     perm = " ".join(re.findall(r"<permissions>.*?</permissions>", xml or "", re.S))
     stmt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", perm)).strip()[:300] or None
-    if re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", perm):
+    if _RESTRICTED.search(perm):
+        return "CC_RESTRICTED", stmt
+    if re.search(r"creativecommons\.org/(?:licenses/by/|publicdomain/)", perm):
         return "CC", stmt
     if re.search(r"available for text mining", stmt or "", re.I) and re.search(r"\bmanuscript\b", xml or "", re.I):
         return "PMC_AUTHOR_MANUSCRIPT", stmt
@@ -43,6 +50,9 @@ def pmc_licence(pmid, run=True, index_path=INDEX):
     idx = json.load(open(index_path, encoding="utf-8")) if os.path.exists(index_path) else {}
     e = idx.get(pmid) or {}
     if e.get("copy_licence"):
+        # a cached 'CC' whose own recorded statement names a restriction is CC_RESTRICTED (record_licence.licences)
+        if e["copy_licence"] == "CC" and _RESTRICTED.search(str(e.get("copy_statement") or "")):
+            return "CC_RESTRICTED"
         return e["copy_licence"]
     if not run:
         return "NOT_OPEN"
@@ -75,8 +85,9 @@ def pmc_licence(pmid, run=True, index_path=INDEX):
 
 
 def upw_open(u: dict) -> bool:
+    """CC BY / CC0 / public domain only ('cc-by-nc', 'cc-by-nd', 'cc-by-sa' started with 'cc' and were open)."""
     lic = str((u or {}).get("license") or "").lower()
-    return lic.startswith("cc") or lic in ("public-domain", "pd")
+    return _is_open(lic) or lic in ("public-domain", "pd")
 
 
 def locator_text(rec: dict, ft: str, licence, pmid) -> tuple:
@@ -87,7 +98,7 @@ def locator_text(rec: dict, ft: str, licence, pmid) -> tuple:
     return base, f"trial report PMID {pmid} (abstract only; held copy not CC: {licence})"
 
 
-TYPED_OPEN = ("CC", "PMC_AUTHOR_MANUSCRIPT")
+TYPED_OPEN = ("CC", "CC_RESTRICTED", "PMC_AUTHOR_MANUSCRIPT")   # D8 governs model prompts, not typed reads
 
 
 def typed_may_read(licence) -> bool:
