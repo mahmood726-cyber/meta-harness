@@ -1,0 +1,135 @@
+"""V15-C: the signed binding decision for every unbound served pooled row (Mahmood, 13 Oct, ruling 1).
+
+Generated from outputs/m2_pretriage/classified.json (rebuilt from the stored codex / agy / adjudicator records by
+`scripts/m2_pretriage.py outputs/m2_pretriage --reclassify`) and the signed rulings below -- no value is typed here.
+
+The rule Mahmood signed: admit the confirmed rows; refuse TECOS, both esketamine rows and JUPITER >=70; keep RE-LY; for
+every other row a written recommendation backed by the codex + agy + adjudicator read against the source, then apply
+it -- and any row where the panel disagrees, or the source is absent, is a documented refusal: refuse, don't admit.
+The signed summary also recommended keeping the colchicine rows as the declared conversion of the stated RRR and the
+ENGAGE row on its signed V12-01 (EPAR) value; "do as you suggested for all" signs those.
+
+    python scripts/v15c_decisions.py           writes registry/v15c_decisions.json and prints the counts
+"""
+from __future__ import annotations
+
+import json
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CLASSIFIED = os.path.join(ROOT, "outputs", "m2_pretriage", "classified.json")
+OUT = os.path.join(ROOT, "registry", "v15c_decisions.json")
+
+SIGNED = {"by": "Mahmood", "via": "Dispatch", "when": "2026-10-13", "words": "sign and do as you suggested for all",
+          "packet": "lane_status/v15c_enforcement_packet_DRAFT.md",
+          "packet_sha256": "6067c4f1fdb5bda59b481004b6fdd5e0edb63159bbb965d17af28971e7508913",
+          "summary_sha256": "6bf07e9d1cf314bb594c3ed2dd2eb70cf526913f797d5e930344a9f93c63ffa6",
+          "state": "SEEN_AND_SIGNED"}
+# (slug, PMID) -> the signed disposition; every other row follows the rule
+REFUSE_SIGNED = {("dpp4-mace-t2d", "26052984"): "TECOS: the stated composite adds unstable-angina hospitalisation (4-point)",
+                 ("esketamine-trd-madrs", "31109201"): "an MMRM least-squares difference, not the observed-case raw MD",
+                 ("esketamine-trd-madrs", "37025256"): "an MMRM least-squares difference, not the observed-case raw MD",
+                 ("statins-primary-prevention-elderly", "20404379"): "JUPITER >=70: the age cut-point was chosen after "
+                                                                     "the trial (post hoc), not pre-specified"}
+KEEP_SIGNED = {("noac-vs-warfarin-af-stroke", "19717844"): "RE-LY: kept (signed). The abstract states RR 0.66 (0.53 to "
+                                                           "0.82) for dabigatran 150 mg v warfarin; agy bound it, codex "
+                                                           "and the adjudicator refused on RR v HR"}
+CONVERSION_SIGNED = {("colchicine-recurrent-pericarditis", "21873705")}
+EPAR_SIGNED = {("noac-vs-warfarin-af-stroke", "24251359"): "ENGAGE AF-TIMI 48: the signed V12-01 value (EMA EPAR "
+                                                           "printed 95% CI); the abstract prints the 97.5% CI"}
+# panel REFUSE reason codes that say the source shows a DIFFERENT result (refused on evidence); any other refusal is an
+# abstention -- the row could not be bound, nothing shows it wrong
+ON_EVIDENCE = {"DIFFERENT_ENDPOINT", "SUBGROUP_OR_SECONDARY_ANALYSIS", "OUTCOME_NOT_IN_SOURCE"}
+SERVED_KEYS = ("effect", "ci_low", "ci_high", "ai", "n1i", "ci", "n2i")
+
+
+def _pmid(row):
+    return str(row.get("id") or "").replace("PMID ", "").strip()
+
+
+def _readers(row):
+    return {"codex": row.get("codex_record"), "agy": row.get("agy_record"),
+            "adjudicator": row.get("adjudicator_record"), "state": row.get("state")}
+
+
+def _conversion_ok(row):
+    """served RR == 1 - stated RRR, bounds swapped, to the served precision (2 dp)."""
+    n = (row.get("proposal") or {}).get("numbers") or {}
+    s = row.get("served") or {}
+    if "reduction" not in str(n.get("measure") or "").lower():
+        return False
+    want = (round(1 - n["effect"], 2), round(1 - n["ci_high"], 2), round(1 - n["ci_low"], 2))
+    return want == (s.get("effect"), s.get("ci_low"), s.get("ci_high"))
+
+
+def decide(cls, row):
+    key = (row["slug"], _pmid(row))
+    base = {"slug": row["slug"], "outcome": row["outcome"], "id": row["id"], "label": row.get("label"),
+            "primary": row.get("primary"), "class": cls, "readers": _readers(row),
+            "served": {k: row["served"][k] for k in SERVED_KEYS if (row.get("served") or {}).get(k) is not None},
+            "span": (row.get("proposal") or {}).get("span") or None, "source_ref": row.get("source_ref"),
+            "source_sha256": row.get("source_sha256")}
+    if key in REFUSE_SIGNED:
+        return dict(base, decision="REFUSE", kind="refused_on_evidence", basis="signed refusal: " + REFUSE_SIGNED[key])
+    if key in KEEP_SIGNED:
+        return dict(base, decision="ADMIT", basis=KEEP_SIGNED[key])
+    if key in EPAR_SIGNED:
+        return dict(base, decision="ADMIT", basis=EPAR_SIGNED[key])
+    if key in CONVERSION_SIGNED:
+        if not _conversion_ok(row):
+            raise SystemExit(f"{key}: the served value is not the exact conversion of the stated RRR -- not admitted")
+        return dict(base, decision="ADMIT", basis="signed conversion: the source states a relative risk REDUCTION; the "
+                                                  "served RR is 1 - RRR with the bounds swapped (checked here)")
+    if cls == "BIND_CONFIRMS_SERVED":
+        return dict(base, decision="ADMIT", basis=f"{row['state']}: every served number is in the verbatim span of "
+                                                  "the held abstract, read by codex and agy (and the adjudicator)")
+    if cls == "REFUSE":
+        rc = (row.get("proposal") or {}).get("reason_code")
+        split = any(((row.get(r) or {}) or {}).get("decision") == "BIND" for r in ("codex", "agy", "adjudicator"))
+        return dict(base, decision="REFUSE", kind="refused_on_evidence" if rc in ON_EVIDENCE else "abstain",
+                    basis=f"panel refusal ({rc})" + ("; the panel was split, and a split panel refuses" if split else ""),
+                    recommendation="refuse (rule: panel refused or disagreed)")
+    if cls == "BIND_DIFFERS_FROM_SERVED":
+        return dict(base, decision="REFUSE", kind="abstain",
+                    basis="the panel bound different numbers from the served ones: the served number has no span",
+                    recommendation="refuse the served number; the bound numbers are a candidate for a signed admission",
+                    bound=(row.get("proposal") or {}).get("numbers"))
+    if cls == "UNRESOLVED":
+        return dict(base, decision="REFUSE", kind="abstain",
+                    basis=f"no agreed, checkable reading ({row['state']}; checks: codex {row.get('codex_bind_check')}, "
+                          f"agy {row.get('agy_bind_check')}, adjudicator {row.get('adjudicator_check')})",
+                    recommendation="refuse now; human adjudication from the source (V1 freeze: no new reader rule)")
+    if cls == "NEEDS_OPEN_SOURCE":
+        return dict(base, decision="REFUSE", kind="abstain", basis="no open source text held: never sent to a model",
+                    recommendation="refuse until an open source is held")
+    raise SystemExit(f"unknown class {cls}")
+
+
+def build():
+    c = json.load(open(CLASSIFIED, encoding="utf-8"))
+    rows = [decide(k, r) for k, v in c.items() for r in v]
+    keys = [(r["slug"], r["outcome"], str(r["id"])) for r in rows]
+    if len(set(keys)) != len(keys):
+        raise SystemExit("two decisions for one row")
+    # every signed key must have met its row (a signed decision that matches nothing is a defect, never a no-op)
+    seen = {(r["slug"], str(r["id"]).replace("PMID ", "").strip()) for r in rows}
+    missing = (set(REFUSE_SIGNED) | set(KEEP_SIGNED) | set(EPAR_SIGNED) | CONVERSION_SIGNED) - seen
+    if missing:
+        raise SystemExit(f"signed decisions that match no row: {sorted(missing)}")
+    return {"_doc": __doc__.split("\n\n")[0], "signed": SIGNED, "classified_from": "outputs/m2_pretriage/classified.json",
+            "n": len(rows), "admit": sum(r["decision"] == "ADMIT" for r in rows),
+            "refuse": sum(r["decision"] == "REFUSE" for r in rows),
+            "rows": sorted(rows, key=lambda r: (r["slug"], r["outcome"], str(r["id"])))}
+
+
+def main():
+    doc = build()
+    with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(doc, fh, indent=1, ensure_ascii=False)
+        fh.write("\n")
+    print(f"{doc['n']} rows: ADMIT {doc['admit']}, REFUSE {doc['refuse']}")
+
+
+if __name__ == "__main__":
+    main()
