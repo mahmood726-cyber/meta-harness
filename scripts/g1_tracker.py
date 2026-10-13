@@ -2367,6 +2367,10 @@ def scope_citation_violations(o):
             bad.append(f"{lab}: named difference for a trial not in the comparator set")
     if tr and o.get("k_matched") is not None and o["k_matched"] != sum(1 for x in tr if is_matched(x)):
         bad.append(f"k_matched {o['k_matched']} != matched trials {sum(1 for x in tr if is_matched(x))}")
+    if o.get("k_matched") is not None and o.get("N_comparator_trials") is not None \
+            and o["k_matched"] > o["N_comparator_trials"] \
+            and not str(o.get("k_matched_of_comparator_N") or "").startswith("unresolved"):  # never '12 of 10' (pr64 r1 #2)
+        bad.append(f"k_matched {o['k_matched']} > comparator N {o['N_comparator_trials']}")
     if tr and o.get("N_eligible") != len(tr) - len(named):
         bad.append(f"N_eligible {o.get('N_eligible')} != comparator N {len(tr)} - named {len(named)}")
     return bad
@@ -3281,6 +3285,55 @@ def comparator_stated_k(comp):
     return None, None
 
 
+def seed_candidate_n(out, sk, sspan, comp):
+    """Review 17: the comparator denominator is the comparator's INCLUDED set, never its reference-seed CANDIDATES.
+    When the set was resolved only from reference seeds (state REFERENCE_SEED_CANDIDATES), len(trials) is a candidate
+    superset (sglt2-ckd: 12 seeds incl. DAPA-MI / EMPACT-MI, which the comparator excluded; its own abstract says '10
+    randomized trials'). Then:
+      - the candidate count is kept and disclosed as N_candidates;
+      - if the comparator's OWN abstract states a k that differs from the candidates -- on EITHER side (codex pr64-cap-r1
+        #1: cortico-covid has 5 seeds and '7 randomized clinical trials') -- N_comparator_trials = that stated k (basis
+        COMPARATOR_STATED_K). Which candidates are inside, or which included trials are missing, is NOT resolved here (it
+        needs the comparator's own list, read only from an open text);
+      - seed candidates never establish membership, at ANY count (codex pr64-cap-r2 #1): included_set_membership =
+        UNRESOLVED for every REFERENCE_SEED_CANDIDATES set, and ALL_ELIGIBLE_MATCHED cannot hold on it (g1_status);
+      - coverage never reads 'k of N' with k > N (codex pr64-cap-r1 #2 '12 of 10'; r2 #2): when more candidates match
+        than the comparator includes, N is still its stated k, the coverage reads 'unresolved' and a finding names it;
+      - a candidate is never counted in N just because it is a seed.
+    Every other state keeps N = the enumerated set (basis = its state). Idempotent: once applied (N_candidates set) a
+    second call changes nothing (codex pr64-cap-r1 #3). Mutates and returns `out`."""
+    if "N_candidates" in out:
+        return out
+    state = (out.get("comparator_set") or {}).get("state")
+    out["N_comparator_trials_basis"] = state or "UNSTATED"
+    if state != "REFERENCE_SEED_CANDIDATES":
+        return out
+    cand = out["N_candidates"] = out["N_comparator_trials"]
+    out["included_set_membership"] = "UNRESOLVED"       # seeds never say WHICH trials, at any count (codex pr64-cap-r2 #1)
+    k = out.get("k_matched") or 0
+    # ... so coverage is never 'k of N' against them, whatever the counts (codex pr64-cap-r3 #1 #2)
+    out["k_matched_of_comparator_N"] = (f"unresolved: {k} of {cand} seed candidates matched"
+                                        + (f"; the comparator states {sk}" if sk is not None else
+                                           "; the comparator states no count"))
+    if sk is None or sk == cand:
+        return out
+    if sk < cand:
+        out["comparator_findings"] = (out.get("comparator_findings") or []) + [{
+            "finding": "COMPARATOR_STATED_K_BELOW_SEED_CANDIDATES", "trial": "(the comparator set)", "comparator": comp,
+            "stated_k": sk, "seed_candidates": cand, "span": sspan,
+            "basis": "reference-seed candidates are a superset of the comparator's included set; N is the comparator's own "
+                     "stated count; which candidates are outside is unresolved until its own list is read from an open text"}]
+    if k > sk:
+        out["comparator_findings"] = (out.get("comparator_findings") or []) + [{
+            "finding": "COMPARATOR_STATED_K_BELOW_MATCHED_SEED_CANDIDATES", "trial": "(the comparator set)",
+            "comparator": comp, "stated_k": sk, "seed_candidates": cand, "matched_candidates": k, "span": sspan,
+            "basis": "more seed candidates match than the comparator includes; which of them it included is unresolved "
+                     "until its own list is read from an open text"}]
+    out["N_comparator_trials"] = sk
+    out["N_comparator_trials_basis"] = "COMPARATOR_STATED_K"
+    return out
+
+
 def refresh_same_trials_after_bindings(o, pairs, method, comp):
     """The per-trial same-trials comparison is built in topic() BEFORE the binding hooks run, so a trial that a binding
     newly matched (route flipped to PRIMARY / SECONDARY_SINGLE, our_value set) was never in it: RESULT_AGREES was then
@@ -3403,7 +3456,9 @@ def g1_status(o):
     readers_differ = [x["label"] for x in tr if is_matched(x)
                       and (x.get("comparator_row_readings") or {}).get("state") == "READERS_DIFFER"]
     crit = {
-        "ALL_ELIGIBLE_MATCHED": o["N_eligible"] > 0 and o["k_matched"] == o["N_eligible"] and not o["open_gaps"],
+        # a comparator N whose membership is unresolved (seed candidates v its stated k: seed_candidate_n) is never all matched
+        "ALL_ELIGIBLE_MATCHED": o["N_eligible"] > 0 and o["k_matched"] == o["N_eligible"] and not o["open_gaps"]
+                                and o.get("included_set_membership") != "UNRESOLVED",
         "MATCHED_ARE_VERIFIED": all((x["route"] in ("PRIMARY", "TWO_SOURCE", "SECONDARY_SINGLE") or str(x["route"]).startswith("SWEEP_"))
                                     and x.get("g1_countable", True) for x in tr if is_matched(x)),
         # a READERS_DIFFER comparator row is never resolved by a pick: the result agrees only if the verdict is the
@@ -4020,6 +4075,7 @@ def topic(slug, T):
                                            "comparator": comp, "stated_k": sk, "enumerated_N": out["N_comparator_trials"],
                                            "span": sspan, "basis": "check the comparator's own trial table: a trial "
                                            "missing from our enumeration, or a wrong count in the comparator"})
+    seed_candidate_n(out, sk, sspan, comp)
     out["comparator_findings"] = (out.get("comparator_findings") or []) + \
         comparator_unadjusted_cluster_findings(trials, comp, slug) + decision_named_divergences(slug, trials)
     _abs = _j(os.path.join(OUT, "comparator_abstracts.json")) if os.path.exists(os.path.join(OUT, "comparator_abstracts.json")) else {}
@@ -4174,6 +4230,15 @@ def scope_difference_line(d):
             f"registered eligibility: {d['registered_eligibility']}")
 
 
+def _k_of_n(o, k):
+    """'k / N' for a table cell. Against seed candidates (membership UNRESOLVED) it reads unresolved at ANY count, never
+    '12 / 10' (codex pr64-cap-r2 #2) nor '2 / 2' (r3 #2)."""
+    n = o["N_comparator_trials"]
+    if k > n or o.get("included_set_membership") == "UNRESOLVED":
+        return f"unresolved ({k} seed candidates matched) / {n}"
+    return f"{k} / {n}"
+
+
 def table():
     out = [_j(os.path.join(G1_DIR, f)) for f in sorted(os.listdir(G1_DIR)) if f.endswith(".json") and ".tmp" not in f]
     missing = sorted(set(served_topics()) - {o["slug"] for o in out})
@@ -4200,9 +4265,9 @@ def table():
         src = o.get("lane_source")
         md.append(f"| {o['slug']} | **{gs.get('state')}**" + (f" (unmet: {', '.join(gs.get('unmet') or [])})"
                                                               if gs.get("unmet") else "") +
-                  f" | {o.get('k_covered', o['k_matched'])} / {o['N_comparator_trials']} ({o.get('k_comparator_sourced', 0)}) | "
+                  f" | {_k_of_n(o, o.get('k_covered', o['k_matched']))} ({o.get('k_comparator_sourced', 0)}) | "
                   f"{'yes' if o.get('coverage_complete') else 'no'} | "
-                  f"{o['k_matched']} / {o['N_comparator_trials']} | "
+                  f"{_k_of_n(o, o['k_matched'])} | "
                   f"{o['k_matched']} / {o.get('N_eligible', o['N_comparator_trials'])} | "
                   f"{len(nd)} of {o['N_comparator_trials']} | "
                   f"{len(nd)}: " + ", ".join(f"{d['trial']} ({d['kind']})" for d in nd) + f" | {len(o.get('open_gaps') or [])} | "
