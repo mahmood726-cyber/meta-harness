@@ -76,6 +76,25 @@ def _abstracts(pmids):
     return {p: (a or "") for p, (a, _sha) in cen.fetch_abstracts(pmids).items()}
 
 
+_ENR = {}
+
+
+def _enrollment(nct):
+    """{'count', 'type', 'sha256'} from CT.gov API v2 (typed; a failure is None, never a guess)."""
+    if nct in _ENR:
+        return _ENR[nct]
+    from harness import http
+    try:
+        st, b = http.get_raw(f"https://clinicaltrials.gov/api/v2/studies/{nct}", {"fields": "NCTId,EnrollmentInfo"},
+                             tries=3, timeout=60)
+        e = ((json.loads(b).get("protocolSection") or {}).get("designModule") or {}).get("enrollmentInfo") if st == 200 else None
+        r = {"count": e.get("count"), "type": e.get("type"), "sha256": hashlib.sha256(b).hexdigest()} if e else None
+    except Exception:  # noqa: BLE001 - typed
+        r = None
+    _ENR[nct] = r
+    return r
+
+
 _CTG = {}
 
 
@@ -198,6 +217,9 @@ the trial, no files. source must be "AACT", source_ref the NCT, aact_outcome_id 
 Pick the posted outcome that IS the protocol outcome (name, keywords, estimand, timepoint, population as given). Do not
 stretch a definition: a different composite, a different event, or a subset population is NOT the outcome -- then say so
 in why and answer SOURCE_ABSENT.
+ARMS: experimental = the arm that receives the protocol's INTERVENTION; control = its own comparator (its placebo, or
+the protocol comparator). In a factorial or multi-arm posting (several drugs, each with its own placebo) use ONLY the
+protocol intervention's arm and ITS control -- never another agent's comparison posted under the same outcome.
 Return for experimental vs control either:
   - counts: events_t/n_t (experimental), events_c/n_c (control): the posted PARTICIPANT counts and the posted number
     analysed, as whole numbers shown in the record (never computed from a percentage; never event counts when the units
@@ -236,6 +258,10 @@ def _call(prompt, reader, purpose, digest):
     if model == "agy":
         p = prompt + ("\n\n=== ANSWER FORMAT ===\nAnswer with ONLY one JSON object (no prose, no code fence) matching "
                       "this JSON schema exactly:\n" + json.dumps(ta.SCHEMA, sort_keys=True)).encode("utf-8")
+        if len(p.decode("utf-8")) > 30000:
+            # agy takes its prompt only as the --print argument; Windows caps a command line at ~32k chars. Typed,
+            # never a crash: the reader is UNAVAILABLE for this trial and the trial waits (no single-family admission)
+            return {"state": "PROMPT_TOO_LONG_FOR_AGY_CLI", "record_id": None, "chars": len(p)}
         rec = mcl.agy_call(p, schema=ta.SCHEMA, caller=caller, input_digests=dig, timeout_s=900)
     else:
         rec = mcl.call(prompt, schema=ta.SCHEMA, model=model, effort=eff, caller=caller, input_digests=dig,
@@ -259,12 +285,56 @@ def _answer(rec):
     if rec.get("state") != "RAN_OK":
         return None
     t = ms.replay(rec).decode("utf-8", "replace").strip()
-    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", t, re.S)
-    try:
-        o = json.loads(m.group(1) if m else t)
-    except ValueError:
-        return None
-    return o if isinstance(o, dict) else None
+    # the LAST complete top-level JSON object in the answer: agy (Gemini Flash) prefixes prose ('I have launched the
+    # test command ...' -- with zero tool calls recorded) or wraps a fence; the gate still verifies every number
+    dec, last = json.JSONDecoder(), None
+    i = t.find("{")
+    while i != -1:
+        try:
+            o, end = dec.raw_decode(t, i)
+            if isinstance(o, dict):
+                last = o
+            i = t.find("{", end)
+        except ValueError:
+            i = t.find("{", i + 1)
+    return last
+
+
+_GENERIC = {"solution", "solutions", "fatty", "acid", "acids", "therapy", "standard", "control", "placebo", "dose",
+            "oral", "daily", "tablet", "treatment", "group", "arm", "plus"}
+
+
+def arm_identity(resp, held, cfg):
+    """None when the admitted tuple's posted GROUPS are the protocol's intervention v its control, else a refusal code.
+    g1_trial_acquire.gate checks that the OUTCOME binds, never which ARMS the numbers belong to: ASCEND (NCT00135226, a
+    2x2 factorial) posts Aspirin / Placebo Aspirin / Omega-3 / Placebo Omega-3 under ONE outcome, and two readers took
+    the ASPIRIN pair (658/7740 v 743/7740) for the omega-3 topic (13 Oct)."""
+    n, oid = str(resp.get("source_ref") or "").strip(), str(resp.get("aact_outcome_id") or "")
+    reg = (held["aact"].get(n) or {}).get("_reg") or {}
+    groups = reg.get("groups", {}).get(oid) or []
+    titles = reg.get("group_titles") or {}
+    inc = cfg.get("include") or {}
+    # a posted ARM TITLE is short ('Physiologically Balanced Fluid', 'Omega-3', 'Placebo Omega-3'): it names the
+    # intervention when it carries a DISTINCTIVE token of the protocol's intervention terms (a whole-phrase match refused
+    # SALT's balanced-fluid arm). Generic tokens never count.
+    toks = {w for t in (inc.get("intervention_any") or []) for w in re.findall(r"[a-z0-9][a-z0-9'-]*", str(t).lower())
+            if len(w) >= 4 and w not in _GENERIC}
+    names = lambda title: bool(toks & set(re.findall(r"[a-z0-9][a-z0-9'-]*", (title or "").lower())))  # noqa: E731
+    if resp.get("events_t") is None or resp.get("n_t") is None:
+        return "REFUSED:ARM_IDENTITY_NOT_CHECKABLE_EFFECT_ONLY"
+    exp = [g for g in groups if (g.get("count"), g.get("n")) == (resp["events_t"], resp["n_t"])]
+    ctl = [g for g in groups if (g.get("count"), g.get("n")) == (resp["events_c"], resp["n_c"])]
+    if len(exp) != 1 or len(ctl) != 1 or exp[0] is ctl[0]:
+        return "REFUSED:ARM_AMBIGUOUS"
+    et, ct = titles.get(str(exp[0]["group"])) or "", titles.get(str(ctl[0]["group"])) or ""
+    if not names(et) or "placebo" in et.lower():
+        return f"REFUSED:EXPERIMENTAL_ARM_NOT_THE_INTERVENTION:{et[:60]}"
+    if names(ct) and "placebo" not in ct.lower():
+        return f"REFUSED:CONTROL_ARM_RECEIVES_THE_INTERVENTION:{ct[:60]}"
+    if "placebo" in ct.lower() and not names(ct) and len(groups) > 2:
+        # a multi-arm / factorial posting: the control must be the placebo FOR THIS intervention, not another agent's
+        return f"REFUSED:CONTROL_IS_ANOTHER_AGENTS_PLACEBO:{ct[:60]}"
+    return None
 
 
 def _gated(resp, held, cfg, slug):
@@ -274,9 +344,14 @@ def _gated(resp, held, cfg, slug):
     if resp.get("verdict") == "FOUND" and resp.get("source") != "AACT":
         return "REFUSED:SOURCE_NOT_THE_REGISTRY", None
     try:
-        return ta.gate(resp, held, cfg, slug)
+        v, adm = ta.gate(resp, held, cfg, slug)
     except Exception as exc:  # noqa: BLE001 - a malformed answer is refused, never fatal
         return f"REFUSED:GATE_ERROR:{type(exc).__name__}", None
+    if v == "ADMITTED":
+        bad = arm_identity(resp, held, cfg)
+        if bad:
+            return bad, None
+    return v, adm
 
 
 def run_trial(slug, cfg, comp, frow):
@@ -284,9 +359,23 @@ def run_trial(slug, cfg, comp, frow):
     import g1_trial_acquire as ta
     po = cfg.get("primary_outcome") or {}
     aact = ta.aact_evidence(frow["ncts"])
+    # Evidence = the registry record, typed-narrowed: FULL detail for the outcomes that pass the binding gates (stage 3),
+    # and id / title / type / time frame for every other posted outcome. Both readers get the SAME evidence; the gate
+    # still checks against the WHOLE held record. (ASCEND's full record exceeded the Windows command line that agy's
+    # --print argument travels on: WinError 206, 13 Oct.)
+    keep = {(b["nct"], str(b["outcome_id"])) for b in frow.get("bindable_outcomes") or []}
+    shown = {}
+    for n, a in aact.items():
+        if a.get("state") != "POSTED":
+            continue
+        outs = a.get("outcomes") or []
+        shown[n] = {"state": "POSTED", "snapshot": a.get("snapshot"),
+                    "bindable_outcomes": [o for o in outs if (n, str(o.get("outcome_id"))) in keep],
+                    "other_outcomes": [{k: o.get(k) for k in ("outcome_id", "type", "title", "time_frame")}
+                                       for o in outs if (n, str(o.get("outcome_id"))) not in keep]}
     ev = {"trial": frow["label"], "ncts": frow["ncts"],
           "outcome": {k: po.get(k) for k in ("name", "keywords", "estimand", "timepoint", "population")},
-          "aact": {n: {k: v for k, v in a.items() if k != "_reg"} for n, a in aact.items() if a.get("state") == "POSTED"}}
+          "aact": shown}
     held = {"aact": aact, "text": "", "sha": None, "terms": ta.outcome_terms(cfg), "comp": comp, "pmid": frow["pmid"],
             "reg": None, "slug": slug, "text_origin": None, "doi": None, "doi_licence": None}
     body = json.dumps(ev, ensure_ascii=False, indent=0, default=str)
@@ -346,8 +435,22 @@ def run_trial(slug, cfg, comp, frow):
                    value={k: getattr(rw, k) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t",
                                                       "events_c", "n_c")})
         if not adm["analysis_population_registry"]:
-            # the registry's analysis population must be NAMED (Mahmood 13 Oct): none posted -> not admitted
-            out["decision"], chosen = "NOT_ADMITTED_ANALYSIS_POPULATION_NOT_NAMED", None
+            # the registry's analysis population must be NAMED (Mahmood 13 Oct). The registry's own description is blank
+            # for ~1 in 4 posted outcomes; the ONLY typed way to name it then is an exact equality: the posted analysed
+            # numbers sum to the registration's ACTUAL enrollment -> every randomised participant was analysed. Anything
+            # else (estimated enrollment, a gap of even one participant, effect-only tuples) stays refused.
+            v = adm["value"]
+            enr = _enrollment(n)
+            tot = (v.get("n_t") or 0) + (v.get("n_c") or 0) if v.get("n_t") is not None and v.get("n_c") is not None else None
+            if enr and enr.get("type") == "ACTUAL" and tot is not None and tot == enr.get("count"):
+                adm["analysis_population_registry"] = (f"ALL_RANDOMISED (typed): posted analysed {v['n_t']} + {v['n_c']} = "
+                                                       f"{tot} = actual enrollment {enr['count']} (CT.gov API v2 "
+                                                       f"{n}, response sha256 {enr['sha256'][:12]})")
+                adm["analysis_population_basis"] = "ENROLLMENT_EQUALITY"
+                out["admitted"] = adm
+            else:
+                out["decision"], chosen = "NOT_ADMITTED_ANALYSIS_POPULATION_NOT_NAMED", None
+                out["population_check"] = {"enrollment": enr, "posted_analysed_total": tot}
         else:
             out["admitted"] = adm
     out["verdict"] = "ADMITTED" if chosen else "NOT_ADMITTED"
