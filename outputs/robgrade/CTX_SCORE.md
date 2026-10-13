@@ -1,6 +1,6 @@
 # Contextual 'probably' answers on TEST: agreement with the published per-trial judgements, n of N
 
-Pre-registered rule: commit 2b3450d7286197ebdaf0c5479b1b802ecfab058b (outputs/robgrade/CONTEXTUAL_POLICY.md). Only asked NI answers could change, only to a documented contextual PY/PN (checked against v3.1, answer by answer).
+Pre-registered rule: commit 2b3450d7286197ebdaf0c5479b1b802ecfab058b (outputs/robgrade/CONTEXTUAL_POLICY.md), as amended by the signed declarations A2.1, A2.2, A2.3, A2.4, A3.1, A3.2, A3.3, A3.4 (outputs/robgrade/AMENDMENTS.json). Only asked NI answers could change, only to a documented contextual PY/PN (checked against v3.1, answer by answer).
 
 Coverage: 40 records excluded, 9 trials unmatched (not in any N).
 
