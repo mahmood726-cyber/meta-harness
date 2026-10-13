@@ -5,6 +5,8 @@ import json
 import os
 import subprocess
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FREEZE = os.path.join(ROOT, "registry", "regex_freeze.json")
 # The baseline commit is pinned IN THE GATE, not only in the registry it checks: re-anchoring the freeze is then an edit
@@ -151,3 +153,38 @@ def test_plant_moving_frozen_at_with_the_hashes_is_refused():
     doc = json.load(open(FREEZE, encoding="utf-8"))
     doc["frozen_at"] = "HEAD"
     assert any("frozen_at" in p for p in freeze_problems(doc))
+
+
+# Round 3 of 3 (codex pr98-cap-r3; review stops at three): recorded as KNOWN LIMITS, not fixed.
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex pr98-cap-r3 #1): a test pytest excludes from collection "
+                                       "(__test__ = False) is still accepted as a plant")
+def test_known_limit_an_uncollected_test_is_accepted_as_a_plant(tmp_path):
+    tf = tmp_path / "tests" / "test_x.py"
+    tf.parent.mkdir()
+    tf.write_text("def test_ghost():\n    pass\ntest_ghost.__test__ = False\n", encoding="utf-8")
+    doc = {"frozen": {}, "failure_classes": [{"id": "X", "file": "f.py", "found": "d", "what": "w",
+                                              "plant": "tests/test_x.py::test_ghost", "new_blob": "a" * 40}]}
+    assert any("does not exist" in p for p in freeze_problems(doc, blob=lambda f: "a" * 40, root=str(tmp_path)))
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex pr98-cap-r3 #2): the failure-class history is not "
+                                       "append-only -- rewriting a logged class's new_blob admits a further change")
+def test_known_limit_a_logged_class_can_be_rewritten():
+    doc = json.load(open(FREEZE, encoding="utf-8"))
+    doc["failure_classes"] = [{"id": "X", "file": "harness/components.py", "found": "d", "what": "w",
+                               "plant": "tests/test_regex_freeze.py::test_plant_an_unlogged_change_is_refused",
+                               "new_blob": "e" * 40}]
+    # the registry as committed has NO class X: a class whose blob was rewritten in place must be refused
+    probs = freeze_problems(doc, blob=lambda f: "e" * 40 if f == "harness/components.py" else _blob(f))
+    assert probs, "a class absent from the committed history admitted a changed parser"
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (agy pr98-cap-r3-agy): the mirror check compares the two static "
+                                       "baseline entries, so a logged change to a source alone lets its mirror diverge")
+def test_known_limit_a_logged_source_change_can_leave_its_mirror_behind():
+    doc = json.load(open(FREEZE, encoding="utf-8"))
+    doc["failure_classes"] = [{"id": "X", "file": "harness/components.py", "found": "d", "what": "w",
+                               "plant": "tests/test_regex_freeze.py::test_plant_an_unlogged_change_is_refused",
+                               "new_blob": "f" * 40}]
+    probs = freeze_problems(doc, blob=lambda f: "f" * 40 if f == "harness/components.py" else _blob(f))
+    assert any("mirror" in p for p in probs), "source and mirror diverged with no problem reported"
