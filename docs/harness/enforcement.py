@@ -40,21 +40,26 @@ def decisions(path: str = DECISIONS, pinned: bool | None = None) -> dict:
     build -- with out-of-scope rows kept PENDING, a bad file would otherwise switch enforcement off without a word.
     The committed file's sha256 is pinned HERE (DECISIONS_SHA256): an edited row under the original header is refused
     (codex v15cenf-cap-r1 #4); regenerating the decisions is then an edit to this gate, visible in review."""
-    if path in _CACHE:
-        return _CACHE[path]
+    pin = (path == DECISIONS) if pinned is None else bool(pinned)
     if not os.path.exists(path):
         raise EnforcementError(f"V15-C decisions file missing: {path}")
-    if (path == DECISIONS) if pinned is None else pinned:
+    raw = open(path, "rb").read()
+    if pin:
+        # verified on EVERY pinned call, before any cache (codex v15cenf-cap-r2 #3: an unpinned load of an edited file
+        # was cached, and a later pinned call returned it unchecked)
         import hashlib
-        got = hashlib.sha256(open(path, "rb").read()).hexdigest()
+        got = hashlib.sha256(raw).hexdigest()
         if got != DECISIONS_SHA256:
             raise EnforcementError(f"V15-C decisions file sha256 {got[:12]} != pinned {DECISIONS_SHA256[:12]}")
-    doc = json.load(open(path, encoding="utf-8"))
+    key = (path, pin, raw)
+    if key in _CACHE:
+        return _CACHE[key]
+    doc = json.loads(raw.decode("utf-8"))
     sig = doc.get("signed") or {}
     if sig.get("packet_sha256") != PACKET_SHA256 or sig.get("state") != "SEEN_AND_SIGNED":
         raise EnforcementError("V15-C decisions file is not the signed one (packet sha256 / state differ)")
     out = {_key(r["slug"], r["outcome"], r["id"]): r for r in doc.get("rows") or []}
-    _CACHE[path] = out
+    _CACHE[key] = out
     return out
 
 

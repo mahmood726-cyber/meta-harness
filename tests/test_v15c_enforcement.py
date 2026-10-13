@@ -185,3 +185,30 @@ def test_plant_r2_a_cached_unpinned_load_never_answers_a_pinned_call(tmp_path):
     enf.decisions(str(p), pinned=False)
     with pytest.raises(enf.EnforcementError):
         enf.decisions(str(p), pinned=True)
+
+
+# Round 3 of 3 (codex v15cenf-cap-r3, agy v15cenf-cap-r3-agy; review stops at three): KNOWN LIMITS of locate, recorded,
+# not fixed. None touches the three rows it admits (probiotics 15740542 / 18026577 / 18410562: distinct arms, no
+# thousands separators, no percentage denominators), each also bound identically by codex, agy and the adjudicator.
+import pytest  # noqa: E402
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex r3 #1, agy r3 #1): a count may start after a thousands comma "
+                                       "-- '1,200 of 10,000' locates 200")
+def test_known_limit_a_count_after_a_thousands_comma():
+    import v15c_decisions as g
+    assert g.locate("1,200 of 10,000 v 300 of 10,000", {"ai": 200, "n1i": 10000, "ci": 300, "n2i": 10000}) is None
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex r3 #2): distinct positions are not distinct ARMS -- two "
+                                       "mentions of the intervention arm locate both arms")
+def test_known_limit_two_mentions_of_one_arm():
+    import v15c_decisions as g
+    span = "In the drug group 10 of 100 died; overall, 10 of 100 drug patients died."
+    assert g.locate(span, {"ai": 10, "n1i": 100, "ci": 10, "n2i": 100}) is None
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (agy r3 #2): an 'X of N%' pair is accepted as counts")
+def test_known_limit_a_percentage_denominator():
+    import v15c_decisions as g
+    assert g.locate("4 of 50% v 8 of 60%", {"ai": 4, "n1i": 50, "ci": 8, "n2i": 60}) is None
