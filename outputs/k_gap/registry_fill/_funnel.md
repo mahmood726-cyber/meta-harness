@@ -19,7 +19,7 @@
 | metformin-pcos-ovulation | 30 | 2 | 0 | 0 | (stage 4) |
 | noac-vs-warfarin-af-stroke | 0 | 0 | 0 | 0 | (stage 4) |
 | omega3-cardiovascular-events | 12 | 10 | 3 | 1 | (stage 4) |
-| pcsk9-mace | 9 | 9 | 7 | 0 | (stage 4) |
+| pcsk9-mace | 9 | 8 | 7 | 0 | (stage 4) |
 | probiotics-aad-prevention | 27 | 2 | 2 | 0 | (stage 4) |
 | sacubitril-valsartan-hfref | 0 | 0 | 0 | 0 | (stage 4) |
 | semaglutide-obesity-mace | 0 | 0 | 0 | 0 | (stage 4) |
@@ -32,4 +32,4 @@
 | ticagrelor-vs-clopidogrel-acs | 14 | 3 | 0 | 0 | (stage 4) |
 | tocilizumab-covid19-mortality | 16 | 14 | 7 | 0 | (stage 4) |
 | tranexamic-acid-pph | 0 | 0 | 0 | 0 | (stage 4) |
-| **total** | 141 | 58 | 21 | 3 | |
+| **total** | 141 | 57 | 21 | 3 | |

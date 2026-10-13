@@ -68,12 +68,63 @@ _OTHER_REG = re.compile(r"\b(?:ISRCTN\d{8}|IRCT\d{6,}N?\d*|CTRI/\d{4}/\d{2,3}/\d
 
 
 def _abstracts(pmids):
-    """{pmid: abstract text} from the current PubMed record (read-only efetch; g1_abstract_census.fetch_abstracts)."""
+    """{pmid: (fetch_state, abstract_text)} from the current PubMed record (read-only efetch;
+    g1_abstract_census.fetch_abstracts). A PMID the fetch did not return is FETCH_FAILED, never an empty abstract
+    (PR #100 r1: a failed fetch read as 'no registration stated')."""
     pmids = sorted({p for p in pmids if p})
     if not pmids:
         return {}
     import g1_abstract_census as cen
-    return {p: (a or "") for p, (a, _sha) in cen.fetch_abstracts(pmids).items()}
+    got = cen.fetch_abstracts(pmids)
+    return {p: (("FETCHED" if (got[p][0] or "").strip() else "NO_ABSTRACT"), got[p][0] or "") if p in got
+            else ("FETCH_FAILED", "") for p in pmids}
+
+
+def identity_why(fetch_state, abstract, pmid):
+    """Why a trial with no NCT stays MISSING: only an abstract that was actually READ can show 'no registration stated'."""
+    if not pmid:
+        return "NO_PMID_NO_REGISTRATION"
+    if fetch_state == "FETCH_FAILED":
+        return "FETCH_FAILED:PUBMED_ABSTRACT"
+    if fetch_state == "NO_ABSTRACT" or not (abstract or "").strip():
+        return "NO_ABSTRACT_TO_READ"
+    other = sorted(set(m.group(0) for m in _OTHER_REG.finditer(abstract)))
+    return ("REGISTERED_OUTSIDE_CTGOV:" + ",".join(other)) if other else "NO_REGISTRATION_STATED"
+
+
+_REG_CUE = re.compile(r"regist|clinicaltrials\.gov|identifier|trial number|NCT number", re.I)
+_PRIOR_CUE = re.compile(r"\b(?:previous|prior|earlier|preceding|parent|original|antecedent|another|other)\b", re.I)
+
+
+def registration_ncts(abstract):
+    """(the report's OWN registration NCTs, other NCTs merely mentioned). An NCT counts as the report's own only in a
+    sentence that states a registration and does not name it as a prior/other trial (PR #100 r1: every NCT in an
+    abstract was promoted, a named PRIOR trial included)."""
+    own, other = set(), set()
+    for sent in re.split(r"(?<=[.;])\s+", abstract or ""):
+        found = _NCT.findall(sent)
+        if not found:
+            continue
+        if _REG_CUE.search(sent) and not _PRIOR_CUE.search(sent):
+            own.update(found)
+        else:
+            other.update(found)
+    return sorted(own), sorted(other - own)
+
+
+def results_why(aact_states, ctgov):
+    """Why an NCT-resolved trial has no POSTED AACT results. 'NO_POSTED_RESULTS' needs CT.gov v2 to have ANSWERED for
+    every NCT; a failed fetch is RESULTS_STATE_UNESTABLISHED (PR #100 r1: 1 of 38 rows had a failed CT.gov fetch)."""
+    fresh = [n for n, c in ctgov.items() if (c or {}).get("state") == "OK" and c.get("has_results")]
+    if fresh:
+        return "RESULTS_POSTED_AFTER_SNAPSHOT:" + ",".join(sorted(fresh))
+    gone = sorted(n for n, c in ctgov.items() if (c or {}).get("state") == "NCT_NOT_IN_REGISTRY")
+    if gone and len(gone) == len(ctgov):
+        return "NCT_NOT_IN_REGISTRY:" + ",".join(gone)
+    bad =[f"{n}:{(c or {}).get('state')}" for n, c in sorted(ctgov.items()) if (c or {}).get("state") != "OK"]
+    if bad or not ctgov:
+        return "RESULTS_STATE_UNESTABLISHED:" + ",".join(bad or sorted(aact_states))
+    return "NO_POSTED_RESULTS"
 
 
 _ENR = {}
@@ -113,7 +164,9 @@ def ctgov_has_results(nct):
              "last_update": (sm_.get("lastUpdatePostDateStruct") or {}).get("date"),
              "sha256": hashlib.sha256(b or b"").hexdigest()}
     except Exception as exc:  # noqa: BLE001 - typed
-        r = {"state": "FETCH_FAILED", "error": str(exc)[:120]}
+        # a 404 is the registry ANSWERING that it holds no such NCT (a wrong identity), never a failed fetch
+        code = getattr(exc.__cause__, "code", None)
+        r = {"state": "NCT_NOT_IN_REGISTRY"} if code == 404 else {"state": "FETCH_FAILED", "error": str(exc)[:120]}
     time.sleep(0.3)
     _CTG[nct] = r
     return r
@@ -134,15 +187,16 @@ def funnel_topic(slug):
             # further TYPED identity routes (13 Oct audit: 'ODYSSEY JAPAN NCT02017898' carried its NCT in its own label;
             # the PubMed databank field is empty for many reports whose ABSTRACT states the registration)
             lab = sorted(set(_NCT.findall(t["label"] or "")))
-            ab = abstracts.get(t["pmid"] or "", "")
-            abn = sorted(set(_NCT.findall(ab)))
+            fs, ab = abstracts.get(t["pmid"] or "", (None, ""))
+            row["abstract_fetch"] = fs
+            abn, mentioned = registration_ncts(ab)
+            if mentioned:
+                row["ncts_mentioned_not_registration"] = mentioned
             if lab or abn:
                 t["ncts"] = lab or abn
                 row.update(ncts=t["ncts"], nct_by="LABEL" if lab else "ABSTRACT_STATED")
             else:
-                other = sorted(set(m.group(0) for m in _OTHER_REG.finditer(ab)))
-                rows.append(dict(row, why=("REGISTERED_OUTSIDE_CTGOV:" + ",".join(other)) if other else
-                                 ("NO_REGISTRATION_STATED" if t["pmid"] else "NO_PMID_NO_REGISTRATION")))
+                rows.append(dict(row, why=identity_why(fs, ab, t["pmid"])))
                 continue
         row["stage"] = "NCT"
         ev = ta.aact_evidence(t["ncts"])
@@ -150,8 +204,9 @@ def funnel_topic(slug):
         row["ctgov"] = {n: ctgov_has_results(n) for n in t["ncts"]}
         posted = [n for n, e in ev.items() if e.get("state") == "POSTED"]
         if not posted:
-            fresh = [n for n, c in row["ctgov"].items() if c.get("has_results")]
-            rows.append(dict(row, why=("RESULTS_POSTED_AFTER_SNAPSHOT:" + ",".join(fresh)) if fresh else "NO_POSTED_RESULTS"))
+            why = results_why(row["aact"], row["ctgov"])
+            # an NCT the registry does not hold is no resolved identity: the trial stays MISSING
+            rows.append(dict(row, why=why, stage="MISSING" if why.startswith("NCT_NOT_IN_REGISTRY") else "NCT"))
             continue
         row["stage"] = "POSTED"
         bindable = []
@@ -301,25 +356,44 @@ def _answer(rec):
 
 
 _GENERIC = {"solution", "solutions", "fatty", "acid", "acids", "therapy", "standard", "control", "placebo", "dose",
-            "oral", "daily", "tablet", "treatment", "group", "arm", "plus"}
+            "oral", "daily", "tablet", "treatment", "group", "arm", "plus", "and", "the", "with", "for"}
+# comparator terms ARE often generic words ('usual care', 'control', 'standard of care'): only filler is dropped there
+_FILLER = {"group", "arm", "plus", "dose", "daily", "oral", "tablet", "and", "the", "with", "for", "of", "or"}
+_WORD = re.compile(r"[a-z0-9][a-z0-9'-]*")
+
+
+def _term_tokens(terms, stop):
+    """Each term's DISTINCTIVE tokens (a term with none left cannot name an arm)."""
+    out = []
+    for t in terms or []:
+        k = frozenset(w for w in _WORD.findall(str(t).lower()) if len(w) >= 3 and w not in stop)
+        if k:
+            out.append(k)
+    return out
+
+
+def _names(title, term_toks):
+    """True when the title carries EVERY distinctive token of at least ONE term. One shared token is not identity
+    (PR #100 r1: two compounds sharing 'sodium' passed); order and filler words are free, so 'Physiologically
+    Balanced Fluid' still names 'balanced solution'."""
+    words = set(_WORD.findall((title or "").lower()))
+    return any(k <= words for k in term_toks)
 
 
 def arm_identity(resp, held, cfg):
     """None when the admitted tuple's posted GROUPS are the protocol's intervention v its control, else a refusal code.
     g1_trial_acquire.gate checks that the OUTCOME binds, never which ARMS the numbers belong to: ASCEND (NCT00135226, a
     2x2 factorial) posts Aspirin / Placebo Aspirin / Omega-3 / Placebo Omega-3 under ONE outcome, and two readers took
-    the ASPIRIN pair (658/7740 v 743/7740) for the omega-3 topic (13 Oct)."""
+    the ASPIRIN pair (658/7740 v 743/7740) for the omega-3 topic (13 Oct). The CONTROL must be the protocol's
+    comparator (comparator_any) or this intervention's own placebo: omega-3 v the ACTIVE aspirin arm is refused (r1)."""
     n, oid = str(resp.get("source_ref") or "").strip(), str(resp.get("aact_outcome_id") or "")
     reg = (held["aact"].get(n) or {}).get("_reg") or {}
     groups = reg.get("groups", {}).get(oid) or []
     titles = reg.get("group_titles") or {}
     inc = cfg.get("include") or {}
-    # a posted ARM TITLE is short ('Physiologically Balanced Fluid', 'Omega-3', 'Placebo Omega-3'): it names the
-    # intervention when it carries a DISTINCTIVE token of the protocol's intervention terms (a whole-phrase match refused
-    # SALT's balanced-fluid arm). Generic tokens never count.
-    toks = {w for t in (inc.get("intervention_any") or []) for w in re.findall(r"[a-z0-9][a-z0-9'-]*", str(t).lower())
-            if len(w) >= 4 and w not in _GENERIC}
-    names = lambda title: bool(toks & set(re.findall(r"[a-z0-9][a-z0-9'-]*", (title or "").lower())))  # noqa: E731
+    itoks = _term_tokens(inc.get("intervention_any"), _GENERIC)
+    ctoks = [k for k in _term_tokens(inc.get("comparator_any"), _FILLER) if k != {"placebo"}]
+    placebo_ok = any("placebo" in str(t).lower() for t in inc.get("comparator_any") or [])
     if resp.get("events_t") is None or resp.get("n_t") is None:
         return "REFUSED:ARM_IDENTITY_NOT_CHECKABLE_EFFECT_ONLY"
     exp = [g for g in groups if (g.get("count"), g.get("n")) == (resp["events_t"], resp["n_t"])]
@@ -327,13 +401,19 @@ def arm_identity(resp, held, cfg):
     if len(exp) != 1 or len(ctl) != 1 or exp[0] is ctl[0]:
         return "REFUSED:ARM_AMBIGUOUS"
     et, ct = titles.get(str(exp[0]["group"])) or "", titles.get(str(ctl[0]["group"])) or ""
-    if not names(et) or "placebo" in et.lower():
+    if not _names(et, itoks) or "placebo" in et.lower():
         return f"REFUSED:EXPERIMENTAL_ARM_NOT_THE_INTERVENTION:{et[:60]}"
-    if names(ct) and "placebo" not in ct.lower():
+    if "placebo" in ct.lower():
+        if _names(ct, itoks):
+            return None  # this intervention's own placebo
+        if len(groups) > 2:
+            # a multi-arm / factorial posting: the control must be the placebo FOR THIS intervention, not another agent's
+            return f"REFUSED:CONTROL_IS_ANOTHER_AGENTS_PLACEBO:{ct[:60]}"
+        return None if placebo_ok else f"REFUSED:CONTROL_ARM_NOT_THE_COMPARATOR:{ct[:60]}"
+    if _names(ct, itoks):
         return f"REFUSED:CONTROL_ARM_RECEIVES_THE_INTERVENTION:{ct[:60]}"
-    if "placebo" in ct.lower() and not names(ct) and len(groups) > 2:
-        # a multi-arm / factorial posting: the control must be the placebo FOR THIS intervention, not another agent's
-        return f"REFUSED:CONTROL_IS_ANOTHER_AGENTS_PLACEBO:{ct[:60]}"
+    if not _names(ct, ctoks):
+        return f"REFUSED:CONTROL_ARM_NOT_THE_COMPARATOR:{ct[:60]}"
     return None
 
 

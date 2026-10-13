@@ -66,6 +66,21 @@ def fetch_abstracts(pmids):
 _NUM = re.compile(r"\d+(?:[.·]\d+)?(?:\s*/\s*\d+)?")
 
 
+def classify(held, fn):
+    """Coverage label of the held text against PubMed's (both whitespace-normalised). EXCERPT needs at least ONE held
+    sentence over 30 chars found in PubMed's: all([]) passed 'No abstract available.' as an excerpt (PR #100 r1)."""
+    if not fn:
+        return "NO_ABSTRACT" if not held else "DIFFERS"
+    if held == fn:
+        return "FULL_ABSTRACT"
+    if not held:
+        return "METADATA_ONLY"
+    sents = [s for s in re.split(r"(?<=[.;])\s+", held) if len(s) > 30]
+    if held in fn or (len(held) < len(fn) and sents and all(s in fn for s in sents)):
+        return "EXCERPT"
+    return "DIFFERS"
+
+
 def run(slug):
     p = os.path.join(ROOT, "cache", slug, "records.json")
     recs = [r for r in (json.load(open(p, encoding="utf-8")).get("records") or []) if r.get("id_type", "pmid") == "pmid"
@@ -79,16 +94,7 @@ def run(slug):
             continue
         full, xsha = fresh[pid]
         fn = _n(full)
-        if not fn:
-            cov = "NO_ABSTRACT" if not held else "DIFFERS"
-        elif held == fn:
-            cov = "FULL_ABSTRACT"
-        elif not held:
-            cov = "METADATA_ONLY"
-        elif held in fn or (len(held) < len(fn) and all(s in fn for s in re.split(r"(?<=[.;])\s+", held) if len(s) > 30)):
-            cov = "EXCERPT"
-        else:
-            cov = "DIFFERS"
+        cov = classify(held, fn)
         row = {"pmid": pid, "title": (r.get("title") or "")[:160], "coverage": cov, "held_chars": len(held),
                "pubmed_chars": len(fn)}
         if cov in ("EXCERPT", "METADATA_ONLY", "DIFFERS"):
