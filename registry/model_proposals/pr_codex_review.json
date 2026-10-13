@@ -6731,5 +6731,34 @@
     "verdict": null
    }
   ]
+ },
+ "r5-2-stated-k-r1": {
+  "base": "beb73a487",
+  "head": "11dcd8e76",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f4c9dac13dbaa5e453c6db513fe1f651",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py"
+    ],
+    "prompt_sha256": "3f3edf360c6e52242f82dbd332e2999df33212e29376085e14c985d69f67ac76"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/g1_tracker.py",
+    "function": "stated_k_from_text",
+    "severity": "P0",
+    "claim": "Adding 'studies' makes a screening count override the included trial count. The incorrect number propagates into topic()['comparator_stated_k']['k']; the enumeration comparison merely annotates it. Before this diff, the same text correctly matched 4 trials.",
+    "failing_input": "stated_k_from_text('Of 20 studies screened, 4 randomized controlled trials were included.')",
+    "expected": "(4, '4 randomized controlled trials')",
+    "actual": "(20, '20 studies')",
+    "id": "r5-2-stated-k-r1:g1#1",
+    "record_id": "mc-f4c9dac13dbaa5e453c6db513fe1f651",
+    "verdict": null
+   }
+  ]
  }
 }
