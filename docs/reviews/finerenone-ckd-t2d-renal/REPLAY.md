@@ -20,12 +20,12 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 | This topic's identity | Recorded value |
 |---|---|
 | review_sha256 (canonical review core) | `b5b6f9c666b77baea15d62dc8cdf887e05a92057856e0ff82d2b9e81a14daeb8` |
-| html_sha256 (served page bytes) | `6e40d1bee1e0fe70726d0e968614de122ed643efd5927b2c4c78ec0c3fb95bd4` |
-| release_sha256 (certificate) | `5c778977111313cdff0c311dbe3f068f9fca66ef675f683076bb2c3362e99286` |
+| html_sha256 (served page bytes) | `0d5bf9e73cd2a52972e0492b152222e2c1b0dbb2a54677057ef647d0a62854df` |
+| release_sha256 (certificate) | `284f8f8d80e62d063a8bcdea6fc9f0afa1ee491d6602f02fdfd57327c3d3e980` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `43f5f12e367109bebd37936a8177ef00c6dcf1f6` |
 | analysis code | 92 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `7dc5292d8714b063395da2e76534881d60133828` |
+| recorded generating commit | `e62ca5432b73aea8b9e903c9ea6d1b6eaaf9b88a` |
 | recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
