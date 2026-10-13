@@ -31,9 +31,13 @@ ADMIT = {"slug": "s", "outcome": "O", "id": "PMID 1", "decision": "ADMIT", "basi
          "served": {"effect": 0.8, "ci_low": 0.7, "ci_high": 0.9}, "span": "HR 0.8 (0.7-0.9)"}
 
 
-def test_plant_an_unbound_row_with_no_decision_leaves_the_pool(tmp_path):
+def test_plant_an_unbound_row_outside_the_signed_scope_is_neither_refused_nor_admitted(tmp_path):
+    """The signed packet's scope was 77 rows (main 66219d315). The preview render found 13 more unbound rows on today's
+    main that no panel has read: refusing them would move pools nobody signed; admitting them would claim a signature
+    they lack. They keep their legacy state, marked PENDING (counted and listed), until read and signed."""
     kept, absent = _apply(tmp_path, [], [_t("PMID 9")])
-    assert kept == [] and absent[0]["state"] == "EXTRACTION_DEBT" and "no signed binding decision" in absent[0]["reason"]
+    assert absent == [] and kept[0]["endpoint_admissibility"] == "UNBOUND_LEGACY"
+    assert kept[0]["enforcement"]["decision"] == "PENDING_TRIAGE"
 
 
 def test_a_signed_admit_with_its_own_numbers_is_pooled_as_a_signed_binding(tmp_path):
@@ -60,9 +64,14 @@ def test_a_bound_row_is_untouched(tmp_path):
     assert _apply(tmp_path, [], [t]) == ([t], [])
 
 
-def test_plant_an_unsigned_decisions_file_admits_nothing(tmp_path):
-    kept, absent = _apply(tmp_path, [ADMIT], [_t("PMID 1")], sha="0" * 64)
-    assert kept == [] and len(absent) == 1
+def test_plant_an_unsigned_or_missing_decisions_file_stops_the_build(tmp_path):
+    """With rows outside the signed scope kept PENDING, a decisions file that is not the signed one would quietly switch
+    enforcement OFF (every row 'outside scope'). The switch is on: a missing or unsigned file is an error, never a no-op."""
+    import pytest
+    with pytest.raises(enf.EnforcementError):
+        _apply(tmp_path, [ADMIT], [_t("PMID 1")], sha="0" * 64)
+    with pytest.raises(enf.EnforcementError):
+        enf.apply("s", {"name": "O"}, [_t("PMID 1")], path=str(tmp_path / "missing.json"))
 
 
 def test_the_committed_decisions_are_the_generator_output():
