@@ -101,3 +101,43 @@ def test_PLANT_signed_exponents_and_thousands_decimals():
                                        "('Deaths (%): treatment 12') is read as a count; the signer sees the span")
 def test_known_limit_percentage_heading():
     assert not _b("Deaths (%): treatment 12; control 15.", events_t=12, events_c=15)
+
+
+class _Rec(dict):
+    pass
+
+
+def _rec(text, monkeypatch):
+    import base64
+    r = {"state": "RAN_OK", "response": {"b64": base64.b64encode(text.encode()).decode()}}
+    monkeypatch.setattr(t.ms, "replay", lambda rec: text.encode())
+    return r
+
+
+def test_PLANT_a_reply_with_leading_prose_is_parsed(monkeypatch):
+    """13 Oct (V15-C apply): agy prefixed its JSON with 'I will check the directory contents.' and a fenced block, the
+    parser read UNPARSEABLE, and the row's bind check said 'not a bind' -- ENGAGE (24251359) and STEP 1 (33567185) were
+    recorded as panel DISAGREEMENTS when agy had bound the same numbers as codex and the adjudicator."""
+    body = '{"decision": "BIND", "span": "s", "numbers": {"effect": -12.4}}'
+    for raw in ("I will check the directory contents.\n```json\n" + body + "\n```",
+                "Here is my answer:\n" + body, "```json\n" + body + "\n```", body):
+        assert t._parse(_rec(raw, monkeypatch))["decision"] == "BIND", raw
+    assert t._parse(_rec("no json here", monkeypatch))["decision"] == "UNPARSEABLE"
+
+
+@pytest.mark.xfail(strict=True, reason="FAILURE CLASS (logged, V1 freeze, ruling 6): counts written as words "
+                                       "('four of 119', 'seven of 44') are not read -- routed UNRESOLVED -> human")
+def test_known_limit_number_words():
+    ok, why = t.check_bind({"decision": "BIND", "span": "four of 119 (3.4%) vs. 22 of 127 (17.3%)",
+                            "numbers": {"events_t": 4, "n_t": 119, "events_c": 22, "n_c": 127}},
+                           "x four of 119 (3.4%) vs. 22 of 127 (17.3%) y")
+    assert ok, why
+
+
+@pytest.mark.xfail(strict=True, reason="FAILURE CLASS (logged, V1 freeze, ruling 6): a spaced minus before a "
+                                       "percentage ('risk difference - 8%') is read as a percentage, never as -8")
+def test_known_limit_spaced_minus_percentage_difference():
+    ok, why = t.check_bind({"decision": "BIND", "span": "risk difference - 8%, 95% confidence interval - 20% to 4%",
+                            "numbers": {"effect": -8, "ci_low": -20, "ci_high": 4}},
+                           "a risk difference - 8%, 95% confidence interval - 20% to 4% b")
+    assert ok, why

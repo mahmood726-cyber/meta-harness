@@ -141,12 +141,25 @@ def _parse(rec):
     if rec.get("state") != "RAN_OK":
         return None
     raw = ms.replay(rec).decode("utf-8").strip()
-    if raw.startswith("```"):
-        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
-    try:
-        return json.loads(raw)
-    except ValueError:
-        return {"decision": "UNPARSEABLE", "raw": raw[:500]}
+    # a reply may PRECEDE its JSON with prose ("I will check the directory contents.\n```json ..."): agy did, 13 Oct, and
+    # the row read 'not a bind' although agy had bound the same numbers -- a parser failure scored as a model's answer.
+    # The first fenced block, else the first decodable object; never a guess past that.
+    cands = re.findall(r"```(?:json)?\s*\n(.*?)\n\s*```", raw, re.S) + [raw]
+    for c in cands:
+        try:
+            return json.loads(c)
+        except ValueError:
+            pass
+        i = c.find("{")
+        while i >= 0:
+            try:
+                obj, _ = json.JSONDecoder().raw_decode(c[i:])
+                if isinstance(obj, dict):
+                    return obj
+            except ValueError:
+                pass
+            i = c.find("{", i + 1)
+    return {"decision": "UNPARSEABLE", "raw": raw[:500]}
 
 
 def check_bind(ans, text):
@@ -229,8 +242,81 @@ def triage(row, out_dir):
     return dict(res, state=state, proposal=j, adjudicator=j, adjudicator_record=rj["record_id"], adjudicator_check=why_j)
 
 
+_SERVED_OF = {"effect": "effect", "ci_low": "ci_low", "ci_high": "ci_high",
+              "events_t": "ai", "n_t": "n1i", "events_c": "ci", "n_c": "n2i"}
+
+
+def served_class(row):
+    """BIND_CONFIRMS_SERVED only when EVERY number the row serves is the bound number (1e-9); any other bind DIFFERS."""
+    st = row.get("state")
+    if st == "NEEDS_OPEN_SOURCE":
+        return "NEEDS_OPEN_SOURCE"
+    if st in ("AGREED_REFUSE", "ADJUDICATED_REFUSE"):
+        return "REFUSE"
+    if st not in ("AGREED_BIND", "ADJUDICATED_BIND"):
+        return "UNRESOLVED"
+    nums = (row.get("proposal") or {}).get("numbers") or {}
+    bound = {_SERVED_OF[k]: v for k, v in nums.items() if k in _SERVED_OF and isinstance(v, (int, float))}
+    served = {k: v for k, v in (row.get("served") or {}).items() if v is not None}
+    if served and all(k in bound and abs(float(bound[k]) - float(v)) < 1e-9 for k, v in served.items()):
+        return "BIND_CONFIRMS_SERVED"
+    return "BIND_DIFFERS_FROM_SERVED"
+
+
+def reclassify(row):
+    """Rebuild one row's state from its STORED records with the CURRENT parser and bind check, against the same source
+    bytes (sha-checked) -- no model call. 13 Oct: pretriage.json was written at d9367bded and the bind check changed in
+    three review rounds after it; the committed states were never regenerated."""
+    if row.get("state") == "NEEDS_OPEN_SOURCE" or not row.get("codex_record"):
+        return dict(row)
+    src = open_source(row)
+    if not src or src[2] != row.get("source_sha256"):
+        return dict(row, state="UNRESOLVED", why="source bytes differ from the bytes the readers were shown")
+    text = src[0]
+    load = lambda rid: ms.load_record(os.path.join(REC_DIR, rid + ".json")) if rid else None  # noqa: E731
+    a, b = _parse(load(row["codex_record"])), _parse(load(row["agy_record"]))
+    ok_a, why_a = check_bind(a, text)
+    ok_b, why_b = check_bind(b, text)
+    res = {k: v for k, v in row.items() if k not in ("state", "proposal", "adjudicator", "adjudicator_check", "why")}
+    res.update(codex=a, agy=b, codex_bind_check=why_a, agy_bind_check=why_b)
+    if ok_a and ok_b and a.get("numbers") == b.get("numbers"):
+        return dict(res, state="AGREED_BIND", proposal=a)
+    if ((a or {}).get("decision") == "REFUSE" and (b or {}).get("decision") == "REFUSE"
+            and a.get("reason_code") == b.get("reason_code")):
+        return dict(res, state="AGREED_REFUSE", proposal=a)
+    if not row.get("adjudicator_record"):
+        return dict(res, state="NEEDS_ADJUDICATION", why="the readers now disagree and no adjudication is recorded")
+    j = _parse(load(row["adjudicator_record"]))
+    ok_j, why_j = check_bind(j, text)
+    state = ("ADJUDICATED_BIND" if ok_j else "ADJUDICATED_REFUSE" if (j or {}).get("decision") == "REFUSE"
+             else "UNRESOLVED")
+    return dict(res, state=state, proposal=j, adjudicator=j, adjudicator_check=why_j)
+
+
+def write_classified(rows, out_dir):
+    cls = {}
+    for r in rows:
+        cls.setdefault(served_class(r), []).append(r)
+    order = ("BIND_CONFIRMS_SERVED", "REFUSE", "BIND_DIFFERS_FROM_SERVED", "NEEDS_OPEN_SOURCE", "UNRESOLVED")
+    out = {k: cls.get(k, []) for k in order}
+    with open(os.path.join(out_dir, "classified.json"), "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(out, fh, indent=1, ensure_ascii=False)
+        fh.write("\n")
+    return {k: len(v) for k, v in out.items()}
+
+
 def main(argv):
     out_dir = argv[0]
+    if "--reclassify" in argv:
+        prev = json.load(open(os.path.join(out_dir, "pretriage.json"), encoding="utf-8"))
+        rows = [reclassify(r) for r in prev]
+        with open(os.path.join(out_dir, "pretriage.json"), "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(rows, fh, indent=1, ensure_ascii=False)
+            fh.write("\n")
+        from collections import Counter
+        print("STATES:", dict(Counter(r["state"] for r in rows)), f"of {len(rows)} rows")
+        print("CLASSES:", write_classified(rows, out_dir))
+        return
     limit = int(argv[argv.index("--limit") + 1]) if "--limit" in argv else None
     workers = int(argv[argv.index("--workers") + 1]) if "--workers" in argv else 3
     os.makedirs(out_dir, exist_ok=True)
