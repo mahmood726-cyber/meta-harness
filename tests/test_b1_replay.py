@@ -329,3 +329,48 @@ def test_plant_round2_agy_teen_number_words_count_as_counts():
     for w in ("thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"):
         with pytest.raises(ReadRefused):
             read_cache_ae_clause(head + f" These results indicate that {w} patients withdrew.", spec)
+
+
+# Round 3 of 3 (codex b1-cap-r3, agy b1-cap-r3-agy; review stops at three): KNOWN LIMITS, recorded, not fixed. None
+# touches the two converted rows: their counts are verbatim and their denominators are READ from the held AACT totals
+# (the percentage inversion is only a cross-check that must agree).
+_HEAD = "Adverse events were similar between Drug and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively)."
+_SPEC = {"reader": "ae_patient_percentages", "outcome": "Adverse events", "arm_t": "Drug", "arm_c": "placebo"}
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex b1-cap-r3 #1 + agy b1-cap-r3-agy #1): the qualifier word list "
+                                       "is incomplete -- 'posterior means', 'annualized', 'zero patients' pass")
+@pytest.mark.parametrize("tail", [" These results indicate that the percentages are posterior means.",
+                                  " These results indicate that the rates were annualized.",
+                                  " These results indicate that zero patients withdrew."])
+def test_known_limit_the_qualifier_list_is_incomplete(tail):
+    with pytest.raises(xr.ReadRefused):
+        xr.read_cache_ae_clause(_HEAD + tail, _SPEC)
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex b1-cap-r3 #2): replay checks the span only; a FOLLOWING held "
+                                       "sentence saying the percentages are Kaplan-Meier estimates is never read")
+def test_known_limit_a_following_sentence_is_not_read(tmp_path):
+    row = _row(CASES[0])
+    held = row["source_span"] + " The percentages above are Kaplan-Meier estimates."
+    raw = json.dumps({"records": [{"id": "34711976", "abstract": held, "nct": "NCT03030235"}]}).encode()
+    (tmp_path / row["document_ref"]).parent.mkdir(parents=True)
+    (tmp_path / row["document_ref"]).write_bytes(raw)
+    aact = (ROOT / xr.AACT_TOTALS).read_bytes()
+    (tmp_path / xr.AACT_TOTALS).parent.mkdir(parents=True)
+    (tmp_path / xr.AACT_TOTALS).write_bytes(aact)
+    sha = lambda b: hashlib.sha256(b).hexdigest()  # noqa: E731
+    (tmp_path / "cache" / "b1_replay_manifest.json").write_text(json.dumps({"documents": {
+        row["document_ref"]: {"sha256": sha(raw), "text_sha256": sha(held.encode())},
+        xr.AACT_TOTALS: {"sha256": sha(aact), "text_sha256": sha(aact)}}}), encoding="utf-8")
+    row["document_sha256"] = sha(raw)
+    assert xr.replay(row, str(tmp_path))[0] is False      # the held text says the percentages are estimates
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (agy b1-cap-r3-agy #2): a percentage row whose document is a held "
+                                       "FULL TEXT (ft_*.txt) cannot bind its AACT denominator to the paper's NCT -- it "
+                                       "refuses (fail-closed)")
+def test_known_limit_a_fulltext_document_cannot_bind_its_nct():
+    row = copy.deepcopy(_row(CASES[0]))
+    row["document_ref"] = "cache/dapagliflozin-hfpef-hosp/ft_34711976.txt"
+    assert xr._held_denominator(row, str(ROOT)) == 162
