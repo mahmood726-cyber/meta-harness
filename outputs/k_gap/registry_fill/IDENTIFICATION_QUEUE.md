@@ -11,4 +11,4 @@ These trials cannot enter any source phase until they have an identity: a PMID, 
 ## Identity defects found in the comparator labels (not changed by the lane)
 
 - **ODYSSEY JAPAN** is labelled 'NCT02017898', and the registry answers 404. The trial is **NCT02107898** (registry search "ODYSSEY JAPAN alirocumab": brief title names ODYSSEY JAPAN; has posted results).
-- **corticosteroids-cap** has a trial labelled "Ampicillin dosage and use ..." (PMID 4404939). The label reads like a reference title, not a trial. It needs an identity check.
+- (Retracted 13 Oct) the corticosteroids-cap label "Ampicillin dosage and use of prednisolone in treatment of pneumonia" (PMID 4404939) is the trial's own title, in the same style as the topic's other labels. **It is not a defect.**

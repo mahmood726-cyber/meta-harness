@@ -27,4 +27,4 @@ Population: comparator trials we do not pool and that are not named out of scope
 2. ASCEND: take the trial's PRIMARY outcome when several bound outcomes each give one gated pair (#103);
 3. deterministic reading of bronze / green open copies with no licence. Mahmood's ladder says "other OA text is regex-only", but the `OPEN_COPY` gate refuses them (19 trials);
 4. PMDA: download permission for 3 named review reports, and PDL 1.0 for prompts;
-5. comparator label defects: ODYSSEY JAPAN's NCT02017898 should be NCT02107898; corticosteroids-cap "Ampicillin dosage and use".
+5. comparator label defects: ODYSSEY JAPAN's NCT02017898 should be NCT02107898.
