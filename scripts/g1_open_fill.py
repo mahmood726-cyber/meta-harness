@@ -34,10 +34,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 # --registered: the registered trials (an NCT) phases 1-2 did not fill (g1_open_census.py --registered)
 _REG = "--registered" in sys.argv
-MODEL = "--model" in sys.argv          # run the codex + agy readers on CC BY / CC0 text the typed step could not read
+# --companions: the registered trials' companion / primary-outcome publications (g1_identify.py companions); typed only
+# here (the model stage reads the trial's OWN evidence set, not a companion's text, so it is not run on a companion)
+_COMP = "--companions" in sys.argv
+MODEL = "--model" in sys.argv and not _COMP
 CENSUS = os.path.join(ROOT, "outputs", "k_gap", "registry_fill",
+                      "PHASE3_OPEN_CENSUS_COMPANIONS.json" if _COMP else
                       "PHASE3_OPEN_CENSUS_REGISTERED.json" if _REG else "PHASE3_OPEN_CENSUS.json")
-OUT = os.path.join(ROOT, "outputs", "k_gap", "registry_fill", "phase3_registered" if _REG else "phase3")
+OUT = os.path.join(ROOT, "outputs", "k_gap", "registry_fill",
+                   "phase3_companions" if _COMP else "phase3_registered" if _REG else "phase3")
 WINDOW = 1800
 _SCREENING = re.compile(r"^(?:SCREENER_ERROR|SCREENED_OUT_UNAUDITED|INSUFFICIENT_RECORD)")
 MODEL_LICENCES = ("CC_BY_OR_CC0",)
@@ -245,7 +250,8 @@ def run_trial(slug, cfg, r):
                                          retrieved=datetime.date.today().isoformat()))
     rr, span, reader = typed_read(text, origin, cfg)
     if rr:
-        short = ta.posted_population_short(slug, r["pmid"], rr["n_t"] + rr["n_c"])
+        # the randomised total is the TRIAL's (its report PMID), also when the find comes from a companion paper
+        short = ta.posted_population_short(slug, r.get("population_pmid") or r["pmid"], rr["n_t"] + rr["n_c"])
         if short:
             return dict(out, stage="TYPED", decision="TYPED_REFUSED_SUBPOPULATION", note=short)
         out.update(stage="TYPED", typed={"reader": reader, "value": rr, "span": (span or "")[:600]},

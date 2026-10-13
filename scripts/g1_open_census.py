@@ -46,8 +46,25 @@ for _f in sorted(glob.glob(os.path.join(ROOT, "outputs", "k_gap", "registry_fill
     _done = _admitted(_d["slug"])
     scope += [dict(r, slug=_d["slug"]) for r in _d["rows"] if r.get("pmid") and r["label"] not in _done and
               ((bool(r.get("ncts")) and REGISTERED) or (not REGISTERED and r.get("stage") == "MISSING" and not r.get("ncts")))]
+# --companions: the registered trials' COMPANION / primary-outcome publications (scripts/g1_identify.py companions), one
+# row per companion PMID; population checks keep the trial's own REPORT PMID -> PHASE3_OPEN_CENSUS_COMPANIONS.json
+COMPANIONS = "--companions" in sys.argv
+ONLY = next((a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--slugs=")), None)
+if COMPANIONS:
+    _fr = {}
+    for _f in glob.glob(os.path.join(ROOT, "outputs", "k_gap", "registry_fill", "*.funnel.json")):
+        _d = json.load(open(_f, encoding="utf-8"))
+        _fr.update({(_d["slug"], r["label"]): r for r in _d["rows"]})
+    _c = json.load(open(os.path.join(ROOT, "outputs", "k_gap", "registry_fill", "IDENTIFICATION_COMPANIONS.json"),
+                        encoding="utf-8"))
+    scope = [{"slug": t["slug"], "label": t["label"], "pmid": c["pmid"], "population_pmid": t["report_pmid"],
+              "companion_sources": c["sources"], "active_topic": t["active_topic"],
+              "blocker_now": (_fr.get((t["slug"], t["label"])) or {}).get("blocker_now"),
+              "route_now": (_fr.get((t["slug"], t["label"])) or {}).get("route_now")}
+             for t in _c["rows"] if not ONLY or t["slug"] in ONLY for c in t["companions"]]
+    REGISTERED = False
 idx = json.load(open("outputs/k_gap/fulltext_index.json", encoding="utf-8"))
-MODEL_OK = ("cc-by", "cc0", "cc by", "public-domain", "pd")
+MODEL_OK =("cc-by", "cc0", "cc by", "public-domain", "pd")
 
 
 def lic_class(lic):
@@ -119,13 +136,15 @@ for t in scope:
     rows.append({"slug": t["slug"], "label": t["label"], "pmid": pmid, "blocker_now": t.get("blocker_now"),
                  "route_now": t.get("route_now"), "held_pmcid": held.get("pmcid"),
                  "held_copy_licence": held.get("copy_licence"), "europepmc": e, "unpaywall": u, "class": cls,
-                 "new_vs_held": bool(e.get("pmcid")) and not held.get("pmcid")})
+                 "new_vs_held": bool(e.get("pmcid")) and not held.get("pmcid"),
+                 **({k: t.get(k) for k in ("population_pmid", "companion_sources", "active_topic")} if COMPANIONS else {})})
     print(cls, "|", t["slug"][:22], "|", t["label"][:26], "|", pmid, "| epmc", e.get("pmcid"), e.get("license"),
           "| upw", u.get("oa_status"), u.get("license"), "| held", held.get("pmcid"), flush=True)
 
 out = {"retrieved": time.strftime("%Y-%m-%d"), "n": len(rows), "class": dict(collections.Counter(r["class"] for r in rows)),
        "pmcid_not_in_held_index": sum(r["new_vs_held"] for r in rows), "rows": rows}
 json.dump(out, open(os.path.join(ROOT, "outputs", "k_gap", "registry_fill",
+                                 "PHASE3_OPEN_CENSUS_COMPANIONS.json" if COMPANIONS else
                                  "PHASE3_OPEN_CENSUS_REGISTERED.json" if REGISTERED else "PHASE3_OPEN_CENSUS.json"),
                     "w", encoding="utf-8"), indent=1, ensure_ascii=False)
 print("CENSUS", out["class"], "pmcid not in held index:", out["pmcid_not_in_held_index"])
