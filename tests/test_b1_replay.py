@@ -125,7 +125,8 @@ def test_held_bytes_and_manifest_are_independently_required(tmp_path, plant):
     # A synthetic abstract-container fixture uses only the permitted short quote.
     path = tmp_path / row["document_ref"]
     path.parent.mkdir(parents=True)
-    raw = json.dumps({"records": [{"id": "34711976", "abstract": row["source_span"]}]}).encode()
+    # the held record names its own registration, as the real one does (the AACT denominator is bound to it)
+    raw = json.dumps({"records": [{"id": "34711976", "abstract": row["source_span"], "nct": "NCT03030235"}]}).encode()
     text_sha = hashlib.sha256(row["source_span"].encode()).hexdigest()
     sha = hashlib.sha256(raw).hexdigest()
     row["document_sha256"] = sha
@@ -270,3 +271,50 @@ def test_plant_the_aact_at_risk_reader_refuses_mixed_or_absent_values():
     for text in (mixed, blank, same.replace("NCT1", "NCT2")):
         with pytest.raises(xr.ReadRefused):
             xr._aact_at_risk(text, "NCT1")
+
+
+def test_plant_round2_any_count_or_qualifier_in_the_interpretation_refuses():
+    """codex b1-cap-r2 #1 (P0): the word blacklist let 'weighted percentages' and a SPELLED-OUT denominator through. The
+    interpretation may now carry no number but a duration, no number word, and no weighting / estimate qualifier."""
+    from harness.extractor_replay import ReadRefused, read_cache_ae_clause
+    spec = {"reader": "ae_patient_percentages", "outcome": "Adverse events", "arm_t": "Drug", "arm_c": "placebo"}
+    head = "Adverse events were similar between Drug and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively)."
+    for tail in (" These results indicate that the percentages are weighted.",
+                 " These results indicate that two hundred patients were in each group.",
+                 " These results indicate that the rates were adjusted for site.",
+                 " These results indicate that 200 were randomised to each group."):
+        with pytest.raises(ReadRefused):
+            read_cache_ae_clause(head + tail, spec)
+
+
+def test_plant_round2_the_aact_trial_is_the_papers_own_trial(tmp_path):
+    """codex b1-cap-r2 #2 (P1): an AACT denominator from ANOTHER trial passed when its at-risk count happened to agree.
+    The NCT must be the one the held paper record names. Fixture: a second trial that ALSO states 162 at risk (none in
+    the real file does), so only the NCT binding can refuse it -- never the numeric cross-check."""
+    row = _row(CASES[0])
+    rec = {"id": "34711976", "abstract": row["source_span"], "nct": "NCT03030235"}
+    raw = json.dumps({"records": [rec]}).encode()
+    (tmp_path / row["document_ref"]).parent.mkdir(parents=True)
+    (tmp_path / row["document_ref"]).write_bytes(raw)
+    head = (ROOT / xr.AACT_TOTALS).read_text(encoding="utf-8").splitlines()[0]
+    aact = (head + "\n" + "1|NCT03030235|EG000|deaths|x|1|162|a|b\n2|NCT03030235|EG001|deaths|x|2|162|a|b\n"
+            "3|NCT09999999|EG000|deaths|x|1|162|a|b\n4|NCT09999999|EG001|deaths|x|2|162|a|b\n").encode()
+    (tmp_path / xr.AACT_TOTALS).parent.mkdir(parents=True)
+    (tmp_path / xr.AACT_TOTALS).write_bytes(aact)
+    sha = lambda b: hashlib.sha256(b).hexdigest()  # noqa: E731
+    (tmp_path / "cache" / "b1_replay_manifest.json").write_text(json.dumps({"documents": {
+        row["document_ref"]: {"sha256": sha(raw), "text_sha256": sha(row["source_span"].encode())},
+        xr.AACT_TOTALS: {"sha256": sha(aact), "text_sha256": sha(aact)}}}), encoding="utf-8")
+    row["document_sha256"] = sha(raw)
+    assert xr.replay(row, str(tmp_path))[0] is True                      # its own trial: replays
+    other = copy.deepcopy(row)
+    other["denominator_source"]["nct"] = "NCT09999999"                   # same 162, another trial
+    assert xr.replay(other, str(tmp_path))[0] is False
+
+
+def test_plant_round2_a_malformed_row_of_the_trial_refuses():
+    """codex b1-cap-r2 #3 (P2): a malformed row of the requested trial was skipped, so a conflicting value vanished."""
+    head = "id|nct_id|ctgov_group_code|event_type|classification|subjects_affected|subjects_at_risk|created_at|updated_at\n"
+    text = head + "1|NCT1|EG000|deaths|x|1|162|a|b\n2|NCT1|EG001|deaths|x|2|200|a\n"
+    with pytest.raises(xr.ReadRefused):
+        xr._aact_at_risk(text, "NCT1")

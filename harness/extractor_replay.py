@@ -185,9 +185,16 @@ def read_cache_ae_clause(span: str, spec: dict[str, str]) -> dict[str, int]:
         # the interpretation may say nothing that changes what the percentages are or how many patients they are of:
         # estimate wording, or a stated patient count, makes a derived denominator wrong (codex b1-cap-r1 #1, P0)
         tail = m.group("tail") or ""
-        if re.search(r"Kaplan|Meier|estimat|cumulative|life[- ]?table|incidence|\bper arm\b|\beach arm\b|"
-                     r"\d[\d,]*\s+(?:patients|participants|subjects|people|individuals)\b", tail, re.I):
-            raise ReadRefused("the interpretive sentence qualifies the percentages or states a denominator")
+        # structural, not a word list (codex b1-cap-r2 #1: 'weighted' and a SPELLED-OUT denominator passed the list):
+        # once durations ('12 weeks') are set aside, the interpretation may carry no number, no number word, and no
+        # qualifier of how the percentages were computed or of whom
+        bare = re.sub(r"\b\d+(?:[   ]|-)?(?:weeks?|months?|days?|years?|hours?)\b", " ", tail, flags=re.I)
+        if (re.search(r"\d", bare)
+                or re.search(r"\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|"
+                             r"fifty|sixty|seventy|eighty|ninety|hundred|thousand|dozen|half)\b", bare, re.I)
+                or re.search(r"Kaplan|Meier|estimat|cumulative|life[- ]?table|incidence|weight|adjust|standardi|"
+                             r"model|imput|\bper (?:arm|group)\b|\beach (?:arm|group)\b|denominator|populat", bare, re.I)):
+            raise ReadRefused("the interpretive sentence qualifies the percentages or states a count")
         et, pt, ec, pc = m.group(1), m.group(2), m.group(3), m.group(4)
         et, ec = int(et), int(ec)
         nt, nc = _unique_denominator(et, pt), _unique_denominator(ec, pc)
@@ -251,7 +258,9 @@ def _aact_at_risk(text: str, nct: str) -> int:
     vals = set()
     for ln in lines[1:]:
         f = ln.split("|")
-        if len(f) == len(head) and f[i_nct] == nct:
+        if len(f) > i_nct and f[i_nct] == nct:
+            if len(f) != len(head):         # a malformed row OF THIS TRIAL refuses; never skipped (codex b1-cap-r2 #3)
+                raise ReadRefused("a row of the NCT does not have the header's columns")
             if not re.fullmatch(r"[1-9]\d*", f[i_risk]):
                 raise ReadRefused("an AACT row of the NCT has no integer subjects_at_risk")
             vals.add(int(f[i_risk]))
@@ -271,6 +280,15 @@ def _held_denominator(t: dict[str, Any], root: str) -> int:
         manifest = json.loads((Path(root) / "cache" / "b1_replay_manifest.json").read_text(encoding="utf-8"))
         if hashlib.sha256(raw).hexdigest() != manifest["documents"][AACT_TOTALS]["sha256"]:
             raise ReadRefused("AACT totals digest differs from pinned bytes")
+        # the trial is the PAPER'S OWN: the held record the row reads (pinned, checked by _cache_held_text) names it
+        # (codex b1-cap-r2 #2: another trial's AACT totals passed when its at-risk count happened to agree)
+        doc = (Path(root) / str(t.get("document_ref"))).read_bytes()
+        if hashlib.sha256(doc).hexdigest() != manifest["documents"][t["document_ref"]]["sha256"]:
+            raise ReadRefused("paper record digest differs from pinned bytes")
+        pid = str(t.get("id", "")).removeprefix("PMID ")
+        recs = [r for r in json.loads(doc.decode("utf-8"))["records"] if str(r.get("id")) == pid]
+        if len(recs) != 1 or recs[0].get("nct") != ds["nct"]:
+            raise ReadRefused("the AACT trial is not the trial the held paper record names")
         return _aact_at_risk(raw.decode("utf-8"), ds["nct"])
     except (OSError, ValueError, KeyError, TypeError):
         raise ReadRefused("AACT totals or pinned manifest failed validation") from None
