@@ -1,0 +1,28 @@
+{
+ "record_id": "mc-8eab51a853738ae77b16fe99e803c916",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "A shown registry exempts every registry citation, regardless of document identity. A rationale explicitly relying on a different, unseen registry can pass verification and both-reader agreement. The identity fix for parent publications does not fix this kind-wide exemption.",
+   "guidance_basis": "C3 and signed A3 candidate 1 require the relied-on source to have been shown, or its relevant content reported by the shown source. Matching source kinds does not establish identity.",
+   "failing_test": "Show only a ClinicalTrials.gov registry excerpt: 'Randomisation details were omitted.' Submit 1.2 PY quoting it, with rationale 'The ISRCTN registry confirms randomisation was concealed.' -> NI; currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify; outputs/robgrade/ctx_review/RESPONSES.md:rounds 16–20",
+   "claim": "The repeated decline leaves valid shown-source context classified as memory. MEMORY rejects 'published report' before A3 checks whether that report was shown. A scope restriction explains why this remains unfixed; it does not make the NI decision faithful to the guidance.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits reasonable contextual probability judgements. NI is not justified solely by wording that identifies an available source.",
+   "failing_test": "Shown fulltext and quote: 'Central web-based randomisation was coordinated by an independent trials unit.' Rationale: 'The published report describes central web-based randomisation, supporting concealment.' Submit 1.2 PY -> PY; currently NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:_PROTOCOL_CONCEPT,cites_unseen",
+   "claim": "The protocol-concept exemption recognises 'protocol-deviations' but misses ordinary 'protocol deviations'. A3 therefore newly rejects legitimate reasoning about exclusions as reliance on an unseen document. The existing concept tests omit this common grammatical form.",
+   "guidance_basis": "[RoB 2 guidance, 2.6](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_cribsheet_2019.pdf) assesses analysis by assigned group and inappropriate exclusions. Referring to protocol deviations does not itself cite a protocol document.",
+   "failing_test": "Shown quote: 'All randomised participants were analysed in their assigned groups.' Submit 2.6 PY; rationale: 'Keeping all randomised participants in their assigned groups avoids exclusions for protocol deviations.' -> PY; currently NI with RATIONALE_CITES_A_SOURCE_NOT_SHOWN."
+  }
+ ]
+}

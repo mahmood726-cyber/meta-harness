@@ -56,7 +56,61 @@ AMENDMENTS = os.path.join(ROOT, "outputs", "robgrade", "AMENDMENTS.json")
 
 # The ONLY frozen files an amendment may change (codex A2 review): the code A2 fixes. The rule text, the inputs (split,
 # comparators, the v3.1 objects and calibration), the tests and every other frozen file can never be amended this way.
-AMENDABLE = ("robgrade/contextual.py", "scripts/rob2_contextual.py", "scripts/rob2_ctx_score.py", "scripts/rob2_dual.py")
+AMENDABLE = ("robgrade/contextual.py", "scripts/rob2_contextual.py", "scripts/rob2_ctx_score.py", "scripts/rob2_dual.py",
+             "robgrade/rob2_tab.py")                    # A3 (candidate 4): the served label of a closed decision
+VARIANT = None                                         # a PRE-REGISTERED variant being scored (parse_args), else None
+VARIANT_DOC = "outputs/robgrade/CONTEXTUAL_VARIANT_{}.md"
+# the per-declaration supersession test (A3): A2 proved its records defect-caused; A3 proves the amended RULE shows the
+# adjudicator different readings. A declaration without the field is A2's.
+SUPERSESSION_TESTS = ("defect_caused", "rule_changed")
+
+
+def supersession_test(entry):
+    t = entry.get("superseded_test", "defect_caused")
+    if t not in SUPERSESSION_TESTS:
+        raise SystemExit(f"REFUSED: {entry.get('id')}: unknown supersession test {t!r}")
+    return t
+
+
+def parse_args(argv):
+    """(base pre-registration sha, variant name or None, variant pre-registration sha or None)."""
+    if len(argv) == 1:
+        return argv[0], None, None
+    if len(argv) == 4 and argv[1] == "--variant" and argv[2] in cx.VARIANTS:
+        return argv[0], argv[2], argv[3]
+    raise SystemExit("REFUSED: usage: rob2_ctx_score.py <pre-registration sha> [--variant <registered name> "
+                     "<the variant's pre-registration sha>]; no subset: all four registered comparators are scored")
+
+
+def check_variant_manifest(vruns, base_runs):
+    """A variant's manifest only ADDS entries (codex A3 r16): an entry for a reader may not stand in for a base reader
+    of the same prompt -- the base's fresh records are read, never replaced or omitted."""
+    for key, r in vruns.items():
+        bp = list((base_runs.get(key) or {}).get("passes") or [])
+        for k, p in enumerate(r.get("passes") or []):
+            b = bp[k] if k < len(bp) else {}
+            for w, x in p.items():
+                # (codex/agy A3 r17) in ANY role (readers and the adjudicator) and whatever its id or state: an entry
+                # for a prompt the base already answered would shadow the base's record
+                if w in b and (b.get(w) or {}).get("prompt_sha256") == (x or {}).get("prompt_sha256"):
+                    raise SystemExit(f"REFUSED: {key} pass {k}: the variant shadows the base {w} entry of the same prompt")
+
+
+def check_variant_prereg(name, sha):
+    """A variant is scored only from the commit that ADDED its pre-registration document, an ancestor of HEAD, with
+    every frozen file unchanged since (in history and in the working tree)."""
+    full = _git("rev-parse", sha).stdout.strip()
+    doc = VARIANT_DOC.format(name)
+    added = [x for x in _git("log", "--diff-filter=A", "--format=%H", "--", doc).stdout.split() if x]
+    if not full or not added or full != added[-1]:
+        raise SystemExit(f"REFUSED: {sha} is not the commit that added {doc}")
+    if _git("merge-base", "--is-ancestor", full, "HEAD").returncode != 0:
+        raise SystemExit(f"REFUSED: {sha} is not an ancestor of HEAD")
+    files = POLICY_FILES + INPUT_FILES + [doc]
+    changed = [f for f in files if _git("diff", "--quiet", full, "--", f).returncode != 0]
+    if changed:
+        raise SystemExit(f"REFUSED: files changed since the variant {name} was registered at {sha}: {changed}")
+    return full
 SIGNER = "Mahmood"
 
 
@@ -110,50 +164,79 @@ def defect_caused(rid, load, held_ids):
     """(codex A2 review, round 8) True only when this adjudication was CAUSED by the parser defect: its recorded
     prompt shows one reader as the unread signature on EVERY question it decided, and that reader's held record for
     the same trial and outcome is unreadable to the old strict parser yet readable to the A2 parser."""
-    import re
-    import rob2_contextual as rc
     rec = load(rid)
     reg = registered(rec, "adjudicator") if rec else None
     if not reg or not reg[1]:
         return False
     targets, readings = reg
-    t = rec["prompt_text"]
-    evidence = t[t.index(rc.EVIDENCE_MARK):]
-    trial = re.search(r"^TRIAL: (\S+)", rec["prompt_text"], re.M).group(1)
-    outcome = re.search(r"^OUTCOME: (.*)$", rec["prompt_text"], re.M).group(1)
     for slot, role in (("reader 1", "codex"), ("reader 2", "agy")):
         if not all((readings.get(q) or {}).get(slot) == UNREAD for q in targets):
             continue
-        cands = []
-        for hid in held_ids:
-            h = load(hid)
-            if not (h and h["caller"]["line"] == f"call:{role}" and h["state"] == "RAN_OK" and _bound_to(h, trial, outcome)):
-                continue
-            reg_h = registered(h, "reader")            # the reader call of THE SAME PASS: its targets cover these
-            if not reg_h or not set(targets) <= set(reg_h[0]):
-                continue
-            # (codex A2 r10) ... made BEFORE the adjudication, on the SAME evidence block the adjudicator was shown
-            if _utc(h["request_utc"]) >= _utc(rec["request_utc"]):
-                continue
-            ht = h["prompt_text"]
-            if rc.EVIDENCE_MARK not in ht or ht[ht.index(rc.EVIDENCE_MARK):] != evidence:
-                continue
-            cands.append(h)
-        # (codex A2 r13) ... and it must be the UNIQUE such call: with two candidate attempts, which reply the
-        # adjudicator was shown is not proven, and the adjudication stays genuine (fail closed)
-        if len(cands) != 1:
+        h = _pass_reader(rec, targets, role, load, held_ids)
+        if h is None:
             continue
-        for h in cands:
+        for h in (h,):
             if _legacy_strict(h["reply"]) is not None or cx.parse_reply(h["reply"]) is None:
                 continue
             # ... and under A2 that reader really SAID something on these questions (codex A2 r9): a reader that gave
             # no answer is unread under both parsers, so its adjudication was genuine, not the defect's
             # (codex A2 r10) compared by ANSWER: the defect turned a verified PY/PN into the unread NI; a reply whose
             # verified answer is NI anyway (explicit, or failing verification) was NI under both parsers
-            now = cx.verify(cx.parse_reply(h["reply"]), _sources(h), targets)
+            # judged under A2's rule (codex A3 r16): A3's later unseen-source check cannot unmake a defect proof
+            now = cx.verify(cx.parse_reply(h["reply"]), _sources(h), targets, check_unseen=False)
             if any(now[q]["answer"] != "NI" for q in targets):
                 return True
     return False
+
+
+def _pass_reader(rec, targets, role, load, held_ids):
+    """The held reader record of `role` that this adjudication's pass showed it, or None: the UNIQUE held RAN_OK call of
+    that role about the same trial and outcome, whose registered targets cover the adjudicated ones, made before the
+    adjudication, on the same evidence block (codex A2 rounds 9, 10, 13 -- two candidates leave it unproven)."""
+    import re
+    import rob2_contextual as rc
+    t = rec["prompt_text"]
+    evidence = t[t.index(rc.EVIDENCE_MARK):]
+    trial = re.search(r"^TRIAL: (\S+)", t, re.M).group(1)
+    outcome = re.search(r"^OUTCOME: (.*)$", t, re.M).group(1)
+    cands = []
+    for hid in held_ids:
+        h = load(hid)
+        if not (h and h["caller"]["line"] == f"call:{role}" and h["state"] == "RAN_OK" and _bound_to(h, trial, outcome)):
+            continue
+        reg_h = registered(h, "reader")
+        if not reg_h or not set(targets) <= set(reg_h[0]):
+            continue
+        if _utc(h["request_utc"]) >= _utc(rec["request_utc"]):
+            continue
+        ht = h["prompt_text"]
+        if rc.EVIDENCE_MARK not in ht or ht[ht.index(rc.EVIDENCE_MARK):] != evidence:
+            continue
+        cands.append(h)
+    return cands[0] if len(cands) == 1 else None
+
+
+def rule_changed(rid, load, held_ids):
+    """(A3) True only when the AMENDED rule would show this adjudication different readings: its pass's two unique
+    reader records, re-verified under the rule in force (and the variant being scored), disagree on a different set of
+    questions or with different readings from those its prompt shows. A genuine adjudication -- the same readings under
+    the amended rule -- is never superseded."""
+    rec = load(rid)
+    reg = registered(rec, "adjudicator") if rec else None
+    if not reg or not reg[1]:
+        return False
+    targets, shown = reg
+    h1 = _pass_reader(rec, targets, "codex", load, held_ids)
+    h2 = _pass_reader(rec, targets, "agy", load, held_ids)
+    if h1 is None or h2 is None:
+        return False
+    rt = registered(h1, "reader")[0]
+    if registered(h2, "reader")[0] != rt:
+        return False
+    v1 = cx.verify(cx.parse_reply(h1["reply"]), _sources(h1), rt, variant=VARIANT)
+    v2 = cx.verify(cx.parse_reply(h2["reply"]), _sources(h2), rt, variant=VARIANT)
+    now = {q: {"reader 1": v1[q], "reader 2": v2[q]} for q in rt if v1[q]["answer"] != v2[q]["answer"]}
+    return now != shown
 
 
 def check_superseded(superseded, held, roles, times, amended_iso, defect=None):
@@ -207,8 +290,8 @@ def load_record(rid):
     """A contextual-pass record as the checks need it: state, caller, the EXACT prompt bytes (sha-checked by
     model_source), the stored reply, input digests and request time. None when the record is not held."""
     from reproducible_ai import model_source as ms
-    p = os.path.join(REC_DIR, rid + ".json")
-    if not os.path.exists(p):
+    p = next((x for x in (os.path.join(d, rid + ".json") for d in _rec_dirs()) if os.path.exists(x)), None)
+    if p is None:
         return None
     r = ms.load_record(p)
     return {"state": r["state"], "caller": r["caller"], "prompt_text": ms._unblob(r["prompt"], "prompt").decode("utf-8"),
@@ -222,8 +305,13 @@ def _sources(rec):
     t = rec["prompt_text"]
     block = json.loads(t[t.index("=== EVIDENCE ===") + len("=== EVIDENCE ==="):])
     sha = {d.get("ref"): d.get("sha256") for d in rec.get("input_digests") or []}
-    return [{"id": s["id"], "text": s.get("text") or s.get("abstract") or "", "sha256": sha.get(s["id"]),
-             "open_for_prompt": True} for s in block["sources"]]
+    return [{"id": s["id"], "kind": s.get("kind"), "nct": s.get("nct"), "text": s.get("text") or s.get("abstract") or "",
+             "sha256": sha.get(s["id"]), "open_for_prompt": True} for s in block["sources"]]   # kind: A3
+
+
+def _rec_dirs():
+    """The record stores read: a variant's own, then the base's (its reused readers); the base alone otherwise."""
+    return ([REC_DIR + f"_{VARIANT}"] if VARIANT else []) + [REC_DIR]
 
 
 def _bound_to(rec, trial, outcome):
@@ -236,8 +324,8 @@ def _bound_to(rec, trial, outcome):
 
 def _verified(rec, qid):
     """The recorded reply put through the SAME verify() as the pipeline (codex round 2): an empty quote, a generic or
-    unreferenced rationale, a quote not in the shown source -- all NI here as there."""
-    return cx.verify(cx.parse_reply(rec["reply"]), _sources(rec), [qid])[qid]      # A2: THE parser, as the pipeline
+    unreferenced rationale, a quote not in the shown source -- all NI here as there (under the variant being scored)."""
+    return cx.verify(cx.parse_reply(rec["reply"]), _sources(rec), [qid], variant=VARIANT)[qid]   # A2: THE parser
 
 
 def registered(rec, kind):
@@ -481,6 +569,10 @@ def replay_all(slugs):
     import rob2_contextual as rc
     import rob2_dual as rd
     runs = json.load(open(rc.RUNS, encoding="utf-8")) if os.path.exists(rc.RUNS) else {}
+    base_runs = None
+    if rc.VARIANT is not None:                         # a variant overlays the base manifest (codex A3 r16)
+        base_runs = json.load(open(rc.BASE_RUNS, encoding="utf-8")) if os.path.exists(rc.BASE_RUNS) else {}
+        check_variant_manifest(runs, base_runs)
     docs = {s: json.load(open(os.path.join(cal.OURS, f"{s}.json"), encoding="utf-8")) for s in slugs}
     rd.prefetch_registry([(s, sorted(docs[s]["trials"])) for s in slugs])
     out, consumed = {}, []
@@ -488,68 +580,140 @@ def replay_all(slugs):
         items = {it["pmid"]: it for it in rd.items(s, sorted(docs[s]["trials"]))}
         out[s] = {}
         for pmid, o in docs[s]["trials"].items():
-            new, r, _ = rc.process(items[pmid], o, runs, False, {})
+            new, r, _ = rc.process(items[pmid], o, runs, False, {}, base_runs)
             rd.redact_closed_spans(new, items[pmid])
             out[s][pmid] = new
             consumed += r.get("consumed") or []
     return out, runs, consumed
 
 
-def main(argv):
-    if len(argv) != 1:
-        raise SystemExit("REFUSED: the scorer takes the pre-registration SHA only; all four registered comparators are scored")
-    sha = check_prereg(argv[0])
-    after = prereg_time(sha)
-    test = set(json.load(open(os.path.join(ROOT, "outputs", "robgrade", "split.json"), encoding="utf-8"))["test"])
-    regen, runs, consumed = replay_all(TOPICS)
-    held, roles, times = {}, {}, {}
-    for f in __import__("glob").glob(os.path.join(REC_DIR, "mc-*.json")):
+def _held(rec_dir, after):
+    """{rid: state}, {rid: role}, {rid: request time} of the records in `rec_dir` made after `after`; and the ids made
+    at or before it."""
+    held, roles, times, early = {}, {}, {}, []
+    for f in __import__("glob").glob(os.path.join(rec_dir, "mc-*.json")):
         rid = os.path.basename(f)[:-5]
         rec = load_record(rid)
         if _utc(rec["request_utc"]) > _utc(after):
             held[rid], roles[rid], times[rid] = rec["state"], rec["caller"]["line"].split(":")[-1], rec["request_utc"]
-    superseded = superseded_records(sha)              # A2: kept, listed, never read
-    if superseded:                                    # only held, earlier ADJUDICATIONS can be superseded
-        applied = [a.get("applied_utc") for a in _signed_amendments(sha) if a.get("superseded_records")]
-        if not applied or not all(applied):
-            raise SystemExit("REFUSED: superseded records are declared without the amendment's applied_utc")
-        check_superseded(superseded, held, roles, times, min(applied),
-                         defect=lambda rid: defect_caused(rid, load_record, list(held)))
-    failed_attempts = check_consumed(consumed, held, superseded)    # every other post-registration decision record was READ
-    check_consumed_times(consumed, after)               # and everything READ postdates the pre-registration
+        else:
+            early.append(rid)
+    return held, roles, times, early
+
+
+def _checked_objects(ctx_dir, regen, after):
+    """Every scored object is what the pipeline reproduces and every contextual answer stands on its records."""
     counts = collections.Counter()
     for s in TOPICS:
         base = json.load(open(os.path.join(cal.OURS, f"{s}.json"), encoding="utf-8"))
-        ctx = json.load(open(os.path.join(CTX_DIR, f"{s}.json"), encoding="utf-8"))
+        ctx = json.load(open(os.path.join(ctx_dir, f"{s}.json"), encoding="utf-8"))
         check_replay(s, ctx, regen[s])
         counts += check_contextual_doc(s, base, ctx, after)
+    return counts
+
+
+def main(argv):
+    global VARIANT
+    import rob2_contextual as rc
+    base_sha, variant, vsha = parse_args(argv)
+    sha = check_prereg(base_sha)
+    after = prereg_time(sha)
+    vfull = check_variant_prereg(variant, vsha) if variant else None
+    test = set(json.load(open(os.path.join(ROOT, "outputs", "robgrade", "split.json"), encoding="utf-8"))["test"])
+    amendments = sorted({a.get("id") for a in _signed_amendments(sha)})
+    # ---- the base (the rule as amended by every signed declaration): always replayed and checked in full
+    VARIANT = None
+    rc.configure(None)
+    regen, runs, consumed = replay_all(TOPICS)
+    held, roles, times, _ = _held(REC_DIR, after)
+    superseded = set()                                 # kept, listed, never read -- each by its declaration's own test
+    for a in _signed_amendments(sha):
+        recs = set(a.get("superseded_records") or [])
+        if not recs:
+            continue
+        if not a.get("applied_utc"):
+            raise SystemExit(f"REFUSED: {a.get('id')}: superseded records are declared without the amendment's applied_utc")
+        fn = defect_caused if supersession_test(a) == "defect_caused" else rule_changed
+        check_superseded(recs, held, roles, times, a["applied_utc"],
+                         defect=lambda rid, fn=fn: fn(rid, load_record, list(held)))
+        superseded |= recs
+    failed_attempts = check_consumed(consumed, held, superseded)    # every other post-registration decision record was READ
+    check_consumed_times(consumed, after)               # and everything READ postdates the pre-registration
+    counts = _checked_objects(CTX_DIR, regen, after)
     pairs, excluded, unmatched, tools = pairs_from(CTX_DIR, TOPICS, test)
     t = nip.two_way(pairs)
-    t31 = nip.two_way(json.load(open(V31, encoding="utf-8"))["pairs"])
-    b = {(p["slug"], p["pmid"], p["domain"]): p for p in json.load(open(V31, encoding="utf-8"))["pairs"]}
-    moved = [[p["slug"], p["pmid"], p["domain"], b[k]["ours"], p["ours"], p["theirs"]] for p in pairs
-             for k in [(p["slug"], p["pmid"], p["domain"])] if k in b and b[k]["ours"] != p["ours"]]
-    res = {"preregistration_commit": sha, "topics": TOPICS, "tools": tools, "two_way": t, "two_way_v31": t31,
-           "contextual_answers_by_question": dict(sorted(counts.items())), "moved_from_v31": moved,
-           "excluded": len(excluded), "unmatched_trials": len(unmatched), "result_identity": DISCLOSURE,
-           "failed_attempts_accounted": failed_attempts, "records_consumed": len(set(consumed)),
-           "superseded_records_A2": sorted(superseded)}
-    with open(os.path.join(ROOT, "outputs", "robgrade", "ctx_score.json"), "w", encoding="utf-8", newline="\n") as fh:
-        json.dump(res, fh, indent=1)
     f = lambda c: f"{c['agree']} / {c['N']}"
-    lines = ["# Contextual 'probably' answers on TEST: agreement with the published per-trial judgements, n of N", "",
-             f"Pre-registered rule: commit {sha} (outputs/robgrade/CONTEXTUAL_POLICY.md). Only asked NI answers could "
-             "change, only to a documented contextual PY/PN (checked against v3.1, answer by answer).", "",
-             f"Coverage: {len(excluded)} records excluded, {len(unmatched)} trials unmatched (not in any N).", "", DISCLOSURE, "",
-             "| domain | all (contextual) | excl. NI-driven (contextual) | NI-driven only (contextual) | all (v3.1) | "
-             "excl. NI-driven (v3.1) | NI-driven only (v3.1) |", "|---|---|---|---|---|---|---|"]
+    if variant is None:
+        t31 = nip.two_way(json.load(open(V31, encoding="utf-8"))["pairs"])
+        b = {(p["slug"], p["pmid"], p["domain"]): p for p in json.load(open(V31, encoding="utf-8"))["pairs"]}
+        moved = [[p["slug"], p["pmid"], p["domain"], b[k]["ours"], p["ours"], p["theirs"]] for p in pairs
+                 for k in [(p["slug"], p["pmid"], p["domain"])] if k in b and b[k]["ours"] != p["ours"]]
+        res = {"preregistration_commit": sha, "amendments": amendments, "topics": TOPICS, "tools": tools,
+               "two_way": t, "two_way_v31": t31,
+               "contextual_answers_by_question": dict(sorted(counts.items())), "moved_from_v31": moved,
+               "excluded": len(excluded), "unmatched_trials": len(unmatched), "result_identity": DISCLOSURE,
+               "failed_attempts_accounted": failed_attempts, "records_consumed": len(set(consumed)),
+               "superseded_records": sorted(superseded)}
+        out_json, out_md = "ctx_score.json", "CTX_SCORE.md"
+        title = "# Contextual 'probably' answers on TEST: agreement with the published per-trial judgements, n of N"
+        rule_line = (f"Pre-registered rule: commit {sha} (outputs/robgrade/CONTEXTUAL_POLICY.md), as amended by the signed "
+                     f"declarations {', '.join(amendments) or 'none'} (outputs/robgrade/AMENDMENTS.json). Only asked NI "
+                     "answers could change, only to a documented contextual PY/PN (checked against v3.1, answer by answer).")
+        heads, other, against = ("contextual", "v3.1"), t31, "v3.1"
+        n_ctx = counts
+    else:
+        # ---- the PRE-REGISTERED variant, scored separately, beside the base just checked
+        VARIANT = variant
+        rc.configure(variant)
+        try:
+            vregen, _, vconsumed = replay_all(TOPICS)
+            vafter = prereg_time(vfull)
+            vheld, _, _, vearly = _held(REC_DIR + f"_{variant}", vafter)
+            if vearly:
+                raise SystemExit(f"REFUSED: variant records made before the variant was registered: {sorted(vearly)}")
+            vfailed = check_consumed(vconsumed, vheld)     # every variant record was READ by the variant replay
+            check_consumed_times(vconsumed, after)
+            for rid in set(vconsumed) - set(vheld):    # a reused BASE record: held, RAN_OK, never superseded
+                if rid in superseded or held.get(rid) != "RAN_OK":
+                    raise SystemExit(f"REFUSED: the variant read {rid}, which is not a held, unsuperseded base record")
+            vctx = CTX_DIR + f"_{variant}"
+            n_ctx = _checked_objects(vctx, vregen, after)
+            vpairs, vexcluded, vunmatched, vtools = pairs_from(vctx, TOPICS, test)
+        finally:
+            VARIANT = None
+            rc.configure(None)
+        tv = nip.two_way(vpairs)
+        b = {(p["slug"], p["pmid"], p["domain"]): p for p in pairs}
+        moved = [[p["slug"], p["pmid"], p["domain"], b[k]["ours"], p["ours"], p["theirs"]] for p in vpairs
+                 for k in [(p["slug"], p["pmid"], p["domain"])] if k in b and b[k]["ours"] != p["ours"]]
+        res = {"preregistration_commit": sha, "amendments": amendments, "variant": variant,
+               "variant_preregistration_commit": vfull, "topics": TOPICS, "tools": vtools,
+               "two_way": tv, "two_way_base": t, "contextual_answers_by_question": dict(sorted(n_ctx.items())),
+               "contextual_answers_by_question_base": dict(sorted(counts.items())), "moved_from_base": moved,
+               "excluded": len(vexcluded), "unmatched_trials": len(vunmatched), "result_identity": DISCLOSURE,
+               "failed_attempts_accounted": vfailed, "records_consumed": len(set(vconsumed)),
+               "variant_records": sorted(vheld)}
+        out_json, out_md = f"ctx_score_{variant}.json", f"CTX_SCORE_{variant}.md"
+        title = (f"# Pre-registered variant {variant} on TEST: agreement with the published per-trial judgements, n of N")
+        rule_line = (f"Variant pre-registered at commit {vfull} (outputs/robgrade/CONTEXTUAL_VARIANT_{variant}.md), "
+                     f"scored separately beside the base: the rule pre-registered at {sha} as amended by "
+                     f"{', '.join(amendments) or 'none'}. The variant is never the default.")
+        heads, other, against = (variant, "base"), t, "the base"
+        t, excluded, unmatched = tv, vexcluded, vunmatched
+    with open(os.path.join(ROOT, "outputs", "robgrade", out_json), "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(res, fh, indent=1)
+    lines = [title, "", rule_line, "",
+             f"Coverage: {len(excluded)} records excluded, {len(unmatched)} trials unmatched (not in any N).", "",
+             DISCLOSURE, "",
+             f"| domain | all ({heads[0]}) | excl. NI-driven ({heads[0]}) | NI-driven only ({heads[0]}) | all ({heads[1]}) | "
+             f"excl. NI-driven ({heads[1]}) | NI-driven only ({heads[1]}) |", "|---|---|---|---|---|---|---|"]
     for d in nip.DOMS + ("all",):
         lines.append(f"| {d} | {f(t['all'][d])} | {f(t['excluding_ni_driven'][d])} | {f(t['ni_driven_only'][d])} | "
-                     f"{f(t31['all'][d])} | {f(t31['excluding_ni_driven'][d])} | {f(t31['ni_driven_only'][d])} |")
-    lines += ["", "Contextual answers by question: " + (", ".join(f"{q}: {n}" for q, n in sorted(counts.items())) or "none"),
-              "", f"Judgements moved from v3.1: {len(moved)}"]
+                     f"{f(other['all'][d])} | {f(other['excluding_ni_driven'][d])} | {f(other['ni_driven_only'][d])} |")
+    lines += ["", "Contextual answers by question: " + (", ".join(f"{q}: {n}" for q, n in sorted(n_ctx.items())) or "none"),
+              "", f"Judgements moved from {against}: {len(moved)}"]
     lines += [f"- {a} {b_} {c}: {o} -> {n} (comparator {th})" for a, b_, c, o, n, th in moved]
-    with open(os.path.join(ROOT, "outputs", "robgrade", "CTX_SCORE.md"), "w", encoding="utf-8", newline="\n") as fh:
+    with open(os.path.join(ROOT, "outputs", "robgrade", out_md), "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(lines) + "\n")
     print("\n".join(lines))
 

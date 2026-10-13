@@ -22,13 +22,158 @@ HOW = "contextual (Cochrane Handbook 8.2.3): the sources give context, not a dir
 # Split in round 6 (codex): MEMORY (from outside the shown sources) is never context; USUAL ("what trials usually
 # do") is not context for a question about this trial's own CONDUCT, but the setting-based questions (below) reason
 # from the clinical setting and may word a mechanism with "commonly" etc.
-USUAL = re.compile(r"\b(?:usually|typically|generally|commonly|most (?:trials|studies)|standard practice|in general|"
-                   r"as is (?:usual|common)|tend to|are often|is often|likely in (?:most|such) trials)\b", re.I)
+USUAL_TERMS = ("usually", "typically", "generally", "commonly", r"most (?:trials|studies)", "standard practice",
+               "in general", r"as is (?:usual|common)", "tend to", "are often", "is often", r"likely in (?:most|such) trials")
+
+
+def _usual(terms):
+    return re.compile(r"\b(?:" + "|".join(terms) + r")\b", re.I)
+
+
+USUAL = _usual(USUAL_TERMS)
 MEMORY = re.compile(r"\b(?:remember|recall|from memory|training data|my training|i know|from the literature|"
                     r"prior knowledge|knowledge of this trial|this trial is known|previously reported|"
                     r"published (?:elsewhere|protocol|report)|other (?:reports|publications|sources)|"
                     r"(?:an? )?(?:earlier|another|previous|separate) (?:article|paper|report|publication))\b", re.I)
 GENERIC = re.compile(f"(?:{USUAL.pattern})|(?:{MEMORY.pattern})", re.I)          # both (kept for reference)
+# (A3, signed 13 Oct, codex candidate 1) A rationale may not rest on a DOCUMENT the readers were NOT SHOWN: "the
+# original manuscript confirms ...", "according to the protocol ...". A document is named by kind; it is allowed only
+# when a source of that kind was shown, or when the QUOTED SENTENCE of the shown source names the same document (the
+# reader relies on that report, not on the unseen document -- the frozen r4 case: "A protocol was registered before
+# enrolment and the statistical analysis plan published"; codex A3 r16: a mention in ANOTHER sentence is not that
+# report). Documents are matched as words, with their aliases (SAP = statistical analysis plan, Fig. 1 = Figure 1,
+# protocols = protocol; agy A3 r16). Kind None: never shown to a reader. "Protocol" as a concept (per-protocol,
+# deviations from / adherence to the protocol) is not a document.
+OTHER_REGISTERS = ("isrctn", "eudract", "euctr", "ctis", "anzctr", "actrn", "chictr", "ctri", "drks", "jprn", "umin",
+                   "pactr", "irct", "ntr", "rebec", "slctr", "tctr", "kct", "cris", "who ictrp", "ictrp")
+UNSEEN_DOCS = (
+    (None, re.compile(r"\bprotocols?\b|statistical analysis plans?|\bsaps?\b|supplement(?:ary|al) (?:appendix|"
+                      r"appendices|material|materials|data|table|file|information)|online supplement|\bappendix\b|"
+                      r"\bappendices\b|online (?:material|data|content)|"
+                      # another publication than the one shown: kind is not identity (codex A3 r19)
+                      r"\b(?:original|main|primary|parent) (?:publication|paper|report|article|manuscript)\b|"
+                      # a NAMED registry other than ClinicalTrials.gov: the shown registry is always ClinicalTrials.gov
+                      # (an NCT record), so another register is another document (codex A3 r21)
+                      r"\b(?:" + "|".join(OTHER_REGISTERS) + r")(?:[\s:#-]*[\d][\d-]*)?\b", re.I)),
+    ("fulltext", re.compile(r"\bfull[- ]?(?:text|report|paper|article|publication)\b|\bmanuscripts?\b|\bmethods? section|"
+                            r"\bresults? section|\bdiscussion section|\btables? \d+|\bfig(?:ure|s|ures|\.)? ?\d+|"
+                            r"\bconsort\b|\bflow ?(?:chart|diagram)", re.I)),
+    ("registry", re.compile(r"\bregist(?:ry|ries|ration|er)\b|clinicaltrials\.gov|\btrial register\b", re.I)),
+    ("abstract", re.compile(r"\babstracts?\b", re.I)),
+)
+# (codex A3 r22) a TRIAL IDENTIFIER in the rationale must be one the readers were shown (in a shown source's text or
+# its registry id): another trial's record is another document. RESIDUAL, stated: an unnumbered "record B" cannot be
+# identified from its wording.
+TRIAL_IDS = re.compile(r"\bNCT\d{8}\b|\bISRCTN\d{6,}\b|\bACTRN\d{10,}\b|\bChiCTR[-A-Za-z0-9]+\b|\b\d{4}-\d{6}-\d{2}\b|"
+                       r"\bDRKS\d{5,}\b|\bCTRI/\d{4}/\d+/\d+\b|\bPACTR\d{6,}\b|\bIRCT[A-Za-z0-9]+\b|\bJPRN-[A-Za-z0-9]+\b|"
+                       r"\bUMIN\d{6,}\b|\bNTR\d{3,}\b", re.I)
+ANOTHER_RECORD = re.compile(r"\b(?:another|a different|other|separate|second) (?:registry |trial |register )?"
+                            r"(?:record|registration|entry)\b", re.I)
+_PROTOCOL_CONCEPT = re.compile(r"\bper[- ]protocol\b|\bprotocol[- ](?:deviation|violation|adherence|non-adherence|"
+                               r"compliance)s?\b|\b(?:deviat|violat|adheren|non-adheren|complian|departure)\w* "
+                               r"(?:from|to|of|with) (?:the |trial |study )?protocols?\b", re.I)
+
+
+_NOT_HAD = re.compile(r"(?:\bno|\bwithout(?: access to)?(?: the| a| any)?|\bnot (?:see|seen|have|had)(?: the| a| any)?)\s*$",
+                      re.I)
+# "the protocol was unavailable", and with the document's noun between ("the registry RECORD was unavailable";
+# codex A3 r27)
+_NOT_AVAILABLE = re.compile(r"^\s*(?:(?:record|entry|registration|report|document|plan|text|data|file)s?\s+)?"
+                            r"(?:was|were|is|are)\s+(?:not (?:available|provided|accessible|seen)|unavailable)\b", re.I)
+
+
+def _disclaimed(text, m):
+    """The rationale says this document was NOT available to it ("no protocol was available", "without access to the
+    protocol", "the protocol was not available"): a disclaimer, not reliance (codex A3 r17)."""
+    return bool(_NOT_HAD.search(text[max(0, m.start() - 30):m.start()]) or _NOT_AVAILABLE.match(text[m.end():m.end() + 40]))
+
+
+def _doc(d):
+    """A document's canonical name: one name per document, whichever alias or form names it."""
+    d = _norm(d)
+    if re.fullmatch(r"saps?|statistical analysis plans?", d):
+        return "statistical analysis plan"
+    m = re.fullmatch(r"fig(?:ure|s|ures|\.)? ?(\d+)", d)
+    if m:
+        return f"figure {m.group(1)}"
+    m = re.fullmatch(r"tables? (\d+)", d)
+    if m:
+        return f"table {m.group(1)}"
+    if d.startswith("regist") or d in ("clinicaltrials.gov", "trial register"):
+        return "registry"
+    m = re.match(r"(" + "|".join(OTHER_REGISTERS) + r")\b|(" + "|".join(OTHER_REGISTERS) + r")(?=[\s:#-]*\d)", d)
+    if m:                                              # ISRCTN12345678 / ISRCTN: the same register (codex A3 r21)
+        return m.group(1) or m.group(2)
+    return {"protocols": "protocol", "manuscripts": "manuscript", "abstracts": "abstract", "appendices": "appendix",
+            "full-text": "full text", "fulltext": "full text"}.get(d, d)
+
+
+def _docs_in(text):
+    """The documents a shown text REPORTS: named, and not said to be unavailable (codex A3 r18)."""
+    t = _PROTOCOL_CONCEPT.sub(" ", text or "")
+    docs = {_doc(m.group(0)) for _, rx in UNSEEN_DOCS for m in rx.finditer(t) if not _disclaimed(t, m)}
+    # a reported NAMED register is "the registry" the rationale may then name (codex A3 r21)
+    return docs | ({"registry"} if docs & set(OTHER_REGISTERS) else set())
+
+
+_SENTENCE_END = re.compile(r"(?<!\bfig)(?<!\bfigs)(?<!\bno)(?<!\bvs)(?<!\bal)(?<!\be\.g)(?<!\bi\.e)(?<!\bapprox)"
+                           r"(?<!\bref)(?<!\bsuppl)(?<!\btab)[.!?] ")
+
+
+def quoted_sentence(quote, text):
+    """The sentence(s) of a shown source that contain the quote (normalised), or the quote alone if it is not found."""
+    t, q = _norm(text), _norm(quote)
+    i = t.find(q) if q else -1
+    if i < 0:
+        return q
+    # a sentence ends at . ! ? followed by a space -- not an abbreviation's full stop ("Fig. 1", codex A3 r20)
+    bounds = [m.start() for m in _SENTENCE_END.finditer(t)]
+    a = max([x for x in bounds if x < i], default=-1)
+    e = i + len(q) - (1 if q[-1:] in ".!?" else 0)     # a quote ending its sentence ends it (codex/agy A3 r17)
+    ends = [x for x in bounds if x >= e]
+    return t[(a + 2 if a >= 0 else 0):(min(ends) + 1 if ends else len(t))]
+
+
+def _shown_kind(k):
+    return "registry" if str(k or "").startswith("registry") else k     # registry_text / registry_row (agy A3 r16)
+
+
+def unseen_identifier(why, shown, context="", ids=()):
+    """(codex A3 r22) The first trial identifier, or "another record", in the rationale that the readers were not shown;
+    "another record" the quoted sentence itself reports is reported context (codex A3 r23). An identifier is shown when
+    it is a shown registry's own id, or a shown text names it WITHOUT saying it was unavailable (codex A3 r25)."""
+    # the SAME rule as for documents (codex A3 r26): reported only by the shown registry's own id or by the QUOTED
+    # SENTENCE (named there, not said to be unavailable); a rationale that disclaims an identifier does not rely on it
+    c0 = _norm(context)
+    seen = {_norm(i) for i in ids if i} | {_norm(x.group(0)) for x in TRIAL_IDS.finditer(c0) if not _disclaimed(c0, x)}
+    for m in TRIAL_IDS.finditer(why):
+        if _norm(m.group(0)) not in seen and not _disclaimed(why, m):
+            return m.group(0)
+    # a rationale that DISCLAIMS another record does not rely on it (codex A3 r25)
+    m = next((x for x in ANOTHER_RECORD.finditer(why) if not _disclaimed(why, x)), None)
+    c = _norm(context)
+    # reported only where the sentence names it WITHOUT saying it was unavailable (codex A3 r24)
+    reported = any(not _disclaimed(c, x) for x in ANOTHER_RECORD.finditer(c))
+    return m.group(0) if m and not reported else None
+
+
+def cites_unseen(why, quote, kinds, context=""):
+    """A3: the first document the rationale names that the readers were not shown -- no source of its kind shown, and
+    the quoted sentence (`context`, with the quote) does not report it -- or None."""
+    kinds = {_shown_kind(k) for k in kinds}
+    # from the quoted SENTENCE, which contains the quote AND any disclaimer before it: a quote cropped just after
+    # "without access to the protocol," cannot report the protocol (codex A3 r19); the quote alone only when no source
+    reported = _docs_in(context if context else quote)
+    for kind, rx in UNSEEN_DOCS:
+        if kind is not None and kind in kinds:
+            continue
+        w = _PROTOCOL_CONCEPT.sub(" ", why)
+        for m in rx.finditer(w):
+            if _doc(m.group(0)) not in reported and not _disclaimed(w, m):
+                return m.group(0)
+    return None
+
+
 _WORD = re.compile(r"[a-z0-9]{5,}")
 # The quote must be ABOUT the signalling question (codex round 3): it contains at least one of the question's topic
 # stems (substring match on the normalised quote). Pre-registered; conservative -- a context that does not name the
@@ -75,13 +220,28 @@ QUESTION_TERMS = {
 # from a reported procedure: 2.1/2.2 (awareness can follow from the interventions themselves, e.g. surgery v
 # physiotherapy; codex round 6) and 3.3/3.4 (whether missingness could / is likely to depend on the outcome's true
 # value; codex rounds 3-5). For them the topic gate and the USUAL markers are not applied; MEMORY still is.
-SETTING_BASED = {"2.1", "2.2", "3.3", "3.4"}
+SETTING_BASED = frozenset({"2.1", "2.2", "3.3", "3.4"})
 TOPIC_GATE_EXEMPT = SETTING_BASED
 
+# PRE-REGISTERED VARIANTS (Mahmood via Dispatch, 13 Oct, codex candidates 2 and 3; outputs/robgrade/
+# CONTEXTUAL_VARIANT_<name>.md). Each changes exactly one thing, is selected only by an explicit argument and is never
+# the default; each is scored separately on TEST.
+VARIANTS = {
+    "v43_setting": {"setting_based": SETTING_BASED | {"4.3"}, "usual": USUAL},           # 4.3 is setting-based
+    "vcommonly": {"setting_based": SETTING_BASED,                                        # "commonly" is not USUAL
+                  "usual": _usual(tuple(t for t in USUAL_TERMS if t != "commonly"))},
+}
+_BASE_RULE = {"setting_based": SETTING_BASED, "usual": USUAL}
 
-def about_question(qid, quote):
-    """The quote names the question's topic: at least one of QUESTION_TERMS[qid] occurs in it (3.3/3.4: exempt)."""
-    if qid in TOPIC_GATE_EXEMPT:
+
+def rule(variant=None):
+    """The rule's variable parts: the base, or a registered variant (an unknown name is a KeyError, never the base)."""
+    return _BASE_RULE if variant is None else VARIANTS[variant]
+
+
+def about_question(qid, quote, exempt=TOPIC_GATE_EXEMPT):
+    """The quote names the question's topic: at least one of QUESTION_TERMS[qid] occurs in it (setting-based: exempt)."""
+    if qid in exempt:
         return True
     t = _norm(quote)
     return any(term in t for term in QUESTION_TERMS.get(qid, ()))
@@ -203,11 +363,13 @@ def refers_to(rationale, quote):
     return bool(set(_WORD.findall(_norm(rationale))) & set(_WORD.findall(_norm(quote))))
 
 
-def verify(reading, sources, targets):
+def verify(reading, sources, targets, variant=None, check_unseen=True):
     """{qid: {answer, quote, source_id, source_sha256, rationale} | {answer: NI[, dropped]}} for every TARGET question.
     PY/PN only; the rationale is neither empty, generic nor from memory, and refers to the quote; the quote (8-300
     characters) is found verbatim (whitespace/case/dash-normalised) in the OPEN source it names."""
+    r = rule(variant)
     srcs = {s["id"]: s for s in sources if s.get("open_for_prompt")}
+    kinds = {s.get("kind") for s in srcs.values()}          # what the readers were SHOWN (A3)
     targets = list(targets)
     out = {}
     rows = [a for a in (reading or {}).get("answers") or [] if isinstance(a, dict)]
@@ -226,9 +388,20 @@ def verify(reading, sources, targets):
             out[q] = {"answer": "NI", "rationale": a.get("rationale")}
             continue
         why, quote = (a.get("rationale") or "").strip(), a.get("quote") or ""
-        if not why or MEMORY.search(why) or (q not in SETTING_BASED and USUAL.search(why)):
+        if not why or MEMORY.search(why) or (q not in r["setting_based"] and r["usual"].search(why)):
             out[q] = {"answer": "NI", "dropped": {"answer": v, "rationale": why[:300],
                                                   "why": "RATIONALE_EMPTY_GENERIC_OR_FROM_MEMORY (not context)"}}
+            continue
+        qs = quote if isinstance(quote, str) else ""
+        named = srcs.get(a.get("source_id"))
+        sent = quoted_sentence(qs, _text(named)) if named else ""
+        doc = (cites_unseen(why, qs, kinds, sent) or
+               unseen_identifier(why, " ".join(_text(x) for x in srcs.values()), sent,
+                                 [x.get("nct") for x in srcs.values()])) \
+            if check_unseen else None
+        if doc:                                        # A3: rests on a document the readers were not shown
+            out[q] = {"answer": "NI", "dropped": {"answer": v, "rationale": why[:300], "document": doc,
+                                                  "why": "RATIONALE_CITES_A_SOURCE_NOT_SHOWN"}}
             continue
         if len(quote) > QUOTE_MAX:
             out[q] = {"answer": "NI", "dropped": {"answer": v, "why": "QUOTE_OVER_300_CHARACTERS"}}
@@ -242,7 +415,7 @@ def verify(reading, sources, targets):
             out[q] = {"answer": "NI", "dropped": {"answer": v, "rationale": why[:300],
                                                   "why": "RATIONALE_DOES_NOT_REFER_TO_THE_QUOTED_CONTEXT"}}
             continue
-        if not about_question(q, quote):
+        if not about_question(q, quote, r["setting_based"]):
             out[q] = {"answer": "NI", "dropped": {"answer": v, "quote": quote[:300],
                                                   "why": "QUOTE_NOT_ABOUT_THE_QUESTION"}}
             continue

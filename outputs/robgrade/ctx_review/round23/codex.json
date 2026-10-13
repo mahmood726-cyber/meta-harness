@@ -1,0 +1,28 @@
+{
+ "record_id": "mc-25f23fd4f8fb220623f02f4f0bd2bfa3",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "MEMORY rejects references to a shown 'published report' before checking source availability. The repeated out-of-scope decline preserves a guidance error: valid contextual reasoning becomes NI solely because of its wording.",
+   "guidance_basis": "NI is appropriate only when a probable answer is unreasonable given available context; citing a shown report is not reliance on memory. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Shown fulltext quotes 'central web-based randomisation'; 1.2=PY, rationale='The published report describes central web-based randomisation, supporting concealment.' -> retain PY; currently NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:unseen_identifier",
+   "claim": "ANOTHER_RECORD rejects every matching phrase, even when the quoted source explicitly reports that record's relevant content. This bypasses A3's allowance for context reported by a shown source and introduces a new false rejection.",
+   "guidance_basis": "A3 distinguishes reliance on unseen documents from reliance on what a shown source reports. Available contextual evidence can justify PY/PN under [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Shown abstract and quote='Another registry record reports central web-based randomisation.' Rationale='The abstract reports another registry record describing central web-based randomisation, supporting concealment.'; 1.2=PY -> retain PY; currently NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "tests/test_rob2_amendment_a3.py:test_PLANT_a3r22_a_trial_identifier_must_be_one_the_readers_were_shown",
+   "claim": "The final assertion expects PY although the only source says randomisation details were omitted. Matching the shown identifier establishes identity, not concealment context. This positive fixture endorses an unsupported inference; use substantive context to test identifier acceptance.",
+   "guidance_basis": "A probable answer requires a reasonable contextual basis; an omission and a matching identifier supply none here. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Existing final case: quote='Randomisation details were omitted.'; rationale='ClinicalTrials.gov record NCT00000001 shows randomisation details, so concealed.' -> NI, not the asserted PY."
+  }
+ ]
+}

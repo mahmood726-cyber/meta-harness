@@ -1,0 +1,42 @@
+{
+ "record_id": "mc-8a4ddb95009985f14530ecfe726a41cc",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:main",
+   "claim": "Variant accounting checks consumption only of variant-directory records. Fresh base readers can be omitted, reverting their decisions to NI while replay still matches. New reader records can also replace them, although the variants permit only new adjudications.",
+   "guidance_basis": "Both variant documents require reuse of base readers and new calls only for genuine adjudications. C4 and the scoring contract prohibit selective omission of recorded decisions.",
+   "failing_test": "With a valid base containing an agreed contextual PY, supply an empty variant manifest/store and its all-NI replay outputs -> REFUSED for omitting the unchanged pass's fresh base readers; current checks accept."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "Merely mentioning a document anywhere in shown text exempts claims attributed to it. This admits explicit reliance on an unavailable protocol, even when the shown source reports none of its contents. A3 therefore does not distinguish a reported assertion from a document's name.",
+   "guidance_basis": "A3 permits reliance on what a shown source reports, not access to an unseen document. [Handbook 8.2.3](https://training.cochrane.org/handbook/current/chapter-08) requires circumstances supporting a reasonable probability judgement.",
+   "failing_test": "Shown abstract: 'The protocol was unavailable. Randomisation details were omitted.' Quote: 'Randomisation details were omitted.' 1.2 PY rationale: 'According to the protocol, randomisation was concealed.' -> NI; currently PY."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:defect_caused",
+   "claim": "A2 supersession is re-tested using the current A3 verifier. If A3 rejects the hidden reader's formerly valid PY/PN, an adjudication correctly superseded under A2 now fails its historical defect test. A3 can consequently prevent scoring an otherwise valid amendment chain.",
+   "guidance_basis": "The requested per-declaration checks distinguish A2's parser defect from A3's rule change. Historical A2 causation must use the A2 verification rule, independently of subsequent eligibility changes.",
+   "failing_test": "Unique prose-prefixed reader gives A2-valid PY using 'according to the protocol'; old adjudicator saw UNREAD. A2 defect_caused=True. Apply A3, which rejects that rationale -> historical A2 defect_caused must remain True; currently False."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The unconditional MEMORY filter runs before A3's shown-source exception. Phrases such as 'published protocol' or 'previously reported' are rejected even when the quoted shown source explicitly reports the supporting fact. A3's positive tests miss this interaction.",
+   "guidance_basis": "A3 explicitly allows context reported by a shown source. [RoB 2 guidance §1.1.1](https://www.cochrane.de/sites/cochrane.de/files/uploads/RoB_2.0_guidance_2019.pdf) supports answers with quotations; mentioning a document within that evidence does not establish reliance on memory.",
+   "failing_test": "Shown abstract and quote: 'The published protocol specified central web-based randomisation.' 1.2 PY rationale: 'The published protocol specified central web-based randomisation, supporting concealment.' -> retain PY as grounded context; currently NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_contextual.py:main",
+   "claim": "Variant computation has no pre-registration gate. It can run before its document exists, using base records without generating timestamped variant calls. Adding the document afterward can then satisfy the scorer, despite prior TEST computation.",
+   "guidance_basis": "Both variant documents and the signed instruction require registration BEFORE any TEST computation under the variant. Checking registration only when scoring, and dating only new calls, does not enforce that requirement.",
+   "failing_test": "No committed vcommonly registration; run rob2_contextual with --variant vcommonly using fresh base records -> refuse before replay or model calls. Currently it computes outputs, which can be rescored after a later registration."
+  }
+ ]
+}

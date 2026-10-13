@@ -26,6 +26,10 @@ if ROUND > 1:
 if ROUND >= 7:      # amendment A2 (signed 13 Oct): reviewed BEFORE it is applied
     FILES += ["outputs/robgrade/SIGNING_A2.md", "outputs/robgrade/ctx_review/A2_DIFF.patch",
               "tests/test_rob2_amendment_a2.py"]
+if ROUND >= 16:     # amendment A3 + the two pre-registered variants (Mahmood 13 Oct, "ok" to the four candidates)
+    FILES += ["outputs/robgrade/SIGNING_RULE_CANDIDATES.md", "outputs/robgrade/ctx_review/A3_DIFF.patch",
+              "outputs/robgrade/CONTEXTUAL_VARIANT_v43_setting.md", "outputs/robgrade/CONTEXTUAL_VARIANT_vcommonly.md",
+              "tests/test_rob2_amendment_a3.py"]
 OUT = os.path.join(ROOT, "outputs", "robgrade", "ctx_review", *([f"round{ROUND}"] if ROUND > 1 else []))
 REC = os.path.join(ROOT, "evidence", "model_calls", "robgrade_ctx")
 
@@ -75,8 +79,23 @@ fenced, multi-object or malformed replies; are the A2 tests' expected values rig
 """
 
 
+A3_REVIEW = """
+AMENDMENT A3 AND TWO PRE-REGISTERED VARIANTS (Mahmood, 13 Oct; SIGNING_RULE_CANDIDATES.md). A2 is applied and scored.
+Mahmood decided on the four rule candidates codex raised in the A2 review: adopt (1) a rationale citing a source the
+readers were never shown is not context, and (4) a contextual decision on a branch since closed is rendered on the
+served tab, DIRECTLY, as amendment A3 (A3_DIFF.patch: the exact change to the committed A2 code). (2) 4.3 as
+setting-based and (3) "commonly" released from the USUAL markers are VARIANTS, each pre-registered in its own
+CONTEXTUAL_VARIANT_<name>.md before any TEST computation under it, scored separately, never the default. Check: does
+A3 (1) catch reliance on unseen documents without dropping context a SHOWN source reports; is (4) never silent; does
+each variant change exactly what its document says and nothing else; can the variant scoring read, skip or reuse a
+record it should not; can a superseded record escape its declaration's test (A2 defect_caused, A3 rule_changed); are
+the A3 tests' expected values right.
+"""
+
+
 def prompt():
-    parts = [INSTR] + ([REVISION] if ROUND > 1 else []) + ([A2_REVIEW] if ROUND >= 7 else [])
+    parts = [INSTR] + ([REVISION] if ROUND > 1 else []) + ([A2_REVIEW] if ROUND >= 7 else []) + \
+        ([A3_REVIEW] if ROUND >= 16 else [])
     for f in FILES:
         parts.append(f"\n\n===== FILE {f} =====\n" + open(os.path.join(ROOT, f), encoding="utf-8").read())
     return "".join(parts).encode("utf-8")

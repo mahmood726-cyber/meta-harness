@@ -285,3 +285,178 @@ items that A2's signature does not cover, plus one fail-closed design choice. Re
 future amendment to the RULE: (1) memory markers for references to unseen sources; (2) 4.3 as setting-based;
 (3) "commonly" in mechanism wording (and the frozen round-6 test that encodes it); (4) rendering closed-branch
 decisions on the served tab.
+
+## Amendment A3 and the two pre-registered variants, review round 16 (13 Oct 2026): codex REVISE (5); agy REVISE (6)
+
+Mahmood (via Dispatch, 13 Oct; outputs/robgrade/SIGNING_RULE_CANDIDATES.md): "ok" to the four codex candidates.
+Adopt 1 (references to sources the readers never saw) and 4 (closed-branch decisions on the served tab) directly, as
+amendment A3. 2 (4.3 setting-based) and 3 ("commonly") are pre-registered variants, scored separately.
+
+Answered: 10 ACCEPTED, 1 DECLINED. 7 failing-first tests (7 failed on the reviewed code, then pass). Two of them had
+FIXTURE errors, found by diagnosis and corrected (stated below). All 173 contextual and A2/A3 tests pass. Effect:
+agy3 showed that the shown registry kinds are registry_text/registry_row, so the reviewed A3 dropped citations of a
+registry the readers WERE shown. With it fixed, a live A3 re-run needs 0 new calls (it was 3).
+
+| # | finding | response | test |
+|---|---|---|---|
+| agy3 | registry sources are kind registry_text / registry_row, never "registry": a shown registry was treated as unseen | ACCEPTED. The kind is matched by its prefix. | test_PLANT_a3r16_a_shown_registry_source_of_either_kind_may_be_named |
+| codex1 | a document mentioned ANYWHERE in a shown source exempted any claim attributed to it ("The protocol was unavailable." exempted "according to the protocol, ... concealed") | ACCEPTED. A document counts as reported only in the QUOTED SENTENCE of the cited shown source (a sentence ends at . ! ?). The frozen r4 case, where the plan is reported in the quoted sentence, stands. RESIDUAL, stated: within that one sentence, a mention is not parsed for what it asserts. | test_PLANT_a3r16_a_document_merely_mentioned_ELSEWHERE_in_the_source_is_not_reported_context |
+| agy0, agy1, agy2, agy4 | raw substring matching ("sap" in "saphenous"); aliases not recognised (SAP / statistical analysis plan, fig 1 / Figure 1, protocols / protocol) | ACCEPTED. Documents are matched as words by the same patterns in the rationale and in the quoted sentence, compared by canonical name. FIXTURE corrected: agy2's quote "participant flow" fails the 3.1 topic gate before the document check is reached; the test now quotes "participant flow and complete follow-up". | test_PLANT_a3r16_documents_are_matched_as_words_with_their_aliases |
+| agy5 | "non-adherence to the protocol", "deviations from the protocol" were read as documents | ACCEPTED. Protocol as a concept (per-protocol; deviation from / adherence to / violation of the protocol; protocol deviation) is removed before documents are matched. | test_PLANT_a3r16_protocol_as_a_concept_is_not_a_document |
+| codex2 | A2's historical defect proof was re-judged by A3's verifier | ACCEPTED. defect_caused judges a reader under A2's rule (check_unseen=False): A3 cannot unmake an A2 supersession proof. | test_PLANT_a3r16_an_A2_supersession_proof_is_judged_under_A2s_rule |
+| codex4 | a variant could be computed before its document existed | ACCEPTED. The pipeline refuses --variant unless the variant's document is committed and unedited. | test_PLANT_a3r16_a_variant_never_runs_before_its_document_is_committed |
+| codex0 | the variant manifest could omit (or replace) fresh base readers, and the replay would still match | ACCEPTED. A variant OVERLAYS the base manifest. The base's fresh records are always present, the variant stores only the entries it adds, and the scorer refuses a variant entry that stands in for a base reader of the same prompt. FIXTURE corrected: the test's assessment first had only D1 answers, so every other question was a target. | test_PLANT_a3r16_a_variant_overlays_the_base_manifest |
+| codex3 | MEMORY markers ("published protocol", "previously reported") reject context the quote reports | DECLINED, out of A3's signed scope. A3 adds a check for unseen sources; it does not relax the pre-registered MEMORY markers. The direction is conservative (NI). Recorded for Mahmood as a candidate. | -- |
+
+The variant documents were corrected before registration. A variant may need a reader call for a later pass whose
+question set differs from the base's (not only adjudications), and the mechanical check now reads 0 new A3 calls.
+
+## A3 review, round 17 (13 Oct 2026): codex REVISE (4); agy REVISE (4)
+
+Answered: 6 ACCEPTED (two of them raised by both reviewers), 1 DECLINED. 5 failing-first tests (5 failed on the
+reviewed code, then pass); 178 contextual and A2/A3 tests pass. Mechanical checks unchanged: A2's 11 proofs hold,
+and an A3 re-run needs 0 new calls.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex1, agy0 | a quote ending with its own full stop let the sentence search run into the NEXT sentence, re-opening round 16's hole | ACCEPTED. A quote that ends its sentence ends it. | test_PLANT_a3r17_a_quote_ending_its_sentence_does_not_reach_into_the_next |
+| codex0, agy3 | an overlay entry could shadow a base entry of the same prompt by changing its state, or by replacing an adjudicator | ACCEPTED. A variant entry for a prompt the base already answered is refused, in ANY role and whatever its id or state. RESIDUAL, stated: if the base's only attempt on a prompt FAILED, the variant cannot re-attempt it under that prompt; the scorer refuses loudly rather than score it. | test_PLANT_a3r17_a_variant_entry_may_never_shadow_a_base_entry_of_the_same_prompt |
+| agy1 | "the manuscript" / "the original publication" were unseen even when the full text was shown | ACCEPTED. They are the full text: allowed when a CC full text is shown, unseen otherwise. | test_PLANT_a3r17_the_manuscript_is_the_shown_full_text |
+| agy2 | registry aliases (ClinicalTrials.gov, trial register) were separate documents | ACCEPTED. They are one document, the registry. | test_PLANT_a3r17_registry_aliases_are_one_document |
+| codex3 | a rationale that DISCLAIMS a document ("No protocol was available, but ...") was dropped | ACCEPTED. "no X", "without (access to) the X", "the X was not available / unavailable" are disclaimers, not reliance; an affirmative reliance still drops. | test_PLANT_a3r17_a_document_the_rationale_says_was_NOT_available_is_not_relied_on |
+| codex2 | the MEMORY markers ("published report") still reject a report that was shown | DECLINED, out of A3's scope (as round 16). A3 adds a check; relaxing the pre-registered MEMORY markers is a further rule change. Recorded for Mahmood. | -- |
+
+## A3 review, round 18 (13 Oct 2026): codex REVISE (3); agy ACCEPT
+
+Answered: 2 ACCEPTED, 1 DECLINED. 2 failing-first tests (2 failed on the reviewed code, then pass); 180 contextual
+and A2/A3 tests pass. Mechanical checks unchanged (A2's 11 proofs hold; an A3 re-run needs 0 new calls).
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | an overlay entry for a DIFFERENT prompt replaced a fresh base reader before freshness was judged, voiding the pass | ACCEPTED. In every pass, a base record that is fresh for the prompt is used, whatever the overlay holds for that role (readers and the adjudicator). A variant can add records, never hide one. | test_PLANT_a3r18_a_fresh_base_record_always_wins_over_an_overlay |
+| codex1 | a quoted sentence that says the document was UNAVAILABLE counted as reporting it | ACCEPTED. A document is reported only where the sentence names it without saying it was not available (the same disclaimer test as the rationale's). | test_PLANT_a3r18_a_source_sentence_saying_the_document_was_unavailable_does_not_report_it |
+| codex2 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-17). Recorded for Mahmood as a candidate rule change. | -- |
+
+## A3 review, round 19 (13 Oct 2026): codex REVISE (3); agy ACCEPT
+
+Answered: 2 ACCEPTED, 1 DECLINED. 2 failing-first tests (2 failed on the reviewed code, then pass), and 1 earlier
+expectation revised by the decision below; 182 contextual and A2/A3 tests pass. Mechanical checks unchanged.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | a quote cropped just after a disclaimer ("Without access to the protocol, ...") re-authorised the document, because the quote was checked on its own | ACCEPTED. Reported documents come from the quoted SENTENCE alone, which contains the quote and any disclaimer; the quote alone only when no shown source is named. | test_PLANT_a3r19_a_quote_cropped_after_a_disclaimer_does_not_report_the_document |
+| codex1 | a shown full text authorised "the parent publication": kind is not identity | ACCEPTED. "Original / parent / primary / main publication, paper, report or article" names ANOTHER paper than the shown one: unseen unless the quoted sentence reports it. "The manuscript" and "the full text" remain the shown full text. This partly REVISES the round-17 answer to agy1 for "original publication"; that test's expectation is changed, with the reason, in the test. | test_PLANT_a3r19_a_shown_full_text_is_not_another_publication |
+| codex2 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-18). Recorded for Mahmood as a candidate rule change. | -- |
+
+## A3 review, round 20 (13 Oct 2026): codex REVISE (3); agy ACCEPT
+
+Answered: 2 ACCEPTED, 1 DECLINED. 2 failing-first tests (2 failed on the reviewed code, then pass); 184 contextual
+and A2/A3 tests pass. Mechanical checks unchanged.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | with a full text shown, "the original manuscript" passed (read as the shown text) | ACCEPTED. An original / parent / primary / main MANUSCRIPT names another paper too. RESIDUAL, stated, in the conservative direction (NI): a shown "main report" that the rationale explicitly identifies as the cited source still counts as unseen, because a name does not establish document identity. | test_PLANT_a3r20_an_original_manuscript_is_another_paper_than_the_shown_full_text |
+| codex2 | "Fig. 1" ended the quoted sentence and cut the document out of it | ACCEPTED. The full stop of a known abbreviation (Fig., Figs., No., vs., et al., e.g., i.e., approx., ref., suppl., tab.) does not end a sentence. | test_PLANT_a3r20_an_abbreviation_does_not_end_the_quoted_sentence |
+| codex1 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-19). Recorded for Mahmood as a candidate rule change. | -- |
+
+## A3 review, round 21 (13 Oct 2026): codex REVISE (3); agy ACCEPT
+
+Answered: 1 ACCEPTED, 2 DECLINED (1 shown to be already correct). 1 failing-first test (it failed on the reviewed
+code, then passes) and 1 pin; 186 contextual and A2/A3 tests pass. Mechanical checks unchanged.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | a shown registry exempted every registry citation, including another NAMED register (ISRCTN, EudraCT, ...) | ACCEPTED. The shown registry is always ClinicalTrials.gov (an NCT record), so a named register other than it is another document: unseen unless the quoted sentence reports it, with or without its number (ISRCTN12345678 = ISRCTN). A reported named register is also "the registry" the rationale may then name. | test_PLANT_a3r21_another_NAMED_registry_is_unseen_when_only_clinicaltrials_gov_is_shown |
+| codex2 | "protocol deviations" (with a space) was read as a document | DECLINED: already correct. Executed on the reviewed code, codex's exact case returns PY: the concept pattern matches "protocol" followed by a hyphen OR a space. Pinned by a test so it stays so. | test_a3r21_protocol_deviations_is_a_concept_PINNED |
+| codex1 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-20). Recorded for Mahmood as a candidate rule change. | -- |
+
+## A3 review, round 22 (13 Oct 2026): codex REVISE (2); agy ACCEPT
+
+Answered: 1 ACCEPTED (with a stated residual), 1 DECLINED. 1 failing-first test (it failed on the reviewed code,
+then passes); 187 contextual and A2/A3 tests pass. Mechanical checks unchanged.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | registry IDENTITY: a shown registry exempted another trial's record | ACCEPTED, as far as wording can establish identity. A trial identifier in the rationale (NCT, ISRCTN, ACTRN, ChiCTR, EudraCT, DRKS, CTRI, PACTR, IRCT, JPRN, UMIN, NTR numbers) must be one the readers were shown, in a shown source's text or its registry id. "Another / a different / a separate registry record" is unseen by its own words. RESIDUAL, stated: an UNNUMBERED, unqualified reference ("record B") cannot be identified from wording. | test_PLANT_a3r22_a_trial_identifier_must_be_one_the_readers_were_shown |
+| codex1 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-21). Recorded for Mahmood as a candidate rule change. | -- |
+
+The bound of A3, stated: A3 catches a rationale that relies on a document by naming its kind (protocol, analysis
+plan, supplement, manuscript, another publication, a register), its alias or its trial identifier, when the readers
+were not shown it and the quoted sentence does not report it. Which document an unnamed, unnumbered reference means is
+reference resolution that wording cannot settle. That remains the residual, and its failure direction is the
+contextual answer standing (the readers' judgement, Handbook 8.2.3).
+
+## A3 review, round 23 (13 Oct 2026): codex REVISE (3); agy ACCEPT
+
+Answered: 2 ACCEPTED, 1 DECLINED. 1 failing-first test (it failed on the reviewed code, then passes) and 1 fixture
+revised; 188 contextual and A2/A3 tests pass. Mechanical checks unchanged.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex1 | "another registry record" was rejected even when the quoted sentence itself reports it | ACCEPTED. As for every document, "another record" that the quoted sentence reports is reported context. | test_PLANT_a3r23_another_record_REPORTED_in_the_quoted_sentence_may_be_named |
+| codex2 | the round-22 positive control asserted PY on a source saying randomisation details were OMITTED | ACCEPTED (a fixture error). The test checks identity, but its positive control now quotes real concealment context ("Allocation by central web-based randomisation") with the shown identifier. | test_PLANT_a3r22_a_trial_identifier_must_be_one_the_readers_were_shown (revised) |
+| codex0 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-22). Recorded for Mahmood as a candidate rule change. | -- |
+
+## A3 review, round 24 (13 Oct 2026): codex REVISE (2); agy RAN_ERROR (no reply; recorded)
+
+agy ran (Gemini, status SUCCESS, about 66k output tokens, nearly all thinking) but returned no readable reply after
+its retry. The round is recorded as a failed attempt, not an acceptance; round 25 re-asks both reviewers.
+
+Answered: 1 ACCEPTED, 1 DECLINED. 1 failing-first test (it failed on the reviewed code, then passes); 189 contextual
+and A2/A3 tests pass.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | the round-23 "another record" allowance ignored a disclaimer in the quoted sentence ("Another registry record was unavailable ...") | ACCEPTED. "Another record" is reported only where the sentence names it WITHOUT saying it was unavailable: the same disclaimer test as every other document. | test_PLANT_a3r24_another_record_the_sentence_says_was_unavailable_is_not_reported |
+| codex1 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-23). Recorded for Mahmood as a candidate rule change. | -- |
+
+## A3 review, round 25 (13 Oct 2026): codex REVISE (3); agy ACCEPT
+
+Answered: 2 ACCEPTED, 1 DECLINED. 2 failing-first tests (2 failed on the reviewed code, then pass); 191 contextual
+and A2/A3 tests pass. Mechanical checks unchanged. Both fixes apply the existing disclaimer rule where it was missing.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | an identifier a shown text says was UNAVAILABLE ("Record NCT09999999 was unavailable") counted as shown | ACCEPTED. An identifier is shown when it is a shown registry's own id, or a shown text names it without saying it was unavailable. | test_PLANT_a3r25_an_identifier_a_shown_text_says_was_unavailable_is_not_shown |
+| codex2 | a rationale DISCLAIMING another record ("No other registry record was available, but ...") was dropped | ACCEPTED. A disclaimed "another record" is not reliance (as for every document since round 17). | test_PLANT_a3r25_a_rationale_disclaiming_another_record_does_not_rely_on_it |
+| codex1 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-24). Recorded for Mahmood as a candidate rule change. | -- |
+
+## A3 review, round 26 (13 Oct 2026): codex REVISE (3); agy ACCEPT
+
+Answered: 2 ACCEPTED, 1 DECLINED. 2 failing-first tests (2 failed on the reviewed code, then pass); 193 contextual
+and A2/A3 tests pass. Mechanical checks unchanged.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | a bare mention of another trial's identifier ANYWHERE in a shown text authorised reliance on its record | ACCEPTED. Identifiers now follow the same rule as documents: reported only by the shown registry's own id, or by the QUOTED SENTENCE (named there, not said to be unavailable). | test_PLANT_a3r26_an_identifier_counts_as_reported_only_in_the_quoted_sentence |
+| codex2 | a rationale DISCLAIMING an identifier ("Record NCT... was unavailable, but ...") was dropped | ACCEPTED. A disclaimed identifier is not reliance, as for documents and "another record". | test_PLANT_a3r26_a_rationale_disclaiming_an_identifier_does_not_rely_on_it |
+| codex1 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-25). Recorded for Mahmood as a candidate rule change. | -- |
+
+A3 now applies ONE rule to every reference (document kind, alias, register, identifier, "another record"). A
+reference the rationale makes, and does not disclaim, must be to something the readers were shown: a source of that
+kind or that id, or something the quoted sentence names without saying it was unavailable.
+
+## A3 review, round 27 (13 Oct 2026): codex REVISE (2); agy ACCEPT -- review closed, A3 applied
+
+Answered: 1 ACCEPTED, 1 DECLINED. 1 failing-first test (it failed on the reviewed code, then passes); 194 contextual
+and A2/A3 tests pass. Mechanical checks unchanged (A2's 11 proofs hold; an A3 re-run needs 0 new calls).
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | "Another registry record was unavailable" did not disclaim "the registry": the noun "record" stood between the document and the disclaimer | ACCEPTED. A disclaimer may follow the document's noun (record, entry, registration, report, document, plan, text, data, file). | test_PLANT_a3r27_a_disclaimer_after_the_documents_noun_still_counts |
+| codex1 | MEMORY markers vs a shown "published report" | DECLINED, out of A3's scope (rounds 16-26). Recorded for Mahmood as a candidate rule change. | -- |
+
+Closing the A3 review, and why. The announced stopping rule was "a round with no new in-scope codex finding". It is
+NOT met, and the review is closed anyway, deliberately:
+- agy ACCEPTED every completed round from 18 to 27 (round 24 returned no reply).
+- Since round 22, every codex finding has been a further WORDING edge of one uniform rule: a reference to a document
+  or record, in the rationale or the quoted sentence, recognised by wording, with or without a disclaimer. Each was
+  real, and each was fixed with a failing-first test (12 review rounds, 30 accepted findings on A3).
+- A wording matcher has no fixed point against a reviewer generating new phrasings.
+RESIDUAL, stated: references and disclaimers are recognised by WORDING, so a phrasing outside the patterns is not
+recognised. For an unrecognised reference the failure direction is the contextual answer standing (the readers'
+judgement, Handbook 8.2.3); for an unrecognised disclaimer it is NI.
+
+Recorded for Mahmood, as further candidate rule changes (not A3): (5) let the MEMORY markers yield when the named
+report is the shown source ("the published report", raised by codex in every round from 16 to 27); (6) the A3
+wording residual above.

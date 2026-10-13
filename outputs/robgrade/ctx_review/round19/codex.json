@@ -1,0 +1,28 @@
+{
+ "record_id": "mc-1a7124e20bf17fc1ae01829a44309aba",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "The union of documents found in the quote and its sentence defeats the unavailable-document fix. Cropping a quote immediately after a disclaimer re-authorizes the unavailable document, allowing an unsupported assertion to pass.",
+   "guidance_basis": "A3 candidate 1 prohibits reliance on unseen documents. Context must reasonably support the response under [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Shown abstract: 'Without access to the protocol, randomisation details were omitted.' Quote: 'protocol, randomisation details were omitted.' Rationale: 'According to the protocol, randomisation was concealed.' Q1.2 PY -> expected NI; currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "Showing any fulltext exempts every fulltext document reference, including a different parent publication. Document kind is not document identity: a follow-up report cannot authorize reliance on an unseen original trial report.",
+   "guidance_basis": "A3 candidate 1 and C3 require the cited source to have been shown or its relevant context reported by a shown source. Handbook 8.2.3 permits justified contextual inference, not invented documentary support.",
+   "failing_test": "Only shown source: kind='fulltext', text='This follow-up report omits randomisation details.' Quote='randomisation details'; rationale='The parent publication confirms randomisation was concealed.' Q1.2 PY -> expected NI when the parent publication was not shown; currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The round-16–18 decline leaves a guidance defect: MEMORY rejects 'published report' before checking whether that report was shown. A supported contextual answer becomes NI solely because its rationale accurately identifies its source.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) reserves NI for circumstances where a probable answer is unreasonable. Calling this outside A3's scope does not establish methodological correctness.",
+   "failing_test": "Shown fulltext reports central web-based randomisation; quote='central web-based randomisation'; rationale='The published report describes central web-based randomisation, supporting concealment.' Q1.2 PY -> expected eligible PY; currently NI via MEMORY."
+  }
+ ]
+}

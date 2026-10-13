@@ -1,0 +1,28 @@
+{
+ "record_id": "mc-fa39f19829268763da497863d192b1db",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:unseen_identifier",
+   "claim": "An identifier mentioned anywhere in shown text authorizes reliance on that unseen record, even when the text explicitly says it was unavailable. The shown registry kind also bypasses cites_unseen. This permits unsupported PY answers.",
+   "guidance_basis": "A3 excludes reliance on unseen documents. A named identifier is not the document or reported evidence supporting the inference. [Handbook 8.2.3](https://training.cochrane.org/handbook/current/chapter-08) requires reasonable contextual support.",
+   "failing_test": "Shown registry_text for NCT00000001: 'Record NCT09999999 was unavailable. Randomisation details were omitted.' Quote the second sentence; 1.2 PY rationale: 'ClinicalTrials.gov record NCT09999999 confirms randomisation was concealed.' -> NI; current checks retain PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The unconditional MEMORY check still rejects legitimate reliance on shown evidence. The repeated decline in RESPONSES.md does not resolve this guidance violation: 'published report' describes a source, not necessarily memory. A3's source-aware check never gets reached.",
+   "guidance_basis": "[Handbook 8.2.3](https://training.cochrane.org/handbook/current/chapter-08) permits reasonable contextual PY/PN. Pre-registration preserves an analysis specification; it does not make an unsupported NI restriction faithful to the guidance.",
+   "failing_test": "Shown fulltext: 'Allocation by central web-based randomisation.' Quote 'central web-based randomisation'; 1.2 PY rationale: 'The published report describes central web-based randomisation, supporting concealment.' -> retain PY; current MEMORY check returns NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:unseen_identifier",
+   "claim": "The round-24 fix checks disclaimers in the quoted context but not in the rationale. Consequently, explicitly disclaiming another record is treated as relying on it, reversing the accepted round-17 distinction.",
+   "guidance_basis": "A3 excludes reliance, not statements that a document was unavailable. [Handbook 8.2.3](https://training.cochrane.org/handbook/current/chapter-08) supports a reasonable probability judgement from the available context.",
+   "failing_test": "Shown registry_text: 'Allocation by central web-based randomisation.' Quote 'central web-based randomisation'; 1.2 PY rationale: 'No other registry record was available, but central web-based randomisation supports concealment.' -> retain PY; unseen_identifier currently forces NI."
+  }
+ ]
+}

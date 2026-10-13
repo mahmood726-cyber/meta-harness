@@ -1,0 +1,28 @@
+{
+ "record_id": "mc-ffa79e0ea10ed44a4c61664ddb412325",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_variant_manifest",
+   "claim": "An overlay with a different prompt hash can hide a fresh base reader. process replaces the base entry before checking freshness, voiding the pass. Variant consumption checks cover only variant-held records, so the omitted base decision escapes refusal.",
+   "guidance_basis": "Both variant registrations require every fresh base record to be reused, never replaced or omitted. The round-17 fix checks matching hashes but leaves this omission path open.",
+   "failing_test": "Base has two fresh agreeing PY readers for prompt P; variant overlays codex with {state: RAN_ERROR, record_id: null, prompt_sha256: Q}. -> Refuse the overlay or reuse the fresh base reader; must not score NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "Mentioning a document in the quoted sentence grants permission to rely on it, even when that sentence explicitly says it was unavailable. This admits unsupported PY answers. The declared semantic residual contradicts A3's unseen-source exclusion.",
+   "guidance_basis": "A3 excludes reliance on unseen documents. [Handbook 8.2.3](https://training.cochrane.org/handbook/current/chapter-08) requires circumstances making the probability judgement reasonable; mentioning an unavailable protocol supplies no such support.",
+   "failing_test": "Only shown text: 'The protocol was unavailable and randomisation details were omitted.' Quote: 'randomisation details were omitted'; 1.2=PY; rationale: 'According to the protocol, randomisation was concealed.' -> NI; currently passes."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "MEMORY runs before the source-aware check and rejects 'published report' even when that report was shown and supports the rationale. The round-16/17 declines preserve a genuine false-NI defect; amendment scope is not a guidance justification.",
+   "guidance_basis": "[Handbook 8.2.3](https://training.cochrane.org/handbook/current/chapter-08) reserves NI for insufficient information and unreasonable probability judgements. A reference to supplied evidence is not outside memory.",
+   "failing_test": "Shown fulltext reports central web-based randomisation; quote that method; 1.2=PY; rationale: 'The published report describes central web-based randomisation, supporting concealment.' -> Retain PY; currently rejected by MEMORY."
+  }
+ ]
+}

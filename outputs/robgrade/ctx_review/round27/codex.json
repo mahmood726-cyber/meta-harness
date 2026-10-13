@@ -1,0 +1,21 @@
+{
+ "record_id": "mc-0af1968941f28c549ae7a805218e17a4",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:_docs_in,cites_unseen",
+   "claim": "An unavailable registry record becomes reported context through its shorter alias. The regex matches 'registry', so the intervening word 'record' hides the unavailability disclaimer. Changing the rationale to 'the registry' bypasses the round-24 safeguard and admits unsupported PY.",
+   "guidance_basis": "A3 requires rejection of unseen-source reliance, including documents the quoted sentence says were unavailable. Context must justify the probability judgment: [Handbook §8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Abstract text and quote: 'Another registry record was unavailable and randomisation details were omitted.' Q1.2 PY rationale: 'The registry confirms randomisation details were concealed.' -> NI with UNSEEN; currently PY. Add this alias case beside test_PLANT_a3r24."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify; outputs/robgrade/ctx_review/RESPONSES.md:rounds 16–26",
+   "claim": "The repeated decline leaves a guidance defect: MEMORY rejects 'published report' before A3 checks whether that report was shown. Valid contextual reasoning becomes NI solely because of its wording. Pre-registration explains the retained behavior but does not establish its methodological correctness.",
+   "guidance_basis": "NI is inappropriate when available trial context reasonably supports PY/PN; referring to a shown report is not reliance on memory. [Handbook §8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Shown fulltext: 'Allocation used central web-based randomisation.' Q1.2 PY, quote 'central web-based randomisation', rationale 'The published report describes central web-based randomisation, supporting concealment.' -> PY; currently NI."
+  }
+ ]
+}

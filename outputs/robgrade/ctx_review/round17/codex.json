@@ -1,0 +1,35 @@
+{
+ "record_id": "mc-63a1ba8b1463b79f8437eb8e15ff2314",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_ctx_score.py:check_variant_manifest; scripts/rob2_contextual.py:process",
+   "claim": "The overlay can suppress fresh base readers by retaining their ID/hash but changing state to RAN_ERROR. It can also replace fresh base adjudicators, which the manifest guard ignores. Variant consumption checks do not require those base records, so altered decisions can be scored.",
+   "guidance_basis": "Both variant registrations require every fresh base record to be reused, never replaced or omitted; new calls are permitted only for prompts without a base record.",
+   "failing_test": "Base readers agree PY; overlay codex with its same ID/hash but state=RAN_ERROR, with no variant records -> refuse or reuse the base reader, not score NI. Replacing a fresh base adjudicator with another same-prompt record must also refuse."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:quoted_sentence",
+   "claim": "When the quote includes its sentence-ending punctuation, the end search starts after that delimiter and includes the following sentence. An unrelated mention there can therefore authorize reliance on an unseen document, bypassing the round-16 fix.",
+   "guidance_basis": "A3 permits document references reported in the quoted sentence. Unsupported assertions do not justify a probability judgement under [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Source: 'Randomisation details were omitted. The protocol was unavailable.' Quote: 'Randomisation details were omitted.' Rationale: 'According to the protocol, randomisation was concealed.' At 1.2, PY -> NI with RATIONALE_CITES_A_SOURCE_NOT_SHOWN; currently PY."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:verify; outputs/robgrade/ctx_review/RESPONSES.md:Round 16",
+   "claim": "The declined MEMORY finding remains: 'published report' rejects a rationale referring to the very report shown. This executes before A3 can recognize shown-source context. Keeping the older blacklist does not satisfy the requested preservation of context reported by shown sources.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits contextual judgement from an experienced trials unit; mentioning a shown publication is not memory.",
+   "failing_test": "Shown fulltext and quote: 'A large regulatory trial run by an experienced clinical trials unit'. Rationale: 'The published report describes an experienced clinical trials unit running a regulatory trial, supporting concealed allocation.' At 1.2, PY -> retained PY; currently NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "Any document mention is treated as reliance, including an explicit statement that it was unavailable. This newly rejects otherwise grounded contextual reasoning even though the rationale disclaims access to the document.",
+   "guidance_basis": "A3 excludes reliance on unseen sources, not acknowledgement of their absence. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) allows reasonable probability judgements despite missing details.",
+   "failing_test": "Shown quote: 'central web-based randomisation'. Rationale: 'No protocol was available, but central web-based randomisation supports concealment.' At 1.2, PY -> retained PY; currently NI with RATIONALE_CITES_A_SOURCE_NOT_SHOWN."
+  }
+ ]
+}

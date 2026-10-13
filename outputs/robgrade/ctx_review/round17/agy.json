@@ -1,0 +1,35 @@
+{
+ "record_id": "mc-853d530a13e21a229abb0179e6217029",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:quoted_sentence",
+   "claim": "In quoted_sentence, ends = [x for x in (t.find('. ', i + len(q)), ...) if x >= 0] starts searching at i + len(q). When quote ends with sentence-terminating punctuation (., !, ?), i + len(q) skips past the delimiter, causing quoted_sentence to search into subsequent sentences and return both. This leaks mentions of unseen documents from subsequent sentences into context, circumventing A3 unseen document checks and violating 'a mention in ANOTHER sentence is not that report'.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 requires contextual answers to rest on reported context. A3 policy explicitly mandates: 'a mention in ANOTHER sentence is not that report'. Leaking subsequent sentences across sentence boundaries into context improperly validates reader rationales that cite unseen sources.",
+   "failing_test": "quoted_sentence(\"Concealment was central.\", \"Concealment was central. The protocol was registered.\") -> expected \"concealment was central.\", got \"concealment was central. the protocol was registered.\""
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "UNSEEN_DOCS places manuscript(s) and original/main/primary/parent publication/paper/report/article under kind None. Because kind None is never skipped when kinds contains 'fulltext', a reader rationale referring to a shown fulltext article as 'the manuscript' or 'the original publication' is falsely rejected by cites_unseen as citing an unseen document.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 allows contextual judgements from shown trial reports. A3 pre-registration specifies catching reliance on unseen documents without dropping context a shown source reports. When fulltext is shown, the manuscript/original publication is the shown source.",
+   "failing_test": "cites_unseen(\"the manuscript describes central randomisation\", \"central randomisation\", {\"fulltext\"}) -> expected None, got \"manuscript\""
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:_doc",
+   "claim": "_doc only canonicalizes strings starting with 'regist' to 'registry', failing to canonicalize UNSEEN_DOCS registry aliases ('clinicaltrials.gov', 'trial register'). If a shown source reports a trial register in its quoted sentence, but the rationale refers to 'the registry', cites_unseen treats 'registry' as unmentioned and drops valid context.",
+   "guidance_basis": "Cochrane Handbook 8.2.3 allows inferences from shown source context. A3 specifies documents are matched with aliases (one name per document, whichever alias or form names it) so reports in shown text are recognized. Asymmetric canonicalization drops documented context.",
+   "failing_test": "_doc(\"trial register\") -> expected \"registry\", got \"trial register\"; cites_unseen(\"the registry confirms central randomisation\", \"central randomisation\", set(), \"a trial register entry was made\") -> expected None, got \"registry\""
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_ctx_score.py:check_variant_manifest",
+   "claim": "check_variant_manifest checks that variant manifests do not substitute base records for identical prompts, but filters only if w in ('codex', 'agy'), omitting 'adjudicator'. A variant manifest substituting a base adjudicator record with a different record for the exact same prompt passes without refusal.",
+   "guidance_basis": "Pre-registration non-substitution and isolation policy (A3/C4): base fresh records are read, never replaced or omitted. Adjudications are dual-reader resolution records that must not be silently swapped between base and variant runs on identical prompts.",
+   "failing_test": "check_variant_manifest({\"k\": {\"passes\": [{\"adjudicator\": {\"prompt_sha256\": \"p\", \"record_id\": \"r2\"}}]}}, {\"k\": {\"passes\": [{\"adjudicator\": {\"prompt_sha256\": \"p\", \"record_id\": \"r1\"}}]}}) -> expected SystemExit, got None"
+  }
+ ]
+}

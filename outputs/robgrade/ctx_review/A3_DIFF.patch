@@ -1,0 +1,857 @@
+diff --git a/robgrade/contextual.py b/robgrade/contextual.py
+index 133732194..5534696a7 100644
+--- a/robgrade/contextual.py
++++ b/robgrade/contextual.py
+@@ -22,13 +22,158 @@ HOW = "contextual (Cochrane Handbook 8.2.3): the sources give context, not a dir
+ # Split in round 6 (codex): MEMORY (from outside the shown sources) is never context; USUAL ("what trials usually
+ # do") is not context for a question about this trial's own CONDUCT, but the setting-based questions (below) reason
+ # from the clinical setting and may word a mechanism with "commonly" etc.
+-USUAL = re.compile(r"\b(?:usually|typically|generally|commonly|most (?:trials|studies)|standard practice|in general|"
+-                   r"as is (?:usual|common)|tend to|are often|is often|likely in (?:most|such) trials)\b", re.I)
++USUAL_TERMS = ("usually", "typically", "generally", "commonly", r"most (?:trials|studies)", "standard practice",
++               "in general", r"as is (?:usual|common)", "tend to", "are often", "is often", r"likely in (?:most|such) trials")
++
++
++def _usual(terms):
++    return re.compile(r"\b(?:" + "|".join(terms) + r")\b", re.I)
++
++
++USUAL = _usual(USUAL_TERMS)
+ MEMORY = re.compile(r"\b(?:remember|recall|from memory|training data|my training|i know|from the literature|"
+                     r"prior knowledge|knowledge of this trial|this trial is known|previously reported|"
+                     r"published (?:elsewhere|protocol|report)|other (?:reports|publications|sources)|"
+                     r"(?:an? )?(?:earlier|another|previous|separate) (?:article|paper|report|publication))\b", re.I)
+ GENERIC = re.compile(f"(?:{USUAL.pattern})|(?:{MEMORY.pattern})", re.I)          # both (kept for reference)
++# (A3, signed 13 Oct, codex candidate 1) A rationale may not rest on a DOCUMENT the readers were NOT SHOWN: "the
++# original manuscript confirms ...", "according to the protocol ...". A document is named by kind; it is allowed only
++# when a source of that kind was shown, or when the QUOTED SENTENCE of the shown source names the same document (the
++# reader relies on that report, not on the unseen document -- the frozen r4 case: "A protocol was registered before
++# enrolment and the statistical analysis plan published"; codex A3 r16: a mention in ANOTHER sentence is not that
++# report). Documents are matched as words, with their aliases (SAP = statistical analysis plan, Fig. 1 = Figure 1,
++# protocols = protocol; agy A3 r16). Kind None: never shown to a reader. "Protocol" as a concept (per-protocol,
++# deviations from / adherence to the protocol) is not a document.
++OTHER_REGISTERS = ("isrctn", "eudract", "euctr", "ctis", "anzctr", "actrn", "chictr", "ctri", "drks", "jprn", "umin",
++                   "pactr", "irct", "ntr", "rebec", "slctr", "tctr", "kct", "cris", "who ictrp", "ictrp")
++UNSEEN_DOCS = (
++    (None, re.compile(r"\bprotocols?\b|statistical analysis plans?|\bsaps?\b|supplement(?:ary|al) (?:appendix|"
++                      r"appendices|material|materials|data|table|file|information)|online supplement|\bappendix\b|"
++                      r"\bappendices\b|online (?:material|data|content)|"
++                      # another publication than the one shown: kind is not identity (codex A3 r19)
++                      r"\b(?:original|main|primary|parent) (?:publication|paper|report|article|manuscript)\b|"
++                      # a NAMED registry other than ClinicalTrials.gov: the shown registry is always ClinicalTrials.gov
++                      # (an NCT record), so another register is another document (codex A3 r21)
++                      r"\b(?:" + "|".join(OTHER_REGISTERS) + r")(?:[\s:#-]*[\d][\d-]*)?\b", re.I)),
++    ("fulltext", re.compile(r"\bfull[- ]?(?:text|report|paper|article|publication)\b|\bmanuscripts?\b|\bmethods? section|"
++                            r"\bresults? section|\bdiscussion section|\btables? \d+|\bfig(?:ure|s|ures|\.)? ?\d+|"
++                            r"\bconsort\b|\bflow ?(?:chart|diagram)", re.I)),
++    ("registry", re.compile(r"\bregist(?:ry|ries|ration|er)\b|clinicaltrials\.gov|\btrial register\b", re.I)),
++    ("abstract", re.compile(r"\babstracts?\b", re.I)),
++)
++# (codex A3 r22) a TRIAL IDENTIFIER in the rationale must be one the readers were shown (in a shown source's text or
++# its registry id): another trial's record is another document. RESIDUAL, stated: an unnumbered "record B" cannot be
++# identified from its wording.
++TRIAL_IDS = re.compile(r"\bNCT\d{8}\b|\bISRCTN\d{6,}\b|\bACTRN\d{10,}\b|\bChiCTR[-A-Za-z0-9]+\b|\b\d{4}-\d{6}-\d{2}\b|"
++                       r"\bDRKS\d{5,}\b|\bCTRI/\d{4}/\d+/\d+\b|\bPACTR\d{6,}\b|\bIRCT[A-Za-z0-9]+\b|\bJPRN-[A-Za-z0-9]+\b|"
++                       r"\bUMIN\d{6,}\b|\bNTR\d{3,}\b", re.I)
++ANOTHER_RECORD = re.compile(r"\b(?:another|a different|other|separate|second) (?:registry |trial |register )?"
++                            r"(?:record|registration|entry)\b", re.I)
++_PROTOCOL_CONCEPT = re.compile(r"\bper[- ]protocol\b|\bprotocol[- ](?:deviation|violation|adherence|non-adherence|"
++                               r"compliance)s?\b|\b(?:deviat|violat|adheren|non-adheren|complian|departure)\w* "
++                               r"(?:from|to|of|with) (?:the |trial |study )?protocols?\b", re.I)
++
++
++_NOT_HAD = re.compile(r"(?:\bno|\bwithout(?: access to)?(?: the| a| any)?|\bnot (?:see|seen|have|had)(?: the| a| any)?)\s*$",
++                      re.I)
++# "the protocol was unavailable", and with the document's noun between ("the registry RECORD was unavailable";
++# codex A3 r27)
++_NOT_AVAILABLE = re.compile(r"^\s*(?:(?:record|entry|registration|report|document|plan|text|data|file)s?\s+)?"
++                            r"(?:was|were|is|are)\s+(?:not (?:available|provided|accessible|seen)|unavailable)\b", re.I)
++
++
++def _disclaimed(text, m):
++    """The rationale says this document was NOT available to it ("no protocol was available", "without access to the
++    protocol", "the protocol was not available"): a disclaimer, not reliance (codex A3 r17)."""
++    return bool(_NOT_HAD.search(text[max(0, m.start() - 30):m.start()]) or _NOT_AVAILABLE.match(text[m.end():m.end() + 40]))
++
++
++def _doc(d):
++    """A document's canonical name: one name per document, whichever alias or form names it."""
++    d = _norm(d)
++    if re.fullmatch(r"saps?|statistical analysis plans?", d):
++        return "statistical analysis plan"
++    m = re.fullmatch(r"fig(?:ure|s|ures|\.)? ?(\d+)", d)
++    if m:
++        return f"figure {m.group(1)}"
++    m = re.fullmatch(r"tables? (\d+)", d)
++    if m:
++        return f"table {m.group(1)}"
++    if d.startswith("regist") or d in ("clinicaltrials.gov", "trial register"):
++        return "registry"
++    m = re.match(r"(" + "|".join(OTHER_REGISTERS) + r")\b|(" + "|".join(OTHER_REGISTERS) + r")(?=[\s:#-]*\d)", d)
++    if m:                                              # ISRCTN12345678 / ISRCTN: the same register (codex A3 r21)
++        return m.group(1) or m.group(2)
++    return {"protocols": "protocol", "manuscripts": "manuscript", "abstracts": "abstract", "appendices": "appendix",
++            "full-text": "full text", "fulltext": "full text"}.get(d, d)
++
++
++def _docs_in(text):
++    """The documents a shown text REPORTS: named, and not said to be unavailable (codex A3 r18)."""
++    t = _PROTOCOL_CONCEPT.sub(" ", text or "")
++    docs = {_doc(m.group(0)) for _, rx in UNSEEN_DOCS for m in rx.finditer(t) if not _disclaimed(t, m)}
++    # a reported NAMED register is "the registry" the rationale may then name (codex A3 r21)
++    return docs | ({"registry"} if docs & set(OTHER_REGISTERS) else set())
++
++
++_SENTENCE_END = re.compile(r"(?<!\bfig)(?<!\bfigs)(?<!\bno)(?<!\bvs)(?<!\bal)(?<!\be\.g)(?<!\bi\.e)(?<!\bapprox)"
++                           r"(?<!\bref)(?<!\bsuppl)(?<!\btab)[.!?] ")
++
++
++def quoted_sentence(quote, text):
++    """The sentence(s) of a shown source that contain the quote (normalised), or the quote alone if it is not found."""
++    t, q = _norm(text), _norm(quote)
++    i = t.find(q) if q else -1
++    if i < 0:
++        return q
++    # a sentence ends at . ! ? followed by a space -- not an abbreviation's full stop ("Fig. 1", codex A3 r20)
++    bounds = [m.start() for m in _SENTENCE_END.finditer(t)]
++    a = max([x for x in bounds if x < i], default=-1)
++    e = i + len(q) - (1 if q[-1:] in ".!?" else 0)     # a quote ending its sentence ends it (codex/agy A3 r17)
++    ends = [x for x in bounds if x >= e]
++    return t[(a + 2 if a >= 0 else 0):(min(ends) + 1 if ends else len(t))]
++
++
++def _shown_kind(k):
++    return "registry" if str(k or "").startswith("registry") else k     # registry_text / registry_row (agy A3 r16)
++
++
++def unseen_identifier(why, shown, context="", ids=()):
++    """(codex A3 r22) The first trial identifier, or "another record", in the rationale that the readers were not shown;
++    "another record" the quoted sentence itself reports is reported context (codex A3 r23). An identifier is shown when
++    it is a shown registry's own id, or a shown text names it WITHOUT saying it was unavailable (codex A3 r25)."""
++    # the SAME rule as for documents (codex A3 r26): reported only by the shown registry's own id or by the QUOTED
++    # SENTENCE (named there, not said to be unavailable); a rationale that disclaims an identifier does not rely on it
++    c0 = _norm(context)
++    seen = {_norm(i) for i in ids if i} | {_norm(x.group(0)) for x in TRIAL_IDS.finditer(c0) if not _disclaimed(c0, x)}
++    for m in TRIAL_IDS.finditer(why):
++        if _norm(m.group(0)) not in seen and not _disclaimed(why, m):
++            return m.group(0)
++    # a rationale that DISCLAIMS another record does not rely on it (codex A3 r25)
++    m = next((x for x in ANOTHER_RECORD.finditer(why) if not _disclaimed(why, x)), None)
++    c = _norm(context)
++    # reported only where the sentence names it WITHOUT saying it was unavailable (codex A3 r24)
++    reported = any(not _disclaimed(c, x) for x in ANOTHER_RECORD.finditer(c))
++    return m.group(0) if m and not reported else None
++
++
++def cites_unseen(why, quote, kinds, context=""):
++    """A3: the first document the rationale names that the readers were not shown -- no source of its kind shown, and
++    the quoted sentence (`context`, with the quote) does not report it -- or None."""
++    kinds = {_shown_kind(k) for k in kinds}
++    # from the quoted SENTENCE, which contains the quote AND any disclaimer before it: a quote cropped just after
++    # "without access to the protocol," cannot report the protocol (codex A3 r19); the quote alone only when no source
++    reported = _docs_in(context if context else quote)
++    for kind, rx in UNSEEN_DOCS:
++        if kind is not None and kind in kinds:
++            continue
++        w = _PROTOCOL_CONCEPT.sub(" ", why)
++        for m in rx.finditer(w):
++            if _doc(m.group(0)) not in reported and not _disclaimed(w, m):
++                return m.group(0)
++    return None
++
++
+ _WORD = re.compile(r"[a-z0-9]{5,}")
+ # The quote must be ABOUT the signalling question (codex round 3): it contains at least one of the question's topic
+ # stems (substring match on the normalised quote). Pre-registered; conservative -- a context that does not name the
+@@ -75,13 +220,28 @@ QUESTION_TERMS = {
+ # from a reported procedure: 2.1/2.2 (awareness can follow from the interventions themselves, e.g. surgery v
+ # physiotherapy; codex round 6) and 3.3/3.4 (whether missingness could / is likely to depend on the outcome's true
+ # value; codex rounds 3-5). For them the topic gate and the USUAL markers are not applied; MEMORY still is.
+-SETTING_BASED = {"2.1", "2.2", "3.3", "3.4"}
++SETTING_BASED = frozenset({"2.1", "2.2", "3.3", "3.4"})
+ TOPIC_GATE_EXEMPT = SETTING_BASED
+ 
++# PRE-REGISTERED VARIANTS (Mahmood via Dispatch, 13 Oct, codex candidates 2 and 3; outputs/robgrade/
++# CONTEXTUAL_VARIANT_<name>.md). Each changes exactly one thing, is selected only by an explicit argument and is never
++# the default; each is scored separately on TEST.
++VARIANTS = {
++    "v43_setting": {"setting_based": SETTING_BASED | {"4.3"}, "usual": USUAL},           # 4.3 is setting-based
++    "vcommonly": {"setting_based": SETTING_BASED,                                        # "commonly" is not USUAL
++                  "usual": _usual(tuple(t for t in USUAL_TERMS if t != "commonly"))},
++}
++_BASE_RULE = {"setting_based": SETTING_BASED, "usual": USUAL}
++
+ 
+-def about_question(qid, quote):
+-    """The quote names the question's topic: at least one of QUESTION_TERMS[qid] occurs in it (3.3/3.4: exempt)."""
+-    if qid in TOPIC_GATE_EXEMPT:
++def rule(variant=None):
++    """The rule's variable parts: the base, or a registered variant (an unknown name is a KeyError, never the base)."""
++    return _BASE_RULE if variant is None else VARIANTS[variant]
++
++
++def about_question(qid, quote, exempt=TOPIC_GATE_EXEMPT):
++    """The quote names the question's topic: at least one of QUESTION_TERMS[qid] occurs in it (setting-based: exempt)."""
++    if qid in exempt:
+         return True
+     t = _norm(quote)
+     return any(term in t for term in QUESTION_TERMS.get(qid, ()))
+@@ -203,11 +363,13 @@ def refers_to(rationale, quote):
+     return bool(set(_WORD.findall(_norm(rationale))) & set(_WORD.findall(_norm(quote))))
+ 
+ 
+-def verify(reading, sources, targets):
++def verify(reading, sources, targets, variant=None, check_unseen=True):
+     """{qid: {answer, quote, source_id, source_sha256, rationale} | {answer: NI[, dropped]}} for every TARGET question.
+     PY/PN only; the rationale is neither empty, generic nor from memory, and refers to the quote; the quote (8-300
+     characters) is found verbatim (whitespace/case/dash-normalised) in the OPEN source it names."""
++    r = rule(variant)
+     srcs = {s["id"]: s for s in sources if s.get("open_for_prompt")}
++    kinds = {s.get("kind") for s in srcs.values()}          # what the readers were SHOWN (A3)
+     targets = list(targets)
+     out = {}
+     rows = [a for a in (reading or {}).get("answers") or [] if isinstance(a, dict)]
+@@ -226,10 +388,21 @@ def verify(reading, sources, targets):
+             out[q] = {"answer": "NI", "rationale": a.get("rationale")}
+             continue
+         why, quote = (a.get("rationale") or "").strip(), a.get("quote") or ""
+-        if not why or MEMORY.search(why) or (q not in SETTING_BASED and USUAL.search(why)):
++        if not why or MEMORY.search(why) or (q not in r["setting_based"] and r["usual"].search(why)):
+             out[q] = {"answer": "NI", "dropped": {"answer": v, "rationale": why[:300],
+                                                   "why": "RATIONALE_EMPTY_GENERIC_OR_FROM_MEMORY (not context)"}}
+             continue
++        qs = quote if isinstance(quote, str) else ""
++        named = srcs.get(a.get("source_id"))
++        sent = quoted_sentence(qs, _text(named)) if named else ""
++        doc = (cites_unseen(why, qs, kinds, sent) or
++               unseen_identifier(why, " ".join(_text(x) for x in srcs.values()), sent,
++                                 [x.get("nct") for x in srcs.values()])) \
++            if check_unseen else None
++        if doc:                                        # A3: rests on a document the readers were not shown
++            out[q] = {"answer": "NI", "dropped": {"answer": v, "rationale": why[:300], "document": doc,
++                                                  "why": "RATIONALE_CITES_A_SOURCE_NOT_SHOWN"}}
++            continue
+         if len(quote) > QUOTE_MAX:
+             out[q] = {"answer": "NI", "dropped": {"answer": v, "why": "QUOTE_OVER_300_CHARACTERS"}}
+             continue
+@@ -242,7 +415,7 @@ def verify(reading, sources, targets):
+             out[q] = {"answer": "NI", "dropped": {"answer": v, "rationale": why[:300],
+                                                   "why": "RATIONALE_DOES_NOT_REFER_TO_THE_QUOTED_CONTEXT"}}
+             continue
+-        if not about_question(q, quote):
++        if not about_question(q, quote, r["setting_based"]):
+             out[q] = {"answer": "NI", "dropped": {"answer": v, "quote": quote[:300],
+                                                   "why": "QUOTE_NOT_ABOUT_THE_QUESTION"}}
+             continue
+diff --git a/robgrade/rob2_tab.py b/robgrade/rob2_tab.py
+index 079499c41..41db83166 100644
+--- a/robgrade/rob2_tab.py
++++ b/robgrade/rob2_tab.py
+@@ -28,6 +28,13 @@ def contextual_note(dom):
+     (codex round 3), so a reader of the page can judge each one."""
+     xs = []
+     for q, a in sorted((dom.get("answers") or {}).items()):
++        closed = a.get("closed_contextual")
++        if closed:                                     # A3 (candidate 4): a decision on a branch since closed is shown
++            word = PROBABLY.get(closed.get("answer"), closed.get("answer"))
++            ctx = closed.get("context") or []
++            src = "; ".join(f"'{c.get('quote')}' ({c.get('source_id')})" for c in ctx) if ctx else f"'{closed.get('span')}'"
++            xs.append(f"{q} not asked: its branch closed after a contextual answer; it had been decided {word}, from {src}")
++            continue
+         if a.get("basis") != "contextual":
+             continue
+         word = PROBABLY.get(a.get("answer"), a.get("answer"))
+@@ -65,7 +72,8 @@ def overall_label(ov, domains=None):
+ 
+ def _contextual_domains(domains):
+     ds = [d for d, x in sorted((domains or {}).items())
+-          if any(a.get("basis") == "contextual" for a in (x.get("answers") or {}).values())]
++          if any(a.get("basis") == "contextual" or a.get("closed_contextual")
++                 for a in (x.get("answers") or {}).values())]
+     return f" [contextual answers in: {', '.join(ds)}]" if ds else ""
+ 
+ 
+diff --git a/scripts/rob2_contextual.py b/scripts/rob2_contextual.py
+index 302f53e23..5758083b1 100644
+--- a/scripts/rob2_contextual.py
++++ b/scripts/rob2_contextual.py
+@@ -22,9 +22,33 @@ from robgrade import contextual as cx  # noqa: E402
+ from robgrade import rob2_formal as rf  # noqa: E402
+ 
+ OBJ_DIR = os.path.join(ROOT, "outputs", "robgrade", "rob2")
+-OUT_DIR = os.path.join(ROOT, "outputs", "robgrade", "rob2_ctx")
+-REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "rob2_ctx")
+-RUNS = os.path.join(ROOT, "registry", "model_proposals", "rob2_ctx_runs.json")
++BASE_OUT_DIR = os.path.join(ROOT, "outputs", "robgrade", "rob2_ctx")
++BASE_REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "rob2_ctx")
++BASE_RUNS = os.path.join(ROOT, "registry", "model_proposals", "rob2_ctx_runs.json")
++OUT_DIR, REC_DIR, RUNS, REC_READ_DIRS, VARIANT = BASE_OUT_DIR, BASE_REC_DIR, BASE_RUNS, [BASE_REC_DIR], None
++
++
++def configure(variant):
++    """Select the base rule (None) or a PRE-REGISTERED variant (robgrade/contextual.VARIANTS). A variant keeps its own
++    new records, run manifest and outputs (suffix _<name>), and READS the base's held records too: its readers' prompts
++    are the base's, so they are reused, never re-called."""
++    global OUT_DIR, REC_DIR, RUNS, REC_READ_DIRS, VARIANT
++    if variant is not None:
++        cx.VARIANTS[variant]                           # an unregistered name is a KeyError
++    sfx = "" if variant is None else f"_{variant}"
++    VARIANT = variant
++    OUT_DIR, REC_DIR = BASE_OUT_DIR + sfx, BASE_REC_DIR + sfx
++    RUNS = BASE_RUNS[:-len(".json")] + sfx + ".json"
++    REC_READ_DIRS = [REC_DIR] + ([BASE_REC_DIR] if variant is not None else [])
++
++
++def _rec_path(rid):
++    """The held record file of `rid` in the record stores this run reads, or None."""
++    for d in REC_READ_DIRS:
++        p = os.path.join(d, rid + ".json")
++        if os.path.exists(p):
++            return p
++    return None
+ 
+ 
+ def schema(targets):
+@@ -110,13 +134,14 @@ def _reading(run):
+     """The recorded reply of a CONTEXTUAL call (this pass's own record store), parsed; None when absent or failed."""
+     if not run or run.get("state") != "RAN_OK":
+         return None
+-    return cx.parse_reply(ms.replay(ms.load_record(os.path.join(REC_DIR, run["record_id"] + ".json"))))   # A2: THE parser
++    p = _rec_path(run["record_id"])
++    return cx.parse_reply(ms.replay(ms.load_record(p))) if p else None   # A2: THE parser
+ 
+ 
+ def record_prompt_sha256(rid):
+     """The sha256 of the prompt a held record ACTUALLY carries (model_source re-derives it), None when not held."""
+-    p = os.path.join(REC_DIR, rid + ".json")
+-    if not os.path.exists(p):
++    p = _rec_path(rid)
++    if p is None:
+         return None
+     return hashlib.sha256(ms._unblob(ms.load_record(p)["prompt"], "prompt")).hexdigest()
+ 
+@@ -149,9 +174,13 @@ def pass_decisions(a, b, adj, targets):
+     return cx.combine(a, b, adj)
+ 
+ 
+-def _one_pass(item, obj, targets, run, live, pools, srcs):
++def _one_pass(item, obj, targets, run, live, pools, srcs, base=None):
+     """One contextual pass over `targets`: two blind readers, the adjudicator on a real disagreement, applied."""
+     p = prompt(item, targets)
++    base = base or {}
++    for w in ("codex", "agy"):                         # a variant never hides a fresh base record (codex A3 r18)
++        if fresh(base.get(w), p):
++            run[w] = base[w]
+     if live:                                           # re-call whatever is not FRESH (agy round 4)
+         futs = {w: pools[w].submit(call, item, w, p, targets) for w in ("codex", "agy") if not fresh(run.get(w), p)}
+         for w, f in futs.items():
+@@ -160,8 +189,8 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
+     # an UNREADABLE reply (no single answer object) is a missing reading, not an all-NI one: it voids the pass, so it
+     # can never manufacture a disagreement (codex A2 review)
+     ra, rb = (_reading(fc) if fc else None), (_reading(fa) if fa else None)
+-    a = cx.verify(ra, srcs, targets) if ra is not None else None
+-    b = cx.verify(rb, srcs, targets) if rb is not None else None
++    a = cx.verify(ra, srcs, targets, variant=VARIANT) if ra is not None else None
++    b = cx.verify(rb, srcs, targets, variant=VARIANT) if rb is not None else None
+     # a disagreement is two DIFFERENT verified answers of two PRESENT readers; agreement (PY/PN or NI) never goes to the
+     # adjudicator, and a missing reader voids the pass (pass_decisions)
+     dis = {q: {"reader 1": a[q], "reader 2": b[q]} for q in targets if a[q]["answer"] != b[q]["answer"]} \
+@@ -169,6 +198,8 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
+     adj = {}
+     if dis:
+         pa = prompt(item, sorted(dis), "adjudicator", dis)
++        if fresh(base.get("adjudicator"), pa):
++            run["adjudicator"] = base["adjudicator"]
+         # (codex A2 r11) a REPLAY meeting a disagreement that was never put to the adjudicator (no attempt on THIS
+         # prompt, e.g. only a superseded adjudication of other readings) cannot reproduce the pipeline: it refuses,
+         # rather than recording NI where the live pipeline would have adjudicated. A recorded failed attempt is NI.
+@@ -182,7 +213,7 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
+         adj_run = fresh(run.get("adjudicator"), pa)
+         rj = _reading(adj_run) if adj_run else None
+         # no record, or (codex A2 r10) an UNREADABLE reply: nothing is the adjudicator's -- never an adjudicator NI
+-        adj = cx.verify(rj, srcs, sorted(dis)) if rj is not None else {}
++        adj = cx.verify(rj, srcs, sorted(dis), variant=VARIANT) if rj is not None else {}
+     c = pass_decisions(a, b, adj, targets)
+     recs = {q: [run[w]["record_id"] for w in ("codex", "agy") if fresh(run.get(w), p)] +
+                ([run["adjudicator"]["record_id"]] if c[q].get("decided_by") == "adjudicator" else []) for q in c}
+@@ -193,19 +224,25 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
+     return cx.apply(obj, c, recs), c, consumed
+ 
+ 
+-def process(item, obj, runs, live, pools):
++def process(item, obj, runs, live, pools, base_runs=None):
+     """Up to MAX_PASSES contextual passes (codex round 4): a contextual answer can OPEN a branch, and a newly asked
+-    question that is NI gets its own pass rather than a fixed NI. A question decided in a pass is never re-asked."""
++    question that is NI gets its own pass rather than a fixed NI. A question decided in a pass is never re-asked.
++    A VARIANT (base_runs given) OVERLAYS its own entries on the base manifest's: the base's fresh records are always
++    there to be read, and the variant stores only the entries it adds (codex A3 r16)."""
+     r = dict(runs.get(item["key"]) or {})
+     passes = list(r.get("passes") or [])
++    base_passes = list(((base_runs or {}).get(item["key"]) or {}).get("passes") or [])
+     srcs = rd.open_sources(item)
+     cur, decided, audit, c_all, consumed, executed = obj, set(), {}, {}, [], 0
+     for k in range(MAX_PASSES):
+         targets = [q for q in cx.ni_targets(cur) if q not in decided]
+         if not targets:
+             break
+-        run = dict(passes[k]) if k < len(passes) else {}
+-        cur, c, used = _one_pass(item, cur, targets, run, live, pools, srcs)
++        base = dict(base_passes[k]) if k < len(base_passes) else {}
++        run = dict(base, **(passes[k] if k < len(passes) else {}))
++        cur, c, used = _one_pass(item, cur, targets, run, live, pools, srcs, base)
++        if base_runs is not None:                      # keep only the variant's own entries
++            run = {w: x for w, x in run.items() if base.get(w) != x}
+         audit.update(cur["contextual_audit"])
+         c_all.update(c)
+         consumed += used
+@@ -247,10 +284,34 @@ def preflight(item, obj, runs):
+     return calls
+ 
+ 
++def _git(*a):
++    import subprocess
++    return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True, encoding="utf-8")
++
++
++def variant_registered(variant):
++    """The commit that added the variant's pre-registration document; refuses unless that document is committed and
++    unedited -- a variant is never computed before it is registered (codex A3 r16)."""
++    doc = f"outputs/robgrade/CONTEXTUAL_VARIANT_{variant}.md"
++    added = [x for x in _git("log", "--diff-filter=A", "--format=%H", "--", doc).stdout.split() if x]
++    if not added:
++        raise SystemExit(f"REFUSED: {variant} is not pre-registered: {doc} was never committed")
++    if _git("diff", "--quiet", "HEAD", "--", doc).returncode != 0 or _git("diff", "--quiet", added[-1], "HEAD", "--",
++                                                                          doc).returncode != 0:
++        raise SystemExit(f"REFUSED: {doc} differs from the text registered at {added[-1]}")
++    return added[-1]
++
++
+ def main(argv):
+     live = "--run" in argv
+-    slugs = [a for a in argv if not a.startswith("--")]
++    variant = argv[argv.index("--variant") + 1] if "--variant" in argv else None
++    if variant is not None:
++        variant_registered(variant)
++    configure(variant)
++    slugs = [a for a in argv if not a.startswith("--") and a != variant]
+     runs = rd._j(RUNS) if os.path.exists(RUNS) else {}
++    # a variant OVERLAYS the base manifest: the base's fresh records are reused, never re-called
++    base_runs = (rd._j(BASE_RUNS) if os.path.exists(BASE_RUNS) else {}) if variant else None
+     pools = {"codex": cf.ThreadPoolExecutor(rd.CODEX_WORKERS), "agy": cf.ThreadPoolExecutor(rd.AGY_WORKERS)}
+     driver = cf.ThreadPoolExecutor(rd.CODEX_WORKERS)
+     docs = {s: rd._j(os.path.join(OBJ_DIR, f"{s}.json")) for s in slugs}
+@@ -259,7 +320,7 @@ def main(argv):
+     for slug in slugs:
+         doc = docs[slug]
+         items = {it["pmid"]: it for it in rd.items(slug, sorted(doc["trials"]))}
+-        jobs.append((slug, doc, [(items[p], o, driver.submit(process, items[p], o, runs, live, pools))
++        jobs.append((slug, doc, [(items[p], o, driver.submit(process, items[p], o, runs, live, pools, base_runs))
+                                  for p, o in sorted(doc["trials"].items()) if p in items]))
+     for slug, doc, js in jobs:
+         out, ctx = {}, {}
+diff --git a/scripts/rob2_ctx_score.py b/scripts/rob2_ctx_score.py
+index 899be075c..dd871b3ca 100644
+--- a/scripts/rob2_ctx_score.py
++++ b/scripts/rob2_ctx_score.py
+@@ -56,7 +56,61 @@ AMENDMENTS = os.path.join(ROOT, "outputs", "robgrade", "AMENDMENTS.json")
+ 
+ # The ONLY frozen files an amendment may change (codex A2 review): the code A2 fixes. The rule text, the inputs (split,
+ # comparators, the v3.1 objects and calibration), the tests and every other frozen file can never be amended this way.
+-AMENDABLE = ("robgrade/contextual.py", "scripts/rob2_contextual.py", "scripts/rob2_ctx_score.py", "scripts/rob2_dual.py")
++AMENDABLE = ("robgrade/contextual.py", "scripts/rob2_contextual.py", "scripts/rob2_ctx_score.py", "scripts/rob2_dual.py",
++             "robgrade/rob2_tab.py")                    # A3 (candidate 4): the served label of a closed decision
++VARIANT = None                                         # a PRE-REGISTERED variant being scored (parse_args), else None
++VARIANT_DOC = "outputs/robgrade/CONTEXTUAL_VARIANT_{}.md"
++# the per-declaration supersession test (A3): A2 proved its records defect-caused; A3 proves the amended RULE shows the
++# adjudicator different readings. A declaration without the field is A2's.
++SUPERSESSION_TESTS = ("defect_caused", "rule_changed")
++
++
++def supersession_test(entry):
++    t = entry.get("superseded_test", "defect_caused")
++    if t not in SUPERSESSION_TESTS:
++        raise SystemExit(f"REFUSED: {entry.get('id')}: unknown supersession test {t!r}")
++    return t
++
++
++def parse_args(argv):
++    """(base pre-registration sha, variant name or None, variant pre-registration sha or None)."""
++    if len(argv) == 1:
++        return argv[0], None, None
++    if len(argv) == 4 and argv[1] == "--variant" and argv[2] in cx.VARIANTS:
++        return argv[0], argv[2], argv[3]
++    raise SystemExit("REFUSED: usage: rob2_ctx_score.py <pre-registration sha> [--variant <registered name> "
++                     "<the variant's pre-registration sha>]; no subset: all four registered comparators are scored")
++
++
++def check_variant_manifest(vruns, base_runs):
++    """A variant's manifest only ADDS entries (codex A3 r16): an entry for a reader may not stand in for a base reader
++    of the same prompt -- the base's fresh records are read, never replaced or omitted."""
++    for key, r in vruns.items():
++        bp = list((base_runs.get(key) or {}).get("passes") or [])
++        for k, p in enumerate(r.get("passes") or []):
++            b = bp[k] if k < len(bp) else {}
++            for w, x in p.items():
++                # (codex/agy A3 r17) in ANY role (readers and the adjudicator) and whatever its id or state: an entry
++                # for a prompt the base already answered would shadow the base's record
++                if w in b and (b.get(w) or {}).get("prompt_sha256") == (x or {}).get("prompt_sha256"):
++                    raise SystemExit(f"REFUSED: {key} pass {k}: the variant shadows the base {w} entry of the same prompt")
++
++
++def check_variant_prereg(name, sha):
++    """A variant is scored only from the commit that ADDED its pre-registration document, an ancestor of HEAD, with
++    every frozen file unchanged since (in history and in the working tree)."""
++    full = _git("rev-parse", sha).stdout.strip()
++    doc = VARIANT_DOC.format(name)
++    added = [x for x in _git("log", "--diff-filter=A", "--format=%H", "--", doc).stdout.split() if x]
++    if not full or not added or full != added[-1]:
++        raise SystemExit(f"REFUSED: {sha} is not the commit that added {doc}")
++    if _git("merge-base", "--is-ancestor", full, "HEAD").returncode != 0:
++        raise SystemExit(f"REFUSED: {sha} is not an ancestor of HEAD")
++    files = POLICY_FILES + INPUT_FILES + [doc]
++    changed = [f for f in files if _git("diff", "--quiet", full, "--", f).returncode != 0]
++    if changed:
++        raise SystemExit(f"REFUSED: files changed since the variant {name} was registered at {sha}: {changed}")
++    return full
+ SIGNER = "Mahmood"
+ 
+ 
+@@ -110,52 +164,81 @@ def defect_caused(rid, load, held_ids):
+     """(codex A2 review, round 8) True only when this adjudication was CAUSED by the parser defect: its recorded
+     prompt shows one reader as the unread signature on EVERY question it decided, and that reader's held record for
+     the same trial and outcome is unreadable to the old strict parser yet readable to the A2 parser."""
+-    import re
+-    import rob2_contextual as rc
+     rec = load(rid)
+     reg = registered(rec, "adjudicator") if rec else None
+     if not reg or not reg[1]:
+         return False
+     targets, readings = reg
+-    t = rec["prompt_text"]
+-    evidence = t[t.index(rc.EVIDENCE_MARK):]
+-    trial = re.search(r"^TRIAL: (\S+)", rec["prompt_text"], re.M).group(1)
+-    outcome = re.search(r"^OUTCOME: (.*)$", rec["prompt_text"], re.M).group(1)
+     for slot, role in (("reader 1", "codex"), ("reader 2", "agy")):
+         if not all((readings.get(q) or {}).get(slot) == UNREAD for q in targets):
+             continue
+-        cands = []
+-        for hid in held_ids:
+-            h = load(hid)
+-            if not (h and h["caller"]["line"] == f"call:{role}" and h["state"] == "RAN_OK" and _bound_to(h, trial, outcome)):
+-                continue
+-            reg_h = registered(h, "reader")            # the reader call of THE SAME PASS: its targets cover these
+-            if not reg_h or not set(targets) <= set(reg_h[0]):
+-                continue
+-            # (codex A2 r10) ... made BEFORE the adjudication, on the SAME evidence block the adjudicator was shown
+-            if _utc(h["request_utc"]) >= _utc(rec["request_utc"]):
+-                continue
+-            ht = h["prompt_text"]
+-            if rc.EVIDENCE_MARK not in ht or ht[ht.index(rc.EVIDENCE_MARK):] != evidence:
+-                continue
+-            cands.append(h)
+-        # (codex A2 r13) ... and it must be the UNIQUE such call: with two candidate attempts, which reply the
+-        # adjudicator was shown is not proven, and the adjudication stays genuine (fail closed)
+-        if len(cands) != 1:
++        h = _pass_reader(rec, targets, role, load, held_ids)
++        if h is None:
+             continue
+-        for h in cands:
++        for h in (h,):
+             if _legacy_strict(h["reply"]) is not None or cx.parse_reply(h["reply"]) is None:
+                 continue
+             # ... and under A2 that reader really SAID something on these questions (codex A2 r9): a reader that gave
+             # no answer is unread under both parsers, so its adjudication was genuine, not the defect's
+             # (codex A2 r10) compared by ANSWER: the defect turned a verified PY/PN into the unread NI; a reply whose
+             # verified answer is NI anyway (explicit, or failing verification) was NI under both parsers
+-            now = cx.verify(cx.parse_reply(h["reply"]), _sources(h), targets)
++            # judged under A2's rule (codex A3 r16): A3's later unseen-source check cannot unmake a defect proof
++            now = cx.verify(cx.parse_reply(h["reply"]), _sources(h), targets, check_unseen=False)
+             if any(now[q]["answer"] != "NI" for q in targets):
+                 return True
+     return False
+ 
+ 
++def _pass_reader(rec, targets, role, load, held_ids):
++    """The held reader record of `role` that this adjudication's pass showed it, or None: the UNIQUE held RAN_OK call of
++    that role about the same trial and outcome, whose registered targets cover the adjudicated ones, made before the
++    adjudication, on the same evidence block (codex A2 rounds 9, 10, 13 -- two candidates leave it unproven)."""
++    import re
++    import rob2_contextual as rc
++    t = rec["prompt_text"]
++    evidence = t[t.index(rc.EVIDENCE_MARK):]
++    trial = re.search(r"^TRIAL: (\S+)", t, re.M).group(1)
++    outcome = re.search(r"^OUTCOME: (.*)$", t, re.M).group(1)
++    cands = []
++    for hid in held_ids:
++        h = load(hid)
++        if not (h and h["caller"]["line"] == f"call:{role}" and h["state"] == "RAN_OK" and _bound_to(h, trial, outcome)):
++            continue
++        reg_h = registered(h, "reader")
++        if not reg_h or not set(targets) <= set(reg_h[0]):
++            continue
++        if _utc(h["request_utc"]) >= _utc(rec["request_utc"]):
++            continue
++        ht = h["prompt_text"]
++        if rc.EVIDENCE_MARK not in ht or ht[ht.index(rc.EVIDENCE_MARK):] != evidence:
++            continue
++        cands.append(h)
++    return cands[0] if len(cands) == 1 else None
++
++
++def rule_changed(rid, load, held_ids):
++    """(A3) True only when the AMENDED rule would show this adjudication different readings: its pass's two unique
++    reader records, re-verified under the rule in force (and the variant being scored), disagree on a different set of
++    questions or with different readings from those its prompt shows. A genuine adjudication -- the same readings under
++    the amended rule -- is never superseded."""
++    rec = load(rid)
++    reg = registered(rec, "adjudicator") if rec else None
++    if not reg or not reg[1]:
++        return False
++    targets, shown = reg
++    h1 = _pass_reader(rec, targets, "codex", load, held_ids)
++    h2 = _pass_reader(rec, targets, "agy", load, held_ids)
++    if h1 is None or h2 is None:
++        return False
++    rt = registered(h1, "reader")[0]
++    if registered(h2, "reader")[0] != rt:
++        return False
++    v1 = cx.verify(cx.parse_reply(h1["reply"]), _sources(h1), rt, variant=VARIANT)
++    v2 = cx.verify(cx.parse_reply(h2["reply"]), _sources(h2), rt, variant=VARIANT)
++    now = {q: {"reader 1": v1[q], "reader 2": v2[q]} for q in rt if v1[q]["answer"] != v2[q]["answer"]}
++    return now != shown
++
++
+ def check_superseded(superseded, held, roles, times, amended_iso, defect=None):
+     """(codex A2 review) A superseded record must be HELD, RAN_OK, an ADJUDICATOR record, made BEFORE the amendment was
+     applied, and (round 8) PROVEN caused by the parser defect (`defect`): supersession can never exempt a reader, a
+@@ -207,8 +290,8 @@ def load_record(rid):
+     """A contextual-pass record as the checks need it: state, caller, the EXACT prompt bytes (sha-checked by
+     model_source), the stored reply, input digests and request time. None when the record is not held."""
+     from reproducible_ai import model_source as ms
+-    p = os.path.join(REC_DIR, rid + ".json")
+-    if not os.path.exists(p):
++    p = next((x for x in (os.path.join(d, rid + ".json") for d in _rec_dirs()) if os.path.exists(x)), None)
++    if p is None:
+         return None
+     r = ms.load_record(p)
+     return {"state": r["state"], "caller": r["caller"], "prompt_text": ms._unblob(r["prompt"], "prompt").decode("utf-8"),
+@@ -222,8 +305,13 @@ def _sources(rec):
+     t = rec["prompt_text"]
+     block = json.loads(t[t.index("=== EVIDENCE ===") + len("=== EVIDENCE ==="):])
+     sha = {d.get("ref"): d.get("sha256") for d in rec.get("input_digests") or []}
+-    return [{"id": s["id"], "text": s.get("text") or s.get("abstract") or "", "sha256": sha.get(s["id"]),
+-             "open_for_prompt": True} for s in block["sources"]]
++    return [{"id": s["id"], "kind": s.get("kind"), "nct": s.get("nct"), "text": s.get("text") or s.get("abstract") or "",
++             "sha256": sha.get(s["id"]), "open_for_prompt": True} for s in block["sources"]]   # kind: A3
++
++
++def _rec_dirs():
++    """The record stores read: a variant's own, then the base's (its reused readers); the base alone otherwise."""
++    return ([REC_DIR + f"_{VARIANT}"] if VARIANT else []) + [REC_DIR]
+ 
+ 
+ def _bound_to(rec, trial, outcome):
+@@ -236,8 +324,8 @@ def _bound_to(rec, trial, outcome):
+ 
+ def _verified(rec, qid):
+     """The recorded reply put through the SAME verify() as the pipeline (codex round 2): an empty quote, a generic or
+-    unreferenced rationale, a quote not in the shown source -- all NI here as there."""
+-    return cx.verify(cx.parse_reply(rec["reply"]), _sources(rec), [qid])[qid]      # A2: THE parser, as the pipeline
++    unreferenced rationale, a quote not in the shown source -- all NI here as there (under the variant being scored)."""
++    return cx.verify(cx.parse_reply(rec["reply"]), _sources(rec), [qid], variant=VARIANT)[qid]   # A2: THE parser
+ 
+ 
+ def registered(rec, kind):
+@@ -481,6 +569,10 @@ def replay_all(slugs):
+     import rob2_contextual as rc
+     import rob2_dual as rd
+     runs = json.load(open(rc.RUNS, encoding="utf-8")) if os.path.exists(rc.RUNS) else {}
++    base_runs = None
++    if rc.VARIANT is not None:                         # a variant overlays the base manifest (codex A3 r16)
++        base_runs = json.load(open(rc.BASE_RUNS, encoding="utf-8")) if os.path.exists(rc.BASE_RUNS) else {}
++        check_variant_manifest(runs, base_runs)
+     docs = {s: json.load(open(os.path.join(cal.OURS, f"{s}.json"), encoding="utf-8")) for s in slugs}
+     rd.prefetch_registry([(s, sorted(docs[s]["trials"])) for s in slugs])
+     out, consumed = {}, []
+@@ -488,68 +580,140 @@ def replay_all(slugs):
+         items = {it["pmid"]: it for it in rd.items(s, sorted(docs[s]["trials"]))}
+         out[s] = {}
+         for pmid, o in docs[s]["trials"].items():
+-            new, r, _ = rc.process(items[pmid], o, runs, False, {})
++            new, r, _ = rc.process(items[pmid], o, runs, False, {}, base_runs)
+             rd.redact_closed_spans(new, items[pmid])
+             out[s][pmid] = new
+             consumed += r.get("consumed") or []
+     return out, runs, consumed
+ 
+ 
+-def main(argv):
+-    if len(argv) != 1:
+-        raise SystemExit("REFUSED: the scorer takes the pre-registration SHA only; all four registered comparators are scored")
+-    sha = check_prereg(argv[0])
+-    after = prereg_time(sha)
+-    test = set(json.load(open(os.path.join(ROOT, "outputs", "robgrade", "split.json"), encoding="utf-8"))["test"])
+-    regen, runs, consumed = replay_all(TOPICS)
+-    held, roles, times = {}, {}, {}
+-    for f in __import__("glob").glob(os.path.join(REC_DIR, "mc-*.json")):
++def _held(rec_dir, after):
++    """{rid: state}, {rid: role}, {rid: request time} of the records in `rec_dir` made after `after`; and the ids made
++    at or before it."""
++    held, roles, times, early = {}, {}, {}, []
++    for f in __import__("glob").glob(os.path.join(rec_dir, "mc-*.json")):
+         rid = os.path.basename(f)[:-5]
+         rec = load_record(rid)
+         if _utc(rec["request_utc"]) > _utc(after):
+             held[rid], roles[rid], times[rid] = rec["state"], rec["caller"]["line"].split(":")[-1], rec["request_utc"]
+-    superseded = superseded_records(sha)              # A2: kept, listed, never read
+-    if superseded:                                    # only held, earlier ADJUDICATIONS can be superseded
+-        applied = [a.get("applied_utc") for a in _signed_amendments(sha) if a.get("superseded_records")]
+-        if not applied or not all(applied):
+-            raise SystemExit("REFUSED: superseded records are declared without the amendment's applied_utc")
+-        check_superseded(superseded, held, roles, times, min(applied),
+-                         defect=lambda rid: defect_caused(rid, load_record, list(held)))
+-    failed_attempts = check_consumed(consumed, held, superseded)    # every other post-registration decision record was READ
+-    check_consumed_times(consumed, after)               # and everything READ postdates the pre-registration
++        else:
++            early.append(rid)
++    return held, roles, times, early
++
++
++def _checked_objects(ctx_dir, regen, after):
++    """Every scored object is what the pipeline reproduces and every contextual answer stands on its records."""
+     counts = collections.Counter()
+     for s in TOPICS:
+         base = json.load(open(os.path.join(cal.OURS, f"{s}.json"), encoding="utf-8"))
+-        ctx = json.load(open(os.path.join(CTX_DIR, f"{s}.json"), encoding="utf-8"))
++        ctx = json.load(open(os.path.join(ctx_dir, f"{s}.json"), encoding="utf-8"))
+         check_replay(s, ctx, regen[s])
+         counts += check_contextual_doc(s, base, ctx, after)
++    return counts
++
++
++def main(argv):
++    global VARIANT
++    import rob2_contextual as rc
++    base_sha, variant, vsha = parse_args(argv)
++    sha = check_prereg(base_sha)
++    after = prereg_time(sha)
++    vfull = check_variant_prereg(variant, vsha) if variant else None
++    test = set(json.load(open(os.path.join(ROOT, "outputs", "robgrade", "split.json"), encoding="utf-8"))["test"])
++    amendments = sorted({a.get("id") for a in _signed_amendments(sha)})
++    # ---- the base (the rule as amended by every signed declaration): always replayed and checked in full
++    VARIANT = None
++    rc.configure(None)
++    regen, runs, consumed = replay_all(TOPICS)
++    held, roles, times, _ = _held(REC_DIR, after)
++    superseded = set()                                 # kept, listed, never read -- each by its declaration's own test
++    for a in _signed_amendments(sha):
++        recs = set(a.get("superseded_records") or [])
++        if not recs:
++            continue
++        if not a.get("applied_utc"):
++            raise SystemExit(f"REFUSED: {a.get('id')}: superseded records are declared without the amendment's applied_utc")
++        fn = defect_caused if supersession_test(a) == "defect_caused" else rule_changed
++        check_superseded(recs, held, roles, times, a["applied_utc"],
++                         defect=lambda rid, fn=fn: fn(rid, load_record, list(held)))
++        superseded |= recs
++    failed_attempts = check_consumed(consumed, held, superseded)    # every other post-registration decision record was READ
++    check_consumed_times(consumed, after)               # and everything READ postdates the pre-registration
++    counts = _checked_objects(CTX_DIR, regen, after)
+     pairs, excluded, unmatched, tools = pairs_from(CTX_DIR, TOPICS, test)
+     t = nip.two_way(pairs)
+-    t31 = nip.two_way(json.load(open(V31, encoding="utf-8"))["pairs"])
+-    b = {(p["slug"], p["pmid"], p["domain"]): p for p in json.load(open(V31, encoding="utf-8"))["pairs"]}
+-    moved = [[p["slug"], p["pmid"], p["domain"], b[k]["ours"], p["ours"], p["theirs"]] for p in pairs
+-             for k in [(p["slug"], p["pmid"], p["domain"])] if k in b and b[k]["ours"] != p["ours"]]
+-    res = {"preregistration_commit": sha, "topics": TOPICS, "tools": tools, "two_way": t, "two_way_v31": t31,
+-           "contextual_answers_by_question": dict(sorted(counts.items())), "moved_from_v31": moved,
+-           "excluded": len(excluded), "unmatched_trials": len(unmatched), "result_identity": DISCLOSURE,
+-           "failed_attempts_accounted": failed_attempts, "records_consumed": len(set(consumed)),
+-           "superseded_records_A2": sorted(superseded)}
+-    with open(os.path.join(ROOT, "outputs", "robgrade", "ctx_score.json"), "w", encoding="utf-8", newline="\n") as fh:
+-        json.dump(res, fh, indent=1)
+     f = lambda c: f"{c['agree']} / {c['N']}"
+-    lines = ["# Contextual 'probably' answers on TEST: agreement with the published per-trial judgements, n of N", "",
+-             f"Pre-registered rule: commit {sha} (outputs/robgrade/CONTEXTUAL_POLICY.md). Only asked NI answers could "
+-             "change, only to a documented contextual PY/PN (checked against v3.1, answer by answer).", "",
+-             f"Coverage: {len(excluded)} records excluded, {len(unmatched)} trials unmatched (not in any N).", "", DISCLOSURE, "",
+-             "| domain | all (contextual) | excl. NI-driven (contextual) | NI-driven only (contextual) | all (v3.1) | "
+-             "excl. NI-driven (v3.1) | NI-driven only (v3.1) |", "|---|---|---|---|---|---|---|"]
++    if variant is None:
++        t31 = nip.two_way(json.load(open(V31, encoding="utf-8"))["pairs"])
++        b = {(p["slug"], p["pmid"], p["domain"]): p for p in json.load(open(V31, encoding="utf-8"))["pairs"]}
++        moved = [[p["slug"], p["pmid"], p["domain"], b[k]["ours"], p["ours"], p["theirs"]] for p in pairs
++                 for k in [(p["slug"], p["pmid"], p["domain"])] if k in b and b[k]["ours"] != p["ours"]]
++        res = {"preregistration_commit": sha, "amendments": amendments, "topics": TOPICS, "tools": tools,
++               "two_way": t, "two_way_v31": t31,
++               "contextual_answers_by_question": dict(sorted(counts.items())), "moved_from_v31": moved,
++               "excluded": len(excluded), "unmatched_trials": len(unmatched), "result_identity": DISCLOSURE,
++               "failed_attempts_accounted": failed_attempts, "records_consumed": len(set(consumed)),
++               "superseded_records": sorted(superseded)}
++        out_json, out_md = "ctx_score.json", "CTX_SCORE.md"
++        title = "# Contextual 'probably' answers on TEST: agreement with the published per-trial judgements, n of N"
++        rule_line = (f"Pre-registered rule: commit {sha} (outputs/robgrade/CONTEXTUAL_POLICY.md), as amended by the signed "
++                     f"declarations {', '.join(amendments) or 'none'} (outputs/robgrade/AMENDMENTS.json). Only asked NI "
++                     "answers could change, only to a documented contextual PY/PN (checked against v3.1, answer by answer).")
++        heads, other, against = ("contextual", "v3.1"), t31, "v3.1"
++        n_ctx = counts
++    else:
++        # ---- the PRE-REGISTERED variant, scored separately, beside the base just checked
++        VARIANT = variant
++        rc.configure(variant)
++        try:
++            vregen, _, vconsumed = replay_all(TOPICS)
++            vafter = prereg_time(vfull)
++            vheld, _, _, vearly = _held(REC_DIR + f"_{variant}", vafter)
++            if vearly:
++                raise SystemExit(f"REFUSED: variant records made before the variant was registered: {sorted(vearly)}")
++            vfailed = check_consumed(vconsumed, vheld)     # every variant record was READ by the variant replay
++            check_consumed_times(vconsumed, after)
++            for rid in set(vconsumed) - set(vheld):    # a reused BASE record: held, RAN_OK, never superseded
++                if rid in superseded or held.get(rid) != "RAN_OK":
++                    raise SystemExit(f"REFUSED: the variant read {rid}, which is not a held, unsuperseded base record")
++            vctx = CTX_DIR + f"_{variant}"
++            n_ctx = _checked_objects(vctx, vregen, after)
++            vpairs, vexcluded, vunmatched, vtools = pairs_from(vctx, TOPICS, test)
++        finally:
++            VARIANT = None
++            rc.configure(None)
++        tv = nip.two_way(vpairs)
++        b = {(p["slug"], p["pmid"], p["domain"]): p for p in pairs}
++        moved = [[p["slug"], p["pmid"], p["domain"], b[k]["ours"], p["ours"], p["theirs"]] for p in vpairs
++                 for k in [(p["slug"], p["pmid"], p["domain"])] if k in b and b[k]["ours"] != p["ours"]]
++        res = {"preregistration_commit": sha, "amendments": amendments, "variant": variant,
++               "variant_preregistration_commit": vfull, "topics": TOPICS, "tools": vtools,
++               "two_way": tv, "two_way_base": t, "contextual_answers_by_question": dict(sorted(n_ctx.items())),
++               "contextual_answers_by_question_base": dict(sorted(counts.items())), "moved_from_base": moved,
++               "excluded": len(vexcluded), "unmatched_trials": len(vunmatched), "result_identity": DISCLOSURE,
++               "failed_attempts_accounted": vfailed, "records_consumed": len(set(vconsumed)),
++               "variant_records": sorted(vheld)}
++        out_json, out_md = f"ctx_score_{variant}.json", f"CTX_SCORE_{variant}.md"
++        title = (f"# Pre-registered variant {variant} on TEST: agreement with the published per-trial judgements, n of N")
++        rule_line = (f"Variant pre-registered at commit {vfull} (outputs/robgrade/CONTEXTUAL_VARIANT_{variant}.md), "
++                     f"scored separately beside the base: the rule pre-registered at {sha} as amended by "
++                     f"{', '.join(amendments) or 'none'}. The variant is never the default.")
++        heads, other, against = (variant, "base"), t, "the base"
++        t, excluded, unmatched = tv, vexcluded, vunmatched
++    with open(os.path.join(ROOT, "outputs", "robgrade", out_json), "w", encoding="utf-8", newline="\n") as fh:
++        json.dump(res, fh, indent=1)
++    lines = [title, "", rule_line, "",
++             f"Coverage: {len(excluded)} records excluded, {len(unmatched)} trials unmatched (not in any N).", "",
++             DISCLOSURE, "",
++             f"| domain | all ({heads[0]}) | excl. NI-driven ({heads[0]}) | NI-driven only ({heads[0]}) | all ({heads[1]}) | "
++             f"excl. NI-driven ({heads[1]}) | NI-driven only ({heads[1]}) |", "|---|---|---|---|---|---|---|"]
+     for d in nip.DOMS + ("all",):
+         lines.append(f"| {d} | {f(t['all'][d])} | {f(t['excluding_ni_driven'][d])} | {f(t['ni_driven_only'][d])} | "
+-                     f"{f(t31['all'][d])} | {f(t31['excluding_ni_driven'][d])} | {f(t31['ni_driven_only'][d])} |")
+-    lines += ["", "Contextual answers by question: " + (", ".join(f"{q}: {n}" for q, n in sorted(counts.items())) or "none"),
+-              "", f"Judgements moved from v3.1: {len(moved)}"]
++                     f"{f(other['all'][d])} | {f(other['excluding_ni_driven'][d])} | {f(other['ni_driven_only'][d])} |")
++    lines += ["", "Contextual answers by question: " + (", ".join(f"{q}: {n}" for q, n in sorted(n_ctx.items())) or "none"),
++              "", f"Judgements moved from {against}: {len(moved)}"]
+     lines += [f"- {a} {b_} {c}: {o} -> {n} (comparator {th})" for a, b_, c, o, n, th in moved]
+-    with open(os.path.join(ROOT, "outputs", "robgrade", "CTX_SCORE.md"), "w", encoding="utf-8", newline="\n") as fh:
++    with open(os.path.join(ROOT, "outputs", "robgrade", out_md), "w", encoding="utf-8", newline="\n") as fh:
+         fh.write("\n".join(lines) + "\n")
+     print("\n".join(lines))
+ 

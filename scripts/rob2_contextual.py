@@ -22,9 +22,33 @@ from robgrade import contextual as cx  # noqa: E402
 from robgrade import rob2_formal as rf  # noqa: E402
 
 OBJ_DIR = os.path.join(ROOT, "outputs", "robgrade", "rob2")
-OUT_DIR = os.path.join(ROOT, "outputs", "robgrade", "rob2_ctx")
-REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "rob2_ctx")
-RUNS = os.path.join(ROOT, "registry", "model_proposals", "rob2_ctx_runs.json")
+BASE_OUT_DIR = os.path.join(ROOT, "outputs", "robgrade", "rob2_ctx")
+BASE_REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "rob2_ctx")
+BASE_RUNS = os.path.join(ROOT, "registry", "model_proposals", "rob2_ctx_runs.json")
+OUT_DIR, REC_DIR, RUNS, REC_READ_DIRS, VARIANT = BASE_OUT_DIR, BASE_REC_DIR, BASE_RUNS, [BASE_REC_DIR], None
+
+
+def configure(variant):
+    """Select the base rule (None) or a PRE-REGISTERED variant (robgrade/contextual.VARIANTS). A variant keeps its own
+    new records, run manifest and outputs (suffix _<name>), and READS the base's held records too: its readers' prompts
+    are the base's, so they are reused, never re-called."""
+    global OUT_DIR, REC_DIR, RUNS, REC_READ_DIRS, VARIANT
+    if variant is not None:
+        cx.VARIANTS[variant]                           # an unregistered name is a KeyError
+    sfx = "" if variant is None else f"_{variant}"
+    VARIANT = variant
+    OUT_DIR, REC_DIR = BASE_OUT_DIR + sfx, BASE_REC_DIR + sfx
+    RUNS = BASE_RUNS[:-len(".json")] + sfx + ".json"
+    REC_READ_DIRS = [REC_DIR] + ([BASE_REC_DIR] if variant is not None else [])
+
+
+def _rec_path(rid):
+    """The held record file of `rid` in the record stores this run reads, or None."""
+    for d in REC_READ_DIRS:
+        p = os.path.join(d, rid + ".json")
+        if os.path.exists(p):
+            return p
+    return None
 
 
 def schema(targets):
@@ -110,13 +134,14 @@ def _reading(run):
     """The recorded reply of a CONTEXTUAL call (this pass's own record store), parsed; None when absent or failed."""
     if not run or run.get("state") != "RAN_OK":
         return None
-    return cx.parse_reply(ms.replay(ms.load_record(os.path.join(REC_DIR, run["record_id"] + ".json"))))   # A2: THE parser
+    p = _rec_path(run["record_id"])
+    return cx.parse_reply(ms.replay(ms.load_record(p))) if p else None   # A2: THE parser
 
 
 def record_prompt_sha256(rid):
     """The sha256 of the prompt a held record ACTUALLY carries (model_source re-derives it), None when not held."""
-    p = os.path.join(REC_DIR, rid + ".json")
-    if not os.path.exists(p):
+    p = _rec_path(rid)
+    if p is None:
         return None
     return hashlib.sha256(ms._unblob(ms.load_record(p)["prompt"], "prompt")).hexdigest()
 
@@ -149,9 +174,13 @@ def pass_decisions(a, b, adj, targets):
     return cx.combine(a, b, adj)
 
 
-def _one_pass(item, obj, targets, run, live, pools, srcs):
+def _one_pass(item, obj, targets, run, live, pools, srcs, base=None):
     """One contextual pass over `targets`: two blind readers, the adjudicator on a real disagreement, applied."""
     p = prompt(item, targets)
+    base = base or {}
+    for w in ("codex", "agy"):                         # a variant never hides a fresh base record (codex A3 r18)
+        if fresh(base.get(w), p):
+            run[w] = base[w]
     if live:                                           # re-call whatever is not FRESH (agy round 4)
         futs = {w: pools[w].submit(call, item, w, p, targets) for w in ("codex", "agy") if not fresh(run.get(w), p)}
         for w, f in futs.items():
@@ -160,8 +189,8 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
     # an UNREADABLE reply (no single answer object) is a missing reading, not an all-NI one: it voids the pass, so it
     # can never manufacture a disagreement (codex A2 review)
     ra, rb = (_reading(fc) if fc else None), (_reading(fa) if fa else None)
-    a = cx.verify(ra, srcs, targets) if ra is not None else None
-    b = cx.verify(rb, srcs, targets) if rb is not None else None
+    a = cx.verify(ra, srcs, targets, variant=VARIANT) if ra is not None else None
+    b = cx.verify(rb, srcs, targets, variant=VARIANT) if rb is not None else None
     # a disagreement is two DIFFERENT verified answers of two PRESENT readers; agreement (PY/PN or NI) never goes to the
     # adjudicator, and a missing reader voids the pass (pass_decisions)
     dis = {q: {"reader 1": a[q], "reader 2": b[q]} for q in targets if a[q]["answer"] != b[q]["answer"]} \
@@ -169,6 +198,8 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
     adj = {}
     if dis:
         pa = prompt(item, sorted(dis), "adjudicator", dis)
+        if fresh(base.get("adjudicator"), pa):
+            run["adjudicator"] = base["adjudicator"]
         # (codex A2 r11) a REPLAY meeting a disagreement that was never put to the adjudicator (no attempt on THIS
         # prompt, e.g. only a superseded adjudication of other readings) cannot reproduce the pipeline: it refuses,
         # rather than recording NI where the live pipeline would have adjudicated. A recorded failed attempt is NI.
@@ -182,7 +213,7 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
         adj_run = fresh(run.get("adjudicator"), pa)
         rj = _reading(adj_run) if adj_run else None
         # no record, or (codex A2 r10) an UNREADABLE reply: nothing is the adjudicator's -- never an adjudicator NI
-        adj = cx.verify(rj, srcs, sorted(dis)) if rj is not None else {}
+        adj = cx.verify(rj, srcs, sorted(dis), variant=VARIANT) if rj is not None else {}
     c = pass_decisions(a, b, adj, targets)
     recs = {q: [run[w]["record_id"] for w in ("codex", "agy") if fresh(run.get(w), p)] +
                ([run["adjudicator"]["record_id"]] if c[q].get("decided_by") == "adjudicator" else []) for q in c}
@@ -193,19 +224,25 @@ def _one_pass(item, obj, targets, run, live, pools, srcs):
     return cx.apply(obj, c, recs), c, consumed
 
 
-def process(item, obj, runs, live, pools):
+def process(item, obj, runs, live, pools, base_runs=None):
     """Up to MAX_PASSES contextual passes (codex round 4): a contextual answer can OPEN a branch, and a newly asked
-    question that is NI gets its own pass rather than a fixed NI. A question decided in a pass is never re-asked."""
+    question that is NI gets its own pass rather than a fixed NI. A question decided in a pass is never re-asked.
+    A VARIANT (base_runs given) OVERLAYS its own entries on the base manifest's: the base's fresh records are always
+    there to be read, and the variant stores only the entries it adds (codex A3 r16)."""
     r = dict(runs.get(item["key"]) or {})
     passes = list(r.get("passes") or [])
+    base_passes = list(((base_runs or {}).get(item["key"]) or {}).get("passes") or [])
     srcs = rd.open_sources(item)
     cur, decided, audit, c_all, consumed, executed = obj, set(), {}, {}, [], 0
     for k in range(MAX_PASSES):
         targets = [q for q in cx.ni_targets(cur) if q not in decided]
         if not targets:
             break
-        run = dict(passes[k]) if k < len(passes) else {}
-        cur, c, used = _one_pass(item, cur, targets, run, live, pools, srcs)
+        base = dict(base_passes[k]) if k < len(base_passes) else {}
+        run = dict(base, **(passes[k] if k < len(passes) else {}))
+        cur, c, used = _one_pass(item, cur, targets, run, live, pools, srcs, base)
+        if base_runs is not None:                      # keep only the variant's own entries
+            run = {w: x for w, x in run.items() if base.get(w) != x}
         audit.update(cur["contextual_audit"])
         c_all.update(c)
         consumed += used
@@ -247,10 +284,34 @@ def preflight(item, obj, runs):
     return calls
 
 
+def _git(*a):
+    import subprocess
+    return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True, encoding="utf-8")
+
+
+def variant_registered(variant):
+    """The commit that added the variant's pre-registration document; refuses unless that document is committed and
+    unedited -- a variant is never computed before it is registered (codex A3 r16)."""
+    doc = f"outputs/robgrade/CONTEXTUAL_VARIANT_{variant}.md"
+    added = [x for x in _git("log", "--diff-filter=A", "--format=%H", "--", doc).stdout.split() if x]
+    if not added:
+        raise SystemExit(f"REFUSED: {variant} is not pre-registered: {doc} was never committed")
+    if _git("diff", "--quiet", "HEAD", "--", doc).returncode != 0 or _git("diff", "--quiet", added[-1], "HEAD", "--",
+                                                                          doc).returncode != 0:
+        raise SystemExit(f"REFUSED: {doc} differs from the text registered at {added[-1]}")
+    return added[-1]
+
+
 def main(argv):
     live = "--run" in argv
-    slugs = [a for a in argv if not a.startswith("--")]
+    variant = argv[argv.index("--variant") + 1] if "--variant" in argv else None
+    if variant is not None:
+        variant_registered(variant)
+    configure(variant)
+    slugs = [a for a in argv if not a.startswith("--") and a != variant]
     runs = rd._j(RUNS) if os.path.exists(RUNS) else {}
+    # a variant OVERLAYS the base manifest: the base's fresh records are reused, never re-called
+    base_runs = (rd._j(BASE_RUNS) if os.path.exists(BASE_RUNS) else {}) if variant else None
     pools = {"codex": cf.ThreadPoolExecutor(rd.CODEX_WORKERS), "agy": cf.ThreadPoolExecutor(rd.AGY_WORKERS)}
     driver = cf.ThreadPoolExecutor(rd.CODEX_WORKERS)
     docs = {s: rd._j(os.path.join(OBJ_DIR, f"{s}.json")) for s in slugs}
@@ -259,7 +320,7 @@ def main(argv):
     for slug in slugs:
         doc = docs[slug]
         items = {it["pmid"]: it for it in rd.items(slug, sorted(doc["trials"]))}
-        jobs.append((slug, doc, [(items[p], o, driver.submit(process, items[p], o, runs, live, pools))
+        jobs.append((slug, doc, [(items[p], o, driver.submit(process, items[p], o, runs, live, pools, base_runs))
                                  for p, o in sorted(doc["trials"].items()) if p in items]))
     for slug, doc, js in jobs:
         out, ctx = {}, {}

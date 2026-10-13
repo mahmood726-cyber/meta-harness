@@ -1,0 +1,21 @@
+{
+ "record_id": "mc-6d60a3fc1fdfa68112c2cf698bfe893b",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:cites_unseen/_doc",
+   "claim": "Registry identity remains unchecked. Showing one registry source exempts every ClinicalTrials.gov citation; other register citations lose their record numbers during canonicalization. A rationale relying on another trial's unseen registry record can therefore pass verification and replay.",
+   "guidance_basis": "A3 prohibits reliance on unseen documents. Context must support this trial's assessment, with its sources identified ([Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08)).",
+   "failing_test": "Show registry record A only, quoting 'Randomisation details were omitted'. Submit 1.2/PY with rationale 'ClinicalTrials.gov record B confirms randomisation was concealed' -> NI for unseen-source reliance; currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The unconditional MEMORY check still rejects legitimate reliance on a shown published report before A3 can establish that it was shown. The repeated scope decline explains the unchanged code but does not resolve its conflict with the Handbook: adequate contextual evidence is forced to NI solely by wording.",
+   "guidance_basis": "NI is inappropriate when the reported circumstances reasonably support PY/PN; the experienced trials-unit example is explicitly permitted ([Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08)).",
+   "failing_test": "Shown full text describes a large regulatory trial run by an experienced clinical trials unit. For 1.2/PY, quote that context and explain 'The published report describes an experienced clinical trials unit running this regulatory trial, supporting concealment' -> PY; currently NI because 'published report' matches MEMORY."
+  }
+ ]
+}

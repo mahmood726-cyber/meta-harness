@@ -1,0 +1,28 @@
+{
+ "record_id": "mc-f24e98954e0dbbadb23970375f334052",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:unseen_identifier",
+   "claim": "A bare mention of another trial’s identifier anywhere in shown text authorizes reliance on its unseen record. This bypasses A3 even when the quoted sentence supplies no information supporting the answer.",
+   "guidance_basis": "Handbook 8.2.3 requires circumstances supporting the probability judgement; seeing an identifier does not establish the contents of its record. A3 forbids reliance on unseen sources. [Handbook](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08)",
+   "failing_test": "Source=_reg('Related trial: NCT09999999. Randomisation details were omitted.'); 1.2=PY; quote='Randomisation details were omitted.'; rationale='ClinicalTrials.gov record NCT09999999 confirms randomisation details were concealed.' -> NI; currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The unconditional MEMORY filter rejects legitimate shown evidence before A3 checks its provenance. The rounds 16–25 decline leaves this defect unresolved: describing the shown source as a 'published report' is not reliance on memory.",
+   "guidance_basis": "Handbook 8.2.3 permits supported probability judgements and reserves NI for insufficient information without reasonable contextual inference. Freezing a lexical restriction does not justify an incorrect NI. [Handbook](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08)",
+   "failing_test": "Shown FT source contains 'central web-based randomisation'; 1.2=PY with that quote and rationale='The published report describes central web-based randomisation, supporting concealment.' -> PY; currently NI solely because of 'published report'."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:unseen_identifier",
+   "claim": "The round-25 disclaimer fix applies to 'another record' but not explicit identifiers in the rationale. Naming an unavailable record in a disclaimer wrongly discards an otherwise supported contextual answer.",
+   "guidance_basis": "A3 excludes reliance on unseen documents, not disclaimers of access. Handbook 8.2.3 supports retaining a reasonable inference from the evidence actually available. [Handbook](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08)",
+   "failing_test": "Source=_reg('Allocation by central web-based randomisation.'); 1.2=PY; quote='central web-based randomisation'; rationale='Record NCT09999999 was unavailable, but central web-based randomisation supports concealment.' -> PY; currently NI."
+  }
+ ]
+}

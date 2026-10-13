@@ -1,0 +1,49 @@
+{
+ "record_id": "mc-6810f6d4be20c570c830e32c3531ec32",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "cites_unseen performs a raw substring match (d not in shown) without word boundaries. For the acronym \\bsap\\b (statistical analysis plan), any common word containing 'sap'—such as 'saphenous' in bypass graft and ACS trials (including the evaluated topic ticagrelor-vs-clopidogrel-acs)—satisfies d in shown. A reader's rationale relying on an unshown SAP escapes the unseen document check undetected whenever 'saphenous' appears in shown text.",
+   "guidance_basis": "Handbook 8.2.3 and A3 candidate 1 specify that contextual answers must not rely on documents the readers were never shown. Substring leakage allows outside/memory reliance on an unshown SAP to pass validation whenever 'saphenous' appears in trial evidence.",
+   "failing_test": "Input: verify({\"answers\": [{\"qid\": \"5.1\", \"answer\": \"PY\", \"quote\": \"randomisation was concealed\", \"source_id\": \"s1\", \"rationale\": \"the sap confirms randomisation was concealed\"}]}, [{\"id\": \"s1\", \"kind\": \"abstract\", \"text\": \"Trial of saphenous vein graft with randomisation was concealed.\", \"sha256\": \"0\"*64, \"open_for_prompt\": True}], [\"5.1\"])[\"5.1\"][\"answer\"] -> Expected: \"NI\" (dropped: RATIONALE_CITES_A_SOURCE_NOT_SHOWN); Actual: \"PY\""
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "cites_unseen drops valid contextual answers whose rationales cite an explicitly reported document when the rationale uses the abbreviation 'SAP' while the source wrote 'statistical analysis plan' (or vice versa). Because cites_unseen checks exact substring containment (d in shown) without acronym expansion, it treats 'sap' and 'statistical analysis plan' as disjoint, falsely dropping reported context.",
+   "guidance_basis": "A3 candidate 1 and RESPONSES.md (pinning the r4 case) state that context reported by a shown source is valid and must not be dropped. Handbook 8.2.3 permits probability judgements based on reported protocol/plan context.",
+   "failing_test": "Input: verify({\"answers\": [{\"qid\": \"5.1\", \"answer\": \"PY\", \"quote\": \"A protocol was registered\", \"source_id\": \"s1\", \"rationale\": \"a protocol registered and the published SAP confirms prespecification\"}]}, [{\"id\": \"s1\", \"kind\": \"abstract\", \"text\": \"A protocol was registered before enrolment and the statistical analysis plan published.\", \"sha256\": \"0\"*64, \"open_for_prompt\": True}], [\"5.1\"])[\"5.1\"][\"answer\"] -> Expected: \"PY\"; Actual: \"NI\""
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "When an abstract without full text reports a figure (e.g. 'Figure 1 shows participant flow'), a rationale referring to 'fig 1' or 'fig. 1' matches rx in UNSEEN_DOCS. Because 'fig 1' is not a substring of 'figure 1', d not in shown evaluates to True. cites_unseen falsely flags 'fig 1' as an unseen document and drops the answer to NI, even though Figure 1 was explicitly reported in the shown abstract.",
+   "guidance_basis": "A3 candidate 1 guarantees that documents or sections reported by a shown source may be cited without being dropped. Legitimate references to figures reported in the abstract are dropped due to abbreviation mismatch.",
+   "failing_test": "Input: verify({\"answers\": [{\"qid\": \"3.1\", \"answer\": \"PY\", \"quote\": \"participant flow\", \"source_id\": \"s1\", \"rationale\": \"fig 1 shows participant flow, so follow-up was complete\"}]}, [{\"id\": \"s1\", \"kind\": \"abstract\", \"text\": \"Figure 1 shows participant flow and complete follow-up.\", \"sha256\": \"0\"*64, \"open_for_prompt\": True}], [\"3.1\"])[\"3.1\"][\"answer\"] -> Expected: \"PY\"; Actual: \"NI\""
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "UNSEEN_DOCS hardcodes ('registry', rx), requiring kind in kinds to equal 'registry'. In rob2_dual and contextual test fixtures (e.g. test_rob2_contextual.py:SRC_B), registry sources carry kind: 'registry_text'. Because 'registry' is not in {'registry_text'}, shown registry sources fail kind in kinds. Rationales citing 'registry' are falsely dropped as citing an unshown document whenever 'registry' is absent from the specific text snippet.",
+   "guidance_basis": "A3 candidate 1 establishes that any source kind shown to the readers is exempt from the unseen-document check. Failing to recognize 'registry_text' as a registry source causes shown registry evidence to be falsely rejected.",
+   "failing_test": "Input: verify({\"answers\": [{\"qid\": \"1.2\", \"answer\": \"PY\", \"quote\": \"interactive voice response system\", \"source_id\": \"r1\", \"rationale\": \"the registry record confirms concealment via interactive voice response system\"}]}, [{\"id\": \"r1\", \"kind\": \"registry_text\", \"text\": \"Allocation by an interactive voice response system held at the coordinating centre.\", \"sha256\": \"0\"*64, \"open_for_prompt\": True}], [\"1.2\"])[\"1.2\"][\"answer\"] -> Expected: \"PY\"; Actual: \"NI\""
+  },
+  {
+   "severity": "MINOR",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "UNSEEN_DOCS matches both 'protocol' and 'protocols', but cites_unseen checks exact substring inclusion (d not in shown). If a shown source reports singular 'protocol', a rationale using plural 'protocols' ('as specified in the protocols') produces d = 'protocols'. Because 'protocols' is not a substring of 'protocol', cites_unseen falsely drops the valid answer to NI.",
+   "guidance_basis": "A3 candidate 1 ensures context reported by a shown source may be relied upon. Simple inflectional variation (plural vs singular) must not cause reported context to be rejected as an unshown document.",
+   "failing_test": "Input: verify({\"answers\": [{\"qid\": \"1.2\", \"answer\": \"PY\", \"quote\": \"central web-based randomisation\", \"source_id\": \"s1\", \"rationale\": \"as specified in the protocols, central web-based randomisation was concealed\"}]}, [{\"id\": \"s1\", \"kind\": \"abstract\", \"text\": \"A protocol was registered; central web-based randomisation of 4000 patients.\", \"sha256\": \"0\"*64, \"open_for_prompt\": True}], [\"1.2\"])[\"1.2\"][\"answer\"] -> Expected: \"PY\"; Actual: \"NI\""
+  },
+  {
+   "severity": "MINOR",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "In UNSEEN_DOCS, the lookahead (?! (?:deviation|violation|adherence|non-adherence)) only prevents matching when the concept immediately follows 'protocol'. Standard Cochrane RoB 2 phrases where 'protocol' follows (e.g. 'non-adherence to the protocol' or 'deviations from the protocol') still match 'protocol' and are falsely dropped if 'protocol' is absent from the abstract text.",
+   "guidance_basis": "A3 docstrings explicitly specify that 'protocol' as part of an adherence or deviation concept is not a document. Standard RoB 2 signalling question terminology (e.g. 2.3, 2.6) should not be penalized as an unseen document.",
+   "failing_test": "Input: verify({\"answers\": [{\"qid\": \"2.6\", \"answer\": \"PY\", \"quote\": \"full analysis set of all randomised patients\", \"source_id\": \"s1\", \"rationale\": \"full analysis set was analysed without exclusions for non-adherence to the protocol\"}]}, [{\"id\": \"s1\", \"kind\": \"abstract\", \"text\": \"Analyses were based on the full analysis set of all randomised patients.\", \"sha256\": \"0\"*64, \"open_for_prompt\": True}], [\"2.6\"])[\"2.6\"][\"answer\"] -> Expected: \"PY\"; Actual: \"NI\""
+  }
+ ]
+}

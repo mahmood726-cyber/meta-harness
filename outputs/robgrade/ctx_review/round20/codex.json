@@ -1,0 +1,28 @@
+{
+ "record_id": "mc-f8eeff37740b53b6e61f0073419dc049",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:cites_unseen",
+   "claim": "A shown full text still authorizes reliance on an unseen 'original manuscript': the fulltext-kind exemption bypasses that reference. Conversely, A3 assumes every 'main report' is another document. The round-19 fix does not establish document identity.",
+   "guidance_basis": "A3 forbids reliance on unseen sources. Contextual judgements must rest on relevant available information, not merely a matching document kind. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Shown fulltext/quote='This follow-up report omits randomisation details'; 1.2 PY rationale='The original manuscript confirms randomisation details showed concealment' -> NI; currently PY. A shown main report should also remain usable when explicitly identified as the cited source."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "MEMORY rejects legitimate reliance on a shown source before A3 checks its provenance. The rounds 16–19 decline preserves a guidance defect: saying 'published report' does not make a grounded rationale memory-based. Neither variant corrects this.",
+   "guidance_basis": "NI is appropriate only when reporting and contextual grounds are insufficient. A scope-based decline does not justify discarding available context solely because of its wording. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Shown fulltext contains quote='central web-based randomisation'; 1.2 PY rationale='The published report describes central web-based randomisation, supporting concealment' -> retain PY; currently NI through MEMORY."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:quoted_sentence",
+   "claim": "Every period followed by whitespace is treated as a sentence boundary, including 'Fig. 1'. This can remove the document reference from the quoted sentence and falsely classify a shown source's report as unseen. The alias tests omit this advertised spelling.",
+   "guidance_basis": "A3 permits reliance on documents reported by the shown source and explicitly supports Fig. 1/Figure 1 aliases. Supporting context should remain available under [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Shown abstract='Fig. 1 shows complete follow-up for all participants.'; quote='complete follow-up for all participants'; 3.1 PY rationale='Fig. 1 shows complete follow-up for all participants' -> retain PY; currently NI because the extracted sentence starts after 'Fig.'."
+  }
+ ]
+}

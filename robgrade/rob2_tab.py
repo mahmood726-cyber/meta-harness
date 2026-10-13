@@ -28,6 +28,13 @@ def contextual_note(dom):
     (codex round 3), so a reader of the page can judge each one."""
     xs = []
     for q, a in sorted((dom.get("answers") or {}).items()):
+        closed = a.get("closed_contextual")
+        if closed:                                     # A3 (candidate 4): a decision on a branch since closed is shown
+            word = PROBABLY.get(closed.get("answer"), closed.get("answer"))
+            ctx = closed.get("context") or []
+            src = "; ".join(f"'{c.get('quote')}' ({c.get('source_id')})" for c in ctx) if ctx else f"'{closed.get('span')}'"
+            xs.append(f"{q} not asked: its branch closed after a contextual answer; it had been decided {word}, from {src}")
+            continue
         if a.get("basis") != "contextual":
             continue
         word = PROBABLY.get(a.get("answer"), a.get("answer"))
@@ -65,7 +72,8 @@ def overall_label(ov, domains=None):
 
 def _contextual_domains(domains):
     ds = [d for d, x in sorted((domains or {}).items())
-          if any(a.get("basis") == "contextual" for a in (x.get("answers") or {}).values())]
+          if any(a.get("basis") == "contextual" or a.get("closed_contextual")
+                 for a in (x.get("answers") or {}).values())]
     return f" [contextual answers in: {', '.join(ds)}]" if ds else ""
 
 

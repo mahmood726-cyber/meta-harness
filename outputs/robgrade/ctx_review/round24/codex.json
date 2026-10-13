@@ -1,0 +1,21 @@
+{
+ "record_id": "mc-c1639e2f351bb9a34f2933349dfdff87",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:_docs_in, unseen_identifier",
+   "claim": "A3 accepts reliance on an explicitly unavailable registry record. The document matcher checks 'registry' without 'record', missing the disclaimer; the new another-record exemption then treats its mere mention as reported context. Two agreeing readers can therefore turn an unsupported answer into contextual PY.",
+   "guidance_basis": "A3 forbids reliance on unseen documents. An unavailable record supplies no justification for a probability judgement under [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "1.2 PY; sole abstract and quote: 'Another registry record was unavailable and randomisation details were omitted.' Rationale: 'Another registry record confirms randomisation was concealed.' -> NI; currently PY."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The rounds 16–23 decline remains unresolved: MEMORY rejects 'published report' before checking whether that report was shown. This discards legitimate quoted context solely because of wording. Preserving a frozen filter does not make its NI decision guidance-correct.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits reasonable contextual PY/PN and restricts NI to insufficient information without a reasonable probability judgement. Naming a shown report is not reliance on memory.",
+   "failing_test": "Shown fulltext: 'Allocation used central web-based randomisation.' 1.2 PY, quote 'central web-based randomisation', rationale 'The published report describes central web-based randomisation, supporting concealment.' -> PY; currently NI."
+  }
+ ]
+}
