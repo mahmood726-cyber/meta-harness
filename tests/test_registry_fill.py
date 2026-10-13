@@ -139,3 +139,16 @@ def test_PLANT_an_nct_the_registry_does_not_hold_is_not_a_resolved_identity(monk
     rf._CTG.pop("NCT02017898", None)
     assert rf.results_why({"NCT02017898": "NO_POSTED_RESULTS"},
                           {"NCT02017898": {"state": "NCT_NOT_IN_REGISTRY"}}) == "NCT_NOT_IN_REGISTRY:NCT02017898"
+
+
+def test_PLANT_deterministic_arm_pick_takes_the_one_pair_every_gate_passes():
+    # ASCEND (2x2): neither reader returned the omega-3 pair 689/7740 v 712/7740 posted under the bound outcome (13 Oct).
+    # Deterministic first: every ordered pair of posted groups through the SAME gates; admit only a UNIQUE survivor
+    held = _held(ASCEND_G, ASCEND_T)
+    ok = lambda resp: rf.arm_identity(resp, held, OMEGA) is None  # noqa: E731  (ta.gate stubbed: arms only here)
+    picks = rf.arm_pairs([("NCTX", "1")], held, ok)
+    assert [(p["events_t"], p["n_t"], p["events_c"], p["n_c"]) for p in picks] == [(689, 7740, 712, 7740)]
+    # two surviving pairs (e.g. two dose arms v one placebo) are NOT a pick: the trial goes to the readers
+    twins = [{"group": "x", "count": 5, "n": 50}, {"group": "y", "count": 7, "n": 50}, {"group": "z", "count": 9, "n": 50}]
+    h2 = _held(twins, {"x": "Omega-3 low", "y": "Omega-3 high", "z": "Placebo Omega-3"})
+    assert len(rf.arm_pairs([("NCTX", "1")], h2, lambda r: rf.arm_identity(r, h2, OMEGA) is None)) == 2
