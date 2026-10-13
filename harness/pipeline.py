@@ -1256,10 +1256,29 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     verified_arms = _verified_for_outcome(verified_arms, spec.get("name"))
     verified_effects = _verified_for_outcome(verified_effects, spec.get("name"))
     trials, absent = [], []
+    # Failed canonical span checks are extraction debt for this trial+outcome.
+    # Stop before candidate selection (including dose/abstract fallbacks), so the
+    # rejected entry cannot affect either the pool or the other trials' estimand.
+    from .verified_inputs import entries as _vi_entries
+    span_refusals = {}
+    for data in (verified_effects, verified_arms):
+        for pid, value in (data or {}).items():
+            for entry in _vi_entries(value):            # a multi-row (list) value too (agy m2w2a-cap-r1 #2)
+                if entry.get("span_refusal"):
+                    span_refusals.setdefault(pid, []).append(entry["span_refusal"])
+
+    def _refused_ids(d):
+        # an entry keyed by the record's NCT while the included record is its PMID is the same trial (agy m2w2a-cap-r1 #1),
+        # and the symmetric case: keyed by the PMID of an NCT-indexed record (agy m2comb-cap-r2 #1)
+        rec = rec_by_id.get(d["id"], {})
+        return [k for k in dict.fromkeys((d["id"], rec.get("nct"), rec.get("pmid"))) if k and k in span_refusals]
+
     candidate_index = {}
     eligibility_refusals = {}
     all_effect_candidates = []
     for d in included:
+        if _refused_ids(d):
+            continue
         rec = rec_by_id.get(d["id"], {})
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
         ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
@@ -1285,6 +1304,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
         idstr = f"PMID {d['id']}" if d["id_type"] == "pmid" else d["id"]
+        if _refused_ids(d):
+            evidence = [e for k in _refused_ids(d) for e in span_refusals[k]]
+            absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent",
+                           "state": "EXTRACTION_DEBT", "endpoint_admissibility": "ENDPOINT_UNBOUND",
+                           "hand_binding_state": "ABSTAIN", **evidence[0],
+                           "span_refusals": evidence})
+            continue
         # PRE-SPECIFIED DOSE (documented rule, TOP of the hierarchy): a multi-dose trial's abstract
         # headline may report a dose other than the one this review pools by a declared rule (the
         # APPROVED dose). Where a committed dose_selection entry names the dose + a verified effect+CI

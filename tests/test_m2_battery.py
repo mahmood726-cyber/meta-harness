@@ -10,9 +10,8 @@ Every case keeps the paired shape: the CONTROL (the committed inputs) admits -> 
 row is refused for the named reason with the trial still visible -> the exact inputs restored admit again and
 give the control's pool. Cases assert a property and a code, never a number or a message string.
 
-Known misses are strict xfails, named: W4a/W4b (an excluded component treated as included: the layer-1 exclusion
-relation, not this object) and W2a/W5b (a canonical span absent from the held document: refused at LOAD for the
-whole topic -- right check, wrong scope -- asserted as such so the day it becomes a row refusal is visible).
+No named misses remain on this battery: W2a/W5b (a canonical span absent from the held document) refuse only their row,
+and W4a/W4b (an excluded component treated as included) refuse on the passive exclusion (M2, 12 Oct).
 """
 import copy
 import json
@@ -284,52 +283,97 @@ def test_P5_documented_decision_is_recorded_as_such(inputs, lane):
     assert absent.get("absent_kind") == "adjudicated_absent" and absent.get("reason"), absent
 
 
-# ----------------------------------------------------------------------------- named misses, strict
-@pytest.mark.xfail(strict=True, reason="W2a: a canonical span absent from the named document is refused at LOAD "
-                                       "for the whole topic (right check, wrong scope; design note section 3)")
+# ----------------------------------------------------------------------------- canonical span refusals
+def _assert_span_row_refusal(out, control, document_ref):
+    assert SOUL not in _pool(out)
+    absent = _absent(out, SOUL)
+    assert absent is not None
+    assert absent["reason_code"] == "ENDPOINT_UNBOUND"
+    assert absent["state"] == "EXTRACTION_DEBT"
+    assert absent["document_ref"] == document_ref
+    assert absent["source_span"] == SOUL_RESULT
+    assert "source_span absent from held document" in absent["reason"]
+    assert absent["span_refusals"][0]["source_span"] == SOUL_RESULT
+    assert out["trials"] == [t for t in control["trials"] if t["id"] != f"PMID {SOUL}"]
+    assert [a for a in out["declared_absent_trials"] if a["id"] != f"PMID {SOUL}"] == control["declared_absent_trials"]
+    assert out["result"]["k"] == control["result"]["k"] - 1 == len(out["trials"])
+
+
 def test_W2a_wrong_document_is_a_row_refusal_not_a_whole_topic_refusal(inputs, lane):
     inp, spec = inputs
+    control = _build(inp, spec, lane)
     edit_ve(lane, lambda d: primary_entry(d, SOUL).update(kind="extracted_effect", source_span=SOUL_RESULT,
                                                           document_ref=f"cache/{SLUG}/ft_{LEADER}.txt", source_level=1))
-    out = _build(inp, spec, lane)      # today: ValueError('... source_span absent from held document ...')
-    assert SOUL not in _pool(out) and _absent(out, SOUL) is not None
+    out = _build(inp, spec, lane)
+    _assert_span_row_refusal(out, control, f"cache/{SLUG}/ft_{LEADER}.txt")
+    shutil.copyfile(os.path.join(CACHE, "verified_effects.json"), lane / "cache" / SLUG / "verified_effects.json")
+    assert _pool(_build(inp, spec, lane)) == _pool(control)
 
 
-@pytest.mark.xfail(strict=True, reason="W5b: same erratum with a canonical span: refused at LOAD, whole topic")
 def test_W5b_stale_canonical_span_is_a_row_refusal_not_a_whole_topic_refusal(inputs, lane):
     inp, spec = inputs
+    control = _build(inp, spec, lane)
     rec_by_id = edit_abstract(lane, inp, SOUL, "(hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006)",
                               "(hazard ratio, 0.88; 95% confidence interval, 0.79 to 0.98; P = 0.006)")
     edit_ve(lane, lambda d: primary_entry(d, SOUL).update(kind="extracted_effect", source_span=SOUL_RESULT,
                                                           document_ref=f"cache/{SLUG}/records.json", source_level=1))
     out = _build(inp, spec, lane, rec_by_id)
-    assert SOUL not in _pool(out) and _absent(out, SOUL) is not None
+    _assert_span_row_refusal(out, control, f"cache/{SLUG}/records.json")
+    for name in COPIED:
+        shutil.copyfile(os.path.join(CACHE, name), lane / "cache" / SLUG / name)
+    assert _pool(_build(inp, spec, lane)) == _pool(control)
 
 
-def test_W2a_and_W5b_refuse_at_load_today():
-    """The current (wrong-scope) behaviour, asserted so a change of scope is visible in both directions."""
-    with pytest.raises(ValueError, match="source_span absent"):
-        verified_inputs._validate(verified_inputs.normalise({
-            "outcome": PRIMARY, "effect": 0.86, "ci_low": 0.77, "ci_high": 0.96, "scale": "HR",
-            "kind": "extracted_effect", "source_span": SOUL_RESULT, "document_ref": f"cache/{SLUG}/ft_{LEADER}.txt",
-            "source_level": 1}), __import__("pathlib").Path(CACHE), SOUL, canonical=True)
+def test_W2a_and_W5b_refuse_only_the_row_at_load(lane):
+    """A span mismatch loads with its evidence; every other input is unchanged."""
+    control = verified_inputs.load(SLUG, cache_root=lane / "cache")
+    edit_ve(lane, lambda d: primary_entry(d, SOUL).update(
+        kind="extracted_effect", source_span=SOUL_RESULT + " stale suffix",
+        document_ref=f"cache/{SLUG}/records.json", source_level=1))
+    loaded = verified_inputs.load(SLUG, cache_root=lane / "cache")
+    row = primary_entry(loaded["verified_effects.json"], SOUL)
+    evidence = row["span_refusal"]
+    assert evidence["reason_code"] == "ENDPOINT_UNBOUND"
+    assert evidence["source_span"] == row["source_span"]
+    assert evidence["document_ref"] == row["document_ref"]
+    assert "source_span absent from held document" in evidence["reason"]
+    set_entry(loaded["verified_effects.json"], SOUL,
+              primary_entry(control["verified_effects.json"], SOUL))
+    assert loaded == control
 
 
-@pytest.mark.xfail(strict=True, reason="W4a: an excluded component treated as included -- the layer-1 exclusion "
-                                       "relation, not the hand-row object")
 def test_W4a_exclusion_stated_in_the_held_abstract_refuses_the_hand_row(inputs, lane):
     inp, spec = inputs
+    control = _control(inp, spec, lane)
     rec_by_id = edit_abstract(lane, inp, SOUL,
         "(a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke)",
         "(a composite of death from cardiovascular causes or nonfatal myocardial infarction; nonfatal stroke was "
         "excluded from the primary outcome)")
     out = _build(inp, spec, lane, rec_by_id)
     assert SOUL not in _pool(out)
+    absent = _absent(out, SOUL)
+    assert absent is not None and absent.get("reason_code") == "RESULT_INCOMPATIBLE"
+    shutil.copyfile(os.path.join(CACHE, "records.json"), lane / "cache" / SLUG / "records.json")
+    assert _pool(_build(inp, spec, lane)) == control
 
 
-@pytest.mark.xfail(strict=True, reason="W4b: the same exclusion on the machine (abstract) route")
 def test_W4b_exclusion_stated_in_the_held_abstract_refuses_the_abstract_row(inputs, lane):
     inp, spec = inputs
+    # Unrelated outcome approvals can cite the entire abstract. Remove those from
+    # this primary-only lane BEFORE the control, or their stale spans abort LOAD
+    # before the machine route is exercised (the separate W2a/W5b limitation).
+    for name in verified_inputs.FILES:
+        path = lane / "cache" / SLUG / name
+        data = json.loads(path.read_text(encoding="utf-8"))
+        entries = verified_inputs.entries(data.get(SUSTAIN6))
+        primary = [e for e in entries if e["outcome"] == PRIMARY]
+        if primary:
+            data[SUSTAIN6] = primary
+        else:
+            data.pop(SUSTAIN6, None)
+        path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    control = _control(inp, spec, lane)
+    assert control[SUSTAIN6] == ("EXACT_TARGET", None)  # machine route, no hand binding
     rec_by_id = edit_abstract(lane, inp, SUSTAIN6,
         "The primary composite outcome was the first occurrence of cardiovascular death, nonfatal myocardial "
         "infarction, or nonfatal stroke.",
@@ -337,3 +381,18 @@ def test_W4b_exclusion_stated_in_the_held_abstract_refuses_the_abstract_row(inpu
         "infarction; nonfatal stroke was excluded from the primary composite outcome.")
     out = _build(inp, spec, lane, rec_by_id)
     assert SUSTAIN6 not in _pool(out)
+    absent = _absent(out, SUSTAIN6)
+    assert absent is not None and absent.get("reason_code") == "RESULT_INCOMPATIBLE"
+    shutil.copyfile(os.path.join(CACHE, "records.json"), lane / "cache" / SLUG / "records.json")
+    assert _pool(_build(inp, spec, lane)) == control
+
+
+def test_PLANT_a_span_refused_row_is_never_copied_by_missing_effect(tmp_path, monkeypatch):
+    """Captain review of the W2a/W5b row-scope change: verified_inputs.load now RETURNS a span-refused row (marked
+    span_refusal) instead of raising; harness/missing_effect.enrich_from_cache copied verified effects without checking."""
+    from harness import missing_effect, verified_inputs
+    bad = {"X1": {"outcome": "o", "effect": 0.5, "ci_low": 0.4, "ci_high": 0.6, "span_refusal": {"reason": "absent"}}}
+    monkeypatch.setattr(verified_inputs, "load", lambda slug, cache_root=None: {"verified_effects.json": bad})
+    monkeypatch.setattr(missing_effect, "_candidate_keys", lambda row: ["X1"])
+    out = missing_effect.enrich_from_cache(str(tmp_path), "s", [{"outcome": "o"}])
+    assert "effect" not in out[0]
