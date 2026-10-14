@@ -11,11 +11,13 @@ from harness import pipeline  # noqa: E402
 from harness import verified_inputs as vi  # noqa: E402
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (agy m2comb-cap-r3 #4; review stops at three): _validate on an entry "
-                                       "with NO 'kind' raises a bare KeyError, not a typed refusal; and a kind other "
-                                       "than typed_refusal returns a row refusal instead of raising. Not reachable from "
-                                       "a real entry: the normaliser always sets kind and allows only four kinds "
-                                       "(verified_inputs.py:17-21)")
+@pytest.mark.xfail(
+    strict=True,
+    raises=KeyError,
+    reason="KNOWN LIMIT (agy m2comb-cap-r3 #4; review stops at three): _validate on an entry "
+           "missing 'kind' raises KeyError. Unreachable through either caller: normalise always "
+           "sets kind before load calls _validate, and validate_referenced_span passes an explicit kind.",
+)
 def test_known_limit_validate_on_an_unnormalised_entry(tmp_path):
     (tmp_path / "doc.txt").write_text("held text without the span", encoding="utf-8")
     refusal = vi._validate({"source_span": "10 deaths", "document_ref": "doc.txt"}, tmp_path, "trial_1")
@@ -38,4 +40,8 @@ def test_a_span_refused_trial_is_typed_extraction_debt_never_unmeasured():
     assert len(a) == 1
     assert (a[0]["state"], a[0]["endpoint_admissibility"], a[0]["hand_binding_state"]) == \
         ("EXTRACTION_DEBT", "ENDPOINT_UNBOUND", "ABSTAIN")
-    assert "source_span absent" in a[0]["reason"] and a[0]["span_refusals"]
+    assert a[0]["id"] == "PMID 12345"
+    assert a[0]["span_refusals"] == [{
+        "reason_code": "ENDPOINT_UNBOUND",
+        "reason": "source_span absent from held document x.txt",
+    }]
