@@ -461,32 +461,44 @@ _RT_ADJUSTED = re.compile(r"(?<!un)\badjusted\b|\ba(?:OR|RR|HR)\b|\bmultivariab|
                           r"\bregression\b|\bcontroll?(?:ing|ed)?\s+for\b|\brate\s+ratio\b|\bIRR\b", re.I)
 _NUM_TOKEN = re.compile(r"(?<![\d.])\d+(?:\.\d+)?(?![\d.])")
 # the reported value AS PRINTED after its ratio label: 'RR 0.50', 'relative risk 0.49;', 'odds ratio 0.25 (95% ...'
-_RATIO_VALUE = re.compile(r"\b(?:RR|OR|HR|IRR|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
+_RATIO_VALUE = re.compile(r"\b(RR|OR|HR|IRR|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
                           r"[^\d;()]{0,30}?(?<![\d.])(\d+(?:\.\d+)?)(?![\d.])", re.I)
+# a label is the reported value's own only when it names the reported SCALE (codex a7-r2 #2: 'The HR was 0.5 and the
+# RR was 0.50' -- the HR's 0.5 must not set the RR's precision). A rate ratio is read as an RR by extract_effect, so
+# it is that RR's label (and then a different estimand, exempt).
+_LABEL_SCALE = {"rr": "RR", "relative risk": "RR", "risk ratio": "RR", "rate ratio": "RR", "irr": "RR",
+                "or": "OR", "odds ratio": "OR", "hr": "HR", "hazard ratio": "HR"}
 
 
-def _reported_occurrence(point, span):
-    """(printed token, its own clause) of the reported point: the occurrence printed after a ratio label, never an
-    equal number elsewhere ('At 0.5 years ... RR 0.50': precision is the RR's two decimals; codex a7-r1 #1). The
-    clause runs back to the previous ';' (capped at 160 chars), so an ADJUSTED estimate printed beside an
-    unadjusted one does not exempt the unadjusted one (codex a7-r1 #2). Falls back to the first equal token and the
-    whole span when no labelled occurrence is found (the conservative reading)."""
+def _reported_occurrence(point, span, scale=None):
+    """(printed token, its own clause) of the reported point: the occurrence printed after a label OF ITS SCALE, never
+    an equal number elsewhere ('At 0.5 years ... RR 0.50': precision is the RR's two decimals; codex a7-r1 #1;
+    'The HR was 0.5 and the RR was 0.50': the RR's, a7-r2 #2). The clause runs back to the previous ';' (capped at
+    160 chars) and forward to the next ';' or sentence end (capped at 120): an ADJUSTED estimate printed beside an
+    unadjusted one does not exempt the unadjusted one (a7-r1 #2), and a qualifier after the value ('RR 0.50 (95% CI
+    0.30-0.80), adjusted for age') does exempt it (a7-r2 #1). Falls back to the first equal token and the whole span
+    when no labelled occurrence is found (the conservative reading)."""
     span = span or ""
     for m in _RATIO_VALUE.finditer(span):
-        if abs(float(m.group(1)) - point) < 1e-12:
-            head = span[max(0, m.start() - 160):m.start(1)]
+        lab = re.sub(r"\s+", " ", m.group(1).lower())
+        if scale and _LABEL_SCALE.get(lab) not in (None, scale):
+            continue
+        if abs(float(m.group(2)) - point) < 1e-12:
+            head = span[max(0, m.start() - 160):m.start(2)]
+            tail = span[m.end(2):m.end(2) + 120]
+            cut = re.search(r";|\.(?:\s|$)", tail)
             # ';' separates two estimates; '(' does not -- 'the adjusted relative risk was ... (RR = 0.29' keeps its
             # label (probiotics 7872284, the sweep after the r1 fix)
-            return m.group(1), head[head.rfind(";") + 1:]
+            return m.group(2), head[head.rfind(";") + 1:] + m.group(2) + (tail[:cut.start()] if cut else tail)
     for tok in _NUM_TOKEN.findall(span):
         if abs(float(tok) - point) < 1e-12:
             return tok, span
     return None, span
 
 
-def _printed_decimals(point, span):
+def _printed_decimals(point, span, scale=None):
     """Decimals of the reported point AS PRINTED ('1.00' -> 2), else of its float repr."""
-    tok, _ = _reported_occurrence(point, span)
+    tok, _ = _reported_occurrence(point, span, scale)
     if tok is not None:
         return len(tok.split(".")[1]) if "." in tok else 0
     s = repr(float(point))
@@ -515,9 +527,9 @@ def reported_vs_count_derived(arms, rep, rep_span, count_span):
         return None
     gross = not _roundtrip_ok(ai, n1i, ci, n2i, scale, point)
     if not gross:
-        if scale not in ("RR", "OR") or _RT_ADJUSTED.search(_reported_occurrence(point, rep_span)[1]):
+        if scale not in ("RR", "OR") or _RT_ADJUSTED.search(_reported_occurrence(point, rep_span, scale)[1]):
             return None
-        tol = 0.5 * 10 ** (-_printed_decimals(point, rep_span)) + 1e-9
+        tol = 0.5 * 10 ** (-_printed_decimals(point, rep_span, scale)) + 1e-9
         if abs(derived - point) <= tol:
             return None
     dscale = scale if scale in ("RR", "OR") else "RR"
