@@ -1,0 +1,13 @@
+REVISE
+
+1. **MAJOR — `scripts/grade_formal_build.py:36–42`: Wrong-outcome assessments can enter GRADE.** Only the file’s outcome is checked; an object’s conflicting `outcome` is ignored, removing the previous safeguard. This violates outcome-specific GRADE and result-specific RoB 2 assessment ([Handbook ch.14](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-14), [ch.8](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08)). **Failing test:** A3 file declares `primary`, but trial 1’s LOW object declares `secondary`; v3.1 contains a matching HIGH object → select v3.1 HIGH. Currently A3 LOW wins. Existing tests omit this direction of mismatch.
+
+2. **MAJOR — `scripts/grade_formal_build.py:38–42`: Another trial’s object can be attributed to a pooled trial.** The dictionary key overrides the object’s `trial` identity without validation. Reproduced in memory: a trial-2 LOW assessment under key `"1"` makes pooled trial 1 LOW. **Failing test:** key `"1"`, object `trial="PMID 2"`, matching outcome → reject that object; use a valid lower-tier trial-1 assessment or report missing assessment. Current tests omit object trial identities entirely.
+
+3. **MINOR — `scripts/grade_formal_build.py:53`: Provenance includes assessments unused by the pool.** `rob_sources` records every selected source-file trial, including non-pooled trials, without distinguishing them. The balanced-crystalloids topic currently contributes four such extra entries. They do **not** enter the engine’s risk-of-bias calculation, but obscure which sources underpin the preview. **Failing test:** pool contains only trial 1; tier contains trials 1 and 2 → `rob_sources` contains only trial 1, or explicitly labels trial 2 unused.
+
+4. **MINOR — `tests/test_grade_build_sources.py:sandbox`: Production tier order is not pinned.** Every selection test replaces `TIERS` with the expected order. **Failing test:** reverse the production `TIERS` declaration → contract test fails. Currently the suite would still accept that mutation.
+
+The declared order is currently correct. Missing assessments remain explicit; ordinary builds write only preview JSON and introduce no full-text fetching.
+
+Requested pytest command attempted with the specified TMP/TEMP; it failed **before collection** because the read-only sandbox provided no usable temporary directory. No files changed.
