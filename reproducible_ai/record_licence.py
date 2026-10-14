@@ -286,7 +286,7 @@ def record_problems(record, lic=None, dlic=None, reg=None):
             t = d.get("text")
             if d.get("doi") and not d.get("pmid") and isinstance(t, str) and len(t) > MIN_TEXT:
                 dl = doi_licences() if dlic is None and dl is None else (dlic if dlic is not None else dl)
-                if not str(dl.get(str(d["doi"]).lower()) or "").startswith("cc"):
+                if not _is_open(dl.get(str(d["doi"]).lower())):
                     probs.append(f"{record.get('record_id')}: prompt carries {len(t)} chars of DOI {d['doi']} text; its "
                                  f"Unpaywall copy is not CC-licensed ({dl.get(str(d['doi']).lower())!r})")
     for url, chars, obj in regulatory_sources(record, with_obj=True):
