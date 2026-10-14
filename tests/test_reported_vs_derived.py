@@ -177,3 +177,13 @@ def test_a_value_printed_without_a_leading_zero_keeps_its_precision():
     out = extract.reported_vs_count_derived((27, 100, 50, 100), ("RR", 0.5, 0.3, 0.8), "RR .50 (95% CI .30-.80)",
                                             "Deaths: 27/100 versus 50/100.")
     assert out and out["state"] == STATE and out["terminal"] is True, out
+
+
+# ---- found by the independent oracle (codex lane L2, 15 Oct): a value at the END of a sentence ----
+def test_a_reported_value_followed_by_the_sentence_full_stop_is_its_labelled_occurrence():
+    # '(?![\d.])' refused '0.84.' (the full stop), so the labelled occurrence was missed and the WHOLE span was read --
+    # 'control for age' before the ';' then exempted a disagreement that belongs to the RR's own clause
+    s = "control for age; RR 0.84."
+    assert extract._reported_occurrence(0.84, s, "RR")[0] == "0.84"
+    out = extract.reported_vs_count_derived((118, 168, 32, 56), ("RR", 0.84, 0.1, 3.0), s, "x")
+    assert out and out["state"] == STATE and out["terminal"] is True, out
