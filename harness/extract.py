@@ -873,6 +873,9 @@ def _arm_ns(abstract, interv_terms, comp_terms):
 # 'in 30% vs 55.5% of patients' -- a bare percentage pair (no event counts printed)
 _PCT_PAIR = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*%\s*(?:vs\.?|versus|and|compared with|compared to)\s*"
                        r"(\d{1,3}(?:\.\d+)?)\s*%", re.I)
+# a percentage that is an ESTIMATE or a rate, not an observed event proportion (codex a7p2-r1 #1)
+_PCT_NOT_A_PROPORTION = re.compile(r"kaplan|estimat|cumulative|probabilit|per\s+\d|person|annuali[sz]ed|incidence\s+rate",
+                                   re.I)
 
 
 def percentage_implied_counts(abstract, sentences, interv_terms, comp_terms):
@@ -885,23 +888,30 @@ def percentage_implied_counts(abstract, sentences, interv_terms, comp_terms):
     ns = _arm_ns(abstract or "", interv_terms, comp_terms)
     if not (ns.get("i") and ns.get("c")):
         return None
+    def first(terms, text):
+        # whole words only: 'control' is not in 'controlled' (codex a7p2-r1 #3)
+        hits = [m.start() for t in terms for m in [re.search(r"(?<![A-Za-z])" + re.escape(t) + r"(?![A-Za-z])", text,
+                                                              re.I)] if m]
+        return min(hits) if hits else -1
+
     for s in sentences or []:
         m = _PCT_PAIR.search(s)
-        if not m:
+        if not m or _PCT_NOT_A_PROPORTION.search(s):
             continue
-        rest = s[m.end():].lower()
-        ipos = min([rest.find(t.lower()) for t in interv_terms if rest.find(t.lower()) >= 0] or [-1])
-        cpos = min([rest.find(t.lower()) for t in comp_terms if rest.find(t.lower()) >= 0] or [-1])
+        rest = s[m.end():]
+        ipos, cpos = first(interv_terms, rest), first(comp_terms, rest)
         if ipos < 0 or cpos < 0 or ipos == cpos:
             continue
         pi, pc = (m.group(1), m.group(2)) if ipos < cpos else (m.group(2), m.group(1))
         out = []
         for p, n in ((pi, ns["i"]), (pc, ns["c"])):
             dec = len(p.split(".")[1]) if "." in p else 0
-            k = round(float(p) * n / 100)
-            if not (0 <= k <= n and abs(k / n * 100 - float(p)) < 10 ** (-dec)):
+            # the count must be the ONLY integer that prints as p (rounded or truncated) -- 1% of 1000 fits 6..14,
+            # so it implies nothing (codex a7p2-r1 #2)
+            fits = [k for k in range(0, n + 1) if abs(k / n * 100 - float(p)) < 10 ** (-dec)]
+            if len(fits) != 1:
                 return None
-            out += [k, n]
+            out += [fits[0], n]
         return (out[0], out[1], out[2], out[3], s.strip())
     return None
 
