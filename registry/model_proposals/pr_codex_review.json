@@ -7096,5 +7096,54 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "a7-r2": {
+  "base": "31daf9b3",
+  "head": "9a137fe4",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6f78d9844097e8484a060d0baf822b02",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/absence.py",
+     "harness/consumer_consistency.py",
+     "harness/extract.py",
+     "harness/harms.py",
+     "harness/honest_ratchet.py",
+     "harness/page.py",
+     "harness/pipeline.py",
+     "harness/reason_audit.py"
+    ],
+    "prompt_sha256": "35d82947ea6134362e61b1da6b1eef620a0bbcdaea502229d9b28298bb03de47"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extract.py",
+    "function": "reported_vs_count_derived / _reported_occurrence",
+    "severity": "P1",
+    "claim": "Adjustment qualifiers after the point estimate are discarded. An explicitly adjusted effect is therefore classified as a terminal disagreement with crude counts, contrary to the function's different-estimand exemption.",
+    "failing_input": "from harness.extract import reported_vs_count_derived\nreported_vs_count_derived((30, 100, 50, 100), ('RR', 0.50, 0.30, 0.80), 'Mortality RR 0.50 (95% CI 0.30-0.80), adjusted for age.', 'Mortality: 30/100 versus 50/100.')",
+    "expected": "None: the adjusted RR should not undergo the crude-count rounding comparison.",
+    "actual": "Returns SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE with absent=True, gross=False, terminal=True and count_derived.effect=0.6. The adjustment search receives only 'Mortality RR '.",
+    "id": "a7-r2:g1#1",
+    "record_id": "mc-6f78d9844097e8484a060d0baf822b02",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "_reported_occurrence / _printed_decimals",
+    "severity": "P1",
+    "claim": "Printed precision is taken from the first numerically equal ratio, regardless of its scale. An earlier HR can supply the tolerance for a later RR, allowing a genuine RR disagreement to pass.",
+    "failing_input": "from harness.extract import reported_vs_count_derived\nreported_vs_count_derived((27, 100, 50, 100), ('RR', 0.50, 0.30, 0.80), 'The HR was 0.5 and the RR was 0.50 (95% CI 0.30-0.80).', 'Mortality: 27/100 versus 50/100.')",
+    "expected": "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE with terminal=True: count-derived RR 0.54 does not round to the reported RR 0.50.",
+    "actual": "Returns None. It selects the HR token '0.5', giving tolerance 0.050000001 instead of the RR token's 0.005000001.",
+    "id": "a7-r2:g1#2",
+    "record_id": "mc-6f78d9844097e8484a060d0baf822b02",
+    "verdict": null
+   }
+  ]
  }
 }

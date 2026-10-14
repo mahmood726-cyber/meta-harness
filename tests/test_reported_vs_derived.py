@@ -148,3 +148,18 @@ def test_an_adjusted_label_before_the_parenthesis_still_exempts_the_value_inside
     s = ("Using a multivariate model to adjust for two independent risk factors, the adjusted relative risk was "
          "significantly protective for S. boulardii (RR = 0.29, 95% CI = 0.08, 0.98).")
     assert extract.reported_vs_count_derived((7, 97, 14, 96), ("RR", 0.29, 0.08, 0.98), s, s) is None
+
+
+# ---- A7 review round 2 (codex a7-r2 mc-6f78d984, 2 P1): plants that failed first ----
+def test_an_adjustment_qualifier_after_the_value_exempts_it():
+    out = extract.reported_vs_count_derived((30, 100, 50, 100), ("RR", 0.50, 0.30, 0.80),
+                                            "Mortality RR 0.50 (95% CI 0.30-0.80), adjusted for age.",
+                                            "Mortality: 30/100 versus 50/100.")
+    assert out is None, out
+
+
+def test_the_reported_occurrence_must_carry_a_label_of_its_own_scale():
+    out = extract.reported_vs_count_derived((27, 100, 50, 100), ("RR", 0.50, 0.30, 0.80),
+                                            "The HR was 0.5 and the RR was 0.50 (95% CI 0.30-0.80).",
+                                            "Mortality: 27/100 versus 50/100.")
+    assert out and out["state"] == STATE and out["terminal"] is True, out
