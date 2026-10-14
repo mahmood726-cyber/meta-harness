@@ -7322,5 +7322,63 @@
     "verdict": null
    }
   ]
+ },
+ "a7p2-r3": {
+  "base": "9b03f8fd",
+  "head": "ff1428a6",
+  "runs": {
+   "g1": {
+    "record_id": "mc-98792a1c2fffc695ccb43b40a3562600",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/absence.py",
+     "harness/extract.py",
+     "harness/honest_ratchet.py",
+     "harness/pipeline.py",
+     "scripts/refusal_reason_sweep.py"
+    ],
+    "prompt_sha256": "7a4760c056644913dae3c77ead29bf69e74aee36e819f5afdc595bc9d9ac7284"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "Model-predicted percentages pass the estimate filter and become implied observed counts, invalidating the reported-effect consistency check.",
+    "failing_input": "from harness.extract import percentage_implied_counts\ns = 'Model-predicted mortality was 30% vs 50% in the LGG and placebo groups.'\na = 'There were 10 in the LGG group and 10 in the placebo group. ' + s\npercentage_implied_counts(a, [s], ['LGG'], ['placebo'])",
+    "expected": "None: model predictions do not establish observed event counts.",
+    "actual": "By inspection: (3, 10, 5, 10, s). Neither filter rejects 'Model-predicted'. Repository execution was blocked by policy.",
+    "id": "a7p2-r3:g1#1",
+    "record_id": "mc-98792a1c2fffc695ccb43b40a3562600",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "Percentages explicitly referring to the analysed population are combined with randomised denominators. The subset guard does not recognise 'analysed population'.",
+    "failing_input": "from harness.extract import percentage_implied_counts\ns = 'In the analysed population, mortality was 30% vs 50% in the LGG and placebo groups.'\na = 'The randomised population comprised 10 in the LGG group and 10 in the placebo group. The analysed population excluded withdrawals. ' + s\npercentage_implied_counts(a, [s], ['LGG'], ['placebo'])",
+    "expected": "None: analysed denominators are unspecified and cannot be replaced with randomised denominators.",
+    "actual": "By inspection: (3, 10, 5, 10, s), using the randomised arm sizes. Repository execution was blocked by policy.",
+    "id": "a7p2-r3:g1#2",
+    "record_id": "mc-98792a1c2fffc695ccb43b40a3562600",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "Ordering arms by their first textual occurrence reverses the percentages when a comparator-first introductory phrase precedes the intervention's result.",
+    "failing_input": "from harness.extract import percentage_implied_counts\ns = 'Compared with placebo, mortality in the LGG group was 30% vs 50%.'\na = 'There were 10 in the LGG group and 10 in the placebo group. ' + s\npercentage_implied_counts(a, [s], ['LGG'], ['placebo'])",
+    "expected": "(3, 10, 5, 10, s), or None if this construction is unsupported; LGG is explicitly associated with 30%.",
+    "actual": "By inspection: (5, 10, 3, 10, s). 'placebo' occurs first before the pair, so the helper assigns LGG 50% and placebo 30%. Repository execution was blocked by policy.",
+    "id": "a7p2-r3:g1#3",
+    "record_id": "mc-98792a1c2fffc695ccb43b40a3562600",
+    "verdict": null
+   }
+  ]
  }
 }

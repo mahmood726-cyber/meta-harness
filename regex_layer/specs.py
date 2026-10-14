@@ -368,8 +368,13 @@ INLINE_SPECS.update({
     "extract.py:search:159a89219d#3": {
         "kind": "search", "what": "percentage_implied_counts: the sentence still carries a number of its own",
         "plants": {"accept": [("among the 5 patients", None)], "refuse": ["of patients in the LGG groups vs placebo"]}},
-    "extract.py:search:15f16250cd": {
-        "kind": "search", "what": "percentage_implied_counts: the sentence names a subset population",
-        "plants": {"accept": [("among the safety-evaluable patients", None), ("in the per-protocol set", None)],
+    "extract.py:search:49d1e3511c": {
+        "kind": "search", "what": "percentage_implied_counts: the sentence names a subset or any population",
+        "plants": {"accept": [("among the safety-evaluable patients", None), ("in the per-protocol set", None),
+                              ("in the analysed population", None)],
                    "refuse": ["of patients in the lgg groups vs placebo"]}},
+    "extract.py:search:4c502f11b5": {
+        "kind": "search", "what": "percentage_implied_counts: an explicit 'respectively' licenses arms named before the "
+                                  "pair to set its order",
+        "plants": {"accept": [("20% vs 40%, respectively", None)], "refuse": ["compared with placebo, 30% vs 50%"]}},
 })
