@@ -6731,5 +6731,71 @@
     "verdict": null
    }
   ]
+ },
+ "r8-6-links-r1": {
+  "base": "beb73a487",
+  "head": "0a409fd02",
+  "runs": {
+   "g1": {
+    "record_id": "mc-07e236d2b26b0cc327cf2b9cb338a1cb",
+    "state": "RAN_OK",
+    "files": [
+     "harness/trial_family.py",
+     "scripts/r8_6_report_links.py"
+    ],
+    "prompt_sha256": "a7f18ebdd25bd97cc8e71cd650dc2de01e538e73d428226f806bb67a85e4668b"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/trial_family.py",
+    "function": "acronym_title_link",
+    "severity": "P1",
+    "claim": "The acronym boundary accepts a hyphenated nutrient name as trial identity. Capitalization does not prevent OMEGA-3 from binding to a family named OMEGA.",
+    "failing_input": "acronym_title_link({'title': 'Effects of OMEGA-3 supplementation: a randomized trial', 'pubtypes': ['Randomized Controlled Trial']}, {'NCT00000001': {'raw': {'studies': [{'acronym': 'OMEGA'}]}}})",
+    "expected": "No binding: the title identifies the intervention, not the OMEGA trial.",
+    "actual": "Returns ('NCT00000001', evidence), with acronym='OMEGA' and the full title as its evidence. The new prepare() branch accepts this binding.",
+    "id": "r8-6-links-r1:g1#1",
+    "record_id": "mc-07e236d2b26b0cc327cf2b9cb338a1cb",
+    "verdict": null
+   },
+   {
+    "file": "harness/trial_family.py",
+    "function": "acronym_title_link",
+    "severity": "P1",
+    "claim": "The other-trial veto treats ordinary medical abbreviations as trial names, rejecting an otherwise qualifying report.",
+    "failing_input": "acronym_title_link({'title': 'SELECT: a randomized trial in patients with COPD', 'pubtypes': ['Randomized Controlled Trial']}, {'NCT00000001': {'raw': {'studies': [{'acronym': 'SELECT'}]}}})",
+    "expected": "Returns NCT00000001 with title evidence; COPD describes the population, not another trial.",
+    "actual": "Returns (None, \"TITLE_NAMES_OTHER_TRIALS:['COPD']\").",
+    "id": "r8-6-links-r1:g1#2",
+    "record_id": "mc-07e236d2b26b0cc327cf2b9cb338a1cb",
+    "verdict": null
+   },
+   {
+    "file": "harness/trial_family.py",
+    "function": "acronym_title_link",
+    "severity": "P1",
+    "claim": "Only the first occurrence of the matched acronym is removed before checking for other trials. Repeating the same trial name therefore prevents binding, despite exactly one registered family matching.",
+    "failing_input": "acronym_title_link({'title': 'SELECT: primary results of the SELECT randomized trial', 'pubtypes': ['Randomized Controlled Trial']}, {'NCT00000001': {'raw': {'studies': [{'acronym': 'SELECT'}]}}})",
+    "expected": "Returns NCT00000001 with title evidence.",
+    "actual": "Returns (None, \"TITLE_NAMES_OTHER_TRIALS:['SELECT']\").",
+    "id": "r8-6-links-r1:g1#3",
+    "record_id": "mc-07e236d2b26b0cc327cf2b9cb338a1cb",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_6_report_links.py",
+    "function": "main",
+    "severity": "P1",
+    "claim": "MULTI_PARENT detection ignores PubMed accession links. A held paper returned for two registry families is classified as two stale single-parent links because pmid_ncts contains only AACT results.",
+    "failing_input": "Run main() with sole topic 'demo'. cache/demo/records.json: {'records': [{'id': '123', 'title': 'Pooled analysis', 'pubtypes': ['Journal Article']}]}. cache/demo/families.json: [{'family_id': 'NCT00000001', 'reports': [{'report_id': 'NCT00000001'}]}, {'family_id': 'NCT00000002', 'reports': [{'report_id': 'NCT00000002'}]}]. Have read_registry return {} and aact.nct_to_pmids return {}. For both PubMed accession searches, have http.get_json return {'esearchresult': {'idlist': ['123']}}.",
+    "expected": "Both rows for PMID 123 have kind='MULTI_PARENT'; totals={'MULTI_PARENT': 2}.",
+    "actual": "Both rows have kind='STALE_REGISTRY' and routes=['PUBMED_SI']; totals={'STALE_REGISTRY': 2}.",
+    "id": "r8-6-links-r1:g1#4",
+    "record_id": "mc-07e236d2b26b0cc327cf2b9cb338a1cb",
+    "verdict": null
+   }
+  ]
  }
 }
