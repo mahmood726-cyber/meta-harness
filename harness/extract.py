@@ -874,8 +874,9 @@ def _arm_ns(abstract, interv_terms, comp_terms):
 _PCT_PAIR = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*%\s*(?:vs\.?|versus|and|compared with|compared to)\s*"
                        r"(\d{1,3}(?:\.\d+)?)\s*%", re.I)
 # a percentage that is an ESTIMATE or a rate, not an observed event proportion (codex a7p2-r1 #1)
-_PCT_NOT_A_PROPORTION = re.compile(r"kaplan|estimat|cumulative|probabilit|per\s+\d|person|annuali[sz]ed|incidence\s+rate",
-                                   re.I)
+# ... or model-based / adjusted / weighted / imputed (codex a7p2-r3 #1)
+_PCT_NOT_A_PROPORTION = re.compile(r"kaplan|estimat|cumulative|probabilit|per\s+\d|person|annuali[sz]ed|incidence\s+rate|"
+                                   r"\bmodel|predicted|adjusted|weighted|standardi[sz]ed|imputed", re.I)
 
 
 def percentage_implied_counts(abstract, sentences, interv_terms, comp_terms):
@@ -913,14 +914,21 @@ def percentage_implied_counts(abstract, sentences, interv_terms, comp_terms):
         # a sentence that carries its OWN numbers (a subset's size, another denominator) or names a subset population
         # implies nothing from the abstract's arm sizes (codex a7p2-r2 #1); a p value is not such a number
         other = re.sub(r"\bp\s*[=<>≤≥]\s*\.?\d+(?:\.\d+)?", " ", s[:m.start()] + " " + s[m.end():], flags=re.I)
+        # ... or that names its population at all ('In the analysed population', codex a7p2-r3 #2): the abstract's arm
+        # sizes may be another population's
         if re.search(r"\d", other) or re.search(r"\bamong\b|\bsafety\b|\bevaluable\b|\bsubgroup\b|\bper[- ]protocol\b|"
-                                               r"\bcompleters?\b", s, re.I):
+                                               r"\bcompleters?\b|\bpopulation\b|\banaly[sz]ed\b|\bintention\b|"
+                                               r"\bm?ITT\b", s, re.I):
             continue
         # the arm order comes from the pair's OWN clause: the arms named before it ('In the placebo and LGG groups, ...
         # 20% vs 40%, respectively') or after it ('30% vs 55.5% of patients in the LGG groups vs placebo'), each cut at
         # ';' -- never from a later clause (codex a7p2-r2 #2). Both sides naming both arms is ambiguous.
         before = s[:m.start()].rsplit(";", 1)[-1]
         after = s[m.end():].split(";", 1)[0]
+        # arms named BEFORE the pair set its order only with an explicit 'respectively' ('Compared with placebo,
+        # mortality in the LGG group was 30% vs 50%' is not ordered placebo-first; codex a7p2-r3 #3)
+        if not re.search(r"\brespectively\b", s, re.I):
+            before = ""
         sides = [(first(interv_terms, t), first(comp_terms, t)) for t in (before, after)]
         named = [(i, c) for i, c in sides if i >= 0 and c >= 0 and i != c]
         if len(named) != 1:

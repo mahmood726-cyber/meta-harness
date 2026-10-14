@@ -132,3 +132,21 @@ def test_an_abstract_that_calls_its_percentages_estimates_implies_nothing():
     ab = _AB10 + " Mortality percentages were Kaplan-Meier estimates. Mortality was 20% vs 40% in the LGG and placebo groups."
     assert extract.percentage_implied_counts(ab, ["Mortality was 20% vs 40% in the LGG and placebo groups."],
                                              ["LGG"], ["placebo"]) is None
+
+
+# ---- A7 part 2 review round 3, the last (codex a7p2-r3 mc-98792a1c, 3 P1): plants that failed first ----
+def test_model_based_percentages_imply_nothing():
+    s = "Model-predicted mortality was 30% vs 50% in the LGG and placebo groups."
+    assert extract.percentage_implied_counts(_AB10 + " " + s, [s], ["LGG"], ["placebo"]) is None
+
+
+def test_a_sentence_that_names_its_population_implies_nothing():
+    s = "In the analysed population, mortality was 30% vs 50% in the LGG and placebo groups."
+    ab = ("The randomised population comprised 10 in the LGG group and 10 in the placebo group. The analysed population "
+          "excluded withdrawals. " + s)
+    assert extract.percentage_implied_counts(ab, [s], ["LGG"], ["placebo"]) is None
+
+
+def test_arms_named_before_the_pair_set_the_order_only_with_respectively():
+    s = "Compared with placebo, mortality in the LGG group was 30% vs 50%."
+    assert extract.percentage_implied_counts(_AB10 + " " + s, [s], ["LGG"], ["placebo"]) is None
