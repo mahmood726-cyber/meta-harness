@@ -360,4 +360,16 @@ INLINE_SPECS.update({
                                   "end; a decimal point is not an end)",
         "plants": {"accept": [("; adjusted RR 0.60", None), (". The next sentence", None), ("end.", None)],
                    "refuse": ["(95% CI 0.30-0.80), adjusted for age", "0.5 times"]}},
+    "extract.py:sub:60ae28a614": {
+        "kind": "search", "what": "percentage_implied_counts: a p value, removed before testing whether the sentence "
+                                  "carries numbers of its own",
+        "plants": {"accept": [("(p = 0.375)", None), ("p<.05", None)],
+                   "refuse": ["10 in the LGG group", "pre-hospital"]}},
+    "extract.py:search:159a89219d#3": {
+        "kind": "search", "what": "percentage_implied_counts: the sentence still carries a number of its own",
+        "plants": {"accept": [("among the 5 patients", None)], "refuse": ["of patients in the LGG groups vs placebo"]}},
+    "extract.py:search:15f16250cd": {
+        "kind": "search", "what": "percentage_implied_counts: the sentence names a subset population",
+        "plants": {"accept": [("among the safety-evaluable patients", None), ("in the per-protocol set", None)],
+                   "refuse": ["of patients in the lgg groups vs placebo"]}},
 })

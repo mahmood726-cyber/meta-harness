@@ -105,3 +105,30 @@ def test_a_percentage_that_fits_several_counts_implies_none():
 def test_arm_terms_are_whole_words():
     s = "Mortality was 30% vs 50% in the controlled trial's colchicine and placebo groups, respectively."
     assert _imp(s, 10, 10)[:4] == (3, 10, 5, 10)
+
+
+# ---- A7 part 2 review round 2 (codex a7p2-r2 mc-1d214c0a, 4 P1): plants that failed first ----
+_AB10 = "There were 10 in the LGG group and 10 in the placebo group."
+
+
+def test_a_sentence_with_its_own_denominator_or_subset_implies_nothing():
+    s = ("Among the 5 safety-evaluable patients per arm, deaths occurred in 40% vs 60% of the LGG and placebo groups, "
+         "respectively.")
+    assert extract.percentage_implied_counts(_AB10, [s], ["LGG"], ["placebo"]) is None
+
+
+def test_the_arm_order_comes_from_the_pairs_own_clause():
+    s = "In the placebo and LGG groups, mortality was 20% vs 40%, respectively; LGG had higher mortality than placebo."
+    assert extract.percentage_implied_counts(_AB10, [s], ["LGG"], ["placebo"])[:4] == (4, 10, 2, 10)
+
+
+def test_a_count_must_print_as_the_percentage_by_rounding_or_truncation():
+    ab = "There were 17 in the LGG group and 10 in the placebo group."
+    assert extract.percentage_implied_counts(ab, ["Mortality was 30% vs 60% in the LGG and placebo groups."],
+                                             ["LGG"], ["placebo"]) is None
+
+
+def test_an_abstract_that_calls_its_percentages_estimates_implies_nothing():
+    ab = _AB10 + " Mortality percentages were Kaplan-Meier estimates. Mortality was 20% vs 40% in the LGG and placebo groups."
+    assert extract.percentage_implied_counts(ab, ["Mortality was 20% vs 40% in the LGG and placebo groups."],
+                                             ["LGG"], ["placebo"]) is None
