@@ -450,6 +450,67 @@ def _roundtrip_ok(ai, n1i, ci, n2i, scale, point):
     return True
 
 
+SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE = "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE"
+# an ADJUSTED / model-based reported effect is a different estimand from the crude count-derived one (named limit:
+# not compared, the historical behaviour stands). Its own name: the module-level _ADJUSTED_EFFECT below is a
+# narrower, differently-used pattern (it does not match "adjusted relative risk") and would shadow this one.
+# Also a model-based estimate described without the word 'adjusted' ('Logistic regression to control for other factors
+# gave an odds ratio 0.25', probiotics 17604300) and a RATE ratio, which is not a risk ratio (RECOVERY's 'rate ratio
+# 0.85' is an age-adjusted Cox estimate; 33933206) -- both false positives found by the sweep over the served 32.
+_RT_ADJUSTED = re.compile(r"\badjusted\b|\ba(?:OR|RR|HR)\b|\bmultivariab|\bmultivariate\b|\bcovariate|\bregression\b|"
+                          r"\bcontroll?(?:ing|ed)?\s+for\b|\brate\s+ratio\b|\bIRR\b", re.I)
+_NUM_TOKEN = re.compile(r"(?<![\d.])\d+(?:\.\d+)?(?![\d.])")
+
+
+def _printed_decimals(point, span):
+    """Decimals of the reported point AS PRINTED in its span ('1.00' -> 2), else of its float repr."""
+    for tok in _NUM_TOKEN.findall(span or ""):
+        if abs(float(tok) - point) < 1e-12:
+            return len(tok.split(".")[1]) if "." in tok else 0
+    s = repr(float(point))
+    return len(s.split(".")[1].rstrip("0")) if "." in s else 0
+
+
+def reported_vs_count_derived(arms, rep, rep_span, count_span):
+    """None when the source-reported effect and the effect derived from the source's own arm counts agree; else the
+    typed refusal SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE carrying BOTH values with their spans, so neither is
+    pooled until a person adjudicates (A7, external audit r30-C). Agreement = the derived value rounds to the reported
+    one at the reported precision (half a unit in the last printed decimal). Compared only on the same scale (RR v
+    RR from counts, OR v OR); a reported HR keeps the direction-only check, and an adjusted reported effect is not
+    compared (a different estimand).
+
+    `terminal`: a ROUNDING disagreement (one outcome, two values) is terminal -- no lower rung may supply a third value
+    in their place. A GROSS mismatch (factor > 2 / opposite direction: the historical round-trip refusal, unchanged
+    in when it fires) means the counts likely belong to a different outcome, so a lower rung may still supply this
+    outcome's own value (spironolactone 28824029: a composite's HR 0.85 bound to the death counts; the full text's
+    1.77 agrees with the counts)."""
+    ai, n1i, ci, n2i = arms[:4]
+    scale, point = rep[0], rep[1]
+    if point is None or point <= 0:
+        return None
+    derived = _or_from_counts(ai, n1i, ci, n2i) if scale == "OR" else _rr_from_counts(ai, n1i, ci, n2i)
+    if not derived or derived <= 0:
+        return None
+    gross = not _roundtrip_ok(ai, n1i, ci, n2i, scale, point)
+    if not gross:
+        if scale not in ("RR", "OR") or _RT_ADJUSTED.search(rep_span or ""):
+            return None
+        tol = 0.5 * 10 ** (-_printed_decimals(point, rep_span)) + 1e-9
+        if abs(derived - point) <= tol:
+            return None
+    dscale = scale if scale in ("RR", "OR") else "RR"
+    why = ("counts likely belong to a different outcome (factor > 2 or opposite direction)" if gross else
+           "beyond the reported value's rounding")
+    return {"absent": True, "state": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE, "gross": gross, "terminal": not gross,
+            "reported": {"scale": scale, "effect": point, "ci_low": rep[2], "ci_high": rep[3],
+                         "span": (rep_span or "")[:300]},
+            "count_derived": {"ai": ai, "n1i": n1i, "ci": ci, "n2i": n2i, "scale": dscale,
+                              "effect": derived, "span": (count_span or "")[:300]},
+            "reason": (f"{SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE}: the source reports {scale} {point} but its own "
+                       f"arm counts {ai}/{n1i} v {ci}/{n2i} give {dscale} {round(derived, 4)} -- {why}; neither value "
+                       f"is pooled until adjudicated")}
+
+
 _FACTORIAL = re.compile(r"\bfactorial\b|\b2\s*[x×]\s*2\b|\btwo[- ]by[- ]two\b|\bpartial factorial\b", re.I)
 _DOSE_ARM = re.compile(r"(\d+(?:\.\d+)?)\s*-?\s*mg\b(?:[^.]{0,20}?(?:group|arm|dose|daily|twice|once))?", re.I)
 
@@ -892,20 +953,22 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
         if arms:
             # ROUND-TRIP (every outcome, not only same-sentence): the count-derived effect must
             # reconcile with the effect the paper reports for THIS outcome — first the same
-            # sentence, else the outcome's reported effect anywhere in the abstract. Refuse a
-            # count table we cannot reconcile with the paper's own number.
+            # sentence, else the outcome's reported effect anywhere in the abstract.
             rep = extract_effect(s)  # tuple (scale, point, lo, hi) or None
+            rep_span = s.strip()
             if not rep:
                 d = effect_in_outcome(abstract, outcome_kws)  # dict or None
                 if d:
                     rep = (d["scale"], d["effect"], d.get("ci_low"), d.get("ci_high"))
-            if rep and not _roundtrip_ok(arms[0], arms[1], arms[2], arms[3], rep[0], rep[1]):
-                _arm_res.append({"absent": True,
-                        "reason": (f"round-trip mismatch: extracted counts {arms[0]}/{arms[1]} vs "
-                                   f"{arms[2]}/{arms[3]} imply "
-                                   f"{round(_rr_from_counts(*arms) or 0, 3)} but the source reports "
-                                   f"{rep[0]} {rep[1]} — counts likely belong to a different outcome; refused")})
-                continue
+                    rep_span = d.get("source") or ""
+            # A7 (r30-C PICU 39935568): a reported effect and the count-derived one that disagree beyond the
+            # reported value's rounding are a TYPED state with both values -- never a silent pick of the counts.
+            # The gross (factor > 2) round-trip mismatch is the same state (generalises the 19138244 refusal).
+            if rep:
+                dis = reported_vs_count_derived(arms, rep, rep_span, s.strip())
+                if dis:
+                    _arm_res.append(dis)
+                    continue
             _arm_res.append({"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
                              "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]})
     if _arm_res:

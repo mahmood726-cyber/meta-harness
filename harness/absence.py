@@ -55,6 +55,9 @@ RETRIEVED_INCOMPATIBLE_STRUCTURE = "RETRIEVED_INCOMPATIBLE_STRUCTURE"
 RETRIEVED_REFUSED_WITH_REASON = "RETRIEVED_REFUSED_WITH_REASON"
 UNIT_MISMATCH_CYCLE_LEVEL = "UNIT_MISMATCH_CYCLE_LEVEL"
 ENGINE_CANNOT_CONSUME = "ENGINE_CANNOT_CONSUME"
+# A7 (r30-C PICU): a source-reported effect and its own count-derived effect disagree; both are held, neither pooled.
+# Defined once, in extract (which detects it); absence imports extract, never the reverse.
+SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE = extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE
 
 _CODE_ALIASES = {
     "NO_OUTCOME_DATA_IN_SOURCE": OUTCOME_NOT_IN_SOURCE,
@@ -390,6 +393,20 @@ def _classify_reason(keywords, abstract, fulltext=None, outcome_name=None, decla
         return {"reason_code": code, "state": code,
                 "state_basis": _basis(code, span, reason),
                 "source_span": span, "verbatim_span": span}
+    if row.get("state") == SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE:
+        # A7: the extractor found BOTH a reported effect and arm counts that disagree. The state is kept as typed (never
+        # re-derived as 'not in source' from the prose), and the basis quotes both values with their spans.
+        rep, der = row.get("reported") or {}, row.get("count_derived") or {}
+        detail = (f"reported {rep.get('scale')} {rep.get('effect')} ({rep.get('ci_low')}, {rep.get('ci_high')}) from "
+                  f"\"{_clip(rep.get('span') or '')}\"; count-derived {der.get('scale')} "
+                  f"{round(der.get('effect') or 0, 4)} from {der.get('ai')}/{der.get('n1i')} v "
+                  f"{der.get('ci')}/{der.get('n2i')} in \"{_clip(der.get('span') or '')}\"; neither is pooled until "
+                  f"adjudicated")
+        span = rep.get("span") or der.get("span") or ""
+        return {"reason_code": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,
+                "state": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,
+                "state_basis": _basis(SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE, detail=detail),
+                "source_span": _clip(span), "verbatim_span": _clip(span)}
     if row.get("state") in (OUTCOME_POST_HOC_NOT_POOLED, OUTCOME_NOT_REPORTED):
         code = row.get("state")
         span = row.get("source_span") or row.get("verbatim_span") or row.get("source") or reason or ""
