@@ -457,16 +457,38 @@ SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE = "SOURCE_REPORTED_AND_COUNT_DERIVED_
 # Also a model-based estimate described without the word 'adjusted' ('Logistic regression to control for other factors
 # gave an odds ratio 0.25', probiotics 17604300) and a RATE ratio, which is not a risk ratio (RECOVERY's 'rate ratio
 # 0.85' is an age-adjusted Cox estimate; 33933206) -- both false positives found by the sweep over the served 32.
-_RT_ADJUSTED = re.compile(r"\badjusted\b|\ba(?:OR|RR|HR)\b|\bmultivariab|\bmultivariate\b|\bcovariate|\bregression\b|"
-                          r"\bcontroll?(?:ing|ed)?\s+for\b|\brate\s+ratio\b|\bIRR\b", re.I)
+_RT_ADJUSTED = re.compile(r"(?<!un)\badjusted\b|\ba(?:OR|RR|HR)\b|\bmultivariab|\bmultivariate\b|\bcovariate|"
+                          r"\bregression\b|\bcontroll?(?:ing|ed)?\s+for\b|\brate\s+ratio\b|\bIRR\b", re.I)
 _NUM_TOKEN = re.compile(r"(?<![\d.])\d+(?:\.\d+)?(?![\d.])")
+# the reported value AS PRINTED after its ratio label: 'RR 0.50', 'relative risk 0.49;', 'odds ratio 0.25 (95% ...'
+_RATIO_VALUE = re.compile(r"\b(?:RR|OR|HR|IRR|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
+                          r"[^\d;()]{0,30}?(?<![\d.])(\d+(?:\.\d+)?)(?![\d.])", re.I)
+
+
+def _reported_occurrence(point, span):
+    """(printed token, its own clause) of the reported point: the occurrence printed after a ratio label, never an
+    equal number elsewhere ('At 0.5 years ... RR 0.50': precision is the RR's two decimals; codex a7-r1 #1). The
+    clause runs back to the previous ';' (capped at 160 chars), so an ADJUSTED estimate printed beside an
+    unadjusted one does not exempt the unadjusted one (codex a7-r1 #2). Falls back to the first equal token and the
+    whole span when no labelled occurrence is found (the conservative reading)."""
+    span = span or ""
+    for m in _RATIO_VALUE.finditer(span):
+        if abs(float(m.group(1)) - point) < 1e-12:
+            head = span[max(0, m.start() - 160):m.start(1)]
+            # ';' separates two estimates; '(' does not -- 'the adjusted relative risk was ... (RR = 0.29' keeps its
+            # label (probiotics 7872284, the sweep after the r1 fix)
+            return m.group(1), head[head.rfind(";") + 1:]
+    for tok in _NUM_TOKEN.findall(span):
+        if abs(float(tok) - point) < 1e-12:
+            return tok, span
+    return None, span
 
 
 def _printed_decimals(point, span):
-    """Decimals of the reported point AS PRINTED in its span ('1.00' -> 2), else of its float repr."""
-    for tok in _NUM_TOKEN.findall(span or ""):
-        if abs(float(tok) - point) < 1e-12:
-            return len(tok.split(".")[1]) if "." in tok else 0
+    """Decimals of the reported point AS PRINTED ('1.00' -> 2), else of its float repr."""
+    tok, _ = _reported_occurrence(point, span)
+    if tok is not None:
+        return len(tok.split(".")[1]) if "." in tok else 0
     s = repr(float(point))
     return len(s.split(".")[1].rstrip("0")) if "." in s else 0
 
@@ -493,7 +515,7 @@ def reported_vs_count_derived(arms, rep, rep_span, count_span):
         return None
     gross = not _roundtrip_ok(ai, n1i, ci, n2i, scale, point)
     if not gross:
-        if scale not in ("RR", "OR") or _RT_ADJUSTED.search(rep_span or ""):
+        if scale not in ("RR", "OR") or _RT_ADJUSTED.search(_reported_occurrence(point, rep_span)[1]):
             return None
         tol = 0.5 * 10 ** (-_printed_decimals(point, rep_span)) + 1e-9
         if abs(derived - point) <= tol:
