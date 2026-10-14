@@ -176,7 +176,11 @@ def companion_model_read(slug, cfg, r, text, src):
             "pmid": r["pmid"], "reg": {}, "slug": slug, "text_origin": src.get("origin"),
             "doi": src.get("doi"), "doi_licence": src.get("licence")}
     shown = text if len(text) <= EVIDENCE_BUDGET else ta._windows(text, held["terms"])[:EVIDENCE_BUDGET]
-    licence = src.get("licence") or (r.get("europepmc") or {}).get("license")
+    if not shown.strip():
+        # a long text in which no outcome term occurs gives NO windows: typed here, never an empty prompt to two
+        # readers (14 Oct: ~12 companion prompts carried shown_chars = 0 and both readers answered 'the text is empty')
+        return {"decision": "MODEL_NOT_CALLED:NO_OUTCOME_TERM_IN_TEXT", "readers": {}}
+    licence =src.get("licence") or (r.get("europepmc") or {}).get("license")
     evidence = {"trial": r["label"], "companion_publication_pmid": r["pmid"],
                 "trial_report_pmid": r.get("population_pmid"),
                 "outcome": {k: cfg["primary_outcome"].get(k)
@@ -348,7 +352,7 @@ def run(slugs):
         f = {"n": len(rows), "open": sum(x["census_class"] != "NOT_OPEN" for x in rows),
              "eligible": sum(x["stage"] not in ("CENSUS",) and x["decision"] != "ELIGIBILITY_BLOCKED_QUEUED_TO_SCREENING"
                              for x in rows),
-             "text": sum(x["stage"] in ("TEXT", "TYPED") for x in rows),
+             "text": sum(x["stage"] in ("TEXT", "TYPED", "MODEL") for x in rows),   # a model-read row HOLDS text too
              "typed": st("TYPED_FOUND"), "admissible": st("TYPED_FOUND_ADMISSIBLE"),
              "pending": st("TYPED_FOUND_PENDING_RULING"), "model_eligible": st("TYPED_NONE_MODEL_ELIGIBLE")}
         tot[slug] = f

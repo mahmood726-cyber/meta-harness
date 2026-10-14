@@ -207,3 +207,16 @@ def test_PLANT_a_licence_refusal_is_typed_per_trial_never_a_crash(monkeypatch):
     monkeypatch.setattr(of, "CALLS", os.path.join(ROOT, "nonexistent_calls_index.json"))
     rec = of._call(b"prompt", ("A", "gpt-6-astra", "high"), "test", "sha")
     assert rec["state"] == "REFUSED_LICENCE" and rec["record_id"] is None
+
+
+def test_PLANT_a_text_without_any_outcome_term_is_never_sent_empty(monkeypatch):
+    # 14 Oct: windows of a long companion text with no outcome term were EMPTY, and both readers were still called
+    import g1_trial_acquire as ta
+    monkeypatch.setattr(ta, "outcome_terms", lambda cfg: ["ovulation"])
+    monkeypatch.setattr(ta, "comparator_pmid", lambda *a: "999")
+    monkeypatch.setattr(ta, "tracker_file", lambda *a: {})
+    monkeypatch.setattr(of, "_read_and_adjudicate", lambda *a, **k: (_ for _ in ()).throw(AssertionError("called")))
+    long_text = "Background on lipids. " * 2000
+    r = {"slug": "t", "label": "X", "pmid": "2", "population_pmid": "1"}
+    out = of.companion_model_read("t", CFG, r, long_text, {"origin": "PMC", "licence": "cc-by"})
+    assert out["decision"] == "MODEL_NOT_CALLED:NO_OUTCOME_TERM_IN_TEXT"
