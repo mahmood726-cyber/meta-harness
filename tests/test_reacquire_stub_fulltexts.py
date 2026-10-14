@@ -30,6 +30,56 @@ OA_NONE = b'<OA><error code="idIsNotOpenAccess">No package</error></OA>'
 
 
 @pytest.mark.parametrize("namespace", [False, True])
+@pytest.mark.parametrize("tag", ["abstract", "trans-abstract", "title-group", "kwd-group", "p"])
+def test_front_prose_manuscript_mentions_are_not_status(network, tag, namespace):
+    raw = jats(extra=f'<{tag}>The separate protocol is available as an author manuscript NIHMS123.</{tag}>')
+    raw = raw.replace(b"<article>", b'<article article-type="research-article">')
+    if namespace:
+        raw = raw.replace(b"<article ", b'<article xmlns="urn:synthetic:jats" ', 1)
+    meta = {}
+    assert r.assess(raw, {"pmid": "123"}, "PMC456", meta), meta
+    assert meta["outcome"] == "ACCEPTED"
+
+
+@pytest.mark.parametrize("marker", [
+    '<article-id pub-id-type="manuscript">accepted-version</article-id>',
+    '<article-id pub-id-type="other">NIHMS123</article-id>',
+])
+def test_structured_manuscript_identifier_rejected(network, marker):
+    meta = {}
+    assert not r.assess(jats(extra=marker), {"pmid": "123"}, "PMC456", meta)
+    assert meta["outcome"] == "AUTHOR_MANUSCRIPT"
+
+
+@pytest.mark.parametrize("phase", ["open", "read"])
+@pytest.mark.parametrize("error_type", [r.http.client.BadStatusLine,
+    r.http.client.IncompleteRead, r.http.client.RemoteDisconnected])
+def test_http_exception_preserves_batch_manifest(tmp_path, network, phase, error_type):
+    error = error_type(b"partial")
+
+    class BrokenResponse(Response):
+        def read(self, *args):
+            raise error
+
+    registry = {"documents": REGISTRY["documents"] + [
+        {"slug": "synthetic", "path": "second.xml", "pmid": "789", "label": "STUB"}]}
+    network[0].extend([
+        error if phase == "open" else BrokenResponse(b""),
+        Response(SEARCH.replace(b'"123"', b'"789"')),
+        Response(jats(pmid="789")),
+    ])
+    entries = r.run(registry, tmp_path, date="2026-10-14")
+    manifest = json.loads((tmp_path / "synthetic/fulltext_2026-10-14/manifest.json").read_text())
+    assert manifest["entries"] == entries
+    failed, succeeded = entries
+    assert not failed["stored"] and succeeded["stored"]
+    assert len(failed["attempts"]) == 1 and len(network[1]) == 3
+    expected = "INCOMPLETE_READ" if phase == "read" and error_type is r.http.client.IncompleteRead else error_type.__name__
+    assert failed["attempts"][0]["error"] == expected
+    assert failed["attempts"][0]["outcome"] == expected
+
+
+@pytest.mark.parametrize("namespace", [False, True])
 @pytest.mark.parametrize("location", ["reference", "body", "sub-article", "response", "nested-front"])
 def test_foreign_manuscript_marker_does_not_reject_parent(network, location, namespace):
     marker = "author manuscript NIHMS123"

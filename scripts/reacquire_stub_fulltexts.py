@@ -104,7 +104,7 @@ class Client:
                         error = "SIZE_LIMIT"
                     cap = Capture(raw, url, resp.geturl(), resp.code,
                                   tuple((k.lower(), v) for k, v in resp.headers.items()), start, utc(), error)
-            except (urllib.error.URLError, OSError, TimeoutError) as exc:
+            except (urllib.error.URLError, OSError, TimeoutError, http.client.HTTPException) as exc:
                 cap = Capture(b"", url, url, None, (), start, utc(), type(exc).__name__)
             meta = cap.metadata()
             meta.update(route=route, attempt=number + 1, stored=False,
@@ -162,19 +162,26 @@ def assess(raw, doc, pmcid, meta):
         matched = False
     meta["returned_identifiers"] = {k: sorted(v) for k, v in ids.items() if k in ("pmid", "pmc", "pmcid")}
     # Manuscript status belongs to this article, never its citations or children.
-    own_front = []
-    for front in tree.findall("./{*}front") if tree.tag.split("}")[-1] == "article" else []:
-        front = deepcopy(front)
-        front.tail = None
-        for parent in front.iter():
-            for child in list(parent):
-                if child.tag.split("}")[-1] in {"back", "ref-list", "body", "sub-article", "response"}:
-                    parent.remove(child)
-        own_front.append(ET.tostring(front, encoding="unicode"))
-    manuscript_markers = "\n".join(own_front)
+    status_fields = [tree.get("article-type", "")]
+    for article_meta in tree.findall("./{*}front/{*}article-meta") if tree.tag.split("}")[-1] == "article" else []:
+        for path in ("./{*}article-id", "./{*}custom-meta", "./{*}custom-meta-group/{*}custom-meta",
+                     "./{*}notes", "./{*}permissions"):
+            for field in article_meta.findall(path):
+                field = deepcopy(field)
+                field.tail = None
+                for parent in field.iter():
+                    for child in list(parent):
+                        if child.tag.split("}")[-1] in {
+                            "abstract", "trans-abstract", "title-group", "kwd-group",
+                            "back", "ref-list", "body", "sub-article", "response",
+                        }:
+                            parent.remove(child)
+                status_fields.append(" ".join(field.itertext()))
+    manuscript_markers = "\n".join(status_fields)
+    manuscript_id = any(el.get("pub-id-type", "").lower() == "manuscript" for el in own_ids)
     if lic != "CC":
         meta["outcome"] = "LICENCE_REJECTED"
-    elif tree.get("article-type") == "author-manuscript" or re.search(r"NIHMS\d+|\bNIHPA\b|author.manuscript", manuscript_markers, re.I):
+    elif manuscript_id or re.search(r"NIHMS\d+|\bNIHPA\b|author.manuscript", manuscript_markers, re.I):
         meta["outcome"] = "AUTHOR_MANUSCRIPT"
     elif meta["label"] != "FULLTEXT":
         meta["outcome"] = "NOT_FULLTEXT"

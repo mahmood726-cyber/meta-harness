@@ -7083,5 +7083,47 @@
     "verdict": null
    }
   ]
+ },
+ "stub-r3": {
+  "base": "217833fe",
+  "head": "18ab5caa",
+  "runs": {
+   "g1": {
+    "record_id": "mc-bdaa5bbfc603da00f95d485f9ac21bbe",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/reacquire_stub_fulltexts.py"
+    ],
+    "prompt_sha256": "17c12a3d830a49368154c48895149cd7601c6e8675a6f4b902b5cd4e7acde9ce"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/reacquire_stub_fulltexts.py",
+    "function": "assess",
+    "severity": "P1",
+    "claim": "The manuscript gate treats any mention of 'author manuscript' in the article's front matter as this article's publication status. An abstract describing a separate protocol therefore causes a false AUTHOR_MANUSCRIPT rejection.",
+    "failing_input": "from unittest.mock import patch\nimport scripts.reacquire_stub_fulltexts as m\nraw = b'<article article-type=\"research-article\"><front><article-meta><article-id pub-id-type=\"pmid\">123</article-id><abstract><p>The separate protocol is available as an author manuscript.</p></abstract></article-meta></front><body><p>Trial results.</p></body></article>'\nmeta = {}\n# Isolate the manuscript gate from the independent licence/fulltext classifiers.\nwith patch.object(m, 'label_document', return_value={'label': 'FULLTEXT'}), patch.object(m, 'classify_permissions', return_value=('CC', 'CC BY')):\n    print(m.assess(raw, {'pmid': '123'}, 'PMC123', meta), meta['outcome'])",
+    "expected": "True ACCEPTED: the manuscript statement describes the separate protocol, not the returned article.",
+    "actual": "False AUTHOR_MANUSCRIPT",
+    "id": "stub-r3:g1#1",
+    "record_id": "mc-bdaa5bbfc603da00f95d485f9ac21bbe",
+    "verdict": null
+   },
+   {
+    "file": "scripts/reacquire_stub_fulltexts.py",
+    "function": "Client.fetch",
+    "severity": "P2",
+    "claim": "Malformed HTTP responses can abort the entire acquisition without recording an attempt. http.client.BadStatusLine and other HTTPException subclasses are outside the caught transport exceptions.",
+    "failing_input": "import http.client\nfrom unittest.mock import patch\nimport scripts.reacquire_stub_fulltexts as m\nclient = m.Client()\nattempts = []\nwith patch.object(client.opener, 'open', side_effect=http.client.BadStatusLine('NOT HTTP\\r\\n')):\n    client.fetch(m.EPMC + 'PMC123/fullTextXML', 'europepmc_fulltext', attempts)",
+    "expected": "Return a failed Capture and append transport-error metadata to attempts, allowing the acquisition failure to be recorded.",
+    "actual": "Raises http.client.BadStatusLine; attempts remains empty and an enclosing run aborts before writing its manifests.",
+    "id": "stub-r3:g1#2",
+    "record_id": "mc-bdaa5bbfc603da00f95d485f9ac21bbe",
+    "verdict": null
+   }
+  ]
  }
 }
