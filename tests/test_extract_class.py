@@ -228,7 +228,9 @@ def test_extract_trial_refuses_when_counts_contradict_reported_effect():
     ab = ("Antibiotic-associated diarrhoea occurred in 6/16 (37%) in the placebo group and "
           "4/23 (17%) patients in the probiotic group (RR 1.63, 95% CI 0.73-3.65).")
     ex = _xt(ab, ["antibiotic-associated diarrhoea", "diarrhoea"], ["probiotic"], ["placebo"])
-    assert ex.get("absent") and "round-trip" in ex.get("reason", "")
+    # A7: the refusal is the typed state with both values (it asserted the old reason wording, 'round-trip')
+    assert ex.get("absent") and ex.get("state") == "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE" and ex.get("gross"), ex
+    assert ex["reported"]["effect"] == 1.63 and "ai" not in ex
 
 
 # --- factorial-design guard: bind OUR factor, never the co-randomised one (SU.FOL.OM3 class) ---
