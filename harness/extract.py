@@ -459,10 +459,13 @@ SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE = "SOURCE_REPORTED_AND_COUNT_DERIVED_
 # 0.85' is an age-adjusted Cox estimate; 33933206) -- both false positives found by the sweep over the served 32.
 _RT_ADJUSTED = re.compile(r"(?<!un)\badjusted\b|\ba(?:OR|RR|HR)\b|\bmultivariab|\bmultivariate\b|\bcovariate|"
                           r"\bregression\b|\bcontroll?(?:ing|ed)?\s+for\b|\brate\s+ratio\b|\bIRR\b", re.I)
-_NUM_TOKEN = re.compile(r"(?<![\d.])\d+(?:\.\d+)?(?![\d.])")
+# a number as printed, including one with no leading zero ('RR .50', codex a7-r3 #2)
+_NUM_TOKEN = re.compile(r"(?<![\d.])(?:\d+(?:\.\d+)?|\.\d+)(?![\d.])")
 # the reported value AS PRINTED after its ratio label: 'RR 0.50', 'relative risk 0.49;', 'odds ratio 0.25 (95% ...'
-_RATIO_VALUE = re.compile(r"\b(RR|OR|HR|IRR|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
-                          r"[^\d;()]{0,30}?(?<![\d.])(\d+(?:\.\d+)?)(?![\d.])", re.I)
+_RATIO_LABEL = r"\b(RR|OR|HR|IRR|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
+_RATIO_VALUE = re.compile(_RATIO_LABEL + r"[^\d;().]{0,30}?(?<![\d.])(\d+(?:\.\d+)?|\.\d+)(?![\d.])", re.I)
+# where the NEXT estimate begins: its label and any qualifier word before it ('..., adjusted RR 0.60', a7-r3 #1)
+_NEXT_ESTIMATE = re.compile(r"(?:\b(?:un)?adjusted\s+|\bcrude\s+)?" + _RATIO_LABEL, re.I)
 # a label is the reported value's own only when it names the reported SCALE (codex a7-r2 #2: 'The HR was 0.5 and the
 # RR was 0.50' -- the HR's 0.5 must not set the RR's precision). A rate ratio is read as an RR by extract_effect, so
 # it is that RR's label (and then a different estimand, exempt).
@@ -486,10 +489,12 @@ def _reported_occurrence(point, span, scale=None):
         if abs(float(m.group(2)) - point) < 1e-12:
             head = span[max(0, m.start() - 160):m.start(2)]
             tail = span[m.end(2):m.end(2) + 120]
-            cut = re.search(r";|\.(?:\s|$)", tail)
-            # ';' separates two estimates; '(' does not -- 'the adjusted relative risk was ... (RR = 0.29' keeps its
-            # label (probiotics 7872284, the sweep after the r1 fix)
-            return m.group(2), head[head.rfind(";") + 1:] + m.group(2) + (tail[:cut.start()] if cut else tail)
+            # forward: up to the next ';', the sentence end, or where the NEXT estimate begins (a7-r3 #1)
+            ends = [c.start() for c in (re.search(r";|\.(?:\s|$)", tail), _NEXT_ESTIMATE.search(tail)) if c]
+            tail = tail[:min(ends)] if ends else tail
+            # back: ';' separates two estimates; '(' does not -- 'the adjusted relative risk was ... (RR = 0.29' keeps
+            # its label (probiotics 7872284, the sweep after the r1 fix)
+            return m.group(2), head[head.rfind(";") + 1:] + m.group(2) + tail
     for tok in _NUM_TOKEN.findall(span):
         if abs(float(tok) - point) < 1e-12:
             return tok, span

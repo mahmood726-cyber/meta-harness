@@ -7145,5 +7145,54 @@
     "verdict": null
    }
   ]
+ },
+ "a7-r3": {
+  "base": "31daf9b3",
+  "head": "3b818352e2519003de170e7c97b1b0c61f0a8051",
+  "runs": {
+   "g1": {
+    "record_id": "mc-01e28d58d05ceadfcc5112489b2c115b",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/absence.py",
+     "harness/consumer_consistency.py",
+     "harness/extract.py",
+     "harness/harms.py",
+     "harness/honest_ratchet.py",
+     "harness/page.py",
+     "harness/pipeline.py",
+     "harness/reason_audit.py"
+    ],
+    "prompt_sha256": "b2599c75686282582bdfc4e47eec27bf979e4dd53594bbe0b9c1a310d8f367f6"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extract.py",
+    "function": "_reported_occurrence / reported_vs_count_derived",
+    "severity": "P1",
+    "claim": "An adjacent adjusted estimate exempts an explicitly unadjusted estimate from checking because the extracted clause includes both estimates.",
+    "failing_input": "from harness.extract import reported_vs_count_derived\nreported_vs_count_derived((30, 100, 50, 100), ('RR', 0.50, 0.30, 0.80), 'Mortality: unadjusted RR 0.50 (95% CI 0.30-0.80), adjusted RR 0.60 (95% CI 0.40-0.90).', 'Deaths: 30/100 versus 50/100.')",
+    "expected": "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE with terminal=True: the crude RR is 0.60, inconsistent with the reported unadjusted RR 0.50.",
+    "actual": "None. The clause includes 'adjusted RR 0.60', so _RT_ADJUSTED exempts the unadjusted comparison.",
+    "id": "a7-r3:g1#1",
+    "record_id": "mc-01e28d58d05ceadfcc5112489b2c115b",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "_printed_decimals / reported_vs_count_derived",
+    "severity": "P1",
+    "claim": "Ratios printed without a leading zero lose their printed precision, allowing a disagreement to pass.",
+    "failing_input": "from harness.extract import _printed_decimals, reported_vs_count_derived\n_printed_decimals(0.5, 'RR .50 (95% CI .30-.80)', 'RR')\nreported_vs_count_derived((27, 100, 50, 100), ('RR', 0.5, 0.3, 0.8), 'RR .50 (95% CI .30-.80)', 'Deaths: 27/100 versus 50/100.')",
+    "expected": "Precision 2; SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE with terminal=True because the derived RR 0.54 does not round to .50.",
+    "actual": "Precision 1; None. Neither token pattern recognizes .50 as 0.5, so float-representation fallback increases the tolerance from 0.005 to 0.05 and accepts 0.54.",
+    "id": "a7-r3:g1#2",
+    "record_id": "mc-01e28d58d05ceadfcc5112489b2c115b",
+    "verdict": null
+   }
+  ]
  }
 }
