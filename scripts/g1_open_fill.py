@@ -34,9 +34,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 # --registered: the registered trials (an NCT) phases 1-2 did not fill (g1_open_census.py --registered)
 _REG = "--registered" in sys.argv
-# --companions: the registered trials' companion / primary-outcome publications (g1_identify.py companions); typed only
-# here (the model stage reads the trial's OWN evidence set, not a companion's text, so it is not run on a companion)
+# --companions: the registered trials' companion / primary-outcome publications (g1_identify.py companions)
 _COMP = "--companions" in sys.argv
+COMP_MODEL = "--companion-model" in sys.argv
 MODEL = "--model" in sys.argv and not _COMP
 CENSUS = os.path.join(ROOT, "outputs", "k_gap", "registry_fill",
                       "PHASE3_OPEN_CENSUS_COMPANIONS.json" if _COMP else
@@ -100,6 +100,10 @@ def typed_read(text, origin, cfg):
 
 
 EVIDENCE_BUDGET = 20000        # chars of open text shown to BOTH readers (agy's prompt travels on the ~32k Windows command line)
+COMPANION_NOTE = ("\n\nThis source is a COMPANION publication of the trial (a secondary report, sub-study or follow-up), "
+                  "not its main report. Report a result ONLY if it is for the trial's WHOLE randomised population on "
+                  "the protocol outcome and timepoint; a subgroup, a sub-study population or a different outcome is "
+                  "SOURCE_ABSENT (say why). For this text source use source = PMC_TEXT and source_ref = the companion PMID.")
 REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "open_fill")
 CALLS = os.path.join(OUT, "_calls.json")
 
@@ -145,7 +149,6 @@ def model_read(slug, cfg, label):
     """Codex + agy over the trial's own CC BY / CC0 text (the SAME evidence), each answer through g1_trial_acquire.gate
     (the whole held text); an adjudicator on disagreement whose answer must equal one gated reader's tuple."""
     import g1_trial_acquire as ta
-    import g1_registry_fill as rf
     o, ts = ta.targets(slug, None)
     t = dict(next(x for x in ts if x["label"] == label), slug=slug)
     ev, held = ta.evidence(t, cfg, ta.comparator_pmid(slug, o))
@@ -157,8 +160,50 @@ def model_read(slug, cfg, label):
         ft["shown_chars"] = len(ft["text"])
     body = json.dumps(ev, ensure_ascii=False, indent=0, default=str)
     prompt = (ta.INSTR + "\n\n=== EVIDENCE ===\n" + body).encode("utf-8")
-    dg = hashlib.sha256(prompt).hexdigest()
     purpose = f"k-gap phase 3 open text {slug} / {label[:50]}"
+    return _read_and_adjudicate(prompt, body, held, cfg, slug, purpose)
+
+
+def companion_model_read(slug, cfg, r, text, src):
+    """Read the held companion, then require a whole-trial, appropriate-unit candidate."""
+    import g1_trial_acquire as ta
+    held = {"aact": {}, "text": text, "sha": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            "terms": ta.outcome_terms(cfg), "comp": ta.comparator_pmid(slug, ta.tracker_file(slug, None)),
+            "pmid": r["pmid"], "reg": {}, "slug": slug, "text_origin": src.get("origin"),
+            "doi": src.get("doi"), "doi_licence": src.get("licence")}
+    shown = text if len(text) <= EVIDENCE_BUDGET else ta._windows(text, held["terms"])[:EVIDENCE_BUDGET]
+    licence = src.get("licence") or (r.get("europepmc") or {}).get("license")
+    evidence = {"trial": r["label"], "companion_publication_pmid": r["pmid"],
+                "trial_report_pmid": r.get("population_pmid"),
+                "outcome": {k: cfg["primary_outcome"].get(k)
+                            for k in ("name", "keywords", "estimand", "timepoint", "population")},
+                "protocol_include": cfg.get("include"),
+                "full_text": {"pmid": r["pmid"], "licence": licence, "sha256": held["sha"],
+                              "chars": len(text), "shown_chars": len(shown), "text": shown}}
+    body = json.dumps(evidence, ensure_ascii=False, indent=0, default=str)
+    prompt = (ta.INSTR + COMPANION_NOTE + "\n\n=== EVIDENCE ===\n" + body).encode("utf-8")
+    purpose = f"k-gap phase 3 companion text {slug} / {r['label'][:50]}"
+    out = _read_and_adjudicate(prompt, body, held, cfg, slug, purpose)
+    candidate = out.get("admitted_candidate")
+    if candidate:
+        value = candidate["value"]
+        if value.get("events_t") is not None and ta.posted_population_short(
+                slug, r.get("population_pmid") or r["pmid"], value["n_t"] + value["n_c"]):
+            out["decision"] = "MODEL_FOUND_REFUSED_SUBPOPULATION"
+            out.pop("admitted_candidate")
+        elif unit_of_analysis_refused(r, value):
+            out["decision"] = "MODEL_FOUND_REFUSED_UNIT_OF_ANALYSIS"
+            out.pop("admitted_candidate")
+        else:
+            candidate.update(source_pmid=r["pmid"], population_pmid=r.get("population_pmid"))
+    return out
+
+
+def _read_and_adjudicate(prompt, body, held, cfg, slug, purpose):
+    """Keep the same agreement and replay rules for either held evidence source."""
+    import g1_trial_acquire as ta
+    import g1_registry_fill as rf
+    dg = hashlib.sha256(prompt).hexdigest()
     out, gated = {"evidence_sha256": dg, "readers": {}}, {}
     for r in (rf.READER_A, rf.READER_B):
         rec = _call(prompt, r, purpose + f" (reader {r[0]})", dg)
@@ -260,6 +305,10 @@ def run_trial(slug, cfg, r):
             return dict(out, decision="TYPED_FOUND_REFUSED_UNIT_OF_ANALYSIS")
         return dict(out, decision="TYPED_FOUND_ADMISSIBLE" if src.get("admissible") else "TYPED_FOUND_PENDING_RULING")
     if src.get("model_ok"):
+        if _COMP and COMP_MODEL:
+            m = companion_model_read(slug, cfg, r, text, out["source"])
+            return dict(out, stage="MODEL", model=m, decision=m["decision"],
+                        phase=f"3_OPEN:{origin}:COMPANION" if m.get("admitted_candidate") else None)
         if not MODEL:
             return dict(out, decision="TYPED_NONE_MODEL_ELIGIBLE")
         m = model_read(slug, cfg, r["label"])
