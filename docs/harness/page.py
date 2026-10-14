@@ -111,6 +111,8 @@ _ABSENCE_STATE_LABEL = {
     "NO_OUTCOME_DATA_IN_SOURCE": "declared absent — no outcome data in the retrieved source",
     "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": "excluded on evidence -- effect present but wrong estimand class",
     "COUNTS_PRESENT_NOT_CORROBORATED": "not extracted -- arm counts present but percentage corroboration failed",
+    "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE": "not pooled -- the reported effect and the effect from the source's own "
+                                                  "arm counts disagree; both shown, awaiting adjudication",
     "MULTI_ARM_UNRESOLVED": "excluded on evidence -- multi-arm contrast unresolved",
     "TIMEPOINT_MISMATCH": "excluded on evidence -- timepoint mismatch",
     "POPULATION_MISMATCH": "excluded on evidence -- population or analysis-set mismatch",

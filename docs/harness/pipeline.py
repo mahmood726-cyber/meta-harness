@@ -328,6 +328,9 @@ def _primacy(r):
     return 2  # an ordinary journal article
 
 
+_A7_FIELDS = ("reason", "state", "gross", "terminal", "reported", "count_derived")
+
+
 def _fulltext_extract(ft, spec, interv, comp, dc):
     """Full-text rung: the abstract extractor on the PROSE, else on each non-baseline TABLE ROW as its own unit
     (fulltext.extraction_segments). One admissible row value -> taken; several different row values ->
@@ -340,6 +343,8 @@ def _fulltext_extract(ft, spec, interv, comp, dc):
     kw = dict(declared_composite=dc, estimand=spec.get("estimand"))
     own = _ft_mod.own_result_prose(seg["prose"])
     fx = extract.extract_trial(own["prose"], spec["keywords"], interv, comp, **kw)
+    if fx.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and fx.get("terminal"):
+        return fx       # A7: the document disagrees with itself -- reported, not resolved by reading on into its tables
     if seg.get("unstructured"):
         # HTML/PDF copy: only an effect+CI REPORTED in a prose sentence is typed evidence here. Arm counts, means and
         # rates may come from a flattened table (PMID 34138478: '1/16 vs 0/14' read out of an HTML outcome table).
@@ -1442,6 +1447,14 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         effect_candidates = candidate_index.get(d["id"], [])
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
                                    declared_composite=dc, estimand=spec.get("estimand"))
+        if ex.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and ex.get("terminal"):
+            # A7 (r30-C PICU): the source's reported effect and its own arm counts disagree on one outcome (rounding
+            # class). TERMINAL for this trial: neither value is pooled, and no lower rung (registry, full text,
+            # hand-verified counts) silently supplies a third value in their place. Both values and spans are carried
+            # for the adjudicator. The GROSS class (counts of a different outcome) falls through as it always did.
+            absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "abstract",
+                           **{k: ex[k] for k in _A7_FIELDS}})
+            continue
         if not ex.get("absent"):
             # ESTIMAND-HOMOGENEITY (composite component count): an N-point MACE outcome must not pool a
             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
@@ -1484,6 +1497,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
         # own sentences, not the whole document.
         fx = _fulltext_extract(ft, spec, interv, comp, dc) if ft else None
+        if fx and fx.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and fx.get("terminal"):
+            absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "pmc_fulltext",
+                           **{k: fx[k] for k in _A7_FIELDS}})
+            continue    # A7: terminal on the full-text rung too (same rule as the abstract route above)
         if fx and not fx.get("absent"):
             # THE SAME ESTIMAND-HOMOGENEITY GUARDS AS THE ABSTRACT ROUTE.
             #
@@ -1575,7 +1592,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             row["verified_passage_location"] = bound.get("passage_location")
             trials.append(row)
             continue
-        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+        # a GROSS A7 mismatch no lower rung resolved keeps its typed state and both values (was an untyped string)
+        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"],
+                       **({k: ex[k] for k in _A7_FIELDS}
+                          if ex.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE else {})})
     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
     # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
     # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are
@@ -2609,6 +2629,9 @@ def build_review_core(slug, config, records, protocol_sha):
                 row=_t,
                 # E1: the absence is conditional on the coverage of what was searched (held bytes + census)
                 coverage=source_coverage_mod.coverage_for(slug, _pid, _ft),
+                # A7: a reported effect is checked against the counts its own percentages + arm sizes imply
+                arm_terms=(config.get("intervention_terms", ["colchicine"]),
+                           config.get("comparator_terms", ["placebo", "control"])),
             )
             for _ak, _av in _ann.items():
                 if _av not in (None, "", []):

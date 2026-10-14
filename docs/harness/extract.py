@@ -57,7 +57,12 @@ _EFFECT = re.compile(
     # "CV death or HF hospitalisation (RR 0.83...)" be read as an odds-ratio scale label,
     # mislabelling a comparator RR as OR. The full words stay case-insensitive.
     r"(relative risk reduction|relative risk|risk ratio|incidence rate ratio|rate ratio|(?-i:\bRR\b)|odds ratio|(?-i:\bOR\b)|hazard ratio|(?-i:\bHR\b))"
-    r"[^0-9]{0,25}?(\d+(?:\.\d+)?)[^0-9]{0,28}?(?:\d{2}\s*(?:%|percent|per cent)\s*)?(?:confidence intervals?|\bCI\b)"
+    # gap label -> point: the historical <=25 non-digit chars, OR (A7 part 2, PICU 39935568) the outcome named between
+    # them and closed by 'was/were/is': 'The RR ratio for AAD when using LGG was 0.59 (95% CI, 0.21-1.6)', 'the relative
+    # risk of antibiotic-associated diarrhea was 0.59 (...)'. Still no digit, ';' or bracket in the gap, and the CI below
+    # is still required.
+    r"(?:[^0-9]{0,25}?|(?:\s+ratio)?\s+(?:for|of)\s+[^0-9;()]{1,60}?\s(?:was|were|is)\s+)"
+    r"(\d+(?:\.\d+)?)[^0-9]{0,28}?(?:\d{2}\s*(?:%|percent|per cent)\s*)?(?:confidence intervals?|\bCI\b)"
     r"[^0-9]{0,10}?(\d+(?:\.\d+)?)\s*(?:to|[-–—,])\s*(\d+(?:\.\d+)?)", re.I)
 _K = re.compile(r"(\d+|[A-Za-z]+)\s+(?:randomi[sz]ed\s+(?:controlled\s+)?trials|controlled\s+(?:clinical\s+)?trials|RCTs)", re.I)
 
@@ -450,6 +455,106 @@ def _roundtrip_ok(ai, n1i, ci, n2i, scale, point):
     return True
 
 
+SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE = "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE"
+# an ADJUSTED / model-based reported effect is a different estimand from the crude count-derived one (named limit:
+# not compared, the historical behaviour stands). Its own name: the module-level _ADJUSTED_EFFECT below is a
+# narrower, differently-used pattern (it does not match "adjusted relative risk") and would shadow this one.
+# Also a model-based estimate described without the word 'adjusted' ('Logistic regression to control for other factors
+# gave an odds ratio 0.25', probiotics 17604300) and a RATE ratio, which is not a risk ratio (RECOVERY's 'rate ratio
+# 0.85' is an age-adjusted Cox estimate; 33933206) -- both false positives found by the sweep over the served 32.
+_RT_ADJUSTED = re.compile(r"(?<!un)\badjusted\b|\ba(?:OR|RR|HR)\b|\bmultivariab|\bmultivariate\b|\bcovariate|"
+                          r"\bregression\b|\bcontroll?(?:ing|ed)?\s+for\b|\brate\s+ratio\b|\bIRR\b", re.I)
+# a number as printed, including one with no leading zero ('RR .50', codex a7-r3 #2)
+_NUM_TOKEN = re.compile(r"(?<![\d.])(?:\d+(?:\.\d+)?|\.\d+)(?![\d.])")
+# the reported value AS PRINTED after its ratio label: 'RR 0.50', 'relative risk 0.49;', 'odds ratio 0.25 (95% ...'
+_RATIO_LABEL = r"\b(RR|OR|HR|IRR|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
+_RATIO_VALUE = re.compile(_RATIO_LABEL + r"[^\d;().]{0,30}?(?<![\d.])(\d+(?:\.\d+)?|\.\d+)(?![\d.])", re.I)
+# where the NEXT estimate begins: its label and any qualifier word before it ('..., adjusted RR 0.60', a7-r3 #1)
+_NEXT_ESTIMATE = re.compile(r"(?:\b(?:un)?adjusted\s+|\bcrude\s+)?" + _RATIO_LABEL, re.I)
+# a label is the reported value's own only when it names the reported SCALE (codex a7-r2 #2: 'The HR was 0.5 and the
+# RR was 0.50' -- the HR's 0.5 must not set the RR's precision). A rate ratio is read as an RR by extract_effect, so
+# it is that RR's label (and then a different estimand, exempt).
+_LABEL_SCALE = {"rr": "RR", "relative risk": "RR", "risk ratio": "RR", "rate ratio": "RR", "irr": "RR",
+                "or": "OR", "odds ratio": "OR", "hr": "HR", "hazard ratio": "HR"}
+
+
+def _reported_occurrence(point, span, scale=None):
+    """(printed token, its own clause) of the reported point: the occurrence printed after a label OF ITS SCALE, never
+    an equal number elsewhere ('At 0.5 years ... RR 0.50': precision is the RR's two decimals; codex a7-r1 #1;
+    'The HR was 0.5 and the RR was 0.50': the RR's, a7-r2 #2). The clause runs back to the previous ';' (capped at
+    160 chars) and forward to the next ';' or sentence end (capped at 120): an ADJUSTED estimate printed beside an
+    unadjusted one does not exempt the unadjusted one (a7-r1 #2), and a qualifier after the value ('RR 0.50 (95% CI
+    0.30-0.80), adjusted for age') does exempt it (a7-r2 #1). Falls back to the first equal token and the whole span
+    when no labelled occurrence is found (the conservative reading)."""
+    span = span or ""
+    for m in _RATIO_VALUE.finditer(span):
+        lab = re.sub(r"\s+", " ", m.group(1).lower())
+        if scale and _LABEL_SCALE.get(lab) not in (None, scale):
+            continue
+        if abs(float(m.group(2)) - point) < 1e-12:
+            head = span[max(0, m.start() - 160):m.start(2)]
+            tail = span[m.end(2):m.end(2) + 120]
+            # forward: up to the next ';', the sentence end, or where the NEXT estimate begins (a7-r3 #1)
+            ends = [c.start() for c in (re.search(r";|\.(?:\s|$)", tail), _NEXT_ESTIMATE.search(tail)) if c]
+            tail = tail[:min(ends)] if ends else tail
+            # back: ';' separates two estimates; '(' does not -- 'the adjusted relative risk was ... (RR = 0.29' keeps
+            # its label (probiotics 7872284, the sweep after the r1 fix)
+            return m.group(2), head[head.rfind(";") + 1:] + m.group(2) + tail
+    for tok in _NUM_TOKEN.findall(span):
+        if abs(float(tok) - point) < 1e-12:
+            return tok, span
+    return None, span
+
+
+def _printed_decimals(point, span, scale=None):
+    """Decimals of the reported point AS PRINTED ('1.00' -> 2), else of its float repr."""
+    tok, _ = _reported_occurrence(point, span, scale)
+    if tok is not None:
+        return len(tok.split(".")[1]) if "." in tok else 0
+    s = repr(float(point))
+    return len(s.split(".")[1].rstrip("0")) if "." in s else 0
+
+
+def reported_vs_count_derived(arms, rep, rep_span, count_span):
+    """None when the source-reported effect and the effect derived from the source's own arm counts agree; else the
+    typed refusal SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE carrying BOTH values with their spans, so neither is
+    pooled until a person adjudicates (A7, external audit r30-C). Agreement = the derived value rounds to the reported
+    one at the reported precision (half a unit in the last printed decimal). Compared only on the same scale (RR v
+    RR from counts, OR v OR); a reported HR keeps the direction-only check, and an adjusted reported effect is not
+    compared (a different estimand).
+
+    `terminal`: a ROUNDING disagreement (one outcome, two values) is terminal -- no lower rung may supply a third value
+    in their place. A GROSS mismatch (factor > 2 / opposite direction: the historical round-trip refusal, unchanged
+    in when it fires) means the counts likely belong to a different outcome, so a lower rung may still supply this
+    outcome's own value (spironolactone 28824029: a composite's HR 0.85 bound to the death counts; the full text's
+    1.77 agrees with the counts)."""
+    ai, n1i, ci, n2i = arms[:4]
+    scale, point = rep[0], rep[1]
+    if point is None or point <= 0:
+        return None
+    derived = _or_from_counts(ai, n1i, ci, n2i) if scale == "OR" else _rr_from_counts(ai, n1i, ci, n2i)
+    if not derived or derived <= 0:
+        return None
+    gross = not _roundtrip_ok(ai, n1i, ci, n2i, scale, point)
+    if not gross:
+        if scale not in ("RR", "OR") or _RT_ADJUSTED.search(_reported_occurrence(point, rep_span, scale)[1]):
+            return None
+        tol = 0.5 * 10 ** (-_printed_decimals(point, rep_span, scale)) + 1e-9
+        if abs(derived - point) <= tol:
+            return None
+    dscale = scale if scale in ("RR", "OR") else "RR"
+    why = ("counts likely belong to a different outcome (factor > 2 or opposite direction)" if gross else
+           "beyond the reported value's rounding")
+    return {"absent": True, "state": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE, "gross": gross, "terminal": not gross,
+            "reported": {"scale": scale, "effect": point, "ci_low": rep[2], "ci_high": rep[3],
+                         "span": (rep_span or "")[:300]},
+            "count_derived": {"ai": ai, "n1i": n1i, "ci": ci, "n2i": n2i, "scale": dscale,
+                              "effect": derived, "span": (count_span or "")[:300]},
+            "reason": (f"{SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE}: the source reports {scale} {point} but its own "
+                       f"arm counts {ai}/{n1i} v {ci}/{n2i} give {dscale} {round(derived, 4)} -- {why}; neither value "
+                       f"is pooled until adjudicated")}
+
+
 _FACTORIAL = re.compile(r"\bfactorial\b|\b2\s*[x×]\s*2\b|\btwo[- ]by[- ]two\b|\bpartial factorial\b", re.I)
 _DOSE_ARM = re.compile(r"(\d+(?:\.\d+)?)\s*-?\s*mg\b(?:[^.]{0,20}?(?:group|arm|dose|daily|twice|once))?", re.I)
 
@@ -747,6 +852,10 @@ def _arm_ns(abstract, interv_terms, comp_terms):
                         # the OR the protocol registers).
                         rf"(\d+)\s+to\s+(?:receive\s+)?(?:the\s+)?{tl}",
                         rf"(?:received|assigned to|randomi[sz]ed to)[^.]{{0,15}}?{tl}[^.]{{0,15}}?\(\s*(\d+)\)",
+                        # 'N in the <arm> group/arm' -- PICU 39935568: '19 patients eligible for final analysis; 10 in
+                        # the LGG group and 9 in the placebo group' (A7 part 2). As with every size here, the count path
+                        # uses it only if it corroborates the arm's stated percentage (30% of 10 = 3).
+                        rf"(\d+)\s+in\s+the\s+{tl}\s+(?:group|arm)\b",
                         # BARE ADJACENCY (last resort): "... and 263 conventional oxygen therapy" — an
                         # arm size given as "N <arm label>" with the shared verb elided. Safe because
                         # the count path only accepts this size if it corroborates the arm's stated %.
@@ -759,6 +868,83 @@ def _arm_ns(abstract, interv_terms, comp_terms):
         if best:
             out[key] = best
     return out
+
+
+# 'in 30% vs 55.5% of patients' -- a bare percentage pair (no event counts printed)
+_PCT_PAIR = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*%\s*(?:vs\.?|versus|and|compared with|compared to)\s*"
+                       r"(\d{1,3}(?:\.\d+)?)\s*%", re.I)
+# a percentage that is an ESTIMATE or a rate, not an observed event proportion (codex a7p2-r1 #1)
+# ... or model-based / adjusted / weighted / imputed (codex a7p2-r3 #1)
+_PCT_NOT_A_PROPORTION = re.compile(r"kaplan|estimat|cumulative|probabilit|per\s+\d|person|annuali[sz]ed|incidence\s+rate|"
+                                   r"\bmodel|predicted|adjusted|weighted|standardi[sz]ed|imputed", re.I)
+
+
+def percentage_implied_counts(abstract, sentences, interv_terms, comp_terms):
+    """(ai, n1i, ci, n2i, sentence) implied by a bare percentage pair and the abstract's own per-arm sizes, ONLY as a
+    CONSISTENCY CHECK on a reported effect (A7 part 2, PICU 39935568): '30% vs 55.5% of patients in the LGG groups vs
+    placebo' with '10 in the LGG group and 9 in the placebo group' -> 3/10 v 5/9. Never a pooled value: the extractor's
+    count path is unchanged (it needs printed counts). Each implied count must reproduce its printed percentage to
+    the printed precision (rounded or truncated: |count/n - p| < one unit in the last printed decimal), arms are
+    ordered by where the arm terms appear AFTER the pair, and a pair with both or neither arm order is ambiguous -> None."""
+    ns = _arm_ns(abstract or "", interv_terms, comp_terms)
+    if not (ns.get("i") and ns.get("c")):
+        return None
+    # an abstract that says its percentages are estimates anywhere implies nothing (codex a7p2-r2 #4); conservative:
+    # declining only returns the classification to what it was without this check
+    if _PCT_NOT_A_PROPORTION.search(abstract or ""):
+        return None
+
+    def first(terms, text):
+        # whole words only: 'control' is not in 'controlled' (codex a7p2-r1 #3)
+        hits = [m.start() for t in terms for m in [re.search(r"(?<![A-Za-z])" + re.escape(t) + r"(?![A-Za-z])", text,
+                                                              re.I)] if m]
+        return min(hits) if hits else -1
+
+    def prints_as(k, n, p):
+        # the count prints as p by genuine ROUNDING or TRUNCATION at p's printed decimals -- not by a symmetric
+        # one-unit window (5/17 = 29.4% is not '30%'; codex a7p2-r2 #3); 5/9 = 55.56% truncates to '55.5%' (PICU)
+        dec = len(p.split(".")[1]) if "." in p else 0
+        v, q, unit = k / n * 100, float(p), 10 ** (-dec)
+        return abs(v - q) <= unit / 2 + 1e-9 or q - 1e-9 <= v < q + unit - 1e-9
+
+    for s in sentences or []:
+        m = _PCT_PAIR.search(s)
+        if not m or _PCT_NOT_A_PROPORTION.search(s):
+            continue
+        # a sentence that carries its OWN numbers (a subset's size, another denominator) or names a subset population
+        # implies nothing from the abstract's arm sizes (codex a7p2-r2 #1); a p value is not such a number
+        other = re.sub(r"\bp\s*[=<>≤≥]\s*\.?\d+(?:\.\d+)?", " ", s[:m.start()] + " " + s[m.end():], flags=re.I)
+        # ... or that names its population at all ('In the analysed population', codex a7p2-r3 #2): the abstract's arm
+        # sizes may be another population's
+        if re.search(r"\d", other) or re.search(r"\bamong\b|\bsafety\b|\bevaluable\b|\bsubgroup\b|\bper[- ]protocol\b|"
+                                               r"\bcompleters?\b|\bpopulation\b|\banaly[sz]ed\b|\bintention\b|"
+                                               r"\bm?ITT\b", s, re.I):
+            continue
+        # the arm order comes from the pair's OWN clause: the arms named before it ('In the placebo and LGG groups, ...
+        # 20% vs 40%, respectively') or after it ('30% vs 55.5% of patients in the LGG groups vs placebo'), each cut at
+        # ';' -- never from a later clause (codex a7p2-r2 #2). Both sides naming both arms is ambiguous.
+        before = s[:m.start()].rsplit(";", 1)[-1]
+        after = s[m.end():].split(";", 1)[0]
+        # arms named BEFORE the pair set its order only with an explicit 'respectively' ('Compared with placebo,
+        # mortality in the LGG group was 30% vs 50%' is not ordered placebo-first; codex a7p2-r3 #3)
+        if not re.search(r"\brespectively\b", s, re.I):
+            before = ""
+        sides = [(first(interv_terms, t), first(comp_terms, t)) for t in (before, after)]
+        named = [(i, c) for i, c in sides if i >= 0 and c >= 0 and i != c]
+        if len(named) != 1:
+            continue
+        ipos, cpos = named[0]
+        pi, pc = (m.group(1), m.group(2)) if ipos < cpos else (m.group(2), m.group(1))
+        out = []
+        for p, n in ((pi, ns["i"]), (pc, ns["c"])):
+            # the count must be the ONLY integer that prints as p -- 1% of 1000 fits several, so it implies nothing
+            # (codex a7p2-r1 #2)
+            fits = [k for k in range(0, n + 1) if prints_as(k, n, p)]
+            if len(fits) != 1:
+                return None
+            out += [fits[0], n]
+        return (out[0], out[1], out[2], out[3], s.strip())
+    return None
 
 
 def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):
@@ -892,20 +1078,22 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
         if arms:
             # ROUND-TRIP (every outcome, not only same-sentence): the count-derived effect must
             # reconcile with the effect the paper reports for THIS outcome — first the same
-            # sentence, else the outcome's reported effect anywhere in the abstract. Refuse a
-            # count table we cannot reconcile with the paper's own number.
+            # sentence, else the outcome's reported effect anywhere in the abstract.
             rep = extract_effect(s)  # tuple (scale, point, lo, hi) or None
+            rep_span = s.strip()
             if not rep:
                 d = effect_in_outcome(abstract, outcome_kws)  # dict or None
                 if d:
                     rep = (d["scale"], d["effect"], d.get("ci_low"), d.get("ci_high"))
-            if rep and not _roundtrip_ok(arms[0], arms[1], arms[2], arms[3], rep[0], rep[1]):
-                _arm_res.append({"absent": True,
-                        "reason": (f"round-trip mismatch: extracted counts {arms[0]}/{arms[1]} vs "
-                                   f"{arms[2]}/{arms[3]} imply "
-                                   f"{round(_rr_from_counts(*arms) or 0, 3)} but the source reports "
-                                   f"{rep[0]} {rep[1]} — counts likely belong to a different outcome; refused")})
-                continue
+                    rep_span = d.get("source") or ""
+            # A7 (r30-C PICU 39935568): a reported effect and the count-derived one that disagree beyond the
+            # reported value's rounding are a TYPED state with both values -- never a silent pick of the counts.
+            # The gross (factor > 2) round-trip mismatch is the same state (generalises the 19138244 refusal).
+            if rep:
+                dis = reported_vs_count_derived(arms, rep, rep_span, s.strip())
+                if dis:
+                    _arm_res.append(dis)
+                    continue
             _arm_res.append({"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
                              "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]})
     if _arm_res:
