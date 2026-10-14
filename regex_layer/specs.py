@@ -162,6 +162,38 @@ SPECS = {
                        "trigger": r"primary|secondary|composite", "plants": {
                            "accept": ["primary endpoint", "the composite outcome"],
                            "refuse": ["major cardiovascular events", "death from any cause"]}},
+    # ---- A7 (reported v count-derived, coverage lane, 14 Oct) ----
+    "_RT_ADJUSTED": {"kind": "classifier",
+                     "spec": "the reported ratio is a different estimand from crude counts: adjusted / model-based "
+                             "(regression, 'control for') or a RATE ratio -- not compared at rounding precision",
+                     "trigger": r"adjust|regression|control|rate ratio|\baOR\b|\baRR\b|\baHR\b|\bIRR\b", "plants": {
+                         "accept": ["the adjusted relative risk was 0.29",
+                                    "logistic regression to control for other factors gave an odds ratio 0.25",
+                                    "died within 28 days (rate ratio 0.85"],
+                         "refuse": ["unadjusted RR 0.50", "relative risk 0.49; 95% ci 0.24-0.65"]}},
+    "_NUM_TOKEN": {"kind": "classifier",
+                   "spec": "a number as printed, including one with no leading zero ('.50')",
+                   "trigger": r"\d", "plants": {
+                       "accept": ["RR .50", "RR 0.59"],
+                       "refuse": ["relative risk", "no value"]}},
+    "_RATIO_VALUE": {"kind": "extractor", "fields": ["label", "point"],
+                     "spec": "a ratio label and the value printed after it ('RR 0.50', 'relative risk was 0.49')",
+                     "trigger": r"\bRR\b|\bOR\b|\bHR\b|ratio|relative risk", "plants": {
+                         "accept": [("RR 0.50 (95% CI 0.30-0.80)", ("RR", "0.50")),
+                                    ("the relative risk was 0.49;", ("relative risk", "0.49")),
+                                    ("odds ratio .25", ("odds ratio", ".25"))],
+                         "refuse": ["relative risk (0.49", "RR; 0.5"]}},
+    "_NEXT_ESTIMATE": {"kind": "extractor", "fields": ["label"],
+                       "spec": "where the next estimate in a sentence begins: its label and a qualifier before it",
+                       "trigger": r"\bRR\b|\bOR\b|\bHR\b|ratio|relative risk", "plants": {
+                           "accept": [(", adjusted RR 0.60", ("RR",)), ("; crude odds ratio 1.2", ("odds ratio",))],
+                           "refuse": ["(95% CI 0.30-0.80)", ", adjusted for age"]}},
+    "_PCT_PAIR": {"kind": "extractor", "fields": ["percent_first", "percent_second"],
+                  "spec": "a bare percentage pair with no event counts ('30% vs 55.5% of patients')",
+                  "trigger": r"%", "plants": {
+                      "accept": [("experienced in 30% vs 55.5% of patients", ("30", "55.5")),
+                                 ("12.5 % versus 20 % of children", ("12.5", "20"))],
+                      "refuse": ["30% of patients", "3/10 (30%) v 5/9"]}},
 }
 
 
@@ -309,3 +341,16 @@ INLINE_SPECS.update(_WHOLE_NUMBERS)
 from regex_layer.specs_g1_analysis_set import SITE_SPECS as _G1_ANALYSIS_SET  # noqa: E402
 
 INLINE_SPECS.update(_G1_ANALYSIS_SET)
+
+# harness/extract.py -- A7 (reported v count-derived), coverage lane, 14 Oct
+INLINE_SPECS.update({
+    "extract.py:sub:7b4eac99d8": {
+        "kind": "search", "what": "_reported_occurrence: collapse whitespace in a ratio label ('relative  risk')",
+        "plants": {"accept": [("relative  risk", None), ("hazard\nratio", None)],
+                   "refuse": ["relativerisk", "RR"]}},
+    "extract.py:search:133ae5728a": {
+        "kind": "search", "what": "_reported_occurrence: where the reported value's own clause ends (';' or sentence "
+                                  "end; a decimal point is not an end)",
+        "plants": {"accept": [("; adjusted RR 0.60", None), (". The next sentence", None), ("end.", None)],
+                   "refuse": ["(95% CI 0.30-0.80), adjusted for age", "0.5 times"]}},
+})

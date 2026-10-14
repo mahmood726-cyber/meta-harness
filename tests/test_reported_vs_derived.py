@@ -40,9 +40,7 @@ def test_the_reported_effect_in_another_sentence_is_compared_too():
 import pytest  # noqa: E402
 
 
-@pytest.mark.xfail(strict=True, reason="A7 part 2 (named limit): extract_effect does not read 'relative risk of X was "
-                                       "N (95% CI a-b)' (PICU prints 'The RR ratio for AAD when using LGG was 0.59 "
-                                       "(95% CI, 0.21-1.6)'), so there is no reported value to compare")
+# was a strict xfail (named limit) until A7 part 2 taught extract_effect 'relative risk of X was N (95% CI a-b)'
 def test_LIMIT_a_relative_risk_of_x_was_n_sentence_is_read():
     out = _x(COUNTS + ". The relative risk of antibiotic-associated diarrhea was 0.59 (95% CI 0.21-1.60).")
     assert out.get("state") == STATE, out
