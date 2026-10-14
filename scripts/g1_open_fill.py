@@ -122,15 +122,19 @@ def _call(prompt, reader, purpose, digest):
     caller = {"file": "scripts/g1_open_fill.py", "line": f"reader {tag}", "purpose": purpose}
     dig = [{"ref": "evidence", "sha256": digest, "what": "inline evidence: the trial's own CC BY / CC0 open full text "
                                                         "(windows), AACT rows, meta rows"}]
-    if model == "agy":
-        p = prompt + ("\n\n=== ANSWER FORMAT ===\nAnswer with ONLY one JSON object (no prose, no code fence) matching "
-                      "this JSON schema exactly:\n" + json.dumps(ta.SCHEMA, sort_keys=True)).encode("utf-8")
-        if len(p.decode("utf-8")) > 30000:
-            return {"state": "PROMPT_TOO_LONG_FOR_AGY_CLI", "record_id": None, "chars": len(p)}
-        rec = mcl.agy_call(p, schema=ta.SCHEMA, caller=caller, input_digests=dig, timeout_s=900)
-    else:
-        rec = mcl.call(prompt, schema=ta.SCHEMA, model=model, effort=eff, caller=caller, input_digests=dig,
-                       timeout_s=1800)
+    try:
+        if model == "agy":
+            p = prompt + ("\n\n=== ANSWER FORMAT ===\nAnswer with ONLY one JSON object (no prose, no code fence) matching "
+                          "this JSON schema exactly:\n" + json.dumps(ta.SCHEMA, sort_keys=True)).encode("utf-8")
+            if len(p.decode("utf-8")) > 30000:
+                return {"state": "PROMPT_TOO_LONG_FOR_AGY_CLI", "record_id": None, "chars": len(p)}
+            rec = mcl.agy_call(p, schema=ta.SCHEMA, caller=caller, input_digests=dig, timeout_s=900)
+        else:
+            rec = mcl.call(prompt, schema=ta.SCHEMA, model=model, effort=eff, caller=caller, input_digests=dig,
+                           timeout_s=1800)
+    except mcl.LicenceRefused as exc:
+        # the D8 guard refused the prompt: a typed state for THIS trial, never a crash of the whole run (14 Oct)
+        return {"state": "REFUSED_LICENCE", "record_id": None, "why": str(exc)[:300]}
     ms.write_record(rec, REC_DIR)
     if rec.get("state") == "RAN_OK":
         idx = json.load(open(CALLS, encoding="utf-8")) if os.path.exists(CALLS) else {}
@@ -178,8 +182,12 @@ def companion_model_read(slug, cfg, r, text, src):
                 "outcome": {k: cfg["primary_outcome"].get(k)
                             for k in ("name", "keywords", "estimand", "timepoint", "population")},
                 "protocol_include": cfg.get("include"),
-                "full_text": {"pmid": r["pmid"], "licence": licence, "sha256": held["sha"],
-                              "chars": len(text), "shown_chars": len(shown), "text": shown}}
+                # the text block is named by the copy it IS: a PMC copy by its PMID (the D8 guard checks the PMC copy's
+                # licence), an Unpaywall copy by its DOI (the guard checks that DOI's Unpaywall licence). Naming an
+                # Unpaywall copy by PMID made the guard check the wrong copy and refuse (14 Oct, REMAP-CAP 32876697)
+                "full_text": dict({"pmid": r["pmid"]} if src.get("origin") == "PMC" else {"doi": src.get("doi")},
+                                  licence=licence, sha256=held["sha"], chars=len(text), shown_chars=len(shown),
+                                  text=shown)}
     body = json.dumps(evidence, ensure_ascii=False, indent=0, default=str)
     prompt = (ta.INSTR + COMPANION_NOTE + "\n\n=== EVIDENCE ===\n" + body).encode("utf-8")
     purpose = f"k-gap phase 3 companion text {slug} / {r['label'][:50]}"
@@ -219,7 +227,9 @@ def _read_and_adjudicate(prompt, body, held, cfg, slug, purpose):
                                                                             "timepoint_as_stated", "why")}}
         if v == "ADMITTED":
             gated[r[0]] = (resp, adm)
-    if any(v["state"] != "RAN_OK" for v in out["readers"].values()):
+    if any(v["state"] == "REFUSED_LICENCE" for v in out["readers"].values()):
+        out["decision"] = "MODEL_REFUSED_LICENCE"
+    elif any(v["state"] != "RAN_OK" for v in out["readers"].values()):
         out["decision"] = "WAITING_READER_UNAVAILABLE"
     elif len(gated) == 2 and _tuple(gated["A"][0]) == _tuple(gated["B"][0]):
         out["decision"], out["admitted_candidate"] = "MODEL_ADMITTED_BOTH_READERS", gated["A"][1]

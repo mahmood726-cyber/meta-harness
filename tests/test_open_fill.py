@@ -134,7 +134,9 @@ def test_PLANT_companion_model_read_admits_only_both_readers_agreeing(companion_
     evidence = json.loads(prompt.split("\n\n=== EVIDENCE ===\n", 1)[1])
     assert evidence["companion_publication_pmid"] == "2"
     assert evidence["trial_report_pmid"] == "1"
-    assert evidence["full_text"] == {"pmid": "2", "licence": "cc-by",
+    # an UNPAYWALL copy is named by its DOI (the D8 guard then checks the DOI's licence); naming it by PMID made the
+    # guard check the PMC copy and refuse (14 Oct, 32876697). This assertion first encoded the PMID form: the defect
+    assert evidence["full_text"] == {"doi": "10.1/x", "licence": "cc-by",
                                      "sha256": hashlib.sha256(PROSE.encode()).hexdigest(),
                                      "chars": len(PROSE), "shown_chars": len(PROSE), "text": PROSE}
     assert out["evidence_sha256"] == hashlib.sha256(calls[0][0]).hexdigest()
@@ -193,3 +195,15 @@ def test_companion_model_run_trial_is_opt_in(monkeypatch, companion_readers, ena
     else:
         assert out["decision"] == "TYPED_NONE_MODEL_ELIGIBLE"
         assert not calls
+
+
+def test_PLANT_a_licence_refusal_is_typed_per_trial_never_a_crash(monkeypatch):
+    # 14 Oct: mcl.LicenceRefused raised out of _call and killed the whole companion run on its first refused prompt
+    from reproducible_ai import model_call_live as mcl
+
+    def refuse(*_a, **_k):
+        raise mcl.LicenceRefused("pre-call: prompt carries text whose copy is not marked open")
+    monkeypatch.setattr(mcl, "call", refuse)
+    monkeypatch.setattr(of, "CALLS", os.path.join(ROOT, "nonexistent_calls_index.json"))
+    rec = of._call(b"prompt", ("A", "gpt-6-astra", "high"), "test", "sha")
+    assert rec["state"] == "REFUSED_LICENCE" and rec["record_id"] is None
