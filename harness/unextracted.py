@@ -15,6 +15,7 @@ EXTRACTED = "EXTRACTED"
 HELD_NOT_EXTRACTED = "HELD_NOT_EXTRACTED"
 NOT_IN_HELD_SOURCES = "NOT_IN_HELD_SOURCES"
 ABSENT_BY_DESIGN = "ABSENT_BY_DESIGN"
+TIMEPOINT_MISMATCH = "TIMEPOINT_MISMATCH"   # held only at a non-protocol timepoint (r16)
 
 _DESIGN_CODES = {
     absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
@@ -93,8 +94,14 @@ def audit_pair(
     pooled = _trial_keys(outcome.get("trials") or [])
     if trial_key in pooled:
         return {"status": EXTRACTED}
-    found = reason_audit.find_value_in_sources(sources, spec.get("keywords") or [], outcome.get("name"))
-    if found:
+    # the SAME target-aware predicate as reason_audit.audit_reason_row (r16 + r23): an explicit design / timepoint
+    # reason takes precedence unless the held value is for the target AND overcomes that reason
+    found = reason_audit.target_value_match(sources, spec, outcome.get("name"))
+    if _is_design_absent(row):
+        code = absence.normalize_code(row.get("reason_code") or row.get("state") or "")
+        if not reason_audit.overcomes(code, row, found):
+            return {"status": ABSENT_BY_DESIGN, "reason_code": row.get("reason_code") or row.get("state")}
+    if found and found["state"] == reason_audit.TARGET_MATCH:
         return {
             "status": HELD_NOT_EXTRACTED,
             "source_id": found["source_id"],
@@ -102,13 +109,15 @@ def audit_pair(
             "source_span": found["span"],
             **({"value_text": found["value_text"]} if found.get("value_text") else {}),
         }
-    if _is_design_absent(row):
-        return {"status": ABSENT_BY_DESIGN, "reason_code": row.get("reason_code") or row.get("state")}
+    if found and found["state"] == reason_audit.TARGET_TIMEPOINT_MISMATCH:
+        # held, but only at a non-protocol timepoint: never 'reported, not extracted'
+        return {"status": TIMEPOINT_MISMATCH, "source_id": found["source_id"], "source_span": found["span"],
+                "stated_weeks": found.get("stated_weeks"), "window_weeks": found.get("window_weeks")}
     return {"status": NOT_IN_HELD_SOURCES}
 
 
 def _summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    statuses = [EXTRACTED, HELD_NOT_EXTRACTED, NOT_IN_HELD_SOURCES, ABSENT_BY_DESIGN]
+    statuses = [EXTRACTED, HELD_NOT_EXTRACTED, NOT_IN_HELD_SOURCES, ABSENT_BY_DESIGN, TIMEPOINT_MISMATCH]
     counts = {s: sum(1 for r in rows if r.get("status") == s) for s in statuses}
     by_kind: dict[str, dict[str, int]] = {}
     for row in rows:

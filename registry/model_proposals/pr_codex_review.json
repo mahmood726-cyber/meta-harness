@@ -6731,5 +6731,84 @@
     "verdict": null
    }
   ]
+ },
+ "tvp-r1": {
+  "base": "630e622bf",
+  "head": "12e6f6f3a",
+  "runs": {
+   "g1": {
+    "record_id": "mc-095d3262be721553b19a95bde9666dff",
+    "state": "RAN_OK",
+    "files": [
+     "harness/reason_audit.py",
+     "harness/unextracted.py",
+     "scripts/unextracted_sweep.py"
+    ],
+    "prompt_sha256": "20ff42ba5f3fa4fb91f9ae6b70ba7c334ebf7e3a4b239d5a470f47e1f2ca808f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/reason_audit.py",
+    "function": "sentence_weeks",
+    "severity": "P1",
+    "claim": "Decimal timepoints are parsed as their fractional digits, causing incorrect timepoint classification.",
+    "failing_input": "sentence_weeks('Mortality at 12.5 weeks was 10% versus 20%.')",
+    "expected": "[12.5]",
+    "actual": "[5.0]",
+    "id": "tvp-r1:g1#1",
+    "record_id": "mc-095d3262be721553b19a95bde9666dff",
+    "verdict": null
+   },
+   {
+    "file": "harness/reason_audit.py",
+    "function": "target_value_match",
+    "severity": "P1",
+    "claim": "An unrelated in-window duration makes an explicitly out-of-window outcome count as an in-window result. The predicate checks every time expression without associating it with the outcome.",
+    "failing_input": "target_value_match([{'source_id': 's', 'text': 'After 4 weeks of treatment, mortality at 52 weeks was 10 (10%) versus 20 (20%).'}], {'keywords': ['mortality'], 'timepoint_weeks': 4, 'timepoint_tolerance_weeks': 0}, 'Mortality')",
+    "expected": "state='TIMEPOINT_MISMATCH'; the mortality result is at 52 weeks.",
+    "actual": "state='MATCH', at_target_timepoint=True; the treatment duration satisfies any(...).",
+    "id": "tvp-r1:g1#2",
+    "record_id": "mc-095d3262be721553b19a95bde9666dff",
+    "verdict": null
+   },
+   {
+    "file": "harness/reason_audit.py",
+    "function": "target_value_match",
+    "severity": "P1",
+    "claim": "A citation anywhere in a sentence discards even an explicitly identified result from the current trial. Citing an outcome definition does not make the accompanying counts another study's results.",
+    "failing_input": "target_value_match([{'source_id': 's', 'text': 'In our trial, mortality at 4 weeks was 10 (10%) versus 20 (20%), using the prespecified definition [9].'}], {'keywords': ['mortality'], 'timepoint_weeks': 4, 'timepoint_tolerance_weeks': 0}, 'Mortality')",
+    "expected": "A MATCH identifying the held, in-window mortality result.",
+    "actual": "None; _CITATION causes the sentence to be skipped.",
+    "id": "tvp-r1:g1#3",
+    "record_id": "mc-095d3262be721553b19a95bde9666dff",
+    "verdict": null
+   },
+   {
+    "file": "harness/reason_audit.py",
+    "function": "target_value_match / overcomes",
+    "severity": "P1",
+    "claim": "Returning the first match can hide later evidence that actually overcomes the refusal. An undated result prevents a subsequent explicitly in-window result from answering a timepoint refusal.",
+    "failing_input": "overcomes(absence.TIMEPOINT_MISMATCH, {}, target_value_match([{'source_id': 'summary', 'text': 'Mortality was 10 (10%) versus 20 (20%).'}, {'source_id': 'results', 'text': 'Mortality at 4 weeks was 10 (10%) versus 20 (20%).'}], {'keywords': ['mortality'], 'timepoint_weeks': 4, 'timepoint_tolerance_weeks': 0}, 'Mortality'))",
+    "expected": "True; the second source explicitly reports the target timepoint.",
+    "actual": "False; the first source returns MATCH with at_target_timepoint=False, and the second source is never examined.",
+    "id": "tvp-r1:g1#4",
+    "record_id": "mc-095d3262be721553b19a95bde9666dff",
+    "verdict": null
+   },
+   {
+    "file": "harness/reason_audit.py",
+    "function": "identity_terms",
+    "severity": "P1",
+    "claim": "Population keywords are accepted as outcome aliases whenever the population also appears in the outcome name. This defeats the new predicate's explicit exclusion of population-only matches.",
+    "failing_input": "identity_terms(['critically ill'], 'Mortality in critically ill patients')",
+    "expected": "['Mortality in critically ill patients']; 'critically ill' alone does not identify mortality.",
+    "actual": "['Mortality in critically ill patients', 'critically ill']; the shared word 'critically' admits the population phrase as an outcome identity term.",
+    "id": "tvp-r1:g1#5",
+    "record_id": "mc-095d3262be721553b19a95bde9666dff",
+    "verdict": null
+   }
+  ]
  }
 }

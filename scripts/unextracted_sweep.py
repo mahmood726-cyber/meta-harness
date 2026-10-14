@@ -65,6 +65,7 @@ def run() -> dict[str, Any]:
         unextracted.HELD_NOT_EXTRACTED,
         unextracted.NOT_IN_HELD_SOURCES,
         unextracted.ABSENT_BY_DESIGN,
+        unextracted.TIMEPOINT_MISMATCH,
     ]
     for rp in review_paths():
         slug = rp.parent.name
