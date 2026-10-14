@@ -7252,5 +7252,75 @@
     "verdict": null
    }
   ]
+ },
+ "a7p2-r2": {
+  "base": "9b03f8fd",
+  "head": "8b2a917e",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1d214c0a9b4ded23a30d2dd4d37fc2ce",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/absence.py",
+     "harness/extract.py",
+     "harness/honest_ratchet.py",
+     "harness/pipeline.py",
+     "scripts/refusal_reason_sweep.py"
+    ],
+    "prompt_sha256": "0b8c0fea822ed865a3dbbb2e44cc28de0dc76e9bf5581f5d2862c7da2bf094dd"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "The consistency check uses abstract arm sizes even when the percentage sentence explicitly describes a different denominator population.",
+    "failing_input": "percentage_implied_counts('There were 10 in the LGG group and 10 in the placebo group.', ['Among the 5 safety-evaluable patients per arm, deaths occurred in 40% vs 60% of the LGG and placebo groups, respectively.'], ['LGG'], ['placebo'])",
+    "expected": "None, or a safety-specific inference of 2/5 versus 3/5; never 4/10 versus 6/10.",
+    "actual": "Returns (4, 10, 6, 10, 'Among the 5 safety-evaluable patients per arm, deaths occurred in 40% vs 60% of the LGG and placebo groups, respectively.').",
+    "id": "a7p2-r2:g1#1",
+    "record_id": "mc-1d214c0a9b4ded23a30d2dd4d37fc2ce",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "Arm mentions in a subsequent clause override the explicit arm order governing the percentages, reversing the inferred comparison.",
+    "failing_input": "percentage_implied_counts('There were 10 in the LGG group and 10 in the placebo group.', ['In the placebo and LGG groups, mortality was 20% vs 40%, respectively; LGG had higher mortality than placebo.'], ['LGG'], ['placebo'])",
+    "expected": "LGG 4/10 versus placebo 2/10, or None if the preceding arm labels are unsupported.",
+    "actual": "Returns (2, 10, 4, 10, 'In the placebo and LGG groups, mortality was 20% vs 40%, respectively; LGG had higher mortality than placebo.').",
+    "id": "a7p2-r2:g1#2",
+    "record_id": "mc-1d214c0a9b4ded23a30d2dd4d37fc2ce",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "The symmetric one-unit tolerance accepts counts that produce the printed percentage by neither rounding nor truncation. This supplies an invalid comparison to the disagreement classifier.",
+    "failing_input": "percentage_implied_counts('There were 17 in the LGG group and 10 in the placebo group.', ['Mortality was 30% vs 60% in the LGG and placebo groups.'], ['LGG'], ['placebo'])",
+    "expected": "None: 5/17 is approximately 29.412%, which rounds or truncates to 29%, not 30%; no integer count reproduces 30%.",
+    "actual": "Returns (5, 17, 6, 10, 'Mortality was 30% vs 60% in the LGG and placebo groups.').",
+    "id": "a7p2-r2:g1#3",
+    "record_id": "mc-1d214c0a9b4ded23a30d2dd4d37fc2ce",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "The estimate guard examines only the percentage sentence, ignoring an explicit Kaplan-Meier qualification in the supplied abstract. Consequently, estimated risks become inferred event counts for the consistency classification.",
+    "failing_input": "percentage_implied_counts('There were 10 in the LGG group and 10 in the placebo group. Mortality percentages were Kaplan-Meier estimates. Mortality was 20% vs 40% in the LGG and placebo groups.', ['Mortality was 20% vs 40% in the LGG and placebo groups.'], ['LGG'], ['placebo'])",
+    "expected": "None: Kaplan-Meier estimates do not establish observed event counts.",
+    "actual": "Returns (2, 10, 4, 10, 'Mortality was 20% vs 40% in the LGG and placebo groups.').",
+    "id": "a7p2-r2:g1#4",
+    "record_id": "mc-1d214c0a9b4ded23a30d2dd4d37fc2ce",
+    "verdict": null
+   }
+  ]
  }
 }

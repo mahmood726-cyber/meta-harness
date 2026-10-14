@@ -888,27 +888,50 @@ def percentage_implied_counts(abstract, sentences, interv_terms, comp_terms):
     ns = _arm_ns(abstract or "", interv_terms, comp_terms)
     if not (ns.get("i") and ns.get("c")):
         return None
+    # an abstract that says its percentages are estimates anywhere implies nothing (codex a7p2-r2 #4); conservative:
+    # declining only returns the classification to what it was without this check
+    if _PCT_NOT_A_PROPORTION.search(abstract or ""):
+        return None
+
     def first(terms, text):
         # whole words only: 'control' is not in 'controlled' (codex a7p2-r1 #3)
         hits = [m.start() for t in terms for m in [re.search(r"(?<![A-Za-z])" + re.escape(t) + r"(?![A-Za-z])", text,
                                                               re.I)] if m]
         return min(hits) if hits else -1
 
+    def prints_as(k, n, p):
+        # the count prints as p by genuine ROUNDING or TRUNCATION at p's printed decimals -- not by a symmetric
+        # one-unit window (5/17 = 29.4% is not '30%'; codex a7p2-r2 #3); 5/9 = 55.56% truncates to '55.5%' (PICU)
+        dec = len(p.split(".")[1]) if "." in p else 0
+        v, q, unit = k / n * 100, float(p), 10 ** (-dec)
+        return abs(v - q) <= unit / 2 + 1e-9 or q - 1e-9 <= v < q + unit - 1e-9
+
     for s in sentences or []:
         m = _PCT_PAIR.search(s)
         if not m or _PCT_NOT_A_PROPORTION.search(s):
             continue
-        rest = s[m.end():]
-        ipos, cpos = first(interv_terms, rest), first(comp_terms, rest)
-        if ipos < 0 or cpos < 0 or ipos == cpos:
+        # a sentence that carries its OWN numbers (a subset's size, another denominator) or names a subset population
+        # implies nothing from the abstract's arm sizes (codex a7p2-r2 #1); a p value is not such a number
+        other = re.sub(r"\bp\s*[=<>≤≥]\s*\.?\d+(?:\.\d+)?", " ", s[:m.start()] + " " + s[m.end():], flags=re.I)
+        if re.search(r"\d", other) or re.search(r"\bamong\b|\bsafety\b|\bevaluable\b|\bsubgroup\b|\bper[- ]protocol\b|"
+                                               r"\bcompleters?\b", s, re.I):
             continue
+        # the arm order comes from the pair's OWN clause: the arms named before it ('In the placebo and LGG groups, ...
+        # 20% vs 40%, respectively') or after it ('30% vs 55.5% of patients in the LGG groups vs placebo'), each cut at
+        # ';' -- never from a later clause (codex a7p2-r2 #2). Both sides naming both arms is ambiguous.
+        before = s[:m.start()].rsplit(";", 1)[-1]
+        after = s[m.end():].split(";", 1)[0]
+        sides = [(first(interv_terms, t), first(comp_terms, t)) for t in (before, after)]
+        named = [(i, c) for i, c in sides if i >= 0 and c >= 0 and i != c]
+        if len(named) != 1:
+            continue
+        ipos, cpos = named[0]
         pi, pc = (m.group(1), m.group(2)) if ipos < cpos else (m.group(2), m.group(1))
         out = []
         for p, n in ((pi, ns["i"]), (pc, ns["c"])):
-            dec = len(p.split(".")[1]) if "." in p else 0
-            # the count must be the ONLY integer that prints as p (rounded or truncated) -- 1% of 1000 fits 6..14,
-            # so it implies nothing (codex a7p2-r1 #2)
-            fits = [k for k in range(0, n + 1) if abs(k / n * 100 - float(p)) < 10 ** (-dec)]
+            # the count must be the ONLY integer that prints as p -- 1% of 1000 fits several, so it implies nothing
+            # (codex a7p2-r1 #2)
+            fits = [k for k in range(0, n + 1) if prints_as(k, n, p)]
             if len(fits) != 1:
                 return None
             out += [fits[0], n]
