@@ -29,6 +29,51 @@ SEARCH = json.dumps({"resultList": {"result": [{"id": "123", "source": "MED", "p
 OA_NONE = b'<OA><error code="idIsNotOpenAccess">No package</error></OA>'
 
 
+@pytest.mark.parametrize("namespace", [False, True])
+@pytest.mark.parametrize("location", ["reference", "body", "sub-article", "response", "nested-front"])
+def test_foreign_manuscript_marker_does_not_reject_parent(network, location, namespace):
+    marker = "author manuscript NIHMS123"
+    raw = jats().replace(b"<article>", b'<article article-type="research-article">')
+    if location == "reference":
+        addition = f"<back><ref-list><ref><mixed-citation><article-title>A {marker} study</article-title></mixed-citation></ref></ref-list></back>"
+    elif location == "body":
+        addition = f"<p>A discussion of {marker}.</p>"
+        raw = raw.replace(b"</body>", addition.encode() + b"</body>")
+        addition = ""
+    else:
+        nested = "sub-article" if location == "nested-front" else location
+        addition = f"<{nested}><front><article-meta><notes>{marker}</notes></article-meta></front></{nested}>"
+        if location == "nested-front":
+            raw = raw.replace(b"</front>", addition.encode() + b"</front>")
+            addition = ""
+    raw = raw.replace(b"</article>", addition.encode() + b"</article>")
+    if namespace:
+        raw = raw.replace(b"<article ", b'<article xmlns="urn:synthetic:jats" ', 1)
+    meta = {}
+    assert r.assess(raw, {"pmid": "123"}, "PMC456", meta), meta
+    assert meta["outcome"] == "ACCEPTED"
+
+
+@pytest.mark.parametrize("marker", [
+    "<custom-meta>author manuscript</custom-meta>",
+    "<notes>Author manuscript; available in PMC.</notes>",
+    "<permissions><copyright-statement>Author manuscript</copyright-statement></permissions>",
+    '<article-id pub-id-type="manuscript">NIHMS123</article-id>',
+    '<custom-meta><meta-name>manuscript</meta-name><meta-value>NIHPA</meta-value></custom-meta>',
+])
+def test_own_front_manuscript_marker_rejected(network, marker):
+    meta = {}
+    assert not r.assess(jats(extra=marker), {"pmid": "123"}, "PMC456", meta)
+    assert meta["outcome"] == "AUTHOR_MANUSCRIPT"
+
+
+def test_own_article_type_manuscript_rejected(network):
+    raw = jats().replace(b"<article>", b'<article article-type="author-manuscript">')
+    meta = {}
+    assert not r.assess(raw, {"pmid": "123"}, "PMC456", meta)
+    assert meta["outcome"] == "AUTHOR_MANUSCRIPT"
+
+
 class Response(io.BytesIO):
     def __init__(self, raw, code=200, headers=None, url=None):
         super().__init__(raw)

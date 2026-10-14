@@ -7053,5 +7053,35 @@
     "verdict": null
    }
   ]
+ },
+ "stub-r2": {
+  "base": "217833fe",
+  "head": "610e672a",
+  "runs": {
+   "g1": {
+    "record_id": "mc-84354e9223f12417b37fc00d0428e4d0",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/reacquire_stub_fulltexts.py"
+    ],
+    "prompt_sha256": "e24f3be4beb5520f4fdd0d521098d7f630babb088fbca1f7ddf2d4b8fc366d42"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/reacquire_stub_fulltexts.py",
+    "function": "assess",
+    "severity": "P1",
+    "claim": "The author-manuscript gate searches the entire serialized article, including references. A published research article citing a title containing 'author manuscript' is incorrectly rejected.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import reacquire_stub_fulltexts as m\nraw = b'<article article-type=\"research-article\"><front><article-meta><article-id pub-id-type=\"pmid\">123</article-id></article-meta></front><body><p>Published research findings.</p></body><back><ref-list><ref><element-citation><article-title>Author manuscript deposition</article-title></element-citation></ref></ref-list></back></article>'\nmeta = {}\n# Isolate the manuscript gate with successful upstream licence/coverage classifications.\nwith patch.object(m, 'label_document', return_value={'label': 'FULLTEXT'}), patch.object(m, 'classify_permissions', return_value=('CC', 'CC BY')):\n    result = m.assess(raw, {'pmid': '123'}, 'PMC456', meta)\nprint(result, meta['outcome'])",
+    "expected": "True ACCEPTED: the enclosing article is a research article; a cited title does not establish its manuscript status.",
+    "actual": "False AUTHOR_MANUSCRIPT. Determined from the supplied code; execution was blocked by environment policy.",
+    "id": "stub-r2:g1#1",
+    "record_id": "mc-84354e9223f12417b37fc00d0428e4d0",
+    "verdict": null
+   }
+  ]
  }
 }

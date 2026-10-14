@@ -7,6 +7,7 @@ Existing dated manifests are refused: use a new date for a subsequent acquisitio
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -160,9 +161,20 @@ def assess(raw, doc, pmcid, meta):
     if pmc_ids and pmc_ids != {pmcid}:
         matched = False
     meta["returned_identifiers"] = {k: sorted(v) for k, v in ids.items() if k in ("pmid", "pmc", "pmcid")}
+    # Manuscript status belongs to this article, never its citations or children.
+    own_front = []
+    for front in tree.findall("./{*}front") if tree.tag.split("}")[-1] == "article" else []:
+        front = deepcopy(front)
+        front.tail = None
+        for parent in front.iter():
+            for child in list(parent):
+                if child.tag.split("}")[-1] in {"back", "ref-list", "body", "sub-article", "response"}:
+                    parent.remove(child)
+        own_front.append(ET.tostring(front, encoding="unicode"))
+    manuscript_markers = "\n".join(own_front)
     if lic != "CC":
         meta["outcome"] = "LICENCE_REJECTED"
-    elif tree.get("article-type") == "author-manuscript" or re.search(r"NIHMS\d+|author.manuscript", text, re.I):
+    elif tree.get("article-type") == "author-manuscript" or re.search(r"NIHMS\d+|\bNIHPA\b|author.manuscript", manuscript_markers, re.I):
         meta["outcome"] = "AUTHOR_MANUSCRIPT"
     elif meta["label"] != "FULLTEXT":
         meta["outcome"] = "NOT_FULLTEXT"
