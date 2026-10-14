@@ -163,3 +163,19 @@ def test_the_reported_occurrence_must_carry_a_label_of_its_own_scale():
                                             "The HR was 0.5 and the RR was 0.50 (95% CI 0.30-0.80).",
                                             "Mortality: 27/100 versus 50/100.")
     assert out and out["state"] == STATE and out["terminal"] is True, out
+
+
+# ---- A7 review round 3, the last (codex a7-r3 mc-01e28d58, 2 P1): plants that failed first ----
+def test_the_next_estimate_in_the_sentence_is_not_part_of_this_ones_clause():
+    out = extract.reported_vs_count_derived(
+        (30, 100, 50, 100), ("RR", 0.50, 0.30, 0.80),
+        "Mortality: unadjusted RR 0.50 (95% CI 0.30-0.80), adjusted RR 0.60 (95% CI 0.40-0.90).",
+        "Deaths: 30/100 versus 50/100.")
+    assert out and out["state"] == STATE and out["terminal"] is True, out
+
+
+def test_a_value_printed_without_a_leading_zero_keeps_its_precision():
+    assert extract._printed_decimals(0.5, "RR .50 (95% CI .30-.80)", "RR") == 2
+    out = extract.reported_vs_count_derived((27, 100, 50, 100), ("RR", 0.5, 0.3, 0.8), "RR .50 (95% CI .30-.80)",
+                                            "Deaths: 27/100 versus 50/100.")
+    assert out and out["state"] == STATE and out["terminal"] is True, out
