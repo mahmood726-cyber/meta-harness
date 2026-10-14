@@ -735,6 +735,7 @@ def typed_first(t, cfg, held):
         if held.get("text_origin") == "PMC":
             ok, copy = pmc_copy(t["pmid"])["licence"] in OPEN_COPY, pmc_copy(t["pmid"])
         else:
+            # Deliberately not D8-gated (PR #106): no model sees this text in the deterministic typed read.
             ok, copy = str(held.get("doi_licence") or "").startswith("cc"), {"doi": held.get("doi"),
                                                                             "licence": held.get("doi_licence")}
         tt = table_tuple(held["text"], terms, po.get("timepoint")) if ok else None
