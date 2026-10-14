@@ -6999,5 +6999,59 @@
     "verdict": null
    }
   ]
+ },
+ "stub-r1": {
+  "base": "217833fe",
+  "head": "c39dedda",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a10e1eeb35e2263eeee2a2b9a318abc7",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "scripts/reacquire_stub_fulltexts.py"
+    ],
+    "prompt_sha256": "57efa8ae09b6e65e429941fc4af6a65b62be68edc02476d0e554d1ece730faa8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/reacquire_stub_fulltexts.py",
+    "function": "usable",
+    "severity": "P1",
+    "claim": "The challenge detector searches ordinary response content for 'captcha', so a legitimate search result containing that word is rejected and acquisition terminates.",
+    "failing_input": "from scripts import reacquire_stub_fulltexts as m\nraw = b'{\"resultList\":{\"result\":[{\"id\":\"1\",\"source\":\"MED\",\"pmcid\":\"PMC1\",\"title\":\"CAPTCHA checks in an online randomized trial\"}]}}'\ncap = m.Capture(raw, m.EPMC, m.EPMC, 200, (), '', '')\nmeta = cap.metadata()\nprint(m.usable(cap, meta), meta['outcome'])",
+    "expected": "True: this successful JSON search response should proceed to identifier resolution.",
+    "actual": "By direct control-flow inspection: False, with outcome 'HTML_OR_CHALLENGE'. Execution was blocked by the environment.",
+    "id": "stub-r1:g1#1",
+    "record_id": "mc-a10e1eeb35e2263eeee2a2b9a318abc7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/reacquire_stub_fulltexts.py",
+    "function": "assess",
+    "severity": "P1",
+    "claim": "Identifier validation collects article-id elements from every descendant. A nested sub-article can supply the requested PMID even when the enclosing article has no matching identity. The reproduction isolates identity validation by supplying passing licence and coverage verdicts.",
+    "failing_input": "from unittest.mock import patch\nfrom scripts import reacquire_stub_fulltexts as m\nraw = b'<article><front><article-meta><article-id pub-id-type=\"doi\">10.1234/other</article-id></article-meta></front><body><p>Enclosing article.</p></body><sub-article><front-stub><article-id pub-id-type=\"pmid\">123</article-id></front-stub><body><p>Separate article.</p></body></sub-article></article>'\nmeta = {}\nwith patch.object(m, 'label_document', return_value={'label': 'FULLTEXT'}), patch.object(m, 'classify_permissions', return_value=('CC', 'CC BY')):\n    print(m.assess(raw, {'pmid': '123'}, 'PMC456', meta), meta['outcome'])",
+    "expected": "False with 'IDENTIFIER_MISMATCH': the enclosing article's own metadata does not establish the requested identity.",
+    "actual": "By direct control-flow inspection: True with 'ACCEPTED'; the nested PMID satisfies the enclosing document's identity check. Execution was blocked by the environment.",
+    "id": "stub-r1:g1#2",
+    "record_id": "mc-a10e1eeb35e2263eeee2a2b9a318abc7",
+    "verdict": null
+   },
+   {
+    "file": "scripts/reacquire_stub_fulltexts.py",
+    "function": "acquire",
+    "severity": "P2",
+    "claim": "A non-object search-result entry raises an uncaught AttributeError. This aborts the acquisition batch before run writes its manifests, rather than recording the malformed response as an unresolved identifier.",
+    "failing_input": "from types import SimpleNamespace\nfrom scripts import reacquire_stub_fulltexts as m\ncap = m.Capture(b'{\"resultList\":{\"result\":[null]}}', m.EPMC, m.EPMC, 200, (), '', '')\ndef fetch(url, route, attempts):\n    meta = cap.metadata()\n    attempts.append(meta)\n    return cap, meta\nclient = SimpleNamespace(fetch=fetch)\nm.acquire({'path': 'cache/demo/ft_123.xml', 'pmid': '123', 'pmcid': ''}, client)",
+    "expected": "Return (entry, None), recording 'UNRESOLVED_IDENTIFIER' in the attempt, and allow the batch to continue.",
+    "actual": "By direct control-flow inspection: AttributeError: 'NoneType' object has no attribute 'get'. The exception handler catches ValueError, KeyError and TypeError only. Execution was blocked by the environment.",
+    "id": "stub-r1:g1#3",
+    "record_id": "mc-a10e1eeb35e2263eeee2a2b9a318abc7",
+    "verdict": null
+   }
+  ]
  }
 }

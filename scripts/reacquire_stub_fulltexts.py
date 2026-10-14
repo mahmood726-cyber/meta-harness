@@ -124,7 +124,9 @@ def usable(cap, meta):
         meta["outcome"] = "HTTP_ERROR"
     elif not safe_url(cap.final_url):
         meta["outcome"] = "UNAPPROVED_FINAL_URL"
-    elif re.search(br"<(?:html|!doctype\s+html)\b|captcha|cf-chl-|verify you are human", cap.payload[:10000], re.I):
+    elif (dict(cap.headers).get("content-type", "").split(";", 1)[0].strip().lower() == "text/html"
+          or re.match(br"\s*(?:<\?xml\b[^>]*>\s*)?(?:<!--.*?-->\s*)*<(?:html|!doctype\s+html)\b",
+                      cap.payload[:10000], re.I | re.S)):
         meta["outcome"] = "HTML_OR_CHALLENGE"
     else:
         return True
@@ -149,9 +151,10 @@ def assess(raw, doc, pmcid, meta):
     lic, statement = classify_permissions("".join(permissions) + "\n" + text)
     meta.update(licence=lic, licence_statement=statement)
     ids = {}
-    for el in tree.iter():
-        if el.tag.split("}")[-1] == "article-id":
-            ids.setdefault(el.get("pub-id-type"), set()).add((el.text or "").strip())
+    # Only the enclosing article's direct front/article-meta owns its identity.
+    own_ids = tree.findall("./{*}front/{*}article-meta/{*}article-id") if tree.tag.split("}")[-1] == "article" else []
+    for el in own_ids:
+        ids.setdefault(el.get("pub-id-type"), set()).add((el.text or "").strip())
     pmc_ids = {v if v.startswith("PMC") else "PMC" + v for v in ids.get("pmc", set()) | ids.get("pmcid", set())}
     matched = (ids.get("pmid") == {doc["pmid"]} if doc.get("pmid") else pmc_ids == {pmcid})
     if pmc_ids and pmc_ids != {pmcid}:
@@ -220,6 +223,8 @@ def acquire(doc, client):
             return entry, None
         try:
             results = json.loads(cap.payload)["resultList"]["result"]
+            if not isinstance(results, list) or any(not isinstance(record, dict) for record in results):
+                raise ValueError("search results must be a list of objects")
             matches = [r for r in results if str(r.get("id")) == doc["pmid"] and r.get("source") == "MED"]
             if len(matches) != 1 or not re.fullmatch(r"PMC[1-9]\d*", matches[0].get("pmcid", "")):
                 raise ValueError("no unique PMID match")

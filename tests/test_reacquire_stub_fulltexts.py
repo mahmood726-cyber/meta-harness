@@ -249,3 +249,75 @@ def test_oa_link_cannot_target_publisher(tmp_path, network):
     entry = r.run(REGISTRY, tmp_path)[0]
     assert not entry["stored"] and entry["outcome"] == "NO_OA_PACKAGE"
     assert len(network[1]) == 3
+
+
+@pytest.mark.parametrize("kind", ["json", "xml"])
+def test_challenge_words_in_data_are_usable(tmp_path, network, kind):
+    search = json.loads(SEARCH)
+    search["resultList"]["result"][0]["title"] = "CAPTCHA cf-chl- verify you are human"
+    raw = jats(body="<body><p>CAPTCHA cf-chl- verify you are human</p></body>")
+    network[0].extend([
+        Response(json.dumps(search).encode() if kind == "json" else SEARCH,
+                 headers={"Content-Type": "application/json"}),
+        Response(raw if kind == "xml" else jats()),
+    ])
+    assert r.run(REGISTRY, tmp_path)[0]["stored"]
+    assert len(network[1]) == 2
+
+
+@pytest.mark.parametrize("nested", ["sub-article", "response"])
+@pytest.mark.parametrize("pmid_only", [True, False])
+def test_nested_identifiers_cannot_identify_parent(network, nested, pmid_only):
+    raw = jats().replace(
+        b'<article-id pub-id-type="pmid">123</article-id>', b'').replace(
+        b'<article-id pub-id-type="pmc">PMC456</article-id>', b'')
+    child = (f'<{nested}><front><article-meta>'
+             '<article-id pub-id-type="pmid">123</article-id>'
+             '<article-id pub-id-type="pmc">PMC456</article-id>'
+             f'</article-meta></front></{nested}>').encode()
+    raw = raw.replace(b'</article>', child + b'</article>')
+    meta = {}
+    assert not r.assess(raw, {"pmid": "123" if pmid_only else ""}, "PMC456", meta)
+    assert meta["outcome"] == "IDENTIFIER_MISMATCH"
+    assert meta["returned_identifiers"] == {}
+
+
+@pytest.mark.parametrize("bad_record", [None, 7, "bad", []])
+def test_nonobject_search_record_preserves_batch_manifest(tmp_path, network, bad_record):
+    registry = {"documents": REGISTRY["documents"] + [
+        {"slug": "synthetic", "path": "second.xml", "pmid": "789", "label": "STUB"}]}
+    network[0].extend([
+        Response(json.dumps({"resultList": {"result": [bad_record]}}).encode()),
+        Response(SEARCH.replace(b'"123"', b'"789"')),
+        Response(jats(pmid="789")),
+    ])
+    entries = r.run(registry, tmp_path, date="2026-10-14")
+    manifest = json.loads((tmp_path / "synthetic/fulltext_2026-10-14/manifest.json").read_text())
+    assert entries == manifest["entries"]
+    by_path = {entry["source_path"]: entry for entry in entries}
+    assert by_path["held.xml"]["outcome"] == "UNRESOLVED_IDENTIFIER"
+    assert not by_path["held.xml"]["stored"]
+    assert by_path["second.xml"]["stored"]
+    assert len(network[1]) == 3
+
+
+@pytest.mark.parametrize("raw,content_type", [
+    (b"Please verify you are human", "text/html; charset=UTF-8"),
+    (b"<!-- gateway --> <html>cf-chl- challenge</html>", "application/octet-stream"),
+])
+def test_html_challenge_detection_still_stops(tmp_path, network, raw, content_type):
+    entry = execute(tmp_path, network, raw, headers={"Content-Type": content_type})
+    assert entry["outcome"] == "HTML_OR_CHALLENGE"
+    assert not entry["stored"] and len(network[1]) == 2
+
+
+def test_namespaced_parent_identity_ignores_nested_ids(network):
+    raw = jats().replace(b"<article>", b'<article xmlns="urn:synthetic:jats">')
+    child = (b'<sub-article><front><article-meta>'
+             b'<article-id pub-id-type="pmid">999</article-id>'
+             b'<article-id pub-id-type="pmc">PMC999</article-id>'
+             b'</article-meta></front></sub-article>')
+    raw = raw.replace(b"</article>", child + b"</article>")
+    meta = {}
+    assert r.assess(raw, {"pmid": "123"}, "PMC456", meta)
+    assert meta["returned_identifiers"] == {"pmid": ["123"], "pmc": ["PMC456"]}
