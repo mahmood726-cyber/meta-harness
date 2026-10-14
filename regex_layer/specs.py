@@ -194,6 +194,13 @@ SPECS = {
                       "accept": [("experienced in 30% vs 55.5% of patients", ("30", "55.5")),
                                  ("12.5 % versus 20 % of children", ("12.5", "20"))],
                       "refuse": ["30% of patients", "3/10 (30%) v 5/9"]}},
+    "_PCT_NOT_A_PROPORTION": {"kind": "classifier",
+                              "spec": "the sentence's percentages are estimates or rates, not observed event proportions",
+                              "trigger": r"kaplan|estimat|cumulative|probabil|per|person|annual|rate", "plants": {
+                                  "accept": ["kaplan-meier estimated mortality was 30% vs 50%",
+                                             "the cumulative incidence was 30% vs 50%"],
+                                  "refuse": ["mortality was 30% vs 50% in the two groups",
+                                             "aad was experienced in 30% vs 55.5% of patients"]}},
 }
 
 

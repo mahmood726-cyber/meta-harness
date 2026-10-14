@@ -81,3 +81,27 @@ def test_PLACIDE_aad_and_cdd_counts_are_never_bound_to_aad():
     out = extract.extract_trial(ab, po["keywords"], cfg["intervention_terms"], cfg["comparator_terms"],
                                 declared_composite=extract.declared_is_composite(po["name"]), estimand=po["estimand"])
     assert (out.get("ai"), out.get("ci")) != (12, 17), out
+
+
+# ---- A7 part 2 review round 1 (codex a7p2-r1 mc-1914356b, 3 P1): plants that failed first ----
+from unittest.mock import patch  # noqa: E402
+
+
+def _imp(s, n_i, n_c):
+    with patch("harness.extract._arm_ns", return_value={"i": n_i, "c": n_c}):
+        return extract.percentage_implied_counts("", [s], ["colchicine"], ["placebo", "control"])
+
+
+def test_kaplan_meier_or_estimated_percentages_are_not_event_counts():
+    assert _imp("Kaplan-Meier estimated mortality was 30% vs 50% in the colchicine and placebo groups.", 100, 100) is None
+    assert _imp("The cumulative incidence was 30% vs 50% in the colchicine and placebo groups.", 100, 100) is None
+
+
+def test_a_percentage_that_fits_several_counts_implies_none():
+    # 1% and 2% of 1000 fit 6..14 and 15..24 events: no unique count, so no comparison
+    assert _imp("Mortality was 1% vs 2% in the colchicine and placebo groups.", 1000, 1000) is None
+
+
+def test_arm_terms_are_whole_words():
+    s = "Mortality was 30% vs 50% in the controlled trial's colchicine and placebo groups, respectively."
+    assert _imp(s, 10, 10)[:4] == (3, 10, 5, 10)

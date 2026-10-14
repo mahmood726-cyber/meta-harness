@@ -7194,5 +7194,63 @@
     "verdict": null
    }
   ]
+ },
+ "a7p2-r1": {
+  "base": "9b03f8fd",
+  "head": "2a67ef06",
+  "runs": {
+   "g1": {
+    "record_id": "mc-1914356b3875055f7eada04c93924245",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/absence.py",
+     "harness/extract.py",
+     "harness/honest_ratchet.py",
+     "harness/pipeline.py",
+     "scripts/refusal_reason_sweep.py"
+    ],
+    "prompt_sha256": "c38b3d04d8184d41bb021e53f0a45036b7bf10462bff69dc21a86716c3f91394"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "Kaplan–Meier estimates are converted into integer event counts and supplied to the disagreement check. Integer compatibility does not make an estimated probability an observed event proportion.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.extract import percentage_implied_counts\ns = 'Kaplan-Meier estimated mortality was 30% vs 50% in the colchicine and placebo groups.'\nwith patch('harness.extract._arm_ns', return_value={'i': 100, 'c': 100}):\n    print(percentage_implied_counts('', [s], ['colchicine'], ['placebo']))",
+    "expected": "None: Kaplan–Meier estimates cannot establish event counts, even with known arm sizes.",
+    "actual": "(30, 100, 50, 100, s). Traced from the supplied code; Python execution was blocked.",
+    "id": "a7p2-r1:g1#1",
+    "record_id": "mc-1914356b3875055f7eada04c93924245",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "The helper selects one count from a rounded percentage without checking uniqueness. The new classifier consequently compares the reported effect against an arbitrarily selected count-derived effect. For example, 14/1000 and 16/1000 round to 1% and 2%, but their RR is 0.875, whereas the selected counts imply 0.5.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.extract import percentage_implied_counts\ns = 'Mortality was 1% vs 2% in the colchicine and placebo groups.'\nwith patch('harness.extract._arm_ns', return_value={'i': 1000, 'c': 1000}):\n    print(percentage_implied_counts('', [s], ['colchicine'], ['placebo']))",
+    "expected": "None, or an explicit range of compatible counts; these percentages do not uniquely establish 10 and 20 events.",
+    "actual": "(10, 1000, 20, 1000, s). Traced from the supplied code; Python execution was blocked.",
+    "id": "a7p2-r1:g1#2",
+    "record_id": "mc-1914356b3875055f7eada04c93924245",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "percentage_implied_counts",
+    "severity": "P1",
+    "claim": "Arm ordering uses unrestricted substring matching. The comparator alias 'control' matches 'controlled' before the actual arm labels, reversing explicitly ordered percentages and supplying the inverse effect to the disagreement check.",
+    "failing_input": "from unittest.mock import patch\nfrom harness.extract import percentage_implied_counts\ns = \"Mortality was 30% vs 50% in the controlled trial's colchicine and placebo groups, respectively.\"\nwith patch('harness.extract._arm_ns', return_value={'i': 10, 'c': 10}):\n    print(percentage_implied_counts('', [s], ['colchicine'], ['placebo', 'control']))",
+    "expected": "(3, 10, 5, 10, s), respecting the explicit colchicine/placebo order.",
+    "actual": "(5, 10, 3, 10, s), because 'control' is found inside 'controlled'. Traced from the supplied code; Python execution was blocked.",
+    "id": "a7p2-r1:g1#3",
+    "record_id": "mc-1914356b3875055f7eada04c93924245",
+    "verdict": null
+   }
+  ]
  }
 }
