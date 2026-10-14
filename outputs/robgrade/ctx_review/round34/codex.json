@@ -1,0 +1,21 @@
+{
+ "record_id": "mc-9922fb38a36f7aaa5a7ed180a12a541c",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:main/check_accounted",
+   "claim": "A successful decision can still be omitted by parking its entry under a covered trial's valid key. all_keys includes covered trials, but run_dual never processes them. The checks validate role/state/hash without binding the recorded trial to its manifest key; accounting therefore accepts the displaced record.",
+   "guidance_basis": "C4/C5 and the served accounting contract require decisions to remain attributable and accounted for. RoB 2 assessments concern specific trial results: [Handbook 8.2.1](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Move trial A's successful agy entry to a covered trial B's agy slot, retaining its genuine hash/state; replay --dual-only. Expected: REFUSED for trial/key mismatch. Actual: A is quarantined and its displaced record passes accounting under unprocessed B."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify/MEMORY",
+   "claim": "The unconditional MEMORY check rejects valid contextual reasoning from a report actually shown. It runs before A3's source checks, so those checks cannot preserve this context. The repeated scope-based decline explains the frozen behavior but does not establish faithfulness to the Handbook.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) reserves NI for circumstances where a probably answer is unreasonable. Naming the shown report is not reliance on memory.",
+   "failing_test": "Shown open fulltext contains 'central web-based randomisation'; 1.2=PY quotes it, rationale='The published report describes central web-based randomisation, supporting concealment.' Expected: verified PY. Actual: NI because 'published report' matches MEMORY."
+  }
+ ]
+}

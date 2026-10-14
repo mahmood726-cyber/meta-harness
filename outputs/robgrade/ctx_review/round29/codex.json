@@ -1,0 +1,35 @@
+{
+ "record_id": "mc-85076568b0e22cb56c150d88bdfc2475",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:check_manifest_records",
+   "claim": "The round-28 guard does not establish freshness. A held record and manifest can agree on an OLD prompt. In replay mode, rob2_dual.process still consumes that record, and the guard accepts it even when current evidence or adjudicator readings differ.",
+   "guidance_basis": "C4 requires reuse only for the exact prompt answered. RoB assessments concern the specified result and its evidence: [Handbook 8.2](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Hold readers and manifest with matching old prompt hashes; change the item's evidence while retaining their quoted substring; run served replay -> refuse stale readings before saving objects. Currently replay can save their answers and pass the guard."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:main",
+   "claim": "Reporting conflicting duplicate rows after processing does not fix their arbitrary resolution. The dual verifier retains the first answer, saves it, and the contextual pass preserves it as direct evidence. Reversing row order can therefore change the final judgement despite the same audit warning.",
+   "guidance_basis": "The project's fail-closed requirement and Handbook 8.2.3 require justified responses; contradictory replies cannot be resolved by array order. The round-28 audit test checks detection only.",
+   "failing_test": "Both readers return opposing PY/PN rows for 1.2 with verified quotes; reverse their row order -> refuse or quarantine the ambiguous readings before assembly, with no order-dependent judgement. Currently the first rows can agree and become the stored answer."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The unconditional MEMORY check still discards legitimate shown-source context. Declining this as outside A3's scope preserves the freeze but does not establish guidance compliance: 'published report' triggers NI even when that report supplies the verified quotation.",
+   "guidance_basis": "NI is appropriate only when a probability judgement is unreasonable given available context; terminology identifying a shown source is not memory. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08).",
+   "failing_test": "Shown CC full text contains 'central web-based randomisation'; 1.2=PY quotes it, rationale='The published report describes central web-based randomisation, supporting concealment' -> retain PY. Currently MEMORY forces NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_dual.py:process",
+   "claim": "An unreadable RAN_OK reader reply becomes an empty verified reading, then NI in agree(). Because presence is checked using manifest state alone, it can manufacture a disagreement and trigger adjudication. The shared parser's contextual missing-reader protection does not extend to the served dual stage.",
+   "guidance_basis": "The served pipeline promises two blind readings and adjudication of disagreements. A parsing failure supplies no reading; treating it as NI conflates unavailable model output with insufficient trial information under Handbook 8.2.3.",
+   "failing_test": "Codex returns verified PY for an untyped 1.2; agy's RAN_OK reply contains two distinct answer objects -> refuse or void the dual pass without adjudicating that question. Currently agy becomes NI and an adjudicator can establish a direct answer."
+  }
+ ]
+}

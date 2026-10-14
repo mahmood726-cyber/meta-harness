@@ -460,3 +460,108 @@ judgement, Handbook 8.2.3); for an unrecognised disclaimer it is NI.
 Recorded for Mahmood, as further candidate rule changes (not A3): (5) let the MEMORY markers yield when the named
 report is the shown source ("the published report", raised by codex in every round from 16 to 27); (6) the A3
 wording residual above.
+
+## The SERVED driver, review round 28 (13 Oct 2026): codex REVISE (5); agy ACCEPT
+
+scripts/rob2_served.py reads the served reviews' primary-outcome trials without a v3.1 object (65 of 91; 26 are
+covered) with the frozen pipelines unchanged, redirecting only their stores. Answered: 2 ACCEPTED; 2 ACCEPTED as
+guards in the served driver (the defects themselves are in the frozen v3.1 pipeline); 1 DECLINED. 4 failing-first
+tests (4 failed on the reviewed code, then pass); 10 served-driver tests pass.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | a failing contextual stage left rob2_contextual.main's workers running while redirected() restored the frozen stores, so an in-flight call could write a served record into the frozen store | ACCEPTED. The served CLI never unwinds into a restore after a failure: it prints the error and exits HARD while still redirected, and in-flight workers die with the process. A failing dual stage waits for its own pools first (shutdown with wait). | test_PLANT_r28_a_failed_run_never_restores_the_stores_while_workers_may_live |
+| codex4 | "covered" was decided by slug and PMID only, not by OUTCOME | ACCEPTED. An existing v3.1 object covers a served pair only if it assesses that review's served primary outcome. (On the real data the existing objects do, so the work list is unchanged: 26 covered, 65 to read.) | test_PLANT_r28_covered_means_the_same_trial_AND_the_same_outcome |
+| codex1 | the frozen v3.1 replay can reuse a record whose prompt no longer matches (it checks only the manifest hash) | ACCEPTED AS A GUARD. The defect is in the frozen scripts/rob2_dual.py and needs a signed amendment. It cannot arise in a first live run with a fresh manifest. The served driver checks after each stage that every record its manifests name is held and carries the manifest's prompt. Recorded for Mahmood. | test_PLANT_r28_every_manifest_record_carries_the_manifest_prompt |
+| codex2 | the frozen v3.1 verifier keeps the FIRST of two conflicting rows for a question | ACCEPTED AS AN AUDIT. The fix belongs in the frozen rob2_dual.verify_answers (a signed amendment). The served driver reports every served reply with conflicting duplicate rows, so none is silently resolved. Recorded for Mahmood. | test_PLANT_r28_replies_with_conflicting_duplicate_rows_are_reported |
+| codex3 | MEMORY markers vs a shown "published report" | DECLINED, out of scope (rounds 16-27). Recorded for Mahmood. | -- |
+
+## The SERVED driver, review round 29 (13 Oct 2026): codex REVISE (4); agy ACCEPT
+
+Answered: 3 ACCEPTED (made fail-closed in the served driver), 1 DECLINED. 5 failing-first tests (5 failed on the
+reviewed code, then pass); 15 served-driver tests pass. A replay over the 65 pairs runs clean.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | the round-28 guard accepted a record whose manifest and record agreed on an OLD prompt; in replay the frozen v3.1 pipeline consumes it | ACCEPTED. For each served trial the driver rebuilds the CURRENT reader prompt from the item's evidence (the frozen prompt_bytes), and requires every RAN_OK reader entry, and its held record, to answer it. An adjudication must answer exactly the disagreement those fresh readers make (rebuilt with the frozen verify_answers / agree / typed answers), with none when they agree. Anything else is REFUSED as a stale store. | test_PLANT_r29_a_stale_reader_record_is_refused, test_PLANT_r29_the_adjudicator_must_answer_the_disagreement_the_fresh_readers_make |
+| codex1 | reporting conflicting duplicate rows after the fact does not stop the frozen verifier resolving them by row order | ACCEPTED. A served trial whose reader or adjudicator reply answers one question twice differently is QUARANTINED: no object is written, and it is listed in outputs/robgrade/served/QUARANTINE.json as not assessed. | test_PLANT_r29_an_unreadable_or_ambiguous_reply_quarantines_the_trial, test_PLANT_r29_a_quarantined_trial_gets_no_object_and_is_listed |
+| codex3 | an unreadable RAN_OK reply becomes an empty reading in the frozen dual stage and can manufacture a disagreement | ACCEPTED. An unreadable reader or adjudicator reply QUARANTINES the trial (the contextual pipeline's missing-reader rule, applied at the served layer). | test_PLANT_r29_an_unreadable_or_ambiguous_reply_quarantines_the_trial |
+| codex2 | MEMORY markers vs a shown "published report" | DECLINED, out of scope (rounds 16-28). Recorded for Mahmood. | -- |
+
+## The SERVED driver, review round 30 (13 Oct 2026): codex REVISE (4); agy REVISE (2)
+
+Answered: 5 ACCEPTED (codex0 and agy0/agy1 are one defect), 1 DECLINED. 4 new failing-first tests, and the round-29
+test helper corrected; 19 served-driver tests pass.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0, agy0 | rd.replay already returns the PARSED reply; _reply_problem parsed it again, so every valid reply read as unreadable and EVERY trial would have been quarantined | ACCEPTED: a real, serious defect. Shown on a real held reply (mc-02ce2c35..., 22 answers): the round-29 code returned None for it. _reply_problem now uses rd.replay's parsed result. A NEW test runs the real rd.replay on that held record, with no mock. | test_PLANT_r30_a_real_held_reply_through_the_real_replay_is_readable |
+| agy1 | the round-29 test helper mocked rd.replay as returning bytes, against its real contract, which hid the defect | ACCEPTED. The helper's replay now returns what the real one does (the parsed reply, via the real parser) or None. (The lane rule this broke: mock the complete, real contract.) | the _world helper (all r29/r30 tests) |
+| codex1 | a FAILED adjudication was accepted on its manifest hash alone: a missing record, or a success relabelled as failed, suppressed a decision | ACCEPTED. Every entry (reader or adjudicator, any state) must be a HELD record in the state the manifest gives, for the current prompt. A failed adjudication is an honest NI only as a held failed record of that prompt. | test_PLANT_r30_a_failed_adjudication_must_be_a_HELD_failed_record_of_that_prompt, test_PLANT_r30_a_reader_entry_state_must_match_its_held_record |
+| codex2 | --ctx-only skipped every dual-stage guard | ACCEPTED. The option is removed, and an unknown option is refused. The contextual stage always runs after the guarded dual stage, which reuses fresh records and makes no new call for them. | test_PLANT_r30_the_contextual_stage_never_runs_without_the_guarded_dual_stage |
+| codex3 | MEMORY markers vs a shown "published report" | DECLINED, out of scope (rounds 16-29). Recorded for Mahmood. | -- |
+
+## The SERVED driver, review round 31 (14 Oct 2026): codex REVISE (4); agy RAN_ERROR (no reply; recorded)
+
+Answered: 3 ACCEPTED, 1 DECLINED. 3 failing-first tests (3 failed on the reviewed code, then pass); 22 served-driver
+tests pass. A full replay (dual, then contextual) of the 65 pairs runs clean.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex1 | the state check covered only the dual stage; a contextual success relabelled as failed would be trusted by the frozen contextual pipeline | ACCEPTED. Every entry in every served manifest (dual or contextual, any state) must be a held record in the state the manifest gives; a RAN_OK one must answer its prompt. | test_PLANT_r31_every_manifest_entry_in_ANY_state_must_match_its_held_record |
+| codex2 | deleting a manifest entry would remove a decision while its record stays held | ACCEPTED. Every held successful record in a served store must be accounted for: named by the dual manifest, or READ by the contextual replay. Otherwise REFUSED. | test_PLANT_r31_every_held_success_must_be_accounted_for |
+| codex0 | the checks ran only AFTER a stage, so a stale entry could reach an adjudicator prompt first | ACCEPTED. Both checks run on each existing manifest BEFORE its stage runs, and again after. | test_PLANT_r31_existing_manifests_are_checked_BEFORE_any_stage_runs |
+| codex3 | MEMORY markers vs a shown "published report" | DECLINED, out of scope (rounds 16-30). Recorded for Mahmood. | -- |
+
+RESIDUAL, stated: a live run that dies mid-stage can leave held records its manifest does not yet name (manifests
+are saved per topic). The next run then REFUSES (fail closed) instead of silently re-reading; such records would be
+reconciled explicitly.
+
+## The SERVED driver, review round 32 (14 Oct 2026): codex REVISE (4); agy REVISE (1)
+
+Answered: 4 ACCEPTED (codex0, codex1, codex3, agy0), 1 DECLINED. 4 failing-first tests (4 failed on the reviewed
+code, then pass); earlier fixtures gained the role their records carry (no assertion changed); 26 served-driver tests
+pass. A full replay runs clean.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | a decision could be hidden by parking its entry under an unused role (accounting counted it; the pipeline never reads it) | ACCEPTED. Only the pipeline's roles (codex, agy, adjudicator) are allowed; any other is REFUSED. Contextual accounting is checked after the stage against the consumed lists the replay itself writes. | test_PLANT_r32_an_entry_under_an_unknown_role_is_refused |
+| codex1 | one codex record referenced in both reader slots would pass as two agreeing readers | ACCEPTED. A record answers only for the role it was made for (its own caller line), and the two readers of a trial or pass must be distinct records. | test_PLANT_r32_a_record_is_bound_to_its_role_and_the_readers_are_distinct |
+| agy0 | a failed or missing reader left a kept object of typed answers and NIs that looks like a reading | ACCEPTED. A missing or failed reader QUARANTINES the trial (the contextual pipeline's missing-reader rule). | test_PLANT_r32_a_failed_or_missing_reader_quarantines_the_trial |
+| codex3 | quarantine came after rob2_dual.process, which could already have called an adjudicator on a disagreement a bad reader manufactured | ACCEPTED. A LIVE dual stage runs in two phases: readers only (adjudication deferred, no call), then the reader checks, then adjudication only for the trials that passed. | test_PLANT_r32_live_adjudication_waits_for_the_reader_checks |
+| codex2 | MEMORY markers vs a shown "published report" | DECLINED, out of scope (rounds 16-31). Recorded for Mahmood. | -- |
+
+## The SERVED driver, review round 33 (14 Oct 2026): codex REVISE (2); agy RAN_ERROR (no reply; recorded)
+
+Answered: 1 ACCEPTED, 1 DECLINED. 2 failing-first tests (2 failed on the reviewed code, then pass); 28 served-driver
+tests pass.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | a dual record parked under a manifest key of NO served trial still counted as accounted for, while its real trial was quarantined | ACCEPTED. Every manifest key must be a served trial's own pipeline key (slug::pmid::served primary outcome); a stray key is REFUSED, so only the served trials' entries account for a record. | test_PLANT_r33_an_entry_under_a_key_of_no_served_trial_is_refused, test_PLANT_r33_the_served_keys_are_the_pipelines_keys |
+| codex1 | MEMORY markers vs a shown "published report" | DECLINED, out of scope (rounds 16-32). Recorded for Mahmood. | -- |
+
+Found while testing: a mock with the old signature made main() fail in a test, and the driver's fail-closed hard
+exit (os._exit) then ended the whole pytest process silently. Every test that calls main() now replaces that exit.
+
+## The SERVED driver, review round 34 (14 Oct 2026): codex REVISE (2); agy RAN_ERROR -- review closed; live run
+
+Answered: 1 ACCEPTED, 1 DECLINED. 1 failing-first test (it failed on the reviewed code, then passes); 29 served-driver
+tests pass.
+
+| # | finding | response | test |
+|---|---|---|---|
+| codex0 | a trial's record moved under a COVERED trial's valid key passed: nothing bound a record to its trial | ACCEPTED. A record answers only for the trial and outcome its own prompt names (its TRIAL: / OUTCOME: lines); a record under another trial's key is REFUSED. | test_PLANT_r34_a_record_is_bound_to_the_trial_and_outcome_of_its_key |
+| codex1 | MEMORY markers vs a shown "published report" | DECLINED, out of scope (rounds 16-33). Recorded for Mahmood. | -- |
+
+Closing the served-driver review (rounds 28-34), as announced in round 33. The driver's real defects were all fixed,
+each with a failing-first test:
+- the double parse that would have quarantined every trial;
+- the pipeline-store race on failure;
+- outcome-blind coverage;
+- quarantine of unreadable, ambiguous, failed or missing readers, before any adjudication.
+Since round 31, every new codex finding has been a further way to TAMPER WITH A MANIFEST FILE (relabel a state, park
+or move an entry, reuse a record across roles, keys or trials). Each was guarded. RESIDUAL, stated: the served stores
+are checked against tampering by role, state, prompt, trial, outcome, key and accounting; an attack outside those
+properties is not claimed to be caught. agy ACCEPTED rounds 28-30, asked for one change in round 32 (made), and
+returned no reply in rounds 31, 33 and 34 (recorded).

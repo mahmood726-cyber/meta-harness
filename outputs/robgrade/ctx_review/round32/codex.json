@@ -1,0 +1,35 @@
+{
+ "record_id": "mc-e13b5431547f0325b8b057bc64a7408d",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:check_accounted, item_verdict",
+   "claim": "A successful decision can still be omitted by parking its entry under an unused role. Accounting counts every named record, while the pipeline reads only recognised roles. Contextual accounting likewise trusts stored consumed lists, including unprocessed entries.",
+   "guidance_basis": "C4 requires replay of recorded decisions. The round-31 fix promises that a held success cannot be silently omitted; manifest membership is not proof of consumption.",
+   "failing_test": "Move the agy entry to 'spare', retain its held RAN_OK record, and replay with no adjudicator -> REFUSED before writing an object. Currently accounting passes and the missing reader suppresses model answers."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:check_manifest_records, item_verdict",
+   "claim": "Neither guard binds a record to its reader role or requires distinct reader records. One held codex reply referenced by both codex and agy passes the checks and becomes apparent independent agreement. The served contextual stage has the same gap.",
+   "guidance_basis": "C4 requires two blind readers. Matching prompt hashes and states does not establish reader identity or independence; the calibration scorer's verify_records checks roles, but the served driver never invokes it.",
+   "failing_test": "Hold one valid codex record; reference its ID and matching hash in both reader slots, with no agy record -> REFUSED. Currently both stages can accept its PY twice and store an agreed answer."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify (MEMORY gate)",
+   "claim": "The repeated decline remains a guidance defect: 'published report' automatically forces NI even when the report was shown and supplies valid context. A3's source-aware check cannot correct this because the unconditional MEMORY rejection runs first.",
+   "guidance_basis": "[Handbook §8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) reserves NI for circumstances where a probability judgement is unreasonable. Naming a shown report does not establish reliance on memory. Pre-registration documents this restriction but does not make it guidance-faithful.",
+   "failing_test": "Shown full text contains 'central web-based randomisation'; 1.2=PY quotes it, rationale='The published report describes central web-based randomisation, supporting concealment' -> eligible PY, not automatic NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_served.py:main, run_dual; tests/test_rob2_served.py:test_PLANT_r31_existing_manifests_are_checked_BEFORE_any_stage_runs",
+   "claim": "Quarantine occurs after rd.process finishes. A fresh but unreadable or conflicting reader reply can therefore trigger a live adjudicator call before rejection. The round-31 test checks function order only; its mocked checks never exercise reply validity.",
+   "guidance_basis": "C4 permits adjudication only of genuine disagreements between present, readable readers. Rounds 29–31 promise protection against manufactured disagreements before they reach prompts.",
+   "failing_test": "Provide a fresh held unreadable agy success, a valid codex PY on an untyped question, and no adjudicator; run live -> quarantine with zero adjudicator calls. Currently rd.process first adjudicates PY versus manufactured NI."
+  }
+ ]
+}

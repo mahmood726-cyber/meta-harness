@@ -1,0 +1,35 @@
+{
+ "record_id": "mc-1bc70f01d00b4fd6656fc039f0061cec",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:_reply_problem; tests/test_rob2_served.py:_world",
+   "claim": "rd.replay() already returns a parsed dictionary. Passing it to parse_reply() stringifies it as Python syntax, so ordinary valid replies become unreadable and their trials are quarantined. The tests conceal this integration defect by mocking replay() to return bytes.",
+   "guidance_basis": "A2 requires one consistent interpretation of each recorded reply; the served driver must preserve valid frozen-pipeline decisions.",
+   "failing_test": "Use real rd.replay() with a held, valid JSON reply and matching current prompt -> _reply_problem returns None and the trial is retained; currently it reports unreadable."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:item_verdict/check_manifest_records",
+   "claim": "A failed adjudication is accepted from its manifest hash alone. Its record need not exist or actually have failed. Changing a successful adjudication's manifest state to RAN_ERROR suppresses its decision; neither guard verifies the held state or accounts for the unread successful record.",
+   "guidance_basis": "The registered workflow permits NI after a recorded failed attempt, not an invented failure or an omitted decision. Fail-closed provenance requires checking the held attempt.",
+   "failing_test": "Fresh, readable disagreeing readers plus adjudicator={state:RAN_ERROR,record_id:missing,prompt_sha256:current} -> REFUSED for no held attempt. Also reject a RAN_ERROR entry whose held record is RAN_OK."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_served.py:main/run_ctx",
+   "claim": "--ctx-only bypasses all dual-stage freshness and quarantine checks. It loads existing served dual objects directly, including objects produced before the round-29 guards or with stale reader records. The contextual pass preserves their direct answers, and the final check examines only contextual records.",
+   "guidance_basis": "C1 preserves direct answers on the assumption that the baseline is valid. The round-29 requirement to reject stale or ambiguous dual readings must also hold when entering through --ctx-only.",
+   "failing_test": "Existing served dual object with a reader record answering an old evidence prompt; invoke --ctx-only -> refuse before contextual processing. Currently the dual record is never validated."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "robgrade/contextual.py:verify/MEMORY; outputs/robgrade/ctx_review/RESPONSES.md:rounds 16–29",
+   "claim": "The declined MEMORY finding remains real: 'published report' is rejected before source identity is checked, even when that exact report was shown and supports the inference. Calling this out of amendment scope explains its retention but does not establish Handbook fidelity.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits justified probability judgements from available context; wording alone does not make a shown report memory.",
+   "failing_test": "Shown CC full text contains 'central web-based randomisation'; 1.2 PY quotes it, rationale='The published report describes central web-based randomisation, supporting concealment' -> eligible contextual PY; currently NI."
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "record_id": "mc-c598a4b401133ef7d9b2963cbbd4ec8e",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:check_accounted",
+   "claim": "A successful dual-reader record can be parked under an unused trial key and still count as accounted for. Removing its real entry then quarantines the actual trial, while both preflight and post-stage checks pass. The round-32 role checks do not prevent this decision omission.",
+   "guidance_basis": "Registered C4 and the round-31/32 safeguards require held decisions to be used or explicitly reconciled. Naming a record in an unexecuted manifest entry does not establish consumption.",
+   "failing_test": "Two held agreeing readers; move the real trial's agy entry to an unused key under role agy; run replay --dual-only -> REFUSED for an unconsumed/misbound record. Currently the trial is quarantined and accounting passes."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "MEMORY still rejects a rationale naming the shown 'published report' before A3 checks source identity. Thus legitimate quoted context becomes NI solely because of its wording. Declining this as outside amendment scope leaves the guidance defect unresolved.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08): NI requires insufficient information and an unreasonable probability judgement. Referring to a report actually shown is not reliance on memory.",
+   "failing_test": "Shown CC full text contains 'central web-based randomisation'; 1.2=PY quotes that text; rationale='The published report describes central web-based randomisation, supporting concealment.' -> retain PY. Currently verify returns NI via MEMORY."
+  }
+ ]
+}

@@ -30,6 +30,8 @@ if ROUND >= 16:     # amendment A3 + the two pre-registered variants (Mahmood 13
     FILES += ["outputs/robgrade/SIGNING_RULE_CANDIDATES.md", "outputs/robgrade/ctx_review/A3_DIFF.patch",
               "outputs/robgrade/CONTEXTUAL_VARIANT_v43_setting.md", "outputs/robgrade/CONTEXTUAL_VARIANT_vcommonly.md",
               "tests/test_rob2_amendment_a3.py"]
+if ROUND >= 28:     # the SERVED driver (Mahmood 13 Oct: continue to the served trial-topic pairs)
+    FILES += ["scripts/rob2_served.py", "tests/test_rob2_served.py", "scripts/rob2_dual.py"]
 OUT = os.path.join(ROOT, "outputs", "robgrade", "ctx_review", *([f"round{ROUND}"] if ROUND > 1 else []))
 REC = os.path.join(ROOT, "evidence", "model_calls", "robgrade_ctx")
 
@@ -93,9 +95,21 @@ the A3 tests' expected values right.
 """
 
 
+SERVED_REVIEW = """
+THE SERVED DRIVER (round 28 on). A3 and both variants are applied and scored. scripts/rob2_served.py now reads the
+served reviews' primary-outcome trials that have no v3.1 object (65 of 91) with the FROZEN pipelines unchanged
+(rob2_dual: typed answers, codex + agy blind readers, adjudicator, D8 licence gate; rob2_contextual under the A3 base),
+redirecting only their stores (records, manifests, objects) to served ones and restoring them afterwards. No served
+page is written. Check: can it overwrite a frozen calibration object, record store or manifest; can a store stay
+redirected after a failure; does any non-CC full text reach a prompt; is the A3 base (never a variant) what the
+contextual pass uses; are the pairs the right ones (primary outcome; the 11 non-primary-only pairs are left for
+Mahmood to scope); are the tests' expected values right.
+"""
+
+
 def prompt():
     parts = [INSTR] + ([REVISION] if ROUND > 1 else []) + ([A2_REVIEW] if ROUND >= 7 else []) + \
-        ([A3_REVIEW] if ROUND >= 16 else [])
+        ([A3_REVIEW] if ROUND >= 16 else []) + ([SERVED_REVIEW] if ROUND >= 28 else [])
     for f in FILES:
         parts.append(f"\n\n===== FILE {f} =====\n" + open(os.path.join(ROOT, f), encoding="utf-8").read())
     return "".join(parts).encode("utf-8")

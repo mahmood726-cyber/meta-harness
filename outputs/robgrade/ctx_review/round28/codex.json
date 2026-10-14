@@ -1,0 +1,42 @@
+{
+ "record_id": "mc-daff547d25fe09db6e097bf6fd0dbb95",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:run_ctx; scripts/rob2_contextual.py:main",
+   "claim": "A contextual future or save failure exits main without shutting down its executors. redirected() then restores the frozen stores while other calls remain active. Those calls resolve REC_DIR when writing their replies and can write served records into the frozen calibration store. The restoration test raises synchronously and misses this race.",
+   "guidance_basis": "The served-driver contract requires isolation of frozen stores, including after failures. Restoration must occur only after all workers that use redirected globals have stopped.",
+   "failing_test": "Run two contextual jobs: one raises while another model call waits on an event. Release the second after the exception -> its record must stay in the served store; all workers must finish before globals are restored."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_dual.py:process",
+   "claim": "Dual replay reads reader and adjudicator records without checking their prompts against the current prompts. Live reuse checks only the manifest hash, not the held record's prompt. A stale reply whose quote remains in the evidence can therefore determine a new assessment. The served driver inherits this unchecked reuse.",
+   "guidance_basis": "Recorded answers must remain bound to the evidence, questions and result they assessed. C4 explicitly requires both manifest and held-record prompt hashes to match.",
+   "failing_test": "Keep a RAN_OK adjudicator record for earlier readings, then change the current disagreement while retaining its quoted text; process(..., live=False) -> refuse the stale adjudication, rather than apply its answer."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_dual.py:verify_answers",
+   "claim": "The shared parser accepts duplicate question rows, but the dual verifier silently keeps the first. Unlike contextual.verify, it does not detect conflicting answers. Both readers returning the same contradictory rows can become a dual agreement, which the contextual pass then preserves as a direct answer.",
+   "guidance_basis": "A2 requires ambiguous conflicting rows to remain unresolved. RoB 2 responses need an identifiable supporting judgement; row order cannot settle contradictory responses.",
+   "failing_test": "A reply contains two validly quoted 1.2 rows, PY then PN; reverse their order -> both orders must yield unresolved NI or an unreadable reply, never PY in one order and PN in the other."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "The standing decline concerning shown reports remains incorrect: MEMORY rejects 'published report' before A3 checks source availability. Thus an otherwise grounded rationale becomes NI solely because it accurately names the shown source. Declaring this outside amendment scope does not establish Handbook compliance.",
+   "guidance_basis": "NI is appropriate only when a reasonable probable answer cannot be supported. Naming a shown report is not reliance on memory. [Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08)",
+   "failing_test": "Shown full text contains 'central web-based randomisation'; 1.2 PY quotes it and explains 'The published report describes central web-based randomisation, supporting concealment' -> retain PY, not NI."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "scripts/rob2_served.py:work_list",
+   "claim": "Coverage is determined solely by slug and PMID. An existing v3.1 assessment of a different outcome still excludes that trial from the served primary-outcome work list. The count-only tests do not establish that the covered objects assess the required outcome.",
+   "guidance_basis": "RoB 2 assesses a specific result, so an assessment for another outcome cannot establish coverage. [Handbook 8.2.1](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08)",
+   "failing_test": "A served review's primary outcome is mortality; its existing v3.1 object for the same slug/PMID assesses hospitalization -> include the mortality assessment in todo, or refuse the mismatch; do not mark it covered."
+  }
+ ]
+}

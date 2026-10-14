@@ -1,0 +1,14 @@
+{
+ "record_id": "mc-d6bfc2d0ee3c527f0113c954c6cab8c2",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:item_verdict",
+   "claim": "When a reader in run_dual fails (state != 'RAN_OK') or is missing, item_verdict bypasses quarantine and returns None (clean/kept). With dis empty and adj None, line 6085 returns None, so keep_or_quarantine keeps the trial. In rob2_dual, a failed reader causes assemble to populate non-typed answers as manufactured 'no-reading' NIs, which are kept as valid served assessments and then subjected to contextual passes.",
+   "guidance_basis": "Cochrane RoB 2 (Handbook 8.2; Sterne et al., BMJ 2019) requires independent dual assessment. When a reader fails or is missing, no valid dual reading occurred; passing off 'no-reading' fallbacks as completed served assessments and running contextual passes on them violates dual assessment. Trials with missing or failed readers must be quarantined rather than kept.",
+   "failing_test": "sv.item_verdict(ITEM, dict(RUN, agy={'state': 'RAN_ERROR', 'record_id': 'r-a', 'prompt_sha256': P}), 'd') -> quarantine reason string (e.g. 'failed reader (RAN_ERROR): agy'), but returns None"
+  }
+ ]
+}

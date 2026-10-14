@@ -1,0 +1,35 @@
+{
+ "record_id": "mc-7158780856d02525ba46f9b86d389b98",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:run_dual",
+   "claim": "Validation happens after rd.process can construct an adjudicator prompt. A stale reader's rejected quote is retained in 'dropped' and serialized into that prompt, even when its full-text source is now non-CC. Checking the manifest afterwards is too late.",
+   "guidance_basis": "C3 and D8 prohibit non-open source text in prompts; C4 requires adjudication of verified, current readings. Filtering evidence_block does not filter quotations embedded in THE TWO READINGS.",
+   "failing_test": "Live run: reader manifest claims the current hash, but its held record answers an old prompt and quotes full text now NOT_CC; the peer supplies a differing answer -> refuse before adjudication, with no closed-source span in its prompt."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:check_manifest_records",
+   "claim": "The round-30 state check protects only the dual stage. Contextual entries marked RAN_ERROR are skipped here, while contextual.fresh trusts that manifest state. Relabelling a held successful reader or adjudicator as failed suppresses its decision and writes NI without refusal.",
+   "guidance_basis": "C4 requires reuse of fresh recorded readings and genuine adjudication. A successful decision cannot become missing evidence through manifest metadata; the served contextual pass must preserve the A3 base contract.",
+   "failing_test": "Hold two fresh contextual readers agreeing PY; change only agy's manifest state to RAN_ERROR; replay the served pipeline -> refuse the state mismatch, rather than write NI. Repeat with a successful adjudicator relabelled failed."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:main",
+   "claim": "Neither served stage reconciles held successful records with records actually consumed. Deleting a reader entry from a manifest therefore removes its decision without deleting the evidence file. The final audit checks conflicting rows only, so this omission passes even if state validation is added.",
+   "guidance_basis": "CONTEXTUAL_POLICY section 3 requires every held post-registration RAN_OK record to be consumed or validly superseded. The served A3 pass omits this protection against selective restoration of NI.",
+   "failing_test": "For a selected served trial, retain both fresh PY reader records but delete one contextual manifest entry -> refuse an unaccounted successful record or recover the exact fresh record; do not silently emit NI."
+  },
+  {
+   "severity": "BLOCKER",
+   "where": "robgrade/contextual.py:verify",
+   "claim": "MEMORY rejects 'published report' before checking whether that report was shown. Thus legitimate quoted context becomes NI solely because of attribution wording. The repeated scope-based decline preserves registration but does not resolve this methods defect; correction needs a signed rule amendment.",
+   "guidance_basis": "[Handbook 8.2.3](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) permits reasonable contextual probability judgements. Attribution to a supplied report is not reliance on memory.",
+   "failing_test": "Shown CC full text contains 'central web-based randomisation'; 1.2=PY quotes it, with rationale 'The published report describes central web-based randomisation, supporting concealment' -> retain contextual PY, not NI."
+  }
+ ]
+}

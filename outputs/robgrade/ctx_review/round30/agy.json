@@ -1,0 +1,21 @@
+{
+ "record_id": "mc-924e729e01a20e838c33613b78bb1ec6",
+ "state": "RAN_OK",
+ "verdict": "REVISE",
+ "findings": [
+  {
+   "severity": "BLOCKER",
+   "where": "scripts/rob2_served.py:_reply_problem",
+   "claim": "_reply_problem calls cx.parse_reply(rd.replay(entry)), but rd.replay already delegates to parse() and returns a parsed dict (or None). cx.parse_reply converts a dict argument via str(raw) into Python single-quoted dict syntax, failing JSON decoding and returning None. Thus every valid reader and adjudicator reply is judged 'unreadable reply: {who}', causing item_verdict to quarantine 100% of assessed trials into QUARANTINE.json and leaving served output objects completely empty.",
+   "guidance_basis": "Handbook 8.2 and RoB 2 serving specification (PROMPT.txt / RESPONSES.md r28-r29): valid dual readings and adjudications must be preserved and written to served trial objects (outputs/robgrade/served/rob2/<slug>.json); only genuinely malformed or conflicting replies may be quarantined.",
+   "failing_test": "entry with valid reply where rd.replay(entry) returns parsed dict {'answers': [{'qid': '1.2', 'answer': 'PY'}]} -> _reply_problem(entry, 'codex') returns 'unreadable reply: codex' instead of None."
+  },
+  {
+   "severity": "MAJOR",
+   "where": "tests/test_rob2_served.py:_world",
+   "claim": "Test helper _world mocks sv.rd.replay as returning bytes ((replies.get(...) or '').encode()) instead of the parsed dict returned by real rd.replay (which calls parse()). This contract violation masked the double-parsing defect in _reply_problem, allowing test_PLANT_r29_a_clean_item_passes to pass spuriously while real execution quarantines all trials.",
+   "guidance_basis": "AGENTS.md test integrity and fail-closed requirements: test fixtures must obey the type contracts of mocked pipeline functions. Mocking bytes instead of dict masks catastrophic failure in item_verdict.",
+   "failing_test": "_world with sv.rd.replay returning json.loads(GOOD) (conforming to real rd.replay's dict contract) -> test_PLANT_r29_a_clean_item_passes fails with assert 'unreadable reply: codex' is None."
+  }
+ ]
+}
