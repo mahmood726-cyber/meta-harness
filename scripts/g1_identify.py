@@ -74,7 +74,9 @@ def pubmed_records(pmids):
             title = "".join(te.itertext()).strip() if te is not None else ""
             ab = " ".join("".join(a.itertext()) for a in art.findall(".//Abstract/AbstractText"))
             ids = sorted({m.group(0).upper().replace(" ", "") for s in acc + oth for m in _REG.finditer(s)})
+            fa = art.find(".//AuthorList/Author/LastName")
             out[pmid] = {"title": title, "abstract": ab, "registry_ids": ids, "databank": acc, "other_ids": oth,
+                         "first_author": "".join(fa.itertext()).strip() if fa is not None else None,
                          "xml_sha256": hashlib.sha256(ET.tostring(art)).hexdigest()}
     return out
 
