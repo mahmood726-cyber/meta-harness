@@ -2629,6 +2629,9 @@ def build_review_core(slug, config, records, protocol_sha):
                 row=_t,
                 # E1: the absence is conditional on the coverage of what was searched (held bytes + census)
                 coverage=source_coverage_mod.coverage_for(slug, _pid, _ft),
+                # A7: a reported effect is checked against the counts its own percentages + arm sizes imply
+                arm_terms=(config.get("intervention_terms", ["colchicine"]),
+                           config.get("comparator_terms", ["placebo", "control"])),
             )
             for _ak, _av in _ann.items():
                 if _av not in (None, "", []):

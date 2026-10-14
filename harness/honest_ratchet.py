@@ -40,8 +40,7 @@ MARKERS = {
     # typed absence codes (lane RR, 2026-09-16). A page that renames the state has not lost it.
     "declared_absent": ["declared absent", "DECLARED_ABSENT", "OUTCOME_NOT_IN_SOURCE",
                         "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH", "COUNTS_PRESENT_NOT_CORROBORATED",
-                        "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE",
-                        "SOURCE_NOT_RETRIEVED", "MULTI_ARM_UNRESOLVED", "TIMEPOINT_MISMATCH",
+                        "SOURCE_NOT_RETRIEVED", "MULTI_ARM_UNRESOLVED", "TIMEPOINT_MISMATCH", "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE",
                         "POPULATION_MISMATCH"],
     "not_assessed": ["not assessed", "NOT_ASSESSED"],
 }

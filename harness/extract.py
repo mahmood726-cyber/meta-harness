@@ -57,7 +57,12 @@ _EFFECT = re.compile(
     # "CV death or HF hospitalisation (RR 0.83...)" be read as an odds-ratio scale label,
     # mislabelling a comparator RR as OR. The full words stay case-insensitive.
     r"(relative risk reduction|relative risk|risk ratio|incidence rate ratio|rate ratio|(?-i:\bRR\b)|odds ratio|(?-i:\bOR\b)|hazard ratio|(?-i:\bHR\b))"
-    r"[^0-9]{0,25}?(\d+(?:\.\d+)?)[^0-9]{0,28}?(?:\d{2}\s*(?:%|percent|per cent)\s*)?(?:confidence intervals?|\bCI\b)"
+    # gap label -> point: the historical <=25 non-digit chars, OR (A7 part 2, PICU 39935568) the outcome named between
+    # them and closed by 'was/were/is': 'The RR ratio for AAD when using LGG was 0.59 (95% CI, 0.21-1.6)', 'the relative
+    # risk of antibiotic-associated diarrhea was 0.59 (...)'. Still no digit, ';' or bracket in the gap, and the CI below
+    # is still required.
+    r"(?:[^0-9]{0,25}?|(?:\s+ratio)?\s+(?:for|of)\s+[^0-9;()]{1,60}?\s(?:was|were|is)\s+)"
+    r"(\d+(?:\.\d+)?)[^0-9]{0,28}?(?:\d{2}\s*(?:%|percent|per cent)\s*)?(?:confidence intervals?|\bCI\b)"
     r"[^0-9]{0,10}?(\d+(?:\.\d+)?)\s*(?:to|[-–—,])\s*(\d+(?:\.\d+)?)", re.I)
 _K = re.compile(r"(\d+|[A-Za-z]+)\s+(?:randomi[sz]ed\s+(?:controlled\s+)?trials|controlled\s+(?:clinical\s+)?trials|RCTs)", re.I)
 
@@ -847,6 +852,10 @@ def _arm_ns(abstract, interv_terms, comp_terms):
                         # the OR the protocol registers).
                         rf"(\d+)\s+to\s+(?:receive\s+)?(?:the\s+)?{tl}",
                         rf"(?:received|assigned to|randomi[sz]ed to)[^.]{{0,15}}?{tl}[^.]{{0,15}}?\(\s*(\d+)\)",
+                        # 'N in the <arm> group/arm' -- PICU 39935568: '19 patients eligible for final analysis; 10 in
+                        # the LGG group and 9 in the placebo group' (A7 part 2). As with every size here, the count path
+                        # uses it only if it corroborates the arm's stated percentage (30% of 10 = 3).
+                        rf"(\d+)\s+in\s+the\s+{tl}\s+(?:group|arm)\b",
                         # BARE ADJACENCY (last resort): "... and 263 conventional oxygen therapy" — an
                         # arm size given as "N <arm label>" with the shared verb elided. Safe because
                         # the count path only accepts this size if it corroborates the arm's stated %.
@@ -859,6 +868,42 @@ def _arm_ns(abstract, interv_terms, comp_terms):
         if best:
             out[key] = best
     return out
+
+
+# 'in 30% vs 55.5% of patients' -- a bare percentage pair (no event counts printed)
+_PCT_PAIR = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*%\s*(?:vs\.?|versus|and|compared with|compared to)\s*"
+                       r"(\d{1,3}(?:\.\d+)?)\s*%", re.I)
+
+
+def percentage_implied_counts(abstract, sentences, interv_terms, comp_terms):
+    """(ai, n1i, ci, n2i, sentence) implied by a bare percentage pair and the abstract's own per-arm sizes, ONLY as a
+    CONSISTENCY CHECK on a reported effect (A7 part 2, PICU 39935568): '30% vs 55.5% of patients in the LGG groups vs
+    placebo' with '10 in the LGG group and 9 in the placebo group' -> 3/10 v 5/9. Never a pooled value: the extractor's
+    count path is unchanged (it needs printed counts). Each implied count must reproduce its printed percentage to
+    the printed precision (rounded or truncated: |count/n - p| < one unit in the last printed decimal), arms are
+    ordered by where the arm terms appear AFTER the pair, and a pair with both or neither arm order is ambiguous -> None."""
+    ns = _arm_ns(abstract or "", interv_terms, comp_terms)
+    if not (ns.get("i") and ns.get("c")):
+        return None
+    for s in sentences or []:
+        m = _PCT_PAIR.search(s)
+        if not m:
+            continue
+        rest = s[m.end():].lower()
+        ipos = min([rest.find(t.lower()) for t in interv_terms if rest.find(t.lower()) >= 0] or [-1])
+        cpos = min([rest.find(t.lower()) for t in comp_terms if rest.find(t.lower()) >= 0] or [-1])
+        if ipos < 0 or cpos < 0 or ipos == cpos:
+            continue
+        pi, pc = (m.group(1), m.group(2)) if ipos < cpos else (m.group(2), m.group(1))
+        out = []
+        for p, n in ((pi, ns["i"]), (pc, ns["c"])):
+            dec = len(p.split(".")[1]) if "." in p else 0
+            k = round(float(p) * n / 100)
+            if not (0 <= k <= n and abs(k / n * 100 - float(p)) < 10 ** (-dec)):
+                return None
+            out += [k, n]
+        return (out[0], out[1], out[2], out[3], s.strip())
+    return None
 
 
 def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):
