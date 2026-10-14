@@ -351,9 +351,14 @@ def study_dates(ncts, root: str | None = None) -> dict[str, dict]:
     for r in _iter_rows(p):
         nct = (r.get("nct_id") or "").upper()
         if nct in want:
+            # WHICH completion and of WHICH type, as the registry gives them -- never folded together (R9-2, 9 Oct: the
+            # primary completion used to stand in for a missing study completion, and both types were dropped)
             out[nct] = {
                 "start_date": r.get("start_date"),
-                "completion_date": r.get("completion_date") or r.get("primary_completion_date"),
+                "completion_date": r.get("completion_date") or None,
+                "completion_date_type": r.get("completion_date_type") or None,
+                "primary_completion_date": r.get("primary_completion_date") or None,
+                "primary_completion_date_type": r.get("primary_completion_date_type") or None,
                 "study_first_submitted_date": r.get("study_first_submitted_date"),
                 "results_first_posted_date": r.get("results_first_posted_date"),
                 "overall_status": r.get("overall_status"),
