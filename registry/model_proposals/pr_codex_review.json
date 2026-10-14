@@ -6999,5 +6999,102 @@
     "verdict": null
    }
   ]
+ },
+ "a7-r1-agy": {
+  "base": "31daf9b3",
+  "head": "400c1120",
+  "runs": {
+   "g1": {
+    "record_id": "mc-10263a0107fbef6b4ae85107db7c6cb7",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/absence.py",
+     "harness/consumer_consistency.py",
+     "harness/extract.py",
+     "harness/harms.py",
+     "harness/honest_ratchet.py",
+     "harness/page.py",
+     "harness/pipeline.py",
+     "harness/reason_audit.py"
+    ],
+    "prompt_sha256": "87e25c7162d9ff8cff4607a3c170ee73b495baa4a7a8271f4156e32ba266adcc"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "a7-r1": {
+  "base": "31daf9b3",
+  "head": "400c1120",
+  "runs": {
+   "g1": {
+    "record_id": "mc-028f887da7e340972eae1af148952433",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/absence.py",
+     "harness/consumer_consistency.py",
+     "harness/extract.py",
+     "harness/harms.py",
+     "harness/honest_ratchet.py",
+     "harness/page.py",
+     "harness/pipeline.py",
+     "harness/reason_audit.py"
+    ],
+    "prompt_sha256": "3bf2ccf43c677f63e767a8ceedb4b6d5e4430fc085c8099dd1e8942fc3463242"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/extract.py",
+    "function": "_printed_decimals / reported_vs_count_derived",
+    "severity": "P1",
+    "claim": "Precision comes from the first numerically equal token anywhere in the span, rather than the reported effect. An unrelated follow-up duration therefore makes the disagreement gate accept inconsistent values.",
+    "failing_input": "from harness.extract import reported_vs_count_derived\ns = 'At 0.5 years, mortality was 27/100 versus 50/100 (RR 0.50, 95% CI 0.30-0.80).'\nreported_vs_count_derived((27, 100, 50, 100), ('RR', 0.50, 0.30, 0.80), s, s)",
+    "expected": "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE with terminal=True: count-derived RR 0.54 differs from reported RR 0.50 by more than its printed two-decimal tolerance of 0.005.",
+    "actual": "Returns None. The earlier '0.5 years' supplies one-decimal precision, increasing tolerance to 0.050000001 and accepting the disagreement.",
+    "id": "a7-r1:g1#1",
+    "record_id": "mc-028f887da7e340972eae1af148952433",
+    "verdict": null
+   },
+   {
+    "file": "harness/extract.py",
+    "function": "reported_vs_count_derived",
+    "severity": "P1",
+    "claim": "The adjustment exemption searches the entire reporting span. When unadjusted and adjusted effects share a sentence, mentioning the adjusted effect incorrectly exempts the explicitly unadjusted effect being compared.",
+    "failing_input": "from harness.extract import reported_vs_count_derived\ns = 'Mortality was 27/100 versus 50/100 (unadjusted RR 0.50, 95% CI 0.30-0.80; adjusted RR 0.54, 95% CI 0.32-0.85).'\nreported_vs_count_derived((27, 100, 50, 100), ('RR', 0.50, 0.30, 0.80), s, s)",
+    "expected": "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE with terminal=True: the supplied unadjusted RR 0.50 disagrees with crude count-derived RR 0.54.",
+    "actual": "Returns None because _RT_ADJUSTED matches 'adjusted' in the separate adjusted estimate, skipping comparison of the supplied unadjusted estimate.",
+    "id": "a7-r1:g1#2",
+    "record_id": "mc-028f887da7e340972eae1af148952433",
+    "verdict": null
+   }
+  ]
+ },
+ "a7-r1-agy-retry": {
+  "base": "31daf9b3",
+  "head": "400c1120",
+  "runs": {
+   "g1": {
+    "record_id": "mc-6e45a1ee2f60d3ce3d1c02b66c2fc24a",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/absence.py",
+     "harness/consumer_consistency.py",
+     "harness/extract.py",
+     "harness/harms.py",
+     "harness/honest_ratchet.py",
+     "harness/page.py",
+     "harness/pipeline.py",
+     "harness/reason_audit.py"
+    ],
+    "prompt_sha256": "87e25c7162d9ff8cff4607a3c170ee73b495baa4a7a8271f4156e32ba266adcc"
+   }
+  },
+  "verdicts": {},
+  "findings": []
  }
 }

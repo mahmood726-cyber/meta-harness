@@ -125,3 +125,26 @@ def test_PLANT_corp_relative_risk_049_v_counts_051_is_the_typed_state():
     out = extract.extract_trial(ab, ["recurrent pericarditis"], ["colchicine"], ["placebo"], estimand="RR")
     assert out.get("state") == STATE and out["terminal"] is True, out
     assert out["reported"]["effect"] == 0.49 and (out["count_derived"]["ai"], out["count_derived"]["ci"]) == (26, 51)
+
+
+# ---- A7 review round 1 (codex a7-r1 mc-028f887d, 2 P1): plants that failed first ----
+def test_precision_is_read_from_the_reported_effect_not_an_equal_number_elsewhere():
+    s = "At 0.5 years, mortality was 27/100 versus 50/100 (RR 0.50, 95% CI 0.30-0.80)."
+    out = extract.reported_vs_count_derived((27, 100, 50, 100), ("RR", 0.50, 0.30, 0.80), s, s)
+    assert out and out["state"] == STATE and out["terminal"] is True, out
+
+
+def test_an_adjusted_estimate_beside_an_unadjusted_one_does_not_exempt_the_unadjusted_one():
+    s = "Mortality was 27/100 versus 50/100 (unadjusted RR 0.50, 95% CI 0.30-0.80; adjusted RR 0.54, 95% CI 0.32-0.85)."
+    out = extract.reported_vs_count_derived((27, 100, 50, 100), ("RR", 0.50, 0.30, 0.80), s, s)
+    assert out and out["state"] == STATE and out["terminal"] is True, out
+    # and the adjusted one, when it is the value compared, is still exempt
+    assert extract.reported_vs_count_derived((27, 100, 50, 100), ("RR", 0.54, 0.32, 0.85), s, s) is None
+
+
+def test_an_adjusted_label_before_the_parenthesis_still_exempts_the_value_inside_it():
+    # probiotics 7872284 (sweep, after the r1 fix): 'the adjusted relative risk was significantly protective for S.
+    # boulardii (RR = 0.29, 95% CI = 0.08, 0.98)' v crude 7/97 v 14/96 = 0.495
+    s = ("Using a multivariate model to adjust for two independent risk factors, the adjusted relative risk was "
+         "significantly protective for S. boulardii (RR = 0.29, 95% CI = 0.08, 0.98).")
+    assert extract.reported_vs_count_derived((7, 97, 14, 96), ("RR", 0.29, 0.08, 0.98), s, s) is None
