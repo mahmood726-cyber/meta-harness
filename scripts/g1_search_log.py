@@ -5,7 +5,7 @@ Hardcode disclosure:
   Dynamic | identifiers, OA flags, approval evidence, holdings and secondary rows.
 Offline reads HEAD artefacts only; it never refreshes a network response. Restricted
 regulator artefacts cross the metadata boundary only through regulator_summary.
-An open copy with no outcome assessment is ERROR (unknown), not OPEN_NO_OUTCOME.
+An open copy with no outcome assessment is OPEN_NOT_ASSESSED.
 """
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ from scripts.g1_tracker import route_group
 
 EMAIL = "meta-harness@example.org"
 USER_AGENT = "meta-harness k-gap (meta-harness@example.org)"
-META_FIELDS = ("label", "phase", "stage", "decision", "verdict")
+META_FIELDS = ("label", "phase", "stage", "decision", "verdict", "ncts")
 PROBE_DATE = "2026-10-15T00:00:00Z"
 PMDA_NOTE = "PMDA skipped by Mahmood 13 Oct; re-ruling requested 15 Oct"
 TTL = 7 * 86400
@@ -57,6 +57,18 @@ def digest(body):
 
 def encoded(obj):
     return json.dumps(obj, ensure_ascii=False, sort_keys=True).encode("utf-8")
+
+
+def valid_doi(value):
+    return isinstance(value, str) and re.fullmatch(r"10\.\d{4,9}/\S+", value) is not None
+
+
+def clean_identifier_dois(ids):
+    """Fail closed on malformed provider identifiers; retain search history."""
+    ids["dois"] = sorted({v for v in ids.get("dois", []) if valid_doi(v)})
+    if "provenance" in ids:
+        known = {v for key in ("pmids", "dois", "ncts", "eudract") for v in ids.get(key, [])}
+        ids["provenance"] = {k: v for k, v in ids["provenance"].items() if k in known}
 
 
 class Committed:
@@ -94,7 +106,7 @@ class Committed:
 
 
 def regulator_summary(path, read_bytes=None):
-    """Return only the five allowed scalar metadata fields for each agency row.
+    """Return only allowed scalar metadata and the typed ncts identifier list.
 
     No document, candidate, reader or span field is accessed or returned. The JSON
     decoder necessarily consumes the enclosing file; its payload is never logged.
@@ -103,7 +115,8 @@ def regulator_summary(path, read_bytes=None):
     if body is None:
         return []
     rows = json.loads(body).get("rows", [])
-    return [{key: row.get(key) if isinstance(row.get(key), (str, int, float, bool, type(None)))
+    return [{key: ([n for n in row.get(key, []) if isinstance(n, str) and re.fullmatch(r"NCT\d{8}", n)]
+                  if isinstance(row.get(key), list) else []) if key == "ncts" else row.get(key) if isinstance(row.get(key), (str, int, float, bool, type(None)))
              else None for key in META_FIELDS} for row in rows]
 
 
@@ -164,6 +177,8 @@ class Client:
                     status, body = response.status, response.read()
             except HTTPError as exc:
                 status, body = exc.code, exc.read()
+                if (status == 429 or status >= 500) and attempt == 2:
+                    raise
             if status == 429 or status >= 500:
                 if attempt < 2:
                     self.sleep(2 ** attempt)
@@ -199,24 +214,33 @@ def merge_write(path, new):
             dst = old["trials"][label]
             for key, val in trial["identifiers"].items():
                 prior = dst["identifiers"].get(key)
+                if key == "provenance":
+                    merged = copy.deepcopy(prior or {})
+                    for identifier, sources in val.items():
+                        merged[identifier] = sorted(set(merged.get(identifier, []) + sources))
+                    dst["identifiers"][key] = merged
+                    continue
                 dst["identifiers"][key] = sorted(set((prior or []) + val)) if isinstance(val, list) else (
                     bool(prior or val) if key == "approved_drug" else val or prior)
             dst["secondary_value_available"] |= trial["secondary_value_available"]
             for row in trial["searched"]:
                 if row not in dst["searched"]:
                     dst["searched"].append(row)
+        for trial in old["trials"].values():
+            clean_identifier_dois(trial["identifiers"])
         old["written_utc"] = new["written_utc"]
         atomic_json(path, old)
         return old
 
 
 def open_step(census):
-    assessment = " ".join(str(census.get(k) or "") for k in ("blocker_now", "decision", "stage", "outcome"))
+    assessments = census if isinstance(census, list) else [census]
+    assessment = " ".join(str(row.get(k) or "") for row in assessments for k in ("blocker_now", "decision", "stage", "outcome"))
     if "EXTRACTION" in assessment or "TYPED_NONE" in assessment:
         return "OPEN_OUTCOME_NOT_BINDABLE"
     if "OUTCOME_NOT_IN_SOURCE" in assessment:
         return "OPEN_NO_OUTCOME"
-    return "ERROR"
+    return "OPEN_NOT_ASSESSED"
 
 
 def challenge(body):
@@ -235,11 +259,15 @@ def response_mapping(source, body, status=200, census=None, identifiers=None):
     if source == "WHO_ICTRP":
         if re.search(rb"no (?:records|results|trials) found|0 records found", body, re.I):
             return "NOT_FOUND", "Public search explicitly reports no results"
-        return "ERROR", "ICTRP public page requires JavaScript or has no verified result parser"
+        if re.search(rb"<script\b|javascript", body, re.I):
+            return "BLOCKED_JS_ONLY", "ICTRP public page requires JavaScript"
+        return "ERROR", "ValueError: unparseable ICTRP response; no results or JavaScript shell"
     try:
         obj = json.loads(body)
-    except (ValueError, UnicodeError):
-        return "ERROR", "Response is not valid JSON"
+    except (ValueError, UnicodeError) as exc:
+        return "ERROR", f"{type(exc).__name__}: {exc}"
+    if not isinstance(obj, dict):
+        return "ERROR", "ValueError: expected a JSON object"
     if source.startswith("PUBMED_EPMC"):
         hits = obj.get("resultList", {}).get("result", [])
         if "hitCount" not in obj or not isinstance(hits, list):
@@ -247,17 +275,26 @@ def response_mapping(source, body, status=200, census=None, identifiers=None):
         if not hits:
             return "NOT_FOUND", {"hits": obj["hitCount"]}
         if source == "PUBMED_EPMC_TITLE":
-            names = identifiers.get("ncts", []) + ([identifiers["acronym"]] if identifiers.get("acronym") else [])
-            matches = []
+            names = identifiers.get("ncts", []) + [identifiers[k] for k in ("acronym", "title") if identifiers.get(k)]
+            matches = set()
             for hit in hits[:25]:
                 text = " ".join(str(hit.get(k) or "") for k in ("title", "abstractText"))
-                rct = any("randomized controlled trial" in str(x).lower() for x in hit.get("pubTypeList", {}).get("pubType", []))
-                if rct and any(re.search(r"(?<!\w)" + re.escape(n) + r"(?!\w)", text, re.I) for n in names):
-                    matches.append(hit.get("id"))
-            return "ERROR", {"hits": obj["hitCount"], "examined": min(25, len(hits)), "rct_reports_naming_trial": matches,
-                             "outcome_assessment": "not judged by title search"}
+                if any(re.search(r"(?<!\w)" + re.escape(n) + r"(?!\w)", text, re.I) for n in names):
+                    pmid = str(hit.get("pmid") or hit.get("id") or "")
+                    if (hit.get("pmid") or hit.get("source", "MED") == "MED") and re.fullmatch(r"[1-9]\d{0,8}", pmid):
+                        matches.add(pmid)
+            new = sorted(matches - set(map(str, identifiers.get("pmids", []))))
+            return ("NEW_REPORT_FOUND" if new else "NOT_FOUND"), {
+                "hits": obj["hitCount"], "examined": min(25, len(hits)),
+                "reports_naming_trial": sorted(matches), "new_pmids": new,
+                "outcome": "new report" if new else "no additional report" if matches else "no hit naming the trial"}
         hit = hits[0]
         meta = {k: hit.get(k) for k in ("id", "isOpenAccess", "license", "pmcid", "inEPMC", "doi")}
+        if meta.get("doi") and not valid_doi(meta["doi"]):
+            meta["reported_doi"] = meta["doi"]
+            meta["doi"] = None
+            meta["doi_validation_error"] = "Malformed provider DOI; not used as an identifier"
+        meta["copy"] = ("https://europepmc.org/articles/" + hit["pmcid"]) if hit.get("pmcid") else hit.get("fullTextUrlList")
         if identifiers.get("pmid") and str(hit.get("id")) != identifiers["pmid"]:
             return "ERROR", "Europe PMC PMID mismatch"
         opened = hit.get("isOpenAccess") == "Y" or hit.get("inEPMC") == "Y"
@@ -266,6 +303,7 @@ def response_mapping(source, body, status=200, census=None, identifiers=None):
         if not isinstance(obj.get("is_oa"), bool):
             return "ERROR", "Missing Unpaywall is_oa"
         return (open_step(census) if obj["is_oa"] else "FOUND_NOT_OPEN"), {
+            "copy": (obj.get("best_oa_location") or {}).get("url_for_pdf") or (obj.get("best_oa_location") or {}).get("url"),
             "is_oa": obj["is_oa"], "license": (obj.get("best_oa_location") or {}).get("license"),
             "outcome_assessment": "census only"}
     if source == "CTGOV_V2":
@@ -280,8 +318,12 @@ def response_mapping(source, body, status=200, census=None, identifiers=None):
             "binding": "not assessed by search fetcher"}
     if source in ("EUCTR", "AACT"):
         state = obj.get("state")
-        return {"RESULTS": "OPEN_OUTCOME_NOT_BINDABLE", "NO_RESULTS": "OPEN_NO_OUTCOME",
-                "PARSE_FAILED": "ERROR"}.get(state, "ERROR"), {"state": state}
+        step = {"RESULTS": "OPEN_OUTCOME_NOT_BINDABLE", "NO_RESULTS": "OPEN_NO_OUTCOME",
+                "PARSE_FAILED": "ERROR"}.get(state, "ERROR")
+        meta = {"state": state}
+        if step == "ERROR":
+            meta["error"] = obj.get("reason") or f"Unparseable {source} response state: {state!r}"
+        return step, meta
     return "ERROR", "Unrecognised source response"
 
 
@@ -291,56 +333,91 @@ def search(client, source, url, census=None, identifiers=None):
         status, body, when = client.get(url)
         step, outcome = response_mapping(source, body, status, census, identifiers)
         return record(source, url, when, step, outcome, body), body
-    except (OSError, ValueError) as exc:
-        return record(source, url, when, "ERROR", type(exc).__name__ + ": request failed"), None
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        return record(source, url, when, "ERROR", f"{type(exc).__name__}: {exc}"), None
 
 
 def rows(obj):
     return obj if isinstance(obj, list) else (obj or {}).get("rows", [])
 
 
-def identifier_fields(obj):
-    """Typed identifiers only: never mine candidate/background prose for trial IDs."""
-    found = {"pmids": set(), "ncts": set()}
-    def walk(value, key=""):
+def identifier_fields(obj, source="", provenance=None):
+    """Mine selected identity fields, excluding candidate/background/comparator data."""
+    found = {"pmids": set(), "ncts": set(), "eudract": set()}
+    def add(kind, value, field):
+        found[kind].add(value)
+        if provenance is not None:
+            provenance.setdefault(value, set()).add(source + "#" + field)
+    def walk(value, key="", field=""):
         if isinstance(value, dict):
             for k, v in value.items():
                 if k not in ("candidates", "background_only", "comparator", "comparator_pmid", "meta_pmid"):
-                    walk(v, k)
+                    walk(v, k, field + "." + k if field else k)
         elif isinstance(value, list):
-            for v in value:
-                walk(v, key)
+            for i, v in enumerate(value):
+                walk(v, key, f"{field}[{i}]")
         elif isinstance(value, (str, int)):
-            s = str(value)
-            if key.lower() in ("pmid", "pmids", "report_pmid", "primary_pmid") and re.fullmatch(r"[1-9]\d{0,8}", s):
-                found["pmids"].add(s)
+            text = str(value)
+            if key.lower() in ("pmid", "pmids", "report_pmid", "primary_pmid") and re.fullmatch(r"[1-9]\d{0,8}", text):
+                add("pmids", text, field)
             if key in ("family", "identity"):
-                found["pmids"].update(re.findall(r"\bPMID\s+(\d{1,9})\b", s))
-            if key.lower() in ("nct", "ncts", "nct_id", "nct_ids", "registry_ids", "identified", "id", "family"):
-                found["ncts"].update(re.findall(r"\bNCT\d{8}\b", s))
+                for pmid in re.findall(r"\bPMID\s+(\d{1,9})\b", text):
+                    add("pmids", pmid, field)
+            for kind, pattern in (("ncts", r"\bNCT\d{8}\b"), ("eudract", r"\b\d{4}-\d{6}-\d{2}\b")):
+                for value in re.findall(pattern, text):
+                    add(kind, value, field)
     walk(obj)
     return found
 
 
-def identifiers(trial, slug, identification, census, eu_probe):
-    selected = {k: trial.get(k) for k in ("family", "identity", "acquisition_cascade", "identification", "pmid", "ncts")}
-    found = identifier_fields(selected)
+def source_rows(repo, pattern):
+    result = []
+    for path in repo.matching(pattern):
+        obj = repo.read(path)
+        for i, row in enumerate(rows(obj)):
+            result.append({**row, "slug": row.get("slug") or (obj.get("slug") if isinstance(obj, dict) else None),
+                           "_source": path, "_field": f"rows[{i}]"})
+    return result
+
+
+def identifiers(trial, slug, identification, census, eu_probe, funnels=(), regulator=()):
+    provenance = {}
+    found = {"pmids": set(), "ncts": set(), "eudract": set()}
+    def harvest(obj, source, field=""):
+        extra = identifier_fields({field: obj} if field else obj, source, provenance)
+        for key in found:
+            found[key].update(extra[key])
+    tracker = f"outputs/k_gap/g1/{slug}.json"
+    harvest({k: trial.get(k) for k in ("family", "identity", "acquisition_cascade", "identification", "pmid", "ncts")}, tracker, f"trials[label={trial['label']}]")
     identity = trial.get("identity") if isinstance(trial.get("identity"), dict) else {}
     from scripts.g1_regulatory_source import _label_acronyms
     title = identity.get("title") or trial["label"]
     acronyms = sorted(_label_acronyms(trial["label"]), key=lambda s: (-len(s), s))
     acronym = identity.get("acronym") or (acronyms[0] if acronyms else "")
-    for row in identification:
+    for collection, fallback, fields in (
+        (identification, "outputs/k_gap/registry_fill/IDENTIFICATION.json", ("pmid", "report_pmid", "identified", "ncts", "companions", "protocol")),
+        (funnels, f"outputs/k_gap/registry_fill/{slug}.funnel.json", ("ncts", "eudract", "eudract_numbers")),
+        (regulator, f"registry/g1_acquired_regulator/{slug}.json", ("ncts",))):
+        for i, row in enumerate(collection):
+            if row.get("slug", slug) == slug and row.get("label") == trial["label"]:
+                harvest({k: row.get(k) for k in fields}, row.get("_source", fallback), row.get("_field", f"rows[{i}]"))
+                title = row.get("title") or title
+    dois = set()
+    for i, row in enumerate(census):
+        doi = (row.get("europepmc") or {}).get("doi")
+        if str(row.get("pmid")) in found["pmids"] and valid_doi(doi):
+            dois.add(doi)
+            provenance.setdefault(doi, set()).add(row.get("_source", "outputs/k_gap/registry_fill/PHASE3_OPEN_CENSUS.json") + "#" + row.get("_field", f"rows[{i}]") + ".europepmc.doi")
+    eu_path = "outputs/k_gap/registry_fill/EUDRACT_PROBE.json"
+    for i, row in enumerate(eu_probe.get("trials", [])):
         if row.get("slug") == slug and row.get("label") == trial["label"]:
-            extra = identifier_fields({k: row.get(k) for k in ("pmid", "identified")})
-            for key in found:
-                found[key].update(extra[key])
-            title = row.get("title") or title
-    dois = {r["europepmc"]["doi"] for r in census if str(r.get("pmid")) in found["pmids"]
-            and r.get("europepmc", {}).get("doi")}
-    eu = {n for r in eu_probe.get("ncts_probed", []) if r.get("nct") in found["ncts"]
-          for n in r.get("eudract_numbers", []) if re.fullmatch(r"\d{4}-\d{6}-\d{2}", n)}
-    return {**{k: sorted(v) for k, v in found.items()}, "dois": sorted(dois), "eudract": sorted(eu),
+            harvest({k: row.get(k) for k in ("label", "ncts", "nct", "results")}, eu_path, f"trials[{i}]")
+    for i, row in enumerate(eu_probe.get("ncts_probed", [])):
+        # A shared EU number can describe multiple trials: reverse joins are unsafe.
+        if row.get("nct") in found["ncts"]:
+            harvest({k: row.get(k) for k in ("nct", "eudract_numbers")}, eu_path, f"ncts_probed[{i}]")
+    return {**{k: sorted(v) for k, v in found.items()}, "dois": sorted(dois),
+            "provenance": {k: sorted(v) for k, v in sorted(provenance.items())},
             "title": title, "acronym": acronym, "approved_drug": False}
 
 
@@ -374,6 +451,12 @@ def discovery_record(row, when=PROBE_DATE):
     step = status if status in STEPS + ACCESS_OUTCOMES else {
         "NAMED_NO_DATA": "OPEN_NO_OUTCOME", "PER_ARM_TARGET": "OPEN_OUTCOME_NOT_BINDABLE",
         "PER_ARM_OTHER": "OPEN_OUTCOME_NOT_BINDABLE"}.get(status, "ERROR")
+    if step == "ERROR":
+        evidence = row.get("how_checked") or ""
+        if re.search(r"(?:without|requires?) JavaScript|JavaScript application shell", evidence, re.I):
+            step = "BLOCKED_JS_ONLY"
+        elif re.search(r"HTTP 403", evidence) and re.search(r"Request blocked|CloudFront", evidence, re.I):
+            step = "BLOCKED_BOT_CHALLENGE"
     if step == "NOT_FOUND" and not row.get("how_checked"):
         return None
     return record(source, row["url"], row.get("when_utc") or row.get("retrieved_utc") or row.get("date") or when,
@@ -417,19 +500,20 @@ def secondary_available(trial, phase4):
 def live_searches(client, ids, census):
     result = []
     for pmid in ids["pmids"]:
-        row = next((r for r in census if str(r.get("pmid")) == pmid), {})
+        row = [r for r in census if str(r.get("pmid")) == pmid]
         url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search?" + urlencode({
             "query": f"EXT_ID:{pmid} SRC:MED", "resultType": "core", "format": "json"})
         rec, body = search(client, "PUBMED_EPMC_PMID", url, row, {"pmid": pmid})
         result.append(rec)
-        if isinstance(rec["outcome"], dict) and rec["outcome"].get("doi"):
+        if isinstance(rec["outcome"], dict) and valid_doi(rec["outcome"].get("doi")):
             ids["dois"] = sorted(set(ids["dois"] + [rec["outcome"]["doi"]]))
+            ids.setdefault("provenance", {}).setdefault(rec["outcome"]["doi"], []).append(url + "#resultList.result[0].doi")
     query = ids["acronym"] or ids["title"]
     url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search?" + urlencode({
         "query": 'TITLE:"' + query.replace('"', ' ') + '"', "pageSize": 25, "resultType": "core", "format": "json", "sort": "ID asc"})
     result.append(search(client, "PUBMED_EPMC_TITLE", url, identifiers=ids)[0])
     for doi in ids["dois"]:
-        row = next((r for r in census if r.get("europepmc", {}).get("doi") == doi), {})
+        row = [r for r in census if r.get("europepmc", {}).get("doi") == doi]
         result.append(search(client, "UNPAYWALL_DOI", "https://api.unpaywall.org/v2/" + quote(doi, safe="") +
                              "?" + urlencode({"email": EMAIL}), row)[0])
     from scripts import g1_eudract_source as eu
@@ -440,13 +524,21 @@ def live_searches(client, ids, census):
         def fetch(url):
             status, body, _ = client.get(url)
             if status != 200:
-                raise ValueError("Identifier request failed")
+                raise HTTPError(url, status, "Identifier request failed", None, None)
             return body
         try:
             with patch.object(eu, "_fetch", fetch):
-                ids["eudract"] = sorted(set(ids["eudract"] + [r["eudract_no"] for r in eu.eudract_numbers([nct], [])]))
-        except (OSError, ValueError, KeyError):
-            result.append(record("EUCTR", nct, utc_now(), "ERROR", "EudraCT identifier discovery failed"))
+                discovered = eu.eudract_numbers([nct], [])
+                ids["eudract"] = sorted(set(ids["eudract"] + [r["eudract_no"] for r in discovered]))
+                for item in discovered:
+                    sources = ids.setdefault("provenance", {}).setdefault(item["eudract_no"], [])
+                    sources.extend(p["url"] + "#" + p["field"] for p in item["provenance"])
+                    ids["provenance"][item["eudract_no"]] = sorted(set(sources))
+        except HTTPError as exc:
+            step = "NOT_FOUND" if exc.code == 404 else "BLOCKED_BOT_CHALLENGE" if exc.code == 403 else "ERROR"
+            result.append(record("EUCTR", nct, utc_now(), step, f"{type(exc).__name__}: {exc}"))
+        except (OSError, ValueError, KeyError) as exc:
+            result.append(record("EUCTR", nct, utc_now(), "ERROR", f"EudraCT identifier discovery failed: {type(exc).__name__}: {exc}"))
     if ids["ncts"]:
         from kgap import aact_adapter
         when = utc_now()
@@ -459,8 +551,8 @@ def live_searches(client, ids, census):
                         "snapshot": (data or {}).get("_snapshot")}
                 step, _ = response_mapping("AACT", encoded(meta))
                 result.append(record("AACT", nct, when, step, meta, encoded(meta)))
-        except (OSError, ValueError, KeyError):
-            result.extend(record("AACT", nct, when, "ERROR", "AACT snapshot unavailable") for nct in ids["ncts"])
+        except (OSError, ValueError, KeyError) as exc:
+            result.extend(record("AACT", nct, when, "ERROR", f"AACT snapshot unavailable: {type(exc).__name__}: {exc}") for nct in ids["ncts"])
     for no in ids["eudract"]:
         url = eu.BASE + "/ctr-search/trial/" + no + "/results"
         when = utc_now()
@@ -472,10 +564,10 @@ def live_searches(client, ids, census):
                 # Disable the helper's independent 30-day cache; retain our URL cache.
                 with patch.object(eu, "CACHE_DIR", client.directory / "euctr"), patch.object(eu, "TTL", 0), patch.object(eu, "_fetch", lambda _: body):
                     parsed = eu.eudract_results(no)
-                step, outcome = response_mapping("EUCTR", encoded({"state": parsed["state"]}))
+                step, outcome = response_mapping("EUCTR", encoded({"state": parsed["state"], "reason": parsed.get("reason")}))
             result.append(record("EUCTR", url, when, step, outcome, body))
-        except (OSError, ValueError, KeyError):
-            result.append(record("EUCTR", url, when, "ERROR", "EU CTR request/parser failed"))
+        except (OSError, ValueError, KeyError) as exc:
+            result.append(record("EUCTR", url, when, "ERROR", f"EU CTR request/parser failed: {type(exc).__name__}: {exc}"))
     result.append(search(client, "WHO_ICTRP", "https://trialsearch.who.int/?" + urlencode({"query": query}))[0])
     return result
 
@@ -492,15 +584,16 @@ def health_canada(client, agent):
                 submissions = reg.hc_listing(agent)
             return record("HEALTH_CANADA", url, when, "BLOCKED_TERMS", {"submissions": submissions}, body)
         return record("HEALTH_CANADA", url, when, "BLOCKED_BOT_CHALLENGE" if challenge(body) else "ERROR", f"HTTP {status}", body)
-    except (OSError, ValueError):
-        return record("HEALTH_CANADA", url, when, "ERROR", "Public listing unavailable")
+    except (OSError, ValueError) as exc:
+        return record("HEALTH_CANADA", url, when, "ERROR", f"{type(exc).__name__}: {exc}")
 
 
 def run(slugs=None, offline=False, root=ROOT):
     repo = Committed(root)
     fill = "outputs/k_gap/registry_fill/"
-    identification = [r for p in repo.matching(fill + "IDENTIFICATION*.json") for r in rows(repo.read(p))]
-    census = [r for p in repo.matching(fill + "PHASE3_OPEN_CENSUS*.json") for r in rows(repo.read(p))]
+    identification = source_rows(repo, fill + "IDENTIFICATION*.json")
+    funnels = source_rows(repo, fill + "*.funnel.json")
+    census = source_rows(repo, fill + "PHASE3_OPEN_CENSUS*.json")
     for path in repo.matching(fill + "phase3*/*.json"):
         obj = repo.read(path)
         for row in rows(obj):
@@ -525,6 +618,7 @@ def run(slugs=None, offline=False, root=ROOT):
     paths = repo.matching("outputs/k_gap/g1/*.json")
     if slugs:
         paths = [f"outputs/k_gap/g1/{s}.json" for s in slugs]
+    current_trials = []
     for path in paths:
         topic = repo.read(path)
         if topic is None or "trials" not in topic:
@@ -543,7 +637,7 @@ def run(slugs=None, offline=False, root=ROOT):
                 continue
             label = trial["label"]
             local_census = [r for r in census if r.get("slug") == slug and r.get("label") == label]
-            ids = identifiers(trial, slug, identification, local_census, eu_probe)
+            ids = identifiers(trial, slug, identification, local_census, eu_probe, funnels, summaries)
             ids["approved_drug"] = approved
             searched = []
             if client:
@@ -574,9 +668,20 @@ def run(slugs=None, offline=False, root=ROOT):
                         searched.append(health_canada(client, agent))
             out["trials"][label] = {"identifiers": ids, "searched": searched,
                                       "secondary_value_available": secondary_available(trial, [r for r in phase4 if r.get("slug") == slug])}
+        current_trials.extend(out["trials"].values())
         merged = merge_write(Path(root) / "registry/g1_search_log" / (slug + ".json"), out)
         recs = [r for t in merged["trials"].values() for r in t["searched"]]
         print(f"{slug}: trials={len(merged['trials'])}, records={len(recs)}, sources covered={','.join(sorted({r['source'] for r in recs})) or '(none)'}")
+
+    from collections import Counter
+    print(f"CURRENT RUN: trials={len(current_trials)}, trials with NCT={sum(bool(t['identifiers']['ncts']) for t in current_trials)}")
+    counts = Counter((r["source"], r["step_reached"]) for t in current_trials for r in t["searched"])
+    outcomes = Counter((r["source"], r["step_reached"], json.dumps(r["outcome"], sort_keys=True))
+                       for t in current_trials for r in t["searched"])
+    for (source, step), count in sorted(counts.items()):
+        print(f"{source} | {step} | {count}")
+    for (source, step, outcome), count in sorted(outcomes.items()):
+        print(f"OUTCOME | {source} | {step} | {count} | {outcome}")
 
 
 def main(argv=None):

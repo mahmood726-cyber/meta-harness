@@ -16,16 +16,16 @@ def epmc(**hit):
 
 @pytest.mark.parametrize("source,obj,census,expected", [
     ("PUBMED_EPMC_PMID", epmc(isOpenAccess="N", inEPMC="N"), {}, "FOUND_NOT_OPEN"),
-    ("PUBMED_EPMC_PMID", epmc(isOpenAccess="Y"), {}, "ERROR"),
+    ("PUBMED_EPMC_PMID", epmc(isOpenAccess="Y"), {}, "OPEN_NOT_ASSESSED"),
     ("PUBMED_EPMC_PMID", epmc(isOpenAccess="Y"), {"blocker_now": "OUTCOME_NOT_IN_SOURCE"}, "OPEN_NO_OUTCOME"),
     ("PUBMED_EPMC_PMID", epmc(inEPMC="Y"), {"stage": "EXTRACTION"}, "OPEN_OUTCOME_NOT_BINDABLE"),
     ("PUBMED_EPMC_PMID", epmc(isOpenAccess="Y"), {"decision": "TYPED_NONE_NOT_MODEL_LICENSED", "blocker_now": "OUTCOME_NOT_IN_SOURCE"}, "OPEN_OUTCOME_NOT_BINDABLE"),
     ("PUBMED_EPMC_PMID", {"hitCount": 0}, {}, "NOT_FOUND"),
     ("PUBMED_EPMC_PMID", {}, {}, "ERROR"),
     ("PUBMED_EPMC_TITLE", {"hitCount": 0}, {}, "NOT_FOUND"),
-    ("PUBMED_EPMC_TITLE", epmc(title="A trial"), {}, "ERROR"),
+    ("PUBMED_EPMC_TITLE", epmc(title="A trial"), {}, "NOT_FOUND"),
     ("UNPAYWALL_DOI", {"is_oa": False}, {}, "FOUND_NOT_OPEN"),
-    ("UNPAYWALL_DOI", {"is_oa": True}, {}, "ERROR"),
+    ("UNPAYWALL_DOI", {"is_oa": True}, {}, "OPEN_NOT_ASSESSED"),
     ("UNPAYWALL_DOI", {"is_oa": True}, {"blocker_now": "OUTCOME_NOT_IN_SOURCE"}, "OPEN_NO_OUTCOME"),
     ("UNPAYWALL_DOI", {}, {}, "ERROR"),
     ("CTGOV_V2", {"protocolSection": {"identificationModule": {"nctId": "NCT00000001"}}, "hasResults": False}, {}, "OPEN_NO_OUTCOME"),
@@ -43,7 +43,7 @@ def test_response_mapping(source, obj, census, expected):
 
 @pytest.mark.parametrize("body,expected", [
     (b'<html>Cloudflare verify you are human</html>', "BLOCKED_BOT_CHALLENGE"),
-    (b'<html><script src="app.js"></script>Please enable JavaScript</html>', "ERROR"),
+    (b'<html><script src="app.js"></script>Please enable JavaScript</html>', "BLOCKED_JS_ONLY"),
     (b'<html>No records found</html>', "NOT_FOUND"),
 ])
 def test_who(body, expected):
@@ -53,9 +53,9 @@ def test_who(body, expected):
 def test_title_rct_requires_trial_name():
     obj = epmc(title="Randomized study ALPHA NCT00000001", pubTypeList={"pubType": ["Randomized Controlled Trial"]})
     step, outcome = log.response_mapping("PUBMED_EPMC_TITLE", log.encoded(obj), identifiers={"ncts": ["NCT00000001"]})
-    assert step == "ERROR"
-    assert outcome["rct_reports_naming_trial"] == ["12345"]
-    assert log.response_mapping("PUBMED_EPMC_TITLE", log.encoded(obj), identifiers={"ncts": ["NCT00000002"]})[1]["rct_reports_naming_trial"] == []
+    assert step == "NEW_REPORT_FOUND"
+    assert outcome["new_pmids"] == ["12345"]
+    assert log.response_mapping("PUBMED_EPMC_TITLE", log.encoded(obj), identifiers={"ncts": ["NCT00000002"]})[1]["reports_naming_trial"] == []
 
 
 def test_identifier_mismatch():
@@ -66,11 +66,12 @@ def test_identifier_mismatch():
 
 def test_regulator_metadata_plant(tmp_path):
     path = tmp_path / "plant.json"
-    plant = dict(label="ALPHA", phase="2_REGULATOR:FDA", stage="READ", decision="REFUSED", verdict="NOT_ADMITTED",
+    plant = dict(label="ALPHA", phase="2_REGULATOR:FDA", stage="READ", decision="REFUSED", verdict="NOT_ADMITTED", ncts=["NCT00000001", {"span": "SECRET"}, "SECRET"],
                  documents_naming=["SECRET DOCUMENT"], candidate={"span": "SECRET"}, readers={"secret": "SECRET"}, span="SECRET")
     path.write_text(json.dumps({"rows": [plant]}), encoding="utf-8")
     result = log.regulator_summary(path)
-    assert set(result[0]) == set(log.META_FIELDS)
+    assert set(result[0]) == {"label", "phase", "stage", "decision", "verdict", "ncts"}
+    assert result[0]["ncts"] == ["NCT00000001"]
     assert "SECRET" not in json.dumps(result)
     plant["decision"] = {"span": "SECRET"}
     assert log.regulator_summary(path, lambda _: log.encoded({"rows": [plant]}))[0]["decision"] is None
@@ -222,7 +223,7 @@ def test_run_offline_committed_only(tmp_path, monkeypatch, capsys):
     git("init")
     files = {
         "outputs/k_gap/g1/demo.json": {"slug": "demo", "trials": [
-            {"label": "ALPHA", "route": "NO_ROW", "family": "PMID 12345"},
+            {"label": "ALPHA", "route": "NO_ROW", "family": "PMID 12345", "identity": {"nct": "NCT00000001"}},
             {"label": "BETA", "route": "SWEEP_AACT_PRIMARY"}]},
         "topics/demo.json": {"intervention_agents": ["synthetic-agent"]},
         "outputs/k_gap/regulatory_probe.json": {"rows": [{"slug": "demo", "ema_products": ["Synthetic EPAR"]}]},
@@ -242,6 +243,8 @@ def test_run_offline_committed_only(tmp_path, monkeypatch, capsys):
     assert set(out["trials"]) == {"ALPHA"}
     trial = out["trials"]["ALPHA"]
     assert trial["identifiers"]["approved_drug"]
+    assert trial["identifiers"]["ncts"] == ["NCT00000001"]
+    assert trial["identifiers"]["provenance"]["NCT00000001"] == ["outputs/k_gap/g1/demo.json#trials[label=ALPHA].identity.nct"]
     assert {r["source"] for r in trial["searched"]} == {"FDA", "PMDA", "EMA_CLINICAL_DATA"}
     assert "PLANTED" not in json.dumps(out)
     assert "trials=1, records=3" in capsys.readouterr().out
@@ -275,10 +278,11 @@ def test_live_adapters_with_unavailable_snapshot(tmp_path, monkeypatch):
     result = log.live_searches(Transport(), ids, [])
     assert {r["source"] for r in result} == {"PUBMED_EPMC_PMID", "PUBMED_EPMC_TITLE", "UNPAYWALL_DOI", "CTGOV_V2", "AACT", "EUCTR", "WHO_ICTRP"}
     aact = next(r for r in result if r["source"] == "AACT")
-    assert aact["outcome"] == "AACT snapshot unavailable"
+    assert "synthetic missing snapshot" in aact["outcome"]
     assert aact["step_reached"] == "ERROR"
     assert ids["eudract"] == ["2020-000001-01"]
     assert ids["dois"] == ["10.1234/demo"]
+    assert ids["provenance"]["2020-000001-01"] == ["https://clinicaltrials.gov/api/v2/studies/NCT00000001#secondaryIdInfos.id"]
     for row in result:
         assert row["when_utc"].endswith("Z")
         if row["source"] != "AACT":
@@ -324,3 +328,217 @@ def test_hc_transport_error(tmp_path):
 def test_ctgov_inconsistent_results_fail_closed():
     obj = {"protocolSection": {"identificationModule": {"nctId": "NCT00000001"}}, "hasResults": True}
     assert log.response_mapping("CTGOV_V2", log.encoded(obj))[0] == "ERROR"
+
+
+@pytest.mark.parametrize("field", ["family", "identity", "acquisition_cascade", "identification"])
+def test_tracker_identifier_sources(field):
+    ids = log.identifiers({"label": "ALPHA", field: {"note": "NCT00000001 EudraCT 2020-000001-01"}}, "demo", [], [], {})
+    assert ids["ncts"] == ["NCT00000001"]
+    assert ids["eudract"] == ["2020-000001-01"]
+    assert any(field + ".note" in p for p in ids["provenance"]["NCT00000001"])
+
+
+@pytest.mark.parametrize("source", ["funnel", "identification", "regulator", "eu"])
+def test_identifier_files(tmp_path, source):
+    row = {"slug": "demo", "label": "ALPHA", "ncts": ["NCT00000001"]}
+    paths = {"funnel": "outputs/k_gap/registry_fill/demo.funnel.json",
+             "identification": "outputs/k_gap/registry_fill/IDENTIFICATION.json",
+             "regulator": "registry/g1_acquired_regulator/demo.json",
+             "eu": "outputs/k_gap/registry_fill/EUDRACT_PROBE.json"}
+    if source == "identification":
+        row["identified"] = row.pop("ncts") + ["2020-000001-01"]
+    if source == "eu":
+        row.pop("ncts")
+        row["label"] = "ALPHA NCT00000001"
+        row["results"] = [{"eudract": "2020-000001-01"}]
+    obj = {"trials" if source == "eu" else "rows": [row]}
+    path = tmp_path / paths[source]
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(obj), encoding="utf-8")
+    class Repo:
+        def matching(self, pattern):
+            return [paths[source]]
+        def read(self, name):
+            return json.loads((tmp_path / name).read_text(encoding="utf-8"))
+    loaded = log.source_rows(Repo(), "*") if source not in ("regulator", "eu") else []
+    ids = log.identifiers({"label": row["label"]}, "demo", loaded if source == "identification" else [], [],
+                          obj if source == "eu" else {}, loaded if source == "funnel" else [],
+                          log.regulator_summary(path) if source == "regulator" else [])
+    assert ids["ncts"] == ["NCT00000001"]
+    assert any(p.startswith(paths[source] + "#") for p in ids["provenance"]["NCT00000001"])
+    if source == "eu":
+        assert ids["eudract"] == ["2020-000001-01"]
+        assert paths[source] + "#trials[0].label" in ids["provenance"]["NCT00000001"]
+
+
+def test_probe_join_and_wrong_trial_exclusion():
+    probe = {"ncts_probed": [{"nct": "NCT00000001", "eudract_numbers": ["2020-000001-01"]},
+                              {"nct": "NCT00000002", "eudract_numbers": ["2020-000001-01"]}]}
+    ids = log.identifiers({"label": "ALPHA", "ncts": ["NCT00000001"]}, "demo", [], [], probe,
+                          [{"slug": "other", "label": "ALPHA", "ncts": ["NCT00000003"]}])
+    assert ids["ncts"] == ["NCT00000001"]
+    assert ids["eudract"] == ["2020-000001-01"]
+    assert ids["provenance"]["2020-000001-01"] == ["outputs/k_gap/registry_fill/EUDRACT_PROBE.json#ncts_probed[0].eudract_numbers[0]"]
+
+
+@pytest.mark.parametrize("known,expected", [([], "NEW_REPORT_FOUND"), (["12345"], "NOT_FOUND")])
+def test_title_known_report_without_rct_tag(known, expected):
+    step, outcome = log.response_mapping("PUBMED_EPMC_TITLE", log.encoded(epmc(title="ALPHA follow-up")),
+                                         identifiers={"acronym": "ALPHA", "pmids": known})
+    assert step == expected
+    assert outcome["new_pmids"] == ([] if known else ["12345"])
+    if known:
+        assert outcome["outcome"] == "no additional report"
+
+
+def test_open_copy_metadata():
+    step, outcome = log.response_mapping("UNPAYWALL_DOI", log.encoded({"is_oa": True, "best_oa_location": {
+        "license": "cc-by", "url": "https://example.org/report"}}))
+    assert step == "OPEN_NOT_ASSESSED"
+    assert outcome["license"] == "cc-by"
+    assert outcome["copy"] == "https://example.org/report"
+
+
+@pytest.mark.parametrize("failure", [TimeoutError("synthetic timeout"), OSError("synthetic transport")])
+def test_transport_exception_text(tmp_path, failure):
+    client = log.Client(tmp_path, opener=Opener([failure]))
+    rec, body = log.search(client, "PUBMED_EPMC_PMID", "https://example.org/search")
+    assert rec["step_reached"] == "ERROR"
+    assert str(failure) in rec["outcome"]
+    assert body is None
+
+
+def test_bad_body_exception_text():
+    step, outcome = log.response_mapping("PUBMED_EPMC_PMID", b"not json")
+    assert step == "ERROR"
+    assert "JSONDecodeError:" in outcome
+
+
+def test_provenance_merge(tmp_path):
+    p = tmp_path / "demo.json"
+    first = payload()
+    first["trials"]["ALPHA"]["identifiers"]["provenance"] = {"12345": ["one.json#pmid"]}
+    log.merge_write(p, first)
+    first["trials"]["ALPHA"]["identifiers"]["provenance"] = {"12345": ["two.json#pmid"]}
+    merged = log.merge_write(p, first)
+    assert merged["trials"]["ALPHA"]["identifiers"]["provenance"]["12345"] == ["one.json#pmid", "two.json#pmid"]
+
+
+
+def test_any_matching_census_assessment():
+    assert log.open_step([{}, {"stage": "EXTRACTION"}]) == "OPEN_OUTCOME_NOT_BINDABLE"
+
+
+def test_exhausted_5xx_keeps_exception(tmp_path):
+    url = "https://example.org/search"
+    op = Opener([HTTPError(url, 503, "synthetic unavailable", {}, io.BytesIO(b"down")) for _ in range(3)])
+    rec, _ = log.search(log.Client(tmp_path, opener=op, sleep=lambda _: None), "PUBMED_EPMC_PMID", url)
+    assert len(op.requests) == 3
+    assert rec["step_reached"] == "ERROR"
+    assert "synthetic unavailable" in rec["outcome"]
+
+
+
+def test_who_unparseable_is_not_js_gate():
+    step, outcome = log.response_mapping("WHO_ICTRP", b"broken body")
+    assert step == "ERROR"
+    assert "ValueError:" in outcome
+
+
+@pytest.mark.parametrize("evidence,expected", [
+    ("HTTP 200; query cannot be confirmed without JavaScript", "BLOCKED_JS_ONLY"),
+    ("HTTP 200; JavaScript application shell without a searchable catalogue", "BLOCKED_JS_ONLY"),
+    ("HTTP 403. Server response says Request blocked", "BLOCKED_BOT_CHALLENGE"),
+    ("HTTP 403 CloudFront error; stopped", "BLOCKED_BOT_CHALLENGE"),
+    ("HTTP 200 but unusable search response; domain filtering failed", "ERROR"),
+    ("Read timed out: synthetic timeout", "ERROR"),
+])
+def test_inherited_discovery_failure_mapping(evidence, expected):
+    rec = log.discovery_record({"source": "NIHR HTA", "status": "ERROR", "url": "https://example.org/search", "how_checked": evidence})
+    assert rec["step_reached"] == expected
+    assert rec["outcome"]["how_checked"] == evidence
+
+
+def test_eu_identifier_404_is_not_transport_error(tmp_path, monkeypatch):
+    from kgap import aact_adapter
+    def unavailable():
+        raise FileNotFoundError("synthetic snapshot missing")
+    monkeypatch.setattr(aact_adapter, "snapshot_dir", unavailable)
+    class Transport:
+        directory = tmp_path
+        def get(self, url):
+            if "clinicaltrials.gov" in url:
+                return 404, b"missing", log.PROBE_DATE
+            if "trialsearch" in url:
+                return 200, b"<script>app</script>", log.PROBE_DATE
+            return 200, log.encoded({"hitCount": 0}), log.PROBE_DATE
+    ids = dict(pmids=[], dois=[], ncts=["NCT00000001"], eudract=[], title="ALPHA", acronym="ALPHA")
+    rec = next(r for r in log.live_searches(Transport(), ids, []) if r["source"] == "EUCTR")
+    assert rec["step_reached"] == "NOT_FOUND"
+    assert "HTTP Error 404" in rec["outcome"]
+
+
+
+def test_known_companion_and_protocol_pmids_are_not_new_reports():
+    row = {"slug": "demo", "label": "ALPHA", "report_pmid": "12345",
+           "companions": [{"pmid": "23456"}], "protocol": [{"pmid": "34567"}],
+           "_source": "outputs/k_gap/registry_fill/IDENTIFICATION_COMPANIONS.json"}
+    ids = log.identifiers({"label": "ALPHA"}, "demo", [row], [], {})
+    assert ids["pmids"] == ["12345", "23456", "34567"]
+    assert ids["provenance"]["34567"] == ["outputs/k_gap/registry_fill/IDENTIFICATION_COMPANIONS.json#rows[0].protocol[0].pmid"]
+    step, outcome = log.response_mapping("PUBMED_EPMC_TITLE", log.encoded(epmc(id="34567", title="ALPHA protocol")), identifiers=ids)
+    assert step == "NOT_FOUND"
+    assert outcome["outcome"] == "no additional report"
+    assert outcome["new_pmids"] == []
+
+
+@pytest.mark.parametrize("source", ["EUCTR", "AACT"])
+def test_adapter_parse_failure_preserves_reason(source):
+    step, outcome = log.response_mapping(source, log.encoded({"state": "PARSE_FAILED", "reason": "synthetic invalid endpoint table"}))
+    assert step == "ERROR"
+    assert outcome["error"] == "synthetic invalid endpoint table"
+
+
+
+def test_live_eu_parser_exception_reason_survives_adapter(tmp_path, monkeypatch):
+    from scripts import g1_eudract_source as eu
+    monkeypatch.setattr(eu, "eudract_results", lambda no: {"state": "PARSE_FAILED", "reason": "synthetic parser exception"})
+    class Transport:
+        directory = tmp_path
+        def get(self, url):
+            if "europepmc" in url:
+                return 200, log.encoded({"hitCount": 0}), log.PROBE_DATE
+            if "trialsearch" in url:
+                return 200, b"<script>app</script>", log.PROBE_DATE
+            return 200, b"<html>synthetic malformed table</html>", log.PROBE_DATE
+    ids = dict(pmids=[], dois=[], ncts=[], eudract=["2020-000001-01"], title="ALPHA", acronym="ALPHA")
+    rec = next(r for r in log.live_searches(Transport(), ids, []) if r["source"] == "EUCTR")
+    assert rec["step_reached"] == "ERROR"
+    assert rec["outcome"]["error"] == "synthetic parser exception"
+
+
+
+def test_malformed_provider_doi_is_metadata_not_typed_identifier():
+    step, outcome = log.response_mapping("PUBMED_EPMC_PMID", log.encoded(epmc(isOpenAccess="Y", doi="/synthetic-suffix")))
+    assert step == "OPEN_NOT_ASSESSED"
+    assert outcome["doi"] is None
+    assert outcome["reported_doi"] == "/synthetic-suffix"
+    assert outcome["doi_validation_error"]
+    ids = log.identifiers({"label": "ALPHA", "pmid": "12345"}, "demo", [],
+                          [{"pmid": "12345", "europepmc": {"doi": "/synthetic-suffix"}}], {})
+    assert ids["dois"] == []
+    assert "/synthetic-suffix" not in ids["provenance"]
+
+
+def test_legacy_bad_doi_removed_without_losing_search_history(tmp_path):
+    path = tmp_path / "demo.json"
+    rec = log.record("UNPAYWALL_DOI", "https://example.org/bad-doi", log.PROBE_DATE, "NOT_FOUND", "HTTP 404")
+    old = payload(searches=[rec])
+    old["trials"]["ALPHA"]["identifiers"].update(dois=["/synthetic-suffix", "10.1234/valid"],
+        provenance={"/synthetic-suffix": ["source.json#doi"], "10.1234/valid": ["source.json#other_doi"]})
+    path.write_text(json.dumps(old), encoding="utf-8")
+    result = log.merge_write(path, payload())
+    trial = result["trials"]["ALPHA"]
+    assert trial["identifiers"]["dois"] == ["10.1234/valid"]
+    assert "/synthetic-suffix" not in trial["identifiers"]["provenance"]
+    assert trial["searched"] == [rec]

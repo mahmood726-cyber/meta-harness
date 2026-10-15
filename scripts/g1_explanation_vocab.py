@@ -15,7 +15,13 @@ REASON_CODES = ("POPULATION", "TIMEPOINT", "ESTIMAND", "ANALYSIS_SET", "INTERVEN
 # (a gate is recorded, never bypassed; whether a gated required source can still let a trial be explained is a
 # captain decision: until ruled, a gated REQUIRED source leaves the trial UNEXPLAINED with why_unexplained naming it).
 STEPS = ("NOT_FOUND", "FOUND_NOT_OPEN", "OPEN_NO_OUTCOME", "OPEN_OUTCOME_NOT_BINDABLE")
-ACCESS_OUTCOMES = ("BLOCKED_BOT_CHALLENGE", "BLOCKED_ACCOUNT", "BLOCKED_TERMS", "ERROR", "NOT_ATTEMPTED_PENDING_DECISION")
+ACCESS_OUTCOMES = ("BLOCKED_BOT_CHALLENGE", "BLOCKED_ACCOUNT", "BLOCKED_TERMS", "ERROR", "NOT_ATTEMPTED_PENDING_DECISION",
+                   # 15 Oct, first live search log: 'ERROR' was being used for three different facts; each is now named.
+                   "BLOCKED_JS_ONLY",          # the source's search renders only with JavaScript (WHO ICTRP): a gate
+                   "OPEN_NOT_ASSESSED",        # an open copy EXISTS but nobody has assessed it for the outcome: a
+                                               # defect we can act on, never an explanation
+                   "NEW_REPORT_FOUND")         # a search found a report naming the trial that the lane does not hold:
+                                               # a defect (new identity to follow up), never an explanation
 
 # searched[].source -- closed.
 SOURCES = (
