@@ -31,6 +31,7 @@ def preview(tmp_path, monkeypatch):
             "5.1": "Y", "5.2": "N", "5.3": "N",
         }.items()})
     grade = {"certainty": "provisional", "certainty_from_assessed_domains_only": "low",
+             "rob_sources": {"PMID 1": tiers[0][0], "PMID 3": tiers[1][0]},
              "domains": {"risk_of_bias": {"downgrade": None, "state": "NOT_ASSESSED",
                                          "basis": "basis <script>"}},
              "judgement_flags": ["flag <script>"],
@@ -57,6 +58,20 @@ def rendered(preview):
     builder, root, _ = preview
     builder.main([])
     return (root / "outputs/robgrade/tab_preview_served/topic.html").read_text(encoding="utf-8")
+
+
+def test_preview_refuses_stale_grade_sources(preview, monkeypatch):
+    builder, root, _ = preview
+    monkeypatch.setattr(grade_formal_build, "ROOT", str(root))
+    monkeypatch.setattr(grade_formal_build, "OUT", str(root / "outputs/robgrade/grade"))
+    grade_formal_build.build("topic")
+    path = root / "tier-1/topic.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["trials"].pop("3")
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(ValueError, match="rob_sources.*grade.*preview"):
+        builder.main([])
+    assert not (root / "outputs/robgrade/tab_preview_served").exists()
 
 
 class PreviewHTML(HTMLParser):

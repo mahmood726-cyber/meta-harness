@@ -14,6 +14,21 @@ def _rob(j):
     return {"overall": {"judgement": j}}
 
 
+@pytest.mark.parametrize("unknown_se", (0.1, 100.0))
+def test_unestablished_positive_weight_keeps_certainty_provisional(unknown_se):
+    outcome = {"name": "fixture", "result": {"k": 2, "i2": 0, "scale": "RR",
+               "ci_low": 0.8, "ci_high": 0.9}, "compat_key": {"matched": True},
+               "trials": [{"id": name, "study_effect": {"standard_error": se}}
+                          for name, se in (("A", 0.1), ("B", unknown_se))]}
+    g = gf.grade(outcome, {"A": _rob("LOW"), "B": _rob("NOT_ESTABLISHED")},
+                 counts=[{"events_t": 800, "n_t": 5000, "events_c": 1000, "n_c": 5000}])
+    assert g["domains"]["risk_of_bias"]["state"] == "PARTIAL"
+    assert g["certainty"] == "provisional"
+    assert g["certainty_from_assessed_domains_only"] == "high"
+    if unknown_se == 0.1:
+        assert g["domains"]["risk_of_bias"]["inputs"]["weight_share_by_overall"]["NOT_ESTABLISHED"] == 0.5
+
+
 def test_melatonin_partial_and_unresolved_judgements_remain_provisional():
     root = Path(__file__).resolve().parents[1]
     slug = "melatonin-primary-insomnia-sol"
@@ -27,6 +42,15 @@ def test_melatonin_partial_and_unresolved_judgements_remain_provisional():
     assert {"VERY_SERIOUS_FOR_JUDGEMENT", "OIS_NOT_COMPUTABLE"} <= set(g["judgement_flags"])
     assert g["certainty_from_assessed_domains_only"] == "moderate"
     assert g["certainty"] == "provisional"
+
+
+def test_single_trial_dimension_conflict_is_labelled_conservative_policy():
+    outcome = {"result": {"k": 1}, "trials": [{"id": "fixture"}],
+               "compat_key": {"matched": True, "dimension_matches": {"analysis_set": False}}}
+    d = gf.grade(outcome, {})["domains"]["indirectness"]
+    assert d["flags"] == ["SOFT_HETEROGENEITY_FOR_JUDGEMENT"]
+    assert "conservative policy" in d["basis"]
+    assert "across trials" not in d["basis"]
 
 
 @pytest.mark.parametrize("state,flags", [

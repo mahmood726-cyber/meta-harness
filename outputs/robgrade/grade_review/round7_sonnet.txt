@@ -1,0 +1,8 @@
+VERDICT: REVISE (Claude Sonnet second reviewer, read-only; 54 tests passed; findings 1-4 from reading the code)
+1. MAJOR robgrade/grade_formal.py risk_of_bias: an object whose overall is NOT_ESTABLISHED is not "missing"; its weight goes to the NOT_ESTABLISHED share, the domain is ASSESSED, downgrade 0 whenever LOW share >= 0.5 -> a firm certainty with up to half the weight unjudged. Test: two equal-SE trials, LOW + NOT_ESTABLISHED, other domains clean -> expected provisional (or PARTIAL); actual high.
+2. MINOR scripts/rob2_current.py redaction needs an exact substring; closed text with changed whitespace/line breaks survives; text also a substring of an open source stays published. Test: typed_conflicts span with "\n" replaced by a space -> expected redacted.
+3. MINOR scripts/rob2_current.py metadata(): span_sha256 + start/length for a SHORT closed span can be confirmed or brute-forced. Test: closed span <= 6 chars -> expected no hash/offset.
+4. MINOR scripts/tab_preview_build.py render_topic 63-66 recomputes rob_for and reads the earlier GRADE JSON without checking grade["rob_sources"] == sources -> a mismatched page if tiers changed. Test: build grade, drop a trial from rob2_ctx, run preview -> expected error.
+5. MINOR scripts/grade_formal_build.py rob_for 41-44 accepts an object with no own "outcome"/"trial" key (file outcome + dict key only); not fail-closed. Test: tier object lacking "trial" -> expected rejected.
+6. MINOR SOFT_HETEROGENEITY_FOR_JUDGEMENT blocks a rating even at k=1 (melatonin): conservative, but a policy choice, not a GRADE requirement; label it.
+Sound: cross-outcome/trial blocked (but 5); certainty rule correct per ch.14; no external resources; nothing presented as served or signed.

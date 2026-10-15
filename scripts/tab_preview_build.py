@@ -55,6 +55,8 @@ def render_topic(slug, review, grade):
     if len(set(trial_ids)) != len(trial_ids):
         raise ValueError(f"{slug}: duplicate pooled trial IDs")
     rob, sources = grade_formal_build.rob_for(slug, outcome["name"], trial_ids)
+    if grade.get("rob_sources") != sources:
+        raise ValueError(f"{slug}: GRADE rob_sources differ from current sources; rebuild grade first, then preview")
     rows = []
     for trial_id in trial_ids:
         if trial_id not in rob:

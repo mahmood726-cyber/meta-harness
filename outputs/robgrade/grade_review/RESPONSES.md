@@ -45,3 +45,18 @@ tests pass (verified by Claude). agy's review is pending (out of quota).
 Found by Claude while checking: 5 of the 96 pooled trials on served primary outcomes are identified ONLY by an NCT
 number (esketamine 2, sacubitril-valsartan 1, tocilizumab 2). The served RoB 2 driver reads PMID-identified trials
 only, so these stay "No formal RoB 2 assessment yet" even after the served readings run -- a scope decision for Mahmood.
+
+## Rounds 7-8 (15 Oct): second review by codex + Claude Sonnet while agy is out of quota (Gemini pass OWED)
+Per Mahmood (15 Oct): agy is out until ~06:00 UTC 17 Oct, so second reviews are codex + a Claude Sonnet reader; the
+Gemini pass on these rounds is owed and will be run when agy returns.
+
+| round | reviewer | verdict | findings | response |
+|---|---|---|---|---|
+| 7 | Claude Sonnet | REVISE | 1 major, 5 minor (round7_sonnet.txt) | 1 ACCEPTED: any NOT_ESTABLISHED weight makes risk of bias PARTIAL (certainty provisional). 2 PARTLY: redaction matches whitespace-normalised closed text; DECLINED: text also in an open source stays published (open text is publishable). 3 ACCEPTED: closed spans under 20 characters publish no hash/offset/length. 4 ACCEPTED: the preview refuses GRADE whose rob_sources differ from the current sources. 5 ACCEPTED: tier objects must carry their own outcome and trial (all 59 contextual + 69 current objects already did). 6 VERIFIED, kept: at k=1 the flag compares the declared outcome with extracted trial values (melatonin: declared ITT vs completers), so it is a real, conservative judgement flag; relabelled. Implemented by codex, each test failing first. |
+| 8 | Claude Sonnet | ACCEPT | 1 nit (round8_sonnet.txt) | regenerated GRADE checked by execution: risk of bias ASSESSED -> PARTIAL in 4 topics (iv-iron-hfref-hosp, metformin-pcos-ovulation, probiotics-aad-prevention, ticagrelor-vs-clopidogrel-acs), all already provisional; no certainty, downgrade or flag changed. |
+| 8 | codex | REVISE | 1 minor (round8_codex.txt; an earlier attempt was blocked by codex's sandbox, round8a_codex_blocked.txt, and rerun with the diff inline) | ACCEPTED (same as Sonnet's nit): the frozen-redactor metadata path measured RAW length, metadata() NORMALISED length; a whitespace-padded short span kept its hash. Now both measure the normalised source slice. Failing first (1 failed, 1 passed), then passing; no rob2_current output changed. |
+
+Verified by Claude: 115 GRADE/preview tests passed (20 min run) before the round-8 fix; tests/test_rob2_current.py +
+tests/test_model_inventory.py 30 passed after it; closed-text leak check over outputs/robgrade/rob2_current: 6 raw hits,
+5 are /outcome strings (open) and 1 is PMID 39529939 (CC) -> 0 closed spans published. No certainty changed: all 32
+served topics remain provisional.

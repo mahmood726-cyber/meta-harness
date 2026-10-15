@@ -1,0 +1,11 @@
+VERDICT: REVISE
+
+1. **MINOR — `scripts/rob2_current.py:80–85` (existing `_redacted` metadata cleanup).** The <20-character rule is inconsistent between the two metadata paths. `metadata()` measures whitespace-normalised text; cleanup of the frozen redactor’s metadata checks the stored raw `length`. A short normalised span padded with whitespace to ≥20 characters therefore retains its hash and offsets through the frozen path.
+
+   **Failing regression:** Pass a closed answer span such as `"Private" + " " * 20 + "words"` through the frozen answer redactor and then this cleanup. Assert its `span_redacted` equals only `{"why": "a short closed span was redacted"}`. Its normalised length is 13, but raw length is 32, so the cleanup leaves the fingerprint intact. Apply a consistent threshold before the frozen path discards the text.
+
+2. **Accepted fixes — `robgrade/grade_formal.py:82–89,153–158`; `scripts/grade_formal_build.py:42–46`; `scripts/tab_preview_build.py:58–59`.** The unrounded positive NOT_ESTABLISHED share correctly produces PARTIAL; the added certainty regression covers equal and tiny weights. Required object identities correctly reject missing/mismatched values while allowing valid lower-tier fallback. The preview comparison enforces the requested source-map agreement. The k=1 wording accurately labels the retained conservative policy. No introduced defect is evident in these changes.
+
+3. **Redaction/output verification limit — `scripts/rob2_current.py:49–73`; regenerated JSON excerpts.** Whitespace-normalised matching fixes the demonstrated leak, and new offsets correctly locate the matched interval in the original source. Open-overlap publication follows the adjudication. However, no regenerated `rob2_current/*.json` contents are supplied, so absence of surviving closed text or incorrect pre-existing offsets cannot be certified. The reported GRADE state/basis changes are consistent with the fixes; unchanged certainty is plausible where already provisional, but the abbreviated excerpts omit the evidence needed to verify that per file.
+
+Review used only the inline material; no tools, edits, or test execution.

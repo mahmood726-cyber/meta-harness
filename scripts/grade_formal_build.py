@@ -39,9 +39,9 @@ def rob_for(slug, outcome_name, pooled_trial_ids):
             trial_id = f"PMID {pmid}"
             if trial_id not in pooled_trial_ids:
                 continue
-            if "outcome" in obj and obj["outcome"] != outcome_name:
+            if "outcome" not in obj or obj["outcome"] != outcome_name:
                 continue
-            if "trial" in obj and obj["trial"] != trial_id:
+            if "trial" not in obj or obj["trial"] != trial_id:
                 continue
             if trial_id not in rob:
                 rob[trial_id] = obj

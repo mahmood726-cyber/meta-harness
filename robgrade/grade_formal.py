@@ -79,11 +79,14 @@ def risk_of_bias(trials, rob, tau2):
     if missing:
         return _dom(None, "NOT_ASSESSABLE", f"{len(missing)} pooled trial(s) have no formal RoB 2 object for this outcome",
                     inputs, flags)
+    # Use unrounded shares: even a tiny positive unjudged weight is not favourable evidence.
+    state = "PARTIAL" if share["NOT_ESTABLISHED"] > 0 else "ASSESSED"
     if sh["LOW"] < 0.5:
-        return _dom(1, "ASSESSED", f"{100 * (1 - sh['LOW']):.0f}% of the weight is from trials not at low risk "
+        return _dom(1, state, f"{100 * (1 - sh['LOW']):.0f}% of the weight is from trials not at low risk "
                                    f"(some concerns {100 * sh['SOME_CONCERNS']:.0f}%, high {100 * sh['HIGH']:.0f}%, "
                                    f"not established {100 * sh['NOT_ESTABLISHED']:.0f}%)", inputs, flags)
-    return _dom(0, "ASSESSED", f"{100 * sh['LOW']:.0f}% of the weight is from trials at low risk of bias", inputs, flags)
+    return _dom(0, state, f"{100 * sh['LOW']:.0f}% of the weight is from trials at low risk of bias" +
+                ("; some weight has no established judgement" if state == "PARTIAL" else ""), inputs, flags)
 
 
 # ------------------------------------------------------------------------------------------------ inconsistency
@@ -147,8 +150,11 @@ def indirectness(compat):
         what = ", ".join(sorted({str(l.get("dimension") or l.get("code")) for l in hard})) or "the compatibility object is unmatched"
         return _dom(1, "ASSESSED", f"hard PICO mismatch: {what}", inputs)
     soft = [d for d, ok in (compat.get("dimension_matches") or {}).items() if ok is False]
+    # Conservative policy, including k=1: compat_check compares declared outcome
+    # dimensions with extracted trial values, not just one trial with another.
+    # Melatonin's declared ITT versus extracted completers therefore remains flagged.
     flags = ["SOFT_HETEROGENEITY_FOR_JUDGEMENT"] if soft else []
-    return _dom(0, "ASSESSED", "no hard PICO mismatch" + (f"; dimensions heterogeneous across trials: {', '.join(soft)}" if soft else ""),
+    return _dom(0, "ASSESSED", "no hard PICO mismatch" + (f"; unresolved compatibility dimensions (conservative policy): {', '.join(soft)}" if soft else ""),
                 inputs, flags)
 
 

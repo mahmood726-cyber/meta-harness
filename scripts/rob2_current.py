@@ -9,6 +9,7 @@ import os
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +30,12 @@ def redact_remaining_closed_text(obj, item):
               and not str(s.get("licence") or "").startswith("CC")]
     if not closed:
         return
-    open_texts = [s.get("text") or "" for s in sources if s not in closed]
+    def normalise(text):
+        return " ".join(text.split())
+
+    open_texts = [normalise(s.get("text") or "") for s in sources if s not in closed]
+    closed_texts = {s["id"]: normalise(s.get("text") or "") for s in closed}
+    short_notice = {"why": "a short closed span was redacted"}
     metadata_keys = {"answer", "question", "qid", "judgement", "how", "kind",
                      "source_ref", "source_id", "source_sha256", "sha256", "id",
                      "trial", "nct", "outcome", "family", "licence", "domain", "if_ni_resolved_favourably"}
@@ -40,32 +46,54 @@ def redact_remaining_closed_text(obj, item):
     def source_for(text, source, key):
         if not text or key in metadata_keys or key.endswith("_sha256"):
             return None
+        normal = normalise(text)
+        if not normal:
+            return None
         if source is not None:
             if source not in closed:
                 return None
-            if key in ("span", "quote") or text in source.get("text", ""):
+            if key in ("span", "quote") or normal in closed_texts[source["id"]]:
                 return source
-        if not any(text in t for t in open_texts):
-            return next((s for s in closed if text in s.get("text", "")), None)
+        # Unattributed text also present in an open source stays published: open text is publishable.
+        if not any(normal in t for t in open_texts):
+            return next((s for s in closed if normal in closed_texts[s["id"]]), None)
         return None
 
     def metadata(text, source):
-        return {"why": "the source text is not CC-licensed: the span is not published",
-                "span_sha256": rd.rt.sha(text), "start": source["text"].find(text), "length": len(text)}
+        # Below 20 characters, publish only a notice: no span hash, offset, or length.
+        if len(normalise(text)) < 20:
+            return dict(short_notice)
+        result = {"why": "the source text is not CC-licensed: the span is not published",
+                  "span_sha256": rd.rt.sha(text)}
+        match = re.search(r"\s+".join(re.escape(part) for part in text.split()), source["text"])
+        if match:
+            result.update(start=match.start(), length=match.end() - match.start())
+        return result
 
     def walk(value, inherited=None):
         nonlocal changed
         if isinstance(value, dict):
             source = by_id.get(value.get("source_ref") or value.get("source_id"), inherited)
             for key, child in list(value.items()):
-                if key.endswith("_redacted") or key in machine_containers:
+                if key.endswith("_redacted"):
+                    # Frozen metadata without a usable length stays unchanged, even with span_sha256.
+                    if isinstance(child, dict) and isinstance(child.get("length"), int):
+                        length = child["length"]
+                        if source is not None and isinstance(child.get("start"), int):
+                            start = child["start"]
+                            length = len(normalise(source["text"][start:start + length]))
+                        if length < 20:
+                            value[key] = dict(short_notice)
+                            changed = True
+                    continue
+                if key in machine_containers:
                     continue
                 if isinstance(child, str):
                     found = source_for(child, source, key)
                     if found:
                         value[key] = None
                         value[key + "_redacted"] = metadata(child, found)
-                        if key != "span":
+                        if key != "span" and "span_sha256" in value[key + "_redacted"]:
                             value[key + "_redacted"]["source_sha256"] = found["sha256"]
                         changed = True
                 else:

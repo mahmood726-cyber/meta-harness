@@ -6,6 +6,51 @@ import copy
 import pytest
 
 
+@pytest.mark.parametrize("text", ("Private words across lines", "Private\twords  across\r\nlines"))
+def test_closed_whitespace_normalised(replay, text):
+    obj = {"typed_conflicts": [{"span": text}]}
+    replay.redact_remaining_closed_text(obj, {"sources": [{"id": "closed", "kind": "fulltext",
+        "licence": "NOT_CC", "sha256": "hash", "text": "Private\nwords across lines"}]})
+    assert obj["typed_conflicts"][0]["span"] is None
+
+
+@pytest.mark.parametrize("length", (1, 6, 19))
+def test_short_closed_span_has_only_redaction_notice(replay, length):
+    obj = {"span": "x" * length, "source_ref": "closed"}
+    replay.redact_remaining_closed_text(obj, {"sources": [{"id": "closed", "kind": "fulltext",
+        "licence": "NOT_CC", "sha256": "hash", "text": "x" * length}]})
+    assert obj["span"] is None
+    assert obj["span_redacted"] == {"why": "a short closed span was redacted"}
+
+
+@pytest.mark.parametrize("suffix, short", [("words", True), ("words across lines", False)])
+def test_frozen_padded_closed_span_uses_normalised_length(replay, suffix, short):
+    span = "Private" + " " * 20 + suffix
+    answer = {"answer": "Y", "span": span, "source_ref": "closed"}
+    obj = {"domains": {"D1": {"answers": {"1.1": answer}}}}
+    item = {"sources": [{"id": "closed", "kind": "fulltext", "licence": "NOT_CC",
+                         "sha256": "hash", "text": "prefix " + span + " suffix"}]}
+    assert replay.rd.redact_closed_spans(obj, item) == 1
+    frozen = copy.deepcopy(answer["span_redacted"])
+    assert frozen["start"] == len("prefix ")
+    assert frozen["length"] == len(span) >= 20
+    assert frozen["span_sha256"] == replay.rd.rt.sha(span)
+    replay.redact_remaining_closed_text(obj, item)
+    assert answer["span"] is None
+    assert answer["span_redacted"] == (
+        {"why": "a short closed span was redacted"} if short else frozen)
+
+
+def test_whitespace_normalised_open_overlap_stays_published(replay):
+    text = "Reusable words across lines"
+    obj = {"typed_conflicts": [{"span": text}]}
+    replay.redact_remaining_closed_text(obj, {"sources": [
+        {"id": "closed", "kind": "fulltext", "licence": "NOT_CC", "sha256": "closed", "text": text},
+        {"id": "open", "kind": "abstract", "licence": "OPEN", "sha256": "open",
+         "text": "Reusable\nwords\tacross  lines"}]})
+    assert obj["typed_conflicts"][0]["span"] == text
+
+
 def test_redaction_preserves_machine_codes_that_coincidentally_match_source(replay):
     obj = {"disagreements": ["1.1"], "answer_provenance": {"1.1": "unavailable"},
            "overall": {"missing_domains": ["D1"]},
@@ -54,10 +99,9 @@ def test_written_object_redacts_all_closed_quotes_and_keeps_cc(replay, monkeypat
     regex = trial["typed_conflicts"][0]["regex"]
     assert regex["span"] is None
     assert regex["source_sha256"] == "closed-hash"
-    assert regex["span_redacted"] == {
-        "why": "the source text is not CC-licensed: the span is not published",
-        "span_sha256": replay.rd.rt.sha(closed[1]),
-        "start": sources[0]["text"].find(closed[1]), "length": len(closed[1])}
+    assert regex["span_redacted"] == {"why": "a short closed span was redacted"}
+    assert trial["domains"]["D1"]["answers"]["1.1"]["span_redacted"] == {
+        "why": "a short closed span was redacted"}
     assert trial["typed_conflicts"][1]["regex"]["span"] == cc
     digest = trial.pop("sha256")
     assert digest == replay.rd.rt.sha(json.dumps(trial, sort_keys=True, ensure_ascii=False))

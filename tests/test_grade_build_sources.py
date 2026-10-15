@@ -6,7 +6,7 @@ import pytest
 from scripts import grade_formal_build as builder
 
 
-LABELS = ["served contextual (A3)", "contextual (A3)", "v3.1 (current replay)"]
+LABELS = ("served contextual (A3)", "contextual (A3)", "v3.1 (current replay)")
 
 
 def write_json(path, value):
@@ -30,12 +30,13 @@ def test_priority_and_missing_trial(sandbox):
     for (_, directory), trials in zip(tiers, trial_sets):
         write_json(directory / "synthetic.json", {
             "outcome": "primary", "trials": {
-                pmid: {"overall": {"judgement": judgement}}
+                pmid: {"trial": f"PMID {pmid}", "outcome": "primary", "overall": {"judgement": judgement}}
                 for pmid, judgement in trials.items()
             },
         })
     rob, sources = builder.rob_for("synthetic", "primary", [f"PMID {i}" for i in range(1, 6)])
-    assert rob == {f"PMID {i}": {"overall": {"judgement": "LOW"}} for i in range(1, 5)}
+    assert rob == {f"PMID {i}": {"trial": f"PMID {i}", "outcome": "primary",
+                               "overall": {"judgement": "LOW"}} for i in range(1, 5)}
     assert sources == {"PMID 4": LABELS[0], "PMID 3": LABELS[1],
                        "PMID 2": LABELS[2], "PMID 1": LABELS[2]}
     assert "PMID 5" not in rob and "PMID 5" not in sources
@@ -45,7 +46,7 @@ def test_priority_and_missing_trial(sandbox):
 def test_file_outcome_mismatch_covers_nothing(sandbox, wrong_outcome):
     _, tiers = sandbox
     wrong = {"outcome": "primary", "overall": {"judgement": "HIGH"}}
-    right = {"overall": {"judgement": "LOW"}}
+    right = {"trial": "PMID 1", "outcome": "primary", "overall": {"judgement": "LOW"}}
     write_json(tiers[0][1] / "synthetic.json", {
         "outcome": wrong_outcome, "trials": {"1": wrong, "2": wrong},
     })
@@ -61,11 +62,24 @@ def test_missing_files_cover_nothing(sandbox):
     assert builder.rob_for("missing", "primary", ["PMID 1"]) == ({}, {})
 
 
+@pytest.mark.parametrize("field", ("trial", "outcome"))
+@pytest.mark.parametrize("fallback", (False, True))
+def test_object_requires_own_identity(sandbox, field, fallback):
+    _, tiers = sandbox
+    right = {"trial": "PMID 1", "outcome": "primary", "overall": {"judgement": "LOW"}}
+    wrong = {k: v for k, v in right.items() if k != field}
+    write_json(tiers[0][1] / "synthetic.json", {"outcome": "primary", "trials": {"1": wrong}})
+    if fallback:
+        write_json(tiers[2][1] / "synthetic.json", {"outcome": "primary", "trials": {"1": right}})
+    assert builder.rob_for("synthetic", "primary", ("PMID 1",)) == (
+        ({"PMID 1": right}, {"PMID 1": LABELS[2]}) if fallback else ({}, {}))
+
+
 @pytest.mark.parametrize("object_outcome", ["secondary", None])
 def test_object_outcome_mismatch_uses_lower_tier(sandbox, object_outcome):
     _, tiers = sandbox
-    wrong = {"outcome": object_outcome, "overall": {"judgement": "LOW"}}
-    right = {"outcome": "primary", "overall": {"judgement": "HIGH"}}
+    wrong = {"trial": "PMID 1", "outcome": object_outcome, "overall": {"judgement": "LOW"}}
+    right = {"trial": "PMID 1", "outcome": "primary", "overall": {"judgement": "HIGH"}}
     for index, obj in [(0, wrong), (2, right)]:
         write_json(tiers[index][1] / "synthetic.json", {
             "outcome": "primary", "trials": {"1": obj},
@@ -94,7 +108,7 @@ def test_object_trial_mismatch_is_rejected(sandbox, fallback):
 
 def test_only_pooled_trials_have_objects_and_sources(sandbox):
     _, tiers = sandbox
-    obj = {"overall": {"judgement": "LOW"}}
+    obj = {"trial": "PMID 1", "outcome": "primary", "overall": {"judgement": "LOW"}}
     write_json(tiers[0][1] / "synthetic.json", {
         "outcome": "primary", "trials": {"1": obj, "2": obj},
     })
@@ -128,12 +142,13 @@ def test_build_records_sorted_sources_and_missing_assessment(sandbox):
     })
     write_json(tiers[0][1] / "synthetic.json", {
         "outcome": "primary", "trials": {
-            "2": {"overall": {"judgement": "LOW"}},
-            "99": {"overall": {"judgement": "LOW"}},
+            "2": {"trial": "PMID 2", "outcome": "primary", "overall": {"judgement": "LOW"}},
+            "99": {"trial": "PMID 99", "outcome": "primary", "overall": {"judgement": "LOW"}},
         },
     })
     write_json(tiers[1][1] / "synthetic.json", {
-        "outcome": "primary", "trials": {"1": {"overall": {"judgement": "HIGH"}}},
+        "outcome": "primary", "trials": {"1": {
+            "trial": "PMID 1", "outcome": "primary", "overall": {"judgement": "HIGH"}}},
     })
     result = builder.build("synthetic")
     written = json.loads((root / "grade/synthetic.json").read_text(encoding="utf-8"))
