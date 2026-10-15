@@ -7,19 +7,44 @@ import pytest
 import test_hm3_pages as contract
 
 
+def _first_decision():
+    decision = json.loads((contract.EVIDENCE / 'decisions.json').read_text(encoding='utf-8'))[0]
+    path = contract.ROOT / 'docs/reviews' / decision['topic'] / 'review.json'
+    return decision, path
+
+
 @pytest.fixture
 def declarations(monkeypatch):
-    path = contract.EVIDENCE / 'harms_superseded.json'
-    data = deepcopy(json.loads(path.read_text(encoding='utf-8')))
+    """A constructed declaration over a copy of a real outcome made incomplete in memory.
+
+    The committed list may legitimately be empty (every HM3 declaration resolved), so the
+    plants must not depend on a live declaration existing.
+    """
+    decl_path = contract.EVIDENCE / 'harms_superseded.json'
+    decision, review_path = _first_decision()
+    review = json.loads(review_path.read_text(encoding='utf-8'))
+    outcome = next(o for o in review['outcomes'] if o['name'] == decision['outcome'])
+    outcome['result']['harms_incomplete'] = True
+    outcome['result']['known_reported_not_yet_extracted'] = [{'id': '__control_plant_id', 'span': 'plant'}]
+    data = [dict(topic=decision['topic'], outcome=decision['outcome'], landing='plant', reason='plant',
+                 decided='plant', known_reported_not_yet_extracted=['__control_plant_id'])]
     original_read = Path.read_text
 
     def read(self, *args, **kwargs):
-        if self == path:
+        if self == decl_path:
             return json.dumps(data)
+        if self == review_path:
+            return json.dumps(review)
         return original_read(self, *args, **kwargs)
 
     monkeypatch.setattr(Path, 'read_text', read)
     return data
+
+
+def test_constructed_declaration_passes_the_contract(declarations):
+    # The control: an honest declaration over an incomplete outcome must PASS, or the plants
+    # below prove nothing.
+    contract.test_rebuilt_pages_account_for_every_baseline_harm()
 
 
 def test_mismatched_declared_harm_ids_fail(declarations):
@@ -33,6 +58,8 @@ def test_mismatched_declared_harm_ids_fail(declarations):
 def test_declared_but_complete_harm_fails(declarations):
     entry = deepcopy(declarations[0])
     for decision in json.loads((contract.EVIDENCE / 'decisions.json').read_text(encoding='utf-8')):
+        if (decision['topic'], decision['outcome']) == (entry['topic'], entry['outcome']):
+            continue
         review = json.loads((contract.ROOT / 'docs/reviews' / decision['topic'] / 'review.json').read_text(encoding='utf-8'))
         outcome = next(o for o in review['outcomes'] if o['name'] == decision['outcome'])
         if not outcome['result'].get('harms_incomplete'):
