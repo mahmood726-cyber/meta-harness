@@ -6731,5 +6731,251 @@
     "verdict": null
    }
   ]
+ },
+ "r8-4-r1": {
+  "base": "cdd81860a",
+  "head": "2c7e908c8",
+  "runs": {
+   "g1": {
+    "record_id": "mc-a942536f9bb2e2675b7df4bfc19862e0",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r8_4_search_dates.py"
+    ],
+    "prompt_sha256": "230e36f6370f839653b625014ff65ea61702771bbca9407d51dde3d800e41291"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "search_end",
+    "severity": "P1",
+    "claim": "A previously found date suppresses all subsequent year-only search dates because the year parser runs only when best is None. A later search update is therefore ignored.",
+    "failing_input": "from scripts import r8_4_search_dates as r\ne = r.search_end('PubMed was searched through December 2020. Searches were updated from inception to 2022.')\nprint(e['date'], r.classify('2022-06-01', e, None))",
+    "expected": "2022 SAME_PERIOD_AS_SEARCH_END",
+    "actual": "2020-12 AFTER_COMPARATOR_SEARCH_END",
+    "id": "r8-4-r1:g1#1",
+    "record_id": "mc-a942536f9bb2e2675b7df4bfc19862e0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "search_end",
+    "severity": "P1",
+    "claim": "A search keyword anywhere in a sentence licenses dates belonging to unrelated clauses. Publication dates can replace the search deadline, and the year-only branch also bypasses the enrolment exclusion entirely.",
+    "failing_input": "from scripts import r8_4_search_dates as r\ntexts = ['PubMed was searched through December 2020, and the review was published in March 2022.', 'PubMed was searched and patients were enrolled from 2018 to 2022.']\nprint([e['date'] if e else None for e in map(r.search_end, texts)])",
+    "expected": "['2020-12', None]",
+    "actual": "['2022-03', '2022']",
+    "id": "r8-4-r1:g1#2",
+    "record_id": "mc-a942536f9bb2e2675b7df4bfc19862e0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "build",
+    "severity": "P1",
+    "claim": "An explicit statement that ClinicalTrials.gov was not searched sets searched_trial_registry to True. This incorrectly enables registry-posting dates when deciding whether a trial was publicly available to the comparator's search.",
+    "failing_input": "from scripts import r8_4_search_dates as r\nfrom unittest.mock import patch, mock_open\npm = {'first_public': '2021-06-01', 'basis': 'fixture', 'abstract': 'We searched PubMed through December 2020. We did not search ClinicalTrials.gov.'}\nwith patch.object(r, 'targets', return_value=[('fixture', '1', ['PMID 2'])]), patch('builtins.open', mock_open(read_data='{\"records\": []}')), patch.object(r, '_pm', return_value=pm), patch.object(r, 'fulltext_for', return_value=[]), patch.object(r, 'results_posted', return_value={}):\n    print(r.build()['comparators']['1']['searched_trial_registry'])",
+    "expected": "False",
+    "actual": "True",
+    "id": "r8-4-r1:g1#3",
+    "record_id": "mc-a942536f9bb2e2675b7df4bfc19862e0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "results_posted",
+    "severity": "P2",
+    "claim": "An unavailable AACT snapshot silently returns the same empty mapping as a successful lookup finding no posted results. build then proceeds with publication-only dates without recording that registry evidence could not be checked.",
+    "failing_input": "from scripts import r8_4_search_dates as r\nfrom unittest.mock import patch\nwith patch.object(r.os.path, 'isfile', return_value=False):\n    print(r.results_posted({'NCT03434041'}, snap='missing-snapshot'))",
+    "expected": "An explicit missing-snapshot error or unavailable-evidence state that prevents a definitive registry-inclusive classification.",
+    "actual": "{}; no error or unavailable-evidence state is reported.",
+    "id": "r8-4-r1:g1#4",
+    "record_id": "mc-a942536f9bb2e2675b7df4bfc19862e0",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "pubmed_dates",
+    "severity": "P1",
+    "claim": "Year-only issue dates are discarded even when they precede a fully specified indexing date. The later indexing date becomes first_public and can falsely classify the publication as after the search.",
+    "failing_input": "from scripts import r8_4_search_dates as r\nxml = '<PubmedArticleSet><PubmedArticle><MedlineCitation><Article><Journal><JournalIssue><PubDate><Year>2020</Year></PubDate></JournalIssue></Journal></Article></MedlineCitation><PubmedData><History><PubMedPubDate PubStatus=\"entrez\"><Year>2021</Year><Month>2</Month><Day>1</Day></PubMedPubDate></History></PubmedData></PubmedArticle></PubmedArticleSet>'\np = r.pubmed_dates(xml)\nprint(p['first_public'], r.classify(p['first_public'], {'date': '2020', 'precision': 'year'}, None))",
+    "expected": "2020 SAME_PERIOD_AS_SEARCH_END",
+    "actual": "2021-02-01 AFTER_COMPARATOR_SEARCH_END",
+    "id": "r8-4-r1:g1#5",
+    "record_id": "mc-a942536f9bb2e2675b7df4bfc19862e0",
+    "verdict": null
+   }
+  ]
+ },
+ "r8-4-r2": {
+  "base": "cdd81860a",
+  "head": "17a8c514b",
+  "runs": {
+   "g1": {
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r8_4_search_dates.py"
+    ],
+    "prompt_sha256": "9b22f1e17094e1a618f894742e746b8c3c038d660c8d27af23eaeff543883c77"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/r8__4_search_dates.py",
+    "function": "search_end",
+    "severity": "P1",
+    "claim": "A publication-window date in a later clause overrides the explicitly stated search cutoff.",
+    "failing_input": "search_end('We searched PubMed through December 2020 and included studies published in March 2022.')",
+    "expected": "date='2020-12', precision='month'.",
+    "actual": "date='2022-03', precision='month'. The publication clause passes the trailing 'in' check and is selected as the latest date.",
+    "id": "r8-4-r2:g1#1",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "searched_registry",
+    "severity": "P1",
+    "claim": "Splitting at commas loses negation governing a registry example, falsely enabling registry-posting dates in build().",
+    "failing_input": "searched_registry(['We searched PubMed but did not search trial registries, including ClinicalTrials.gov.'])",
+    "expected": "False.",
+    "actual": "True: the fragment ' including ClinicalTrials.gov.' contains no negation.",
+    "id": "r8-4-r2:g1#2",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "searched_registry",
+    "severity": "P1",
+    "claim": "Review registration in PROSPERO is mistaken for searching a trial registry.",
+    "failing_input": "searched_registry(['We searched PubMed and registered the review in the PROSPERO registry.'])",
+    "expected": "False: only PubMed was searched.",
+    "actual": "True: the search keyword and generic 'registry' match suffice.",
+    "id": "r8-4-r2:g1#3",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "pubmed_dates",
+    "severity": "P1",
+    "claim": "A year-only publication date is discarded when an indexing date shares its year, introducing unsupported month precision and potentially a false exclusion explanation.",
+    "failing_input": "d = pubmed_dates('<PubmedArticleSet><PubmedArticle><MedlineCitation><Article><Journal><JournalIssue><PubDate><Year>2020</Year></PubDate></JournalIssue></Journal></Article></MedlineCitation><PubmedData><History><PubMedPubDate PubStatus=\"entrez\"><Year>2020</Year><Month>12</Month><Day>01</Day></PubMedPubDate></History></PubmedData></PubmedArticle></PubmedArticleSet>'); (d['first_public'], classify(d['first_public'], {'date': '2020-06', 'precision': 'month'}, None))",
+    "expected": "('2020', 'SAME_PERIOD_AS_SEARCH_END'): the publication month is unknown.",
+    "actual": "('2020-12-01', 'AFTER_COMPARATOR_SEARCH_END').",
+    "id": "r8-4-r2:g1#4",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "results_posted",
+    "severity": "P1",
+    "claim": "A requested trial missing from the snapshot silently becomes absence of posted results. build() can consequently classify by publication alone despite unavailable registry evidence.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport scripts.r8_4_search_dates as m\nwith patch.object(m.os.path, 'isfile', return_value=True), patch('builtins.open', mock_open(read_data='nct_id|results_first_posted_date\\n')):\n    print(m.results_posted({'NCT00000001'}, snap='fixture'))",
+    "expected": "An explicit missing-record failure or unknown status for NCT00000001.",
+    "actual": "{}; indistinguishable from a present trial whose results-posting field is empty.",
+    "id": "r8-4-r2:g1#5",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "build",
+    "severity": "P1",
+    "claim": "Unavailable comparator text is silently classified as SEARCH_END_NOT_STATED, although no comparator evidence was available to inspect.",
+    "failing_input": "from unittest.mock import patch, mock_open\nimport scripts.r8_4_search_dates as m\nwith patch.multiple(m, targets=lambda: [('topic', '1', ['PMID 2'])], _pm=lambda p: None if p == '1' else {'first_public': '2023-03', 'basis': 'JournalIssue/PubDate', 'abstract': ''}, fulltext_for=lambda *args: []), patch('builtins.open', mock_open(read_data='{\"records\": []}')):\n    print(m.build()['trials']['topic|PMID 2']['why_not_in_comparator'])",
+    "expected": "An explicit unavailable-comparator-evidence status or failure.",
+    "actual": "'SEARCH_END_NOT_STATED'.",
+    "id": "r8-4-r2:g1#6",
+    "record_id": "mc-99fc0722cb34e6a92e6d1e9a3953241d",
+    "verdict": null
+   }
+  ]
+ },
+ "r8-4-r3": {
+  "base": "cdd81860a",
+  "head": "9b00f67f0",
+  "runs": {
+   "g1": {
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/g1_tracker.py",
+     "scripts/r8_4_search_dates.py"
+    ],
+    "prompt_sha256": "08f3fe592f2718d0fb150f62eaa406d05a728d987babd2e0672331c7f1d8c4fd"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "searched_registry",
+    "severity": "P1",
+    "claim": "Negation after the registry name is ignored, so an explicitly unsearched registry is treated as searched. build() then permits its posting dates to affect classifications.",
+    "failing_input": "searched_registry(['ClinicalTrials.gov was not searched.'])",
+    "expected": "None",
+    "actual": "'ClinicalTrials.gov was not searched.'",
+    "id": "r8-4-r3:g1#1",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "searched_registry",
+    "severity": "P1",
+    "claim": "Mentioning ClinicalTrials.gov itself satisfies _SEARCH, even when the sentence provides no evidence of searching the registry.",
+    "failing_input": "searched_registry(['ClinicalTrials.gov supplied trial identifiers.'])",
+    "expected": "None",
+    "actual": "'ClinicalTrials.gov supplied trial identifiers.'",
+    "id": "r8-4-r3:g1#2",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "search_end",
+    "severity": "P1",
+    "claim": "The publication exclusion recognizes only limited passive constructions. An active manuscript-submission clause replaces the actual search cutoff with the submission date.",
+    "failing_input": "search_end('We searched PubMed through March 2021 and submitted the manuscript on 1 December 2023.')",
+    "expected": "A search-end record with date='2021-03' and precision='month'.",
+    "actual": "A search-end record with date='2023-12' and precision='month'.",
+    "id": "r8-4-r3:g1#3",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "search_end",
+    "severity": "P1",
+    "claim": "Negated searches supply accepted cutoff dates, allowing downstream classifications to rely on a search explicitly denied by the held text.",
+    "failing_input": "search_end('PubMed was not searched through December 2022.')",
+    "expected": "None",
+    "actual": "{'date': '2022-12', 'precision': 'month', 'span': 'PubMed was not searched through December 2022.'}",
+    "id": "r8-4-r3:g1#4",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   },
+   {
+    "file": "scripts/r8_4_search_dates.py",
+    "function": "build",
+    "severity": "P1",
+    "claim": "A PubMed record with an empty abstract creates texts=[''], whose truthiness incorrectly passes the comparator-text gate. Missing evidence becomes a publication-based verdict instead of COMPARATOR_TEXT_UNAVAILABLE.",
+    "failing_input": "from unittest.mock import patch, mock_open\nfrom scripts import r8_4_search_dates as m\nwith patch.object(m, 'targets', return_value=[('s', '2', ['PMID 1'])]), patch('builtins.open', mock_open(read_data='{\"records\":[]}')), patch.object(m, '_pm', side_effect=lambda p: {'first_public': '2020-01' if p == '2' else '2021-01', 'basis': 'fixture', 'abstract': ''}), patch.object(m, 'fulltext_for', return_value=[]):\n    result = m.build()\n    print(result['comparators']['2']['comparator_text_available'])\n    print(result['trials']['s|PMID 1']['why_not_in_comparator'])",
+    "expected": "False\nCOMPARATOR_TEXT_UNAVAILABLE",
+    "actual": "True\nPUBLISHED_AFTER_COMPARATOR",
+    "id": "r8-4-r3:g1#5",
+    "record_id": "mc-acbf66a1bd69a7a18e3290e3e281b1a1",
+    "verdict": null
+   }
+  ]
  }
 }
