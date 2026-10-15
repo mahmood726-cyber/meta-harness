@@ -271,6 +271,11 @@ from regex_layer.specs_eligibility_compat import SITE_SPECS as _ELIGIBILITY_COMP
 
 INLINE_SPECS.update(_ELIGIBILITY_COMPAT)
 
+# compat_check.py's OUTCOME-BINDING sites (audit 26-A / 12-03 / 04-2, 11 Oct)
+from regex_layer.specs_compat_binding import SITE_SPECS as _COMPAT_BINDING  # noqa: E402
+
+INLINE_SPECS.update(_COMPAT_BINDING)
+
 # Sites in files the OTHER lane owns (harness/rob2.py, funding.py, hand_binding.py): planted and measured here, read
 # only -- they are not in sites_without_plants.json's owned_files, and a located defect's fix belongs to that lane.
 from regex_layer.specs_other_lanes import SITE_SPECS as _OTHER_LANES  # noqa: E402
