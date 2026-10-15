@@ -27,7 +27,13 @@ import json
 import os
 import re
 import sys
-from urllib.parse import urlparse
+import csv
+import io
+import time
+import tarfile
+from html import unescape
+from pathlib import Path, PurePosixPath
+from urllib.parse import urlparse, urljoin, quote
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
@@ -35,7 +41,7 @@ sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 SOURCES = os.path.join(ROOT, "registry", "regulatory_sources.json")
 BINDINGS = "registry/g1_regulatory_bindings.json"
 IDCACHE = os.path.join(ROOT, "outputs", "k_gap", "_reg", "id_information.json")
-HOST_AGENCY = {"www.accessdata.fda.gov": "FDA", "accessdata.fda.gov": "FDA", "www.fda.gov": "FDA",
+HOST_AGENCY = {"ftp.ncbi.nlm.nih.gov": "CADTH", "www.iqwig.de": "IQWIG", "iqwig.de": "IQWIG", "www.accessdata.fda.gov": "FDA", "accessdata.fda.gov": "FDA", "www.fda.gov": "FDA",
                "www.ema.europa.eu": "EMA", "ema.europa.eu": "EMA", "www.nice.org.uk": "NICE", "nice.org.uk": "NICE",
                "www.g-ba.de": "GBA", "g-ba.de": "GBA", "www.pbs.gov.au": "PBAC", "pbs.gov.au": "PBAC"}
 # NICE documents (committee papers with the ERG / EAG report, final appraisal determinations, guideline evidence
@@ -47,7 +53,7 @@ HOST_AGENCY = {"www.accessdata.fda.gov": "FDA", "accessdata.fda.gov": "FDA", "ww
 # citing and linking) are therefore held for TYPED extraction only, never shown to a model.
 # PBS (https://www.pbs.gov.au/general/copyright, read 15 Oct 2026): "may be reproduced in part for personal use as
 # general reference material only ... all rights are reserved" -> typed (deterministic) reading only, never a model.
-AGENCY_LICENCE = {"FDA": "US_GOV_PUBLIC_DOMAIN", "EMA": "EMA_REUSE_WITH_ACKNOWLEDGEMENT", "NICE": "NICE_NOTICE_OF_RIGHTS",
+AGENCY_LICENCE = {"CADTH": "CADTH_COPYRIGHT_TYPED_ONLY", "IQWIG": "IQWIG_ALL_RIGHTS_RESERVED_TYPED_ONLY", "FDA": "US_GOV_PUBLIC_DOMAIN", "EMA": "EMA_REUSE_WITH_ACKNOWLEDGEMENT", "NICE": "NICE_NOTICE_OF_RIGHTS",
                   "GBA": "GBA_IQWIG_CITE_AND_LINK_ONLY", "PBAC": "PBS_COPYRIGHT_PERSONAL_REFERENCE_ONLY"}
 # licences a model may be shown (the prompt goes into a public record). EMA: Mahmood 6 Oct ('European drug agency can
 # be used'); EMA's terms authorise reproduction provided the source is acknowledged, so every shown EMA window carries
@@ -57,6 +63,8 @@ EMA_ACK = "Source: European Medicines Agency (EMA), reproduced with acknowledgem
 WINDOW = 1800                                    # characters either side of a naming mention shown to the reader
 MAX_SHOWN = 40000                                # per trial, across documents
 MAX_DOCS = 160
+MAX_PER_AGENCY_FDA = 120
+USER_AGENT = "meta-harness k-gap (meta-harness@example.org)"
 MAX_PER_AGENCY = 70                              # documents held per agency per topic
 TYPED_REACH = 6000                               # the typed reader looks as far from a naming mention as the gate does
 
@@ -73,6 +81,9 @@ def licence_of(url):
 def licence_from_text(url, text):
     """The held record's licence: the host's, except a NICE document whose OWN text states OGL / a CC licence."""
     lic = licence_of(url)
+    if agency_of(url) == "CADTH" and text:
+        permissions = re.findall(r"<permissions\b[^>]*>.*?</permissions\s*>", text, re.S | re.I)
+        return _cadth_licence("\n".join(permissions))
     if agency_of(url) == "NICE" and text:
         if re.search(r"Open Government Licen[cs]e", text):
             return "OGL"
@@ -96,54 +107,94 @@ def text_sha256(text):
 
 # --------------------------------------------------------------------------------------------- discovery and holding
 
-def fda_review_urls(agent):
-    """drugs@FDA documents for an INN: NDA/BLA application_docs typed 'Review' (a TOC page followed to its PDFs) or
-    'Label' (section 14, Clinical Studies, prints the pivotal trials' results)."""
+def _request(fn, *args, **kwargs):
+    """Scope the shared HTTP identity to this source route."""
     from harness import http
+    previous = http.UA
+    try:
+        http.UA = USER_AGENT
+        return fn(*args, **kwargs)
+    finally:
+        http.UA = previous
+
+
+def _links(markup, base):
+    return [urljoin(base, unescape(h)) for h in re.findall(r"href\s*=\s*[\"']([^\"'+ ]+)[\"']", markup, re.I)]
+
+
+def _fda_review(url):
+    p = urlparse(url).path.lower()
+    return (agency_of(url) == "FDA" and bool(re.match(r"/drugsatfda_docs/(nda|bla)/", p))
+            and p.endswith((".pdf", "toc.cfm")) and "/appletter/" not in p and "/label/" not in p)
+
+
+def fda_review_urls(agent):
+    """Supplement reviews on the overview are absent from openFDA; labels must never displace them."""
+    from harness import http
+    from bs4 import BeautifulSoup
     import k_gap_regulatory_probe as rp
     try:
-        d = http.get_json("https://api.fda.gov/drug/drugsfda.json",
-                          {"search": f'openfda.generic_name:"{agent}"', "limit": "50"}, tries=2)
-    except Exception:  # noqa: BLE001 - no application for this INN is a result
+        d = _request(http.get_json, "https://api.fda.gov/drug/drugsfda.json",
+                     {"search": f'openfda.generic_name:"{agent}"', "limit": "50"}, tries=2)
+    except Exception:  # noqa: BLE001 - an unavailable index supplies no documents
         return []
-    subs = []
+    reviews, labels = [], []
     for r in d.get("results", []):
-        if not str(r.get("application_number") or "").upper().startswith(("NDA", "BLA")):
+        number = re.fullmatch(r"(?:NDA|BLA)(\d{6})", str(r.get("application_number") or ""), re.I)
+        if not number:
             continue
-        for s in r.get("submissions", []):
-            for dd in s.get("application_docs") or []:
-                if (dd.get("type") or "").lower() in ("review", "label") and dd.get("url"):
-                    subs.append((str(dd.get("date") or s.get("submission_status_date") or ""),
-                                 dd["url"].replace("http://", "https://")))
+        app_labels = {}
+        for sub in r.get("submissions", []):
+            for doc in sub.get("application_docs") or []:
+                u = (doc.get("url") or "").replace("http://", "https://")
+                date = str(doc.get("date") or sub.get("submission_status_date") or "")
+                if (doc.get("type") or "").lower() == "review" and _fda_review(u):
+                    reviews.append((date, u))
+                elif (doc.get("type") or "").lower() == "label" and agency_of(u) == "FDA":
+                    app_labels[u] = date
+        overview = ("https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?"
+                    "event=overview.process&ApplNo=" + number[1])
+        page = BeautifulSoup(_nice_html(overview), "html.parser")
+        for anchor in page.find_all("a", href=True):
+            u = urljoin(overview, anchor["href"]).replace("http://", "https://")
+            row = anchor.find_parent("tr")
+            stamp = re.search(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b", row.get_text(" ") if row else "")
+            year = re.search(r"/(\d{4})/", urlparse(u).path)
+            date = (f"{stamp[3]}{int(stamp[1]):02d}{int(stamp[2]):02d}" if stamp else
+                    (year[1] + "0000" if year else ""))
+            if _fda_review(u):
+                reviews.append((date, u))
+            elif agency_of(u) == "FDA" and "/drugsatfda_docs/label/" in u.lower() and u.lower().endswith(".pdf"):
+                app_labels.setdefault(u, date)
+        labels += sorted(app_labels, key=lambda u: (app_labels[u], u), reverse=True)[:3]
     out = []
-    for _d, u in sorted(set(subs), reverse=True):                 # newest first: outcome-trial supplements are late
+    for _, u in sorted(set(reviews), reverse=True):
         if u.lower().endswith(".pdf"):
             out.append(u)
             continue
-        # a TOC page is a TEMPLATE: 'pdfBaseName = "125276Orig1s137"' + the review suffixes, shown by script only when
-        # the document exists -- so the clinical / statistical review suffixes are tried, and a missing one is recorded
-        txt, _rec = rp.fetch_text(u)
+        txt, _ = _request(rp.fetch_text, u)
+        if not txt:
+            txt = _nice_html(u)  # the probe does not decode .cfm templates
         m = re.search(r"pdfBaseName\s*=\s*[\"']([A-Za-z0-9_]+)[\"']", txt)
         base = u.rsplit("/", 1)[0] + "/"
         if m:
-            out += [base + m.group(1) + sfx + ".pdf" for sfx in REVIEW_SUFFIXES]
-        for h in re.findall(r"href=\"([^\"'+ ]+\.pdf)\"", txt, re.I):
-            out.append(h if h.startswith("http") else base + h)
-    return list(dict.fromkeys(out))
+            out += [base + m[1] + suffix + ".pdf" for suffix in REVIEW_SUFFIXES]
+        out += [h for h in _links(txt, base) if _fda_review(h) and h.lower().endswith(".pdf")]
+    return list(dict.fromkeys(out + labels))
 
 
 REVIEW_SUFFIXES = ("MedR", "StatR", "MultidisciplineR", "IntegratedR", "SumR", "CrossR", "OtherR")
 
 
 NICE = "https://www.nice.org.uk"
-NICE_UA = {"User-Agent": "meta-harness (meta-harness@example.org)"}
+NICE_UA = {"User-Agent": USER_AGENT}
 MAX_NICE_GUIDANCE = 15
 
 
 def _nice_html(url):
     from harness import http
     try:
-        st, b = http.get_raw(url, tries=2, timeout=60)
+        st, b = _request(http.get_raw, url, tries=2, timeout=60)
     except Exception:  # noqa: BLE001 - an unreachable page is nothing held, never guessed
         return ""
     return b.decode("utf-8", "replace") if st == 200 else ""
@@ -258,6 +309,9 @@ def gba_docs(procedure_html):
     return list(dict.fromkeys(out))
 
 
+_GBA_PAGES = {}
+
+
 def gba_urls(agent):
     """AMNOG (section 35a SGB V) documents for an INN, discovered through G-BA's own search words and procedure pages."""
     from urllib.parse import quote
@@ -268,7 +322,265 @@ def gba_urls(agent):
     procs = []
     for w in gba_search_words(agent, words):
         procs += gba_procedures(_nice_html(GBA_NB + "?suchwort=" + quote(w)))
-    return [u for p in list(dict.fromkeys(procs))[:MAX_GBA_PROCEDURES] for u in gba_docs(_nice_html(GBA_NB + p + "/"))]
+    pages = [_nice_html(GBA_NB + p + "/") for p in list(dict.fromkeys(procs))[:MAX_GBA_PROCEDURES]]
+    _GBA_PAGES[agent.casefold()] = pages
+    return [u for page in pages for u in gba_docs(page)]
+
+
+LITARCH_LIST = "https://ftp.ncbi.nlm.nih.gov/pub/litarch/file_list.csv"
+LITARCH_BASE = LITARCH_LIST.rsplit("/", 1)[0] + "/"
+MAX_CADTH_DOCS = 8
+MAX_IQWIG_DOCS = 8
+MAX_LITARCH_BYTES = 50 * 1024 * 1024
+
+
+def _whole_word(agent, text):
+    return bool(agent.strip()) and bool(re.search(r"(?<!\w)" + re.escape(agent.casefold()) + r"(?!\w)", text.casefold()))
+
+
+def _reg_dir():
+    return Path(ROOT) / "outputs" / "k_gap" / "_reg"
+
+
+def cadth_urls(agent):
+    """Use the sanctioned bulk index; challenge pages are never evidence."""
+    from harness import http
+    fp = _reg_dir() / "litarch_file_list.csv"
+    try:
+        if not fp.exists() or time.time() - fp.stat().st_mtime > 7 * 86400:
+            st, body = _request(http.get_raw, LITARCH_LIST, tries=2, timeout=180)
+            if st != 200:
+                return []
+            fp.parent.mkdir(parents=True, exist_ok=True)
+            fp.write_bytes(body)
+        rows = csv.DictReader(io.StringIO(fp.read_text(encoding="utf-8-sig")))
+        keep = []
+        for row in rows:
+            title = row.get("Title", "")
+            if row.get("Publisher") != "Canadian Agency for Drugs and Technologies in Health" or not _whole_word(agent, title):
+                continue
+            if re.search(r"Pharmacoeconomic|Patient Group Input|Recommendation|Environmental Scan", title, re.I):
+                continue
+            if not re.search(r"Clinical Review|Reimbursement Review|Review of Clinical Effectiveness|Rapid Review|Health Technology Review", title, re.I):
+                continue
+            file = row.get("File", "")
+            if not _safe_member(file) or not file.endswith(".tar.gz"):
+                continue
+            keep.append((row.get("Last Updated", ""), row.get("Publication Year", ""), LITARCH_BASE + file))
+        return list(dict.fromkeys(u for _, _, u in sorted(keep, reverse=True)))[:MAX_CADTH_DOCS]
+    except (OSError, ValueError, RuntimeError):
+        return []
+
+
+def _safe_member(name):
+    """Reject both POSIX and Windows traversal before interpreting an archive name."""
+    name = name.replace("\\", "/")
+    return bool(name) and not name.startswith("/") and ".." not in name.split("/") and ":" not in name
+
+
+def _cadth_licence(permissions):
+    """Only explicit unrestricted grants may reach a prompt; missing grants fail closed."""
+    from kgap.k_gap import _html_text
+    text = _html_text(permissions)
+    combined = unescape(permissions) + " " + text
+    if re.search(r"by-nc|by-nd|noncommercial|non-commercial|no.?derivatives|CC\s+BY[- ](?:NC|ND)", combined, re.I):
+        return "CADTH_CC_BY_NC_ND_TYPED_ONLY"
+    if re.search(r"creativecommons.org/licenses/by/4\.0|creativecommons.org/publicdomain/zero/1\.0|\bCC0\b|\bCC BY 4\.0\b|Creative Commons Attribution 4\.0", combined, re.I):
+        return "CC"
+    if re.search(r"creativecommons|Creative Commons|\bCC\s+BY", combined, re.I):
+        return "CADTH_CC_BY_NC_ND_TYPED_ONLY"
+    return "CADTH_COPYRIGHT_TYPED_ONLY"
+
+
+def _litarch_text(body):
+    """Read safe regular NXML members only; TOC references order chapters, never filesystem paths."""
+    from defusedxml import ElementTree as ET
+    from kgap.k_gap import _html_text
+    chapters, total = {}, 0
+    with tarfile.open(fileobj=io.BytesIO(body), mode="r:gz") as archive:
+        for member in archive:
+            if member.isfile():
+                if member.size < 0:
+                    raise ValueError("negative archive member size")
+                total += member.size
+                if total > MAX_LITARCH_BYTES:
+                    raise ValueError("litarch uncompressed size exceeds 50 MB")
+            if not member.isfile() or not _safe_member(member.name) or not member.name.lower().endswith(".nxml"):
+                continue
+            name = str(PurePosixPath(member.name.replace("\\", "/")))
+            if name in chapters:
+                raise ValueError("duplicate NXML member")
+            raw = archive.extractfile(member).read()
+            root = ET.fromstring(raw)
+            chapters[name] = root
+    if not chapters:
+        raise ValueError("litarch has no safe NXML chapters")
+    by_id = {}
+    for name, root in chapters.items():
+        by_id[PurePosixPath(name).stem] = name
+        for el in root.iter():
+            if el.get("id"):
+                by_id[el.get("id")] = name
+            if el.tag.split("}")[-1] in ("book-part-id", "book-id") and el.text:
+                by_id[el.text.strip()] = name
+    order = []
+    for name, root in sorted(chapters.items()):
+        for toc in root.iter():
+            if toc.tag.split("}")[-1] not in ("toc", "book-toc"):
+                continue
+            for el in toc.iter():
+                refs = [v for k, v in el.attrib.items() if k.split("}")[-1] in ("href", "rid")]
+                for ref in refs:
+                    target = by_id.get(ref.split("#")[-1]) or by_id.get(PurePosixPath(ref.split("#")[0]).stem)
+                    if target and target not in order:
+                        order.append(target)
+    order += [name for name in sorted(chapters) if name not in order]
+    texts, licences = [], []
+    for name in order:
+        root = chapters[name]
+        permissions = [ET.tostring(el, encoding="unicode") for el in root.iter()
+                       if el.tag.split("}")[-1] == "permissions"]
+        licences.append(_cadth_licence("\n".join(permissions)))
+        # Strip namespace prefixes before passing NXML's HTML-compatible tables to layout 3.
+        for el in root.iter():
+            el.tag = el.tag.split("}")[-1]
+        texts.append(_html_text(ET.tostring(root, encoding="unicode")))
+    licence = ("CADTH_COPYRIGHT_TYPED_ONLY" if "CADTH_COPYRIGHT_TYPED_ONLY" in licences else
+               "CADTH_CC_BY_NC_ND_TYPED_ONLY" if "CADTH_CC_BY_NC_ND_TYPED_ONLY" in licences else "CC")
+    return "\n".join(texts), licence
+
+
+def cadth_fetch_text(url):
+    """Cache the package separately, but use the probe's digest-checked text location."""
+    from harness import http
+    import k_gap_regulatory_probe as rp
+    try:
+        if not url.startswith(LITARCH_BASE) or not _safe_member(url[len(LITARCH_BASE):]):
+            raise ValueError("not a litarch package")
+        nbk = re.search(r"NBK\d+", url, re.I)
+        if not nbk:
+            raise ValueError("litarch package has no NBK accession")
+        folder = _reg_dir() / "litarch" / nbk[0].upper()
+        fp = folder / (hashlib.sha1(url.encode()).hexdigest()[:16] + ".tar.gz")
+        if fp.exists():
+            body = fp.read_bytes()
+        else:
+            st, body = _request(http.get_raw, url, tries=2, timeout=180)
+            if st != 200:
+                return "", {"state": "FETCH_FAILED", "http_status": st}
+        text, licence = _litarch_text(body)
+        folder.mkdir(parents=True, exist_ok=True)
+        fp.write_bytes(body)
+        Path(rp.REG).mkdir(parents=True, exist_ok=True)
+        key = hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
+        (Path(rp.REG) / (key + ".txt")).write_text(text, encoding="utf-8")
+        return text, {"state": "TEXT", "sha256": hashlib.sha256(body).hexdigest(), "bytes": len(body),
+                      "licence": licence, "redaction_blocks": text.count("\u2588")}
+    except Exception as exc:  # noqa: BLE001 - unsafe or malformed archives provide no evidence
+        return "", {"state": "FETCH_FAILED", "error": f"{type(exc).__name__}: {exc}"[:120]}
+
+
+# https://www.iqwig.de/en/other/legal-notice/ (15 Oct 2026):
+# "We permit and explicitly welcome the citing of our documents and setting up of links to our website."
+# No reuse licence is stated, so IQWiG remains typed-only.
+IQWIG = "https://www.iqwig.de"
+
+
+def iqwig_codes(agent):
+    """Reuse the procedure text already fetched for G-BA; search is only a supplement."""
+    from bs4 import BeautifulSoup
+    from kgap.k_gap import _html_text
+    if agent.casefold() not in _GBA_PAGES:
+        gba_urls(agent)
+    pages = list(_GBA_PAGES.get(agent.casefold(), []))
+    search = _nice_html(IQWIG + "/en/search/?q=" + quote(agent, safe=""))
+    if not search:
+        home = BeautifulSoup(_nice_html(IQWIG + "/en/"), "html.parser")
+        for form in home.find_all("form"):
+            field = (form.find("input", attrs={"type": "search"}) or form.find("input", attrs={"name": "q"})
+                     or form.find("input", attrs={"type": "text"}))
+            if field and field.get("name"):
+                action = urljoin(IQWIG + "/en/", form.get("action", ""))
+                if agency_of(action) == "IQWIG" and form.get("method", "get").lower() == "get":
+                    search = _nice_html(action + ("&" if "?" in action else "?") +
+                                        quote(field["name"]) + "=" + quote(agent, safe=""))
+                    break
+    pages.append(search)
+    return sorted(set(re.findall(r"\b[A-Z]\d{2}-\d{1,3}\b", "\n".join(_html_text(p) for p in pages))))
+
+
+def iqwig_urls(agent):
+    """English extracts precede German assessments within the small agency budget."""
+    out = []
+    for code in iqwig_codes(agent):
+        url = IQWIG + "/en/projects/" + code.lower() + ".html"
+        out += [u for u in _links(_nice_html(url), url) if agency_of(u) == "IQWIG"
+                and urlparse(u).path.lower().startswith("/download/") and urlparse(u).path.lower().endswith(".pdf")]
+    return sorted(dict.fromkeys(out), key=lambda u: (not bool(re.search(r"extract|english|_en[_.-]", u, re.I)), u))[:MAX_IQWIG_DOCS]
+
+
+HC_SEARCH = "https://clinical-information.canada.ca/search/ci-rc"
+
+
+def _hc_fetch(url):
+    """Use OS trust and refuse redirects: consent URLs must never be requested."""
+    import ssl
+    import subprocess
+    import urllib.request
+    if urlparse(url)._replace(query="").geturl() != HC_SEARCH:
+        raise ValueError("Health Canada listing only")
+    try:
+        import truststore
+    except ImportError:
+        if sys.platform != "win32":
+            raise RuntimeError("HC_TLS_UNAVAILABLE")
+        curl = Path(os.environ.get("SystemRoot", "C:/Windows")) / "System32" / "curl.exe"
+        result = subprocess.run([str(curl), "-s", "--max-time", "60", "--fail", "--proto", "=https",
+                                 "-A", USER_AGENT, url], capture_output=True, check=True, timeout=65)
+        return result.stdout.decode("utf-8", "replace")
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            raise ValueError("Health Canada listing redirect refused")
+    context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    opener = urllib.request.build_opener(NoRedirect(), urllib.request.HTTPSHandler(context=context))
+    with opener.open(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}), timeout=60) as response:
+        return response.read().decode("utf-8", "replace")
+
+
+def hc_listing(agent):
+    """Only public metadata is cached; following a document link would accept personal terms."""
+    from bs4 import BeautifulSoup
+    fp = str(_reg_dir() / "hc_listing.json")
+    cache = _load(fp)
+    try:
+        soup = BeautifulSoup(_hc_fetch(HC_SEARCH + "?dpq=" + quote(agent, safe="")), "html.parser")
+        rows = []
+        fields = ("control_number", "brand", "manufacturer", "ingredients", "activity", "decision", "decision_date", "release_date")
+        aliases = {"control number": "control_number", "brand name": "brand", "brand": "brand",
+                   "manufacturer": "manufacturer", "medicinal ingredients": "ingredients", "ingredients": "ingredients",
+                   "medicinal ingredient(s)": "ingredients", "activity": "activity", "regulatory activity": "activity",
+                   "decision": "decision", "decision date": "decision_date", "release date": "release_date",
+                   "date of decision": "decision_date", "date of release": "release_date",
+                   "active ingredient(s)": "ingredients", "active ingredients": "ingredients"}
+        for table in soup.select("div.view-content table"):
+            headers = [aliases.get(_ws(th.get_text(" ")).casefold()) for th in table.select("thead th")]
+            if not headers:
+                headers = [aliases.get(_ws(th.get_text(" ")).casefold()) for th in table.select("tr th")]
+            if set(headers) != set(fields):
+                continue
+            for tr in table.select("tr"):
+                cells = tr.find_all("td", recursive=False)
+                if len(cells) != len(headers):
+                    continue
+                row = dict(zip(headers, (_ws(td.get_text(" ")) for td in cells)))
+                if _whole_word(agent, row["ingredients"]):
+                    rows.append(row)
+        cache[agent.casefold()] = {"rows": rows}
+    except Exception as exc:  # noqa: BLE001 - TLS failure is metadata, never a reason to bypass verification
+        rows = []
+        cache[agent.casefold()] = {"rows": [], "error": str(exc)[:120]}
+    _dump(fp, cache)
+    return rows
 
 
 def topic_agents(cfg):
@@ -293,8 +605,10 @@ def hold_topic(slug, cfg, fetch=True):
         urls += nice_urls(a, topic_condition(cfg)) if fetch else []
         urls += gba_urls(a) if fetch else []
         urls += pbac_urls(a) if fetch else []
+        urls += cadth_urls(a) if fetch else []
+        urls += iqwig_urls(a) if fetch else []
     try:
-        ema = rp._j_ema() if fetch else []
+        ema = _request(rp._j_ema) if fetch else []
         urls += [u for p in rp.ema_products(agents, ema) for u in rp.ema_docs(p)]
     except Exception:  # noqa: BLE001 - EMA index unavailable is recorded as nothing held, never guessed
         pass
@@ -306,19 +620,25 @@ def hold_topic(slug, cfg, fetch=True):
     # (corticosteroids: 160 = 64 FDA + 84 NICE + 12 failed, EMA never tried)
     per = {}
     capped = []
-    for u in dict.fromkeys(urls):
+    for u in sorted(dict.fromkeys(urls), key=lambda u: agency_of(u) == "FDA" and not _fda_review(u)):
         a = agency_of(u)
-        if a and per.get(a, 0) < MAX_PER_AGENCY:
+        if a and per.get(a, 0) < (MAX_PER_AGENCY_FDA if a == "FDA" else MAX_PER_AGENCY):
             per[a] = per.get(a, 0) + 1
             capped.append(u)
     for u in capped:
         if not ga.disk_ok():                       # Mahmood 6 Oct: work only while C: and F: each keep >= 5 GB free
             print("DISK_FLOOR: stopped holding documents", slug, flush=True)
             break
-        txt, rec = rp.fetch_text(u)
-        r = {"url": u, "agency": agency_of(u), "licence": licence_from_text(u, txt), "state": rec.get("state"),
+        txt, rec = cadth_fetch_text(u) if agency_of(u) == "CADTH" else _request(rp.fetch_text, u)
+        licence = rec.get("licence") if agency_of(u) == "CADTH" else licence_from_text(u, txt)
+        r = {"url": u, "agency": agency_of(u), "licence": licence, "state": rec.get("state"),
              "doc_sha256": rec.get("sha256"), "bytes": rec.get("bytes"),
              "text_sha256": text_sha256(txt) if txt else None, "text_chars": len(txt or "")}
+        if rec.get("state") == "FETCH_FAILED":
+            r["fetch_error"] = str(rec.get("http_status") or rec.get("error") or "UNKNOWN")[:120]
+        if agency_of(u) == "CADTH":
+            r["licence"] = r["licence"] or licence_of(u)
+            r["redaction_blocks"] = (txt or "").count("\u2588")
         topics = set((cur.get(u) or {}).get("topics") or []) | {slug}
         r["topics"] = sorted(topics)
         cur[u] = r
