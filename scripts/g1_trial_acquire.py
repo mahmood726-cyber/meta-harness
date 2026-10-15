@@ -714,7 +714,8 @@ def typed_first(t, cfg, held):
     """DETERMINISTIC sources before any model: (verdict, admitted) or (None, None). (1) the trial's own held text's
     outcome table row (table_tuple) from a legitimately open copy (PMC CC / author manuscript, or a CC Unpaywall copy);
     (2) a regulator's counts (g1_regulatory_source.regulatory_typed: one trial-named line, two corroborated e/N (p%)
-    cells, arms ordered by a header naming both), under the randomised-N check."""
+    cells, arms ordered by a header naming both), under the randomised-N check. A regulator HR line cannot show its
+    population / timepoint / analysis set deterministically, so it is held until a binding ruling exists."""
     import g1_regulatory_source as rs
     from harness import secondary_meta as sm_
     po = cfg.get("primary_outcome") or {}
@@ -748,6 +749,16 @@ def typed_first(t, cfg, held):
                                     "licence": rec.get("licence"), "doc_sha256": rec.get("doc_sha256"),
                                     "text_sha256": rec.get("text_sha256"), "span": line[:600], "quote": None,
                                     "row": row(rr, line[:120])}
+    elif reg and est == "HR":
+        g = rs.regulatory_typed_effect(reg, terms)
+        if g:
+            url, rec, value, span = g
+            return "HELD_FOR_BINDING", {"kind": "REGULATORY_EFFECT", "source": f"{rec['agency']} {url} doc sha256 "
+                                       f"{rec.get('doc_sha256')} text sha256 {rec.get('text_sha256')} ({rec.get('licence')}; "
+                                       f"read deterministically: regulatory_typed_effect)", "url": url,
+                                       "agency": rec["agency"], "licence": rec.get("licence"),
+                                       "doc_sha256": rec.get("doc_sha256"), "text_sha256": rec.get("text_sha256"),
+                                       "span": span[:600], "quote": None, "value": value}
     return None, None
 
 
@@ -852,7 +863,9 @@ def replay(slugs, ref):
             verdict, adm = typed_first(t, cfg, held)
             row = {"label": r["label"], "pmid": r["pmid"], "ncts": r["ncts"], "record_id": None,
                    "verdict": verdict or "TYPED_NOT_REPRODUCED", "model": None}
-            if adm:
+            if verdict == "HELD_FOR_BINDING":
+                row["candidate"] = adm
+            elif adm:
                 rw = adm.pop("row")
                 row["admitted"] = dict(adm, value={k_: getattr(rw, k_) for k_ in ("measure", "effect", "lower", "upper",
                                                                                    "events_t", "n_t", "events_c", "n_c")})

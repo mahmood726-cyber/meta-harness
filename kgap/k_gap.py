@@ -16,6 +16,7 @@ lack, and which open source could supply an admissible, typed result for each.
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import os
 import re
@@ -825,9 +826,32 @@ def _pdf_text(data: bytes) -> str:
         return ""
 
 
+HTML_LAYOUT = 3      # 1: one flattened line; 2: rows on lines, cells "|"-separated; 3: + no blank lines, section rows keep "|"
+_BLOCK = re.compile(r"(?i)<\s*/?\s*(?:p|div|br|li|ul|ol|h[1-6]|section|article|header|footer|caption|figcaption|"
+                    r"blockquote|dd|dt|dl|table|thead|tbody|tfoot|figure|aside|nav|main)\b[^>]*>")
+
+
+def _cell_text(markup: str) -> str:
+    return _flat(html.unescape(re.sub(r"(?s)<[^>]+>", " ", markup or "")))
+
+
 def _html_text(markup: str) -> str:
-    t = re.sub(r"(?is)<(script|style|noscript|svg).*?</\1>", " ", markup or "")
-    return _flat(re.sub(r"(?s)<[^>]+>", " ", t))
+    """Visible text of an HTML page with its STRUCTURE kept: block elements end a line, every table row is one line with
+    its cells joined by ' | ' (the shape g1_trial_acquire.table_tuple reads). Layout 1 flattened the whole page to a
+    single line, so no deterministic reader could see a table in any HTML copy (13 Oct: two PMC article pages)."""
+    t = re.sub(r"(?is)<(script|style|noscript|svg|template)\b.*?</\1\s*>", " ", markup or "")
+    t = re.sub(r"(?s)<!--.*?-->", " ", t)
+
+    def row(m):
+        cells = [c for c in (_cell_text(x) for x in re.findall(r"(?is)<t[hd]\b[^>]*>(.*?)(?=<t[hd]\b|</tr\s*>|$)",
+                                                               m.group(1))) if c]
+        # a one-cell row is a SECTION label inside the table ('Primary outcome'): it keeps a '|' so the table goes on
+        return "\n" + (" | ".join(cells) if len(cells) > 1 else (cells[0] + " |" if cells else "")) + "\n"
+    t = re.sub(r"(?is)<tr\b[^>]*>(.*?)</tr\s*>", row, t)
+    t = _BLOCK.sub("\n", t)
+    t = html.unescape(re.sub(r"(?s)<[^>]+>", " ", t))
+    # no blank lines: a blank line between two table rows ended the table for the line-based readers
+    return "\n".join(ln for ln in (re.sub(r"[ \t\r\f\v ]+", " ", x).strip() for x in t.split("\n")) if ln)
 
 
 def unpaywall_text(doi: str, cache_dir: str, index_path: str, offline: bool = False) -> dict:
@@ -844,9 +868,12 @@ def unpaywall_text(doi: str, cache_dir: str, index_path: str, offline: bool = Fa
     if os.path.exists(index_path):
         with open(index_path, encoding="utf-8") as fh:
             idx = json.load(fh)
-    if os.path.exists(fp):
+    ent = idx.get(doi.lower(), {})
+    # an HTML copy cached under an older layout (one flattened line) is re-read, never reused (13 Oct)
+    stale = ent.get("kind") == "HTML" and ent.get("html_layout") != HTML_LAYOUT and not offline
+    if os.path.exists(fp) and not stale:
         with open(fp, encoding="utf-8") as fh:
-            return {"text": fh.read(), **idx.get(doi.lower(), {})}
+            return {"text": fh.read(), **ent}
     if offline:
         return {"text": "", "state": "NOT_CACHED_OFFLINE"}
     out = {"state": "NO_OA_TEXT", "tried": []}
@@ -877,6 +904,8 @@ def unpaywall_text(doi: str, cache_dir: str, index_path: str, offline: bool = Fa
                 text = t
                 out.update({"state": "OA_TEXT", "url": u, "kind": kind, "host_type": (loc or {}).get("host_type"),
                             "license": (loc or {}).get("license")})
+                if kind == "HTML":
+                    out["html_layout"] = HTML_LAYOUT
                 break
         if text:
             break

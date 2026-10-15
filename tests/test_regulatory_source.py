@@ -7,6 +7,8 @@ import json
 import os
 import sys
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 import g1_regulatory_source as rs  # noqa: E402
@@ -22,6 +24,21 @@ DOC = ("8.1 Study WA42380 (COVACTA). " + FILL[:3000] + " In Study WA42380, morta
        "tocilizumab arm and 28/144 in the placebo arm. " + FILL + " 8.2 Study ML42528 (EMPACTA). " + FILL[:3000] +
        " In Study ML42528, mortality at day 28 was 26/249 in the tocilizumab arm and 11/128 in the placebo arm.")
 NAMES = ["COVACTA", "NCT04320615", "WA42380"]
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch):
+    """Discovery tests must use fixtures, never live source records."""
+    import socket
+
+    def blocked(*a, **k):
+        pytest.fail("network access in regulatory source tests")
+    monkeypatch.setattr(socket.socket, "connect", blocked)
+    monkeypatch.setattr(socket, "getaddrinfo", blocked)
+    from harness import http
+    import subprocess
+    monkeypatch.setattr(http, "get_raw", blocked)
+    monkeypatch.setattr(subprocess, "run", blocked)
 
 
 def _held(doc=DOC, url=FDA, sha=None):
@@ -107,6 +124,7 @@ def test_an_fda_toc_template_is_expanded_to_its_review_documents_and_an_anda_is_
         {"application_number": "ANDA090548", "submissions": [{"application_docs": [
             {"type": "Review", "url": "https://www.accessdata.fda.gov/anda.pdf", "date": "20240101"}]}]}]}
     monkeypatch.setattr(http, "get_json", lambda *a, **k: api)
+    monkeypatch.setattr(rs, "_nice_html", lambda u: "")
     page = ('<script>pdfBaseName = "125276Orig1s137";\n'
             "x = '<a href=\"' + pdfBaseName + 'MedR.pdf\" title=\"Go to clinical review(s)\">'</script>")
     monkeypatch.setattr(rp, "fetch_text", lambda u: (page, {"state": "NOT_PDF"}))
@@ -173,3 +191,485 @@ def test_typed_first_admits_a_regulator_table_without_a_model_and_checks_the_ran
     assert v == "ADMITTED" and adm["kind"] == "REGULATORY_TABLE" and adm["row"].events_t == 58 and adm["url"] == FDA
     monkeypatch.setattr(ga, "posted_population_short", lambda *a: {"randomised_total": 900})
     assert ga.typed_first(t, cfg, held) == (None, None)                       # a subpopulation is never the trial's
+
+
+def test_gba_amnog_documents_are_typed_only_and_discovered_from_gbas_own_search_words():
+    # G-BA Impressum (13 Oct 2026): citing and linking only, so the AMNOG documents are held, never shown to a model
+    u = "https://www.g-ba.de/downloads/92-975-4/2011-06-30_Modul4-A_Ticagrelor.pdf"
+    assert rs.agency_of(u) == "GBA" and rs.licence_of(u) == "GBA_IQWIG_CITE_AND_LINK_ONLY"
+    assert not rs.prompt_open(u) and not rs.prompt_open(u, {"licence": rs.licence_from_text(u, "Creative Commons Attribution")})
+    words = ["Ticagrelor", "Icosapent-Ethyl", "Evolocumab", "Tiotropium", "Ticagrelorum X"]
+    assert rs.gba_search_words("ticagrelor", words) == ["Ticagrelor"]
+    assert rs.gba_search_words("icosapent ethyl", words) == ["Icosapent-Ethyl"]
+    assert rs.gba_search_words("tico", words) == []
+    listing = '<a href="/bewertungsverfahren/nutzenbewertung/18/">x</a><a href="/bewertungsverfahren/nutzenbewertung/225/">y</a>'
+    assert rs.gba_procedures(listing) == ["18", "225"]
+    page = ('<a href="/downloads/92-975-1/M1.pdf">Modul 1<span>(PDF)</span></a>'
+            '<a href="/downloads/92-975-4/M4.pdf">Mo&shy;dul 4<span>(PDF 4 MB)</span></a>'
+            '<a href="/downloads/92-975-5/NB.pdf">Nutzen­bewertung IQWiG(PDF)</a>'
+            '<a href="/downloads/40-268-1/ZD.pdf">Zusammenfassende Dokumentation</a>')
+    assert rs.gba_docs(page) == ["https://www.g-ba.de/downloads/92-975-4/M4.pdf",
+                                 "https://www.g-ba.de/downloads/92-975-5/NB.pdf"]
+
+
+def test_PLANT_a_programme_token_never_names_a_sibling_trial():
+    # 13 Oct (G-BA pilot): 'ODYSSEY' / 'COMBO' / 'JAPAN' were each a name, so every ODYSSEY trial was 'named' in every
+    # alirocumab document, and the gate's named-near-the-quote check could pass a COMBO II quote for COMBO I
+    combo2 = "In ODYSSEY COMBO II the rate was 4/241 v 16/479. Table: COMBO II 4/241."
+    for lab, nct in [("ODYSSEY COMBO I NCT01644175", "NCT01644175"), ("ODYSSEY JAPAN NCT02107898", "NCT02107898"),
+                     ("ODYSSEY FH I NCT01623115", "NCT01623115")]:
+        assert rs.named_at(combo2, rs.trial_names(lab, [nct])) == [], lab
+    names = rs.trial_names("ODYSSEY COMBO I NCT01644175", ["NCT01644175"])
+    assert rs.named_at("Study ODYSSEY COMBO I randomised 316.", names) and rs.named_at("COMBO I: 6/207 v 3/107", names)
+    assert rs.named_at("FH I 3/163", rs.trial_names("ODYSSEY FH I NCT01623115", ["NCT01623115"]))
+    assert "DESCARTES" in rs.trial_names("DESCARTES NCT01516879", ["NCT01516879"])      # a one-word acronym still names
+
+
+def test_PLANT_pbac_is_typed_only():
+    for host in ("pbs.gov.au", "www.pbs.gov.au"):
+        u = f"https://{host}/industry/pbac/psd/2026/07/example.pdf?variant=3"
+        assert rs.agency_of(u) == "PBAC"
+        assert rs.licence_of(u) == "PBS_COPYRIGHT_PERSONAL_REFERENCE_ONLY"
+        assert not rs.prompt_open(u)
+        assert not rs.prompt_open(u, {"licence": rs.licence_from_text(u, "Creative Commons Attribution")})
+
+
+def test_pbac_urls_keep_only_the_exact_inn(monkeypatch):
+    h = ""
+    for date, slug, name in [("2025/03", "older", "EVOLOCUMAB"), ("2026/07", "newer", "EVOLOCUMAB"),
+                             ("2026/09", "analogue", "EVOLOCUMAB-LIKE THING"),
+                             ("2026/10", "other", "ALIROCUMAB")]:
+        p = f"/industry/pbac/psd/{date}/{slug}"
+        h += f'<a href="{p}">{name}</a><a href="{p}.docx?variant=3">DOCX</a>'
+        h += f'<a href="{p}.pdf?variant=3">PDF</a>'
+    calls = []
+
+    def listing(url):
+        calls.append(url)
+        return h
+    monkeypatch.setattr(rs, "_nice_html", listing)
+    assert rs.pbac_urls("evolocumab") == [
+        rs.PBAC + "/industry/pbac/psd/2026/07/newer.pdf?variant=3",
+        rs.PBAC + "/industry/pbac/psd/2025/03/older.pdf?variant=3"]
+    assert calls == [rs.PBAC + "/industry/pbac/psd?term=evolocumab"]
+
+
+def test_pbac_urls_fold_fallback_deduplicate_and_cap(monkeypatch):
+    h = ""
+    for month in range(1, 13):
+        p = f"/industry/pbac/psd/2026/{month:02d}/salt"
+        h += (f"<a href='{p}'>ICOSAPENT-ETHYL SODIUM</a>"
+              f"<a href='https://pbs.gov.au{p}.docx?variant=3'>DOCX</a>") * 2
+    h += ('<a href="/industry/pbac/psd/2025/12/old">ICOSAPENT ETHYL</a>'
+          '<a href="/industry/pbac/psd/2025/12/old.pdf?variant=3">PDF</a>')
+    calls = []
+    monkeypatch.setattr(rs, "_nice_html", lambda u: calls.append(u) or h)
+    assert rs.MAX_PBAC_DOCS == 12
+    assert rs.pbac_urls("icosapent ethyl") == [
+        rs.PBAC + f"/industry/pbac/psd/2026/{m:02d}/salt.docx?variant=3" for m in range(12, 0, -1)]
+    assert calls == [rs.PBAC + "/industry/pbac/psd?term=icosapent%20ethyl"]
+    assert rs.pbac_urls("icosapent ethyl", html="") == []
+
+
+def test_nice_condition_query_runs_first_and_is_capped(monkeypatch):
+    calls, docs = [], []
+
+    def guidance(q):
+        calls.append(q)
+        return ["ng1", "ta1", "ng1"] if q == "evolocumab hypercholesterolaemia" else [
+            f"ta{i}" for i in range(1, 25)]
+    monkeypatch.setattr(rs, "nice_guidance", guidance)
+    monkeypatch.setattr(rs, "nice_docs", lambda g: docs.append(g) or [rs.NICE + "/guidance/" + g])
+    assert rs.MAX_NICE_GUIDANCE == 15
+    expected = ["ng1"] + [f"ta{i}" for i in range(1, 15)]
+    assert rs.nice_urls("evolocumab", "hypercholesterolaemia") == [rs.NICE + "/guidance/" + g for g in expected]
+    assert calls == ["evolocumab hypercholesterolaemia", "evolocumab"]
+    assert docs == expected
+    calls.clear()
+    docs.clear()
+    rs.nice_urls("evolocumab")
+    assert calls == ["evolocumab"] and docs == [f"ta{i}" for i in range(1, 16)]
+
+
+def test_topic_condition_uses_first_population():
+    assert rs.topic_condition({"include": {"population_any": ["first", "second"]}}) == "first"
+    for cfg in ({}, {"include": {}}, {"include": {"population_any": []}}):
+        assert rs.topic_condition(cfg) is None
+
+
+HR_SENTENCE = ("The rate of MACE was 48% lower with alirocumab than with placebo (27 (1.7%) vs. 26 (3.3%); "
+               "hazard ratio, 0.52; 95% confidence interval, 0.31 to 0.90; nominal P = 0.02)")
+HR_DOC = "ODYSSEY LONG TERM" + " " * 200 + HR_SENTENCE
+
+
+def test_PLANT_hr_sentence_found():
+    hits = rs.typed_effect(HR_DOC, ["ODYSSEY LONG TERM"], ["MACE"])
+    assert len(hits) == 1
+    assert tuple(hits[0][k] for k in ("effect", "lower", "upper")) == (0.52, 0.31, 0.90)
+    assert hits[0]["offset"] == 0 and hits[0]["span"] in HR_DOC
+
+
+@pytest.mark.parametrize("pool", ["in the placebo-controlled pool", "POOLED", "meta-analysis", "global",
+                                   "integrated", "across studies", "combined analysis"])
+def test_pooled_hr_refused(pool):
+    assert rs.typed_effect("ODYSSEY LONG TERM " + pool + HR_SENTENCE, ["ODYSSEY LONG TERM"], ["MACE"]) == []
+
+
+def test_or_wording_not_hr():
+    assert rs.typed_effect("TRIALX MACE odds ratio 0.52 (95% CI 0.31 to 0.90)", ["TRIALX"], ["MACE"]) == []
+
+
+@pytest.mark.parametrize("line", ["HR: 0.52 (95% CI: 0.31, 0.90)", "HR 0.52 (95% CI 0.31–0.90)",
+                                  "95% CI: HR 0.52 (0.31 to 0.90)", "95% CI: HR 0.52 (0.31-0.90)",
+                                  "hazard ratio 0.52; 95% CI 0.31 to 0.90."])
+def test_hr_patterns(line):
+    assert rs.typed_effect("TRIALX MACE " + line, ["TRIALX"], ["mace"])
+
+
+@pytest.mark.parametrize("line", ["HR 0.52 (0.31 to 0.90)", "HR 0.52 (90% CI 0.31 to 0.90)",
+                                  "HR 0,52 (95% CI 0,31 to 0,90)", "HR 0.52 (95% CI 0.52 to 0.90)",
+                                  "HR 0.52 (95% CI 0 to 0.90)", "RR 0.52 (95% CI 0.31 to 0.90)"])
+def test_hr_invalid_or_unstated_ci_refused(line):
+    assert rs.typed_effect("TRIALX MACE " + line, ["TRIALX"], ["MACE"]) == []
+
+
+def test_hr_name_and_outcome_reach():
+    assert rs.typed_effect("TRIALX " + "x" * 601 + HR_SENTENCE, ["TRIALX"], ["MACE"]) == []
+    assert rs.typed_effect(HR_DOC, ["ODYSSEY LONG TERM"], ["stroke"]) == []
+    assert rs.typed_effect(HR_DOC, ["ODYSSEY LONG TERM"], ["MACE"], measure="OR") == []
+    assert rs.typed_effect(HR_SENTENCE + " TRIALX", ["TRIALX"], ["MACE"]) == []
+    assert rs.typed_effect("TRIALX pooled discussion. TRIALX " + HR_SENTENCE, ["TRIALX"], ["MACE"])
+
+
+def test_two_documents_disagree_returns_none():
+    h = {"text": HR_DOC, "names": ["ODYSSEY LONG TERM"], "record": {}}
+    held = {"a": h, "b": dict(h, text=HR_DOC.replace("0.52", "0.60"))}
+    assert rs.regulatory_typed_effect(held, ["MACE"]) is None
+    held["b"] = h
+    got = rs.regulatory_typed_effect(held, ["MACE"])
+    assert got[0] == "a" and got[2] == {"measure": "HR", "effect": 0.52, "lower": 0.31, "upper": 0.90}
+
+
+def test_typed_first_hr_is_held_not_admitted(monkeypatch):
+    rec = _held()["reg"][FDA]["record"]
+    value = {"measure": "HR", "effect": 0.52, "lower": 0.31, "upper": 0.90}
+    monkeypatch.setattr(rs, "regulatory_typed_effect", lambda *a: (FDA, rec, value, HR_DOC))
+    v, adm = ga.typed_first({"label": "TRIALX", "pmid": None, "slug": "x"},
+                            {"primary_outcome": {"estimand": "HR", "keywords": ["MACE"]}}, _held())
+    assert v == "HELD_FOR_BINDING" and adm["kind"] == "REGULATORY_EFFECT"
+    assert adm["value"] == value and adm["quote"] is None and adm["span"] == HR_DOC[:600]
+    for k in ("url", "agency", "licence", "doc_sha256", "text_sha256"):
+        assert adm[k] == rec[k]
+
+
+def test_binding_requires_complete_digest_keyed_ruling(monkeypatch):
+    ruling = dict.fromkeys(("arm", "outcome", "timepoint", "population", "analysis_set", "ruled_by", "ruled_on", "reason"),
+                           "synthetic")
+    ruling["decision"] = "BOUND"
+    monkeypatch.setattr(rs, "_load", lambda p: {"x|TRIALX|digest": ruling})
+    assert rs.binding_for("x", "TRIALX", FDA, "digest") == ruling
+    assert rs.binding_for("x", "TRIALX", FDA, "changed") is None
+    for k in list(ruling):
+        partial = {key: val for key, val in ruling.items() if key != k}
+        monkeypatch.setattr(rs, "_load", lambda p: {"x|TRIALX|digest": partial})
+        assert rs.binding_for("x", "TRIALX", FDA, "digest") is None
+
+
+@pytest.fixture
+def discoveries(monkeypatch, tmp_path):
+    import k_gap_regulatory_probe as rp
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    monkeypatch.setattr(rs, "SOURCES", str(tmp_path / "sources.json"))
+    monkeypatch.setattr(rp, "REG", str(tmp_path / "text"))
+    for name in ("fda_review_urls", "nice_urls", "gba_urls", "pbac_urls", "cadth_urls", "iqwig_urls"):
+        monkeypatch.setattr(rs, name, lambda *a: [])
+    monkeypatch.setattr(rp, "_j_ema", lambda: [])
+    monkeypatch.setattr(ga, "disk_ok", lambda: True)
+    return rp
+
+
+def test_fda_overview_reviews_first_labels_capped(monkeypatch):
+    from harness import http
+    import k_gap_regulatory_probe as rp
+    base = "https://www.accessdata.fda.gov/drugsatfda_docs/"
+    reviews = [base + "nda/2099/000000MedR.pdf", base + "bla/2099/000000StatR.pdf"]
+    toc = base + "nda/2099/000000TOC.cfm"
+    labels = [base + f"label/{year}/000000lbl.pdf" for year in range(2095, 2100)]
+    letters = [base + f"appletter/2099/000000s{i}.pdf" for i in range(2)]
+    calls = []
+    def overview(url):
+        calls.append(url)
+        return "".join(f'<a href="{u}">document</a>' for u in reviews + [toc] + labels + letters)
+    monkeypatch.setattr(rs, "_nice_html", overview)
+    monkeypatch.setattr(http, "get_json", lambda *a, **k: {"results": [{"application_number": "NDA000000"}]})
+    monkeypatch.setattr(rp, "fetch_text", lambda u: ('<script>pdfBaseName = "000000";</script>', {}))
+    got = rs.fda_review_urls("synthetic")
+    assert got[-3:] == labels[::-1][:3]
+    assert set(reviews) <= set(got[:-3])
+    assert base + "nda/2099/000000MedR.pdf" in got
+    assert base + "nda/2099/000000IntegratedR.pdf" in got
+    assert not set(letters) & set(got)
+    assert calls == ["https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&ApplNo=000000"]
+
+
+@pytest.mark.parametrize("reason,expected", [({"http_status": 503}, "503"),
+                                           ({"error": "TimeoutError: " + "x" * 180}, ("TimeoutError: " + "x" * 180)[:120])])
+def test_fetch_failed_records_reason(monkeypatch, discoveries, reason, expected):
+    monkeypatch.setattr(rs, "fda_review_urls", lambda a: [FDA])
+    monkeypatch.setattr(discoveries, "fetch_text", lambda u: ("", dict(reason, state="FETCH_FAILED")))
+    got = rs.hold_topic("synthetic", {"intervention_agents": ["synthetic"]})
+    assert got[0]["fetch_error"] == expected
+
+
+def test_fda_topic_cap_prioritizes_all_agents_reviews(monkeypatch, discoveries):
+    labels = [f"https://www.accessdata.fda.gov/drugsatfda_docs/label/2099/{i}.pdf" for i in range(120)]
+    reviews = [f"https://www.accessdata.fda.gov/drugsatfda_docs/nda/2099/{i}MedR.pdf" for i in range(119)]
+    monkeypatch.setattr(rs, "fda_review_urls", lambda a: labels if a == "first" else reviews)
+    monkeypatch.setattr(discoveries, "fetch_text", lambda u: ("text", {"state": "TEXT"}))
+    got = rs.hold_topic("synthetic", {"intervention_agents": ["first", "second"]})
+    assert len(got) == 120 and [r["url"] for r in got[:119]] == reviews
+
+
+def test_cadth_urls_select_reviews_only(monkeypatch, tmp_path):
+    import csv
+    import io
+    from harness import http
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["File", "Title", "Publisher", "Publication Year", "Accession ID", "Last Updated"])
+    publisher = "Canadian Agency for Drugs and Technologies in Health"
+    titles = ["Synthetic Clinical Review", "Synthetic Reimbursement Review", "Synthetic Rapid Review",
+              "Synthetic Review of Clinical Effectiveness", "Synthetic Health Technology Review",
+              "Synthetic Pharmacoeconomic Clinical Review", "Synthetic Recommendation Clinical Review",
+              "Synthetical Clinical Review", "Synthetic Patient Group Input Clinical Review",
+              "Synthetic Environmental Scan Clinical Review", "Synthetic Clinical Review"]
+    for i, title in enumerate(titles):
+        writer.writerow([f"NBK{i:06d}.tar.gz", title, publisher if i != 10 else "Other", "2099", f"NBK{i:06d}", f"2099-01-{i+1:02d}"])
+    calls = []
+    def fetch(url, **kw):
+        calls.append(url)
+        assert http.UA == rs.USER_AGENT
+        return 200, buf.getvalue().encode()
+    monkeypatch.setattr(http, "get_raw", fetch)
+    expected = [rs.LITARCH_BASE + f"NBK{i:06d}.tar.gz" for i in reversed(range(5))]
+    assert rs.cadth_urls("synthetic") == expected
+    assert rs.cadth_urls("synthetic") == expected and len(calls) == 1
+    fp = rs._reg_dir() / "litarch_file_list.csv"
+    os.utime(fp, (0, 0))
+    assert rs.cadth_urls("synthetic") == expected and len(calls) == 2
+
+
+def test_PLANT_cadth_list_with_a_latin1_byte_still_lists(monkeypatch, tmp_path):
+    """15 Oct: NCBI's file_list.csv carries a Latin-1 0xAE in an unrelated title; a strict UTF-8 decode raised, the
+    route's except returned [] and every drug silently got no CADTH document."""
+    from harness import http
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    body = ("File,Title,Publisher,Publication Year,Accession ID,Last Updated\n"
+            "aa/bb/x_NBK1.tar.gz,Rat study (Sprague Dawley\xae SD),National Toxicology Program,2001,NBK1,2001-01-01\n"
+            "cc/dd/y_NBK2.tar.gz,Evolocumab: Reimbursement Review,"
+            "Canadian Agency for Drugs and Technologies in Health,2026,NBK2,2026-08-25\n").encode("latin-1")
+    monkeypatch.setattr(http, "get_raw", lambda url, **kw: (200, body))
+    assert rs.cadth_urls("evolocumab") == [rs.LITARCH_BASE + "cc/dd/y_NBK2.tar.gz"]
+
+
+def _tar(members):
+    import io
+    import tarfile
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as archive:
+        for name, text in members:
+            body = text.encode()
+            info = tarfile.TarInfo(name)
+            info.size = len(body)
+            archive.addfile(info, io.BytesIO(body))
+    return buf.getvalue()
+
+
+def _nxml(text, licence="CC BY 4.0"):
+    return f'<book-part><permissions><license>{licence}</license></permissions><body>{text}</body></book-part>'
+
+
+def test_PLANT_litarch_tar_traversal_refused():
+    body = _tar([(n, _nxml("evil")) for n in ("../evil.nxml", "/absolute.nxml", "C:/drive.nxml", "a\\..\\bad.nxml")]
+                + [("good.nxml", _nxml("<p>Good</p><table><tr><td>1</td><td>2</td></tr></table>"))])
+    text, licence = rs._litarch_text(body)
+    assert "evil" not in text and "Good" in text and "1 | 2" in text and licence == "CC"
+
+
+def test_litarch_toc_order_and_size_cap(monkeypatch):
+    toc = '<book><permissions>CC BY 4.0</permissions><book-toc><xref rid="second"/><xref rid="first"/></book-toc></book>'
+    body = _tar([("first.nxml", _nxml("FIRST")), ("second.nxml", _nxml("SECOND")), ("toc.nxml", toc)])
+    text, _ = rs._litarch_text(body)
+    assert text.index("SECOND") < text.index("FIRST")
+    monkeypatch.setattr(rs, "MAX_LITARCH_BYTES", 10)
+    with pytest.raises(ValueError, match="50 MB"):
+        rs._litarch_text(body)
+
+
+@pytest.mark.parametrize("licence,expected", [("CC BY-NC-ND 4.0", "CADTH_CC_BY_NC_ND_TYPED_ONLY"),
+                                               ("Copyright", "CADTH_COPYRIGHT_TYPED_ONLY"), ("CC BY 4.0", "CC"), ("CC0", "CC")])
+def test_cadth_licence_nc_nd_is_typed_only(licence, expected):
+    _, actual = rs._litarch_text(_tar([("good.nxml", _nxml("Content", licence))]))
+    assert actual == expected
+    assert rs.prompt_open(rs.LITARCH_BASE + "NBK000000.tar.gz", {"licence": actual}) == (expected == "CC")
+    # A citation outside permissions cannot grant a licence.
+    _, actual = rs._litarch_text(_tar([("good.nxml", _nxml("CC BY 4.0", "Copyright"))]))
+    assert actual == "CADTH_COPYRIGHT_TYPED_ONLY"
+
+
+def test_redaction_blocks_counted(monkeypatch, discoveries):
+    from harness import http
+    url = rs.LITARCH_BASE + "NBK000000.tar.gz"
+    monkeypatch.setattr(rs, "cadth_urls", lambda a: [url])
+    monkeypatch.setattr(http, "get_raw", lambda *a, **k: (200, _tar([("good.nxml", _nxml("Redacted \u2588\u2588\u2588"))])))
+    held = rs.hold_topic("synthetic", {"intervention_agents": ["synthetic"]})
+    assert held[0]["redaction_blocks"] == 3 and held[0]["licence"] == "CC"
+    assert rs.doc_text(url).count("\u2588") == 3
+
+
+def test_iqwig_codes_from_gba_text_and_project_pdfs(monkeypatch):
+    pages = {rs.GBA_NB + "suchworte.json": '["Synthetic"]',
+             rs.GBA_NB + "?suchwort=Synthetic": '<a href="/bewertungsverfahren/nutzenbewertung/1/">x</a>',
+             # the real G-BA layout (15 Oct): the code appears ONLY in a download filename, not in the page text
+             rs.GBA_NB + "1/": '<p>Assessment</p><a href="/downloads/92-975-1346/A16-16_Synthetic_Addendum-zum-Auftrag-A15-47.pdf">'
+                               'Addendum</a><a href="/A99-99/">a false code</a>',
+             rs.IQWIG + "/en/search/?q=synthetic": "<p>No hits</p>",
+             rs.IQWIG + "/en/projects/a15-47.html": '<a href="/download/a15-47_assessment.pdf">German</a>'
+                 '<a href="/download/a15-47_extract.pdf">English</a><a href="https://other.org/download/x.pdf">other</a>',
+             # a false or unrelated code is harmless: its project page links no PDF, so it yields no document
+             rs.IQWIG + "/en/projects/a16-16.html": "<p>Addendum project</p>",
+             rs.IQWIG + "/en/projects/a99-99.html": ""}
+    calls = []
+    def fetch(u):
+        calls.append(u)
+        return pages[u]
+    monkeypatch.setattr(rs, "_GBA_PAGES", {})
+    monkeypatch.setattr(rs, "_nice_html", fetch)
+    rs.gba_urls("synthetic")
+    assert rs.iqwig_urls("synthetic") == [rs.IQWIG + "/download/a15-47_extract.pdf", rs.IQWIG + "/download/a15-47_assessment.pdf"]
+    assert calls.count(rs.GBA_NB + "1/") == 1
+    assert not rs.prompt_open(rs.IQWIG + "/download/a15-47_extract.pdf")
+
+
+def _hc_page():
+    heads = ["Control number", "Brand name", "Manufacturer", "Medicinal ingredients", "Activity", "Decision", "Decision date", "Release date"]
+    rows = []
+    for ingredient in ("Synthetic hydrochloride", "Synthetical"):
+        cells = ['<a href="/ci-rc/terms/000000">000000</a>', 'Brand', 'Maker', ingredient, 'Review', 'Approved', '2099-01-01', '2099-02-01']
+        rows.append('<tr>' + ''.join(f'<td>{c}</td>' for c in cells) + '</tr>')
+    return '<div class="view-content"><table><thead><tr>' + ''.join(f'<th>{h}</th>' for h in heads) + '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>'
+
+
+def test_PLANT_hc_listing_never_requests_terms(monkeypatch, tmp_path):
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    calls = []
+    def fetch(url):
+        calls.append(url)
+        assert "/terms" not in url
+        return _hc_page()
+    monkeypatch.setattr(rs, "_hc_fetch", fetch)
+    assert len(rs.hc_listing("synthetic")) == 1
+    assert calls == [rs.HC_SEARCH + "?dpq=synthetic"]
+
+
+
+def test_hc_listing_parses_rows(monkeypatch, tmp_path):
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    monkeypatch.setattr(rs, "_hc_fetch", lambda url: _hc_page())
+    assert rs.hc_listing("synthetic") == [{"control_number": "000000", "brand": "Brand", "manufacturer": "Maker",
+        "ingredients": "Synthetic hydrochloride", "activity": "Review", "decision": "Approved",
+        "decision_date": "2099-01-01", "release_date": "2099-02-01"}]
+    cache = json.loads((rs._reg_dir() / "hc_listing.json").read_text())
+    assert len(cache["synthetic"]["rows"]) == 1
+
+
+def test_PLANT_hc_listing_reads_the_live_header_names(monkeypatch, tmp_path):
+    """15 Oct: the parser knew only synthetic header names, skipped every live table and listed 0 for every drug."""
+    heads = ["Submission control number", "Brand name", "Manufacturer", "Ingredients", "Health Canada regulatory activity",
+             "Health Canada regulatory decision", "Health Canada regulatory decision date", "Health Canada public release date"]
+    cells = ['<a href="https://clinical-information.canada.ca/ci-rc/terms?id=261220">261220</a>', "ACTEMRA",
+             "HOFFMANN-LA ROCHE LIMITED", "TOCILIZUMAB", "SNDS", "NOC", "2022-10-13", "2023-02-08"]
+    page = ('<div class="view-content"><table><thead><tr>' + "".join(f'<th class="views-field">\n {h} </th>' for h in heads)
+            + "</tr></thead><tbody><tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr></tbody></table></div>")
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    monkeypatch.setattr(rs, "_hc_fetch", lambda url: page)
+    rows = rs.hc_listing("tocilizumab")
+    assert [(r["control_number"], r["brand"], r["activity"], r["decision_date"]) for r in rows] == \
+        [("261220", "ACTEMRA", "SNDS", "2022-10-13")]
+
+
+def test_hc_fetch_refuses_terms_before_transport():
+    with pytest.raises(ValueError, match="listing only"):
+        rs._hc_fetch("https://clinical-information.canada.ca/ci-rc/terms/000000")
+
+
+def test_hc_tls_unavailable_is_recorded(monkeypatch, tmp_path):
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    monkeypatch.setitem(sys.modules, "truststore", None)
+    monkeypatch.setattr(sys, "platform", "linux")
+    assert rs.hc_listing("synthetic") == []
+    assert json.loads((rs._reg_dir() / "hc_listing.json").read_text())["synthetic"]["error"] == "HC_TLS_UNAVAILABLE"
+
+
+def test_iqwig_search_form_fallback(monkeypatch):
+    monkeypatch.setattr(rs, "_GBA_PAGES", {"synthetic": []})
+    pages = {rs.IQWIG + "/en/search/?q=synthetic": "", rs.IQWIG + "/en/":
+             '<form action="/en/find/"><input type="search" name="term"></form>',
+             rs.IQWIG + "/en/find/?term=synthetic": '<p>A99-123</p>'}
+    monkeypatch.setattr(rs, "_nice_html", lambda u: pages[u])
+    assert rs.iqwig_codes("synthetic") == ["A99-123"]
+
+
+def test_cadth_unknown_permissions_fail_closed():
+    url = rs.LITARCH_BASE + "NBK000000.tar.gz"
+    assert rs.licence_from_text(url, '<p>CC BY 4.0</p>') == "CADTH_COPYRIGHT_TYPED_ONLY"
+    assert rs.licence_from_text(url, '<permissions>CC BY-NC-ND 4.0</permissions>') == "CADTH_CC_BY_NC_ND_TYPED_ONLY"
+    assert rs.licence_from_text(url, '<permissions>CC BY 4.0</permissions>') == "CC"
+
+
+def test_fda_labels_use_overview_approval_dates(monkeypatch):
+    from harness import http
+    base = "https://www.accessdata.fda.gov/drugsatfda_docs/label/2099/"
+    rows = ''.join(f'<tr><td>01/{day:02d}/2099</td><td><a href="{base}{name}.pdf">label</a></td></tr>'
+                   for day, name in [(1, "z"), (2, "y"), (3, "x"), (4, "a"), (5, "b")])
+    monkeypatch.setattr(http, "get_json", lambda *a, **k: {"results": [{"application_number": "NDA000000"}]})
+    monkeypatch.setattr(rs, "_nice_html", lambda u: '<table>' + rows + '</table>')
+    assert rs.fda_review_urls("synthetic") == [base + name + '.pdf' for name in ('b', 'a', 'x')]
+
+
+def test_PLANT_file_lock_excludes_and_takes_over_a_stale_holder(tmp_path):
+    """15 Oct: two overlapping runs interleaved an acquired file; the read-modify-write is now exclusive."""
+    p = str(tmp_path / "x.json")
+    with rs.file_lock(p):
+        with pytest.raises(TimeoutError):
+            with rs.file_lock(p, wait_s=0.2):
+                pass
+    open(p + ".lock", "w").write("999999")
+    os.utime(p + ".lock", (0, 0))                      # a dead holder's lock
+    with rs.file_lock(p, wait_s=0.2):
+        assert os.path.exists(p + ".lock")
+    assert not os.path.exists(p + ".lock")
+
+
+def test_hold_topic_merges_into_the_latest_sources_file(monkeypatch, tmp_path):
+    """A record written by another run while this one fetched must survive this run's write."""
+    src = str(tmp_path / "regulatory_sources.json")
+    monkeypatch.setattr(rs, "SOURCES", src)
+    rs._dump(src, {})
+    import k_gap_regulatory_probe as rp
+    import g1_trial_acquire as ga
+    monkeypatch.setattr(rs, "topic_agents", lambda cfg: ["synthetic"])
+    for f in ("fda_review_urls", "gba_urls", "pbac_urls", "cadth_urls", "iqwig_urls"):
+        monkeypatch.setattr(rs, f, lambda a: [])
+    monkeypatch.setattr(rs, "nice_urls", lambda a, c=None: ["https://www.nice.org.uk/x.pdf"])
+    monkeypatch.setattr(rp, "_j_ema", lambda: [])
+    monkeypatch.setattr(ga, "disk_ok", lambda: True)
+
+    def fetch(u):
+        rs._dump(src, {"https://other.example/doc.pdf": {"url": "https://other.example/doc.pdf", "topics": ["t2"]}})
+        return "text", {"state": "TEXT", "sha256": "0" * 64, "bytes": 4}
+    monkeypatch.setattr(rp, "fetch_text", fetch)
+    rs.hold_topic("t1", {}, fetch=True)
+    cur = json.load(open(src, encoding="utf-8"))
+    assert set(cur) == {"https://other.example/doc.pdf", "https://www.nice.org.uk/x.pdf"}
