@@ -460,6 +460,19 @@ def test_cadth_urls_select_reviews_only(monkeypatch, tmp_path):
     assert rs.cadth_urls("synthetic") == expected and len(calls) == 2
 
 
+def test_PLANT_cadth_list_with_a_latin1_byte_still_lists(monkeypatch, tmp_path):
+    """15 Oct: NCBI's file_list.csv carries a Latin-1 0xAE in an unrelated title; a strict UTF-8 decode raised, the
+    route's except returned [] and every drug silently got no CADTH document."""
+    from harness import http
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    body = ("File,Title,Publisher,Publication Year,Accession ID,Last Updated\n"
+            "aa/bb/x_NBK1.tar.gz,Rat study (Sprague Dawley\xae SD),National Toxicology Program,2001,NBK1,2001-01-01\n"
+            "cc/dd/y_NBK2.tar.gz,Evolocumab: Reimbursement Review,"
+            "Canadian Agency for Drugs and Technologies in Health,2026,NBK2,2026-08-25\n").encode("latin-1")
+    monkeypatch.setattr(http, "get_raw", lambda url, **kw: (200, body))
+    assert rs.cadth_urls("evolocumab") == [rs.LITARCH_BASE + "cc/dd/y_NBK2.tar.gz"]
+
+
 def _tar(members):
     import io
     import tarfile
@@ -518,10 +531,15 @@ def test_redaction_blocks_counted(monkeypatch, discoveries):
 def test_iqwig_codes_from_gba_text_and_project_pdfs(monkeypatch):
     pages = {rs.GBA_NB + "suchworte.json": '["Synthetic"]',
              rs.GBA_NB + "?suchwort=Synthetic": '<a href="/bewertungsverfahren/nutzenbewertung/1/">x</a>',
-             rs.GBA_NB + "1/": '<p>Assessment A15-47</p><a href="/A99-99/">not a code in text</a>',
+             # the real G-BA layout (15 Oct): the code appears ONLY in a download filename, not in the page text
+             rs.GBA_NB + "1/": '<p>Assessment</p><a href="/downloads/92-975-1346/A16-16_Synthetic_Addendum-zum-Auftrag-A15-47.pdf">'
+                               'Addendum</a><a href="/A99-99/">a false code</a>',
              rs.IQWIG + "/en/search/?q=synthetic": "<p>No hits</p>",
              rs.IQWIG + "/en/projects/a15-47.html": '<a href="/download/a15-47_assessment.pdf">German</a>'
-                 '<a href="/download/a15-47_extract.pdf">English</a><a href="https://other.org/download/x.pdf">other</a>'}
+                 '<a href="/download/a15-47_extract.pdf">English</a><a href="https://other.org/download/x.pdf">other</a>',
+             # a false or unrelated code is harmless: its project page links no PDF, so it yields no document
+             rs.IQWIG + "/en/projects/a16-16.html": "<p>Addendum project</p>",
+             rs.IQWIG + "/en/projects/a99-99.html": ""}
     calls = []
     def fetch(u):
         calls.append(u)

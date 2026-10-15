@@ -353,7 +353,9 @@ def cadth_urls(agent):
                 return []
             fp.parent.mkdir(parents=True, exist_ok=True)
             fp.write_bytes(body)
-        rows = csv.DictReader(io.StringIO(fp.read_text(encoding="utf-8-sig")))
+        # NCBI's list is not uniformly UTF-8 (a Latin-1 0xAE in an unrelated NTP title, 15 Oct): a strict decode
+        # raised UnicodeDecodeError, the except below turned it into [] and EVERY drug silently got no CADTH document
+        rows = csv.DictReader(io.StringIO(fp.read_bytes().decode("utf-8-sig", errors="replace")))
         keep = []
         for row in rows:
             title = row.get("Title", "")
@@ -368,7 +370,8 @@ def cadth_urls(agent):
                 continue
             keep.append((row.get("Last Updated", ""), row.get("Publication Year", ""), LITARCH_BASE + file))
         return list(dict.fromkeys(u for _, _, u in sorted(keep, reverse=True)))[:MAX_CADTH_DOCS]
-    except (OSError, ValueError, RuntimeError):
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(f"CADTH_DISCOVERY_FAILED {agent}: {type(exc).__name__}: {str(exc)[:120]}", flush=True)
         return []
 
 
@@ -506,7 +509,10 @@ def iqwig_codes(agent):
                                         quote(field["name"]) + "=" + quote(agent, safe=""))
                     break
     pages.append(search)
-    return sorted(set(re.findall(r"\b[A-Z]\d{2}-\d{1,3}\b", "\n".join(_html_text(p) for p in pages))))
+    # the RAW markup too: G-BA names IQWiG codes in download filenames ('A16-16_Alirocumab_Addendum-zum-Auftrag-A15-47.pdf'),
+    # which _html_text drops with the links (15 Oct: 0 codes found for alirocumab). A false code is harmless:
+    # iqwig_urls keeps only PDFs that the code's IQWiG project page actually links.
+    return sorted(set(re.findall(r"\b[A-Z]\d{2}-\d{1,3}\b", "\n".join((p or "") + "\n" + _html_text(p) for p in pages))))
 
 
 def iqwig_urls(agent):
