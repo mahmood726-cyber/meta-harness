@@ -119,3 +119,27 @@ def test_conflicting_hf_definitions_do_not_learn_alias():
     abstract = (keyword_sentence + " Hepatic fibrosis (HF) was also assessed. "
                 "HF occurred in 20/100 patients receiving treatment and 33/100 receiving placebo.")
     assert _outcome_sentences(abstract, ["heart failure"]) == [keyword_sentence]
+
+
+# Review stops at three rounds (extract-abbr-cap-r3, codex): the two remaining findings are recorded as KNOWN LIMITS.
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
+    "KNOWN LIMIT (extract-abbr-cap-r3 #1; conservative direction): a later parenthetical REFERENCE '(HF)' to an "
+    "already-defined outcome is read as a second definition, so the alias is dropped and a valid result sentence "
+    "is missed. It loses a match; it never admits a wrong one."))
+def test_known_limit_reference_parenthetical_drops_alias():
+    from harness.extract import _outcome_sentences
+    a = ("Heart failure (HF) was assessed. This outcome (HF) was adjudicated. "
+         "HF occurred in 20/100 patients receiving treatment and 33/100 receiving placebo.")
+    assert len(_outcome_sentences(a, ["heart failure"])) == 3
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
+    "KNOWN LIMIT (extract-abbr-cap-r3 #2; UNSAFE direction, named on the PR): a conflicting definition with extra "
+    "parenthetical text '(HF, diagnosed by biopsy)' is not recognised as a conflicting definition, so another "
+    "outcome's sentences can bind to the alias. Mitigation in place: counts still need percentage corroboration and "
+    "effects need a stated measure and CI."))
+def test_known_limit_conflicting_definition_with_extra_text():
+    from harness.extract import _outcome_sentences
+    a = ("Heart failure (HF) was assessed. Hepatic fibrosis (HF, diagnosed by biopsy) was also assessed. "
+         "HF occurred in 20/100 patients receiving treatment and 33/100 receiving placebo.")
+    assert _outcome_sentences(a, ["heart failure"]) == ["Heart failure (HF) was assessed."]
