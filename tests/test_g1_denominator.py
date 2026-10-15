@@ -150,3 +150,18 @@ def test_PLANT_an_identity_chain_registry_removal_needs_the_committed_aact_extra
     sp, ev = L.chain_registry_span("s", "U", ["U"])
     assert "Sotagliflozin" in sp["text"] and ev["nct"] == "NCT00000009"
     assert L.chain_registry_span("s", "U", []) == (None, None)                    # not listed among the other-agent units
+
+
+def test_PLANT_a_comparator_N_from_its_stated_k_is_a_typed_spanned_adjustment():
+    """#64 (review 17) moves N to the comparator's stated k with NO labelled row moving (sglt2-ckd: 12 seed candidates,
+    '10 randomized trials'): the V15-B preview render broke this ledger's arithmetic by exactly 2 (367 - 71 + 24 != 318).
+    The difference is a typed adjustment with a rule and a span verified in its source -- never an unexplained gap."""
+    led = copy.deepcopy(LED)
+    led["current"]["N"] -= 2
+    assert any(p.startswith("arithmetic") for p in dl.problems(led))
+    good = next(r["span"] for r in LED["removed"] if isinstance(r.get("span"), dict) and r["span"].get("text"))
+    led["stated_k_adjustments"] = [{"slug": "x", "kind": "COMPARATOR_STATED_K", "rule_id": "K-GAP:ENUMERATION:COMPARATOR_STATED_K",
+                                    "delta": -2, "span": good}]
+    assert dl.problems(led) == []
+    led["stated_k_adjustments"][0]["span"] = None
+    assert any("no span" in p for p in dl.problems(led))

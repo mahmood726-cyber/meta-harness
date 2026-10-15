@@ -336,11 +336,31 @@ def build():
                           "basis": ("a unit of the comparator's typed enumeration (registry/comparator_enumerations)" if es
                                     else "a row of the comparator's own trial table"),
                           "span": es or span_in_sources(cpmid, lab)})
+    # Review 17 (seed_candidate_n): a comparator N taken from the comparator's OWN stated k over reference-seed candidates
+    # moves N with NO labelled row moving (which candidates are outside -- or which included trials are missing -- is
+    # unresolved). The difference is a typed adjustment carrying the stated-k span; the V15-B preview render showed it
+    # breaking this arithmetic by exactly the gap (sglt2-ckd 12 -> 10).
+    adjust = []
+    for slug in sorted(base["topics"]):
+        o = cur.get(slug) or {}
+        if o.get("N_comparator_trials_basis") != "COMPARATOR_STATED_K" or o.get("N_candidates") is None:
+            continue
+        sp = (o.get("comparator_stated_k") or {}).get("span") or {}
+        p = os.path.join(ROOT, sp["source"]) if sp.get("source") else None
+        adjust.append({"slug": slug, "comparator_pmid": o.get("comparator_pmid"), "kind": "COMPARATOR_STATED_K",
+                       "rule_id": "K-GAP:ENUMERATION:COMPARATOR_STATED_K",
+                       "delta": o["N_comparator_trials"] - o["N_candidates"], "seed_candidates": o["N_candidates"],
+                       "stated_k": o["N_comparator_trials"],
+                       "detail": "N is the comparator's own stated count, not its reference-seed candidates; which "
+                                 "candidates are inside is unresolved until its own list is read from an open text",
+                       "span": ({"text": sp.get("text"), "source": sp["source"], "source_sha256": _sha(p)}
+                                if p and os.path.exists(p) else None)})
     n_now = sum((cur.get(s) or {}).get("N_comparator_trials") or 0 for s in base["topics"])
     out = {"baseline": {"commit": base["pinned_commit"], "N": base["N"], "fixture": os.path.relpath(BASE, ROOT).replace(os.sep, "/")},
            "current": {"N": n_now},
            "removed_n": sum(1 for r in removed if r["kind"] != "RELABELLED"), "relabelled_n": sum(1 for r in removed if r["kind"] == "RELABELLED"),
-           "added_n": len(added), "removed": removed, "added": added}
+           "added_n": len(added), "removed": removed, "added": added,
+           "stated_k_adjustments": adjust, "stated_k_delta": sum(a["delta"] for a in adjust)}
     return out
 
 
@@ -348,7 +368,8 @@ def problems(led):
     """Every removal names a rule and carries span(s) found verbatim (whitespace-insensitive) in the cited source, whose
     sha256 matches; the arithmetic closes. Empty list = sound."""
     bad = []
-    for r in led.get("removed") or []:
+    for r in (led.get("removed") or []) + (led.get("stated_k_adjustments") or []):
+        r = dict(r, label=r.get("label", "(stated-k adjustment)"))
         if not r.get("rule_id") or r.get("kind") in (None, "UNEXPLAINED"):
             bad.append(f"{r.get('slug')}::{r.get('label')}: no rule")
             continue
@@ -370,8 +391,10 @@ def problems(led):
                 # the displayed text must BE its verified parts: checking only the parts let an edited text pass
                 bad.append(f"{r['slug']}::{r['label']}: span not in its source (text is not its verified parts)")
     b = led.get("baseline", {}).get("N")
-    if isinstance(b, int) and b - led.get("removed_n", 0) + led.get("added_n", 0) != led.get("current", {}).get("N"):
-        bad.append(f"arithmetic: {b} - {led.get('removed_n')} + {led.get('added_n')} != {led.get('current', {}).get('N')}")
+    adj = sum(a.get("delta") or 0 for a in led.get("stated_k_adjustments") or [])
+    if isinstance(b, int) and b - led.get("removed_n", 0) + led.get("added_n", 0) + adj != led.get("current", {}).get("N"):
+        bad.append(f"arithmetic: {b} - {led.get('removed_n')} + {led.get('added_n')} + stated-k {adj} != "
+                   f"{led.get('current', {}).get('N')}")
     return bad
 
 
@@ -440,7 +463,7 @@ def main(argv):
     annotate_tracker(led)
     bad = problems(led) + tracker_problems(led)
     print(f"baseline {led['baseline']['N']} -> current {led['current']['N']}: removed {led['removed_n']}, relabelled "
-          f"{led['relabelled_n']}, added {led['added_n']}; problems {len(bad)}")
+          f"{led['relabelled_n']}, added {led['added_n']}, stated-k {led.get('stated_k_delta', 0):+d}; problems {len(bad)}")
     for x in bad:
         print("  ", x)
     return 1 if bad else 0
