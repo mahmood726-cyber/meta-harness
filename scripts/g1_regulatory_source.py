@@ -567,12 +567,20 @@ def hc_listing(agent):
                    "medicinal ingredient(s)": "ingredients", "activity": "activity", "regulatory activity": "activity",
                    "decision": "decision", "decision date": "decision_date", "release date": "release_date",
                    "date of decision": "decision_date", "date of release": "release_date",
-                   "active ingredient(s)": "ingredients", "active ingredients": "ingredients"}
+                   "active ingredient(s)": "ingredients", "active ingredients": "ingredients",
+                   # the LIVE headers (read 15 Oct); the synthetic ones above matched nothing on the real page, so every
+                   # table was skipped and every drug listed 0 submissions without an error
+                   "submission control number": "control_number",
+                   "health canada regulatory activity": "activity", "health canada regulatory decision": "decision",
+                   "health canada regulatory decision date": "decision_date",
+                   "health canada public release date": "release_date"}
+        skipped = []
         for table in soup.select("div.view-content table"):
             headers = [aliases.get(_ws(th.get_text(" ")).casefold()) for th in table.select("thead th")]
             if not headers:
                 headers = [aliases.get(_ws(th.get_text(" ")).casefold()) for th in table.select("tr th")]
             if set(headers) != set(fields):
+                skipped.append([_ws(th.get_text(" ")) for th in table.select("th")][:8])
                 continue
             for tr in table.select("tr"):
                 cells = tr.find_all("td", recursive=False)
@@ -581,7 +589,7 @@ def hc_listing(agent):
                 row = dict(zip(headers, (_ws(td.get_text(" ")) for td in cells)))
                 if _whole_word(agent, row["ingredients"]):
                     rows.append(row)
-        cache[agent.casefold()] = {"rows": rows}
+        cache[agent.casefold()] = {"rows": rows, **({"tables_skipped_unknown_headers": skipped} if skipped else {})}
     except Exception as exc:  # noqa: BLE001 - TLS failure is metadata, never a reason to bypass verification
         rows = []
         cache[agent.casefold()] = {"rows": [], "error": str(exc)[:120]}

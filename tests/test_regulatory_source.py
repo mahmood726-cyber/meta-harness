@@ -584,6 +584,21 @@ def test_hc_listing_parses_rows(monkeypatch, tmp_path):
     assert len(cache["synthetic"]["rows"]) == 1
 
 
+def test_PLANT_hc_listing_reads_the_live_header_names(monkeypatch, tmp_path):
+    """15 Oct: the parser knew only synthetic header names, skipped every live table and listed 0 for every drug."""
+    heads = ["Submission control number", "Brand name", "Manufacturer", "Ingredients", "Health Canada regulatory activity",
+             "Health Canada regulatory decision", "Health Canada regulatory decision date", "Health Canada public release date"]
+    cells = ['<a href="https://clinical-information.canada.ca/ci-rc/terms?id=261220">261220</a>', "ACTEMRA",
+             "HOFFMANN-LA ROCHE LIMITED", "TOCILIZUMAB", "SNDS", "NOC", "2022-10-13", "2023-02-08"]
+    page = ('<div class="view-content"><table><thead><tr>' + "".join(f'<th class="views-field">\n {h} </th>' for h in heads)
+            + "</tr></thead><tbody><tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr></tbody></table></div>")
+    monkeypatch.setattr(rs, "ROOT", str(tmp_path))
+    monkeypatch.setattr(rs, "_hc_fetch", lambda url: page)
+    rows = rs.hc_listing("tocilizumab")
+    assert [(r["control_number"], r["brand"], r["activity"], r["decision_date"]) for r in rows] == \
+        [("261220", "ACTEMRA", "SNDS", "2022-10-13")]
+
+
 def test_hc_fetch_refuses_terms_before_transport():
     with pytest.raises(ValueError, match="listing only"):
         rs._hc_fetch("https://clinical-information.canada.ca/ci-rc/terms/000000")
