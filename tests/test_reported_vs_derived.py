@@ -187,3 +187,35 @@ def test_a_reported_value_followed_by_the_sentence_full_stop_is_its_labelled_occ
     assert extract._reported_occurrence(0.84, s, "RR")[0] == "0.84"
     out = extract.reported_vs_count_derived((118, 168, 32, 56), ("RR", 0.84, 0.1, 3.0), s, "x")
     assert out and out["state"] == STATE and out["terminal"] is True, out
+
+
+# ---- L7: lowercase conjunctions must not become ratio labels ----
+def test_PLANT_lowercase_or_does_not_hide_a_trailing_adjustment():
+    s = "Mortality: RR 0.50 (95% CI 0.30-0.80) for death or transplant, adjusted for age."
+    out = extract.reported_vs_count_derived((20, 100, 30, 100), ("RR", 0.50, 0.30, 0.80), s, s)
+    assert out is None, out
+
+
+def test_PLANT_lowercase_or_before_a_number_is_not_a_ratio_label():
+    s = "the rate of death or 0.5 per year; RR 0.50"
+    assert extract._reported_occurrence(0.5, s, "RR")[0] == "0.50"
+    assert [m.group(1) for m in extract._RATIO_VALUE.finditer(s)] == ["RR"]
+
+
+@pytest.mark.parametrize("label", ["RR", "OR", "HR", "IRR"])
+def test_ratio_abbreviations_remain_case_sensitive(label):
+    assert extract._RATIO_VALUE.search(label + " 0.25 (95% CI 0.10-0.60)")
+    assert extract._RATIO_VALUE.search(label.lower() + " 0.25") is None
+
+
+@pytest.mark.parametrize("label", ["relative risk", "risk ratio", "odds ratio", "hazard ratio", "rate ratio"])
+def test_full_ratio_labels_remain_case_insensitive(label):
+    for spelling in (label, label.upper(), label.title()):
+        assert extract._RATIO_VALUE.search(spelling + " 0.25").groups() == (spelling, "0.25")
+        assert extract._reported_occurrence(0.25, spelling + " 0.25")[0] == "0.25"
+    if label == "odds ratio":
+        assert extract._reported_occurrence(0.25, label + " 0.25", "OR")[0] == "0.25"
+
+
+def test_uppercase_or_still_has_the_or_scale():
+    assert extract._reported_occurrence(0.25, "OR 0.25 (95% CI 0.10-0.60)", "OR")[0] == "0.25"

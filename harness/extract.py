@@ -470,7 +470,7 @@ _RT_ADJUSTED = re.compile(r"(?<!un)\badjusted\b|\ba(?:OR|RR|HR)\b|\bmultivariab|
 # span was read (found by the independent oracle, codex lane L2, 15 Oct).
 _NUM_TOKEN = re.compile(r"(?<![\d.])(?:\d+(?:\.\d+)?|\.\d+)(?!\d|\.\d)")
 # the reported value AS PRINTED after its ratio label: 'RR 0.50', 'relative risk 0.49;', 'odds ratio 0.25 (95% ...'
-_RATIO_LABEL = r"\b(RR|OR|HR|IRR|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
+_RATIO_LABEL = r"\b((?-i:RR|OR|HR|IRR)|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
 _RATIO_VALUE = re.compile(_RATIO_LABEL + r"[^\d;().]{0,30}?(?<![\d.])(\d+(?:\.\d+)?|\.\d+)(?!\d|\.\d)", re.I)
 # where the NEXT estimate begins: its label and any qualifier word before it ('..., adjusted RR 0.60', a7-r3 #1)
 _NEXT_ESTIMATE = re.compile(r"(?:\b(?:un)?adjusted\s+|\bcrude\s+)?" + _RATIO_LABEL, re.I)
