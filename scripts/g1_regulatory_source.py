@@ -36,7 +36,7 @@ SOURCES = os.path.join(ROOT, "registry", "regulatory_sources.json")
 IDCACHE = os.path.join(ROOT, "outputs", "k_gap", "_reg", "id_information.json")
 HOST_AGENCY = {"www.accessdata.fda.gov": "FDA", "accessdata.fda.gov": "FDA", "www.fda.gov": "FDA",
                "www.ema.europa.eu": "EMA", "ema.europa.eu": "EMA", "www.nice.org.uk": "NICE", "nice.org.uk": "NICE",
-               "www.g-ba.de": "GBA", "g-ba.de": "GBA"}
+               "www.g-ba.de": "GBA", "g-ba.de": "GBA", "www.pbs.gov.au": "PBAC", "pbs.gov.au": "PBAC"}
 # NICE documents (committee papers with the ERG / EAG report, final appraisal determinations, guideline evidence
 # reviews) carry '(c) NICE ... subject to Notice of rights' and reproduce company-submission material: NOT open unless the
 # document's OWN text states the Open Government Licence or a CC licence (licence_from_text, read when it is held)
@@ -44,8 +44,10 @@ HOST_AGENCY = {"www.accessdata.fda.gov": "FDA", "accessdata.fda.gov": "FDA", "ww
 # beyond copyright's limits needs G-BA's or the author's consent, and only citing and linking are permitted. The AMNOG
 # documents it hosts (manufacturer Modul 4 dossiers, IQWiG Nutzenbewertungen, whose own Impressum likewise permits only
 # citing and linking) are therefore held for TYPED extraction only, never shown to a model.
+# PBS (https://www.pbs.gov.au/general/copyright, read 15 Oct 2026): "may be reproduced in part for personal use as
+# general reference material only ... all rights are reserved" -> typed (deterministic) reading only, never a model.
 AGENCY_LICENCE = {"FDA": "US_GOV_PUBLIC_DOMAIN", "EMA": "EMA_REUSE_WITH_ACKNOWLEDGEMENT", "NICE": "NICE_NOTICE_OF_RIGHTS",
-                  "GBA": "GBA_IQWIG_CITE_AND_LINK_ONLY"}
+                  "GBA": "GBA_IQWIG_CITE_AND_LINK_ONLY", "PBAC": "PBS_COPYRIGHT_PERSONAL_REFERENCE_ONLY"}
 # licences a model may be shown (the prompt goes into a public record). EMA: Mahmood 6 Oct ('European drug agency can
 # be used'); EMA's terms authorise reproduction provided the source is acknowledged, so every shown EMA window carries
 # EMA_ACK (reproducible_ai/record_licence.regulatory_window_problem refuses one without it)
@@ -134,7 +136,7 @@ REVIEW_SUFFIXES = ("MedR", "StatR", "MultidisciplineR", "IntegratedR", "SumR", "
 
 NICE = "https://www.nice.org.uk"
 NICE_UA = {"User-Agent": "meta-harness (meta-harness@example.org)"}
-MAX_NICE_GUIDANCE = 6
+MAX_NICE_GUIDANCE = 15
 
 
 def _nice_html(url):
@@ -172,8 +174,52 @@ def nice_docs(gid, history_html=None, evidence_html=None):
     return list(dict.fromkeys(out))
 
 
-def nice_urls(agent):
-    return [u for g in nice_guidance(agent) for u in nice_docs(g)]
+def nice_urls(agent, condition=None):
+    """Prefer the topic's condition so unrelated indications cannot fill the guidance cap first."""
+    ids = nice_guidance(f"{agent} {condition}") if condition else []
+    ids += nice_guidance(agent)
+    return [u for g in list(dict.fromkeys(ids))[:MAX_NICE_GUIDANCE] for u in nice_docs(g)]
+
+
+PBAC = "https://www.pbs.gov.au"
+MAX_PBAC_DOCS = 12
+
+
+_PBAC_SALT = {"with", "and", "plus", "hydrochloride", "hydrobromide", "sodium", "potassium", "calcium", "magnesium",
+              "mesylate", "maleate", "sulfate", "sulphate", "acetate", "citrate", "fumarate", "succinate", "tartrate",
+              "besylate", "bitartrate", "phosphate", "dihydrate", "monohydrate", "ethyl"}
+
+
+def pbac_urls(agent, html=None):
+    """Match the entry's INN, never a document label; prefer its PDF to a duplicate DOCX."""
+    from html import unescape
+    from urllib.parse import quote, urljoin
+    h = _nice_html(f"{PBAC}/industry/pbac/psd?term={quote(agent, safe='')}") if html is None else html
+    anchors = list(re.finditer(r'<a\b[^>]*\bhref=[\"\']([^\"\']+)[\"\'][^>]*>(.*?)</a>', h, re.S | re.I))
+    entries = []
+    for i, m in enumerate(anchors):
+        u = urljoin(PBAC, unescape(m.group(1)))
+        date = re.fullmatch(r'/industry/pbac/psd/(\d{4})/(\d{2})/[^/.]+/?', urlparse(u).path)
+        if agency_of(u) == "PBAC" and date:
+            entries.append((i, date.groups(), _gba_fold(unescape(re.sub(r'<[^>]+>', '', m.group(2))))))
+    a = _gba_fold(agent)
+    out = []
+    for n, (i, date, name) in enumerate(entries):
+        # the INN itself, or the INN followed by a SALT / COMBINATION word from a fixed list (a special case for one
+        # test fixture's 'LIKE' word fitted the test, not the rule: 15 Oct review of the Codex draft)
+        nxt = name[len(a):].split()[:1] if name.startswith(a + " ") else []
+        if not a or not (name == a or (nxt and nxt[0] in _PBAC_SALT)):
+            continue
+        end = entries[n + 1][0] if n + 1 < len(entries) else len(anchors)
+        docs = []
+        for m in anchors[i + 1:end]:
+            u = urljoin(PBAC, unescape(m.group(1)))
+            if agency_of(u) == "PBAC" and re.search(r'\.(?:pdf|docx)\?variant=3$', u, re.I):
+                docs.append(PBAC + urlparse(u).path + "?variant=3")
+        pdfs = [u for u in docs if urlparse(u).path.lower().endswith(".pdf")]
+        if pdfs or docs:
+            out.append((date, (pdfs or docs)[0]))
+    return list(dict.fromkeys(u for _, u in sorted(out, key=lambda x: x[0], reverse=True)))[:MAX_PBAC_DOCS]
 
 
 GBA = "https://www.g-ba.de"
@@ -229,6 +275,12 @@ def topic_agents(cfg):
     return [x for x in (list(a.keys()) if isinstance(a, dict) else a) if len(x) >= 4]
 
 
+def topic_condition(cfg):
+    """Use the topic's first population term to focus guidance discovery."""
+    populations = (cfg.get("include") or {}).get("population_any") or []
+    return populations[0] if populations else None
+
+
 def hold_topic(slug, cfg, fetch=True):
     """Typed source records for one topic's regulatory documents (fetched and cached by the probe's fetch_text)."""
     import k_gap_regulatory_probe as rp
@@ -237,8 +289,9 @@ def hold_topic(slug, cfg, fetch=True):
     agents = topic_agents(cfg)
     for a in agents:
         urls += fda_review_urls(a) if fetch else []
-        urls += nice_urls(a) if fetch else []
+        urls += nice_urls(a, topic_condition(cfg)) if fetch else []
         urls += gba_urls(a) if fetch else []
+        urls += pbac_urls(a) if fetch else []
     try:
         ema = rp._j_ema() if fetch else []
         urls += [u for p in rp.ema_products(agents, ema) for u in rp.ema_docs(p)]

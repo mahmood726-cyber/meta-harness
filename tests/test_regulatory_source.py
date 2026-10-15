@@ -7,6 +7,8 @@ import json
 import os
 import sys
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 import g1_regulatory_source as rs  # noqa: E402
@@ -22,6 +24,17 @@ DOC = ("8.1 Study WA42380 (COVACTA). " + FILL[:3000] + " In Study WA42380, morta
        "tocilizumab arm and 28/144 in the placebo arm. " + FILL + " 8.2 Study ML42528 (EMPACTA). " + FILL[:3000] +
        " In Study ML42528, mortality at day 28 was 26/249 in the tocilizumab arm and 11/128 in the placebo arm.")
 NAMES = ["COVACTA", "NCT04320615", "WA42380"]
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch):
+    """Discovery tests must use fixtures, never live source records."""
+    import socket
+
+    def blocked(*a, **k):
+        pytest.fail("network access in regulatory source tests")
+    monkeypatch.setattr(socket.socket, "connect", blocked)
+    monkeypatch.setattr(socket, "getaddrinfo", blocked)
 
 
 def _held(doc=DOC, url=FDA, sha=None):
@@ -205,3 +218,75 @@ def test_PLANT_a_programme_token_never_names_a_sibling_trial():
     assert rs.named_at("Study ODYSSEY COMBO I randomised 316.", names) and rs.named_at("COMBO I: 6/207 v 3/107", names)
     assert rs.named_at("FH I 3/163", rs.trial_names("ODYSSEY FH I NCT01623115", ["NCT01623115"]))
     assert "DESCARTES" in rs.trial_names("DESCARTES NCT01516879", ["NCT01516879"])      # a one-word acronym still names
+
+
+def test_PLANT_pbac_is_typed_only():
+    for host in ("pbs.gov.au", "www.pbs.gov.au"):
+        u = f"https://{host}/industry/pbac/psd/2026/07/example.pdf?variant=3"
+        assert rs.agency_of(u) == "PBAC"
+        assert rs.licence_of(u) == "PBS_COPYRIGHT_PERSONAL_REFERENCE_ONLY"
+        assert not rs.prompt_open(u)
+        assert not rs.prompt_open(u, {"licence": rs.licence_from_text(u, "Creative Commons Attribution")})
+
+
+def test_pbac_urls_keep_only_the_exact_inn(monkeypatch):
+    h = ""
+    for date, slug, name in [("2025/03", "older", "EVOLOCUMAB"), ("2026/07", "newer", "EVOLOCUMAB"),
+                             ("2026/09", "analogue", "EVOLOCUMAB-LIKE THING"),
+                             ("2026/10", "other", "ALIROCUMAB")]:
+        p = f"/industry/pbac/psd/{date}/{slug}"
+        h += f'<a href="{p}">{name}</a><a href="{p}.docx?variant=3">DOCX</a>'
+        h += f'<a href="{p}.pdf?variant=3">PDF</a>'
+    calls = []
+
+    def listing(url):
+        calls.append(url)
+        return h
+    monkeypatch.setattr(rs, "_nice_html", listing)
+    assert rs.pbac_urls("evolocumab") == [
+        rs.PBAC + "/industry/pbac/psd/2026/07/newer.pdf?variant=3",
+        rs.PBAC + "/industry/pbac/psd/2025/03/older.pdf?variant=3"]
+    assert calls == [rs.PBAC + "/industry/pbac/psd?term=evolocumab"]
+
+
+def test_pbac_urls_fold_fallback_deduplicate_and_cap(monkeypatch):
+    h = ""
+    for month in range(1, 13):
+        p = f"/industry/pbac/psd/2026/{month:02d}/salt"
+        h += (f"<a href='{p}'>ICOSAPENT-ETHYL SODIUM</a>"
+              f"<a href='https://pbs.gov.au{p}.docx?variant=3'>DOCX</a>") * 2
+    h += ('<a href="/industry/pbac/psd/2025/12/old">ICOSAPENT ETHYL</a>'
+          '<a href="/industry/pbac/psd/2025/12/old.pdf?variant=3">PDF</a>')
+    calls = []
+    monkeypatch.setattr(rs, "_nice_html", lambda u: calls.append(u) or h)
+    assert rs.MAX_PBAC_DOCS == 12
+    assert rs.pbac_urls("icosapent ethyl") == [
+        rs.PBAC + f"/industry/pbac/psd/2026/{m:02d}/salt.docx?variant=3" for m in range(12, 0, -1)]
+    assert calls == [rs.PBAC + "/industry/pbac/psd?term=icosapent%20ethyl"]
+    assert rs.pbac_urls("icosapent ethyl", html="") == []
+
+
+def test_nice_condition_query_runs_first_and_is_capped(monkeypatch):
+    calls, docs = [], []
+
+    def guidance(q):
+        calls.append(q)
+        return ["ng1", "ta1", "ng1"] if q == "evolocumab hypercholesterolaemia" else [
+            f"ta{i}" for i in range(1, 25)]
+    monkeypatch.setattr(rs, "nice_guidance", guidance)
+    monkeypatch.setattr(rs, "nice_docs", lambda g: docs.append(g) or [rs.NICE + "/guidance/" + g])
+    assert rs.MAX_NICE_GUIDANCE == 15
+    expected = ["ng1"] + [f"ta{i}" for i in range(1, 15)]
+    assert rs.nice_urls("evolocumab", "hypercholesterolaemia") == [rs.NICE + "/guidance/" + g for g in expected]
+    assert calls == ["evolocumab hypercholesterolaemia", "evolocumab"]
+    assert docs == expected
+    calls.clear()
+    docs.clear()
+    rs.nice_urls("evolocumab")
+    assert calls == ["evolocumab"] and docs == [f"ta{i}" for i in range(1, 16)]
+
+
+def test_topic_condition_uses_first_population():
+    assert rs.topic_condition({"include": {"population_any": ["first", "second"]}}) == "first"
+    for cfg in ({}, {"include": {}}, {"include": {"population_any": []}}):
+        assert rs.topic_condition(cfg) is None
