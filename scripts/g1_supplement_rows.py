@@ -92,8 +92,10 @@ def contains(text, terms):
 
 def arm(cell, cfg):
     inc = cfg.get("include") or {}
-    t = contains(cell, (cfg.get("intervention_terms") or []) + (inc.get("intervention_any") or []) +
-                 ["steroid", "steroids", "intervention", "treatment"])
+    # the intervention arm must name THIS topic's intervention: generic words ('steroids', 'treatment') let a
+    # corticosteroid meta's 'Steroids' column pass as the tocilizumab arm of REMAP-CAP (15 Oct). Only the comparator
+    # side may be generic (placebo / control / standard care)
+    t = contains(cell, (cfg.get("intervention_terms") or []) + (inc.get("intervention_any") or []))
     c = contains(cell, (cfg.get("comparator_terms") or []) + (inc.get("comparator_any") or []) +
                  ["placebo", "control", "SOC", "standard", "usual"])
     return "t" if t and not c else "c" if c and not t else None

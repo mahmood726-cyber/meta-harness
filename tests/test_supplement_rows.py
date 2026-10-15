@@ -311,3 +311,12 @@ def test_PLANT_a_row_far_below_its_header_keeps_the_header():
     finally:
         ta.outcome_terms = orig
     assert [(r.events_t, r.n_t, r.events_c, r.n_c) for r in rows] == [(10, 100, 20, 100)]
+
+
+def test_PLANT_another_agents_column_never_passes_as_the_intervention():
+    # 15 Oct: a corticosteroid meta's 'Steroids | SOC/placebo' row for REMAP-CAP was taken for the TOCILIZUMAB topic
+    import g1_supplement_rows as s
+    toci = {"primary_outcome": {"keywords": ["mortality"]}, "include": {"intervention_any": ["tocilizumab"]},
+            "intervention_terms": ["tocilizumab"], "comparator_terms": ["standard care"]}
+    assert s.arm("Steroids", toci) is None
+    assert s.arm("Tocilizumab", toci) == "t" and s.arm("SOC/placebo", toci) == "c"
