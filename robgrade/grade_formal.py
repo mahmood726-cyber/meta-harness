@@ -25,10 +25,9 @@ COMPUTED inputs, every downgrade citing the input it rests on. Randomised trials
   publication bias  k >= 10: Egger's regression test (standardised effect on precision), -1 when p < 0.10;
                       k < 10: NOT_ASSESSABLE_K_LT_10 (small-study tests have too little power), no downgrade.
 
-Certainty = HIGH minus the downgrades, floored at VERY_LOW. Domains NOT_ASSESSABLE are listed; whether a certainty
-category is issued while one is unassessed is the protocol's rule B-prime (no category while any domain is unassessed),
-applied in `certainty`, with publication bias at k < 10 reported separately (a decision for Mahmood: see
-`certainty_if_pubbias_k_lt_10_counts_as_undetected`).
+Arithmetic certainty = HIGH minus the downgrades, floored at VERY_LOW. The reported certainty remains provisional
+while any domain is NOT_ASSESSABLE or PARTIAL, or any judgement flag remains unresolved. Publication bias at k < 10
+alone does not block a category: not detected is not suspected. Arithmetic is retained separately for review.
 """
 from __future__ import annotations
 
@@ -283,9 +282,10 @@ def grade(outcome, rob, stale=False, counts=None):
     level = LEVELS[max(0, 3 - down)]
     pb_k = doms["publication_bias"]["state"] == "NOT_ASSESSABLE_K_LT_10"
     flags = sorted({f for d in doms.values() for f in d["flags"]})
+    provisional = bool(unassessed or flags or any(d["state"] == "PARTIAL" for d in doms.values()))
     return {"family": FAMILY, "outcome": outcome.get("name"), "start": "high", "domains": doms, "downgrades": down,
             "unassessed_domains": unassessed, "judgement_flags": flags,
-            "certainty": level if not unassessed else "provisional",
+            "certainty": "provisional" if provisional else level,
             # NOT a forecast: unassessed domains count 0 here (probiotics I^2 73% read 'high' under the old name)
             "certainty_from_assessed_domains_only": level,
             "certainty_if_pubbias_k_lt_10_counts_as_undetected": level if pb_k else None}

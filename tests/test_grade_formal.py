@@ -2,6 +2,8 @@
 fixed, the statistics against independent references, and the rules that keep a missing input from reading as a
 favourable one."""
 import math
+import json
+from pathlib import Path
 
 import pytest
 
@@ -10,6 +12,37 @@ from robgrade import grade_formal as gf
 
 def _rob(j):
     return {"overall": {"judgement": j}}
+
+
+def test_melatonin_partial_and_unresolved_judgements_remain_provisional():
+    root = Path(__file__).resolve().parents[1]
+    slug = "melatonin-primary-insomnia-sol"
+    review = json.loads((root / "docs/reviews" / slug / "review.json").read_text(encoding="utf-8"))
+    outcome = next(o for o in review["outcomes"] if o.get("primary"))
+    from scripts.grade_formal_build import rob_for
+    rob, _ = rob_for(slug, outcome["name"], [t["id"] for t in outcome["trials"]])
+    g = gf.grade(outcome, rob)
+    assert g["domains"]["risk_of_bias"]["inputs"]["weight_share_by_overall"]["HIGH"] == 1
+    assert g["domains"]["imprecision"]["state"] == "PARTIAL"
+    assert {"VERY_SERIOUS_FOR_JUDGEMENT", "OIS_NOT_COMPUTABLE"} <= set(g["judgement_flags"])
+    assert g["certainty_from_assessed_domains_only"] == "moderate"
+    assert g["certainty"] == "provisional"
+
+
+@pytest.mark.parametrize("state,flags", [
+    ("PARTIAL", []), ("ASSESSED", ["VERY_SERIOUS_FOR_JUDGEMENT"]),
+    ("ASSESSED", ["OIS_NOT_COMPUTABLE"]),
+    ("ASSESSED", ["SOFT_HETEROGENEITY_FOR_JUDGEMENT"]),
+    ("ASSESSED", ["FUTURE_JUDGEMENT_FLAG"]),
+])
+def test_any_partial_or_unresolved_flag_blocks_certainty(monkeypatch, state, flags):
+    outcome = {"result": {"k": 1, "scale": "RR", "ci_low": 0.8, "ci_high": 1.1},
+               "compat_key": {"matched": True}}
+    assert gf.grade(outcome, {})["certainty"] == "moderate"  # k < 10 alone does not block.
+    monkeypatch.setattr(gf, "indirectness", lambda _: gf._dom(0, state, "fixture", {}, flags))
+    g = gf.grade(outcome, {})
+    assert g["certainty_from_assessed_domains_only"] == "moderate"
+    assert g["certainty"] == "provisional"
 
 
 def test_PLANT_rob_downgrades_when_less_than_half_the_weight_is_low():
@@ -90,5 +123,9 @@ def test_certainty_is_provisional_while_a_domain_is_unassessed():
                "compat_key": {"matched": True}}
     g = gf.grade(outcome, {"A": _rob("LOW")})                                 # B has no RoB object
     assert g["certainty"] == "provisional" and "risk_of_bias" in g["unassessed_domains"]
-    g = gf.grade(outcome, {"A": _rob("LOW"), "B": _rob("LOW")})
+    # Arm counts make OIS computable and met, so imprecision is assessed.
+    g = gf.grade(outcome, {"A": _rob("LOW"), "B": _rob("LOW")}, counts=[
+        {"events_t": 800, "n_t": 5000, "events_c": 1000, "n_c": 5000},
+        {"events_t": 800, "n_t": 5000, "events_c": 1000, "n_c": 5000},
+    ])
     assert g["certainty"] == "high" and g["unassessed_domains"] == []

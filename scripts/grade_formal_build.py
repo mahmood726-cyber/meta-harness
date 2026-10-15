@@ -19,8 +19,7 @@ OUT = os.path.join(ROOT, "outputs", "robgrade", "grade")
 TIERS = [
     ("served contextual (A3)", os.path.join(ROOT, "outputs", "robgrade", "served", "rob2_ctx")),
     ("contextual (A3)", os.path.join(ROOT, "outputs", "robgrade", "rob2_ctx")),
-    ("v3.1", os.path.join(ROOT, "outputs", "robgrade", "rob2")),
-    ("v3.1 DEV", os.path.join(ROOT, "outputs", "robgrade", "rob2", "dev")),
+    ("v3.1 (current replay)", os.path.join(ROOT, "outputs", "robgrade", "rob2_current")),
 ]
 
 

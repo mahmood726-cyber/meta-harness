@@ -6,7 +6,7 @@ import pytest
 from scripts import grade_formal_build as builder
 
 
-LABELS = ["served contextual (A3)", "contextual (A3)", "v3.1", "v3.1 DEV"]
+LABELS = ["served contextual (A3)", "contextual (A3)", "v3.1 (current replay)"]
 
 
 def write_json(path, value):
@@ -26,7 +26,7 @@ def sandbox(tmp_path, monkeypatch):
 def test_priority_and_missing_trial(sandbox):
     _, tiers = sandbox
     trial_sets = [{"4": "LOW"}, {"4": "HIGH", "3": "LOW"},
-                  {"3": "HIGH", "2": "LOW"}, {"2": "HIGH", "1": "LOW"}]
+                  {"3": "HIGH", "2": "LOW", "1": "LOW"}]
     for (_, directory), trials in zip(tiers, trial_sets):
         write_json(directory / "synthetic.json", {
             "outcome": "primary", "trials": {
@@ -37,7 +37,7 @@ def test_priority_and_missing_trial(sandbox):
     rob, sources = builder.rob_for("synthetic", "primary", [f"PMID {i}" for i in range(1, 6)])
     assert rob == {f"PMID {i}": {"overall": {"judgement": "LOW"}} for i in range(1, 5)}
     assert sources == {"PMID 4": LABELS[0], "PMID 3": LABELS[1],
-                       "PMID 2": LABELS[2], "PMID 1": LABELS[3]}
+                       "PMID 2": LABELS[2], "PMID 1": LABELS[2]}
     assert "PMID 5" not in rob and "PMID 5" not in sources
 
 
@@ -111,8 +111,7 @@ def test_production_tier_order():
     assert [(label, Path(directory)) for label, directory in builder.TIERS] == [
         ("served contextual (A3)", base / "served" / "rob2_ctx"),
         ("contextual (A3)", base / "rob2_ctx"),
-        ("v3.1", base / "rob2"),
-        ("v3.1 DEV", base / "rob2" / "dev"),
+        ("v3.1 (current replay)", base / "rob2_current"),
     ]
 
 
@@ -167,3 +166,26 @@ def test_main_topic_selection(sandbox, monkeypatch, capsys, argv, expected):
         f"{slug} certainty provisional (assessed domains only: high ) {{}} served: None"
         for slug in expected
     ]
+
+
+def test_production_never_reads_frozen_objects(tmp_path, monkeypatch):
+    from pathlib import Path
+    import builtins
+
+    root = Path(builder.ROOT)
+    tiers = [(label, tmp_path / Path(directory).relative_to(root))
+             for label, directory in builder.TIERS]
+    monkeypatch.setattr(builder, "TIERS", tiers)
+    frozen = tmp_path / "outputs/robgrade/rob2"
+    for directory in (frozen, frozen / "dev"):
+        write_json(directory / "synthetic.json", {
+            "outcome": "primary", "trials": {"1": {"overall": {"judgement": "LOW"}}},
+        })
+    original = builtins.open
+
+    def guarded_open(path, *args, **kwargs):
+        assert not Path(path).is_relative_to(frozen), "GRADE read a frozen object"
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", guarded_open)
+    assert builder.rob_for("synthetic", "primary", ["PMID 1"]) == ({}, {})
