@@ -1,0 +1,1380 @@
+# L10 lane report
+
+Completed offline; no image contents read, no network, no commits or pushes. Acquisition inputs unchanged (SHA-256 manifest in IMAGE_CENSUS.json).
+
+Validation: `python -m pytest -q -p no:cacheprovider tests/test_g1_image_census.py` ? 36 passed. Real census completed; rerun byte-identical. Source-level PMID, trial-label and file-record checks passed; every topic and overall funnel is monotone. Logs: `.codex_logs/g1_image_census_tests.log`, `g1_image_census_run.log`, `g1_image_census_validation.log`.
+
+## Static versus dynamic disclosure
+
+| Component | Static rule or dynamic evidence | Validation |
+|---|---|---|
+| Naming rules | Static, ordered case-insensitive patterns below | Synthetic naming plants |
+| Licence gate | Static exact allowlist: cc-by / cc0 / cc by / public domain | Open and restricted branches planted |
+| Figure match | Static PMID + normalized label; article numbers separate from supplements; container pages exact | Matching, wrong PMID, wrong page and supplement collision tests |
+| Counts, identifiers, trials, licences, unknown names | Dynamic from supplied phase4 JSON and reader Markdown | Input hashes, source-record checks, deterministic rerun |
+
+Scope: overall meta counts are topic/meta pairs, not deduplicated global PMIDs. Overall trials are topic/label pairs. The supplied attempts contain 106 distinct topic/trial labels; this is not evidence that the full upstream missing-trial universe has only 106 trials. Names remain exactly as recorded, including truncated or corrupted labels; no clinical identity repair is inferred. The 11 affected labels are candidate gaps linked to metas, not confirmed recoverable image rows.
+
+Conservative boundary: unrecognized panel names, concatenated publisher identifiers, unmarked article tables, and MOESM-only names remain UNKNOWN. Digit-normalized unknown patterns below group names for inventory only; each original name is retained. A classified supplement image is not proof of per-trial data. No new model read is authorized by this report.
+
+# Image census
+
+Overall counts use topic-meta pairs and topic-trial labels; no cross-topic identity inference. Missing trials are distinct labels in supplied attempts, not a complete tracker universe.
+
+Filename classifications do not establish per-trial contents. No image/model/OCR reads or network calls.
+ALREADY_READ matches PMID and normalized figure label across topics, including refused readings; article and supplement labels stay separate.
+Image records count formats separately. Funnel cells are n of previous-stage N; final meta stage requires at least one unread supplement image.
+
+| Pattern | Class |
+| Tab/Table + number with ESM/supplement marker; Table S; eTable; marked -Tn- | SUPPLEMENT_TABLE_IMAGE |
+| Fig/Figure + number with ESM/supplement marker; Figure S; eFigure | SUPPLEMENT_FIGURE_IMAGE |
+| mmc*; Data_Sheet* (including page suffixes) | SUPPLEMENT_FIGURE_IMAGE |
+| *_Fign_HTML; pone.*.g00n; CD*-fig-*; journal-*-f00n; *-Fn; fig1; f0015 | ARTICLE_FIGURE |
+| Everything else (including unmarked tables) | UNKNOWN_IMAGE |
+
+| Topic | Images metas / all metas | Supplement / image metas | Open / supplement metas | Missing-trial / open metas | Unread / relevant metas | Unread images / eligible supplement images | Affected / attempts trials |
+|---|---|---|---|---|---|---|---|
+| OVERALL | 276 of 388 | 7 of 276 | 5 of 7 | 5 of 5 | 5 of 5 | 130 of 130 | 11 of 106 |
+| balanced-crystalloids-vs-saline-mortality | 15 of 22 | 0 of 15 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 5 |
+| colchicine-postop-af | 3 of 9 | 0 of 3 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 1 |
+| colchicine-secondary-cv-prevention | 20 of 27 | 0 of 20 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 6 |
+| corticosteroids-cap-mortality | 15 of 22 | 1 of 15 | 1 of 1 | 1 of 1 | 1 of 1 | 46 of 46 | 3 of 7 |
+| corticosteroids-covid19-mortality | 18 of 24 | 1 of 18 | 1 of 1 | 1 of 1 | 1 of 1 | 46 of 46 | 2 of 4 |
+| iv-iron-hfref-hosp | 10 of 12 | 1 of 10 | 1 of 1 | 1 of 1 | 1 of 1 | 20 of 20 | 2 of 2 |
+| melatonin-primary-insomnia-sol | 1 of 1 | 0 of 1 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 |
+| metformin-pcos-ovulation | 30 of 45 | 1 of 30 | 1 of 1 | 1 of 1 | 1 of 1 | 14 of 14 | 1 of 19 |
+| omega3-cardiovascular-events | 49 of 65 | 2 of 49 | 1 of 2 | 1 of 1 | 1 of 1 | 4 of 4 | 3 of 12 |
+| pcsk9-mace | 29 of 35 | 1 of 29 | 0 of 1 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 8 |
+| probiotics-aad-prevention | 19 of 36 | 0 of 19 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 16 |
+| statins-primary-prevention-elderly | 25 of 30 | 0 of 25 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 4 |
+| ticagrelor-vs-clopidogrel-acs | 12 of 22 | 0 of 12 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 7 |
+| tocilizumab-covid19-mortality | 30 of 38 | 0 of 30 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 0 | 0 of 15 |
+
+## Image classes and read coverage
+
+- OVERALL: ARTICLE_FIGURE: 1972 of 3008; SUPPLEMENT_TABLE_IMAGE: 10 of 3008; SUPPLEMENT_FIGURE_IMAGE: 130 of 3008; UNKNOWN_IMAGE: 896 of 3008; ALREADY_READ: 132 of 3008
+- balanced-crystalloids-vs-saline-mortality: ARTICLE_FIGURE: 134 of 161; SUPPLEMENT_TABLE_IMAGE: 0 of 161; SUPPLEMENT_FIGURE_IMAGE: 0 of 161; UNKNOWN_IMAGE: 27 of 161; ALREADY_READ: 12 of 161
+- colchicine-postop-af: ARTICLE_FIGURE: 16 of 28; SUPPLEMENT_TABLE_IMAGE: 0 of 28; SUPPLEMENT_FIGURE_IMAGE: 0 of 28; UNKNOWN_IMAGE: 12 of 28; ALREADY_READ: 2 of 28
+- colchicine-secondary-cv-prevention: ARTICLE_FIGURE: 170 of 225; SUPPLEMENT_TABLE_IMAGE: 0 of 225; SUPPLEMENT_FIGURE_IMAGE: 0 of 225; UNKNOWN_IMAGE: 55 of 225; ALREADY_READ: 20 of 225
+- corticosteroids-cap-mortality: ARTICLE_FIGURE: 136 of 220; SUPPLEMENT_TABLE_IMAGE: 0 of 220; SUPPLEMENT_FIGURE_IMAGE: 46 of 220; UNKNOWN_IMAGE: 38 of 220; ALREADY_READ: 10 of 220
+- corticosteroids-covid19-mortality: ARTICLE_FIGURE: 90 of 232; SUPPLEMENT_TABLE_IMAGE: 0 of 232; SUPPLEMENT_FIGURE_IMAGE: 46 of 232; UNKNOWN_IMAGE: 96 of 232; ALREADY_READ: 14 of 232
+- iv-iron-hfref-hosp: ARTICLE_FIGURE: 71 of 123; SUPPLEMENT_TABLE_IMAGE: 10 of 123; SUPPLEMENT_FIGURE_IMAGE: 10 of 123; UNKNOWN_IMAGE: 32 of 123; ALREADY_READ: 4 of 123
+- melatonin-primary-insomnia-sol: ARTICLE_FIGURE: 6 of 8; SUPPLEMENT_TABLE_IMAGE: 0 of 8; SUPPLEMENT_FIGURE_IMAGE: 0 of 8; UNKNOWN_IMAGE: 2 of 8; ALREADY_READ: 2 of 8
+- metformin-pcos-ovulation: ARTICLE_FIGURE: 272 of 357; SUPPLEMENT_TABLE_IMAGE: 0 of 357; SUPPLEMENT_FIGURE_IMAGE: 14 of 357; UNKNOWN_IMAGE: 71 of 357; ALREADY_READ: 8 of 357
+- omega3-cardiovascular-events: ARTICLE_FIGURE: 311 of 473; SUPPLEMENT_TABLE_IMAGE: 0 of 473; SUPPLEMENT_FIGURE_IMAGE: 9 of 473; UNKNOWN_IMAGE: 153 of 473; ALREADY_READ: 10 of 473
+- pcsk9-mace: ARTICLE_FIGURE: 184 of 317; SUPPLEMENT_TABLE_IMAGE: 0 of 317; SUPPLEMENT_FIGURE_IMAGE: 5 of 317; UNKNOWN_IMAGE: 128 of 317; ALREADY_READ: 4 of 317
+- probiotics-aad-prevention: ARTICLE_FIGURE: 124 of 175; SUPPLEMENT_TABLE_IMAGE: 0 of 175; SUPPLEMENT_FIGURE_IMAGE: 0 of 175; UNKNOWN_IMAGE: 51 of 175; ALREADY_READ: 8 of 175
+- statins-primary-prevention-elderly: ARTICLE_FIGURE: 192 of 275; SUPPLEMENT_TABLE_IMAGE: 0 of 275; SUPPLEMENT_FIGURE_IMAGE: 0 of 275; UNKNOWN_IMAGE: 83 of 275; ALREADY_READ: 4 of 275
+- ticagrelor-vs-clopidogrel-acs: ARTICLE_FIGURE: 108 of 132; SUPPLEMENT_TABLE_IMAGE: 0 of 132; SUPPLEMENT_FIGURE_IMAGE: 0 of 132; UNKNOWN_IMAGE: 24 of 132; ALREADY_READ: 10 of 132
+- tocilizumab-covid19-mortality: ARTICLE_FIGURE: 158 of 282; SUPPLEMENT_TABLE_IMAGE: 0 of 282; SUPPLEMENT_FIGURE_IMAGE: 0 of 282; UNKNOWN_IMAGE: 124 of 282; ALREADY_READ: 24 of 282
+
+## Missing trials by image-bearing meta
+
+- balanced-crystalloids-vs-saline-mortality / PMID 25357011 (DETERMINISTIC_ONLY): No trial in attempts
+- balanced-crystalloids-vs-saline-mortality / PMID 30758680 (OPEN_FOR_MODEL): Semler (SALT trial); Verma [16]; Young [10]; Young [17]
+- balanced-crystalloids-vs-saline-mortality / PMID 31752973 (OPEN_FOR_MODEL): Semler (SALT trial); Semler (SMART trial); Verma [16]; Young [10]; Young [17]
+- balanced-crystalloids-vs-saline-mortality / PMID 33317590 (OPEN_FOR_MODEL): Semler (SALT trial); Semler (SMART trial)
+- balanced-crystalloids-vs-saline-mortality / PMID 34036269 (DETERMINISTIC_ONLY): Semler (SMART trial)
+- balanced-crystalloids-vs-saline-mortality / PMID 34572217 (OPEN_FOR_MODEL): Young [17]
+- balanced-crystalloids-vs-saline-mortality / PMID 34991134 (DETERMINISTIC_ONLY): Semler (SMART trial)
+- balanced-crystalloids-vs-saline-mortality / PMID 35018349 (DETERMINISTIC_ONLY): Semler (SMART trial); Young [10]
+- balanced-crystalloids-vs-saline-mortality / PMID 35407578 (OPEN_FOR_MODEL): Semler (SALT trial); Semler (SMART trial); Young [10]
+- balanced-crystalloids-vs-saline-mortality / PMID 35436929 (OPEN_FOR_MODEL): No trial in attempts
+- balanced-crystalloids-vs-saline-mortality / PMID 35488485 (DETERMINISTIC_ONLY): Young [10]
+- balanced-crystalloids-vs-saline-mortality / PMID 36247436 (OPEN_FOR_MODEL): Semler (SALT trial)
+- balanced-crystalloids-vs-saline-mortality / PMID 36830858 (OPEN_FOR_MODEL): Semler (SMART trial)
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820 (OPEN_FOR_MODEL): Young [10]
+- balanced-crystalloids-vs-saline-mortality / PMID 39891147 (DETERMINISTIC_ONLY): Young [17]
+- colchicine-postop-af / PMID 37341446 (DETERMINISTIC_ONLY): Imazio [19]
+- colchicine-postop-af / PMID 39076666 (OPEN_FOR_MODEL): Imazio [19]
+- colchicine-postop-af / PMID 42318173 (OPEN_FOR_MODEL): Imazio [19]
+- colchicine-secondary-cv-prevention / PMID 25279761 (OPEN_FOR_MODEL): Deftereos et al. (25)
+- colchicine-secondary-cv-prevention / PMID 32054504 (OPEN_FOR_MODEL): Deftereos et al. (25)
+- colchicine-secondary-cv-prevention / PMID 34169101 (OPEN_FOR_MODEL): No trial in attempts
+- colchicine-secondary-cv-prevention / PMID 34369166 (DETERMINISTIC_ONLY): Deftereos et al. (19); Deftereos et al. (25); Hennessy et al. (23); O’Keefe et al. (24)
+- colchicine-secondary-cv-prevention / PMID 34414335 (DETERMINISTIC_ONLY): Deftereos et al. (25); Hennessy et al. (23); O’Keefe et al. (24)
+- colchicine-secondary-cv-prevention / PMID 34777579 (DETERMINISTIC_ONLY): Deftereos et al. (25); O’Keefe et al. (24)
+- colchicine-secondary-cv-prevention / PMID 34957237 (OPEN_FOR_MODEL): Deftereos et al. (25); Hennessy et al. (23); O’Keefe et al. (24)
+- colchicine-secondary-cv-prevention / PMID 36609745 (DETERMINISTIC_ONLY): Deftereos et al. (19); Tong et al. (22)
+- colchicine-secondary-cv-prevention / PMID 37026756 (DETERMINISTIC_ONLY): Deftereos et al. (19); Mewton et al. (26); O’Keefe et al. (24)
+- colchicine-secondary-cv-prevention / PMID 37600022 (OPEN_FOR_MODEL): Deftereos et al. (25); Hennessy et al. (23); Mewton et al. (26); O’Keefe et al. (24); Tong et al. (22)
+- colchicine-secondary-cv-prevention / PMID 37608812 (OPEN_FOR_MODEL): Deftereos et al. (19); Hennessy et al. (23); Mewton et al. (26); Tong et al. (22)
+- colchicine-secondary-cv-prevention / PMID 38505729 (OPEN_FOR_MODEL): Deftereos et al. (25); Hennessy et al. (23); Tong et al. (22)
+- colchicine-secondary-cv-prevention / PMID 39431112 (DETERMINISTIC_ONLY): Deftereos et al. (25); Tong et al. (22)
+- colchicine-secondary-cv-prevention / PMID 39756386 (OPEN_FOR_MODEL): Deftereos et al. (19); Hennessy et al. (23); Mewton et al. (26); Tong et al. (22)
+- colchicine-secondary-cv-prevention / PMID 40314333 (OPEN_FOR_MODEL): Tong et al. (22)
+- colchicine-secondary-cv-prevention / PMID 40441225 (DETERMINISTIC_ONLY): Mewton et al. (26)
+- colchicine-secondary-cv-prevention / PMID 40583093 (DETERMINISTIC_ONLY): Tong et al. (22)
+- colchicine-secondary-cv-prevention / PMID 40889093 (DETERMINISTIC_ONLY): Hennessy et al. (23); Mewton et al. (26); Tong et al. (22)
+- colchicine-secondary-cv-prevention / PMID 41214504 (OPEN_FOR_MODEL): Deftereos et al. (19); Mewton et al. (26)
+- colchicine-secondary-cv-prevention / PMID 41568554 (OPEN_FOR_MODEL): Hennessy et al. (23); Mewton et al. (26); Tong et al. (22)
+- corticosteroids-cap-mortality / PMID 23565216 (DETERMINISTIC_ONLY): Efficacy of corticosteroids in community-acquired pneumonia:
+- corticosteroids-cap-mortality / PMID 26100123 (DETERMINISTIC_ONLY): Efficacy of corticosteroids in community-acquired pneumonia:; Hydrocortisone and tumor necrosis factor in severe community
+- corticosteroids-cap-mortality / PMID 26641253 (OPEN_FOR_MODEL): Adjunct prednisone therapy for patients with community-acqui; Ampicillin dosage and use of prednisolone in treatment of pn; Dexamethasone and length of hospital stay in patients with c; Efficacy of corticosteroids in community-acquired pneumonia:; Efficacy of corticosteroids in the treatment of community-ac; Hydrocortisone and tumor necrosis factor in severe community
+- corticosteroids-cap-mortality / PMID 27846240 (OPEN_FOR_MODEL): Adjunct prednisone therapy for patients with community-acqui; Ampicillin dosage and use of prednisolone in treatment of pn; Dexamethasone and length of hospital stay in patients with c; Efficacy of corticosteroids in community-acquired pneumonia:; Efficacy of corticosteroids in the treatment of community-ac; Hydrocortisone and tumor necrosis factor in severe community
+- corticosteroids-cap-mortality / PMID 28351429 (OPEN_FOR_MODEL): Dexamethasone and length of hospital stay in patients with c; Efficacy of corticosteroids in community-acquired pneumonia:
+- corticosteroids-cap-mortality / PMID 30075789 (OPEN_FOR_MODEL): Hydrocortisone infusion for severe community-acquired pneumo
+- corticosteroids-cap-mortality / PMID 30917856 (OPEN_FOR_MODEL): Hydrocortisone infusion for severe community-acquired pneumo
+- corticosteroids-cap-mortality / PMID 31852460 (OPEN_FOR_MODEL): Adjunct prednisone therapy for patients with community-acqui; Dexamethasone and length of hospital stay in patients with c
+- corticosteroids-cap-mortality / PMID 33722302 (OPEN_FOR_MODEL): Hydrocortisone infusion for severe community-acquired pneumo
+- corticosteroids-cap-mortality / PMID 34484209 (OPEN_FOR_MODEL): Adjunct prednisone therapy for patients with community-acqui; Dexamethasone and length of hospital stay in patients with c; Hydrocortisone infusion for severe community-acquired pneumo
+- corticosteroids-cap-mortality / PMID 36333729 (OPEN_FOR_MODEL): Hydrocortisone infusion for severe community-acquired pneumo
+- corticosteroids-cap-mortality / PMID 36549729 (DETERMINISTIC_ONLY): Adjunct prednisone therapy for patients with community-acqui; Dexamethasone and length of hospital stay in patients with c
+- corticosteroids-cap-mortality / PMID 37076606 (DETERMINISTIC_ONLY): Adjunct prednisone therapy for patients with community-acqui; Ampicillin dosage and use of prednisolone in treatment of pn; Dexamethasone and length of hospital stay in patients with c; Efficacy of corticosteroids in community-acquired pneumonia:; Efficacy of corticosteroids in the treatment of community-ac; Hydrocortisone and tumor necrosis factor in severe community; Hydrocortisone infusion for severe community-acquired pneumo
+- corticosteroids-cap-mortality / PMID 37422686 (OPEN_FOR_MODEL): Hydrocortisone and tumor necrosis factor in severe community; Hydrocortisone infusion for severe community-acquired pneumo
+- corticosteroids-cap-mortality / PMID 38567382 (DETERMINISTIC_ONLY): Adjunct prednisone therapy for patients with community-acqui; Efficacy of corticosteroids in the treatment of community-ac; Hydrocortisone infusion for severe community-acquired pneumo
+- corticosteroids-covid19-mortality / PMID 33298370 (DETERMINISTIC_ONLY): Effect of Dexamethasone on Days Alive and Ventilator-Free in
+- corticosteroids-covid19-mortality / PMID 33612824 (OPEN_FOR_MODEL): Effect of Dexamethasone on Days Alive and Ventilator-Free in; Effect of Hydrocortisone on Mortality and Organ Support in P; Methylprednisolone as Adjunctive Therapy for Patients Hospit
+- corticosteroids-covid19-mortality / PMID 33915284 (DETERMINISTIC_ONLY): Effect of Hydrocortisone on Mortality and Organ Support in P
+- corticosteroids-covid19-mortality / PMID 34011029 (DETERMINISTIC_ONLY): Effect of Dexamethasone on Days Alive and Ventilator-Free in; Effect of Hydrocortisone on 21-Day Mortality or Respiratory ; Effect of Hydrocortisone on Mortality and Organ Support in P; Methylprednisolone as Adjunctive Therapy for Patients Hospit
+- corticosteroids-covid19-mortality / PMID 34050796 (DETERMINISTIC_ONLY): Effect of Hydrocortisone on Mortality and Organ Support in P
+- corticosteroids-covid19-mortality / PMID 34259663 (DETERMINISTIC_ONLY): Effect of Hydrocortisone on 21-Day Mortality or Respiratory 
+- corticosteroids-covid19-mortality / PMID 34484209 (OPEN_FOR_MODEL): Effect of Dexamethasone on Days Alive and Ventilator-Free in; Effect of Hydrocortisone on 21-Day Mortality or Respiratory 
+- corticosteroids-covid19-mortality / PMID 34492533 (DETERMINISTIC_ONLY): Effect of Hydrocortisone on 21-Day Mortality or Respiratory ; Effect of Hydrocortisone on Mortality and Organ Support in P; Methylprednisolone as Adjunctive Therapy for Patients Hospit
+- corticosteroids-covid19-mortality / PMID 34649502 (OPEN_FOR_MODEL): Methylprednisolone as Adjunctive Therapy for Patients Hospit
+- corticosteroids-covid19-mortality / PMID 34757578 (DETERMINISTIC_ONLY): Effect of Hydrocortisone on 21-Day Mortality or Respiratory 
+- corticosteroids-covid19-mortality / PMID 34933068 (DETERMINISTIC_ONLY): Effect of Hydrocortisone on 21-Day Mortality or Respiratory ; Methylprednisolone as Adjunctive Therapy for Patients Hospit
+- corticosteroids-covid19-mortality / PMID 35343397 (OPEN_FOR_MODEL): Effect of Hydrocortisone on Mortality and Organ Support in P
+- corticosteroids-covid19-mortality / PMID 35346661 (DETERMINISTIC_ONLY): Methylprednisolone as Adjunctive Therapy for Patients Hospit
+- corticosteroids-covid19-mortality / PMID 35863630 (DETERMINISTIC_ONLY): Effect of Hydrocortisone on Mortality and Organ Support in P
+- corticosteroids-covid19-mortality / PMID 36333729 (OPEN_FOR_MODEL): Effect of Dexamethasone on Days Alive and Ventilator-Free in
+- corticosteroids-covid19-mortality / PMID 37076606 (DETERMINISTIC_ONLY): Effect of Hydrocortisone on 21-Day Mortality or Respiratory 
+- corticosteroids-covid19-mortality / PMID 38567382 (DETERMINISTIC_ONLY): Methylprednisolone as Adjunctive Therapy for Patients Hospit
+- corticosteroids-covid19-mortality / PMID 39181595 (OPEN_FOR_MODEL): Effect of Hydrocortisone on Mortality and Organ Support in P
+- iv-iron-hfref-hosp / PMID 21942989 (OPEN_FOR_MODEL): FAIR-HF [20]
+- iv-iron-hfref-hosp / PMID 33586856 (DETERMINISTIC_ONLY): FAIR-HF [20]
+- iv-iron-hfref-hosp / PMID 33755777 (OPEN_FOR_MODEL): EFFECT-HF [21]; FAIR-HF [20]
+- iv-iron-hfref-hosp / PMID 34767026 (OPEN_FOR_MODEL): EFFECT-HF [21]; FAIR-HF [20]
+- iv-iron-hfref-hosp / PMID 36178088 (DETERMINISTIC_ONLY): EFFECT-HF [21]; FAIR-HF [20]
+- iv-iron-hfref-hosp / PMID 36321348 (OPEN_FOR_MODEL): EFFECT-HF [21]; FAIR-HF [20]
+- iv-iron-hfref-hosp / PMID 36823953 (OPEN_FOR_MODEL): EFFECT-HF [21]
+- iv-iron-hfref-hosp / PMID 37632415 (DETERMINISTIC_ONLY): EFFECT-HF [21]; FAIR-HF [20]
+- iv-iron-hfref-hosp / PMID 38965691 (OPEN_FOR_MODEL): EFFECT-HF [21]; FAIR-HF [20]
+- iv-iron-hfref-hosp / PMID 40159279 (OPEN_FOR_MODEL): EFFECT-HF [21]; FAIR-HF [20]
+- melatonin-primary-insomnia-sol / PMID 23691095 (OPEN_FOR_MODEL): No trial in attempts
+- metformin-pcos-ovulation / PMID 26473366 (OPEN_FOR_MODEL): No trial in attempts
+- metformin-pcos-ovulation / PMID 26541144 (OPEN_FOR_MODEL): Hoeger 2004
+- metformin-pcos-ovulation / PMID 28143834 (DETERMINISTIC_ONLY): Fleming 2002; Legro 2007; Lord 2006; PCOSMIC 2010; Palomba 2005a; Tang 2006
+- metformin-pcos-ovulation / PMID 28404960 (OPEN_FOR_MODEL): Morin‐Papunen 2012
+- metformin-pcos-ovulation / PMID 28630466 (OPEN_FOR_MODEL): Hamed 2010; Malkawi 2002; Palomba 2004
+- metformin-pcos-ovulation / PMID 29178904 (OPEN_FOR_MODEL): Legro 2007
+- metformin-pcos-ovulation / PMID 30412108 (DETERMINISTIC_ONLY): Legro 2007
+- metformin-pcos-ovulation / PMID 30755271 (OPEN_FOR_MODEL): Hoeger 2004; Tang 2006
+- metformin-pcos-ovulation / PMID 31915452 (OPEN_FOR_MODEL): Legro 2007
+- metformin-pcos-ovulation / PMID 32053629 (OPEN_FOR_MODEL): Hoeger 2004
+- metformin-pcos-ovulation / PMID 32385376 (OPEN_FOR_MODEL): Hoeger 2004
+- metformin-pcos-ovulation / PMID 32744629 (OPEN_FOR_MODEL): Baillargeon 2004; Legro 2007; Morin‐Papunen 2012; Nestler 1998
+- metformin-pcos-ovulation / PMID 32825545 (OPEN_FOR_MODEL): Nestler 1998
+- metformin-pcos-ovulation / PMID 33014044 (OPEN_FOR_MODEL): No trial in attempts
+- metformin-pcos-ovulation / PMID 33066039 (OPEN_FOR_MODEL): Tang 2006
+- metformin-pcos-ovulation / PMID 33343510 (OPEN_FOR_MODEL): Baillargeon 2004; Malkawi 2003; Palomba 2004; Palomba 2005a
+- metformin-pcos-ovulation / PMID 33669954 (OPEN_FOR_MODEL): Baillargeon 2004; Legro 2007
+- metformin-pcos-ovulation / PMID 34115034 (DETERMINISTIC_ONLY): Legro 2007
+- metformin-pcos-ovulation / PMID 34280195 (OPEN_FOR_MODEL): Fleming 2002; Jakubowicz 2001; Lord 2006; Morin‐Papunen 2012; Nestler 1998; Onalan 2005; Tang 2006; Yarali 2002
+- metformin-pcos-ovulation / PMID 35530948 (DETERMINISTIC_ONLY): Morin‐Papunen 2012
+- metformin-pcos-ovulation / PMID 35814214 (OPEN_FOR_MODEL): Hamed 2010; Malkawi 2003; Palomba 2004
+- metformin-pcos-ovulation / PMID 36225721 (DETERMINISTIC_ONLY): Legro 2007; Lord 2006; Morin‐Papunen 2012; Ng 2001; Yarali 2002
+- metformin-pcos-ovulation / PMID 36869381 (OPEN_FOR_MODEL): Liu 2017; PCOSMIC 2010; Palomba 2005a
+- metformin-pcos-ovulation / PMID 37381009 (OPEN_FOR_MODEL): Ng 2001
+- metformin-pcos-ovulation / PMID 38500709 (OPEN_FOR_MODEL): Baillargeon 2004; Tang 2006
+- metformin-pcos-ovulation / PMID 39319339 (DETERMINISTIC_ONLY): Baillargeon 2004
+- metformin-pcos-ovulation / PMID 39955537 (DETERMINISTIC_ONLY): Lord 2006; Nestler 1998
+- metformin-pcos-ovulation / PMID 40487780 (DETERMINISTIC_ONLY): Lord 2006
+- metformin-pcos-ovulation / PMID 41554634 (DETERMINISTIC_ONLY): Lord 2006
+- metformin-pcos-ovulation / PMID 42307450 (OPEN_FOR_MODEL): Fleming 2002
+- omega3-cardiovascular-events / PMID 20525225 (OPEN_FOR_MODEL): Brouwer 2006 [31]; GISSI-P 1999 [25]
+- omega3-cardiovascular-events / PMID 22240654 (DETERMINISTIC_ONLY): ORIGIN 2012 [40]
+- omega3-cardiovascular-events / PMID 22651380 (OPEN_FOR_MODEL): No trial in attempts
+- omega3-cardiovascular-events / PMID 23335472 (DETERMINISTIC_ONLY): ORIGIN 2012 [40]
+- omega3-cardiovascular-events / PMID 24568238 (OPEN_FOR_MODEL): No trial in attempts
+- omega3-cardiovascular-events / PMID 25238614 (OPEN_FOR_MODEL): No trial in attempts
+- omega3-cardiovascular-events / PMID 27306836 (OPEN_FOR_MODEL): ORIGIN 2012 [40]
+- omega3-cardiovascular-events / PMID 27458371 (OPEN_FOR_MODEL): Kromhout 2010 [36]
+- omega3-cardiovascular-events / PMID 29387889 (OPEN_FOR_MODEL): ORIGIN 2012 [40]; Rauch 2010 [38]
+- omega3-cardiovascular-events / PMID 29402063 (DETERMINISTIC_ONLY): ORIGIN 2012 [40]
+- omega3-cardiovascular-events / PMID 29762708 (DETERMINISTIC_ONLY): Nigam 2014 [43]
+- omega3-cardiovascular-events / PMID 30646339 (OPEN_FOR_MODEL): No trial in attempts
+- omega3-cardiovascular-events / PMID 30987625 (OPEN_FOR_MODEL): No trial in attempts
+- omega3-cardiovascular-events / PMID 31434641 (DETERMINISTIC_ONLY): Macchia 2013 [41]
+- omega3-cardiovascular-events / PMID 31567003 (DETERMINISTIC_ONLY): GISSI-HF 2008 [33]; Macchia 2013 [41]; Nigam 2014 [43]; ORIGIN 2012 [40]; Rauch 2010 [38]
+- omega3-cardiovascular-events / PMID 31671524 (OPEN_FOR_MODEL): ASCEND 2018 [47]; GISSI-HF 2008 [33]; Nigam 2014 [43]; Pahor 2019 [48]
+- omega3-cardiovascular-events / PMID 34371852 (OPEN_FOR_MODEL): Rauch 2010 [38]
+- omega3-cardiovascular-events / PMID 34505026 (OPEN_FOR_MODEL): ASCEND 2018 [47]; Alfaddagh 2017 [46]; Brouwer 2006 [31]; GISSI-HF 2008 [33]; GISSI-P 1999 [25]; Macchia 2013 [41]; Nigam 2014 [43]; Pahor 2019 [48]
+- omega3-cardiovascular-events / PMID 35010904 (OPEN_FOR_MODEL): Nigam 2014 [43]
+- omega3-cardiovascular-events / PMID 35035917 (OPEN_FOR_MODEL): Macchia 2013 [41]
+- omega3-cardiovascular-events / PMID 35187035 (OPEN_FOR_MODEL): ASCEND 2018 [47]; GISSI-HF 2008 [33]; Kromhout 2010 [36]; Macchia 2013 [41]; Nigam 2014 [43]; ORIGIN 2012 [40]; Pahor 2019 [48]; Rauch 2010 [38]
+- omega3-cardiovascular-events / PMID 35647665 (DETERMINISTIC_ONLY): GISSI-HF 2008 [33]
+- omega3-cardiovascular-events / PMID 35795375 (OPEN_FOR_MODEL): ASCEND 2018 [47]
+- omega3-cardiovascular-events / PMID 37121469 (OPEN_FOR_MODEL): GISSI-HF 2008 [33]; Macchia 2013 [41]; Nigam 2014 [43]; Pahor 2019 [48]
+- omega3-cardiovascular-events / PMID 37264945 (DETERMINISTIC_ONLY): GISSI-HF 2008 [33]; GISSI-P 1999 [25]; Macchia 2013 [41]; Nigam 2014 [43]; Pahor 2019 [48]
+- omega3-cardiovascular-events / PMID 38014685 (DETERMINISTIC_ONLY): ASCEND 2018 [47]
+- omega3-cardiovascular-events / PMID 38323514 (DETERMINISTIC_ONLY): GISSI-HF 2008 [33]; Macchia 2013 [41]; ORIGIN 2012 [40]; Pahor 2019 [48]
+- omega3-cardiovascular-events / PMID 38373008 (DETERMINISTIC_ONLY): Alfaddagh 2017 [46]
+- omega3-cardiovascular-events / PMID 38550634 (DETERMINISTIC_ONLY): ASCEND 2018 [47]
+- omega3-cardiovascular-events / PMID 38584673 (DETERMINISTIC_ONLY): Brouwer 2006 [31]
+- omega3-cardiovascular-events / PMID 38654383 (OPEN_FOR_MODEL): ASCEND 2018 [47]
+- omega3-cardiovascular-events / PMID 38742535 (DETERMINISTIC_ONLY): GISSI-HF 2008 [33]; Macchia 2013 [41]; Nigam 2014 [43]; Pahor 2019 [48]
+- omega3-cardiovascular-events / PMID 38924283 (OPEN_FOR_MODEL): Kromhout 2010 [36]
+- omega3-cardiovascular-events / PMID 39076869 (OPEN_FOR_MODEL): ASCEND 2018 [47]; Brouwer 2006 [31]; Rauch 2010 [38]
+- omega3-cardiovascular-events / PMID 39403396 (OPEN_FOR_MODEL): GISSI-HF 2008 [33]; Pahor 2019 [48]
+- omega3-cardiovascular-events / PMID 40284036 (OPEN_FOR_MODEL): ASCEND 2018 [47]
+- omega3-cardiovascular-events / PMID 40836005 (DETERMINISTIC_ONLY): Rauch 2010 [38]
+- omega3-cardiovascular-events / PMID 40974959 (OPEN_FOR_MODEL): Brouwer 2006 [31]
+- omega3-cardiovascular-events / PMID 41156531 (OPEN_FOR_MODEL): Rauch 2010 [38]
+- omega3-cardiovascular-events / PMID 41725605 (DETERMINISTIC_ONLY): Burr 1989 [23]
+- omega3-cardiovascular-events / PMID 41979387 (DETERMINISTIC_ONLY): Burr 1989 [23]
+- omega3-cardiovascular-events / PMID 42129939 (DETERMINISTIC_ONLY): Burr 1989 [23]
+- omega3-cardiovascular-events / PMID 42168782 (OPEN_FOR_MODEL): Burr 1989 [23]
+- omega3-cardiovascular-events / PMID 42188369 (OPEN_FOR_MODEL): Burr 1989 [23]
+- omega3-cardiovascular-events / PMID 42211078 (OPEN_FOR_MODEL): Burr 1989 [23]
+- omega3-cardiovascular-events / PMID 42379144 (OPEN_FOR_MODEL): Burr 1989 [23]
+- omega3-cardiovascular-events / PMID 42400223 (OPEN_FOR_MODEL): Burr 1989 [23]
+- omega3-cardiovascular-events / PMID 42430205 (OPEN_FOR_MODEL): Burr 1989 [23]
+- omega3-cardiovascular-events / PMID 42488221 (OPEN_FOR_MODEL): Burr 1989 [23]
+- pcsk9-mace / PMID 26099511 (OPEN_FOR_MODEL): No trial in attempts
+- pcsk9-mace / PMID 27478094 (DETERMINISTIC_ONLY): DESCARTES NCT01516879; ODYSSEY FH I NCT01623115; ODYSSEY FH II NCT01709500; ODYSSEY HIGH FH NCT01617655
+- pcsk9-mace / PMID 28331223 (OPEN_FOR_MODEL): No trial in attempts
+- pcsk9-mace / PMID 28971955 (DETERMINISTIC_ONLY): DESCARTES NCT01516879; ODYSSEY COMBO I NCT01644175; ODYSSEY HIGH FH NCT01617655
+- pcsk9-mace / PMID 29186504 (DETERMINISTIC_ONLY): ODYSSEY FH I NCT01623115; ODYSSEY FH II NCT01709500; ODYSSEY HIGH FH NCT01617655
+- pcsk9-mace / PMID 29223954 (DETERMINISTIC_ONLY): ODYSSEY COMBO I NCT01644175; ODYSSEY FH I NCT01623115; ODYSSEY FH II NCT01709500; ODYSSEY HIGH FH NCT01617655
+- pcsk9-mace / PMID 29310364 (DETERMINISTIC_ONLY): ODYSSEY COMBO I NCT01644175
+- pcsk9-mace / PMID 30287608 (DETERMINISTIC_ONLY): DESCARTES NCT01516879; GLAGOV NCT01813422
+- pcsk9-mace / PMID 30898075 (DETERMINISTIC_ONLY): GLAGOV NCT01813422; ODYSSEY FH I NCT01623115; ODYSSEY FH II NCT01709500
+- pcsk9-mace / PMID 31191304 (OPEN_FOR_MODEL): DESCARTES NCT01516879; ODYSSEY COMBO I NCT01644175; ODYSSEY FH I NCT01623115; ODYSSEY FH II NCT01709500; ODYSSEY HIGH FH NCT01617655
+- pcsk9-mace / PMID 33325247 (DETERMINISTIC_ONLY): GLAGOV NCT01813422
+- pcsk9-mace / PMID 33738013 (DETERMINISTIC_ONLY): DESCARTES NCT01516879
+- pcsk9-mace / PMID 34744709 (OPEN_FOR_MODEL): ODYSSEY LONG TERM NCT01507831
+- pcsk9-mace / PMID 35444537 (OPEN_FOR_MODEL): ODYSSEY COMBO I NCT01644175; ODYSSEY HIGH FH NCT01617655; ODYSSEY LONG TERM NCT01507831
+- pcsk9-mace / PMID 35529059 (OPEN_FOR_MODEL): ODYSSEY COMBO I NCT01644175; ODYSSEY LONG TERM NCT01507831
+- pcsk9-mace / PMID 35706032 (OPEN_FOR_MODEL): GLAGOV NCT01813422; ODYSSEY COMBO I NCT01644175; ODYSSEY LONG TERM NCT01507831; PACMAN - AMI NCT03067844
+- pcsk9-mace / PMID 36027598 (DETERMINISTIC_ONLY): ODYSSEY LONG TERM NCT01507831
+- pcsk9-mace / PMID 36073669 (DETERMINISTIC_ONLY): DESCARTES NCT01516879; GLAGOV NCT01813422; ODYSSEY COMBO I NCT01644175; ODYSSEY FH I NCT01623115; ODYSSEY FH II NCT01709500; ODYSSEY HIGH FH NCT01617655; ODYSSEY LONG TERM NCT01507831
+- pcsk9-mace / PMID 36254013 (DETERMINISTIC_ONLY): GLAGOV NCT01813422
+- pcsk9-mace / PMID 36704607 (OPEN_FOR_MODEL): DESCARTES NCT01516879; ODYSSEY COMBO I NCT01644175; ODYSSEY FH I NCT01623115; ODYSSEY FH II NCT01709500; ODYSSEY HIGH FH NCT01617655
+- pcsk9-mace / PMID 37967998 (DETERMINISTIC_ONLY): PACMAN - AMI NCT03067844
+- pcsk9-mace / PMID 38373008 (DETERMINISTIC_ONLY): DESCARTES NCT01516879; GLAGOV NCT01813422; PACMAN - AMI NCT03067844
+- pcsk9-mace / PMID 38550634 (DETERMINISTIC_ONLY): GLAGOV NCT01813422; PACMAN - AMI NCT03067844
+- pcsk9-mace / PMID 39877671 (DETERMINISTIC_ONLY): DESCARTES NCT01516879; ODYSSEY COMBO I NCT01644175; ODYSSEY FH I NCT01623115; ODYSSEY FH II NCT01709500; ODYSSEY HIGH FH NCT01617655; ODYSSEY LONG TERM NCT01507831
+- pcsk9-mace / PMID 39975967 (OPEN_FOR_MODEL): ODYSSEY LONG TERM NCT01507831
+- pcsk9-mace / PMID 40684156 (DETERMINISTIC_ONLY): PACMAN - AMI NCT03067844
+- pcsk9-mace / PMID 40841123 (DETERMINISTIC_ONLY): ODYSSEY LONG TERM NCT01507831
+- pcsk9-mace / PMID 41069345 (DETERMINISTIC_ONLY): PACMAN - AMI NCT03067844
+- pcsk9-mace / PMID 41420785 (DETERMINISTIC_ONLY): PACMAN - AMI NCT03067844
+- probiotics-aad-prevention / PMID 22529959 (OPEN_FOR_MODEL): Cindoruk et al47
+- probiotics-aad-prevention / PMID 23981066 (OPEN_FOR_MODEL): Cindoruk et al47; Gao et al28; Plummer et al62; de Vrese et al33
+- probiotics-aad-prevention / PMID 24348885 (DETERMINISTIC_ONLY): Gao et al28; Gotz et al51; Lewis et al57; Plummer et al62; Surawicz et al70
+- probiotics-aad-prevention / PMID 25365320 (OPEN_FOR_MODEL): No trial in attempts
+- probiotics-aad-prevention / PMID 26596269 (OPEN_FOR_MODEL): Wong et al73
+- probiotics-aad-prevention / PMID 26997149 (OPEN_FOR_MODEL): Cindoruk et al47; Imase et al29
+- probiotics-aad-prevention / PMID 29023420 (OPEN_FOR_MODEL): Cindoruk et al47; Duman et al48; Imase et al29; de Vrese et al33
+- probiotics-aad-prevention / PMID 29460487 (DETERMINISTIC_ONLY): Cindoruk et al47; Ehrhardt et al49; Evans et al50; Gao et al28; Plummer et al62; de Vrese et al33
+- probiotics-aad-prevention / PMID 31231977 (DETERMINISTIC_ONLY): Wong et al73
+- probiotics-aad-prevention / PMID 32447398 (DETERMINISTIC_ONLY): No trial in attempts
+- probiotics-aad-prevention / PMID 33907128 (DETERMINISTIC_ONLY): Wu et al31
+- probiotics-aad-prevention / PMID 34395494 (OPEN_FOR_MODEL): Plummer et al62
+- probiotics-aad-prevention / PMID 35794520 (OPEN_FOR_MODEL): Lewis et al57; Velasco et al27; Wright et al74
+- probiotics-aad-prevention / PMID 37256113 (OPEN_FOR_MODEL): No trial in attempts
+- probiotics-aad-prevention / PMID 37498100 (OPEN_FOR_MODEL): Wong et al73
+- probiotics-aad-prevention / PMID 39290657 (OPEN_FOR_MODEL): Beniwal et al43
+- probiotics-aad-prevention / PMID 39989875 (OPEN_FOR_MODEL): Ehrhardt et al49; Lewis et al57; Plummer et al62; Surawicz et al70; Wong et al73
+- probiotics-aad-prevention / PMID 40692683 (OPEN_FOR_MODEL): Imase et al29
+- probiotics-aad-prevention / PMID 41822092 (OPEN_FOR_MODEL): Gotz et al51
+- statins-primary-prevention-elderly / PMID 23537334 (OPEN_FOR_MODEL): No trial in attempts
+- statins-primary-prevention-elderly / PMID 25122464 (OPEN_FOR_MODEL): No trial in attempts
+- statins-primary-prevention-elderly / PMID 25372483 (OPEN_FOR_MODEL): No trial in attempts
+- statins-primary-prevention-elderly / PMID 27684837 (DETERMINISTIC_ONLY): No trial in attempts
+- statins-primary-prevention-elderly / PMID 28071756 (OPEN_FOR_MODEL): No trial in attempts
+- statins-primary-prevention-elderly / PMID 29579115 (OPEN_FOR_MODEL): ALLHAT-LLT older adults (Han 2017)
+- statins-primary-prevention-elderly / PMID 29692730 (OPEN_FOR_MODEL): HPS diabetes (Collins 2003)
+- statins-primary-prevention-elderly / PMID 30898075 (DETERMINISTIC_ONLY): HPS diabetes (Collins 2003)
+- statins-primary-prevention-elderly / PMID 31719617 (OPEN_FOR_MODEL): CARDS aged 65-75 (Neil 2006); HPS diabetes (Collins 2003)
+- statins-primary-prevention-elderly / PMID 33294229 (OPEN_FOR_MODEL): ALLHAT-LLT older adults (Han 2017)
+- statins-primary-prevention-elderly / PMID 34154589 (OPEN_FOR_MODEL): ALLHAT-LLT older adults (Han 2017); ASCOT-LLA older (Collier 2011)
+- statins-primary-prevention-elderly / PMID 34261627 (DETERMINISTIC_ONLY): CARDS aged 65-75 (Neil 2006)
+- statins-primary-prevention-elderly / PMID 35331984 (DETERMINISTIC_ONLY): HPS diabetes (Collins 2003)
+- statins-primary-prevention-elderly / PMID 35578337 (OPEN_FOR_MODEL): CARDS aged 65-75 (Neil 2006)
+- statins-primary-prevention-elderly / PMID 36049498 (OPEN_FOR_MODEL): CARDS aged 65-75 (Neil 2006)
+- statins-primary-prevention-elderly / PMID 37950285 (OPEN_FOR_MODEL): CARDS aged 65-75 (Neil 2006)
+- statins-primary-prevention-elderly / PMID 38323514 (DETERMINISTIC_ONLY): CARDS aged 65-75 (Neil 2006)
+- statins-primary-prevention-elderly / PMID 38329982 (OPEN_FOR_MODEL): ALLHAT-LLT older adults (Han 2017)
+- statins-primary-prevention-elderly / PMID 38373008 (DETERMINISTIC_ONLY): CARDS aged 65-75 (Neil 2006)
+- statins-primary-prevention-elderly / PMID 38554713 (OPEN_FOR_MODEL): CARDS aged 65-75 (Neil 2006)
+- statins-primary-prevention-elderly / PMID 39076238 (OPEN_FOR_MODEL): ALLHAT-LLT older adults (Han 2017)
+- statins-primary-prevention-elderly / PMID 39982885 (OPEN_FOR_MODEL): ALLHAT-LLT older adults (Han 2017)
+- statins-primary-prevention-elderly / PMID 41655587 (OPEN_FOR_MODEL): CARDS aged 65-75 (Neil 2006)
+- statins-primary-prevention-elderly / PMID 41864911 (DETERMINISTIC_ONLY): ALLHAT-LLT older adults (Han 2017)
+- statins-primary-prevention-elderly / PMID 42404863 (OPEN_FOR_MODEL): ALLHAT-LLT older adults (Han 2017)
+- ticagrelor-vs-clopidogrel-acs / PMID 24614630 (OPEN_FOR_MODEL): 15 [34]; 18 [37]; 4 [1]; 8 [27]
+- ticagrelor-vs-clopidogrel-acs / PMID 26467661 (OPEN_FOR_MODEL): No trial in attempts
+- ticagrelor-vs-clopidogrel-acs / PMID 28619104 (OPEN_FOR_MODEL): No trial in attempts
+- ticagrelor-vs-clopidogrel-acs / PMID 32063118 (DETERMINISTIC_ONLY): 8 [27]
+- ticagrelor-vs-clopidogrel-acs / PMID 32183711 (OPEN_FOR_MODEL): 6 [25]; 8 [27]
+- ticagrelor-vs-clopidogrel-acs / PMID 32462125 (DETERMINISTIC_ONLY): 18 [37]; 8 [27]
+- ticagrelor-vs-clopidogrel-acs / PMID 33033323 (OPEN_FOR_MODEL): 8 [27]
+- ticagrelor-vs-clopidogrel-acs / PMID 35155618 (OPEN_FOR_MODEL): No trial in attempts
+- ticagrelor-vs-clopidogrel-acs / PMID 35757353 (OPEN_FOR_MODEL): 12 [31]; 15 [34]; 17 [36]; 18 [37]; 4 [1]
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179 (OPEN_FOR_MODEL): 15 [34]; 6 [25]
+- ticagrelor-vs-clopidogrel-acs / PMID 39768971 (OPEN_FOR_MODEL): 15 [34]
+- ticagrelor-vs-clopidogrel-acs / PMID 42524293 (OPEN_FOR_MODEL): 4 [1]
+- tocilizumab-covid19-mortality / PMID 33123544 (OPEN_FOR_MODEL): COV-AID
+- tocilizumab-covid19-mortality / PMID 33161150 (DETERMINISTIC_ONLY): BACC-Bay; CORIMUNO-TOCI-1; CORIMUNO-TOCI-ICU; EMPACTA
+- tocilizumab-covid19-mortality / PMID 33194450 (OPEN_FOR_MODEL): ARCHITECTS; BACC-Bay; REMDACTA
+- tocilizumab-covid19-mortality / PMID 33333777 (OPEN_FOR_MODEL): TOCOVID
+- tocilizumab-covid19-mortality / PMID 33422642 (DETERMINISTIC_ONLY): REMDACTA
+- tocilizumab-covid19-mortality / PMID 33549577 (DETERMINISTIC_ONLY): REMDACTA
+- tocilizumab-covid19-mortality / PMID 33745918 (DETERMINISTIC_ONLY): BACC-Bay; CORIMUNO-TOCI-1; EMPACTA; REMAP-CAP
+- tocilizumab-covid19-mortality / PMID 33815838 (OPEN_FOR_MODEL): TOCOVID
+- tocilizumab-covid19-mortality / PMID 33915284 (DETERMINISTIC_ONLY): CORIMUNO-TOCI-1; CORIMUNO-TOCI-ICU; EMPACTA; REMAP-CAP
+- tocilizumab-covid19-mortality / PMID 34001244 (OPEN_FOR_MODEL): BACC-Bay; CORIMUNO-TOCI-1; CORIMUNO-TOCI-ICU; EMPACTA
+- tocilizumab-covid19-mortality / PMID 34011029 (DETERMINISTIC_ONLY): REMAP-CAP
+- tocilizumab-covid19-mortality / PMID 34019122 (DETERMINISTIC_ONLY): BACC-Bay; CORIMUNO-TOCI-1; CORIMUNO-TOCI-ICU; COVINTOC; EMPACTA
+- tocilizumab-covid19-mortality / PMID 34046036 (OPEN_FOR_MODEL): CORIMUNO-TOCI-1; CORIMUNO-TOCI-ICU
+- tocilizumab-covid19-mortality / PMID 34050796 (DETERMINISTIC_ONLY): COVINTOC; EMPACTA
+- tocilizumab-covid19-mortality / PMID 34492533 (DETERMINISTIC_ONLY): REMAP-CAP
+- tocilizumab-covid19-mortality / PMID 34582497 (OPEN_FOR_MODEL): ARCHITECTS
+- tocilizumab-covid19-mortality / PMID 34704175 (OPEN_FOR_MODEL): No trial in attempts
+- tocilizumab-covid19-mortality / PMID 34757578 (DETERMINISTIC_ONLY): COVINTOC
+- tocilizumab-covid19-mortality / PMID 34768455 (OPEN_FOR_MODEL): COVINTOC; REMDACTA
+- tocilizumab-covid19-mortality / PMID 35197981 (OPEN_FOR_MODEL): REMAP-CAP
+- tocilizumab-covid19-mortality / PMID 35226077 (OPEN_FOR_MODEL): ARCHITECTS; BACC-Bay; CORIMUNO-TOCI-1; CORIMUNO-TOCI-ICU; COV-AID; COVIDOSE2-SS-A; EMPACTA; HMO-020-0224; PreToVid; REMAP-CAP; REMDACTA
+- tocilizumab-covid19-mortality / PMID 35343397 (OPEN_FOR_MODEL): BACC-Bay; CORIMUNO-TOCI-1; CORIMUNO-TOCI-ICU; COV-AID; EMPACTA; REMAP-CAP; REMDACTA
+- tocilizumab-covid19-mortality / PMID 35657993 (OPEN_FOR_MODEL): CORIMUNO-TOCI-ICU
+- tocilizumab-covid19-mortality / PMID 35802687 (OPEN_FOR_MODEL): ARCHITECTS; COV-AID; COVIDOSE2-SS-A; COVIDSTORM; HMO-020-0224; PreToVid; REMDACTA
+- tocilizumab-covid19-mortality / PMID 35863630 (DETERMINISTIC_ONLY): ARCHITECTS; BACC-Bay; CORIMUNO-TOCI-1; CORIMUNO-TOCI-ICU; COV-AID; COVIDOSE2-SS-A; EMPACTA; HMO-020-0224; ImmCoVA; PreToVid; REMAP-CAP; REMDACTA
+- tocilizumab-covid19-mortality / PMID 36377228 (DETERMINISTIC_ONLY): HMO-020-0224; TOCOVID
+- tocilizumab-covid19-mortality / PMID 36841793 (OPEN_FOR_MODEL): COV-AID
+- tocilizumab-covid19-mortality / PMID 37309358 (DETERMINISTIC_ONLY): COVINTOC
+- tocilizumab-covid19-mortality / PMID 38470640 (OPEN_FOR_MODEL): TOCOVID
+- tocilizumab-covid19-mortality / PMID 39181595 (OPEN_FOR_MODEL): REMAP-CAP
+
+## Unknown patterns (digit runs replaced by <n>; no inferred classification)
+
+- `<n>-<n>-<n>-<n>-<n>.gif`: 22 of 896 unknown image records
+- `<n>-<n>-<n>-<n>-<n>.jpg`: 22 of 896 unknown image records
+- `<n>.<n>_<n>-img<n>.jpg`: 2 of 896 unknown image records
+- `<n>.<n>_<n>-table<n>.gif`: 6 of 896 unknown image records
+- `<n>.<n>_<n>-table<n>.jpg`: 6 of 896 unknown image records
+- `<n>_<n>_<n>_article_equa.gif`: 1 of 896 unknown image records
+- `<n>_<n>_<n>_article_equb.gif`: 1 of 896 unknown image records
+- `<n>_<n>_<n>_fig<n>a_html.gif`: 6 of 896 unknown image records
+- `<n>_<n>_<n>_fig<n>a_html.jpg`: 6 of 896 unknown image records
+- `<n>_<n>_<n>_fig<n>b_html.gif`: 6 of 896 unknown image records
+- `<n>_<n>_<n>_fig<n>b_html.jpg`: 6 of 896 unknown image records
+- `<n>_<n>_<n>_figa_html.gif`: 3 of 896 unknown image records
+- `<n>_<n>_<n>_figa_html.jpg`: 3 of 896 unknown image records
+- `<n>_<n>_<n>_moesm<n>_esm.jpg`: 2 of 896 unknown image records
+- `<n>_<n>_<n>_moesm<n>_esm.png`: 7 of 896 unknown image records
+- `<n>_<n>_<n>_moesm<n>_esm.tif`: 2 of 896 unknown image records
+- `<n>_<n>_<n>_tab<n>_html.gif`: 3 of 896 unknown image records
+- `<n>_<n>_<n>_tab<n>_html.jpg`: 3 of 896 unknown image records
+- `apm<n>-<n>.<n>.gif`: 7 of 896 unknown image records
+- `apm<n>-<n>.<n>.jpg`: 7 of 896 unknown image records
+- `bmjopen-<n>-<n>f<n>.gif`: 16 of 896 unknown image records
+- `bmjopen-<n>-<n>f<n>.jpg`: 16 of 896 unknown image records
+- `bmjopen-<n>-<n>fig<n>.gif`: 4 of 896 unknown image records
+- `bmjopen-<n>-<n>fig<n>.jpg`: 4 of 896 unknown image records
+- `brot<n>.va.gif`: 1 of 896 unknown image records
+- `brot<n>.va.jpg`: 1 of 896 unknown image records
+- `cdtp<n>-<n>.<n>.gif`: 4 of 896 unknown image records
+- `cdtp<n>-<n>.<n>.jpg`: 4 of 896 unknown image records
+- `children-<n>-<n>-g<n>a.gif`: 2 of 896 unknown image records
+- `children-<n>-<n>-g<n>a.jpg`: 2 of 896 unknown image records
+- `children-<n>-<n>-g<n>b.gif`: 2 of 896 unknown image records
+- `children-<n>-<n>-g<n>b.jpg`: 2 of 896 unknown image records
+- `circrep-<n>-<n>-i<n>.jpg`: 1 of 896 unknown image records
+- `crp<n>-<n>.<n>.gif`: 14 of 896 unknown image records
+- `crp<n>-<n>.<n>.jpg`: 14 of 896 unknown image records
+- `cvae<n>_ga.gif`: 3 of 896 unknown image records
+- `cvae<n>_ga.jpg`: 3 of 896 unknown image records
+- `cvae<n>f<n>.gif`: 9 of 896 unknown image records
+- `cvae<n>f<n>.jpg`: 9 of 896 unknown image records
+- `czy<n>f<n>.gif`: 3 of 896 unknown image records
+- `czy<n>f<n>.jpg`: 3 of 896 unknown image records
+- `dmag<n>f<n>.gif`: 6 of 896 unknown image records
+- `dmag<n>f<n>.jpg`: 6 of 896 unknown image records
+- `ecam<n>-<n>.<n>.gif`: 8 of 896 unknown image records
+- `ecam<n>-<n>.<n>.jpg`: 8 of 896 unknown image records
+- `ecam<n>-<n>.i<n>.jpg`: 3 of 896 unknown image records
+- `ehad<n>_ga<n>.gif`: 1 of 896 unknown image records
+- `ehad<n>_ga<n>.jpg`: 1 of 896 unknown image records
+- `ehad<n>f<n>.gif`: 4 of 896 unknown image records
+- `ehad<n>f<n>.jpg`: 4 of 896 unknown image records
+- `ehad<n>f<n>a.gif`: 1 of 896 unknown image records
+- `ehad<n>f<n>a.jpg`: 1 of 896 unknown image records
+- `ehad<n>f<n>b.gif`: 1 of 896 unknown image records
+- `ehad<n>f<n>b.jpg`: 1 of 896 unknown image records
+- `ehaf<n>_sga.gif`: 1 of 896 unknown image records
+- `ehaf<n>_sga.jpg`: 1 of 896 unknown image records
+- `ehaf<n>f<n>.gif`: 4 of 896 unknown image records
+- `ehaf<n>f<n>.jpg`: 4 of 896 unknown image records
+- `ehx<n>f<n>.gif`: 5 of 896 unknown image records
+- `ehx<n>f<n>.jpg`: 5 of 896 unknown image records
+- `euad<n>_ga<n>.gif`: 1 of 896 unknown image records
+- `euad<n>_ga<n>.jpg`: 1 of 896 unknown image records
+- `euad<n>f<n>.gif`: 5 of 896 unknown image records
+- `euad<n>f<n>.jpg`: 5 of 896 unknown image records
+- `fcimb-<n>-<n>-i<n>.jpg`: 8 of 896 unknown image records
+- `fnut-<n>-<n>-i<n>.jpg`: 2 of 896 unknown image records
+- `fphar-<n>-<n>-fx<n>.jpg`: 1 of 896 unknown image records
+- `fx<n>.gif`: 5 of 896 unknown image records
+- `fx<n>_lrg.gif`: 11 of 896 unknown image records
+- `fx<n>_lrg.jpg`: 11 of 896 unknown image records
+- `ga<n>.gif`: 4 of 896 unknown image records
+- `ga<n>.jpg`: 4 of 896 unknown image records
+- `ga<n>_lrg.gif`: 2 of 896 unknown image records
+- `ga<n>_lrg.jpg`: 2 of 896 unknown image records
+- `gr<n>.gif`: 91 of 896 unknown image records
+- `gr<n>.jpg`: 91 of 896 unknown image records
+- `gr<n>_lrg.gif`: 57 of 896 unknown image records
+- `gr<n>_lrg.jpg`: 57 of 896 unknown image records
+- `ije<n>-<n>.<n>.gif`: 7 of 896 unknown image records
+- `ije<n>-<n>.<n>.jpg`: 7 of 896 unknown image records
+- `image_<n>.jpeg`: 2 of 896 unknown image records
+- `image_<n>.tif`: 1 of 896 unknown image records
+- `jcvp-<n>-<n>-s<n>.tif`: 1 of 896 unknown image records
+- `jcvp-<n>-<n>-s<n>.tiff`: 7 of 896 unknown image records
+- `jitc<n>-<n>.<n>.gif`: 5 of 896 unknown image records
+- `jitc<n>-<n>.<n>.jpg`: 5 of 896 unknown image records
+- `jos-<n>-<n>f<n>.gif`: 4 of 896 unknown image records
+- `jos-<n>-<n>f<n>.jpg`: 4 of 896 unknown image records
+- `life-<n>-<n>-g<n>a.gif`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a.jpg`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>.gif`: 4 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>.jpg`: 4 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>a.gif`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>a.jpg`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>b.gif`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>b.jpg`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>c.gif`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>c.jpg`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>d.gif`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>d.jpg`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>e.gif`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>e.jpg`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>f.gif`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>a<n>f.jpg`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>b.gif`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>b.jpg`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>c.gif`: 1 of 896 unknown image records
+- `life-<n>-<n>-g<n>c.jpg`: 1 of 896 unknown image records
+- `nuaa<n>f<n>.gif`: 1 of 896 unknown image records
+- `nuaa<n>f<n>.jpg`: 1 of 896 unknown image records
+- `nuaa<n>f<n>a.gif`: 1 of 896 unknown image records
+- `nuaa<n>f<n>a.jpg`: 1 of 896 unknown image records
+- `nuaa<n>f<n>b.gif`: 1 of 896 unknown image records
+- `nuaa<n>f<n>b.jpg`: 1 of 896 unknown image records
+- `nutrients-<n>-<n>-g<n>a.gif`: 3 of 896 unknown image records
+- `nutrients-<n>-<n>-g<n>a.jpg`: 3 of 896 unknown image records
+- `nutrients-<n>-<n>-g<n>b.gif`: 3 of 896 unknown image records
+- `nutrients-<n>-<n>-g<n>b.jpg`: 3 of 896 unknown image records
+- `openhrt-<n>-<n>-s<n>.tif`: 1 of 896 unknown image records
+- `pone.<n>.s<n>.tif`: 17 of 896 unknown image records
+- `pone.<n>.t<n>.gif`: 48 of 896 unknown image records
+- `pone.<n>.t<n>.jpg`: 48 of 896 unknown image records
+- `pvae<n>fig<n>.gif`: 4 of 896 unknown image records
+- `pvae<n>fig<n>.jpg`: 4 of 896 unknown image records
+- `pvae<n>fig<n>g.gif`: 1 of 896 unknown image records
+- `pvae<n>fig<n>g.jpg`: 1 of 896 unknown image records
+- `s<n>_tab<n>.gif`: 7 of 896 unknown image records
+- `s<n>_tab<n>.jpg`: 7 of 896 unknown image records
+- `sgag<n>f<n>.gif`: 5 of 896 unknown image records
+- `sgag<n>f<n>.jpg`: 5 of 896 unknown image records
+
+## Every unknown file
+
+- balanced-crystalloids-vs-saline-mortality / PMID 31752973: `13054_2019_2658_MOESM2_ESM.png`
+- balanced-crystalloids-vs-saline-mortality / PMID 31752973: `13054_2019_2658_MOESM3_ESM.png`
+- balanced-crystalloids-vs-saline-mortality / PMID 31752973: `13054_2019_2658_MOESM5_ESM.png`
+- balanced-crystalloids-vs-saline-mortality / PMID 31752973: `13054_2019_2658_MOESM6_ESM.png`
+- balanced-crystalloids-vs-saline-mortality / PMID 31752973: `13054_2019_2658_MOESM7_ESM.png`
+- balanced-crystalloids-vs-saline-mortality / PMID 31752973: `13054_2019_2658_MOESM8_ESM.png`
+- balanced-crystalloids-vs-saline-mortality / PMID 31752973: `13054_2019_2658_MOESM9_ESM.png`
+- balanced-crystalloids-vs-saline-mortality / PMID 34572217: `children-08-00785-g002a.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 34572217: `children-08-00785-g002a.jpg`
+- balanced-crystalloids-vs-saline-mortality / PMID 34572217: `children-08-00785-g002b.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 34572217: `children-08-00785-g002b.jpg`
+- balanced-crystalloids-vs-saline-mortality / PMID 34572217: `children-08-00785-g005a.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 34572217: `children-08-00785-g005a.jpg`
+- balanced-crystalloids-vs-saline-mortality / PMID 34572217: `children-08-00785-g005b.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 34572217: `children-08-00785-g005b.jpg`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig2a_HTML.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig2a_HTML.jpg`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig2b_HTML.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig2b_HTML.jpg`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig3a_HTML.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig3a_HTML.jpg`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig3b_HTML.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig3b_HTML.jpg`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig5a_HTML.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig5a_HTML.jpg`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig5b_HTML.gif`
+- balanced-crystalloids-vs-saline-mortality / PMID 37017820: `11255_2023_3570_Fig5b_HTML.jpg`
+- colchicine-postop-af / PMID 37341446: `euad169_ga1.gif`
+- colchicine-postop-af / PMID 37341446: `euad169_ga1.jpg`
+- colchicine-postop-af / PMID 37341446: `euad169f1.gif`
+- colchicine-postop-af / PMID 37341446: `euad169f1.jpg`
+- colchicine-postop-af / PMID 37341446: `euad169f2.gif`
+- colchicine-postop-af / PMID 37341446: `euad169f2.jpg`
+- colchicine-postop-af / PMID 37341446: `euad169f3.gif`
+- colchicine-postop-af / PMID 37341446: `euad169f3.jpg`
+- colchicine-postop-af / PMID 37341446: `euad169f4.gif`
+- colchicine-postop-af / PMID 37341446: `euad169f4.jpg`
+- colchicine-postop-af / PMID 37341446: `euad169f5.gif`
+- colchicine-postop-af / PMID 37341446: `euad169f5.jpg`
+- colchicine-secondary-cv-prevention / PMID 25279761: `pone.0109614.t001.gif`
+- colchicine-secondary-cv-prevention / PMID 25279761: `pone.0109614.t001.jpg`
+- colchicine-secondary-cv-prevention / PMID 25279761: `pone.0109614.t002.gif`
+- colchicine-secondary-cv-prevention / PMID 25279761: `pone.0109614.t002.jpg`
+- colchicine-secondary-cv-prevention / PMID 25279761: `pone.0109614.t003.gif`
+- colchicine-secondary-cv-prevention / PMID 25279761: `pone.0109614.t003.jpg`
+- colchicine-secondary-cv-prevention / PMID 25279761: `pone.0109614.t004.gif`
+- colchicine-secondary-cv-prevention / PMID 25279761: `pone.0109614.t004.jpg`
+- colchicine-secondary-cv-prevention / PMID 34414335: `circrep-3-457-i001.jpg`
+- colchicine-secondary-cv-prevention / PMID 37026756: `jcvp-82-13-s007.tif`
+- colchicine-secondary-cv-prevention / PMID 37026756: `jcvp-82-13-s008.tiff`
+- colchicine-secondary-cv-prevention / PMID 37026756: `jcvp-82-13-s009.tiff`
+- colchicine-secondary-cv-prevention / PMID 37026756: `jcvp-82-13-s010.tiff`
+- colchicine-secondary-cv-prevention / PMID 37026756: `jcvp-82-13-s011.tiff`
+- colchicine-secondary-cv-prevention / PMID 37026756: `jcvp-82-13-s012.tiff`
+- colchicine-secondary-cv-prevention / PMID 37026756: `jcvp-82-13-s013.tiff`
+- colchicine-secondary-cv-prevention / PMID 37026756: `jcvp-82-13-s014.tiff`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.001.gif`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.001.jpg`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.002.gif`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.002.jpg`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.003.gif`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.003.jpg`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.004.gif`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.004.jpg`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.005.gif`
+- colchicine-secondary-cv-prevention / PMID 38505729: `JITC2024-8646351.005.jpg`
+- colchicine-secondary-cv-prevention / PMID 39431112: `gr1.gif`
+- colchicine-secondary-cv-prevention / PMID 39431112: `gr1.jpg`
+- colchicine-secondary-cv-prevention / PMID 39431112: `gr2.gif`
+- colchicine-secondary-cv-prevention / PMID 39431112: `gr2.jpg`
+- colchicine-secondary-cv-prevention / PMID 39431112: `gr3.gif`
+- colchicine-secondary-cv-prevention / PMID 39431112: `gr3.jpg`
+- colchicine-secondary-cv-prevention / PMID 39431112: `gr4.gif`
+- colchicine-secondary-cv-prevention / PMID 39431112: `gr4.jpg`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig1.gif`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig1.jpg`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig1g.gif`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig1g.jpg`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig2.gif`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig2.jpg`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig3.gif`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig3.jpg`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig4.gif`
+- colchicine-secondary-cv-prevention / PMID 39756386: `pvae100fig4.jpg`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174_sga.gif`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174_sga.jpg`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174f1.gif`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174f1.jpg`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174f2.gif`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174f2.jpg`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174f3.gif`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174f3.jpg`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174f4.gif`
+- colchicine-secondary-cv-prevention / PMID 40314333: `ehaf174f4.jpg`
+- corticosteroids-cap-mortality / PMID 23565216: `pone.0060273.t001.gif`
+- corticosteroids-cap-mortality / PMID 23565216: `pone.0060273.t001.jpg`
+- corticosteroids-cap-mortality / PMID 23565216: `pone.0060273.t002.gif`
+- corticosteroids-cap-mortality / PMID 23565216: `pone.0060273.t002.jpg`
+- corticosteroids-cap-mortality / PMID 23565216: `pone.0060273.t003.gif`
+- corticosteroids-cap-mortality / PMID 23565216: `pone.0060273.t003.jpg`
+- corticosteroids-cap-mortality / PMID 26100123: `134_2015_3899_Fig1a_HTML.gif`
+- corticosteroids-cap-mortality / PMID 26100123: `134_2015_3899_Fig1a_HTML.jpg`
+- corticosteroids-cap-mortality / PMID 26100123: `134_2015_3899_Fig1b_HTML.gif`
+- corticosteroids-cap-mortality / PMID 26100123: `134_2015_3899_Fig1b_HTML.jpg`
+- corticosteroids-cap-mortality / PMID 26641253: `pone.0144032.t001.gif`
+- corticosteroids-cap-mortality / PMID 26641253: `pone.0144032.t001.jpg`
+- corticosteroids-cap-mortality / PMID 26641253: `pone.0144032.t002.gif`
+- corticosteroids-cap-mortality / PMID 26641253: `pone.0144032.t002.jpg`
+- corticosteroids-cap-mortality / PMID 27846240: `pone.0165942.t001.gif`
+- corticosteroids-cap-mortality / PMID 27846240: `pone.0165942.t001.jpg`
+- corticosteroids-cap-mortality / PMID 27846240: `pone.0165942.t002.gif`
+- corticosteroids-cap-mortality / PMID 27846240: `pone.0165942.t002.jpg`
+- corticosteroids-cap-mortality / PMID 27846240: `pone.0165942.t003.gif`
+- corticosteroids-cap-mortality / PMID 27846240: `pone.0165942.t003.jpg`
+- corticosteroids-cap-mortality / PMID 27846240: `pone.0165942.t004.gif`
+- corticosteroids-cap-mortality / PMID 27846240: `pone.0165942.t004.jpg`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f01.gif`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f01.jpg`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f02.gif`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f02.jpg`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f03.gif`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f03.jpg`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f04.gif`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f04.jpg`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f05.gif`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f05.jpg`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f06.gif`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f06.jpg`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f07.gif`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f07.jpg`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f08.gif`
+- corticosteroids-cap-mortality / PMID 36549729: `bmjopen-2022-061476f08.jpg`
+- corticosteroids-covid19-mortality / PMID 33298370: `gr1_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 33298370: `gr1_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 33298370: `gr2_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 33298370: `gr2_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 33915284: `gr1_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 33915284: `gr1_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 33915284: `gr2_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 33915284: `gr2_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr1_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr1_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr2_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr2_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr3_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr3_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr4_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr4_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr5_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr5_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr6_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34492533: `gr6_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34649502: `12879_2021_6548_Fig2a_HTML.gif`
+- corticosteroids-covid19-mortality / PMID 34649502: `12879_2021_6548_Fig2a_HTML.jpg`
+- corticosteroids-covid19-mortality / PMID 34649502: `12879_2021_6548_Fig2b_HTML.gif`
+- corticosteroids-covid19-mortality / PMID 34649502: `12879_2021_6548_Fig2b_HTML.jpg`
+- corticosteroids-covid19-mortality / PMID 34649502: `12879_2021_6548_Fig4a_HTML.gif`
+- corticosteroids-covid19-mortality / PMID 34649502: `12879_2021_6548_Fig4a_HTML.jpg`
+- corticosteroids-covid19-mortality / PMID 34649502: `12879_2021_6548_Fig4b_HTML.gif`
+- corticosteroids-covid19-mortality / PMID 34649502: `12879_2021_6548_Fig4b_HTML.jpg`
+- corticosteroids-covid19-mortality / PMID 34757578: `40121_2021_545_Tab2_HTML.gif`
+- corticosteroids-covid19-mortality / PMID 34757578: `40121_2021_545_Tab2_HTML.jpg`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr1_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr1_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr2_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr2_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr3_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr3_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr4_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr4_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr5_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr5_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr6_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 34933068: `gr6_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx10_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx10_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx11_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx11_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx1_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx1_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx2_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx2_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx3_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx3_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx4_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx4_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx5_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx5_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx6_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx6_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx7_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx7_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx8_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx8_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx9_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `fx9_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `ga1_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `ga1_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr10_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr10_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr1_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr1_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr2_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr2_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr3_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr3_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr4_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr4_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr5_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr5_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr6_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr6_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr7_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr7_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr8_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr8_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr9_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35346661: `gr9_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35863630: `gr1_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35863630: `gr1_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35863630: `gr2_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35863630: `gr2_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 35863630: `gr3_lrg.gif`
+- corticosteroids-covid19-mortality / PMID 35863630: `gr3_lrg.jpg`
+- corticosteroids-covid19-mortality / PMID 39181595: `gr1.gif`
+- corticosteroids-covid19-mortality / PMID 39181595: `gr1.jpg`
+- corticosteroids-covid19-mortality / PMID 39181595: `gr2.gif`
+- corticosteroids-covid19-mortality / PMID 39181595: `gr2.jpg`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-1.gif`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-1.jpg`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-2.gif`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-2.jpg`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-3.gif`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-3.jpg`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-4.gif`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-4.jpg`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-5.gif`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-5.jpg`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-6.gif`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-6.jpg`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-7.gif`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-7.jpg`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-8.gif`
+- iv-iron-hfref-hosp / PMID 21942989: `1471-2326-11-4-8.jpg`
+- iv-iron-hfref-hosp / PMID 33755777: `392_2021_1837_Figa_HTML.gif`
+- iv-iron-hfref-hosp / PMID 33755777: `392_2021_1837_Figa_HTML.jpg`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586_ga1.gif`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586_ga1.jpg`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f1.gif`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f1.jpg`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f2a.gif`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f2a.jpg`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f2b.gif`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f2b.jpg`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f3.gif`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f3.jpg`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f4.gif`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f4.jpg`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f5.gif`
+- iv-iron-hfref-hosp / PMID 37632415: `ehad586f5.jpg`
+- melatonin-primary-insomnia-sol / PMID 23691095: `pone.0063773.t001.gif`
+- melatonin-primary-insomnia-sol / PMID 23691095: `pone.0063773.t001.jpg`
+- metformin-pcos-ovulation / PMID 26473366: `pone.0140565.t001.gif`
+- metformin-pcos-ovulation / PMID 26473366: `pone.0140565.t001.jpg`
+- metformin-pcos-ovulation / PMID 26473366: `pone.0140565.t002.gif`
+- metformin-pcos-ovulation / PMID 26473366: `pone.0140565.t002.jpg`
+- metformin-pcos-ovulation / PMID 26473366: `pone.0140565.t003.gif`
+- metformin-pcos-ovulation / PMID 26473366: `pone.0140565.t003.jpg`
+- metformin-pcos-ovulation / PMID 26473366: `pone.0140565.t004.gif`
+- metformin-pcos-ovulation / PMID 26473366: `pone.0140565.t004.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.001.gif`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.001.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.002.gif`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.002.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.003.gif`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.003.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.004.gif`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.004.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.005.gif`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.005.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.006.gif`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.006.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.007.gif`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.007.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.008.gif`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.008.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.i001.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.i002.jpg`
+- metformin-pcos-ovulation / PMID 31915452: `ECAM2019-7918631.i003.jpg`
+- metformin-pcos-ovulation / PMID 32053629: `pone.0228586.t001.gif`
+- metformin-pcos-ovulation / PMID 32053629: `pone.0228586.t001.jpg`
+- metformin-pcos-ovulation / PMID 32053629: `pone.0228586.t002.gif`
+- metformin-pcos-ovulation / PMID 32053629: `pone.0228586.t002.jpg`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.001.gif`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.001.jpg`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.002.gif`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.002.jpg`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.003.gif`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.003.jpg`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.004.gif`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.004.jpg`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.005.gif`
+- metformin-pcos-ovulation / PMID 33014044: `IJE2020-5150684.005.jpg`
+- metformin-pcos-ovulation / PMID 34280195: `pone.0254412.t001.gif`
+- metformin-pcos-ovulation / PMID 34280195: `pone.0254412.t001.jpg`
+- metformin-pcos-ovulation / PMID 36225721: `10.1177_20420188221127142-img1.jpg`
+- metformin-pcos-ovulation / PMID 36225721: `10.1177_20420188221127142-table1.gif`
+- metformin-pcos-ovulation / PMID 36225721: `10.1177_20420188221127142-table1.jpg`
+- metformin-pcos-ovulation / PMID 36225721: `10.1177_20420188221127142-table2.gif`
+- metformin-pcos-ovulation / PMID 36225721: `10.1177_20420188221127142-table2.jpg`
+- metformin-pcos-ovulation / PMID 37381009: `13048_2023_1195_MOESM3_ESM.jpg`
+- metformin-pcos-ovulation / PMID 37381009: `13048_2023_1195_MOESM5_ESM.jpg`
+- metformin-pcos-ovulation / PMID 38500709: `IJE2024-9900213.001.gif`
+- metformin-pcos-ovulation / PMID 38500709: `IJE2024-9900213.001.jpg`
+- metformin-pcos-ovulation / PMID 38500709: `IJE2024-9900213.002.gif`
+- metformin-pcos-ovulation / PMID 38500709: `IJE2024-9900213.002.jpg`
+- metformin-pcos-ovulation / PMID 39319339: `10.1177_11795514241280028-img1.jpg`
+- metformin-pcos-ovulation / PMID 39319339: `10.1177_11795514241280028-table1.gif`
+- metformin-pcos-ovulation / PMID 39319339: `10.1177_11795514241280028-table1.jpg`
+- metformin-pcos-ovulation / PMID 39319339: `10.1177_11795514241280028-table2.gif`
+- metformin-pcos-ovulation / PMID 39319339: `10.1177_11795514241280028-table2.jpg`
+- metformin-pcos-ovulation / PMID 39319339: `10.1177_11795514241280028-table3.gif`
+- metformin-pcos-ovulation / PMID 39319339: `10.1177_11795514241280028-table3.jpg`
+- metformin-pcos-ovulation / PMID 39319339: `10.1177_11795514241280028-table4.gif`
+- metformin-pcos-ovulation / PMID 39319339: `10.1177_11795514241280028-table4.jpg`
+- metformin-pcos-ovulation / PMID 40487780: `gr1.gif`
+- metformin-pcos-ovulation / PMID 40487780: `gr1.jpg`
+- metformin-pcos-ovulation / PMID 40487780: `gr2.gif`
+- metformin-pcos-ovulation / PMID 40487780: `gr2.jpg`
+- metformin-pcos-ovulation / PMID 40487780: `gr3.gif`
+- metformin-pcos-ovulation / PMID 40487780: `gr3.jpg`
+- metformin-pcos-ovulation / PMID 40487780: `gr4.gif`
+- metformin-pcos-ovulation / PMID 40487780: `gr4.jpg`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-1.gif`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-1.jpg`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-2.gif`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-2.jpg`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-3.gif`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-3.jpg`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-4.gif`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-4.jpg`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-5.gif`
+- omega3-cardiovascular-events / PMID 20525225: `1471-2261-10-24-5.jpg`
+- omega3-cardiovascular-events / PMID 22240654: `bmjopen-2011-000653fig1.gif`
+- omega3-cardiovascular-events / PMID 22240654: `bmjopen-2011-000653fig1.jpg`
+- omega3-cardiovascular-events / PMID 22240654: `bmjopen-2011-000653fig2.gif`
+- omega3-cardiovascular-events / PMID 22240654: `bmjopen-2011-000653fig2.jpg`
+- omega3-cardiovascular-events / PMID 22240654: `bmjopen-2011-000653fig3.gif`
+- omega3-cardiovascular-events / PMID 22240654: `bmjopen-2011-000653fig3.jpg`
+- omega3-cardiovascular-events / PMID 22240654: `bmjopen-2011-000653fig4.gif`
+- omega3-cardiovascular-events / PMID 22240654: `bmjopen-2011-000653fig4.jpg`
+- omega3-cardiovascular-events / PMID 22651380: `2046-4053-1-26-1.gif`
+- omega3-cardiovascular-events / PMID 22651380: `2046-4053-1-26-1.jpg`
+- omega3-cardiovascular-events / PMID 22651380: `2046-4053-1-26-2.gif`
+- omega3-cardiovascular-events / PMID 22651380: `2046-4053-1-26-2.jpg`
+- omega3-cardiovascular-events / PMID 22651380: `2046-4053-1-26-3.gif`
+- omega3-cardiovascular-events / PMID 22651380: `2046-4053-1-26-3.jpg`
+- omega3-cardiovascular-events / PMID 24568238: `1471-2458-14-204-1.gif`
+- omega3-cardiovascular-events / PMID 24568238: `1471-2458-14-204-1.jpg`
+- omega3-cardiovascular-events / PMID 24568238: `1471-2458-14-204-2.gif`
+- omega3-cardiovascular-events / PMID 24568238: `1471-2458-14-204-2.jpg`
+- omega3-cardiovascular-events / PMID 24568238: `1471-2458-14-204-3.gif`
+- omega3-cardiovascular-events / PMID 24568238: `1471-2458-14-204-3.jpg`
+- omega3-cardiovascular-events / PMID 24568238: `1471-2458-14-204-4.gif`
+- omega3-cardiovascular-events / PMID 24568238: `1471-2458-14-204-4.jpg`
+- omega3-cardiovascular-events / PMID 25238614: `pone.0107060.t001.gif`
+- omega3-cardiovascular-events / PMID 25238614: `pone.0107060.t001.jpg`
+- omega3-cardiovascular-events / PMID 29402063: `jos-2017-01522f1.gif`
+- omega3-cardiovascular-events / PMID 29402063: `jos-2017-01522f1.jpg`
+- omega3-cardiovascular-events / PMID 29402063: `jos-2017-01522f2.gif`
+- omega3-cardiovascular-events / PMID 29402063: `jos-2017-01522f2.jpg`
+- omega3-cardiovascular-events / PMID 29402063: `jos-2017-01522f3.gif`
+- omega3-cardiovascular-events / PMID 29402063: `jos-2017-01522f3.jpg`
+- omega3-cardiovascular-events / PMID 29402063: `jos-2017-01522f4.gif`
+- omega3-cardiovascular-events / PMID 29402063: `jos-2017-01522f4.jpg`
+- omega3-cardiovascular-events / PMID 29762708: `czy020f1.gif`
+- omega3-cardiovascular-events / PMID 29762708: `czy020f1.jpg`
+- omega3-cardiovascular-events / PMID 29762708: `czy020f2.gif`
+- omega3-cardiovascular-events / PMID 29762708: `czy020f2.jpg`
+- omega3-cardiovascular-events / PMID 29762708: `czy020f3.gif`
+- omega3-cardiovascular-events / PMID 29762708: `czy020f3.jpg`
+- omega3-cardiovascular-events / PMID 31434641: `brot048057.va.gif`
+- omega3-cardiovascular-events / PMID 31434641: `brot048057.va.jpg`
+- omega3-cardiovascular-events / PMID 34505026: `gr1.gif`
+- omega3-cardiovascular-events / PMID 34505026: `gr1.jpg`
+- omega3-cardiovascular-events / PMID 34505026: `gr2.gif`
+- omega3-cardiovascular-events / PMID 34505026: `gr2.jpg`
+- omega3-cardiovascular-events / PMID 34505026: `gr3.gif`
+- omega3-cardiovascular-events / PMID 34505026: `gr3.jpg`
+- omega3-cardiovascular-events / PMID 34505026: `gr4.gif`
+- omega3-cardiovascular-events / PMID 34505026: `gr4.jpg`
+- omega3-cardiovascular-events / PMID 35010904: `nutrients-14-00029-g002a.gif`
+- omega3-cardiovascular-events / PMID 35010904: `nutrients-14-00029-g002a.jpg`
+- omega3-cardiovascular-events / PMID 35010904: `nutrients-14-00029-g002b.gif`
+- omega3-cardiovascular-events / PMID 35010904: `nutrients-14-00029-g002b.jpg`
+- omega3-cardiovascular-events / PMID 35010904: `nutrients-14-00029-g003a.gif`
+- omega3-cardiovascular-events / PMID 35010904: `nutrients-14-00029-g003a.jpg`
+- omega3-cardiovascular-events / PMID 35010904: `nutrients-14-00029-g003b.gif`
+- omega3-cardiovascular-events / PMID 35010904: `nutrients-14-00029-g003b.jpg`
+- omega3-cardiovascular-events / PMID 35187035: `Image_1.TIF`
+- omega3-cardiovascular-events / PMID 37121469: `gr1.gif`
+- omega3-cardiovascular-events / PMID 37121469: `gr1.jpg`
+- omega3-cardiovascular-events / PMID 37121469: `gr2.gif`
+- omega3-cardiovascular-events / PMID 37121469: `gr2.jpg`
+- omega3-cardiovascular-events / PMID 37121469: `gr3.gif`
+- omega3-cardiovascular-events / PMID 37121469: `gr3.jpg`
+- omega3-cardiovascular-events / PMID 37121469: `gr4.gif`
+- omega3-cardiovascular-events / PMID 37121469: `gr4.jpg`
+- omega3-cardiovascular-events / PMID 38373008: `cvae034_ga.gif`
+- omega3-cardiovascular-events / PMID 38373008: `cvae034_ga.jpg`
+- omega3-cardiovascular-events / PMID 38373008: `cvae034f1.gif`
+- omega3-cardiovascular-events / PMID 38373008: `cvae034f1.jpg`
+- omega3-cardiovascular-events / PMID 38373008: `cvae034f2.gif`
+- omega3-cardiovascular-events / PMID 38373008: `cvae034f2.jpg`
+- omega3-cardiovascular-events / PMID 38373008: `cvae034f3.gif`
+- omega3-cardiovascular-events / PMID 38373008: `cvae034f3.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `ga1.gif`
+- omega3-cardiovascular-events / PMID 38550634: `ga1.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `gr1.gif`
+- omega3-cardiovascular-events / PMID 38550634: `gr1.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `gr2.gif`
+- omega3-cardiovascular-events / PMID 38550634: `gr2.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `gr3.gif`
+- omega3-cardiovascular-events / PMID 38550634: `gr3.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `gr4.gif`
+- omega3-cardiovascular-events / PMID 38550634: `gr4.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `gr5.gif`
+- omega3-cardiovascular-events / PMID 38550634: `gr5.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `gr6.gif`
+- omega3-cardiovascular-events / PMID 38550634: `gr6.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `gr7.gif`
+- omega3-cardiovascular-events / PMID 38550634: `gr7.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `gr8.gif`
+- omega3-cardiovascular-events / PMID 38550634: `gr8.jpg`
+- omega3-cardiovascular-events / PMID 38550634: `gr9.gif`
+- omega3-cardiovascular-events / PMID 38550634: `gr9.jpg`
+- omega3-cardiovascular-events / PMID 38584673: `gr1.gif`
+- omega3-cardiovascular-events / PMID 38584673: `gr1.jpg`
+- omega3-cardiovascular-events / PMID 38584673: `gr2.gif`
+- omega3-cardiovascular-events / PMID 38584673: `gr2.jpg`
+- omega3-cardiovascular-events / PMID 38584673: `gr3.gif`
+- omega3-cardiovascular-events / PMID 38584673: `gr3.jpg`
+- omega3-cardiovascular-events / PMID 38584673: `gr4.gif`
+- omega3-cardiovascular-events / PMID 38584673: `gr4.jpg`
+- omega3-cardiovascular-events / PMID 39403396: `fnut-11-1423228-i001.jpg`
+- omega3-cardiovascular-events / PMID 39403396: `fnut-11-1423228-i002.jpg`
+- omega3-cardiovascular-events / PMID 40974959: `ga1.gif`
+- omega3-cardiovascular-events / PMID 40974959: `ga1.jpg`
+- omega3-cardiovascular-events / PMID 40974959: `gr1.gif`
+- omega3-cardiovascular-events / PMID 40974959: `gr1.jpg`
+- omega3-cardiovascular-events / PMID 40974959: `gr2.gif`
+- omega3-cardiovascular-events / PMID 40974959: `gr2.jpg`
+- omega3-cardiovascular-events / PMID 40974959: `gr3.gif`
+- omega3-cardiovascular-events / PMID 40974959: `gr3.jpg`
+- omega3-cardiovascular-events / PMID 40974959: `gr4.gif`
+- omega3-cardiovascular-events / PMID 40974959: `gr4.jpg`
+- omega3-cardiovascular-events / PMID 40974959: `gr5.gif`
+- omega3-cardiovascular-events / PMID 40974959: `gr5.jpg`
+- omega3-cardiovascular-events / PMID 41156531: `nutrients-17-03279-g004a.gif`
+- omega3-cardiovascular-events / PMID 41156531: `nutrients-17-03279-g004a.jpg`
+- omega3-cardiovascular-events / PMID 41156531: `nutrients-17-03279-g004b.gif`
+- omega3-cardiovascular-events / PMID 41156531: `nutrients-17-03279-g004b.jpg`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f1.gif`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f1.jpg`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f2.gif`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f2.jpg`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f3.gif`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f3.jpg`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f4.gif`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f4.jpg`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f5.gif`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f5.jpg`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f6.gif`
+- omega3-cardiovascular-events / PMID 41725605: `dmag003f6.jpg`
+- omega3-cardiovascular-events / PMID 42129939: `44263_2026_277_Figa_HTML.gif`
+- omega3-cardiovascular-events / PMID 42129939: `44263_2026_277_Figa_HTML.jpg`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f1.gif`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f1.jpg`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f2.gif`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f2.jpg`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f3.gif`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f3.jpg`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f4.gif`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f4.jpg`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f5.gif`
+- omega3-cardiovascular-events / PMID 42211078: `sgag016f5.jpg`
+- pcsk9-mace / PMID 29186504: `ehx661f1.gif`
+- pcsk9-mace / PMID 29186504: `ehx661f1.jpg`
+- pcsk9-mace / PMID 29186504: `ehx661f2.gif`
+- pcsk9-mace / PMID 29186504: `ehx661f2.jpg`
+- pcsk9-mace / PMID 29186504: `ehx661f3.gif`
+- pcsk9-mace / PMID 29186504: `ehx661f3.jpg`
+- pcsk9-mace / PMID 29186504: `ehx661f4.gif`
+- pcsk9-mace / PMID 29186504: `ehx661f4.jpg`
+- pcsk9-mace / PMID 29186504: `ehx661f5.gif`
+- pcsk9-mace / PMID 29186504: `ehx661f5.jpg`
+- pcsk9-mace / PMID 30287608: `bmjopen-2018-022348f01.gif`
+- pcsk9-mace / PMID 30287608: `bmjopen-2018-022348f01.jpg`
+- pcsk9-mace / PMID 30287608: `bmjopen-2018-022348f02.gif`
+- pcsk9-mace / PMID 30287608: `bmjopen-2018-022348f02.jpg`
+- pcsk9-mace / PMID 30287608: `bmjopen-2018-022348f03.gif`
+- pcsk9-mace / PMID 30287608: `bmjopen-2018-022348f03.jpg`
+- pcsk9-mace / PMID 34744709: `fphar-12-713007-fx1.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.001.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.001.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.002.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.002.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.003.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.003.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.004.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.004.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.005.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.005.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.006.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.006.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.007.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.007.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.008.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.008.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.009.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.009.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.010.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.010.jpg`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.011.gif`
+- pcsk9-mace / PMID 35529059: `CRP2022-8729003.011.jpg`
+- pcsk9-mace / PMID 36704607: `CDTP2023-7362551.001.gif`
+- pcsk9-mace / PMID 36704607: `CDTP2023-7362551.001.jpg`
+- pcsk9-mace / PMID 36704607: `CDTP2023-7362551.002.gif`
+- pcsk9-mace / PMID 36704607: `CDTP2023-7362551.002.jpg`
+- pcsk9-mace / PMID 36704607: `CDTP2023-7362551.003.gif`
+- pcsk9-mace / PMID 36704607: `CDTP2023-7362551.003.jpg`
+- pcsk9-mace / PMID 36704607: `CDTP2023-7362551.004.gif`
+- pcsk9-mace / PMID 36704607: `CDTP2023-7362551.004.jpg`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f01.gif`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f01.jpg`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f02.gif`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f02.jpg`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f03.gif`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f03.jpg`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f04.gif`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f04.jpg`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f05.gif`
+- pcsk9-mace / PMID 37967998: `bmjopen-2022-070827f05.jpg`
+- pcsk9-mace / PMID 38373008: `cvae034_ga.gif`
+- pcsk9-mace / PMID 38373008: `cvae034_ga.jpg`
+- pcsk9-mace / PMID 38373008: `cvae034f1.gif`
+- pcsk9-mace / PMID 38373008: `cvae034f1.jpg`
+- pcsk9-mace / PMID 38373008: `cvae034f2.gif`
+- pcsk9-mace / PMID 38373008: `cvae034f2.jpg`
+- pcsk9-mace / PMID 38373008: `cvae034f3.gif`
+- pcsk9-mace / PMID 38373008: `cvae034f3.jpg`
+- pcsk9-mace / PMID 38550634: `ga1.gif`
+- pcsk9-mace / PMID 38550634: `ga1.jpg`
+- pcsk9-mace / PMID 38550634: `gr1.gif`
+- pcsk9-mace / PMID 38550634: `gr1.jpg`
+- pcsk9-mace / PMID 38550634: `gr2.gif`
+- pcsk9-mace / PMID 38550634: `gr2.jpg`
+- pcsk9-mace / PMID 38550634: `gr3.gif`
+- pcsk9-mace / PMID 38550634: `gr3.jpg`
+- pcsk9-mace / PMID 38550634: `gr4.gif`
+- pcsk9-mace / PMID 38550634: `gr4.jpg`
+- pcsk9-mace / PMID 38550634: `gr5.gif`
+- pcsk9-mace / PMID 38550634: `gr5.jpg`
+- pcsk9-mace / PMID 38550634: `gr6.gif`
+- pcsk9-mace / PMID 38550634: `gr6.jpg`
+- pcsk9-mace / PMID 38550634: `gr7.gif`
+- pcsk9-mace / PMID 38550634: `gr7.jpg`
+- pcsk9-mace / PMID 38550634: `gr8.gif`
+- pcsk9-mace / PMID 38550634: `gr8.jpg`
+- pcsk9-mace / PMID 38550634: `gr9.gif`
+- pcsk9-mace / PMID 38550634: `gr9.jpg`
+- pcsk9-mace / PMID 39877671: `ga1.gif`
+- pcsk9-mace / PMID 39877671: `ga1.jpg`
+- pcsk9-mace / PMID 39877671: `gr1.gif`
+- pcsk9-mace / PMID 39877671: `gr1.jpg`
+- pcsk9-mace / PMID 39877671: `gr10.gif`
+- pcsk9-mace / PMID 39877671: `gr10.jpg`
+- pcsk9-mace / PMID 39877671: `gr11.gif`
+- pcsk9-mace / PMID 39877671: `gr11.jpg`
+- pcsk9-mace / PMID 39877671: `gr12.gif`
+- pcsk9-mace / PMID 39877671: `gr12.jpg`
+- pcsk9-mace / PMID 39877671: `gr13.gif`
+- pcsk9-mace / PMID 39877671: `gr13.jpg`
+- pcsk9-mace / PMID 39877671: `gr14.gif`
+- pcsk9-mace / PMID 39877671: `gr14.jpg`
+- pcsk9-mace / PMID 39877671: `gr2.gif`
+- pcsk9-mace / PMID 39877671: `gr2.jpg`
+- pcsk9-mace / PMID 39877671: `gr3.gif`
+- pcsk9-mace / PMID 39877671: `gr3.jpg`
+- pcsk9-mace / PMID 39877671: `gr4.gif`
+- pcsk9-mace / PMID 39877671: `gr4.jpg`
+- pcsk9-mace / PMID 39877671: `gr5.gif`
+- pcsk9-mace / PMID 39877671: `gr5.jpg`
+- pcsk9-mace / PMID 39877671: `gr6.gif`
+- pcsk9-mace / PMID 39877671: `gr6.jpg`
+- pcsk9-mace / PMID 39877671: `gr7.gif`
+- pcsk9-mace / PMID 39877671: `gr7.jpg`
+- pcsk9-mace / PMID 39877671: `gr8.gif`
+- pcsk9-mace / PMID 39877671: `gr8.jpg`
+- pcsk9-mace / PMID 39877671: `gr9.gif`
+- pcsk9-mace / PMID 39877671: `gr9.jpg`
+- pcsk9-mace / PMID 40841123: `openhrt-12-2-s001.tif`
+- pcsk9-mace / PMID 41069345: `gr1.gif`
+- pcsk9-mace / PMID 41069345: `gr1.jpg`
+- pcsk9-mace / PMID 41069345: `gr2.gif`
+- pcsk9-mace / PMID 41069345: `gr2.jpg`
+- pcsk9-mace / PMID 41069345: `gr3.gif`
+- pcsk9-mace / PMID 41069345: `gr3.jpg`
+- pcsk9-mace / PMID 41069345: `gr4.gif`
+- pcsk9-mace / PMID 41069345: `gr4.jpg`
+- pcsk9-mace / PMID 41069345: `gr5.gif`
+- pcsk9-mace / PMID 41069345: `gr5.jpg`
+- pcsk9-mace / PMID 41069345: `gr6.gif`
+- pcsk9-mace / PMID 41069345: `gr6.jpg`
+- probiotics-aad-prevention / PMID 22529959: `pone.0034938.t001.gif`
+- probiotics-aad-prevention / PMID 22529959: `pone.0034938.t001.jpg`
+- probiotics-aad-prevention / PMID 25365320: `pone.0111030.t001.gif`
+- probiotics-aad-prevention / PMID 25365320: `pone.0111030.t001.jpg`
+- probiotics-aad-prevention / PMID 32447398: `nuaa013f1a.gif`
+- probiotics-aad-prevention / PMID 32447398: `nuaa013f1a.jpg`
+- probiotics-aad-prevention / PMID 32447398: `nuaa013f1b.gif`
+- probiotics-aad-prevention / PMID 32447398: `nuaa013f1b.jpg`
+- probiotics-aad-prevention / PMID 32447398: `nuaa013f2.gif`
+- probiotics-aad-prevention / PMID 32447398: `nuaa013f2.jpg`
+- probiotics-aad-prevention / PMID 37498100: `gr1.gif`
+- probiotics-aad-prevention / PMID 37498100: `gr1.jpg`
+- probiotics-aad-prevention / PMID 37498100: `gr2.gif`
+- probiotics-aad-prevention / PMID 37498100: `gr2.jpg`
+- probiotics-aad-prevention / PMID 37498100: `gr3.gif`
+- probiotics-aad-prevention / PMID 37498100: `gr3.jpg`
+- probiotics-aad-prevention / PMID 37498100: `gr4.gif`
+- probiotics-aad-prevention / PMID 37498100: `gr4.jpg`
+- probiotics-aad-prevention / PMID 37498100: `gr5.gif`
+- probiotics-aad-prevention / PMID 37498100: `gr5.jpg`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab1.gif`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab1.jpg`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab2.gif`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab2.jpg`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab3.gif`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab3.jpg`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab4.gif`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab4.jpg`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab5.gif`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab5.jpg`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab6.gif`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab6.jpg`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab7.gif`
+- probiotics-aad-prevention / PMID 39290657: `S2632289724000021_tab7.jpg`
+- probiotics-aad-prevention / PMID 39989875: `fx1.gif`
+- probiotics-aad-prevention / PMID 39989875: `fx2.gif`
+- probiotics-aad-prevention / PMID 39989875: `fx3.gif`
+- probiotics-aad-prevention / PMID 39989875: `fx4.gif`
+- probiotics-aad-prevention / PMID 39989875: `fx5.gif`
+- probiotics-aad-prevention / PMID 39989875: `gr1.gif`
+- probiotics-aad-prevention / PMID 39989875: `gr1.jpg`
+- probiotics-aad-prevention / PMID 39989875: `gr2.gif`
+- probiotics-aad-prevention / PMID 39989875: `gr2.jpg`
+- probiotics-aad-prevention / PMID 40692683: `fcimb-15-1592977-i001.jpg`
+- probiotics-aad-prevention / PMID 40692683: `fcimb-15-1592977-i002.jpg`
+- probiotics-aad-prevention / PMID 40692683: `fcimb-15-1592977-i003.jpg`
+- probiotics-aad-prevention / PMID 40692683: `fcimb-15-1592977-i004.jpg`
+- probiotics-aad-prevention / PMID 40692683: `fcimb-15-1592977-i005.jpg`
+- probiotics-aad-prevention / PMID 40692683: `fcimb-15-1592977-i006.jpg`
+- probiotics-aad-prevention / PMID 40692683: `fcimb-15-1592977-i007.jpg`
+- probiotics-aad-prevention / PMID 40692683: `fcimb-15-1592977-i008.jpg`
+- statins-primary-prevention-elderly / PMID 23537334: `1471-2458-13-285-1.gif`
+- statins-primary-prevention-elderly / PMID 23537334: `1471-2458-13-285-1.jpg`
+- statins-primary-prevention-elderly / PMID 23537334: `1471-2458-13-285-2.gif`
+- statins-primary-prevention-elderly / PMID 23537334: `1471-2458-13-285-2.jpg`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t001.gif`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t001.jpg`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t002.gif`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t002.jpg`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t003.gif`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t003.jpg`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t004.gif`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t004.jpg`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t005.gif`
+- statins-primary-prevention-elderly / PMID 25122464: `pone.0104922.t005.jpg`
+- statins-primary-prevention-elderly / PMID 25372483: `pone.0111247.t001.gif`
+- statins-primary-prevention-elderly / PMID 25372483: `pone.0111247.t001.jpg`
+- statins-primary-prevention-elderly / PMID 25372483: `pone.0111247.t002.gif`
+- statins-primary-prevention-elderly / PMID 25372483: `pone.0111247.t002.jpg`
+- statins-primary-prevention-elderly / PMID 25372483: `pone.0111247.t003.gif`
+- statins-primary-prevention-elderly / PMID 25372483: `pone.0111247.t003.jpg`
+- statins-primary-prevention-elderly / PMID 25372483: `pone.0111247.t004.gif`
+- statins-primary-prevention-elderly / PMID 25372483: `pone.0111247.t004.jpg`
+- statins-primary-prevention-elderly / PMID 29579115: `pone.0194990.t001.gif`
+- statins-primary-prevention-elderly / PMID 29579115: `pone.0194990.t001.jpg`
+- statins-primary-prevention-elderly / PMID 29579115: `pone.0194990.t002.gif`
+- statins-primary-prevention-elderly / PMID 29579115: `pone.0194990.t002.jpg`
+- statins-primary-prevention-elderly / PMID 31719617: `41598_2019_53064_Article_Equa.gif`
+- statins-primary-prevention-elderly / PMID 31719617: `41598_2019_53064_Article_Equb.gif`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.001.gif`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.001.jpg`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.002.gif`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.002.jpg`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.003.gif`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.003.jpg`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.004.gif`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.004.jpg`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.005.gif`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.005.jpg`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.006.gif`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.006.jpg`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.007.gif`
+- statins-primary-prevention-elderly / PMID 33294229: `APM2020-6617905.007.jpg`
+- statins-primary-prevention-elderly / PMID 34154589: `12916_2021_2009_MOESM1_ESM.tif`
+- statins-primary-prevention-elderly / PMID 34154589: `12916_2021_2009_MOESM2_ESM.tif`
+- statins-primary-prevention-elderly / PMID 34154589: `12916_2021_2009_Tab2_HTML.gif`
+- statins-primary-prevention-elderly / PMID 34154589: `12916_2021_2009_Tab2_HTML.jpg`
+- statins-primary-prevention-elderly / PMID 36049498: `gr1.gif`
+- statins-primary-prevention-elderly / PMID 36049498: `gr1.jpg`
+- statins-primary-prevention-elderly / PMID 36049498: `gr2.gif`
+- statins-primary-prevention-elderly / PMID 36049498: `gr2.jpg`
+- statins-primary-prevention-elderly / PMID 36049498: `gr3.gif`
+- statins-primary-prevention-elderly / PMID 36049498: `gr3.jpg`
+- statins-primary-prevention-elderly / PMID 36049498: `gr4.gif`
+- statins-primary-prevention-elderly / PMID 36049498: `gr4.jpg`
+- statins-primary-prevention-elderly / PMID 38329982: `pone.0297852.s005.tif`
+- statins-primary-prevention-elderly / PMID 38329982: `pone.0297852.s006.tif`
+- statins-primary-prevention-elderly / PMID 38329982: `pone.0297852.s007.tif`
+- statins-primary-prevention-elderly / PMID 38329982: `pone.0297852.s008.tif`
+- statins-primary-prevention-elderly / PMID 38329982: `pone.0297852.s009.tif`
+- statins-primary-prevention-elderly / PMID 38329982: `pone.0297852.s010.tif`
+- statins-primary-prevention-elderly / PMID 38329982: `pone.0297852.s011.tif`
+- statins-primary-prevention-elderly / PMID 38329982: `pone.0297852.t001.gif`
+- statins-primary-prevention-elderly / PMID 38329982: `pone.0297852.t001.jpg`
+- statins-primary-prevention-elderly / PMID 38373008: `cvae034_ga.gif`
+- statins-primary-prevention-elderly / PMID 38373008: `cvae034_ga.jpg`
+- statins-primary-prevention-elderly / PMID 38373008: `cvae034f1.gif`
+- statins-primary-prevention-elderly / PMID 38373008: `cvae034f1.jpg`
+- statins-primary-prevention-elderly / PMID 38373008: `cvae034f2.gif`
+- statins-primary-prevention-elderly / PMID 38373008: `cvae034f2.jpg`
+- statins-primary-prevention-elderly / PMID 38373008: `cvae034f3.gif`
+- statins-primary-prevention-elderly / PMID 38373008: `cvae034f3.jpg`
+- statins-primary-prevention-elderly / PMID 39982885: `pone.0313309.t001.gif`
+- statins-primary-prevention-elderly / PMID 39982885: `pone.0313309.t001.jpg`
+- statins-primary-prevention-elderly / PMID 39982885: `pone.0313309.t002.gif`
+- statins-primary-prevention-elderly / PMID 39982885: `pone.0313309.t002.jpg`
+- statins-primary-prevention-elderly / PMID 42404863: `gr1.gif`
+- statins-primary-prevention-elderly / PMID 42404863: `gr1.jpg`
+- statins-primary-prevention-elderly / PMID 42404863: `gr2.gif`
+- statins-primary-prevention-elderly / PMID 42404863: `gr2.jpg`
+- statins-primary-prevention-elderly / PMID 42404863: `gr3.gif`
+- statins-primary-prevention-elderly / PMID 42404863: `gr3.jpg`
+- statins-primary-prevention-elderly / PMID 42404863: `gr4.gif`
+- statins-primary-prevention-elderly / PMID 42404863: `gr4.jpg`
+- ticagrelor-vs-clopidogrel-acs / PMID 24614630: `pone.0090986.s001.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 24614630: `pone.0090986.t001.gif`
+- ticagrelor-vs-clopidogrel-acs / PMID 24614630: `pone.0090986.t001.jpg`
+- ticagrelor-vs-clopidogrel-acs / PMID 24614630: `pone.0090986.t002.gif`
+- ticagrelor-vs-clopidogrel-acs / PMID 24614630: `pone.0090986.t002.jpg`
+- ticagrelor-vs-clopidogrel-acs / PMID 32462125: `gr1.gif`
+- ticagrelor-vs-clopidogrel-acs / PMID 32462125: `gr1.jpg`
+- ticagrelor-vs-clopidogrel-acs / PMID 32462125: `gr2.gif`
+- ticagrelor-vs-clopidogrel-acs / PMID 32462125: `gr2.jpg`
+- ticagrelor-vs-clopidogrel-acs / PMID 32462125: `gr3.gif`
+- ticagrelor-vs-clopidogrel-acs / PMID 32462125: `gr3.jpg`
+- ticagrelor-vs-clopidogrel-acs / PMID 32462125: `gr4.gif`
+- ticagrelor-vs-clopidogrel-acs / PMID 32462125: `gr4.jpg`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.s002.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.s003.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.s004.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.s005.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.s006.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.s007.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.s008.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.s009.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.s010.tif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.t001.gif`
+- ticagrelor-vs-clopidogrel-acs / PMID 37643179: `pone.0289243.t001.jpg`
+- tocilizumab-covid19-mortality / PMID 33123544: `Image_1.JPEG`
+- tocilizumab-covid19-mortality / PMID 33123544: `Image_2.JPEG`
+- tocilizumab-covid19-mortality / PMID 33161150: `gr1_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33161150: `gr1_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33161150: `gr2_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33161150: `gr2_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33161150: `gr3_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33161150: `gr3_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33161150: `gr4_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33161150: `gr4_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g002a.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g002a.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g002b.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g002b.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g002c.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g002c.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A1.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A1.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A2.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A2.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A3.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A3.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A4.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A4.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5a.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5a.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5b.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5b.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5c.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5c.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5d.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5d.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5e.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5e.jpg`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5f.gif`
+- tocilizumab-covid19-mortality / PMID 33333777: `life-10-00350-g0A5f.jpg`
+- tocilizumab-covid19-mortality / PMID 33422642: `gr1_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33422642: `gr1_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33422642: `gr2_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33422642: `gr2_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33549577: `gr1_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33549577: `gr1_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33549577: `gr2_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33549577: `gr2_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33549577: `gr3_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33549577: `gr3_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33549577: `gr4_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33549577: `gr4_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33745918: `gr1_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33745918: `gr1_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33745918: `gr2_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33745918: `gr2_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33745918: `gr3_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33745918: `gr3_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33815838: `CRP2021-9363569.001.gif`
+- tocilizumab-covid19-mortality / PMID 33815838: `CRP2021-9363569.001.jpg`
+- tocilizumab-covid19-mortality / PMID 33815838: `CRP2021-9363569.002.gif`
+- tocilizumab-covid19-mortality / PMID 33815838: `CRP2021-9363569.002.jpg`
+- tocilizumab-covid19-mortality / PMID 33815838: `CRP2021-9363569.003.gif`
+- tocilizumab-covid19-mortality / PMID 33815838: `CRP2021-9363569.003.jpg`
+- tocilizumab-covid19-mortality / PMID 33915284: `gr1_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33915284: `gr1_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 33915284: `gr2_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 33915284: `gr2_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 34001244: `40249_2021_857_Figa_HTML.gif`
+- tocilizumab-covid19-mortality / PMID 34001244: `40249_2021_857_Figa_HTML.jpg`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr1_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr1_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr2_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr2_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr3_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr3_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr4_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr4_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr5_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr5_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr6_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 34492533: `gr6_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 34582497: `pone.0257784.t001.gif`
+- tocilizumab-covid19-mortality / PMID 34582497: `pone.0257784.t001.jpg`
+- tocilizumab-covid19-mortality / PMID 34582497: `pone.0257784.t002.gif`
+- tocilizumab-covid19-mortality / PMID 34582497: `pone.0257784.t002.jpg`
+- tocilizumab-covid19-mortality / PMID 34757578: `40121_2021_545_Tab2_HTML.gif`
+- tocilizumab-covid19-mortality / PMID 34757578: `40121_2021_545_Tab2_HTML.jpg`
+- tocilizumab-covid19-mortality / PMID 35657993: `pone.0269368.t001.gif`
+- tocilizumab-covid19-mortality / PMID 35657993: `pone.0269368.t001.jpg`
+- tocilizumab-covid19-mortality / PMID 35657993: `pone.0269368.t002.gif`
+- tocilizumab-covid19-mortality / PMID 35657993: `pone.0269368.t002.jpg`
+- tocilizumab-covid19-mortality / PMID 35802687: `pone.0270668.t001.gif`
+- tocilizumab-covid19-mortality / PMID 35802687: `pone.0270668.t001.jpg`
+- tocilizumab-covid19-mortality / PMID 35802687: `pone.0270668.t002.gif`
+- tocilizumab-covid19-mortality / PMID 35802687: `pone.0270668.t002.jpg`
+- tocilizumab-covid19-mortality / PMID 35802687: `pone.0270668.t003.gif`
+- tocilizumab-covid19-mortality / PMID 35802687: `pone.0270668.t003.jpg`
+- tocilizumab-covid19-mortality / PMID 35863630: `gr1_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 35863630: `gr1_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 35863630: `gr2_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 35863630: `gr2_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 35863630: `gr3_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 35863630: `gr3_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 36377228: `ga1_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 36377228: `ga1_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 36377228: `gr1_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 36377228: `gr1_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 36377228: `gr2_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 36377228: `gr2_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 36377228: `gr3_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 36377228: `gr3_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 36377228: `gr4_lrg.gif`
+- tocilizumab-covid19-mortality / PMID 36377228: `gr4_lrg.jpg`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr1.gif`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr1.jpg`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr2.gif`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr2.jpg`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr3.gif`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr3.jpg`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr4.gif`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr4.jpg`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr5.gif`
+- tocilizumab-covid19-mortality / PMID 37309358: `gr5.jpg`
+- tocilizumab-covid19-mortality / PMID 39181595: `gr1.gif`
+- tocilizumab-covid19-mortality / PMID 39181595: `gr1.jpg`
+- tocilizumab-covid19-mortality / PMID 39181595: `gr2.gif`
+- tocilizumab-covid19-mortality / PMID 39181595: `gr2.jpg`
