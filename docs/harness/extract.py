@@ -465,10 +465,13 @@ SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE = "SOURCE_REPORTED_AND_COUNT_DERIVED_
 _RT_ADJUSTED = re.compile(r"(?<!un)\badjusted\b|\ba(?:OR|RR|HR)\b|\bmultivariab|\bmultivariate\b|\bcovariate|"
                           r"\bregression\b|\bcontroll?(?:ing|ed)?\s+for\b|\brate\s+ratio\b|\bIRR\b", re.I)
 # a number as printed, including one with no leading zero ('RR .50', codex a7-r3 #2)
-_NUM_TOKEN = re.compile(r"(?<![\d.])(?:\d+(?:\.\d+)?|\.\d+)(?![\d.])")
+# A number ends where no digit follows and no '.<digit>' follows: a sentence's full stop right after the value ('the RR
+# was 0.84.') is not part of it -- '(?![\d.])' refused that value, so the labelled occurrence was missed and the whole
+# span was read (found by the independent oracle, codex lane L2, 15 Oct).
+_NUM_TOKEN = re.compile(r"(?<![\d.])(?:\d+(?:\.\d+)?|\.\d+)(?!\d|\.\d)")
 # the reported value AS PRINTED after its ratio label: 'RR 0.50', 'relative risk 0.49;', 'odds ratio 0.25 (95% ...'
-_RATIO_LABEL = r"\b(RR|OR|HR|IRR|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
-_RATIO_VALUE = re.compile(_RATIO_LABEL + r"[^\d;().]{0,30}?(?<![\d.])(\d+(?:\.\d+)?|\.\d+)(?![\d.])", re.I)
+_RATIO_LABEL = r"\b((?-i:RR|OR|HR|IRR)|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
+_RATIO_VALUE = re.compile(_RATIO_LABEL + r"[^\d;().]{0,30}?(?<![\d.])(\d+(?:\.\d+)?|\.\d+)(?!\d|\.\d)", re.I)
 # where the NEXT estimate begins: its label and any qualifier word before it ('..., adjusted RR 0.60', a7-r3 #1)
 _NEXT_ESTIMATE = re.compile(r"(?:\b(?:un)?adjusted\s+|\bcrude\s+)?" + _RATIO_LABEL, re.I)
 # a label is the reported value's own only when it names the reported SCALE (codex a7-r2 #2: 'The HR was 0.5 and the
