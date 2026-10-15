@@ -114,3 +114,16 @@ is available in the registry-named source `cache/benchmarks/v1/PMC10519573.xml`.
   report the primary outcome is included and shown as declared-absent for that outcome. Any trial the
   comparator excluded for this reason is reported by the G1 tracker as DIVERGENT_NAMED (OUTCOME_DEFINITION /
   eligibility-on-outcome), not as a mismatch.
+
+## Amendment 1 (captain, 15 Oct 2026; before any extraction or pooling)
+- **Why.** The registered screening vocabulary paraphrased the comparator meta's PICO instead of giving screenable terms.
+  The first draft screen therefore included 0 of 123 records, and all five of the meta's trials were excluded:
+  - POLLUX, CASTOR and APOLLO at X2: their titles say 'multiple myeloma' without 'relapsed/refractory';
+  - LEPUS and CANDOR at X3: the comparator term 'non-daratumumab-containing regimens' never appears in a record.
+- **Change.**
+  - Population: the term is 'multiple myeloma', with 'newly diagnosed' and 'smoldering' as exclusion terms. The
+    RRMM population is otherwise judged from the trial's eligibility as recorded.
+  - Comparator: the backbone agents (lenalidomide, bortezomib, carfilzomib, pomalidomide, dexamethasone). These are
+    add-on trials: daratumumab plus a backbone against the same backbone alone.
+- **Unchanged.** The PICO, outcome, estimand and eligibility *intent*. This amends only the vocabulary that
+  operationalises them.
