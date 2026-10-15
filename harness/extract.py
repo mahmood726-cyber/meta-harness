@@ -133,7 +133,18 @@ def _outcome_sentences(abstract, kws):
     # outcome) fall back to matching any keyword.
     specific = [k for k in kws if k.lower() not in GENERIC_HARM]
     sel = specific if specific else kws
-    return [s for s in _sentences(abstract) if any(_kw_in_sentence(k, s.lower()) for k in sel)]
+    # Learn only explicit definitions in THIS abstract, never curated/global aliases.
+    # The keyword must immediately precede (ABBR), not occur elsewhere in its sentence.
+    folded = lexicon.fold(abstract)
+    aliases = set()
+    for k in sel:
+        definition = (r"(?<!\w)" + re.escape(lexicon.fold(k))
+                      + r"\s*\(([a-z][a-z0-9-]{1,11})\)")
+        aliases.update(re.findall(definition, folded))
+    return [s for s in _sentences(abstract)
+            if any(_kw_in_sentence(k, s.lower()) for k in sel)
+            or any(re.search(r"(?<!\w)" + re.escape(a) + r"(?!\w)", lexicon.fold(s))
+                   for a in aliases)]
 
 
 def _negated(s, pos):
