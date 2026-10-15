@@ -101,3 +101,21 @@ def test_composite_dhhf_is_not_a_component_alias():
     abstract = (keyword_sentence + " DHHF occurred in 20 patients receiving omarigliptin "
                 "and 33 receiving placebo.")
     assert _outcome_sentences(abstract, ["hospitalization for heart failure"]) == [keyword_sentence]
+
+
+def test_defined_as_does_not_match_lowercase_as():
+    from harness.extract import _outcome_sentences
+
+    keyword_sentence = "Aortic stenosis (AS) was a secondary endpoint."
+    abstract = (keyword_sentence + " Mortality was recorded as 20/100 patients receiving "
+                "treatment and 33/100 receiving placebo.")
+    assert _outcome_sentences(abstract, ["aortic stenosis"]) == [keyword_sentence]
+
+
+def test_conflicting_hf_definitions_do_not_learn_alias():
+    from harness.extract import _outcome_sentences
+
+    keyword_sentence = "Heart failure (HF) was a secondary endpoint."
+    abstract = (keyword_sentence + " Hepatic fibrosis (HF) was also assessed. "
+                "HF occurred in 20/100 patients receiving treatment and 33/100 receiving placebo.")
+    assert _outcome_sentences(abstract, ["heart failure"]) == [keyword_sentence]
