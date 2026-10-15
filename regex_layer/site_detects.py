@@ -1128,3 +1128,8 @@ DETECTS.update({
                                       "trigger": r"semaglutide", "text_source": "a semaglutide+placebo trial record's "
                                       "title + abstract (middle-dot decimals normalised)", "lowercased": False},
 })
+
+# compat_check.py's OUTCOME-BINDING sites (audit 26-A / 12-03 / 04-2, 11 Oct)
+from regex_layer.site_detects_compat_binding import DETECTS as _COMPAT_BINDING_DETECTS  # noqa: E402
+
+DETECTS.update(_COMPAT_BINDING_DETECTS)
