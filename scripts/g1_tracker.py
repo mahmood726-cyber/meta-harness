@@ -2975,6 +2975,98 @@ def with_identity_chain(T):
     return T
 
 
+def topic_agents_by_slug():
+    """{slug: [agent names, lower case]} from every topic config's intervention_agents (names and aliases)."""
+    out = {}
+    for f in os.listdir(os.path.join(ROOT, "topics")):
+        if f.endswith(".json"):
+            c = _j(os.path.join(ROOT, "topics", f))
+            a = c.get("intervention_agents") or {}
+            out[f[:-5]] = sorted({x.lower() for k, v in a.items() for x in [k, *v]}) if isinstance(a, dict) else []
+    return out
+
+
+def class_topics():
+    """Slugs whose protocol names a drug CLASS (intervention_class_terms): membership of an unlisted molecule is theirs
+    to decide."""
+    return {f[:-5] for f in os.listdir(os.path.join(ROOT, "topics"))
+            if f.endswith(".json") and _j(os.path.join(ROOT, "topics", f)).get("intervention_class_terms")}
+
+
+def verified_agent_identity(T, agents=None, snap=None, class_topics=None):
+    """R7-4: a comparator unit whose agent is UNCONFIRMED is classified by its VERIFIED intervention identity -- the
+    registered DRUG / BIOLOGICAL interventions of its resolved NCT (AACT interventions.txt, one pass) -- BEFORE any
+    scope rule can name it. A registered topic agent -> DRUG_MATCH; registered drugs, none the topic's (placebo aside)
+    -> OTHER_AGENT (out of a drug-specific topic's N, listed in other_agent_units); no drug rows, or no snapshot ->
+    unchanged (fail closed). SOLOIST-WHF (sotagliflozin, NCT03521934) was named a 'diabetes' POPULATION difference in
+    the empagliflozin topic."""
+    import copy
+    import csv
+    agents = agents if agents is not None else topic_agents_by_slug()
+    classes = class_topics if class_topics is not None else globals()["class_topics"]()
+    snap = snap or os.environ.get("AACT_SNAPSHOT") or "F:/AACT-storage/AACT/2026-08-30"
+    p = os.path.join(snap, "interventions.txt")
+    todo = [t for t in T["trials"] if t.get("drug") == "AGENT_UNCONFIRMED" and t.get("ncts")]
+    if not todo or not os.path.isfile(p):
+        return T
+    want = {n for t in todo for n in t["ncts"]}
+    reg = {}
+    csv.field_size_limit(10 ** 9)
+    with open(p, encoding="utf-8", newline="") as fh:
+        rd = csv.DictReader(fh, delimiter="|")
+        missing = {"nct_id", "intervention_type", "name"} - set(rd.fieldnames or [])
+        if missing:
+            raise ValueError(f"{p}: AACT interventions.txt lacks column(s) {sorted(missing)}")
+        for r in rd:
+            if r.get("nct_id") in want and str(r.get("intervention_type") or "").upper() in ("DRUG", "BIOLOGICAL"):
+                reg.setdefault(r["nct_id"], []).append(r.get("name") or "")
+    T = copy.deepcopy(T)
+    for t in T["trials"]:
+        if t.get("drug") != "AGENT_UNCONFIRMED" or not t.get("ncts"):
+            continue
+        allnames = [n.strip() for nct in t["ncts"] for n in reg.get(nct, [])]
+        unnamed = any(not n for n in allnames)
+        mine = agents.get(t["slug"]) or []
+        if not mine:
+            # no topic-agent definition: an empty lookup cannot establish a different agent
+            continue
+        # a registered name that mentions a placebo/sham/vehicle/dummy at all is evidence of NOTHING -- neither the
+        # topic agent nor another one ('placebo for empagliflozin 10 mg', 'empagliflozin plus matching placebo'):
+        # parsing which part is active is not attempted (fail closed; the active drug has its own row when registered)
+        def active(n):
+            return "" if re.search(r"\b(?:placebos?|sham|vehicle|dummy)\b", n.lower()) else n.lower()
+        act = [active(n) for n in allnames]
+        # ... but a placebo-mentioning name that NAMES the topic agent means the agent may be in the trial: it blocks
+        # OTHER_AGENT (never establishes DRUG_MATCH)
+        # an agent name is bounded by non-alphanumerics: 'vitamin b1' is not found in 'vitamin b12'
+        def names_agent(text, g):
+            return re.search(r"(?<![a-z0-9])" + re.escape(g.lower()) + r"(?![a-z0-9])", text)
+        placebo_names_agent = any(not a and names_agent(n.lower(), g) for n, a in zip(allnames, act) for g in mine)
+        hit = any(names_agent(n, g) for g in mine for n in act)
+        named = [(n, a, re.sub(r"\b\d+(?:\.\d+)?\s*(?:mg|g|mcg|ug|µg|ml|iu|units?|%|mmol)?\b|\b(?:tablets?|capsules?|"
+                               r"oral|injection|solution|dose|daily|once|twice|of|for|to)\b|[^a-z]", "", a))
+                 for n, a in zip(allnames, act) if n and a]
+        names = [n for n, a, core in named if core]
+        # a drug row with no agent word left ('10 mg tablets') is UNIDENTIFIED, like an unnamed row
+        dose_only = any(not core for _, _, core in named)
+        missing = [n for n in t["ncts"] if not reg.get(n)]
+        if not names:
+            continue
+        if (unnamed or dose_only or missing or placebo_names_agent) and not hit:
+            # an UNNAMED or dose-only registered drug row, or a listed NCT with no registered drug rows, could be the
+            # topic's agent: incomplete identity evidence cannot establish a different agent
+            continue
+        basis = f"REGISTRY_INTERVENTIONS:{','.join(t['ncts'])}:{sorted(set(names))[:4]}"
+        if not hit and t["slug"] in classes:
+            # a CLASS topic ('SGLT2 inhibitors'): whether an unlisted molecule (sotagliflozin, dual SGLT1/2) belongs is
+            # the protocol's decision -- never inferred from the agent list; left unconfirmed, flagged
+            t["identity_basis"] = list(t.get("identity_basis") or []) + [basis + ":CLASS_TOPIC_PROTOCOL_DECIDES"]
+            continue
+        t["drug"] = "DRUG_MATCH" if hit else "OTHER_AGENT"
+        t["identity_basis"] = list(t.get("identity_basis") or []) + [basis]
+    return T
+
+
 def attach_forest_reader_provenance(o, slug):
     """A LANE file's comparator rows (tocilizumab: the lane's own counts, no per-row location) take the provenance of
     the forest-reader lane's DUAL-MODEL read of the SAME comparator figure -- only for a row that joins exactly one
@@ -4236,6 +4328,7 @@ def main(argv):
         T = _j(os.path.join(OUT, "k_gap_table.json"))
         os.makedirs(G1_DIR, exist_ok=True)
         T = with_identity_chain(T)
+        T = verified_agent_identity(T)          # R7-4: identity BEFORE any scope rule
         for s in [a for a in argv if not a.startswith("--")]:
             o = topic(s, T)
             # ATOMIC: a concurrent reader (another process building the table) must never see a truncated file
