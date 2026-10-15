@@ -835,7 +835,7 @@ _MED_IQR = re.compile(  # "median X (IQR a-b)" / "median X (IQR a to b)"
                                    _MED_IQR))
 
 
-def _arm_ns(abstract, interv_terms, comp_terms):
+def _arm_ns(abstract, interv_terms, comp_terms, analysed_group_form=False):
     """Per-arm randomised n, {i: n_intervention, c: n_comparator}, only when unambiguously stated
     for BOTH arms ('zinc (n=50)', 'N patients received zinc', 'assigned N to placebo'); else the
     missing arm is omitted so the continuous extractor refuses rather than guess a denominator."""
@@ -855,10 +855,9 @@ def _arm_ns(abstract, interv_terms, comp_terms):
                         # the OR the protocol registers).
                         rf"(\d+)\s+to\s+(?:receive\s+)?(?:the\s+)?{tl}",
                         rf"(?:received|assigned to|randomi[sz]ed to)[^.]{{0,15}}?{tl}[^.]{{0,15}}?\(\s*(\d+)\)",
-                        # 'N in the <arm> group/arm' -- PICU 39935568: '19 patients eligible for final analysis; 10 in
-                        # the LGG group and 9 in the placebo group' (A7 part 2). As with every size here, the count path
-                        # uses it only if it corroborates the arm's stated percentage (30% of 10 = 3).
-                        rf"(\d+)\s+in\s+the\s+{tl}\s+(?:group|arm)\b",
+                        # A7's analysed-group form serves only the consistency check; enabling it by default
+                        # would admit new count rows into extraction (e.g. the COCS-shaped scope plant).
+                        *((rf"(\d+)\s+in\s+the\s+{tl}\s+(?:group|arm)\b",) if analysed_group_form else ()),
                         # BARE ADJACENCY (last resort): "... and 263 conventional oxygen therapy" — an
                         # arm size given as "N <arm label>" with the shared verb elided. Safe because
                         # the count path only accepts this size if it corroborates the arm's stated %.
@@ -889,7 +888,8 @@ def percentage_implied_counts(abstract, sentences, interv_terms, comp_terms):
     count path is unchanged (it needs printed counts). Each implied count must reproduce its printed percentage to
     the printed precision (rounded or truncated: |count/n - p| < one unit in the last printed decimal), arms are
     ordered by where the arm terms appear AFTER the pair, and a pair with both or neither arm order is ambiguous -> None."""
-    ns = _arm_ns(abstract or "", interv_terms, comp_terms)
+    # Opt in only for this consistency check: implied counts never admit a pooled value.
+    ns = _arm_ns(abstract or "", interv_terms, comp_terms, analysed_group_form=True)
     if not (ns.get("i") and ns.get("c")):
         return None
     # an abstract that says its percentages are estimates anywhere implies nothing (codex a7p2-r2 #4); conservative:
