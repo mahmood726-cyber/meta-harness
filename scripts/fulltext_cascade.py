@@ -152,8 +152,17 @@ def targets(slug: str, root: Path = ROOT) -> dict[str, list[str]]:
                 add(rec.get("id"), "screened in")
     topic = root / "topics" / f"{slug}.json"
     if topic.is_file():
-        for p in json.loads(topic.read_text(encoding="utf-8")).get("positive_control_pmids") or []:
+        config = json.loads(topic.read_text(encoding="utf-8"))
+        for p in config.get("positive_control_pmids") or []:
             add(p, "positive control")
+        for p in config.get("extra_pmids") or []:
+            add(p, "topic extra_pmid")
+    try:
+        from scripts.identity_search import found_pmids
+    except ModuleNotFoundError:  # direct script invocation
+        from identity_search import found_pmids
+    for p in sorted(found_pmids(slug, root)):
+        add(p, "recorded identity search")
     sm = root / "registry" / "secondary_meta" / f"{slug}.json"
     if sm.is_file():
         text = sm.read_text(encoding="utf-8")

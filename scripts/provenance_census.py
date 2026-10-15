@@ -137,12 +137,18 @@ def classify_tracker(t: dict, slug: str, served_class: dict, root: str = ROOT, l
 
 def census(root: str = ROOT) -> dict:
     served, served_class = [], {}
+    from scripts.identity_search import found_pmids
     extra = {}
     from harness.provenance_class import recorded_reads
     reads = recorded_reads(root)
     for p in sorted(glob.glob(os.path.join(root, "topics", "*.json"))):
         c = _j(p)
-        extra[os.path.basename(p)[:-5]] = {str(x) for x in (c.get("extra_pmids") or [])}
+        slug = os.path.basename(p)[:-5]
+        named = {str(x) for x in (c.get("extra_pmids") or [])}
+        recorded = os.path.join(root, "registry", "identity_searches", f"{slug}.json")
+        if os.path.isfile(recorded):
+            named.update(str(e.get("pmid")) for e in _j(recorded).get("entries", []))
+        extra[slug] = named - found_pmids(slug, root)
     for p in sorted(glob.glob(os.path.join(root, "docs", "reviews", "*", "review.json"))):
         r = _j(p)
         slug = r.get("slug") or os.path.basename(os.path.dirname(p))
