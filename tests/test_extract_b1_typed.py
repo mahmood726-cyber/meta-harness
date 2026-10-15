@@ -59,7 +59,8 @@ def test_total_is_not_an_arm():
     text = (ROOT / "cache/probiotics-aad-prevention/ft_39529939.txt").read_text(encoding="utf-8")
     paragraph = next(p for p in re.findall(r"<p\b[^>]*>.*?</p>", text, re.S) if "10/564" in p)
     sentence = extract._sentences(re.sub(r"<[^>]+>", "", paragraph))[0]
-    assert extract.extract_arm_counts(sentence, ["probiotic"], ["placebo"]) == (7, 285, 3, 279)
+    from harness.typed_routes import _sentence_counts
+    assert _sentence_counts(sentence, ["probiotic"], ["placebo"]) == (7, 285, 3, 279)
 
 from functools import lru_cache
 
@@ -141,3 +142,61 @@ def test_missing_source_refuses_one_row_in_topic(monkeypatch):
     assert row['typed_refusal'] and 'missing held source plant' in row['reason']
     assert any(r['id'] == 'PMID 41699149' for r in outcome['trials'])
     built.cache_clear()
+
+
+@pytest.mark.parametrize("mutation,reason", [
+    ("unregistered", "TYPED_ROUTE_UNPINNED"),
+    ("missing", "TYPED_ROUTE_UNPINNED"),
+    ("value", "TYPED_ROUTE_VALUE_MISMATCH"),
+])
+def test_pinned_route_build_refusal(monkeypatch, tmp_path, mutation, reason):
+    from harness import typed_routes as tr
+    key = ("probiotics-aad-prevention", "Any adverse events", "39529939")
+    data = read("tests/fixtures/b1_served_values_0d95190c29.json")
+    if mutation == "unregistered":
+        key = (key[0], key[1], "unregistered-test-route")
+        monkeypatch.setitem(tr.ROUTES, key, {"route": "sentence_counts"})
+    else:
+        outcome = next(o for o in data["reviews"][key[0]]["outcomes"] if o["name"] == key[1])
+        row = next(t for t in outcome["trials"] if t["id"] == "PMID " + key[2])
+        if mutation == "missing":
+            outcome["trials"].remove(row)
+        else:
+            row["ai"] += 1
+    fixture = tmp_path / "pinned.json"
+    fixture.write_text(json.dumps(data), encoding="utf-8")
+    monkeypatch.setattr(tr, "PINNED_VALUES", fixture)
+    if mutation == "unregistered":
+        # This synthetic locator has no included trial in the topic. Check the
+        # route refusal directly; the other plants exercise real build rows.
+        row = tr.for_outcome(*key[:2])[key[2]]
+        assert row["absent"] and row["reason_code"] == reason
+        with pytest.raises(ValueError, match=reason):
+            tr.extract_bound(*key)
+        return
+    built.cache_clear()
+    try:
+        result = built(*key[:2])
+        row = next(r for r in result["declared_absent_trials"] if r["id"] == "PMID " + key[2])
+        assert row["typed_refusal"] and reason in row["reason"]
+        assert not any(r["id"] == "PMID " + key[2] for r in result["trials"])
+        assert tr.for_outcome(*key[:2])[key[2]]["reason_code"] == reason
+    finally:
+        built.cache_clear()
+
+
+def test_every_route_has_a_pinned_served_value():
+    from harness import typed_routes as tr
+    for key in tr.ROUTES:
+        assert tr._pinned_value(*key)
+
+
+def test_shared_extractor_p1_1_main_behavior():
+    sentence = 'Hypoglycaemia: empagliflozin 3/100 (3%) vs placebo 7/100 (7%), favouring empagliflozin.'
+    assert extract.extract_arm_counts(sentence, ['empagliflozin'], ['placebo']) == (3, 100, 7, 100)
+
+
+def test_shared_extractor_is_exact_pinned_main():
+    import subprocess
+    assert (ROOT / 'harness/extract.py').read_bytes() == subprocess.check_output(
+        ['git', 'show', '0d95190c29:harness/extract.py'])

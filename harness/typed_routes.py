@@ -15,6 +15,7 @@ from . import copy_licence, extract
 from .table_rows import plain, read_row
 
 ROOT = Path(__file__).resolve().parents[1]
+PINNED_VALUES = ROOT / "tests/fixtures/b1_served_values_0d95190c29.json"
 HF = "Hospitalization for heart failure"
 # Report locators, not numerical extraction answers.
 ROUTES = {
@@ -37,6 +38,49 @@ ROUTES = {
     ("sglt2-primary-prevention-hf", HF, "28605608"): {"route": "sentence_hr", "report": "29526832", "abstract": True},
     ("sglt2-primary-prevention-hf", HF, "32966714"): {"route": "sentence_hr", "report": "33026243", "abstract": True},
 }
+
+
+def _pinned_value(slug, outcome, pid):
+    """Historical admission oracle only; never a source of extracted values."""
+    try:
+        data = json.loads(PINNED_VALUES.read_text(encoding="utf-8"))
+        hits = [t for o in data["reviews"].get(slug, {}).get("outcomes", [])
+                if o["name"] == outcome for t in o["trials"]
+                if t["id"] == f"PMID {pid}"]
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise ValueError("TYPED_ROUTE_UNPINNED") from error
+    if len(hits) != 1:
+        raise ValueError("TYPED_ROUTE_UNPINNED")
+    keys = ("ai", "n1i", "ci", "n2i") if "ai" in hits[0] else ("effect", "ci_low", "ci_high", "scale")
+    if any(k not in hits[0] for k in keys):
+        raise ValueError("TYPED_ROUTE_UNPINNED")
+    return {k: hits[0][k] for k in keys}
+
+
+def _sentence_counts(sentence, intervention_terms, comparator_terms):
+    """Route-local percentage/fraction reader: labels FOLLOW counts in a clause."""
+    hits = {"intervention": [], "comparator": []}
+    pattern = re.compile(r"(?P<pct>\d+(?:\.\d+)?)%\s*\((?P<ev>\d+)/(?P<n>\d+)\)|"
+                         r"(?P<ev2>\d+)/(?P<n2>\d+)\s*\((?P<pct2>\d+(?:\.\d+)?)%\)")
+    for clause in re.split(r":|;|,|\band\b", sentence, flags=re.I):
+        matches = list(pattern.finditer(clause))
+        for j, match in enumerate(matches):
+            tail = clause[match.end():matches[j+1].start() if j+1 < len(matches) else len(clause)]
+            owners = [arm for arm, terms in (("intervention", intervention_terms), ("comparator", comparator_terms))
+                      if any(re.search(r"\b" + re.escape(term) + r"\b", tail, re.I) for term in terms)]
+            if not owners:
+                continue  # The overall count before the colon has no following arm label.
+            if len(owners) != 1:
+                return None
+            ev = int(match['ev'] or match['ev2'])
+            n = int(match['n'] or match['n2'])
+            pct = float(match['pct'] or match['pct2'])
+            if not 0 <= ev <= n or n == 0 or abs(100 * ev / n - pct) > .051:
+                return None
+            hits[owners[0]].append((ev, n))
+    if any(len(values) != 1 for values in hits.values()):
+        return None
+    return hits['intervention'][0] + hits['comparator'][0]
 
 
 def _record(data, pid):
@@ -120,6 +164,7 @@ def _licence_evidence(root, key, ref, raw):
 def extract_bound(slug, outcome, pid, *, root=ROOT):
     root = Path(root)
     selector = ROUTES[(slug, outcome, str(pid))]
+    pinned = _pinned_value(slug, outcome, str(pid))
     cfg = json.loads((root / "topics" / (slug + ".json")).read_text(encoding="utf-8"))
     specs = [cfg.get("primary_outcome")] + cfg.get("secondary_outcomes", []) + cfg.get("harm_outcomes", [])
     spec = next(s for s in specs if s and s["name"] == outcome)
@@ -206,7 +251,7 @@ def extract_bound(slug, outcome, pid, *, root=ROOT):
             for sentence in extract._sentences(plain(p)):
                 if "experienced an AE:" not in sentence:
                     continue
-                counts = extract.extract_arm_counts(sentence, cfg["intervention_terms"], cfg["comparator_terms"])
+                counts = _sentence_counts(sentence, cfg["intervention_terms"], cfg["comparator_terms"])
                 if counts:
                     hits.append((p, counts))
         if len(hits) != 1:
@@ -237,6 +282,8 @@ def extract_bound(slug, outcome, pid, *, root=ROOT):
                 provenance="typed_held_source", typed_bindings=bindings,
                 typed_route={"slug": slug, "outcome": outcome, "pid": str(pid)},
                 **({"effect_source_id": f"PMID {report}"} if report != pid else {}))
+    if value != pinned:
+        raise ValueError("TYPED_ROUTE_VALUE_MISMATCH")
     result.update(value)
     return result
 
@@ -251,7 +298,8 @@ def for_outcome(slug, outcome, root=ROOT):
         except (OSError, ValueError) as error:
             result[pid] = dict(outcome=o, absent=True, override=True, kind="typed_refusal",
                                provenance="REFUSED_ON_EVIDENCE", state="RETRIEVED_REFUSED_WITH_REASON",
-                               reason_code="TYPED_SOURCE_REFUSED", reason=f"{type(error).__name__}: {error}")
+                               reason_code=(str(error) if str(error) in ("TYPED_ROUTE_UNPINNED", "TYPED_ROUTE_VALUE_MISMATCH")
+                                            else "TYPED_SOURCE_REFUSED"), reason=f"{type(error).__name__}: {error}")
     return result
 
 

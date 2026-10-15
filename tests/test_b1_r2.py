@@ -60,7 +60,7 @@ def test_r2_ascii_and_dash():
 
 def test_r3_local_arm_order():
     s='Among probiotic and placebo recipients, adverse events occurred in 10/564 (1.8%): 3/279 (1.1%) in the placebo group and 7/285 (2.5%) in the probiotic group.'
-    assert extract.extract_arm_counts(s,['probiotic'],['placebo']) == (7,285,3,279)
+    assert tr._sentence_counts(s,['probiotic'],['placebo']) == (7,285,3,279)
 
 def test_r3_multiple_outcomes():
     s='Diarrhoea occurred in 30/100 (30%) probiotic and 10/100 (10%) placebo patients, and nausea in 5/100 (5%) and 2/100 (2%), respectively.'
@@ -95,10 +95,11 @@ def test_r7_pinned_fixture():
     assert 'read(f"docs/reviews/' not in source
     assert 'read("docs/reviews/' not in source
 
-def test_r3_other_outcome_not_reused():
+def test_reverted_main_multi_outcome_behavior():
     s='Diarrhoea occurred in 30/100 (30%) probiotic and 10/100 (10%) placebo patients, and nausea in 5/100 (5%) and 2/100 (2%), respectively.'
     got=extract.extract_trial(s,['nausea'],['probiotic'],['placebo'])
-    assert got.get('absent')
+    # Review closed: freeze main behavior, not the reverted clause-keyword claim.
+    assert tuple(got[k] for k in ('ai', 'n1i', 'ci', 'n2i')) == (30,100,10,100)
 
 def test_typed_replay_traces_served_legacy_value():
     from harness.provenance_class import served_class
