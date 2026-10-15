@@ -290,3 +290,81 @@ def test_topic_condition_uses_first_population():
     assert rs.topic_condition({"include": {"population_any": ["first", "second"]}}) == "first"
     for cfg in ({}, {"include": {}}, {"include": {"population_any": []}}):
         assert rs.topic_condition(cfg) is None
+
+
+HR_SENTENCE = ("The rate of MACE was 48% lower with alirocumab than with placebo (27 (1.7%) vs. 26 (3.3%); "
+               "hazard ratio, 0.52; 95% confidence interval, 0.31 to 0.90; nominal P = 0.02)")
+HR_DOC = "ODYSSEY LONG TERM" + " " * 200 + HR_SENTENCE
+
+
+def test_PLANT_hr_sentence_found():
+    hits = rs.typed_effect(HR_DOC, ["ODYSSEY LONG TERM"], ["MACE"])
+    assert len(hits) == 1
+    assert tuple(hits[0][k] for k in ("effect", "lower", "upper")) == (0.52, 0.31, 0.90)
+    assert hits[0]["offset"] == 0 and hits[0]["span"] in HR_DOC
+
+
+@pytest.mark.parametrize("pool", ["in the placebo-controlled pool", "POOLED", "meta-analysis", "global",
+                                   "integrated", "across studies", "combined analysis"])
+def test_pooled_hr_refused(pool):
+    assert rs.typed_effect("ODYSSEY LONG TERM " + pool + HR_SENTENCE, ["ODYSSEY LONG TERM"], ["MACE"]) == []
+
+
+def test_or_wording_not_hr():
+    assert rs.typed_effect("TRIALX MACE odds ratio 0.52 (95% CI 0.31 to 0.90)", ["TRIALX"], ["MACE"]) == []
+
+
+@pytest.mark.parametrize("line", ["HR: 0.52 (95% CI: 0.31, 0.90)", "HR 0.52 (95% CI 0.31–0.90)",
+                                  "95% CI: HR 0.52 (0.31 to 0.90)", "95% CI: HR 0.52 (0.31-0.90)",
+                                  "hazard ratio 0.52; 95% CI 0.31 to 0.90."])
+def test_hr_patterns(line):
+    assert rs.typed_effect("TRIALX MACE " + line, ["TRIALX"], ["mace"])
+
+
+@pytest.mark.parametrize("line", ["HR 0.52 (0.31 to 0.90)", "HR 0.52 (90% CI 0.31 to 0.90)",
+                                  "HR 0,52 (95% CI 0,31 to 0,90)", "HR 0.52 (95% CI 0.52 to 0.90)",
+                                  "HR 0.52 (95% CI 0 to 0.90)", "RR 0.52 (95% CI 0.31 to 0.90)"])
+def test_hr_invalid_or_unstated_ci_refused(line):
+    assert rs.typed_effect("TRIALX MACE " + line, ["TRIALX"], ["MACE"]) == []
+
+
+def test_hr_name_and_outcome_reach():
+    assert rs.typed_effect("TRIALX " + "x" * 601 + HR_SENTENCE, ["TRIALX"], ["MACE"]) == []
+    assert rs.typed_effect(HR_DOC, ["ODYSSEY LONG TERM"], ["stroke"]) == []
+    assert rs.typed_effect(HR_DOC, ["ODYSSEY LONG TERM"], ["MACE"], measure="OR") == []
+    assert rs.typed_effect(HR_SENTENCE + " TRIALX", ["TRIALX"], ["MACE"]) == []
+    assert rs.typed_effect("TRIALX pooled discussion. TRIALX " + HR_SENTENCE, ["TRIALX"], ["MACE"])
+
+
+def test_two_documents_disagree_returns_none():
+    h = {"text": HR_DOC, "names": ["ODYSSEY LONG TERM"], "record": {}}
+    held = {"a": h, "b": dict(h, text=HR_DOC.replace("0.52", "0.60"))}
+    assert rs.regulatory_typed_effect(held, ["MACE"]) is None
+    held["b"] = h
+    got = rs.regulatory_typed_effect(held, ["MACE"])
+    assert got[0] == "a" and got[2] == {"measure": "HR", "effect": 0.52, "lower": 0.31, "upper": 0.90}
+
+
+def test_typed_first_hr_is_held_not_admitted(monkeypatch):
+    rec = _held()["reg"][FDA]["record"]
+    value = {"measure": "HR", "effect": 0.52, "lower": 0.31, "upper": 0.90}
+    monkeypatch.setattr(rs, "regulatory_typed_effect", lambda *a: (FDA, rec, value, HR_DOC))
+    v, adm = ga.typed_first({"label": "TRIALX", "pmid": None, "slug": "x"},
+                            {"primary_outcome": {"estimand": "HR", "keywords": ["MACE"]}}, _held())
+    assert v == "HELD_FOR_BINDING" and adm["kind"] == "REGULATORY_EFFECT"
+    assert adm["value"] == value and adm["quote"] is None and adm["span"] == HR_DOC[:600]
+    for k in ("url", "agency", "licence", "doc_sha256", "text_sha256"):
+        assert adm[k] == rec[k]
+
+
+def test_binding_requires_complete_digest_keyed_ruling(monkeypatch):
+    ruling = dict.fromkeys(("arm", "outcome", "timepoint", "population", "analysis_set", "ruled_by", "ruled_on", "reason"),
+                           "synthetic")
+    ruling["decision"] = "BOUND"
+    monkeypatch.setattr(rs, "_load", lambda p: {"x|TRIALX|digest": ruling})
+    assert rs.binding_for("x", "TRIALX", FDA, "digest") == ruling
+    assert rs.binding_for("x", "TRIALX", FDA, "changed") is None
+    for k in list(ruling):
+        partial = {key: val for key, val in ruling.items() if key != k}
+        monkeypatch.setattr(rs, "_load", lambda p: {"x|TRIALX|digest": partial})
+        assert rs.binding_for("x", "TRIALX", FDA, "digest") is None

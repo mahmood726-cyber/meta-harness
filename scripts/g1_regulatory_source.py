@@ -33,6 +33,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
 
 SOURCES = os.path.join(ROOT, "registry", "regulatory_sources.json")
+BINDINGS = "registry/g1_regulatory_bindings.json"
 IDCACHE = os.path.join(ROOT, "outputs", "k_gap", "_reg", "id_information.json")
 HOST_AGENCY = {"www.accessdata.fda.gov": "FDA", "accessdata.fda.gov": "FDA", "www.fda.gov": "FDA",
                "www.ema.europa.eu": "EMA", "ema.europa.eu": "EMA", "www.nice.org.uk": "NICE", "nice.org.uk": "NICE",
@@ -482,6 +483,21 @@ def _load(p):
     return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}
 
 
+def binding_for(slug, label, url, text_sha256):
+    """Only a complete, digest-bound ruling can resolve a held effect's scope."""
+    try:
+        rulings = _load(os.path.join(ROOT, BINDINGS))
+    except (OSError, ValueError):
+        return None
+    r = rulings.get(f"{slug}|{label}|{text_sha256}") if isinstance(rulings, dict) else None
+    required = ("arm", "outcome", "timepoint", "population", "analysis_set", "ruled_by", "ruled_on", "decision", "reason")
+    if not isinstance(r, dict) or not all(isinstance(r.get(k), str) and r[k].strip() for k in required):
+        return None
+    if r["decision"] not in ("BOUND", "NOT_BOUND") or ("url" in r and r["url"] != url):
+        return None
+    return r
+
+
 def _dump(p, d):
     os.makedirs(os.path.dirname(p), exist_ok=True)
     tmp = p + f".{os.getpid()}.tmp"
@@ -559,4 +575,51 @@ def regulatory_typed(held_reg, terms, interv_terms, comp_terms):
             if r:
                 got.append((url, h["record"], r[0], r[1]))
     uniq = {tuple(sorted(g[2].items())) for g in got}
+    return got[0] if len(uniq) == 1 else None
+
+
+def typed_effect(text, names, terms, measure="HR"):
+    """A nearby trial name and explicit 95% CI identify a candidate, never its population binding."""
+    from harness import lexicon
+    if measure != "HR":
+        return []
+    num = r"\d+(?:\.\d+)?"
+    ci = r"95\s*%\s*(?:CI|confidence\s+interval)\b"
+    pattern = re.compile(
+        rf"\b(?:hazard\s+ratio|HR)\b\s*[,:]?\s*(?P<effect>{num})\s*"
+        rf"(?:[;,]?\s*(?P<ci>{ci})\s*[,:]?\s*|(?P<paren>\()\s*(?:(?P<pci>{ci})\s*[,:]?\s*)?)"
+        rf"(?P<lower>{num})\s*(?:to|[-–]|,)\s*(?P<upper>{num})(?!\d|[.,]\d)(?(paren)\s*\))", re.I)
+    mentions = named_at(text, names)
+    out = []
+    for m in pattern.finditer(text):
+        preceding = [(off, name) for off, name in mentions if off + len(name) <= m.start()]
+        if not preceding:
+            continue
+        off, name = preceding[-1]
+        if m.end() - off > 600:
+            continue
+        span = text[off:m.end()]
+        if re.search(r"pool|pooled|meta-analys|global|integrated|across\s+studies|combined\s+analysis",
+                     text[off + len(name):m.start()], re.I):
+            continue
+        if not (m.group("ci") or m.group("pci") or re.search(ci, text[off:m.start()], re.I)):
+            continue
+        if not any(t and lexicon.fold(t) in lexicon.fold(span) for t in terms):
+            continue
+        effect, lower, upper = (float(m.group(k)) for k in ("effect", "lower", "upper"))
+        if 0 < lower < effect < upper:
+            out.append({"effect": effect, "lower": lower, "upper": upper, "span": span, "offset": off})
+    return out
+
+
+def regulatory_typed_effect(held_reg, terms, measure="HR"):
+    """Disagreement anywhere in the held documents prevents choosing an effect."""
+    got = []
+    for url, h in sorted((held_reg or {}).items()):
+        if url.startswith("_") or not isinstance(h, dict):
+            continue
+        for hit in typed_effect(h["text"], h["names"], terms, measure):
+            value = {k: hit[k] for k in ("effect", "lower", "upper")}
+            got.append((url, h["record"], dict(value, measure=measure), hit["span"]))
+    uniq = {(g[2]["effect"], g[2]["lower"], g[2]["upper"]) for g in got}
     return got[0] if len(uniq) == 1 else None

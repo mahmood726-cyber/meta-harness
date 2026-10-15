@@ -73,7 +73,18 @@ def run_trial(slug, agency, cfg, comp, t):
         adm["value"] = {k: getattr(rw, k) for k in ("measure", "effect", "lower", "upper", "events_t", "n_t", "events_c", "n_c")}
         return dict(out, stage="TYPED", decision="ADMITTED_DETERMINISTIC", verdict="ADMITTED", admitted=adm,
                     record_id=None, model=None)
+    if v == "HELD_FOR_BINDING" and adm:
+        ruling = rs.binding_for(slug, t["label"], adm["url"], adm["text_sha256"])
+        if ruling and ruling["decision"] == "BOUND":
+            return dict(out, stage="TYPED", decision="ADMITTED_DETERMINISTIC_BOUND", verdict="ADMITTED",
+                        admitted=dict(adm, binding=ruling), record_id=None, model=None)
+        decision = ("TYPED_NOT_BOUND:" + ruling["reason"] if ruling and ruling["decision"] == "NOT_BOUND"
+                    else "TYPED_HELD_PENDING_BINDING_RULING")
+        return dict(out, stage="TYPED", decision=decision, verdict="NOT_ADMITTED", candidate=adm)
     if not shown:
+        windows = sum(len(rs.evidence_windows(h["text"], h["names"], terms)) for h in held_reg.values())
+        if windows:
+            return dict(out, decision="NAMED_TYPED_ONLY_NO_ROW_PARSED", verdict="NOT_ADMITTED", typed_only_windows=windows)
         return dict(out, decision="NAMED_NO_WINDOW_WITH_OUTCOME_TERMS", verdict="NOT_ADMITTED")
     out["stage"] = "READ"
     # ONE evidence set for BOTH readers, capped so agy's --print argument fits the Windows command line (the regulatory
