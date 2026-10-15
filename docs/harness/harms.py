@@ -147,6 +147,17 @@ def _matches(sentence: str, terms: list[str]) -> bool:
     return any(t in sf for t in terms)
 
 
+_DISCONTINUATION = r"\b(?:discontinu\w*|withdraw\w*|withdrew)\b"
+_AE_CAUSE = r"\b(?:adverse events?|side effects?|toxicity|intolerance)\b"
+_AE_DISCONTINUATION = re.compile(
+    _DISCONTINUATION + r"[^.;]{0,80}?\b(?:due to|because of|owing to|for)\s+"
+    r"(?:\w+\s+){0,4}?" + _AE_CAUSE
+    + "|" + _AE_CAUSE + r"\s+(?:(?:\w+)\s+){0,4}?"
+    r"(?:led to|resulted in|caused|necessitated)\s+(?:\w+\s+){0,4}?" + _DISCONTINUATION,
+    re.I,
+)
+
+
 def reporting_signal(text: str | None, spec: dict[str, Any]) -> dict[str, Any] | None:
     """Return a conservative source-reporting signal for a harm outcome, if one is visible."""
     if not text:
@@ -157,6 +168,10 @@ def reporting_signal(text: str | None, spec: dict[str, Any]) -> dict[str, Any] |
     for sent in extract._sentences(extract._norm(text)):
         if not _matches(sent, terms):
             continue
+        # Cessation alone (e.g. on pregnancy) is not AE discontinuation.
+        if any(re.search(_DISCONTINUATION, t) for t in terms):
+            if not _AE_DISCONTINUATION.search(lexicon.fold(sent).replace("-", " ")):
+                continue
         compact = re.sub(r"\s+", " ", sent).strip()
         if _EFFECT_OR_COMPARISON.search(compact):
             return {"reported": True, "kind": "numeric_signal", "span": compact[:300]}
