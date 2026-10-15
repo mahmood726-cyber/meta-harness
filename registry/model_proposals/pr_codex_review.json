@@ -6731,5 +6731,273 @@
     "verdict": null
    }
   ]
+ },
+ "e1-cov-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-ec67dc20df8dcd3c74b12fbe4795f8ed",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/source_coverage.py",
+     "scripts/acquire_bundle_evidence.py",
+     "scripts/source_coverage_sweep.py"
+    ],
+    "prompt_sha256": "380b2e6970b22f83def787f17d13e3bd07df52139045b9ea88cc54c1be8c2ecb"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/source_coverage.py",
+    "function": "label_document",
+    "severity": "P1",
+    "claim": "Truncated XML is classified as complete full text because the body regex accepts end-of-input instead of a closing body tag. This licenses absence claims from an incomplete download.",
+    "failing_input": "label_document('<article><body><sec><title>Introduction</title><p>Enrollment began.')",
+    "expected": "Reject the malformed document or label it EXCERPT; it must not receive COMPLETE_SOURCE coverage.",
+    "actual": "Returns label='FULLTEXT', reason='XML_BODY', bundle_coverage='COMPLETE_SOURCE'. absence_licensed(['FULLTEXT']) returns True.",
+    "id": "e1-cov-r1:g1#1",
+    "record_id": "mc-ec67dc20df8dcd3c74b12fbe4795f8ed",
+    "verdict": null
+   },
+   {
+    "file": "harness/source_coverage.py",
+    "function": "label_document",
+    "severity": "P1",
+    "claim": "A self-declared completeness header overrides definitive evidence that no full text was delivered.",
+    "failing_input": "label_document('(coverage: COMPLETE_SOURCE)\\nThe publisher does not allow downloading of the full text.')",
+    "expected": "label='STUB', reason='PMC_NO_DOWNLOAD', bundle_coverage=None.",
+    "actual": "Returns label='FULLTEXT', reason='SELF_DECLARED:COMPLETE_SOURCE', bundle_coverage='COMPLETE_SOURCE', licensing absence claims.",
+    "id": "e1-cov-r1:g1#2",
+    "record_id": "mc-ec67dc20df8dcd3c74b12fbe4795f8ed",
+    "verdict": null
+   },
+   {
+    "file": "harness/source_coverage.py",
+    "function": "abstract_label",
+    "severity": "P1",
+    "claim": "The similarity fallback promotes an abstract missing an entire outcome unit to COMPLETE_ABSTRACT. Text similarity does not establish that the omission represents a complete earlier revision.",
+    "failing_input": "from unittest.mock import patch\nfrom harness import source_coverage as sc\nheld = ('Participants were followed for one year. ' * 30).strip()\nunits = [{'label': '', 'text': held}, {'label': '', 'text': 'Two deaths.'}]\npreservation = {'verdict': 'INCOMPLETE', 'preserved': 1, 'missing': 1, 'units': [{'state': 'PRESERVED'}, {'state': 'MISSING', 'text_if_missing': 'Two deaths.'}], 'extra_chars_in_cached_not_in_acquired': 0}\nwith patch.object(sc, 'preservation_record', return_value=preservation):\n    result = sc.abstract_label(held, units)\nprint(result['label'], result['bundle_coverage'], result['version_differs'])",
+    "expected": "EXCERPT EXCERPT_ONLY; the explicitly missing 'Two deaths.' unit must prevent complete-abstract coverage.",
+    "actual": "Prints 'FULL_ABSTRACT COMPLETE_ABSTRACT True', despite the preservation result explicitly reporting the missing death-outcome unit.",
+    "id": "e1-cov-r1:g1#3",
+    "record_id": "mc-ec67dc20df8dcd3c74b12fbe4795f8ed",
+    "verdict": null
+   }
+  ]
+ },
+ "e1-cov-r1-agy": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-74652f91424709e4531ccf78326116b2",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/source_coverage.py",
+     "scripts/acquire_bundle_evidence.py",
+     "scripts/source_coverage_sweep.py"
+    ],
+    "prompt_sha256": "7c6c12f0c53cdca0dd4d5587e8e17335dd18b75326b7e873bfa9a0266a7e1cee"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "e1-cov-r3-agy": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-8b6a0017947516049d03646f899b2767",
+    "state": "RAN_ERROR",
+    "reader": "agy",
+    "files": [
+     "harness/source_coverage.py",
+     "scripts/acquire_bundle_evidence.py",
+     "scripts/source_coverage_sweep.py"
+    ],
+    "prompt_sha256": "6fa23789de970e882795b7359aebe2432c4768e0981126d481d766a3e39f87a3"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "e1-cov-r3-agy-b": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-3f3e165a30cca55bcb5921ff804850da",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/source_coverage.py",
+     "scripts/acquire_bundle_evidence.py",
+     "scripts/source_coverage_sweep.py"
+    ],
+    "prompt_sha256": "6fa23789de970e882795b7359aebe2432c4768e0981126d481d766a3e39f87a3"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "{\n  \"defects\": [\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"The _DECLARED regex matches 'NOT A COMPLETE DOCUMENT' before '(coverage: ...)', causing files with self-declared METADATA or STUB headers to match the uncaptioned branch and default to EXCERPT instead of preserving their declared label.\",\n      \"input\": \"SOURCE EXCERPT -- NOT A COMPLETE DOCUMENT (coverage: METADATA)\\n\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 59,\n        \"label\": \"METADATA\",\n        \"reason\": \"SELF_DECLARED:METADATA\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"EXCERPT_ONLY\",\n        \"chars\": 59,\n        \"label\": \"EXCERPT\",\n        \"reason\": \"SELF_DECLARED:EXCERPT_ONLY\"\n      }\n    },\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"XHTML documents starting with an XML declaration match _JATS_START ('<?xml') before _HTML_START is checked, causing HTML landing or paywall pages containing <body> tags to be classified as JATS FULLTEXT with bundle coverage COMPLETE_SOURCE instead of METADATA.\",\n      \"input\": \"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n<!DOCTYPE html>\\n<html xmlns=\\\"http://www.w3.org/1999/xhtml\\\">\\n<head><title>Portal</title></head>\\n<body><p>Sign in to view full text.</p></body>\\n</html>\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 196,\n        \"label\": \"METADATA\",\n        \"reason\": \"HTML_PAGE\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"COMPLETE_SOURCE\",\n        \"chars\": 196,\n        \"label\": \"FULLTEXT\",\n        \"reason\": \"XML_BODY\"\n      }\n    },\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"_TAG_BODY_OPEN matches word boundary \\\\b which treats '-' as non-word, erroneously matching tags like <body-matter>. The closing tag </body-matter> fails to match </body\\\\s*>, causing an XML file with no <body> element to be classified as a truncated EXCERPT instead of STUB with XML_NO_BODY.\",\n      \"input\": \"<?xml version=\\\"1.0\\\"?>\\n<article><front><abstract><p>Abstract text</p></abstract></front><body-matter><p>Appendix</p></body-matter></article>\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 133,\n        \"label\": \"STUB\",\n        \"reason\": \"XML_NO_BODY\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"EXCERPT_ONLY\",\n        \"chars\": 133,\n        \"label\": \"EXCERPT\",\n        \"reason\": \"XML_TRUNCATED\"\n      }\n    }\n  ]\n}\n{\n  \"defects\": [\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"The _DECLARED regex matches 'NOT A COMPLETE DOCUMENT' before '(coverage: ...)', causing files with self-declared METADATA or STUB headers to match the uncaptioned branch and default to EXCERPT instead of preserving their declared label.\",\n      \"input\": \"SOURCE EXCERPT -- NOT A COMPLETE DOCUMENT (coverage: METADATA)\\n\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 59,\n        \"label\": \"METADATA\",\n        \"reason\": \"SELF_DECLARED:METADATA\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"EXCERPT_ONLY\",\n        \"chars\": 59,\n        \"label\": \"EXCERPT\",\n        \"reason\": \"SELF_DECLARED:EXCERPT_ONLY\"\n      }\n    },\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"XHTML documents starting with an XML declaration match _JATS_START ('<?xml') before _HTML_START is checked, causing HTML landing or paywall pages containing <body> tags to be classified as JATS FULLTEXT with bundle coverage COMPLETE_SOURCE instead of METADATA.\",\n      \"input\": \"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n<!DOCTYPE html>\\n<html xmlns=\\\"http://www.w3.org/1999/xhtml\\\">\\n<head><title>Portal</title></head>\\n<body><p>Sign in to view full text.</p></body>\\n</html>\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 196,\n        \"label\": \"METADATA\",\n        \"reason\": \"HTML_PAGE\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"COMPLETE_SOURCE\",\n        \"chars\": 196,\n        \"label\": \"FULLTEXT\",\n        \"reason\": \"XML_BODY\"\n      }\n    },\n    {\n      \"file\": \"harness/source_coverage.py\",\n      \"function\": \"label_document\",\n      \"severity\": \"P1\",\n      \"claim\": \"_TAG_BODY_OPEN matches word boundary \\\\b which treats '-' as non-word, erroneously matching tags like <body-matter>. The closing tag </body-matter> fails to match </body\\\\s*>, causing an XML file with no <body> element to be classified as a truncated EXCERPT instead of STUB with XML_NO_BODY.\",\n      \"input\": \"<?xml version=\\\"1.0\\\"?>\\n<article><front><abstract><p>Abstract text</p></abstract></front><body-matter><p>Appendix</p></body-matter></article>\",\n      \"expected_output\": {\n        \"bundle_coverage\": null,\n        \"chars\": 133,\n        \"label\": \"STUB\",\n        \"reason\": \"XML_NO_BODY\"\n      },\n      \"actual_output\": {\n        \"bundle_coverage\": \"EXCERPT_ONLY\",\n        \"chars\": 133,\n        \"label\": \"EXCERPT\",\n        \"reason\": \"XML_TRUNCATED\"\n      }\n    }\n  ]\n}\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "e1-cov-r3-agy-b:g1#1",
+    "record_id": "mc-3f3e165a30cca55bcb5921ff804850da",
+    "verdict": null
+   }
+  ]
+ },
+ "e1p2-r1-agy": {
+  "base": "ab37e0df",
+  "head": "e1e9a84a",
+  "runs": {
+   "g1": {
+    "record_id": "mc-936c03ad55c74fa079426ff8f08d384f",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/absence.py",
+     "harness/candidate_rows.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/source_coverage.py",
+     "scripts/refusal_reason_sweep.py"
+    ],
+    "prompt_sha256": "0caf1489c3a14342f687459264be5f83a0a3c15df9176e80c3c5fbbbf0981c58"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "e1p2-r2": {
+  "base": "ab37e0df",
+  "head": "9fcba966",
+  "runs": {
+   "g1": {
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "state": "RAN_OK",
+    "reader": "codex",
+    "files": [
+     "harness/absence.py",
+     "harness/candidate_rows.py",
+     "harness/harms.py",
+     "harness/pipeline.py",
+     "harness/source_coverage.py",
+     "scripts/refusal_reason_sweep.py"
+    ],
+    "prompt_sha256": "3c74a7071497c988711053b17157b81119655c9f8061ad4a16a411b4f23dcfb4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/candidate_rows.py",
+    "function": "_is_witness",
+    "severity": "P1",
+    "claim": "Duplicate arm cells are counted as independent witness matches. A witness with a different second-arm count therefore suppresses an unassessed candidate.",
+    "failing_input": "from harness.candidate_rows import _is_witness\n_is_witness(['10/100', '10/100'], '60-day mortality: 10/100 versus 20/100')",
+    "expected": "False: the witness does not contain the candidate's two arm counts.",
+    "actual": "True: both identical cells match the same occurrence of '10/100'.",
+    "id": "e1p2-r2:g1#1",
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "verdict": null
+   },
+   {
+    "file": "harness/candidate_rows.py",
+    "function": "candidates",
+    "severity": "P1",
+    "claim": "Integer percentages are treated as arm counts because column headers are ignored. This creates an admissible candidate despite the table printing neither counts nor an effect estimate.",
+    "failing_input": "from harness.candidate_rows import candidates\njats = '<table-wrap id=\"t1\"><caption>Outcomes</caption><table><tr><th>Outcome</th><th>Treatment (%)</th><th>Control (%)</th></tr><tr><td>28-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>'\n[c['assessment'] for c in candidates(jats, [], 'Mortality', '28 days')]",
+    "expected": "[]: the two values are explicitly percentages, not counts.",
+    "actual": "['WINDOW_MATCH']",
+    "id": "e1p2-r2:g1#2",
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "verdict": null
+   },
+   {
+    "file": "harness/candidate_rows.py",
+    "function": "allowed_windows",
+    "severity": "P1",
+    "claim": "A declared day range with units retains only its upper endpoint, incorrectly rejecting rows within the declared range.",
+    "failing_input": "from harness.candidate_rows import allowed_windows\nallowed_windows('28-30 days', [])",
+    "expected": "{28, 29, 30}",
+    "actual": "{30}; a '28-day mortality' candidate consequently receives WINDOW_MISMATCH.",
+    "id": "e1p2-r2:g1#3",
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "verdict": null
+   },
+   {
+    "file": "harness/candidate_rows.py",
+    "function": "row_window",
+    "severity": "P1",
+    "claim": "The hospital keyword classifies explicitly post-discharge mortality as in-hospital mortality, allowing an incompatible row to receive IN_HOSPITAL_MATCH.",
+    "failing_input": "from harness.candidate_rows import row_window\nrow_window('Mortality after hospital discharge')",
+    "expected": "('UNSTATED', None), requiring adjudication under the available categories; this is explicitly not an in-hospital window.",
+    "actual": "('IN_HOSPITAL', None)",
+    "id": "e1p2-r2:g1#4",
+    "record_id": "mc-f008fcd671c7d6c045f00741afde7f91",
+    "verdict": null
+   }
+  ]
+ },
+ "e1p2-r2-agy": {
+  "base": "e1e9a84a",
+  "head": "9fcba966",
+  "runs": {
+   "g1": {
+    "record_id": "mc-800ba92bd0e23c6b4375fe382f0b4613",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/absence.py",
+     "harness/candidate_rows.py",
+     "harness/harms.py"
+    ],
+    "prompt_sha256": "62109a4eede8f0bdc3380c2d639a9a2422d8e6d78edaa59f6b1fb094aa4d7fa4"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "e1p2-r3-agy": {
+  "base": "9fcba966",
+  "head": "a2822096",
+  "runs": {
+   "g1": {
+    "record_id": "mc-b0a07df5f9e0a98c4a03202909f8c12d",
+    "state": "RAN_OK",
+    "reader": "agy",
+    "files": [
+     "harness/candidate_rows.py"
+    ],
+    "prompt_sha256": "fa4870e23c3a3fda355b7a04e97c94409ccded5b690f47bff1fad1dc73fd45c8"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "severity": "UNSTRUCTURED",
+    "file": "-",
+    "function": "-",
+    "claim": "[\n  {\n    \"file\": \"harness/candidate_rows.py\",\n    \"function\": \"candidates\",\n    \"severity\": \"P0\",\n    \"claim\": \"In candidates(), percentage-header filtering checks not _PERCENT.search(hdr[i] if i < len(hdr) else '') for cell i in r['cells']. In clinical trial tables where the column header row does not include a header for the stub/label column (e.g., <tr><th>Treatment (%)</th><th>Control</th></tr>), len(hdr) equals the number of data columns, while r['cells'] contains [label, col1, col2, ...]. Because enumeration starts at i > 0, hdr[0] ('Treatment (%)') is never checked against any data cell; instead, cell 1 is checked against hdr[1] ('Control') and cell 2 falls back to ''. Consequently, column 1's percentage header is ignored, allowing integer percentages in column 1 to be classified as integer counts and admitted into candidate rows.\",\n    \"failing_input\": \"candidates('<table-wrap id=\\\"t1\\\"><table><tr><th>Treatment (%)</th><th>Control</th></tr><tr><td>30-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>', keywords=[], outcome_name='mortality', declared_timepoint='30 days')\",\n    \"expected_output\": \"The row is rejected (or ints excludes '10' because its column header declares '%', leaving ints as ['12'] with len(ints) < 2), yielding no candidate arm count matches.\",\n    \"actual_output\": \"ints evaluates to ['10', '12'] (len(ints) >= 2) because hdr[1] ('Control') is checked for '10', admitting the percentage 10 as a death count.\"\n  }\n]\n[\n  {\n    \"file\": \"harness/candidate_rows.py\",\n    \"function\": \"candidates\",\n    \"severity\": \"P0\",\n    \"claim\": \"In candidates(), percentage-header filtering checks not _PERCENT.search(hdr[i] if i < len(hdr) else '') for cell i in r['cells']. In clinical trial tables where the column header row does not include a header for the stub/label column (e.g., <tr><th>Treatment (%)</th><th>Control</th></tr>), len(hdr) equals the number of data columns, while r['cells'] contains [label, col1, col2, ...]. Because enumeration starts at i > 0, hdr[0] ('Treatment (%)') is never checked against any data cell; instead, cell 1 is checked against hdr[1] ('Control') and cell 2 falls back to ''. Consequently, column 1's percentage header is ignored, allowing integer percentages in column 1 to be classified as integer counts and admitted into candidate rows.\",\n    \"failing_input\": \"candidates('<table-wrap id=\\\"t1\\\"><table><tr><th>Treatment (%)</th><th>Control</th></tr><tr><td>30-day mortality</td><td>10</td><td>12</td></tr></table></table-wrap>', keywords=[], outcome_name='mortality', declared_timepoint='30 days')\",\n    \"expected_output\": \"The row is rejected (or ints excludes '10' because its column header declares '%', leaving ints as ['12'] with len(ints) < 2), yielding no candidate arm count matches.\",\n    \"actual_output\": \"ints evaluates to ['10', '12'] (len(ints) >= 2) because hdr[1] ('Control') is checked for '10', admitting the percentage 10 as a death count.\"\n  }\n]\n",
+    "failing_input": "(see claim)",
+    "expected": "-",
+    "actual": "-",
+    "id": "e1p2-r3-agy:g1#1",
+    "record_id": "mc-b0a07df5f9e0a98c4a03202909f8c12d",
+    "verdict": null
+   }
+  ]
  }
 }
