@@ -1,4 +1,8 @@
-"""Offline EU CTR contracts. All identifiers, drugs and values are synthetic."""
+"""Offline EU CTR contracts: synthetic cases and saved live EMA results.
+
+Live fixtures: European Medicines Agency, EU Clinical Trials Register;
+reused with acknowledgement under EMA's reuse policy (see eu.EMA_ACK).
+"""
 import copy
 import hashlib
 import json
@@ -149,8 +153,10 @@ def test_cache_reuse_and_expiry(body, monkeypatch):
 
 def test_unknown_page_not_cached(monkeypatch):
     monkeypatch.setattr(eu, "_fetch", lambda url: b"<html>Service unavailable</html>")
-    with pytest.raises(ValueError, match="Unrecognised"):
-        eu.eudract_results(NO)
+    result = eu.eudract_results(NO)
+    assert result == {"state": "PARSE_FAILED", "url": URL,
+                      "html_sha256": hashlib.sha256(b"<html>Service unavailable</html>").hexdigest(),
+                      "reason": "Unrecognised EU CTR results page"}
     assert not list(eu.CACHE_DIR.glob("*.html"))
 
 
@@ -166,7 +172,9 @@ def test_cli_no_values(body, monkeypatch, capsys):
     monkeypatch.setattr(eu, "eudract_numbers", lambda ncts, labels: [{"eudract_no": NO, "provenance": []}])
     monkeypatch.setattr(eu, "eudract_results", lambda no: eu._parse(body, URL))
     eu.main(["probe", "NCT99999999"])
-    result = json.loads(capsys.readouterr().out)
+    record, summary = capsys.readouterr().out.splitlines()
+    assert summary == "EUDRACT_SUMMARY ncts=1 with_number=1 results=1 parse_failed=0 no_results=0"
+    result = json.loads(record)
     assert result["results"] == [{"eudract_no": NO, "state": "RESULTS", "endpoint_titles": ["30-day survival"]}]
 
 
@@ -247,3 +255,99 @@ def test_ctgov_identity_mismatch(monkeypatch):
         "identificationModule": {"nctId": "NCT99999998"}}}).encode())
     with pytest.raises(ValueError, match="identifier mismatch"):
         eu.eudract_numbers(["NCT99999999"], [])
+
+
+
+def live_result(number):
+    body = (FIXTURES / f"live_{number}.html").read_bytes()
+    result = eu._parse(body, eu.BASE + f"/ctr-search/trial/{number}/results")
+    assert result["state"] == "RESULTS"
+    assert result["html_sha256"] == hashlib.sha256(body).hexdigest()
+    assert result["acknowledgement"] == eu.EMA_ACK
+    return result
+
+
+def test_live_pretovid():
+    endpoints = live_result("2020-001375-32")["endpoints"]
+    assert len(endpoints) == 1
+    ep = endpoints[0]
+    assert ep["title"] == "30-day survival"
+    assert ep["timeframe"] == "30 days after inclusion"
+    assert ep["reporting_groups"] == [
+        {"title": "SOC + tocilizumab", "subjects_analysed": "174"},
+        {"title": "Standard of Care (SOC)", "subjects_analysed": "180"}]
+    assert ep["statistics"] == [
+        {"label": label, "measure_type": label, "unit": "347", "dispersion": "",
+         "values": dict(zip(["SOC + tocilizumab", "Standard of Care (SOC)"], values))}
+        for label, values in [("alive at 30 days", ["153", "146"]),
+                              ("death at 30 days", ["21", "34"])]]
+    assert len(ep["analyses"]) == 1
+    analysis = ep["analyses"][0]
+    assert analysis["comparison_groups"] == "SOC + tocilizumab v Standard of Care (SOC)"
+    assert analysis["method"] == "Regression, Cox"
+    assert analysis["parameter"] == "Hazard ratio (HR)"
+    assert [analysis[k] for k in ("ci_level", "sides", "lower", "upper")] == ["90%", "2-sided", "-", "-"]
+    assert "point_estimate" not in analysis  # Not reported in the source.
+
+
+def test_live_odyssey_plant_endpoint_boundaries():
+    # PLANT: the previous parser consumed endpoint 27's navigation heading
+    # as a statistic of endpoint 26 and raised a header-count error.
+    endpoints = live_result("2011-005109-56")["endpoints"]
+    assert len(endpoints) == 28
+    assert sum(len(ep["analyses"]) for ep in endpoints) == 25
+    assert all(len(ep["statistics"]) == 1 for ep in endpoints)
+    ep = endpoints[0]
+    assert ep["title"] == "Percent Change From Baseline in Calculated LDL-C at Week 24 - Intent-to-Treat (ITT) Analysis"
+    assert ep["reporting_groups"] == [
+        {"title": "Placebo", "subjects_analysed": "163"},
+        {"title": "Alirocumab 75 mg/Up to 150 mg Q2W", "subjects_analysed": "322"}]
+    assert ep["statistics"] == [{
+        "label": "least squares mean (standard error)", "measure_type": "least squares mean",
+        "unit": "percent change", "dispersion": "standard error",
+        "values": {"Placebo": "9.1 ( 2.2 )", "Alirocumab 75 mg/Up to 150 mg Q2W": "-48.8 ( 1.6 )"}}]
+    analysis = ep["analyses"][0]
+    assert analysis["comparison_groups"] == "Placebo v Alirocumab 75 mg/Up to 150 mg Q2W"
+    assert analysis["parameter"] == "LS mean difference"
+    assert [analysis[k] for k in ("point_estimate", "ci_level", "sides", "lower", "upper")] == [
+        "-57.9", "95%", "2-sided", "-63.3", "-52.6"]
+    assert all(ep["analyses"] == [] for ep in endpoints[25:])
+    assert endpoints[-1]["reporting_groups"][1]["subjects_analysed"] == "321"
+
+
+def test_malformed_groups_return_parse_failed(body):
+    result = eu._parse(body.replace(b"Drug Beta", b"Drug Alpha"), URL)
+    assert result["state"] == "PARSE_FAILED"
+    assert result["reason"] == "Missing or duplicate endpoint group names"
+
+
+def test_cli_continues_after_parse_failed(body, monkeypatch, capsys):
+    ncts = [f"NCT9999999{i}" for i in range(6)]
+    calls = []
+    def numbers(ids, labels):
+        calls.extend(ids)
+        return [] if ids[0] == ncts[-1] else [{"eudract_no": NO, "provenance": []}]
+    responses = iter([eu._parse(b"<html>Unknown layout</html>", URL),
+                      eu._parse(body, URL), {"state": "NO_RESULTS"},
+                      live_result("2020-001375-32"), live_result("2011-005109-56")])
+    monkeypatch.setattr(eu, "eudract_numbers", numbers)
+    monkeypatch.setattr(eu, "eudract_results", lambda no: next(responses))
+    eu.main(["probe", *ncts])
+    lines = capsys.readouterr().out.splitlines()
+    records = [json.loads(line) for line in lines[:-1]]
+    assert calls == ncts
+    assert [record["nct"] for record in records] == ncts
+    failure = records[0]["results"][0]
+    assert failure["state"] == "PARSE_FAILED"
+    assert failure["reason"] == "Unrecognised EU CTR results page"
+    assert failure["url"] == URL
+    assert failure["html_sha256"] == hashlib.sha256(b"<html>Unknown layout</html>").hexdigest()
+    assert records[1]["results"][0]["state"] == "RESULTS"
+    assert lines[-1] == "EUDRACT_SUMMARY ncts=6 with_number=5 results=3 parse_failed=1 no_results=1"
+
+
+def test_PLANT_live_no_public_results_page_is_no_results_not_a_parse_failure():
+    """15 Oct: 6 live pages saying 'There are no public results for the specified EudraCT number' were PARSE_FAILED."""
+    import pathlib
+    body = (pathlib.Path(__file__).parent / "fixtures" / "eudract" / "live_no_public_results.html").read_bytes()
+    assert eu._parse(body, "https://www.clinicaltrialsregister.eu/ctr-search/trial/2005-001570-28/results")["state"] == "NO_RESULTS"

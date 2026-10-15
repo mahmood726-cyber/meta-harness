@@ -90,19 +90,44 @@ def _rows(soup):
 
 
 def _endpoint_rows(soup):
-    """Scope rows to the tables actually containing endpoint title fields."""
+    """Read each endpoint independently, including its nested arm-value table.
+
+    Live EMA pages also contain navigation tables and hidden layout rows. They
+    are not observations and must not leak into the preceding endpoint.
+    """
     seen = set()
     for row in soup.find_all("tr"):
         cells = row.find_all(["td", "th"], recursive=False)
         if len(cells) < 2 or _text(cells[0]).casefold() != "end point title":
             continue
         table = row.find_parent("table")
-        if table is not None and id(table) not in seen:
-            seen.add(id(table))
-            yield from _rows(table)
+        if table is None or id(table) in seen:
+            continue
+        seen.add(id(table))
+        started = False
+        for candidate in table.find_all("tr"):
+            if candidate is row:
+                started = True
+            if not started or "hidden" in candidate.get("class", []):
+                continue
+            parent = candidate.find_parent("table")
+            if parent is not table and "embeddedTable" not in parent.get("class", []):
+                continue
+            cells = candidate.find_all(["td", "th"], recursive=False)
+            if len(cells) >= 2 and not any(c.find("table") for c in cells):
+                yield [_text(c) for c in cells]
 
 
 def _parse(body, url):
+    """Return an auditable failure instead of aborting a multi-trial probe."""
+    try:
+        return _parse_results(body, url)
+    except ValueError as exc:
+        return {"state": "PARSE_FAILED", "url": url,
+                "html_sha256": hashlib.sha256(body).hexdigest(), "reason": str(exc)}
+
+
+def _parse_results(body, url):
     soup = BeautifulSoup(body, "html.parser")
     endpoints, ep, analysis = [], None, None
     headers, unit, measure, dispersion = [], "", "", ""
@@ -162,7 +187,10 @@ def _parse(body, url):
                           and urlparse(urljoin(BASE, a["href"])).path.startswith(
                               "/ctr-search/rest/download/result/attachment/")})
     if not endpoints and not attachments:
-        if re.search(r"results? (?:for this trial )?(?:are |is )?not (?:yet )?available|no results (?:are )?(?:yet )?available", _text(soup), re.I):
+        # live wording (15 Oct): "There are no public results for the specified EudraCT number" -- 6 such pages were
+        # reported as PARSE_FAILED, i.e. a parser defect, when the register simply holds no results
+        if re.search(r"results? (?:for this trial )?(?:are |is )?not (?:yet )?available|no results (?:are )?(?:yet )?available"
+                     r"|no public results for the specified EudraCT number", _text(soup), re.I):
             return {"state": "NO_RESULTS"}
         raise ValueError("Unrecognised EU CTR results page")
     return {"state": "RESULTS", "url": url, "endpoints": endpoints, "attachments": attachments,
@@ -182,6 +210,8 @@ def eudract_results(eudract_no):
             return _parse(path.read_bytes(), url)
         body = _fetch(url)
         result = _parse(body, url)
+        if result["state"] == "PARSE_FAILED":
+            return result
         # Same atomic replace pattern as regulatory_source._dump, preserving raw bytes.
         tmp = path.with_suffix(f".html.{os.getpid()}.tmp")
         try:
@@ -274,14 +304,23 @@ def main(argv=None):
     parser.add_argument("command", choices=["probe"])
     parser.add_argument("ncts", nargs="+")
     args = parser.parse_args(argv)
+    # with_number counts NCTs; result-state counts count EU result pages.
+    counts = {"with_number": 0, "results": 0, "parse_failed": 0, "no_results": 0}
     for nct in args.ncts:
         numbers = eudract_numbers([nct], [])
+        counts["with_number"] += bool(numbers)
         results = []
         for record in numbers:
             result = eudract_results(record["eudract_no"])
-            results.append({"eudract_no": record["eudract_no"], "state": result["state"],
-                            "endpoint_titles": [ep["title"] for ep in result.get("endpoints", [])]})
+            counts[result["state"].lower()] += 1
+            summary = {"eudract_no": record["eudract_no"], "state": result["state"],
+                       "endpoint_titles": [ep["title"] for ep in result.get("endpoints", [])]}
+            if result["state"] == "PARSE_FAILED":
+                summary.update({key: result[key] for key in ("url", "html_sha256", "reason")})
+            results.append(summary)
         print(json.dumps({"nct": nct, "numbers": numbers, "results": results}, ensure_ascii=False))
+    print(f"EUDRACT_SUMMARY ncts={len(args.ncts)} " +
+          " ".join(f"{key}={value}" for key, value in counts.items()))
 
 
 if __name__ == "__main__":
