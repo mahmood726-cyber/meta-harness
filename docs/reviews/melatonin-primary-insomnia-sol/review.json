@@ -2053,7 +2053,7 @@
       "estimand": "MD",
       "population": "pre-specified age 65-80 ITT subgroup (of an 18-80 enrolment)",
       "timepoint": "end of treatment",
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "served_estimand": "MD",
       "estimand_decision": {
         "declared_estimand": "MD",
@@ -2065,130 +2065,7 @@
         "reason": "declared continuous estimand",
         "rule": "pool the declared continuous scale from mean/SD inputs"
       },
-      "trials": [
-        {
-          "label": "20712869",
-          "id": "PMID 20712869",
-          "mean1": -19.1,
-          "sd1": 47.3,
-          "nc1": 137,
-          "mean2": -1.7,
-          "sd2": 47.8,
-          "nc2": 144,
-          "scale": "MD",
-          "timeframe": "Baseline and 3 weeks",
-          "timeframe_weeks": 3.0,
-          "source": "ClinicalTrials.gov results (structured, continuous): outcome 'The Change From Baseline in Subjective Sleep Latency.' mean -19.1 (SD 47.3, n=137) [Circadin] vs -1.7 (SD 47.8, n=144) [Placebo] minutes — population: Pre-planned analysis on ITT population age 65-80",
-          "provenance": "ctgov_results",
-          "derivation": "reconstructed",
-          "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
-          "selected_estimator": "reconstructed",
-          "alternatives": [],
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
-          "verified": "verified",
-          "verify_basis": "continuous per-arm mean/SD present in committed source",
-          "design": {
-            "unit_of_randomisation": "INDIVIDUAL",
-            "design": "PARALLEL",
-            "estimator_source": "RECONSTRUCTED",
-            "adjustment_status": "UNRESOLVED",
-            "adjustment_axis": {
-              "status": "UNRESOLVED"
-            },
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "se_provenance": "synth.Study.yi_vi:mean-difference",
-            "basis": [
-              {
-                "source": "AACT designs.intervention_model",
-                "span": "PARALLEL"
-              }
-            ],
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "evidence_unit": "prespecified_subgroup",
-          "evidence_unit_detail": "age 65-80 ITT subgroup",
-          "study_effect": {
-            "effect_estimate": -17.400000000000002,
-            "standard_error": 5.674286597101902,
-            "estimand": "MD",
-            "analysis_population": "pre-specified age 65-80 ITT subgroup (of an 18-80 enrolment)",
-            "randomisation_unit": "INDIVIDUAL",
-            "study_design": "PARALLEL",
-            "estimator_method": "RECONSTRUCTED",
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "source_provenance": {
-              "source": "ctgov_results",
-              "span": "ClinicalTrials.gov results (structured, continuous): outcome 'The Change From Baseline in Subjective Sleep Latency.' mean -19.1 (SD 47.3, n=137) [Circadin] vs -1.7 (SD 47.8, n=144) [Placebo] minutes — population: Pre-planned analysis on ITT population age 65-80"
-            },
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "effect_object": {
-            "reported_label": "MD",
-            "statistical_model": null,
-            "canonical_estimand": "MEAN_DIFFERENCE"
-          },
-          "trial_family_id": "NCT00397189",
-          "publication_role": "primary",
-          "analysis_set": "completers efficacy set",
-          "follow_up_window": "Baseline and 3 weeks",
-          "endpoint_definition": "Age 65-80 subgroup of an 18-80 enrolment.; ALREADY DISCLOSED (population field states the subgroup)",
-          "population_age": "adult",
-          "intervention_ontology": {
-            "intervention_class": null
-          },
-          "compat_dimensions": {
-            "trial_id": "20712869",
-            "trial_label": "20712869",
-            "analysis_set": {
-              "value": "completers efficacy set",
-              "source": "committed source text",
-              "span": "then randomized, double-blind to 3 weeks with PRM or placebo nightly. PRM patients continued whereas placebo completers were re-randomized 1:1 to PRM or placebo for 26 weeks with 2 weeks of single-blind placebo run-out. Main outc"
-            },
-            "follow_up_window": {
-              "value": "Baseline and 3 weeks",
-              "source": "trial.timeframe",
-              "span": "Baseline and 3 weeks"
-            },
-            "endpoint_definition": {
-              "value": "Age 65-80 subgroup of an 18-80 enrolment.; ALREADY DISCLOSED (population field states the subgroup)",
-              "source": "docs/definition_audit.json",
-              "span": "Age 65-80 subgroup of an 18-80 enrolment.; ALREADY DISCLOSED (population field states the subgroup)"
-            },
-            "population_age": {
-              "value": "adult",
-              "source": "committed source text",
-              "span": "ort-term studies is sustained during continued treatment and the long term safety of such treatment. METHODS: Adult outpatients (791, aged 18-80 years) with primary insomnia, were treated with placebo (2 weeks) and then rando"
-            },
-            "intervention_ontology": {
-              "intervention_class": null
-            }
-          },
-          "trial_id": "PMID 20712869",
-          "report_id": "PMID 20712869",
-          "outcome_effect_id": "melatonin-primary-insomnia-sol::Sleep-onset latency::PMID 20712869::PMID 20712869",
-          "family_identity_state": "REGISTRY_ANCHORED",
-          "family_id": "NCT00397189"
-        }
-      ],
+      "trials": [],
       "declared_absent_trials": [
         {
           "label": "33157425",
@@ -2214,10 +2091,10 @@
           },
           "family_id": "SYN-4952f5abcfce",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-          "claim_id": "37a49ebd45b6b4bf",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "d6c8c11f9e015f5d",
           "depends_on": {
-            "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         },
@@ -2245,10 +2122,10 @@
           },
           "family_id": "SYN-d193aebaca6b",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-          "claim_id": "37a49ebd45b6b4bf",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "d6c8c11f9e015f5d",
           "depends_on": {
-            "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         },
@@ -2276,10 +2153,10 @@
           },
           "family_id": "SYN-2b8fd522e81a",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-          "claim_id": "37a49ebd45b6b4bf",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "d6c8c11f9e015f5d",
           "depends_on": {
-            "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         },
@@ -2307,10 +2184,10 @@
           },
           "family_id": "SYN-4ba8069fb1f1",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-          "claim_id": "37a49ebd45b6b4bf",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "d6c8c11f9e015f5d",
           "depends_on": {
-            "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         },
@@ -2338,10 +2215,10 @@
           },
           "family_id": "SYN-6c989d581f38",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-          "claim_id": "37a49ebd45b6b4bf",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "d6c8c11f9e015f5d",
           "depends_on": {
-            "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         },
@@ -2369,10 +2246,10 @@
           },
           "family_id": "SYN-30955d276713",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-          "claim_id": "37a49ebd45b6b4bf",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "d6c8c11f9e015f5d",
           "depends_on": {
-            "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         },
@@ -2400,25 +2277,86 @@
           },
           "family_id": "SYN-1feba490e3ab",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-          "claim_id": "37a49ebd45b6b4bf",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "d6c8c11f9e015f5d",
           "depends_on": {
-            "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "claim_kind": "membership_state"
+        },
+        {
+          "label": "20712869",
+          "id": "PMID 20712869",
+          "source": "ClinicalTrials.gov results (structured, continuous): outcome 'The Change From Baseline in Subjective Sleep Latency.' mean -19.1 (SD 47.3, n=137) [Circadin] vs -1.7 (SD 47.8, n=144) [Placebo] minutes — population: Pre-planned analysis on ITT population age 65-80",
+          "provenance": "ctgov_results",
+          "endpoint_binding": "unbound_legacy",
+          "reason": "source-visible value was not pooled; recorded as extraction debt / typed refusal, not as absence",
+          "enforcement": {
+            "decision": "REFUSE",
+            "basis": "panel refusal (AMBIGUOUS_IN_SOURCE); the panel was split, and a split panel refuses",
+            "recommendation": "refuse (rule: panel refused or disagreed)",
+            "readers": {
+              "codex": "mc-2634b0d8262d5255a05af17d647dd7df",
+              "agy": "mc-39ad0c3dc03ac18e618a1d6b38af8bf7",
+              "adjudicator": "mc-c54059e4fa6265a79846adb86d75e6aa",
+              "state": "ADJUDICATED_REFUSE"
+            },
+            "signed": "v15c (packet sha256 6067c4f1fdb5...)"
+          },
+          "absent_kind": "machine_absent",
+          "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "reason_code": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "endpoint_admissibility": "ENDPOINT_UNBOUND",
+          "candidate_tuple": {
+            "scale": "MD"
+          },
+          "refused_effect": {
+            "scale": "MD"
+          },
+          "recovery": "a reviewer binds the tuple to one span of an open held source (recorded, source-linked), and a signed decision admits it",
+          "trial_family_id": "NCT00397189",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2011-03-28",
+          "completion_date": "2009-04-30",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
+          "state_basis": "retrieved CT.gov continuous per-arm mean/SD/n not consumed by extraction",
+          "source_span": "CT.gov NCT00397189 The Change From Baseline in Subjective Sleep Latency.; Circadin: mean -19.1 (SD 47.3, n=137); Placebo: mean -1.7 (SD 47.8, n=144)",
+          "verbatim_span": "CT.gov NCT00397189 The Change From Baseline in Subjective Sleep Latency.; Circadin: mean -19.1 (SD 47.3, n=137); Placebo: mean -1.7 (SD 47.8, n=144)",
+          "trial_id": "PMID 20712869",
+          "report_id": "PMID 20712869",
+          "outcome_effect_id": "melatonin-primary-insomnia-sol::Sleep-onset latency::PMID 20712869::PMID 20712869",
+          "extraction_debt": {
+            "value_kind": "ctgov_mean_sd_n",
+            "source": "ctgov_results",
+            "source_span": "CT.gov NCT00397189 The Change From Baseline in Subjective Sleep Latency.; Circadin: mean -19.1 (SD 47.3, n=137); Placebo: mean -1.7 (SD 47.8, n=144)"
+          },
+          "reason_code_audit": {
+            "verdict": "REASON_FALSE_VALUE_HELD",
+            "detail": "REASON_FALSE_VALUE_HELD(fulltext:20712869, \"A meta-analysis J Gen Intern Med 2005 20 12 1151 1158 10.1111/j.1525-1497.2005.0243.x 16423108 PMC1490287 Garfinkel D Laudon M Nof D Zisapel N Improvement of sleep quality in elderly people by controlled-release melatonin Lancet 1995 346 5...\")",
+            "stated_reason_code": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "source_id": "fulltext:20712869",
+            "source_kind": "fulltext",
+            "source_span": "A meta-analysis J Gen Intern Med 2005 20 12 1151 1158 10.1111/j.1525-1497.2005.0243.x 16423108 PMC1490287 Garfinkel D Laudon M Nof D Zisapel N Improvement of sleep quality in elderly people by controlled-release melatonin Lancet 1995 346 5...",
+            "source_contains": "A meta-analysis J Gen Intern Med 2005 20 12 1151 1158 10.1111/j.1525-1497.2005.0243.x 16423108 PMC1490287 Garfinkel D Laudon M Nof D Zisapel N Improvement of sleep quality in elderly people by controlled-release melatonin Lancet 1995 346 5...",
+            "value_text": "1016/0165"
+          },
+          "family_id": "NCT00397189",
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "d6c8c11f9e015f5d",
+          "depends_on": {
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         }
       ],
       "membership": {
-        "analysis_input_family_ids": [
-          "NCT00397189"
-        ],
-        "pooled_family_ids": [
-          "NCT00397189"
-        ],
-        "pooled_family_count": 1,
-        "pooled": [
-          "PMID 20712869"
-        ],
+        "analysis_input_family_ids": [],
+        "pooled_family_ids": [],
+        "pooled_family_count": 0,
+        "pooled": [],
         "unresolved_pooled_candidate_ids": [],
         "declared_absent": [
           "PMID 33157425",
@@ -2427,147 +2365,38 @@
           "PMID 19584739",
           "PMID 18036082",
           "PMID 17875243",
-          "PMID 12790159"
+          "PMID 12790159",
+          "PMID 20712869"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "0949bf9900f497ffe2cfca282d9ca2d58aa36f4df55a8e70744a161f79869329"
+        "input_set_version": "7a85b4e54f61ad7693c960cef627f5e345794afc1b1624758a59c3377b25c628"
       },
       "result": {
-        "k": 1,
-        "estimate": -17.4,
-        "scale": "MD",
-        "ci_low": -28.5214,
-        "ci_high": -6.2786,
-        "Q": 0.0,
-        "ci_provenance": "synth.pool:single-trial-Wald-z(k=1):v1",
-        "pi_note": "prediction interval undefined for k=1",
-        "estmeasure": {
-          "status": "homogeneous",
-          "classes": [
-            "CONTINUOUS"
-          ],
-          "canonicals": [
-            "MEAN_DIFFERENCE"
-          ],
-          "labels": [
-            "MD"
-          ]
-        },
-        "leave_one_out": {
-          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
-        },
+        "present": false,
         "reported_not_extracted": true,
         "reported_by": [
           "33157425",
           "22346363",
+          "20712869",
           "19584739",
           "17875243"
         ],
+        "reason": "REPORTED but not extractable as a pooled value: 33157425, 22346363, 20712869, 19584739, 17875243 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.",
         "claim": {
-          "present": true,
-          "significant": true,
-          "crosses_null": false,
-          "touches_null": false,
-          "null": 0.0,
-          "direction": "benefit",
-          "significant_fixed": null
+          "present": false,
+          "significant": false,
+          "crosses_null": null,
+          "touches_null": null,
+          "null": null,
+          "direction": null
         },
-        "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-        "claim_id": "cd423b4536d63293",
+        "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "claim_id": "aca46489a370d295",
         "depends_on": {
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         },
         "claim_kind": "outcome_result"
-      },
-      "endpoint_canonical": {
-        "label": "SLEEP_ONSET_LATENCY",
-        "event_time": "end of treatment",
-        "components": [],
-        "component_sets": [],
-        "status": "NOT_DECLARED"
-      },
-      "compat_key": {
-        "effect_measure": [
-          "MD"
-        ],
-        "event_process": [
-          "CONTINUOUS"
-        ],
-        "endpoint": "trial-defined Sleep-onset latency (definitions listed per trial)",
-        "follow_up_window": "trial-defined (per trial listed)",
-        "analysis_set": "mixed (completers x1)",
-        "analysis_set_declared": "pre-specified age 65-80 ITT subgroup (of an 18-80 enrolment)",
-        "randomised_contrast": {
-          "verified": 1,
-          "total": 1
-        },
-        "matched": true,
-        "mismatches": [],
-        "endpoint_canonical": {
-          "label": "SLEEP_ONSET_LATENCY",
-          "event_time": "end of treatment",
-          "components": [],
-          "component_sets": [],
-          "status": "NOT_DECLARED"
-        },
-        "endpoint_canonical_status": "NOT_DECLARED",
-        "dimension_matches": {
-          "analysis_set": false,
-          "follow_up_window": false,
-          "endpoint": false
-        },
-        "underlying_checked": true,
-        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
-      },
-      "recovery_recheck": {
-        "hard_incompatible": false,
-        "mismatches": [],
-        "effect_measure_labels": [
-          "MD"
-        ],
-        "k": 1,
-        "reconstructed_members": [
-          "20712869"
-        ],
-        "label_mix_small_k": false
-      },
-      "compat_underlying": {
-        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "dimensions": [
-          "analysis_set",
-          "endpoint",
-          "follow_up_window"
-        ],
-        "per_trial": {
-          "analysis_set": [
-            {
-              "trial_id": "20712869",
-              "trial_label": "20712869",
-              "value": "completers efficacy set",
-              "source": "committed source text",
-              "span": "then randomized, double-blind to 3 weeks with PRM or placebo nightly. PRM patients continued whereas placebo completers were re-randomized 1:1 to PRM or placebo for 26 weeks with 2 weeks of single-blind placebo run-out. Main outc"
-            }
-          ],
-          "follow_up_window": [
-            {
-              "trial_id": "20712869",
-              "trial_label": "20712869",
-              "value": "Baseline and 3 weeks",
-              "source": "trial.timeframe",
-              "span": "Baseline and 3 weeks"
-            }
-          ],
-          "endpoint": [
-            {
-              "trial_id": "20712869",
-              "trial_label": "20712869",
-              "value": "Age 65-80 subgroup of an 18-80 enrolment.; ALREADY DISCLOSED (population field states the subgroup)",
-              "source": "docs/definition_audit.json",
-              "span": "Age 65-80 subgroup of an 18-80 enrolment.; ALREADY DISCLOSED (population field states the subgroup)"
-            }
-          ]
-        }
       }
     },
     {
@@ -3386,7 +3215,7 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 1,
+      "ours_k": 0,
       "theirs_k": 2,
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [],
@@ -3786,7 +3615,7 @@
       },
       {
         "code": "primary_reported_not_extracted",
-        "detail": "the primary outcome is reported by trials that could not be pooled (33157425, 22346363, 19584739, 17875243) — the pooled k is known-incomplete"
+        "detail": "the primary outcome is reported by trials that could not be pooled (33157425, 22346363, 20712869, 19584739, 17875243) — the pooled k is known-incomplete"
       },
       {
         "code": "eligible_declared_absent",
@@ -3796,57 +3625,9 @@
   },
   "compat_underlying": {
     "checked": true,
-    "n_pre_fix_asserted_not_underlying": 4,
+    "n_pre_fix_asserted_not_underlying": 1,
     "n_post_fix_asserted_not_underlying": 0,
     "pre_fix_violations": [
-      {
-        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
-        "outcome": "Sleep-onset latency",
-        "dimension": "analysis_set",
-        "asserted": "pre-specified age 65-80 ITT subgroup (of an 18-80 enrolment)",
-        "per_trial_values": [
-          {
-            "trial_id": "20712869",
-            "trial_label": "20712869",
-            "value": "completers efficacy set",
-            "source": "committed source text",
-            "span": "then randomized, double-blind to 3 weeks with PRM or placebo nightly. PRM patients continued whereas placebo completers were re-randomized 1:1 to PRM or placebo for 26 weeks with 2 weeks of single-blind placebo run-out. Main outc"
-          }
-        ],
-        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
-      },
-      {
-        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
-        "outcome": "Sleep-onset latency",
-        "dimension": "follow_up_window",
-        "asserted": "end of treatment",
-        "per_trial_values": [
-          {
-            "trial_id": "20712869",
-            "trial_label": "20712869",
-            "value": "Baseline and 3 weeks",
-            "source": "trial.timeframe",
-            "span": "Baseline and 3 weeks"
-          }
-        ],
-        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
-      },
-      {
-        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
-        "outcome": "Sleep-onset latency",
-        "dimension": "endpoint",
-        "asserted": "SLEEP_ONSET_LATENCY",
-        "per_trial_values": [
-          {
-            "trial_id": "20712869",
-            "trial_label": "20712869",
-            "value": "Age 65-80 subgroup of an 18-80 enrolment.; ALREADY DISCLOSED (population field states the subgroup)",
-            "source": "docs/definition_audit.json",
-            "span": "Age 65-80 subgroup of an 18-80 enrolment.; ALREADY DISCLOSED (population field states the subgroup)"
-          }
-        ],
-        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
-      },
       {
         "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
         "outcome": "Adverse events",
@@ -3868,19 +3649,25 @@
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 14,
+    "N": 15,
     "counts": {
       "REASON_TRUE": 11,
-      "REASON_FALSE_VALUE_HELD": 0,
+      "REASON_FALSE_VALUE_HELD": 1,
       "REASON_WRONG_KIND": 3,
       "NOT_VERIFIABLE": 0
     },
-    "n_false_value_held": 0,
+    "n_false_value_held": 1,
     "n_not_verifiable": 0,
     "by_code_kind": {
       "OUTCOME_NOT_IN_SOURCE": {
         "REASON_TRUE": 9,
         "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
+      },
+      "KNOWN_REPORTED_NOT_YET_EXTRACTED": {
+        "REASON_TRUE": 0,
+        "REASON_FALSE_VALUE_HELD": 1,
         "REASON_WRONG_KIND": 0,
         "NOT_VERIFIABLE": 0
       },
@@ -3983,6 +3770,22 @@
       },
       {
         "slug": "melatonin-primary-insomnia-sol",
+        "outcome": "Sleep-onset latency",
+        "outcome_kind": "primary",
+        "trial_key": "20712869",
+        "label": "20712869",
+        "id": "PMID 20712869",
+        "stated_reason_code": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+        "verdict": "REASON_FALSE_VALUE_HELD",
+        "detail": "REASON_FALSE_VALUE_HELD(fulltext:20712869, \"A meta-analysis J Gen Intern Med 2005 20 12 1151 1158 10.1111/j.1525-1497.2005.0243.x 16423108 PMC1490287 Garfinkel D Laudon M Nof D Zisapel N Improvement of sleep quality in elderly people by controlled-release melatonin Lancet 1995 346 5...\")",
+        "source_id": "fulltext:20712869",
+        "source_kind": "fulltext",
+        "source_span": "A meta-analysis J Gen Intern Med 2005 20 12 1151 1158 10.1111/j.1525-1497.2005.0243.x 16423108 PMC1490287 Garfinkel D Laudon M Nof D Zisapel N Improvement of sleep quality in elderly people by controlled-release melatonin Lancet 1995 346 5...",
+        "source_contains": "A meta-analysis J Gen Intern Med 2005 20 12 1151 1158 10.1111/j.1525-1497.2005.0243.x 16423108 PMC1490287 Garfinkel D Laudon M Nof D Zisapel N Improvement of sleep quality in elderly people by controlled-release melatonin Lancet 1995 346 5...",
+        "value_text": "1016/0165"
+      },
+      {
+        "slug": "melatonin-primary-insomnia-sol",
         "outcome": "Adverse events",
         "outcome_kind": "harm",
         "trial_key": "33157425",
@@ -4064,16 +3867,16 @@
     "denominator_source": "included screening records x registered outcomes in this review",
     "N": 16,
     "counts": {
-      "EXTRACTED": 2,
-      "HELD_NOT_EXTRACTED": 0,
+      "EXTRACTED": 1,
+      "HELD_NOT_EXTRACTED": 1,
       "NOT_IN_HELD_SOURCES": 9,
       "ABSENT_BY_DESIGN": 5
     },
-    "n_held_not_extracted": 0,
+    "n_held_not_extracted": 1,
     "by_outcome_kind": {
       "primary": {
-        "EXTRACTED": 1,
-        "HELD_NOT_EXTRACTED": 0,
+        "EXTRACTED": 0,
+        "HELD_NOT_EXTRACTED": 1,
         "NOT_IN_HELD_SOURCES": 7,
         "ABSENT_BY_DESIGN": 0
       },
@@ -4115,7 +3918,11 @@
         "trial_label": "20712869",
         "outcome": "Sleep-onset latency",
         "outcome_kind": "primary",
-        "status": "EXTRACTED"
+        "status": "HELD_NOT_EXTRACTED",
+        "source_id": "fulltext:20712869",
+        "source_kind": "fulltext",
+        "source_span": "A meta-analysis J Gen Intern Med 2005 20 12 1151 1158 10.1111/j.1525-1497.2005.0243.x 16423108 PMC1490287 Garfinkel D Laudon M Nof D Zisapel N Improvement of sleep quality in elderly people by controlled-release melatonin Lancet 1995 346 5...",
+        "value_text": "1016/0165"
       },
       {
         "slug": "melatonin-primary-insomnia-sol",
@@ -4220,78 +4027,20 @@
       }
     ]
   },
-  "rob_sensitivity": {
-    "outcome": "Sleep-onset latency",
-    "estimand": "MD",
-    "levels": {
-      "20712869": "low"
-    },
-    "input_set_version": "d821d90c8233154770b142f4ae8d73982e88b49a014eb9c5daef327c098be4e0",
-    "n_trials": 1,
-    "n_rob_rated": 1,
-    "rob_covered": true,
-    "any_high": false,
-    "full": {
-      "k": 1,
-      "estimate": -17.4,
-      "scale": "MD",
-      "ci_low": -28.5214,
-      "ci_high": -6.2786,
-      "tau2": 0.0,
-      "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-      "claim_id": "eb31371c52f9d7af",
-      "depends_on": {
-        "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
-      },
-      "claim_kind": "rob_sensitivity.full"
-    },
-    "drop_high": {
-      "k": 1,
-      "estimate": -17.4,
-      "scale": "MD",
-      "ci_low": -28.5214,
-      "ci_high": -6.2786,
-      "tau2": 0.0,
-      "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-      "claim_id": "69dcc0c797f8295d",
-      "depends_on": {
-        "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
-      },
-      "claim_kind": "rob_sensitivity.drop_high"
-    },
-    "low_only": {
-      "k": 1,
-      "estimate": -17.4,
-      "scale": "MD",
-      "ci_low": -28.5214,
-      "ci_high": -6.2786,
-      "tau2": 0.0,
-      "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-      "claim_id": "bfe0f6402f2daf82",
-      "depends_on": {
-        "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
-      },
-      "claim_kind": "rob_sensitivity.low_only"
-    },
-    "drop_high_informative": false,
-    "low_only_relation": "identical_to_full",
-    "low_only_kind": "bias_sensitivity",
-    "low_only_excluded_adverse": 0,
-    "low_only_excluded_unassessed": 0,
-    "low_only_informative": false,
-    "low_only_predicate": "same_trial_set",
-    "formally_assessed": false,
-    "suppression_reason": "RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=1 of 1)"
+  "rob_sensitivity_omitted": {
+    "reason_code": "PRIMARY_ABSENT",
+    "reason": "the primary outcome has no pooled result (present = False)",
+    "outcome": "Sleep-onset latency"
   },
   "grade": {
     "start": "high",
     "domains": {
       "risk_of_bias": {
-        "downgrade": 0,
+        "downgrade": 1,
         "coverage_incomplete": false,
         "assessed": false,
-        "n_trials": 1,
-        "n_rated": 1,
+        "n_trials": 0,
+        "n_rated": 0,
         "n_high": 0,
         "n_some": 0,
         "basis": "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below",
@@ -4304,23 +4053,26 @@
         "downgrade": 0,
         "not_estimable": true,
         "assessed": false,
-        "basis": "not assessable: STALE: pooled membership known incomplete (7 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+        "basis": "not assessable: STALE: pooled membership known incomplete (8 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
         "stale": true,
         "state": "NOT_ASSESSABLE",
         "missing_inputs": [
-          "not assessable: STALE: pooled membership known incomplete (7 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
+          "not assessable: STALE: pooled membership known incomplete (8 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
         ]
       },
       "imprecision": {
         "downgrade": 0,
         "assessed": false,
-        "state": "REQUIRES_JUDGEMENT",
-        "crosses_null": false,
+        "state": "NOT_ASSESSABLE",
+        "crosses_null": null,
         "missing_inputs": [
+          "valid confidence interval",
+          "supported effect scale",
           "clinical threshold / MID with basis",
           "information-size assessment with adequacy and basis"
         ],
-        "basis": "95% CI [-28.5214, -6.2786]; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis"
+        "basis": "95% CI [None, None]; missing/insufficient: valid confidence interval; supported effect scale; clinical threshold / MID with basis; information-size assessment with adequacy and basis",
+        "not_assessable_automatically": false
       },
       "publication_bias": {
         "downgrade": 0,
@@ -4347,12 +4099,12 @@
         ]
       }
     },
-    "downgrades": 0,
+    "downgrades": 1,
     "conservative_downgrades_pending_human_judgement": [],
     "certainty": "provisional",
     "certainty_state": "GRADE provisional -- not yet fully assessable",
     "certainty_capped_by_rob_coverage": false,
-    "certainty_capped_single_trial": true,
+    "certainty_capped_single_trial": false,
     "certainty_capped_d3_unassessed": false,
     "certainty_capped_unassessed_domain": false,
     "unassessed_domains": [
@@ -4362,12 +4114,12 @@
       "publication_bias",
       "indirectness"
     ],
-    "rob_basis": "machine-assessed domains only; D3 unassessed on 1 of 1 trial(s)",
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 0 of 0 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
-    "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-    "claim_id": "4c656d5b46d2004b",
+    "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "claim_id": "5e45f61a491f59fb",
     "depends_on": {
-      "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+      "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
     },
     "claim_kind": "grade"
   },
@@ -4573,8 +4325,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "ACTRN12624000017527"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -4689,10 +4443,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -4924,8 +4683,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "ISRCTN12861060"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -5042,10 +4803,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -5277,8 +5043,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "ISRCTN16215617"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -5391,10 +5159,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -5987,8 +5760,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT00238108"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -6755,10 +6530,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -7580,10 +7360,12 @@
             "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
           },
           "in_primary_pool": {
-            "state": "YES",
+            "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "report_id": "20712869"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": [
@@ -8720,7 +8502,7 @@
       "poolability": [
         {
           "outcome": "Sleep-onset latency",
-          "state": "POOLED",
+          "state": "EXTRACTABLE",
           "span": {
             "measured": {
               "state": "YES",
@@ -8919,18 +8701,18 @@
               "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
             }
           },
-          "analysis_input": true,
-          "pool_refusal": null,
-          "pooled": {
-            "state": "YES",
-            "span": {
-              "source": "review.outcomes.trials",
-              "report_ids": [
-                "PMID 20712869"
-              ]
-            }
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
           },
-          "poolable_value": true
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
         },
         {
           "outcome": "Adverse events",
@@ -9447,8 +9229,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT00507546"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -10315,10 +10099,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -10889,8 +10678,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT00816673"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -11446,10 +11237,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -12161,8 +11957,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT00972075"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": [
@@ -12667,10 +12465,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -13120,8 +12923,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT01450228"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -13753,10 +13558,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -14345,8 +14155,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT01489969"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -15244,10 +15056,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -16032,8 +15849,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT01906866"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": [
@@ -18106,10 +17925,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -18559,8 +18383,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT02087722"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -19192,10 +19018,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -19809,8 +19640,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT02333149"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": [
@@ -20444,10 +20277,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -21063,8 +20901,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT03968939"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -22068,10 +21908,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -22573,8 +22418,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT05454683"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": [
@@ -23488,10 +23335,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -23957,8 +23809,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "NCT06996171"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -24401,10 +24255,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -24631,8 +24490,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-036b266aae49"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -24743,10 +24604,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -24973,8 +24839,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-05e4d9927e7a"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -25085,10 +24953,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -25317,8 +25190,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-0f91eb2af12c"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -25427,10 +25302,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -25657,8 +25537,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-143f0ae3d17f"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -25769,10 +25651,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -25999,8 +25886,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-159bbb576b5b"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -26109,10 +25998,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -26339,8 +26233,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-1813b547e698"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -26451,10 +26347,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -26682,8 +26583,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-19d203fdc9b2"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -26796,10 +26699,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -27026,8 +26934,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-1bab7b22b6ca"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -27136,10 +27046,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -27365,8 +27280,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-1feba490e3ab"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -27479,10 +27396,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -27710,8 +27632,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-21db29ca6140"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -27822,10 +27746,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -28052,8 +27981,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-223f6692033b"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -28164,10 +28095,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -28394,8 +28330,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-2b8fd522e81a"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -28504,10 +28442,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -28735,8 +28678,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-2b95362b0300"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -28849,10 +28794,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -29079,8 +29029,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-2c3c8759fbf0"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -29191,10 +29143,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -29421,8 +29378,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-2d44d8b6c160"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -29533,10 +29492,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -29764,8 +29728,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-30955d276713"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -29878,10 +29844,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -30108,8 +30079,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-30e7f4812e8c"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -30218,10 +30191,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -30449,8 +30427,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-394896d52ce6"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -30561,10 +30541,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -30791,8 +30776,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-3d4e5d2c1f07"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -30903,10 +30890,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -31134,8 +31126,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-437768426f04"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -31246,10 +31240,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -31477,8 +31476,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-4952f5abcfce"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -31591,10 +31592,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -31822,8 +31828,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-4ba8069fb1f1"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -31936,10 +31944,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -32167,8 +32180,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-51169235d393"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -32281,10 +32296,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -32511,8 +32531,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-51de587fcd83"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -32623,10 +32645,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -32854,8 +32881,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-542291ada121"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -32968,10 +32997,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -33199,8 +33233,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-58df6b96452b"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -33311,10 +33347,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -33541,8 +33582,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-5f39d6706bea"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -33653,10 +33696,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -33883,8 +33931,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-67a0da60552b"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -33995,10 +34045,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -34226,8 +34281,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-6b350e0a4573"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -34338,10 +34395,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -34569,8 +34631,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-6c989d581f38"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -34685,10 +34749,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -34915,8 +34984,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-709fd7e95519"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -35027,10 +35098,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -35257,8 +35333,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-777e51ec7c83"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -35371,10 +35449,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -35601,8 +35684,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-7b671a34ec3f"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -35713,10 +35798,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -35944,8 +36034,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-7c0319c6721b"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -36058,10 +36150,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -36289,8 +36386,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-7eadf195c7ec"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -36401,10 +36500,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -36631,8 +36735,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-7f344a327974"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -36743,10 +36849,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -36973,8 +37084,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-800fb8ff2531"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -37085,10 +37198,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -37316,8 +37434,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-88605c328b94"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -37430,10 +37550,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -37660,8 +37785,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-8d763ae186e3"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -37772,10 +37899,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -38004,8 +38136,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-8de909fe3547"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -38114,10 +38248,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -38345,8 +38484,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-8ff42d4ff817"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -38457,10 +38598,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -38688,8 +38834,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-91f0a396e6ed"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -38802,10 +38950,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -39033,8 +39186,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-934555629c93"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -39143,10 +39298,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -39373,8 +39533,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-a27b3152d5ee"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -39485,10 +39647,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -39716,8 +39883,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-a7652b622169"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -39830,10 +39999,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -40060,8 +40234,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-a861d63b3256"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -40172,10 +40348,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -40402,8 +40583,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-adcac793e5b9"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -40514,10 +40697,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -40744,8 +40932,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-aef971a2b2eb"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -40856,10 +41046,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -41088,8 +41283,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-b44db6ffbc85"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -41198,10 +41395,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -41426,8 +41628,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-b47b2e6436f7"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -41536,10 +41740,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -41768,8 +41977,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-b484e112c6ca"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -41880,10 +42091,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -42112,8 +42328,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-ba43b7076542"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -42224,10 +42442,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -42454,8 +42677,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-babc43fd690e"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -42566,10 +42791,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -42796,8 +43026,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-bc903e1c80b2"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -42908,10 +43140,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -43139,8 +43376,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-bf8eadfe6150"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -43255,10 +43494,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -43485,8 +43729,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-c9530b0638f5"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -43601,10 +43847,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -43832,8 +44083,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-c96120e240a3"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -43942,10 +44195,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -44172,8 +44430,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-c9837fa62eac"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -44284,10 +44544,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -44514,8 +44779,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-cf2b436f4c06"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -44626,10 +44893,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -44857,8 +45129,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-cff8d48f0a13"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -44969,10 +45243,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -45199,8 +45478,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-d193aebaca6b"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -45309,10 +45590,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -45540,8 +45826,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-d31d7a8f9228"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -45656,10 +45944,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -45886,8 +46179,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-d5840a4daae0"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -45998,10 +46293,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -46228,8 +46528,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-d6c42f6ee341"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -46340,10 +46642,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -46571,8 +46878,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-d8e37675e6c5"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -46683,10 +46992,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -46914,8 +47228,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-daca0ad1cbf4"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -47036,10 +47352,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -47266,8 +47587,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-dcbf6d40d285"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -47378,10 +47701,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -47608,8 +47936,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-e29e3e2453d9"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -47720,10 +48050,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -47950,8 +48285,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-e67952292f50"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -48062,10 +48399,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -48292,8 +48634,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-e8b788488d4c"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -48402,10 +48746,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -48633,8 +48982,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-eb2a64efb94b"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -48749,10 +49100,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -48979,8 +49335,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-f0ac868029da"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -49089,10 +49447,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -49320,8 +49683,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-f2d2ef0c32e6"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -49432,10 +49797,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -49662,8 +50032,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-f98441893c8f"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -49772,10 +50144,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -50003,8 +50380,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-fa430c95877e"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -50115,10 +50494,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -50347,8 +50731,10 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.trials",
-              "family_id": "SYN-fdcb37238187"
+              "source": "review.outcomes.result",
+              "present": false,
+              "suppressed_incompatible": null,
+              "pool_refused": null
             }
           },
           "registered_outcome_candidates": []
@@ -50459,10 +50845,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -50498,7 +50889,7 @@
     "trial_families": 16,
     "eligible_families": 3,
     "contributing": 1,
-    "pooled": 1,
+    "pooled": 0,
     "eligibility_unresolved": 13,
     "unresolved_report_candidates": 76,
     "contributing_without_structural_eligibility": [],
@@ -50506,6 +50897,216 @@
     "registry_records_screened": 8
   },
   "family_missing_evidence": [
+    {
+      "family_id": "NCT00397189",
+      "outcome": "Sleep-onset latency",
+      "state": "EXTRACTABLE",
+      "span": {
+        "measured": {
+          "state": "YES",
+          "span": {
+            "source": "AACT registry results",
+            "outcome_row": {
+              "id": "258520469",
+              "nct_id": "NCT00397189",
+              "title": "The Change From Baseline in Subjective Sleep Latency.",
+              "source_reference": {
+                "table": "outcomes",
+                "nct_id": "NCT00397189",
+                "row_key": {
+                  "id": "258520469"
+                },
+                "row_sha256": "9a331811ed37f9f1ae10f9be642e56049ee71d9dcf9ac3252c0863294ac82845",
+                "snapshot": "2026-08-30"
+              }
+            },
+            "typed_values": [
+              {
+                "value": -19.1,
+                "param_type": "MEAN",
+                "source_row": {
+                  "id": "1928156653",
+                  "nct_id": "NCT00397189",
+                  "outcome_id": "258520469",
+                  "param_type": "MEAN",
+                  "param_value": "-19.1",
+                  "param_value_num": "-19.1",
+                  "source_reference": {
+                    "table": "outcome_measurements",
+                    "nct_id": "NCT00397189",
+                    "row_key": {
+                      "id": "1928156653"
+                    },
+                    "row_sha256": "e7cf0abda58fbfc376b207117784521140f1bdd94e0cd886a9b13b674d1b69c0",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_measurements"
+              },
+              {
+                "value": -15.6,
+                "param_type": "Mean Difference (Final Values)",
+                "source_row": {
+                  "id": "128918816",
+                  "nct_id": "NCT00397189",
+                  "outcome_id": "258520469",
+                  "param_type": "Mean Difference (Final Values)",
+                  "param_value": "-15.6",
+                  "source_reference": {
+                    "table": "outcome_analyses",
+                    "nct_id": "NCT00397189",
+                    "row_key": {
+                      "id": "128918816"
+                    },
+                    "row_sha256": "32a6fe50ded8482952ba00a69f8616208cf4f98426a72dad2e16afb95cd067bc",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_analyses"
+              }
+            ]
+          }
+        },
+        "reported": {
+          "state": "YES",
+          "span": {
+            "source": "AACT registry results",
+            "outcome_row": {
+              "id": "258520469",
+              "nct_id": "NCT00397189",
+              "title": "The Change From Baseline in Subjective Sleep Latency.",
+              "source_reference": {
+                "table": "outcomes",
+                "nct_id": "NCT00397189",
+                "row_key": {
+                  "id": "258520469"
+                },
+                "row_sha256": "9a331811ed37f9f1ae10f9be642e56049ee71d9dcf9ac3252c0863294ac82845",
+                "snapshot": "2026-08-30"
+              }
+            },
+            "typed_values": [
+              {
+                "value": -19.1,
+                "param_type": "MEAN",
+                "source_row": {
+                  "id": "1928156653",
+                  "nct_id": "NCT00397189",
+                  "outcome_id": "258520469",
+                  "param_type": "MEAN",
+                  "param_value": "-19.1",
+                  "param_value_num": "-19.1",
+                  "source_reference": {
+                    "table": "outcome_measurements",
+                    "nct_id": "NCT00397189",
+                    "row_key": {
+                      "id": "1928156653"
+                    },
+                    "row_sha256": "e7cf0abda58fbfc376b207117784521140f1bdd94e0cd886a9b13b674d1b69c0",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_measurements"
+              },
+              {
+                "value": -15.6,
+                "param_type": "Mean Difference (Final Values)",
+                "source_row": {
+                  "id": "128918816",
+                  "nct_id": "NCT00397189",
+                  "outcome_id": "258520469",
+                  "param_type": "Mean Difference (Final Values)",
+                  "param_value": "-15.6",
+                  "source_reference": {
+                    "table": "outcome_analyses",
+                    "nct_id": "NCT00397189",
+                    "row_key": {
+                      "id": "128918816"
+                    },
+                    "row_sha256": "32a6fe50ded8482952ba00a69f8616208cf4f98426a72dad2e16afb95cd067bc",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_analyses"
+              }
+            ]
+          }
+        },
+        "extractable": {
+          "state": "YES",
+          "span": {
+            "source": "AACT registry results",
+            "outcome_row": {
+              "id": "258520469",
+              "nct_id": "NCT00397189",
+              "title": "The Change From Baseline in Subjective Sleep Latency.",
+              "source_reference": {
+                "table": "outcomes",
+                "nct_id": "NCT00397189",
+                "row_key": {
+                  "id": "258520469"
+                },
+                "row_sha256": "9a331811ed37f9f1ae10f9be642e56049ee71d9dcf9ac3252c0863294ac82845",
+                "snapshot": "2026-08-30"
+              }
+            },
+            "typed_values": [
+              {
+                "value": -19.1,
+                "param_type": "MEAN",
+                "source_row": {
+                  "id": "1928156653",
+                  "nct_id": "NCT00397189",
+                  "outcome_id": "258520469",
+                  "param_type": "MEAN",
+                  "param_value": "-19.1",
+                  "param_value_num": "-19.1",
+                  "source_reference": {
+                    "table": "outcome_measurements",
+                    "nct_id": "NCT00397189",
+                    "row_key": {
+                      "id": "1928156653"
+                    },
+                    "row_sha256": "e7cf0abda58fbfc376b207117784521140f1bdd94e0cd886a9b13b674d1b69c0",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_measurements"
+              },
+              {
+                "value": -15.6,
+                "param_type": "Mean Difference (Final Values)",
+                "source_row": {
+                  "id": "128918816",
+                  "nct_id": "NCT00397189",
+                  "outcome_id": "258520469",
+                  "param_type": "Mean Difference (Final Values)",
+                  "param_value": "-15.6",
+                  "source_reference": {
+                    "table": "outcome_analyses",
+                    "nct_id": "NCT00397189",
+                    "row_key": {
+                      "id": "128918816"
+                    },
+                    "row_sha256": "32a6fe50ded8482952ba00a69f8616208cf4f98426a72dad2e16afb95cd067bc",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_analyses"
+              }
+            ]
+          },
+          "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
+        }
+      },
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
+    },
     {
       "family_id": "NCT00816673",
       "outcome": "Sleep-onset latency",
@@ -50524,8 +51125,13 @@
           "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
         }
       },
-      "absence_code": "NO_POOLABLE_VALUE",
-      "pool_refusal": null
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
     },
     {
       "family_id": "NCT00816673",
@@ -50566,8 +51172,13 @@
           "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
         }
       },
-      "absence_code": "NO_POOLABLE_VALUE",
-      "pool_refusal": null
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
     },
     {
       "family_id": "NCT02333149",
@@ -50594,17 +51205,10 @@
   "claimgraph": {
     "objects": [
       {
-        "kind": "rob_sensitivity_prose",
-        "claim_id": "6cda4cfca12c5a35",
-        "depends_on": {
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
-        }
-      },
-      {
         "kind": "manuscript_result_sentence",
-        "claim_id": "da1ebffd60b002fb",
+        "claim_id": "5619b7b80ed3b9ed",
         "depends_on": {
-          "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         }
       }
     ]
@@ -50730,8 +51334,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (RAN_ERROR_rendered_as_run): Registry-first (AACT) = RAN_ERROR; the source_status table shows it, but the search narrative still presents the topic as registry-first. RAN_ERROR must never be rendered as a completed search (extends the audit-22 NOT_RUN gate limb to RAN_ERROR).</li><li>the primary outcome is reported by trials that could not be pooled (33157425, 22346363, 19584739, 17875243) — the pooled k is known-incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: PMID:33157425, PMID:22346363, PMID:27559258, PMID:19584739, PMID:18036082, PMID:17875243, and 1 more; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "472956d2818a01c90127510d2aed1fed96d363aa9c270b0cbaa71c6aadf7af15",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (RAN_ERROR_rendered_as_run): Registry-first (AACT) = RAN_ERROR; the source_status table shows it, but the search narrative still presents the topic as registry-first. RAN_ERROR must never be rendered as a completed search (extends the audit-22 NOT_RUN gate limb to RAN_ERROR).</li><li>the primary outcome is reported by trials that could not be pooled (33157425, 22346363, 20712869, 19584739, 17875243) — the pooled k is known-incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: PMID:33157425, PMID:22346363, PMID:27559258, PMID:19584739, PMID:18036082, PMID:17875243, and 1 more; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "7c7cbac25e2e2579571d53339a5b8699d542ecff596b6f246aa98286f90c2fbd",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -50900,6 +51504,35 @@
       }
     },
     {
+      "limitation_id": "topic:melatonin-primary-insomnia-sol:outcomes:0:sleep-onset-latency:result-absent",
+      "kind": "DECLARED_ABSENT_SECTION",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "BLOCKS_CLAIM",
+      "claim_affected": "outcome result: Sleep-onset latency",
+      "evidence_state": "DECLARED_ABSENT",
+      "source_fields": [
+        "/outcomes/*/result/present",
+        "/outcomes/*/result/reason"
+      ],
+      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> REPORTED but not extractable as a pooled value: 33157425, 22346363, 20712869, 19584739, 17875243 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.</div>",
+      "text_sha256": "92a2913030ba9fd2c5ce6113ba9b2dce2f4941558e6f7f6545456ade40bcb6fe",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
+      }
+    },
+    {
       "limitation_id": "topic:melatonin-primary-insomnia-sol:harms:0:adverse-events:harms-incomplete",
       "kind": "HARMS_INCOMPLETE",
       "limitation_class": "VALIDITY_THREATENING",
@@ -50972,7 +51605,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Sleep-onset latency: verified 1/1; Adverse events: verified 1/1"
+        "gate_verdict_at_build": "Adverse events: verified 1/1"
       }
     },
     {
@@ -51011,12 +51644,10 @@
       "claim_affected": "risk-of-bias sensitivity interpretation",
       "evidence_state": "PARTIAL",
       "source_fields": [
-        "/rob_sensitivity/full",
-        "/rob_sensitivity/drop_high",
-        "/rob_sensitivity/low_only"
+        "/rob_sensitivity_omitted"
       ],
-      "rendered_text": "<div class='absent'>RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=1 of 1)</div>",
-      "text_sha256": "263d1a211a93f9b7de5ac7013679ac9c792f90492ebb90d5239151091d7ea0a3",
+      "rendered_text": "<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> Not computed (PRIMARY_ABSENT): the primary outcome has no pooled result (present = False). The per-trial rows and their risk-of-bias ratings are shown above; the omission is recorded in the review object as <code>rob_sensitivity_omitted</code>, not left silent.</div>",
+      "text_sha256": "334792a60451d4d060107fc0380bfbafa5aa223489874f09bef3dd503b72606f",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -51044,8 +51675,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (7 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>95% CI [-28.5214, -6.2786]; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>missing/invalid registry census inputs: enumerated, ongoing_or_recent, ghost_upper_bound, positive completed-trial denominator</td></tr></table></div>",
-      "text_sha256": "fb3a638387c94f3b85a2f00259638a15ccc323dc7e85b3f8e504c85fddeb0ae2",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (8 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; supported effect scale; clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>missing/invalid registry census inputs: enumerated, ongoing_or_recent, ghost_upper_bound, positive completed-trial denominator</td></tr></table></div>",
+      "text_sha256": "d6577dc054f237bad132856784b3078bbfbc3955d38c905874f6a3d0ab5db0a0",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -51090,6 +51721,30 @@
         "reason": "Auditability scope is a page-level provenance disclosure; no analytic gate changes its verdict when this recorded note is present.",
         "tranche": "TRANCHE-hazard-consumers",
         "ack_id": "HC-AUDITABILITY_SCOPE-RECORDED"
+      }
+    },
+    {
+      "limitation_id": "topic:melatonin-primary-insomnia-sol:reproduction:claim-check-zero",
+      "kind": "CLAIM_CHECK_ZERO",
+      "limitation_class": "VALIDITY_THREATENING",
+      "severity": "BLOCKS_CLAIM",
+      "claim_affected": "canonical claim contradiction gate coverage",
+      "evidence_state": "NOT_RUN",
+      "source_fields": [
+        "/reproduction/claim_check/claims_checked",
+        "/outcomes/*/result/claim"
+      ],
+      "rendered_text": "<div class='absent'><strong>No checkable pooled claim (Claims checked: 0).</strong> Nothing was pooled on this page, so the canonical-claim contradiction gate has nothing to check here &mdash; this is a limitation, not a clean result.</div>",
+      "text_sha256": "edeb92fefae8404ee080de90193840e30993224cc08ba46cb1b5b1af6d8448f8",
+      "linked_decision": {
+        "action": "REFUSE",
+        "gate_id": "limitation:claim_check_zero",
+        "decision_state": "CLAIM_CHECK_ZERO blocks the affected analytic claim"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/outcomes/*/result/claim",
+        "gate_verdict_at_build": "STALE: search_not_executed, primary_reported_not_extracted, eligible_declared_absent"
       }
     },
     {
@@ -51174,22 +51829,6 @@
         "claim_id": "ffece3f8af6a0b03"
       },
       {
-        "kind": "pooled_count",
-        "surface": "overview/results/manuscript",
-        "source_path": "/outcomes/*[primary]/result/k",
-        "subject": "primary_effect_objects",
-        "count": 1,
-        "claim_id": "5cb7cb94b7a46f28"
-      },
-      {
-        "kind": "rated_count",
-        "surface": "riskofbias/manuscript",
-        "source_path": "/rob_sensitivity",
-        "rated": 1,
-        "total": 1,
-        "claim_id": "f3cfb5ce652671d4"
-      },
-      {
         "kind": "retracted_count",
         "surface": "riskofbias/integrity",
         "source_path": "/integrity",
@@ -51202,8 +51841,8 @@
       "publication_bias_state": 1,
       "declared_equals_enforced": 1,
       "byte_reproducible": 1,
-      "pooled_count": 1,
-      "rated_count": 1,
+      "pooled_count": 0,
+      "rated_count": 0,
       "retracted_count": 1,
       "search_found": 0,
       "state_collapsed": 0
@@ -51259,7 +51898,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "146edbf724354bd40134ccaeae7719aebdf9f5f8",
-    "review_sha256": "d167d80af5c455d11074f2cfdee5a564e3cfbc5ee63bc9fb68dd651dc4dcdf2c",
+    "review_sha256": "027d6ea0ffe8b0a6e976991dd40dd2d8913b6e2152302037d334fec7de313e2a",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -51292,31 +51931,61 @@
       },
       "hand_status": "OVERLAPPING",
       "hand_status_stale": true,
-      "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4",
-      "claim_id": "8fdbc2ae83f424dc",
+      "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "claim_id": "d9165802c67f7cb2",
       "depends_on": {
-        "input_set_version": "9cbc8d54e10823c90ba7bcb2d4718443d2c5c1e8a848447e320a6a24180188e4"
+        "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
       },
       "claim_kind": "parity"
     },
+    "result_changes": [
+      {
+        "slug": "melatonin-primary-insomnia-sol",
+        "outcome": "Sleep-onset latency",
+        "before": {
+          "k": 1,
+          "estimate": -17.4,
+          "ci_low": -28.5214,
+          "ci_high": -6.2786
+        },
+        "after": {
+          "k": null,
+          "estimate": null,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "left_pool": [
+          "PMID 20712869"
+        ],
+        "entered_pool": [],
+        "reason": "PMID 20712869 set aside (KNOWN_REPORTED_NOT_YET_EXTRACTED): source-visible value was not pooled; recorded as extraction debt / typed refusal, not as absence. Mechanism: the hand-row binder landing (m2/bind-hand-rows) binds every hand-extracted row to held bytes or sets it aside; a set-aside trial stays eligible evidence awaiting adjudication; the numbers are not asserted wrong.",
+        "by": "Claude Opus 5.5 (captain lane)",
+        "when_utc": "2026-10-13T10:15:06Z",
+        "reviewer_countersignature": {
+          "state": "OPEN",
+          "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+        },
+        "conclusion_changed": "the outcome no longer has a pooled estimate"
+      }
+    ],
     "claim_check": {
-      "claims_checked": 1,
+      "claims_checked": 0,
       "surfaces": [
         "outcome block",
         "overview",
         "manuscript"
       ],
       "scope_counts": {
-        "outcome_result": 1,
+        "outcome_result": 0,
         "strand_pool": 0,
-        "rob_sensitivity": 3,
+        "rob_sensitivity": 0,
         "grade": 1
       },
       "scope": {
         "counts": {
-          "outcome_result": 1,
+          "outcome_result": 0,
           "strand_pool": 0,
-          "rob_sensitivity": 3,
+          "rob_sensitivity": 0,
           "grade": 1
         },
         "surfaces_checked": [
@@ -51339,8 +52008,8 @@
         "publication_bias_state": 1,
         "declared_equals_enforced": 1,
         "byte_reproducible": 1,
-        "pooled_count": 1,
-        "rated_count": 1,
+        "pooled_count": 0,
+        "rated_count": 0,
         "retracted_count": 1,
         "search_found": 0,
         "state_collapsed": 0
@@ -51350,8 +52019,8 @@
           "publication_bias_state": 1,
           "declared_equals_enforced": 1,
           "byte_reproducible": 1,
-          "pooled_count": 1,
-          "rated_count": 1,
+          "pooled_count": 0,
+          "rated_count": 0,
           "retracted_count": 1,
           "search_found": 0,
           "state_collapsed": 0
@@ -51411,7 +52080,7 @@
         }
       ],
       "config_sha256": "1d2a0b9dfcd198b54808243c9b3b3f3e25ff07f37a2adc71ac8b6f4960c70f3b",
-      "analysis_code_sha256": "e661b86548cb3b82e0f7be4d80e8f0bf775624e3f8298a094c01bcfa01f1229d",
+      "analysis_code_sha256": "5f187409170be62f989f733efb528db54549fabb7d10a24a4e196a6dd643f870",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -51443,6 +52112,7 @@
         "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
         "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
+        "harness/enforcement.py": "12c50ee4148a2849ee71cabe8a99a8bc61f1dc3a",
         "harness/estimand_contract.py": "41dca0ba9c52bdf755f86c55de9438c82639dfa7",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
         "harness/extract.py": "516eabe710dad873f66e3508705a7a48d2d6c484",
@@ -51472,7 +52142,7 @@
         "harness/missing_effect.py": "b16bdcdf80d4d585cbecf73ddf1183d7e4add184",
         "harness/page.py": "fd4ff4f749f1db94139ee50ade6e1a604f68aeb3",
         "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "bf17e79b8d7f5ef995607e0ed7a02fc8da0ae101",
+        "harness/pipeline.py": "2d59efa2e471eb8e0accf17edf3c167921736f3a",
         "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -51517,7 +52187,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "91 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "92 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -51553,8 +52223,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "ab7ce871c10042666d7822362ccd3921dfeb91e7dd87aca43a7a27f46fc3d08f",
-      "review_sha256": "d167d80af5c455d11074f2cfdee5a564e3cfbc5ee63bc9fb68dd651dc4dcdf2c",
+      "manuscript_sha256": "d3555a2960e01696f12c4924243db72a611737ede43564ef58c0833100713f29",
+      "review_sha256": "027d6ea0ffe8b0a6e976991dd40dd2d8913b6e2152302037d334fec7de313e2a",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/melatonin-primary-insomnia-sol.md UTF-8 text, universal newlines",
@@ -51575,7 +52245,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "60587dcd8e56d71292211ff3bc60020dd08ab0e5234af8d8bc1a7aaf2994eed5"
+      "release_sha256": "8297939e81fff0b6d42646b2f32c6156547bb1012cdecb4f876ee90699e096db"
     }
   }
 }

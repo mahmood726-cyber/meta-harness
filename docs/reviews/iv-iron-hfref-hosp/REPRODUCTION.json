@@ -1,7 +1,7 @@
 {
   "failures": 0,
   "protocol_sha": "c5bd23301ce74e2177741c0caad5e4b02efbdd52",
-  "review_sha256": "74bcd11aca37192e5ca1286547eadaecabaccacc1d4f0915018acb535db42da7",
+  "review_sha256": "48b37962a550214f1c327ded3857a35d427929a7bb2d7cb26778bbb2e70c621b",
   "from_cache": true,
   "preregistration": {
     "prospective": true,
@@ -63,6 +63,38 @@
         "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
       },
       "claim_kind": "refusal"
+    }
+  ],
+  "result_changes": [
+    {
+      "slug": "iv-iron-hfref-hosp",
+      "outcome": "Heart-failure hospitalization",
+      "before": {
+        "k": 2,
+        "estimate": null,
+        "ci_low": null,
+        "ci_high": null
+      },
+      "after": {
+        "k": null,
+        "estimate": null,
+        "ci_low": null,
+        "ci_high": null
+      },
+      "left_pool": [
+        "PMID 25176939",
+        "PMID 40159390"
+      ],
+      "entered_pool": [],
+      "before_note": "pool suppressed: incompatible estimands, INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO)",
+      "reason": "PMID 25176939 set aside (ENDPOINT_UNBOUND): unbound row with no signed binding decision (V15-C enforcement: fail closed). PMID 40159390 set aside (ENDPOINT_UNBOUND): unbound row with no signed binding decision (V15-C enforcement: fail closed). Mechanism: the hand-row binder landing (m2/bind-hand-rows) binds every hand-extracted row to held bytes or sets it aside; a set-aside trial stays eligible evidence awaiting adjudication; the numbers are not asserted wrong.",
+      "by": "Claude Opus 5.5 (captain lane)",
+      "when_utc": "2026-10-13T10:15:06Z",
+      "reviewer_countersignature": {
+        "state": "OPEN",
+        "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+      },
+      "conclusion_changed": "the outcome no longer has a pooled estimate"
     }
   ],
   "dual": {
@@ -179,7 +211,7 @@
       }
     ],
     "config_sha256": "a6c3d40a425ab322093aa1b2ba4f812776221df6425a7d2578627df32db7290a",
-    "analysis_code_sha256": "e661b86548cb3b82e0f7be4d80e8f0bf775624e3f8298a094c01bcfa01f1229d",
+    "analysis_code_sha256": "5f187409170be62f989f733efb528db54549fabb7d10a24a4e196a6dd643f870",
     "analysis_code_blobs": {
       "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
       "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -211,6 +243,7 @@
       "harness/eligibility_chain.py": "029848f269761e24c62c254726ccef5cdd6890db",
       "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
       "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
+      "harness/enforcement.py": "12c50ee4148a2849ee71cabe8a99a8bc61f1dc3a",
       "harness/estimand_contract.py": "41dca0ba9c52bdf755f86c55de9438c82639dfa7",
       "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
       "harness/extract.py": "516eabe710dad873f66e3508705a7a48d2d6c484",
@@ -240,7 +273,7 @@
       "harness/missing_effect.py": "b16bdcdf80d4d585cbecf73ddf1183d7e4add184",
       "harness/page.py": "fd4ff4f749f1db94139ee50ade6e1a604f68aeb3",
       "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-      "harness/pipeline.py": "bf17e79b8d7f5ef995607e0ed7a02fc8da0ae101",
+      "harness/pipeline.py": "2d59efa2e471eb8e0accf17edf3c167921736f3a",
       "harness/population_witness.py": "fbdacdaf103fea9b5ca43cfcb057af1775fd6fc5",
       "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
       "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
@@ -285,7 +318,7 @@
         "harness/certificate.py",
         "scripts/reproduce_review.py"
       ],
-      "covers": "91 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+      "covers": "92 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
       "declared_but_absent": [
         "harness/effect_type.py"
       ],
@@ -322,7 +355,7 @@
       "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
     },
     "manuscript_sha256": "f185fd34df1604325141b162a3f4e4493e32eafc4e8e350439bcf4334409a5e1",
-    "review_sha256": "74bcd11aca37192e5ca1286547eadaecabaccacc1d4f0915018acb535db42da7",
+    "review_sha256": "48b37962a550214f1c327ded3857a35d427929a7bb2d7cb26778bbb2e70c621b",
     "hash_inputs": {
       "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
       "protocol_text_sha256": "protocols/iv-iron-hfref-hosp.md UTF-8 text, universal newlines",
@@ -343,9 +376,9 @@
       "review_sha256": "canonical review core (excludes reproduction)",
       "release_sha256": "canonical entire certificate excluding only release_sha256"
     },
-    "release_sha256": "fd6e05ccb701e04576e708dfc74923a47e43cf768d0d688953fdb77a534ce374"
+    "release_sha256": "96d8320ff48c0ad4b46846953592804469bdcb7f4f257cdea57f344a91e15564"
   },
-  "html_sha256": "37e092eaec2b214a1c1d34183e6224dc98bcfdf5d2ac8fc153728147ad48d1b3",
+  "html_sha256": "f927e796e2c8dc3221715cfeb86ec2f04febd9c1e48d0e882ef3efddd99134d5",
   "checks": [
     {
       "check": "render is deterministic",

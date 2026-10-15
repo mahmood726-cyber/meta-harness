@@ -139,7 +139,7 @@ LIMITS = [
     {"id": "L7_ci_to_se", "limit": "every SE is derived from a published CI under a Wald assumption; SOUL's interval is group-sequential-adjusted; "
      "appropriateness is NOT_ESTABLISHED and no sensitivity analysis exists."},
     {"id": "L8_fda_extraction", "limit": "FDA PDF -> text extraction tool is unrecorded and no page-level preservation record exists; those documents are UNKNOWN_COMPLETENESS."},
-    {"id": "L10_admit_rows_fail_open", "limit": "the producer's target_endpoint.admit_rows admits a row with no endpoint class as UNBOUND_LEGACY "
+    {"id": "L10_admit_rows_fail_open", "since_v15c": "13 Oct (Mahmood, ruling 1): harness/enforcement.py removes every UNBOUND_LEGACY row from the pool unless a signed decision (registry/v15c_decisions.json) admits it with its numbers unchanged; an admitted row is SIGNED_BINDING (pooled_state SIGNED_BINDING_POOLED, final ADMITTED_BY_SIGNED_BINDING), every other one is displayed as absent", "limit": "the producer's target_endpoint.admit_rows admits a row with no endpoint class as UNBOUND_LEGACY "
      "(external audit: an authentic ELIXA 4-point row is refused when classified DIFFERENT_OUTCOME and admitted when the class is stripped). Two rendered "
      "harms rows carry it, both appended by the verified_arms override route before classification (binding_states.rows[].route). The bundle counts them "
      "as a migration state. target_endpoint.py and pipeline.py ARE pinned in the certificate's analysis_code_blobs (binding_states.gate), so the gate "
@@ -153,7 +153,7 @@ LIMITS = [
     {"id": "L13_location_by_full_text_and_offsets", "limit": "spans are located by their FULL text (verbatim, or normalised under the published manifest) "
      "and recorded with code-point offsets, not by a prefix match; a prefix-locator's failure mode (two sentences sharing a long opening) does not "
      "apply, and a span that occurs more than once is SPAN_LOCATION_AMBIGUOUS unless offsets pin one occurrence -- measured by the B3 fixture."},
-    {"id": "L15_pooled_state_is_rendered_not_enforced_upstream", "limit": "the producer pools EXACT_TARGET, NEAR_MATCH_DECLARED and UNBOUND_LEGACY rows into one "
+    {"id": "L15_pooled_state_is_rendered_not_enforced_upstream", "since_v15c": "13 Oct (Mahmood, ruling 1): harness/enforcement.py removes every UNBOUND_LEGACY row from the pool unless a signed decision (registry/v15c_decisions.json) admits it with its numbers unchanged; an admitted row is SIGNED_BINDING (pooled_state SIGNED_BINDING_POOLED, final ADMITTED_BY_SIGNED_BINDING), every other one is displayed as absent", "limit": "the producer pools EXACT_TARGET, NEAR_MATCH_DECLARED and UNBOUND_LEGACY rows into one "
      "estimate and renders them alike (pcsk9-mace, 2026-09-20: k=3 with one of each; ODYSSEY carries extra ['unstable angina'] and missing [] while naming coronary "
      "heart disease death for cardiovascular death). This bundle names the pooled_state of every rendered row, fails P13/P14 on a pooled row with an extra or an "
      "unrecorded missing component, and ships the sweep over all 32 served reviews (strict_subset_sweep.json, pooled_class_sweep.json); it does not change what "
@@ -1035,6 +1035,8 @@ def pooled_state(t):
         return "EXACT_TARGET_POOLED"
     if cls == "NEAR_MATCH" or adm.startswith("NEAR_MATCH"):
         return "NEAR_MATCH_POOLED"
+    if adm == "SIGNED_BINDING" or b == "signed_panel_binding":
+        return "SIGNED_BINDING_POOLED"            # V15-C: no definition-span binding; admitted by a signed decision
     if b == "unbound_legacy" or adm == "UNBOUND_LEGACY" or not cls:
         return "UNBOUND_POOLED"
     return f"OTHER:{cls}"
@@ -1366,6 +1368,9 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         failing = [k for k, v in predicates.items() if v["state"] != "PASS"]
         final = ("ADMISSIBLE" if not failing else
                  "MIGRATION_STATE_UNBOUND_LEGACY" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "unbound_legacy" else
+                 # V15-C: P8 still FAILS (a signed panel binding is a verbatim RESULT span read by two model families and
+                 # signed, not a definition-span binding) -- disclosed as its own final state, never as ADMISSIBLE
+                 "ADMITTED_BY_SIGNED_BINDING" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "signed_panel_binding" else
                  "INADMISSIBLE")
         rows.append({
             "pooled_state": csc["pooled_state"],
