@@ -2,23 +2,39 @@
 
 The frozen v3.1 dual reader (`scripts/rob2_dual.py`, contextual pre-registration
 `2b3450d7`) has two defects identified during the served-driver review (round 28).
-All five independent-review findings are accepted. This revision changes only the
-request and its read-only measurement script. The frozen implementation, existing
-behavioural tests, and frozen input objects remain unchanged.
+Review records: [round 1](a4_review/round1_codex.txt),
+[round 2](a4_review/round2_codex.txt), and
+[Sonnet round 3](a4_review/round3_sonnet.txt) (codex + Claude Sonnet while agy is out of quota;
+the Gemini pass is owed). The accepted
+wording fixes are incorporated below; runtime was declined as a defect. This
+revision changes only this request and `tests/test_rob2_dual_a4.py`. The frozen
+implementation and input objects remain unchanged.
 
 ## Defects and requested behaviour
 
 1. **Stale-record reuse.** Replay checks NEITHER the manifest prompt hash nor the
    held record's own prompt against the current generated prompt. Live mode checks
-   only the manifest hash. Require BOTH checks in BOTH modes, for Codex, Agy, and
+   only the manifest hash: it already re-calls an entry whose MANIFEST prompt is
+   stale. A4 adds the HELD-record check in live mode and both checks in replay.
+   Require BOTH checks in BOTH modes, for Codex, Agy, and
    the adjudicator, before replaying any response bytes. This mirrors the contextual
    pipeline's `fresh` / `record_prompt_sha256` implementation (located in
    `scripts/rob2_contextual.py`; contextual answer verification is in
    `robgrade/contextual.py`). A stale record supplies no reading in replay mode;
    live mode must make a replacement call for the current prompt.
+   **STALE READER rule:** a reader whose held record does not answer the current
+   prompt is treated exactly like a missing/failed reader. No agreement is
+   computed, no NI-vs-X disagreement is manufactured, and no adjudicator is
+   requested or called for it. Replay keeps only typed answers; every other
+   question is NI, even if the fresh reader supplied an answer. Live mode
+   re-calls that reader before computing agreement.
 2. **Conflicting duplicate rows.** The frozen verifier retains the first row, so
-   PY/PN conflicts depend on row order. Require NI with
-   `AMBIGUOUS_CONFLICTING_ROWS` in either order.
+   conflicts depend on row order. ANY two different raw answers for one allowed
+   question, including Y versus PY, must produce NI with
+   `AMBIGUOUS_CONFLICTING_ROWS`, regardless of order or whether a conflicting
+   row's quote fails verification. Identical duplicates (for example PY/PY) are
+   fine and undergo normal quote verification. Rows outside `allowed` remain
+   excluded; their duplicates must not introduce answers.
 
 ## Measurement method and scope
 
@@ -42,7 +58,7 @@ the frozen process actually reads; adjudicator evidence blocks are compared too.
 Command (PowerShell, 2026-10-14):
 
 ```powershell
-$env:TMP='C:/mh-lanes/tmp'; $env:TEMP='C:/mh-lanes/tmp'
+$env:TMPDIR='C:/mh-lanes/tmp'; $env:TMP='C:/mh-lanes/tmp'; $env:TEMP='C:/mh-lanes/tmp'
 $env:PYTHONDONTWRITEBYTECODE='1'
 $env:ROBGRADE_LOCAL_FT='1'
 $env:ROBGRADE_DEV_OPEN_CC='1'
@@ -84,14 +100,30 @@ and typed precedence would show an adjudicator different readings/question sets.
 That is exactly the defect A4 closes.** For seven entries the reader pairs
 themselves are unchanged, but typed rules now remove questions from the adjudicator's
 view. For PMID 35041780, A2 also changes the verified reader pairs and creates
-different disagreements. These are prompt-input differences, not a claim that all
-eight final assessment objects or reported scores change.
+different disagreements. These prompt-input differences invalidate all eight held adjudications under A4.
 
 **A4 does not change the frozen v3.1 input objects, which the contextual
 pre-registration byte-freezes. What A4 would change is any FUTURE replay of these
-trials:** stale adjudicator responses would supply no reading in replay mode;
-live mode would require replacement calls using the current prompts. This request
-does not implement A4 or regenerate any frozen object.
+trials: replaying these eight trials under A4 with their stale adjudications no
+longer reproduces their current objects.** Every question still in its current
+disagreement set falls back to NI. To obtain fresh adjudications instead requires
+re-making all eight live (8 adjudicator calls using the current prompts); new
+calls do not guarantee identical answers or objects. The affected questions per
+key, taken from the measurement stdout below, are:
+
+| Manifest key | Current disagreement questions falling back to NI |
+|---|---|
+| `balanced-crystalloids-vs-saline-mortality::23732264::Mortality` | 2.6, 2.7, 3.1, 3.3, 3.4, 5.2 |
+| `balanced-crystalloids-vs-saline-mortality::26444692::Mortality` | 1.2, 2.6, 2.7, 4.3, 5.2, 5.3 |
+| `balanced-crystalloids-vs-saline-mortality::27604335::Mortality` | 3.1, 3.2, 4.3, 4.5, 5.2, 5.3 |
+| `balanced-crystalloids-vs-saline-mortality::29485925::Mortality` | 2.1, 2.2, 2.6, 2.7, 3.1, 3.2, 4.3, 4.5, 5.2, 5.3 |
+| `balanced-crystalloids-vs-saline-mortality::34375394::Mortality` | 2.6, 2.7, 5.2, 5.3 |
+| `balanced-crystalloids-vs-saline-mortality::35041780::Mortality` | 2.6, 2.7 |
+| `iv-iron-hfref-hosp::25176939::Heart-failure hospitalization` | 4.1, 4.2, 4.4, 4.5, 5.2 |
+| `probiotics-aad-prevention::30439760::Antibiotic-associated diarrhoea` | 2.3, 3.3, 3.4, 4.1, 4.2, 4.3, 4.4, 4.5 |
+
+Typed answers retain precedence. This request does not implement A4 or regenerate
+any frozen object; score changes have not been measured.
 
 **Configuration hazard:** replay under the wrong source configuration silently
 changes prompts while the frozen driver still reuses held replies. A4's
@@ -315,35 +347,37 @@ All defect cases retain the same `xfail(strict=True)` reason. Strict xfail is a
 pass fails the normal run, but an unrelated exception can still count as xfailed.
 Therefore `--runxfail` assertions must also be inspected.
 
-With TMP/TEMP as above, verification used:
+With TMPDIR/TMP/TEMP set to `C:/mh-lanes/tmp` and bytecode writes disabled,
+verification on 2026-10-15 used:
 
 ```powershell
-python -m pytest -s -q -p no:cacheprovider tests/test_rob2_dual_a4.py --runxfail --tb=short --basetemp=C:/mh-lanes/tmp/a4-revision-runxfail-20261014
-python -m pytest -s -q -p no:cacheprovider tests/test_rob2_dual_a4.py tests/test_rob2_dual.py --basetemp=C:/mh-lanes/tmp/a4-revision-normal-20261014
+python -m pytest -q -p no:cacheprovider tests/test_rob2_dual_a4.py --runxfail --tb=short --basetemp=C:/mh-lanes/tmp/a4-sonnet-runxfail-fixed-20261015
+python -m pytest -q -p no:cacheprovider tests/test_rob2_dual_a4.py tests/test_rob2_dual.py tests/test_model_inventory.py --basetemp=C:/mh-lanes/tmp/a4-sonnet-normal-fixed-20261015
 ```
 
-The default pytest temporary subdirectory was inaccessible; these fresh explicit
-basetemp directories resolved that setup failure. The successful diagnostic run
-reported **11 failed, 4 passed** with no setup errors:
+The diagnostic run reported **14 failed, 5 passed**, with every failure at its
+intended behavioural assertion and no setup errors:
 
-- Duplicate PY/PN and PN/PY: returned `(PY, None)` and `(PN, None)` respectively,
-  rather than `(NI, AMBIGUOUS_CONFLICTING_ROWS)`.
-- Held-prompt stale replay, individually for Codex, Agy, adjudicator: the spy saw
-  that stale record ID reach response replay.
-- Manifest stale replay, individually for Codex, Agy, adjudicator: the spy likewise
-  saw the stale record ID reach response replay.
-- Live stale held record, individually for Codex, Agy, adjudicator: no replacement
-  call for that role/current prompt occurred.
-- All four unmarked fresh controls passed on the frozen implementation.
+- Duplicate PY/PN and PN/PY returned `(PY, None)` and `(PN, None)`.
+- New duplicate PY/Y and Y/PY cases returned `(PY, None)` and `(Y, None)`;
+  both require `(NI, AMBIGUOUS_CONFLICTING_ROWS)` despite same-side answers.
+- New stale-Codex/fresh-Agy-PY case returned
+  `(requested prompts, calls, disagreements, answer 1.2) = ([], [], [], PY)`
+  instead of `([], [], [], NI)`. The test also requires retention of a planted
+  typed answer and NI for every untyped question. A partial fix that drops the
+  stale reading but manufactures an adjudication also fails this assertion.
+- Held-prompt and manifest-stale replay, individually for Codex, Agy and the
+  adjudicator: the spy saw the stale record ID reach response replay.
+- Live stale held record, individually for Codex, Agy and the adjudicator:
+  no replacement call for that role/current prompt occurred. Manifest-stale
+  live replacement already exists in frozen code; these live defect tests
+  specifically cover the added held-record requirement.
+- All four fresh controls and the new identical PY/PY duplicate control passed.
 
-Normal combined suite: **11 passed, 11 xfailed** (four A4 controls plus seven
-existing dual-reader tests passed).
-
-This request finalisation reran that combined suite with
-`--basetemp=C:/mh-lanes/tmp/a4-final-normal-20261014`: **11 passed, 11 xfailed**.
-The audit now accepts an omitted `ROBGRADE_DEV_OPEN_CC` as disabled and rejects
-values other than unset or exactly "1" with an explicit configuration message
-and exit code 1, before measurement.
+Normal combined suite: **17 passed, 14 xfailed**, including the existing
+dual-reader and model-inventory checks. All defect cases are strict xfails;
+controls are unmarked because the frozen implementation already satisfies them.
+Role vocabularies in these tests are tuples.
 
 ## Application after signature
 

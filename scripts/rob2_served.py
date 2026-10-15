@@ -29,6 +29,7 @@ from robgrade import rob2_typed as rt  # noqa: E402
 SERVED = os.path.join(ROOT, "outputs", "robgrade", "served")
 REVIEWS = os.path.join(ROOT, "docs", "reviews")         # READ only: the served reviews define the pairs
 STORES = {
+    "quarantine": os.path.join(SERVED, "QUARANTINE.json"),
     "dual_rec": os.path.join(ROOT, "evidence", "model_calls", "rob2_served"),
     "dual_runs": os.path.join(ROOT, "registry", "model_proposals", "rob2_served_runs.json"),
     "dual_out": os.path.join(SERVED, "rob2"),
@@ -109,6 +110,15 @@ class _DeferAdjudication:
         return self.pool.submit(fn, item, who, p)
 
 
+def _save_runs(runs):
+    """DEFERRED is an in-memory scheduling marker, never a persisted attempt."""
+    for row in runs.values():
+        for who in tuple(row):
+            if isinstance(row[who], dict) and row[who].get("state") == "DEFERRED":
+                del row[who]
+    rd._save(rd.RUNS, runs)
+
+
 def run_dual(todo, live):
     """The v3.1 dual reading of the todo pairs, by rob2_dual.process, saved per topic as each topic completes. LIVE runs
     in two phases (codex r32): readers only, then the reader checks (quarantine), then adjudication for the trials that
@@ -117,7 +127,7 @@ def run_dual(todo, live):
     pools, driver = _pools()
     rd.prefetch_registry(sorted(todo.items()))
     batches = [(slug, rd.items(slug, pm)) for slug, pm in sorted(todo.items())]
-    qpath = os.path.join(SERVED, "QUARANTINE.json")
+    qpath = STORES["quarantine"]
     quarantine = rd._j(qpath) if os.path.exists(qpath) else {}
     try:
         early = {}                                     # (slug, pmid) -> reason, from the reader checks of phase 1
@@ -129,7 +139,7 @@ def run_dual(todo, live):
                 for n, it in enumerate(its):
                     _, r = f1[(slug, n)].result()
                     runs[it["key"]] = r
-                    rd._save(rd.RUNS, runs)            # after EVERY trial: a kill orphans as little as possible
+                    _save_runs(runs)            # after EVERY trial: a kill orphans as little as possible
                     why = reader_verdict(it, r, rd.REC_DIR)
                     if why:
                         early[(slug, it["pmid"])] = why
@@ -142,13 +152,13 @@ def run_dual(todo, live):
                     continue
                 obj, r = futs[(slug, n)].result()
                 runs[it["key"]] = r
-                rd._save(rd.RUNS, runs)                # after EVERY trial
+                _save_runs(runs)                # after EVERY trial
                 rd.redact_closed_spans(obj, it)
                 done.append((it, obj, r))
                 print("dual", slug, it["pmid"], obj["overall"]["judgement"],
                       {w: (x or {}).get("state") for w, x in r.items()}, flush=True)
-            rd._save(rd.RUNS, runs)
-            results, q = keep_or_quarantine(done, rd.REC_DIR)       # codex r29: never resolved by row order
+            _save_runs(runs)
+            results, q = keep_or_quarantine(done, rd.REC_DIR, live=live)       # codex r29: never resolved by row order
             q.update({pm: why for (sl, pm), why in early.items() if sl == slug})
             quarantine[slug] = q
             rd._save(qpath, quarantine)
@@ -173,11 +183,28 @@ def _die(code):
     os._exit(code)                                     # no unwinding: in-flight workers die with the process
 
 
+def _read_record(path, read=lambda record: record):
+    """Name the held file on any read/decode failure, including malformed record fields."""
+    from reproducible_ai import model_source as ms
+    try:
+        record = ms.load_record(path)
+        if not isinstance(record, dict):
+            raise ValueError("record is not an object")
+        if "state" in record and not isinstance(record["state"], str):
+            raise ValueError("state is not a string")
+        for field in ("model", "caller"):
+            if record.get(field) is not None and not isinstance(record[field], dict):
+                raise ValueError(f"{field} is not an object")
+        return read(record)
+    except Exception as exc:
+        raise SystemExit(f"REFUSED: unreadable record {path}: {exc}") from exc
+
+
 def _record_prompt_sha256(rec_dir, rid):
     import hashlib
     from reproducible_ai import model_source as ms
     p = os.path.join(rec_dir, rid + ".json")
-    return hashlib.sha256(ms._unblob(ms.load_record(p)["prompt"], "prompt")).hexdigest() if os.path.exists(p) else None
+    return _read_record(p, lambda r: hashlib.sha256(ms._unblob(r["prompt"], "prompt")).hexdigest()) if os.path.exists(p) else None
 
 
 ROLES = ("codex", "agy", "adjudicator")
@@ -190,7 +217,7 @@ def _record_bound(rec_dir, rid):
     p = os.path.join(rec_dir, str(rid) + ".json")
     if not rid or not os.path.exists(p):
         return None
-    t = ms._unblob(ms.load_record(p)["prompt"], "prompt").decode("utf-8", "replace")
+    t = _read_record(p, lambda r: ms._unblob(r["prompt"], "prompt").decode("utf-8", "replace"))
     m, o = re.search(r"^TRIAL: (\S+)", t, re.M), re.search(r"^OUTCOME: (.*)$", t, re.M)
     return (m.group(1), o.group(1).strip()) if m and o else None
 
@@ -198,7 +225,7 @@ def _record_bound(rec_dir, rid):
 def _record_role(rec_dir, rid):
     """The role a held record was MADE for (its caller line, call:<role>), or None."""
     p = os.path.join(rec_dir, str(rid) + ".json")
-    return str(((rd._j(p).get("caller") or {}).get("line") or "")).split(":")[-1] if rid and os.path.exists(p) else None
+    return _read_record(p, lambda r: str(((r.get("caller") or {}).get("line") or "")).split(":")[-1]) if rid and os.path.exists(p) else None
 
 
 def _entries(runs):
@@ -216,10 +243,14 @@ def _grouped(runs):
                     yield key, who, x, (key, n)
 
 
-def check_manifest_records(runs, rec_dir):
+def check_manifest_records(runs, rec_dir, contextual=False):
     """(codex r28, r31) Every entry a served manifest names -- dual or contextual, in ANY state -- is a HELD record in
     the state the manifest gives, and a RAN_OK one carries the manifest's prompt: a stale record never answers a
     different prompt, and a success is never relabelled as a failure (which the frozen pipelines would trust)."""
+    for key, row in runs.items():
+        allowed = ("passes", "consumed") if contextual else ROLES
+        if not isinstance(row, dict) or set(row) - set(allowed):
+            raise SystemExit(f"REFUSED: {key}: unexpected manifest keys (allowed: {allowed})")
     readers = {}
     for key, who, x, group in _grouped(runs):
         if who not in ROLES:                           # an entry the pipeline never reads hides a decision (codex r32)
@@ -257,7 +288,7 @@ def check_accounted(runs, rec_dir, consumed=False, keys=None):
         if stray:
             raise SystemExit(f"REFUSED: manifest keys of no served trial in {rec_dir}: {stray}")
     ok = {os.path.basename(f)[:-5] for f in glob.glob(os.path.join(rec_dir, "mc-*.json"))
-          if rd._j(f).get("state") == "RAN_OK"}
+          if _read_record(f, lambda r: r.get("state")) == "RAN_OK"}
     if consumed:
         seen = {rid for r in runs.values() if isinstance(r, dict) for rid in r.get("consumed") or []}
     else:
@@ -285,7 +316,7 @@ def _sha(b):
 def _record_state(rec_dir, rid):
     """The held record's own state (RAN_OK / RAN_ERROR / ...), or None when it is not held."""
     p = os.path.join(rec_dir, str(rid) + ".json")
-    return rd._j(p).get("state") if rid and os.path.exists(p) else None
+    return _read_record(p, lambda r: r.get("state")) if rid and os.path.exists(p) else None
 
 
 def _fresh(entry, want, rec_dir, what, who=None):
@@ -327,12 +358,16 @@ def item_verdict(item, r, rec_dir):
         b = rd.verify_answers(rd.replay(r.get("agy")), item)
         dis = {q: v for q, v in rd.agree(a, b)[1].items() if q not in typed}
     adj = r.get("adjudicator")
+    if adj and adj.get("state") == "DEFERRED":
+        adj = None
     if not dis:
         if adj:
             raise SystemExit(f"REFUSED: {item['key']}: an adjudication is recorded but the fresh readers agree")
         return None
     pa = _sha(rd.prompt_bytes(item, "adjudicator", {q: {"reader 1": x, "reader 2": y} for q, (x, y) in dis.items()}))
-    if not adj or adj.get("prompt_sha256") != pa:
+    if not adj:
+        return "adjudication pending"
+    if adj.get("prompt_sha256") != pa:
         raise SystemExit(f"REFUSED: {item['key']}: no adjudication of the disagreement the fresh readers make")
     _fresh(adj, pa, rec_dir, f"{item['key']} adjudicator", "adjudicator")   # a FAILED attempt: a held failed record
     if adj.get("state") == "RAN_OK":
@@ -366,30 +401,39 @@ def reader_verdict(item, r, rec_dir):
 def adopt_orphans(items, runs, rec_dir):
     """(the run killed on 14 Oct) Held SUCCESSFUL reader records that no manifest entry names -- a run killed before its
     manifest was saved -- are adopted into a trial's slot ONLY when provably that slot's: made for that reader role,
-    about that trial and outcome, for the CURRENT reader prompt, the ONLY such record, and the slot holds no fresh entry.
+    about that trial and outcome, for the CURRENT reader prompt, the ONLY such record, and the slot holds no successful entry.
     Each adopted entry is exactly what rob2_dual._call writes. Anything else stays unaccounted, and check_accounted then
     REFUSES the run. [(key, role, record id)] adopted."""
     import glob
     named = {x["record_id"] for _, _, x in _entries(runs) if x.get("record_id")}
-    want = {(it["pmid"], it["outcome"]): (it["key"], _sha(rd.prompt_bytes(it))) for it in items if rd.open_sources(it)}
+    want = {}
+    for it in items:
+        # Include every matching served key, even if its sources are closed.
+        want.setdefault((it["pmid"], it["outcome"]), {})[it["key"]] = (
+            _sha(rd.prompt_bytes(it)) if rd.open_sources(it) else None)
     cands = {}
     for f in sorted(glob.glob(os.path.join(rec_dir, "mc-*.json"))):
-        rid, rec = os.path.basename(f)[:-5], rd._j(f)
-        if rec.get("state") != "RAN_OK" or rid in named:
+        rid = os.path.basename(f)[:-5]
+        state, error, model = _read_record(f, lambda r: (
+            r.get("state"), r.get("error"), (r.get("model") or {}).get("id_reported")))
+        if state != "RAN_OK" or rid in named:
             continue
         role = _record_role(rec_dir, rid)
-        key_ps = want.get(_record_bound(rec_dir, rid) or ())
-        if role not in ("codex", "agy") or not key_ps or _record_prompt_sha256(rec_dir, rid) != key_ps[1]:
+        matches = want.get(_record_bound(rec_dir, rid) or (), {})
+        if len(matches) != 1:
+            continue                                   # the prompt has no slug: never guess between served keys
+        key_ps = next(iter(matches.items()))
+        if role not in ("codex", "agy") or key_ps[1] is None or _record_prompt_sha256(rec_dir, rid) != key_ps[1]:
             continue
-        cands.setdefault((key_ps[0], role), []).append((rid, rec, key_ps[1]))
+        cands.setdefault((key_ps[0], role), []).append((rid, error, model, key_ps[1]))
     adopted = []
     for (key, role), c in sorted(cands.items()):
         slot = (runs.get(key) or {}).get(role) or {}
-        if len(c) != 1 or (slot.get("state") == "RAN_OK" and slot.get("prompt_sha256") == c[0][2]):
-            continue                                   # two candidates, or a fresh entry already: not provable
-        rid, rec, ps = c[0]
-        runs.setdefault(key, {})[role] = {"record_id": rid, "state": "RAN_OK", "error": rec.get("error"),
-                                          "prompt_sha256": ps, "model": (rec.get("model") or {}).get("id_reported")}
+        if len(c) != 1 or slot.get("state") == "RAN_OK":
+            continue                                   # two candidates, or any successful entry already: not provable
+        rid, error, model, ps = c[0]
+        runs.setdefault(key, {})[role] = {"record_id": rid, "state": "RAN_OK", "error": error,
+                                          "prompt_sha256": ps, "model": model}
         adopted.append((key, role, rid))
     return adopted
 
@@ -401,16 +445,18 @@ def adopt_stage(todo):
     runs = rd._j(rd.RUNS) if os.path.exists(rd.RUNS) else {}
     adopted = adopt_orphans(items, runs, rd.REC_DIR)
     if adopted:
-        rd._save(rd.RUNS, runs)
+        _save_runs(runs)
     print(f"orphaned reader records adopted: {len(adopted)}", flush=True)
     return adopted
 
 
-def keep_or_quarantine(done, rec_dir):
+def keep_or_quarantine(done, rec_dir, live=False):
     """({pmid: object} kept, {pmid: reason} quarantined) for one topic's [(item, object, run)]."""
     kept, quarantined = {}, {}
     for item, obj, r in done:
         why = item_verdict(item, r, rec_dir)
+        if live and why == "adjudication pending":
+            raise SystemExit(f"REFUSED: {item['key']}: adjudication was not recorded after phase 2")
         if why:
             quarantined[item["pmid"]] = why
         else:
@@ -425,11 +471,10 @@ def audit(rec_dir):
     from robgrade import contextual as cx
     out = []
     for f in sorted(glob.glob(os.path.join(rec_dir, "mc-*.json"))):
-        r = ms.load_record(f)
-        if r["state"] == "RAN_OK":
-            c = conflicting_rows(cx.parse_reply(ms.replay(r)))
-            if c:
-                out.append((os.path.basename(f)[:-5], c))
+        c = _read_record(f, lambda r: conflicting_rows(cx.parse_reply(ms.replay(r)))
+                         if r["state"] == "RAN_OK" else [])
+        if c:
+            out.append((os.path.basename(f)[:-5], c))
     return out
 
 
@@ -466,7 +511,7 @@ def main(argv):
                     if when == "after":
                         run_ctx(todo, live)
                     runs = rd._j(rc.RUNS) if os.path.exists(rc.RUNS) else {}
-                    check_manifest_records(runs, rc.REC_DIR)
+                    check_manifest_records(runs, rc.REC_DIR, contextual=True)
                     check_accounted(runs, rc.REC_DIR, consumed=True, keys=all_keys)
         except BaseException:                          # never unwind into a restore while workers may be alive (r28)
             import traceback

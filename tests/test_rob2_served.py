@@ -257,9 +257,9 @@ def test_PLANT_r31_every_manifest_entry_in_ANY_state_must_match_its_held_record(
     monkeypatch.setattr(sv, "_record_role", lambda d, rid: "agy")               # r32: and the role
     ctx = {"k": {"passes": [{"agy": {"state": "RAN_ERROR", "record_id": "r-a", "prompt_sha256": "p"}}]}}
     with pytest.raises(SystemExit, match="REFUSED"):                    # a held SUCCESS relabelled as failed
-        sv.check_manifest_records(ctx, "d")
+        sv.check_manifest_records(ctx, "d", contextual=True)
     ok = {"k": {"passes": [{"agy": {"state": "RAN_OK", "record_id": "r-a", "prompt_sha256": "p"}}]}}
-    sv.check_manifest_records(ok, "d")
+    sv.check_manifest_records(ok, "d", contextual=True)
 
 
 def test_PLANT_r31_every_held_success_must_be_accounted_for(tmp_path, monkeypatch):   # codex2
@@ -279,7 +279,7 @@ def test_PLANT_r31_every_held_success_must_be_accounted_for(tmp_path, monkeypatc
 def test_PLANT_r31_existing_manifests_are_checked_BEFORE_any_stage_runs(monkeypatch):   # codex0
     order = []
     monkeypatch.setattr(sv, "work_list", lambda: ({"t": ["1"]}, {}))
-    monkeypatch.setattr(sv, "check_manifest_records", lambda runs, d: order.append(("check", d)))
+    monkeypatch.setattr(sv, "check_manifest_records", lambda runs, d, **kwargs: order.append(("check", d)))
     monkeypatch.setattr(sv, "check_accounted", lambda runs, d, consumed=False, keys=None: order.append(("accounted", d)))
     monkeypatch.setattr(sv, "_die", lambda code: (_ for _ in ()).throw(SystemExit(code)))   # never os._exit in a test
     monkeypatch.setattr(sv, "run_dual", lambda todo, live: order.append(("dual",)))
@@ -317,7 +317,7 @@ def test_PLANT_r32_a_record_is_bound_to_its_role_and_the_readers_are_distinct(mo
     with pytest.raises(SystemExit, match="REFUSED"):                      # a codex record in the agy slot
         sv.check_manifest_records({"k": {"codex": e("r-c"), "agy": e("r-c")}}, "d")
     with pytest.raises(SystemExit, match="REFUSED"):                      # contextual passes too
-        sv.check_manifest_records({"k": {"passes": [{"codex": e("r-a"), "agy": e("r-a")}]}}, "d")
+        sv.check_manifest_records({"k": {"passes": [{"codex": e("r-a"), "agy": e("r-a")}]}}, "d", contextual=True)
 
 
 def test_PLANT_r32_a_failed_or_missing_reader_quarantines_the_trial(monkeypatch):     # agy0
@@ -497,3 +497,196 @@ class _LazyExec:
 def test_PLANT_no_test_writes_a_real_served_store():
     for k, path in sv.STORES.items():
         assert os.path.commonpath([ROOT, path]) != ROOT, k                     # all under tmp_path in every test
+
+# Second review: regression tests written before the fixes.
+def test_review_1_ambiguous_pair_is_not_adopted(tmp_path, monkeypatch):
+    _orphans(tmp_path, monkeypatch, {"mc-new": ("codex", ("1", "o"), PS1)})
+    runs = {}
+    items = (IT[0], dict(IT[0], slug="other", key="other::1::o"))
+    assert sv.adopt_orphans(items, runs, str(tmp_path)) == []
+    assert runs == {}
+
+
+def test_review_2_successful_old_slot_is_not_overwritten(tmp_path, monkeypatch):
+    _orphans(tmp_path, monkeypatch, {"mc-old": ("codex", ("1", "o"), "OLD"),
+                                   "mc-new": ("codex", ("1", "o"), PS1)})
+    old = {"record_id": "mc-old", "state": "RAN_OK", "prompt_sha256": "OLD"}
+    runs = {IT[0]["key"]: {"codex": dict(old)}}
+    assert sv.adopt_orphans(IT, runs, str(tmp_path)) == []
+    assert runs[IT[0]["key"]]["codex"] == old
+    with pytest.raises(SystemExit, match="REFUSED.*mc-new"):
+        sv.check_accounted(runs, str(tmp_path))
+
+
+@pytest.mark.parametrize("deferred", (False, True))
+def test_review_3_pending_replay_is_quarantined(monkeypatch, deferred):
+    _world(monkeypatch, {"r-c": GOOD, "r-a": GOOD},
+           agree=({}, {"1.2": ({"answer": "PY"}, {"answer": "NI"})}))
+    run = dict(RUN)
+    if deferred:
+        run["adjudicator"] = {"state": "DEFERRED", "record_id": None, "prompt_sha256": None}
+    kept, q = sv.keep_or_quarantine([(ITEM, {}, run)], "d")
+    assert kept == {} and q == {"1": "adjudication pending"}
+
+
+def test_review_3_every_manifest_save_strips_deferred(monkeypatch, tmp_path):
+    saved = []
+    deferred = {"state": "DEFERRED", "record_id": None, "prompt_sha256": None}
+    def process(item, runs, live, pools):
+        return {"overall": {"judgement": "X"}}, dict(RUN, adjudicator=dict(deferred))
+    monkeypatch.setattr(rd, "process", process)
+    monkeypatch.setattr(rd, "items", lambda slug, pm: [ITEM])
+    monkeypatch.setattr(rd, "prefetch_registry", lambda jobs: None)
+    monkeypatch.setattr(rd, "redact_closed_spans", lambda *args: None)
+    monkeypatch.setattr(sv, "reader_verdict", lambda *args: None)
+    monkeypatch.setattr(sv, "item_verdict", lambda *args: "adjudication pending")
+    with sv.redirected():
+        rd._save(rd.RUNS, {"old": {"adjudicator": deferred}})
+        save = rd._save
+        def capture(path, obj):
+            if path == rd.RUNS:
+                saved.append(json.loads(json.dumps(obj)))
+            save(path, obj)
+        monkeypatch.setattr(rd, "_save", capture)
+        with pytest.raises(SystemExit, match="REFUSED.*t::1::o.*adjudication"):
+            sv.run_dual({"t": ["1"]}, True)
+    assert len(saved) >= 3
+    assert all(e.get("state") != "DEFERRED" for doc in saved for row in doc.values() for e in row.values())
+
+
+@pytest.mark.parametrize("reader", ("check_accounted", "adopt_orphans", "_record_state", "_record_role",
+                                    "_record_bound", "_record_prompt_sha256", "audit"))
+@pytest.mark.parametrize("broken", ("{", "[]"))
+def test_review_4_corrupt_record_is_named_refusal(tmp_path, reader, broken):
+    path = tmp_path / "mc-broken.json"
+    path.write_text(broken, encoding="utf-8")
+    with pytest.raises(SystemExit, match=r"REFUSED.*mc-broken\.json"):
+        if reader == "check_accounted":
+            sv.check_accounted({}, str(tmp_path))
+        elif reader == "adopt_orphans":
+            sv.adopt_orphans([], {}, str(tmp_path))
+        elif reader == "audit":
+            sv.audit(str(tmp_path))
+        else:
+            getattr(sv, reader)(str(tmp_path), "mc-broken")
+
+
+@pytest.mark.parametrize("extra", ({"passes": [{}]}, {"spare": {}}, {"consumed": []}))
+def test_review_5_dual_rejects_unexpected_keys(extra):
+    with pytest.raises(SystemExit, match="REFUSED.*(unexpected|unknown)"):
+        sv.check_manifest_records({"t::1::o": dict(extra, codex={})}, "dual-records")
+
+
+def test_review_6_quarantine_is_a_redirected_store(tmp_path):
+    assert "quarantine" in sv.STORES
+    assert os.path.commonpath((str(tmp_path), sv.STORES["quarantine"])) == str(tmp_path)
+    assert os.path.basename(sv.STORES["quarantine"]) == "QUARANTINE.json"
+
+
+def test_review_6_all_quarantined_slug_contextual_replay(monkeypatch):
+    monkeypatch.setattr(rd, "prefetch_registry", lambda jobs: None)
+    monkeypatch.setattr(rd, "items", lambda slug, pm: [ITEM] if pm else [])
+    monkeypatch.setattr(rd, "process", lambda *args: ({"overall": {"judgement": "X"}}, {}))
+    monkeypatch.setattr(rd, "redact_closed_spans", lambda *args: None)
+    monkeypatch.setattr(sv, "item_verdict", lambda *args: "missing reader: codex")
+    with sv.redirected():
+        sv.run_dual({"t": ["1"]}, False)
+        assert rd._j(os.path.join(rd.OUT_DIR, "t.json"))["trials"] == {}
+        sv.run_ctx(("t",), False)
+        assert rd._j(os.path.join(rc.OUT_DIR, "t.json"))["trials"] == {}
+
+
+# Round 2: decoded-field guards, persisted replay, and live phase-2 closure.
+@pytest.mark.parametrize("model", ("broken", [], False))
+def test_round2_orphan_malformed_model_is_named_refusal(tmp_path, monkeypatch, model):
+    _orphans(tmp_path, monkeypatch, {"mc-only": ("codex", ("1", "o"), PS1)})
+    path = tmp_path / "mc-only.json"
+    record = json.loads(path.read_text(encoding="utf-8"))
+    record["model"] = model
+    path.write_text(json.dumps(record), encoding="utf-8")
+    runs = {}
+    with pytest.raises(SystemExit, match=r"REFUSED.*mc-only\.json"):
+        sv.adopt_orphans(IT, runs, str(tmp_path))
+    assert runs == {}
+
+
+@pytest.mark.parametrize("reader", ("check_accounted", "adopt_orphans", "_record_state", "_record_role",
+                                    "_record_bound", "_record_prompt_sha256", "audit"))
+def test_round2_record_readers_reject_malformed_state(tmp_path, reader):
+    from reproducible_ai import model_source as ms
+    record = {"state": [], "caller": {"line": "call:codex"},
+              "prompt": ms._blob(b"TRIAL: 1\nOUTCOME: o\n")}
+    (tmp_path / "mc-broken.json").write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(SystemExit, match=r"REFUSED.*mc-broken\.json"):
+        if reader == "check_accounted":
+            sv.check_accounted({}, str(tmp_path))
+        elif reader == "adopt_orphans":
+            sv.adopt_orphans([], {}, str(tmp_path))
+        elif reader == "audit":
+            sv.audit(str(tmp_path))
+        else:
+            getattr(sv, reader)(str(tmp_path), "mc-broken")
+
+
+def test_round2_record_role_rejects_falsey_nonobject_caller(tmp_path):
+    (tmp_path / "mc-broken.json").write_text(json.dumps({"caller": []}), encoding="utf-8")
+    with pytest.raises(SystemExit, match=r"REFUSED.*mc-broken\.json"):
+        sv._record_role(str(tmp_path), "mc-broken")
+
+
+def _round2_disk_disagreement(monkeypatch):
+    """Synthetic held records; real preflight, replay, verification and disagreement."""
+    from reproducible_ai import model_source as ms
+    item = dict(ITEM, sources=[dict(SRC, text="The allocation was concealed.", licence="CC")])
+    monkeypatch.setattr(rd, "prefetch_registry", lambda jobs: None)
+    monkeypatch.setattr(rd, "items", lambda slug, pm: [item])
+    monkeypatch.setattr(sv.rt, "typed_answers", lambda *args, **kwargs: ({}, []))
+    monkeypatch.setattr(rd, "_call", lambda *args: pytest.fail("model call attempted"))
+    prompt = rd.prompt_bytes(item)
+    row, held = {}, {}
+    for role, answer in (("codex", "PY"), ("agy", "NI")):
+        reply = {"answers": [{"qid": "1.2", "answer": answer, "source_id": SRC["id"],
+                              "quote": "The allocation was concealed."}]}
+        rec = {"schema": ms.SCHEMA, "state": "RAN_OK", "caller": {"line": f"call:{role}"},
+               "model": {"id_reported": "test-fixture"}, "prompt": ms._blob(prompt),
+               "response": ms._blob(json.dumps(reply).encode())}
+        rec["record_id"] = ms.record_id_of(rec)
+        path = ms.write_record(rec, rd.REC_DIR)
+        held[path] = path.read_bytes()
+        row[role] = {"state": "RAN_OK", "record_id": rec["record_id"], "prompt_sha256": sv._sha(prompt)}
+    return item, row, held
+
+
+def test_round2_persisted_deferred_end_to_end_replay(monkeypatch):
+    with sv.redirected():
+        item, row, held = _round2_disk_disagreement(monkeypatch)
+        old = dict(row, adjudicator={"state": "DEFERRED", "record_id": None, "prompt_sha256": None})
+        rd._save(rd.RUNS, {item["key"]: old})
+    monkeypatch.setattr(sv, "work_list", lambda: ({"t": ["1"]}, {}))
+    monkeypatch.setattr(sv, "served_pairs", lambda: {"t": ["1"]})
+    monkeypatch.setattr(rd, "served_primary", lambda slug: ("o", ["1"]))
+    monkeypatch.setattr(sv, "_die", lambda code: pytest.fail(f"replay refused: {code}"))
+    sv.main(["--dual-only"])
+    assert rd._j(sv.STORES["dual_runs"]) == {item["key"]: row}
+    assert rd._j(sv.STORES["quarantine"]) == {"t": {"1": "adjudication pending"}}
+    assert rd._j(os.path.join(sv.STORES["dual_out"], "t.json"))["trials"] == {}
+    assert all(path.read_bytes() == data for path, data in held.items())
+    assert set(os.listdir(sv.STORES["dual_rec"])) == {path.name for path in held}
+
+
+def test_round2_live_missing_phase2_adjudicator_is_refused(monkeypatch):
+    with sv.redirected():
+        item, row, held = _round2_disk_disagreement(monkeypatch)
+        rd._save(rd.RUNS, {item["key"]: row})
+        phases = []
+        replay_process = rd.process
+        def process(it, runs, live, pools):
+            assert live
+            phases.append(isinstance(pools["codex"], sv._DeferAdjudication))
+            return replay_process(it, runs, False, pools)
+        monkeypatch.setattr(rd, "process", process)
+        with pytest.raises(SystemExit, match="REFUSED.*t::1::o.*adjudication"):
+            sv.run_dual({"t": ["1"]}, live=True)
+        assert phases == [True, False]
+        assert rd._j(rd.RUNS) == {item["key"]: row}
+        assert all(path.read_bytes() == data for path, data in held.items())

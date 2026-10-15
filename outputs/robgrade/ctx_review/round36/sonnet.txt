@@ -1,0 +1,4 @@
+VERDICT: ACCEPT (Claude Sonnet second reviewer, round 2; 57 passed by execution; real manifest validated by execution: 65 rows, 56 codex RAN_OK + 9 empty, passes the new dual-key whitelist)
+1. LOW scripts/rob2_served.py:356-364 item_verdict: disagreeing readers + absent adjudicator now quarantine as "adjudication pending" -- also reachable in a LIVE run if phase 2 fails to record the adjudicator (used to REFUSE). Make it quarantine only when not live; test run_dual(live=True) with rd.process omitting the adjudicator.
+2. INFO adopt_orphans: closed-sources keys counted in the ambiguity set; an open and a closed key sharing (pmid, outcome) block adoption -- fails safe.
+Fixes 1-6 verified (1,2,3,4,5 fixed; 6 a pin). Not run on the old code.

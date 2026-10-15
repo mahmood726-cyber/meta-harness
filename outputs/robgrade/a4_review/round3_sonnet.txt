@@ -1,0 +1,7 @@
+VERDICT: ACCEPT with two wording fixes (Claude Sonnet second reviewer; verified by execution: both defects real; --runxfail 11 failed/4 passed as intended; a4_measure numbers match for the dual store)
+1. MAJOR SIGNING_A4_REQUEST.md: consequence understated. Under A4 the 8 stale adjudications supply no reading in replay, so every question still in the current disagreement set falls back to NI -> replaying those 8 trials under A4 CHANGES their objects (or costs 8 live adjudicator calls). State it plainly.
+2. MAJOR request fix 1 / rob2_dual.py 389: behaviour for a STALE READER is underspecified: agree() runs when both manifest states are RAN_OK, so a dropped reader gives a={} and every question the other answered becomes an NI-vs-X "disagreement" sent to the adjudicator. Say which is intended and test it.
+3. MINOR tests 72-76 / request fix 2: only PY/PN conflicts specified; contextual treats any distinct raw answers (Y vs PY) as conflicting; equal duplicates, a duplicate failing quote verification, and duplicates outside `allowed` uncovered.
+4. MINOR request 3-5: "all five independent-review findings accepted" cites reviews a signer cannot find.
+5. MINOR tests 78-97: manifest-stale not tested in live mode (the frozen code already handles it); say so.
+6. MINOR runtime: slow to reproduce.
