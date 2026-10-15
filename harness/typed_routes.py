@@ -29,6 +29,7 @@ ROUTES = {
     ("probiotics-aad-prevention", "Any adverse events", "39529939"): {"route": "sentence_counts"},
     ("probiotics-aad-prevention", "Any adverse events", "41699149"): {
         "table_label": "Table 4", "row_label": "Total Number of People with AEs", "intervention": "active", "comparator": "control", "proportions": True},
+    ("probiotics-aad-prevention", "Serious adverse events", "34541475"): {"route": "refuse_severe"},
     ("sglt2-ckd-progression", "Diabetic ketoacidosis", "36331190"): {
         "table_label": "Table 2", "row_label": "Ketoacidosis", "intervention": "empagliflozin", "comparator": "placebo"},
     ("sglt2-ckd-progression", "Lower-limb amputation", "36331190"): {

@@ -116,12 +116,18 @@ def test_typed_provenance_cannot_admit_forged_numbers():
     assert not validate_row(row, outcome)
 
 
-def test_row7_remains_hand_entered_and_served():
-    from harness.typed_routes import ROUTES
-    key = ("probiotics-aad-prevention", "Serious adverse events", "34541475")
-    assert key not in ROUTES
-    assert "served|probiotics-aad-prevention|Serious adverse events|PMID 34541475" in read("registry/provenance_hand_entered.json")["rows"]
-    got = next(t for t in built(*key[:2])["trials"] if t["id"] == "PMID 34541475")
-    served = next(t for o in read("docs/reviews/probiotics-aad-prevention/review.json")["outcomes"] if o["name"] == key[1] for t in o["trials"] if t["id"] == "PMID 34541475")
-    keys = ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high")
-    assert {k: got.get(k) for k in keys} == {k: served.get(k) for k in keys}
+def test_severe_is_not_serious_typed_refusal():
+    from harness.typed_routes import extract_bound
+    got = extract_bound("probiotics-aad-prevention", "Serious adverse events", "34541475", root=ROOT)
+    assert got["kind"] == "typed_refusal"
+    assert got["reason_code"] == "ENDPOINT_UNBOUND"
+    assert "severe != serious" in got["reason"]
+    assert not any(k in got for k in ("ai", "ci", "effect"))
+
+
+def test_pipeline_refuses_serious_severe_mismatch():
+    got = built("probiotics-aad-prevention", "Serious adverse events")
+    assert not any(t["id"] == "PMID 34541475" for t in got["trials"])
+    row = next(t for t in got["declared_absent_trials"] if t["id"] == "PMID 34541475")
+    assert row["typed_refusal"]
+    assert row["state"] == "RETRIEVED_REFUSED_WITH_REASON"
