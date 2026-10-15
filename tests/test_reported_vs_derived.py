@@ -219,3 +219,23 @@ def test_full_ratio_labels_remain_case_insensitive(label):
 
 def test_uppercase_or_still_has_the_or_scale():
     assert extract._reported_occurrence(0.25, "OR 0.25 (95% CI 0.10-0.60)", "OR")[0] == "0.25"
+
+
+# L8 synthetic scope plants: these constructed numbers are not source evidence.
+def test_PLANT_analysed_group_sizes_are_not_extraction_denominators():
+    ab = "There were 113 in the colchicine group and 127 in the placebo group."
+    assert extract._arm_ns(ab, ["colchicine"], ["placebo"]) == {}
+
+
+def test_PLANT_analysed_group_sizes_are_available_only_by_opt_in():
+    ab = "There were 113 in the colchicine group and 127 in the placebo group."
+    assert extract._arm_ns(ab, ["colchicine"], ["placebo"], analysed_group_form=True) == {"i": 113, "c": 127}
+
+
+def test_PLANT_cocs_shaped_counts_are_not_newly_admitted():
+    ab = ("The final analysis included 240 study subjects: 113 in the colchicine group and 127 in the placebo group. "
+          "POAF was observed in 21 (18.6%) patients of the colchicine group vs. 39 (30.7%) control "
+          "patients (OR 0.515; 95% Cl 0.281-0.943; p = 0.029).")
+    out = extract.extract_trial(ab, ["poaf"], ["colchicine"], ["placebo", "control"], estimand="OR")
+    assert out.get("absent") is True, out
+    assert (out.get("ai"), out.get("n1i"), out.get("ci"), out.get("n2i")) != (21, 113, 39, 127), out
