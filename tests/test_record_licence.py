@@ -2,6 +2,7 @@
 record_licence.py). Incident 5 Oct: mc-dcb6796c carried SMART's author-manuscript text (24,886 bytes) into the public repo.
 Every tracked record is checked; the existing debt is listed by id in registry/record_licence_exceptions.json (it may only
 shrink); a new violation fails the unit-test limb, so the pre-commit hook and CI refuse it."""
+import pytest
 import base64
 import json
 import os
@@ -100,3 +101,147 @@ def test_jats_licence_reads_a_creative_commons_licence_named_in_words(tmp_path):
                       "<body>Creative Commons Attribution License (CC BY)</body></article>", encoding="utf-8")
     assert rl.jats_licence(str(words)) == "CC"
     assert rl.jats_licence(str(closed)) == "NOT_OPEN"          # words OUTSIDE <permissions> never count
+
+
+def test_PLANT_a_doi_with_its_own_parentheses_is_declared_whole():
+    """'[^\s)]+' cut a Lancet-family DOI at its own '(' block: 10.1016/s2213-8587(25)00222-0 -> '...(25', so a CC BY text
+    was refused (sglt2-ckd swap full read, 10 Oct). The whole DOI is read; '(DOI 10.1/cc)' still drops only the closing
+    paren of its wrapper; and fail-closed is unchanged (a non-CC or unheld DOI is still refused)."""
+    assert rl._doi_in_ref("DOI 10.1016/s2213-8587(25)00222-0 (D17 host-page CC licence; https://x)") == \
+        "10.1016/s2213-8587(25)00222-0"
+    assert rl._doi_in_ref("outputs/k_gap/_upw (DOI 10.1/cc)") == "10.1/cc"
+    assert rl._doi_in_ref("(DOI 10.1016/s2213-8587(25)00222-0)") == "10.1016/s2213-8587(25)00222-0"
+    body = "Trial results text. " * 400
+    p = "INSTR\n<<<TEXT\n" + body + "\nTEXT>>>\n"
+    rec = lambda ref: {"record_id": "mc-par", "prompt": {"b64": base64.b64encode(p.encode()).decode()},  # noqa: E731
+                       "input_digests": [{"ref": ref, "what": "held text shown whole"}]}
+    dl = {"10.1016/s2213-8587(25)00222-0": "cc-by", "10.1016/s0140-6736(24)00001-x": "other-oa"}
+    assert rl.text_block_problems(rec("DOI 10.1016/s2213-8587(25)00222-0 (D17)"), dl, {}) == []
+    assert rl.text_block_problems(rec("DOI 10.1016/s0140-6736(24)00001-x (D17)"), dl, {})      # not CC: refused
+    assert rl.text_block_problems(rec("DOI 10.1016/s9999-9999(99)99999-9 (D17)"), dl, {})      # not held: refused
+
+
+def test_PLANT_the_exact_held_doi_wins_over_a_stripped_form():
+    """codex pr79-cap-r1 #1: stripping trailing punctuation unconditionally turned 'DOI 10.1234/example.' into the DIFFERENT
+    held DOI '10.1234/example' and took its cc-by licence -- a wrong CC licence lets non-CC text into a prompt (D8)."""
+    from reproducible_ai import record_licence as rl
+    dlic = {"10.1234/example.": "all-rights-reserved", "10.1234/example": "cc-by"}
+    assert rl.ref_licences("DOI 10.1234/example.", {}, dlic) == [("DOI 10.1234/example.", "all-rights-reserved")]
+    # citation punctuation is still dropped when the exact token is NOT held
+    assert rl.ref_licences("see (DOI 10.1234/example).", {}, {"10.1234/example": "cc-by"}) == [("DOI 10.1234/example", "cc-by")]
+    # a DOI held by no form stays unresolved (fail closed), never borrowed
+    assert rl.ref_licences("DOI 10.9/none.", {}, {}) == [("DOI 10.9/none.", None)]
+
+
+def test_PLANT_a_trailing_period_is_never_assumed_to_be_punctuation():
+    """codex pr79-cap-r2 #1: with the exact 'DOI 10.1234/example.' unheld, dropping the period borrowed the cc-by of the
+    held '10.1234/example'. A period is punctuation only OUTSIDE an unbalanced ')' ('(DOI 10.1/x).'); otherwise the
+    declared token is read exactly and fails closed."""
+    from reproducible_ai import record_licence as rl
+    assert rl.ref_licences("DOI 10.1234/example.", {}, {"10.1234/example": "cc-by"}) == [("DOI 10.1234/example.", None)]
+    lancet = "10.1016/s2213-8587(25)00222-0"
+    assert rl.ref_licences(f"report (DOI {lancet}).", {}, {lancet: "cc-by"}) == [(f"DOI {lancet}", "cc-by")]
+
+
+def test_PLANT_any_sentence_punctuation_after_an_unbalanced_paren_is_dropped():
+    """codex pr79-cap-r3 #1 (stop at three): '(DOI 10.1234/example): held text' kept '):' and refused a held CC text --
+    main read it. Punctuation OUTSIDE an unbalanced ')' is any of . , ; : ! ?"""
+    from reproducible_ai import record_licence as rl
+    assert rl.ref_licences("report (DOI 10.1234/example): held text", {}, {"10.1234/example": "cc-by"}) == \
+        [("DOI 10.1234/example", "cc-by")]
+
+
+# ---------------------------------------------------------------- D8 incident #2 (robgrade lane, 12 Oct): NC / ND reached prompts
+# jats_licence returned 'CC' for ANY creativecommons.org licence and _is_open accepted any string starting with 'cc', so
+# CC BY-NC (PMID 32720823) and CC BY-NC-ND (PMID 28456509) full texts were sent to codex / agy (quarantined, never
+# committed). D8: only CC BY / CC0 text enters a prompt.
+def _jats(tmp_path, perm):
+    p = tmp_path / "a.xml"
+    p.write_text(f"<article><front><permissions>{perm}</permissions></front></article>", encoding="utf-8")
+    return str(p)
+
+
+def test_PLANT_non_commercial_and_no_derivatives_jats_are_not_open(tmp_path):
+    from reproducible_ai import record_licence as rl
+    for perm in ['<license xlink:href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</license>',
+                 '<license xlink:href="http://creativecommons.org/licenses/by-nc-nd/4.0/"/>',
+                 '<license xlink:href="https://creativecommons.org/licenses/by-sa/4.0/"/>',
+                 "This is an open access article under the Creative Commons Attribution-NonCommercial License.",
+                 "Creative Commons Attribution-NoDerivatives 4.0 International"]:
+        assert rl.jats_licence(_jats(tmp_path, perm)) != "CC", perm
+    for perm in ['<license xlink:href="https://creativecommons.org/licenses/by/4.0/"/>',
+                 '<license xlink:href="https://creativecommons.org/publicdomain/zero/1.0/"/>',
+                 "distributed under the terms of the Creative Commons Attribution License (CC BY)"]:
+        assert rl.jats_licence(_jats(tmp_path, perm)) == "CC", perm
+
+
+def test_PLANT_only_cc_by_and_cc0_licence_strings_are_open():
+    from reproducible_ai import record_licence as rl
+    for lic in ("cc-by-nc", "cc-by-nc-nd", "cc-by-nd", "cc-by-sa", "cc-by-nc-sa", "CC BY-NC 4.0", "implied-oa", None, ""):
+        assert not rl._is_open(lic), lic
+    for lic in ("CC", "cc-by", "cc0", "CC-BY", "cc-by-4.0"):
+        assert rl._is_open(lic), lic
+
+
+def test_PLANT_an_index_entry_marked_CC_with_an_NC_statement_never_opens_a_prompt(tmp_path):
+    """7 of 16 'CC' entries in outputs/k_gap/fulltext_index.json on main carry an NC / ND statement (e.g. 33472855 'Re-use
+    permitted under CC BY-NC. No commercial re-use'); mc-b4d4124b (29 Sep) sent that text to codex."""
+    import json as _json
+    from reproducible_ai import record_licence as rl
+    p = tmp_path / "idx.json"
+    p.write_text(_json.dumps({"1": {"copy_licence": "CC", "copy_statement": "Re-use permitted under CC BY-NC. No commercial re-use."},
+                              "2": {"copy_licence": "CC", "copy_statement": "https://creativecommons.org/licenses/by-nc-nd/4.0/"},
+                              "3": {"copy_licence": "CC", "copy_statement": "https://creativecommons.org/licenses/by/4.0/"}}),
+                 encoding="utf-8")
+    lic = rl.licences(str(p))
+    assert lic["1"] != "CC" and lic["2"] != "CC" and lic["3"] == "CC"
+    real = rl.licences()
+    for pmid in ("20668840", "21115589", "26330422", "29246960", "31290965", "33472855", "35475258"):
+        assert real.get(pmid) != "CC", pmid
+
+
+def test_PLANT_one_restriction_pattern_for_every_reader(tmp_path):
+    """codex / agy d8lic-cap-r1: the three readers carried different patterns -- 'Non Commercial' (spaced) passed the
+    prompt guard, and jats_licence missed 'no commercial reuse'. One shared pattern now."""
+    import json as _json
+    from reproducible_ai import record_licence as rl
+    words = ["Creative Commons Attribution Non Commercial License", "Creative Commons Attribution No Derivatives License",
+             "Creative Commons Attribution Share Alike License", "Creative Commons Attribution License; no commercial reuse",
+             "CC BY-NC-ND 4.0", "CC BY NC 4.0"]
+    for w in words:
+        assert rl._RESTRICTED.search(w), w
+        assert rl.jats_licence(_jats(tmp_path, w)) != "CC", w
+        p = tmp_path / "i.json"
+        p.write_text(_json.dumps({"1": {"copy_licence": "CC", "copy_statement": w}}), encoding="utf-8")
+        assert rl.licences(str(p))["1"] != "CC", w
+
+
+# ---------------------------------------------------------------- codex d8lic-cap-r2
+def test_PLANT_an_entity_encoded_or_unicode_hyphen_restriction_is_restricted(tmp_path):
+    """r2 #2: 'Non&#x2011;Commercial' (a non-breaking hyphen, entity-encoded) passed the restriction check and the broader
+    'Creative Commons Attribution' match admitted the NC licence."""
+    from reproducible_ai import record_licence as rl
+    for w in ["Creative Commons Attribution Non&#x2011;Commercial 4.0 International License (CC BY&#x2011;NC).",
+              "Creative Commons Attribution Non\u2011Commercial License", "CC BY\u2013NC\u2013ND 4.0",
+              "Creative Commons Attribution No&#8209;Derivatives"]:
+        assert rl._RESTRICTED.search(w), w
+        assert rl.jats_licence(_jats(tmp_path, w)) != "CC", w
+
+
+@pytest.mark.xfail(strict=True, reason="KNOWN LIMIT (codex d8lic-cap-r2 #1): a CC BY grant worded 'permitting commercial and "
+                                       "non-commercial reuse' is read as restricted -- the error is fail-CLOSED (a CC BY "
+                                       "text is withheld from prompts), never open")
+def test_known_limit_cc_by_permitting_non_commercial_reuse(tmp_path):
+    from reproducible_ai import record_licence as rl
+    w = "This article is licensed under CC BY 4.0, permitting commercial and non-commercial reuse."
+    assert rl.jats_licence(_jats(tmp_path, w)) == "CC"
+
+
+def test_PLANT_a_line_wrapped_restriction_is_restricted(tmp_path):
+    """codex d8lic-cap-r3 #1 (stop at three): 'Creative Commons Attribution Non\nCommercial License' -- a line break inside
+    the licence name -- passed, and the broader Attribution match admitted it."""
+    from reproducible_ai import record_licence as rl
+    for w in ["Distributed under the Creative Commons Attribution Non\nCommercial License.",
+              "Creative Commons Attribution No\r\n  Derivatives", "CC BY-\nNC 4.0"]:
+        assert rl._RESTRICTED.search(w), repr(w)
+        assert rl.jats_licence(_jats(tmp_path, w)) != "CC", repr(w)

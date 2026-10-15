@@ -48,6 +48,7 @@ def runtime(entry):
 
 
 def _validate(entry, directory, pid, canonical=False):
+    """Return span-refusal evidence for an extraction; malformed inputs still raise."""
     span = entry.get('source_span')
     if span is None:
         if canonical:
@@ -76,7 +77,13 @@ def _validate(entry, directory, pid, canonical=False):
             found = True
             break
     if not found:
-        raise ValueError(f'{directory.name}/{pid}: source_span absent from held document {ref}')
+        reason = f'{directory.name}/{pid}: source_span absent from held document {ref}'
+        # A failed extraction binding is row-scoped. An adjudication, in contrast,
+        # cannot claim a held evidence span that does not exist.
+        if entry['kind'] == 'typed_refusal':
+            raise ValueError(reason)
+        return {'reason_code': 'ENDPOINT_UNBOUND', 'reason': reason,
+                'document_ref': entry.get('document_ref'), 'source_span': span}
     if entry['kind'] == 'typed_refusal' and not entry.get('reason'):
         raise ValueError(f'{directory.name}/{pid}: typed refusal has no reason')
     if entry['kind'] == 'typed_refusal' and entry.get('provenance') not in {
@@ -97,7 +104,10 @@ def load(slug, cache_root=None):
             originals = entries(value)
             rows = [normalise(e) for e in originals]
             for old, row in zip(originals, rows):
-                _validate(row, directory, pid, canonical='kind' in old)
+                row.pop('span_refusal', None)  # recomputed from held bytes, never trusted from input
+                refusal = _validate(row, directory, pid, canonical='kind' in old)
+                if refusal:
+                    row['span_refusal'] = refusal
             result[name][pid] = rows if isinstance(value, list) else rows[0]
     return result
 

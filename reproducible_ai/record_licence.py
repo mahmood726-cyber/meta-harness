@@ -26,9 +26,18 @@ DECLARED_MIN = 6000      # a declared full-text prompt shorter than this holds a
 _DECLARED = re.compile(r"PMID\s*(\d{4,9})\b[^\"]{0,80}?full[ -]?text", re.I)
 
 
+from harness.copy_licence import (_CC_URL, _CC_WORDS, _HYPHENS, _NEGATED, _RESTRICTED, _RESTRICTED_RE,  # noqa: E402,F401
+                                    _Restricted, _is_open, names_creative_commons)
+
+
 def licences(index_path=INDEX):
+    """PMID -> the copy's licence for the PROMPT guard. An entry marked 'CC' whose own recorded permissions statement names
+    a NonCommercial / NoDerivatives / ShareAlike licence is CC_RESTRICTED here: 7 of 16 'CC' entries on main were NC/ND
+    (D8 incident #2, 12 Oct). The index itself is not rewritten (its other readers feed served pools: a signed change)."""
     idx = json.load(open(index_path, encoding="utf-8")) if os.path.exists(index_path) else {}
-    return {str(p): (e or {}).get("copy_licence") for p, e in idx.items()}
+    return {str(p): ("CC_RESTRICTED" if (e or {}).get("copy_licence") == "CC"
+                     and _RESTRICTED.search(str((e or {}).get("copy_statement") or "")) else (e or {}).get("copy_licence"))
+            for p, e in idx.items()}
 
 
 def _prompt_text(record):
@@ -103,7 +112,37 @@ NICE_HOSTS = ("www.nice.org.uk", "nice.org.uk")
 # a whole-text block (scripts/k_gap_upw_locate.py: '<<<TEXT ... TEXT>>>'): 21 committed records carried whole Unpaywall
 # texts in this shape and neither detector above saw them (6 Oct audit) -- 14 of them were not CC
 _TEXT_BLOCK = re.compile(r"<<<TEXT\n(.*?)\nTEXT>>>", re.S)
-_DOI_REF = re.compile(r"\bDOI\s+(10\.[^\s)]+)")
+_DOI_REF = re.compile(r"\bDOI\s+(10\.\S+)")
+
+
+def _doi_in_ref(ref):
+    """The DOI declared in a ref ('... (DOI 10.1/cc)'). The whole token is taken, then trailing ')' are dropped only
+    while the parentheses are UNBALANCED: '[^\\s)]+' cut every DOI that carries its own parentheses -- Lancet-family
+    '10.1016/s2213-8587(25)00222-0' became '...(25', missed the held index, and a CC BY text was refused (10 Oct).
+    Fail-closed is unchanged: the DOI must still resolve, from held data, to a CC licence."""
+    c = _doi_candidates(ref)
+    return c[-1] if c else None
+
+
+def _doi_candidates(ref):
+    """The declared DOI token EXACTLY as written, then each shorter form left after dropping an UNBALANCED closing ')'
+    together with any punctuation after it ('(DOI 10.1/x).'), longest first. ref_licences takes the first form that is
+    held, so the exact held DOI always wins: stripping unconditionally turned 'DOI 10.1234/example.' into the DIFFERENT
+    held record '10.1234/example' and borrowed its cc-by licence (codex pr79-cap-r1 #1). A bare trailing '.', ',' or ';'
+    is never assumed to be punctuation -- it may be part of the identifier -- so such a token is read exactly and fails
+    closed when unheld (codex pr79-cap-r2 #1; main's '[^\\s)]+' never stripped it either)."""
+    m = _DOI_REF.search(ref or "")
+    if not m:
+        return []
+    out = [m.group(1)]
+    d = m.group(1)
+    while True:
+        t = re.search(r"\)[.,;:!?]*$", d)                  # '(DOI 10.1/x): text' too (codex pr79-cap-r3 #1)
+        if not (t and d.count(")") > d.count("(")):
+            break
+        d = d[:t.start()]
+        out.append(d)
+    return out
 
 
 def doi_licences(index_path=UPW_INDEX):
@@ -118,9 +157,14 @@ def jats_licence(path):
     except OSError:
         return "NOT_HELD"
     perm = " ".join(re.findall(r"<permissions>.*?</permissions>", x, re.S))
+    # D8: only CC BY / CC0 enters a prompt. A NonCommercial / NoDerivatives / ShareAlike licence is Creative Commons but
+    # NOT open for us -- returning 'CC' for any creativecommons.org licence sent CC BY-NC (32720823) and CC BY-NC-ND
+    # (28456509) full texts to codex / agy (D8 incident #2, robgrade lane, 12 Oct). Restricted wins over any CC BY wording.
+    if _RESTRICTED.search(perm):
+        return "CC_RESTRICTED"
     # the licence named by URL, or IN WORDS inside the article's own <permissions> ('distributed under the terms of the
     # Creative Commons Attribution License (CC BY)': 19 open articles had no URL, 6 Oct); never words outside <permissions>
-    return "CC" if (re.search(r"creativecommons\.org/(?:licenses|publicdomain)/", perm)
+    return "CC" if (re.search(r"creativecommons\.org/(?:licenses/by/|publicdomain/)", perm)
                     or re.search(r"Creative\s+Commons\s+(?:Attribution|Zero|CC0)|\bCC0\b|\bCC[ -]BY\b", perm)) else "NOT_OPEN"
 
 
@@ -179,14 +223,11 @@ def ref_licences(ref, lic, dlic):
     m = re.match(r"trial report PMID (\d+)", ref)
     if m:
         return [(f"PMID {m.group(1)} report", lic.get(m.group(1)))]
-    m = _DOI_REF.search(ref)
-    if m:
-        return [(f"DOI {m.group(1)}", dlic.get(m.group(1).lower()))]
+    cands = _doi_candidates(ref)
+    if cands:
+        d = next((c for c in cands if c.lower() in dlic), cands[-1])    # exact held DOI first; never a borrowed licence
+        return [(f"DOI {d}", dlic.get(d.lower()))]
     return []
-
-
-def _is_open(licence):
-    return licence == "CC" or str(licence or "").startswith("cc")
 
 
 def text_block_problems(record, dlic=None, lic=None):
