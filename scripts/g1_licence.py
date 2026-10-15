@@ -11,9 +11,8 @@ outputs/k_gap/g1_binding/licences.json (metadata only). An unknown licence is CL
 
 BOTH must hold (the stricter of the repo guard and the lane rule):
   the repo's own guard (reproducible_ai/record_licence.py): PMC copy copy_licence == 'CC' (fulltext_index.json, written
-  by scripts/g1_trial_acquire.pmc_copy from the PMC permissions), or the Unpaywall DOI copy licence 'cc*';
-  AND the lane rule (CC BY / CC0 only): Europe PMC's licence for the article is CC BY or CC0 -- the repo guard alone
-  accepts any Creative Commons licence, CC BY-NC included.
+  by scripts/g1_trial_acquire.pmc_copy from the PMC permissions), or the Unpaywall DOI copy licence CC BY / CC0;
+  AND the lane rule (CC BY / CC0 only): Europe PMC's licence for the article is CC BY or CC0.
 """
 from __future__ import annotations
 
@@ -23,6 +22,8 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+from harness.copy_licence import _is_open  # noqa: E402
+
 CACHE = os.path.join(ROOT, "outputs", "k_gap", "g1_binding", "licences.json")
 OPEN = {"cc by", "cc0", "cc-by", "cc-0", "public domain"}
 ALWAYS = {"ABSTRACT", "AACT", "REGULATORY"}
@@ -73,7 +74,7 @@ def repo_open(pmid, kind, offline=False):
     from reproducible_ai import record_licence as rl
     if kind == "UNPAYWALL":
         d = rl.pmid_doi(str(pmid))
-        return bool(d) and str(rl.doi_licences().get(d) or "").startswith("cc")
+        return bool(d) and _is_open(rl.doi_licences().get(d))
     lic = rl.licences().get(str(pmid))
     if lic is None and not offline:
         import g1_trial_acquire as ta
