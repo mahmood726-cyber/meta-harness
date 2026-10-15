@@ -12,6 +12,8 @@ import os
 import re
 from typing import Any
 
+from . import defaudit_binding
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ASSERTED_NOT_UNDERLYING = "COMPAT_ASSERTED_NOT_UNDERLYING"
@@ -80,7 +82,17 @@ def _load_json(*parts: str) -> dict[str, Any]:
 def _topic_definition_audit(slug: str | None, review: dict[str, Any]) -> dict[str, dict[str, Any]]:
     own = review.get("definition_audit") or {}
     if own:
-        return own
+        # an embedded copy that predates the binding adopts the judgment of the IDENTICAL row (same detail and resolution)
+        # in docs/definition_audit.json; a row whose text differs stays unbound (never used)
+        bound_rows = _load_json("docs", "definition_audit.json").get("by_row") or {}
+        out = {}
+        for k, v in own.items():
+            ref = bound_rows.get(k) or {}
+            if (not isinstance(v.get("judged"), dict) and isinstance(ref.get("judged"), dict)
+                    and (v.get("detail"), v.get("resolution")) == (ref.get("detail"), ref.get("resolution"))):
+                v = dict(v, judged=ref["judged"])
+            out[k] = v
+        return out
     if not slug:
         return {}
     all_rows = (_load_json("docs", "definition_audit.json").get("by_row") or {})
@@ -649,7 +661,11 @@ def derive_trial_dimensions(
     recs = _rec_map(records)
     pid = _pid(trial.get("id") or trial.get("label"))
     rec = recs.get(pid) or {}
-    audit_row = _audit_for_trial(definition_audit or {}, str(outcome.get("name") or ""), pid)
+    raw_row = _audit_for_trial(definition_audit or {}, str(outcome.get("name") or ""), pid)
+    # a definition-audit row applies only while the served row is the version it judged (audit 26-A / 28-C / 29):
+    # a stale or unbound row is never rendered as the definition, and the state is disclosed
+    row_state = defaudit_binding.audit_state(raw_row, trial)
+    audit_row = raw_row if row_state == defaudit_binding.BOUND_CURRENT else None
     dims = {
         "trial_id": pid,
         "trial_label": trial.get("label") or trial.get("id"),
@@ -660,6 +676,13 @@ def derive_trial_dimensions(
         "intervention_ontology": _derive_intervention(review, trial, rec),
         **_derive_time_fields(outcome, trial, rec),
     }
+    if row_state and row_state != defaudit_binding.BOUND_CURRENT:
+        dims["definition_audit_row"] = {
+            "state": row_state, "judged_commit": (raw_row.get("judged") if isinstance(raw_row.get("judged"), dict) else {}).get("commit"),
+            "note": ("the cross-family definition-audit row for this trial judged a different version of the served row "
+                     "(effect, CI, scale or source span changed since); it is not used as the definition"
+                     if row_state == defaudit_binding.AUDIT_ROW_STALE else
+                     "the definition-audit row records no judged row version; it is not used as the definition")}
     return dims
 
 

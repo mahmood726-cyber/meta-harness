@@ -1987,6 +1987,16 @@ def _outcome_block(o, show_inputs=True, review=None):
     return ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
 
 
+def _definition_audit_state(r, outcome, pmid, row):
+    """BOUND_CURRENT / AUDIT_ROW_STALE / UNBOUND for one audit row against the SERVED trial row; None when the row's
+    outcome or trial is no longer served (the row then reaches nothing)."""
+    from .compat_check import _pid
+    from .defaudit_binding import audit_state
+    o = next((x for x in r.get("outcomes") or [] if x.get("name") == outcome), None)
+    t = next((x for x in (o or {}).get("trials") or [] if _pid(x.get("id") or x.get("label")) == pmid), None)
+    return audit_state(row, t) if t else None
+
+
 def _definition_audit_block(r):
     """Render the cross-family definition-audit findings for this topic (composite component set / timepoint /
     population / analysis set), each with its adjudication + resolution, so a recorded mismatch is VISIBLE."""
@@ -1998,7 +2008,18 @@ def _definition_audit_block(r):
         parts = rid.split("::")
         outcome, pmid = (parts[1] if len(parts) > 1 else ""), (parts[-1] if parts else "")
         both = " ·both families" if v.get("both_families") else ""
-        rows.append(f"<tr><td>{_e(pmid)}</td><td>{_e(outcome)}</td><td>{_e(v.get('detail',''))}{_e(both)}</td>"
+        # audit 26-A / 28-C / 29: a row judged an earlier VERSION of the served row is shown as such, never as current
+        state = _definition_audit_state(r, outcome, pmid, v)
+        if state == "AUDIT_ROW_STALE":
+            stale = (f"<strong>{_e(state)}</strong>: this row judged an earlier version of the served row "
+                     f"(commit {_e((v.get('judged') if isinstance(v.get('judged'), dict) else {}).get('commit') or 'not recorded')}); "
+                     "it is not the current definition. Recorded finding: ")
+        elif state == "UNBOUND":    # agy review P1: an unbound row records NO version, so it cannot be called earlier
+            stale = (f"<strong>{_e(state)}</strong>: this row records no judged version of the served row; it is not used "
+                     "as the definition. Recorded finding: ")
+        else:
+            stale = ""
+        rows.append(f"<tr><td>{_e(pmid)}</td><td>{_e(outcome)}</td><td>{stale}{_e(v.get('detail',''))}{_e(both)}</td>"
                     f"<td><strong>{_e(v.get('resolution',''))}</strong></td></tr>")
     return ("<div class='absent'><strong>Cross-family definition audit.</strong> Two independent model "
             "families (Gemini via AGY, and Fable) re-read every pooled row and checked whether the extracted "

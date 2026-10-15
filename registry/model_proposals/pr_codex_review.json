@@ -6731,5 +6731,81 @@
     "verdict": null
    }
   ]
+ },
+ "pva-defaudit-r1": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-99f9a2615a2d90cadab613ff88e15f13",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/defaudit_binding.py",
+     "harness/page.py",
+     "scripts/bind_definition_audit.py"
+    ],
+    "prompt_sha256": "9900caa1746a846464be17b913203f493f2d7d282dd2349dd87160ab0f44f21d"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/bind_definition_audit.py",
+    "function": "bound",
+    "severity": "P1",
+    "claim": "A wording-only audit edit can overwrite an explicit older judgment and falsely certify a changed trial row as BOUND_CURRENT. The function treats the commit introducing the current wording as evidence of adjudication, ignoring the existing judged fingerprint.",
+    "failing_input": "import json\nfrom unittest.mock import patch\nfrom scripts import bind_definition_audit as m\nfrom harness.defaudit_binding import trial_fingerprint, audit_state\n\na, b = 'a'*40, 'b'*40\nkey = 'topic::MACE::123'\nold = {'id': '123', 'effect': 0.8, 'ci_low': 0.7, 'ci_high': 0.9, 'scale': 'HR', 'source': '5-point composite'}\nnew = dict(old, effect=0.75, source='3-point composite')\nrow = {'detail': '5-point primary', 'resolution': 'KEEP', 'judged': {'commit': a[:12], **trial_fingerprint(old)}}\nbefore = {'by_row': {key: row}}\n# Correct punctuation without changing which trial version was judged.\ndoc = {'by_row': {key: dict(row, detail='5-point primary.')}}\nreview = {'outcomes': [{'name': 'MACE', 'trials': [new]}]}\nenc = lambda x: json.dumps(x).encode()\nwith patch.object(m, '_git', side_effect=[f'{a}\\n{b}\\n'.encode(), enc(before), enc(doc), enc(review)]):\n    result = m.bound(doc)\nprint(result['by_row'][key]['judged']['commit'])\nprint(audit_state(result['by_row'][key], new))",
+    "expected": "Preserve the explicit judgment of commit aaaaaaaaaaaa, yielding AUDIT_ROW_STALE against the changed trial; alternatively require new adjudication evidence before rebinding.",
+    "actual": "Sets judged.commit to bbbbbbbbbbbb and returns BOUND_CURRENT, making the old '5-point primary' finding applicable to the served 3-point row.",
+    "id": "pva-defaudit-r1:g1#1",
+    "record_id": "mc-99f9a2615a2d90cadab613ff88e15f13",
+    "verdict": null
+   },
+   {
+    "file": "scripts/bind_definition_audit.py",
+    "function": "bound",
+    "severity": "P2",
+    "claim": "Every historical-review git failure is silently converted into NOT_FOUND, including repository corruption or unreadable objects. This can also let --check report CURRENT when the stored judgment is already NOT_FOUND.",
+    "failing_input": "import json\nimport subprocess\nfrom unittest.mock import patch\nfrom scripts import bind_definition_audit as m\n\nc = 'a'*40\nkey = 'topic::MACE::123'\ndoc = {'by_row': {key: {'detail': 'finding', 'resolution': 'KEEP', 'judged': {'state': 'NOT_FOUND'}}}}\nfailure = subprocess.CalledProcessError(128, ['git', 'show', f'{c}:docs/reviews/topic/review.json'], stderr=b'fatal: unable to read tree object')\nwith patch.object(m, '_git', side_effect=[f'{c}\\n'.encode(), json.dumps(doc).encode(), failure]):\n    result = m.bound(doc)\nprint(result['by_row'][key]['judged'])\nprint(result == doc)",
+    "expected": "Propagate or explicitly report the git read failure; an unreadable historical tree must not establish that a trial was absent or allow a successful binding check.",
+    "actual": "Returns {'state': 'NOT_FOUND'} without reporting the error. result == doc is True, which main's --check branch accepts as CURRENT with exit code 0.",
+    "id": "pva-defaudit-r1:g1#2",
+    "record_id": "mc-99f9a2615a2d90cadab613ff88e15f13",
+    "verdict": null
+   }
+  ]
+ },
+ "pva-defaudit-r2": {
+  "base": "origin/main",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-0507dd2b8165ad8ce514bf7c128fb56d",
+    "state": "RAN_OK",
+    "files": [
+     "harness/compat_check.py",
+     "harness/defaudit_binding.py",
+     "harness/page.py",
+     "scripts/bind_definition_audit.py"
+    ],
+    "prompt_sha256": "33762f0b2831127461d0d4bfc9f77195373f550dd0a3147e8ddc15f8da8ee192"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "harness/compat_check.py",
+    "function": "derive_trial_dimensions",
+    "severity": "P2",
+    "claim": "A truthy non-dictionary judgment is correctly classified as UNBOUND, but rendering its diagnostic crashes because the new branch calls .get() on that judgment. The same unsafe access occurs in page.py::_definition_audit_block.",
+    "failing_input": "An audit row with judged='legacy'. Runnable reproduction of the added diagnostic path:\nfrom harness.defaudit_binding import audit_state\nraw_row = {'detail': 'Definition checked', 'judged': 'legacy'}\ntrial = {'effect': 0.8, 'ci_low': 0.7, 'ci_high': 0.9, 'scale': 'HR', 'source': 'Held text'}\nrow_state = audit_state(raw_row, trial)\nassert row_state == 'UNBOUND'\n(raw_row.get('judged') or {}).get('commit')",
+    "expected": "Exclude the audit row from the definition and display an UNBOUND diagnostic with no recorded commit.",
+    "actual": "AttributeError: 'str' object has no attribute 'get'; compatibility rendering fails instead of displaying the UNBOUND state.",
+    "id": "pva-defaudit-r2:g1#1",
+    "record_id": "mc-0507dd2b8165ad8ce514bf7c128fb56d",
+    "verdict": null
+   }
+  ]
  }
 }
