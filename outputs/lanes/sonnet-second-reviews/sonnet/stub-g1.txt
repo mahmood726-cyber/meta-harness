@@ -1,0 +1,802 @@
+NO TOOLS ARE AVAILABLE TO YOU: do not run commands, do not read files, do not search. Every command is denied and a denied call ends your turn with nothing recorded. Reason from the diff text below only; a failing input is one you derive by reading the code. Reply with the JSON object only.
+
+You are an adversarial reviewer of research-harness code that extracts per-arm death counts from clinical-trial
+reports and registries, binds papers to trials, classifies screening exclusions, and screens records for RCT status.
+Correctness standards: a number must come from held text by rule; a percentage or Kaplan-Meier estimate is never a
+count; denominator kinds (randomised / analysed / safety) are never mixed; a paper binds to a trial only on its own
+evidence; a gate that can only pass is a defect; silent fallbacks that turn failure into "absent" are defects.
+
+Review the code below. Report only REAL defects you can demonstrate: for each, give the file, the function, a severity
+(P0 wrong number reaches a result / P1 wrong classification or binding / P2 robustness), the claim, a CONCRETE failing
+input (an exact string, record or call that a reader can run), the expected output, and the actual output the code
+gives. Do not report style. Do not speculate without an input. If you find nothing real, return an empty list.
+
+You are reviewing a DIFF merged from a lane branch (lines starting '+' are new).
+
+=== DIFF scripts/reacquire_stub_fulltexts.py ===
+diff --git a/scripts/reacquire_stub_fulltexts.py b/scripts/reacquire_stub_fulltexts.py
+new file mode 100644
+index 00000000..8c51fa19
+--- /dev/null
++++ b/scripts/reacquire_stub_fulltexts.py
+@@ -0,0 +1,352 @@
++"""Re-acquire open JATS replacements without modifying the served cache.
++
++Responses are immutable in-memory captures before interpretation. Rejected bodies
++are never persisted; their hashes and transport metadata remain in the manifest.
++Existing dated manifests are refused: use a new date for a subsequent acquisition.
++"""
++from __future__ import annotations
++
++import argparse
++from copy import deepcopy
++from dataclasses import dataclass
++from datetime import datetime, timezone
++import hashlib
++import http.client
++import io
++import json
++from pathlib import Path
++import re
++import sys
++import tarfile
++import time
++import urllib.error
++import urllib.parse
++import urllib.request
++import xml.etree.ElementTree as ET
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT))
++from harness.copy_licence import classify_permissions  # noqa: E402
++from harness.source_coverage import label_document  # noqa: E402
++
++EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/"
++OA = "https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi?id="
++HOSTS = {"www.ebi.ac.uk", "www.ncbi.nlm.nih.gov", "ftp.ncbi.nlm.nih.gov"}
++MAX_BYTES = 64 * 1024 * 1024
++
++
++def safe_url(url):
++    p = urllib.parse.urlsplit(url)
++    return p.scheme == "https" and p.hostname in HOSTS and not p.username and p.port in (None, 443)
++
++
++class NoRedirect(urllib.request.HTTPRedirectHandler):
++    def redirect_request(self, req, fp, code, msg, headers, newurl):
++        # Record redirects as outcomes; do not follow a challenge to another site.
++        return None
++
++
++def utc():
++    return datetime.now(timezone.utc).isoformat()
++
++
++@dataclass(frozen=True)
++class Capture:
++    payload: bytes
++    requested_url: str
++    final_url: str
++    status: int | None
++    headers: tuple
++    started: str
++    ended: str
++    error: str | None = None
++
++    def metadata(self):
++        h = dict(self.headers)
++        length = h.get("content-length")
++        declared = int(length) if length and length.isdigit() else None
++        encoding = re.search(br"encoding\s*=\s*['\"]([^'\"]+)", self.payload[:200])
++        return dict(requested_url=self.requested_url, final_url=self.final_url,
++                    http_status=self.status, content_type=h.get("content-type"),
++                    declared_encoding=encoding.group(1).decode("ascii", "replace") if encoding else None,
++                    acquired_utc={"start": self.started, "end": self.ended},
++                    sha256=hashlib.sha256(self.payload).hexdigest(), bytes=len(self.payload),
++                    content_length=declared, truncated=declared is not None and declared != len(self.payload),
++                    error=self.error)
++
++
++class Client:
++    def __init__(self):
++        self.opener = urllib.request.build_opener(NoRedirect())
++        self.last = None
++
++    def fetch(self, url, route, attempts):
++        if not safe_url(url):
++            raise ValueError("unapproved acquisition URL")
++        for number in range(3):
++            if self.last is not None:
++                time.sleep(max(0, 0.5 - (time.monotonic() - self.last)))
++            self.last = time.monotonic()
++            start = utc()
++            try:
++                try:
++                    response = self.opener.open(urllib.request.Request(
++                        url, headers={"User-Agent": "meta-harness-reacquire/1"}), timeout=60)
++                except urllib.error.HTTPError as exc:
++                    response = exc
++                with response as resp:
++                    error = None
++                    try:
++                        raw = resp.read(MAX_BYTES + 1)
++                    except http.client.IncompleteRead as exc:
++                        raw, error = exc.partial, "INCOMPLETE_READ"
++                    if len(raw) > MAX_BYTES:
++                        error = "SIZE_LIMIT"
++                    cap = Capture(raw, url, resp.geturl(), resp.code,
++                                  tuple((k.lower(), v) for k, v in resp.headers.items()), start, utc(), error)
++            except (urllib.error.URLError, OSError, TimeoutError, http.client.HTTPException) as exc:
++                cap = Capture(b"", url, url, None, (), start, utc(), type(exc).__name__)
++            meta = cap.metadata()
++            meta.update(route=route, attempt=number + 1, stored=False,
++                        licence="NOT_OPEN", label=None, outcome="RESPONSE")
++            attempts.append(meta)
++            if cap.status == 429 or cap.status is not None and 500 <= cap.status <= 599:
++                meta["outcome"] = "HTTP_ERROR"
++                if number < 2:
++                    time.sleep(2 ** number)
++                    continue
++            return cap, meta
++
++
++def usable(cap, meta):
++    if cap.error or meta["truncated"]:
++        meta["outcome"] = cap.error or "TRUNCATED"
++    elif cap.status != 200:
++        meta["outcome"] = "HTTP_ERROR"
++    elif not safe_url(cap.final_url):
++        meta["outcome"] = "UNAPPROVED_FINAL_URL"
++    elif (dict(cap.headers).get("content-type", "").split(";", 1)[0].strip().lower() == "text/html"
++          or re.match(br"\s*(?:<\?xml\b[^>]*>\s*)?(?:<!--.*?-->\s*)*<(?:html|!doctype\s+html)\b",
++                      cap.payload[:10000], re.I | re.S)):
++        meta["outcome"] = "HTML_OR_CHALLENGE"
++    else:
++        return True
++    meta["label"] = label_document(cap.payload)["label"]
++    return False
++
++
++def assess(raw, doc, pmcid, meta):
++    meta["label"] = label_document(raw)["label"]
++    try:
++        tree = ET.fromstring(raw)
++    except (ET.ParseError, LookupError):
++        meta.update(licence="NOT_OPEN", outcome="INVALID_XML")
++        return False
++    # Normalize namespaces/attributes for the canonical permissions reader.
++    permissions = []
++    for el in tree.iter():
++        if el.tag.split("}")[-1] == "permissions":
++            permissions.append("<permissions>" + "".join(ET.tostring(c, encoding="unicode") for c in el)
++                               + (el.text or "") + "</permissions>")
++    text = ET.tostring(tree, encoding="unicode")
++    lic, statement = classify_permissions("".join(permissions) + "\n" + text)
++    meta.update(licence=lic, licence_statement=statement)
++    ids = {}
++    # Only the enclosing article's direct front/article-meta owns its identity.
++    own_ids = tree.findall("./{*}front/{*}article-meta/{*}article-id") if tree.tag.split("}")[-1] == "article" else []
++    for el in own_ids:
++        ids.setdefault(el.get("pub-id-type"), set()).add((el.text or "").strip())
++    pmc_ids = {v if v.startswith("PMC") else "PMC" + v for v in ids.get("pmc", set()) | ids.get("pmcid", set())}
++    matched = (ids.get("pmid") == {doc["pmid"]} if doc.get("pmid") else pmc_ids == {pmcid})
++    if pmc_ids and pmc_ids != {pmcid}:
++        matched = False
++    meta["returned_identifiers"] = {k: sorted(v) for k, v in ids.items() if k in ("pmid", "pmc", "pmcid")}
++    # Manuscript status belongs to this article, never its citations or children.
++    status_fields = [tree.get("article-type", "")]
++    for article_meta in tree.findall("./{*}front/{*}article-meta") if tree.tag.split("}")[-1] == "article" else []:
++        for path in ("./{*}article-id", "./{*}custom-meta", "./{*}custom-meta-group/{*}custom-meta",
++                     "./{*}notes", "./{*}permissions"):
++            for field in article_meta.findall(path):
++                field = deepcopy(field)
++                field.tail = None
++                for parent in field.iter():
++                    for child in list(parent):
++                        if child.tag.split("}")[-1] in {
++                            "abstract", "trans-abstract", "title-group", "kwd-group",
++                            "back", "ref-list", "body", "sub-article", "response",
++                        }:
++                            parent.remove(child)
++                status_fields.append(" ".join(field.itertext()))
++    manuscript_markers = "\n".join(status_fields)
++    manuscript_id = any(el.get("pub-id-type", "").lower() == "manuscript" for el in own_ids)
++    if lic != "CC":
++        meta["outcome"] = "LICENCE_REJECTED"
++    elif manuscript_id or re.search(r"NIHMS\d+|\bNIHPA\b|author.manuscript", manuscript_markers, re.I):
++        meta["outcome"] = "AUTHOR_MANUSCRIPT"
++    elif meta["label"] != "FULLTEXT":
++        meta["outcome"] = "NOT_FULLTEXT"
++    elif not matched:
++        meta["outcome"] = "IDENTIFIER_MISMATCH"
++    else:
++        meta["outcome"] = "ACCEPTED"
++        return True
++    return False
++
++
++def _write_once(path, raw):
++    path.parent.mkdir(parents=True, exist_ok=True)
++    try:
++        with path.open("xb") as f:
++            f.write(raw)
++    except FileExistsError:
++        if path.read_bytes() != raw:
++            raise ValueError(f"REFUSED: immutable acquisition differs: {path}")
++
++
++def selected(registry, slug=None, pmids=None):
++    docs = registry["documents"]
++    items = docs.items() if isinstance(docs, dict) else ((d.get("path", ""), d) for d in docs)
++    out = []
++    for path, original in items:
++        if original.get("label") not in {"STUB", "METADATA"}:
++            continue
++        doc = dict(original, path=path)
++        parts = Path(path).parts
++        doc["slug"] = doc.get("slug") or (parts[1] if len(parts) > 2 and parts[0] == "cache" else None)
++        m = re.search(r"(?:^|/)ft_(\d+)\.", path)
++        if not m:
++            m = re.search(r"^cache/comparators/(\d+)/", path)
++        doc["pmid"] = str(doc.get("pmid") or (m.group(1) if m else ""))
++        doc["pmcid"] = str(doc.get("pmcid") or "")
++        if not doc["pmid"] and not doc["pmcid"]:
++            continue
++        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]*", doc["slug"] or ""):
++            raise ValueError("invalid slug")
++        for key, pattern in (("pmid", r"[1-9]\d*"), ("pmcid", r"PMC[1-9]\d*")):
++            if doc[key] and not re.fullmatch(pattern, doc[key]):
++                raise ValueError(f"invalid {key}")
++        if (slug is None or doc["slug"] == slug) and (pmids is None or doc["pmid"] in pmids):
++            out.append(doc)
++    return sorted(out, key=lambda d: (d["slug"], d["pmid"], d["pmcid"], d["path"]))
++
++
++def acquire(doc, client):
++    entry = dict(source_path=doc["path"], pmid=doc["pmid"], pmcid=doc["pmcid"],
++                 attempts=[], stored=False, outcome="NO_REPLACEMENT")
++    attempts = entry["attempts"]
++    pmcid = doc["pmcid"]
++    if doc["pmid"]:
++        url = EPMC + "search?query=EXT_ID:" + doc["pmid"] + "%20AND%20SRC:MED&format=json&resultType=core"
++        cap, meta = client.fetch(url, "europepmc_search", attempts)
++        if not usable(cap, meta):
++            return entry, None
++        try:
++            results = json.loads(cap.payload)["resultList"]["result"]
++            if not isinstance(results, list) or any(not isinstance(record, dict) for record in results):
++                raise ValueError("search results must be a list of objects")
++            matches = [r for r in results if str(r.get("id")) == doc["pmid"] and r.get("source") == "MED"]
++            if len(matches) != 1 or not re.fullmatch(r"PMC[1-9]\d*", matches[0].get("pmcid", "")):
++                raise ValueError("no unique PMID match")
++            record = matches[0]
++            if pmcid and pmcid != record["pmcid"]:
++                raise ValueError("conflicting PMCID")
++            pmcid = record["pmcid"]
++            meta.update(outcome="RESOLVED", pmcid=pmcid, isOpenAccess=record.get("isOpenAccess"),
++                        source_license=record.get("license"))
++        except (ValueError, KeyError, TypeError):
++            meta["outcome"] = "UNRESOLVED_IDENTIFIER"
++            return entry, None
++    entry["pmcid"] = pmcid
++    cap, meta = client.fetch(EPMC + pmcid + "/fullTextXML", "europepmc_fulltext", attempts)
++    if usable(cap, meta) and assess(cap.payload, doc, pmcid, meta):
++        return entry, cap.payload
++    # A denial/challenge terminates this document, not an invitation to route around it.
++    if cap.status == 403 or meta["outcome"] == "HTML_OR_CHALLENGE":
++        return entry, None
++    cap, meta = client.fetch(OA + pmcid, "pmc_oa_service", attempts)
++    if not usable(cap, meta):
++        return entry, None
++    try:
++        tree = ET.fromstring(cap.payload)
++        records = [r for r in tree.findall(".//record") if r.get("id") == pmcid]
++        if len(records) != 1:
++            raise ValueError("no unique OA record")
++        links = [el for el in records[0].findall("link") if el.get("format") == "tgz"]
++        if not links:
++            raise ValueError("no JATS package")
++        url = links[0].get("href", "")
++        if url.startswith("ftp://ftp.ncbi.nlm.nih.gov/"):
++            url = "https://" + url[len("ftp://"):]
++        if not safe_url(url) or urllib.parse.urlsplit(url).hostname != "ftp.ncbi.nlm.nih.gov":
++            raise ValueError("unapproved package")
++        meta["outcome"] = "OA_PACKAGE_LINK"
++    except (ET.ParseError, LookupError, ValueError):
++        meta["outcome"] = "NO_OA_PACKAGE"
++        return entry, None
++    cap, meta = client.fetch(url, "pmc_oa_package", attempts)
++    if not usable(cap, meta):
++        return entry, None
++    try:
++        with tarfile.open(fileobj=io.BytesIO(cap.payload), mode="r:gz") as archive:
++            members = [m for m in archive if m.isfile() and m.name.lower().endswith((".nxml", ".xml"))]
++            if len(members) != 1 or members[0].size > MAX_BYTES:
++                raise ValueError("ambiguous or oversized JATS package")
++            raw = archive.extractfile(members[0]).read()
++            candidate = dict(route="pmc_oa_jats", member=members[0].name,
++                             sha256=hashlib.sha256(raw).hexdigest(), bytes=len(raw), stored=False)
++            attempts.append(candidate)
++            if assess(raw, doc, pmcid, candidate):
++                return entry, raw
++    except (tarfile.TarError, ValueError, OSError, EOFError):
++        meta["outcome"] = "INVALID_OA_PACKAGE"
++    return entry, None
++
++
++def run(registry, output, *, slug=None, pmids=None, dry_run=False, date=None):
++    docs = selected(registry, slug, pmids)
++    if dry_run:
++        for doc in docs:
++            print(f"{doc['slug']} {doc['pmid'] or doc['pmcid']}: Europe PMC search/fullTextXML -> NCBI PMC OA")
++        return []
++    date = date or datetime.now(timezone.utc).date().isoformat()
++    datetime.strptime(date, "%Y-%m-%d")
++    dirs = {d["slug"]: Path(output) / d["slug"] / ("fulltext_" + date) for d in docs}
++    for directory in dirs.values():
++        if (directory / "manifest.json").exists():
++            raise ValueError("REFUSED: dated manifest already exists; choose a new acquisition date")
++    client = Client()
++    entries = {slug: [] for slug in dirs}
++    for doc in docs:
++        entry, raw = acquire(doc, client)
++        if raw is not None:
++            name = (doc["pmid"] or doc["pmcid"]) + ".xml"
++            _write_once(dirs[doc["slug"]] / name, raw)
++            entry.update(stored=True, file=name, outcome="STORED", sha256=hashlib.sha256(raw).hexdigest())
++            entry["attempts"][-1]["stored"] = True
++        else:
++            entry["outcome"] = entry["attempts"][-1]["outcome"]
++        last = entry["attempts"][-1]
++        entry.update(licence=last.get("licence"), label=last.get("label"),
++                     sha256=last["sha256"], reason=last["outcome"])
++        entries[doc["slug"]].append(entry)
++    for slug, directory in dirs.items():
++        manifest = dict(schema_version=1, slug=slug, acquisition_date=date, entries=entries[slug],
++                        origin_authentication="Declared TLS trust; hashes identify received bytes, not independent origin proof")
++        _write_once(directory / "manifest.json", (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8"))
++    return [e for group in entries.values() for e in group]
++
++
++def main(argv=None):
++    ap = argparse.ArgumentParser(description=__doc__)
++    ap.add_argument("--registry", type=Path, default=ROOT / "registry/source_coverage.json")
++    ap.add_argument("--slug")
++    ap.add_argument("--pmids", nargs="+", help="space- or comma-separated PMIDs")
++    ap.add_argument("--dry-run", action="store_true")
++    args = ap.parse_args(argv)
++    pmids = {p for group in args.pmids for p in group.split(",")} if args.pmids else None
++    run(json.loads(args.registry.read_text(encoding="utf-8")), ROOT / "registry/source_acquisitions",
++        slug=args.slug, pmids=pmids, dry_run=args.dry_run)
++
++
++if __name__ == "__main__":
++    main()
+
+
+=== DIFF tests/test_reacquire_stub_fulltexts.py ===
+diff --git a/tests/test_reacquire_stub_fulltexts.py b/tests/test_reacquire_stub_fulltexts.py
+new file mode 100644
+index 00000000..81840e44
+--- /dev/null
++++ b/tests/test_reacquire_stub_fulltexts.py
+@@ -0,0 +1,418 @@
++"""Synthetic-only acquisition contracts; urllib is intercepted for every test."""
++import hashlib
++import io
++import json
++from pathlib import Path
++import sys
++import tarfile
++from unittest.mock import Mock
++import urllib.error
++
++import pytest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
++from scripts import reacquire_stub_fulltexts as r
++
++
++def jats(lic="by", body="<body><p>Synthetic article body.</p></body>", pmid="123", extra=""):
++    return (f'<?xml version="1.0" encoding="UTF-8"?><article><front><article-meta>'
++            f'<article-id pub-id-type="pmid">{pmid}</article-id>'
++            '<article-id pub-id-type="pmc">PMC456</article-id>'
++            f'<permissions><license><ext-link href="https://creativecommons.org/licenses/{lic}/4.0/">'
++            f'Creative Commons</ext-link></license></permissions>{extra}'
++            f'</article-meta></front>{body}</article>').encode()
++
++
++REGISTRY = {"documents": [{"slug": "synthetic", "path": "held.xml", "pmid": "123", "label": "STUB"}]}
++SEARCH = json.dumps({"resultList": {"result": [{"id": "123", "source": "MED", "pmcid": "PMC456",
++                                               "isOpenAccess": "Y", "license": "cc-by"}]}}).encode()
++OA_NONE = b'<OA><error code="idIsNotOpenAccess">No package</error></OA>'
++
++
++@pytest.mark.parametrize("namespace", [False, True])
++@pytest.mark.parametrize("tag", ["abstract", "trans-abstract", "title-group", "kwd-group", "p"])
++def test_front_prose_manuscript_mentions_are_not_status(network, tag, namespace):
++    raw = jats(extra=f'<{tag}>The separate protocol is available as an author manuscript NIHMS123.</{tag}>')
++    raw = raw.replace(b"<article>", b'<article article-type="research-article">')
++    if namespace:
++        raw = raw.replace(b"<article ", b'<article xmlns="urn:synthetic:jats" ', 1)
++    meta = {}
++    assert r.assess(raw, {"pmid": "123"}, "PMC456", meta), meta
++    assert meta["outcome"] == "ACCEPTED"
++
++
++@pytest.mark.parametrize("marker", [
++    '<article-id pub-id-type="manuscript">accepted-version</article-id>',
++    '<article-id pub-id-type="other">NIHMS123</article-id>',
++])
++def test_structured_manuscript_identifier_rejected(network, marker):
++    meta = {}
++    assert not r.assess(jats(extra=marker), {"pmid": "123"}, "PMC456", meta)
++    assert meta["outcome"] == "AUTHOR_MANUSCRIPT"
++
++
++@pytest.mark.parametrize("phase", ["open", "read"])
++@pytest.mark.parametrize("error_type", [r.http.client.BadStatusLine,
++    r.http.client.IncompleteRead, r.http.client.RemoteDisconnected])
++def test_http_exception_preserves_batch_manifest(tmp_path, network, phase, error_type):
++    error = error_type(b"partial")
++
++    class BrokenResponse(Response):
++        def read(self, *args):
++            raise error
++
++    registry = {"documents": REGISTRY["documents"] + [
++        {"slug": "synthetic", "path": "second.xml", "pmid": "789", "label": "STUB"}]}
++    network[0].extend([
++        error if phase == "open" else BrokenResponse(b""),
++        Response(SEARCH.replace(b'"123"', b'"789"')),
++        Response(jats(pmid="789")),
++    ])
++    entries = r.run(registry, tmp_path, date="2026-10-14")
++    manifest = json.loads((tmp_path / "synthetic/fulltext_2026-10-14/manifest.json").read_text())
++    assert manifest["entries"] == entries
++    failed, succeeded = entries
++    assert not failed["stored"] and succeeded["stored"]
++    assert len(failed["attempts"]) == 1 and len(network[1]) == 3
++    expected = "INCOMPLETE_READ" if phase == "read" and error_type is r.http.client.IncompleteRead else error_type.__name__
++    assert failed["attempts"][0]["error"] == expected
++    assert failed["attempts"][0]["outcome"] == expected
++
++
++@pytest.mark.parametrize("namespace", [False, True])
++@pytest.mark.parametrize("location", ["reference", "body", "sub-article", "response", "nested-front"])
++def test_foreign_manuscript_marker_does_not_reject_parent(network, location, namespace):
++    marker = "author manuscript NIHMS123"
++    raw = jats().replace(b"<article>", b'<article article-type="research-article">')
++    if location == "reference":
++        addition = f"<back><ref-list><ref><mixed-citation><article-title>A {marker} study</article-title></mixed-citation></ref></ref-list></back>"
++    elif location == "body":
++        addition = f"<p>A discussion of {marker}.</p>"
++        raw = raw.replace(b"</body>", addition.encode() + b"</body>")
++        addition = ""
++    else:
++        nested = "sub-article" if location == "nested-front" else location
++        addition = f"<{nested}><front><article-meta><notes>{marker}</notes></article-meta></front></{nested}>"
++        if location == "nested-front":
++            raw = raw.replace(b"</front>", addition.encode() + b"</front>")
++            addition = ""
++    raw = raw.replace(b"</article>", addition.encode() + b"</article>")
++    if namespace:
++        raw = raw.replace(b"<article ", b'<article xmlns="urn:synthetic:jats" ', 1)
++    meta = {}
++    assert r.assess(raw, {"pmid": "123"}, "PMC456", meta), meta
++    assert meta["outcome"] == "ACCEPTED"
++
++
++@pytest.mark.parametrize("marker", [
++    "<custom-meta>author manuscript</custom-meta>",
++    "<notes>Author manuscript; available in PMC.</notes>",
++    "<permissions><copyright-statement>Author manuscript</copyright-statement></permissions>",
++    '<article-id pub-id-type="manuscript">NIHMS123</article-id>',
++    '<custom-meta><meta-name>manuscript</meta-name><meta-value>NIHPA</meta-value></custom-meta>',
++])
++def test_own_front_manuscript_marker_rejected(network, marker):
++    meta = {}
++    assert not r.assess(jats(extra=marker), {"pmid": "123"}, "PMC456", meta)
++    assert meta["outcome"] == "AUTHOR_MANUSCRIPT"
++
++
++def test_own_article_type_manuscript_rejected(network):
++    raw = jats().replace(b"<article>", b'<article article-type="author-manuscript">')
++    meta = {}
++    assert not r.assess(raw, {"pmid": "123"}, "PMC456", meta)
++    assert meta["outcome"] == "AUTHOR_MANUSCRIPT"
++
++
++class Response(io.BytesIO):
++    def __init__(self, raw, code=200, headers=None, url=None):
++        super().__init__(raw)
++        self.code, self.headers, self.url = code, headers or {"Content-Type": "application/xml"}, url
++
++    def geturl(self):
++        return self.url
++
++
++@pytest.fixture
++def network(monkeypatch):
++    queue, calls, sleeps = [], [], []
++
++    def open_request(req, timeout):
++        calls.append(req.full_url)
++        assert queue, "unexpected HTTP request"
++        response = queue.pop(0)
++        if isinstance(response, Exception):
++            raise response
++        response.url = response.url or req.full_url
++        return response
++
++    opener = Mock(open=open_request)
++    monkeypatch.setattr(r.urllib.request, "build_opener", lambda *a: opener)
++    monkeypatch.setattr(r.urllib.request, "urlopen", lambda *a, **kw: pytest.fail("unmocked urllib call"))
++    monkeypatch.setattr(r.time, "sleep", sleeps.append)
++    monkeypatch.setattr(r.time, "monotonic", lambda: 100.0)
++    return queue, calls, sleeps
++
++
++def execute(tmp_path, network, raw, **kwargs):
++    network[0].extend([Response(SEARCH), Response(raw, **kwargs), Response(OA_NONE)])
++    entries = r.run(REGISTRY, tmp_path, date="2026-10-14")
++    manifest = json.loads((tmp_path / "synthetic/fulltext_2026-10-14/manifest.json").read_text())
++    assert entries == manifest["entries"]
++    return entries[0]
++
++
++def test_cc_by_fulltext_stored_with_provenance(tmp_path, network):
++    raw = jats()
++    entry = execute(tmp_path, network, raw, headers={"Content-Type": "application/xml", "Content-Length": str(len(raw))})
++    assert (tmp_path / "synthetic/fulltext_2026-10-14/123.xml").read_bytes() == raw
++    assert entry["stored"] and len(network[1]) == 2
++    meta = entry["attempts"][-1]
++    assert meta["licence"] == "CC" and meta["label"] == "FULLTEXT"
++    assert meta["sha256"] == hashlib.sha256(raw).hexdigest()
++    assert meta["requested_url"] == meta["final_url"] and meta["http_status"] == 200
++    assert meta["declared_encoding"] == "UTF-8" and not meta["truncated"]
++    assert meta["acquired_utc"]["start"] and meta["content_type"] == "application/xml"
++    assert network[2] == [0.5]
++
++
++@pytest.mark.parametrize("license", ["by-nc", "by-nd", "by-sa"])
++def test_restricted_never_stored(tmp_path, network, license):
++    entry = execute(tmp_path, network, jats(license))
++    assert not entry["stored"]
++    assert entry["attempts"][1]["licence"] == "CC_RESTRICTED"
++    assert not list(tmp_path.rglob("*.xml"))
++
++
++@pytest.mark.parametrize("raw,label", [(jats(body=""), "STUB"),
++    (b'<article>publisher does not allow downloading of the full text</article>', "STUB"),
++    (b'<html><title>500 Server Error</title></html>', "STUB")])
++def test_stub_and_html_never_stored(tmp_path, network, raw, label):
++    entry = execute(tmp_path, network, raw)
++    assert not entry["stored"] and entry["attempts"][1]["label"] == label
++    assert not list(tmp_path.rglob("*.xml"))
++
++
++def test_append_only_different_bytes_refused(tmp_path, network):
++    path = tmp_path / "synthetic/fulltext_2026-10-14/123.xml"
++    r._write_once(path, b"existing")
++    with pytest.raises(ValueError, match="immutable acquisition differs"):
++        execute(tmp_path, network, jats())
++    assert path.read_bytes() == b"existing"
++    r._write_once(path, b"existing")
++
++
++def test_existing_manifest_refused_before_network(tmp_path, network):
++    execute(tmp_path, network, jats())
++    calls = len(network[1])
++    with pytest.raises(ValueError, match="dated manifest"):
++        r.run(REGISTRY, tmp_path, date="2026-10-14")
++    assert len(network[1]) == calls
++
++
++def test_429_then_success(tmp_path, network):
++    error = urllib.error.HTTPError(r.EPMC + "PMC456/fullTextXML", 429, "rate", {}, io.BytesIO(b"slow down"))
++    network[0].extend([Response(SEARCH), error, Response(jats())])
++    entry = r.run(REGISTRY, tmp_path)[0]
++    assert entry["stored"] and len(network[1]) == 3
++    assert entry["attempts"][1]["http_status"] == 429
++    assert entry["attempts"][2]["attempt"] == 2
++    assert 1 in network[2] and all(s >= 0.5 for s in network[2])
++
++
++@pytest.mark.parametrize("status", [429, 500, 503])
++def test_retry_budget(tmp_path, network, status):
++    network[0].extend([Response(b"unavailable", status) for _ in range(3)])
++    entry = r.run(REGISTRY, tmp_path)[0]
++    assert not entry["stored"] and len(network[1]) == 3
++    assert [a["attempt"] for a in entry["attempts"]] == [1, 2, 3]
++
++
++@pytest.mark.parametrize("status,raw", [(403, b"denied"), (200, b'<html>captcha challenge</html>')])
++def test_denial_and_challenge_stop_without_route_around(tmp_path, network, status, raw):
++    entry = execute(tmp_path, network, raw, code=status)
++    assert not entry["stored"] and len(network[1]) == 2
++
++
++def test_truncation_refused(tmp_path, network):
++    entry = execute(tmp_path, network, jats(), headers={"Content-Length": "999999"})
++    assert not entry["stored"] and entry["attempts"][1]["outcome"] == "TRUNCATED"
++    assert not list(tmp_path.rglob("*.xml"))
++
++
++def test_dry_run_no_writes_or_http(tmp_path, network, capsys):
++    r.run(REGISTRY, tmp_path, dry_run=True)
++    assert not list(tmp_path.iterdir()) and not network[1]
++    assert "123" in capsys.readouterr().out
++
++
++def test_filters_and_real_registry_shape():
++    reg = {"documents": {"cache/topic/ft_123.txt": {"label": "STUB"},
++                         "cache/comparators/456/body.txt": {"label": "METADATA"},
++                         "cache/topic/comparator_fulltext.txt": {"label": "STUB"},
++                         "cache/topic/ft_789.txt": {"label": "FULLTEXT"}}}
++    assert len(r.selected(reg)) == 2
++    assert r.selected(reg, "topic", {"123"})[0]["pmid"] == "123"
++    assert not r.selected(reg, "topic", {"456"})
++
++
++def test_unread_terms_manuscript_and_wrong_identifier(tmp_path, network):
++    for i, raw in enumerate([jats().replace(b"creativecommons.org", b"example.org"),
++                             jats(extra="<custom-meta>author manuscript NIHMS123</custom-meta>"),
++                             jats(pmid="999")]):
++        entry = execute(tmp_path / str(i), network, raw)
++        assert not entry["stored"]
++    assert not list(tmp_path.rglob("*.xml"))
++
++
++def package(raw):
++    stream = io.BytesIO()
++    with tarfile.open(fileobj=stream, mode="w:gz") as archive:
++        member = tarfile.TarInfo("../../unsafe-name.nxml")
++        member.size = len(raw)
++        archive.addfile(member, io.BytesIO(raw))
++    return stream.getvalue()
++
++
++def test_oa_fallback_package_checked_without_extracting_paths(tmp_path, network):
++    oa = b'<OA><records><record id="PMC456"><link format="tgz" href="ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_package/test.tar.gz"/></record></records></OA>'
++    network[0].extend([Response(SEARCH), Response(jats(body="")), Response(oa), Response(package(jats()))])
++    entry = r.run(REGISTRY, tmp_path)[0]
++    assert entry["stored"] and len(network[1]) == 4
++    assert network[1][-1].startswith("https://ftp.ncbi.nlm.nih.gov/")
++    assert entry["attempts"][-1]["sha256"] == hashlib.sha256(jats()).hexdigest()
++    assert [p.name for p in tmp_path.rglob("*.xml")] == ["123.xml"]
++
++
++def test_pmcid_only(tmp_path, network):
++    network[0].append(Response(jats()))
++    reg = {"documents": [{"slug": "synthetic", "path": "held.xml", "pmcid": "PMC456", "label": "METADATA"}]}
++    assert r.run(reg, tmp_path)[0]["stored"]
++    assert len(network[1]) == 1 and list(tmp_path.rglob("PMC456.xml"))
++
++
++def test_search_identity_mismatch_fails_closed(tmp_path, network):
++    network[0].append(Response(SEARCH.replace(b'"123"', b'"999"')))
++    assert not r.run(REGISTRY, tmp_path)[0]["stored"]
++    assert len(network[1]) == 1
++
++
++def test_redirect_not_followed_and_host_allowlist():
++    assert r.NoRedirect().redirect_request(None, None, 302, "", {}, "https://publisher.example") is None
++    for url in ("https://publisher.example/x", "http://www.ebi.ac.uk/x", "https://www.ebi.ac.uk@evil.example/x"):
++        assert not r.safe_url(url)
++
++
++def test_network_error_not_retried(tmp_path, network):
++    network[0].append(urllib.error.URLError("offline"))
++    entry = r.run(REGISTRY, tmp_path)[0]
++    assert not entry["stored"] and len(network[1]) == 1
++    assert entry["attempts"][0]["error"] == "URLError"
++
++
++def test_invalid_slug_refused():
++    with pytest.raises(ValueError, match="slug"):
++        r.selected({"documents": [{"slug": "../cache", "pmid": "123", "label": "STUB"}]})
++
++
++@pytest.mark.parametrize("permission", ["publicdomain/zero/1.0/", "publicdomain/mark/1.0/"])
++def test_cc0_public_domain_stored(tmp_path, network, permission):
++    raw = jats().replace(b"licenses/by/4.0/", permission.encode())
++    assert execute(tmp_path, network, raw)["stored"]
++
++
++def test_malformed_fulltext_never_stored(tmp_path, network):
++    entry = execute(tmp_path, network, jats().replace(b"</article>", b""))
++    assert not entry["stored"]
++    assert entry["attempts"][1]["outcome"] == "INVALID_XML"
++
++
++def test_incomplete_read_captured_before_rejection(tmp_path, network):
++    class Incomplete(Response):
++        def read(self, *args):
++            raise r.http.client.IncompleteRead(b"partial", 100)
++    network[0].extend([Response(SEARCH), Incomplete(b""), Response(OA_NONE)])
++    entry = r.run(REGISTRY, tmp_path)[0]
++    meta = entry["attempts"][1]
++    assert not entry["stored"] and meta["error"] == "INCOMPLETE_READ"
++    assert meta["sha256"] == hashlib.sha256(b"partial").hexdigest()
++
++
++def test_oa_link_cannot_target_publisher(tmp_path, network):
++    oa = b'<OA><record id="PMC456"><link format="tgz" href="https://publisher.example/a.tgz"/></record></OA>'
++    network[0].extend([Response(SEARCH), Response(jats(body="")), Response(oa)])
++    entry = r.run(REGISTRY, tmp_path)[0]
++    assert not entry["stored"] and entry["outcome"] == "NO_OA_PACKAGE"
++    assert len(network[1]) == 3
++
++
++@pytest.mark.parametrize("kind", ["json", "xml"])
++def test_challenge_words_in_data_are_usable(tmp_path, network, kind):
++    search = json.loads(SEARCH)
++    search["resultList"]["result"][0]["title"] = "CAPTCHA cf-chl- verify you are human"
++    raw = jats(body="<body><p>CAPTCHA cf-chl- verify you are human</p></body>")
++    network[0].extend([
++        Response(json.dumps(search).encode() if kind == "json" else SEARCH,
++                 headers={"Content-Type": "application/json"}),
++        Response(raw if kind == "xml" else jats()),
++    ])
++    assert r.run(REGISTRY, tmp_path)[0]["stored"]
++    assert len(network[1]) == 2
++
++
++@pytest.mark.parametrize("nested", ["sub-article", "response"])
++@pytest.mark.parametrize("pmid_only", [True, False])
++def test_nested_identifiers_cannot_identify_parent(network, nested, pmid_only):
++    raw = jats().replace(
++        b'<article-id pub-id-type="pmid">123</article-id>', b'').replace(
++        b'<article-id pub-id-type="pmc">PMC456</article-id>', b'')
++    child = (f'<{nested}><front><article-meta>'
++             '<article-id pub-id-type="pmid">123</article-id>'
++             '<article-id pub-id-type="pmc">PMC456</article-id>'
++             f'</article-meta></front></{nested}>').encode()
++    raw = raw.replace(b'</article>', child + b'</article>')
++    meta = {}
++    assert not r.assess(raw, {"pmid": "123" if pmid_only else ""}, "PMC456", meta)
++    assert meta["outcome"] == "IDENTIFIER_MISMATCH"
++    assert meta["returned_identifiers"] == {}
++
++
++@pytest.mark.parametrize("bad_record", [None, 7, "bad", []])
++def test_nonobject_search_record_preserves_batch_manifest(tmp_path, network, bad_record):
++    registry = {"documents": REGISTRY["documents"] + [
++        {"slug": "synthetic", "path": "second.xml", "pmid": "789", "label": "STUB"}]}
++    network[0].extend([
++        Response(json.dumps({"resultList": {"result": [bad_record]}}).encode()),
++        Response(SEARCH.replace(b'"123"', b'"789"')),
++        Response(jats(pmid="789")),
++    ])
++    entries = r.run(registry, tmp_path, date="2026-10-14")
++    manifest = json.loads((tmp_path / "synthetic/fulltext_2026-10-14/manifest.json").read_text())
++    assert entries == manifest["entries"]
++    by_path = {entry["source_path"]: entry for entry in entries}
++    assert by_path["held.xml"]["outcome"] == "UNRESOLVED_IDENTIFIER"
++    assert not by_path["held.xml"]["stored"]
++    assert by_path["second.xml"]["stored"]
++    assert len(network[1]) == 3
++
++
++@pytest.mark.parametrize("raw,content_type", [
++    (b"Please verify you are human", "text/html; charset=UTF-8"),
++    (b"<!-- gateway --> <html>cf-chl- challenge</html>", "application/octet-stream"),
++])
++def test_html_challenge_detection_still_stops(tmp_path, network, raw, content_type):
++    entry = execute(tmp_path, network, raw, headers={"Content-Type": content_type})
++    assert entry["outcome"] == "HTML_OR_CHALLENGE"
++    assert not entry["stored"] and len(network[1]) == 2
++
++
++def test_namespaced_parent_identity_ignores_nested_ids(network):
++    raw = jats().replace(b"<article>", b'<article xmlns="urn:synthetic:jats">')
++    child = (b'<sub-article><front><article-meta>'
++             b'<article-id pub-id-type="pmid">999</article-id>'
++             b'<article-id pub-id-type="pmc">PMC999</article-id>'
++             b'</article-meta></front></sub-article>')
++    raw = raw.replace(b"</article>", child + b"</article>")
++    meta = {}
++    assert r.assess(raw, {"pmid": "123"}, "PMC456", meta)
++    assert meta["returned_identifiers"] == {"pmid": ["123"], "pmc": ["PMC456"]}
+
