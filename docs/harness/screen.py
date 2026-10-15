@@ -12,7 +12,6 @@ from . import arm_object
 from . import lexicon
 from . import armcontrast
 from . import screen_entry
-from . import screen_terms
 from .extract_values import ScreenDecision  # R1 typed values
 
 # Token-boundary matcher cache: a bare-substring `in` test matched a screening term inside a
@@ -160,16 +159,8 @@ def _is_review(rec) -> bool:
     # 'Clinical Trial') that ALSO reports a pooled sub-analysis is still a trial: RE-COVER II (24344086),
     # "Treatment of acute VTE with dabigatran or warfarin and pooled analysis", is pubtype-RCT and must
     # not be reclassified a review by the title marker.
-    # a COMMENTARY on a trial is secondary literature too: pubtype Comment / Editorial, or the 'Evaluation of: <citation>'
-    # format of evaluation journals. PMID 18681789 ('Is pharmacogenomics our future?', an evaluation of Legro et al.) was
-    # admitted by the placebo-of-X branch and its GENOTYPE odds ratio entered the metformin + clomifene pool (V15-B
-    # preview, captain, 12 Oct)
-    if any(p in ("comment", "editorial") for p in pts):
-        return True
     if any(("randomized controlled trial" in p) or ("clinical trial" in p) for p in pts):
         return False
-    if _re2.match(r"\s*evaluation of\s*:", rec.get("abstract", "") or "", _re2.I):
-        return True
     return bool(_REVIEW_TITLE.search(rec.get("title", "") or ""))
 
 
@@ -421,25 +412,11 @@ def _record_arm_interventions_background_only(rec, keywords) -> tuple[bool, str]
     if not kws:
         return False, ""
 
-    def carries_interest(s):
-        # An entry CARRIES the intervention of interest only through an UNQUALIFIED mention. A placebo OF that
-        # intervention ('placebo Circadin', 'Potassium Chloride + Placebo for Empagliflozin', 'dapagliflozin placebo')
-        # is the control, not the drug (12-01 root cause (a): `_PLACEBO.fullmatch` let 'placebo circadin' stay an
-        # active drug arm). The double-dummy MIRO-CKD entries still carry dapagliflozin unqualified, so they stay
-        # background ('balcinrenone/dapagliflozin ... and matching placebo for dapagliflozin').
-        if armcontrast._PLACEBO.fullmatch(s.strip()):
-            return False
-        for k in kws:
-            if not k:
-                continue
-            kq = _re.escape(k)
-            s = _re.sub(rf"(?:matching\s+)?placebo\s*(?:for|to|of)?\s*{kq}|{kq}[\s-]*(?:matching\s+)?placebo", " ", s)
+    def has_interest(s):
         return any(k and k in s for k in kws)
 
-    # 'background only' needs the interest in EVERY entry. A pure placebo entry, or a placebo OF the interest, is an
-    # entry without it: the interest is then randomised against placebo, never background. Conservative, like
-    # armcontrast.background_only_inclusion: this fallback may only REMOVE a provably-background inclusion.
-    if not all(carries_interest(s) for s in folded):
+    active = [s for s in folded if not armcontrast._PLACEBO.fullmatch(s.strip())]
+    if len(active) < 2 or not all(has_interest(s) for s in active):
         return False, ""
     return True, "; ".join(interventions)
 
@@ -451,11 +428,6 @@ def _background_only_randomised_contrast(rec, keywords, arm_index) -> tuple[bool
         if status is True:
             _st, basis = armcontrast.contrast_status(nct, keywords, arm_index)
             return True, basis
-        if status is False:
-            # 12-01 root cause (b): the STRUCTURED AACT arms prove the interest is not background (it is the
-            # randomised contrast). That verdict is decisive; it never falls through to the weaker intervention-list
-            # fallback, which cannot see arm membership.
-            return False, ""
     bg, basis = _record_arm_interventions_background_only(rec, keywords)
     if bg:
         return True, ("the intervention of interest appears in every structured CT.gov arm entry; "
@@ -498,7 +470,6 @@ def describe_eligibility(inc: dict) -> str:
 def screen_record(rec, inc, neg_pmids):
     """Return (decision, rule_id, reason, span). `span` is a VERBATIM excerpt of the record's own
     text evidencing the decision (a real substring), so every decision is checkable against source."""
-    inc = screen_terms.expand(inc)        # typed development codes + population synonyms (12-01 class)
     text = _text(rec)
     poptext = _poptext(rec)
     raw_all = _text_raw(rec)
@@ -582,10 +553,6 @@ def screen_record(rec, inc, neg_pmids):
     comp = _has(text, comparator_any, plural=True)
     comp_override = screen_entry.comparator_override(rec, inc)
     if comparator_any and not comp and not comp_override:
-        # r27-B: a placebo that MASKS the intervention on an identical background is a placebo comparator even when the
-        # record never uses the protocol's placebo phrasing (Legro PPCOS I: clomiphene + placebo v clomiphene + metformin)
-        comp_override = screen_terms.placebo_masks_intervention(rec, inc, raw_all)
-    if comparator_any and not comp and not comp_override:
         return ScreenDecision("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
                 f"examined: “{_quote(raw_all)}”")
     comp_term = comp or (comp_override or {}).get("term")
@@ -635,7 +602,6 @@ def screen_record_2(rec, inc):
     screener 1 are exactly the title-anchored-vs-body question that caused past defects. NOT
     independent of screener 1 in the statistical sense (same author, same criteria) — that caveat is
     stated on the page; the rule-based screener 1 remains the adjudicator."""
-    inc = screen_terms.expand(inc)        # the same typed vocabulary as screener 1
     if _is_review(rec):
         return "exclude"
     text = _text(rec)
@@ -658,8 +624,7 @@ def screen_record_2(rec, inc):
         return "exclude"
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
     if (comparator_any and not _has(text, comparator_any, plural=True)
-            and not screen_entry.comparator_override(rec, inc)
-            and not screen_terms.placebo_masks_intervention(rec, inc, _text_raw(rec))):
+            and not screen_entry.comparator_override(rec, inc)):
         return "exclude"
     if inc.get("design_double_blind") and not _double_blind(rec, text):
         return "exclude"
