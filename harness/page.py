@@ -1467,6 +1467,17 @@ def _trial_inputs(o):
             src = "<span class='vno' title='" + _e(t.get("verify_basis", "")) + "'>⚠ NOT YET verified against source</span><br>" + _e(t.get("source"))
         else:
             src = _e(t.get("source"))
+        discrepancy = t.get("reported_vs_count_derived")
+        if discrepancy:
+            reported, counts = discrepancy["reported"], discrepancy["count_derived"]
+            notice = (
+                f"A7: the source reports {reported['scale']} {reported['effect']} "
+                f"({reported['ci_low']}–{reported['ci_high']}); its own counts "
+                f"{counts['ai']}/{counts['n1i']} v {counts['ci']}/{counts['n2i']} "
+                f"give {counts['scale']} {counts['effect']:.3f} — counts pooled by adjudication "
+                f"(decided by {discrepancy['decided_by']}, {discrepancy['date']})"
+            )
+            src += "<div class='a7-adjudication'>" + _e(notice) + "</div>"
         cs = t.get("cross_source")
         if cs:
             bits = []

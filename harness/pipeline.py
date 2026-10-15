@@ -16,6 +16,7 @@ import re
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import fulltext as _ft_mod
 from . import aact_cache
+from . import a7_adjudication
 from . import screen_entry
 from . import comparator_second_pass
 from . import source_hierarchy as source_hierarchy_mod
@@ -1448,13 +1449,14 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
                                    declared_composite=dc, estimand=spec.get("estimand"))
         if ex.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and ex.get("terminal"):
-            # A7 (r30-C PICU): the source's reported effect and its own arm counts disagree on one outcome (rounding
-            # class). TERMINAL for this trial: neither value is pooled, and no lower rung (registry, full text,
-            # hand-verified counts) silently supplies a third value in their place. Both values and spans are carried
-            # for the adjudicator. The GROSS class (counts of a different outcome) falls through as it always did.
-            absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "abstract",
-                           **{k: ex[k] for k in _A7_FIELDS}})
-            continue
+            adjudication = a7_adjudication.resolve(slug, spec["name"], idstr, {**ex, "provenance": "abstract"})
+            if adjudication and adjudication["state"] == "ADJUDICATED_POOL_COUNTS":
+                ex = adjudication["row"]  # Continue through the ordinary source and admissibility guards.
+            else:
+                absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "abstract",
+                               **{k: ex[k] for k in _A7_FIELDS},
+                               **({"a7_adjudication": "STALE"} if adjudication else {})})
+                continue
         if not ex.get("absent"):
             # ESTIMAND-HOMOGENEITY (composite component count): an N-point MACE outcome must not pool a
             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
@@ -1470,9 +1472,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 continue
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
-            t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
-            )
+            # An explicit count decision supersedes automatic estimator preference, not admissibility.
+            if not t.get("reported_vs_count_derived"):
+                t = design_key.select_estimator_by_source_hierarchy(
+                    t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
+                )
             if nct and nct in ctgov_results:
                 cs = _cross_source(t, nct, ctgov_results, spec, interv, comp)
                 if cs:
@@ -1498,9 +1502,14 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # own sentences, not the whole document.
         fx = _fulltext_extract(ft, spec, interv, comp, dc) if ft else None
         if fx and fx.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and fx.get("terminal"):
-            absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "pmc_fulltext",
-                           **{k: fx[k] for k in _A7_FIELDS}})
-            continue    # A7: terminal on the full-text rung too (same rule as the abstract route above)
+            adjudication = a7_adjudication.resolve(slug, spec["name"], idstr, {**fx, "provenance": "pmc_fulltext"})
+            if adjudication and adjudication["state"] == "ADJUDICATED_POOL_COUNTS":
+                fx = adjudication["row"]
+            else:
+                absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "pmc_fulltext",
+                               **{k: fx[k] for k in _A7_FIELDS},
+                               **({"a7_adjudication": "STALE"} if adjudication else {})})
+                continue
         if fx and not fx.get("absent"):
             # THE SAME ESTIMAND-HOMOGENEITY GUARDS AS THE ABSTRACT ROUTE.
             #
@@ -1528,9 +1537,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             t = {"label": label, "id": idstr, **fx}
             # Resolve label-only candidates against the document the number CAME FROM, not the
             # abstract: a full-text row's definition span lives in the full text.
-            t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates, ft), selector_estimand
-            )
+            if not t.get("reported_vs_count_derived"):
+                t = design_key.select_estimator_by_source_hierarchy(
+                    t, _span_effect_candidates(spec, t, effect_candidates, ft), selector_estimand
+                )
             trials.append(t)
             continue
         # BOTTOM OF THE SOURCE HIERARCHY: a committed, HAND-VERIFIED structured arm-level entry
@@ -1769,7 +1779,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         elif t.get("effect") is not None:
             t["derivation"] = t.get("derivation") or "reported"
         design_key.stamp_trial(t, rec_by_id, registry_designs or {}, selector_estimand)
-        if design_key.maybe_use_published_adjusted(t, selector_estimand):
+        if not t.get("reported_vs_count_derived") and design_key.maybe_use_published_adjusted(t, selector_estimand):
             t.setdefault("selection_rule", "PUBLISHED_ADJUSTED_TARGET_CLASS")
             t.setdefault("alternatives", [])
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
