@@ -57,10 +57,16 @@ def sentence_hr(text):
             # keeps 'fatal or hospitalized HF' distinct from 'hospitalized HF alone'.
             prior = [m for m in extract._EFFECT.finditer(sentence[:match.start()])]
             start = prior[-1].end() if prior else 0
+            boundaries = list(re.finditer(r";\s+|,\s+and\s+|,\s+whereas\b", sentence[:match.start()], re.I))
+            if boundaries:
+                start = max(start, boundaries[-1].end())
             clause = sentence[start:match.start()]
             if not re.search(r"hospitali[sz]ation for heart failure|hospitalized HF alone|first HHF", clause, re.I):
                 continue
-            if re.search(r"\bdeath\b|\bfatal\b|\bcomposite\b", clause, re.I):
+            # A conjunction after the preceding result joins results, not
+            # endpoints. Inside this endpoint clause it denotes a composite.
+            endpoint_clause = re.sub(r"^[\s),]*(?:and\s+)?", "", clause, flags=re.I)
+            if re.search(r"\bdeath\b|\bfatal\b|\bcomposite\b|\bor\b|\band\b", endpoint_clause, re.I):
                 continue
             effect = extract._effect_from_match(match, clause)
             if effect and effect[0] == "HR":
@@ -71,6 +77,44 @@ def sentence_hr(text):
     if len(hits) != 1:
         raise ValueError("ENDPOINT_HR_AMBIGUOUS")
     return hits[0]
+
+
+def _licence_evidence(root, key, ref, raw):
+    """Fail closed on changed source or permission evidence, including abstracts."""
+    records = json.loads((root / "registry/typed_source_licences.json").read_text(encoding="utf-8"))
+    evidence = records.get(str(key))
+    if not evidence or evidence.get("document_ref") != ref:
+        raise ValueError("LICENCE_RECORD_UNBOUND")
+    if evidence.get("document_sha256") != hashlib.sha256(raw).hexdigest():
+        raise ValueError("LICENCE_COPY_DIGEST_CHANGED")
+    if evidence.get("response_ref"):
+        held = (root / evidence["response_ref"]).read_bytes()
+        if hashlib.sha256(held).hexdigest() != evidence.get("response_sha256"):
+            raise ValueError("LICENCE_EVIDENCE_DIGEST_CHANGED")
+        if key != "AACT":
+            responses = json.loads(held).get("resultList", {}).get("result", [])
+            matches = [r for r in responses if r.get("id") == str(key)]
+            if len(matches) != 1 or matches[0].get("license") != evidence.get("license"):
+                raise ValueError("LICENCE_REPORT_UNBOUND")
+            lic = matches[0].get("license", "").lower()
+            kind = ("CC_RESTRICTED" if any(t in lic for t in ("nc", "nd", "sa")) else "CC") if lic.startswith("cc") else "NOT_OPEN"
+            if kind != evidence.get("copy_licence"):
+                raise ValueError("LICENCE_CLASS_DISAGREES")
+    else:
+        text = raw.decode("utf-8")
+        if not evidence.get("evidence_span") or evidence["evidence_span"] not in text:
+            raise ValueError("LICENCE_SPAN_UNBOUND")
+        kind, _ = copy_licence.classify_permissions(text)
+        if kind != evidence.get("copy_licence"):
+            raise ValueError("LICENCE_CLASS_DISAGREES")
+    if key == "AACT":
+        # Explicit recorded exception: public structured registry data, backed
+        # by the held CTTI permission page, not a journal-copy exemption.
+        if evidence.get("source_rule") != "AACT_PUBLIC_REGISTRY" or not evidence.get("response_ref"):
+            raise ValueError("REGISTRY_SOURCE_RULE_UNBOUND")
+    elif not copy_licence.typed_may_read(evidence.get("copy_licence")):
+        raise ValueError("HELD_COPY_NOT_OPEN")
+    return evidence
 
 
 def extract_bound(slug, outcome, pid, *, root=ROOT):
@@ -86,6 +130,7 @@ def extract_bound(slug, outcome, pid, *, root=ROOT):
     raw = (root / ref).read_bytes()
     text = raw.decode("utf-8")
     digest = hashlib.sha256(raw).hexdigest()
+    _licence_evidence(root, str(report), ref, raw)
     bindings = []
     def bind(role, span, doc=ref, sha=digest):
         bindings.append(dict(role=role, span=span, document_ref=doc, document_sha256=sha))
@@ -93,15 +138,6 @@ def extract_bound(slug, outcome, pid, *, root=ROOT):
         rec = _record(json.loads(text), report)
         text = rec["abstract"]
     else:
-        licence, statement = copy_licence.classify_permissions(text)
-        if selector.get("file"):
-            lp = root / "registry" / "typed_source_licences.json"
-            evidence = json.loads(lp.read_text(encoding="utf-8"))[report]
-            if evidence["document_sha256"] != digest:
-                raise ValueError("LICENCE_COPY_DIGEST_CHANGED")
-            licence = evidence["copy_licence"]
-        if not copy_licence.typed_may_read(licence):
-            raise ValueError("HELD_COPY_NOT_OPEN")
         perm = re.search(r"<permissions>.*?</permissions>", text, re.S)
         if perm:
             bind("licence", perm.group())
@@ -130,7 +166,8 @@ def extract_bound(slug, outcome, pid, *, root=ROOT):
             if para is None:
                 raise ValueError("INTERVENTION_ALIAS_SPAN_UNBOUND")
             bind("arm_definition", para)
-        value, spans = read_row(text, **selector)
+        analysis_set = spec.get("analysis_set") or ("safety" if spec in cfg.get("harm_outcomes", []) else "randomised")
+        value, spans = read_row(text, **dict(selector, analysis_set=analysis_set))
         for role, span in spans:
             bind(role, span)
         source_span = next(s for role, s in spans if role == "row")
@@ -140,6 +177,7 @@ def extract_bound(slug, outcome, pid, *, root=ROOT):
             raise ValueError("REGISTRY_ID_UNBOUND")
         aref = "outputs/handover/in3/aact/reported_event_totals.txt"
         ab = (root / aref).read_bytes()
+        _licence_evidence(root, "AACT", aref, ab)
         at = ab.decode("utf-8")
         rows = [r for r in csv.DictReader(io.StringIO(at), delimiter="|") if r["nct_id"] == nct and r["event_type"] == "serious"]
         ns = {r["ctgov_group_code"]: int(r["subjects_at_risk"]) for r in rows}
@@ -204,7 +242,17 @@ def extract_bound(slug, outcome, pid, *, root=ROOT):
 
 
 def for_outcome(slug, outcome, root=ROOT):
-    return {pid: extract_bound(s, o, pid, root=root) for s, o, pid in ROUTES if s == slug and o == outcome}
+    result = {}
+    for s, o, pid in ROUTES:
+        if s != slug or o != outcome:
+            continue
+        try:
+            result[pid] = extract_bound(s, o, pid, root=root)
+        except (OSError, ValueError) as error:
+            result[pid] = dict(outcome=o, absent=True, override=True, kind="typed_refusal",
+                               provenance="REFUSED_ON_EVIDENCE", state="RETRIEVED_REFUSED_WITH_REASON",
+                               reason_code="TYPED_SOURCE_REFUSED", reason=f"{type(error).__name__}: {error}")
+    return result
 
 
 def validate_row(row, outcome=None):

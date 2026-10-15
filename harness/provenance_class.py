@@ -96,6 +96,22 @@ def served_class(t: dict, slug: str, outcome_name: str, held, reads: dict | None
     cls, why = classify_served(t, held)
     recs = _records_in(t)
     if cls == "HAND_ENTERED":
+        from .typed_routes import ROUTES, extract_bound
+        key = (slug, outcome_name, str(t.get("id", "")).replace("PMID ", "").strip())
+        if key in ROUTES:
+            try:
+                row = dict(extract_bound(*key, root=root), id=t.get("id"))
+                same = served_tuple(t) == served_tuple(row)
+                if row.get("effect") is not None:
+                    same = same and t.get("scale") == row.get("scale")
+                if same:
+                    # Like the recorded-read conversion below, this classifies
+                    # numerical provenance, not legacy analysis annotations or
+                    # pool admissibility. Pipeline admission checks those anew.
+                    return "EXTRACTOR", "typed held-source replay agrees with the served value", recs
+            except (OSError, ValueError):
+                pass  # Retain HAND_ENTERED: a failed replay cannot upgrade provenance.
+    if cls == "HAND_ENTERED":
         reads = recorded_reads(root) if reads is None else reads
         rr = reads.get(f"{slug}|{str(t.get('id')).replace('PMID ', '').strip()}|{outcome_name}") or {}
         # g1#2: the read upgrades the row only while the numbers it agreed with ARE the row's served numbers

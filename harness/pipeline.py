@@ -529,6 +529,41 @@ _HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level"
                 "typed_route", "typed_bindings", "effect_source_id")
 
 
+def _admit_rows(spec, trials):
+    """Replay typed evidence and apply the hand binder's analysis-identity checks."""
+    from . import hand_binding, typed_routes
+    kept, refused = [], []
+    for row in trials:
+        if row.get("provenance") != "typed_held_source":
+            k, r = target_endpoint_mod.admit_rows(spec, [row])
+            kept.extend(k)
+            refused.extend(r)
+            continue
+        cand = {"text": row.get("source_span", ""),
+                "column_header": " ".join(b["span"] for b in row.get("typed_bindings", [])
+                                           if b["role"] in ("header", "count_type"))}
+        problems = [hand_binding._scale_ok(row.get("scale") if row.get("effect") is not None else None, cand),
+                    hand_binding._ci_pct_ok(row.get("ci_pct"), cand),
+                    hand_binding._direction_ok(row.get("comparator_direction"), cand),
+                    hand_binding._analysis_set_ok(row.get("analysis_set"), cand)]
+        if not typed_routes.validate_row(row, spec.get("name")):
+            problems.append("typed source replay disagrees")
+        reason = next((p for p in problems if p), None)
+        row.update(target_endpoint_class="ENDPOINT_UNBOUND" if reason else "EXACT_TARGET",
+                   endpoint_binding="typed_held_source_replay",
+                   endpoint_binding_reason=reason or "typed endpoint, arm and analysis identity bound",
+                   endpoint_admissibility="ENDPOINT_UNBOUND" if reason else "EXACT_TARGET")
+        if reason:
+            refused.append(dict(id=row.get("id"), label=row.get("label"),
+                                absent_kind="refused_on_evidence", state="REFUSED_ON_EVIDENCE",
+                                reason_code="ENDPOINT_UNBOUND", reason=reason,
+                                provenance=row.get("provenance"), source=row.get("source"),
+                                refused_effect={k: row[k] for k in ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high", "scale") if k in row}))
+        else:
+            kept.append(row)
+    return kept, refused
+
+
 def _hand_fields(entry, slug, pid, rec=None):
     """The typed part of a hand extraction, carried on the row so `admit_rows` binds it to HELD BYTES (M2):
     the entry's own document_ref / document_sha256 / source_span and declared analysis identity, plus the
@@ -1359,7 +1394,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                            or _abs_over.get("provenance")),
                            "source_adjudicated": bool(_abs_over.get("source_span")),
                            "document_sha256": _abs_over.get("document_sha256"),
-                           "typed_refusal": bool(_abs_over.get("source_span") and _abs_over.get("provenance")),
+                           "typed_refusal": bool(_abs_over.get("kind") == "typed_refusal" or (_abs_over.get("source_span") and _abs_over.get("provenance"))),
                            "refusal_provenance": _abs_over.get("provenance"),
                            "source_span": _abs_over.get("source_span") or "",
                            "verbatim_span": _abs_over.get("source_span") or "",
@@ -1616,7 +1651,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     if _signed_rows:
         # a signed row replaces the pipeline's own row of the same trial (V9-02; harness.served_pool_additions)
         trials = _spa.merge_signed(trials, _signed_rows, withdrawn=bool(spec.get("withdrawn")))
-    trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
+    trials, _inadmissible = _admit_rows(spec, trials)
     absent.extend(_inadmissible)
     if spec.get("withdrawn"):
         # RESULT WITHDRAWN (Mahmood, 2026-09-19): the outcome's declared `withdrawn` notice states that the

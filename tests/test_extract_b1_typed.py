@@ -1,4 +1,4 @@
-"""B1 real-held-byte regressions; expected values come from the served review."""
+"""B1 real-held-byte regressions; expected values come from the pinned 0d95190c29 served review."""
 import json
 from pathlib import Path
 import pytest
@@ -25,7 +25,7 @@ def read(p):
 @pytest.mark.parametrize("slug,outcome,pid", CASES)
 def test_typed_binding_equals_served(slug, outcome, pid):
     from harness.typed_routes import extract_bound
-    served = next(t for o in read(f"docs/reviews/{slug}/review.json")["outcomes"]
+    served = next(t for o in read("tests/fixtures/b1_served_values_0d95190c29.json")["reviews"][slug]["outcomes"]
                   if o["name"] == outcome for t in o["trials"] if t["id"] == f"PMID {pid}")
     got = extract_bound(slug, outcome, pid, root=ROOT)
     keys = ("ai", "n1i", "ci", "n2i") if "ai" in served else ("effect", "ci_low", "ci_high", "scale")
@@ -78,7 +78,7 @@ def test_pipeline_uses_typed_binding(slug, outcome, pid):
     got = next(t for t in built(slug, outcome)["trials"] if t["id"] == f"PMID {pid}")
     assert got["provenance"] == "typed_held_source"
     assert got["typed_bindings"]
-    served = next(t for o in read(f"docs/reviews/{slug}/review.json")["outcomes"] if o["name"] == outcome for t in o["trials"] if t["id"] == f"PMID {pid}")
+    served = next(t for o in read("tests/fixtures/b1_served_values_0d95190c29.json")["reviews"][slug]["outcomes"] if o["name"] == outcome for t in o["trials"] if t["id"] == f"PMID {pid}")
     keys = ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high")
     assert {k:got.get(k) for k in keys} == {k:served.get(k) for k in keys}
 
@@ -122,6 +122,22 @@ def test_row7_remains_hand_entered_and_served():
     assert key not in ROUTES
     assert "served|probiotics-aad-prevention|Serious adverse events|PMID 34541475" in read("registry/provenance_hand_entered.json")["rows"]
     got = next(t for t in built(*key[:2])["trials"] if t["id"] == "PMID 34541475")
-    served = next(t for o in read("docs/reviews/probiotics-aad-prevention/review.json")["outcomes"] if o["name"] == key[1] for t in o["trials"] if t["id"] == "PMID 34541475")
+    served = next(t for o in read("tests/fixtures/b1_served_values_0d95190c29.json")["reviews"]["probiotics-aad-prevention"]["outcomes"] if o["name"] == key[1] for t in o["trials"] if t["id"] == "PMID 34541475")
     keys = ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high")
     assert {k: got.get(k) for k in keys} == {k: served.get(k) for k in keys}
+
+
+def test_missing_source_refuses_one_row_in_topic(monkeypatch):
+    from harness import typed_routes
+    original = typed_routes.extract_bound
+    def missing(slug, outcome, pid, **kw):
+        if pid == '39529939':
+            raise FileNotFoundError('missing held source plant')
+        return original(slug, outcome, pid, **kw)
+    monkeypatch.setattr(typed_routes, 'extract_bound', missing)
+    built.cache_clear()
+    outcome = built('probiotics-aad-prevention', 'Any adverse events')
+    row = next(r for r in outcome['declared_absent_trials'] if r['id'] == 'PMID 39529939')
+    assert row['typed_refusal'] and 'missing held source plant' in row['reason']
+    assert any(r['id'] == 'PMID 41699149' for r in outcome['trials'])
+    built.cache_clear()

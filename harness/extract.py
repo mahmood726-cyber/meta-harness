@@ -141,7 +141,7 @@ def _negated(s, pos):
     return any(n in pre for n in NEG)
 
 
-def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_ns=None):
+def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_ns=None, outcome_kws=None):
     """Return (ai,n1i,ci,n2i) if two corroborated arm groups are found, else None.
 
     arm_ns: optional {"i": n_intervention, "c": n_comparator} per-arm sizes with ARM IDENTITY. When
@@ -222,25 +222,32 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
         if g[0] not in seen:
             seen.add(g[0]); uniq.append(g)
     groups = uniq
-    # A total safety population preceding a colon is not a treatment arm.
-    # Remove it only when BOTH its numerator and denominator equal the two
-    # subsequent arms, and each arm has its own explicit treatment label.
-    if len(groups) == 3:
-        total, first, second = groups
-        low = sentence.lower()
-        middle = low[total[0]:first[0]]
-        arm1 = low[first[0]:second[0]]
-        arm2 = low[second[0]:]
-        labelled = ((any(t.lower() in arm1 for t in interv_terms)
-                     and any(t.lower() in arm2 for t in comp_terms)) or
-                    (any(t.lower() in arm1 for t in comp_terms)
-                     and any(t.lower() in arm2 for t in interv_terms)))
-        if (":" in middle and labelled and total[1] == first[1] + second[1]
-                and total[2] == first[2] + second[2]):
-            groups = [first, second]
-        else:
-            return None
-    elif len(groups) > 2:
+    # A local label following a count owns that count. Preamble arm order is
+    # not evidence about the order in a later clause; totals have no local arm.
+    labelled = []
+    clause_ids = []
+    boundaries = list(re.finditer(r";\s+|,\s+(?:and|whereas)\s+", sentence, re.I))
+    for j, g in enumerate(groups):
+        end = groups[j + 1][0] if j + 1 < len(groups) else len(sentence)
+        boundary = next((b.start() for b in boundaries if g[0] < b.start() < end), end)
+        tail = sentence[g[0]:boundary].lower()
+        # The colon terminates an aggregate-count prefix.
+        tail = tail.split(":", 1)[0]
+        has_i = any(re.search(r"\b" + re.escape(t.lower()) + r"\b", tail) for t in interv_terms)
+        has_c = any(re.search(r"\b" + re.escape(t.lower()) + r"\b", tail) for t in comp_terms)
+        if has_i != has_c:
+            labelled.append(("i" if has_i else "c", g))
+            clause_ids.append(sum(b.end() <= g[0] for b in boundaries))
+    if len(labelled) == 2 and {a for a, g in labelled} == {"i", "c"} and len(set(clause_ids)) == 1:
+        if outcome_kws:
+            ci = clause_ids[0]
+            start = boundaries[ci-1].end() if ci else 0
+            end = boundaries[ci].start() if ci < len(boundaries) else len(sentence)
+            if not any(_kw_in_sentence(k, sentence[start:end]) for k in outcome_kws):
+                return None
+        arms = dict(labelled)
+        return ArmCounts(arms["i"][1], arms["i"][2], arms["c"][1], arms["c"][2])
+    if len(groups) > 2:
         return None
     if len(groups) < 2:
         return None
@@ -908,7 +915,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                 or (_skip_composite and _names_composite(s))
                 or _kw_only_in_null_result(s, outcome_kws)):
             continue
-        arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each, arm_ns)
+        arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each, arm_ns, outcome_kws=outcome_kws)
         if arms:
             # ROUND-TRIP (every outcome, not only same-sentence): the count-derived effect must
             # reconcile with the effect the paper reports for THIS outcome — first the same
