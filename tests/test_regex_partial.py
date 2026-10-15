@@ -52,7 +52,10 @@ def test_every_extractor_is_covered_by_the_scan():
     assert 'SPECS.items() if s["kind"] == "extractor"' in src
     # 15: _MD_EFFECT (extractor fix 3, acq/k-gap b54d122) -- scanned by partial.scan like every other extractor; on
     # its plants and on thousands-separated / percentage-point differences it yields no fragment (checked 3 Oct)
-    assert sum(1 for s in SPECS.values() if s["kind"] == "extractor") == 15
+    # 18: A7 added _RATIO_VALUE, _NEXT_ESTIMATE, _PCT_PAIR. On 15 Oct, the coverage lane ran
+    # regex_layer.partial.scan() on 35,673 held sentences (18 extractors scanned): each of these
+    # three yields 0 fragment groups.
+    assert sum(1 for s in SPECS.values() if s["kind"] == "extractor") == 18
 
 
 @pytest.mark.parametrize("name,s", [

@@ -68,7 +68,9 @@ def oracle_reported(arms, rep, span, count_span):
 
 
 def oracle_percent(abstract, sentences, interv_terms, comp_terms):
-    ns = extract._arm_ns(abstract, interv_terms, comp_terms)
+    # the consistency check reads the opt-in analysed-group form ('N in the <arm> group'), exactly as the real helper
+    # does since L8 (15 Oct); extraction itself does not
+    ns = extract._arm_ns(abstract, interv_terms, comp_terms, analysed_group_form=True)
     if not ns or not ns.get("i") or not ns.get("c") or re.search(MODEL, abstract, re.I):
         return None
     pair_re = r"(" + NUM + r")\s*%\s*(?:vs\.?|versus|and|compared with|compared to)\s*(" + NUM + r")\s*%"

@@ -38,7 +38,9 @@ def test_the_long_gap_form_still_needs_was_and_a_ci():
 
 def test_arm_sizes_stated_as_n_in_the_group_are_read():
     cfg, ab = _picu()
-    assert extract._arm_ns(ab, cfg["intervention_terms"], cfg["comparator_terms"]) == {"i": 10, "c": 9}
+    assert extract._arm_ns(ab, cfg["intervention_terms"], cfg["comparator_terms"],
+                           analysed_group_form=True) == {"i": 10, "c": 9}
+    assert extract._arm_ns(ab, cfg["intervention_terms"], cfg["comparator_terms"]) == {}
 
 
 def test_the_extractor_admits_neither_picu_value():
