@@ -3537,7 +3537,7 @@ def identification_of(x, t, slug, in_search):
                                                                    "source_meta": t.get("comparator_pmid")}
 
 
-def topic(slug, T):
+def topic(slug, T, *, build_date=None):
     import secondary_meta_build as smb
     import k_gap_counterfactual as cfm
     sp = os.path.join(ROOT, "registry", "secondary_meta", f"{slug}.json")
@@ -4003,6 +4003,11 @@ def topic(slug, T):
                                 "excluded_by_scope": out["g1_status"].get("excluded_by_scope"),
                                 "comparator_stated_trials": (st or {}).get("k"), "comparator_trials_listed": len(trials),
                                 **ab}
+    from datetime import datetime, timezone
+    from scripts.g1_explanation import CommittedRecords, attach_explanations
+    # Clock at the build boundary only; builders/validators take an explicit date.
+    attach_explanations(out, build_date=build_date or datetime.now(timezone.utc).date(),
+                        records=CommittedRecords(ROOT))
     return out
 
 
@@ -4195,6 +4200,8 @@ def canonical(out):
     """THE machine-readable tracker (Mahmood 3 Oct: the markdown's column order changed; no consumer may parse by
     position). Keys, never positions; every topic carries exactly TOPIC_KEYS (pinned by tests/test_g1_interfaces.py);
     add keys by bumping CANONICAL_SCHEMA, never rename them."""
+    from scripts.g1_explanation_vocab import STATES
+    explained_states = tuple(state for state in STATES if state != "UNEXPLAINED")
     topics = {}
     for o in out:
         gs = o.get("g1_status") or {}
@@ -4230,8 +4237,21 @@ def canonical(out):
     k = sum(t["k_matched"] for t in topics.values())
     N = sum(t["N_comparator_trials"] for t in topics.values())
     E = sum(t["N_eligible"] for t in topics.values())
+    explanation_totals = {
+        o["slug"]: {"matched": sum((x.get("g1_explanation") or {}).get("state") == "MATCHED" for x in o["trials"]),
+                    "explained": sum((x.get("g1_explanation") or {}).get("state") in
+                                     explained_states for x in o["trials"]),
+                    "N": o["N_comparator_trials"],
+                    "unexplained_trials": [x["label"] for x in o["trials"] if
+                                           (x.get("g1_explanation") or {}).get("state") not in
+                                           explained_states]}
+        for o in out}
     return {"schema": CANONICAL_SCHEMA, "topic_keys": list(TOPIC_KEYS),
-            "totals": {"k_matched": k, "N_comparator_trials": N, "N_eligible": E, "excluded_by_scope": N - E,
+            "explanation_by_topic": explanation_totals,
+            "totals": {"matched": sum(e["matched"] for e in explanation_totals.values()),
+                       "explained": sum(e["explained"] for e in explanation_totals.values()),
+                       "unexplained_trials": [label for e in explanation_totals.values() for label in e["unexplained_trials"]],
+                       "k_matched": k, "N_comparator_trials": N, "N_eligible": E, "excluded_by_scope": N - E,
                        "matched_by_route": dict(sum((Counter(t["matched_by_route"]) for t in topics.values()), Counter())),
                        "matched_by_route_group": dict(sum((Counter(t["matched_by_route_group"]) for t in topics.values()), Counter())),
                        "g1r_reproduction": dict(Counter(((t["g1r_reproduction"] or {}).get("state") or "NOT_COMPUTED")

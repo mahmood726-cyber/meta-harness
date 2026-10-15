@@ -37,6 +37,9 @@ UNRESOLVED_SUBPROCESS = {
                                                      "agy_runner)",
     ("reproducible_ai/model_call_live.py", "[_agy_exe(), '--version']"): "agy --version (client version for the record)",
     ("scripts/build_search_benchmark.py", "cmd"): "python scripts/measure_search_recall.py (the `commands` list)",
+    ("scripts/g1_regulatory_source.py", "[str(curl), '-s', '--max-time', '60', '--fail', '--proto', '"):
+        "Windows System32 curl.exe (Schannel TLS) fetching ONLY the Health Canada public search listing "
+        "(_hc_fetch refuses any other URL, incl. /ci-rc/terms); metadata, no model",
     ("scripts/verify_external_audit.py", "argv"): "python audit/external/<auditor script> (sys.executable + a CHECKS entry; "
                                                   "the auditors' own arithmetic, no model)",
     ("scripts/g1_remote_codex.py", "[os.path.join(GIT_BIN, 'ssh.exe'), *SSH_OPTS, PEER, cmd]"):
