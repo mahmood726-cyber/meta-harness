@@ -796,6 +796,16 @@ def binding_verdict(spec_name, keywords, title, n_groups, is_primary=False, anal
     return {"gate": None, "verdict": "BINDABLE", "reason": None, "named_by": named}
 
 
+def reported_is_our_outcome(name, spec_name, keywords):
+    """Is a served comparator result (review.comparator.reported[i]) about OUR primary outcome? The binding gates on its
+    outcome name (OUTCOME_NOT_NAMED / ESTIMAND). Tranexamic, 8 Oct: reported[0] was the comparator's OWN primary
+    'Life-threatening postpartum bleeding', compared as if it were 'Death due to bleeding'. An UNNAMED result cannot be
+    verified and is refused (codex review 8 Oct gates#1; no served review carries one today, so nothing moves)."""
+    if not name:
+        return False
+    return binding_verdict(spec_name, list(keywords or []), name, 2)["gate"] not in ("OUTCOME_NOT_NAMED", "ESTIMAND")
+
+
 _PARAM_OF = {"HR": "hazard ratio", "RR": "risk ratio", "OR": "odds ratio", "MD": "mean difference"}
 
 
@@ -3866,6 +3876,12 @@ def topic(slug, T):
     res = prim.get("result") or {}
     rep = ((rev.get("comparator") or {}).get("reported") or [{}])[0]
     comp_basis = "served review comparator.reported" if rep else None
+    comparator_reported_set_aside = None
+    if rep and not reported_is_our_outcome(rep.get("outcome"), spec_name, kw_all):
+        # the served result is the comparator's result for ANOTHER outcome (tranexamic: its own primary, life-threatening
+        # bleeding): never compared as ours -- named, and the recorded result for OUR outcome (if any) is used instead
+        comparator_reported_set_aside = {"outcome": rep.get("outcome"), "why": "SERVED_COMPARATOR_RESULT_IS_ANOTHER_OUTCOME"}
+        rep, comp_basis = {}, None
     served_comp = str((rev.get("comparator") or {}).get("pmid") or "")
     if served_comp and served_comp != str(comp):
         # the served page still carries the PREVIOUS comparator's result (dpp4: 34754403 served, 31462224 now): never
@@ -3876,9 +3892,12 @@ def topic(slug, T):
         if rec:
             rep = {"outcome": rec["outcome"], "estimate": rec["estimate"], "ci_low": rec["ci_low"],
                    "ci_high": rec["ci_high"], "scale": rec["scale"]}
+            oc = rec.get("orientation_check") or {}
             comp_basis = (f"comparator {comp}'s own {rec['location']['table']} ({rec['location']['block']}: "
-                          f"{rec['contrast']} {rec['printed']}), orientation from its footnote, confirmed by its abstract "
-                          f"({rec['orientation_check']['abstract_quote']}); registry/comparator_results.json")
+                          f"{rec['contrast']} {rec['printed']}), " +
+                          (f"orientation from its footnote, confirmed by its abstract ({oc['abstract_quote']})"
+                           if oc.get("abstract_quote") else f"orientation from its table header ({oc.get('header')})") +
+                          "; registry/comparator_results.json")
     cm = (S.get("metas") or {}).get(comp) or {}
     if not rep and cm.get("usable") and cm.get("pooled") and cm.get("provenance") == "TYPED_TABLE":
         # the served review typed no comparator result; the comparator's OWN pooled row, typed from its JATS table and
@@ -3920,7 +3939,8 @@ def topic(slug, T):
                                 excluded_named_scope_differences=pairs_excluded),
             "ours": {k: res.get(k) for k in ("k", "estimate", "ci_low", "ci_high", "scale")},
             "comparator": {k: rep.get(k) for k in ("outcome", "estimate", "ci_low", "ci_high", "scale")},
-            "comparator_basis": comp_basis, "comparator_rows_source": comparator_rows_source,
+            "comparator_basis": comp_basis, "comparator_reported_set_aside": comparator_reported_set_aside,
+            "comparator_rows_source": comparator_rows_source,
             "ours_not_in_comparator": extra, "ours_not_in_comparator_detail": extra_detail,
             "d12_not_used": d12_refused,
             "secondary_tally": S["tally"], "secondary_skipped": S["skipped"], "registry": S.get("registry")}
