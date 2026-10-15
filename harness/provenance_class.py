@@ -16,7 +16,7 @@ import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MC = re.compile(r"mc-[0-9a-f]{32}")
-EXTRACTOR_PROV = {"abstract", "pmc_fulltext", "pmc_fulltext_effect", "ctgov_results", "aact_verified", "published_rate",
+EXTRACTOR_PROV = {"typed_held_source", "abstract", "pmc_fulltext", "pmc_fulltext_effect", "ctgov_results", "aact_verified", "published_rate",
                   "pre_specified_dose"}
 
 

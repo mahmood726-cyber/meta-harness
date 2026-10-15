@@ -65,6 +65,11 @@ def _effect_in(text: str, val) -> bool:
 def verify_pooled(trial: dict, abstract: str | None) -> tuple[str, str]:
     """Return (status, basis): status in {"verified","verified_handchecked","not-yet"}."""
     prov = trial.get("provenance")
+    if prov == "typed_held_source":
+        from .typed_routes import validate_row
+        ok = validate_row(trial)
+        return ("verified" if ok else "not-yet", "typed held-source extraction replay agrees" if ok else "typed replay disagrees")
+
     span = trial.get("source") or ""
     # bytes to check against: the committed abstract for abstract/full-text (the number may pair a
     # count from one sentence with a denominator from another); else the source field itself.

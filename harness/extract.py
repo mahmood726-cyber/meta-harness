@@ -222,6 +222,26 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
         if g[0] not in seen:
             seen.add(g[0]); uniq.append(g)
     groups = uniq
+    # A total safety population preceding a colon is not a treatment arm.
+    # Remove it only when BOTH its numerator and denominator equal the two
+    # subsequent arms, and each arm has its own explicit treatment label.
+    if len(groups) == 3:
+        total, first, second = groups
+        low = sentence.lower()
+        middle = low[total[0]:first[0]]
+        arm1 = low[first[0]:second[0]]
+        arm2 = low[second[0]:]
+        labelled = ((any(t.lower() in arm1 for t in interv_terms)
+                     and any(t.lower() in arm2 for t in comp_terms)) or
+                    (any(t.lower() in arm1 for t in comp_terms)
+                     and any(t.lower() in arm2 for t in interv_terms)))
+        if (":" in middle and labelled and total[1] == first[1] + second[1]
+                and total[2] == first[2] + second[2]):
+            groups = [first, second]
+        else:
+            return None
+    elif len(groups) > 2:
+        return None
     if len(groups) < 2:
         return None
     groups.sort()

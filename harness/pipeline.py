@@ -525,7 +525,8 @@ def _selection_extras(row):
 _NAMED_HELD_PATH = re.compile(r"^\s*(?P<path>cache/[\w.-]+/[\w.-]+\.(?:json|txt))"
                               r"(?:\s+\w+)?\s*\(?(?:PMID[\s-]?(?P<pid>\d{7,8}))?")
 _HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level", "kind", "ci_pct",
-                "comparator_direction", "analysis_set", "adjudication", "verification")
+                "comparator_direction", "analysis_set", "adjudication", "verification",
+                "typed_route", "typed_bindings", "effect_source_id")
 
 
 def _hand_fields(entry, slug, pid, rec=None):
@@ -535,6 +536,8 @@ def _hand_fields(entry, slug, pid, rec=None):
     held). The pipeline already propagated document_ref for typed refusals; this applies it to the route
     that needed it."""
     out = {k: entry[k] for k in _HAND_FIELDS if entry.get(k) not in (None, "")}
+    if entry.get("provenance") == "typed_held_source":
+        return out
     # the abstract the pipeline was handed for this trial (rec_by_id = the parse of records.json in production): the
     # binder reads it only when no held file resolves, and names it as such on the record
     if isinstance(rec, dict) and rec.get("abstract"):
@@ -1255,6 +1258,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     dose_selection = dose_selection or {}
     verified_arms = _verified_for_outcome(verified_arms, spec.get("name"))
     verified_effects = _verified_for_outcome(verified_effects, spec.get("name"))
+    # Re-derive opt-in typed routes before candidate selection. These replace,
+    # rather than relabel, the legacy value overrides for the same endpoint.
+    from .typed_routes import for_outcome as _typed_for_outcome
+    for pid, entry in _typed_for_outcome(slug, spec.get("name"), root=ROOT).items():
+        verified_arms.pop(pid, None)
+        verified_effects.pop(pid, None)
+        (verified_arms if "ai" in entry else verified_effects)[pid] = entry
     trials, absent = [], []
     # Failed canonical span checks are extraction debt for this trial+outcome.
     # Stop before candidate selection (including dose/abstract fallbacks), so the

@@ -560,6 +560,13 @@ def admissibility(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
         if _e is not None and not (min(_lo, _hi) <= _e <= max(_lo, _hi)):
             return {"admissible": False, "verdict": "RESULT_INCOMPATIBLE",
                     "reason": f"point estimate {_e:g} lies outside its own interval ({_lo:g}-{_hi:g}); not a result"}
+    if row.get("provenance") == "typed_held_source":
+        from .typed_routes import validate_row
+        ok = validate_row(row, name)
+        row.update(target_endpoint_class=EXACT_TARGET if ok else ENDPOINT_UNBOUND,
+                   endpoint_binding="typed_held_source_replay",
+                   endpoint_binding_reason="typed endpoint, arm and source binding replayed" if ok else "typed source replay disagrees")
+        return {"admissible": ok, "verdict": EXACT_TARGET if ok else ENDPOINT_UNBOUND}
     # A HAND ROW is bound by the hand binder whatever an earlier route wrote in its class field: the abstract
     # route matches digits and resolves the endpoint, it does not check the declared scale / CI level /
     # direction / analysis set, so returning on its class let SOUL pool as an OR (M2 W1b, both trees).
