@@ -626,8 +626,6 @@ def hold_topic(slug, cfg, fetch=True):
         urls += [u for p in rp.ema_products(agents, ema) for u in rp.ema_docs(p)]
     except Exception:  # noqa: BLE001 - EMA index unavailable is recorded as nothing held, never guessed
         pass
-    for u in [u for u in cur if "'" in u or " " in u]:           # a TOC template's unexpanded href is no document
-        del cur[u]
     held = []
     import g1_trial_acquire as ga
     # the cap is PER AGENCY: one global cap let FDA + NICE fill it before any EMA document was reached
@@ -653,11 +651,16 @@ def hold_topic(slug, cfg, fetch=True):
         if agency_of(u) == "CADTH":
             r["licence"] = r["licence"] or licence_of(u)
             r["redaction_blocks"] = (txt or "").count("\u2588")
-        topics = set((cur.get(u) or {}).get("topics") or []) | {slug}
-        r["topics"] = sorted(topics)
-        cur[u] = r
         held.append(r)
-    _dump(SOURCES, cur)
+    # merge into the LATEST file under the lock (this run fetched for minutes; another run may have written meanwhile)
+    with file_lock(SOURCES):
+        cur = _load(SOURCES)
+        for u in [u for u in cur if "'" in u or " " in u]:
+            del cur[u]
+        for r in held:
+            r["topics"] = sorted(set((cur.get(r["url"]) or {}).get("topics") or []) | {slug})
+            cur[r["url"]] = r
+        _dump(SOURCES, cur)
     return held
 
 
@@ -830,6 +833,42 @@ def binding_for(slug, label, url, text_sha256):
     if r["decision"] not in ("BOUND", "NOT_BOUND") or ("url" in r and r["url"] != url):
         return None
     return r
+
+
+class file_lock:
+    """Exclusive lock around a read-modify-write of a shared JSON file. 15 Oct: a stopped run's children kept writing
+    while a relaunch ran -- regulatory_sources.json lost a replace (WinError 5) and an acquired file got two writes
+    interleaved ('Extra data'). A lock older than STALE seconds is a dead holder's and is taken over."""
+    STALE = 2 * 3600
+
+    def __init__(self, path, wait_s=1800):
+        self.lock, self.wait_s = path + ".lock", wait_s
+
+    def __enter__(self):
+        t0 = time.time()
+        while True:
+            try:
+                fd = os.open(self.lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.write(fd, str(os.getpid()).encode())
+                os.close(fd)
+                return self
+            except FileExistsError:
+                try:
+                    if time.time() - os.path.getmtime(self.lock) > self.STALE:
+                        os.remove(self.lock)
+                        continue
+                except OSError:
+                    continue
+                if time.time() - t0 > self.wait_s:
+                    raise TimeoutError(f"lock held: {self.lock}")
+                time.sleep(0.5)
+
+    def __exit__(self, *exc):
+        try:
+            os.remove(self.lock)
+        except OSError:
+            pass
+        return False
 
 
 def _dump(p, d):

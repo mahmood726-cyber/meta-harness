@@ -636,3 +636,40 @@ def test_fda_labels_use_overview_approval_dates(monkeypatch):
     monkeypatch.setattr(http, "get_json", lambda *a, **k: {"results": [{"application_number": "NDA000000"}]})
     monkeypatch.setattr(rs, "_nice_html", lambda u: '<table>' + rows + '</table>')
     assert rs.fda_review_urls("synthetic") == [base + name + '.pdf' for name in ('b', 'a', 'x')]
+
+
+def test_PLANT_file_lock_excludes_and_takes_over_a_stale_holder(tmp_path):
+    """15 Oct: two overlapping runs interleaved an acquired file; the read-modify-write is now exclusive."""
+    p = str(tmp_path / "x.json")
+    with rs.file_lock(p):
+        with pytest.raises(TimeoutError):
+            with rs.file_lock(p, wait_s=0.2):
+                pass
+    open(p + ".lock", "w").write("999999")
+    os.utime(p + ".lock", (0, 0))                      # a dead holder's lock
+    with rs.file_lock(p, wait_s=0.2):
+        assert os.path.exists(p + ".lock")
+    assert not os.path.exists(p + ".lock")
+
+
+def test_hold_topic_merges_into_the_latest_sources_file(monkeypatch, tmp_path):
+    """A record written by another run while this one fetched must survive this run's write."""
+    src = str(tmp_path / "regulatory_sources.json")
+    monkeypatch.setattr(rs, "SOURCES", src)
+    rs._dump(src, {})
+    import k_gap_regulatory_probe as rp
+    import g1_trial_acquire as ga
+    monkeypatch.setattr(rs, "topic_agents", lambda cfg: ["synthetic"])
+    for f in ("fda_review_urls", "gba_urls", "pbac_urls", "cadth_urls", "iqwig_urls"):
+        monkeypatch.setattr(rs, f, lambda a: [])
+    monkeypatch.setattr(rs, "nice_urls", lambda a, c=None: ["https://www.nice.org.uk/x.pdf"])
+    monkeypatch.setattr(rp, "_j_ema", lambda: [])
+    monkeypatch.setattr(ga, "disk_ok", lambda: True)
+
+    def fetch(u):
+        rs._dump(src, {"https://other.example/doc.pdf": {"url": "https://other.example/doc.pdf", "topics": ["t2"]}})
+        return "text", {"state": "TEXT", "sha256": "0" * 64, "bytes": 4}
+    monkeypatch.setattr(rp, "fetch_text", fetch)
+    rs.hold_topic("t1", {}, fetch=True)
+    cur = json.load(open(src, encoding="utf-8"))
+    assert set(cur) == {"https://other.example/doc.pdf", "https://www.nice.org.uk/x.pdf"}

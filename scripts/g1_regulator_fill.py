@@ -184,12 +184,17 @@ def run(agency, slugs, workers):
             print(slug, "|", r["label"][:40], "|", r["stage"], "|", r["decision"], "|",
                   {k: v["gate"] for k, v in (r.get("readers") or {}).items()}, flush=True)
         p = os.path.join(OUT_DIR, f"{slug}.json")
-        prev = json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {"rows": []}
-        keep = [x for x in prev.get("rows") or [] if x.get("phase") != f"2_REGULATOR:{agency}"]
-        json.dump({"slug": slug, "writer": "scripts/g1_regulator_fill.py", "rule": "phase 2 (regulators): deterministic "
-                   "regulator table first; else codex + agy over licence-checked windows, each through "
-                   "g1_trial_acquire.gate REGULATORY, adjudicated", "rows": keep + rows},
-                  open(p, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
+        # locked read-modify-write + atomic replace: two overlapping runs interleaved this file on 15 Oct
+        with rs.file_lock(p):
+            prev = json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {"rows": []}
+            keep = [x for x in prev.get("rows") or [] if x.get("phase") != f"2_REGULATOR:{agency}"]
+            tmp = p + f".{os.getpid()}.tmp"
+            with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
+                json.dump({"slug": slug, "writer": "scripts/g1_regulator_fill.py", "rule": "phase 2 (regulators): "
+                           "deterministic regulator table first; else codex + agy over licence-checked windows, each "
+                           "through g1_trial_acquire.gate REGULATORY, adjudicated", "rows": keep + rows},
+                          fh, indent=1, ensure_ascii=False)
+            os.replace(tmp, p)
         st = [r["stage"] for r in rows]
         print(f"FUNNEL {agency} {slug}: missing {len(ts)} (after earlier phases {len(todo)}) -> named "
               f"{sum(s != 'MISSING' for s in st)} -> typed {sum(r['decision'] == 'ADMITTED_DETERMINISTIC' for r in rows)} -> "
