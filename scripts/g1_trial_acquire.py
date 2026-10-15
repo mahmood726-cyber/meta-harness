@@ -39,6 +39,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
+from harness.copy_licence import _is_open  # noqa: E402
 from reproducible_ai import model_call_live as mcl  # noqa: E402
 from reproducible_ai import model_source as ms  # noqa: E402
 
@@ -401,6 +402,11 @@ def _windows(t, terms):
     return "\n".join(out)[:FT_CAP + 2000]
 
 
+def _unpaywall_promptable(licence) -> bool:
+    """Only a CC BY / CC0 Unpaywall copy may enter model evidence."""
+    return _is_open(licence)
+
+
 def evidence(t, cfg, comp):
     terms = outcome_terms(cfg)
     aact = aact_evidence(t["ncts"])
@@ -419,7 +425,7 @@ def evidence(t, cfg, comp):
                         # an Unpaywall copy is shown only under a CC licence; the DOI (not the PMID) names it, so the
                         # licence guard checks the DOI's Unpaywall licence
                         {"doi": doi, "licence": ulic, "sha256": sha, "chars": len(whole), "shown_chars": len(shown),
-                         "text": shown} if whole and origin == "UNPAYWALL" and str(ulic or "").startswith("cc") else
+                         "text": shown} if whole and origin == "UNPAYWALL" and _unpaywall_promptable(ulic) else
                         {"state": "HELD_NOT_OPEN_LICENSED", "note": "held for the deterministic gates; never shown"}
                         if whole else {"state": "NO_OPEN_FULL_TEXT"}),
           "meta_rows": meta_evidence(t["slug"], t["label"])}
@@ -729,6 +735,7 @@ def typed_first(t, cfg, held):
         if held.get("text_origin") == "PMC":
             ok, copy = pmc_copy(t["pmid"])["licence"] in OPEN_COPY, pmc_copy(t["pmid"])
         else:
+            # Deliberately not D8-gated (PR #106): no model sees this text in the deterministic typed read.
             ok, copy = str(held.get("doi_licence") or "").startswith("cc"), {"doi": held.get("doi"),
                                                                             "licence": held.get("doi_licence")}
         tt = table_tuple(held["text"], terms, po.get("timepoint")) if ok else None
