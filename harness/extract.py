@@ -486,7 +486,13 @@ def _is_subgroup_sentence(sentence):
     """An effect from a subgroup / per-protocol / post-hoc / sensitivity sentence is NOT the main
     ITT comparison and must not be pooled as it (a trial full text is full of these — the azithromycin
     28558695 HR was 'lowest in the HP+/AZ group', a subgroup). Refuse extraction from such a sentence."""
-    return bool(_SUBGROUP.search(sentence or ""))
+    # An overall ITT estimate may precede a separate subgroup estimate in the
+    # same sentence. Only the clause owning the first effect scopes that effect.
+    text = sentence or ""
+    first = _EFFECT.search(_norm(text))
+    prefix = text[:first.start()] if first else text
+    whole = re.search(r"\b(?:intent(?:ion)?-to-treat|ITT|all randomi[sz]ed|overall)\b", prefix, re.I)
+    return bool(subgroup_refusal(prefix) or (_SUBGROUP.search(prefix) and not whole))
 
 
 # A NULL-RESULT clause states an outcome was "similar / comparable / did not differ" WITHOUT a count.
@@ -867,7 +873,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
             "multi-arm dose-ranging trial (>1 intervention dose arm vs one comparator): the effect "
             "cannot be attributed to a single pre-specified comparison; refused (multi-arm guard). "
             "Specify the dose in the topic's intervention terms to pin the arm.")}
-    sents = _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
+    sents = [s for s in _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
+             if not endpoint_scope_refusal(s, outcome_kws)]
     # REGISTERED-ESTIMAND PREFERENCE (time-to-event): when the review registers a HAZARD RATIO, the
     # trial's source-reported HR is the correct input and PREEMPTS count reconstruction (a crude RR from
     # counts discards censoring). Only a genuine HR effect in an outcome sentence is taken; if none is
@@ -1191,7 +1198,11 @@ def subgroup_refusal(source_span: str) -> str:
     phrase in the sentence that carries the number. "Consistent across subgroups" describes an overall
     result and does not fire. Returns a reason or ''.
     """
-    m = _SUBGROUP_RESTRICTION.search((source_span or "").lower())
+    text = (source_span or "").lower()
+    m = (_SUBGROUP_RESTRICTION.search(text) or re.search(
+        r"\b(?:in|among)\s+(?:the\s+)?(?!(?:all|randomi[sz]ed|enrolled|study)\b)"
+        r"[a-z][a-z-]*(?:\s+[a-z][a-z-]*){0,5}\s+(?:patients|participants|subjects)\s*[,;:]"
+        r"|\b(?:in|among)\s+the\s+[^,;.]{1,70}\s+subgroup\b", text))
     if not m:
         return ""
     return (f"the source restricts this result to a subgroup ('{m.group(0)}'), not the randomised population "
@@ -1248,3 +1259,14 @@ def analysis_qualifiers(source_span: str, held_text: str, keywords) -> list:
                 out.append({"code": "EXPLORATORY_ENDPOINT", "quote": sentence.strip()[:300]})
                 break
     return out
+
+
+def endpoint_scope_refusal(sentence, keywords):
+    """Second-progression endpoints cannot satisfy the first-PFS target."""
+    target = ' '.join(keywords or []).lower()
+    later = r"\b(?:pfs|progression[- ]free survival)\s*2\b|\bsecond progression\b|(?:pfs|progression[- ]free survival)\s+on\s+(?:the\s+)?subsequent line of therapy"
+    if re.search(later, target, re.I):
+        return ''
+    if re.search(r"\bpfs\b|progression[- ]free survival", target, re.I) and re.search(later, sentence or '', re.I):
+        return 'PFS2 / subsequent-line or second-progression endpoint is not PFS'
+    return ''

@@ -112,14 +112,14 @@ Recorded judgments live under `cache/{slug}/`; their object digest is
 """
 
 
-def check(root=ROOT, write=False):
+def check(root=ROOT, write=False, slug=None):
     failures = []
     binding = dependency_binding(root)
     failures = lock_failures(root)
     if failures:
         return failures
     corpus = {"dependencies": binding, "topics": []}
-    for directory in topics(root):
+    for directory in ([root / "docs/reviews" / slug] if slug else topics(root)):
         path = directory / "REPLAY.md"
         wanted = render(directory, root).encode("utf-8")
         if write:
@@ -147,6 +147,8 @@ def check(root=ROOT, write=False):
             failures.append("bundle dependency binding stale: " + directory.name)
         elif next((f.get("sha256") for f in bundle["review_files"] if f["file"] == "REPLAY.md"), None) != hashlib.sha256(wanted).hexdigest():
             failures.append("bundle REPLAY binding stale: " + directory.name)
+    if slug:
+        return failures
     corpus_path = root / "docs/offline/BUNDLE.json"
     expected = (json.dumps(corpus, indent=2) + "\n").encode("utf-8")
     if write:
@@ -159,11 +161,12 @@ def check(root=ROOT, write=False):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--slug")
     args = parser.parse_args(argv)
-    failures = check(write=not args.check)
+    failures = check(write=not args.check, slug=args.slug)
     for failure in failures:
         print("REFUSED: " + failure)
-    total = len(topics())
+    total = 1 if args.slug else len(topics())
     print(f"{'CHECKED' if args.check else 'GENERATED'} {total} topic guides; {len(failures)} failures")
     return int(bool(failures))
 

@@ -767,7 +767,8 @@ def _published_effect_from_abstract(
     except AttributeError:
         sents = re.split(r"(?<=[.?!])\s+", abstract or "")
     for s in sents:
-        if not _keyword_family_match(spec, s):
+        if (extract._is_subgroup_sentence(s) or extract.endpoint_scope_refusal(s, spec.get("keywords"))
+                or not _keyword_family_match(spec, s)):
             continue
         m = _EFFECT_RE.search(s)
         if not m:

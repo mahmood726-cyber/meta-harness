@@ -1293,6 +1293,10 @@ def check_adjustment_span_backed(review_dir):
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
+        with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
+            review = json.load(f)
+        if review.get("status") == "DRAFT_BOOTSTRAP":
+            return False, ["DRAFT_BOOTSTRAP is never servable"]
         manifest, html, rep = _load(review_dir)
     except (OSError, ValueError) as exc:
         return False, [f"gate: cannot load review dir: {exc}"]

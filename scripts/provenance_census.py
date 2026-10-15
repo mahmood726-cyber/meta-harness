@@ -135,15 +135,22 @@ def classify_tracker(t: dict, slug: str, served_class: dict, root: str = ROOT, l
     return "UNTRACED", f"route {t.get('route')}: basis cites neither a record nor a typed source ({b[:100]!r})"
 
 
-def census(root: str = ROOT) -> dict:
+def census(root: str = ROOT, slug: str | None = None) -> dict:
+    target = slug
+    def paths(*parts):
+        pattern = os.path.join(root, *parts)
+        if target:
+            pattern = pattern.replace("*", target)
+            return [pattern] if os.path.isfile(pattern) else []
+        return sorted(glob.glob(pattern))
     served, served_class = [], {}
     extra = {}
     from harness.provenance_class import recorded_reads
     reads = recorded_reads(root)
-    for p in sorted(glob.glob(os.path.join(root, "topics", "*.json"))):
+    for p in paths("topics", "*.json"):
         c = _j(p)
         extra[os.path.basename(p)[:-5]] = {str(x) for x in (c.get("extra_pmids") or [])}
-    for p in sorted(glob.glob(os.path.join(root, "docs", "reviews", "*", "review.json"))):
+    for p in paths("docs", "reviews", "*", "review.json"):
         r = _j(p)
         slug = r.get("slug") or os.path.basename(os.path.dirname(p))
         for o in r.get("outcomes") or []:
@@ -159,7 +166,7 @@ def census(root: str = ROOT) -> dict:
                         if v:
                             served_class[(slug, v)] = (cls, why)
     tracker = []
-    for p in sorted(glob.glob(os.path.join(root, "outputs", "k_gap", "g1", "*.json"))):
+    for p in paths("outputs", "k_gap", "g1", "*.json"):
         o = _j(p)
         slug = o.get("slug")
         for t in o.get("trials") or []:
@@ -197,7 +204,8 @@ def problems(c: dict, hand_list: dict | None) -> list[str]:
 
 
 def main(argv):
-    c = census()
+    slug = argv[argv.index("--slug") + 1] if "--slug" in argv else None
+    c = census(slug=slug)
     for part in ("served", "tracker"):
         print(f"{part}: N {c[part]['N']} -- " + ", ".join(f"{k} {v}" for k, v in sorted(c[part]["by_class"].items())))
     print(f"identity named by hand (extra_pmids): served {c['hand_named_identity']['served']}, tracker {c['hand_named_identity']['tracker']}")
@@ -216,7 +224,7 @@ def main(argv):
             fh.write("\n")
         print(f"wrote {os.path.relpath(HELD_INDEX, ROOT)}")
     if "--write" in argv:
-        with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
+        with open(os.path.join(ROOT, ".codex_logs", f"provenance_{slug}.json") if slug else OUT, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(c, fh, indent=1, ensure_ascii=False)
             fh.write("\n")
     hl = _j(HAND_LIST) if os.path.exists(HAND_LIST) else None

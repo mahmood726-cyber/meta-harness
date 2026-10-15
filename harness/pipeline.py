@@ -1304,6 +1304,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
         idstr = f"PMID {d['id']}" if d["id_type"] == "pmid" else d["id"]
+        if rec.get('automatic_family_refusal'):
+            absent.append({'label':label, 'id':idstr, 'absent_kind':'refused_on_evidence',
+                           'reason':rec['automatic_family_refusal'],
+                           'reason_code':rec['automatic_family_refusal'].split(':',1)[0]})
+            continue
         if _refused_ids(d):
             evidence = [e for k in _refused_ids(d) for e in span_refusals[k]]
             absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent",
@@ -2208,7 +2213,39 @@ def outcome_inputs(slug, config, records):
             config = dict(config, companion_reports=_existing)
     except (OSError, ValueError):
         pass
+    # Curated topics retain their historical selection unchanged. The generated
+    # family artifact also marks established topics whose reviewed pooling is pinned.
+    if (not config.get("companion_reports") and not config.get("pivotal_trials")
+            and not os.path.exists(os.path.join(ROOT, "cache", slug, "families.json"))):
+        auto = trial_family_mod.automatic_companions(records.get("records") or [], config)
+        config = dict(config, companion_reports=auto, automatic_trial_families=True)
+        pubs = [dict(r) for r in records.get("records") or []]
+        for r in pubs:
+            if (not trial_family_mod.registry_ids(r) and re.search(
+                    r'subgroup|follow[- ]up|updated analysis|pooled|combined analysis', r.get('title') or '', re.I)):
+                r['automatic_family_refusal'] = 'UNRESOLVED_REPORT_REGISTRY: follow-up/subgroup report lacks its own registry evidence; cannot establish independent trial identity'
+            elif re.search(r'subgroup analys|pooled analysis|combined analysis|cross-study comparison|real[- ]world|indirect comparison|external control', r.get('title') or '', re.I):
+                r['automatic_family_refusal'] = 'NON_WHOLE_POPULATION_REPORT: subgroup/pooled report cannot stand in for one whole randomized trial'
+
+        seen = {n.upper() for r in pubs for n in trial_family_mod.registry_ids(r)}
+        merged = pubs + [dict(r) for r in records.get("ctgov") or [] if str(r.get("id")).upper() not in seen]
     scr = screen.run(merged, config)
+    if config.get('automatic_trial_families'):
+        # Follow-up articles can lack the RCT publication-type tag. Eligibility
+        # belongs to the linked randomized trial, not that indexing tag.
+        baseline = screen.run([dict(r) for r in merged], dict(config, companion_reports=[]))
+        eligible_ids = {d['id'] for d in baseline['decisions'] if d['decision']=='include'}
+        parents = {c['parent_pmid']:c for c in config['companion_reports'] if c['pmid'] in eligible_ids}
+        for d in scr['decisions']:
+            if d['id'] in parents and d['decision']=='exclude' and d['rule_id']=='X1':
+                own = next(r for r in merged if r['id']==d['id'])
+                from . import registry_contrast
+                contrast = registry_contrast.assess(own, config, registry_contrast.load(config))
+                if re.search(r'\brandomi[sz]ed\b', own.get('abstract') or '', re.I) and (contrast is None or contrast['decision'] == 'include'):
+                    d.update(decision='include', rule_id='I-FAMILY',
+                             reason='Randomized trial confirmed in own abstract; linked eligible report '+parents[d['id']]['pmid'],
+                             family_id=parents[d['id']]['family_id'])
+
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
     interv = config.get("intervention_terms", ["colchicine"])

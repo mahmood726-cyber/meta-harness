@@ -1142,6 +1142,7 @@ def _screening(r, neutral):
             + f"<td>{_e(x.get('reason'))}{adjudicator_note(x)}</td>"
              + f"<td class='span'>{_e(x.get('span'))}</td></tr>")
             for x in recs)
+    n_unresolved = sum(1 for x in recs if x.get("decision") == "unresolved")
     n_inc = sum(1 for x in recs if x.get("decision") == "include")
     inc_counts = _included_unit_counts(r)
     integ = r.get("integrity")
@@ -1210,6 +1211,7 @@ def _screening(r, neutral):
             f"<tr><td>Records identified (committed search)</td><td>{_e(n_identified)}</td></tr>"
             f"<tr><td>Records screened (deduplicated)</td><td>{_e(len(recs))}</td></tr>"
             f"<tr><td>Excluded at screening — by rule</td><td>{_e(sum(rule_counts.values()))} ({_e(excl_bits)})</td></tr>"
+            f"<tr><td>UNRESOLVED eligibility (not pooled)</td><td>{_e(n_unresolved)}</td></tr>"
             f"<tr><td>Met eligibility (P/I/C/design)</td><td>{_e(eligible_display)}</td></tr>"
             f"<tr><td><strong>Pooled in the primary outcome (k)</strong></td><td><strong>{_e(pooled_k)}</strong></td></tr>"
             + refused_row
@@ -3279,9 +3281,20 @@ _R["verify"] = _verify   # registered here: _R is built above, before this funct
 def render_page(review: dict, neutral: bool = False) -> str:
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
     nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\',1)">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
+    has_registry_arms = any(
+        (d.get("registry_contrast", {}).get("source", "").startswith("registry arms/")
+         or "Source: registry arms/interventions:" in d.get("reason", ""))
+        and d.get("decision") != "unresolved"
+        for d in (review.get("screening") or {}).get("records", [])
+    )
+    missing_registry = (
+        "registry dates and sponsor checks are unavailable; separately acquired arm evidence "
+        "is shown in the screening decisions."
+        if has_registry_arms else "registry dates, sponsors and arm contrasts are unavailable."
+    )
     body = ("<div class='absent'><strong>AACT_NOT_MEASURED</strong>: registry inputs have not "
-            "been measured into a valid per-topic cache; registry dates, sponsors and arm "
-            "contrasts are unavailable.</div>" if review.get("aact_status") == "AACT_NOT_MEASURED" else "")
+            "been measured into a valid per-topic cache; " + missing_registry + "</div>"
+            if review.get("aact_status") == "AACT_NOT_MEASURED" else "")
     for tid, lbl in tabs_spec:
         body += (f'<section class="tab" id="tab-{tid}">'
                  f'<h3 class="tabname">{_e(lbl)}</h3>{_R[tid](review, neutral)}</section>')

@@ -73,6 +73,11 @@ def registry_ids(rec):
         if rec.get(key):
             values.add(str(rec[key]))
     values.update(m.group() for m in REGISTRY.finditer(' '.join(str(rec.get(k) or '') for k in ('id','abstract'))))
+    # Some PubMed abstracts print the ClinicalTrials.gov accession without NCT.
+    # The explicit registry label is required; a bare eight-digit number is not an ID.
+    values.update('NCT'+m.group(1) for m in re.finditer(
+        r'clinicaltrials\.gov\s+(?:identifier|number)\s*[:;,]?\s*(\d{8})\b',
+        str(rec.get('abstract') or ''), re.I))
     return sorted(values, key=lambda v: (0 if v.upper().startswith('NCT') else
                   1 if re.fullmatch(r'\d{4}-\d{6}-\d{2}',v) else
                   2 if v.upper().startswith('ISRCTN') else 3 if v.lower().startswith('jrct') else 4, v))
@@ -721,3 +726,74 @@ def count_sentence(chain):
             f"Unresolved report-only candidates {chain['unresolved_report_candidates']} (outside family denominator). "
             f"Contributing without established structural eligibility: {', '.join(chain['contributing_without_structural_eligibility']) or 'none'}. "
             'These are separate evidence states, not a nested eligibility funnel.')
+
+
+def automatic_companions(records, config):
+    """Uncurated topics: own registry evidence, whole-population target, latest cut.
+
+    No effects or trial IDs are hardcoded. Unlinked reports are never assigned
+    another publication's registry ID. Ambiguous/multi-trial reports stay unlinked.
+    """
+    from . import extract
+    spec = config['primary_outcome']
+    groups = {}
+    for rec in records:
+        if rec.get('id_type') == 'nct':
+            continue
+        regs = registry_ids(rec)
+        if len(regs) == 1:
+            groups.setdefault(regs[0].upper(), []).append(rec)
+    companions = []
+    for registry, members in sorted(groups.items()):
+        candidates = []
+        for rec in members:
+            title = rec.get('title') or ''
+            if re.search(r'subgroup|post[- ]hoc|pooled|combined analysis|cross-study|quality of life|patient-reported|real[- ]world|indirect comparison|external control', title, re.I):
+                continue
+            ab = extract._norm(rec.get('abstract') or '')
+            eff = extract.extract_trial(ab, spec.get('keywords') or [],
+                config.get('intervention_terms') or [], config.get('comparator_terms') or [],
+                estimand=spec.get('estimand'))
+            if eff.get('absent') or eff.get('scale') != spec.get('estimand'):
+                continue
+            # Require a target result plus evidence of a randomized whole-trial
+            # analysis; a report-level subgroup declaration disqualifies it.
+            if re.search(r'we report (?:a |the )?subgroup analysis|indirect treatment comparison|matching[- ]adjusted indirect|external control', ab, re.I):
+                continue
+            if not (re.search(r'intent(?:ion)?-to-treat|\bITT\b|random', ab, re.I)
+                    or 'Randomized Controlled Trial' in (rec.get('pubtypes') or [])):
+                continue
+            follow = []
+            for pattern in (r'(\d+(?:\.\d+)?)(?:\s*\([^)]*\))?[- ]months? (?:of )?(?:median )?follow[- ]up',
+                            r'median (?:of )?(?:follow[- ]up (?:of |was )?)(\d+(?:\.\d+)?)\s*months'):
+                follow.extend(float(x) for x in re.findall(pattern, ab, re.I))
+            # A literal cut date wins when all candidates state one; otherwise
+            # within-trial follow-up is the comparable evidence, never publication year.
+            cut = re.search(r'data cut(?:off|-off| off)(?: date)?[ :;(]*(\w+ \d{1,2},? \d{4}|\d{4}-\d{2}-\d{2})', ab, re.I)
+            cut_date = ''
+            if cut:
+                from datetime import datetime
+                for fmt in ('%B %d, %Y', '%B %d %Y', '%Y-%m-%d'):
+                    try:
+                        cut_date = datetime.strptime(cut.group(1), fmt).date().isoformat()
+                        break
+                    except ValueError:
+                        pass
+            candidates.append((rec, max(follow, default=-1), cut_date, eff.get('source')))
+        if not candidates:
+            continue
+        all_dated = all(c[2] for c in candidates)
+        def key(c):
+            rid = str(c[0]['id'])
+            return (c[2] if all_dated else c[1], -int(rid) if rid.isdigit() else 0)
+        winner = max(candidates, key=key)
+        for rec in members:
+            if rec['id'] == winner[0]['id']:
+                continue
+            companions.append({'pmid':str(rec['id']), 'parent_pmid':str(winner[0]['id']),
+                'parent':registry, 'family_id':registry, 'automatic':True,
+                'reason':'Own registry ID; latest whole-population primary-estimand report; earliest PMID tie-break',
+                'selection_evidence':{'source':winner[3], 'data_cut':winner[2] or None,
+                    'followup_months':winner[1] if winner[1]>=0 else None,
+                    'ordering_basis':'explicit data cut' if all_dated else 'reported follow-up (cut proxy; missing ranks last)'}})
+    return companions

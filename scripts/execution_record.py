@@ -48,6 +48,10 @@ def git_state() -> dict:
         return {"generating_commit": "NO_GIT", "branch": None, "tree_state": "UNKNOWN_NO_GIT", "dirty_paths": None,
                 "meaning": "git was unavailable or this is not a repository; the generating tree cannot be named"}
     branch = (_git("rev-parse", "--abbrev-ref", "HEAD") or "").strip() or None
+    if os.environ.get("CAPTAIN_NO_WORKTREE_SCAN") == "1":
+        return {"generating_commit": head, "branch": branch,
+                "tree_state": "UNKNOWN_NOT_INSPECTED", "dirty_paths": None,
+                "meaning": "worktree inspection disabled by CAPTAIN_NO_WORKTREE_SCAN; cleanliness is unknown"}
     status = _git("status", "--porcelain", "--untracked-files=all") or ""
     dirty = sorted(line[3:] for line in status.splitlines() if line.strip())
     return {"generating_commit": head, "branch": branch,

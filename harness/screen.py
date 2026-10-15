@@ -9,6 +9,7 @@ from __future__ import annotations
 import re as _re
 
 from . import arm_object
+from . import registry_contrast
 from . import lexicon
 from . import armcontrast
 from . import screen_entry
@@ -746,6 +747,7 @@ def run(all_recs: list, config: dict) -> dict:
             arm_index = armcontrast.build_arm_index(arm_ncts)
         except Exception:
             arm_index = {}
+    registry_arms = registry_contrast.load(config)
     decisions = []
     for rec in all_recs:
         rid = str(rec.get("id"))
@@ -780,6 +782,11 @@ def run(all_recs: list, config: dict) -> dict:
                 decision, rule = "exclude", "X-CONTRAST"
                 reason = "CONTRAST_ABSENT: " + basis
                 span = _span(_text_raw(rec), matched_intervention(rec, inc) or (contrast_keywords[0] if contrast_keywords else ""))
+        contrast = None
+        if decision == "include" and registry_contrast.enabled(config):
+            contrast = registry_contrast.assess(rec, config, registry_arms)
+            if contrast["decision"] != "include":
+                decision, rule, reason, span = (contrast[k] for k in ("decision", "rule_id", "reason", "span"))
         if decision == "include" and _arm_object_screening_enabled(config):
             arm_obj, arm_refusal = arm_object.screen_refusal(rec, config)
             hidden = arm_object.hidden_eligible_contrasts(arm_obj, config)
@@ -791,6 +798,8 @@ def run(all_recs: list, config: dict) -> dict:
         row = {"id": rec["id"], "id_type": rec["id_type"],
                "label": rec.get("acronym") or "", "decision": decision,
                "rule_id": rule, "reason": reason, "span": span}
+        if contrast is not None:
+            row["registry_contrast"] = contrast
         if arm_obj is not None and (arm_refusal or hidden or config.get("arm_object")):
             row["arm_object"] = arm_obj
         if hidden:
