@@ -1,0 +1,9 @@
+REVISE
+
+1. **MAJOR — `scripts/a4_measure.py:161–168`, `scripts/rob2_dual.py:212–213`, request:57–58.** The audit accepts `0/1` and claims to print effective configuration, but the frozen driver treats `"0"` as enabled. **Check:** both flags `0` → expected disabled source overrides, or explicit rejection; observed DEV `local_store='open_cc'` and non-DEV `local_store=True`, identical to `1/1`. Reject unsupported zero settings or translate them to unset variables and report effective settings. This does **not** invalidate the documented `1/1` measurements.
+
+The requested measurement completed successfully and reproduced the captured counts and eight mismatch details. Both defects are real; both requested behaviors are appropriate. The first review’s five substantive concerns are addressed. The revision correctly withdraws A4 object/score invariance; the separate 57/12 comparison does not establish it.
+
+Verification limitation: ordinary pytest could not write temporary files. With capture disabled, duplicate tests failed for the intended reasons; 13 cases encountered setup errors. Supplementary in-memory record-store checks reproduced all nine intended freshness failures and four passing controls. An in-memory implementation of the requirements passed all 15 cases. This supports the tests’ validity but is not a full disk-backed pytest reproduction.
+
+No files changed.
