@@ -80,3 +80,24 @@ def test_same_abstract_mace_is_unchanged(topic):
         "HR", 1.00, 0.77, 1.29,
     )
     assert "ai" not in result
+
+
+# Synthetic review-round regression inputs; counts are test stimuli.
+def test_parenthetical_adjudicated_is_not_an_alias():
+    from harness.extract import _outcome_sentences
+
+    keyword_sentence = "Hospitalization for heart failure (adjudicated) was a secondary endpoint."
+    abstract = (keyword_sentence + " Adjudicated myocardial infarction occurred in 20 patients "
+                "receiving omarigliptin and 33 receiving placebo.")
+    assert _outcome_sentences(abstract, ["hospitalization for heart failure"]) == [keyword_sentence]
+
+
+def test_composite_dhhf_is_not_a_component_alias():
+    from harness.extract import _outcome_sentences
+
+    keyword_sentence = (
+        "The primary endpoint was cardiovascular death or hospitalization for heart failure (DHHF)."
+    )
+    abstract = (keyword_sentence + " DHHF occurred in 20 patients receiving omarigliptin "
+                "and 33 receiving placebo.")
+    assert _outcome_sentences(abstract, ["hospitalization for heart failure"]) == [keyword_sentence]

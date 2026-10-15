@@ -134,13 +134,19 @@ def _outcome_sentences(abstract, kws):
     specific = [k for k in kws if k.lower() not in GENERIC_HARM]
     sel = specific if specific else kws
     # Learn only explicit definitions in THIS abstract, never curated/global aliases.
-    # The keyword must immediately precede (ABBR), not occur elsewhere in its sentence.
-    folded = lexicon.fold(abstract)
+    # Check case in the original text; require exactly the keyword's content initials.
+    stopwords = {"of", "for", "the", "and", "to", "in", "with", "on", "a", "an", "or", "by"}
     aliases = set()
     for k in sel:
-        definition = (r"(?<!\w)" + re.escape(lexicon.fold(k))
-                      + r"\s*\(([a-z][a-z0-9-]{1,11})\)")
-        aliases.update(re.findall(definition, folded))
+        initials = "".join(w[0] for w in re.findall(r"[a-z]+", k.lower())
+                           if w not in stopwords)
+        definition = r"(?<!\w)" + re.escape(lexicon.fold(k)) + r"\s*$"
+        for match in re.finditer(r"\(([A-Za-z0-9-]{2,8})\)", abstract):
+            alias = match.group(1)
+            letters = "".join(re.findall(r"[A-Za-z]", alias)).lower()
+            if (sum(c.isupper() for c in alias) >= 2 and letters == initials
+                    and re.search(definition, lexicon.fold(abstract[:match.start()]))):
+                aliases.add(lexicon.fold(alias))
     return [s for s in _sentences(abstract)
             if any(_kw_in_sentence(k, s.lower()) for k in sel)
             or any(re.search(r"(?<!\w)" + re.escape(a) + r"(?!\w)", lexicon.fold(s))
