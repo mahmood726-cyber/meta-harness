@@ -59,3 +59,30 @@ def test_served_pool_notice_control_compares_the_interval_and_every_served_row()
             patch.object(m.fn, "fill_study", return_value=(NS(), None)):
         notice, excluded = m.topic_notice({"slug": "test"})
     assert notice is None and "served rows rebuilt" in excluded[-1]["why"]
+
+
+def test_PLANT_registry_fill_rows_are_read_beside_the_acquisition_lane(tmp_path):
+    """registry/g1_acquired_registry/<slug>.json (scripts/g1_registry_fill.py, 13 Oct) is read with registry/g1_acquired:
+    a trial admitted only by the registry fill resolves; the SAME admission in both files is one row (never ambiguous);
+    a CONFLICTING admission for the same trial is ambiguous and resolves to neither."""
+    import json
+    import g1_tracker as g
+    src = "AACT AACT 2026-08-30 NCT00000009 outcome 1"
+    a = {"label": "T [1]", "pmid": "9", "ncts": ["NCT00000009"], "verdict": "ADMITTED",
+         "admitted": {"kind": "AACT", "source": src, "value": {"events_t": 1, "n_t": 10, "events_c": 2, "n_c": 10}}}
+    reg_only = {"label": "R [2]", "pmid": "8", "ncts": ["NCT00000008"], "verdict": "ADMITTED",
+                "admitted": {"kind": "AACT", "source": "AACT AACT 2026-08-30 NCT00000008 outcome 2",
+                             "value": {"events_t": 3, "n_t": 30, "events_c": 4, "n_c": 30}}}
+    for d, rows in (("g1_acquired", [a]), ("g1_acquired_registry", [dict(a), reg_only])):
+        os.makedirs(tmp_path / "registry" / d)
+        (tmp_path / "registry" / d / "t.json").write_text(json.dumps({"rows": rows}), encoding="utf-8")
+    with patch.object(g, "ROOT", str(tmp_path)):
+        acq = g.acquired_rows("t")
+    assert acq["R [2]"]["label"] == "R [2]" and acq["NCT00000008"]["label"] == "R [2]"   # registry-only row resolves
+    assert acq["T [1]"] is not g.AMBIGUOUS_ACQUIRED                                        # same admission: one row
+    conflict = dict(a, admitted=dict(a["admitted"], value={"events_t": 5, "n_t": 10, "events_c": 2, "n_c": 10}))
+    (tmp_path / "registry" / "g1_acquired_registry" / "t.json").write_text(json.dumps({"rows": [conflict]}),
+                                                                           encoding="utf-8")
+    with patch.object(g, "ROOT", str(tmp_path)):
+        acq = g.acquired_rows("t")
+    assert acq["T [1]"] is g.AMBIGUOUS_ACQUIRED                                            # conflict: neither
