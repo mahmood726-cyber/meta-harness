@@ -34,3 +34,14 @@ Claude's adjudication of a legacy test: test_certainty_is_provisional_while_a_do
 for a fixture with no arm counts, where imprecision is only PARTIAL. Its requirement stands (rated once every domain
 is assessed); its fixture now passes arm counts, so imprecision is genuinely ASSESSED and "high" is earned. 87 GRADE
 tests pass (verified by Claude). agy's review is pending (out of quota).
+
+## Rounds 5-6 (15 Oct): the served RoB 2 + GRADE tab PREVIEW (scripts/tab_preview_build.py)
+
+| round | verdict | findings | response |
+|---|---|---|---|
+| 5 | REVISE | 2 P2, tests only (round5_tab_codex.txt); the output itself verified correct for 32 topics, 96 trial rows, 5 NCT-only rows | both ACCEPTED: per-trial-row assertions parsed from the HTML (distinct judgements; separate unassessed PMID and NCT rows); writes confined to the output directory by an allowlist; no external resources. A planted label swap fails the new tests. |
+| 6 | ACCEPT | none (round6_tab_codex.txt) | -- |
+
+Found by Claude while checking: 5 of the 96 pooled trials on served primary outcomes are identified ONLY by an NCT
+number (esketamine 2, sacubitril-valsartan 1, tocilizumab 2). The served RoB 2 driver reads PMID-identified trials
+only, so these stay "No formal RoB 2 assessment yet" even after the served readings run -- a scope decision for Mahmood.

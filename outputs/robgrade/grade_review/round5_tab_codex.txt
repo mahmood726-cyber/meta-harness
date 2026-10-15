@@ -1,0 +1,6 @@
+REVISE
+
+- **P2 — `tests/test_tab_preview_build.py`: Required regression coverage is incomplete.** Fixtures contain only PMID trials; assertions check label presence rather than exact labels attached to each trial. Wrong-row judgements or omitted/merged NCT-only rows could pass. **Failing test:** missing—add parsed, per-trial assertions covering distinct assessed objects and multiple unassessed PMID/NCT trials.
+- **P2 — `tests/test_tab_preview_build.py:test_no_docs_writes_and_index_covers_served_topics`: Write containment is only partially tested.** The guard prohibits `docs/` writes but permits writes elsewhere outside the designated output directory; external resources are also unchecked. **Failing test:** missing—enforce the output-directory allowlist and reject resource-loading HTML.
+
+Read-only verification passed for all 32 topics, 96 trial rows, and five NCT-only rows: exact frozen labels, explicit unassessed rows, UNSIGNED changes, and no external resources. Existing artifacts match in-memory renders. Pytest was not run because its fixtures write files.
