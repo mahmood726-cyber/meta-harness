@@ -54,6 +54,13 @@ def main(slug, now, argv=None):
     records = fetch.ensure(config, now)  # network only if cache absent
 
     core = build_review_core(slug, config, records, protocol_sha)
+    if str(config.get('benchmark', {}).get('status', '')).startswith('protocol_draft'):
+        draft = dict(core, status='DRAFT_BOOTSTRAP')
+        draft.pop('reproduction', None)
+        _write(os.path.join(ROOT, 'docs', 'reviews', slug, 'review.json'),
+               json.dumps(draft, ensure_ascii=False, indent=2))
+        print(f'DRAFT_BOOTSTRAP: docs/reviews/{slug}/review.json (never servable)')
+        return
     prim = [o for o in core["outcomes"] if o.get("primary")][0]
     # declared_method = the primary outcome's DECLARED estimand's method (from config/protocol).
     # served_method  = the method for the scale the pool ACTUALLY produced for the primary outcome.

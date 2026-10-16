@@ -17,7 +17,7 @@ def test_registry_plants(nct):
     doc = registry_contrast.load(cfg)
     assert doc['records'][nct]['design_groups'], 'plant requires real registry arms'
     result = registry_contrast.assess({'id':nct, 'nct':nct}, cfg, doc)
-    assert result['rule_id'] == ('X-CONTRAST' if nct in BAD else 'I-CONTRAST')
+    assert result['rule_id'] == ('X-CONTRAST-REGISTRY' if nct in BAD else 'I-CONTRAST')
 
 
 def test_missing_arms_cannot_pass():
@@ -33,7 +33,7 @@ def test_screen_excludes_bad_plants():
     decisions = screen.run(records, cfg)['decisions']
     for nct in BAD:
         ids = {r['id'] for r in records if r.get('nct') == nct}
-        assert any(d['id'] in ids and d['rule_id'] == 'X-CONTRAST' for d in decisions)
+        assert any(d['id'] in ids and d['rule_id'] == 'X-CONTRAST-REGISTRY' for d in decisions)
     assert not any(d['decision'] == 'include' for d in decisions)
 
 
@@ -43,7 +43,7 @@ def test_registry_precedes_misleading_abstract():
     data = json.loads((ROOT/'cache'/SLUG/'records.json').read_text(encoding='utf8'))
     good_abstract = next(r['abstract'] for r in data['records'] if r.get('nct') == GOOD[3])
     for nct in BAD:
-        assert rc.assess({'id':nct, 'abstract':good_abstract}, cfg, rc.load(cfg))['rule_id'] == 'X-CONTRAST'
+        assert rc.assess({'id':nct, 'abstract':good_abstract}, cfg, rc.load(cfg))['rule_id'] == 'X-CONTRAST-REGISTRY'
 
 
 def test_ctgov_v2_parity_and_no_identifier_switch():
@@ -76,7 +76,7 @@ def test_explicit_abstract_arm_forms(pmid):
     cfg = json.loads((ROOT/'topics'/f'{slug}.json').read_text(encoding='utf8'))
     records = json.loads((ROOT/'cache'/slug/'records.json').read_text(encoding='utf8'))['records']
     rec = next(r for r in records if r['id'] == pmid)
-    verdict = rc.assess(rec, cfg, {})
+    verdict = rc.assess(rec, dict(cfg, registry_contrast=True), {})
     assert verdict['decision'] == 'include'
     assert verdict['source'] == 'record.abstract'
 

@@ -19,11 +19,9 @@ def enabled(config):
     """Apply the add-on ruling to a declared add-on/containing-regimen question.
 
     A vocabulary lists molecules, not the kind of contrast (e.g. substitution
-    versus add-on). Read that distinction from the topic's protocol wording.
+    versus add-on). Only the explicit boolean topic declaration enables it.
     """
-    declaration = ' '.join(str(config.get(k) or '') for k in ('intervention','question'))
-    return bool(config.get('intervention_agents')) and bool(re.search(
-        r'add[- ]on|added to|adding .+? to|addition of|containing|\bplus\b', declaration, re.I))
+    return config.get('registry_contrast') is True and bool(config.get('intervention_agents'))
 
 
 def terms(config):
@@ -84,12 +82,22 @@ def arm_verdict(arms, vocabulary):
     for a in arms:
         role = re.sub(r'[^A-Z]', '', a['role'].upper())
         label, desc = a['label'], a['description']
+        if not isinstance(desc, str) or not re.search(r'[A-Za-z]', desc) or not isinstance(label, str):
+            return None
         names = a['interventions']
         present = any(active(n, vocabulary) for n in names)
         # Registry intervention links can include post-progression crossover.
         # Only remove that exposure when the initial regimen is explicitly described
         # and the agent occurs solely in the later conditional treatment clause.
         later = re.search(r'participants who.*?(?:progression|cross.?over)|(?:after|following).*?disease progression', desc, re.I)
+        conditional = re.search(r'(?:upon|at|after|following)\s+(?:disease\s+)?(?:progression|PD)\b|(?:patients|participants) with (?:PD|progression) may receive', desc, re.I)
+        if conditional:
+            start = max(desc.rfind(';', 0, conditional.start()), desc.rfind('.', 0, conditional.start())) + 1
+            if not active(label, vocabulary) and not active(desc[:start], vocabulary) and active(desc[start:], vocabulary):
+                present = False
+                names = [n for n in names if not active(n, vocabulary)]
+            elif present and not active(label, vocabulary):
+                return None
         if later and not active(label, vocabulary) and not active(desc[:later.start()], vocabulary) and active(desc[later.start():], vocabulary):
             present = False
             names = [n for n in names if not active(n, vocabulary)]
@@ -182,7 +190,7 @@ def assess(rec, config, doc):
             source = 'record.abstract'
             evidence = quote
     decision = 'include' if verdict is True else 'exclude' if verdict is False else 'unresolved'
-    rule = 'I-CONTRAST' if verdict is True else 'X-CONTRAST' if verdict is False else 'UNRESOLVED-CONTRAST'
+    rule = 'I-CONTRAST' if verdict is True else 'X-CONTRAST-REGISTRY' if verdict is False else 'UNRESOLVED-CONTRAST'
     reason = ('Intervention agent present in experimental arm and absent from comparator arms.' if verdict is True else
               'Intervention agent occurs in a comparator arm; not the required add-on contrast.' if verdict is False else
               'UNRESOLVED: experimental/comparator arm contrast cannot be read; not eligible for pooling.')

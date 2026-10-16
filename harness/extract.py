@@ -491,8 +491,11 @@ def _is_subgroup_sentence(sentence):
     text = sentence or ""
     first = _EFFECT.search(_norm(text))
     prefix = text[:first.start()] if first else text
-    whole = re.search(r"\b(?:intent(?:ion)?-to-treat|ITT|all randomi[sz]ed|overall)\b", prefix, re.I)
-    return bool(subgroup_refusal(prefix) or (_SUBGROUP.search(prefix) and not whole))
+    whole = re.search(r"\b(?:intent(?:ion)?-to-treat|ITT|all randomi[sz]ed|overall (?:population|cohort))\b", prefix, re.I)
+    # A later explicit restriction still applies unless a separate clause follows
+    # an explicitly whole-population first estimate.
+    scope = _first_effect_clause(text) if whole and first else text
+    return bool(subgroup_refusal(scope) or _SUBGROUP.search(scope))
 
 
 # A NULL-RESULT clause states an outcome was "similar / comparable / did not differ" WITHOUT a count.
@@ -1200,9 +1203,7 @@ def subgroup_refusal(source_span: str) -> str:
     """
     text = (source_span or "").lower()
     m = (_SUBGROUP_RESTRICTION.search(text) or re.search(
-        r"\b(?:in|among)\s+(?:the\s+)?(?!(?:all|randomi[sz]ed|enrolled|study)\b)"
-        r"[a-z][a-z-]*(?:\s+[a-z][a-z-]*){0,5}\s+(?:patients|participants|subjects)\s*[,;:]"
-        r"|\b(?:in|among)\s+the\s+[^,;.]{1,70}\s+subgroup\b", text))
+        r"\b(?:in|among)\s+the\s+[^,;.]{1,70}\s+subgroup\b", text))
     if not m:
         return ""
     return (f"the source restricts this result to a subgroup ('{m.group(0)}'), not the randomised population "
@@ -1261,12 +1262,22 @@ def analysis_qualifiers(source_span: str, held_text: str, keywords) -> list:
     return out
 
 
+def _first_effect_clause(sentence):
+    text = _norm(sentence or '')
+    effect = _EFFECT.search(text)
+    if not effect:
+        return text
+    # Do not split the semicolon between an HR and its CI.
+    tail = re.split(r";|,\s+(?:and|but|with|whereas)\b", text[effect.end():], maxsplit=1, flags=re.I)[0]
+    return text[:effect.end()] + tail
+
+
 def endpoint_scope_refusal(sentence, keywords):
     """Second-progression endpoints cannot satisfy the first-PFS target."""
     target = ' '.join(keywords or []).lower()
-    later = r"\b(?:pfs|progression[- ]free survival)\s*2\b|\bsecond progression\b|(?:pfs|progression[- ]free survival)\s+on\s+(?:the\s+)?subsequent line of therapy"
+    later = r"\b(?:pfs|progression[- ]free survival)\s*2\b(?![- ]years?\b)|\bsecond progression\b|(?:pfs|progression[- ]free survival)\s+on\s+(?:the\s+)?subsequent line of therapy"
     if re.search(later, target, re.I):
         return ''
-    if re.search(r"\bpfs\b|progression[- ]free survival", target, re.I) and re.search(later, sentence or '', re.I):
+    if re.search(r"\bpfs\b|progression[- ]free survival", target, re.I) and re.search(later, _first_effect_clause(sentence), re.I):
         return 'PFS2 / subsequent-line or second-progression endpoint is not PFS'
     return ''

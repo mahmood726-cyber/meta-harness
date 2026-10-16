@@ -9,8 +9,10 @@ def effect(text, kws=None):
     return extract.extract_trial(text, kws or ['progression-free survival','PFS'], ['daratumumab'], ['dexamethasone'], estimand='HR')
 def sentence(pid, starts):
     return next(s for s in extract._sentences(RECORDS[pid]['abstract']) if s.startswith(starts))
-def test_subgroup_sentence():
-    assert effect(sentence('32482541','In lenalidomide-refractory')).get('absent')
+def test_population_words_alone_do_not_declare_subgroup():
+    s = sentence('32482541','In lenalidomide-refractory')
+    assert not extract.subgroup_refusal(s)
+    assert effect(s)['effect'] == extract.extract_effect(s)[1]
 def test_pfs2_sentence():
     assert effect(sentence('32001798','Median PFS on subsequent')).get('absent')
 @pytest.mark.parametrize('pid,expected',[('32482541',.31),('32001798',.44)])
@@ -21,7 +23,11 @@ def test_explicit_pfs2_target():
 @pytest.mark.parametrize('prefix',['Among lenalidomide-refractory patients','In the lenalidomide-refractory subgroup'])
 def test_scope_variants(prefix):
     s=sentence('32482541','In lenalidomide-refractory')
-    assert effect(s.replace('In lenalidomide-refractory patients',prefix)).get('absent')
+    text = s.replace('In lenalidomide-refractory patients',prefix)
+    if 'subgroup' in prefix:
+        assert effect(text).get('absent')
+    else:
+        assert not extract.subgroup_refusal(text)
 def test_second_progression():
     s=sentence('32001798','Median PFS on subsequent')
     assert effect(s.replace('PFS on subsequent line of therapy (PFS2)','PFS to second progression')).get('absent')
