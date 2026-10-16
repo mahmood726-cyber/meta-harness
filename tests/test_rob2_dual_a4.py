@@ -69,11 +69,37 @@ def setup(records, role=None, field='held', disagreement=False):
             runs[role]['prompt_sha256'] = hashlib.sha256(b'OLD prompt').hexdigest()
     return {ITEM['key']: runs}, prompts
 
-@pytest.mark.parametrize('order', [('PY', 'PN'), ('PN', 'PY')])
+@pytest.mark.parametrize('order', (('PY', 'PN'), ('PN', 'PY'), ('PY', 'Y'), ('Y', 'PY')))
 @pytest.mark.xfail(strict=True, reason=AWAITING)
 def test_A4_duplicate_rows(order):
     a = rd.verify_answers(dict(answers=[reply(v)['answers'][0] for v in order]), ITEM)['1.2']
     assert (a['answer'], a.get('dropped', {}).get('why')) == ('NI', 'AMBIGUOUS_CONFLICTING_ROWS')
+
+def test_A4_identical_duplicate_control():
+    single = reply('PY')
+    duplicate = dict(answers=single['answers'] * 2)
+    assert rd.verify_answers(duplicate, ITEM) == rd.verify_answers(single, ITEM)
+    assert rd.verify_answers(duplicate, ITEM)['1.2']['answer'] == 'PY'
+
+@pytest.mark.xfail(strict=True, reason=AWAITING)
+def test_A4_stale_reader_keeps_only_typed_without_adjudication(records, monkeypatch):
+    runs, _ = setup(records, role='codex', field='held')
+    typed = {'1.1': rd.rf.answer('Y', how='typed-fixture', span=TEXT,
+                               source_ref=SRC['id'], source_sha256=SRC['sha256'])}
+    monkeypatch.setattr(rd.rt, 'typed_answers', lambda *args, **kwargs: (typed, []))
+    requested = []
+    original = rd.prompt_bytes
+    def prompt_spy(item, kind='reader', disagreements=None):
+        if kind == 'adjudicator':
+            requested.append(disagreements)
+        return original(item, kind, disagreements)
+    monkeypatch.setattr(rd, 'prompt_bytes', prompt_spy)
+    obj, _ = rd.process(ITEM, runs, False, {})
+    answers = {q: a for domain in obj['domains'].values() for q, a in domain['answers'].items()}
+    assert (requested, records[2], obj['disagreements'], answers['1.2']['answer']) == ([], [], [], 'NI'), (
+        'stale reader must leave only typed answers, with no adjudication requested')
+    assert answers['1.1'] == typed['1.1']
+    assert all(a['answer'] == 'NI' for q, a in answers.items() if q not in typed)
 
 @pytest.mark.parametrize('role', ('codex', 'agy', 'adjudicator'))   # a tuple: a list headed by a CLI name reads as an argv (model inventory)
 @pytest.mark.parametrize('field', ['held', 'manifest'])

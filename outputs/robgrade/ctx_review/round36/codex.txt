@@ -1,0 +1,21 @@
+VERDICT: REVISE
+
+1. **MINOR — `scripts/rob2_served.py:430–432`, `adopt_orphans`: malformed fields escape the named-refusal guard.** `_read_record(f)` wraps decoding, but adoption subsequently evaluates `(rec.get("model") or {}).get("id_reported")` outside that guard. A successfully decoded candidate with a truthy, non-object `model` raises raw `AttributeError` rather than a `REFUSED` naming its file. Perform this extraction through `_read_record`’s guarded callback or explicitly validate the field.
+   
+   **Failing test:** create an otherwise valid, uniquely adoptable orphan with `"model": "broken"`; expect `SystemExit` matching `REFUSED.*mc-broken.json`. The unguarded extraction instead raises `AttributeError`.
+
+Disposition of the six fixes:
+
+2. **Fix 1: correct.** Ambiguity is checked across distinct served keys, including closed-source matches. Adoption no longer selects a slug by iteration order.
+
+3. **Fix 2: correct.** Every manifest slot marked `RAN_OK` blocks replacement, regardless of prompt freshness. The remaining orphan forces explicit accounting reconciliation.
+
+4. **Fix 3: locally correct; recovery coverage incomplete.** The shown save sites strip scheduling markers, and missing adjudication becomes quarantine. However, the pending-replay test calls `keep_or_quarantine` directly. Add a full replay test starting with a persisted `DEFERRED` entry to establish that manifest preflight and driver replay also permit recovery. The supplied excerpt does not establish a defect in that unseen path.
+
+5. **Fix 4: incomplete** because of finding 1. The new tests cover malformed JSON and non-object roots, but not malformed fields consumed outside the wrapper.
+
+6. **Fix 5: correct for the reported defect.** Dual manifests now reject `passes` and other unexpected top-level role keys before grouping.
+
+7. **Fix 6: correct as shown.** Quarantine uses the redirected store, and the added integration test exercises contextual replay of an empty dual object.
+
+Static review only; no commands or tests run. The inline diff does not establish failing-first execution evidence.

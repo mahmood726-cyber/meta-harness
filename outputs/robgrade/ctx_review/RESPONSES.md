@@ -565,3 +565,16 @@ or move an entry, reuse a record across roles, keys or trials). Each was guarded
 are checked against tampering by role, state, prompt, trial, outcome, key and accounting; an attack outside those
 properties is not claimed to be caught. agy ACCEPTED rounds 28-30, asked for one change in round 32 (made), and
 returned no reply in rounds 31, 33 and 34 (recorded).
+
+## Rounds 35-37 (15 Oct): served driver, second review by codex + Claude Sonnet (agy out of quota until ~06:00 UTC 17 Oct; Gemini pass OWED)
+
+| round | reviewer | verdict | response |
+|---|---|---|---|
+| 35 | Claude Sonnet | REVISE, 6 findings (round35/sonnet.txt) | all ACCEPTED, implemented by codex failing first: adoption only when exactly one served key matches (never by iteration order); a RAN_OK slot is never overwritten; DEFERRED never persisted, pending disagreements quarantine; every corrupt record raises a named REFUSED; dual manifests accept only the three role keys; QUARANTINE.json is a redirected store. |
+| 36 | codex (diff inline: its read-only sandbox could not start processes) | REVISE, 1 minor + 1 test | ACCEPTED: record fields used after decoding are type-checked inside the guard (11 cases failed first); end-to-end replay from a persisted DEFERRED added (it passed before the fix: a pin, not a fix). |
+| 36 | Claude Sonnet | ACCEPT, 1 low (round36/sonnet.txt) | ACCEPTED: in a LIVE run a disagreement still lacking an adjudicator after phase 2 REFUSES (fail closed); only replay quarantines "adjudication pending" (failed first: DID NOT RAISE). |
+| 37 | codex | ACCEPT (round37/codex.txt) | -- |
+| 37 | Claude Sonnet | ACCEPT (round37/sonnet.txt) | nits noted, not changed. Executed against the REAL stores: manifest (65 keys), accounting, audit and all 260 records pass the new checks -- no legitimate record is refused. |
+
+Verified by Claude: tests/test_rob2_served.py + test_model_inventory + test_rob2_dual + test_rob2_dual_a4: 87 passed,
+14 xfailed (strict). Served RoB 2 remains 0 of 65 assessed until agy returns.

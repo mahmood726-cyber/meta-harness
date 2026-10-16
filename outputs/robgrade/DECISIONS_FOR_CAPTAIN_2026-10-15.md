@@ -6,12 +6,21 @@ records the decision as relayed, as it did for "sign a2".
 ## 1. Amendment A4: the two latent defects in the frozen v3.1 dual reading
 - **What:** the frozen replay reads a record without checking that its held prompt is the CURRENT prompt. Conflicting
   duplicate answer rows resolve by row order.
-- **Measured** (outputs/robgrade/SIGNING_A4_REQUEST.md, d11-v3 286e70911): readers 0 of 138 stale; adjudicators 8 of 65
+- **Measured** (outputs/robgrade/SIGNING_A4_REQUEST.md; request revised after second review in served-fixes ee3fe7a16): readers 0 of 138 stale; adjudicators 8 of 65
   stale (7 because typed rules added later now settle the question, 1 from A2's parser); served store 0 of 56;
   conflicting rows 0 found.
-- **Effect:** changes no frozen object or score; changes future replays of those trials.
-- **Options:** (a) sign A4 (the lane implements it with review and declares it, like A2/A3); (b) leave it unapplied (the
-  served driver already guards against both at its own layer).
+- **Effect:** no committed object or score changes, and the pre-registered frozen inputs stay byte-identical. BUT A4
+  changes what a REPLAY produces for the 8 trials with stale adjudications (balanced crystalloids 6, IV iron 1,
+  probiotics 1): their stale adjudications are no longer read, so every question still in dispute falls back to NI
+  (2 to 10 questions per trial; listed in the request). To keep them adjudicated instead, the 8 adjudications must be
+  re-made live (8 adjudicator calls; new answers need not match the old ones).
+- **Also specified** (second review, codex + Claude Sonnet, Gemini owed): a reader whose held record does not answer the
+  current prompt counts as missing -- no agreement is computed and nothing is sent to adjudication for it; any two
+  different answers to one question (Y vs PY included) give NI flagged AMBIGUOUS_CONFLICTING_ROWS.
+- **Options:** (a) sign A4 and re-make the 8 adjudications live once agy returns (~17 Oct), keeping those trials
+  adjudicated; (b) sign A4 and accept NI on the disputed questions of those 8 trials; (c) leave A4 unapplied (the
+  served driver already guards against both defects at its own layer; the frozen v3.1 replay keeps reading the 8
+  stale adjudications).
 
 ## 2. Six closed-source spans in committed, pushed v3.1 objects (PUBLIC repository)
 - **What:** reference-list article titles, author names and XML markup from non-CC full texts: PMIDs 29485925 and

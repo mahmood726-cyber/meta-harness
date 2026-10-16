@@ -1,0 +1,9 @@
+VERDICT ACCEPT
+
+1. **A — No defect found.** `scripts/rob2_served.py:186–203, 419–421`: model extraction now occurs inside `_read_record`; malformed `model`, `caller`, and present non-string `state` fields produce a filename-bearing REFUSED. The seven shown record readers use the guard. `SystemExit` escapes `except Exception`; the shown `main` handler terminates through `_die`. No legitimate record rejection is demonstrated by the supplied diff. **Failing test:** none identified; coverage includes `test_round2_orphan_malformed_model_is_named_refusal` and the parametrized reader tests.
+
+2. **B — No defect found.** `tests/test_rob2_served.py:660`: `test_round2_persisted_deferred_end_to_end_replay` starts with an on-disk legacy DEFERRED entry and invokes `main`, exercising preflight and replay. It checks pending quarantine, removal of the scheduling marker, retention of reader entries, unchanged held bytes, and the exact record inventory. **Failing test:** none identified.
+
+3. **C — No defect found.** `scripts/rob2_served.py:453–460`: the live flag reaches the quarantine decision; missing adjudication after phase 2 raises REFUSED naming the trial key. Replay retains pending quarantine behavior. `test_round2_live_missing_phase2_adjudicator_is_refused` exercises both live phases with real replay-derived disagreement and checks propagation of the refusal. **Failing test:** none identified.
+
+Static review only, as requested. Test execution and failing-first history cannot be confirmed from this diff.
