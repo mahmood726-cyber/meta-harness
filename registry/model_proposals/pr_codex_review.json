@@ -6731,5 +6731,47 @@
     "verdict": null
    }
   ]
+ },
+ "img-r1": {
+  "base": "d0c30332",
+  "head": "49a508d0",
+  "runs": {
+   "g1": {
+    "record_id": "mc-10ea2da57ce7efef81881326711defee",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/lane_image_agreement.py",
+     "scripts/lane_image_reader.py"
+    ],
+    "prompt_sha256": "66807bdcc7e92040b4957dba8e4a3d7de993b60b2fa1da52b399c9f7ac6bc07f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "b_records",
+    "severity": "P2",
+    "claim": "Conflicting answers for the same image silently overwrite each other. Because main concatenates multiple answer files, file order determines which reading survives, and the discarded reading has no audit record.",
+    "failing_input": "from scripts.lane_image_agreement import b_records\nbase = dict(key='a'*64, image_sha256='b'*64, prompt_sha256='c'*64)\na = dict(base, answer={'rows': []})\nb = dict(base, answer={'rows': [{'label': 'Trial X'}]})\nr = b_records([a, b], 'reader-b', {})\nprint(len(r), r['a'*64]['response'])",
+    "expected": "Reject conflicting answers for one key, or preserve both records for explicit adjudication.",
+    "actual": "Prints 1 {'rows': [{'label': 'Trial X'}]}. Reversing the input order instead retains {'rows': []}; the other answer is discarded.",
+    "id": "img-r1:g1#1",
+    "record_id": "mc-10ea2da57ce7efef81881326711defee",
+    "verdict": null
+   },
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "b_records / main",
+    "severity": "P2",
+    "claim": "Record IDs omit the model identity. Identical answers attributed to different models receive the same ID, so main writes them to the same evidence path and overwrites the previous model attribution.",
+    "failing_input": "from scripts.lane_image_agreement import b_records\na = dict(key='a'*64, image_sha256='b'*64, prompt_sha256='c'*64, answer={'rows': []})\nx = b_records([a], 'model-one', {})['a'*64]\ny = b_records([a], 'model-two', {})['a'*64]\nprint(x['record_id'] == y['record_id'], x['model'], y['model'])",
+    "expected": "Distinct evidence record IDs for readings attributed to different models, preserving both model attributions.",
+    "actual": "Prints True model-one model-two. main uses this shared ID as the filename and writes with write_bytes, replacing an existing record.",
+    "id": "img-r1:g1#2",
+    "record_id": "mc-10ea2da57ce7efef81881326711defee",
+    "verdict": null
+   }
+  ]
  }
 }
