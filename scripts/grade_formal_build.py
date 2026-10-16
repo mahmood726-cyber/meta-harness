@@ -49,13 +49,38 @@ def rob_for(slug, outcome_name, pooled_trial_ids):
     return rob, sources
 
 
+def arm_counts(slug, outcome):
+    """Adapt served, outcome-bound arms; never parse numbers from prose or other outcomes.
+
+    Reuse the census's offline extractor/recorded-read gate. HAND_ENTERED and
+    UNTRACED rows remain missing, even when their numeric fields are complete.
+    """
+    from harness.provenance_class import served_class, recorded_reads
+    from scripts.provenance_census import held_record_ids
+
+    held = set(held_record_ids(ROOT))
+    reads = recorded_reads(ROOT)
+    continuous = (outcome.get("result") or {}).get("scale") == "MD"
+    fields = ({"mean_t": "mean1", "sd_t": "sd1", "n_t": "nc1",
+               "mean_c": "mean2", "sd_c": "sd2", "n_c": "nc2"} if continuous else
+              {"events_t": "ai", "n_t": "n1i", "events_c": "ci", "n_c": "n2i"})
+    rows = []
+    for trial in outcome.get("trials") or []:
+        cls, why, records = served_class(trial, slug, outcome.get("name"), held.__contains__, reads, ROOT)
+        row = {key: trial.get(field) for key, field in fields.items()}
+        row.update(id=trial.get("id"), provenance_class=cls, provenance_basis=why,
+                   source_fields=list(fields.values()), record_ids=records)
+        rows.append(row)
+    return rows
+
+
 def build(slug):
     rv = json.load(open(os.path.join(ROOT, "docs", "reviews", slug, "review.json"), encoding="utf-8"))
     o = next((x for x in rv["outcomes"] if x.get("primary")), rv["outcomes"][0])
     rob, sources = rob_for(slug, o["name"], [t.get("id") for t in o.get("trials") or []])
     served = rv.get("grade") or {}
     stale = any("STALE" in str((d or {}).get("basis") or "") for d in (served.get("domains") or {}).values())
-    g = gf.grade(o, rob, stale=stale)
+    g = gf.grade(o, rob, stale=stale, counts=arm_counts(slug, o))
     g["rob_sources"] = dict(sorted(sources.items()))
     g["served_partial_grade"] = {"certainty": served.get("certainty"), "downgrades": served.get("downgrades"),
                                  "unassessed_domains": served.get("unassessed_domains")}

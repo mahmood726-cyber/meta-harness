@@ -1,0 +1,11 @@
+VERDICT: REVISE
+
+1. **MEDIUM — `robgrade/grade_formal.py`, identity-normalization block (`imprecision`, around line 242).** Duplicate **pooled** IDs are not rejected. With `trial_ids=["A", "A"]` and one valid count row for A, normalization repeats that row, reports complete coverage, and doubles N. This can falsely establish that OIS is met. Reject duplicate pooled identities before selecting rows. **Failing test to add:** `test_ois_rejects_duplicate_pooled_trial_ids`; use one A row with 1,000 participants per arm and control risk .2; require fail-closed coverage rather than `total_n=4000`. The existing identity test checks duplicate *count rows*, not duplicate pooled IDs.
+
+2. **MEDIUM — `tests/test_grade_formal.py:67`.** Mocking `imprecision` removes an existing integration check from `test_any_partial_or_unresolved_flag_blocks_certainty`. After the correction, its CI-crossing fixture should already remain ASSESSED without counts, so the mock is unnecessary. Existing assertions remain, but exercised behavior is narrower: “no test was weakened” is not satisfied. **Affected test:** `test_any_partial_or_unresolved_flag_blocks_certainty`; remove the new mock and retain the original assertions.
+
+The displayed binary arithmetic correctly implements the **explicitly labeled unpooled normal approximation**: p₀=.20 gives total OIS 1,806. Continuous OIS uses the appropriate equal-arm mean-difference formula and requires a positive declared MID with basis.
+
+The corrected CI-crossing branches preserve their downgrade despite unavailable OIS. The below-half-OIS flag does not add a second downgrade.
+
+**Review limits:** No tools or tests run. The cited sources, underlying `served_class` implementation, regenerated artifacts, and failing-first history were not supplied for independent verification. Consequently, citation accuracy and actual count-level provenance remain unverified; the supplied state-change summary is consistent with the requested correction.

@@ -60,3 +60,23 @@ Verified by Claude: 115 GRADE/preview tests passed (20 min run) before the round
 tests/test_model_inventory.py 30 passed after it; closed-text leak check over outputs/robgrade/rob2_current: 6 raw hits,
 5 are /outcome strings (open) and 1 is PMID 39529939 (CC) -> 0 closed spans published. No certainty changed: all 32
 served topics remain provisional.
+
+## Rounds 9-10 (15 Oct night): provenance-gated optimal information size (OIS) -- codex + Claude Sonnet (Gemini OWED)
+Non-model work while agy is out. Audit (outputs/robgrade/grade_ois_audit.json): of the 13 topics with "OIS not
+computable", 1 has complete provenanced arm counts (corticosteroids-covid19-mortality); 8 are time-to-event with no
+structured counts; 2 continuous (esketamine, melatonin) have counts but no declared MID -- no MID is invented; probiotics
+has 7 of 13 trials provenanced (one HAND_ENTERED sibling row excluded). Claude rejected codex's first attempt, which
+also made OIS gate CI-decided domains (6 topics ASSESSED -> PARTIAL): under GRADE (handbook 5.2.2) a CI crossing the
+decision threshold is rated down whatever the OIS; OIS gates only when the CI excludes it. Restored; OIS recorded as
+information there. A CI crossing only the null with N below half a computable OIS raises VERY_SERIOUS_FOR_JUDGEMENT
+(flag only, review policy).
+
+| round | reviewer | verdict | response |
+|---|---|---|---|
+| 9 | codex (inline) | REVISE, 2 medium | ACCEPTED: duplicate pooled trial ids fail closed (failed first: OIS 1806 from a doubled N); the new imprecision mock removed from an existing test. |
+| 9 | Claude Sonnet | ACCEPT, 2 low | ACCEPTED: unknown pool size fails closed (failed first: OIS 1806); the mock (same as codex). Verified by execution: corticosteroids OIS 1320 vs N 6425; spot-checked counts equal their source fields and are EXTRACTOR / RECORDED_MODEL_CALL. |
+| 10 | codex | ACCEPT | -- |
+| 10 | Claude Sonnet | ACCEPT (by execution) | -- |
+
+Net effect vs 07b46be35: corticosteroids-covid19-mortality imprecision PARTIAL -> ASSESSED (OIS met); no other state,
+downgrade or certainty changed (all 32 topics remain provisional). Verified by Claude: 157 passed (ten GRADE/RoB 2 files).

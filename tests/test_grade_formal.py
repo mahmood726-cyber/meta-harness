@@ -21,7 +21,8 @@ def test_unestablished_positive_weight_keeps_certainty_provisional(unknown_se):
                "trials": [{"id": name, "study_effect": {"standard_error": se}}
                           for name, se in (("A", 0.1), ("B", unknown_se))]}
     g = gf.grade(outcome, {"A": _rob("LOW"), "B": _rob("NOT_ESTABLISHED")},
-                 counts=[{"events_t": 800, "n_t": 5000, "events_c": 1000, "n_c": 5000}])
+                 counts=[{"id": tid, "provenance_class": "EXTRACTOR", "events_t": 800, "n_t": 5000,
+                          "events_c": 1000, "n_c": 5000} for tid in ("A", "B")])
     assert g["domains"]["risk_of_bias"]["state"] == "PARTIAL"
     assert g["certainty"] == "provisional"
     assert g["certainty_from_assessed_domains_only"] == "high"
@@ -114,10 +115,10 @@ def test_PLANT_imprecision_rules_and_ois():
     assert d["state"] == "PARTIAL" and d["flags"] == ["OIS_NOT_COMPUTABLE"]
     # OIS by hand: p0 0.20, p1 0.15: (1.96+0.8416)^2 * (0.16 + 0.1275) / 0.05^2 = 902.6 -> 903 per arm
     assert gf.ois(0.20) == 1806
-    small = [{"events_t": 15, "n_t": 100, "events_c": 20, "n_c": 100}]
-    assert gf.imprecision({"ci_low": 0.7, "ci_high": 0.9}, "RR", small)["downgrade"] == 1
-    big = [{"events_t": 150, "n_t": 1000, "events_c": 200, "n_c": 1000}]
-    assert gf.imprecision({"ci_low": 0.7, "ci_high": 0.9}, "RR", big)["downgrade"] == 0
+    small = [{"provenance_class": "EXTRACTOR", "events_t": 15, "n_t": 100, "events_c": 20, "n_c": 100}]
+    assert gf.imprecision({"k": 1, "ci_low": 0.7, "ci_high": 0.9}, "RR", small)["downgrade"] == 1
+    big = [{"provenance_class": "EXTRACTOR", "events_t": 150, "n_t": 1000, "events_c": 200, "n_c": 1000}]
+    assert gf.imprecision({"k": 1, "ci_low": 0.7, "ci_high": 0.9}, "RR", big)["downgrade"] == 0
 
 
 def test_egger_against_an_independent_fit():
@@ -149,7 +150,114 @@ def test_certainty_is_provisional_while_a_domain_is_unassessed():
     assert g["certainty"] == "provisional" and "risk_of_bias" in g["unassessed_domains"]
     # Arm counts make OIS computable and met, so imprecision is assessed.
     g = gf.grade(outcome, {"A": _rob("LOW"), "B": _rob("LOW")}, counts=[
-        {"events_t": 800, "n_t": 5000, "events_c": 1000, "n_c": 5000},
-        {"events_t": 800, "n_t": 5000, "events_c": 1000, "n_c": 5000},
+        {"id": "A", "provenance_class": "EXTRACTOR", "events_t": 800, "n_t": 5000, "events_c": 1000, "n_c": 5000},
+        {"id": "B", "provenance_class": "EXTRACTOR", "events_t": 800, "n_t": 5000, "events_c": 1000, "n_c": 5000},
     ])
     assert g["certainty"] == "high" and g["unassessed_domains"] == []
+
+
+@pytest.mark.parametrize("bad", [None, "UNTRACED", "HAND_ENTERED"])
+def test_ois_rejects_untraced_counts(bad):
+    row = {"events_t": 15, "n_t": 100, "events_c": 20, "n_c": 100,
+           "provenance_class": bad}
+    d = gf.imprecision({"k": 1, "ci_low": 0.7, "ci_high": 0.9}, "RR", [row])
+    assert d["state"] == "PARTIAL"
+    assert "1 of 1 pooled trials lack" in d["basis"]
+
+
+@pytest.mark.parametrize("ci", [(0.7, 0.9), (0.8, 1.1), (0.6, 1.4)])
+def test_ois_incomplete_pool_gates_only_ci_excluding_null(ci):
+    row = {"events_t": 150, "n_t": 1000, "events_c": 200, "n_c": 1000,
+           "provenance_class": "EXTRACTOR"}
+    d = gf.imprecision({"k": 2, "ci_low": ci[0], "ci_high": ci[1]}, "RR", [row])
+    assert d["state"] == ("PARTIAL" if ci[1] < 1 else "ASSESSED")
+    assert d["flags"] == (["OIS_NOT_COMPUTABLE"] if ci[1] < 1 else [])
+    assert "1 of 2 pooled trials lack" in d["basis"]
+    assert d["downgrade"] == (0 if ci[1] < 1 else 1 if ci[0] > 0.75 else 2)
+
+
+@pytest.mark.parametrize("threshold, expected", [(None, None), ({"value": 1}, None),
+    ({"value": 1, "basis": "synthetic declared MID"}, 364)])
+def test_md_ois_requires_declared_mid(threshold, expected):
+    row = {"mean_t": 1, "sd_t": 3.4, "n_t": 200, "mean_c": 2, "sd_c": 3.4,
+           "n_c": 200, "provenance_class": "EXTRACTOR"}
+    d = gf.imprecision({"k": 1, "ci_low": -2, "ci_high": -0.5,
+                        "clinical_threshold": threshold}, "MD", [row])
+    if expected is None:
+        assert d["state"] == "PARTIAL" and "declared MID" in d["basis"]
+    else:
+        assert d["inputs"]["ois"] == expected
+        assert d["state"] == "ASSESSED"
+
+
+@pytest.mark.parametrize("value", [-1, 101, float("nan"), True])
+def test_ois_invalid_counts_fail_closed(value):
+    row = {"events_t": value, "n_t": 100, "events_c": 20, "n_c": 100,
+           "provenance_class": "EXTRACTOR"}
+    assert gf.imprecision({"k": 1, "ci_low": 0.7, "ci_high": 0.9}, "RR", [row])["state"] == "PARTIAL"
+
+
+def test_ois_degenerate_control_risk_is_not_met():
+    row = {"events_t": 0, "n_t": 100, "events_c": 0, "n_c": 100,
+           "provenance_class": "EXTRACTOR"}
+    d = gf.imprecision({"k": 1, "ci_low": 0.7, "ci_high": 0.9}, "RR", [row])
+    assert d["state"] == "PARTIAL" and "OIS_NOT_COMPUTABLE" in d["flags"]
+
+
+@pytest.mark.parametrize("ids", [("A", "A"), ("A", "unpooled")])
+def test_ois_requires_exact_trial_identity_coverage(ids):
+    rows = [{"id": tid, "provenance_class": "EXTRACTOR", "events_t": 15,
+             "events_c": 20, "n_t": 100, "n_c": 100} for tid in ids]
+    d = gf.imprecision({"k": 2, "ci_low": 0.7, "ci_high": 0.9}, "RR", rows, ["A", "B"])
+    assert d["state"] == "PARTIAL" and d["inputs"]["trials_missing_counts"] >= 1
+
+
+def test_ois_md_handbook_examples_and_binary_parameters():
+    assert [gf.ois_md(sd ** 2, 1) for sd in (3.4, 4.5, 4.9)] == [364, 636, 754]
+    assert gf.ois(0.2, alpha=0.01) > gf.ois(0.2)
+    assert gf.ois(0.2, power=0.9) > gf.ois(0.2)
+
+
+@pytest.mark.parametrize("ci,down", [((0.8, 1.1), 1), ((0.6, 1.4), 2)])
+def test_ci_decided_without_counts_stays_assessed(ci, down):
+    d = gf.imprecision({"k": 2, "ci_low": ci[0], "ci_high": ci[1]}, "RR")
+    assert d["state"] == "ASSESSED"
+    assert d["downgrade"] == down
+    assert d["flags"] == []
+    assert d["inputs"]["ois"] == "NOT_COMPUTABLE: 2 of 2 pooled trials lack complete provenanced arm counts"
+
+
+@pytest.mark.parametrize("ci,down", [((0.8, 1.1), 1), ((0.6, 1.4), 2), ((0.7, 0.9), 1)])
+@pytest.mark.parametrize("n", [100, 451, 452, 1000])
+def test_ci_decided_ois_wide_shortfall_review_only(ci, down, n):
+    row = {"provenance_class": "EXTRACTOR", "events_t": 15, "events_c": 20,
+           "n_t": 100, "n_c": 100}
+    # Keep control risk .2 and total N=2*n; OIS remains 1806.
+    row.update(n_t=2*n-100)
+    d = gf.imprecision({"k": 1, "ci_low": ci[0], "ci_high": ci[1]}, "RR", [row])
+    assert d["state"] == "ASSESSED"
+    assert d["downgrade"] == (0 if ci[1] < 1 and 2*n >= 1806 else down)
+    assert d["inputs"]["ois"] == 1806
+    assert d["flags"] == (["VERY_SERIOUS_FOR_JUDGEMENT"] if ci == (0.8, 1.1) and 2*n < 903 else [])
+
+
+def test_ois_rejects_duplicate_pooled_trial_ids():
+    row = {"id": "A", "provenance_class": "EXTRACTOR", "events_t": 150,
+           "events_c": 200, "n_t": 1000, "n_c": 1000}
+    d = gf.imprecision({"k": 2, "ci_low": 0.7, "ci_high": 0.9}, "RR", [row], ["A", "A"])
+    assert d["inputs"]["ois"] == "NOT_COMPUTABLE: duplicate pooled trial ids"
+    assert "total_n" not in d["inputs"]
+    assert d["state"] == "PARTIAL"
+    assert d["flags"] == ["OIS_NOT_COMPUTABLE"]
+    assert d["downgrade"] == 0
+
+
+def test_ois_rejects_unknown_pool_size():
+    row = {"id": "A", "provenance_class": "EXTRACTOR", "events_t": 150,
+           "events_c": 200, "n_t": 1000, "n_c": 1000}
+    d = gf.imprecision({"ci_low": 0.7, "ci_high": 0.9}, "RR", [row])
+    assert d["inputs"]["ois"] == "NOT_COMPUTABLE: pool size unknown"
+    assert "total_n" not in d["inputs"]
+    assert d["state"] == "PARTIAL"
+    assert d["flags"] == ["OIS_NOT_COMPUTABLE"]
+    assert d["downgrade"] == 0

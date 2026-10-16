@@ -204,3 +204,48 @@ def test_production_never_reads_frozen_objects(tmp_path, monkeypatch):
 
     monkeypatch.setattr(builtins, "open", guarded_open)
     assert builder.rob_for("synthetic", "primary", ["PMID 1"]) == ({}, {})
+
+
+@pytest.mark.parametrize("provenance, state", [("abstract", "ASSESSED"), ("UNTRACED", "PARTIAL")])
+def test_build_wires_only_provenanced_counts(sandbox, provenance, state):
+    root, _ = sandbox
+    write_json(root / "docs/reviews/synthetic/review.json", {"outcomes": [{
+        "primary": True, "name": "primary", "result": {"k": 1, "scale": "RR", "ci_low": 0.7, "ci_high": 0.9},
+        "trials": [{"id": "synthetic", "ai": 15, "n1i": 100, "ci": 20, "n2i": 100,
+                    "source": "synthetic extractor fixture", "provenance": provenance}]}]})
+    d = builder.build("synthetic")["domains"]["imprecision"]
+    assert d["state"] == state
+    if state == "ASSESSED":
+        assert d["inputs"]["ois"] == 1806 and d["inputs"]["total_n"] == 200
+
+
+@pytest.mark.parametrize("record_state, held, changed, expected", [
+    ("AGREES", True, False, "RECORDED_MODEL_CALL"),
+    ("GATE_REFUSED", True, False, "HAND_ENTERED"),
+    ("AGREES", False, False, "HAND_ENTERED"),
+    ("AGREES", True, True, "HAND_ENTERED"),
+])
+def test_arm_counts_recorded_read_must_match_counts(sandbox, record_state, held, changed, expected):
+    root, _ = sandbox
+    rid = "mc-" + "a" * 32
+    trial = {"id": "synthetic", "ai": 15, "n1i": 100, "ci": 20, "n2i": 100,
+             "provenance": "aact_verified", "source": "synthetic held span"}
+    snapshot = dict(trial, ai=14) if changed else trial
+    write_json(root / "registry/provenance_recorded_reads.json", {"reads": {
+        "synthetic|synthetic|primary": {"state": record_state, "record_id": rid, "served": snapshot}}})
+    if held:
+        write_json(root / "registry/model_calls" / (rid + ".json"), {"synthetic_fixture": True})
+    outcome = {"name": "primary", "result": {"scale": "RR"}, "trials": [trial]}
+    row = builder.arm_counts("synthetic", outcome)[0]
+    assert row["provenance_class"] == expected
+    assert row["events_t"] == 15
+
+
+def test_arm_counts_does_not_read_secondary_sibling_or_source_prose(sandbox):
+    root, _ = sandbox
+    write_json(root / "cache/synthetic/verified_arms.json", {"synthetic": {
+        "ai": 15, "ci": 20, "n1i": 100, "n2i": 100, "outcome": "secondary"}})
+    outcome = {"name": "primary", "result": {"scale": "RR"}, "trials": [{
+        "id": "synthetic", "source": "15/100 versus 20/100", "provenance": "abstract"}]}
+    row = builder.arm_counts("synthetic", outcome)[0]
+    assert row["events_t"] is None and row["n_t"] is None

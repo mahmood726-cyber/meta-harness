@@ -21,7 +21,9 @@ COMPUTED inputs, every downgrade citing the input it rests on. Randomised trials
                       default thresholds 0.75 and 1.25); -1 when the CI crosses the null; when the CI excludes the null,
                       -1 if the total sample is below the optimal information size (OIS: two-arm, alpha 0.05, power
                       0.80, relative risk reduction 25%, the pooled control-arm risk) -- OIS computed only from
-                      structured arm counts, else stated NOT_COMPUTABLE (the CI rule still stands).
+                      complete provenanced arm counts for every pooled trial; missing counts keep PARTIAL
+                      only when the CI does not already decide the downgrade. MD uses within-arm pooled variance and the declared
+                      result.clinical_threshold MID with basis; no MID means NOT_COMPUTABLE.
   publication bias  k >= 10: Egger's regression test (standardised effect on precision), -1 when p < 0.10;
                       k < 10: NOT_ASSESSABLE_K_LT_10 (small-study tests have too little power), no downgrade.
 
@@ -161,40 +163,141 @@ def indirectness(compat):
 # ------------------------------------------------------------------------------------------------ imprecision
 
 def ois(p0, rrr=0.25, alpha=0.05, power=0.80):
-    """Total optimal information size, two equal arms, for a relative risk reduction rrr at control risk p0."""
-    if p0 is None or not (0 < p0 < 1):
+    """Total N for two equal independent arms (normal approximation, no continuity correction)."""
+    # GRADE Handbook 5.2.4.1 (OIS), 5.2.4.2; Guyatt et al. 2011,
+    # doi:10.1016/j.jclinepi.2011.01.012. GRADE calls for a conventional
+    # adequately powered trial: https://gdt.gradepro.org/app/handbook/handbook.html
+    # Explicit unpooled-variance approximation: n/arm = (za+zb)^2 *
+    # [p0(1-p0)+p1(1-p1)] / (p0-p1)^2. Not an HR event-time calculation.
+    # Default alpha=.05 (two-sided), beta=.20, hypothetical RRR=.25.
+    from statistics import NormalDist
+    if p0 is None or not (0 < p0 < 1) or not (0 < rrr < 1):
+        return None
+    if not (0 < alpha < 1 and 0.5 < power < 1):
         return None
     p1 = p0 * (1 - rrr)
-    za, zb = 1.959963984540054, 0.8416212335729143
+    za, zb = NormalDist().inv_cdf(1 - alpha / 2), NormalDist().inv_cdf(power)
     n = (za + zb) ** 2 * (p0 * (1 - p0) + p1 * (1 - p1)) / (p0 - p1) ** 2
     return 2 * math.ceil(n)
 
 
-def imprecision(result, scale, counts=None):
-    """counts: [{events_t, n_t, events_c, n_c}] structured arm counts of the pooled trials, or None."""
+def ois_md(variance, delta):
+    """GRADE MD OIS: alpha=.05 two-sided, beta=.20, delta=declared MID only."""
+    # Handbook 5.2.4.2, Example 9: SD=3.4, delta=1 -> total N=364.
+    # n/arm = 2*sigma^2*(z_.975+z_.80)^2/delta^2; total=2*ceil(n/arm).
+    # https://gdt.gradepro.org/app/handbook/handbook.html
+    # Population variance estimated by within-arm df-weighted pooling; between
+    # arm/trial mean differences are not included in this nuisance variance.
+    if variance is None or delta is None or variance <= 0 or delta <= 0:
+        return None
+    return 2 * math.ceil(2 * variance * (Z + 0.8416212335729143) ** 2 / delta ** 2)
+
+
+def _valid_counts(row, scale):
+    if row.get("provenance_class") not in {"EXTRACTOR", "RECORDED_MODEL_CALL"}:
+        return False
+    fields = ("n_t", "n_c", "mean_t", "mean_c", "sd_t", "sd_c") if scale == "MD" else (
+        "n_t", "n_c", "events_t", "events_c")
+    if scale not in RATIO and scale != "MD":
+        return False
+    if any(isinstance(row.get(k), bool) or _f(row.get(k)) is None for k in fields):
+        return False
+    for arm in ("t", "c"):
+        n = float(row["n_" + arm])
+        if n <= (1 if scale == "MD" else 0) or not n.is_integer():
+            return False
+        if scale == "MD":
+            if float(row["sd_" + arm]) <= 0:
+                return False
+        else:
+            e = float(row["events_" + arm])
+            if not e.is_integer() or not 0 <= e <= n:
+                return False
+    return True
+
+
+def imprecision(result, scale, counts=None, trial_ids=None):
+    """Only complete, provenanced arms for EVERY pooled trial may establish OIS.
+
+    counts are normalized by the builder's offline provenance gate. For direct
+    calls, provenance_class is required; grade() also enforces identity coverage.
+    """
     lo, hi, est = _f(result.get("ci_low")), _f(result.get("ci_high")), _f(result.get("estimate"))
     null = _null(scale)
     inputs = {"ci": [lo, hi], "estimate": est, "scale": scale}
     if lo is None or hi is None or result.get("pooled_ci_refused") or result.get("pool_refused"):
         return _dom(None, "NOT_ASSESSABLE", "no pooled confidence interval", inputs)
+    down, basis = 0, "the CI excludes the null"
     if scale in RATIO and lo <= 0.75 and hi >= 1.25:
-        return _dom(2, "ASSESSED", f"the 95% CI {lo:.2f} to {hi:.2f} includes both appreciable benefit (0.75) and harm "
-                                   f"(1.25) -- GRADE default thresholds", inputs)
-    if lo < null < hi:
-        return _dom(1, "ASSESSED", f"the 95% CI {lo:.4g} to {hi:.4g} crosses the null ({null:g})", inputs)
-    if counts:
-        ec = sum(c["events_c"] for c in counts)
-        nc = sum(c["n_c"] for c in counts)
-        n = sum(c["n_t"] + c["n_c"] for c in counts)
-        need = ois(ec / nc if nc else None)
-        inputs.update({"total_n": n, "control_risk": round(ec / nc, 4) if nc else None, "ois": need})
-        if need and n < need:
-            return _dom(1, "ASSESSED", f"total sample {n} is below the optimal information size {need} "
-                                       f"(control risk {ec / nc:.3f}, RRR 25%, alpha 0.05, power 0.80)", inputs)
-        return _dom(0, "ASSESSED", f"CI excludes the null and total sample {n} meets the OIS {need}", inputs)
-    inputs["ois"] = "NOT_COMPUTABLE: no structured arm counts"
-    return _dom(0, "PARTIAL", "the CI excludes the null; the optimal information size is not computable (no structured "
-                              "arm counts)", inputs, ["OIS_NOT_COMPUTABLE"])
+        down, basis = 2, (f"the 95% CI {lo:.2f} to {hi:.2f} includes both appreciable benefit (0.75) and harm "
+                          "(1.25) -- GRADE default thresholds")
+    elif lo < null < hi:
+        down, basis = 1, f"the 95% CI {lo:.4g} to {hi:.4g} crosses the null ({null:g})"
+    def unavailable_ois(reason):
+        inputs["ois"] = "NOT_COMPUTABLE: " + reason
+        return _dom(down, "ASSESSED" if down else "PARTIAL",
+                    basis + "; the optimal information size is not computable (" + reason + ")",
+                    inputs, [] if down else ["OIS_NOT_COMPUTABLE"])
+
+    if trial_ids is not None and len(set(trial_ids)) != len(trial_ids):
+        return unavailable_ois("duplicate pooled trial ids")
+    if trial_ids is None and result.get("k") is None:
+        return unavailable_ois("pool size unknown")
+    rows = counts or []
+    if trial_ids is not None:
+        # Duplicate identities, absent rows and extra unrelated rows cannot fill gaps.
+        rows = [next((r for r in rows if r.get("id") == tid), {})
+                if sum(r.get("id") == tid for r in rows) == 1 else {} for tid in trial_ids]
+        expected = len(trial_ids)
+    else:
+        expected = int(result.get("k") or 0)
+    valid = [r for r in rows if _valid_counts(r, scale)]
+    missing = max(0, expected - len(valid))
+    inputs.update(pooled_trials=expected, trials_with_provenanced_counts=len(valid),
+                  trials_missing_counts=missing,
+                  count_sources=[{k: r.get(k) for k in ("id", "provenance_class", "provenance_basis",
+                                                       "source_fields", "record_ids")} for r in valid])
+
+    if missing or not valid or len(valid) != expected:
+        return unavailable_ois(f"{missing} of {expected} pooled trials lack complete provenanced arm counts")
+    total = sum(float(r["n_t"]) + float(r["n_c"]) for r in valid)
+    inputs["total_n"] = int(total)
+    inputs["ois_assumptions"] = {"alpha": 0.05, "beta": 0.20, "allocation": "equal arms"}
+    if scale == "MD":
+        threshold = result.get("clinical_threshold")
+        threshold = threshold if isinstance(threshold, dict) else {}
+        delta = _f(threshold.get("value"))
+        if isinstance(threshold.get("value"), bool) or delta is None or delta <= 0 or not str(threshold.get("basis") or "").strip():
+            return unavailable_ois("no positive declared MID with basis (result.clinical_threshold)")
+        df = sum(float(r["n_t"]) + float(r["n_c"]) - 2 for r in valid)
+        variance = sum((float(r["n_" + a]) - 1) * float(r["sd_" + a]) ** 2
+                       for r in valid for a in ("t", "c")) / df
+        need = ois_md(variance, delta)
+        inputs.update(pooled_within_arm_variance=variance, declared_mid=threshold)
+        assumptions = f"MID {delta:g}, alpha 0.05, power 0.80"
+    else:
+        ec = sum(float(r["events_c"]) for r in valid)
+        nc = sum(float(r["n_c"]) for r in valid)
+        risk = ec / nc
+        need = ois(risk)
+        inputs.update(control_events=int(ec), control_n=int(nc), control_risk=risk)
+        inputs["ois_assumptions"]["rrr"] = 0.25
+        assumptions = f"control risk {risk:.3f}, RRR 25%, alpha 0.05, power 0.80"
+    if need is None:
+        return unavailable_ois("arm data do not support a finite OIS")
+    inputs["ois"] = need
+    # Review policy: a wide shortfall means less than half the OIS. Flag only
+    # the one-level CI decision; do not automatically add a second downgrade.
+    flags = []
+    if down == 1 and total < need / 2:
+        flags = ["VERY_SERIOUS_FOR_JUDGEMENT"]
+        basis += "; very serious imprecision for judgement (total N below half the OIS; review policy)"
+    if total < need:
+        down = max(down, 1)
+        basis += f"; total sample {int(total)} is below the optimal information size {need} ({assumptions})"
+    else:
+        basis += f"; total sample {int(total)} meets the OIS {need} ({assumptions})"
+    return _dom(down, "ASSESSED", basis, inputs, flags)
 
 
 # ------------------------------------------------------------------------------------------------ publication bias
@@ -281,7 +384,7 @@ def grade(outcome, rob, stale=False, counts=None):
     doms = {"risk_of_bias": risk_of_bias(trials, rob, res.get("tau2")),
             "inconsistency": inconsistency(res, trials, scale, stale=stale),
             "indirectness": indirectness(outcome.get("compat_key")),
-            "imprecision": imprecision(res, scale, counts),
+            "imprecision": imprecision(res, scale, counts, [t["id"] for t in trials]),
             "publication_bias": publication_bias(trials, scale)}
     down = sum(d["downgrade"] or 0 for d in doms.values())
     unassessed = sorted(n for n, d in doms.items() if d["state"] == "NOT_ASSESSABLE")
