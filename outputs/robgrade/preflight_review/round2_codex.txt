@@ -1,0 +1,11 @@
+VERDICT: REVISE
+
+1. **HIGH — `scripts/rob2_served_preflight.py:263`**: D8 validation refusals are swallowed into `gate='blocked'`; licence problems at line 259 likewise do not refuse the report. Classification continues and can retain `REUSE` counts despite failed source validation. This leaves fix 2 incomplete.  
+   **Failing test to add:** With otherwise reusable records, make `record_problems()` return a violation. Assert `status == 'REFUSED'`, every slot `UNVERIFIED`, and zero `REUSE`. Repeat with `evidence_block()` raising `D8Refused`.
+
+2. **HIGH — `scripts/rob2_served_preflight.py:316`**: Output validation excludes only the overlay repository and configured source stores. It accepts destinations elsewhere, including `C:/mh-lanes/robgrade-served`, contrary to the explicit write boundary. Atomic replacement protects hard-linked sentinel bytes but still permits replacing a live repository file directly.  
+   **Failing test to add:** Assert `output_path('C:/mh-lanes/robgrade-served/preflight.json')` raises, and reject every resolved destination outside `C:/mh-lanes/tmp/served_preflight`.
+
+The same-directory temporary-file replacement is sound for the stated hard-link case. No direct model-call path appears in the supplied changes. Actual driver `FLAGS` consumption and helper behavior cannot be independently confirmed from these excerpts.
+
+Static review only; tests were not executed.

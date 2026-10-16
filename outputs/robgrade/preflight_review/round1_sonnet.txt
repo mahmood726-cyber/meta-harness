@@ -1,0 +1,9 @@
+VERDICT: ACCEPT (Claude Sonnet second reviewer; by execution in a scratch copy; env AACT_DIR=2026-08-30, LOCAL_FT=1, DEV_OPEN_CC=1)
+1 totals match exactly: 32/91/65; codex 56 REUSE/9 CALL/0 STALE; agy 65 CALL; adjudicator 65 CALL; D8 65 abstract-only; 10 checks PASS, exit 0.
+2 no mutation: mtime+size of 22,331 scratch-root files and 321 files in the FT store unchanged; only --out written.
+3 no model-call path: rob2_dual has no subprocess/socket/http; preflight never calls main/process/adopt_stage/run_dual/run_ctx; audit hook blocks Popen/socket/write opens while active.
+4 planted (7 variants): stale record (consistent manifest), altered-in-place, wrong manifest sha -> STALE; corrupt (garbage, empty, missing prompt, non-string state) -> whole preflight aborts SystemExit REFUSED naming the path. MEDIUM note preflight:134-135: bare SystemExit, no JSON report written.
+5 hand check of 3 REUSE keys (colchicine-postop-af::42132185, glp1-ra-mace-t2d::27633186, sglt2-primary-prevention-hf::28605608): held prompt sha == current prompt sha == manifest sha; RAN_OK; call:codex.
+6 test sensitivity: disabling the prompt comparison fails test_stale_record_is_not_reuse; hardcoding totals fails test_counts_come_from_temp_store_copy.
+7 LOW: AACT-version dependent: AACT_DIR=2026-04-12 gives codex 55 REUSE/1 STALE (corticosteroids-covid19-mortality)/9 CALL, exit 1; the AACT check passes for any existing dir, does not pin the version.
+8 LOW: tests ~13 min per run (session fixture rescans AACT).

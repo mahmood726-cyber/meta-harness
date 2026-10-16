@@ -1,0 +1,4 @@
+VERDICT: REVISE (Claude Sonnet, round 9, read-only; the env/attribute leak itself is fixed)
+(1) env + acquire attributes restored: MonkeyPatch context (62-66) exits before yield. (2) every test needing the patched state gets it via configured_inputs; r1_case sets its own. (3) restoration checks (581-589) would detect a leak; gap: only 4 env names checked, ROBGRADE_SEED_UPW not covered.
+(4) MEDIUM 64-66: collection under the patched snapshot fills driver module caches that outlive the context: rob2_dual._AACT_REF (rob2_dual.py:135/142), _REG_TEXT (:103), possibly _DEV (:404), and any cache in harness.aact; if AACT_DIR was unset they hold the empty-table stub for later tests (e.g. test_rob2_dev_switch). Fix: reset/snapshot-restore those globals after collection. harness.aact caches not checked.
+LOW: duplicate sys.path inserts harmless; rob2_served/rob2_dual stay in sys.modules imported under the patched env (no module-level env reads seen). No chdir or lru_cache.

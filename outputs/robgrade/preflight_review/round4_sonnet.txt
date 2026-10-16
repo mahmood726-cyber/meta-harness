@@ -1,0 +1,5 @@
+VERDICT: ACCEPT (Claude Sonnet, round 4; verify_r4 files byte-identical to repo_ready)
+Executed: pytest -k on the two new tests (LOCAL_FT=1, DEV_OPEN_CC=1, AACT 2026-08-30): 3 passed (unreadable_successful_reader_predicts_quarantine; current_success_without_record_id_refuses[absent],[null]), rc 0. Item 1 asserts parity directly: sv.rd.replay(entry) is None and sv.reader_verdict == 'unreadable reply: codex'; preflight -> codex QUARANTINE, adjudicator 'SKIPPED (trial quarantined)', status PASS, trial listed. Item 2: sv.rd.replay raises (KeyError absent / TypeError null), adopt_orphans adopts nothing; preflight -> WOULD_REFUSE 'RAN_OK manifest entry without a held record', slot not CALL.
+Read: classify (~158-163) uses sv._reply_problem, same as rob2_served.py:334-339 and reader_verdict:393-397; rob2_dual.process 383-388 skips the call, replay 390-391 raises -> WOULD_REFUSE correct.
+LOW/INFO: SKIPPED label suppressed when the other reader is WOULD_REFUSE (correct: driver fails first); a reply that raises (not None) refuses the whole preflight (fails closed).
+Not done: real-data rerun (pytest alone 15 min).

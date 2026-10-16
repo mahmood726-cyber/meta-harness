@@ -1,0 +1,9 @@
+VERDICT **REVISE**
+
+- **High — `tests/test_rob2_served_preflight.py:67–70`:** `plant()` still requires a real `RAN_OK` Codex manifest entry and its readable record in `sv.STORES`. An empty or different workstation store can cause `StopIteration` or record-loading failure. Constructing the current prompt removes prompt dependence, but does **not** remove local-data dependence. Use a self-contained, structurally valid response fixture.
+
+- **High — `tests/test_rob2_served_preflight.py:26–28,36–43,62`:** Inputs still come from real driver collection and copied stores; planting assumes those inputs yield a `CALL` row. The temporary AACT headers isolate only the unset-AACT fallback. Supply controlled source inputs and stores, or explicitly gate the permitted integration test on its prerequisites.
+
+The assertions are **not vacuous**: explicit STALE/REUSE expectations, count changes, refusal checks, write-attempt tracking, and model-call sentinels provide meaningful regression coverage. The reported mutation failures support classification/count coverage, but do not establish hermeticity.
+
+No clear assertion weakening is evident against the supplied brief; the remaining defect is fixture independence. Both environment runs succeeding on one PC cannot demonstrate independence from that PC’s stores.

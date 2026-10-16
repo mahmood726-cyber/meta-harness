@@ -1,0 +1,6 @@
+VERDICT: REVISE (Claude Sonnet, round 6, read-only; no vacuity or weakening found)
+1 MEDIUM test:67-69 plant(): template taken from the REAL store (sv.STORES['dual_runs'], first real RAN_OK codex record); with no held records -> StopIteration. Synthesize the template (e.g. sv.rd.ms helpers) or skip with a named reason.
+2 MEDIUM test:14-29, 32-50: ROBGRADE_FT_STORE never set; scripts/rob2_fulltext_acquire.py:21 defaults it to a hardcoded F:/claude-temp/robgrade-ft and LOCAL_FT=1 reads it -> item set and D8 gate can vary with this PC's store. Set it to a tmp dir in the fixture.
+3 LOW test:36-44: private copy also takes the real quarantine, ctx_rec, ctx_runs, ctx_out stores; neutralise them.
+4 LOW test:269,374,413: report targets at tmp_path.parent (outside tmp_path, inside basetemp); use tmp_path.
+Vacuity ok (STALE+WOULD_REFUSE+will_recall; QUARANTINE+SKIPPED; WOULD_REFUSE exact reason; +1 REUSE/-1 CALL). Deletions only on tmp copies. Counts derived from `before`; 65/91 in r1 fixtures are synthetic.

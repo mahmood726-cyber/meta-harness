@@ -1,0 +1,4 @@
+VERDICT: ACCEPT (Claude Sonnet, round 7, read-only)
+Round-6 findings resolved: plant() synthesizes via sv.rd.ms.build_record (test:54-81); ROBGRADE_FT_STORE -> empty temp dir (test:25), AACT faked when unset (18-22); every sv.STORES key starts empty (36-44); report targets under tmp_path (274, 289, 379, 418). No vacuity.
+LOW 1 test:25: scripts/rob2_fulltext_acquire.py:21 binds STORE at import time; if another test imports it first (tests/test_rob2_dev_switch.py sorts earlier) the env setting is ignored and the F:/claude-temp/robgrade-ft default stays in a full-suite run. Fix: also monkeypatch acquire.STORE, UPW_CACHE, UPW_INDEX.
+LOW 2 test:28: collect_items -> sv.work_list reads repo-tracked outputs/robgrade/rob2 objects (not held stores) -- acceptable.

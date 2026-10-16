@@ -1,0 +1,7 @@
+VERDICT REVISE.
+
+The cache restoration is correct: `MonkeyPatch.context()` saves and restores the original objects; `deepcopy` is used only for verification. Context unwinding restores them even when setup or a consumer raises. Pytest also tears down the environment/acquire monkeypatches after test failures.
+
+One process-global leak remains: `sys.path[:0] = (str(ROOT), str(ROOT / 'scripts'))` is never undone. Those entries persist into subsequent test modules. Restore the prior path contents after the imports, ideally with `try/finally`, if they are needed only for importing.
+
+No additional leak in the listed cache, environment, or acquire patches is evident from the inline file.

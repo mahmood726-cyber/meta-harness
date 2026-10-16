@@ -1,0 +1,5 @@
+VERDICT: REVISE
+
+- **Cross-test leakage:** `inputs` is session-scoped, and its `MonkeyPatch.context()` spans `yield`. Environment overrides, `acquire.STORE`, `UPW_CACHE`, `UPW_INDEX`, and the `store_path` wrapper therefore remain active for unrelated tests until session teardown. Automatic restoration occurs too late to provide isolation. Use function-scoped patches, or end the context before yielding if subsequent fixture consumers need no overrides.
+- **Completeness unverified:** Patching these three attributes correctly redirects functions that resolve them through this module’s globals. However, the inline excerpt omits the remaining acquisition code and preflight/driver dependencies; other bound paths or copied imports cannot be ruled out.
+- **Regression coverage:** The test confirms observed `store_path` calls use the temporary root. It does not establish that every reachable filesystem read uses that root or that patches are restored between tests. The reported 55 passes do not resolve those gaps.

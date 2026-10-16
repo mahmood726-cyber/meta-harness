@@ -1,0 +1,9 @@
+VERDICT **ACCEPT**
+
+- **INFO — Narrow fix is correct.** `scripts/rob2_served_preflight.py:classify:4–8` (function-relative, `def` = 1) rejects `RAN_OK` entries with absent, null, non-string, or blank `record_id` or `prompt_sha256` before record inspection or the default CALL prediction. This covers the round-4 counterexample and preserves refusal for null IDs with a current hash. The report aggregation attaches the trial key and role and prevents overall PASS.
+
+- **INFO — No added defect identified within scope.** The guard short-circuits safely for missing fields. Its stricter validation implements the brief’s explicit malformed-entry policy; it should not be interpreted as proof that the driver rejects every such variant identically.
+
+- **INFO — RESIDUAL appropriately limits assurance.** `scripts/rob2_served_preflight.py:7–16` enumerates claimed coverage, disclaims parity elsewhere, and recommends the driver’s own execution path with the model-call boundary stubbed. This is an honest architectural limitation. However, the inline material contains no round-5 test results or test bodies, so the assertion that those cases are tested remains independently unverified.
+
+No tools used; no tests run.

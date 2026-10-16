@@ -1,0 +1,11 @@
+VERDICT: **REVISE**
+
+1. **HIGH — `scripts/rob2_served_preflight.py:247–256` — Report output can overwrite repository files through hard links.** `resolve()` detects symlink aliases, but an external hard link to a repository file remains an external path. The later unguarded `write_text()` truncates the shared file. **Failing test to add:** create a repository sentinel and an external hard link to it; invoke `main(--out external_link)` with mocked analysis; require rejection and unchanged sentinel bytes.
+
+2. **HIGH — `scripts/rob2_served_preflight.py:148–155,173–177` — Validation refusal does not prevent REUSE classifications.** Manifest/accounting exceptions become report entries, after which classification continues. `classify()` checks state, hashes and role, but does not require successful integrity validation. A record rejected by validation can therefore still contribute to REUSE totals if those fields pass. A nonzero CLI exit does not correct those totals. **Failing test to add:** force manifest validation to reject an otherwise matching held record; assert it never counts as REUSE.
+
+3. **MEDIUM — `scripts/rob2_served_preflight.py:129–136,202–210` — Adjudicator classification violates the requested three-state contract.** Held adjudicator records become `UNKNOWN` when readers need refreshing. The same result occurs when reusable readers agree and adjudication is unnecessary. Conversely, missing records become `CALL` even when reusable readers establish that no adjudication is needed. **Failing tests to add:** agreeing reusable readers with and without a held adjudicator; stale readers with a held adjudicator. Require explicit applicability and the agreed REUSE/STALE/CALL semantics.
+
+4. **MEDIUM — `scripts/rob2_served_preflight.py:169` — CLI startup “check” cannot fail.** It reports PASS merely by returning `--run` and `sv.FLAGS`; it never validates compatibility. **Failing test to add:** remove `--run` from the accepted flags and require refusal. The CLI test mocks analysis entirely, so cannot catch this defect.
+
+Review was inline only; tests were not run. Driver implementations were not supplied, so their indirect write/model paths and exact D8/startup parity remain unverified.

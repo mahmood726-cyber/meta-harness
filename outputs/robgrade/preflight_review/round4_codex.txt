@@ -1,0 +1,11 @@
+VERDICT **REVISE**
+
+Function-relative lines below count `def` as line 1. No tools used; proposed regression not run.
+
+1. **INFO — Unreadable-reader fix matches the driver for the tested case.** `scripts/rob2_served_preflight.py:classify:16–21` predicts quarantine; `adjudicator_state:2–4` skips adjudication. These mirror `scripts/rob2_served.py:reader_verdict:18–20` and `run_dual:22–26`. Keeping overall PASS while listing quarantined trials matches continued execution. **Failing test:** none identified for the supplied parse-to-None case; evidence reports its regression passing.
+
+2. **INFO — Current-success missing-record fix matches.** `scripts/rob2_served_preflight.py:classify:6–11` predicts WOULD_REFUSE for absent/null IDs with the current hash. This mirrors the call suppression in `scripts/rob2_dual.py:process:9–10`, followed by failure in `replay:4`. **Failing test:** none identified for the two supplied variants; evidence reports both passing.
+
+3. **HIGH — Missing prompt hash still permits false PASS.** With an open-source trial and a `RAN_OK` reader entry lacking both `record_id` and `prompt_sha256`, preflight leaves its prediction as CALL (`scripts/rob2_served_preflight.py:classify:5–11`). Manifest enumeration ignores that entry (`scripts/rob2_served.py:_grouped:6–7`), and `reader_verdict:13–14` merely returns “missing reader.” However, `scripts/rob2_dual.py:process:10` directly indexes `prompt_sha256`, raising `KeyError` before replay or quarantine. **Proposed failing test:** `test_success_without_record_id_and_prompt_hash_refuses`, with no orphan; require refusal instead of PASS/CALL.
+
+The supplied evidence reports three initial failures, 47 final passes, August PASS (56/0/9), and April WOULD_REFUSE; it does not cover finding 3.

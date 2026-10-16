@@ -1,0 +1,10 @@
+VERDICT ACCEPT
+
+No findings within the requested scope.
+
+- The session `MonkeyPatch.context()` exits before `inputs` yields, restoring its environment and `acquire` attribute patches before consumers run.
+- `configured_inputs` reapplies those settings using function-scoped `monkeypatch`, which restores them during teardown before the next test.
+- All real-input consumers receive `configured_inputs` directly or through `private`. The synthetic `r1_case` tests supply their own function-scoped configuration and mocks.
+- The restoration checks depend on unconfigured `inputs`, so they observe restored state without reapplying the patches.
+
+This is an inline code review; the reported 80-pass run was not independently executed.

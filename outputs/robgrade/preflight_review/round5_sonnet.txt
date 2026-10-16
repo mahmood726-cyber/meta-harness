@@ -1,0 +1,6 @@
+VERDICT: ACCEPT (Claude Sonnet, round 5, read-only)
+1 guard in classify (preflight.py:143-147) covers absent/null/blank record_id and prompt_sha256, before _record_state and the CALL default (:149); blank values untested (not claimed).
+2 driver fails on such entries: rob2_dual.process:384 indexes prompt_sha256 (KeyError); replay rob2_dual.py:293 indexes record_id (KeyError absent / TypeError null); check_manifest_records (rob2_served.py:242,258) skips entries lacking record_id -> WOULD_REFUSE correct.
+3 tests exist: test_rob2_served_preflight.py:454-478 and :481-500, asserting row state, overall status and exact reason.
+4 RESIDUAL list matches tested cases (adjudicator sub-cases under test_r1_adjudicator_states:212 not traced individually).
+LOW: (1) guard fires before staleness: record_id absent + stale hash predicted WOULD_REFUSE where the driver would re-call -- cautious side only; (2) valid record_id + missing prompt_sha256 is already refused by check_manifest_records (rob2_served.py:272) -- redundant, harmless, untested; (3) preflight.py:141 `entry or {}` does not handle a non-dict entry (AttributeError) -- out of scope.
