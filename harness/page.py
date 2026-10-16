@@ -819,9 +819,10 @@ def _overview(r, neutral):
             ]
             if dc.get("design_refused"):
                 rows.append(("Design-consumption state", dc.get("headline")))
-            rows.append(("Trials pooled (k)", kdisp))
+            _k1 = res.get("k") == 1          # C3: a single trial is not pooled
+            rows.append(("Trial (k = 1, not pooled)" if _k1 else "Trials pooled (k)", kdisp))
             if recon:
-                rows.append(("Screened-in → pooled", recon))
+                rows.append(("Screened-in → contributing" if _k1 else "Screened-in → pooled", recon))
             rows.extend(_effect_rows(res))
             if res.get("ci_low_fixed") is not None:
                 rows.append(_common_effect_row(res))
@@ -1891,7 +1892,8 @@ def _outcome_block(o, show_inputs=True, review=None):
                 ("Heterogeneous key dimensions",
                  (", ".join(_het) + f" [{_e(ck.get('limitation_code'))}]") if _het else None),
                 ("Parser-confirmed contrast",
-                 (f"{rc.get('verified')} of {rc.get('total')} pooled trials"
+                 (f"{rc.get('verified')} of {rc.get('total')} "
+                  + ("trial (single trial, not pooled)" if rc.get("total") == 1 else "pooled trials")
                   if rc.get("total") else None)),
             ])
             _lims = [x for x in (ck.get("limitations") or [])
