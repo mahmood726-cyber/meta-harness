@@ -6773,5 +6773,34 @@
     "verdict": null
    }
   ]
+ },
+ "img-r2": {
+  "base": "49a508d0",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7d3a5fd8e9dacadf22dd30e30631af42",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/lane_image_agreement.py"
+    ],
+    "prompt_sha256": "ac583d9054d61da88fd8c25db7d296a1935a313ef534460ed90e06febdbc07af"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "b_records",
+    "severity": "P2",
+    "claim": "Duplicate detection ignores prompt_sha256, silently discarding records from different prompts. Since prompt_sha256 contributes to record_id, input order determines which provenance and record ID survive.",
+    "failing_input": "answers = [{'key': 'table-1', 'image_sha256': 'a'*64, 'prompt_sha256': '1'*64, 'answer': '3'}, {'key': 'table-1', 'image_sha256': 'a'*64, 'prompt_sha256': '2'*64, 'answer': '3'}]. Compare processing this list with processing answers[::-1].",
+    "expected": "Reject the conflicting prompt digests or retain both distinct records; do not silently select provenance by input order.",
+    "actual": "The second entry passes both conflict comparisons and reaches continue. The retained record uses the first entry's prompt digest; reversing the entries changes the retained provenance and record ID.",
+    "id": "img-r2:g1#1",
+    "record_id": "mc-7d3a5fd8e9dacadf22dd30e30631af42",
+    "verdict": null
+   }
+  ]
  }
 }

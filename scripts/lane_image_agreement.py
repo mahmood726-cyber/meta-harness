@@ -34,8 +34,10 @@ def b_records(answers, model, batches):
     out = {}
     for a in answers:
         if a['key'] in out:
-            if out[a['key']]['response'] != a['answer'] or \
-                    out[a['key']]['input_digests']['image_sha256'] != a['image_sha256']:
+            seen = out[a['key']]
+            if seen['response'] != a['answer'] or \
+                    seen['input_digests']['image_sha256'] != a['image_sha256'] or \
+                    seen['input_digests']['prompt_sha256'] != a['prompt_sha256']:
                 # two different readings of one image: never let file order pick the survivor
                 raise ValueError(f"CONFLICTING_READER_B answers for {a['key']}")
             continue
@@ -52,6 +54,17 @@ def b_records(answers, model, batches):
     return out
 
 
+def shape_problems(reading):
+    """g1_forest_reader's schema check plus the string fields it leaves unchecked (a non-string measure crashed
+    fp.is_ratio and took the whole run down)."""
+    probs = fr.shape_problems(reading)
+    if not probs and not all(isinstance(reading.get(k), str) for k in ('measure', 'row_kind')):
+        probs = ['measure/row_kind not a string']
+    if not probs and not isinstance(reading.get('pooled'), dict):
+        probs = ['pooled not an object']
+    return probs
+
+
 def compare(item, rb):
     """One image: reader A's reading x reader B's -> state + rows."""
     ra = item.get('reading')
@@ -59,20 +72,33 @@ def compare(item, rb):
         return dict(state='NOT_READ_BY_A', proposed=[], refused=[], problems=[])
     if rb is None:
         return dict(state='READER_B_MISSING', proposed=[], refused=[], problems=[])
-    probs = fr.shape_problems(rb)
-    if probs:
-        return dict(state='READER_B_SCHEMA', proposed=[], refused=[], problems=probs)
+    for side, reading in (('A', ra), ('B', rb)):
+        probs = shape_problems(reading)
+        if probs:
+            return dict(state=f'READER_{side}_SCHEMA', proposed=[], refused=[], problems=probs)
     if not ra.get('rows') and not rb.get('rows'):
         return dict(state='NO_ROWS_IN_EITHER', proposed=[], refused=[], problems=[])
     proposed, refused, pooled, problems, not_est = fr.agree(ra, rb)
-    blocking = [p for p in problems if p.startswith(('NOT_LEGIBLE', 'ROWS_ARE_NOT_STUDIES', 'MEASURE_DISAGREES'))]
+    # a row with no label, or with no printed number at all, is agreement on nothing: never a study row
+    for r in list(proposed):
+        why = ('NO_LABEL' if not str(r.get('label') or '').strip() else
+               'NO_NUMBER' if all(r.get(k) is None for k in ('effect', 'lower', 'upper', 'events_t', 'n_t',
+                                                              'events_c', 'n_c')) else None)
+        if why:
+            proposed.remove(r)
+            refused.append(dict(label=r.get('label'), why=why, a=r, b=None))
+    # the house rule (g1_forest_reader.judge): ANY disagreement in the figure -- a sibling row, the pooled row, the
+    # measure, legibility, row kind -- refuses the whole figure. Only 'no pooled row printed' is not a disagreement.
+    blocking = [p for p in problems if p != 'NO_POOLED_ROW_PRINTED'] + \
+        ([f'ROWS_DISAGREE:{len(refused)}'] if refused and not any(p.startswith('ROWS_DISAGREE') for p in problems)
+         else [])
     if blocking:
-        # a figure both readers cannot read as study rows, or read under different measures: no row is admitted
         refused = refused + [dict(label=r['label'], why='FIGURE_' + blocking[0].split(':')[0], a=r, b=None)
                              for r in proposed]
         proposed = []
     for r in proposed:
         r['state'] = 'SECONDARY_PROVISIONAL'
+        r['basis'] = 'DUAL_READ_AGREED; pooled-row reconstruction (g1_forest_reader.accept) NOT run'
     return dict(state='COMPARED', proposed=proposed, refused=refused, pooled=pooled, problems=problems,
                 not_estimable=not_est)
 
@@ -82,7 +108,8 @@ def run(reader_a, answers, model, batches, trial_total):
     images, trials_secondary, trials_a = [], set(), set()
     for item in reader_a['images']:
         rec = recs.get(item['sha256'])
-        if rec and rec['input_digests']['image_sha256'] != item.get('attached_sha256'):
+        if rec and (not item.get('attached_sha256') or
+                    rec['input_digests']['image_sha256'] != item.get('attached_sha256')):
             res = dict(state='READER_B_IMAGE_MISMATCH', proposed=[], refused=[], problems=[])
         else:
             res = compare(item, rec['response'] if rec else None)
@@ -102,6 +129,8 @@ def run(reader_a, answers, model, batches, trial_total):
                   refused_rows=sum(len(i['refused']) for i in images),
                   trials_reader_a_candidate={'n': len(trials_a), 'N': trial_total},
                   trials_secondary_provisional={'n': len(trials_secondary), 'N': trial_total},
+                  reader_b_answers=len(recs),
+                  reader_b_orphans=len(set(recs) - {i['sha256'] for i in reader_a['images']}),
                   primary_verified=0)
     return images, recs, funnel, sorted(trials_secondary)
 
@@ -111,6 +140,8 @@ def report(data):
     lines = ['# Image reads: reader A x reader B', '',
              f"Reader A: codex (recorded). Reader B: {data['reader_b_model']} (recorded, client NOT attested).",
              'A row is SECONDARY_PROVISIONAL only when both readings agree within the printed rounding; '
+             'Any disagreement in a figure (sibling row, pooled row, measure) refuses the whole figure, as in '
+             'g1_forest_reader.judge; the pooled-row reconstruction gate is NOT run here, so no row is ACCEPTED. '
              'PRIMARY_VERIFIED needs verify_typed against the source and is 0 here.', '',
              '| step | n | N |', '|---|---|---|',
              f"| images compared | {f['compared']['n']} | {f['compared']['N']} |",

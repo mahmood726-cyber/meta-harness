@@ -1,16 +1,16 @@
 # Image reads: reader A x reader B
 
 Reader A: codex (recorded). Reader B: claude-sonnet-5-5 (Agent tool subagent; not attested) (recorded, client NOT attested).
-A row is SECONDARY_PROVISIONAL only when both readings agree within the printed rounding; PRIMARY_VERIFIED needs verify_typed against the source and is 0 here.
+A row is SECONDARY_PROVISIONAL only when both readings agree within the printed rounding; Any disagreement in a figure (sibling row, pooled row, measure) refuses the whole figure, as in g1_forest_reader.judge; the pooled-row reconstruction gate is NOT run here, so no row is ACCEPTED. PRIMARY_VERIFIED needs verify_typed against the source and is 0 here.
 
 | step | n | N |
 |---|---|---|
 | images compared | 43 | 74 |
-| with >=1 agreed row | 43 | 43 |
+| with >=1 agreed row | 40 | 43 |
 | missing trials, reader-A candidate | 1 | 11 |
 | missing trials, SECONDARY_PROVISIONAL candidate | 1 | 11 |
 
-Agreed rows 565, refused rows 14, PRIMARY_VERIFIED 0.
+Agreed rows 511, refused rows 68, PRIMARY_VERIFIED 0.
 
 ## Missing-trial candidates
 
@@ -28,7 +28,7 @@ Agreed rows 565, refused rows 14, PRIMARY_VERIFIED 0.
 | 34484209 | Supplemental Figure 11.tif | COMPARED | 13 | 0 |  |
 | 34484209 | Supplemental Figure 12.tif | COMPARED | 5 | 0 |  |
 | 34484209 | Supplemental Figure 13.tif | COMPARED | 3 | 0 |  |
-| 34484209 | Supplemental Figure 14.tif | COMPARED | 17 | 3 | ROWS_DISAGREE:3 |
+| 34484209 | Supplemental Figure 14.tif | COMPARED | 0 | 20 | ROWS_DISAGREE:3 |
 | 34484209 | Supplemental Figure 15.tif | COMPARED | 2 | 0 |  |
 | 34484209 | Supplemental Figure 16.tif | COMPARED | 4 | 0 |  |
 | 34484209 | Supplemental Figure 17.tif | COMPARED | 16 | 0 |  |
@@ -36,8 +36,8 @@ Agreed rows 565, refused rows 14, PRIMARY_VERIFIED 0.
 | 34484209 | Supplemental Figure 19.tif | COMPARED | 7 | 0 |  |
 | 34484209 | Supplemental Figure 2.tif | NO_ROWS_IN_EITHER | 0 | 0 |  |
 | 34484209 | Supplemental Figure 20.tif | COMPARED | 22 | 0 |  |
-| 34484209 | Supplemental Figure 21.tif | COMPARED | 20 | 4 | ROWS_DISAGREE:4 |
-| 34484209 | Supplemental Figure 22.tif | COMPARED | 17 | 7 | ROWS_DISAGREE:7 |
+| 34484209 | Supplemental Figure 21.tif | COMPARED | 0 | 24 | ROWS_DISAGREE:4 |
+| 34484209 | Supplemental Figure 22.tif | COMPARED | 0 | 24 | ROWS_DISAGREE:7 |
 | 34484209 | Supplemental Figure 23.tif | NO_ROWS_IN_EITHER | 0 | 0 |  |
 | 34484209 | Supplemental Figure 24.tif | NO_ROWS_IN_EITHER | 0 | 0 |  |
 | 34484209 | Supplemental Figure 25.tif | NO_ROWS_IN_EITHER | 0 | 0 |  |

@@ -91,3 +91,63 @@ def test_record_id_names_the_model():
     x = lia.b_records([a], 'model-one', {})['s1']
     y = lia.b_records([a], 'model-two', {})['s1']
     assert x['record_id'] != y['record_id']
+
+
+def test_same_answer_under_a_different_prompt_fails_closed():
+    import pytest
+    a = answer([])
+    b = dict(a, prompt_sha256='other')
+    with pytest.raises(ValueError, match='CONFLICTING_READER_B'):
+        lia.b_records([a, b], 'm-b', {})
+
+
+# second reader (claude-sonnet) findings, 16 Oct -- plants first
+def _blank(**k):
+    return {**row('FAIR-HF', None, None, None, et=None, nt=None, ec=None, nc=None), **k}
+
+
+def test_vacuous_row_is_not_admitted():
+    images, _, funnel, trials = run([item([_blank()])], [answer([_blank()])])
+    assert images[0]['proposed'] == [] and trials == [] and funnel['agreed_rows'] == 0
+
+
+def test_unlabelled_row_is_not_admitted():
+    r = row(None, '1.0', '0.5', '2.0')
+    images, _, funnel, _ = run([item([r])], [answer([dict(r)])])
+    assert images[0]['proposed'] == [] and funnel['agreed_rows'] == 0
+
+
+def test_sibling_row_disagreement_refuses_the_figure():
+    a = [row('FAIR-HF', '0.49', '0.12', '1.96'), row('X', '1.0', '0.5', '2.0')]
+    b = [row('FAIR-HF', '0.49', '0.12', '1.96'), row('X', '3.0', '0.5', '2.0')]
+    images, _, _, trials = run([item(a)], [answer(b)])
+    assert images[0]['proposed'] == [] and trials == []
+
+
+def test_pooled_row_disagreement_refuses_the_figure():
+    it = item([row('FAIR-HF', '0.49', '0.12', '1.96')])
+    it['reading']['pooled'] = dict(label='overall', effect='1.0', lower='0.5', upper='2.0')
+    images, *_ = run([it], [answer([row('FAIR-HF', '0.49', '0.12', '1.96')])])
+    assert images[0]['proposed'] == []
+
+
+def test_malformed_reader_a_is_a_refusal_not_a_crash():
+    images, _, funnel, _ = run([item(['x'])], [answer([row('FAIR-HF', '0.49', '0.12', '1.96')])])
+    assert images[0]['state'] == 'READER_A_SCHEMA' and funnel['agreed_rows'] == 0
+
+
+def test_non_string_measure_is_a_refusal_not_a_crash():
+    images, *_ = run([item([row('FAIR-HF', '0.49', '0.12', '1.96')])],
+                     [answer([row('FAIR-HF', '0.49', '0.12', '1.96')], measure=5)])
+    assert images[0]['state'] == 'READER_B_SCHEMA'
+
+
+def test_orphan_reader_b_answer_is_counted():
+    _, _, funnel, _ = run([item([])], [answer([], sha='s1'), answer([], sha='s2')])
+    assert funnel['reader_b_orphans'] == 1
+
+
+def test_missing_image_hash_never_matches():
+    it = item([row('FAIR-HF', '0.49', '0.12', '1.96')], png=None)
+    images, *_ = run([it], [answer([row('FAIR-HF', '0.49', '0.12', '1.96')], png=None)])
+    assert images[0]['state'] == 'READER_B_IMAGE_MISMATCH'
