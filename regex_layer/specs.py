@@ -12,6 +12,58 @@ PROPOSAL) marks in a sentence without ever seeing the regex. `kind`:
 from __future__ import annotations
 
 SPECS = {
+    "_RESULTS_CAPTION":     {
+    "kind": "classifier",
+    "spec": "the table caption announces a RESULT -- an effect, an outcome, a rate, a change -- so the table reports what happened to patients rather than who they were. A caption that reports an effect is a results caption however it stratifies: 'Clinical response by baseline characteristics' is a results table.",
+    "trigger": "effect|efficacy|outcome|end ?point|ratio|difference|incidence|event|mortality|survival|response|remission|relapse|recurrence|change|reduction|analysis|estimand",
+    "plants": {
+        "accept": [
+            "treatment effect on change from baseline to week 26 in hba1c",
+            "clinical response by baseline characteristics",
+            "28-day mortality by treatment group",
+            "incidence of adverse events"
+        ],
+        "refuse": [
+            "baseline characteristics of the study population",
+            "demographics and clinical features of enrolled subjects"
+        ]
+    }
+    },
+    "_COMPOSITION_CAPTION":     {
+    "kind": "classifier",
+    "spec": "the table caption names WHO WAS ENROLLED rather than what happened to them -- baseline, demographics, cohort, study population, disposition, design, criteria. 'Characteristics of the study population' is standard Lancet/BMJ phrasing and names neither 'baseline' nor 'demographic'.",
+    "trigger": "baseline|demographic|enrol|disposition|design|criteria|schedule|population|cohort|participant|subject|patient",
+    "plants": {
+        "accept": [
+            "baseline demographic and clinical characteristics of subjects",
+            "characteristics of the study population",
+            "participant characteristics at baseline",
+            "demographics and clinical features of enrolled subjects"
+        ],
+        "refuse": [
+            "hazard ratio for the primary endpoint",
+            "incidence of myocardial infarction"
+        ]
+    }
+    },
+    "_COMPOSITION_NOUN":     {
+    "kind": "classifier",
+    "spec": "the caption's noun is a composition noun -- characteristics, features, demographics, disposition, design, composition. Required alongside a composition word so that 'change from baseline in HbA1c' alone cannot trip the guard.",
+    "trigger": "characteristic|feature|demographic|disposition|criteria|design|composition",
+    "plants": {
+        "accept": [
+            "baseline characteristics",
+            "clinical features of the cohort",
+            "patient disposition",
+            "demographics"
+        ],
+        "refuse": [
+            "change from baseline in hba1c",
+            "28-day mortality"
+        ]
+    }
+    },
+
     "_ARM": {"kind": "extractor", "fields": ["count", "percent", "denominator"],
              "spec": "an event count for one group written as COUNT (PERCENT%) of DENOMINATOR (or COUNT (PERCENT%)/DENOMINATOR)",
              "trigger": r"\d\s*%", "plants": {"accept": [("12 (6.0%) of 200", ("12", "6.0", "200"))],
@@ -179,6 +231,96 @@ ROLES.update({"_DEF_CUE": "conjunct:_ANCHOR_RX", "_ANCHOR_RX": "conjunct:_DEF_CU
 # The test reads each pattern FROM THE SOURCE by AST, so a changed literal gets a new key and fails the ratchet until
 # its plants are restated. kind: "search" (accept = must match, with groups when given) or "split" (accept = parts).
 INLINE_SPECS = {
+
+    "extract.py:findall:462eafe7ae":     {
+    "kind": "extractor",
+    "what": "outcome_window_mismatch: a DECLARED RANGE of days, '28-90 day' -> (28, 90), expanded inclusively. Accepts hyphen, 'to', en dash, em dash and U+2212 MINUS SIGN, which PMC XML and LaTeX typography emit and which an earlier version silently dropped.",
+    "plants": {
+        "accept": [
+            [
+                "28-90 day or in-hospital",
+                [
+                    "28",
+                    "90"
+                ]
+            ],
+            [
+                "28−90 day or in-hospital",
+                [
+                    "28",
+                    "90"
+                ]
+            ],
+            [
+                "30 to 60 day mortality",
+                [
+                    "30",
+                    "60"
+                ]
+            ]
+        ],
+        "refuse": [
+            "30-day or in-hospital",
+            "in-hospital only",
+            "day 28"
+        ]
+    }
+    },
+    "extract.py:findall:160f5c1a93":     {
+    "kind": "extractor",
+    "what": "outcome_window_mismatch: a SINGLE declared day window. The lookbehind stops a range's endpoints being re-read as lone windows, for every dash a journal may use.",
+    "plants": {
+        "accept": [
+            [
+                "30-day or in-hospital",
+                [
+                    "30"
+                ]
+            ],
+            [
+                "28 day mortality",
+                [
+                    "28"
+                ]
+            ]
+        ],
+        "refuse": [
+            "in-hospital",
+            "trial end"
+        ]
+    }
+    },
+    "extract.py:search:5a386094ea":     {
+    "kind": "extractor",
+    "what": "table_role_refusal: the CAPTION of the table a span came from. A period delimits a caption as often as a colon -- 'Table 1. Characteristics of the Patients at Baseline' is NEJM house style -- and requiring ':' let that whole convention through.",
+    "plants": {
+        "accept": [
+            [
+                "table 1.: baseline demographic and clinical characteristics of subjects",
+                [
+                    "baseline demographic and clinical characteristics of subjects"
+                ]
+            ],
+            [
+                "table 1. baseline characteristics of the study population",
+                [
+                    "baseline characteristics of the study population"
+                ]
+            ],
+            [
+                "table 2: treatment effect on change from baseline to week 26",
+                [
+                    "treatment effect on change from baseline to week 26"
+                ]
+            ]
+        ],
+        "refuse": [
+            "there was no significant difference in 60-day mortality",
+            "17 patients (15.3%) died"
+        ]
+    }
+    },
+
     "extract.py:split:328973b9f2": {
         "kind": "split", "what": "_sentences: split after a full stop before a capital or '('",
         "plants": {"accept": [("Mortality fell. The HR was 0.8.", ["Mortality fell.", "The HR was 0.8."]),
@@ -224,10 +366,6 @@ INLINE_SPECS = {
         "kind": "search", "what": "outcome_window_mismatch: a day window named in the declared timepoint",
         "plants": {"accept": [("30-day or in-hospital", ("30",)), ("28 day mortality", ("28",))],
                    "refuse": ["in-hospital", "at 12 months"]}},
-    "extract.py:findall:e0fa32946f#2": {
-        "kind": "search", "what": "outcome_window_mismatch: a day window named in one of the outcome's keywords",
-        "plants": {"accept": [("28-day mortality", ("28",)), ("90 day death", ("90",))],
-                   "refuse": ["all-cause mortality", "death by day 28"]}},
     "extract.py:findall:69685124cf": {
         "kind": "search", "what": "outcome_window_mismatch: a keyword of the form 'by day N'",
         "plants": {"accept": [("death by day 28", ("28",)), ("day 90", ("90",))],
@@ -245,11 +383,6 @@ INLINE_SPECS = {
         "kind": "search", "what": "outcome_window_mismatch: 'mortality at N days' in the source span",
         "plants": {"accept": [("mortality at 90 days", ("90",)), ("death at 28 day", ("28",))],
                    "refuse": ["60-day mortality", "mortality at one year"]}},
-    "extract.py:search:7930f7731d": {
-        "kind": "search", "what": "table_role_refusal: the caption of the table nearest the span's start",
-        "plants": {"accept": [("table table 1.: baseline characteristics", ("baseline characteristics",)),
-                              ("table 3: death from any cause | hr", None)],
-                   "refuse": ["results are shown in table 2 and figure 1", "the tables below"]}},
     "extract.py:search:e1a55342c0": {
         "kind": "search", "what": "analysis_qualifiers: the end of the sentence a truncated row snippet came from",
         "plants": {"accept": [("(aHR = 1.00, 95% CI 0.64-1.56). Also, no effect", None)],

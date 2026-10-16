@@ -1084,7 +1084,20 @@ def outcome_window_mismatch(declared_timepoint: str, keywords, source_span: str)
     elsewhere in the sentence, and never when no window is declared at all.
     """
     dt = (declared_timepoint or "").lower()
-    allowed = {int(n) for n in re.findall(r"(\d{1,3})\s*[- ]?\s*day", dt)}
+    # A DECLARED RANGE IS A RANGE. '28-90 day or in-hospital' means 28 THROUGH 90; reading only the
+    # upper endpoint left allowed=[90] and REFUSED an explicitly permitted 28-day mortality result
+    # in balanced-crystalloids-vs-saline-mortality. A guard that deletes a legitimate row is worse
+    # than the mismatch it exists to catch, because it removes evidence instead of adding it.
+    #
+    # U+2212 MINUS SIGN belongs in both character sets, not just the hyphen and dashes: an
+    # independent review found '28-90 day' written with U+2212 losing the range entirely, and PMC
+    # XML and LaTeX typography both emit it. A guard that handles only the wording we happened to
+    # write is a guard that works on us and not on the corpus. The lookbehind needs it too, or the
+    # surviving endpoint is re-read as a lone window.
+    allowed = set()
+    for _lo, _hi in re.findall(r"(\d{1,3})\s*(?:-|to|–|—|−)\s*(\d{1,3})\s*[- ]?\s*day", dt):
+        allowed |= set(range(int(_lo), int(_hi) + 1))
+    allowed |= {int(n) for n in re.findall(r"(?<![\d\-–—−])(\d{1,3})\s*[- ]?\s*day", dt)}
     for k in (keywords or []):
         allowed |= {int(n) for n in re.findall(r"(\d{1,3})\s*[- ]?\s*day", str(k).lower())}
         allowed |= {int(n) for n in re.findall(r"\bday\s+(\d{1,3})\b", str(k).lower())}
@@ -1107,12 +1120,28 @@ def outcome_window_mismatch(declared_timepoint: str, keywords, source_span: str)
             "measurement windows would be estimand-inconsistent")
 
 
-_TABLE_ROLE_NEVER_AN_EFFECT_SOURCE = (
-    "baseline demographic", "baseline characteristic", "baseline clinical",
-    "demographic and clinical characteristic", "patient characteristic",
-    "subject characteristic", "study design", "trial design", "inclusion criteria",
-    "exclusion criteria", "eligibility criteria", "schedule of assessment",
-)
+# A caption states a table's ROLE, and a phrase list in one word order protects nothing. Reviews
+# found this list ADMITTING real baseline captions the corpus actually uses -- "Participant
+# Characteristics at Baseline", "Characteristics of the Patients at Baseline", "Demographics and
+# clinical features of enrolled subjects", "Characteristics of the study population" (standard
+# Lancet/BMJ phrasing, naming neither "baseline" nor "demographic") -- while REFUSING a real
+# results table, "Treatment effect ... on change from baseline to week 26 in HbA1c by baseline
+# characteristics". Admitting a baseline table is the dangerous direction: its numbers are arm
+# sizes, so they enter a pooled estimate looking exactly like event counts.
+#
+# So decide by what the caption ANNOUNCES. Result markers are checked FIRST and win: a caption that
+# reports an effect is a results caption however it stratifies, and refusing those would silently
+# delete real continuous outcomes -- removing evidence rather than adding it.
+_RESULTS_CAPTION = re.compile(
+    r"\b(?:treatment\s+effect|effect\s+of|efficacy|outcome|end[\s-]?point|hazard\s+ratio"
+    r"|odds\s+ratio|risk\s+ratio|rate\s+ratio|mean\s+difference|change\s+from\s+baseline"
+    r"|incidence|events?|mortality|survival|adverse\s+events?|primary\s+analysis|estimand"
+    r"|response|remission|relapse|recurrence|change\s+in|reduction\s+in|difference\s+in)\b", re.I)
+_COMPOSITION_CAPTION = re.compile(
+    r"\b(?:baseline|demographics?|enrol?ment|enrolled|disposition|design|criteria|schedule"
+    r"|study\s+population|patient\s+population|cohort|participants?|subjects?|patients?)\b", re.I)
+_COMPOSITION_NOUN = re.compile(
+    r"\b(?:characteristics?|features?|demographics?|disposition|criteria|design|composition)\b", re.I)
 
 
 def table_role_refusal(source_span: str) -> str:
@@ -1151,14 +1180,25 @@ def table_role_refusal(source_span: str) -> str:
     if not s:
         return ""
     head = s[:600].lower()
-    m = re.search(r"table\s+[^:\n]{0,40}:\s*([^\n|]{0,160})", head)
+    # A PERIOD DELIMITS A CAPTION AS OFTEN AS A COLON. Requiring ':' missed NEJM house style
+    # entirely -- "Table 1. Characteristics of the Patients at Baseline." -- so a very common real
+    # baseline caption fell through to the uncaptioned branch, which needs a demographic row label
+    # in the head and therefore admitted it. The number-and-delimiter part is kept tight
+    # ([^:.\n]{0,40}) so this matches a table LABEL followed by its caption, not the first period
+    # in a sentence of prose.
+    # [.:]+ consumes BOTH delimiters: "Table 1.:" (period then colon) is the real form in
+    # colchicine-secondary PMID 32295417, and matching only the period captured a leading colon
+    # into the caption.
+    m = re.search(r"table\s+[^:.\n]{0,40}[.:]+\s*([^\n|]{0,160})", head)
     if m:
         caption = m.group(1).lower()
-        for phrase in _TABLE_ROLE_NEVER_AN_EFFECT_SOURCE:
-            if phrase in caption:
-                return (f"the effect was read from a table whose caption describes it as {phrase!r} "
-                        "(baseline/demographic/design tables report arm composition, not outcome events); "
-                        "a number from such a table is not an effect")
+        if _RESULTS_CAPTION.search(caption):
+            return ""        # it announces a result; how it stratifies does not change that
+        if _COMPOSITION_CAPTION.search(caption) and _COMPOSITION_NOUN.search(caption):
+            return ("the effect was read from a table whose caption describes arm composition rather "
+                    f"than an outcome ({caption.strip()[:90]!r}); baseline, demographic, disposition "
+                    "and design tables report who was enrolled, not what happened to them, so a "
+                    "number from such a table is not an effect")
         return ""
     # The span may carry a provenance label ("abstract mean+/-SD per arm (mean difference): ..."); the table's
     # own content starts after it.

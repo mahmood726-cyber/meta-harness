@@ -598,7 +598,10 @@ def held_fulltexts(slug, records, included_ids=None, config=None):
     digests = {}
     known = {str(r.get("id")) for r in (records.get("records") or []) if r.get("id") is not None}
     if included_ids:
-        known |= {str(x) for x in included_ids}
+        # NARROWS, NEVER WIDENS. This was a union, so the argument could admit any pmid at all --
+        # found by review. A parameter able to override the scope contract is the contract not
+        # existing: the topic's own records are the ceiling, and included_ids can only restrict.
+        known &= {str(x) for x in included_ids}
     cache_dir = _os.path.join(ROOT, "cache", str(slug))
     if not _os.path.isdir(cache_dir) or not held_fulltexts_enabled(slug, config):
         # Not opted in: the recorded fetch alone, exactly as before. The digests map stays empty so
