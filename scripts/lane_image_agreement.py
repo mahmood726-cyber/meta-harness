@@ -33,7 +33,14 @@ def b_records(answers, model, batches):
     The second family ran as a subagent, so its client is NOT attested -- the record says so."""
     out = {}
     for a in answers:
-        rec = dict(record_id='mcb-' + digest([a['key'], a['image_sha256'], a['prompt_sha256'], a['answer']])[:32],
+        if a['key'] in out:
+            if out[a['key']]['response'] != a['answer'] or \
+                    out[a['key']]['input_digests']['image_sha256'] != a['image_sha256']:
+                # two different readings of one image: never let file order pick the survivor
+                raise ValueError(f"CONFLICTING_READER_B answers for {a['key']}")
+            continue
+        rec = dict(record_id='mcb-' + digest([model, a['key'], a['image_sha256'], a['prompt_sha256'],
+                                              a['answer']])[:32],
                    caller=dict(file='scripts/lane_image_agreement.py', lane='coverage/reader-b',
                                purpose='Unadmitted supplement image transcription, second reader'),
                    model=model, client='subagent (Agent tool)', attested=False,

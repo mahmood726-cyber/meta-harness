@@ -75,3 +75,19 @@ def test_reader_b_schema_failure_admits_nothing():
     del a['answer']['pooled']
     images, *_ = run([item([row('FAIR-HF', '0.49', '0.12', '1.96')])], [a])
     assert images[0]['state'] == 'READER_B_SCHEMA'
+
+
+def test_conflicting_answers_for_one_image_fail_closed():
+    import pytest
+    a = answer([])
+    b = answer([row('FAIR-HF', '0.49', '0.12', '1.96')])
+    with pytest.raises(ValueError, match='CONFLICTING_READER_B'):
+        lia.b_records([a, b], 'm-b', {})
+    assert len(lia.b_records([a, dict(a)], 'm-b', {})) == 1      # an identical repeat is one reading
+
+
+def test_record_id_names_the_model():
+    a = answer([])
+    x = lia.b_records([a], 'model-one', {})['s1']
+    y = lia.b_records([a], 'model-two', {})['s1']
+    assert x['record_id'] != y['record_id']
