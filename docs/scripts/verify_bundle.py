@@ -464,8 +464,6 @@ def pooled_state(t):
         return "EXACT_TARGET_POOLED"
     if cls == "NEAR_MATCH" or adm.startswith("NEAR_MATCH"):
         return "NEAR_MATCH_POOLED"
-    if adm == "SIGNED_BINDING" or b == "signed_panel_binding":
-        return "SIGNED_BINDING_POOLED"            # V15-C: no definition-span binding; admitted by a signed decision
     if b == "unbound_legacy" or adm == "UNBOUND_LEGACY" or not cls:
         return "UNBOUND_POOLED"
     return f"OTHER:{cls}"
@@ -965,7 +963,6 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         failing = [k for k, ok in P.items() if not ok]
         final = ("ADMISSIBLE" if not failing else
                  "MIGRATION_STATE_UNBOUND_LEGACY" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "unbound_legacy" else
-                 "ADMITTED_BY_SIGNED_BINDING" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "signed_panel_binding" else
                  "INADMISSIBLE")
         recorded = (br or {}).get("admission", {}).get("final")
         recorded_P = {k: v["state"] == "PASS" for k, v in ((br or {}).get("admission", {}).get("predicates") or {}).items()}
@@ -1145,8 +1142,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
     for o in review.get("outcomes", []):
         for t in o.get("trials", []):
             b = t.get("endpoint_binding")
-            cls = ("BOUND" if b == "named_endpoint_resolved_to_definition_span" else "MIGRATION_STATE_UNBOUND_LEGACY"
-                   if b == "unbound_legacy" else "SIGNED_PANEL_BINDING" if b == "signed_panel_binding" else "OTHER")
+            cls = "BOUND" if b == "named_endpoint_resolved_to_definition_span" else "MIGRATION_STATE_UNBOUND_LEGACY" if b == "unbound_legacy" else "OTHER"
             report["binding_states"]["rendered_rows"].append({"outcome": o["name"], "id": t.get("id"), "binding_class": cls})
             report["binding_states"]["migration_state_unbound_legacy"] += (cls == "MIGRATION_STATE_UNBOUND_LEGACY")
     report["binding_states"]["migration_rows_counted_admissible"] = sum(

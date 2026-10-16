@@ -1608,11 +1608,6 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         trials = _spa.merge_signed(trials, _signed_rows, withdrawn=bool(spec.get("withdrawn")))
     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
     absent.extend(_inadmissible)
-    # V15-C ENFORCEMENT (Mahmood 13 Oct, ruling 1): an UNBOUND_LEGACY row (admit_rows' migration state) stays pooled
-    # only under a signed ADMIT whose snapshot equals its numbers; every other unbound row leaves the pool, displayed
-    from . import enforcement as _enf
-    trials, _unbound_refused = _enf.apply(slug, spec, trials)
-    absent.extend(_unbound_refused)
     if spec.get("withdrawn"):
         # RESULT WITHDRAWN (Mahmood, 2026-09-19): the outcome's declared `withdrawn` notice states that the
         # served result was wrong and why; until the corrected selection lands, NO pooled estimate is
