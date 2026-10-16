@@ -4004,10 +4004,10 @@ def topic(slug, T, *, build_date=None):
                                 "comparator_stated_trials": (st or {}).get("k"), "comparator_trials_listed": len(trials),
                                 **ab}
     from datetime import datetime, timezone
-    from scripts.g1_explanation import CommittedRecords, attach_explanations
+    from scripts.g1_explanation import committed_records, attach_explanations
     # Clock at the build boundary only; builders/validators take an explicit date.
     attach_explanations(out, build_date=build_date or datetime.now(timezone.utc).date(),
-                        records=CommittedRecords(ROOT))
+                        records=committed_records(ROOT), primary_rows=prim.get("trials", []))
     return out
 
 
@@ -4266,19 +4266,35 @@ def canonical(out):
 
 
 def main(argv):
+    argv = list(argv)
+    out_dir = G1_DIR
+    if "--out-dir" in argv:
+        i = argv.index("--out-dir")
+        if i + 1 == len(argv) or argv[i + 1].startswith("--"):
+            raise ValueError("--out-dir requires a directory")
+        out_dir = argv[i + 1]
+        del argv[i:i + 2]
     if argv and argv != ["--table"]:
         T = _j(os.path.join(OUT, "k_gap_table.json"))
-        os.makedirs(G1_DIR, exist_ok=True)
+        os.makedirs(out_dir, exist_ok=True)
         T = with_identity_chain(T)
         for s in [a for a in argv if not a.startswith("--")]:
-            o = topic(s, T)
+            if s == "tocilizumab-covid19-mortality":
+                from scripts.g1_toci_tracker import build
+                o = cite_or_demote(build(), s)
+                o["g1_status"] = g1_status(o)
+                from scripts.g1_explanation import committed_records, attach_explanations
+                from datetime import datetime, timezone
+                attach_explanations(o, build_date=datetime.now(timezone.utc).date(), records=committed_records(ROOT))
+            else:
+                o = topic(s, T)
             # ATOMIC: a concurrent reader (another process building the table) must never see a truncated file
-            p = os.path.join(G1_DIR, f"{s}.json")
+            p = os.path.join(out_dir, f"{s}.json")
             tmp = f"{p}.{os.getpid()}.tmp"
             with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
                 json.dump(o, fh, indent=1, ensure_ascii=False)
             os.replace(tmp, p)
-    if "--no-table" in argv:
+    if "--no-table" in argv or out_dir != G1_DIR:
         return
     print("\n".join(table()[:4 + len(os.listdir(G1_DIR))]))
 

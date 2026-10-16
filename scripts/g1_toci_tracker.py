@@ -188,7 +188,7 @@ def _row(d):
             "events_c": d["deaths_c"], "n_c": d["n_c"]} if d else None
 
 
-def build():
+def build(*, build_date=None):
     r = g.run()
     rx = g.react()
     trials = []
@@ -269,7 +269,7 @@ def build():
     label = (f"COVERAGE-LIMITED RECONCILIATION, NOT A FINDING: {len(mat)} of {len(trials)} trials matched ("
              + ", ".join(f"{k} {v}" for k, v in by_route.items()) + f"), {round(100 * n_mat / n_all)}% of REACT's "
              f"participants; missing " + ", ".join(f"{l} (n={n})" for n, l, _ in missing[:2]))
-    return {
+    out = {
         "schema_version": 1, "slug": SLUG, "comparator_pmid": rx["comparator_pmid"],
         "basis": ("g1/tocilizumab.py (lane g1/tocilizumab): k matched = trials with a VERIFIED typed day-28 tuple (k-gap "
                   "9abe38d3), by route: PRIMARY (two primaries, or one bound primary that STATES the counts -- 2 Oct), "
@@ -310,6 +310,11 @@ def build():
         "ours_not_in_comparator": [], "ours_not_in_comparator_detail": [],
         "secondary_tally": {}, "secondary_skipped": {}, "registry": {"snapshot": json.load(open(g.AACT_FILE, encoding="utf-8"))["snapshot"]},
     }
+    from datetime import datetime, timezone
+    from scripts.g1_explanation import committed_records, attach_explanations
+    attach_explanations(out, build_date=build_date or datetime.now(timezone.utc).date(),
+                        records=committed_records(ROOT))
+    return out
 
 
 def main():
@@ -322,6 +327,9 @@ def main():
     bad = gt.scope_citation_violations(d)
     if bad:
         raise SystemExit("REFUSED (scope citation): " + "; ".join(bad))
+    from datetime import datetime, timezone
+    from scripts.g1_explanation import committed_records, attach_explanations
+    attach_explanations(d, build_date=datetime.now(timezone.utc).date(), records=committed_records(ROOT))
     open(OUT, "w", encoding="utf-8", newline="\n").write(json.dumps(d, indent=1, ensure_ascii=False) + "\n")
     s = d["same_trials"]
     print(f"k matched {d['k_matched']} of {d['N_comparator_trials']} | routes {d['routes']} | same trials k={s['k']}: "

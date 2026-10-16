@@ -1,4 +1,4 @@
-"""Synthetic-only G1 explanation contracts; no document stores or network."""
+"""Synthetic explanation contracts and an offline all-topic denominator regression."""
 import hashlib
 import importlib
 from datetime import date
@@ -139,6 +139,24 @@ def test_required_source_gate_never_counts(gate):
     assert got["state"] == "UNEXPLAINED"
     assert "required source WHO_ICTRP gated:" in got["why_unexplained"]
     assert gate in got["why_unexplained"]
+
+
+def test_PLANT_latest_record_per_source_identifier_decides():
+    """16 Oct: with 'any fresh record' an older NOT_FOUND satisfied a source whose NEWER record says NEW_REPORT_FOUND,
+    and why_unexplained quoted a superseded ERROR. The latest record per (source, identifier) decides."""
+    log = search()
+    first = log["searched"][0]
+    newer = dict(first, when_utc="2026-10-15T12:00:00Z", step_reached="NEW_REPORT_FOUND", outcome="new PMID")
+    log["searched"][0] = dict(first, when_utc="2026-10-15T00:00:00Z", step_reached="NOT_FOUND")
+    log["searched"].append(newer)
+    got = api().build_explanation({}, search_log=log, **context())
+    assert got["state"] == "UNEXPLAINED" and "NEW_REPORT_FOUND" in got["why_unexplained"]
+    old_error = dict(first, when_utc="2026-10-15T00:00:00Z", step_reached="ERROR", outcome="superseded")
+    log2 = search()
+    log2["searched"][0] = dict(log2["searched"][0], when_utc="2026-10-15T12:00:00Z")
+    log2["searched"].insert(0, old_error)
+    got2 = api().build_explanation({}, search_log=log2, **context())
+    assert got2["state"] == "NO_OPEN_SOURCE" and "superseded" not in (got2.get("why_unexplained") or "")
 
 
 def test_all_missing_and_stale_sources_are_named():
@@ -298,6 +316,7 @@ def test_whole_document_index_resolution_without_real_stores(kind):
         files = {index: json.dumps({key: {field: SHA}}).encode(), doc: BODY}
     store.paths = set(files)
     store._git = lambda *args: files[args[1].split(":", 1)[1]]
+    store._read_many = lambda paths: [store.read(path) for path in paths]
     assert store.held_bytes(SHA) == BODY
 
 
@@ -336,3 +355,204 @@ def test_builder_does_not_mutate_committed_inputs():
     before = copy.deepcopy((trial, log, candidate))
     api().build_explanation(trial, search_log=log, divergences=[candidate], **context())
     assert (trial, log, candidate) == before
+
+
+@pytest.mark.parametrize("outcome,valid", [("recorded result", True), ({"status": "no result"}, True),
+                                            ({}, False), ([], False), (None, False), ("  ", False)])
+def test_job_b_outcome_shapes(outcome, valid):
+    log = search()
+    log["searched"][0]["outcome"] = outcome
+    got = api().build_explanation({}, search_log=log, **context())
+    assert (got["state"] == "NO_OPEN_SOURCE") is valid
+
+
+def test_derived_queries_use_source_identifiers_without_mutation():
+    import copy
+    log = search()
+    log["identifiers"]["pmids"] = ["synthetic-pmid"]
+    rec = dict(log["searched"][0], source="PUBMED_EPMC_PMID", identifier_or_query=None,
+               outcome={"status": "derived"})
+    log["searched"].append(rec)
+    log["searched"][0]["identifier_or_query"] = ""
+    before = copy.deepcopy(log)
+    got = api().build_explanation({}, search_log=log, **context())
+    assert got["state"] == "NO_OPEN_SOURCE"
+    assert got["searched"][-1]["identifier_or_query"] == "PUBMED_EPMC_PMID: synthetic-pmid"
+    assert "Synthetic" in got["searched"][0]["identifier_or_query"]
+    assert log == before
+
+
+def test_missing_query_cannot_be_invented_without_identifiers():
+    log = search()
+    log["identifiers"].update(title=None, acronym=None)
+    log["searched"][0]["identifier_or_query"] = None
+    assert api().build_explanation({}, search_log=log, **context())["state"] == "UNEXPLAINED"
+
+
+@pytest.mark.parametrize("step", api().ACCESS_OUTCOMES)
+def test_dictionary_outcomes_do_not_bypass_access_gates(step):
+    log = search()
+    log["searched"][0].update(step_reached=step, outcome={"status": step})
+    got = api().build_explanation({}, search_log=log, **context())
+    assert got["state"] == "UNEXPLAINED"
+    assert f"required source PUBMED_EPMC_TITLE gated: {step}" in got["why_unexplained"]
+
+
+class AdapterRecords(SyntheticRecords):
+    source_document = api().CommittedRecords.source_document
+    evidence = api().CommittedRecords.evidence
+
+    def read(self, path):
+        import json
+        obj = self.files.get(path.split("#", 1)[0])
+        return json.dumps(obj, sort_keys=True).encode() if obj is not None else None
+
+    def record_digest(self, rid):
+        if rid == "synthetic-call":
+            return "registry/model_calls/synthetic-call.json", SHA
+
+
+def test_acquired_primary_hashes_the_recorded_call_not_the_identifier():
+    trial = dict(route="PRIMARY", acquired=dict(source="synthetic registry outcome", record_id="synthetic-call"))
+    got = api()._primary(trial, AdapterRecords(), "synthetic")
+    assert got["sha256"] == SHA and got["verified_by"] == "synthetic-call"
+    trial["acquired"]["record_id"] = "missing-call"
+    assert api()._primary(trial, AdapterRecords(), "synthetic") is None
+
+
+def test_comparator_provenance_is_never_primary_provenance():
+    trial = dict(route="PRIMARY", comparator_sourced=dict(provenance=dict(digest=SHA, read="synthetic-call")),
+                 comparator_row_provenance=dict(digest=SHA, read="synthetic-call"))
+    assert api()._primary(trial, AdapterRecords(), "synthetic") is None
+
+
+def test_signed_extraction_record_requires_identity_and_current_value():
+    path = "docs/reviews/synthetic/review.json"
+    row = dict(id="PMID synthetic", effect=2, ci_low=1, ci_high=3, provenance="served_pool_signed_notice",
+               served_pool_admission={"route": "PRIMARY"}, verified="verified", source="synthetic source span",
+               verify_basis="synthetic gate")
+    store = AdapterRecords({path: {"outcomes": [{"primary": True, "trials": [row]}]}})
+    trial = dict(route="PRIMARY", family=row["id"], in_our_pool=True,
+                 our_value=dict(effect="2", lower="1", upper="3"))
+    got = api()._primary(trial, store, "synthetic")
+    assert got["sha256"] == hashlib.sha256(store.read(path)).hexdigest()
+    assert got["sha256_kind"] == "recorded_extraction" and row["id"] in got["source_ref"]
+    trial["our_value"]["effect"] = "9"
+    assert api()._primary(trial, store, "synthetic") is None
+    trial["our_value"]["effect"] = "2"
+    trial["family"] = "another report"
+    assert api()._primary(trial, store, "synthetic") is None
+
+
+def test_primary_continuous_values_are_taken_from_current_pool_at_attachment():
+    row = dict(id="NCT00000000", mean1=2, sd1=1, nc1=20, mean2=1, sd2=1, nc2=20,
+               provenance="served_pool_signed_notice", served_pool_admission={"route": "PRIMARY"},
+               verified="verified", source="synthetic registry means", verify_basis="synthetic gate")
+    store = AdapterRecords({"docs/reviews/synthetic/review.json":
+                            {"outcomes": [{"primary": True, "trials": [row]}]}})
+    trial = dict(route="PRIMARY", label="Synthetic", family=row["id"], in_our_pool=True,
+                 our_value=dict(n_t=20, n_c=20))
+    assert api()._primary(trial, store, "synthetic") is None
+    assert api()._primary(trial, store, "synthetic", [row])["sha256_kind"] == "recorded_extraction"
+
+
+def test_registry_source_follows_recorded_pmid_to_nct_and_requires_posted_results():
+    store = AdapterRecords({"cache/synthetic/records.json": {"records": [dict(id="123", nct="NCT00000000")]},
+                            "outputs/k_gap/ctgov_index.json": {"NCT00000000": dict(sha256=SHA, posted=True)}})
+    doc = store.source_document("synthetic", "123", "ctgov_results")
+    assert "NCT00000000" in doc[0] and doc[1] == SHA
+    store.files["outputs/k_gap/ctgov_index.json"]["NCT00000000"]["posted"] = False
+    assert store.source_document("synthetic", "123", "ctgov_results") is None
+
+
+def test_fulltext_scope_span_resolves_document_hash_from_its_own_pmid():
+    store = AdapterRecords({"outputs/k_gap/fulltext_index.json": {"123": dict(sha256=SHA, copy_licence="CC")}})
+    ev = store.evidence(dict(pmid="123", span=dict(field="fulltext", text="Synthetic report.")), "synthetic")
+    assert ev["sha256"] == SHA and "123" in ev["source_ref"]
+    assert store.evidence(dict(pmid="456", span=dict(field="fulltext", text="Synthetic report.")),
+                          "synthetic").get("sha256") is None
+
+
+def test_toci_reading_must_match_selected_tuple_and_bound_record():
+    path = "g1/data/vnh_reads.json"
+    counts = dict(deaths_t=1, n_t=10, deaths_c=2, n_c=11)
+    candidate = dict(counts, label="Synthetic", span="synthetic span", extractor="TABLE")
+    rec = dict(state="VERIFIED_NOT_HELD", bound_labels=["Synthetic"], candidates=[candidate])
+    store = AdapterRecords({path: {"123": rec}})
+    trial = dict(label="Synthetic", route="PRIMARY", our_value=dict(events_t=1, n_t=10, events_c=2, n_c=11),
+                 readings=[dict(values=counts, sources=[dict(source="TEXT PMID 123 (VERIFIED_NOT_HELD)",
+                                                            span="synthetic span")])])
+    got = api()._primary(trial, store, "synthetic")
+    assert got["sha256"] == hashlib.sha256(store.read(path)).hexdigest()
+    assert got["sha256_kind"] == "recorded_read"
+    trial["our_value"]["events_t"] = 3
+    assert api()._primary(trial, store, "synthetic") is None
+
+
+@pytest.fixture(scope="module")
+def regenerated_topics(tmp_path_factory):
+    import os
+    from pathlib import Path
+    from scripts import g1_tracker
+    # CI can consume the same full regeneration just produced by the preview
+    # command. Without it this is a real offline build, not a snapshot-only test.
+    supplied = os.environ.get("G1_EXPLANATION_REGEN_DIR")
+    if supplied:
+        return Path(supplied)
+    target = tmp_path_factory.mktemp("g1-regenerated")
+    slugs = sorted(p.stem for p in Path(g1_tracker.G1_DIR).glob("*.json"))
+    g1_tracker.main([*slugs, "--out-dir", str(target), "--no-table"])
+    return target
+
+
+def _topic_slugs():
+    from pathlib import Path
+    return sorted(p.stem for p in (Path(__file__).resolve().parents[1] / "outputs/k_gap/g1").glob("*.json"))
+
+
+@pytest.mark.parametrize("slug", _topic_slugs())
+def test_regeneration_preserves_every_committed_topic_denominator(slug, regenerated_topics):
+    import json
+    import subprocess
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    committed = json.loads(subprocess.check_output(["git", "-C", str(root), "show",
+                                                   f"HEAD:outputs/k_gap/g1/{slug}.json"]))
+    generated = json.loads((regenerated_topics / f"{slug}.json").read_text(encoding="utf-8"))
+    assert generated["N_comparator_trials"] == committed["N_comparator_trials"]
+    assert len(generated["trials"]) == len(committed["trials"])
+    assert all(t.get("g1_explanation", {}).get("state") in api().STATES for t in generated["trials"])
+
+
+def test_tracker_cli_dispatches_toci_to_its_own_builder_and_keeps_default_output_untouched(tmp_path, monkeypatch):
+    import copy
+    import json
+    from scripts import g1_tracker, g1_toci_tracker
+    monkeypatch.setattr(g1_tracker, "_j", lambda p: {})
+    monkeypatch.setattr(g1_tracker, "with_identity_chain", lambda x: x)
+    monkeypatch.setattr(g1_tracker, "topic", lambda *a, **k: pytest.fail("generic builder used for toci"))
+    monkeypatch.setattr(g1_tracker, "cite_or_demote", lambda d, s: d)
+    monkeypatch.setattr(g1_tracker, "g1_status", lambda d: {})
+    monkeypatch.setattr(api(), "committed_records", lambda root: SyntheticRecords())
+    fixture = dict(slug=g1_toci_tracker.SLUG, trials=[dict(label="Synthetic", route="NO_ROW")])
+    monkeypatch.setattr(g1_toci_tracker, "build", lambda: copy.deepcopy(fixture))
+    monkeypatch.setattr(g1_tracker, "table", lambda: pytest.fail("preview must not write canonical table"))
+    g1_tracker.main([g1_toci_tracker.SLUG, "--out-dir", str(tmp_path)])
+    got = json.loads((tmp_path / f"{g1_toci_tracker.SLUG}.json").read_text())
+    assert got["trials"][0]["g1_explanation"]["state"] == "UNEXPLAINED"
+
+
+@pytest.mark.parametrize("query", [42, [], {}])
+def test_invalid_query_types_are_not_repaired_as_missing_derived_queries(query):
+    log = search()
+    log["searched"][0]["identifier_or_query"] = query
+    got = api().build_explanation({}, search_log=log, **context())
+    assert got["state"] == "UNEXPLAINED"
+    assert "identifier_or_query" in got["why_unexplained"]
+
+
+def test_empty_registry_result_is_not_primary_source_evidence():
+    store = AdapterRecords({"cache/synthetic/records.json":
+                            {"records": [dict(id="NCT00000000", nct="NCT00000000")],
+                             "ctgov_results": {"NCT00000000": None}}})
+    assert store.source_document("synthetic", "NCT00000000", "ctgov_results") is None
