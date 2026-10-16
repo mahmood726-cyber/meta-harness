@@ -103,11 +103,32 @@ def _secondary_records(slug: str, label: str, root: str) -> list[str]:
     return _records_in(rows)
 
 
+def signed_refusals(slug: str, review: dict) -> dict:
+    """{(slug, id): ('SIGNED_REFUSAL', why)} for every PRIMARY-outcome trial the served page refuses under a signed V15-C
+    decision (harness/enforcement.py). The G1 tracker is lane-built and may still pool it until its lane regenerates it
+    (regenerating by script wiped tocilizumab's lane curation, 13 Oct): that is a disclosed lag traced to the signed
+    decision -- never UNTRACED, never counted as served."""
+    out = {}
+    for o in review.get("outcomes") or []:
+        if not o.get("primary"):
+            continue
+        for a in o.get("declared_absent_trials") or []:
+            if (a.get("enforcement") or {}).get("decision") == "REFUSE":
+                rid = str(a.get("id") or "").replace("PMID ", "").strip()
+                if rid:
+                    out[(slug, rid)] = ("SIGNED_REFUSAL", "the served page refuses this trial under a signed V15-C "
+                                                          "decision; the lane-built G1 tracker lags it until regenerated")
+    return out
+
+
 def classify_tracker(t: dict, slug: str, served_class: dict, root: str = ROOT, lags=None) -> tuple[str, str]:
+    signed = None
     if t.get("in_our_pool"):
         fam = str(t.get("family") or "").replace("PMID ", "").strip()
         c = served_class.get((slug, fam))
-        if c:
+        if c and c[0] == "SIGNED_REFUSAL":
+            signed = c          # only where the row would otherwise be UNTRACED: its own trace (records, typed) wins
+        elif c:
             return c
     route = str(t.get("route") or "").upper()
     ids = _records_in({k: t.get(k) for k in ("basis", "our_value", "comparator_sourced", "secondary_single",
@@ -131,6 +152,8 @@ def classify_tracker(t: dict, slug: str, served_class: dict, root: str = ROOT, l
         fam = str(t.get("family") or "")
         if m and m.group(1) in EXTRACTOR_PROV and fam in (lags or []):
             return "EXTRACTOR", f"held-source build ({m.group(1)}); the served page lags it (served_pool_lags)"
+        if signed:
+            return signed
         return "UNTRACED", f"in our pool but no served primary row for {fam}, and not a disclosed served-pool lag"
     return "UNTRACED", f"route {t.get('route')}: basis cites neither a record nor a typed source ({b[:100]!r})"
 
@@ -146,6 +169,8 @@ def census(root: str = ROOT) -> dict:
     for p in sorted(glob.glob(os.path.join(root, "docs", "reviews", "*", "review.json"))):
         r = _j(p)
         slug = r.get("slug") or os.path.basename(os.path.dirname(p))
+        for k, v in signed_refusals(slug, r).items():
+            served_class.setdefault(k, v)       # a served primary row of the same trial (another outcome) wins below
         for o in r.get("outcomes") or []:
             for t in o.get("trials") or []:
                 # classify, then the recorded-read conversion (harness/provenance_class.served_class: shared with the page)
