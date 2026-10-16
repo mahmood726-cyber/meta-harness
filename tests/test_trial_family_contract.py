@@ -92,7 +92,10 @@ def test_refused_pool_is_not_claimed_as_pooled_family():
     records, nodes = fixture()
     nodes[0]['eligibility'] = {'state':'ELIGIBLE','span':{'fixture':'synthetic decision'}}
     review = {'outcomes':[{'name':'synthetic outcome','primary':True,'trials':records[:1],
-                          'result':{'pool_refused':{'code':'SYNTHETIC_REFUSAL'}}}]}
+                          'result':{'pool_refused':{'code':'SYNTHETIC_REFUSAL'}}}],
+              # the family's own record is INCLUDED by a record-level screen: without one the reconcile gate abstains
+              # (codex pr81-cap-r1 #1) and this test -- about a REFUSED pool -- would not reach its question
+              'screening':{'records':[{'id':records[0]['id'],'decision':'include'}]}}
     attach(review,nodes)
     assert review['family_count_chain']['contributing'] == 1
     assert review['family_count_chain']['pooled'] == 0
