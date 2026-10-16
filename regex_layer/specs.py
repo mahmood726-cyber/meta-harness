@@ -218,6 +218,19 @@ ROLES.update({"_DEF_CUE": "conjunct:_ANCHOR_RX", "_ANCHOR_RX": "conjunct:_DEF_CU
 # The test reads each pattern FROM THE SOURCE by AST, so a changed literal gets a new key and fails the ratchet until
 # its plants are restated. kind: "search" (accept = must match, with groups when given) or "split" (accept = parts).
 INLINE_SPECS = {
+    "extract.py:finditer:b96cefac82": {
+        "kind": "search", "what": "_outcome_sentences: parenthesized candidate alias, before definition/initial checks",
+        "plants": {"accept": [("hospitalization for heart failure (hHF)", ("hHF",)),
+                              ("(AAD)", ("AAD",)), ("(DPP-4)", ("DPP-4",))],
+                   "refuse": ["hHF", "(H)", "(heart failure)", "(ABCDEFGHI)"]}},
+    "extract.py:findall:a5b3c1db92": {
+        "kind": "search", "what": "_outcome_sentences: lowercase keyword words used to derive content initials",
+        "plants": {"accept": [("hospitalization for heart failure", ()), ("heart-failure", ())],
+                   "refuse": ["123-()", "HHF"]}},
+    "extract.py:findall:9c5ae57564": {
+        "kind": "search", "what": "_outcome_sentences: ASCII alias letters, excluding digits and hyphens",
+        "plants": {"accept": [("hHF", ()), ("DPP-4", ())],
+                   "refuse": ["123-()", " "]}},
     "extract.py:split:328973b9f2": {
         "kind": "split", "what": "_sentences: split after a full stop before a capital or '('",
         "plants": {"accept": [("Mortality fell. The HR was 0.8.", ["Mortality fell.", "The HR was 0.8."]),

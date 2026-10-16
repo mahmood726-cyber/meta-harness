@@ -12176,6 +12176,26 @@
    "reason": "Both lost hits are ONE row of the hazard-consumer table: 'topic:pcsk9-mace:harms:1:adverse-events-leading-to-discontinuation:result-absent DECLARED_ABSENT_SECTION DECLARED_ABSENT BLOCKS_CLAIM' (the phrase DECLARED_ABSENT matches twice in that row). The row is gone because that harm outcome's limitation changed kind: result.harm_reporting_trials went 0 -> 3 (28304224, 30403574, 25773378, all RETRIEVED_REFUSED_WITH_REASON), so harms.synthesis_incomplete() is true and limitations._add_outcome_limitations emits HARMS_INCOMPLETE (which has an executable consumer, compat_check.harms_incomplete) instead of DECLARED_ABSENT_SECTION. review.json outcomes[].declared_absent_trials is IDENTICAL at base and now (MACE 3, injection-site reactions 5, discontinuation 5): no trial left the declared-absent state, none was pooled, none screened out. The section now renders 'HARMS EXTRACTION INCOMPLETE -- no class-level quantitative safety conclusion issued'. Captain to judge whether signals refused as spurious should make a section 'incomplete' rather than 'declared absent'.",
    "by": "Claude Opus 5.5 (captain lane 3, integrator) -- read each lost/replacement pair side by side (word-diff prepared by a Claude Opus subagent, F:/captain3-tmp/ack109_review.md) on the V15-B landing tree captain/land-99r; adjudicated: 22 STRONGER, 2 STRONGER-reclassified (DECLARED ABSENT -> HARMS EXTRACTION INCOMPLETE), 0 weaker",
    "when_utc": "2026-10-15T22:19:59Z"
+  },
+  {
+   "page": "docs/reviews/dpp4-mace-t2d/index.html",
+   "kind": "declared_absent",
+   "base_count": 83,
+   "new_count": 80,
+   "reason": "All lost markers concern PMID 28893244, Hospitalization for heart failure: one OUTCOME_NOT_IN_SOURCE in the included-study outcome summary and two in its detailed absent-trial row (state and state_basis). The retained acquisition and source-defined hHF alias expose a reported HR, so these become EXTRACTION_NOT_PERFORMED / KNOWN_REPORTED_NOT_YET_EXTRACTED with the effect span and acquisition path. No trial disappears; this records reporting and extraction debt instead of false absence. The fix114 deterministic recovery subsequently resolves that debt: PMID 28893244 is EXTRACTED, bound to its retained acquisition, and hHF has k=3.",
+   "when_utc": "2026-10-16T20:29:11Z",
+   "by": "Claude Opus 5.5 (captain lane) via Codex",
+   "replaced_by": "hHF extracted trial row PMID 28893244 and reporting ledger EXTRACTED; pooled HR 0.9744 with CI 0.4082 to 2.3262; included-study outcome summary and source-bound extraction row."
+  },
+  {
+   "page": "docs/reviews/dpp4-mace-t2d/index.html",
+   "kind": "not_assessed",
+   "base_count": 24,
+   "new_count": 23,
+   "reason": "The lost marker is the hazard-consumer row topic:dpp4-mace-t2d:harms:3:hospitalization-for-heart-failure:k2-ci-refused (GRADE_CERTAINTY / NOT_ASSESSED). limitations._add_outcome_limitations returns after adding the stronger HARMS_INCOMPLETE / BLOCKS_CLAIM limitation when PMID 28893244 becomes known-reported. The hHF section suppresses synthesis and names the unresolved trial; no uncertainty is presented as safety. The fix114 deterministic recovery subsequently resolves that debt: PMID 28893244 is EXTRACTED, bound to its retained acquisition, and hHF has k=3.",
+   "when_utc": "2026-10-16T20:29:11Z",
+   "by": "Claude Opus 5.5 (captain lane) via Codex",
+   "replaced_by": "hHF extracted trial row PMID 28893244 and reporting ledger EXTRACTED; pooled HR 0.9744 with CI 0.4082 to 2.3262; k=2 CI limitation no longer applies to the rebuilt k=3 synthesis."
   }
  ],
  "parity_acknowledgements": [
