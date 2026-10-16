@@ -184,3 +184,20 @@ def test_author_year_twice_in_one_figure_is_ambiguous():
     images, _, _, trials = lia.run(dict(images=[_titled(rows)]), [answer([dict(r) for r in rows])], 'm-b', {}, 11,
                                    IDENT)
     assert trials == []
+
+
+def test_compound_surname_is_kept_whole():
+    census = {'metas': [{'topic': 'T', 'missing_trials': ['Trial A']}]}
+    ident = lia.build_identity(census, {'p1': {'title': 'Trial A'}},
+                               {'result': {'p1': {'sortfirstauthor': 'van der Meer J', 'pubdate': '2020'}}})
+    assert ident['T']['Trial A']['surname'] == 'van der Meer'
+    src = [dict(topic='T', missing_trials=['Trial A'])]
+    assert lia.author_year_candidates([{'label': 'Van 2020'}], src, ident) == []
+    assert len(lia.author_year_candidates([{'label': 'van der Meer 2020'}], src, ident)) == 1
+
+
+def test_one_row_matching_two_trials_credits_neither():
+    ident = {'T': {'Trial A': dict(pmid='a', surname='Smith', years=['2020']),
+                   'Trial B': dict(pmid='b', surname='Smith', years=['2020'])}}
+    src = [dict(topic='T', missing_trials=['Trial A', 'Trial B'])]
+    assert lia.author_year_candidates([{'label': 'Smith 2020'}], src, ident) == []

@@ -1,0 +1,17 @@
+img-ay-r1 g1 RAN_OK mc-c794e1c972478824a576b536548c2105
+[img-ay-r1:g1#1] P1 scripts/lane_image_agreement.py::build_identity -- Splitting sortfirstauthor at the first space truncates compound surnames. This both misses the correct figure label and permits associations with a different surname.
+    input: census = {'metas': [{'topic': 'T', 'missing_trials': ['Trial A']}]}
+records = {'fixture-a': {'title': 'Trial A'}}
+esummary = {'result': {'fixture-a': {'sortfirstauthor': 'van der Meer J', 'pubdate': '2020'}}}
+identity = build_identity(census, records, esummary)
+rows = [{'label': 'Van 2020'}]
+sources
+    expected: []; the source surname is 'van der Meer', which does not match 'Van'. | actual: [('Trial A', 'Van 2020')]; build_identity stores surname='van'.
+
+[img-ay-r1:g1#2] P1 scripts/lane_image_agreement.py::author_year_candidates -- Uniqueness is checked only among figure rows, not among trial identities. A single ambiguous author-year row therefore becomes a candidate for two distinct trials, and run credits both in trials_secondary.
+    input: rows = [{'label': 'Smith 2020'}]
+sources = [{'topic': 'T', 'missing_trials': ['Trial A', 'Trial B']}]
+identity = {'T': {'Trial A': {'pmid': 'fixture-a', 'surname': 'Smith', 'years': ['2020']}, 'Trial B': {'pmid': 'fixture-b', 'surname': 'Smith', 'years': ['2020']}}}
+[(c['trial'], c['printed_label'],
+    expected: []; the row cannot distinguish the two trials and must remain unresolved rather than crediting both. | actual: [('Trial A', 'Smith 2020', 'fixture-a'), ('Trial B', 'Smith 2020', 'fixture-b')]
+

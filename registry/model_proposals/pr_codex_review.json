@@ -6818,5 +6818,46 @@
   },
   "verdicts": {},
   "findings": []
+ },
+ "img-ay-r1": {
+  "base": "c18381f4",
+  "head": "34ae1b2f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c794e1c972478824a576b536548c2105",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/lane_image_agreement.py"
+    ],
+    "prompt_sha256": "5e255c372dd497fb229ae2c2ea3a00cb70834cb3d7d9b4d5f2907f6a6d5916f4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "build_identity",
+    "severity": "P1",
+    "claim": "Splitting sortfirstauthor at the first space truncates compound surnames. This both misses the correct figure label and permits associations with a different surname.",
+    "failing_input": "census = {'metas': [{'topic': 'T', 'missing_trials': ['Trial A']}]}\nrecords = {'fixture-a': {'title': 'Trial A'}}\nesummary = {'result': {'fixture-a': {'sortfirstauthor': 'van der Meer J', 'pubdate': '2020'}}}\nidentity = build_identity(census, records, esummary)\nrows = [{'label': 'Van 2020'}]\nsources = [{'topic': 'T', 'missing_trials': ['Trial A']}]\n[(c['trial'], c['printed_label']) for c in author_year_candidates(rows, sources, identity)]",
+    "expected": "[]; the source surname is 'van der Meer', which does not match 'Van'.",
+    "actual": "[('Trial A', 'Van 2020')]; build_identity stores surname='van'.",
+    "id": "img-ay-r1:g1#1",
+    "record_id": "mc-c794e1c972478824a576b536548c2105",
+    "verdict": null
+   },
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "author_year_candidates",
+    "severity": "P1",
+    "claim": "Uniqueness is checked only among figure rows, not among trial identities. A single ambiguous author-year row therefore becomes a candidate for two distinct trials, and run credits both in trials_secondary.",
+    "failing_input": "rows = [{'label': 'Smith 2020'}]\nsources = [{'topic': 'T', 'missing_trials': ['Trial A', 'Trial B']}]\nidentity = {'T': {'Trial A': {'pmid': 'fixture-a', 'surname': 'Smith', 'years': ['2020']}, 'Trial B': {'pmid': 'fixture-b', 'surname': 'Smith', 'years': ['2020']}}}\n[(c['trial'], c['printed_label'], c['pmid']) for c in author_year_candidates(rows, sources, identity)]",
+    "expected": "[]; the row cannot distinguish the two trials and must remain unresolved rather than crediting both.",
+    "actual": "[('Trial A', 'Smith 2020', 'fixture-a'), ('Trial B', 'Smith 2020', 'fixture-b')]",
+    "id": "img-ay-r1:g1#2",
+    "record_id": "mc-c794e1c972478824a576b536548c2105",
+    "verdict": null
+   }
+  ]
  }
 }

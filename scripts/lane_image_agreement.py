@@ -79,7 +79,8 @@ def author_year_candidates(rows, sources, identity):
                 out.append(dict(topic=s['topic'], trial=trial, printed_label=hits[0]['label'], pmid=ident['pmid'],
                                 basis=f"AUTHOR_YEAR: {ident['surname']} {'/'.join(ident['years'])} from PubMed "
                                       f"esummary of PMID {ident['pmid']}", state='CANDIDATE_ONLY'))
-    return out
+    # one printed row credited to two different trials (two 'Smith 2020' identities) cannot tell them apart: neither
+    return [c for c in out if sum(d['printed_label'] == c['printed_label'] for d in out) == 1]
 
 
 def build_identity(census, records, esummary):
@@ -94,7 +95,9 @@ def build_identity(census, records, esummary):
                 continue
             e = res[hits[0]]
             years = sorted({y[:4] for y in (e.get('pubdate', ''), e.get('epubdate', '')) if y[:4].isdigit()})
-            first = (e.get('sortfirstauthor') or '').split(' ')[0]
+            # 'van der Meer J' -> 'van der Meer': drop only the trailing initials token, keep a compound surname whole
+            parts = (e.get('sortfirstauthor') or '').split()
+            first = ' '.join(parts[:-1] if len(parts) > 1 and re.fullmatch(r'[A-Z]{1,4}', parts[-1]) else parts)
             if first and years:
                 out.setdefault(m['topic'], {})[t] = dict(pmid=hits[0], surname=first, years=years)
     return out
