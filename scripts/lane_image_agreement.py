@@ -143,17 +143,18 @@ def main():
     log = []
     for r in recs.values():
         path = REC_DIR / f"{r['record_id']}.json"
-        path.write_text(json.dumps(r, indent=1, ensure_ascii=False) + '\n', encoding='utf8')
+        # LF bytes: the ledger hash must be the hash of the blob git stores
+        path.write_bytes((json.dumps(r, indent=1, ensure_ascii=False) + '\n').encode('utf8'))
         log.append(json.dumps(dict(record_id=r['record_id'], model=r['model'], attested=False,
                                    record=path.relative_to(ROOT).as_posix(),
                                    record_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
                                    **r['input_digests']), sort_keys=True))
-    LANE_LOG.write_text('\n'.join(sorted(log)) + '\n', encoding='utf8')
+    LANE_LOG.write_bytes(('\n'.join(sorted(log)) + '\n').encode('utf8'))
     data = dict(created_utc=datetime.now(timezone.utc).isoformat(timespec='seconds'),
                 reader_a_sha256=hashlib.sha256((OUT / 'READER_A.json').read_bytes()).hexdigest(),
                 reader_b_model=a.reader_b_model, funnel=funnel, secondary_trials=trials, images=images)
-    (OUT / 'READER_AB.json').write_text(json.dumps(data, indent=1, ensure_ascii=False) + '\n', encoding='utf8')
-    (OUT / 'READER_AB.md').write_text(report(data), encoding='utf8')
+    (OUT / 'READER_AB.json').write_bytes((json.dumps(data, indent=1, ensure_ascii=False) + '\n').encode('utf8'))
+    (OUT / 'READER_AB.md').write_bytes(report(data).encode('utf8'))
     print(json.dumps(funnel))
 
 
