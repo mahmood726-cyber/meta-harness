@@ -46,7 +46,8 @@ EPAR_SIGNED = {("noac-vs-warfarin-af-stroke", "24251359"): "ENGAGE AF-TIMI 48: t
 # panel REFUSE reason codes that say the source shows a DIFFERENT result (refused on evidence); any other refusal is an
 # abstention -- the row could not be bound, nothing shows it wrong
 ON_EVIDENCE = {"DIFFERENT_ENDPOINT", "SUBGROUP_OR_SECONDARY_ANALYSIS", "OUTCOME_NOT_IN_SOURCE"}
-SERVED_KEYS = ("effect", "ci_low", "ci_high", "ai", "n1i", "ci", "n2i")
+SERVED_KEYS = ("effect", "ci_low", "ci_high", "ai", "n1i", "ci", "n2i",
+               "mean1", "sd1", "nc1", "mean2", "sd2", "nc2")
 
 
 def _pmid(row):
@@ -69,7 +70,8 @@ def _conversion_ok(row):
 
 
 _SERVED_OF = {"effect": "effect", "ci_low": "ci_low", "ci_high": "ci_high",
-              "events_t": "ai", "n_t": "n1i", "events_c": "ci", "n_c": "n2i"}
+              "events_t": "ai", "n_t": "n1i", "events_c": "ci", "n_c": "n2i",
+              **{k: k for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2")}}
 _WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen "
                                       "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
 
@@ -179,6 +181,10 @@ def decide(cls, row):
                     basis=f"no agreed, checkable reading ({row['state']}; checks: codex {row.get('codex_bind_check')}, "
                           f"agy {row.get('agy_bind_check')}, adjudicator {row.get('adjudicator_check')})",
                     recommendation="refuse now; human adjudication from the source (V1 freeze: no new reader rule)")
+    if cls == "NOT_ADMISSIBLE_LICENCE":
+        return dict(base, decision="REFUSE", kind="abstain", basis=row.get("why"),
+                    licence_class=row.get("licence_class"), licence_statement=row.get("licence_statement"),
+                    recommendation="refuse until a D8-admissible source is held")
     if cls == "NEEDS_OPEN_SOURCE":
         return dict(base, decision="REFUSE", kind="abstain", basis="no open source text held: never sent to a model",
                     recommendation="refuse until an open source is held")

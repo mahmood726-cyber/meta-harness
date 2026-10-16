@@ -1779,7 +1779,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             _refresh_cross_source_identity(t["cross_source"], spec, t.get("components"))
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
-           "timepoint": spec.get("timepoint"), "method": METHOD,
+           "timepoint": spec.get("timepoint"), "method": method_text(selector_estimand),
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
     if spec.get("estimand_history"):

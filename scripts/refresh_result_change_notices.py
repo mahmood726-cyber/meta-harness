@@ -207,6 +207,12 @@ def _reason(left, absent, before_trials=None, after_trials=None, entered=None, b
     parts = []
     for tid in left:
         x = absent.get(tid) or {}
+        enforcement = x.get("enforcement") or {}
+        if enforcement:
+            state = enforcement.get("state") or enforcement.get("decision") or x.get("state")
+            reason = enforcement.get("reason") or enforcement.get("basis") or x.get("reason") or ""
+            parts.append(f"{tid} enforcement {state}: {str(reason).strip().rstrip('.')}.")
+            continue
         code = x.get("reason_code") or x.get("state") or "ABSENT"
         why = (x.get("endpoint_binding_reason") or x.get("reason") or "").strip().rstrip(".")
         parts.append(f"{tid} {CODE_WORD.get(code, 'set aside')} ({code}): {why}.")
@@ -234,7 +240,10 @@ def _reason(left, absent, before_trials=None, after_trials=None, entered=None, b
     # Each kind of change carries its own claim, and only its own: a set-aside is not asserted wrong; a
     # substitution IS asserted wrong; an entering trial is new evidence and asserts nothing about the old number.
     claims = []
-    if left:
+    if any(not (absent.get(tid) or {}).get("enforcement")
+           and (absent.get(tid) or {}).get("absent_kind") != "refused_on_evidence"
+           and (absent.get(tid) or {}).get("hand_binding_state") in {"ABSTAIN", "NOT_HELD"}
+           for tid in left):
         claims.append(MECH)
     if entered_parts:
         claims.append(ADDED_EVIDENCE)
