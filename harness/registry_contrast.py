@@ -32,7 +32,7 @@ def terms(config):
 
 
 def matches(text, vocabulary):
-    return any(re.search(r'(?<![\w])'+re.escape(t)+r'(?![\w])', text, re.I) for t in vocabulary)
+    return any(re.search(r'(?<![\w])'+re.escape(t)+r'(?![\w]|[-\u2010-\u2015](?:free|naive|refractory)\b)', text, re.I) for t in vocabulary)
 
 
 def active(text, vocabulary):
@@ -85,11 +85,11 @@ def arm_verdict(arms, vocabulary):
         if not isinstance(desc, str) or not re.search(r'[A-Za-z]', desc) or not isinstance(label, str):
             return None
         names = a['interventions']
-        present = any(active(n, vocabulary) for n in names)
+        present = any(active(n, vocabulary) for n in names) or active(desc, vocabulary)
         # Registry intervention links can include post-progression crossover.
         # Only remove that exposure when the initial regimen is explicitly described
         # and the agent occurs solely in the later conditional treatment clause.
-        later = re.search(r'participants who.*?(?:progression|cross.?over)|(?:after|following).*?disease progression', desc, re.I)
+        later = re.search(r'(?:patients|participants) who.*?(?:progress\w*|cross.?over)|(?:after|following).*?disease progression', desc, re.I)
         conditional = re.search(r'(?:upon|at|after|following)\s+(?:disease\s+)?(?:progression|PD)\b|(?:patients|participants) with (?:PD|progression) may receive', desc, re.I)
         if conditional:
             start = max(desc.rfind(';', 0, conditional.start()), desc.rfind('.', 0, conditional.start())) + 1
@@ -148,6 +148,7 @@ def abstract_verdict(rec, vocabulary):
             if pair:
                 return True, methods
     for sentence in re.split(r'(?<=[.!?])\s+', methods):
+        sentence = sentence.split(';', 1)[0]
         if re.search(r'previous (?:study|trial)|previously (?:shown|reported)', sentence, re.I):
             continue
         if not re.search(r'plus|combination|receiv|assign|allocat|compar|treat|alone|placebo|intervention', sentence, re.I):

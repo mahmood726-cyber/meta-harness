@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 import pytest
-from harness import extract
+from harness import extract, bench_routes
 ROOT = Path(__file__).resolve().parents[1]
 RECORDS = {r['id']:r for r in json.loads((ROOT/'cache/daratumumab-rrmm-pfs-bench/records.json').read_text(encoding='utf8'))['records']}
 def effect(text, kws=None):
@@ -13,8 +13,15 @@ def test_population_words_alone_do_not_declare_subgroup():
     s = sentence('32482541','In lenalidomide-refractory')
     assert not extract.subgroup_refusal(s)
     assert effect(s)['effect'] == extract.extract_effect(s)[1]
+def bench_rows():
+    config = json.loads((ROOT/'topics/daratumumab-rrmm-pfs-bench.json').read_text(encoding='utf8'))
+    return bench_routes.for_config(config)
+
 def test_pfs2_sentence():
-    assert effect(sentence('32001798','Median PFS on subsequent')).get('absent')
+    # R3 architecture: the benchmark locator binds ITT; the shared extractor is frozen.
+    row = bench_rows()['32001798']
+    assert 'intent-to-treat population' in row['source_span']
+    assert row['effect'] != extract.extract_effect(sentence('32001798','Median PFS on subsequent'))[1]
 @pytest.mark.parametrize('pid,expected',[('32482541',.31),('32001798',.44)])
 def test_whole_itt_effect_survives(pid,expected):
     assert effect(RECORDS[pid]['abstract']).get('effect') == expected
@@ -33,5 +40,6 @@ def test_second_progression():
     assert effect(s.replace('PFS on subsequent line of therapy (PFS2)','PFS to second progression')).get('absent')
 
 def test_spelled_out_pfs2_from_dreamm7():
-    s=sentence('40680754','Analysis of progression-free survival 2')
-    assert effect(s).get('absent')
+    row = bench_rows()['40680754']
+    assert row.get('absent') and 'effect' not in row
+    assert 'PFS2' in row['reason']

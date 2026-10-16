@@ -2261,6 +2261,9 @@ def outcome_inputs(slug, config, records):
     ojudg = _load_outcome_judgments(slug) if config.get("outcome_identity") else None
     varms = _load_verified_arms(slug)
     veffs = _load_verified_effects(slug)
+    if config.get('typed_routes'):
+        from . import bench_routes
+        veffs = dict(veffs or {}, **bench_routes.for_config(config))
     dsel = _load_dose_selection(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
     registry_designs = design_key.registry_designs(records)
