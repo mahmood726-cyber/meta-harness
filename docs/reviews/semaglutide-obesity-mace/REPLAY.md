@@ -20,13 +20,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 | This topic's identity | Recorded value |
 |---|---|
 | review_sha256 (canonical review core) | `a789b086efd382aa035272e1d2ae3428dfd56fc996bbedbe6c4e3e6e71d0aa7a` |
-| html_sha256 (served page bytes) | `9ce0b73bc09d2d6c2d2790c6a87077eec65d1ef0148254e57ef7645fd4bc0111` |
-| release_sha256 (certificate) | `7e1c103ade58b7d600d4f1646a7fc5521518f0be8c2e137e132b0572e6fc3881` |
+| html_sha256 (served page bytes) | `e3bda2d11053b515b6db3f098939182c6cb0b30afe3eb2ffa1c7949ba889b1aa` |
+| release_sha256 (certificate) | `897c5b566ee1af6839b5e478545b934e3a765f3ba9f15d557d77725c3c42afbe` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `3fb64a1e01434eb6ee9ea8a764a84c749270dfff` |
-| analysis code | 92 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `23a213f98f0919dec23669224f8518cc7d19d038` |
-| recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
+| analysis code | 95 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
+| recorded generating commit | `0d160a6b9c6448edb0e7ed129d96f27c3463f7aa` |
+| recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
 ## This topic's held documents
