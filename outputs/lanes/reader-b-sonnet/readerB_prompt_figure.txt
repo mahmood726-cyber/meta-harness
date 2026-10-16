@@ -1,0 +1,20 @@
+You are reading ONE forest-plot figure from a published meta-analysis. Transcribe what is PRINTED; do not
+compute, infer, round or correct anything. Answer with ONE JSON object only, matching this JSON schema exactly:
+{"additionalProperties": false, "properties": {"legible": {"type": "boolean"}, "measure": {"type": "string"}, "model_printed": {"type": ["string", "null"]}, "notes": {"type": "string"}, "pooled": {"additionalProperties": false, "properties": {"effect": {"type": ["string", "null"]}, "label": {"type": ["string", "null"]}, "lower": {"type": ["string", "null"]}, "upper": {"type": ["string", "null"]}}, "required": ["label", "effect", "lower", "upper"], "type": "object"}, "row_kind": {"enum": ["study", "outcome", "subgroup", "mixed", "none"], "type": "string"}, "rows": {"items": {"additionalProperties": false, "properties": {"effect": {"type": ["string", "null"]}, "events_c": {"type": ["string", "null"]}, "events_t": {"type": ["string", "null"]}, "label": {"type": ["string", "null"]}, "lower": {"type": ["string", "null"]}, "n_c": {"type": ["string", "null"]}, "n_t": {"type": ["string", "null"]}, "upper": {"type": ["string", "null"]}, "weight_pct": {"type": ["string", "null"]}}, "required": ["label", "effect", "lower", "upper", "weight_pct", "events_t", "n_t", "events_c", "n_c"], "type": "object"}, "type": "array"}}, "required": ["legible", "row_kind", "measure", "model_printed", "rows", "pooled", "notes"], "type": "object"}
+
+- row_kind: what the figure's rows are -- "study" (one row per trial/study), "outcome" (one row per outcome, each
+  already pooled), "subgroup" (one row per subgroup), "mixed", or "none".
+- rows: every study row of the panel you are asked for, in the order printed: the study label exactly as printed,
+  and the point estimate and lower and upper confidence limits exactly as printed in the numeric column (same
+  decimals, e.g. "0.81"). If the figure prints events and totals per arm, give them (events_t/n_t = the
+  experimental arm, events_c/n_c = the control arm, as printed); else null. weight_pct as printed, else null.
+- pooled: the pooled (overall / total / summary / diamond) row of that panel: its label and printed estimate and
+  limits the same way.
+- measure: the effect measure the figure states (e.g. HR, RR, OR, MD). model_printed: the pooling model words the
+  figure prints (e.g. "M-H, Random, 95% CI", "Fixed effect"), else null.
+- If the numeric column is not printed or not readable, set legible=false and leave rows empty. Never estimate a
+  value from the position of a marker.
+- notes: anything a checker needs (e.g. two pooled rows printed; which one you gave).
+
+The figure is the attached image.
+IMAGE FILE: IMAGE.png
