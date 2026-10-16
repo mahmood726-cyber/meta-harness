@@ -16,6 +16,7 @@ import re
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import fulltext as _ft_mod
 from . import aact_cache
+from . import a7_adjudication
 from . import screen_entry
 from . import comparator_second_pass
 from . import source_hierarchy as source_hierarchy_mod
@@ -328,6 +329,9 @@ def _primacy(r):
     return 2  # an ordinary journal article
 
 
+_A7_FIELDS = ("reason", "state", "gross", "terminal", "reported", "count_derived")
+
+
 def _fulltext_extract(ft, spec, interv, comp, dc):
     """Full-text rung: the abstract extractor on the PROSE, else on each non-baseline TABLE ROW as its own unit
     (fulltext.extraction_segments). One admissible row value -> taken; several different row values ->
@@ -340,6 +344,8 @@ def _fulltext_extract(ft, spec, interv, comp, dc):
     kw = dict(declared_composite=dc, estimand=spec.get("estimand"))
     own = _ft_mod.own_result_prose(seg["prose"])
     fx = extract.extract_trial(own["prose"], spec["keywords"], interv, comp, **kw)
+    if fx.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and fx.get("terminal"):
+        return fx       # A7: the document disagrees with itself -- reported, not resolved by reading on into its tables
     if seg.get("unstructured"):
         # HTML/PDF copy: only an effect+CI REPORTED in a prose sentence is typed evidence here. Arm counts, means and
         # rates may come from a flattened table (PMID 34138478: '1/16 vs 0/14' read out of an HTML outcome table).
@@ -1442,6 +1448,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         effect_candidates = candidate_index.get(d["id"], [])
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
                                    declared_composite=dc, estimand=spec.get("estimand"))
+        if ex.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and ex.get("terminal"):
+            adjudication = a7_adjudication.resolve(slug, spec["name"], idstr, {**ex, "provenance": "abstract"})
+            if adjudication and adjudication["state"] == "ADJUDICATED_POOL_COUNTS":
+                ex = adjudication["row"]  # Continue through the ordinary source and admissibility guards.
+            else:
+                absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "abstract",
+                               **{k: ex[k] for k in _A7_FIELDS},
+                               **({"a7_adjudication": "STALE"} if adjudication else {})})
+                continue
         if not ex.get("absent"):
             # ESTIMAND-HOMOGENEITY (composite component count): an N-point MACE outcome must not pool a
             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
@@ -1457,9 +1472,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 continue
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
-            t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
-            )
+            # An explicit count decision supersedes automatic estimator preference, not admissibility.
+            if not t.get("reported_vs_count_derived"):
+                t = design_key.select_estimator_by_source_hierarchy(
+                    t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
+                )
             if nct and nct in ctgov_results:
                 cs = _cross_source(t, nct, ctgov_results, spec, interv, comp)
                 if cs:
@@ -1484,6 +1501,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
         # own sentences, not the whole document.
         fx = _fulltext_extract(ft, spec, interv, comp, dc) if ft else None
+        if fx and fx.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and fx.get("terminal"):
+            adjudication = a7_adjudication.resolve(slug, spec["name"], idstr, {**fx, "provenance": "pmc_fulltext"})
+            if adjudication and adjudication["state"] == "ADJUDICATED_POOL_COUNTS":
+                fx = adjudication["row"]
+            else:
+                absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "pmc_fulltext",
+                               **{k: fx[k] for k in _A7_FIELDS},
+                               **({"a7_adjudication": "STALE"} if adjudication else {})})
+                continue
         if fx and not fx.get("absent"):
             # THE SAME ESTIMAND-HOMOGENEITY GUARDS AS THE ABSTRACT ROUTE.
             #
@@ -1511,9 +1537,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             t = {"label": label, "id": idstr, **fx}
             # Resolve label-only candidates against the document the number CAME FROM, not the
             # abstract: a full-text row's definition span lives in the full text.
-            t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates, ft), selector_estimand
-            )
+            if not t.get("reported_vs_count_derived"):
+                t = design_key.select_estimator_by_source_hierarchy(
+                    t, _span_effect_candidates(spec, t, effect_candidates, ft), selector_estimand
+                )
             trials.append(t)
             continue
         # BOTTOM OF THE SOURCE HIERARCHY: a committed, HAND-VERIFIED structured arm-level entry
@@ -1575,7 +1602,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             row["verified_passage_location"] = bound.get("passage_location")
             trials.append(row)
             continue
-        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+        # a GROSS A7 mismatch no lower rung resolved keeps its typed state and both values (was an untyped string)
+        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"],
+                       **({k: ex[k] for k in _A7_FIELDS}
+                          if ex.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE else {})})
     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
     # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
     # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are
@@ -1749,7 +1779,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         elif t.get("effect") is not None:
             t["derivation"] = t.get("derivation") or "reported"
         design_key.stamp_trial(t, rec_by_id, registry_designs or {}, selector_estimand)
-        if design_key.maybe_use_published_adjusted(t, selector_estimand):
+        if not t.get("reported_vs_count_derived") and design_key.maybe_use_published_adjusted(t, selector_estimand):
             t.setdefault("selection_rule", "PUBLISHED_ADJUSTED_TARGET_CLASS")
             t.setdefault("alternatives", [])
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
@@ -2609,6 +2639,9 @@ def build_review_core(slug, config, records, protocol_sha):
                 row=_t,
                 # E1: the absence is conditional on the coverage of what was searched (held bytes + census)
                 coverage=source_coverage_mod.coverage_for(slug, _pid, _ft),
+                # A7: a reported effect is checked against the counts its own percentages + arm sizes imply
+                arm_terms=(config.get("intervention_terms", ["colchicine"]),
+                           config.get("comparator_terms", ["placebo", "control"])),
             )
             for _ak, _av in _ann.items():
                 if _av not in (None, "", []):
