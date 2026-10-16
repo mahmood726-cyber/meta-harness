@@ -158,6 +158,17 @@ def _matches(sentence: str, terms: list[str]) -> bool:
     return any(t in sf for t in terms)
 
 
+_DISCONTINUATION = r"\b(?:discontinu\w*|withdraw\w*|withdrew)\b"
+_AE_CAUSE = r"\b(?:adverse events?|side effects?|toxicity|intolerance)\b"
+_AE_DISCONTINUATION = re.compile(
+    _DISCONTINUATION + r"[^.;]{0,80}?\b(?:due to|because of|owing to|for)\s+"
+    r"(?:\w+\s+){0,4}?" + _AE_CAUSE
+    + "|" + _AE_CAUSE + r"\s+(?:(?:\w+)\s+){0,4}?"
+    r"(?:led to|resulted in|caused|necessitated)\s+(?:\w+\s+){0,4}?" + _DISCONTINUATION,
+    re.I,
+)
+
+
 def reporting_signal(text: str | None, spec: dict[str, Any]) -> dict[str, Any] | None:
     """Return a conservative source-reporting signal for a harm outcome, if one is visible."""
     if not text:
@@ -165,9 +176,16 @@ def reporting_signal(text: str | None, spec: dict[str, Any]) -> dict[str, Any] |
     terms = _terms(spec)
     if not terms:
         return None
+    discontinuation_outcome = bool(re.search(_DISCONTINUATION, str(spec.get("name") or ""), re.I))
     for sent in extract._sentences(extract._norm(text)):
         if not _matches(sent, terms):
             continue
+        # Cessation alone (e.g. on pregnancy) is not AE discontinuation. Applies when the
+        # OUTCOME is a discontinuation outcome -- not whenever a discontinuation term sits in a
+        # broader keyword list (the generic registered-harms sweep also lists "discontinuation").
+        if discontinuation_outcome:
+            if not _AE_DISCONTINUATION.search(lexicon.fold(sent).replace("-", " ")):
+                continue
         compact = re.sub(r"\s+", " ", sent).strip()
         if _EFFECT_OR_COMPARISON.search(compact):
             return {"reported": True, "kind": "numeric_signal", "span": compact[:300]}

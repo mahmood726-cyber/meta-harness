@@ -19,14 +19,14 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `56d134924c463c5d7e8600777c37f94f371938274c800c203c8f525fdca1e04c` |
-| html_sha256 (served page bytes) | `2a20e1bf19f6f992f59557849b23d14807fe6933efa3f3889155caba99752774` |
-| release_sha256 (certificate) | `041d357c069a70f0e9a2f7d1ad8347443ceb147216a4016f6147ae8fbad8bf68` |
+| review_sha256 (canonical review core) | `50ec59cb2018e42822ac09c04debf035c1661faf7d9bef4e22c5fdb7c1227de9` |
+| html_sha256 (served page bytes) | `3cbeda1513db5d58b7ad0d5808bba613b1ef626f6b4d078e79bf4ef90e90e21f` |
+| release_sha256 (certificate) | `61cac7bef5ae99e6e68ab733971b665ee2b89ddf9edc590987b409e846bff62d` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9` |
-| analysis code | 91 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `028a726852cfd528646c39e005fe6ebd01265172` |
-| recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
+| analysis code | 92 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
+| recorded generating commit | `23a213f98f0919dec23669224f8518cc7d19d038` |
+| recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
 ## This topic's held documents
@@ -42,6 +42,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `cache/metformin-pcos-ovulation/ft_16769748.txt` | `08bbe0d815eb0a9ffe659f923872c825011408c6fa977a9b35cb2902c93e28a4` |
 
 Recorded judgments live under `cache/metformin-pcos-ovulation/`; their object digest is
-`9470edcf1b077c25bdac59d12cd372178213f7490372b012eb3796b39b492c52`. Acquisitions live under `docs/acquisitions/metformin-pcos-ovulation/`.
+`49805b0dcf8b08b619106937c56f9e6cef7af68c49c95a702eb74a694122deac`. Acquisitions live under `docs/acquisitions/metformin-pcos-ovulation/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

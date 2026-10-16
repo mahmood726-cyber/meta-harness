@@ -13,11 +13,27 @@ BASE = 'f6f7b14c820bdadd258122ac0bb54c7e4d2a989a'
 
 def test_rebuilt_pages_account_for_every_baseline_harm():
     decisions = json.loads((EVIDENCE/'decisions.json').read_text(encoding='utf-8'))
+    supersessions = json.loads((EVIDENCE/'harms_superseded.json').read_text(encoding='utf-8'))
+    assert isinstance(decisions, list)
+    assert isinstance(supersessions, list)
+    declared = {}
+    for entry in supersessions:
+        assert all(entry.get(field) for field in ('landing', 'reason', 'decided'))
+        key = (entry['topic'], entry['outcome'])
+        assert key not in declared
+        declared[key] = entry
+    assert set(declared) <= {(d['topic'], d['outcome']) for d in decisions}
     for d in decisions:
         folder = ROOT/'docs/reviews'/d['topic']
         review = json.loads((folder/'review.json').read_text(encoding='utf-8'))
         outcome = next(o for o in review['outcomes'] if o['name'] == d['outcome'])
-        assert not outcome['result'].get('harms_incomplete'), (d['topic'],d['outcome'])
+        declaration = declared.get((d['topic'], d['outcome']))
+        if declaration:
+            assert outcome['result'].get('harms_incomplete'), 'declared but nothing moved'
+            ids = [r['id'] for r in outcome['result']['known_reported_not_yet_extracted']]
+            assert ids and declaration['known_reported_not_yet_extracted'] == ids, 'declared harm IDs differ'
+        else:
+            assert not outcome['result'].get('harms_incomplete'), (d['topic'],d['outcome'])
         if d['entry'].get('absent'):
             row = next(t for t in outcome['declared_absent_trials'] if t['id'].replace('PMID ','')==d['trial'])
             assert row['harm_absence_state'] in (harms.RETRIEVED_REFUSED_WITH_REASON,harms.RETRIEVED_INCOMPATIBLE_STRUCTURE)
@@ -63,6 +79,10 @@ def test_primary_trial_values_and_membership_are_unchanged():
             # a LATER landing may change screening records only by a declared, named supersession that records the
             # records it moved to (acq/k-gap exclusion audit, 2026-10-03); the pinned HM3 records are never rewritten
             assert ssup.get('landing') and ssup.get('reason'), slug
+            if 'history' in ssup:
+                assert isinstance(ssup['history'], list), slug
+                assert all(isinstance(prior, dict) and prior.get('landing') and prior.get('reason')
+                           for prior in ssup['history']), slug
             assert ssup['screening_records_after'] == after['screening']['records'], slug
             assert before['screening_records'] != after['screening']['records'], (slug, 'declared but nothing moved')
         else:
