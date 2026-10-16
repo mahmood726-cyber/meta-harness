@@ -1789,6 +1789,23 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     if design_refusals:
         out["design_refusals"] = [design_variance.design_refusal_row(t) for t in design_refusals]
     out["membership"] = membership_mod.build_outcome_membership(out, included)
+    licence_hold = _enf.licence_await(trials, absent)
+    if licence_hold:
+        out["result"] = licence_hold
+        out["method"] = "No admissible pooled result; remaining trials are shown individually."
+        out["single_trial_results"] = []
+        for t in trials:
+            scale = t.get("scale") or spec.get("estimand", "RR")
+            study = Study(label=t["label"], **{k: t[k] for k in
+                          ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high",
+                           "mean1", "sd1", "nc1", "mean2", "sd2", "nc2", "e1i", "t1i", "e2i", "t2i")
+                          if t.get(k) is not None}, measure=scale)
+            record = rec_by_id.get(str(t["id"]).removeprefix("PMID "), {})
+            acronyms = re.findall(r"\(([A-Z][A-Z0-9-]{2,})\)", record.get("title", ""))
+            label = record.get("acronym") or (acronyms[0] if len(acronyms) == 1 else t["label"])
+            out["single_trial_results"].append(dict(id=t["id"], label=label,
+                                                    result=_pool_result([study], scale=scale)))
+        return out
     if design_refusals and len(trials) < 2:
         out["result"] = {
             "present": False,

@@ -80,7 +80,7 @@ def test_the_committed_decisions_are_the_generator_output():
     doc = g.build()
     want = json.dumps(doc, indent=1, ensure_ascii=False) + "\n"
     assert open(DEC, encoding="utf-8").read() == want
-    assert (doc["n"], doc["admit"], doc["refuse"]) == (77, 60, 17)
+    assert (doc["n"], doc["admit"], doc["refuse"]) == (77, 64, 13)
 
 
 def test_plant_the_served_dpp4_pool_no_longer_carries_tecos():

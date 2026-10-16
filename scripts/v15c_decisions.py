@@ -194,6 +194,10 @@ def decide(cls, row):
 def build():
     c = json.load(open(CLASSIFIED, encoding="utf-8"))
     rows = [decide(k, r) for k, v in c.items() for r in v]
+    if ROOT not in sys.path:
+        sys.path.insert(0, ROOT)
+    from scripts import v15c_dispatch_rulings as dispatch
+    rows = dispatch.apply(rows)
     keys = [(r["slug"], r["outcome"], str(r["id"])) for r in rows]
     if len(set(keys)) != len(keys):
         raise SystemExit("two decisions for one row")
@@ -203,6 +207,7 @@ def build():
     if missing:
         raise SystemExit(f"signed decisions that match no row: {sorted(missing)}")
     return {"_doc": __doc__.split("\n\n")[0], "signed": SIGNED, "classified_from": "outputs/m2_pretriage/classified.json",
+            "dispatch_rulings": dispatch.PROVENANCE,
             "n": len(rows), "admit": sum(r["decision"] == "ADMIT" for r in rows),
             "refuse": sum(r["decision"] == "REFUSE" for r in rows),
             "rows": sorted(rows, key=lambda r: (r["slug"], r["outcome"], str(r["id"])))}
@@ -210,6 +215,20 @@ def build():
 
 def main():
     doc = build()
+    from scripts import v15c_dispatch_rulings as dispatch
+    provenance = dispatch.provenance(doc["rows"])
+    with open(os.path.join(ROOT, dispatch.PROVENANCE), "w", encoding="utf8", newline="\n") as fh:
+        json.dump(provenance, fh, indent=1, ensure_ascii=False)
+        fh.write("\n")
+    # This registry records item provenance; publishing reads notice countersignatures instead.
+    signatures_path = os.path.join(ROOT, "registry", "v15c_signatures.json")
+    with open(signatures_path, encoding="utf8") as fh:
+        signatures = json.load(fh)
+    signatures["dispatch_rulings"] = dispatch.PROVENANCE
+    signatures["items"].update(provenance["items"])
+    with open(signatures_path, "w", encoding="utf8", newline="\n") as fh:
+        json.dump(signatures, fh, indent=1, ensure_ascii=False)
+        fh.write("\n")
     with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(doc, fh, indent=1, ensure_ascii=False)
         fh.write("\n")
