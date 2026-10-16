@@ -8,12 +8,36 @@ A row is SECONDARY_PROVISIONAL only when both readings agree within the printed 
 | images compared | 43 | 74 |
 | with >=1 agreed row | 40 | 43 |
 | missing trials, reader-A candidate | 1 | 11 |
-| missing trials, SECONDARY_PROVISIONAL candidate | 1 | 11 |
+| missing trials, SECONDARY_PROVISIONAL candidate | 5 | 11 |
 
 Agreed rows 511, refused rows 68, PRIMARY_VERIFIED 0.
 
 ## Missing-trial candidates
 
+- corticosteroids-cap-mortality: `Adjunct prednisone therapy for patients with community-acqui` <- 'Blum 2015' (Supplemental Figure 10.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Dexamethasone and length of hospital stay in patients with c` <- 'Meijvis 2011' (Supplemental Figure 10.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Hydrocortisone infusion for severe community-acquired pneumo` <- 'Confalonieri 2005' (Supplemental Figure 10.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-covid19-mortality: `Effect of Dexamethasone on Days Alive and Ventilator-Free in` <- 'Tomazini 2020' (Supplemental Figure 11.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-covid19-mortality: `Effect of Dexamethasone on Days Alive and Ventilator-Free in` <- 'Tomazini 2020' (Supplemental Figure 16.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Dexamethasone and length of hospital stay in patients with c` <- 'Meijvis 2011' (Supplemental Figure 20.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Hydrocortisone infusion for severe community-acquired pneumo` <- 'Confalonieri 2005' (Supplemental Figure 20.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-covid19-mortality: `Effect of Dexamethasone on Days Alive and Ventilator-Free in` <- 'Tomazini 2020' (Supplemental Figure 20.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Adjunct prednisone therapy for patients with community-acqui` <- 'Blum 2015' (Supplemental Figure 39.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Dexamethasone and length of hospital stay in patients with c` <- 'Meijvis 2011' (Supplemental Figure 39.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Hydrocortisone infusion for severe community-acquired pneumo` <- 'Confalonieri 2005' (Supplemental Figure 39.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-covid19-mortality: `Effect of Dexamethasone on Days Alive and Ventilator-Free in` <- 'Tomazini 2020' (Supplemental Figure 39.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Dexamethasone and length of hospital stay in patients with c` <- 'Meijvis 2011' (Supplemental Figure 40.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Hydrocortisone infusion for severe community-acquired pneumo` <- 'Confalonieri 2005' (Supplemental Figure 40.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Hydrocortisone infusion for severe community-acquired pneumo` <- 'Confalonieri 2005' (Supplemental Figure 41.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Adjunct prednisone therapy for patients with community-acqui` <- 'Blum 2015' (Supplemental Figure 42.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Dexamethasone and length of hospital stay in patients with c` <- 'Meijvis 2011' (Supplemental Figure 42.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Hydrocortisone infusion for severe community-acquired pneumo` <- 'Confalonieri 2005' (Supplemental Figure 42.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-covid19-mortality: `Effect of Dexamethasone on Days Alive and Ventilator-Free in` <- 'Tomazini 2020' (Supplemental Figure 42.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Dexamethasone and length of hospital stay in patients with c` <- 'Meijvis 2011' (Supplemental Figure 43.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Hydrocortisone infusion for severe community-acquired pneumo` <- 'Confalonieri 2005' (Supplemental Figure 43.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-cap-mortality: `Hydrocortisone infusion for severe community-acquired pneumo` <- 'Confalonieri 2005' (Supplemental Figure 44.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-covid19-mortality: `Effect of Dexamethasone on Days Alive and Ventilator-Free in` <- 'Tomazini 2020' (Supplemental Figure 45.tif, SECONDARY_PROVISIONAL_CANDIDATE)
+- corticosteroids-covid19-mortality: `Effect of Dexamethasone on Days Alive and Ventilator-Free in` <- 'Tomazini 2020' (Supplemental Figure 46.tif, SECONDARY_PROVISIONAL_CANDIDATE)
 - iv-iron-hfref-hosp: `FAIR-HF [20]` <- 'FAIR-HF' (41591_2025_3671_Fig6_ESM.jpg, SECONDARY_PROVISIONAL_CANDIDATE)
 - iv-iron-hfref-hosp: `FAIR-HF [20]` <- 'FAIR-HF' (41591_2025_3671_Fig7_ESM.jpg, SECONDARY_PROVISIONAL_CANDIDATE)
 - iv-iron-hfref-hosp: `FAIR-HF [20]` <- 'FAIR-HF' (41591_2025_3671_Fig8_ESM.jpg, SECONDARY_PROVISIONAL_CANDIDATE)

@@ -9,6 +9,7 @@ against the source). Every refusal keeps both readings.
 import argparse
 import hashlib
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -51,6 +52,51 @@ def b_records(answers, model, batches):
                    batch_sha256=batches.get(a['key']), response=a['answer'],
                    state='RECORDED_UNATTESTED')
         out[a['key']] = rec
+    return out
+
+
+_AUTHOR_YEAR = re.compile(r"^\s*([^\W\d_][\w'\- ]*?)\s*(?:et al\.?)?\s+(\d{4})([a-z]?)\s*$", re.U)
+
+
+def author_year_candidates(rows, sources, identity):
+    """A trial the census names by its (truncated) TITLE, matched to an agreed row printed as 'Surname Year'.
+    The surname and years come from a typed source (PubMed esummary for the member record's PMID), never from the
+    figure. Exact surname (case-folded) and a year from that record; a surname-year printed by more than one row of
+    the figure ('Blum 2015', 'Blum 2015a') is ambiguous and matches nothing."""
+    out = []
+    parsed = []
+    for r in rows:
+        m = _AUTHOR_YEAR.match(str(r.get('label') or ''))
+        if m:
+            parsed.append((m.group(1).strip().casefold(), m.group(2), r))
+    for s in sources:
+        for trial in s['missing_trials']:
+            ident = (identity or {}).get(s['topic'], {}).get(trial)
+            if not ident:
+                continue
+            hits = [r for sur, yr, r in parsed if sur == ident['surname'].casefold() and yr in ident['years']]
+            if len(hits) == 1:
+                out.append(dict(topic=s['topic'], trial=trial, printed_label=hits[0]['label'], pmid=ident['pmid'],
+                                basis=f"AUTHOR_YEAR: {ident['surname']} {'/'.join(ident['years'])} from PubMed "
+                                      f"esummary of PMID {ident['pmid']}", state='CANDIDATE_ONLY'))
+    return out
+
+
+def build_identity(census, records, esummary):
+    """{topic: {census title label: {pmid, surname, years}}} for every census trial named by a title that is the
+    prefix of exactly ONE member record; the surname and years come from that PMID's PubMed esummary."""
+    res = esummary['result']
+    out = {}
+    for m in census['metas']:
+        for t in m['missing_trials']:
+            hits = [k for k, r in records.items() if (r.get('title') or '').startswith(t)]
+            if len(hits) != 1 or hits[0] not in res:
+                continue
+            e = res[hits[0]]
+            years = sorted({y[:4] for y in (e.get('pubdate', ''), e.get('epubdate', '')) if y[:4].isdigit()})
+            first = (e.get('sortfirstauthor') or '').split(' ')[0]
+            if first and years:
+                out.setdefault(m['topic'], {})[t] = dict(pmid=hits[0], surname=first, years=years)
     return out
 
 
@@ -103,7 +149,7 @@ def compare(item, rb):
                 not_estimable=not_est)
 
 
-def run(reader_a, answers, model, batches, trial_total):
+def run(reader_a, answers, model, batches, trial_total, identity=None):
     recs = b_records(answers, model, batches)
     images, trials_secondary, trials_a = [], set(), set()
     for item in reader_a['images']:
@@ -114,6 +160,9 @@ def run(reader_a, answers, model, batches, trial_total):
         else:
             res = compare(item, rec['response'] if rec else None)
         cands = candidates(dict(rows=res['proposed'], sources=item['sources']))
+        named = {(c['topic'], c['trial']) for c in cands}
+        cands += [c for c in author_year_candidates(res['proposed'], item['sources'], identity)
+                  if (c['topic'], c['trial']) not in named]
         for c in cands:
             c['state'] = 'SECONDARY_PROVISIONAL_CANDIDATE'
             trials_secondary.add((c['topic'], c['trial']))
@@ -168,6 +217,7 @@ def main():
     ap.add_argument('--batches', nargs='*', default=[])
     ap.add_argument('--reader-b-model', required=True)
     ap.add_argument('--trial-total', type=int, default=11)
+    ap.add_argument('--esummary', help='PubMed esummary JSON for the title-named trials (saved, hashed)')
     a = ap.parse_args()
     reader_a = json.loads((OUT / 'READER_A.json').read_text(encoding='utf8'))
     answers = [x for p in a.reader_b for x in json.loads(Path(p).read_text(encoding='utf8'))['answers']]
@@ -176,7 +226,17 @@ def main():
         raw = Path(p).read_bytes()
         for x in json.loads(raw)['items']:
             batches[x['key']] = hashlib.sha256(raw).hexdigest()
-    images, recs, funnel, trials = run(reader_a, answers, a.reader_b_model, batches, a.trial_total)
+    identity = None
+    if a.esummary:
+        raw = Path(a.esummary).read_bytes()
+        census = json.loads((ROOT / 'outputs/k_gap/image_census/IMAGE_CENSUS.json').read_text(encoding='utf8'))
+        records = json.loads((ROOT / 'outputs/k_gap/member_records.json').read_text(encoding='utf8'))
+        identity = build_identity(census, records, json.loads(raw))
+        doc = dict(esummary=Path(a.esummary).as_posix(), esummary_sha256=hashlib.sha256(raw).hexdigest(),
+                   identity=identity)
+        (OUT / 'MISSING_TRIAL_IDENTITY.json').write_bytes((json.dumps(doc, indent=1, ensure_ascii=False) + '\n')
+                                                          .encode('utf8'))
+    images, recs, funnel, trials = run(reader_a, answers, a.reader_b_model, batches, a.trial_total, identity)
     REC_DIR.mkdir(parents=True, exist_ok=True)
     log = []
     for r in recs.values():

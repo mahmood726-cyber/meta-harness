@@ -151,3 +151,36 @@ def test_missing_image_hash_never_matches():
     it = item([row('FAIR-HF', '0.49', '0.12', '1.96')], png=None)
     images, *_ = run([it], [answer([row('FAIR-HF', '0.49', '0.12', '1.96')], png=None)])
     assert images[0]['state'] == 'READER_B_IMAGE_MISMATCH'
+
+
+# author-year identity for trials the census names by title (corticosteroid metas print 'Blum 2015')
+IDENT = {'t': {'Adjunct prednisone therapy for patients': dict(pmid='25608756', surname='Blum',
+                                                             years=['2015'])}}
+
+
+def _titled(rows):
+    it = item(rows)
+    it['sources'] = [dict(topic='t', missing_trials=['Adjunct prednisone therapy for patients'])]
+    return it
+
+
+def test_author_year_label_matches_a_title_named_trial():
+    r = row('Blum 2015', '0.49', '0.12', '1.96')
+    images, _, _, trials = lia.run(dict(images=[_titled([r])]), [answer([dict(r)])], 'm-b', {}, 11, IDENT)
+    c = images[0]['candidates']
+    assert trials == [('t', 'Adjunct prednisone therapy for patients')]
+    assert c[0]['basis'].startswith('AUTHOR_YEAR') and c[0]['pmid'] == '25608756'
+
+
+def test_author_year_wrong_year_or_surname_does_not_match():
+    for lab in ('Blum 2016', 'Blumberg 2015', 'Blum', '2015'):
+        r = row(lab, '0.49', '0.12', '1.96')
+        _, _, _, trials = lia.run(dict(images=[_titled([r])]), [answer([dict(r)])], 'm-b', {}, 11, IDENT)
+        assert trials == [], lab
+
+
+def test_author_year_twice_in_one_figure_is_ambiguous():
+    rows = [row('Blum 2015', '0.49', '0.12', '1.96'), row('Blum 2015a', '0.5', '0.1', '2.0')]
+    images, _, _, trials = lia.run(dict(images=[_titled(rows)]), [answer([dict(r) for r in rows])], 'm-b', {}, 11,
+                                   IDENT)
+    assert trials == []
