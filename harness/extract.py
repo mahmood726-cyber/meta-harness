@@ -138,7 +138,29 @@ def _outcome_sentences(abstract, kws):
     # outcome) fall back to matching any keyword.
     specific = [k for k in kws if k.lower() not in GENERIC_HARM]
     sel = specific if specific else kws
-    return [s for s in _sentences(abstract) if any(_kw_in_sentence(k, s.lower()) for k in sel)]
+    # Learn only explicit definitions in THIS abstract, never curated/global aliases.
+    # Check case in the original text; require exactly the keyword's content initials.
+    stopwords = {"of", "for", "the", "and", "to", "in", "with", "on", "a", "an", "or", "by"}
+    aliases = set()
+    defs = list(re.finditer(r"\(([A-Za-z0-9-]{2,8})\)", abstract))
+    for k in sel:
+        initials = "".join(w[0] for w in re.findall(r"[a-z]+", k.lower())
+                           if w not in stopwords)
+        definition = r"(?<!\w)" + re.escape(lexicon.fold(k)) + r"\s*$"
+        for match in defs:
+            alias = match.group(1)
+            letters = "".join(re.findall(r"[A-Za-z]", alias)).lower()
+            if not (sum(c.isupper() for c in alias) >= 2 and letters == initials
+                    and re.search(definition, lexicon.fold(abstract[:match.start()]))):
+                continue
+            # review r2 P1-d: the same abbreviation defined for a DIFFERENT expansion makes it ambiguous
+            if any(o.group(1).casefold() == alias.casefold()
+                   and not re.search(definition, lexicon.fold(abstract[:o.start()])) for o in defs):
+                continue
+            aliases.add(alias)  # review r2 P1-c: kept in its defined case ('AS' is not 'as')
+    return [s for s in _sentences(abstract)
+            if any(_kw_in_sentence(k, s.lower()) for k in sel)
+            or any(re.search(r"(?<!\w)" + re.escape(a) + r"(?!\w)", s) for a in aliases)]
 
 
 def _negated(s, pos):
