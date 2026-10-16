@@ -68,14 +68,18 @@ def author_year_candidates(rows, sources, identity):
     for r in rows:
         m = _AUTHOR_YEAR.match(str(r.get('label') or ''))
         if m:
-            parsed.append((m.group(1).strip().casefold(), m.group(2), r))
+            parsed.append((m.group(1).strip().casefold(), m.group(2), r, bool(m.group(3))))
     for s in sources:
         for trial in s['missing_trials']:
             ident = (identity or {}).get(s['topic'], {}).get(trial)
             if not ident:
                 continue
-            hits = [r for sur, yr, r in parsed if sur == ident['surname'].casefold() and yr in ident['years']]
-            if len(hits) == 1:
+            hits = [(r, sfx) for sur, yr, r, sfx in parsed
+                    if sur == ident['surname'].casefold() and yr in ident['years']]
+            # a suffixed 'Blum 2015a' says the figure holds several same-year reports by that author: it never names
+            # one trial, and its presence makes a plain 'Blum 2015' beside it ambiguous too
+            if len(hits) == 1 and not hits[0][1]:
+                hits = [hits[0][0]]
                 out.append(dict(topic=s['topic'], trial=trial, printed_label=hits[0]['label'], pmid=ident['pmid'],
                                 basis=f"AUTHOR_YEAR: {ident['surname']} {'/'.join(ident['years'])} from PubMed "
                                       f"esummary of PMID {ident['pmid']}", state='CANDIDATE_ONLY'))
@@ -90,11 +94,14 @@ def build_identity(census, records, esummary):
     out = {}
     for m in census['metas']:
         for t in m['missing_trials']:
+            if len(t.strip()) < 20:          # a short label is a prefix of too many titles to name one record
+                continue
             hits = [k for k, r in records.items() if (r.get('title') or '').startswith(t)]
             if len(hits) != 1 or hits[0] not in res:
                 continue
             e = res[hits[0]]
-            years = sorted({y[:4] for y in (e.get('pubdate', ''), e.get('epubdate', '')) if y[:4].isdigit()})
+            # the PubMed pubdate year only: accepting the epub year as well doubles the same-author collision window
+            years = [y[:4] for y in (e.get('pubdate', ''),) if y[:4].isdigit()]
             # 'van der Meer J' -> 'van der Meer': drop only the trailing initials token, keep a compound surname whole
             parts = (e.get('sortfirstauthor') or '').split()
             first = ' '.join(parts[:-1] if len(parts) > 1 and re.fullmatch(r'[A-Z]{1,4}', parts[-1]) else parts)

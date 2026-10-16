@@ -187,11 +187,11 @@ def test_author_year_twice_in_one_figure_is_ambiguous():
 
 
 def test_compound_surname_is_kept_whole():
-    census = {'metas': [{'topic': 'T', 'missing_trials': ['Trial A']}]}
-    ident = lia.build_identity(census, {'p1': {'title': 'Trial A'}},
+    census = {'metas': [{'topic': 'T', 'missing_trials': ['Trial A of a compound-surname author']}]}
+    ident = lia.build_identity(census, {'p1': {'title': 'Trial A of a compound-surname author.'}},
                                {'result': {'p1': {'sortfirstauthor': 'van der Meer J', 'pubdate': '2020'}}})
-    assert ident['T']['Trial A']['surname'] == 'van der Meer'
-    src = [dict(topic='T', missing_trials=['Trial A'])]
+    assert ident['T']['Trial A of a compound-surname author']['surname'] == 'van der Meer'
+    src = [dict(topic='T', missing_trials=['Trial A of a compound-surname author'])]
     assert lia.author_year_candidates([{'label': 'Van 2020'}], src, ident) == []
     assert len(lia.author_year_candidates([{'label': 'van der Meer 2020'}], src, ident)) == 1
 
@@ -201,3 +201,25 @@ def test_one_row_matching_two_trials_credits_neither():
                    'Trial B': dict(pmid='b', surname='Smith', years=['2020'])}}
     src = [dict(topic='T', missing_trials=['Trial A', 'Trial B'])]
     assert lia.author_year_candidates([{'label': 'Smith 2020'}], src, ident) == []
+
+
+# claude-sonnet second read of the author-year matcher (img-ay-sonnet-r1) -- plants first
+def test_suffixed_label_is_ambiguous():
+    ident = {'T': {'Trial A': dict(pmid='a', surname='Blum', years=['2015'])}}
+    src = [dict(topic='T', missing_trials=['Trial A'])]
+    for lab in ('Blum 2015a', 'Blum 2015b'):
+        assert lia.author_year_candidates([{'label': lab}], src, ident) == [], lab
+
+
+def test_identity_uses_the_pubdate_year_only():
+    census = {'metas': [{'topic': 'T', 'missing_trials': ['Hydrocortisone infusion for severe CAP']}]}
+    ident = lia.build_identity(census, {'p': {'title': 'Hydrocortisone infusion for severe CAP: a trial'}},
+                               {'result': {'p': {'sortfirstauthor': 'Confalonieri M', 'pubdate': '2005 Feb 1',
+                                                 'epubdate': '2004 Nov 23'}}})
+    assert ident['T']['Hydrocortisone infusion for severe CAP']['years'] == ['2005']
+
+
+def test_short_census_title_never_identifies_a_record():
+    census = {'metas': [{'topic': 'T', 'missing_trials': ['', 'Trial A']}]}
+    assert lia.build_identity(census, {'p': {'title': 'Trial Abc'}},
+                              {'result': {'p': {'sortfirstauthor': 'Smith J', 'pubdate': '2020'}}}) == {}
