@@ -2300,6 +2300,15 @@ def result_change_block(n: dict) -> str:
     _fmt = _manuscript_mod._fmt
     b, a = n.get("before") or {}, n.get("after") or {}
     cc = n.get("conclusion_changed")
+    from . import result_changes as rc
+    # Historical signatures bind the legacy wording. Only explicitly refreshed notices
+    # use v2, and retain that version when subsequently signed.
+    v2 = n.get("rendering_version") == 2
+    conclusion = (f"<strong>{'Conclusion withdrawn' if ('withdrawn' in str(cc) or 'no longer' in str(cc)) else 'Conclusion changed'}: {_e(cc)}.</strong> " if cc
+                  else (_e(rc.null_conclusion_sentence(b, a, n.get("scale"))) + " " if v2
+                        else "The direction of the estimate is unchanged. "))
+    if v2:
+        conclusion = _e(rc.direction_sentence(b, a, n.get("scale"))) + " " + conclusion
     def _num(x):
         try:
             return f"{float(x):.2f}"
@@ -2317,8 +2326,7 @@ def result_change_block(n: dict) -> str:
     block = ("<h4>Result changed</h4><div class='result-change' data-result-change='true' style='border:2px solid #b00;padding:1em;background:#fff6f6'><strong>"
              f"{_e(n.get('outcome'))}: the pooled result changed on {_e(str(n.get('when_utc'))[:10])}.</strong> "
              f"Previously served: {_e(_res(b, n.get('before_note')))}. Now: {_e(_res(a, n.get('after_note')))}. "
-             + (f"<strong>{'Conclusion withdrawn' if ('withdrawn' in str(cc) or 'no longer' in str(cc)) else 'Conclusion changed'}: {_e(cc)}.</strong> " if cc
-                else "The direction of the estimate is unchanged. ")
+             + conclusion
              + (f"Left the pool: {_e(', '.join(map(str, n.get('left_pool') or [])))}. " if n.get("left_pool") else "")
              + (f"Entered the pool: {_e(', '.join(map(str, n.get('entered_pool') or [])))}. " if n.get("entered_pool") else "")
              + f"Why: {_e(n.get('reason'))} &mdash; {_e(n.get('by'))}.</div>")

@@ -66,8 +66,35 @@ def significance(result: dict[str, Any] | None, scale: str | None) -> str | None
     return "includes_null"
 
 
+def direction_sentence(before, after, scale):
+    """Compare point estimates, independently of their confidence intervals."""
+    import math
+    if str(scale or "").upper() not in ("HR", "RR", "OR", "IRR", "RATE_RATIO", "MD", "SMD"):
+        return "The direction of the estimate cannot be compared: the scale is unavailable."
+    values = (before.get("estimate"), after.get("estimate"))
+    if any(not isinstance(x, (int, float)) or not math.isfinite(x) for x in values):
+        return "The direction of the estimate cannot be compared: an estimate is unavailable."
+    null = null_value(scale)
+    sides = [(x > null) - (x < null) for x in values]
+    return f"The direction of the estimate is {'unchanged' if sides[0] == sides[1] else 'changed'}."
+
+
+def null_conclusion_sentence(before, after, scale):
+    if str(scale or "").upper() not in ("HR", "RR", "OR", "IRR", "RATE_RATIO", "MD", "SMD"):
+        return "The conclusion about no difference cannot be compared: the scale is unavailable."
+    b, a = significance(before, scale), significance(after, scale)
+    if b == a == "includes_null":
+        return "The conclusion about no difference is unchanged: both intervals include the null."
+    if b == a == "excludes_null":
+        return "The conclusion about no difference is unchanged: both intervals exclude the null."
+    if b is None or a is None:
+        return ("The conclusion about no difference cannot be compared: an interval was not served."
+                + (" The current interval includes the null." if a == "includes_null" else ""))
+    return conclusion_changed(before, after, scale) or ""
+
+
 def conclusion_changed(before: dict[str, Any], after: dict[str, Any], scale: str | None) -> str | None:
-    """The derived sentence, or None when the direction is preserved. Losing a served estimate -- k -> 0, or a
+    """The derived sentence, or None when no null-conclusion change is established. Losing a served estimate -- k -> 0, or a
     pool refused where one was served -- is a withdrawal; a pooled estimate appearing where none was served is a
     new claim; both take a per-notice signature."""
     b, a = significance(before, scale), significance(after, scale)
