@@ -2,58 +2,58 @@
 
 All successful reads are READER_A_ONLY. No secondary admissions.
 
-Funnel: `{"distinct_images": 74, "read": {"N": 74, "n": 28}, "secondary": 0, "trials_with_candidate": {"N": 11, "n": 1}, "with_missing_trial": {"N": 22, "n": 4}, "with_rows": {"N": 28, "n": 22}}`
+Funnel: `{"distinct_images": 74, "read": {"N": 74, "n": 74}, "secondary": 0, "trials_with_candidate": {"N": 11, "n": 1}, "with_missing_trial": {"N": 43, "n": 4}, "with_rows": {"N": 74, "n": 43}}`
 
 Candidates use exact normalized names only; no inferred author/title identities.
 
 | Meta | Image | State | Rows | Record |
 |---|---|---|---:|---|
-| 34484209 | Supplemental Figure 1..tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 10.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 11.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 12.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 13.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 14.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 15.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 16.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 17.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 18.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 19.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 2.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 20.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 21.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 22.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 23.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 24.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 25.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 26.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 27.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 28.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 29.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 3.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 30.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 31.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 32.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 33.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 34.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 35.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 36.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 37.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 38.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 39.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 4.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 40.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 41.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 42.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 43.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 44.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 45.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 46.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 5.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 6.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 7.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 8.tif | LICENCE_REFUSED | 0 | - |
-| 34484209 | Supplemental Figure 9.tif | LICENCE_REFUSED | 0 | - |
+| 34484209 | Supplemental Figure 1..tif | READER_A_ONLY | 0 | mc-e020abcecc2134db4960ba3d08390ee9 |
+| 34484209 | Supplemental Figure 10.tif | READER_A_ONLY | 19 | mc-769e081e140d1d4afc46a630728e1cf2 |
+| 34484209 | Supplemental Figure 11.tif | READER_A_ONLY | 13 | mc-68c6f44207407f079a5016c72b2c2f59 |
+| 34484209 | Supplemental Figure 12.tif | READER_A_ONLY | 5 | mc-d259455ba1a29703b94a6ad12f9b757d |
+| 34484209 | Supplemental Figure 13.tif | READER_A_ONLY | 3 | mc-19bd2b69ba0096c45f7e1f48731913f4 |
+| 34484209 | Supplemental Figure 14.tif | READER_A_ONLY | 20 | mc-bee2c2f292405f077df0db880728dce1 |
+| 34484209 | Supplemental Figure 15.tif | READER_A_ONLY | 2 | mc-9a7283e8e32afc81b6b8c1a3ccebf9a5 |
+| 34484209 | Supplemental Figure 16.tif | READER_A_ONLY | 4 | mc-ae888cb5910ff466ffa48986745f6c02 |
+| 34484209 | Supplemental Figure 17.tif | READER_A_ONLY | 16 | mc-07b0c1c6d38fe456dde035c24401e890 |
+| 34484209 | Supplemental Figure 18.tif | READER_A_ONLY | 12 | mc-037e5e3b7ac4807022bc20b954aa6aa5 |
+| 34484209 | Supplemental Figure 19.tif | READER_A_ONLY | 7 | mc-99a0b5a443a38d3e8294e5bf4f2f9e54 |
+| 34484209 | Supplemental Figure 2.tif | READER_A_ONLY | 0 | mc-a79d1367757a9447f5ce41f6ca22cd49 |
+| 34484209 | Supplemental Figure 20.tif | READER_A_ONLY | 22 | mc-6c205355065de96ddf177e65431274d6 |
+| 34484209 | Supplemental Figure 21.tif | READER_A_ONLY | 24 | mc-074a96f47da0ca14638f9a8c34836513 |
+| 34484209 | Supplemental Figure 22.tif | READER_A_ONLY | 24 | mc-53337a840dffeea391db187b22a598de |
+| 34484209 | Supplemental Figure 23.tif | READER_A_ONLY | 0 | mc-a8096e00cc0c31298c337fcf81624d20 |
+| 34484209 | Supplemental Figure 24.tif | READER_A_ONLY | 0 | mc-77efaf4c60adf5e7992940180cfb3641 |
+| 34484209 | Supplemental Figure 25.tif | READER_A_ONLY | 0 | mc-02525226b91247146f2f7c7963d72386 |
+| 34484209 | Supplemental Figure 26.tif | READER_A_ONLY | 0 | mc-c531a299b4fc4fb3266ad0995e5ea9b0 |
+| 34484209 | Supplemental Figure 27.tif | READER_A_ONLY | 0 | mc-c7f3fe44b2db143a734777ffa692f074 |
+| 34484209 | Supplemental Figure 28.tif | READER_A_ONLY | 0 | mc-f3a3edf74c668afb67f7df3a8db63fdd |
+| 34484209 | Supplemental Figure 29.tif | READER_A_ONLY | 0 | mc-e35fa33aed22f7f7a0151d12d8894184 |
+| 34484209 | Supplemental Figure 3.tif | READER_A_ONLY | 0 | mc-3be48db7e557c2dc8dc41f3c27df8073 |
+| 34484209 | Supplemental Figure 30.tif | READER_A_ONLY | 0 | mc-4363ab1785e0e78d8ac04a32b44989ea |
+| 34484209 | Supplemental Figure 31.tif | READER_A_ONLY | 0 | mc-7bbcaa1bd3dde26ecc94b67bea383d24 |
+| 34484209 | Supplemental Figure 32.tif | READER_A_ONLY | 0 | mc-98c9583f1b4342ebe69ee78125156740 |
+| 34484209 | Supplemental Figure 33.tif | READER_A_ONLY | 0 | mc-d92f0e68217348b16b6e453afe02b826 |
+| 34484209 | Supplemental Figure 34.tif | READER_A_ONLY | 0 | mc-fd4f0bd07c5981d7fc39a091f5f11701 |
+| 34484209 | Supplemental Figure 35.tif | READER_A_ONLY | 0 | mc-1aed1d344ecbb0a92d549b7a864c7fa4 |
+| 34484209 | Supplemental Figure 36.tif | READER_A_ONLY | 0 | mc-e0bfe059f7c5ed3634061661d77b21b9 |
+| 34484209 | Supplemental Figure 37.tif | READER_A_ONLY | 0 | mc-71e765bd91ff77c5e9f20116c5be6f68 |
+| 34484209 | Supplemental Figure 38.tif | READER_A_ONLY | 0 | mc-1b8d5450c393c15cca5ae4f2936e6dfe |
+| 34484209 | Supplemental Figure 39.tif | READER_A_ONLY | 40 | mc-7d7abab8e55c46cb8f8d469ee4c85d1e |
+| 34484209 | Supplemental Figure 4.tif | READER_A_ONLY | 0 | mc-ae6c835530ad1e59d6cc647544d4ec5a |
+| 34484209 | Supplemental Figure 40.tif | READER_A_ONLY | 23 | mc-935776333565394a8ce9f1e8f044f94c |
+| 34484209 | Supplemental Figure 41.tif | READER_A_ONLY | 17 | mc-8d3dfc21217015a87575fc7518430d55 |
+| 34484209 | Supplemental Figure 42.tif | READER_A_ONLY | 40 | mc-cf5380e83ac2b2ed9c58dfb7b66bd2fb |
+| 34484209 | Supplemental Figure 43.tif | READER_A_ONLY | 23 | mc-50002963a3251a555edfc0ac390b93a3 |
+| 34484209 | Supplemental Figure 44.tif | READER_A_ONLY | 17 | mc-7efd77a0cd4b475da78fa9eac466659e |
+| 34484209 | Supplemental Figure 45.tif | READER_A_ONLY | 13 | mc-005c9726ab75c1c64389be7fe4c31cd4 |
+| 34484209 | Supplemental Figure 46.tif | READER_A_ONLY | 13 | mc-cf0d291ef3dc5b77e747e6fea3e37fc8 |
+| 34484209 | Supplemental Figure 5.tif | READER_A_ONLY | 0 | mc-772b65c18d824b581c6bb23e3686fe79 |
+| 34484209 | Supplemental Figure 6.tif | READER_A_ONLY | 0 | mc-96211f81329f7a48df7f5d007c5999e1 |
+| 34484209 | Supplemental Figure 7.tif | READER_A_ONLY | 0 | mc-8c017eeb43772f9036c6e8caf7c752d8 |
+| 34484209 | Supplemental Figure 8.tif | READER_A_ONLY | 0 | mc-484fe2cbd7e9630f026f6fef6d123829 |
+| 34484209 | Supplemental Figure 9.tif | READER_A_ONLY | 0 | mc-cfd1d00fd8771ba1221018bba2a9534e |
 | 37381009 | Supplementary Figure 10-20230515.jpg | READER_A_ONLY | 13 | mc-2f60399c7c537e93d7a2e0b431d0beb0 |
 | 37381009 | Supplementary Figure 11-20230515.jpg | READER_A_ONLY | 13 | mc-a47dfce9d2dc5aac493e443ad534f8dd |
 | 37381009 | Supplementary Figure 12-20230515.jpg | READER_A_ONLY | 13 | mc-c3f55f6d76782df13ee10df2e0c22056 |

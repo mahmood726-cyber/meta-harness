@@ -80,16 +80,35 @@ def image_prompt(name, reader='codex', table=False):
     return prompt
 
 
-def checked_licence(xml, metadata_license=None):
+LICENCE_RULINGS = ROOT / 'registry/d8_document_rulings.json'
+
+
+def checked_licence(xml, metadata_license=None, jats_sha256=None):
     """The ONE licence rule is harness.copy_licence.classify_permissions (D8; owned by the D8 lane). No second reading
-    here: a JATS that states CC BY only in words with no licence URL (34484209) is NOT_OPEN until that rule says
-    otherwise -- the Europe PMC metadata value is recorded (metadata_license) but never grants a model read.
-    (Adjudicated by the coverage lane, 15 Oct: the lane's metadata fallback was a parallel licence rule; removed.)"""
-    return copy_licence.classify_permissions(xml)
+    here: the Europe PMC metadata value is recorded (metadata_license) but never grants a model read (the lane's
+    metadata fallback was removed by the coverage lane, 15 Oct).
+    A NOT_OPEN document becomes CC only through a RECORDED DOCUMENT RULING (registry/d8_document_rulings.json, keyed
+    by the held JATS sha256): Dispatch's D8 ruling (15 Oct 23:50, on Mahmood's delegation) that an explicit,
+    unambiguous CC BY statement in the text counts as CC BY without a URL. The ruling is bound to the exact bytes (the
+    sha must match) AND to the words (its verbatim statement must still be in the text, and the restriction pattern
+    must not match it)."""
+    licence, statement = copy_licence.classify_permissions(xml)
+    if licence == 'CC' or not jats_sha256:
+        return licence, statement
+    try:
+        rulings = json.loads(LICENCE_RULINGS.read_text(encoding='utf8')).get('rulings', {})
+    except FileNotFoundError:
+        rulings = {}
+    ruling = rulings.get(jats_sha256)
+    if (ruling and hashlib.sha256(xml.encode('utf-8')).hexdigest() == jats_sha256
+            and ruling['verbatim_statement'] in xml
+            and not copy_licence._RESTRICTED.search(ruling['verbatim_statement'])):
+        return 'CC', ruling['verbatim_statement']
+    return licence, statement
 
 
 def read_image(path, expected, xml, runner=None, table=False, metadata_license=None):
-    licence, statement = checked_licence(xml, metadata_license)
+    licence, statement = checked_licence(xml, metadata_license, jats_sha256=hashlib.sha256(xml.encode('utf-8')).hexdigest())
     result = dict(licence=licence, licence_statement=statement, rows=[], candidates=[], record_id=None)
     if licence != 'CC':
         return dict(result, state='LICENCE_REFUSED')
@@ -165,7 +184,7 @@ def acquire(meta, rows):
         raise ValueError('PMID_PMCID_UNVERIFIED')
     pmcid = exact[0]['pmcid']
     xml = fetch(API + pmcid + '/fullTextXML', folder / 'article.xml').decode('utf8')
-    lic, stmt = checked_licence(xml, exact[0].get('license'))
+    lic, stmt = checked_licence(xml, exact[0].get('license'), jats_sha256=hashlib.sha256(xml.encode('utf-8')).hexdigest())
     audit = dict(meta=meta, pmcid=pmcid, licence=lic, statement=stmt, metadata_license=exact[0].get('license'),
                  metadata_sha256=digest(folder / 'metadata.json'), jats_sha256=digest(folder / 'article.xml'))
     if lic != 'CC':

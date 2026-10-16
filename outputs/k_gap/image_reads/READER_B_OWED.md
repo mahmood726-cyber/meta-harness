@@ -7,8 +7,8 @@ Recheck acquired JATS licence and all hashes first. Failed acquisition/licence/h
 ## 34484209 / Supplemental Figure 1..tif
 
 Source SHA256: `a562ebb5a693e8fdb42043e01090bdfc5f854fdee1a6c8655764773198f01d7f`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `568c618c07ca44a6e2c69ea87d1b8e0efe806461702985620afa38ed57cc7580`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 1..tif", "sha256": "a562ebb5a693e8fdb42043e01090bdfc5f854fdee1a6c8655764773198f01d7f"}, {"file": "Supplemental Figure 1..tif", "sha256": "a562ebb5a693e8fdb42043e01090bdfc5f854fdee1a6c8655764773198f01d7f"}]`
 
 ```text
@@ -38,8 +38,8 @@ IMAGE FILE: Supplemental Figure 1..png
 ## 34484209 / Supplemental Figure 10.tif
 
 Source SHA256: `73171922e18fa2bbbe87ca588fa8c1123f3acb1915870ddbe09a8166f9bb10c2`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `1f42cac01251b5151ceeb33d6b66f44ce1a0dc86da826bd03b69b0be2c7a7beb`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 10.tif", "sha256": "73171922e18fa2bbbe87ca588fa8c1123f3acb1915870ddbe09a8166f9bb10c2"}, {"file": "Supplemental Figure 10.tif", "sha256": "73171922e18fa2bbbe87ca588fa8c1123f3acb1915870ddbe09a8166f9bb10c2"}]`
 
 ```text
@@ -69,8 +69,8 @@ IMAGE FILE: Supplemental Figure 10.png
 ## 34484209 / Supplemental Figure 11.tif
 
 Source SHA256: `c6fdadcc585c9d293f0b99bc09de2953a38ba884d3630f2a5047dc24e95c9d73`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `927dbbdf5cf24ddceedf9060b8e952af2a4fe0b47471381fdc02ed6753496c35`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 11.tif", "sha256": "c6fdadcc585c9d293f0b99bc09de2953a38ba884d3630f2a5047dc24e95c9d73"}, {"file": "Supplemental Figure 11.tif", "sha256": "c6fdadcc585c9d293f0b99bc09de2953a38ba884d3630f2a5047dc24e95c9d73"}]`
 
 ```text
@@ -100,8 +100,8 @@ IMAGE FILE: Supplemental Figure 11.png
 ## 34484209 / Supplemental Figure 12.tif
 
 Source SHA256: `5ffd5c8cc8b759d5f846986b9a49a6b748b9873a69f0aa5f6d8a3582a1a94846`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `05d9d62bf121a5d49a5cb207fb85f7b27944ee348fc06564950ec5427209363d`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 12.tif", "sha256": "5ffd5c8cc8b759d5f846986b9a49a6b748b9873a69f0aa5f6d8a3582a1a94846"}, {"file": "Supplemental Figure 12.tif", "sha256": "5ffd5c8cc8b759d5f846986b9a49a6b748b9873a69f0aa5f6d8a3582a1a94846"}]`
 
 ```text
@@ -131,8 +131,8 @@ IMAGE FILE: Supplemental Figure 12.png
 ## 34484209 / Supplemental Figure 13.tif
 
 Source SHA256: `2e6d8a5ae20d706adda549579fa7cb440584b104fba844a8abe831d3d57c7cf7`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `4ed57dcc77844536037171ed2806eb2a4f89ea102a00481da6be70af595a7ed9`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 13.tif", "sha256": "2e6d8a5ae20d706adda549579fa7cb440584b104fba844a8abe831d3d57c7cf7"}, {"file": "Supplemental Figure 13.tif", "sha256": "2e6d8a5ae20d706adda549579fa7cb440584b104fba844a8abe831d3d57c7cf7"}]`
 
 ```text
@@ -162,8 +162,8 @@ IMAGE FILE: Supplemental Figure 13.png
 ## 34484209 / Supplemental Figure 14.tif
 
 Source SHA256: `5db751f62651b3fc0a0fa6b95653d49711a1385587d594da5ab12b0ee838aaff`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `b1e73d128949a598bfae2d23eb083c44f60d5e764e5b994592a425d0f281580e`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 14.tif", "sha256": "5db751f62651b3fc0a0fa6b95653d49711a1385587d594da5ab12b0ee838aaff"}, {"file": "Supplemental Figure 14.tif", "sha256": "5db751f62651b3fc0a0fa6b95653d49711a1385587d594da5ab12b0ee838aaff"}]`
 
 ```text
@@ -193,8 +193,8 @@ IMAGE FILE: Supplemental Figure 14.png
 ## 34484209 / Supplemental Figure 15.tif
 
 Source SHA256: `4c41eead29d4b9c04428f5c881248eae757a9cb042d7979c2399c2af4b01cf00`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `0e4c2a48af73a7330863cd198e4e66d8b50ffc09b15d4509dc1f2c69ac96275d`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 15.tif", "sha256": "4c41eead29d4b9c04428f5c881248eae757a9cb042d7979c2399c2af4b01cf00"}, {"file": "Supplemental Figure 15.tif", "sha256": "4c41eead29d4b9c04428f5c881248eae757a9cb042d7979c2399c2af4b01cf00"}]`
 
 ```text
@@ -224,8 +224,8 @@ IMAGE FILE: Supplemental Figure 15.png
 ## 34484209 / Supplemental Figure 16.tif
 
 Source SHA256: `ce1957a9e3a7f1d499d5123be9f0aded15e044650ef8ce011f38a978c6608ed6`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `2824ed94d48ea6441487a5b5105aa97c727de9ecf3380d494144165327733301`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 16.tif", "sha256": "ce1957a9e3a7f1d499d5123be9f0aded15e044650ef8ce011f38a978c6608ed6"}, {"file": "Supplemental Figure 16.tif", "sha256": "ce1957a9e3a7f1d499d5123be9f0aded15e044650ef8ce011f38a978c6608ed6"}]`
 
 ```text
@@ -255,8 +255,8 @@ IMAGE FILE: Supplemental Figure 16.png
 ## 34484209 / Supplemental Figure 17.tif
 
 Source SHA256: `92e86a222bf4c85947cb1d96735704b73af276360717c5d3dda17c8a1a98dbdf`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `e48711c50ceb825192b890ac9c6092eeb92b68435e898f2adc94bd083b0a7973`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 17.tif", "sha256": "92e86a222bf4c85947cb1d96735704b73af276360717c5d3dda17c8a1a98dbdf"}, {"file": "Supplemental Figure 17.tif", "sha256": "92e86a222bf4c85947cb1d96735704b73af276360717c5d3dda17c8a1a98dbdf"}]`
 
 ```text
@@ -286,8 +286,8 @@ IMAGE FILE: Supplemental Figure 17.png
 ## 34484209 / Supplemental Figure 18.tif
 
 Source SHA256: `b378e13fb1bf50ebf1c7567fa523d33c6a3aa263026fa8a3a76adc4c9f932993`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `bf91aaa1ece78b896b0c322141681da28f7a7183003092556b3479d9f02116b4`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 18.tif", "sha256": "b378e13fb1bf50ebf1c7567fa523d33c6a3aa263026fa8a3a76adc4c9f932993"}, {"file": "Supplemental Figure 18.tif", "sha256": "b378e13fb1bf50ebf1c7567fa523d33c6a3aa263026fa8a3a76adc4c9f932993"}]`
 
 ```text
@@ -317,8 +317,8 @@ IMAGE FILE: Supplemental Figure 18.png
 ## 34484209 / Supplemental Figure 19.tif
 
 Source SHA256: `9b6df767c1342cd83ba8ab90e9e896be359377552cd754ae9518b0fbc48c842a`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `b87351ae306a048abfca3542fa15640d6a7a3db9c819cbdede2ccc0dfb3cb8cd`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 19.tif", "sha256": "9b6df767c1342cd83ba8ab90e9e896be359377552cd754ae9518b0fbc48c842a"}, {"file": "Supplemental Figure 19.tif", "sha256": "9b6df767c1342cd83ba8ab90e9e896be359377552cd754ae9518b0fbc48c842a"}]`
 
 ```text
@@ -348,8 +348,8 @@ IMAGE FILE: Supplemental Figure 19.png
 ## 34484209 / Supplemental Figure 2.tif
 
 Source SHA256: `f30a924948c394ec4c92cffab70a999defc1df6b1f58a69dfcfcb98174b1f7be`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `71bb42acf63c53008025fede8e4f1dc1f62c8a5e58b27b5628615e43196d9afe`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 2.tif", "sha256": "f30a924948c394ec4c92cffab70a999defc1df6b1f58a69dfcfcb98174b1f7be"}, {"file": "Supplemental Figure 2.tif", "sha256": "f30a924948c394ec4c92cffab70a999defc1df6b1f58a69dfcfcb98174b1f7be"}]`
 
 ```text
@@ -379,8 +379,8 @@ IMAGE FILE: Supplemental Figure 2.png
 ## 34484209 / Supplemental Figure 20.tif
 
 Source SHA256: `3b116f0b6435faf8e65337b41e14f582b59134e6ab0b8019476b5b67b7d6c2c7`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `d9abf90254ce332b5f2b3441f787ca50374064072a64a57473b0190d847e42ad`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 20.tif", "sha256": "3b116f0b6435faf8e65337b41e14f582b59134e6ab0b8019476b5b67b7d6c2c7"}, {"file": "Supplemental Figure 20.tif", "sha256": "3b116f0b6435faf8e65337b41e14f582b59134e6ab0b8019476b5b67b7d6c2c7"}]`
 
 ```text
@@ -410,8 +410,8 @@ IMAGE FILE: Supplemental Figure 20.png
 ## 34484209 / Supplemental Figure 21.tif
 
 Source SHA256: `acfc5ee5e62c85d4c34182d0e1cccfcd7d053275f68af27cbb540d5715dceee7`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `28d32dab65989582268308e11b3a967f6b244a1181b41069c935af824354b4b1`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 21.tif", "sha256": "acfc5ee5e62c85d4c34182d0e1cccfcd7d053275f68af27cbb540d5715dceee7"}, {"file": "Supplemental Figure 21.tif", "sha256": "acfc5ee5e62c85d4c34182d0e1cccfcd7d053275f68af27cbb540d5715dceee7"}]`
 
 ```text
@@ -441,8 +441,8 @@ IMAGE FILE: Supplemental Figure 21.png
 ## 34484209 / Supplemental Figure 22.tif
 
 Source SHA256: `849a9df96e591038e60af13d2f11b25849e9e201a20b4f736f188aa15f95a839`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `e5561bb52eeab5150b9485321aaa6d3cd48f84a61ad088b61baa179f12e8edf0`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 22.tif", "sha256": "849a9df96e591038e60af13d2f11b25849e9e201a20b4f736f188aa15f95a839"}, {"file": "Supplemental Figure 22.tif", "sha256": "849a9df96e591038e60af13d2f11b25849e9e201a20b4f736f188aa15f95a839"}]`
 
 ```text
@@ -472,8 +472,8 @@ IMAGE FILE: Supplemental Figure 22.png
 ## 34484209 / Supplemental Figure 23.tif
 
 Source SHA256: `cd4fafe216d84f39f60a4dcfc64cc037eae15dadf75c4780e3c8342b46ccab02`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `896bc4016c9477864b5b3ebdcb8bffb54c61246df800c39e2376f59efec97524`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 23.tif", "sha256": "cd4fafe216d84f39f60a4dcfc64cc037eae15dadf75c4780e3c8342b46ccab02"}, {"file": "Supplemental Figure 23.tif", "sha256": "cd4fafe216d84f39f60a4dcfc64cc037eae15dadf75c4780e3c8342b46ccab02"}]`
 
 ```text
@@ -503,8 +503,8 @@ IMAGE FILE: Supplemental Figure 23.png
 ## 34484209 / Supplemental Figure 24.tif
 
 Source SHA256: `55b3008e79a296d56ecc794312ee37a98d83a53b66c76975eb4c998452ddf0a1`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `6d5bc0a7eec8902a1281176b18e6697e5e03cbf874114b3e4db9132d3bab0de2`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 24.tif", "sha256": "55b3008e79a296d56ecc794312ee37a98d83a53b66c76975eb4c998452ddf0a1"}, {"file": "Supplemental Figure 24.tif", "sha256": "55b3008e79a296d56ecc794312ee37a98d83a53b66c76975eb4c998452ddf0a1"}]`
 
 ```text
@@ -534,8 +534,8 @@ IMAGE FILE: Supplemental Figure 24.png
 ## 34484209 / Supplemental Figure 25.tif
 
 Source SHA256: `cfd6b9a674a376c3efb1cbe2500ca6dfa6ad2a40537be901b463ba2b33be849c`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `0efae6a158ba93973937ab122f47e4ee767f1fae95ab4c37c183f2d5933984a0`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 25.tif", "sha256": "cfd6b9a674a376c3efb1cbe2500ca6dfa6ad2a40537be901b463ba2b33be849c"}, {"file": "Supplemental Figure 25.tif", "sha256": "cfd6b9a674a376c3efb1cbe2500ca6dfa6ad2a40537be901b463ba2b33be849c"}]`
 
 ```text
@@ -565,8 +565,8 @@ IMAGE FILE: Supplemental Figure 25.png
 ## 34484209 / Supplemental Figure 26.tif
 
 Source SHA256: `722c5341e9fe7ae343c84c4bf4ea6edc6eb8e5850fdcfcc0b54fcacc22d99364`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `7468bf9f5ad16036b3eb33493caf344c8112e27ced1658b89a70fce77efa8348`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 26.tif", "sha256": "722c5341e9fe7ae343c84c4bf4ea6edc6eb8e5850fdcfcc0b54fcacc22d99364"}, {"file": "Supplemental Figure 26.tif", "sha256": "722c5341e9fe7ae343c84c4bf4ea6edc6eb8e5850fdcfcc0b54fcacc22d99364"}]`
 
 ```text
@@ -596,8 +596,8 @@ IMAGE FILE: Supplemental Figure 26.png
 ## 34484209 / Supplemental Figure 27.tif
 
 Source SHA256: `ac9531c282d2970dcaf0aaafca2cfed4574c72e6356c1657215c275b29cf9f3b`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `c3eba5ee907566963d4c85a3e07873ecb88d05994c0e96fffe8e9ae6245552e2`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 27.tif", "sha256": "ac9531c282d2970dcaf0aaafca2cfed4574c72e6356c1657215c275b29cf9f3b"}, {"file": "Supplemental Figure 27.tif", "sha256": "ac9531c282d2970dcaf0aaafca2cfed4574c72e6356c1657215c275b29cf9f3b"}]`
 
 ```text
@@ -627,8 +627,8 @@ IMAGE FILE: Supplemental Figure 27.png
 ## 34484209 / Supplemental Figure 28.tif
 
 Source SHA256: `3039b6995fbaf142c45d2115d181a9f0e47a4df0fa426b8ade15c9712a6a47f6`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `3ea4deaf5e00cec4d2c42782438f504cb25945387052a9f347ed3ff005f876e5`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 28.tif", "sha256": "3039b6995fbaf142c45d2115d181a9f0e47a4df0fa426b8ade15c9712a6a47f6"}, {"file": "Supplemental Figure 28.tif", "sha256": "3039b6995fbaf142c45d2115d181a9f0e47a4df0fa426b8ade15c9712a6a47f6"}]`
 
 ```text
@@ -658,8 +658,8 @@ IMAGE FILE: Supplemental Figure 28.png
 ## 34484209 / Supplemental Figure 29.tif
 
 Source SHA256: `51d2530f39ba9e723b65902a3667b0df4ba382923eb4a5aeb8d522932850c3ed`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `8c434581a0b890f4d060df2206c8f0d6c40d016f32e81f2e4a6212b3fa53cf20`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 29.tif", "sha256": "51d2530f39ba9e723b65902a3667b0df4ba382923eb4a5aeb8d522932850c3ed"}, {"file": "Supplemental Figure 29.tif", "sha256": "51d2530f39ba9e723b65902a3667b0df4ba382923eb4a5aeb8d522932850c3ed"}]`
 
 ```text
@@ -689,8 +689,8 @@ IMAGE FILE: Supplemental Figure 29.png
 ## 34484209 / Supplemental Figure 3.tif
 
 Source SHA256: `4aa829503599443bcac93d52fad3a5bf884804b552cfab21be687e4e9c92e282`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `d3f086732fae226e60e242099c93b98a51ae58e390ab4915002664c0b34d07a1`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 3.tif", "sha256": "4aa829503599443bcac93d52fad3a5bf884804b552cfab21be687e4e9c92e282"}, {"file": "Supplemental Figure 3.tif", "sha256": "4aa829503599443bcac93d52fad3a5bf884804b552cfab21be687e4e9c92e282"}]`
 
 ```text
@@ -720,8 +720,8 @@ IMAGE FILE: Supplemental Figure 3.png
 ## 34484209 / Supplemental Figure 30.tif
 
 Source SHA256: `a3f236439e141de1844605480394fdd1a060b1aff3c76555c2159bfd315d24f8`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `7199f91aa88e6faf7fe815c7ee6e5094e359dac078e24d59528807e34855d516`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 30.tif", "sha256": "a3f236439e141de1844605480394fdd1a060b1aff3c76555c2159bfd315d24f8"}, {"file": "Supplemental Figure 30.tif", "sha256": "a3f236439e141de1844605480394fdd1a060b1aff3c76555c2159bfd315d24f8"}]`
 
 ```text
@@ -751,8 +751,8 @@ IMAGE FILE: Supplemental Figure 30.png
 ## 34484209 / Supplemental Figure 31.tif
 
 Source SHA256: `476b1b17b88e01045b31d5072ff4549c5fd7458bff16acb61105c3045c6387d4`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `677bfb2970bd99339ad7d18ca1d6de83377c0030a2a2b20c61928517c1ecafd2`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 31.tif", "sha256": "476b1b17b88e01045b31d5072ff4549c5fd7458bff16acb61105c3045c6387d4"}, {"file": "Supplemental Figure 31.tif", "sha256": "476b1b17b88e01045b31d5072ff4549c5fd7458bff16acb61105c3045c6387d4"}]`
 
 ```text
@@ -782,8 +782,8 @@ IMAGE FILE: Supplemental Figure 31.png
 ## 34484209 / Supplemental Figure 32.tif
 
 Source SHA256: `26bcd0442e346f5a0838e9febc3d979fb140cf8f86a66a66ec9bcd09fcb7d9af`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `dcce404557191853074cdc7d4055c8ef8af559ef09dd30077f2bc19caa320362`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 32.tif", "sha256": "26bcd0442e346f5a0838e9febc3d979fb140cf8f86a66a66ec9bcd09fcb7d9af"}, {"file": "Supplemental Figure 32.tif", "sha256": "26bcd0442e346f5a0838e9febc3d979fb140cf8f86a66a66ec9bcd09fcb7d9af"}]`
 
 ```text
@@ -813,8 +813,8 @@ IMAGE FILE: Supplemental Figure 32.png
 ## 34484209 / Supplemental Figure 33.tif
 
 Source SHA256: `d6102bf479fa6fb5b3c21771b335a68a586ee85e01351b2ff1cc9744cd4c5fd1`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `88ab626dd487947dc1b57155a771c8f3e343d22fad6ac9cda09b46c8e6873706`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 33.tif", "sha256": "d6102bf479fa6fb5b3c21771b335a68a586ee85e01351b2ff1cc9744cd4c5fd1"}, {"file": "Supplemental Figure 33.tif", "sha256": "d6102bf479fa6fb5b3c21771b335a68a586ee85e01351b2ff1cc9744cd4c5fd1"}]`
 
 ```text
@@ -844,8 +844,8 @@ IMAGE FILE: Supplemental Figure 33.png
 ## 34484209 / Supplemental Figure 34.tif
 
 Source SHA256: `9ce95e6af9d6241132959514a9a6a9ec594b5af58b166577f15dac7fbf9b5bf6`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `5f03c00d06ea889baeb6bf1209a5d7e799e06e83f6eb70ea05527a165eb2ef3e`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 34.tif", "sha256": "9ce95e6af9d6241132959514a9a6a9ec594b5af58b166577f15dac7fbf9b5bf6"}, {"file": "Supplemental Figure 34.tif", "sha256": "9ce95e6af9d6241132959514a9a6a9ec594b5af58b166577f15dac7fbf9b5bf6"}]`
 
 ```text
@@ -875,8 +875,8 @@ IMAGE FILE: Supplemental Figure 34.png
 ## 34484209 / Supplemental Figure 35.tif
 
 Source SHA256: `331e382f1c41fa788dda09bf66f3f12f3863bdb2d634d010c4a524d2093f3803`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `8d9f71887b40aebcbee8d77e878a1ab2aadfd12ce9079068e1c423523833af94`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 35.tif", "sha256": "331e382f1c41fa788dda09bf66f3f12f3863bdb2d634d010c4a524d2093f3803"}, {"file": "Supplemental Figure 35.tif", "sha256": "331e382f1c41fa788dda09bf66f3f12f3863bdb2d634d010c4a524d2093f3803"}]`
 
 ```text
@@ -906,8 +906,8 @@ IMAGE FILE: Supplemental Figure 35.png
 ## 34484209 / Supplemental Figure 36.tif
 
 Source SHA256: `15da331330791b9f342ab3a81cbf2e878cf6e634161e9eb8cd4d6221af6f89f0`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `3bb439dbd80962c6cd81fa7a68fab28f1884a7bfffb3e53764d0cd7b44a93af1`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 36.tif", "sha256": "15da331330791b9f342ab3a81cbf2e878cf6e634161e9eb8cd4d6221af6f89f0"}, {"file": "Supplemental Figure 36.tif", "sha256": "15da331330791b9f342ab3a81cbf2e878cf6e634161e9eb8cd4d6221af6f89f0"}]`
 
 ```text
@@ -937,8 +937,8 @@ IMAGE FILE: Supplemental Figure 36.png
 ## 34484209 / Supplemental Figure 37.tif
 
 Source SHA256: `27ef8668c79d80a4a032556d4738a2a638c92b452fe9e31f0d302bee1524d996`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `82ff7647c51e5b53e89ea7a40ceb2f1c0d4ae36a4b4cb57056fe7dbba143e687`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 37.tif", "sha256": "27ef8668c79d80a4a032556d4738a2a638c92b452fe9e31f0d302bee1524d996"}, {"file": "Supplemental Figure 37.tif", "sha256": "27ef8668c79d80a4a032556d4738a2a638c92b452fe9e31f0d302bee1524d996"}]`
 
 ```text
@@ -968,8 +968,8 @@ IMAGE FILE: Supplemental Figure 37.png
 ## 34484209 / Supplemental Figure 38.tif
 
 Source SHA256: `d3500eb3138d90cc305f8a82155784945c6bc1da23bcb3a98d8f5ea43f17496f`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `c8cf6ded9b04083355a0145d2ab6a9bce6f1ea0181b814fec8b57220bcb9b6e9`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 38.tif", "sha256": "d3500eb3138d90cc305f8a82155784945c6bc1da23bcb3a98d8f5ea43f17496f"}, {"file": "Supplemental Figure 38.tif", "sha256": "d3500eb3138d90cc305f8a82155784945c6bc1da23bcb3a98d8f5ea43f17496f"}]`
 
 ```text
@@ -999,8 +999,8 @@ IMAGE FILE: Supplemental Figure 38.png
 ## 34484209 / Supplemental Figure 39.tif
 
 Source SHA256: `dc51dc884cae71cb0babbe50c88738fe9672412a3a4b28bbee4b40b80f3c1b2a`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `0ee391dd0a1532b140d0dc6e6abe0544a5636fbae6eb351872fe058c8de7f0db`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 39.tif", "sha256": "dc51dc884cae71cb0babbe50c88738fe9672412a3a4b28bbee4b40b80f3c1b2a"}, {"file": "Supplemental Figure 39.tif", "sha256": "dc51dc884cae71cb0babbe50c88738fe9672412a3a4b28bbee4b40b80f3c1b2a"}]`
 
 ```text
@@ -1030,8 +1030,8 @@ IMAGE FILE: Supplemental Figure 39.png
 ## 34484209 / Supplemental Figure 4.tif
 
 Source SHA256: `a850d18e199a5220b70182b9e83358a5a45d20b7746ab470e037dbff72af086a`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `e6ec537da602e9dabae093aa765419af48778da679a08384d88edde53cbb1952`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 4.tif", "sha256": "a850d18e199a5220b70182b9e83358a5a45d20b7746ab470e037dbff72af086a"}, {"file": "Supplemental Figure 4.tif", "sha256": "a850d18e199a5220b70182b9e83358a5a45d20b7746ab470e037dbff72af086a"}]`
 
 ```text
@@ -1061,8 +1061,8 @@ IMAGE FILE: Supplemental Figure 4.png
 ## 34484209 / Supplemental Figure 40.tif
 
 Source SHA256: `cb3e8e76a8a6c284254ccff8358c4db67326ea47f1b49b2720ba367e375f4b7c`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `120804dad3f125542f7a0025c7f21cb787b347a6cd7a8f05a5d17b13830fd7c1`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 40.tif", "sha256": "cb3e8e76a8a6c284254ccff8358c4db67326ea47f1b49b2720ba367e375f4b7c"}, {"file": "Supplemental Figure 40.tif", "sha256": "cb3e8e76a8a6c284254ccff8358c4db67326ea47f1b49b2720ba367e375f4b7c"}]`
 
 ```text
@@ -1092,8 +1092,8 @@ IMAGE FILE: Supplemental Figure 40.png
 ## 34484209 / Supplemental Figure 41.tif
 
 Source SHA256: `2ec5cbb453261c71a7195d4b2e6bbb265d2a675619cf1ea525489b7c65c44175`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `b6a783cf769420a48817e9ef1cf44c566b1acb2e8991a7364382b587c153e92b`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 41.tif", "sha256": "2ec5cbb453261c71a7195d4b2e6bbb265d2a675619cf1ea525489b7c65c44175"}, {"file": "Supplemental Figure 41.tif", "sha256": "2ec5cbb453261c71a7195d4b2e6bbb265d2a675619cf1ea525489b7c65c44175"}]`
 
 ```text
@@ -1123,8 +1123,8 @@ IMAGE FILE: Supplemental Figure 41.png
 ## 34484209 / Supplemental Figure 42.tif
 
 Source SHA256: `edaf1b8d92f32aeb41015db3a5d9df79e64dc1b6189e0f5f74bc318bda803c23`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `3f78d922f5e859ae486959e7b39e990e7e3fedbb207e90615511cd5ea822f746`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 42.tif", "sha256": "edaf1b8d92f32aeb41015db3a5d9df79e64dc1b6189e0f5f74bc318bda803c23"}, {"file": "Supplemental Figure 42.tif", "sha256": "edaf1b8d92f32aeb41015db3a5d9df79e64dc1b6189e0f5f74bc318bda803c23"}]`
 
 ```text
@@ -1154,8 +1154,8 @@ IMAGE FILE: Supplemental Figure 42.png
 ## 34484209 / Supplemental Figure 43.tif
 
 Source SHA256: `4e44577ed054e87e2dabc7eb444caba0d4fcee0951a7b46fc83f9aeeffe93684`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `9d871000b649550a2d2228d9041969989a3a16ac8c3cce989656fdc76d0bfbd2`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 43.tif", "sha256": "4e44577ed054e87e2dabc7eb444caba0d4fcee0951a7b46fc83f9aeeffe93684"}, {"file": "Supplemental Figure 43.tif", "sha256": "4e44577ed054e87e2dabc7eb444caba0d4fcee0951a7b46fc83f9aeeffe93684"}]`
 
 ```text
@@ -1185,8 +1185,8 @@ IMAGE FILE: Supplemental Figure 43.png
 ## 34484209 / Supplemental Figure 44.tif
 
 Source SHA256: `97cbf7ea76b458aae683aa7468d35419bca2843d0e61acb312d5a60218211c9c`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `ed5974885b22b937d92ff4125734e275093b0d2d9757a08dcb655cb32d137b7d`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 44.tif", "sha256": "97cbf7ea76b458aae683aa7468d35419bca2843d0e61acb312d5a60218211c9c"}, {"file": "Supplemental Figure 44.tif", "sha256": "97cbf7ea76b458aae683aa7468d35419bca2843d0e61acb312d5a60218211c9c"}]`
 
 ```text
@@ -1216,8 +1216,8 @@ IMAGE FILE: Supplemental Figure 44.png
 ## 34484209 / Supplemental Figure 45.tif
 
 Source SHA256: `7f25dbc4c02c448f5b5a6c250333eaf19f7dbea3c3c9eb70e1f90c01eff77b74`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `ae9054a69c3e615c66842fd7a3eba782e9de3a6db4ce3a4aa1888d125342f460`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 45.tif", "sha256": "7f25dbc4c02c448f5b5a6c250333eaf19f7dbea3c3c9eb70e1f90c01eff77b74"}, {"file": "Supplemental Figure 45.tif", "sha256": "7f25dbc4c02c448f5b5a6c250333eaf19f7dbea3c3c9eb70e1f90c01eff77b74"}]`
 
 ```text
@@ -1247,8 +1247,8 @@ IMAGE FILE: Supplemental Figure 45.png
 ## 34484209 / Supplemental Figure 46.tif
 
 Source SHA256: `337bcae09ba2f6e32365ac4e9ab93136086e9033064b7031ef238c564f4833c3`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `60bd0e80e833dfff0dcbf673bde416530b9dca8b8c670ef9ef774c393aef1bc3`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 46.tif", "sha256": "337bcae09ba2f6e32365ac4e9ab93136086e9033064b7031ef238c564f4833c3"}, {"file": "Supplemental Figure 46.tif", "sha256": "337bcae09ba2f6e32365ac4e9ab93136086e9033064b7031ef238c564f4833c3"}]`
 
 ```text
@@ -1278,8 +1278,8 @@ IMAGE FILE: Supplemental Figure 46.png
 ## 34484209 / Supplemental Figure 5.tif
 
 Source SHA256: `bc5d4d83dbb0e337500f2247b9752df75572655162fb60243b1fa6014f136ba7`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `c327781811de9956bfe119466affe4f56008d55ee0b825ed6d67f1946b4193c6`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 5.tif", "sha256": "bc5d4d83dbb0e337500f2247b9752df75572655162fb60243b1fa6014f136ba7"}, {"file": "Supplemental Figure 5.tif", "sha256": "bc5d4d83dbb0e337500f2247b9752df75572655162fb60243b1fa6014f136ba7"}]`
 
 ```text
@@ -1309,8 +1309,8 @@ IMAGE FILE: Supplemental Figure 5.png
 ## 34484209 / Supplemental Figure 6.tif
 
 Source SHA256: `aa7649e2db3dd4281b4f1969b1b4f54952a837bce1fe49da0e5815006b3efb2e`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `e6c23b6527afa430c2d2866c9d39bac493c47dd28263293e0618bd80f0a4bcb0`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 6.tif", "sha256": "aa7649e2db3dd4281b4f1969b1b4f54952a837bce1fe49da0e5815006b3efb2e"}, {"file": "Supplemental Figure 6.tif", "sha256": "aa7649e2db3dd4281b4f1969b1b4f54952a837bce1fe49da0e5815006b3efb2e"}]`
 
 ```text
@@ -1340,8 +1340,8 @@ IMAGE FILE: Supplemental Figure 6.png
 ## 34484209 / Supplemental Figure 7.tif
 
 Source SHA256: `1fcc4effc52f3403d82c1908bf8835302075dc35635e4c43098e4f766e31e80b`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `8b8f7958f8220f77c91fea70013a96ee012f23429c514b9340b58ca5fd1b9dcf`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 7.tif", "sha256": "1fcc4effc52f3403d82c1908bf8835302075dc35635e4c43098e4f766e31e80b"}, {"file": "Supplemental Figure 7.tif", "sha256": "1fcc4effc52f3403d82c1908bf8835302075dc35635e4c43098e4f766e31e80b"}]`
 
 ```text
@@ -1371,8 +1371,8 @@ IMAGE FILE: Supplemental Figure 7.png
 ## 34484209 / Supplemental Figure 8.tif
 
 Source SHA256: `44c86146997491385ea8f2f5016ccbd7375782f3fc9f00c46045277d85a35d37`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `024e4930b91bc015aa23e2dc4d6a75dec74954ed4b92f3777f21d84111149331`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 8.tif", "sha256": "44c86146997491385ea8f2f5016ccbd7375782f3fc9f00c46045277d85a35d37"}, {"file": "Supplemental Figure 8.tif", "sha256": "44c86146997491385ea8f2f5016ccbd7375782f3fc9f00c46045277d85a35d37"}]`
 
 ```text
@@ -1402,8 +1402,8 @@ IMAGE FILE: Supplemental Figure 8.png
 ## 34484209 / Supplemental Figure 9.tif
 
 Source SHA256: `ce30aa9972cb48e6ed8c6e542580da52a11ac800bf989d044291d9de560889f5`
-Attached SHA256: `NOT_ACQUIRED`
-Reader A state: LICENCE_REFUSED
+Attached SHA256: `ecea67164286ce340df938e249a94dd6a69eeea582d19dc3d68b1716f79d683e`
+Reader A state: READER_A_ONLY
 Aliases: `[{"file": "Supplemental Figure 9.tif", "sha256": "ce30aa9972cb48e6ed8c6e542580da52a11ac800bf989d044291d9de560889f5"}, {"file": "Supplemental Figure 9.tif", "sha256": "ce30aa9972cb48e6ed8c6e542580da52a11ac800bf989d044291d9de560889f5"}]`
 
 ```text
@@ -2322,3 +2322,9 @@ Use null for unprinted fields; do not calculate effects from counts. If no study
 printed, return rows=[] and explain in notes. Preserve the printed measure and describe column context in notes.
 
 ```
+
+## 16 Oct update
+Reader B was run with claude-sonnet-5-5 (a different family from reader A's codex/openai) on all 74 distinct images,
+using reader A's exact prompt and schema. Records: `evidence/model_calls/image_tables_reader_b/` (client NOT
+attested -- Agent-tool subagent); lane log `registry/model_calls/lane_log/coverage__reader-b.jsonl`; agreement in
+`READER_AB.{json,md}`. The agy Gemini read listed above is still owed (17 Oct reset) as the google-family read.

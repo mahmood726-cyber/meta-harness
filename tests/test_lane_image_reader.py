@@ -90,3 +90,22 @@ def test_a_words_only_cc_by_with_open_metadata_is_not_a_model_read():
            "Creative Commons Attribution License.</license-p></license></permissions></article-meta></front></article>")
     from harness import copy_licence
     assert lr.checked_licence(xml, metadata_license="cc by")[0] == copy_licence.classify_permissions(xml)[0]
+
+
+# ---- D8 ruling (Dispatch, on Mahmood's delegation, 15 Oct 23:50): an explicit, unambiguous CC BY statement in the text
+# counts as CC BY without a URL -- recorded PER DOCUMENT (verbatim statement, location, sha256), never as a new rule ----
+def test_a_recorded_document_ruling_opens_exactly_that_document(tmp_path, monkeypatch):
+    import hashlib, json as _json
+    stmt = ("This is an open-access article distributed under the terms of the Creative Commons Attribution License "
+            "(CC BY).")
+    xml = f"<article><front><article-meta><permissions><license><license-p>{stmt}</license-p></license></permissions></article-meta></front></article>"
+    sha = hashlib.sha256(xml.encode("utf-8")).hexdigest()
+    rulings = tmp_path / "rulings.json"
+    rulings.write_text(_json.dumps({"rulings": {sha: {"verbatim_statement": stmt, "location": "permissions/license/license-p",
+                                                       "ruling": "D8 23:50 15 Oct"}}}), encoding="utf-8")
+    monkeypatch.setattr(lr, "LICENCE_RULINGS", rulings)
+    assert lr.checked_licence(xml, "cc by", jats_sha256=sha)[0] == "CC"
+    # another document with the same words but a different sha is NOT opened by that ruling
+    assert lr.checked_licence(xml + " ", "cc by", jats_sha256=sha[::-1])[0] != "CC"
+    # the same sha whose text no longer carries the verbatim statement is refused (the ruling is bound to the words)
+    assert lr.checked_licence(xml.replace("(CC BY)", "(CC BY-NC)"), "cc by", jats_sha256=sha)[0] != "CC"
