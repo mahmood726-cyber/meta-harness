@@ -19,13 +19,13 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `b4d96d8d57d9da469424d2ce2d9229bbab6785cb3d7c23f7848a973d04ff98b8` |
-| html_sha256 (served page bytes) | `4ac49abdb07946883d1f216b0dbd7cc053152c9a81230424a2792e494c96417c` |
-| release_sha256 (certificate) | `29705e67c7b6ed0c9827176f7bbf186dbb387f092c7a171411b4df5b91e80296` |
+| review_sha256 (canonical review core) | `9522bc7deb0063051d0b2aadf512c662d391dd3e92a09655ceb15426b0e4b298` |
+| html_sha256 (served page bytes) | `d777308c0fb49e38164a52bdb55e3b18afde71d93e0502a15526ffdf2e926d5c` |
+| release_sha256 (certificate) | `3a548bcb29769a78526d18c6ac77fac4d43ce4bf9b33a72cee1bd5ee07303164` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `0fb7f9f4cd617ae16e470371a271bccbba9e9c86` |
-| analysis code | 95 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `2f9c17ca06641d507ff4db31c3d9f89567d106cd` |
+| analysis code | 96 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
+| recorded generating commit | `3efe62a2db325b2d3c5e619cc2d7fb9c535d6ec9` |
 | recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
@@ -42,6 +42,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `outputs/handover/in3/aact/reported_events.txt` | `96356f7251be3d0c803bce360bf6c77537fc34f381ed2546a644b34832d80d76` |
 
 Recorded judgments live under `cache/dpp4-mace-t2d/`; their object digest is
-`91944373acee6b25656d76052cab8e5fc566b532dca98ac3b68b60a5fa3e99ff`. Acquisitions live under `docs/acquisitions/dpp4-mace-t2d/`.
+`f41f89cee700fe037152f4217b65fadb57a168072a8071ba95b24e244ce31d9c`. Acquisitions live under `docs/acquisitions/dpp4-mace-t2d/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.

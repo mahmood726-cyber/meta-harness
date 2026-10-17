@@ -1258,6 +1258,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
                    registry_designs=None, k2_anchor_config=None, eligibility_contract=None, slug=None):
+    from .dpp4_source import route_records
+    rec_by_id = route_records(slug, spec.get("name"), rec_by_id)
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
@@ -1411,6 +1413,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         )
         if target_pick.get("selected"):
             t = {"label": label, "id": idstr, **target_pick["selected"]}
+            if rec.get("retained_abstract_ref") and t.get("provenance") == "abstract":
+                ref = rec["retained_abstract_ref"]
+                t.update(document_ref=ref["path"], document_sha256=ref["sha256"],
+                         source_span=t.get("endpoint_result_span") or t.get("source"))
             if nct and nct in ctgov_results:
                 cs = _cross_source(t, nct, ctgov_results, spec, interv, comp)
                 if cs and (t.get("provenance") != "ctgov_results"
