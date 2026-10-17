@@ -19,14 +19,14 @@ runs with networking and child processes denied. On Linux/macOS use `scratch/rep
 
 | This topic's identity | Recorded value |
 |---|---|
-| review_sha256 (canonical review core) | `6d2bfcbd3d3d7a14be25e079b49d29a72528459f719300b6567c0cc6c6ca9eff` |
-| html_sha256 (served page bytes) | `de28954afce4cbd0edd69b4b73c09c9cdc1b24ee1f689616479143aaaaf292c2` |
-| release_sha256 (certificate) | `6a2e8c5987abcb68940b16507248fd87d814c65e57d5101c89f4b413d0356789` |
+| review_sha256 (canonical review core) | `b4d96d8d57d9da469424d2ce2d9229bbab6785cb3d7c23f7848a973d04ff98b8` |
+| html_sha256 (served page bytes) | `4ac49abdb07946883d1f216b0dbd7cc053152c9a81230424a2792e494c96417c` |
+| release_sha256 (certificate) | `29705e67c7b6ed0c9827176f7bbf186dbb387f092c7a171411b4df5b91e80296` |
 | build_utc (label, not clock) | `2026-09-11` |
 | protocol_sha | `0fb7f9f4cd617ae16e470371a271bccbba9e9c86` |
 | analysis code | 95 pinned blobs; 1 declared absences in CERTIFICATE.json.analysis_code_blobs |
-| recorded generating commit | `0d160a6b9c6448edb0e7ed129d96f27c3463f7aa` |
-| recorded tree state | `CLEAN_EXCEPT_OWN_OUTPUTS`; a commit alone does not restore dirty changes |
+| recorded generating commit | `2f9c17ca06641d507ff4db31c3d9f89567d106cd` |
+| recorded tree state | `DIRTY`; a commit alone does not restore dirty changes |
 | dependency lock SHA-256 | `fb7bc34b2e61fc9fc949c7bda5c276f39d5aaa319ed818742dd31eca02044fdc` |
 
 ## This topic's held documents
@@ -42,6 +42,6 @@ licence/custody exceptions, where a topic bundle exists, remain in its artefacts
 | `outputs/handover/in3/aact/reported_events.txt` | `96356f7251be3d0c803bce360bf6c77537fc34f381ed2546a644b34832d80d76` |
 
 Recorded judgments live under `cache/dpp4-mace-t2d/`; their object digest is
-`f41f89cee700fe037152f4217b65fadb57a168072a8071ba95b24e244ce31d9c`. Acquisitions live under `docs/acquisitions/dpp4-mace-t2d/`.
+`91944373acee6b25656d76052cab8e5fc566b532dca98ac3b68b60a5fa3e99ff`. Acquisitions live under `docs/acquisitions/dpp4-mace-t2d/`.
 This topic has no independent-verifier BUNDLE.json; do not claim its row-verifier or anchor checks ran.
 The corpus dependency and guide bindings are in `docs/offline/BUNDLE.json`.
