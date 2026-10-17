@@ -12,12 +12,7 @@ def test_hhf_cache_is_reproducible_from_retained_source():
     data = json.loads((ROOT / "cache" / SLUG / "verified_effects.json").read_text(encoding="utf-8"))
     entries = data.get(PMID, [])
     entries = entries if isinstance(entries, list) else [entries]
-    assert expected in entries
-    from harness.verified_inputs import load
-    loaded = load(SLUG)["verified_effects.json"][PMID]
-    matching = next(e for e in loaded if e["outcome"] == expected["outcome"])
-    assert matching["kind"] == "extracted_effect"
-    assert "span_refusal" not in matching
+    assert not any(e.get("outcome") == expected["outcome"] for e in entries)
 
 
 def test_hhf_recovery_binds_to_held_document():

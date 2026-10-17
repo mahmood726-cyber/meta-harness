@@ -1,7 +1,7 @@
 """Recover the hHF effect from the hash-verified retained PubMed acquisition.
 
 No source text is sent to a model and no research number is entered manually.
-The cached excerpt is retained; this supplies one outcome-specific fallback.
+Read-only diagnostic. The pipeline routes the retained source to its normal extractor.
 """
 from __future__ import annotations
 
@@ -50,13 +50,7 @@ def recover():
 
 
 def main():
-    path = ROOT / "cache" / SLUG / "verified_effects.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
-    row = recover()
-    entries = data.get(PMID, [])
-    entries = entries if isinstance(entries, list) else [entries]
-    data[PMID] = [e for e in entries if e.get("outcome") != row["outcome"]] + [row]
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(recover(), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
