@@ -1437,6 +1437,14 @@ def _declared_conversion_block(t):
     c = t.get("declared_conversion")
     if not c:
         return ""
+    if c.get('kind') == 'percentage_to_count':
+        inputs = '; '.join(f"{a['label']}: {a['percentage']}% x {a['n']} -> {a['count']} events; unique integer candidates {a['unique_candidates']}" for a in c['inputs'])
+        cor = c['corroboration']
+        return ("<div class='declared-conversion'><strong>Declared percentage-to-count conversion</strong>: "
+                + _e(inputs) + '<br>' + _e(c['population']) + '<br>' + _e(c['formula'])
+                + '<br>Source: ' + _e(c['source_ref']) + '; sha256 ' + _e(c['source_sha256'])
+                + '<br>Corroboration only (not bound source): ' + _e(cor['document'])
+                + ' p.' + _e(cor['page']) + '; sha256 ' + _e(cor['sha256']) + '</div>')
     inputs = "; ".join(f"{a['label']}: mean {a['mean']}, SD {a['sd']}, n={a['n']}" for a in c["inputs"])
     output = "; ".join(f"{k}={v}" for k, v in c["output"].items())
     return ("<div class='declared-conversion'><strong>Declared arm-combination conversion</strong>: "
