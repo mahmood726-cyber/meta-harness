@@ -385,6 +385,10 @@ def _agy_version() -> str:
         return f"UNKNOWN ({type(exc).__name__})"
 
 
+AGY_ARGV_PROMPT_MAX = 24000
+AGY_PROMPT_FILE = "agy_prompt.txt"
+
+
 def agy_runner(prompt: bytes, schema: dict, timeout_s: int, images: tuple = ()) -> dict:
     """Run one `agy --print`. Returns {rc, stdout, stderr, log, argv}; bytes throughout. The prompt is the --print value
     (agy reads no prompt from stdin in text mode); stdin is the null device."""
@@ -394,7 +398,15 @@ def agy_runner(prompt: bytes, schema: dict, timeout_s: int, images: tuple = ()) 
         for n, src in enumerate(images or ()):
             shutil.copyfile(src, work / f"image_{n}{os.path.splitext(str(src))[1].lower()}")
         log = work / "agy.log"
-        argv = [_agy_exe(), "--print", prompt.decode("utf-8"), "--output-format", "json", "--sandbox",
+        text = prompt.decode("utf-8")
+        if len(text) > AGY_ARGV_PROMPT_MAX:
+            # The Windows command line is 32,767 chars (WinError 206): a long prompt is handed over as a file in the
+            # call's own sandbox work dir, byte-identical, and agy is told to read and follow it (probe 16 Oct:
+            # agy --sandbox read a 48 KB work-dir file and returned its sentinel, Gemini family).
+            (work / AGY_PROMPT_FILE).write_bytes(prompt)
+            text = (f"Read the file ./{AGY_PROMPT_FILE} in your working directory in full. It is your complete task "
+                    "and evidence. Follow it exactly and answer as it instructs.")
+        argv = [_agy_exe(), "--print", text, "--output-format", "json", "--sandbox",
                 "--disable-slash-commands", "--print-timeout", f"{int(timeout_s)}s", "--log-file", str(log)]
         try:
             p = subprocess.run(argv, cwd=str(work), capture_output=True, timeout=timeout_s + 60, stdin=subprocess.DEVNULL)
