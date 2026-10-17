@@ -2293,6 +2293,24 @@ def result_changes_status(n: dict) -> dict | None:
     return None
 
 
+def correction_block(c: dict, original: dict) -> str:
+    """Independently hashed draft outside the signed original."""
+    from . import result_changes as rc
+    rc.validate_correction(c, original)
+    ref = c["corrects"]
+    block = ("<div class='notice-correction' data-notice-correction='true'><h4>CORRECTION</h4>"
+             f"<p>Correction to {_e(ref['slug'])} / {_e(ref['outcome'])} / {_e(ref['when_utc'])}; "
+             f"original rendered_sha256: <code>{_e(ref['rendered_sha256'])}</code>.</p>"
+             f"<p>The original sentence &ldquo;{_e(c['replaces'])}&rdquo; is incorrect. "
+             f"Corrected sentence: {_e(c['replacement'])} "
+             f"The recorded point estimate changed from {_e(original['before']['estimate'])} to "
+             f"{_e(original['after']['estimate'])} on the {_e(c['scale'])} scale (null {_e(rc.null_value(c['scale']))}). "
+             "This corrects the direction wording only; the original signed notice is retained unchanged.</p>"
+             f"<p>By {_e(c['by'])} on {_e(c['when_utc'])}.</p></div>")
+    if (c.get("reviewer_countersignature") or {}).get("state") != "OPEN":
+        raise ValueError("correction drafts must remain OPEN")
+    return block + "<p class='muted'>Reviewer countersignature: OPEN &mdash; this correction has not yet been seen and signed.</p>"
+
 def result_change_block(n: dict) -> str:
     """The rendered notice for one changed result. Rendered by the page AND standalone for the reviewer; the
     reviewer's countersignature names sha256 of this block (result_changes.rendered_sha256), so a signature is an

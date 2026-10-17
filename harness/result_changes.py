@@ -20,6 +20,43 @@ REQUIRED = ("slug", "outcome", "before", "after", "left_pool", "entered_pool", "
 RESULT_KEYS = ("k", "estimate", "ci_low", "ci_high")
 
 
+def load_corrections(root=None):
+    """Corrections are separate records and never admit a result change."""
+    with open(os.path.join(root or ROOT, PATH), encoding="utf-8") as fh:
+        return json.load(fh).get("corrections", [])
+
+
+def correction_reference(n):
+    return {**{k: n[k] for k in ("slug", "outcome", "when_utc")},
+            "rendered_sha256": n["reviewer_countersignature"]["rendered_sha256"]}
+
+
+def validate_correction(c, original):
+    from . import page
+    if c["corrects"] != correction_reference(original):
+        raise ValueError("correction reference does not identify this signed original")
+    block = page.result_change_block(original).split("<p class='muted'>Reviewer countersignature")[0]
+    if rendered_sha256(block) != c["corrects"]["rendered_sha256"]:
+        raise ValueError("correction original rendered bytes/hash changed")
+    if original["reviewer_countersignature"]["state"] not in SIGNED_STATES:
+        raise ValueError("correction requires a signed original")
+    expected = direction_sentence(original["before"], original["after"], c["scale"])
+    if c["replacement"] != expected or expected != "The direction of the estimate is changed.":
+        raise ValueError("correction direction is not supported by the original estimates")
+    if c["replaces"] not in block:
+        raise ValueError("correction does not identify wording in the original")
+
+
+def direction_correction(original, by, when):
+    c = {"kind": "CORRECTION", "corrects": correction_reference(original),
+         "scale": original["scale"],
+         "replaces": "The direction of the estimate is unchanged.",
+         "replacement": direction_sentence(original["before"], original["after"], original["scale"]),
+         "by": by, "when_utc": when, "reviewer_countersignature": {"state": "OPEN"}}
+    validate_correction(c, original)
+    return c
+
+
 def load(root: str | None = None) -> list[dict[str, Any]]:
     p = os.path.join(root or ROOT, PATH)
     if not os.path.exists(p):
