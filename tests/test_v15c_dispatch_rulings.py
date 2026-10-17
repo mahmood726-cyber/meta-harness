@@ -25,13 +25,14 @@ def test_v15c_dispatch_item_decisions():
                    (source['slug'], source['outcome'], source['id']))
         assert row['ruling']['item_id'] == f'R{i}'
         assert row['ruling']['state'] == 'DECIDED_BY_DISPATCH_ON_DELEGATION'
-        assert row['decision'] == ('ADMIT' if i <= 4 else 'REFUSE')
-        assert row['source_ref'] == source['source_ref']
-        assert row['source_sha256'] == source['source_sha256']
+        assert row['decision'] == ('ADMIT' if i <= 5 else 'REFUSE')
+        if i != 5:
+            assert row['source_ref'] == source['source_ref']
+            assert row['source_sha256'] == source['source_sha256']
         if i <= 3:
             assert row['span'] == source['proposal']['span']
             assert row['served'] == source['served']
-        if i >= 5:
+        if i == 6:
             assert row['class'] == 'NOT_ADMISSIBLE_LICENCE'
             assert row['licence_statement'] == source['licence_statement']
 
@@ -63,11 +64,16 @@ def test_v15c_conversion_and_unchanged_madrs(monkeypatch):
 def test_v15c_licence_await_single_trials(monkeypatch):
     out = outcome(monkeypatch, 'tocilizumab-covid19-mortality')
     assert out['result']['present'] is False
-    assert out['result']['reason'] == ('No admissible pooled result: 2 of 3 eligible trials '
-                                      '(COVACTA, TOCIBRAS) await an open-licence source')
+    assert out['result']['reason'] == ('No admissible pooled result: 1 of 3 eligible trials '
+                                      '(TOCIBRAS) awaits an open-licence source')
     assert not {'estimate','ci_low','ci_high'}.intersection(out['result'])
-    assert [r['label'] for r in out['single_trial_results']] == ['RECOVERY']
+    assert [r['label'] for r in out['single_trial_results']] == ['RECOVERY', 'COVACTA']
     assert out['single_trial_results'][0]['result']['k'] == 1
+    covacta = next(t for t in out['trials'] if t['id'] == 'NCT04320615')
+    assert covacta['provenance'] == 'published_rate'
+    assert 'source_acquisitions/' in covacta['source']
+    assert covacta['declared_conversion']['output'] == {k: covacta[k] for k in ('ai','n1i','ci','n2i')}
+    assert all(t['result']['k'] == 1 for t in out['single_trial_results'])
 
 
 def test_v15c_licence_rule_does_not_touch_evidence_refusals():
