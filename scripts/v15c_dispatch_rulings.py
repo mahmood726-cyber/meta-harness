@@ -83,6 +83,14 @@ def apply(rows):
             c = conversion(r)
             d.update(decision="ADMIT", **{"class":"DECLARED_CONVERSION"}, declared_conversion=c,
                      span=c["source_span"], basis="Dispatch item ruling: declared arm-combination conversion; " + REFERENCE)
+        elif i == 5:
+            from scripts.covacta_conversion import binding
+            bound = binding()
+            if bound['served'] != r['served']:
+                raise ValueError('R5: source-derived counts differ from served tuple')
+            d.update(bound)
+            d.update(decision='ADMIT', **{'class': 'DECLARED_CONVERSION'},
+                     basis='Dispatch option b: CT.gov posted Day-28 mITT mortality percentages; declared unique-integer conversion (round percentage x N / 100).')
         else:
             if source.admissible or r["state"] != "NOT_ADMISSIBLE_LICENCE" or source.licence_statement != r["licence_statement"]:
                 raise ValueError(f"R{i}: licence refusal does not match held source")

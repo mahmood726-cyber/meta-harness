@@ -41,6 +41,8 @@ def _after(slug):
 
 def _note(res):
     r = res or {}
+    if r.get("licence_await"):
+        return r["reason"]
     pr = r.get("pool_refused") or {}
     if pr.get("code"):
         return f"pool refused at k = {r.get('k')}, {pr['code']}: {pr.get('detail') or ''}".rstrip(": ")
@@ -216,6 +218,14 @@ def _reason(left, absent, before_trials=None, after_trials=None, entered=None, b
         code = x.get("reason_code") or x.get("state") or "ABSENT"
         why = (x.get("endpoint_binding_reason") or x.get("reason") or "").strip().rstrip(".")
         parts.append(f"{tid} {CODE_WORD.get(code, 'set aside')} ({code}): {why}.")
+    if (after_result or {}).get("licence_await"):
+        parts.append(after_result["reason"] + ".")
+        parts.append("Licence-refused trials remain eligible evidence awaiting adjudication from an open-licence source; the numbers are not asserted wrong.")
+        parts.append("Shown as single-trial rows, not pooled: " + "; ".join(str(t.get("label") or t["id"]) + " " + _fmt(t) for t in after_trials or []) + ".")
+        for t in after_trials or []:
+            c = t.get("declared_conversion") or {}
+            if c.get("kind") == "percentage_to_count":
+                parts.append(str(t.get("label") or t["id"]) + " declared conversion: " + "; ".join(f"{a['percentage']}% x {a['n']} / 100 -> {a['count']} (unique integer candidates {a['unique_candidates']})" for a in c["inputs"]) + ". " + c["formula"] + " Source: " + c["source_ref"] + "; sha256 " + c["source_sha256"] + ".")
     entered_parts = _entered(entered or [], after_trials)
     substitutions = _estimator_substitutions(before_trials, after_trials)
     parts += entered_parts + substitutions
@@ -252,7 +262,7 @@ def _reason(left, absent, before_trials=None, after_trials=None, entered=None, b
     return " ".join(parts + claims)
 
 
-def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = False):
+def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = False, slugs=None):
     data = json.load(open(PATH, encoding="utf-8")) if PATH.exists() else {"_doc": "", "notices": []}
     olds = list(data.get("notices", []))
     new, kept, rebuilt, added, dropped = [], [], [], [], []
@@ -261,7 +271,7 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
     def _signed(nt):
         return ((nt.get("reviewer_countersignature") or {}).get("state") or "").upper().endswith("SIGNED")
 
-    for slug in sorted(os.listdir(ROOT / "docs" / "reviews")):
+    for slug in sorted(slugs if slugs is not None else os.listdir(ROOT / "docs" / "reviews")):
         b, a = _before(commit, slug), _after(slug)
         if not b or not a:
             continue
@@ -311,7 +321,9 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
                     notice[k] = v
                 else:
                     notice.pop(k, None)
-            derived = _reason(left, absent, o.get("trials"), n.get("trials"), entered,
+            single_labels = {t["id"]: t["label"] for t in n.get("single_trial_results") or []}
+            reason_trials = [dict(t, label=single_labels.get(t["id"], t.get("label"))) for t in n.get("trials") or []]
+            derived = _reason(left, absent, o.get("trials"), reason_trials, entered,
                               o.get("declared_absent_trials"), n.get("declared_absent_trials"),
                               o.get("result"), n.get("result"))
             # An UNSIGNED derived notice always carries the CURRENT derivation: when the numbers are unchanged but what
@@ -345,7 +357,7 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
         if i in used:
             continue
         key = (notice["slug"], notice["outcome"])
-        if prune and not _signed(notice):
+        if prune and not _signed(notice) and (slugs is None or notice["slug"] in slugs):
             dropped.append(key)
             old[key] = notice
         else:
