@@ -137,3 +137,7 @@ Post-retrieval correction: select the report cited by the comparator using sourc
 - Positive controls: PMIDs 32001798, 32482541, 32682484, 34087126, 34108127.
 - Positive controls name the comparator-selected reports, derived through the held Table 1/reference family links. Earlier reports remain companions; the controls still require each selected report to pass screening, rather than relaxing the gate.
 - Negative control: PMID 31141632 (MAIA; newly diagnosed, excluded by population).
+
+## G1/G2 held-source amendment
+
+The recorded retrieval class is consumed by `harness.invalidation.assess` through `/search/retrieval_class/retrieval_auditable`; a recorded search does not establish systematic-search completeness. The executable consumer also checks a change to unauditable retrieval. Source-bound harm cells are extracted where available. Other source-reported harms retain typed refusals and their verbatim evidence in `registry/benchmarks/daratumumab-rrmm-pfs-bench_harms_debt.json`; they are not evidence of harm absence. Any such row suppresses the quantitative safety panel under the existing harms gate.

@@ -2282,9 +2282,13 @@ def outcome_inputs(slug, config, records):
     veffs = _load_verified_effects(slug)
     if config.get('typed_routes'):
         from . import bench_routes
+        from .verified_inputs import entries
         routes = bench_routes.for_config(config)
-        varms = dict(varms or {}, **{k: v for k, v in routes.items() if v.get('kind') == 'extracted_counts'})
-        veffs = dict(veffs or {}, **{k: v for k, v in routes.items() if v.get('kind') != 'extracted_counts'})
+        varms, veffs = dict(varms or {}), dict(veffs or {})
+        for pid, route in routes.items():
+            target = varms if route.get('kind') == 'extracted_counts' else veffs
+            kept = [e for e in entries(target.get(pid)) if e['outcome'] != route['outcome']]
+            target[pid] = kept + [route] if kept else route
     dsel = _load_dose_selection(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
     registry_designs = design_key.registry_designs(records)

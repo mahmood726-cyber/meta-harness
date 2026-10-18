@@ -66,6 +66,19 @@ def route(config, root, record):
     def combine(names):
         return tuple(sum(values[n][i] for n in names) for i in range(2))
     a,n = combine(d['intervention_titles']); c,m = combine(d['comparator_titles'])
+    from .hcq_primary_table import read
+    primary_ref = f"cache/{config['slug']}/PMC7665393.xml"
+    primary_raw = (Path(root)/primary_ref).read_bytes()
+    primary = read(primary_raw)
+    declaration = d.get('primary_table_crosscheck') or {}
+    if declaration != dict(source_ref=primary_ref, table='T2', endpoint=primary['endpoint'],
+                           source_sha256=hashlib.sha256(primary_raw).hexdigest()):
+        raise ValueError('POSTED_COUNTS_PRIMARY_DECLARATION_MISMATCH')
+    if primary['report_id'] != d['report_id'] or (a,n,c,m) != tuple(primary[k] for k in ('ai','n1i','ci','n2i')):
+        raise ValueError('POSTED_COUNTS_PRIMARY_TABLE_MISMATCH')
+    evidence.append(dict(table='held_primary_crosscheck', header=primary['denominators'],
+                         row=primary['span'], source_ref=primary_ref,
+                         sha256=hashlib.sha256(primary_raw).hexdigest()))
     span = '\n'.join(e['table']+'\n'+e['header']+'\n'+e['row'] for e in evidence)
     if (d['comparison_status'], d['comparison_reason']) != ('DIVERGENT_NAMED', 'ANALYSIS_SET'):
         raise ValueError('POSTED_COUNTS_COMPARISON_VOCABULARY')
@@ -73,9 +86,11 @@ def route(config, root, record):
         ai=a, n1i=n, ci=c, n2i=m, kind='extracted_counts', typed_route='hcq_combined_dose_counts',
         provenance='aact_verified', source_level=1, source=span, source_span=span,
         document_ref=d['source_ref'], document_sha256=d['sha256'],
-        verification='Posted participant counts joined by outcome and group; arm titles and descriptions bind orientation; disjoint HCQ dose arms summed with analysed N.',
+        verification=('Posted participant counts joined by outcome and group; arm titles and descriptions bind orientation; '
+                      'disjoint HCQ dose arms summed with analysed N; cross-checked against held primary-table endpoint: '
+                      + primary['endpoint'] + '.'),
         analysis_set_comparison=dict(status=d['comparison_status'], reason_code=d['comparison_reason'],
             analysis_set=d['analysis_set_policy'], endpoint=outcome['title'], evidence=evidence,
-            reason='Use the posted outcome analysed denominators. Comparator figure uses a different analysis set; its denominators are not substituted for posted N.'),
+            reason='Use the posted outcome analysed denominators, cross-checked against the held primary table. Comparator denominators differ, but their analysis-set basis is not established by the held report; they are not substituted for posted N.'),
         design_adjustment=dict(kind='COMBINED_DISJOINT_ARMS', method=d['method'], arms=values,
             source=d['source_ref'], document_sha256=d['sha256'], span=span))

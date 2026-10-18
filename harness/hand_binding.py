@@ -126,7 +126,7 @@ def table_rows(doc_text: str) -> list[dict[str, Any]]:
         headers = _plain(" | ".join(" | ".join(_cells(r)) for r in re.findall(r"<thead>.*?</thead>", block, flags=re.S)))
         headings: list[str] = []
         body = re.search(r"<tbody>(.*?)</tbody>", block, flags=re.S)
-        for r in re.findall(r"<tr>.*?</tr>", body.group(1) if body else block, flags=re.S):
+        for r in re.findall(r"<tr\b[^>]*>.*?</tr>", body.group(1) if body else block, flags=re.S):
             cells = _cells(r)
             nonempty = [c for c in cells if c]
             if len(nonempty) <= 1 and nonempty and not re.search(r"\d", nonempty[0]):

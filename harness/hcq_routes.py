@@ -127,7 +127,10 @@ def bind_combined_counts(spec, row):
     if cfg.get('typed_routes') != KEY:
         return refuse('HCQ combined-count route is not declared by topic')
     records = json.loads((root/'cache'/SLUG/'records.json').read_text(encoding='utf8'))['records']
-    candidates = table_routes(cfg, root, records)
+    try:
+        candidates = table_routes(cfg, root, records)
+    except (ValueError, OSError) as error:
+        return refuse('HCQ primary cross-check refused: '+str(error))
     pid = str(row.get('id', '')).removeprefix('PMID ')
     expected = candidates.get(pid)
     if not expected or expected.get('absent') or expected.get('typed_route') != row.get('typed_route'):
@@ -137,7 +140,7 @@ def bind_combined_counts(spec, row):
         if row.get(field) != expected.get(field):
             return refuse('HCQ combined-count primary witness mismatch: '+field)
     endpoint = ('PCR-confirmed, symptomatic Covid-19' if row.get('typed_route') == 'hcq_effective_sample_size'
-                else cfg['posted_results_conversion']['outcome_title'])
+                else cfg['posted_results_conversion']['primary_table_crosscheck']['endpoint'])
     out = te._classify(spec, endpoint)
     if out['target_endpoint_class'] != te.EXACT_TARGET:
         return refuse('HCQ primary outcome vocabulary does not bind')

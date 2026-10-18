@@ -123,6 +123,13 @@ WIRED_CONSUMERS: dict[tuple[str, str], dict[str, str]] = {
         "/harms/*/result/state",
         "compat_underlying",
     ),
+    ("RETRIEVAL_CLASS", "RECORDED"): _spec(
+        "invalidation.assess",
+        "harness.invalidation.assess",
+        "/search/retrieval_class/retrieval_auditable",
+        "invalidation",
+        PHASE_LANE_AD,
+    ),
     ("RETRIEVAL_CLASS", "NOT_RUN"): _spec(
         "invalidation.assess",
         "harness.invalidation.assess",

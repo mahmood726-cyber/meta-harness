@@ -117,6 +117,8 @@ def test_r2b_hcq_posted_titles_not_group_order(tmp_path):
     (tmp_path/ref).parent.mkdir(parents=True)
     body = json.dumps(raw).encode('utf8')
     (tmp_path/ref).write_bytes(body)
+    primary = Path('cache')/HCQ/'PMC7665393.xml'
+    (tmp_path/primary).write_bytes((ROOT/primary).read_bytes())
     decl['sha256'] = hashlib.sha256(body).hexdigest()
     actual = posted_counts.route(cfg, tmp_path, rec)
     assert [actual[k] for k in ('ai','n1i','ci','n2i')] == [expected[k] for k in ('ai','n1i','ci','n2i')]

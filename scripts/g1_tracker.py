@@ -21,6 +21,7 @@ Nothing here is typed by hand; every number comes from committed artefacts or th
 from __future__ import annotations
 
 import io
+import hashlib
 import json
 import math
 import re
@@ -2216,9 +2217,51 @@ def disagreement_side(ours, theirs, text):
                                          (Pozzoni: report '16/106' S. boulardii, '13/98' placebo; comparator 13/106 vs 16/98)
       COMPARATOR_ROW_NOT_IN_TRIAL_REPORT  our counts are stated in the report, the comparator's are not
                                          (Song: report '4 (3.9%) of 103' and '8 (7.2%) of 111'; comparator 9/103 vs 16/111)"""
-    if not text or None in (theirs.get("events_t"), theirs.get("n_t"), theirs.get("events_c"), theirs.get("n_c")):
+    if not text:
+        return None
+    if ours and all(ours.get(k) is not None and theirs.get(k) is not None for k in ('effect','lower','upper')):
+        from harness import extract
+        normalized = extract._norm(text)
+        found = []
+        for match in extract._EFFECT.finditer(normalized):
+            value = extract._effect_from_match(match, normalized)
+            if value:
+                found.append((value, match.group()))
+        def matches(value, row):
+            try:
+                return value[0] == row.get('measure') and all(
+                    abs(float(a)-float(row[k])) < 1e-12 for a,k in zip(value[1:],('effect','lower','upper')))
+            except (ValueError, TypeError):
+                return False
+        supporting = [span for value,span in found if matches(value,ours)]
+        if supporting and not any(matches(value,theirs) for value,_ in found):
+            return ("DIFFERENT_REPORTED_TUPLE (held primary report supports ours: " + supporting[0]
+                    + "; comparator prints " + str({k:theirs[k] for k in ('effect','lower','upper')})
+                    + "; cause of the printed confidence-limit difference is not inferred)")
+    if None in (theirs.get("events_t"), theirs.get("n_t"), theirs.get("events_c"), theirs.get("n_c")):
         return None
     a, n1, b, n2 = (theirs[k] for k in ("events_t", "n_t", "events_c", "n_c"))
+    # A declared multi-dose trial can support a tuple by table arithmetic even
+    # when the summed numerator/denominator never appears literally in prose.
+    if ours and '<article' in text:
+        from harness.hcq_primary_table import read as read_primary
+        import xml.etree.ElementTree as ET
+        xml = re.search(r'<article[\s>].*</article>', text, re.S)
+        try:
+            summed = read_primary(xml.group() if xml else text)
+        except (ValueError, ET.ParseError, TypeError):
+            summed = None
+        if summed:
+            keys = ('events_t', 'n_t', 'events_c', 'n_c')
+            expected = tuple(summed[k] for k in ('ai', 'n1i', 'ci', 'n2i'))
+            if tuple(ours.get(k) for k in keys) == expected and (a,n1,b,n2) != expected:
+                # Absence is conservative: even an isolated occurrence of either
+                # comparator denominator prevents this adjudication.
+                plain = re.sub(r'<[^>]+>', ' ', text)
+                if all(not re.search(r'(?<!\d)'+re.escape(str(v))+r'(?!\d)', plain) for v in (n1,n2)):
+                    return ('COMPARATOR_ROW_NOT_IN_TRIAL_REPORT (held primary table arm sum: '
+                            + str(summed['arms']) + '; endpoint: ' + summed['endpoint']
+                            + '; comparator denominators absent from held report)')
     direct = count_stated(text, a, n1) and count_stated(text, b, n2)
     sw = (count_stated(text, b, n1), count_stated(text, a, n2))
     if not direct and all(sw) and (a, n1) != (b, n2):
@@ -2255,6 +2298,15 @@ def side_from_trial_text(trials, slug):
         ft = os.path.join(ROOT, "cache", slug, f"ft_{pm}.txt")
         text = " ".join([r.get("title") or "", r.get("abstract") or "",
                          open(ft, encoding="utf-8", errors="replace").read() if os.path.exists(ft) else ""])
+        cfg = _j(os.path.join(ROOT, 'topics', slug + '.json'))
+        for source in (cfg.get('benchmark') or {}).get('primary_fulltext_sources', []):
+            path = os.path.join(ROOT, source['source_ref'])
+            raw = open(path, 'rb').read()
+            if hashlib.sha256(raw).hexdigest() != source['sha256']:
+                raise ValueError('Primary fulltext digest mismatch')
+            import xml.etree.ElementTree as ET
+            if ET.fromstring(raw).findtext('.//article-id[@pub-id-type="pmid"]') == pm:
+                text += ' ' + raw.decode('utf8')
         side = disagreement_side(x.get("our_value"), x.get("comparator_row") or {}, text)
         if side:
             x["disagreement_side"] = side
@@ -3880,13 +3932,13 @@ def topic(slug, T):
                           f"{rec['contrast']} {rec['printed']}), orientation from its footnote, confirmed by its abstract "
                           f"({rec['orientation_check']['abstract_quote']}); registry/comparator_results.json")
     cm = (S.get("metas") or {}).get(comp) or {}
-    if not rep and cm.get("usable") and cm.get("pooled") and cm.get("provenance") == "TYPED_TABLE":
+    if not rep and cm.get("usable") and cm.get("pooled") and cm.get("provenance") in {"TYPED_TABLE", "TYPED_IMAGE_READ"}:
         # the served review typed no comparator result; the comparator's OWN pooled row, typed from its JATS table and
         # reproduced from its rows (positive control), is the comparator result -- with that basis stated
         pr = cm["pooled"]
         rep = {"outcome": cm.get("identity_basis"), "estimate": sm._num(pr["effect"]), "ci_low": sm._num(pr["lower"]),
                "ci_high": sm._num(pr["upper"]), "scale": cm.get("measure")}
-        comp_basis = (f"comparator's typed table {cm.get('table')} pooled row, positive control "
+        comp_basis = (f"comparator's {cm.get('provenance')} {cm.get('table') or cm.get('figure')} pooled row, positive control "
                       f"{cm.get('positive_control', {}).get('methods')}")
     extra = sorted(str(t.get("id")) for t in prim.get("trials", []) if str(t.get("id")) not in matched_ids)
     recs = {str(r.get("id")): r for r in _j(os.path.join(ROOT, "cache", slug, "records.json")).get("records", [])}

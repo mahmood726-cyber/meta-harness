@@ -88,7 +88,6 @@ def test_closed_selected_registry_exclusion_survives(monkeypatch):
     assert {k: actual[k] for k in verdict} == verdict
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=CLOSED_REASON + CLOSED_LIMITS[3])
 def test_closed_rajasingham_binding_crosschecks_held_table(monkeypatch):
     import xml.etree.ElementTree as ET
     from harness import bench_routes, hand_binding
@@ -109,7 +108,9 @@ def test_closed_rajasingham_binding_crosschecks_held_table(monkeypatch):
     target = next(r for r in rows if ''.join(r[0].itertext()) == 'PCR positive or probable COVID-19')
     other = next(r for r in rows if ''.join(r[0].itertext()) == 'PCR confirmed COVID-19')
     row = dict(bench_routes.for_config(cfg)[decl['report_id']], id=decl['report_id'])
-    assert hand_binding.bind_hand_row(cfg['primary_outcome'], row)['hand_binding_state'] == 'BOUND'
+    binding = hand_binding.bind_hand_row(cfg['primary_outcome'], row)
+    assert binding['hand_binding_state'] == 'BOUND'
+    assert binding['endpoint_definition_span'] == ''.join(target[0].itertext())
     # Replace the broad endpoint's cells with the narrower held row's cells.
     # All counts come from XML; no invented effect or participant counts.
     for index in range(1, len(target)):
