@@ -67,7 +67,7 @@ def verify_pooled(trial: dict, abstract: str | None) -> tuple[str, str]:
     if trial.get('typed_route') in {'hcq_combined_dose_counts', 'hcq_effective_sample_size'}:
         from .hcq_routes import bind_combined_counts
         result = bind_combined_counts({'name':'Developing COVID-19', 'estimand':'RR',
-            'keywords':['PCR positive or probable COVID-19', 'PCR-confirmed, symptomatic Covid-19']}, trial)
+            'keywords':['PCR positive or probable COVID-19', 'PCR-confirmed, symptomatic Covid-19', 'Number of Confirmed SARS-CoV-2 Detection']}, trial)
         ok = result.get('hand_binding_state') == 'BOUND'
         return ('verified' if ok else 'not-yet', result.get('endpoint_binding_reason', 'HCQ source witness refused'))
     prov = trial.get("provenance")

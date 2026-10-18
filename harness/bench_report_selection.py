@@ -23,7 +23,10 @@ def apply(config, records, root):
     table = doc.find('.//table-wrap[@id="T1"]')
     for tr in table.findall('.//tbody/tr'):
         cells = [''.join(c.itertext()).strip() for c in tr]
-        author, year = re.fullmatch(r'(\w+) et al (\d{4})', cells[0]).groups()
+        match = re.fullmatch(r'(\w+) et al (\d{4})', cells[0])
+        if match is None:
+            raise ValueError('REPORT_SELECTION_CITATION_UNBOUND: '+cells[0])
+        author, year = match.groups()
         nct = cells[2]
         if not re.fullmatch(r'NCT\d{8}', nct):
             raise ValueError('REPORT_SELECTION_REGISTRY_UNBOUND')
@@ -53,6 +56,13 @@ def apply(config, records, root):
     companions = [c for c in trial_family.automatic_companions(pubs, config) if c['family_id'] not in selected]
     for rec in pubs:
         ids = trial_family.registry_ids(rec)
+        # A named secondary report cannot establish an independent trial without
+        # registry evidence. Keep the refusal local to this declared report policy.
+        if (not ids and not rec.get('report_selection_evidence')
+                and re.search(r'quality.of.life|patient.reported outcomes', rec.get('title', ''), re.I)):
+            companions.append(dict(pmid=str(rec['id']), parent_pmid=None, parent=None,
+                kind='secondary outcome report; independent trial identity unbound',
+                selection_evidence=dict(title=rec['title'], policy=config['report_selection'])))
         if len(ids) == 1 and ids[0] in selected and rec['id'] != selected[ids[0]]:
             companions.append(dict(pmid=rec['id'], parent_pmid=selected[ids[0]], parent=selected[ids[0]],
                 family_id=ids[0], kind='alternate report; comparator-cited analysis selected',

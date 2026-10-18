@@ -38,6 +38,9 @@ def test_hrm_all_served_harm_panels():
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             paths = sorted((root / "docs/reviews").glob("*/review.json"))
+            # Draft bootstrap artifacts have no served page. Keep the original
+            # coverage assertion for the served cohort, excluding declared drafts.
+            paths = [path for path in paths if json.loads(path.read_text(encoding="utf-8")).get("status") != "DRAFT_BOOTSTRAP"]
             assert len(paths) == 32
             for path in paths:
                 review = json.loads(path.read_text(encoding="utf-8"))

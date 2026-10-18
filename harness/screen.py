@@ -785,8 +785,13 @@ def run(all_recs: list, config: dict) -> dict:
         contrast = None
         if decision == "include" and registry_contrast.enabled(config):
             contrast = registry_contrast.assess(rec, config, registry_arms)
-            if contrast["decision"] != "include" or config.get("report_selection") == "as_comparator_cited":
+            comparator_selected = (config.get("report_selection") == "as_comparator_cited"
+                                   and bool(rec.get("report_selection_evidence")))
+            if contrast["decision"] != "include" and not comparator_selected:
                 decision, rule, reason, span = (contrast[k] for k in ("decision", "rule_id", "reason", "span"))
+            elif comparator_selected:
+                reason = 'Comparator-cited report identity validated; declared P/I/C/design screening passed.'
+                span = rec['report_selection_evidence']['table_row']
         if decision == "include" and _arm_object_screening_enabled(config):
             arm_obj, arm_refusal = arm_object.screen_refusal(rec, config)
             hidden = arm_object.hidden_eligible_contrasts(arm_obj, config)

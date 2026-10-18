@@ -35,7 +35,10 @@ def test_mitja_declared_design_effect():
 def test_rajasingham_does_not_pair_randomized_n_with_analysis_events():
     cfg, _ = load(HCQ)
     row = bench_routes.for_config(cfg)['33068425']
-    assert row.get('absent') or 'primary-analysis denominators' in row['verification']
+    assert not row.get('absent')
+    comparison = row['analysis_set_comparison']
+    assert comparison['analysis_set'] == 'posted_outcome_analysed_N'
+    assert {r['table'] for r in comparison['evidence']} >= {'outcomes', 'outcome_counts', 'outcome_measurements', 'result_groups'}
 
 
 def test_effective_counts_bind_verify_and_render():
@@ -78,8 +81,9 @@ def test_effective_counts_recompute_from_raw_witness():
     cfg, _ = load(HCQ)
     row = bench_routes.for_config(cfg)['33289973']
     adjustment = row['design_adjustment']
+    from harness.hcq_routes import round_half_up
     for key, raw in adjustment['raw_counts'].items():
-        assert row[key] == round(raw/adjustment['design_effect'])
+        assert row[key] == round_half_up(raw/adjustment['design_effect'])
         assert adjustment['unrounded_counts'][key] == raw/adjustment['design_effect']
     from harness import hand_binding
     from copy import deepcopy
@@ -113,12 +117,15 @@ def test_any_grade_does_not_pool_serious_pneumonia(dara):
     assert not any(t['id'] == 'PMID 34087126' for t in outcome['trials'])
 
 
-def test_denominator_refusal_uses_recognized_typed_state():
+def test_posted_denominators_replace_refusal_with_typed_divergence():
     from harness import verified_inputs, absence
     cfg, data = load(HCQ)
     row = bench_routes.for_config(cfg)['33068425']
     normalized = verified_inputs.normalise(row)
-    assert normalized['provenance'] == 'REFUSED_ON_EVIDENCE'
+    assert normalized['provenance'] == 'aact_verified'
+    assert not normalized.get('absent')
+    assert normalized['analysis_set_comparison']['status'] == 'DIVERGENT_NAMED'
+    assert normalized['analysis_set_comparison']['reason_code'] == 'ANALYSIS_SET'
 
 
 def test_effective_sample_size_requires_arm_headers():

@@ -134,5 +134,6 @@ Post-retrieval correction: select the report cited by the comparator using sourc
 
 - Rule: `as_comparator_cited`; effects come from selected primary reports.
 - Harms: Pneumonia, Upper respiratory tract infection, Diarrhoea (RR, any grade, as reported).
-- Positive controls: PMIDs 27705267, 27557302, 32682484, 34087126, 34108127.
+- Positive controls: PMIDs 32001798, 32482541, 32682484, 34087126, 34108127.
+- Positive controls name the comparator-selected reports, derived through the held Table 1/reference family links. Earlier reports remain companions; the controls still require each selected report to pass screening, rather than relaxing the gate.
 - Negative control: PMID 31141632 (MAIA; newly diagnosed, excluded by population).

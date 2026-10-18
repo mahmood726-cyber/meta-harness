@@ -34,8 +34,9 @@ def test_final_primary_tables_have_one_route_each():
         assert rec['id'] in routes
         assert routes[rec['id']]['source_level'] == 1
         if doi == '10.1093/cid/ciaa1571':
-            assert routes[rec['id']].get('absent')
-            assert 'NO_OPEN_SOURCE-for-denominator' in routes[rec['id']]['reason']
+            assert not routes[rec['id']].get('absent')
+            assert routes[rec['id']]['analysis_set_comparison']['reason_code'] == 'ANALYSIS_SET'
+            assert routes[rec['id']]['typed_route'] == 'hcq_combined_dose_counts'
         else:
             assert not routes[rec['id']].get('absent')
 

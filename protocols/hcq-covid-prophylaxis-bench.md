@@ -136,3 +136,17 @@ Reference: [Cochrane Handbook 23.1.4](https://www.cochrane.org/authors/handbooks
 Rajasingham: randomized denominators cannot be paired with primary-analysis events excluding illness before medication. Refuse with NO_OPEN_SOURCE-for-denominator until matching primary-analysis denominators are held.
 
 Harms: any adverse event and gastrointestinal adverse events, RR, any grade, as reported.
+
+
+## Posted-results analysis-set amendment (round-two repair)
+
+Report PMID 33068425 is linked in the held report metadata to NCT04328467. Use AACT snapshot 2026-08-30, outcome `Number of Confirmed SARS-CoV-2 Detection`, and combine the disjoint dose arms by `sum_disjoint_dose_arms`. Arm titles and descriptions, never group order, establish orientation. Events and analysed denominators are read from outcome_measurements and outcome_counts, joined through result_groups. The source-derived tuple is 58/989 versus 39/494.
+
+`DIVERGENT_NAMED / ANALYSIS_SET`: retain the posted outcome analysed N; do not substitute the comparator figure's denominators. This posted endpoint is explicitly confirmed infection; the benchmark permits symptoms or PCR confirmation. Verbatim source rows: `cache/hcq-covid-prophylaxis-bench/posted_results_rows.json`; SHA-256 `94df174afd7c7ad9535253aed533c6ab4879aa451f59b55453d52e76d816b745`.
+
+Mitja effective counts round each event count and denominator half-up to the nearest integer. The page computes and displays the raw-to-rounded RR change and quotes the held comparator's design-effect method. ICC remains a declared benchmark assumption.
+
+
+### Screening controls (post-retrieval correction)
+
+Positive controls: 32492293, 33001138, 33068425, 33289973. Negative control: 33682640 (Phase 2 randomized study on chloroquine, hydroxychloroquine or ivermectin in hospitalized patients with severe manifestations of SARS-CoV-2 infection.). The negative control is an active-agent treatment comparison, excluded by the declared comparator rule. IDs are derived from held report records and typed routes; evidence and source digest are retained in the topic. These controls do not alter eligibility or claim prospective registration.

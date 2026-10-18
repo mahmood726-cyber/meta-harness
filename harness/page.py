@@ -1586,10 +1586,18 @@ def _trial_inputs(o):
                         for l in t.get("source_hierarchy_limitations") or []
                     )
                     + "</ul></div>")
+        if t.get('analysis_set_comparison'):
+            comparison = t['analysis_set_comparison']
+            src += ("<div class='ident'><em>" + _e(comparison.get('status'))
+                    + " / " + _e(comparison.get('reason_code')) + ":</em> "
+                    + _e(comparison.get('reason')) + " Posted endpoint: "
+                    + _e(comparison.get('endpoint')) + "</div>")
         if t.get('typed_route') == 'hcq_effective_sample_size':
             adjustment = t.get('design_adjustment') or {}
             src += ("<div class='ident'><em>Declared design conversion:</em> "
                     + _e(adjustment.get('explanation'))
+                    + " <div>Comparator method: " + _e(adjustment.get('method_source'))
+                    + " " + _e(adjustment.get('method_span')) + "</div>"
                     + " <a href='https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-23#section-23-1-4'>Cochrane Handbook 23.1.4</a></div>")
         dk = t.get("design") or {}
         if dk:

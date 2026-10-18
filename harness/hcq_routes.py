@@ -2,6 +2,7 @@
 import hashlib
 import json
 import re
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 KEY = 'hcq_covid_prophylaxis'
@@ -10,6 +11,10 @@ LOCATORS = {
     '10.1056/NEJMoa2016638': r'The incidence of new illness compatible with Covid-19.*?; the absolute difference',
     '10.1001/jamainternmed.2020.6319': r'There was no significant difference in infection rates.*?; P',
 }
+
+def round_half_up(value):
+    return int(Decimal(str(value)).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+
 
 def for_config(config, root):
     if config.get('slug') != SLUG or config.get('typed_routes') != KEY:
@@ -67,16 +72,10 @@ def table_routes(config, root, records):
             document_ref=ref, document_sha256=hashlib.sha256(raw).hexdigest(),
             source_level=1, provenance='fulltext_verified')
         if name == 'PMC7665393':
-            # The primary events exclude illness before medication. Table 1 is
-            # explicitly randomized N, not that analysis set. Never pair them.
-            paragraphs = re.findall(r'<p[ >].*?</p>', raw.decode('utf8'), re.S)
-            evidence = [p for p in paragraphs if 'excluded from the primary analysis' in p]
-            if len(evidence) != 1:
-                raise ValueError('HCQ primary-analysis exclusion evidence unbound')
-            base.update(absent=True, kind='typed_refusal', provenance='REFUSED_ON_EVIDENCE',
-                refusal_provenance='REFUSED_ON_EVIDENCE', reason_code='NO_OPEN_SOURCE', reason='NO_OPEN_SOURCE-for-denominator: primary-analysis events exclude illness before initiating study medicine; held Table 1 gives randomized denominators only. Referenced supplementary tables are not embedded in the held XML.',
-                source=evidence[0], source_span=evidence[0])
-            result[rec['id']] = base
+            if not config.get('posted_results_conversion'):
+                raise ValueError('POSTED_COUNTS_DECLARATION_REQUIRED')
+            from .posted_counts import route
+            result[rec['id']] = route(config, root, rec)
             continue
         else:
             if config.get('design_effect_conversion'):
@@ -134,10 +133,11 @@ def bind_combined_counts(spec, row):
     if not expected or expected.get('absent') or expected.get('typed_route') != row.get('typed_route'):
         return refuse('HCQ combined-count report identity mismatch')
     numeric = ('ai','n1i','ci','n2i') if 'ai' in expected else ('scale','effect','ci_low','ci_high')
-    for field in numeric + ('document_ref','document_sha256','source_span','design_adjustment'):
+    for field in numeric + ('document_ref','document_sha256','source_span','design_adjustment','analysis_set_comparison'):
         if row.get(field) != expected.get(field):
             return refuse('HCQ combined-count primary witness mismatch: '+field)
-    endpoint = 'PCR-confirmed, symptomatic Covid-19' if row.get('typed_route') == 'hcq_effective_sample_size' else 'PCR positive or probable COVID-19'
+    endpoint = ('PCR-confirmed, symptomatic Covid-19' if row.get('typed_route') == 'hcq_effective_sample_size'
+                else cfg['posted_results_conversion']['outcome_title'])
     out = te._classify(spec, endpoint)
     if out['target_endpoint_class'] != te.EXACT_TARGET:
         return refuse('HCQ primary outcome vocabulary does not bind')
@@ -145,7 +145,7 @@ def bind_combined_counts(spec, row):
         endpoint_result_span=expected['source_span'],
         endpoint_definition_span=endpoint,
         endpoint_binding_reason=expected['verification'],
-        held_document=dict(ref=expected['document_ref'],sha256=expected['document_sha256'],representation='xml'),
+        held_document=dict(ref=expected['document_ref'],sha256=expected['document_sha256'],representation='xml' if expected['document_ref'].endswith('.xml') else 'json'),
         spans=[dict(role='result',text=expected['source_span'])])
     return out
 
@@ -190,10 +190,11 @@ def effective_counts(config, root, raw, doc, base):
     de = 1+(contacts/clusters-1)*declaration['icc']
     keys = ('ai','n1i','ci','n2i')
     unrounded = dict(zip(keys, [v/de for v in counts]))
-    base.update({k:round(v) for k,v in unrounded.items()})
+    base.update({k:round_half_up(v) for k,v in unrounded.items()})
     span = next(b for b in re.findall(r'<table-wrap\b.*?</table-wrap>', text, re.S) if 'id="t2"' in b)
     explanation = (f"Declared effective sample size: DE = 1 + ({contacts}/{clusters} - 1) * ICC {declaration['icc']} = {de}; "
-        f"raw counts {dict(zip(keys, counts))}; unrounded {unrounded}; round events and denominators to nearest integer. "
+        f"raw counts {dict(zip(keys, counts))}; unrounded {unrounded}; round events and denominators half-up to nearest integer. "
+        f"Rounding changes trial RR from {(counts[0]/counts[1])/(counts[2]/counts[3]):.3f} to {(base['ai']/base['n1i'])/(base['ci']/base['n2i']):.3f}. "
         'ICC is the benchmark assumption, not an estimated trial ICC. Cochrane Handbook 23.1.4.')
     base.update(kind='extracted_counts', typed_route='hcq_effective_sample_size',
         verification=explanation, source=span, source_span=span,

@@ -524,7 +524,7 @@ def _selection_extras(row):
 
 _NAMED_HELD_PATH = re.compile(r"^\s*(?P<path>cache/[\w.-]+/[\w.-]+\.(?:json|txt))"
                               r"(?:\s+\w+)?\s*\(?(?:PMID[\s-]?(?P<pid>\d{7,8}))?")
-_HAND_FIELDS = ("design_adjustment", "typed_route", "document_ref", "document_sha256", "source_span", "source_level", "kind", "ci_pct",
+_HAND_FIELDS = ("analysis_set_comparison", "design_adjustment", "typed_route", "document_ref", "document_sha256", "source_span", "source_level", "kind", "ci_pct",
                 "comparator_direction", "analysis_set", "adjudication", "verification")
 
 
@@ -1732,10 +1732,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             else:
                 kept.append(t)
         trials = kept
-    if slug in {'daratumumab-rrmm-pfs-bench', 'hcq-covid-prophylaxis-bench'} and spec.get('grade') == 'any grade':
+    if spec.get('grade') == 'any grade':
+        from . import harm_grade
         kept = []
         for t in trials:
-            if re.search(r'\bserious\b|\bgrade\s*[3-5]', t.get('source') or '', re.I):
+            if harm_grade.mismatch(spec, t):
                 absent.append(dict(label=t['label'], id=t['id'], absent_kind='refused_on_evidence',
                     reason_code='HARM_GRADE_MISMATCH', source=t.get('source'),
                     reason='HARM_GRADE_MISMATCH: source reports serious/high-grade events, not the declared any-grade harm.'))
