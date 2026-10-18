@@ -84,7 +84,7 @@ def route(config, root, record):
         raise ValueError('POSTED_COUNTS_COMPARISON_VOCABULARY')
     return dict(outcome=config['primary_outcome']['name'], override=True,
         ai=a, n1i=n, ci=c, n2i=m, kind='extracted_counts', typed_route='hcq_combined_dose_counts',
-        provenance='aact_verified', source_level=1, source=span, source_span=span,
+        provenance='ctgov_results', source_level=1, source=span, source_span=span,
         document_ref=d['source_ref'], document_sha256=d['sha256'],
         verification=('Posted participant counts joined by outcome and group; arm titles and descriptions bind orientation; '
                       'disjoint HCQ dose arms summed with analysed N; cross-checked against held primary-table endpoint: '

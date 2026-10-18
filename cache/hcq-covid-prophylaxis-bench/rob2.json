@@ -1,0 +1,894 @@
+{
+  "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
+  "trials": {
+    "36682681": {
+      "nct": "NCT04334148",
+      "registry_in_aact": true,
+      "assessed_from": "registry+abstract",
+      "overall": "low (on assessed domains; some domains require human judgement)",
+      "domains": {
+        "D1_randomisation": {
+          "level": "low",
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D2_deviations": {
+          "level": "low",
+          "basis": "trial masking = Triple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D3_missing_outcome_data": {
+          "level": "not assessed",
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.1% (overall 0.1%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 0.1,
+              "differential_pct": 0.1,
+              "groups": [
+                [
+                  683,
+                  683
+                ],
+                [
+                  677,
+                  676
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
+        },
+        "D4_outcome_measurement": {
+          "level": "low",
+          "basis": "trial masking = Triple (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D5_selective_reporting": {
+          "level": "low",
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome; registered 'Number of Participants With Clinical Infection With COVID-19 Infection'",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Developing COVID-19",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Number of Participants With Clinical Infection With COVID-19 Infection",
+                "title": "",
+                "description": "This measure was a combination of confirmed infection and suspected infection. Confirmed clinical infection was defined as new-onset of fever or cough or dyspnea AND confirmed COVID-19 positive test result via local PCRI testing. Suspected infection was defined as new-onset fever or cough or dyspnea without local PCR testing due to local restrictions and/or testing policies."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Number of Participants With COVID-19 Viral Shedding",
+                "title": "",
+                "description": "Number of participants with COVID-19 infection shedding via Covance swab PCR testing"
+              },
+              {
+                "measure": "Number of Participants With Serious Adverse Events (SAEs) or Hydroxychloroquine-Associated Events of Special Interest (EOSIs)",
+                "title": "",
+                "description": "Safety and Tolerability as determined by subject reported serious adverse events (SAEs) and hydroxychloroquine-associated events of special interest. EOSIs include: arrhythmias (ventricular), hepatic failure, bone marrow failure, aplastic anemia, prolonged QT interval, angioedema, dermatitis exfoliative, acute generalized exanthematous pustulosis, psychosis, suicidal ideation, seizure, methemoglobinemia."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Number of Participants With Clinical Infection With COVID-19 Infection",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Number of Participants With Clinical Infection With COVID-19 Infection This measure was a combination of confirmed infection and suspected infection. Confirmed clinical infection was defined as new-onset of fever or cough or dyspnea AND confirmed COVID-19 positive test result via local PCRI testing. Suspected infection was defined as new-onset fever or cough or dyspnea without local PCR testing due to local restrictions and/or testing policies."
+            }
+          },
+          "derived_at_build": true
+        }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "low"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        }
+      ]
+    },
+    "33289973": {
+      "nct": "NCT04304053",
+      "registry_in_aact": true,
+      "assessed_from": "registry+abstract",
+      "overall": "low (on assessed domains; some domains require human judgement)",
+      "domains": {
+        "D1_randomisation": {
+          "level": "low",
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D2_deviations": {
+          "level": "not assessed",
+          "basis": "blinding: subject_masked=None, caregiver_masked=None",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.subject_masked": "",
+            "AACT.designs.caregiver_masked": "",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D3_missing_outcome_data": {
+          "level": "not assessed",
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
+        },
+        "D4_outcome_measurement": {
+          "level": "not assessed",
+          "basis": "outcome-assessor blinded = None",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.outcomes_assessor_masked": "",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
+        },
+        "D5_selective_reporting": {
+          "level": "low",
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome; registered 'Study 1- Clinical and virological outcome in exposed contacts'",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Developing COVID-19",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Study 1- Clinical and virological outcome in exposed contacts",
+                "title": "",
+                "description": "Incidence of secondary PCR confirmed symptomatic Covid-19 episodes among contacts after high risk PCR+ exposure"
+              },
+              {
+                "measure": "Study 1- Transmission of SARS-CoV-2 in exposed contacts",
+                "title": "",
+                "description": "Incidence of symptomatically compatible or a PCR-positive result regardless of symptoms"
+              },
+              {
+                "measure": "Study 2- Virological outcome in index cases",
+                "title": "",
+                "description": "Reduction of viral RNA load in nasopharyngeal swabs at days 3, and 7 after treatment start."
+              },
+              {
+                "measure": "Study 2- Clinical outcome in index cases",
+                "title": "",
+                "description": "Time from randomization to complete resolution of symptoms at an extended 28-days follow-"
+              }
+            ],
+            "registered_secondary_outcomes": [],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Study 1- Clinical and virological outcome in exposed contacts",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Study 1- Clinical and virological outcome in exposed contacts Incidence of secondary PCR confirmed symptomatic Covid-19 episodes among contacts after high risk PCR+ exposure"
+            }
+          },
+          "derived_at_build": true
+        }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "not assessed"
+        }
+      ]
+    },
+    "33068425": {
+      "nct": "NCT04328467",
+      "registry_in_aact": true,
+      "assessed_from": "registry+abstract",
+      "overall": "low (on assessed domains; some domains require human judgement)",
+      "domains": {
+        "D1_randomisation": {
+          "level": "low",
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D2_deviations": {
+          "level": "low",
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D3_missing_outcome_data": {
+          "level": "not assessed",
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.6% (overall 0.5%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 0.5,
+              "differential_pct": 0.6,
+              "groups": [
+                [
+                  494,
+                  490
+                ],
+                [
+                  495,
+                  493
+                ],
+                [
+                  494,
+                  493
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
+        },
+        "D4_outcome_measurement": {
+          "level": "low",
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D5_selective_reporting": {
+          "level": "low",
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome; registered 'COVID-19-free Survival'",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Developing COVID-19",
+            "registered_primary_outcomes": [
+              {
+                "measure": "COVID-19-free Survival",
+                "title": "",
+                "description": "Outcome reported as the number of participants in each arm who are COVID-19-free at the end of study treatment."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Number of Confirmed SARS-CoV-2 Detection",
+                "title": "",
+                "description": "Outcome reported as the number of participants in each arm who have a confirmed SARS-CoV-2 infection during study treatment."
+              },
+              {
+                "measure": "Incidence of Possible COVID-19 Symptoms",
+                "title": "",
+                "description": "Outcome reported as the count of participants in each arm who report COVID-19-related symptoms during study treatment."
+              },
+              {
+                "measure": "Incidence of All-cause Study Medicine Discontinuation",
+                "title": "",
+                "description": "Outcome reported as the count of participants in each arm who discontinue study medication use for any reason during treatment."
+              },
+              {
+                "measure": "Ordinal Scale of COVID-19 Disease Maximum Severity if COVID-19 Diagnosed at Study End",
+                "title": "",
+                "description": "Participants will self-report COVID-19 status on an ordinal scale as follows: No illness (score=1), Illness with outpatient observation (score=2), Hospitalization (or post-hospital discharge) (score=3), or Hospitalization with ICU stay or death (score=4). Possible scores range from 1-4 with higher scores indicating greater disease severity."
+              },
+              {
+                "measure": "Incidence of Hospitalization for COVID-19 or Death",
+                "title": "",
+                "description": "Outcome reported as the number of participants in each arm who are hospitalized or expire due to COVID-19 during study treatment."
+              },
+              {
+                "measure": "Incidence of Possible Study Medication-related Side Effects",
+                "title": "",
+                "description": "Outcome reported as the number of participants in each arm who experience possible medication-related side effects during study treatment."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "COVID-19-free Survival",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "COVID-19-free Survival Outcome reported as the number of participants in each arm who are COVID-19-free at the end of study treatment."
+            }
+          },
+          "derived_at_build": true
+        }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "low"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        }
+      ]
+    },
+    "33001138": {
+      "nct": "NCT04329923",
+      "registry_in_aact": true,
+      "assessed_from": "registry+abstract",
+      "overall": "low (on assessed domains; some domains require human judgement)",
+      "domains": {
+        "D1_randomisation": {
+          "level": "low",
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D2_deviations": {
+          "level": "low",
+          "basis": "trial masking = Triple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D3_missing_outcome_data": {
+          "level": "not assessed",
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 30.3% (overall 8.1%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 8.1,
+              "differential_pct": 30.3,
+              "groups": [
+                [
+                  17,
+                  16
+                ],
+                [
+                  17,
+                  13
+                ],
+                [
+                  4,
+                  3
+                ],
+                [
+                  3,
+                  2
+                ],
+                [
+                  66,
+                  64
+                ],
+                [
+                  66,
+                  61
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
+        },
+        "D4_outcome_measurement": {
+          "level": "low",
+          "basis": "trial masking = Triple (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D5_selective_reporting": {
+          "level": "low",
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome; registered 'Time to Release From Quarantine Time'",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Developing COVID-19",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Time to Release From Quarantine Time",
+                "title": "",
+                "description": "Cohort 1 (home quarantined COVID-19 patients): Median time to release from quarantine by meeting the following criteria: 1) No fever for 72 hours 2) improvement in other symptoms and 3) 7 or 10 days (depending on CDC guidance at the time) have elapsed since the beginning of symptom onset."
+              },
+              {
+                "measure": "Time to Hospital Discharge",
+                "title": "",
+                "description": "Cohort 2 (hospitalized COVID-19 patients): median number of days until hospital discharge"
+              },
+              {
+                "measure": "Number of Health Care Workers Who Developed SARS-COV-2 Infection",
+                "title": "",
+                "description": "Cohort 3 Physicians and nurse prophylaxis: Rate of COVID-19 infection at 2 months"
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Rate of Housemate Infection",
+                "title": "",
+                "description": "Cohort 1 rate of participant-reported secondary infection of housemates"
+              },
+              {
+                "measure": "Rate of Hospitalization",
+                "title": "",
+                "description": "Cohort 1 rate of hospitalization"
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Time to Release From Quarantine Time",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Time to Release From Quarantine Time Cohort 1 (home quarantined COVID-19 patients): Median time to release from quarantine by meeting the following criteria: 1) No fever for 72 hours 2) improvement in other symptoms and 3) 7 or 10 days (depending on CDC guidance at the time) have elapsed since the beginning of symptom onset."
+            }
+          },
+          "derived_at_build": true
+        }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "low"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        }
+      ]
+    },
+    "32492293": {
+      "nct": "NCT04308668",
+      "registry_in_aact": true,
+      "assessed_from": "registry+abstract",
+      "overall": "low (on assessed domains; some domains require human judgement)",
+      "domains": {
+        "D1_randomisation": {
+          "level": "low",
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D2_deviations": {
+          "level": "low",
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D3_missing_outcome_data": {
+          "level": "not assessed",
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 1.0% (overall 5.9%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 5.9,
+              "differential_pct": 1.0,
+              "groups": [
+                [
+                  658,
+                  622
+                ],
+                [
+                  654,
+                  612
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
+        },
+        "D4_outcome_measurement": {
+          "level": "low",
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
+        },
+        "D5_selective_reporting": {
+          "level": "low",
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome; registered 'Number of Participants With Active COVID-19 Disease at Day 14 Among Those Who Were Asymptomatic at Baseline'",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Developing COVID-19",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Number of Participants With Active COVID-19 Disease at Day 14 Among Those Who Were Asymptomatic at Baseline",
+                "title": "",
+                "description": "Number of participants at 14 days post enrollment with active COVID19 disease among those who were asymptomatic at baseline."
+              },
+              {
+                "measure": "Change in Disease Severity Over 14 Days Among Those Who Are Symptomatic at Baseline",
+                "title": "",
+                "description": "Visual Analog Scale 0-10 score of rating overall symptom severity (0 = no symptoms; 10 = most severe)"
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Rate of Hospitalization",
+                "title": "",
+                "description": "Outcome reported as the number of participants in each arm who require hospitalization for COVID19-related disease."
+              },
+              {
+                "measure": "Rate of Death",
+                "title": "",
+                "description": "Outcome reported as the number of participants in each arm who expire due to COVID-19-related disease through study completion of 14 days. For those hospitalized within the 14-day study period, the protocol specified follow up would occur for up to 90 days to capture the final outcome of participants' hospitalization. Approximately 30-days was the maximal follow up for hospitalization outcome needed in the trial."
+              },
+              {
+                "measure": "Rate of Confirmed SARS-CoV-2 Detection",
+                "title": "",
+                "description": "Outcome reported as the number of participants in each arm who have confirmed SARS-CoV-2 infection."
+              },
+              {
+                "measure": "Occurrence of Symptoms Compatible With COVID-19 (Possible Disease)",
+                "title": "",
+                "description": "Outcome reported as the number of participants in each arm who self-report symptoms compatible with COVID-19 infection."
+              },
+              {
+                "measure": "Rate of All-Cause Study Medicine Discontinuation or Withdrawal",
+                "title": "",
+                "description": "Outcome reported as the number of participants in each arm who discontinue or withdraw medication use for any reason."
+              },
+              {
+                "measure": "Overall Symptom Severity at 5 and 14 Days",
+                "title": "",
+                "description": "Visual Analog Scale 0-10 score of rating overall symptom severity (0 = no symptoms; 10 = most severe)"
+              },
+              {
+                "measure": "Number of Participants With Severe COVID-19 Disease at 14 Days Among Those Who Are Symptomatic at Trial Entry",
+                "title": "",
+                "description": "Participants will self-report disease severity status as one of the following 3 options; no COVID19 illness (score of 1), COVID19 illness with no hospitalization (score of 2), or COVID19 illness with hospitalization or death (score of 3). Increased scale score indicates greater disease severity. Outcome is reported as the number of participants who report a score of 3."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Number of Participants With Active COVID-19 Disease at Day 14 Among Those Who Were Asymptomatic at Baseline",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Number of Participants With Active COVID-19 Disease at Day 14 Among Those Who Were Asymptomatic at Baseline Number of participants at 14 days post enrollment with active COVID19 disease among those who were asymptomatic at baseline."
+            }
+          },
+          "derived_at_build": true
+        }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "low"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        }
+      ]
+    }
+  }
+}

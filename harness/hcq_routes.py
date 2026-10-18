@@ -46,7 +46,7 @@ def for_config(config, root):
         (a, n, _), (c, m, _) = cells
         result[rec['id']] = dict(outcome=spec['name'], override=True,
             ai=int(a), n1i=int(n), ci=int(c), n2i=int(m),
-            provenance='abstract_verified', source=span, source_span=span,
+            provenance='abstract', source=span, source_span=span,
             document_ref=ref, document_sha256=hashlib.sha256(raw).hexdigest(),
             source_level=1, kind='extracted_counts',
             verification='HCQ anchored primary-result counts with percentage corroboration')
@@ -70,7 +70,7 @@ def table_routes(config, root, records):
             return [[''.join(c.itertext()).strip() for c in tr] for tr in table.iter('tr')]
         base = dict(outcome=config['primary_outcome']['name'], override=True,
             document_ref=ref, document_sha256=hashlib.sha256(raw).hexdigest(),
-            source_level=1, provenance='fulltext_verified')
+            source_level=1, provenance='pmc_fulltext')
         if name == 'PMC7665393':
             if not config.get('posted_results_conversion'):
                 raise ValueError('POSTED_COUNTS_DECLARATION_REQUIRED')

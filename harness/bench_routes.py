@@ -61,7 +61,7 @@ def for_config(config, *, root=ROOT):
             base.update(source=span, source_span=span)
             if pid == '40680754':
                 raise ValueError('ENDPOINT_UNBOUND: held update reports PFS2, not PFS')
-            result[pid] = dict(base, **value, provenance='abstract_verified')
+            result[pid] = dict(base, **value, provenance='abstract')
         except (KeyError, TypeError, ValueError) as error:
             result[pid] = dict(base, absent=True, kind='typed_refusal',
                                provenance='REFUSED_ON_EVIDENCE',

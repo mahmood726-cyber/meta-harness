@@ -122,7 +122,7 @@ def test_posted_denominators_replace_refusal_with_typed_divergence():
     cfg, data = load(HCQ)
     row = bench_routes.for_config(cfg)['33068425']
     normalized = verified_inputs.normalise(row)
-    assert normalized['provenance'] == 'aact_verified'
+    assert normalized['provenance'] == 'ctgov_results'
     assert not normalized.get('absent')
     assert normalized['analysis_set_comparison']['status'] == 'DIVERGENT_NAMED'
     assert normalized['analysis_set_comparison']['reason_code'] == 'ANALYSIS_SET'
