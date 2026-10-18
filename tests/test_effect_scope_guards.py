@@ -25,11 +25,9 @@ def test_pfs2_sentence():
     row = bench_rows()['32001798']
     assert 'intent-to-treat population' in row['source_span']
     assert row['effect'] != extract.extract_effect(sentence('32001798','Median PFS on subsequent'))[1]
-@pytest.mark.xfail(strict=True, reason='KNOWN LIMIT (bench r3 ruling, review closed at three rounds): the SHARED extractor is frozen byte-identical to main; this correction lives in the topic-local typed routes (harness/bench_routes.py), proven by tests/test_bench_r3.py::test_bench_route_bound_or_refused')
 @pytest.mark.parametrize('pid',['32482541','32001798'])
 def test_whole_itt_effect_survives(pid, tmp_path):
     pin = bench_routes.load_pins(ROOT)[pid]
-    assert effect(RECORDS[pid]['abstract']).get('effect') == pin['value']['effect']
     assert {k: bench_rows()[pid][k] for k in pin['value']} == pin['value']
     mutated = mutated_route(tmp_path, pid, RECORDS[pid]['abstract'].replace(pin['anchor'], 'Unbound endpoint'))
     assert mutated.get('absent') and 'effect' not in mutated
@@ -59,10 +57,8 @@ def test_scope_variants(prefix):
         assert effect(text).get('absent')
     else:
         assert not extract.subgroup_refusal(text)
-@pytest.mark.xfail(strict=True, reason='KNOWN LIMIT (bench r3 ruling, review closed at three rounds): the SHARED extractor is frozen byte-identical to main; this correction lives in the topic-local typed routes (harness/bench_routes.py), proven by tests/test_bench_r3.py::test_bench_route_bound_or_refused')
 def test_second_progression(tmp_path):
     s=sentence('32001798','Median PFS on subsequent')
-    assert effect(s.replace('PFS on subsequent line of therapy (PFS2)', 'PFS to second progression')).get('absent')
     row = mutated_route(tmp_path, '32001798', s.replace('PFS on subsequent line of therapy (PFS2)','PFS to second progression'))
     assert row.get('absent') and 'effect' not in row
 
@@ -70,3 +66,19 @@ def test_spelled_out_pfs2_from_dreamm7():
     row = bench_rows()['40680754']
     assert row.get('absent') and 'effect' not in row
     assert 'PFS2' in row['reason']
+
+
+SHARED_LIMIT = 'KNOWN LIMIT (bench r3 ruling): shared extractor frozen; correction lives in topic-local routes'
+
+
+@pytest.mark.xfail(strict=True, reason=SHARED_LIMIT)
+@pytest.mark.parametrize('pid', ['32482541', '32001798'])
+def test_shared_extractor_whole_itt_effect(pid):
+    pin = bench_routes.load_pins(ROOT)[pid]
+    assert effect(RECORDS[pid]['abstract']).get('effect') == pin['value']['effect']
+
+
+@pytest.mark.xfail(strict=True, reason=SHARED_LIMIT)
+def test_shared_extractor_second_progression():
+    s = sentence('32001798', 'Median PFS on subsequent')
+    assert effect(s.replace('PFS on subsequent line of therapy (PFS2)', 'PFS to second progression')).get('absent')
