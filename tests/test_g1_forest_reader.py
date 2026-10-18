@@ -272,6 +272,32 @@ def test_PLANT_agy_empty_answer_or_failed_status_is_RAN_ERROR(tmp_path):
     assert _call(_fake_agy("{}", rc=1), tmp_path)["state"] == "RAN_ERROR"
 
 
+def test_PLANT_agy_tool_denial_retries_once_with_no_tools_line(tmp_path):
+    """18 Oct: Gemini tried RunCommand, headless agy auto-denied it and returned SUCCESS with an EMPTY response (14 of
+    21 reads). The client retries ONCE with an explicit no-tools line; the record says so; permissions never widen."""
+    calls = []
+
+    def runner(prompt, schema, timeout_s, images=()):
+        calls.append(prompt)
+        denied = [] if prompt.startswith(mcl.AGY_NO_TOOLS) else [{"action": "command", "display_name": "RunCommand"}]
+        resp = json.dumps(reading()) if not denied else ""
+        out = {"status": "SUCCESS", "response": resp, "num_turns": 1, "usage": {}, "denied_actions": denied}
+        log = 'I1002 x model_config_manager.go:327] Propagating selected model override to backend: label="Gemini 3.1 Pro (High)"\n'
+        return {"rc": 0, "stdout": json.dumps(out).encode(), "stderr": b"", "log": log.encode(), "argv": ["agy"]}
+    rec = _call(runner, tmp_path)
+    assert len(calls) == 2 and calls[1].startswith(mcl.AGY_NO_TOOLS) and rec["state"] == "RAN_OK"
+    assert rec["client_evidence"]["retried_after_tool_denial"]["denied_actions"][0]["display_name"] == "RunCommand"
+
+    def always_denied(prompt, schema, timeout_s, images=()):
+        calls.append(prompt)
+        out = {"status": "SUCCESS", "response": "", "num_turns": 1, "usage": {},
+               "denied_actions": [{"action": "command", "display_name": "RunCommand"}]}
+        return {"rc": 0, "stdout": json.dumps(out).encode(), "stderr": b"", "log": b"", "argv": ["agy"]}
+    calls.clear()
+    rec2 = _call(always_denied, tmp_path)
+    assert len(calls) == 2 and rec2["state"] == "RAN_ERROR" and "tool use was denied" in rec2["error"]
+
+
 def test_replay_path_reaches_no_model(monkeypatch):
     """The offline evaluation must never run a model: make every model entry point explode and evaluate."""
     def boom(*a, **k):

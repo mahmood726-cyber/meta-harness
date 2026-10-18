@@ -333,6 +333,9 @@ AGY_NOT_CONTROLLABLE = ["temperature", "top_p", "seed", "client system instructi
                         "server-side model revision behind the model label", "the client's tool use (sandboxed; "
                         "denied actions are recorded, not prevented from being attempted)"]
 AGY_SETTINGS = Path(os.path.expanduser("~")) / ".gemini" / "antigravity-cli" / "settings.json"
+# prepended ONCE when the model's tool use was denied and it answered nothing (see agy_call); the evidence is inline
+AGY_NO_TOOLS = (b"Answer directly from the evidence in this prompt. Do not run commands, read files or use any tool; "
+                b"reply with the JSON object only.\n\n")
 _AGY_MODEL_LOG = re.compile(r'Propagating selected model override to backend: label="([^"]+)"')
 
 
@@ -432,6 +435,22 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
     t0 = _utc()
     r = runner(prompt, schema, timeout_s, images=tuple(images))
     t1 = _utc()
+    retried = None
+    try:
+        first = json.loads((r.get("stdout") or b"").decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        first = None
+    if (isinstance(first, dict) and r.get("rc") == 0 and first.get("status") == "SUCCESS"
+            and not str(first.get("response") or "").strip() and first.get("denied_actions")
+            and not prompt.startswith(AGY_NO_TOOLS)):
+        # 18 Oct: Gemini tried a tool (RunCommand), headless mode auto-denied it, and agy returned SUCCESS with an EMPTY
+        # response -- 14 of 21 reads that day. The evidence is inline, so retry ONCE with an explicit no-tools line;
+        # never widen the client's permissions (a standing-config change) and never skip them.
+        retried = {"denied_actions": first.get("denied_actions"), "first_prompt_sha256": hashlib.sha256(prompt).hexdigest()}
+        prompt = AGY_NO_TOOLS + prompt
+        t0 = _utc()
+        r = runner(prompt, schema, timeout_s, images=tuple(images))
+        t1 = _utc()
     so, se, lg = r.get("stdout") or b"", r.get("stderr") or b"", r.get("log") or b""
     names = _AGY_MODEL_LOG.findall(lg.decode("utf-8", "replace"))
     rep = names[-1] if names else None
@@ -449,7 +468,8 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
     elif out.get("status") != "SUCCESS":
         err = f"client status {out.get('status')!r} (stdout is not a SUCCESS json object)"
     elif not resp.strip():
-        err = "client exited 0 with an EMPTY final message (RAN_ERROR, never RAN_ZERO)"
+        err = "client exited 0 with an EMPTY final message (RAN_ERROR, never RAN_ZERO)" + (
+            f"; the model's tool use was denied: {out.get('denied_actions')}" if out.get("denied_actions") else "")
     elif requested is None:
         err = "client settings name no model: the pin is unknown, so the response is not a source"
     elif rep is None:
@@ -474,6 +494,7 @@ def agy_call(prompt: bytes, *, schema: dict, caller: dict, input_digests: list, 
         request_utc=t0, response_utc=t1, caller=caller, input_digests=digests, state=state, error=err,
         client_evidence={"status": out.get("status"), "usage": out.get("usage"), "num_turns": out.get("num_turns"),
                          "denied_actions": denied,
+                         **({"retried_after_tool_denial": retried} if retried else {}),
                          "stdout_sha256": hashlib.sha256(so).hexdigest(), "stdout_bytes": len(so),
                          "stderr_sha256": hashlib.sha256(se).hexdigest(), "stderr_bytes": len(se),
                          "client_log_redacted_sha256": hashlib.sha256(lg_red.encode("utf-8")).hexdigest(),
