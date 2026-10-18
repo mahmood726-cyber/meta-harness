@@ -29,6 +29,9 @@ import json
 import os
 import re
 import sys
+import argparse
+from collections import Counter
+from urllib.parse import urlparse, parse_qs, unquote
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [ROOT, os.path.join(ROOT, "scripts")]
@@ -57,7 +60,7 @@ def licence_class(lic):
     l_ = (lic or "").lower().replace("_", "-").replace(" ", "-")
     if not l_:
         return "NONE"
-    if l_ in ("cc-by", "cc0", "pd", "public-domain") or re.fullmatch(r"cc-by(-\d(\.\d)?)?", l_):
+    if l_ in ("cc-by", "cc0") or re.fullmatch(r"cc-by(-\d(\.\d)?)?", l_):
         return "CC_BY_OR_CC0"
     if l_.startswith("cc"):
         return "CC_OTHER"
@@ -106,6 +109,8 @@ COMPANION_NOTE = ("\n\nThis source is a COMPANION publication of the trial (a se
                   "SOURCE_ABSENT (say why). For this text source use source = PMC_TEXT and source_ref = the companion PMID.")
 REC_DIR = os.path.join(ROOT, "evidence", "model_calls", "open_fill")
 CALLS = os.path.join(OUT, "_calls.json")
+_TARGET_RUN = False
+_BUDGET_STOP = False
 
 
 def _call(prompt, reader, purpose, digest):
@@ -114,7 +119,15 @@ def _call(prompt, reader, purpose, digest):
     from reproducible_ai import model_call_live as mcl
     from reproducible_ai import model_source as ms
     import g1_trial_acquire as ta
+    global _BUDGET_STOP
+    if _TARGET_RUN:
+        if _BUDGET_STOP:
+            return {"state": "SKIPPED_BUDGET", "record_id": None}
+        if not ta.disk_ok():
+            return {"state": "SKIPPED_DISK", "record_id": None}
     tag, model, eff = reader
+    if _TARGET_RUN:
+        print("TARGET_READER", tag, "START", flush=True)
     idx = json.load(open(CALLS, encoding="utf-8")) if os.path.exists(CALLS) else {}
     key = f"{model}|{hashlib.sha256(prompt).hexdigest()}"
     if key in idx and os.path.exists(os.path.join(REC_DIR, idx[key] + ".json")):
@@ -136,6 +149,9 @@ def _call(prompt, reader, purpose, digest):
         # the D8 guard refused the prompt: a typed state for THIS trial, never a crash of the whole run (14 Oct)
         return {"state": "REFUSED_LICENCE", "record_id": None, "why": str(exc)[:300]}
     ms.write_record(rec, REC_DIR)
+    if _TARGET_RUN and rec.get("state") != "RAN_OK" and ta._QUOTA.search(
+            json.dumps(rec.get("error") or rec.get("response") or "")):
+        _BUDGET_STOP = True
     if rec.get("state") == "RAN_OK":
         idx = json.load(open(CALLS, encoding="utf-8")) if os.path.exists(CALLS) else {}
         idx[key] = rec["record_id"]
@@ -168,9 +184,11 @@ def model_read(slug, cfg, label):
     return _read_and_adjudicate(prompt, body, held, cfg, slug, purpose)
 
 
-def companion_model_read(slug, cfg, r, text, src):
+def companion_model_read(slug, cfg, r, text, src, *, target=False):
     """Read the held companion, then require a whole-trial, appropriate-unit candidate."""
     import g1_trial_acquire as ta
+    if target and (not src.get("model_ok") or licence_class(src.get("licence")) not in MODEL_LICENCES):
+        return {"decision": "MODEL_REFUSED_LICENCE", "readers": {}}
     held = {"aact": {}, "text": text, "sha": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             "terms": ta.outcome_terms(cfg), "comp": ta.comparator_pmid(slug, ta.tracker_file(slug, None)),
             "pmid": r["pmid"], "reg": {}, "slug": slug, "text_origin": src.get("origin"),
@@ -193,7 +211,10 @@ def companion_model_read(slug, cfg, r, text, src):
                                   licence=licence, sha256=held["sha"], chars=len(text), shown_chars=len(shown),
                                   text=shown)}
     body = json.dumps(evidence, ensure_ascii=False, indent=0, default=str)
-    prompt = (ta.INSTR + COMPANION_NOTE + "\n\n=== EVIDENCE ===\n" + body).encode("utf-8")
+    note = ("\nThis is the selected publication of the trial. Require the whole randomised population and protocol "
+            "outcome/timepoint. For this held text use source PMC_TEXT and source_ref " + str(r.get("source_ref") or r["pmid"]) + ".") \
+        if target else COMPANION_NOTE
+    prompt = (ta.INSTR + note + "\n\n=== EVIDENCE ===\n" + body).encode("utf-8")
     purpose = f"k-gap phase 3 companion text {slug} / {r['label'][:50]}"
     out = _read_and_adjudicate(prompt, body, held, cfg, slug, purpose)
     candidate = out.get("admitted_candidate")
@@ -208,6 +229,8 @@ def companion_model_read(slug, cfg, r, text, src):
             out.pop("admitted_candidate")
         else:
             candidate.update(source_pmid=r["pmid"], population_pmid=r.get("population_pmid"))
+            if target:
+                candidate["source"] = f"{src['origin']} {r['source_ref']} held full text sha256 {held['sha']}"
     return out
 
 
@@ -244,6 +267,13 @@ def _read_and_adjudicate(prompt, body, held, cfg, slug, purpose):
         rec = _call(adj, rf.ADJUDICATOR, purpose + " (adjudicator)", hashlib.sha256(adj).hexdigest())
         resp = rf._answer(rec) if rec.get("state") == "RAN_OK" else None
         match = next((k for k, (rr, _a) in gated.items() if resp and _tuple(rr) == _tuple(resp)), None)
+        if _TARGET_RUN and match:
+            try:
+                adj_gate, _ = ta.gate(resp, held, cfg, slug)
+            except Exception:
+                adj_gate = "REFUSED:GATE_ERROR"
+            if adj_gate != "ADMITTED":
+                match = None
         out["adjudication"] = {"record_id": rec.get("record_id"), "state": rec.get("state"), "agrees_with": match}
         if match:
             out["decision"], out["admitted_candidate"] = f"MODEL_ADMITTED_ADJUDICATED_WITH_{match}", gated[match][1]
@@ -362,9 +392,258 @@ def run(slugs):
     return tot
 
 
+def load_targets(path, slugs=()):
+    """Select only requested copies; accept typed identifiers or the census lookup URLs."""
+    with open(path, encoding="utf-8") as fh:
+        doc = json.load(fh)
+    rows = doc["open_not_assessed"] if isinstance(doc, dict) else doc
+    result = []
+    for raw in rows:
+        slug, label = raw["slug"], raw["label"]
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", slug) or not isinstance(label, str) or not label:
+            raise ValueError("INVALID_TARGET")
+        if slugs and slug not in slugs:
+            continue
+        source, identifier = raw["source"], str(raw["identifier"])
+        outcome = raw.get("outcome") or {}
+        value = identifier
+        if source == "PUBMED_EPMC_PMID":
+            if identifier.startswith("https://"):
+                url = urlparse(identifier)
+                if url.hostname != "www.ebi.ac.uk" or url.path != "/europepmc/webservices/rest/search":
+                    raise ValueError("INVALID_PMID_LOOKUP")
+                match = re.search(r"\bEXT_ID:(\d+)\b", parse_qs(url.query).get("query", [""])[0])
+                value = match.group(1) if match else ""
+            if not re.fullmatch(r"[1-9][0-9]*", value) or (outcome.get("id") and str(outcome["id"]) != value):
+                raise ValueError("INVALID_PMID")
+        elif source == "UNPAYWALL_DOI":
+            if identifier.startswith("https://"):
+                url = urlparse(identifier)
+                if url.hostname != "api.unpaywall.org" or not url.path.startswith("/v2/"):
+                    raise ValueError("INVALID_DOI_LOOKUP")
+                value = unquote(url.path[4:])
+            value = value.lower()
+            if not re.fullmatch(r"10\.\d{4,9}/\S+", value):
+                raise ValueError("INVALID_DOI")
+        else:
+            raise ValueError("INVALID_TARGET_SOURCE")
+        result.append(dict(raw, target_identifier=value))
+    return result
+
+
+def target_context(r):
+    """Trial identity and blockers come from existing tracker/census metadata, never a guessed PMID."""
+    import g1_trial_acquire as ta
+    tracker = ta.tracker_file(r["slug"], None)
+    trial = next(x for x in tracker["trials"] if x["label"] == r["label"])
+    family = str(trial.get("family") or "")
+    population = family[5:] if family.startswith("PMID ") else (trial.get("seeded_funnel") or {}).get("pmid")
+    base = os.path.join(ROOT, "outputs", "k_gap", "registry_fill")
+    for name in ("PHASE3_OPEN_CENSUS.json", "PHASE3_OPEN_CENSUS_REGISTERED.json", "PHASE3_OPEN_CENSUS_COMPANIONS.json"):
+        path = os.path.join(base, name)
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as fh:
+            candidates = json.load(fh)["rows"]
+        for c in candidates:
+            if (c["slug"], c["label"]) == (r["slug"], r["label"]):
+                population = population or c.get("population_pmid") or (c.get("pmid") if "COMPANIONS" not in name else None)
+    return dict(r, population_pmid=population, blocker_now=trial.get("blocker"),
+                comparator_pmid=ta.comparator_pmid(r["slug"], tracker))
+
+
+def target_copy(r):
+    """Runtime-only held text; licence belongs to the fetched copy, not a different OA location."""
+    import g1_trial_acquire as ta
+    outcome = r.get("outcome") or {}
+    identifier = r["target_identifier"]
+    if r["source"] == "PUBMED_EPMC_PMID":
+        import k_gap_counterfactual as cfm
+        text = cfm.pmc_fulltext_cached(identifier) or ""
+        copy = ta.pmc_copy(identifier) if text else {}
+        lic = outcome.get("license")
+        index_path = os.path.join(ROOT, "outputs", "k_gap", "fulltext_index.json")
+        with open(index_path, encoding="utf-8") as fh:
+            metadata = json.load(fh).get(identifier) or {}
+        state = str(metadata.get("fetch_state") or metadata.get("state") or "")
+        incomplete = state.startswith("FETCH_FAILED") or "_WITH_SUPPLEMENT_FAILURE:" in state
+        return text, dict(origin="PMC", pmcid=copy.get("pmcid"), licence=lic,
+                          fetch_state=state, incomplete=incomplete,
+                          copy_licence=copy.get("licence"), admissible=copy.get("licence") in ta.OPEN_COPY,
+                          model_ok=copy.get("licence") in ta.PROMPT_COPY and licence_class(lic) in MODEL_LICENCES)
+    from kgap import k_gap
+    u = k_gap.unpaywall_text(identifier, os.path.join(ROOT, "outputs", "k_gap", "_upw"),
+                            os.path.join(ROOT, "outputs", "k_gap", "unpaywall_text_index.json"), offline=False)
+    # Missing fetched-copy licence is deliberately NOT filled from target metadata.
+    lic = u.get("license")
+    return u.get("text") or "", dict(origin="UNPAYWALL", doi=identifier, licence=lic, url=u.get("url"),
+                                      unpaywall_state=u.get("state"), admissible=str(lic or "").startswith("cc"),
+                                      model_ok=licence_class(lic) in MODEL_LICENCES)
+
+
+def run_target(r, cfg, model=True):
+    """Read one selected copy, retaining existing gates and explicit non-binding reasons."""
+    import g1_trial_acquire as ta
+    from g1_sentence_reader import sentence_candidates, _sentences
+    r = target_context(r)
+    slug = r["slug"]
+    pmid = r["target_identifier"] if r["source"] == "PUBMED_EPMC_PMID" else None
+    r = dict(r, pmid=pmid, source_ref=r["target_identifier"])
+    out = dict(slug=slug, label=r["label"], pmid=pmid, phase=None, census_class="LOOKUP_FAILED", stage="CENSUS",
+               blocker_now=r.get("blocker_now"), target_source=r["source"], identifier=r["identifier"],
+               target_identifier=r["target_identifier"])
+    if not ta.disk_ok():
+        return dict(out, decision="SKIPPED_DISK")
+    try:
+        text, src = target_copy(r)
+    except Exception as exc:
+        return dict(out, decision="NO_TEXT_LAYER_OR_NOT_FETCHED", error_type=type(exc).__name__)
+    cls = licence_class(src.get("licence"))
+    out.update(census_class={"CC_BY_OR_CC0": "OPEN_CC_MODEL_READABLE", "CC_OTHER": "OPEN_CC_OTHER_REGEX_ONLY",
+                            "NONE": "OPEN_NO_LICENCE_REGEX_ONLY"}[cls], licence_class=cls, source=src)
+    if not text.strip():
+        return dict(out, decision="NO_TEXT_LAYER_OR_NOT_FETCHED")
+    src.update(chars=len(text), text_sha256=hashlib.sha256(text.encode("utf-8")).hexdigest(),
+               retrieved=datetime.date.today().isoformat())
+    out["stage"] = "TEXT"
+    print("TARGET_HELD", slug, r["target_identifier"], cls, flush=True)
+    rr, span, reader = typed_read(text, src["origin"], cfg)
+    sentences = sentence_candidates(text, cfg)
+    out["sentence_candidates"] = len(sentences)
+    terms = ta.outcome_row_terms(cfg)
+    if not prose_windows(text, terms):
+        if src.get("incomplete"):
+            return dict(out, decision="OUTCOME_FOUND_NOT_BINDABLE:SOURCE_INCOMPLETE")
+        return dict(out, decision="OUTCOME_NOT_IN_SOURCE")
+    reason = "NO_TYPED_TUPLE"
+    if screening_blocked(r):
+        return dict(out, decision="ELIGIBILITY_BLOCKED_QUEUED_TO_SCREENING")
+    if rr:
+        reason = None
+        if not r.get("population_pmid"):
+            reason = "POPULATION_IDENTITY_UNRESOLVED"
+        elif ta.posted_population_short(slug, r["population_pmid"], rr["n_t"] + rr["n_c"]):
+            reason = "SUBPOPULATION"
+        elif unit_of_analysis_refused(r, rr):
+            reason = "UNIT_OF_ANALYSIS"
+        elif not src.get("admissible"):
+            reason = "COPY_LICENCE"
+        elif str(pmid) == str(r["comparator_pmid"]):
+            reason = "SOURCE_IS_COMPARATOR"
+        if reason is None:
+            return dict(out, stage="TYPED", typed=dict(reader=reader, value=rr, span=(span or "")[:600]),
+                        phase=f"3_OPEN:{src['origin']}", decision="TYPED_FOUND_ADMISSIBLE")
+    if len(sentences) == 1:
+        candidate = sentences[0]
+        quote = next((s for offset, s in _sentences(text) if offset == candidate["offset"] and
+                      hashlib.sha256(s.encode("utf-8")).hexdigest() == candidate["sentence_sha256"]), "")
+        response = dict(verdict="FOUND", source="PMC_TEXT", source_ref=r["source_ref"], quote=quote,
+                        measure=candidate.get("measure") or "COUNTS",
+                        **{k: candidate.get(k) for k in ("events_t", "n_t", "events_c", "n_c", "effect", "lower", "upper")})
+        held = dict(text=text, sha=src["text_sha256"], terms=terms, comp=r["comparator_pmid"])
+        verdict, adm = ta.gate(response, held, cfg, slug)
+        reason = verdict
+        po = cfg.get("primary_outcome") or {}
+        if verdict == "ADMITTED":
+            if not src.get("admissible"):
+                reason = "COPY_LICENCE"
+            elif not r.get("population_pmid"):
+                reason = "POPULATION_IDENTITY_UNRESOLVED"
+            elif unit_of_analysis_refused(r, candidate):
+                reason = "UNIT_OF_ANALYSIS"
+            elif candidate.get("n_t") is not None and ta.posted_population_short(
+                    slug, r["population_pmid"], candidate["n_t"] + candidate["n_c"]):
+                reason = "SUBPOPULATION"
+            elif po.get("timepoint") or po.get("population") or candidate.get("effect") is not None:
+                # Sentence metadata is not a population/timepoint binding contract.
+                reason = "SENTENCE_BINDING_UNPROVEN"
+            else:
+                return dict(out, stage="TYPED", typed=dict(reader="sentence_candidates", value={k: candidate[k]
+                            for k in ("events_t", "n_t", "events_c", "n_c")}, span=quote[:600]),
+                            phase=f"3_OPEN:{src['origin']}", decision="TYPED_FOUND_ADMISSIBLE")
+    elif len(sentences) > 1:
+        reason = "AMBIGUOUS_SENTENCE_CANDIDATES"
+    out["deterministic_gate"] = reason
+    if src.get("model_ok") and not model:
+        return dict(out, decision="TYPED_NONE_MODEL_ELIGIBLE", model_pending=True)
+    if model and src.get("model_ok"):
+        if _BUDGET_STOP:
+            return dict(out, decision="SKIPPED_BUDGET")
+        m = companion_model_read(slug, cfg, r, text, src, target=True)
+        out.update(stage="MODEL", model=m, decision=m["decision"])
+        if m.get("admitted_candidate"):
+            if not r.get("population_pmid"):
+                m.pop("admitted_candidate")
+                out["decision"] = "OUTCOME_FOUND_NOT_BINDABLE:POPULATION_IDENTITY_UNRESOLVED"
+            else:
+                out["phase"] = f"3_OPEN:{src['origin']}"
+        elif m["decision"] == "MODEL_NOT_ADMITTED_NO_GATED_READING":
+            gates = sorted({v["gate"] for v in m["readers"].values()})
+            out["decision"] = "OUTCOME_FOUND_NOT_BINDABLE:" + ",".join(gates)
+        return out
+    return dict(out, decision="OUTCOME_FOUND_NOT_BINDABLE:" + reason)
+
+
+def run_targets(path, slugs=(), model=True):
+    """Sequential topics/copies: one worker, checkpoint every target; never print held text."""
+    import g1_registry_fill as rf
+    global OUT, CALLS, _TARGET_RUN, _BUDGET_STOP
+    selected = load_targets(path, slugs)
+    OUT = os.path.join(ROOT, "outputs", "k_gap", "registry_fill", "phase3_targets")
+    CALLS = os.path.join(OUT, "_calls.json")
+    _TARGET_RUN, _BUDGET_STOP = True, False
+    os.makedirs(OUT, exist_ok=True)
+    summary = {}
+    for slug in sorted({r["slug"] for r in selected}):
+        cfg, rows = rf.config(slug), []
+        for r in (r for r in selected if r["slug"] == slug):
+            try:
+                print("TARGET_START", slug, len(rows) + 1, r["target_identifier"], flush=True)
+                row = run_target(r, cfg, model=model)
+            except Exception as exc:
+                row = dict(slug=slug, label=r["label"], pmid=None, phase=None, census_class="LOOKUP_FAILED",
+                           stage="CENSUS", target_source=r["source"], identifier=r["identifier"],
+                           target_identifier=r["target_identifier"], decision="EVIDENCE_ERROR", error_type=type(exc).__name__)
+            rows.append(row)
+            destination = os.path.join(OUT, slug + ".json")
+            with open(destination + ".tmp", "w", encoding="utf-8", newline="\n") as fh:
+                json.dump(dict(slug=slug, writer="scripts/g1_open_fill.py", census=os.path.basename(path),
+                               mode="fill" if model else "census", rows=rows),
+                          fh, ensure_ascii=False, indent=1)
+            os.replace(destination + ".tmp", destination)
+            print(slug, len(rows), row["decision"], flush=True)
+        stats = dict(targets=len(rows), copies_held=sum(bool((x.get("source") or {}).get("chars")) for x in rows),
+                     licence_class=dict(Counter(x.get("licence_class", "UNKNOWN") for x in rows)),
+                     deterministic_bound=sum(x["decision"] == "TYPED_FOUND_ADMISSIBLE" for x in rows),
+                     model_read=sum(any(v.get("record_id") for v in (x.get("model", {}).get("readers") or {}).values())
+                                    for x in rows),
+                     model_pending=sum(bool(x.get("model_pending")) for x in rows),
+                     admitted=sum(x["decision"] == "TYPED_FOUND_ADMISSIBLE" or
+                                  bool(x.get("model", {}).get("admitted_candidate")) for x in rows),
+                     OUTCOME_NOT_IN_SOURCE=sum(x["decision"] == "OUTCOME_NOT_IN_SOURCE" for x in rows),
+                     not_bindable=dict(Counter(x["decision"].split(":", 1)[1] for x in rows
+                                                if x["decision"].startswith("OUTCOME_FOUND_NOT_BINDABLE:"))),
+                     decisions=dict(Counter(x["decision"] for x in rows)))
+        summary[slug] = stats
+        print("TARGET_SUMMARY", slug, json.dumps(stats, sort_keys=True), flush=True)
+    return summary
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("command", choices=("run", "fill", "census"))
+    parser.add_argument("slugs", nargs="*")
+    parser.add_argument("--targets")
+    for flag in ("registered", "companions", "companion-model", "model"):
+        parser.add_argument("--" + flag, action="store_true")
+    args = parser.parse_args(argv)
+    if args.targets:
+        return run_targets(args.targets, args.slugs, model=args.command != "census")
+    if args.command == "census":
+        parser.error("census requires --targets")
+    return run(args.slugs)
+
+
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-    a = sys.argv[1:]
-    if not a or a[0] != "run":
-        raise SystemExit("usage: run SLUG ...")
-    run([x for x in a[1:] if not x.startswith("--")])
+    main()

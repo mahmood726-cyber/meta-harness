@@ -245,9 +245,9 @@ def test_run_offline_committed_only(tmp_path, monkeypatch, capsys):
     assert trial["identifiers"]["approved_drug"]
     assert trial["identifiers"]["ncts"] == ["NCT00000001"]
     assert trial["identifiers"]["provenance"]["NCT00000001"] == ["outputs/k_gap/g1/demo.json#trials[label=ALPHA].identity.nct"]
-    assert {r["source"] for r in trial["searched"]} == {"FDA", "PMDA", "EMA_CLINICAL_DATA"}
+    assert {r["source"] for r in trial["searched"]} == {"FDA", "EMA_CLINICAL_DATA"}
     assert "PLANTED" not in json.dumps(out)
-    assert "trials=1, records=3" in capsys.readouterr().out
+    assert "trials=1, records=2" in capsys.readouterr().out
 
 
 def test_live_adapters_with_unavailable_snapshot(tmp_path, monkeypatch):
@@ -542,3 +542,165 @@ def test_legacy_bad_doi_removed_without_losing_search_history(tmp_path):
     assert trial["identifiers"]["dois"] == ["10.1234/valid"]
     assert "/synthetic-suffix" not in trial["identifiers"]["provenance"]
     assert trial["searched"] == [rec]
+
+
+@pytest.mark.parametrize("sponsor,kind,expected", [("Pfizer", "INDUSTRY", True), ("Synthetic University", "OTHER", False)])
+def test_own_sponsor_only(tmp_path, sponsor, kind, expected):
+    class Transport:
+        def __init__(self): self.urls = []
+        def get(self, url):
+            self.urls.append(url)
+            if "clinicaltrials.gov" in url:
+                return 200, log.encoded({"protocolSection":{"identificationModule":{"nctId":"NCT00000001"}, "sponsorCollaboratorsModule":{"leadSponsor":{"name":sponsor,"class":kind}, "collaborators":[{"name":"Novartis","class":"INDUSTRY"}]}}}), log.PROBE_DATE
+            return 200, b'<main>No results</main>', log.PROBE_DATE
+    client = Transport()
+    ids = {"ncts":["NCT00000001"]}
+    records = log.sponsor_searches(client, ids)
+    assert bool(records) is expected
+    assert not any("novartis" in u for u in client.urls)
+    if expected: assert records[0]["lead_sponsor"] == sponsor
+    ids = {"ncts":[]}
+    assert log.sponsor_searches(client, ids) == []
+    assert ids["notes"] == ["sponsor unknown"]
+
+
+def test_adcomm_abuse_redirect_stops_before_request(tmp_path):
+    redirect = log.SafeRedirect()
+    class Transport:
+        def pause(self, url): pytest.fail("must not follow abuse redirect")
+    redirect.client = Transport()
+    with pytest.raises(log.BotBlock, match="abuse"):
+        redirect.redirect_request(None, None, 302, "", {}, "https://www.fda.gov/abuse")
+    class Client:
+        def get(self, url): raise log.BotBlock("Redirect to FDA abuse page")
+    rec = log.html_listing(Client(), "FDA_ADCOMM", log.ADCOMM_INDEX, ["agent"], {})
+    assert rec["step_reached"] == "BLOCKED_BOT_CHALLENGE"
+    assert rec["when_utc"] and "abuse" in rec["outcome"]
+
+
+def test_tga_timeout_three_attempts(tmp_path):
+    op = Opener([TimeoutError("synthetic timeout") for _ in range(3)])
+    sleeps = []
+    rec = log.html_listing(log.Client(tmp_path, opener=op, sleep=sleeps.append), "TGA_AUSPAR", "https://www.tga.gov.au/resources/auspar", ["agent"], {})
+    assert len(op.requests) == 3
+    assert 1 in sleeps and 2 in sleeps
+    assert rec["step_reached"] == "ERROR"
+    assert "TimeoutError: synthetic timeout" in rec["outcome"]
+
+
+@pytest.mark.parametrize("source", ["TGA_AUSPAR", "FDA_ADCOMM", "AHRQ_NIHR_HTA", "SPONSOR_REGISTER"])
+def test_html_sources_do_not_infer_absence(source):
+    class Client:
+        def get(self, url): return 200, b'<html>Unexpected page</html>', log.PROBE_DATE
+    assert log.html_listing(Client(), source, "https://example.org", ["agent"], {})["step_reached"] == "ERROR"
+
+
+def test_ahrq_publisher_and_title_filter():
+    class Client:
+        def get(self, url):
+            return 200, b'Publisher,Title,File\nAgency for Healthcare Research and Quality (US),Synthetic-agent review,a.tar.gz\nWrong publisher,Synthetic-agent review,b.tar.gz\nAgency for Healthcare Research and Quality (US),Other agent,c.tar.gz\n', log.PROBE_DATE
+    rec = log.ahrq_search(Client(), ["Synthetic-agent"])
+    assert len(rec["outcome"]["matches"]) == 1
+    assert rec["outcome"]["matches"][0]["url"].endswith("a.tar.gz")
+    assert rec["response_sha256"]
+
+
+@pytest.mark.parametrize("text,types,expected", [
+    ("NCT00000001 results", "Randomized Controlled Trial", "PRIMARY_REPORT"),
+    ("ALPHA trial results", "Randomized Controlled Trial", "PRIMARY_REPORT"),
+    ("NCT00000001 secondary analysis", "Journal Article", "COMPANION"),
+    ("unrelated results", "Randomized Controlled Trial", "NOT_THE_TRIAL"),
+    ("smart technology", "Journal Article", "NOT_THE_TRIAL"),
+])
+def test_pubmed_followup_verdict(text, types, expected):
+    body = f'<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>12345</PMID><Article><ArticleTitle>{text}</ArticleTitle><Abstract><AbstractText>{text}</AbstractText></Abstract><PublicationTypeList><PublicationType>{types}</PublicationType></PublicationTypeList></Article></MedlineCitation></PubmedArticle></PubmedArticleSet>'.encode()
+    verdict, _ = log.pubmed_verdict(body, "12345", {"ncts":["NCT00000001"],"acronym":"ALPHA"})
+    assert verdict == expected
+
+
+def test_pubmed_secondary_identifier():
+    body = b'<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>12345</PMID><Article><ArticleTitle>Results</ArticleTitle><DataBankList><DataBank><AccessionNumberList><AccessionNumber>NCT00000001</AccessionNumber></AccessionNumberList></DataBank></DataBankList><PublicationTypeList><PublicationType>Randomized Controlled Trial</PublicationType></PublicationTypeList></Article></MedlineCitation></PubmedArticle></PubmedArticleSet>'
+    assert log.pubmed_verdict(body, "12345", {"ncts":["NCT00000001"]})[0] == "PRIMARY_REPORT"
+    with pytest.raises(ValueError, match="absent"):
+        log.pubmed_verdict(body, "99999", {})
+
+
+def test_pmda_listing_no_trial_match(tmp_path):
+    class Client:
+        def get(self, url): return 200, b'<main>Review Reports. Public Data License 1.0</main>', log.PROBE_DATE
+    rec = log.pmda_search(Client(), ["synthetic-agent"], {"ncts":["NCT00000001"]}, ["mortality"], tmp_path)
+    assert rec["step_reached"] == "NOT_FOUND"
+    assert rec["outcome"]["licence"] == "Public Data License 1.0"
+    assert rec["response_sha256"]
+
+
+@pytest.mark.parametrize("text,licence,expected", [
+    ("NCT00000001 mortality results", True, "OPEN_OUTCOME_NOT_BINDABLE"),
+    ("NCT00000001 safety only", True, "OPEN_NO_OUTCOME"),
+    ("NCT00000001 mortality results", False, "FOUND_NOT_OPEN"),
+    ("NCT99999999 mortality results", True, "NOT_FOUND"),
+])
+def test_pmda_report_text_rules(tmp_path, monkeypatch, text, licence, expected):
+    import pypdf
+    class Page:
+        def extract_text(self): return text
+    class Reader:
+        def __init__(self, body): self.pages = [Page()]
+    monkeypatch.setattr(pypdf, "PdfReader", Reader)
+    class Client:
+        def get(self, url):
+            if url.endswith(".pdf"): return 200, b"synthetic PDF fixture", log.PROBE_DATE
+            policy = "Public Data License 1.0" if licence else ""
+            return 200, (f'<main>{policy}<table><tr><td>synthetic-agent</td><td><a href="/files/synthetic.pdf">English</a></td></tr></table></main>').encode(), log.PROBE_DATE
+    rec = log.pmda_search(Client(), ["synthetic-agent"], {"ncts":["NCT00000001"]}, ["mortality"], tmp_path)
+    assert rec["step_reached"] == expected
+    assert rec["outcome"]["reports"][0]["response_sha256"] == log.digest(b"synthetic PDF fixture")
+    assert list((tmp_path / "outputs/k_gap/_reg/pmda").glob("*.txt"))
+
+
+def test_acronym_collision_is_not_companion():
+    body = b'<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>12345</PMID><Article><ArticleTitle>ALPHA software tool</ArticleTitle><PublicationTypeList><PublicationType>Journal Article</PublicationType></PublicationTypeList></Article></MedlineCitation></PubmedArticle></PubmedArticleSet>'
+    assert log.pubmed_verdict(body,"12345",{"acronym":"ALPHA"})[0] == "NOT_THE_TRIAL"
+
+
+def test_held_regulator_metadata_only(monkeypatch):
+    from scripts import g1_regulatory_source as reg
+    def evidence(*args):
+        return [], {"https://example.org/review": {"text":"PLANTED SECRET SPAN", "record":{"agency":"FDA", "text_sha256":"a"*64}}}
+    monkeypatch.setattr(reg,"regulatory_evidence",evidence)
+    recs = log.held_searches({"label":"ALPHA"},{"ncts":[]},"demo")
+    assert [r["step_reached"] for r in recs] == ["FOUND_NOT_OPEN","NOT_FOUND"]
+    assert "PLANTED" not in json.dumps(recs)
+
+
+@pytest.mark.parametrize("title,abstract,ids,expected", [
+    ("ALPHA II trial", "synthetic-agent trial", {"acronym":"ALPHA"}, "NOT_THE_TRIAL"),
+    ("ALPHA-HF trial", "synthetic-agent trial", {"acronym":"ALPHA"}, "NOT_THE_TRIAL"),
+    ("O fish trial", "Fish feeding", {"acronym":"O"}, "NOT_THE_TRIAL"),
+    ("Other condition treatment (ALPHA) trial", "unrelated treatment", {"acronym":"ALPHA", "topic_terms":["synthetic-agent"]}, "NOT_THE_TRIAL"),
+    ("ALPHA trial subanalysis", "synthetic-agent", {"acronym":"ALPHA"}, "COMPANION"),
+    ("ALPHA trial", "A post hoc analysis of synthetic-agent", {"acronym":"ALPHA"}, "COMPANION"),
+    ("ALPHA trial", "Randomized synthetic-agent results", {"acronym":"ALPHA", "topic_agents":["synthetic-agent"],"topic_terms":["synthetic-agent"]}, "PRIMARY_REPORT"),
+    ("ALPHA trial", "Randomized synthetic-agent results with median follow-up reported", {"acronym":"ALPHA", "topic_agents":["synthetic-agent"],"topic_terms":["synthetic-agent"]}, "PRIMARY_REPORT"),
+    ("ALPHA trial update", "Clinical trial meeting report", {"acronym":"ALPHA", "topic_agents":["synthetic-agent"],"topic_terms":["synthetic-agent"]}, "COMPANION"),
+])
+def test_followup_disambiguation_and_secondary_reports(title, abstract, ids, expected):
+    body = f'<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>12345</PMID><Article><ArticleTitle>{title}</ArticleTitle><Abstract><AbstractText>{abstract}</AbstractText></Abstract><PublicationTypeList><PublicationType>Randomized Controlled Trial</PublicationType></PublicationTypeList></Article></MedlineCitation></PubmedArticle></PubmedArticleSet>'.encode()
+    assert log.pubmed_verdict(body,"12345",ids)[0] == expected
+
+
+@pytest.mark.parametrize("name,allowed", [("Merck Sharp & Dohme LLC", True), ("Merck KGaA", False)])
+def test_distinct_merck_sponsors_are_not_cross_routed(name, allowed):
+    class Client:
+        def __init__(self): self.urls=[]
+        def get(self,url):
+            self.urls.append(url)
+            if "clinicaltrials.gov" in url:
+                return 200, log.encoded({"protocolSection":{"identificationModule":{"nctId":"NCT00000001"},"sponsorCollaboratorsModule":{"leadSponsor":{"name":name,"class":"INDUSTRY"}}}}),log.PROBE_DATE
+            return 200,b"No results",log.PROBE_DATE
+    client=Client()
+    records=log.sponsor_searches(client,{"ncts":["NCT00000001"]})
+    assert any("merckclinicaltrials.com" in u for u in client.urls) is allowed
+    if not allowed:
+        assert records[0]["step_reached"] == "ERROR"
+        assert name in records[0]["outcome"]

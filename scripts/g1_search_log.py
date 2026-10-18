@@ -1,7 +1,7 @@
 """Dated, append-preserving G1 search evidence; no extraction or admission.
 
 Hardcode disclosure:
-  Static | source URLs, transport policy, discovery aliases, PMDA ruling date.
+  Static | source URLs, transport policy, sponsor mappings and text-match rules.
   Dynamic | identifiers, OA flags, approval evidence, holdings and secondary rows.
 Offline reads HEAD artefacts only; it never refreshes a network response. Restricted
 regulator artefacts cross the metadata boundary only through regulator_summary.
@@ -12,6 +12,9 @@ from __future__ import annotations
 import argparse
 import base64
 import copy
+import csv
+import io
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -22,7 +25,7 @@ import subprocess
 import sys
 import time
 from urllib.error import HTTPError
-from urllib.parse import quote, urlencode, urlparse, unquote
+from urllib.parse import quote, urlencode, urlparse, unquote, urljoin
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 from unittest.mock import patch
 
@@ -36,7 +39,6 @@ EMAIL = "meta-harness@example.org"
 USER_AGENT = "meta-harness k-gap (meta-harness@example.org)"
 META_FIELDS = ("label", "phase", "stage", "decision", "verdict", "ncts")
 PROBE_DATE = "2026-10-15T00:00:00Z"
-PMDA_NOTE = "PMDA skipped by Mahmood 13 Oct; re-ruling requested 15 Oct"
 TTL = 7 * 86400
 
 
@@ -90,6 +92,24 @@ class Committed:
             self.cache[key] = self.git("show", f"{self.head}:{key}")
         return self.cache[key]
 
+    def prime(self, paths):
+        """Read the selected HEAD objects in one Git process (same snapshot contract)."""
+        paths = sorted(set(paths) & self.paths)
+        if not paths:
+            return
+        query = "".join(f"{self.head}:{p}\n" for p in paths).encode()
+        data = subprocess.check_output(["git", "-C", str(self.root), "cat-file", "--batch"], input=query, stderr=subprocess.PIPE)
+        stream = io.BytesIO(data)
+        for path in paths:
+            header = stream.readline().split()
+            if len(header) != 3 or header[1] != b"blob":
+                raise ValueError(f"Missing committed blob: {path}")
+            size = int(header[2])
+            body = stream.read(size)
+            if len(body) != size or stream.read(1) != b"\n":
+                raise ValueError(f"Truncated committed blob: {path}")
+            self.cache[path] = body
+
     def read(self, path, default=None):
         body = self.body(path)
         return json.loads(body) if body is not None else default
@@ -140,9 +160,15 @@ def safe_url(url):
 class SafeRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         safe_url(newurl)
+        if re.search(r"abuse|captcha|challenge", newurl, re.I):
+            raise BotBlock("Blocked redirect to " + newurl)
         # A redirect is still a request: preserve per-host politeness.
         self.client.pause(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+class BotBlock(ValueError):
+    pass
 
 
 class Client:
@@ -179,6 +205,11 @@ class Client:
                 status, body = exc.code, exc.read()
                 if (status == 429 or status >= 500) and attempt == 2:
                     raise
+            except OSError:
+                if urlparse(url).hostname == "www.tga.gov.au" and attempt < 2:
+                    self.sleep(2 ** attempt)
+                    continue
+                raise
             if status == 429 or status >= 500:
                 if attempt < 2:
                     self.sleep(2 ** attempt)
@@ -333,6 +364,8 @@ def search(client, source, url, census=None, identifiers=None):
         status, body, when = client.get(url)
         step, outcome = response_mapping(source, body, status, census, identifiers)
         return record(source, url, when, step, outcome, body), body
+    except BotBlock as exc:
+        return record(source, url, when, "BLOCKED_BOT_CHALLENGE", str(exc)), None
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         return record(source, url, when, "ERROR", f"{type(exc).__name__}: {exc}"), None
 
@@ -588,13 +621,361 @@ def health_canada(client, agent):
         return record("HEALTH_CANADA", url, when, "ERROR", f"{type(exc).__name__}: {exc}")
 
 
-def run(slugs=None, offline=False, root=ROOT):
+
+# Static endpoint/sponsor routing; all matches, licences and verdicts come from responses.
+PMDA_INDEX = "https://www.pmda.go.jp/english/review-services/reviews/approved-information/drugs/0001.html"
+ADCOMM_INDEX = "https://www.fda.gov/advisory-committees/advisory-committee-calendar"
+SPONSOR_REGISTERS = {
+    "pfizer": "https://www.pfizerclinicaltrials.com/find-a-trial",
+    "regeneron": "https://clinicaltrials.regeneron.com/",
+    "bayer": "https://clinicaltrials.bayer.com/",
+    "glaxosmithkline": "https://www.gsk-studyregister.com/", "gsk": "https://www.gsk-studyregister.com/",
+    "novartis": "https://www.novartis.com/clinicaltrials",
+    "lilly": "https://trials.lilly.com/", "boehringer ingelheim": "https://www.mystudywindow.com/",
+    "novo nordisk": "https://www.novonordisk-trials.com/",
+    "amgen": "https://www.amgentrials.com/", "astrazeneca": "https://www.astrazenecaclinicaltrials.com/",
+    "sanofi": "https://www.sanofi.com/en/our-science/clinical-trials",
+    "hoffmann-la roche": "https://forpatients.roche.com/", "genentech": "https://forpatients.roche.com/",
+    "janssen": "https://www.globaltrialfinder.jnj.com/", "merck sharp": "https://www.merckclinicaltrials.com/",
+    "merck & co": "https://www.merckclinicaltrials.com/",
+    "bristol-myers squibb": "https://www.bmsclinicaltrials.com/",
+}
+
+
+def word_in(term, text):
+    return bool(term) and bool(re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text, re.I))
+
+
+def names_in(text, ids):
+    return [n for n in ids.get("ncts", []) + [ids.get("acronym", "")] if word_in(n, text)]
+
+
+def fetched(client, source, url, requests):
+    memo = getattr(client, "_mandate_responses", None)
+    if memo is None:
+        memo = client._mandate_responses = {}
+    if url in memo:
+        cached_body, cached_failure, cached_request = copy.deepcopy(memo[url])
+        requests.append(cached_request)
+        if cached_failure:
+            cached_failure["source"] = source
+        return cached_body, cached_failure
+    when = utc_now()
+    try:
+        status, body, when = client.get(url)
+        requests.append(dict(url=url, when_utc=when, response_sha256=digest(body), status=status))
+        if challenge(body):
+            failure = record(source, url, when, "BLOCKED_BOT_CHALLENGE", "Bot/access challenge in HTTP response", body)
+            memo[url] = (None, copy.deepcopy(failure), copy.deepcopy(requests[-1]))
+            return None, failure
+        if status != 200:
+            failure = record(source, url, when, "ERROR", f"HTTP {status}; source search not completed", body)
+            memo[url] = (None, copy.deepcopy(failure), copy.deepcopy(requests[-1]))
+            return None, failure
+        memo[url] = (body, None, copy.deepcopy(requests[-1]))
+        return body, None
+    except (OSError, ValueError) as exc:
+        requests.append(dict(url=url, when_utc=when, response_sha256=None, error=f"{type(exc).__name__}: {exc}"))
+        failure = record(source, url, when, "BLOCKED_BOT_CHALLENGE" if isinstance(exc, BotBlock) else "ERROR", f"{type(exc).__name__}: {exc}")
+        memo[url] = (None, copy.deepcopy(failure), copy.deepcopy(requests[-1]))
+        return None, failure
+
+
+def html_listing(client, source, url, terms, ids):
+    from bs4 import BeautifulSoup
+    requests = []
+    body, failure = fetched(client, source, url, requests)
+    if failure:
+        failure["requests"] = requests
+        failure["query_terms"] = terms
+        return failure
+    soup = BeautifulSoup(body, "html.parser")
+    main = soup.find("main") or soup
+    text = main.get_text(" ", strip=True)
+    matches = [{"title": a.get_text(" ", strip=True), "url": urljoin(url, a["href"])}
+               for a in main.select("a[href]") if any(word_in(t, a.get_text(" ", strip=True)) for t in terms)]
+    if matches:
+        step, reason = "OPEN_NOT_ASSESSED", "Matching listing entries; trial text/outcome not assessed"
+    elif re.search(r"no results|0 results|no matching", text, re.I):
+        step, reason = "NOT_FOUND", "Search explicitly reports no matching entries"
+    else:
+        step, reason = "BLOCKED_JS_ONLY" if soup.find("script") and len(text) < 500 else "ERROR", "No verifiable search results; listing/search completeness not established"
+    rec = record(source, url, requests[0]["when_utc"], step,
+                 dict(query=terms, matches=matches, reason=reason), body)
+    rec["requests"] = requests
+    return rec
+
+
+def pmda_search(client, agents, ids, terms, root=ROOT):
+    from bs4 import BeautifulSoup
+    from pypdf import PdfReader
+    requests, reports, failures = [], [], []
+    body, failure = fetched(client, "PMDA", PMDA_INDEX, requests)
+    if failure:
+        failure["requests"] = requests
+        failure["query_terms"] = terms
+        return failure
+    queue, seen = [(PMDA_INDEX, body)], set()
+    licence = None
+    initial = BeautifulSoup(body, "html.parser")
+    for a in initial.select("a[href]"):
+        if a.get_text(" ", strip=True).casefold() == "site policy":
+            policy_url = urljoin(PMDA_INDEX, a["href"])
+            if urlparse(policy_url).hostname == "www.pmda.go.jp":
+                policy, err = fetched(client, "PMDA", policy_url, requests)
+                if policy and re.search(r"Public Data License\s*(?:\(Version\s*)?1\.0", BeautifulSoup(policy, "html.parser").get_text(" ", strip=True)):
+                    licence = "Public Data License 1.0"
+    while queue:
+        url, page = queue.pop(0)
+        if url in seen:
+            continue
+        seen.add(url)
+        soup = BeautifulSoup(page, "html.parser")
+        if "Public Data License 1.0" in soup.get_text(" ", strip=True):
+            licence = "Public Data License 1.0"
+        for a in soup.select("a[href]"):
+            link = urljoin(url, a["href"])
+            if urlparse(link).hostname != "www.pmda.go.jp":
+                continue
+            context = (a.find_parent("tr") or a).get_text(" ", strip=True)
+            if link.lower().endswith(".pdf") and "English" in a.get_text() and any(word_in(t, context) for t in agents):
+                if any(r["url"] == link for r in reports):
+                    continue
+                pdf, err = fetched(client, "PMDA", link, requests)
+                if err:
+                    failures.append(err)
+                    continue
+                try:
+                    cache = Path(root) / "outputs/k_gap/_reg/pmda"
+                    cache.mkdir(parents=True, exist_ok=True)
+                    text_path = cache / (digest(pdf) + ".txt")
+                    if text_path.exists():
+                        text = text_path.read_text(encoding="utf-8")
+                    else:
+                        text = "\n".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(pdf)).pages)
+                        text_path.write_text(text, encoding="utf-8")
+                    if not text.strip():
+                        raise ValueError("PDF contains no extractable text")
+                    doc_licence = "Public Data License 1.0" if "Public Data License 1.0" in text else licence
+                    names = names_in(text, ids)
+                    # Fixed rule: target phrase within 2000 characters of an exact trial name.
+                    outcome = any(any(word_in(t, text[max(0,m.start()-2000):m.end()+2000]) for t in terms)
+                                  for name in names for m in re.finditer(re.escape(name), text, re.I))
+                    reports.append(dict(url=link, title=context, response_sha256=digest(pdf), licence=doc_licence,
+                                        trial_names=names, target_near_trial=outcome, text_sha256=digest(text.encode())))
+                except (ValueError, OSError, RuntimeError) as exc:
+                    failures.append(dict(step_reached="ERROR", outcome=f"PDF parse: {type(exc).__name__}: {exc}"))
+    named = [r for r in reports if r["trial_names"]]
+    if named:
+        opened = [r for r in named if r["licence"] == "Public Data License 1.0"]
+        step = ("OPEN_OUTCOME_NOT_BINDABLE" if any(r["target_near_trial"] for r in opened)
+                else "OPEN_NO_OUTCOME" if opened and terms else "OPEN_NOT_ASSESSED" if opened else "FOUND_NOT_OPEN")
+    else:
+        step = failures[0]["step_reached"] if failures else "NOT_FOUND"
+    rec = record("PMDA", PMDA_INDEX, requests[0]["when_utc"], step,
+                 dict(query=agents, reports=reports, failures=failures, licence=licence,
+                      rule="Exact NCT/acronym; target phrase within 2000 characters; no effect binding"), body)
+    rec["requests"] = requests
+    return rec
+
+
+def ahrq_search(client, terms):
+    from scripts.g1_regulatory_source import LITARCH_LIST, LITARCH_BASE
+    requests = []
+    body, failure = fetched(client, "AHRQ_NIHR_HTA", LITARCH_LIST, requests)
+    if failure:
+        failure["requests"] = requests
+        failure["query_terms"] = terms
+        return failure
+    reader = csv.DictReader(io.StringIO(body.decode("utf-8-sig", errors="replace")))
+    if not {"Publisher", "Title", "File"}.issubset(reader.fieldnames or []):
+        return record("AHRQ_NIHR_HTA", LITARCH_LIST, requests[0]["when_utc"], "ERROR", "Missing litarch CSV columns", body)
+    matches = [dict(title=r["Title"], url=urljoin(LITARCH_BASE, r["File"])) for r in reader
+               if r["Publisher"] == "Agency for Healthcare Research and Quality (US)" and any(word_in(t, r["Title"]) for t in terms)]
+    rec = record("AHRQ_NIHR_HTA", LITARCH_LIST, requests[0]["when_utc"], "OPEN_NOT_ASSESSED" if matches else "NOT_FOUND",
+                 dict(provider="AHRQ", query=terms, matches=matches, scope="file list only; packages not fetched"), body)
+    rec["requests"] = requests
+    return rec
+
+
+def sponsor_searches(client, ids):
+    result = []
+    if not ids.get("ncts"):
+        ids.setdefault("notes", []).append("sponsor unknown")
+        return result
+    for nct in ids["ncts"]:
+        requests = []
+        url = "https://clinicaltrials.gov/api/v2/studies/" + nct
+        body, failure = fetched(client, "SPONSOR_REGISTER", url, requests)
+        if failure:
+            result.append(failure)
+            continue
+        try:
+            protocol = json.loads(body)["protocolSection"]
+            if protocol["identificationModule"]["nctId"] != nct:
+                raise ValueError("CT.gov NCT mismatch")
+            sponsor = protocol["sponsorCollaboratorsModule"]["leadSponsor"]
+            name = sponsor["name"]
+        except (ValueError, KeyError, TypeError) as exc:
+            result.append(record("SPONSOR_REGISTER", url, requests[0]["when_utc"], "ERROR", str(exc), body))
+            continue
+        ids.setdefault("lead_sponsors", []).append(name)
+        if sponsor.get("class") != "INDUSTRY":
+            ids.setdefault("notes", []).append(f"{nct}: academic/non-industry lead sponsor {name}; no sponsor register")
+            continue
+        target = next((u for key, u in SPONSOR_REGISTERS.items() if word_in(key, name)), None)
+        if not target:
+            result.append(record("SPONSOR_REGISTER", url, requests[0]["when_utc"], "ERROR", f"Own industry sponsor register mapping unavailable: {name}", body))
+            continue
+        rec = html_listing(client, "SPONSOR_REGISTER", target + ("&" if "?" in target else "?") + urlencode({"query": nct}), [nct], ids)
+        rec["requests"] = requests + rec["requests"]
+        rec["lead_sponsor"] = name
+        result.append(rec)
+    return result
+
+
+def held_searches(trial, ids, slug, root=ROOT):
+    from scripts import g1_regulatory_source as reg
+    # Metadata-only boundary: no excerpts, readers, spans or text are returned.
+    with patch.object(reg, "ROOT", str(root)), patch.object(reg, "SOURCES", str(Path(root)/"registry/regulatory_sources.json")), patch.object(reg, "study_codes", lambda _: {}):
+        _, held = reg.regulatory_evidence({**trial, "ncts": ids["ncts"]}, [], slug, ids.get("acronym"))
+    results = []
+    for agency in ("FDA", "EMA"):
+        matches = [{"url": url, "text_sha256": item["record"].get("text_sha256")}
+                   for url, item in held.items() if item["record"].get("agency") == agency]
+        results.append(record(agency, "registry/regulatory_sources.json", utc_now(), "FOUND_NOT_OPEN" if matches else "NOT_FOUND",
+                              dict(scope="held document trial-name metadata only", matches=matches), encoded(matches)))
+    return results
+
+
+def pubmed_verdict(body, pmid, ids):
+    root = ET.fromstring(body)
+    article = next((a for a in root.findall(".//PubmedArticle") if a.findtext(".//MedlineCitation/PMID") == pmid), None)
+    if article is None:
+        raise ValueError("Requested PMID absent from PubMed response")
+    abstract = " ".join(" ".join(e.itertext()) for e in article.findall(".//AbstractText"))
+    title = " ".join(article.find(".//ArticleTitle").itertext()) if article.find(".//ArticleTitle") is not None else ""
+    secondary = " ".join(e.text or "" for e in article.findall(".//AccessionNumber"))
+    nct_match = any(word_in(n, abstract + " " + secondary) for n in ids.get("ncts", []))
+    # Case-sensitive acronym prevents ordinary 'smart'/'hope' words matching trial names.
+    acronym = ids.get("acronym", "")
+    acronym_match = bool(len(re.sub(r"[^A-Za-z]", "", acronym)) >= 3 and re.search(r"(?<!\w)" + re.escape(acronym) + r"(?!\w)", title + " " + abstract))
+    types = [e.text for e in article.findall(".//PublicationType")]
+    acronym_match = acronym_match and bool(re.search(r"\btrial\b|randomi[sz]ed", title + " " + abstract, re.I))
+    article_text = title + " " + abstract
+    if acronym and re.search(re.escape(acronym) + r"(?:-[A-Za-z0-9]+|\s+(?:[IVX]+|[0-9]+)\b)", title):
+        acronym_match = False  # a longer trial designation is not the requested acronym
+    context = ids.get("topic_terms", [])
+    expanded_in_title = bool(acronym and re.search(r"\(" + re.escape(acronym) + r"\)", title))
+    if context and abstract and expanded_in_title and not any(word_in(t, article_text) for t in context):
+        acronym_match = False
+    other_ncts = set(re.findall(r"NCT\d{8}", abstract + " " + secondary))
+    if other_ncts and ids.get("ncts") and not nct_match:
+        acronym_match = False
+    if not nct_match and not acronym_match:
+        verdict = "NOT_THE_TRIAL"
+    elif ("Randomized Controlled Trial" in types
+          and not set(types) & {"Review", "Comment", "Editorial", "Letter", "Published Erratum", "Meta-Analysis", "News"}
+          and not re.search(r"secondary analys[ie]s|post[ -]?hoc|pooled analysis|sub[ -]?(?:analysis|study)|exploratory analysis|economic analysis|cost.effectiveness|biomarker study|risk stratification|pre.specified analysis|study protocol|trial protocol|reanalysis", article_text, re.I)
+          and not re.search(r"(?:data|findings|analysis) (?:from|of)\b|rationale and design|subgroup|protocol|follow.up|prognostic|predictive|economic|biomarker", title, re.I)
+          and (not ids.get("topic_agents") or any(word_in(t, article_text) for t in ids["topic_agents"]))):
+        verdict = "PRIMARY_REPORT"
+    else:
+        verdict = "COMPANION"
+    return verdict, dict(nct_match=nct_match, acronym_match=acronym_match, publication_types=types, title=title, rule="exact NCT or contextual acronym; explicit secondary analyses override RCT tags")
+
+
+def followup_reports(client, targets, root=ROOT):
+    from collections import Counter
+    counts = Counter()
+    all_pmids = sorted({p for t in targets for p in t["outcome"]["new_pmids"]})
+    batch_urls = {}
+    for start in range(0, len(all_pmids), 50):
+        batch = all_pmids[start:start+50]
+        url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?" + urlencode({"db":"pubmed", "id":",".join(batch), "retmode":"xml", "email":EMAIL})
+        batch_urls.update({p: url for p in batch})
+    for target in targets:
+        slug, label = target["slug"], target["label"]
+        ids = copy.deepcopy(target["identifiers"])
+        definition = json.loads((Path(root)/"topics"/(slug+".json")).read_text(encoding="utf-8"))
+        ids["topic_agents"] = topic_agents(definition)
+        ids["topic_terms"] = sorted(set(ids["topic_agents"] + definition.get("include", {}).get("population_any", [])))
+        accepted, entries = [], []
+        for pmid in target["outcome"]["new_pmids"]:
+            url = batch_urls[pmid]
+            requests = []
+            body, failure = fetched(client, "PUBMED_EPMC_PMID", url, requests)
+            entry = dict(label=label, pmid=pmid, route="TITLE_SEARCH_FOLLOWUP", requests=requests)
+            try:
+                if failure:
+                    raise ValueError(str(failure["outcome"]))
+                verdict, evidence = pubmed_verdict(body, pmid, ids)
+                entry.update(verdict=verdict, evidence=evidence)
+                counts[verdict] += 1
+                if verdict in ("PRIMARY_REPORT", "COMPANION"):
+                    accepted.append(pmid)
+                    ids.setdefault("provenance", {}).setdefault(pmid, []).append(url + "#" + verdict)
+            except (ValueError, ET.ParseError) as exc:
+                entry.update(error=str(exc), step_reached=failure["step_reached"] if failure else "ERROR")
+                counts["ERROR"] += 1
+            entries.append(entry)
+        path = Path(root)/"registry/identity_searches"/(slug+".json")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with file_lock(str(path)):
+            old = json.loads(path.read_text(encoding="utf-8")) if path.exists() else dict(slug=slug, entries=[])
+            for previous in old.setdefault("entries", []):
+                replacement = next((e for e in entries if e["label"] == previous.get("label") and e["pmid"] == previous.get("pmid") and previous.get("route") == "TITLE_SEARCH_FOLLOWUP" and e.get("verdict") and e.get("verdict") != previous.get("verdict")), None)
+                if replacement:
+                    previous["superseded_by_response_sha256"] = replacement["requests"][0]["response_sha256"]
+            old["entries"].extend(e for e in entries if e not in old["entries"])
+            atomic_json(path, old)
+        rejected = {e["pmid"] for e in entries if e.get("verdict") == "NOT_THE_TRIAL"} - set(ids.get("pmids", []))
+        log_path = Path(root)/"registry/g1_search_log"/(slug+".json")
+        if rejected and log_path.exists():
+            with file_lock(str(log_path)):
+                previous_log = json.loads(log_path.read_text(encoding="utf-8"))
+                previous_trial = previous_log.get("trials", {}).get(label)
+                if previous_trial:
+                    prior_ids = previous_trial["identifiers"]
+                    rejected_dois = {r["outcome"].get("doi") for r in previous_trial["searched"] if isinstance(r.get("outcome"), dict) and r["outcome"].get("id") in rejected} - set(ids.get("dois", []))
+                    prior_ids["pmids"] = [p for p in prior_ids.get("pmids", []) if p not in rejected]
+                    prior_ids["dois"] = [d for d in prior_ids.get("dois", []) if d not in rejected_dois]
+                    for value in rejected | rejected_dois:
+                        prior_ids.get("provenance", {}).pop(value, None)
+                    note = "TITLE_SEARCH_FOLLOWUP corrected acronym collisions; superseded search history retained"
+                    if note not in prior_ids.setdefault("notes", []):
+                        prior_ids["notes"].append(note)
+                    atomic_json(log_path, previous_log)
+        ids["pmids"] = sorted(set(ids.get("pmids", []) + accepted))
+        searched = []
+        for pmid in accepted:
+            url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search?" + urlencode({"query":f"EXT_ID:{pmid} SRC:MED", "resultType":"core", "format":"json"})
+            rec, _ = search(client, "PUBMED_EPMC_PMID", url, identifiers={"pmid":pmid})
+            searched.append(rec)
+            doi = rec["outcome"].get("doi") if isinstance(rec["outcome"], dict) else None
+            if valid_doi(doi):
+                ids["dois"] = sorted(set(ids.get("dois", []) + [doi]))
+                ids.setdefault("provenance", {}).setdefault(doi, []).append(url+"#doi")
+                searched.append(search(client,"UNPAYWALL_DOI","https://api.unpaywall.org/v2/"+quote(doi,safe="")+"?"+urlencode({"email":EMAIL}))[0])
+        merge_write(Path(root)/"registry/g1_search_log"/(slug+".json"), dict(slug=slug, written_utc=utc_now(), trials={label:dict(identifiers=ids,searched=searched,secondary_value_available=False)}))
+        print(f"FOLLOWUP {slug} | {label} | {dict(counts)}", flush=True)
+    print("FOLLOWUP VERDICTS " + json.dumps(dict(counts), sort_keys=True), flush=True)
+    return counts
+
+
+def run(slugs=None, offline=False, root=ROOT, followup=None):
     repo = Committed(root)
+    snapshot_paths = [p for p in repo.paths if p.endswith((".json", ".jsonl")) and not Path(p).name.startswith("_") and
+                      p.startswith(("outputs/k_gap/registry_fill/", "outputs/k_gap/g1/", "topics/", "registry/g1_acquired_regulator/"))]
+    repo.prime(snapshot_paths + ["outputs/k_gap/regulatory_probe.json", "outputs/k_gap/_reg/hc_listing.json"])
+    print(f"HEAD snapshot loaded: {len(snapshot_paths)} files", flush=True)
     fill = "outputs/k_gap/registry_fill/"
     identification = source_rows(repo, fill + "IDENTIFICATION*.json")
     funnels = source_rows(repo, fill + "*.funnel.json")
     census = source_rows(repo, fill + "PHASE3_OPEN_CENSUS*.json")
     for path in repo.matching(fill + "phase3*/*.json"):
+        if Path(path).name.startswith("_"):
+            continue  # model call metadata is not a trial census
         obj = repo.read(path)
         for row in rows(obj):
             for base in census:
@@ -614,6 +995,8 @@ def run(slugs=None, offline=False, root=ROOT):
                 if sample.get("label") == r.get("label"):
                     discovery.append((sample.get("topic"), r))
     client = None if offline else Client(Path(root) / "outputs/k_gap/_search_log_cache")
+    if client and followup:
+        followup_reports(client, json.loads(Path(followup).read_text(encoding="utf-8"))["new_report_found"], root)
     approval = Approval(client) if client else None
     paths = repo.matching("outputs/k_gap/g1/*.json")
     if slugs:
@@ -639,7 +1022,14 @@ def run(slugs=None, offline=False, root=ROOT):
             local_census = [r for r in census if r.get("slug") == slug and r.get("label") == label]
             ids = identifiers(trial, slug, identification, local_census, eu_probe, funnels, summaries)
             ids["approved_drug"] = approved
+            print(f"SEARCH {slug} | {label}", flush=True)
             searched = []
+            existing_path = Path(root)/"registry/g1_search_log"/(slug+".json")
+            if existing_path.exists():
+                prior = json.loads(existing_path.read_text(encoding="utf-8")).get("trials", {}).get(label, {}).get("identifiers", {})
+                ids["approved_drug"] = bool(ids["approved_drug"] or prior.get("approved_drug"))
+                for key in ("pmids", "dois", "ncts", "eudract"):
+                    ids[key] = sorted(set(ids[key] + prior.get(key, [])))
             if client:
                 searched.extend(live_searches(client, ids, local_census))
             for row in summaries:
@@ -647,14 +1037,28 @@ def run(slugs=None, offline=False, root=ROOT):
                     rec = holding_record(row, holding_path, holding_time)
                     if rec:
                         searched.append(rec)
-            if approved:
-                searched.append(record("PMDA", "policy decision", PROBE_DATE, "NOT_ATTEMPTED_PENDING_DECISION", PMDA_NOTE))
+            if client:
+                missing = {a for a in ("FDA", "EMA") if not any(r.get("label") == label and str(r.get("phase", "")).split(":")[-1] == a for r in summaries)}
+                if missing:
+                    searched.extend(r for r in held_searches(trial, ids, slug, root) if r["source"] in missing)
+            if ids["approved_drug"]:
+                if client:
+                    definition = repo.read(f"topics/{slug}.json", {})
+                    condition = definition.get("registry_first", {}).get("cond") or definition.get("ctgov", {}).get("cond") or ""
+                    terms = [condition] if isinstance(condition, str) and condition else []
+                    searched.append(pmda_search(client, agents, ids, definition.get("primary_outcome", {}).get("keywords", []), root))
+                    for agent in agents:
+                        searched.append(html_listing(client, "TGA_AUSPAR", "https://www.tga.gov.au/resources/auspar", [agent], ids))
+                        searched.append(html_listing(client, "FDA_ADCOMM", ADCOMM_INDEX, [agent], ids))
+                        searched.append(html_listing(client, "AHRQ_NIHR_HTA", "https://www.journalslibrary.nihr.ac.uk/search/?"+urlencode({"q":agent}), [agent], ids))
+                    searched.append(ahrq_search(client, agents + terms))
+                    searched.extend(sponsor_searches(client, ids))
                 searched.append(record("EMA_CLINICAL_DATA", "https://clinicaldata.ema.europa.eu/", PROBE_DATE,
                                        "BLOCKED_ACCOUNT", "Public clinical data portal requires account; no login attempted"))
                 for source_slug, row in discovery:
                     if source_slug == slug and row.get("label") == label:
                         rec = discovery_record(row)
-                        if rec:
+                        if rec and rec["source"] != "SPONSOR_REGISTER":
                             searched.append(rec)
                 # Public listing is metadata only. Offline may use it only if committed.
                 hc_path = "outputs/k_gap/_reg/hc_listing.json"
@@ -689,10 +1093,11 @@ def main(argv=None):
     parser.add_argument("command", choices=["run"])
     parser.add_argument("--slugs", nargs="+")
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--followup", type=Path, help="reading_targets.json")
     args = parser.parse_args(argv)
     if args.slugs and any(not re.fullmatch(r"[a-z0-9][a-z0-9-]*", s) for s in args.slugs):
         parser.error("Invalid slug")
-    run(args.slugs, args.offline)
+    run(args.slugs, args.offline, followup=args.followup)
 
 
 if __name__ == "__main__":

@@ -220,3 +220,155 @@ def test_PLANT_a_text_without_any_outcome_term_is_never_sent_empty(monkeypatch):
     r = {"slug": "t", "label": "X", "pmid": "2", "population_pmid": "1"}
     out = of.companion_model_read("t", CFG, r, long_text, {"origin": "PMC", "licence": "cc-by"})
     assert out["decision"] == "MODEL_NOT_CALLED:NO_OUTCOME_TERM_IN_TEXT"
+
+
+def target_row(**kwargs):
+    return dict(slug="t", label="Synthetic", source="UNPAYWALL_DOI", identifier="10.1234/test",
+                target_identifier="10.1234/test", outcome={"license": "cc-by"}, **kwargs)
+
+
+@pytest.fixture
+def target_runtime(monkeypatch):
+    import g1_trial_acquire as ta
+    monkeypatch.setattr(ta, "disk_ok", lambda: True)
+    monkeypatch.setattr(ta, "posted_population_short", lambda *a: None)
+    monkeypatch.setattr(of, "target_context", lambda r: dict(r, population_pmid="1", comparator_pmid="999"))
+    monkeypatch.setattr(of, "_BUDGET_STOP", False)
+
+
+def test_targets_select_only_listed_rows_and_decode_lookup_urls(tmp_path, monkeypatch):
+    path = tmp_path / "targets.json"
+    row = target_row()
+    row["identifier"] = "https://api.unpaywall.org/v2/10.1234%2Ftest?email=example"
+    other = dict(row, slug="other")
+    path.write_text(json.dumps({"open_not_assessed": [row, other], "new_report_found": [dict(row, slug="excluded")]}))
+    assert [r["slug"] for r in of.load_targets(path, ["t"])] == ["t"]
+    assert of.load_targets(path, ["t"])[0]["target_identifier"] == "10.1234/test"
+    calls = []
+    monkeypatch.setattr(of, "run_targets", lambda *a, **k: calls.append((a, k)))
+    of.main(["census", "t", "--targets", str(path)])
+    of.main(["fill", "--targets", str(path)])
+    assert calls == [((str(path), ["t"]), {"model": False}), ((str(path), []), {"model": True})]
+
+
+@pytest.mark.parametrize("lic", [None, "cc-by-nc", "cc-by-nd", "cc-by-sa", "other-oa"])
+def test_PLANT_targets_non_cc_by_copy_never_reaches_prompt(monkeypatch, target_runtime, lic):
+    from kgap import k_gap
+    monkeypatch.setattr(k_gap, "unpaywall_text", lambda *a, **k: {
+        "text": "Ovulation is discussed without counts.", "license": lic, "state": "OA_TEXT"})
+    monkeypatch.setattr(of, "_call", lambda *a: pytest.fail("Non-CC-BY/CC0 prompt"))
+    out = of.run_target(target_row(), CFG)
+    assert out["decision"] == "OUTCOME_FOUND_NOT_BINDABLE:NO_TYPED_TUPLE"
+    assert out["source"]["model_ok"] is False
+
+
+def test_target_copy_without_outcome_is_assessed_absent(monkeypatch, target_runtime):
+    from kgap import k_gap
+    monkeypatch.setattr(k_gap, "unpaywall_text", lambda *a, **k: {
+        "text": "Weight loss was measured.", "license": "cc-by", "state": "OA_TEXT"})
+    monkeypatch.setattr(of, "_call", lambda *a: pytest.fail("Absent outcome prompted"))
+    out = of.run_target(target_row(), CFG)
+    assert out["decision"] == "OUTCOME_NOT_IN_SOURCE"
+    assert out["source"]["chars"] > 0
+
+
+def test_target_deterministic_binding_precedes_models(monkeypatch, target_runtime):
+    from kgap import k_gap
+    monkeypatch.setattr(k_gap, "unpaywall_text", lambda *a, **k: {"text": PROSE, "license": "cc-by"})
+    monkeypatch.setattr(of, "_call", lambda *a: pytest.fail("Bound tuple prompted"))
+    out = of.run_target(target_row(), CFG)
+    assert out["decision"] == "TYPED_FOUND_ADMISSIBLE"
+    assert out["typed"]["reader"] == "typed_counts"
+    assert out["pmid"] is None  # DOI copy identity is separate from the population report
+
+
+def test_target_disk_floor_prevents_fetch(monkeypatch, target_runtime):
+    import g1_trial_acquire as ta
+    monkeypatch.setattr(ta, "disk_ok", lambda: False)
+    monkeypatch.setattr(of, "target_copy", lambda *a: pytest.fail("Disk floor ignored"))
+    assert of.run_target(target_row(), CFG)["decision"] == "SKIPPED_DISK"
+
+
+def test_target_direct_model_entry_refuses_unlicensed_text(monkeypatch):
+    monkeypatch.setattr(of, "_call", lambda *a: pytest.fail("Licence gate bypass"))
+    out = of.companion_model_read("t", CFG, {}, PROSE, {"licence": "cc-by-nc", "model_ok": True}, target=True)
+    assert out["decision"] == "MODEL_REFUSED_LICENCE"
+
+
+def test_target_model_reads_selected_copy(monkeypatch, target_runtime, companion_readers):
+    row, src, _answer, calls, _populations = companion_readers
+    monkeypatch.setattr(of, "typed_read", lambda *a: (None, None, None))
+    monkeypatch.setattr(of, "target_copy", lambda *a: (PROSE, dict(src, admissible=True)))
+    # The held source is PMID 2, whereas the trial's population report is PMID 1.
+    target = dict(target_row(), source="PUBMED_EPMC_PMID", target_identifier="2")
+    out = of.run_target(target, CFG)
+    assert out["decision"] == "MODEL_ADMITTED_BOTH_READERS"
+    assert len(calls) == 2
+
+
+def test_target_sentence_candidate_runs_existing_gate(monkeypatch, target_runtime):
+    from kgap import k_gap
+    import g1_trial_acquire as ta
+    text = "Ovulation occurred in 30 of 50 in the metformin group versus 15 of 50 in the placebo group."
+    monkeypatch.setattr(k_gap, "unpaywall_text", lambda *a, **k: {"text": text, "license": "cc-by-nc"})
+    seen = []
+    monkeypatch.setattr(ta, "gate", lambda resp, held, *a: (seen.append((resp, held)) or ("REFUSED:TEST_GATE", None)))
+    out = of.run_target(target_row(), CFG)
+    assert out["decision"] == "OUTCOME_FOUND_NOT_BINDABLE:REFUSED:TEST_GATE"
+    assert seen[0][0]["quote"] == text == seen[0][1]["text"]
+
+
+def test_target_budget_stop_prevents_subsequent_reader(monkeypatch, target_runtime):
+    from reproducible_ai import model_call_live as mcl, model_source as ms
+    monkeypatch.setattr(of, "_TARGET_RUN", True)
+    monkeypatch.setattr(of, "CALLS", "nonexistent_job_h_calls.json")
+    monkeypatch.setattr(ms, "write_record", lambda *a: None)
+    calls = []
+    def quota(*a, **k):
+        calls.append(1)
+        return {"state": "RAN_ERROR", "error": "usage limit", "record_id": "synthetic"}
+    monkeypatch.setattr(mcl, "call", quota)
+    assert of._call(b"synthetic", ("A", "test", None), "test", "sha")["state"] == "RAN_ERROR"
+    assert of._call(b"synthetic", ("B", "agy", None), "test", "sha")["state"] == "SKIPPED_BUDGET"
+    assert calls == [1]
+
+
+def test_target_adjudicator_must_pass_its_own_quote_gate(monkeypatch, companion_readers):
+    import g1_trial_acquire as ta
+    import g1_registry_fill as rf
+    row, src, answer, _calls, _populations = companion_readers
+    monkeypatch.setattr(of, "_TARGET_RUN", True)
+    def call(prompt, reader, *a):
+        response = dict(answer)
+        if reader[0] == "B":
+            response["events_t"] = 31
+        if reader[0] == "ADJ":
+            response["quote"] = "Invented quote"
+        return {"state": "RAN_OK", "record_id": reader[0], "replay": response}
+    def gate(resp, held, *a):
+        if resp["quote"] not in held["text"]:
+            return "REFUSED:QUOTE_NOT_VERBATIM_IN_WHOLE_TEXT", None
+        return "ADMITTED", {"value": {}}
+    monkeypatch.setattr(of, "_call", call)
+    monkeypatch.setattr(ta, "gate", gate)
+    result = of._read_and_adjudicate(b"synthetic", "synthetic", {"text": PROSE}, CFG, "t", "test")
+    assert result["decision"] == "MODEL_NOT_ADMITTED_READERS_DISAGREE"
+    assert "admitted_candidate" not in result
+
+
+def test_target_census_keeps_cc_model_read_pending(monkeypatch, target_runtime):
+    from kgap import k_gap
+    monkeypatch.setattr(k_gap, "unpaywall_text", lambda *a, **k: {"text": "Ovulation is discussed.", "license": "cc-by"})
+    monkeypatch.setattr(of, "_call", lambda *a: pytest.fail("Census called a model"))
+    out = of.run_target(target_row(), CFG, model=False)
+    assert out["decision"] == "TYPED_NONE_MODEL_ELIGIBLE"
+    assert out["model_pending"] is True
+    assert out["deterministic_gate"] == "NO_TYPED_TUPLE"
+
+
+def test_PLANT_missing_supplement_cannot_prove_outcome_absence(monkeypatch, target_runtime):
+    monkeypatch.setattr(of, "target_copy", lambda *a: ("Only weight is discussed.", {
+        "origin": "PMC", "licence": "cc-by", "model_ok": True, "admissible": True,
+        "incomplete": True, "fetch_state": "HELD_WITH_SUPPLEMENT_FAILURE:FETCH_FAILED:SUPPLEMENT"}))
+    monkeypatch.setattr(of, "_call", lambda *a: pytest.fail("Missing source cannot be read by a model"))
+    assert of.run_target(target_row(), CFG)["decision"] == "OUTCOME_FOUND_NOT_BINDABLE:SOURCE_INCOMPLETE"
