@@ -488,6 +488,9 @@ def bind_hand_row(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     """Returns the classification fields for a hand row plus `hand_binding_state` (BOUND / ABSTAIN / NOT_HELD),
     `spans`, `held_document`, and on ABSTAIN `candidate_locations` and `endpoint_binding_reason`."""
     from . import target_endpoint as te
+    if row.get('typed_route') in {'hcq_combined_dose_counts', 'hcq_adjusted_infection_rr', 'hcq_effective_sample_size'}:
+        from .hcq_routes import bind_combined_counts
+        return bind_combined_counts(spec, row)
     tup = _tuple_of(row)
     pid = _pid(row)
     refs = [r for r in [row.get("document_ref")] + list(row.get("document_candidates") or []) if r]

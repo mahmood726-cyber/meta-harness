@@ -127,3 +127,12 @@ is available in the registry-named source `cache/benchmarks/v1/PMC10519573.xml`.
     add-on trials: daratumumab plus a backbone against the same backbone alone.
 - **Unchanged.** The PICO, outcome, estimand and eligibility *intent*. This amends only the vocabulary that
   operationalises them.
+
+## Amendment 2 (16 Oct 2026)
+
+Post-retrieval correction: select the report cited by the comparator using source-derived Table 1/reference identity links; register any-grade harms and controls.
+
+- Rule: `as_comparator_cited`; effects come from selected primary reports.
+- Harms: Pneumonia, Upper respiratory tract infection, Diarrhoea (RR, any grade, as reported).
+- Positive controls: PMIDs 27705267, 27557302, 32682484, 34087126, 34108127.
+- Negative control: PMID 31141632 (MAIA; newly diagnosed, excluded by population).

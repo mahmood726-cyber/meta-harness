@@ -785,7 +785,7 @@ def run(all_recs: list, config: dict) -> dict:
         contrast = None
         if decision == "include" and registry_contrast.enabled(config):
             contrast = registry_contrast.assess(rec, config, registry_arms)
-            if contrast["decision"] != "include":
+            if contrast["decision"] != "include" or config.get("report_selection") == "as_comparator_cited":
                 decision, rule, reason, span = (contrast[k] for k in ("decision", "rule_id", "reason", "span"))
         if decision == "include" and _arm_object_screening_enabled(config):
             arm_obj, arm_refusal = arm_object.screen_refusal(rec, config)

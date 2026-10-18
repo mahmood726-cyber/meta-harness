@@ -60,14 +60,45 @@
       "developing COVID-19",
       "SARS CoV-2 infection",
       "COVID-19 infection",
-      "COVID-19 positive"
+      "COVID-19 positive",
+      "illness compatible with Covid-19",
+      "SARS-CoV-2 infection",
+      "infection rates",
+      "symptoms compatible with Covid-19",
+      "PCR positive or probable COVID-19",
+      "PCR-confirmed, symptomatic Covid-19"
     ],
     "estimand": "RR",
     "timepoint": null,
     "primary_status": "Proposed benchmark outcome; the meta-analysis does not explicitly designate a single primary outcome."
   },
   "secondary_outcomes": [],
-  "harm_outcomes": [],
+  "harm_outcomes": [
+    {
+      "name": "Any adverse event",
+      "keywords": [
+        "any adverse event",
+        "adverse events",
+        "side effects"
+      ],
+      "estimand": "RR",
+      "grade": "any grade",
+      "timepoint": "as reported"
+    },
+    {
+      "name": "Gastrointestinal adverse events",
+      "keywords": [
+        "gastrointestinal",
+        "diarrhea",
+        "diarrhoea",
+        "nausea",
+        "vomiting"
+      ],
+      "estimand": "RR",
+      "grade": "any grade",
+      "timepoint": "as reported"
+    }
+  ],
   "search_methods": {
     "sources": [
       "EMBASE",
@@ -103,7 +134,38 @@
       "timepoint": "each trial's reported analysis as the meta pooled it; no common horizon invented",
       "scope": "mirrors the meta's own stated eligibility verbatim (a benchmark copies its comparator's PICO)",
       "search_window": "no date filter on our recorded search; trials published after the meta's search date are reported by the tracker's PUBLISHED_AFTER_COMPARATOR route, never hidden"
-    }
+    },
+    "report_selection_evidence": {
+      "purpose": "Source-derived benchmark report pin; post-retrieval repair, not a prospective registration claim",
+      "source_ref": "cache/hcq-covid-prophylaxis-bench/records.json",
+      "sha256": "be6d549a877d34a75d4953a119ed6f4d3aa64282741b4de08f74dba504238d3d",
+      "report_id": "32492293",
+      "doi": "10.1056/NEJMoa2016638",
+      "nct": "NCT04308668",
+      "title": "A Randomized Trial of Hydroxychloroquine as Postexposure Prophylaxis for Covid-19."
+    },
+    "primary_fulltext_sources": [
+      {
+        "source_ref": "cache/hcq-covid-prophylaxis-bench/PMC7665393.xml",
+        "sha256": "865a399d743700fc61f9afac3640c9a3be4a78c5178414588004f77345833a9c",
+        "access_metadata": ".codex_logs/hcq_primary_access.json"
+      },
+      {
+        "source_ref": "cache/hcq-covid-prophylaxis-bench/PMC7722693.xml",
+        "sha256": "5aeafc247b4fee0707ee5b60c748cea5ee359ca0ecf4bf6af73313ff892e7c31",
+        "access_metadata": ".codex_logs/hcq_primary_access.json"
+      }
+    ],
+    "design_effect_note": "Use the trial primary endpoint in all patients, with declared ICC 1.0 and effective sample size per comparator method and Cochrane Handbook 23.1.4; record raw, unrounded and rounded counts. ICC is a benchmark assumption, not an estimated trial ICC.",
+    "comparator_sources": [
+      {
+        "source_ref": "cache/comparators/33406138/hcq_figure2.png",
+        "sha256": "df7b202483873dae9a2e910e9fcd7fee8def393a563bbfca1be08ca1dc263c95",
+        "license": "CC BY",
+        "metadata_ref": "cache/comparators/33406138/hcq_figure2.source.json",
+        "role": "cached comparator figure; never primary extraction input"
+      }
+    ]
   },
   "protocol_ambiguities": [
     "Developing COVID-19 is a proposed benchmark focus, not an explicitly designated sole primary outcome; the research question also includes mortality and hospitalization. Captain must adjudicate primary selection.",
@@ -113,5 +175,14 @@
     "The pooled infection definition permits symptoms or PCR confirmation; PCR-positive-only infection is a separate analysis.",
     "No common intention-to-treat analysis population is specified in the methods."
   ],
-  "route_query_note": "PubMed fielded Boolean and ctgov cond/intr strings are unexecuted operational translations of the quoted concepts, not verbatim original search strategies. Historical source/date windows are recorded in search_methods; these custom metadata fields are not asserted to enforce retrieval cutoffs. Query syntax and historical-window enforcement require adjudication before any run."
+  "route_query_note": "PubMed fielded Boolean and ctgov cond/intr strings are unexecuted operational translations of the quoted concepts, not verbatim original search strategies. Historical source/date windows are recorded in search_methods; these custom metadata fields are not asserted to enforce retrieval cutoffs. Query syntax and historical-window enforcement require adjudication before any run.",
+  "pivotal_trials": [
+    "32492293"
+  ],
+  "typed_routes": "hcq_covid_prophylaxis",
+  "design_effect_conversion": {
+    "method": "effective_sample_size",
+    "icc": 1.0,
+    "rounding": "nearest_integer"
+  }
 }

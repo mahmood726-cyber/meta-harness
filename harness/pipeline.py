@@ -524,7 +524,7 @@ def _selection_extras(row):
 
 _NAMED_HELD_PATH = re.compile(r"^\s*(?P<path>cache/[\w.-]+/[\w.-]+\.(?:json|txt))"
                               r"(?:\s+\w+)?\s*\(?(?:PMID[\s-]?(?P<pid>\d{7,8}))?")
-_HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level", "kind", "ci_pct",
+_HAND_FIELDS = ("design_adjustment", "typed_route", "document_ref", "document_sha256", "source_span", "source_level", "kind", "ci_pct",
                 "comparator_direction", "analysis_set", "adjudication", "verification")
 
 
@@ -1732,6 +1732,16 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             else:
                 kept.append(t)
         trials = kept
+    if slug in {'daratumumab-rrmm-pfs-bench', 'hcq-covid-prophylaxis-bench'} and spec.get('grade') == 'any grade':
+        kept = []
+        for t in trials:
+            if re.search(r'\bserious\b|\bgrade\s*[3-5]', t.get('source') or '', re.I):
+                absent.append(dict(label=t['label'], id=t['id'], absent_kind='refused_on_evidence',
+                    reason_code='HARM_GRADE_MISMATCH', source=t.get('source'),
+                    reason='HARM_GRADE_MISMATCH: source reports serious/high-grade events, not the declared any-grade harm.'))
+            else:
+                kept.append(t)
+        trials = kept
     # PER-TRIAL VERIFICATION against committed source, computed at build and rendered (not assumed):
     # each pooled number's digits must be present in the committed abstract / structured source.
     for t in trials:
@@ -2185,7 +2195,15 @@ def outcome_inputs(slug, config, records):
     """Everything _build_outcome needs for one topic, exactly as build_review_core assembles it (dedup,
     contrast evictions, companion reports, screening, verified inputs, dose selection, registry designs,
     eligibility contract). Shared with tests/test_m2_battery.py so the battery runs on the real inputs."""
-    merged = _dedup(records, config.get("pivotal_trials"))
+    if config.get('report_selection'):
+        from .bench_report_selection import apply as select_reports
+        config, records = select_reports(config, records, ROOT)
+        pubs = records['records']
+        from .trial_family import registry_ids
+        seen = {n.upper() for r in pubs for n in registry_ids(r)}
+        merged = pubs + [r for r in records.get('ctgov', []) if str(r['id']).upper() not in seen]
+    else:
+        merged = _dedup(records, config.get("pivotal_trials"))
     retrieval_ledger = _load_retrieval_ledger(slug)
     from . import trial_family as trial_family_mod
     family_nodes = trial_family_mod.prepare(ROOT, slug, list(records.get('records') or []) + list(records.get('ctgov') or []), config, retrieval_ledger)
@@ -2263,7 +2281,9 @@ def outcome_inputs(slug, config, records):
     veffs = _load_verified_effects(slug)
     if config.get('typed_routes'):
         from . import bench_routes
-        veffs = dict(veffs or {}, **bench_routes.for_config(config))
+        routes = bench_routes.for_config(config)
+        varms = dict(varms or {}, **{k: v for k, v in routes.items() if v.get('kind') == 'extracted_counts'})
+        veffs = dict(veffs or {}, **{k: v for k, v in routes.items() if v.get('kind') != 'extracted_counts'})
     dsel = _load_dose_selection(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
     registry_designs = design_key.registry_designs(records)

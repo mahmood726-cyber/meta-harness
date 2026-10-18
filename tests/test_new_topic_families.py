@@ -11,13 +11,16 @@ def test_prefixless_registration():
     r=next(r for r in RECORDS['records'] if r['id']=='30237264')
     assert trial_family.registry_ids(r)==['NCT02136134']
 def test_latest_whole_population_and_members():
-    inp=pipeline.outcome_inputs(SLUG,copy.deepcopy(CONFIG),copy.deepcopy(RECORDS))
+    config=copy.deepcopy(CONFIG)
+    config.pop('report_selection', None)  # legacy latest-cut policy remains covered without opt-in
+    inp=pipeline.outcome_inputs(SLUG,config,copy.deepcopy(RECORDS))
     ids={d['id'] for d in inp['included']}
     assert '37163358' in ids
     assert not ids.intersection({'32682484','34871550'})
     assert any(c['pmid']=='32682484' and c['parent_pmid']=='37163358' for c in inp['config'].get('companion_reports',[]))
 def test_curated_unchanged():
     config=copy.deepcopy(CONFIG)
+    config.pop('report_selection', None)
     config['companion_reports']=[{'pmid':'34871550','parent_pmid':'32682484','reason':'curated control'}]
     inp=pipeline.outcome_inputs(SLUG,config,copy.deepcopy(RECORDS))
     assert [r['id'] for r in inp['merged'] if r.get('id_type')=='pmid']==[r['id'] for r in pipeline._dedup(RECORDS) if r.get('id_type')=='pmid']

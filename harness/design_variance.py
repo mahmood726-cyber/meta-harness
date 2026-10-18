@@ -96,6 +96,13 @@ def apply_design_adjustment(trial: dict[str, Any], declared_estimand: str | None
         return False
     if trial.get("ai") is None:
         return False
+    if trial.get('typed_route') == 'hcq_effective_sample_size':
+        from .hcq_routes import bind_combined_counts
+        bound = bind_combined_counts({'name':'Developing COVID-19', 'estimand':declared_estimand or 'RR',
+            'keywords':['PCR-confirmed, symptomatic Covid-19']}, trial)
+        if bound.get('hand_binding_state') != 'BOUND':
+            raise ValueError('HCQ effective-count witness mismatch; cannot consume design adjustment')
+        return False  # counts already divided by DE; never inflate their variance again
     yi, vi = inflated_log_effect_variance(trial, declared_estimand or trial.get("measure") or "RR")
     z = _norm.ppf(0.975)
     se = math.sqrt(vi)

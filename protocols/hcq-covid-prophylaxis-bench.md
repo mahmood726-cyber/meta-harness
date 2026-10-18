@@ -124,3 +124,15 @@ is available in the registry-named source `cache/benchmarks/v1/PMC7787432.xml`.
   report the primary outcome is included and shown as declared-absent for that outcome. Any trial the
   comparator excluded for this reason is reported by the G1 tracker as DIVERGENT_NAMED (OUTCOME_DEFINITION /
   eligibility-on-outcome), not as a mismatch.
+
+## Declared analysis correction (16 Oct 2026)
+
+Use the trial primary endpoint in all patients, with declared ICC 1.0 and effective sample size per comparator method and Cochrane Handbook 23.1.4; record raw, unrounded and rounded counts. ICC is a benchmark assumption, not an estimated trial ICC.
+
+Comparator method (held PMC7787432): When a trial included more than two arms, each arm was reported in the Table 1. For all main outcomes, only one pair-wise comparison was conducted, and the same groups of participants were only included once in the meta-analysis. For cluster trials, we found the design effect, and then from there calculated the effective sample size which was entered into the primary analyses [8].
+
+Reference: [Cochrane Handbook 23.1.4](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-23#section-23-1-4). Divide both events and denominators by the design effect and round to nearest integer. Replace the secondary PCR-negative-subset adjusted RR.
+
+Rajasingham: randomized denominators cannot be paired with primary-analysis events excluding illness before medication. Refuse with NO_OPEN_SOURCE-for-denominator until matching primary-analysis denominators are held.
+
+Harms: any adverse event and gastrointestinal adverse events, RR, any grade, as reported.

@@ -64,6 +64,12 @@ def _effect_in(text: str, val) -> bool:
 
 def verify_pooled(trial: dict, abstract: str | None) -> tuple[str, str]:
     """Return (status, basis): status in {"verified","verified_handchecked","not-yet"}."""
+    if trial.get('typed_route') in {'hcq_combined_dose_counts', 'hcq_effective_sample_size'}:
+        from .hcq_routes import bind_combined_counts
+        result = bind_combined_counts({'name':'Developing COVID-19', 'estimand':'RR',
+            'keywords':['PCR positive or probable COVID-19', 'PCR-confirmed, symptomatic Covid-19']}, trial)
+        ok = result.get('hand_binding_state') == 'BOUND'
+        return ('verified' if ok else 'not-yet', result.get('endpoint_binding_reason', 'HCQ source witness refused'))
     prov = trial.get("provenance")
     span = trial.get("source") or ""
     # bytes to check against: the committed abstract for abstract/full-text (the number may pair a

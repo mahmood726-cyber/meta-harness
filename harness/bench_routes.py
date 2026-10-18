@@ -23,6 +23,9 @@ def load_pins(root):
 def for_config(config, *, root=ROOT):
     if not config.get('typed_routes'):
         return {}
+    from . import hcq_routes
+    if config['typed_routes'] == hcq_routes.KEY:
+        return hcq_routes.for_config(config, root)
     if config['typed_routes'] != KEY or config.get('slug') != SLUG:
         raise ValueError('Unknown or mis-scoped typed route declaration')
     outcome = config['primary_outcome']['name']
