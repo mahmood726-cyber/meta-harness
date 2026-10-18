@@ -39,6 +39,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+from urllib.parse import urlparse
 
 from scripts.g1_explanation_vocab import STATES, REASON_CODES, SOURCES, STEPS, ACCESS_OUTCOMES, FRESH_DAYS
 from scripts.g1_explanation_vocab import SOURCE_UNREACHABLE, UNREACHABLE_STEPS, EVIDENCE_KINDS
@@ -96,8 +97,15 @@ def ahrq_nihr_hta(ids):
     return ids.get("approved_drug") is True
 
 
+PER_IDENTIFIER_SOURCES = ("PUBMED_EPMC_PMID", "UNPAYWALL_DOI", "CTGOV_V2", "AACT", "EUCTR")
+
+
 def sponsor_register(ids):
-    return ids.get("approved_drug") is True
+    """The trial's OWN sponsor register only: not applicable when the search log recorded an academic / non-industry
+    lead sponsor ('no sponsor register') or an unknown sponsor (no NCT to read it from). 18 Oct: requiring it for every
+    approved drug left 99 trials 'not searched' that have no sponsor register to search."""
+    notes = " ".join(str(n) for n in (ids.get("notes") or []))
+    return ids.get("approved_drug") is True and "no sponsor register" not in notes and "sponsor unknown" not in notes
 
 
 def health_canada(ids):
@@ -387,9 +395,22 @@ def validate_explanation(entry, trial, *, build_date, held_bytes, decisions, ide
         if age < 0:
             errors.append(f"searched[{i}] future when_utc")
         if 0 <= age <= FRESH_DAYS:
-            key = (source, str(rec.get("identifier_or_query")))
+            # per-IDENTIFIER sources keep one latest record per identifier; a WHOLE-SOURCE search (PMDA, TGA, AdComm,
+            # AHRQ/NIHR, sponsor register, ICTRP, title search, regulators) is decided by its single latest record --
+            # 18 Oct: keyed by identifier, a superseded 'PMDA pending decision' record (old query string) survived
+            # beside the new PMDA search and kept 140 trials gated
+            q = str(rec.get("identifier_or_query"))
+            # ... but one source id can cover two different searches (AHRQ via litarch AND NIHR): key a whole-source
+            # record by the HOST it searched, so a later NIHR block never hides an AHRQ report found and not read
+            key = (source, q if source in PER_IDENTIFIER_SOURCES else (urlparse(q).netloc if q.startswith("http") else q))
             if key not in latest or stamp >= latest[key][0]:
                 latest[key] = (stamp, step, rec.get("outcome"))
+    # a 'pending decision' marker is superseded by any NEWER record of the same source (the decision came, the source
+    # was searched): 18 Oct, PMDA approved for Public Data License 1.0 documents
+    for key, (stamp, step, _o) in list(latest.items()):
+        if step == "NOT_ATTEMPTED_PENDING_DECISION" and any(
+                k[0] == key[0] and k != key and v[0] > stamp for k, v in latest.items()):
+            del latest[key]
     # the LATEST record per (source, identifier) decides (16 Oct): the log keeps history, so with "any fresh record"
     # an older NOT_FOUND satisfied a source whose newer record says NEW_REPORT_FOUND, and why_unexplained quoted a
     # superseded 'ERROR' ahead of the current outcome

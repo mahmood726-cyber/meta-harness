@@ -692,3 +692,35 @@ def test_missing_pmc_primary_names_the_missing_file():
     result = api().build_explanation(trial, primary=primary, **context())
     assert result["state"] == "UNEXPLAINED"
     assert "outputs/k_gap/_ft/123.txt" in result["why_unexplained"]
+
+
+def test_PLANT_whole_source_latest_record_decides_and_sponsor_register_only_when_one_exists():
+    """18 Oct: a superseded 'PMDA pending decision' record with an old query string survived beside the new PMDA search
+    (140 trials gated); and the sponsor register was required for academic-sponsor trials with no register."""
+    e = api()
+    log = search()
+    pmda_old = dict(log["searched"][0], source="PMDA", identifier_or_query="PMDA skipped",
+                    step_reached="NOT_ATTEMPTED_PENDING_DECISION", when_utc="2026-10-15T00:00:00Z")
+    pmda_new = dict(log["searched"][0], source="PMDA", identifier_or_query="https://www.pmda.go.jp/x",
+                    step_reached="NOT_FOUND", when_utc="2026-10-15T12:00:00Z")
+    log["searched"] += [pmda_old, pmda_new]
+    got = e.build_explanation({}, search_log=log, **context())
+    assert "PMDA" not in (got.get("why_unexplained") or "")
+    assert not e.sponsor_register({"approved_drug": True, "notes": ["NCT1: academic/non-industry lead sponsor X; no sponsor register"]})
+    assert not e.sponsor_register({"approved_drug": True, "notes": ["sponsor unknown"]})
+    assert e.sponsor_register({"approved_drug": True, "notes": []})
+
+
+def test_PLANT_two_searches_under_one_source_id_are_kept_apart():
+    """AHRQ (litarch) and NIHR share AHRQ_NIHR_HTA: a later NIHR block must never hide an AHRQ report found, not read."""
+    e = api()
+    log = search()
+    log["identifiers"].update(approved_drug=True, notes=["sponsor unknown"])
+    base = log["searched"][0]
+    log["searched"] += [
+        dict(base, source="AHRQ_NIHR_HTA", identifier_or_query="https://ftp.ncbi.nlm.nih.gov/pub/litarch/file_list.csv",
+             step_reached="OPEN_NOT_ASSESSED", when_utc="2026-10-15T00:00:00Z"),
+        dict(base, source="AHRQ_NIHR_HTA", identifier_or_query="https://www.journalslibrary.nihr.ac.uk/search",
+             step_reached="BLOCKED_BOT_CHALLENGE", when_utc="2026-10-15T12:00:00Z")]
+    got = e.build_explanation({}, search_log=log, **context())
+    assert got["state"] == "UNEXPLAINED" and "OPEN_NOT_ASSESSED" in got["why_unexplained"]
