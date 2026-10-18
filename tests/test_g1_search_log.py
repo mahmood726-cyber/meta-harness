@@ -704,3 +704,15 @@ def test_distinct_merck_sponsors_are_not_cross_routed(name, allowed):
     if not allowed:
         assert records[0]["step_reached"] == "ERROR"
         assert name in records[0]["outcome"]
+
+
+def test_PLANT_read_target_rows_reach_the_search_log():
+    """18 Oct: phase3_targets rows (copies read by job H) were never matched -- a DOI-only Unpaywall copy carries its DOI
+    in source.doi, and OUTCOME_FOUND_NOT_BINDABLE was not mapped -- so every read copy stayed OPEN_NOT_ASSESSED."""
+    rows = [{"source": {"doi": "10.1/X"}, "decision": "OUTCOME_NOT_IN_SOURCE"},
+            {"doi": "10.2/y", "decision": "OUTCOME_FOUND_NOT_BINDABLE:SUBPOPULATION"},
+            {"europepmc": {"doi": "10.3/z"}, "decision": "NOT_OPEN"}]
+    assert log.open_step(log.census_rows_for_doi(rows, "10.1/x")) == "OPEN_NO_OUTCOME"
+    assert log.open_step(log.census_rows_for_doi(rows, "10.2/Y")) == "OPEN_OUTCOME_NOT_BINDABLE"
+    assert log.census_rows_for_doi(rows, "10.9/none") == []
+    assert log.open_step([]) == "OPEN_NOT_ASSESSED"

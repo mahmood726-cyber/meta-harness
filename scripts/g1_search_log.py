@@ -267,7 +267,7 @@ def merge_write(path, new):
 def open_step(census):
     assessments = census if isinstance(census, list) else [census]
     assessment = " ".join(str(row.get(k) or "") for row in assessments for k in ("blocker_now", "decision", "stage", "outcome"))
-    if "EXTRACTION" in assessment or "TYPED_NONE" in assessment:
+    if "EXTRACTION" in assessment or "TYPED_NONE" in assessment or "OUTCOME_FOUND_NOT_BINDABLE" in assessment:
         return "OPEN_OUTCOME_NOT_BINDABLE"
     if "OUTCOME_NOT_IN_SOURCE" in assessment:
         return "OPEN_NO_OUTCOME"
@@ -530,6 +530,14 @@ def secondary_available(trial, phase4):
         for r in phase4)
 
 
+def census_rows_for_doi(census, doi):
+    """A phase3_targets row read by DOI carries it in source.doi / doi / identifier, not only europepmc.doi (18 Oct:
+    matching europepmc.doi alone left every read Unpaywall copy OPEN_NOT_ASSESSED)."""
+    d = str(doi).lower()
+    return [r for r in census if d in {str(x).lower() for x in ((r.get("europepmc") or {}).get("doi"),
+                                                                (r.get("source") or {}).get("doi"), r.get("doi"))}]
+
+
 def live_searches(client, ids, census):
     result = []
     for pmid in ids["pmids"]:
@@ -546,7 +554,7 @@ def live_searches(client, ids, census):
         "query": 'TITLE:"' + query.replace('"', ' ') + '"', "pageSize": 25, "resultType": "core", "format": "json", "sort": "ID asc"})
     result.append(search(client, "PUBMED_EPMC_TITLE", url, identifiers=ids)[0])
     for doi in ids["dois"]:
-        row = [r for r in census if r.get("europepmc", {}).get("doi") == doi]
+        row = census_rows_for_doi(census, doi)
         result.append(search(client, "UNPAYWALL_DOI", "https://api.unpaywall.org/v2/" + quote(doi, safe="") +
                              "?" + urlencode({"email": EMAIL}), row)[0])
     from scripts import g1_eudract_source as eu
@@ -978,10 +986,17 @@ def run(slugs=None, offline=False, root=ROOT, followup=None):
             continue  # model call metadata is not a trial census
         obj = repo.read(path)
         for row in rows(obj):
+            slug = obj.get("slug") if isinstance(obj, dict) else row.get("slug")
+            hit = False
             for base in census:
-                slug = obj.get("slug") if isinstance(obj, dict) else row.get("slug")
                 if base.get("slug") == slug and base.get("label") == row.get("label") and str(base.get("pmid")) == str(row.get("pmid")):
                     base.update({k: row[k] for k in ("stage", "decision") if k in row})
+                    hit = True
+            if not hit:
+                # 18 Oct: phase3_targets rows read copies with no canonical census row (DOI-only Unpaywall copies, PMIDs
+                # found by the title follow-up); updating only existing rows dropped them, so every one stayed
+                # OPEN_NOT_ASSESSED although it had been read
+                census.append(dict(row, slug=slug, _source=path))
     phase4 = [r for p in repo.matching(fill + "*SECONDARY*.json") + repo.matching(fill + "phase4_*/*.json") for r in rows(repo.read(p))]
     probes = rows(repo.read("outputs/k_gap/regulatory_probe.json", {}))
     eu_probe = repo.read(fill + "EUDRACT_PROBE.json", {})
