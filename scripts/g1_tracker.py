@@ -4241,6 +4241,11 @@ def canonical(out):
         o["slug"]: {"matched": sum((x.get("g1_explanation") or {}).get("state") == "MATCHED" for x in o["trials"]),
                     "explained": sum((x.get("g1_explanation") or {}).get("state") in
                                      explained_states for x in o["trials"]),
+                    # ruling 18 Oct (Dispatch, on Mahmood's delegation): a technical block is not a search, so the
+                    # count is ALSO given without NO_OPEN_SOURCE trials that list an unreachable source
+                    "n_no_open_source_with_unreachable": sum(
+                        (x.get("g1_explanation") or {}).get("state") == "NO_OPEN_SOURCE"
+                        and bool((x.get("g1_explanation") or {}).get("unreachable")) for x in o["trials"]),
                     "N": o["N_comparator_trials"],
                     "unexplained_trials": [x["label"] for x in o["trials"] if
                                            (x.get("g1_explanation") or {}).get("state") not in
@@ -4250,6 +4255,11 @@ def canonical(out):
             "explanation_by_topic": explanation_totals,
             "totals": {"matched": sum(e["matched"] for e in explanation_totals.values()),
                        "explained": sum(e["explained"] for e in explanation_totals.values()),
+                       "explained_all": sum(e["explained"] for e in explanation_totals.values()),
+                       "explained_without_unreachable": sum(e["explained"] - e["n_no_open_source_with_unreachable"]
+                                                            for e in explanation_totals.values()),
+                       "n_no_open_source_with_unreachable": sum(e["n_no_open_source_with_unreachable"]
+                                                                for e in explanation_totals.values()),
                        "unexplained_trials": [label for e in explanation_totals.values() for label in e["unexplained_trials"]],
                        "k_matched": k, "N_comparator_trials": N, "N_eligible": E, "excluded_by_scope": N - E,
                        "matched_by_route": dict(sum((Counter(t["matched_by_route"]) for t in topics.values()), Counter())),

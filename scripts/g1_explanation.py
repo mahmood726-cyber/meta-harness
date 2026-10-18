@@ -32,12 +32,16 @@ from copy import deepcopy
 from datetime import date, datetime, timezone
 from functools import lru_cache
 import hashlib
+import base64
+import binascii
+import ast
 import json
 from pathlib import Path
 import re
 import subprocess
 
 from scripts.g1_explanation_vocab import STATES, REASON_CODES, SOURCES, STEPS, ACCESS_OUTCOMES, FRESH_DAYS
+from scripts.g1_explanation_vocab import SOURCE_UNREACHABLE, UNREACHABLE_STEPS, EVIDENCE_KINDS
 
 
 def pubmed_epmc_pmid(ids):
@@ -183,6 +187,91 @@ def _document_text(body):
     return text + "\n\x00\n" + "\n\x00\n".join(strings(obj))
 
 
+def _recorded_answers(body):
+    """Only answer/quote fields qualify; prompts and metadata never do."""
+    obj = json.loads(body)
+    if not isinstance(obj, dict):
+        raise ValueError("record must be an object")
+    answers = []
+    def collect(value):
+        if isinstance(value, str):
+            answers.append(value)
+        elif isinstance(value, list):
+            for item in value:
+                collect(item)
+        elif isinstance(value, dict):
+            answers.append(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
+            for item in value.values():
+                collect(item)
+    for key in ("answer", "recorded_answer", "quote", "quotes"):
+        if key in obj:
+            collect(obj[key])
+    response = obj.get("response")
+    if isinstance(response, dict) and "b64" in response:
+        raw = base64.b64decode(response["b64"], validate=True)
+        if response.get("sha256") and hashlib.sha256(raw).hexdigest() != response["sha256"]:
+            raise ValueError("recorded response hash mismatch")
+        if response.get("bytes") is not None and len(raw) != response["bytes"]:
+            raise ValueError("recorded response length mismatch")
+        answer = raw.decode("utf-8")
+        answers.append(answer)
+        try:
+            collect(json.loads(answer))
+        except ValueError:
+            pass
+    elif isinstance(response, str):
+        collect(response)
+    return answers
+
+
+def _record_evidence_errors(ev, held_bytes):
+    kind = ev["kind"]
+    rid = ev.get("record_id")
+    if not _nonempty(rid) or not _sha(ev.get("sha256")):
+        return [f"{kind} missing record_id or invalid sha256: {rid}"]
+    store = getattr(held_bytes, "__self__", None)
+    if store is None or not hasattr(store, "read"):
+        return [f"{kind} committed record resolver unavailable: {rid}"]
+    path = rid
+    if not rid.endswith(".json") and hasattr(store, "record_digest"):
+        resolved = store.record_digest(rid)
+        if not resolved:
+            return [f"{kind} record file not committed: {rid}"]
+        path = resolved[0]
+    body = store.read(path)
+    if body is None:
+        return [f"{kind} record file not committed: {path}"]
+    if hashlib.sha256(body).hexdigest() != ev["sha256"]:
+        return [f"{kind} record sha mismatch: {path}"]
+    try:
+        if kind == "RECORDED_READ":
+            fields = _recorded_answers(body)
+        else:
+            obj = json.loads(body)
+            if not isinstance(obj, dict):
+                raise ValueError("registry record must be an object")
+            if ev.get("nct") is not None:
+                obj = obj.get(ev["nct"], {})
+            if not isinstance(obj, dict):
+                raise ValueError("registry study must be an object")
+            snapshot = obj.get("_snapshot", obj.get("snapshot"))
+            sid = snapshot.get("id") if isinstance(snapshot, dict) else snapshot
+            if (not _nonempty(ev.get("snapshot_id")) or sid != ev.get("snapshot_id")
+                    or not _nonempty(ev.get("outcome_id"))):
+                return [f"REGISTRY_RECORD snapshot/outcome identity missing or mismatched: {path}"]
+            outcomes = obj.get("outcomes", {})
+            row = outcomes.get(ev["outcome_id"]) if isinstance(outcomes, dict) else None
+            if not isinstance(row, dict):
+                return [f"REGISTRY_RECORD outcome {ev.get('outcome_id')} absent: {path}"]
+            fields = [v for v in row.values() if isinstance(v, str)]
+    except (ValueError, TypeError, UnicodeDecodeError, binascii.Error) as exc:
+        return [f"{kind} invalid record: {path}: {exc}"]
+    span = ev.get("verbatim_span")
+    if not _nonempty(span) or not any(_norm(span) in _norm(field) for field in fields):
+        return [f"{kind} span missing from recorded answer/quote fields: {path}"]
+    return []
+
+
 def _decision_ids(decisions):
     return {d.get("id") for d in decisions.get("decisions", []) if isinstance(d, dict)}
 
@@ -227,6 +316,12 @@ def validate_explanation(entry, trial, *, build_date, held_bytes, decisions, ide
         ev = entry.get("evidence")
         if not isinstance(ev, dict):
             return errors + ["DIVERGENT_NAMED missing evidence"]
+        if ev.get("resolution_error"):
+            return errors + [ev["resolution_error"]]
+        if ev.get("kind") in EVIDENCE_KINDS:
+            return errors + _record_evidence_errors(ev, held_bytes)
+        if ev.get("kind") is not None:
+            return errors + ["DIVERGENT_NAMED unknown evidence kind"]
         if not _nonempty(ev.get("source_ref")):
             errors.append("DIVERGENT_NAMED missing source_ref")
         if not _nonempty(ev.get("verbatim_span")):
@@ -303,13 +398,71 @@ def validate_explanation(entry, trial, *, build_date, held_bytes, decisions, ide
             fresh.add(source)
         else:
             gated.setdefault(source, []).append(f"{step}: {outcome}")
+    unreachable = entry.get("unreachable", [])
+    listed = set()
+    if not isinstance(unreachable, list):
+        errors.append("NO_OPEN_SOURCE invalid unreachable records")
+        unreachable = []
+    for rec in unreachable:
+        if not isinstance(rec, dict):
+            errors.append("invalid SOURCE_UNREACHABLE record")
+            continue
+        source = rec.get("source")
+        blocked = [(stamp, step) for (s, _), (stamp, step, _) in latest.items()
+                   if s == source and step in UNREACHABLE_STEPS]
+        try:
+            stamp = rec["when_utc"]
+            if not isinstance(stamp, str) or not stamp.endswith("Z") or "T" not in stamp:
+                raise ValueError()
+            age = (day - datetime.fromisoformat(stamp[:-1] + "+00:00").date()).days
+            valid = 0 <= age <= FRESH_DAYS
+        except (KeyError, TypeError, ValueError):
+            valid = False
+        if (source not in required_sources(identifiers) or not blocked or not valid
+                or not _nonempty(rec.get("reason")) or source in listed):
+            errors.append(f"invalid SOURCE_UNREACHABLE: {source}")
+        else:
+            listed.add(source)
     for source in required_sources(identifiers):
-        if source not in fresh:
+        unfinished = [step for (s, _), (_, step, _) in latest.items()
+                      if s == source and step not in (*STEPS, *UNREACHABLE_STEPS)]
+        blocked = any(s == source and step in UNREACHABLE_STEPS
+                      for (s, _), (_, step, _) in latest.items())
+        if unfinished or blocked and source not in listed or not blocked and source not in fresh:
             if source in gated:
                 errors.append(f"required source {source} gated: " + "; ".join(gated[source]))
             else:
                 errors.append(f"required source {source} " + ("stale" if source in seen else "missing"))
     return errors
+
+
+def source_states(searched):
+    """Latest per source+identifier; availability is distinct from search work."""
+    latest = {}
+    for rec in searched if isinstance(searched, list) else []:
+        if not isinstance(rec, dict) or rec.get("source") not in SOURCES:
+            continue
+        stamp = rec.get("when_utc")
+        try:
+            if not isinstance(stamp, str) or not stamp.endswith("Z") or "T" not in stamp:
+                continue
+            when = datetime.fromisoformat(stamp[:-1] + "+00:00")
+        except ValueError:
+            continue
+        key = rec["source"], str(rec.get("identifier_or_query"))
+        if key not in latest or when >= latest[key][0]:
+            latest[key] = when, rec
+    blocked = {}
+    for _, rec in latest.values():
+        if rec.get("step_reached") in UNREACHABLE_STEPS:
+            source = rec["source"]
+            reason = rec.get("outcome")
+            reason = reason if isinstance(reason, str) else json.dumps(reason, sort_keys=True)
+            item = dict(state=SOURCE_UNREACHABLE, source=source, when_utc=rec["when_utc"],
+                        reason=rec["step_reached"] + ": " + reason)
+            if source not in blocked or item["when_utc"] >= blocked[source]["when_utc"]:
+                blocked[source] = item
+    return [blocked[s] for s in sorted(blocked)]
 
 
 def _searched(log):
@@ -346,6 +499,9 @@ def build_explanation(trial, *, build_date, held_bytes, decisions, search_log=No
         if not bad:
             return entry
         errors.extend(bad)
+        if primary and primary.get("missing_evidence"):
+            errors.append(primary["missing_evidence"])
+    unresolved_record = False
     for candidate in divergences:
         entry = dict(candidate, state="DIVERGENT_NAMED")
         bad = validate_explanation(entry, trial, **ctx)
@@ -354,8 +510,12 @@ def build_explanation(trial, *, build_date, held_bytes, decisions, search_log=No
                 entry["note"] = "; ".join(errors)
             return entry
         errors.extend(bad)
+        unresolved_record |= (entry.get("evidence") or {}).get("kind") in EVIDENCE_KINDS
+    if unresolved_record:
+        return {"state": "UNEXPLAINED", "why_unexplained": "; ".join(dict.fromkeys(errors))}
     if search_log is not None:
         entry = {"state": "NO_OPEN_SOURCE", "searched": _searched(search_log),
+                 "unreachable": deepcopy(search_log.get("unreachable", [])),
                  "secondary_value_available": search_log.get("secondary_value_available")}
         if route_group(trial.get("route")) in ("TWO_SOURCE", "SECONDARY_SINGLE"):
             entry["secondary_value_available"] = True
@@ -439,9 +599,7 @@ class CommittedRecords:
                             self.by_sha[hashlib.sha256(encoded).hexdigest()] = encoded
 
     def record_digest(self, record_id):
-        """Only an indexed, committed call is evidence; never its id's hex suffix."""
-        if record_id not in self.json("registry/held_record_ids.json").get("ids", []):
-            return None
+        """Only a committed call file is evidence; never its id's hex suffix."""
         paths = sorted(p for p in self.paths if p.endswith(f"/{record_id}.json")
                        and p.startswith(("registry/model_calls/", "evidence/model_calls/")))
         for path in paths:
@@ -522,6 +680,80 @@ class CommittedRecords:
             self.scanned = True
         return self.by_sha.get(sha256)
 
+    def registry_record(self, record, ev):
+        source = str(ev.get("source_ref") or "")
+        match = re.fullmatch(r"AACT snapshot (.+) outcome (\d+)", source)
+        if not match:
+            return None
+        sid, oid = match.groups()
+        # This is the typed index used by g1_tracker.registry_binding, not a
+        # regenerated tracker repeating its own claim or an unrelated outcome.
+        path = "outputs/k_gap/_aact_results.json"
+        body = self.read(path)
+        if body is not None:
+            data = json.loads(body)
+            matches = [nct for nct, row in data.items() if isinstance(row, dict)
+                       and (row.get("_snapshot") or {}).get("id") == sid
+                       and oid in row.get("outcomes", {})
+                       and (not record.get("snapshot", {}).get("digest") or
+                            row["_snapshot"].get("digest") == record["snapshot"]["digest"])]
+            if len(matches) == 1:
+                return dict(kind="REGISTRY_RECORD", record_id=path, source_ref=path,
+                            sha256=hashlib.sha256(body).hexdigest(), snapshot_id=sid,
+                            outcome_id=oid, nct=matches[0], verbatim_span=ev.get("verbatim_span"))
+        return dict(ev, kind="REGISTRY_RECORD", snapshot_id=sid, outcome_id=oid,
+                    resolution_error=f"REGISTRY_RECORD {sid} outcome {oid}: "
+                    f"{path} not committed or snapshot/outcome not uniquely present")
+
+    def recorded_read(self, record, slug, ev):
+        source = str(ev.get("source_ref") or "")
+        if "recorded read" not in source:
+            return None
+        ids = re.findall(r"mc-[0-9a-f]{32}", source)
+        if not ids and "g1/forest-reader" in source:
+            match = re.search(r"comparator PMID (\d+) figure (\S+)", source)
+            if match:
+                prefix = f"{slug}::{match[1]}::{match[2]}::"
+                runs = self.json("registry/model_proposals/g1_forest_reader_runs.json")
+                ids = [v.get("record_id") for k, v in sorted(runs.items())
+                       if k.startswith(prefix) and v.get("state") == "RAN_OK"]
+        for rid in ids:
+            call = self.record_digest(rid)
+            if not call:
+                continue
+            body = self.read(call[0])
+            try:
+                answers = _recorded_answers(body)
+            except (ValueError, TypeError, UnicodeDecodeError, binascii.Error):
+                continue
+            span = ev.get("verbatim_span")
+            # The old outcome-set 'span' was generated narration. Tie its exact
+            # complete row set to an answer, then quote that answer verbatim.
+            if record.get("rule_id") == "G1-OUTCOME-SET":
+                match = re.search(r": rows (\[.*?\]); positive control", str(span))
+                if not match:
+                    continue
+                try:
+                    expected = ast.literal_eval(match[1])
+                except (ValueError, SyntaxError):
+                    continue
+                span = None
+                for answer in answers:
+                    try:
+                        parsed = json.loads(answer)
+                    except ValueError:
+                        continue
+                    if (isinstance(parsed, dict) and isinstance(parsed.get("rows"), list)
+                            and all(isinstance(r, dict) for r in parsed["rows"])
+                            and [r.get("label") for r in parsed["rows"]] == expected):
+                        span = answer
+                        break
+            if _nonempty(span) and any(_norm(span) in _norm(a) for a in answers):
+                return dict(kind="RECORDED_READ", record_id=rid, sha256=call[1],
+                            source_ref=call[0], verbatim_span=span)
+        return dict(ev, kind="RECORDED_READ", resolution_error=
+                    f"RECORDED_READ unresolved answer/row set: {source}; records {ids or 'not found'}")
+
     def evidence(self, record, slug):
         ev = deepcopy(record.get("evidence") or {})
         span = record.get("span") or {}
@@ -530,6 +762,16 @@ class CommittedRecords:
         ev.setdefault("verbatim_span", span.get("text") or record.get("quote"))
         ev.setdefault("source_ref", span.get("source") or record.get("span_source") or record.get("source"))
         ev.setdefault("sha256", span.get("fulltext_sha256") or record.get("sha256") or record.get("source_sha256"))
+        if ev.get("kind") in EVIDENCE_KINDS:
+            return ev
+        if hasattr(self, "registry_record"):
+            registry = self.registry_record(record, ev)
+            if registry is not None:
+                return registry
+        if hasattr(self, "recorded_read"):
+            recorded = self.recorded_read(record, slug, ev)
+            if recorded is not None:
+                return recorded
         if not ev.get("sha256") and record.get("pmid") and span.get("field") == "fulltext":
             doc = self.source_document(slug, str(record["pmid"]), "fulltext")
             if doc:
@@ -608,6 +850,7 @@ def _primary(trial, store, slug=None, primary_rows=()):
     from scripts.g1_tracker import route_group
     if route_group(trial.get("route")) != "PRIMARY":
         return None
+    missing_primary = None
     for key in ("primary_provenance", "confirm_binding", "acquired", "sweep"):
         record = trial.get(key) or {}
         if key == "confirm_binding" and record.get("admitted") is not True:
@@ -690,6 +933,11 @@ def _primary(trial, store, slug=None, primary_rows=()):
             doc = store.source_document(slug, ref.replace("PMID ", ""), kind)
             if doc:
                 return dict(source_ref=doc[0], sha256=doc[1], verified_by=f"harness.extract:{provenance}; harness.verify")
+            if kind == "fulltext":
+                identifier = ref.replace("PMID ", "")
+                missing_primary = dict(missing_evidence=f"MATCHED missing committed fulltext: outputs/k_gap/_ft/{identifier}.txt; "
+                            f"no committed fulltext_by_pmid[{identifier}] in cache/{slug}/records.json, "
+                            f"cache/{slug}/comparator_records.json or outputs/k_gap/member_records.json")
     for row in store.json(f"registry/secondary_meta/{slug}.json").get("rows", []):
         verification = row.get("verification") or {}
         if (row.get("family_id") == trial.get("family") and row.get("state") == "PRIMARY_VERIFIED"
@@ -725,7 +973,7 @@ def _primary(trial, store, slug=None, primary_rows=()):
                 doc = store.source_document(slug, pmid, "fulltext")
                 if doc:
                     return dict(source_ref=doc[0], sha256=doc[1], verified_by="g1.tocilizumab:assess")
-    return None
+    return missing_primary
 
 
 def attach_explanations(topic, *, build_date, records, primary_rows=()):
@@ -764,6 +1012,11 @@ def attach_explanations(topic, *, build_date, records, primary_rows=()):
                                        decided_by=" / ".join(ruling[k] for k in ("ruled_by", "ruled_on"))
                                        if all(_nonempty(ruling.get(k)) for k in ("ruled_by", "ruled_on")) else None))
         log = (logs.get("trials") or {}).get(label) if logs.get("slug") == slug else None
+        if log is not None and "unreachable" not in log:
+            log = deepcopy(log)
+            applicable = required_sources(log.get("identifiers") or {})
+            log["unreachable"] = [{k: v for k, v in item.items() if k != "state"}
+                                  for item in source_states(_searched(log)) if item["source"] in applicable]
         trial["g1_explanation"] = build_explanation(trial, build_date=build_date, held_bytes=records.held_bytes,
                                                    decisions=decisions, search_log=log, divergences=candidates,
                                                    primary=_primary(trial, records, slug, primary_rows))
@@ -774,5 +1027,10 @@ def attach_explanations(topic, *, build_date, records, primary_rows=()):
             raise ValueError(f"G1 explanation refused for {label}: {'; '.join(errors)}")
     topic["matched"] = sum(t["g1_explanation"]["state"] == "MATCHED" for t in topic["trials"])
     topic["explained"] = sum(t["g1_explanation"]["state"] != "UNEXPLAINED" for t in topic["trials"])
+    topic["explained_all"] = topic["explained"]
+    topic["n_no_open_source_with_unreachable"] = sum(
+        t["g1_explanation"]["state"] == "NO_OPEN_SOURCE" and bool(t["g1_explanation"].get("unreachable"))
+        for t in topic["trials"])
+    topic["explained_without_unreachable"] = topic["explained_all"] - topic["n_no_open_source_with_unreachable"]
     topic["unexplained_trials"] = [t["label"] for t in topic["trials"] if t["g1_explanation"]["state"] == "UNEXPLAINED"]
     return topic

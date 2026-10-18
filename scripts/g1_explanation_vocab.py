@@ -11,9 +11,9 @@ STATES = ("MATCHED", "DIVERGENT_NAMED", "NO_OPEN_SOURCE", "UNEXPLAINED")
 REASON_CODES = ("POPULATION", "TIMEPOINT", "ESTIMAND", "ANALYSIS_SET", "INTERVENTION_DOSE_OR_REGIMEN", "COMPARATOR",
                 "OUTCOME_DEFINITION", "DESIGN", "NOT_IN_COMPARATOR_OUTCOME_ANALYSIS", "DECISION_EXCLUDED")
 
-# NO_OPEN_SOURCE.searched[].step_reached -- the captain's four, plus the access outcomes the discovery probe measured
-# (a gate is recorded, never bypassed; whether a gated required source can still let a trial be explained is a
-# captain decision: until ruled, a gated REQUIRED source leaves the trial UNEXPLAINED with why_unexplained naming it).
+# NO_OPEN_SOURCE.searched[].step_reached: only STEPS are completed searches.
+# Dispatch 18 Oct: technical blocks require explicit fresh unreachable records;
+# unfinished assessment, new reports and pending decisions remain UNEXPLAINED.
 STEPS = ("NOT_FOUND", "FOUND_NOT_OPEN", "OPEN_NO_OUTCOME", "OPEN_OUTCOME_NOT_BINDABLE")
 ACCESS_OUTCOMES = ("BLOCKED_BOT_CHALLENGE", "BLOCKED_ACCOUNT", "BLOCKED_TERMS", "ERROR", "NOT_ATTEMPTED_PENDING_DECISION",
                    # 15 Oct, first live search log: 'ERROR' was being used for three different facts; each is now named.
@@ -39,3 +39,8 @@ SOURCES = (
 )
 
 FRESH_DAYS = 30          # a required search older than this does not count (captain: stops a thin, stale search passing)
+
+# Dispatch 18 Oct: technical blocks are source availability, never searches.
+SOURCE_UNREACHABLE = "SOURCE_UNREACHABLE"
+UNREACHABLE_STEPS = ("BLOCKED_JS_ONLY", "BLOCKED_BOT_CHALLENGE", "BLOCKED_ACCOUNT", "BLOCKED_TERMS", "ERROR")
+EVIDENCE_KINDS = ("RECORDED_READ", "REGISTRY_RECORD")

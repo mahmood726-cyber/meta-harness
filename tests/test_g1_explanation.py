@@ -337,7 +337,21 @@ def test_canonical_totals_include_all_comparator_trials_and_preserve_existing_co
     assert result["totals"]["k_matched"] == 99
     assert result["totals"]["matched"] == 1 and result["totals"]["explained"] == 3
     assert result["explanation_by_topic"]["synthetic"] == dict(matched=1, explained=3, N=4,
+                                                               n_no_open_source_with_unreachable=0,
                                                                unexplained_trials=["UNEXPLAINED"])
+    assert result["totals"]["explained_all"] == 3 and result["totals"]["explained_without_unreachable"] == 3
+
+
+def test_PLANT_explained_is_also_reported_without_unreachable_only_trials():
+    """Ruling 18 Oct: a technical block is not a search; a NO_OPEN_SOURCE that lists an unreachable source is counted
+    in explained_all but NOT in explained_without_unreachable."""
+    from scripts import g1_tracker
+    trials = [dict(label="a", route="NO_ROW", g1_explanation={"state": "NO_OPEN_SOURCE",
+                                                               "unreachable": [{"source": "WHO_ICTRP"}]}),
+              dict(label="b", route="NO_ROW", g1_explanation={"state": "NO_OPEN_SOURCE", "unreachable": []})]
+    topic = dict(slug="synthetic", trials=trials, k_matched=0, N_comparator_trials=2, N_eligible=2)
+    t = g1_tracker.canonical([topic])["totals"]
+    assert (t["explained_all"], t["explained_without_unreachable"], t["n_no_open_source_with_unreachable"]) == (2, 1, 1)
 
 
 def test_incomplete_applicability_evidence_never_defaults_to_not_applicable():
@@ -556,3 +570,125 @@ def test_empty_registry_result_is_not_primary_source_evidence():
                             {"records": [dict(id="NCT00000000", nct="NCT00000000")],
                              "ctgov_results": {"NCT00000000": None}}})
     assert store.source_document("synthetic", "NCT00000000", "ctgov_results") is None
+
+
+@pytest.mark.parametrize("step", api().UNREACHABLE_STEPS)
+def test_blocked_source_requires_explicit_fresh_unreachable_listing(step):
+    log = search()
+    log["searched"][1].update(step_reached=step, outcome="Synthetic access block")
+    assert api().build_explanation({}, search_log=log, **context())["state"] == "UNEXPLAINED"
+    log["unreachable"] = [dict(source="WHO_ICTRP", when_utc="2026-10-15T00:00:00Z", reason="Synthetic access block")]
+    got = api().build_explanation({}, search_log=log, **context())
+    assert got["state"] == "NO_OPEN_SOURCE"
+    assert got["unreachable"] == log["unreachable"]
+    log["unreachable"][0]["when_utc"] = "2026-09-01T00:00:00Z"
+    assert api().build_explanation({}, search_log=log, **context())["state"] == "UNEXPLAINED"
+
+
+@pytest.mark.parametrize("step", ["OPEN_NOT_ASSESSED", "NEW_REPORT_FOUND", "NOT_ATTEMPTED_PENDING_DECISION"])
+def test_unfinished_work_is_never_unreachable(step):
+    log = search()
+    log["searched"][1].update(step_reached=step)
+    log["unreachable"] = [dict(source="WHO_ICTRP", when_utc="2026-10-15T00:00:00Z", reason="Not finished")]
+    assert api().source_states(log["searched"]) == []
+    assert api().build_explanation({}, search_log=log, **context())["state"] == "UNEXPLAINED"
+
+
+def test_unreachable_counts_and_latest_identifier_work():
+    log = search()
+    log["searched"][1].update(step_reached="BLOCKED_JS_ONLY", outcome="ICTRP JS-only")
+    records = SyntheticRecords({"registry/g1_search_log/synthetic.json": dict(slug="synthetic", trials={"S": log})})
+    topic = dict(slug="synthetic", trials=[dict(label="S", route="NO_ROW")])
+    api().attach_explanations(topic, build_date=DAY, records=records)
+    assert topic["explained"] == topic["explained_all"] == topic["n_no_open_source_with_unreachable"] == 1
+    assert topic["explained_without_unreachable"] == 0
+    states = api().source_states(log["searched"])
+    assert states[0]["state"] == "SOURCE_UNREACHABLE"
+    log["searched"].append(dict(log["searched"][1], step_reached="OPEN_NOT_ASSESSED", when_utc="2026-10-15T12:00:00Z"))
+    assert api().source_states(log["searched"]) == []
+    api().attach_explanations(topic, build_date=DAY, records=records)
+    assert topic["explained_all"] == 0
+
+
+def test_one_successful_identifier_cannot_mask_an_unfinished_identifier():
+    log = search()
+    log["searched"].append(dict(log["searched"][0], identifier_or_query="Other", step_reached="OPEN_NOT_ASSESSED"))
+    assert api().build_explanation({}, search_log=log, **context())["state"] == "UNEXPLAINED"
+
+
+def test_pmda_is_required_reachable_for_approved_drugs():
+    log = search()
+    log["identifiers"]["approved_drug"] = True
+    for source in api().required_sources(log["identifiers"]):
+        if source not in {r["source"] for r in log["searched"]}:
+            log["searched"].append(dict(log["searched"][0], source=source))
+    assert api().build_explanation({}, search_log=log, **context())["state"] == "NO_OPEN_SOURCE"
+    next(r for r in log["searched"] if r["source"] == "PMDA")["step_reached"] = "NOT_ATTEMPTED_PENDING_DECISION"
+    assert api().build_explanation({}, search_log=log, **context())["state"] == "UNEXPLAINED"
+
+
+class EvidenceRecords(AdapterRecords):
+    def record_digest(self, rid):
+        path = "evidence/model_calls/" + rid + ".json"
+        body = self.read(path)
+        return (path, hashlib.sha256(body).hexdigest()) if body else None
+
+
+def recorded_fixture():
+    import base64
+    answer = b'{"quote":"The analysis used the safety population."}'
+    record = dict(record_id="synthetic-call", prompt="Prompt only quotation", response=dict(
+        b64=base64.b64encode(answer).decode(), sha256=hashlib.sha256(answer).hexdigest(), bytes=len(answer)))
+    store = EvidenceRecords({"evidence/model_calls/synthetic-call.json": record})
+    entry = divergence()
+    entry["evidence"] = dict(kind="RECORDED_READ", record_id="synthetic-call",
+                             sha256=store.record_digest("synthetic-call")[1],
+                             verbatim_span="The analysis used the safety   population.")
+    ctx = context()
+    ctx["held_bytes"] = store.held_bytes
+    return entry, store, ctx
+
+
+def test_recorded_read_validates_answer_not_prompt_and_whole_record_hash():
+    entry, store, ctx = recorded_fixture()
+    assert api().validate_explanation(entry, {}, **ctx) == []
+    entry["evidence"]["verbatim_span"] = "Prompt only quotation"
+    assert "span missing" in "; ".join(api().validate_explanation(entry, {}, **ctx))
+    entry["evidence"]["sha256"] = "0" * 64
+    assert "sha mismatch" in "; ".join(api().validate_explanation(entry, {}, **ctx))
+    entry["evidence"]["record_id"] = "missing-call"
+    assert "not committed" in "; ".join(api().validate_explanation(entry, {}, **ctx))
+
+
+def test_registry_record_requires_snapshot_and_outcome_identity():
+    path = "evidence/synthetic-registry.json"
+    store = EvidenceRecords({path: dict(_snapshot=dict(id="synthetic snapshot"),
+                                       outcomes={"123": dict(title="Synthetic outcome")})})
+    entry = divergence()
+    entry["evidence"] = dict(kind="REGISTRY_RECORD", record_id=path,
+                             sha256=hashlib.sha256(store.read(path)).hexdigest(),
+                             snapshot_id="synthetic snapshot", outcome_id="123", verbatim_span="Synthetic outcome")
+    ctx = dict(context(), held_bytes=store.held_bytes)
+    assert api().validate_explanation(entry, {}, **ctx) == []
+    entry["evidence"]["outcome_id"] = "456"
+    assert "absent" in "; ".join(api().validate_explanation(entry, {}, **ctx))
+    entry["evidence"]["outcome_id"] = "123"
+    entry["evidence"]["snapshot_id"] = "another snapshot"
+    assert "mismatched" in "; ".join(api().validate_explanation(entry, {}, **ctx))
+
+
+def test_unresolved_record_never_falls_back_to_no_open_source():
+    entry, store, ctx = recorded_fixture()
+    entry["evidence"]["verbatim_span"] = "Absent from answer"
+    result = api().build_explanation({}, search_log=search(), divergences=[entry], **ctx)
+    assert result["state"] == "UNEXPLAINED"
+    assert "span missing" in result["why_unexplained"]
+
+
+def test_missing_pmc_primary_names_the_missing_file():
+    trial = dict(route="PRIMARY", in_our_pool=True,
+                 basis="our held-source pool PMID 123 (pmc_fulltext)")
+    primary = api()._primary(trial, AdapterRecords(), "synthetic")
+    result = api().build_explanation(trial, primary=primary, **context())
+    assert result["state"] == "UNEXPLAINED"
+    assert "outputs/k_gap/_ft/123.txt" in result["why_unexplained"]
