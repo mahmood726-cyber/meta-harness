@@ -3,7 +3,8 @@
 Hardcode disclosure:
   Static | source URLs, transport policy, sponsor mappings and text-match rules.
   Dynamic | identifiers, OA flags, approval evidence, holdings and secondary rows.
-Offline reads HEAD artefacts only; it never refreshes a network response. Restricted
+Offline reads HEAD artefacts plus existing search history and cached AHRQ packages.
+Only --ahrq-downloads permits missing listed litarch packages to be fetched. Restricted
 regulator artefacts cross the metadata boundary only through regulator_summary.
 An open copy with no outcome assessment is OPEN_NOT_ASSESSED.
 """
@@ -23,6 +24,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tarfile
 import time
 from urllib.error import HTTPError
 from urllib.parse import quote, urlencode, urlparse, unquote, urljoin
@@ -806,6 +808,109 @@ def ahrq_search(client, terms):
     return rec
 
 
+_AHRQ_PARSED = {}
+
+
+def assess_ahrq(record, trial_identifiers, *, root=ROOT, client=None):
+    """Assess listed AHRQ secondary reports; never admit or bind trial results.
+
+    Static: whole-word name matching, >=2 numeric tokens in one XML table row.
+    Dynamic: package text, permissions, identifiers and report-level evidence.
+    A missing/failed package leaves the assessment unresolved (fail closed).
+    """
+    from datetime import timedelta
+    from defusedxml import ElementTree as SafeET
+    from scripts.g1_regulatory_source import _litarch_text, _safe_member, LITARCH_BASE
+
+    ids = trial_identifiers
+    names = list(ids.get("ncts", [])) + [ids.get("acronym", "")]
+    author_year = re.match(r"^([^\W\d_][\w\u2019'-]*)(?:\s+et\s+al[.,]?)?[,\s]+(\d{4})(?!\d)", ids.get("label", ""))
+    if author_year:
+        names.append(" ".join(author_year.groups()))
+    if not author_year:
+        designation = re.fullmatch(r"(.+?)\s+\d{4}(?:\s+\[\d+\])?", ids.get("label", ""))
+        if designation:
+            names.append(designation[1])
+    if not any(names) and re.fullmatch(r"[A-Za-z][A-Za-z0-9-]{2,}", ids.get("label", "")):
+        names.append(ids["label"])
+    names = sorted({n for n in names if n})
+    if not names:
+        raise ValueError("No trial names available for AHRQ assessment")
+    def named(text):
+        text = " ".join(text.split())
+        return any(word_in(n, text) for n in names)
+
+    matches = record.get("outcome", {}).get("matches", [])
+    if record.get("outcome", {}).get("provider") != "AHRQ" or not matches:
+        raise ValueError("No listed AHRQ packages")
+    reports, licences, evidence = [], {}, []
+    for match in matches:
+        url = match["url"]
+        accession = re.search(r"_(NBK\d+)\.tar\.gz$", url)
+        if not url.startswith(LITARCH_BASE) or not accession:
+            raise ValueError("Invalid litarch package URL")
+        nbk = accession[1]
+        folder = Path(root) / "outputs/k_gap/_search_log_cache/litarch" / nbk
+        package = folder / "package.tar.gz"
+        folder.parent.mkdir(parents=True, exist_ok=True)
+        with file_lock(str(folder)):
+            if package.exists():
+                body = package.read_bytes()
+            else:
+                if client is None:
+                    raise ValueError(f"Missing cached AHRQ package {nbk}")
+                body, failure = fetched(client, "AHRQ_NIHR_HTA", url, [])
+                if failure:
+                    raise ValueError(f"{nbk}: {failure['step_reached']}: {failure['outcome']}")
+                _litarch_text(body)  # validate untrusted tar before caching
+                folder.mkdir(parents=True, exist_ok=True)
+                package.write_bytes(body)
+            key = digest(body)
+            if key not in _AHRQ_PARSED:
+                text, _ = _litarch_text(body)  # CADTH classification is not AHRQ policy
+                permissions, table_rows = [], []
+                with tarfile.open(fileobj=io.BytesIO(body), mode="r:gz") as archive:
+                    for member in archive:
+                        if not member.isfile() or not _safe_member(member.name) or not member.name.lower().endswith(".nxml"):
+                            continue
+                        xml = SafeET.fromstring(archive.extractfile(member).read())
+                        for el in xml.iter():
+                            tag = el.tag.split("}")[-1]
+                            if tag == "permissions":
+                                permissions.append(SafeET.tostring(el, encoding="unicode"))
+                            elif tag == "tr":
+                                table_rows.append(" ".join(el.itertext()))
+                _AHRQ_PARSED[key] = text, permissions, table_rows
+            text, permissions, table_rows = _AHRQ_PARSED[key]
+            numeric_row = any(named(row) and len(re.findall(r"(?<!\w)\d+(?:\.\d+)?(?!\w)", row)) >= 2
+                              for row in table_rows)
+            licences[nbk] = dict(permissions=permissions,
+                rule="AHRQ US-government work: public domain unless permissions state restrictions; https://ftp.ncbi.nlm.nih.gov/pub/litarch/license.txt")
+            reports.append(nbk)
+            evidence.append(dict(report=nbk, url=url, response_sha256=digest(body),
+                                 named=named(text), per_trial_row_present=numeric_row))
+    any_named = any(e["named"] for e in evidence)
+    outcome = dict(reports=reports, named=any_named, licence=licences, evidence=evidence)
+    if any_named:
+        outcome.update(secondary_source=True, per_trial_row_present=any(e["per_trial_row_present"] for e in evidence))
+    when = max(datetime.now(timezone.utc),
+               datetime.fromisoformat(record["when_utc"].replace("Z", "+00:00")) + timedelta(seconds=1))
+    return globals()["record"]("AHRQ_NIHR_HTA", record["identifier_or_query"], when.isoformat(),
+                              "OPEN_OUTCOME_NOT_BINDABLE" if any_named else "OPEN_NO_OUTCOME", outcome, encoded(evidence))
+
+
+def ahrq_pending(searched):
+    """Latest file-list record only; an appended assessment supersedes its search."""
+    latest = {}
+    for rec in searched:
+        if rec.get("source") == "AHRQ_NIHR_HTA":
+            key = rec["identifier_or_query"]
+            if key not in latest or rec["when_utc"] >= latest[key]["when_utc"]:
+                latest[key] = rec
+    return [r for r in latest.values() if r["step_reached"] == "OPEN_NOT_ASSESSED"
+            and isinstance(r.get("outcome"), dict) and r["outcome"].get("provider") == "AHRQ"]
+
+
 def sponsor_searches(client, ids):
     result = []
     if not ids.get("ncts"):
@@ -971,7 +1076,7 @@ def followup_reports(client, targets, root=ROOT):
     return counts
 
 
-def run(slugs=None, offline=False, root=ROOT, followup=None):
+def run(slugs=None, offline=False, root=ROOT, followup=None, ahrq_downloads=False):
     repo = Committed(root)
     snapshot_paths = [p for p in repo.paths if p.endswith((".json", ".jsonl")) and not Path(p).name.startswith("_") and
                       p.startswith(("outputs/k_gap/registry_fill/", "outputs/k_gap/g1/", "topics/", "registry/g1_acquired_regulator/"))]
@@ -1012,6 +1117,7 @@ def run(slugs=None, offline=False, root=ROOT, followup=None):
     client = None if offline else Client(Path(root) / "outputs/k_gap/_search_log_cache")
     if client and followup:
         followup_reports(client, json.loads(Path(followup).read_text(encoding="utf-8"))["new_report_found"], root)
+    ahrq_client = client or (Client(Path(root) / "outputs/k_gap/_search_log_cache/litarch/http") if ahrq_downloads else None)
     approval = Approval(client) if client else None
     paths = repo.matching("outputs/k_gap/g1/*.json")
     if slugs:
@@ -1030,6 +1136,7 @@ def run(slugs=None, offline=False, root=ROOT, followup=None):
         summaries = regulator_summary(holding_path, repo.body)
         holding_time = repo.when(holding_path) if summaries else None
         out = {"slug": slug, "written_utc": utc_now(), "trials": {}}
+        ahrq_counts = [0, 0, 0]
         for trial in topic["trials"]:
             if route_group(trial.get("route")) == "PRIMARY":
                 continue
@@ -1039,9 +1146,11 @@ def run(slugs=None, offline=False, root=ROOT, followup=None):
             ids["approved_drug"] = approved
             print(f"SEARCH {slug} | {label}", flush=True)
             searched = []
+            prior_trial = {}
             existing_path = Path(root)/"registry/g1_search_log"/(slug+".json")
             if existing_path.exists():
-                prior = json.loads(existing_path.read_text(encoding="utf-8")).get("trials", {}).get(label, {}).get("identifiers", {})
+                prior_trial = json.loads(existing_path.read_text(encoding="utf-8")).get("trials", {}).get(label, {})
+                prior = prior_trial.get("identifiers", {})
                 ids["approved_drug"] = bool(ids["approved_drug"] or prior.get("approved_drug"))
                 for key in ("pmids", "dois", "ncts", "eudract"):
                     ids[key] = sorted(set(ids[key] + prior.get(key, [])))
@@ -1085,8 +1194,22 @@ def run(slugs=None, offline=False, root=ROOT, followup=None):
                                                {"submissions": meta.get("rows", []), "error": meta.get("error")}, encoded(meta)))
                     elif client:
                         searched.append(health_canada(client, agent))
+            ahrq_secondary = False
+            for pending in ahrq_pending(prior_trial.get("searched", []) + searched):
+                try:
+                    assessed = assess_ahrq(pending, dict(ids, label=label), root=root, client=ahrq_client)
+                except (OSError, ValueError, tarfile.TarError, ET.ParseError) as exc:
+                    print(f"AHRQ UNRESOLVED {slug} | {label} | {exc}", flush=True)
+                    continue
+                searched.append(assessed)
+                outcome = assessed["outcome"]
+                ahrq_counts[0] += 1
+                ahrq_counts[1] += outcome["named"]
+                ahrq_counts[2] += outcome.get("per_trial_row_present", False)
+                ahrq_secondary |= outcome.get("per_trial_row_present", False)
             out["trials"][label] = {"identifiers": ids, "searched": searched,
-                                      "secondary_value_available": secondary_available(trial, [r for r in phase4 if r.get("slug") == slug])}
+                                      "secondary_value_available": ahrq_secondary or secondary_available(trial, [r for r in phase4 if r.get("slug") == slug])}
+        print(f"AHRQ {slug}: resolved={ahrq_counts[0]}, named={ahrq_counts[1]}, row_present={ahrq_counts[2]}", flush=True)
         current_trials.extend(out["trials"].values())
         merged = merge_write(Path(root) / "registry/g1_search_log" / (slug + ".json"), out)
         recs = [r for t in merged["trials"].values() for r in t["searched"]]
@@ -1108,11 +1231,12 @@ def main(argv=None):
     parser.add_argument("command", choices=["run"])
     parser.add_argument("--slugs", nargs="+")
     parser.add_argument("--offline", action="store_true")
+    parser.add_argument("--ahrq-downloads", action="store_true", help="Allow only listed litarch package downloads during offline assessment")
     parser.add_argument("--followup", type=Path, help="reading_targets.json")
     args = parser.parse_args(argv)
     if args.slugs and any(not re.fullmatch(r"[a-z0-9][a-z0-9-]*", s) for s in args.slugs):
         parser.error("Invalid slug")
-    run(args.slugs, args.offline, followup=args.followup)
+    run(args.slugs, args.offline, followup=args.followup, ahrq_downloads=args.ahrq_downloads)
 
 
 if __name__ == "__main__":

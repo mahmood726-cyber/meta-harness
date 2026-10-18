@@ -716,3 +716,74 @@ def test_PLANT_read_target_rows_reach_the_search_log():
     assert log.open_step(log.census_rows_for_doi(rows, "10.2/Y")) == "OPEN_OUTCOME_NOT_BINDABLE"
     assert log.census_rows_for_doi(rows, "10.9/none") == []
     assert log.open_step([]) == "OPEN_NOT_ASSESSED"
+
+
+@pytest.mark.parametrize("content,step,named,row", [
+    ("<p>Other trial 10 20</p>", "OPEN_NO_OUTCOME", False, False),
+    ("<table><tr><td>Burr 1989</td><td>12</td><td>24</td></tr></table>", "OPEN_OUTCOME_NOT_BINDABLE", True, True),
+    ("<p>Burr 19890</p>", "OPEN_NO_OUTCOME", False, False),
+    ("<p>Burr 1989 12 24</p>", "OPEN_OUTCOME_NOT_BINDABLE", True, False),
+    ("<table><tr><td>GISSI-HF</td><td>12</td><td>24</td></tr></table>", "OPEN_OUTCOME_NOT_BINDABLE", True, True),
+    ("<p>NCT00000001</p>", "OPEN_OUTCOME_NOT_BINDABLE", True, False),
+])
+def test_assess_ahrq(tmp_path, content, step, named, row):
+    import tarfile
+    folder = tmp_path / "outputs/k_gap/_search_log_cache/litarch/NBK123"
+    folder.mkdir(parents=True)
+    with tarfile.open(folder / "package.tar.gz", "w:gz") as archive:
+        for name, xml in [("chapter.nxml", "<book><permissions><copyright-statement>Public domain</copyright-statement></permissions>" + content + "</book>"),
+                          ("../unsafe.nxml", "<book><table><tr><td>Burr 1989 50 60</td></tr></table></book>")]:
+            raw = xml.encode()
+            member = tarfile.TarInfo(name)
+            member.size = len(raw)
+            archive.addfile(member, io.BytesIO(raw))
+    old = log.record("AHRQ_NIHR_HTA", "https://ftp.ncbi.nlm.nih.gov/pub/litarch/file_list.csv", "2026-01-01T00:00:00Z",
+                     "OPEN_NOT_ASSESSED", {"provider": "AHRQ", "matches": [{"url": "https://ftp.ncbi.nlm.nih.gov/pub/litarch/aa/bb/book_NBK123.tar.gz"}]})
+    original = json.loads(json.dumps(old))
+    ids = dict(label="Burr et al, 1989 [23]", acronym="GISSI-HF", ncts=["NCT00000001"])
+    assessed = log.assess_ahrq(old, ids, root=tmp_path)
+    assert old == original
+    assert assessed["step_reached"] == step
+    assert assessed["outcome"]["named"] is named
+    assert assessed["outcome"].get("per_trial_row_present", False) is row
+    assert assessed["outcome"].get("secondary_source", False) is named
+    assert "Public domain" in assessed["outcome"]["licence"]["NBK123"]["permissions"][0]
+    assert assessed["identifier_or_query"] == old["identifier_or_query"]
+    assert assessed["when_utc"] > old["when_utc"]
+    assert log.ahrq_pending([old, assessed]) == []
+    path = tmp_path / "search.json"
+    for rec in (old, assessed):
+        merged = log.merge_write(path, dict(slug="synthetic", written_utc=rec["when_utc"], trials={"Burr": dict(
+            identifiers=ids, searched=[rec], secondary_value_available=rec["outcome"].get("per_trial_row_present", False))}))
+    assert merged["trials"]["Burr"]["secondary_value_available"] is row
+    assert merged["trials"]["Burr"]["searched"] == [old, assessed]
+
+
+def test_ahrq_download_once_and_failure_closed(tmp_path):
+    import tarfile
+    stream = io.BytesIO()
+    with tarfile.open(fileobj=stream, mode="w:gz") as archive:
+        raw = b"<book><p>ALPHA</p><p>ALPHA &amp; BETA</p><p>MixedCase</p></book>"
+        member = tarfile.TarInfo("chapter.nxml")
+        member.size = len(raw)
+        archive.addfile(member, io.BytesIO(raw))
+    class Client:
+        calls = 0
+        def get(self, url):
+            self.calls += 1
+            return 200, stream.getvalue(), log.utc_now()
+    rec = log.record("AHRQ_NIHR_HTA", "https://ftp.ncbi.nlm.nih.gov/pub/litarch/file_list.csv", log.PROBE_DATE,
+                     "OPEN_NOT_ASSESSED", {"provider": "AHRQ", "matches": [{"url": "https://ftp.ncbi.nlm.nih.gov/pub/litarch/aa/bb/test_NBK456.tar.gz"}]})
+    with pytest.raises(ValueError, match="Missing cached"):
+        log.assess_ahrq(rec, {"acronym": "ALPHA"}, root=tmp_path)
+    client = Client()
+    for _ in range(2):
+        assert log.assess_ahrq(rec, {"acronym": "ALPHA"}, root=tmp_path, client=client)["outcome"]["named"]
+    assert client.calls == 1
+    assert log.assess_ahrq(rec, {"label": "ALPHA 2013 [42]"}, root=tmp_path)["outcome"]["named"] is False
+    # A multiword trial designation is taken literally from the label.
+    assert log.assess_ahrq(rec, {"label": "ALPHA & BETA 2013 [42]"}, root=tmp_path)["outcome"]["named"] is True
+    assert log.assess_ahrq(rec, {"label": "MixedCase"}, root=tmp_path)["outcome"]["named"]
+    with pytest.raises(ValueError, match="No trial names"):
+        log.assess_ahrq(rec, {"label": "2 [22]"}, root=tmp_path)
+    assert log.assess_ahrq(rec, {"acronym": "ALPHA"}, root=tmp_path)["outcome"]["named"]
