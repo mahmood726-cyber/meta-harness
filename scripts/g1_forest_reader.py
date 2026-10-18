@@ -377,6 +377,13 @@ compute, infer, round or correct anything. Answer with ONE JSON object only, mat
 """
 
 
+IMAGE_TABLE_INSTR = """\nThis image may be a table rather than a forest plot. Use the same schema: transcribe only
+study-labelled rows and their explicitly printed effects, confidence limits and experimental/control counts.
+Use null for unprinted fields; do not calculate effects from counts. If no study-labelled numeric rows are
+printed, return rows=[] and explain in notes. Preserve the printed measure and describe column context in notes.
+"""
+
+
 def _j(p):
     with open(p, encoding="utf-8") as fh:
         return json.load(fh)

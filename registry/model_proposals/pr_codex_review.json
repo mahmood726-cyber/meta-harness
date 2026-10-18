@@ -6731,5 +6731,133 @@
     "verdict": null
    }
   ]
+ },
+ "img-r1": {
+  "base": "d0c30332",
+  "head": "49a508d0",
+  "runs": {
+   "g1": {
+    "record_id": "mc-10ea2da57ce7efef81881326711defee",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/lane_image_agreement.py",
+     "scripts/lane_image_reader.py"
+    ],
+    "prompt_sha256": "66807bdcc7e92040b4957dba8e4a3d7de993b60b2fa1da52b399c9f7ac6bc07f"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "b_records",
+    "severity": "P2",
+    "claim": "Conflicting answers for the same image silently overwrite each other. Because main concatenates multiple answer files, file order determines which reading survives, and the discarded reading has no audit record.",
+    "failing_input": "from scripts.lane_image_agreement import b_records\nbase = dict(key='a'*64, image_sha256='b'*64, prompt_sha256='c'*64)\na = dict(base, answer={'rows': []})\nb = dict(base, answer={'rows': [{'label': 'Trial X'}]})\nr = b_records([a, b], 'reader-b', {})\nprint(len(r), r['a'*64]['response'])",
+    "expected": "Reject conflicting answers for one key, or preserve both records for explicit adjudication.",
+    "actual": "Prints 1 {'rows': [{'label': 'Trial X'}]}. Reversing the input order instead retains {'rows': []}; the other answer is discarded.",
+    "id": "img-r1:g1#1",
+    "record_id": "mc-10ea2da57ce7efef81881326711defee",
+    "verdict": null
+   },
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "b_records / main",
+    "severity": "P2",
+    "claim": "Record IDs omit the model identity. Identical answers attributed to different models receive the same ID, so main writes them to the same evidence path and overwrites the previous model attribution.",
+    "failing_input": "from scripts.lane_image_agreement import b_records\na = dict(key='a'*64, image_sha256='b'*64, prompt_sha256='c'*64, answer={'rows': []})\nx = b_records([a], 'model-one', {})['a'*64]\ny = b_records([a], 'model-two', {})['a'*64]\nprint(x['record_id'] == y['record_id'], x['model'], y['model'])",
+    "expected": "Distinct evidence record IDs for readings attributed to different models, preserving both model attributions.",
+    "actual": "Prints True model-one model-two. main uses this shared ID as the filename and writes with write_bytes, replacing an existing record.",
+    "id": "img-r1:g1#2",
+    "record_id": "mc-10ea2da57ce7efef81881326711defee",
+    "verdict": null
+   }
+  ]
+ },
+ "img-r2": {
+  "base": "49a508d0",
+  "head": "HEAD",
+  "runs": {
+   "g1": {
+    "record_id": "mc-7d3a5fd8e9dacadf22dd30e30631af42",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/lane_image_agreement.py"
+    ],
+    "prompt_sha256": "ac583d9054d61da88fd8c25db7d296a1935a313ef534460ed90e06febdbc07af"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "b_records",
+    "severity": "P2",
+    "claim": "Duplicate detection ignores prompt_sha256, silently discarding records from different prompts. Since prompt_sha256 contributes to record_id, input order determines which provenance and record ID survive.",
+    "failing_input": "answers = [{'key': 'table-1', 'image_sha256': 'a'*64, 'prompt_sha256': '1'*64, 'answer': '3'}, {'key': 'table-1', 'image_sha256': 'a'*64, 'prompt_sha256': '2'*64, 'answer': '3'}]. Compare processing this list with processing answers[::-1].",
+    "expected": "Reject the conflicting prompt digests or retain both distinct records; do not silently select provenance by input order.",
+    "actual": "The second entry passes both conflict comparisons and reaches continue. The retained record uses the first entry's prompt digest; reversing the entries changes the retained provenance and record ID.",
+    "id": "img-r2:g1#1",
+    "record_id": "mc-7d3a5fd8e9dacadf22dd30e30631af42",
+    "verdict": null
+   }
+  ]
+ },
+ "img-r3": {
+  "base": "d29072b9",
+  "head": "26d0ef66",
+  "runs": {
+   "g1": {
+    "record_id": "mc-658daf16296379d2cf6581ccddb3ce3b",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/lane_image_agreement.py"
+    ],
+    "prompt_sha256": "89fd221a482848668da58aca9eedc18259884b7e6c8155af597e1ab5e7429e37"
+   }
+  },
+  "verdicts": {},
+  "findings": []
+ },
+ "img-ay-r1": {
+  "base": "c18381f4",
+  "head": "34ae1b2f",
+  "runs": {
+   "g1": {
+    "record_id": "mc-c794e1c972478824a576b536548c2105",
+    "state": "RAN_OK",
+    "files": [
+     "scripts/lane_image_agreement.py"
+    ],
+    "prompt_sha256": "5e255c372dd497fb229ae2c2ea3a00cb70834cb3d7d9b4d5f2907f6a6d5916f4"
+   }
+  },
+  "verdicts": {},
+  "findings": [
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "build_identity",
+    "severity": "P1",
+    "claim": "Splitting sortfirstauthor at the first space truncates compound surnames. This both misses the correct figure label and permits associations with a different surname.",
+    "failing_input": "census = {'metas': [{'topic': 'T', 'missing_trials': ['Trial A']}]}\nrecords = {'fixture-a': {'title': 'Trial A'}}\nesummary = {'result': {'fixture-a': {'sortfirstauthor': 'van der Meer J', 'pubdate': '2020'}}}\nidentity = build_identity(census, records, esummary)\nrows = [{'label': 'Van 2020'}]\nsources = [{'topic': 'T', 'missing_trials': ['Trial A']}]\n[(c['trial'], c['printed_label']) for c in author_year_candidates(rows, sources, identity)]",
+    "expected": "[]; the source surname is 'van der Meer', which does not match 'Van'.",
+    "actual": "[('Trial A', 'Van 2020')]; build_identity stores surname='van'.",
+    "id": "img-ay-r1:g1#1",
+    "record_id": "mc-c794e1c972478824a576b536548c2105",
+    "verdict": null
+   },
+   {
+    "file": "scripts/lane_image_agreement.py",
+    "function": "author_year_candidates",
+    "severity": "P1",
+    "claim": "Uniqueness is checked only among figure rows, not among trial identities. A single ambiguous author-year row therefore becomes a candidate for two distinct trials, and run credits both in trials_secondary.",
+    "failing_input": "rows = [{'label': 'Smith 2020'}]\nsources = [{'topic': 'T', 'missing_trials': ['Trial A', 'Trial B']}]\nidentity = {'T': {'Trial A': {'pmid': 'fixture-a', 'surname': 'Smith', 'years': ['2020']}, 'Trial B': {'pmid': 'fixture-b', 'surname': 'Smith', 'years': ['2020']}}}\n[(c['trial'], c['printed_label'], c['pmid']) for c in author_year_candidates(rows, sources, identity)]",
+    "expected": "[]; the row cannot distinguish the two trials and must remain unresolved rather than crediting both.",
+    "actual": "[('Trial A', 'Smith 2020', 'fixture-a'), ('Trial B', 'Smith 2020', 'fixture-b')]",
+    "id": "img-ay-r1:g1#2",
+    "record_id": "mc-c794e1c972478824a576b536548c2105",
+    "verdict": null
+   }
+  ]
  }
 }
