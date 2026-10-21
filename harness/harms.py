@@ -63,11 +63,22 @@ def synthesis_incomplete(outcome):
                        for r in reporting_ledger(outcome)))
 
 
-def _ladder(pid, rec_by_id, fulltext_by_pmid, trial=None):
+def _fulltext_rung(pid, fulltext_by_pmid, fulltext_coverage):
+    """'held full text: CHECKED' only of a held article BODY (E1, 11 Oct: Moll's PMC no-download stub was 'CHECKED').
+    fulltext_coverage {pid: label} comes from the held bytes (harness/source_coverage); None keeps the legacy rule."""
+    if not (fulltext_by_pmid or {}).get(pid):
+        return "NOT_CHECKED"
+    if fulltext_coverage is None:
+        return "CHECKED"
+    label = fulltext_coverage.get(pid) or fulltext_coverage.get(str(pid))     # keys may be str (agy e1p2-r1 #4)
+    return "CHECKED" if label == "FULLTEXT" else f"NOT_CHECKED_{label or 'UNKNOWN_COVERAGE'}"
+
+
+def _ladder(pid, rec_by_id, fulltext_by_pmid, trial=None, fulltext_coverage=None):
     # Only name checks actually performed here. Held text is not proof that all rungs were searched.
     ladder = [
         {"rung": "abstract", "state": "CHECKED" if (rec_by_id.get(pid) or {}).get("abstract") else "NOT_CHECKED"},
-        {"rung": "held full text", "state": "CHECKED" if (fulltext_by_pmid or {}).get(pid) else "NOT_CHECKED"},
+        {"rung": "held full text", "state": _fulltext_rung(pid, fulltext_by_pmid, fulltext_coverage)},
         {"rung": "supplement / registry results / regulatory source", "state": "NOT_CHECKED_BY_HARMS_AUDIT",
          "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."},
     ]
@@ -233,7 +244,8 @@ def _zero_cell(t: dict[str, Any]) -> bool:
 
 def annotate_outcome(outcome: dict[str, Any], spec: dict[str, Any], included: list[dict[str, Any]],
                      rec_by_id: dict[str, dict[str, Any]],
-                     fulltext_by_pmid: dict[str, str] | None = None) -> dict[str, Any]:
+                     fulltext_by_pmid: dict[str, str] | None = None,
+                     fulltext_coverage: dict[str, str] | None = None) -> dict[str, Any]:
     if outcome.get("kind") != "harm":
         return outcome
     pooled = {_id_key(t.get("id") or t.get("label")) for t in outcome.get("trials") or []}
@@ -281,7 +293,8 @@ def annotate_outcome(outcome: dict[str, Any], spec: dict[str, Any], included: li
     by_id = {_id_key(t.get("id") or t.get("label")): t
              for t in (outcome.get("trials") or []) + (outcome.get("declared_absent_trials") or [])}
     for item in reporting:
-        item["source_ladder"] = _ladder(item["id"], rec_by_id, fulltext_by_pmid, by_id.get(item["id"]))
+        item["source_ladder"] = _ladder(item["id"], rec_by_id, fulltext_by_pmid, by_id.get(item["id"]),
+                                        fulltext_coverage)
     result["harm_reporting_trials_n"] = len(reporting)
     result["harm_extracted_trials_n"] = len(outcome.get("trials") or [])
     result["harm_registered_trials_n"] = len(included)
@@ -315,11 +328,12 @@ def annotate_outcome(outcome: dict[str, Any], spec: dict[str, Any], included: li
 
 def annotate_review(review: dict[str, Any], specs_by_name: dict[str, dict[str, Any]],
                     included: list[dict[str, Any]], rec_by_id: dict[str, dict[str, Any]],
-                    fulltext_by_pmid: dict[str, str] | None = None) -> dict[str, Any]:
+                    fulltext_by_pmid: dict[str, str] | None = None,
+                    fulltext_coverage: dict[str, str] | None = None) -> dict[str, Any]:
     harms = [o for o in review.get("outcomes") or [] if o.get("kind") == "harm"]
     for outcome in harms:
         spec = specs_by_name.get(outcome.get("name")) or {"name": outcome.get("name"), "keywords": []}
-        annotate_outcome(outcome, spec, included, rec_by_id, fulltext_by_pmid)
+        annotate_outcome(outcome, spec, included, rec_by_id, fulltext_by_pmid, fulltext_coverage)
     if not harms:
         common = {"name": "registered harms", "keywords": [
             "major bleeding", "bleeding", "adverse event", "adverse events", "ketoacidosis",
