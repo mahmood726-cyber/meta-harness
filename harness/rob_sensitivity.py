@@ -42,7 +42,8 @@ def suppression_reason(sens, review=None):
         reasons.append("formal RoB 2 not yet assessed")
     if relation_from_sensitivity(sens) == LOW_ONLY_IDENTICAL_TO_FULL:
         k = (sens.get("full") or {}).get("k")
-        reasons.append(f"the machine-signal low-only set equals the full pool (k={k} of {k})")
+        reasons.append("the machine-signal low-only set is the single trial itself (k=1)" if k == 1
+                       else f"the machine-signal low-only set equals the full pool (k={k} of {k})")
     return "RoB-restricted re-pool suppressed: " + "; ".join(reasons) if reasons else ""
 
 
