@@ -27,7 +27,12 @@ def test_examine_is_excluded_with_the_registers_reason():
 def test_served_mace_equals_the_signed_v6_01_after():
     r = json.load(open(os.path.join(ROOT, "docs", "reviews", "dpp4-mace-t2d", "review.json"), encoding="utf-8"))
     m = next(o for o in r["outcomes"] if o["name"].startswith("3-point"))
-    assert {k: m["result"][k] for k in ("k", "estimate", "ci_low", "ci_high")} ==         {"k": 4, "estimate": 1.0007, "ci_low": 0.8998, "ci_high": 1.1129}
+    ack = json.load(open(os.path.join(ROOT, "registry", "v15c_dispatch_rulings_2026-10-16.json"),
+                         encoding="utf-8"))["items"]["V6-01"]
+    assert ack["state"] == "DECIDED_BY_DISPATCH_ON_DELEGATION"
+    assert ack["reviewer_countersignature"]["state"] == "OPEN"
+    assert ack["conclusion_changed"] is False
+    assert {k: m["result"][k] for k in ("k", "estimate", "ci_low", "ci_high")} == ack["after"]
 
 
 def test_the_decision_is_recorded_and_examine_stays_out_of_the_served_pool():
