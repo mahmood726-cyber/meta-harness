@@ -1,0 +1,139 @@
+"""Dual independent extraction of OUTCOME fields, and adjudication by the source text.
+
+reading = {"reader": {"family": "anthropic"|"openai"|..., "model_reported": str, "record_id": str},
+           "items": [item, ...]}          # items as in fields.py, each with its own passage
+adjudication = {"field": str, "arm": str|None, "decided_value": <typed>, "passage": {...},
+                "adjudicator": {"kind": "human"|"model", "name": str, "record_id": str|None, "family": str|None},
+                "rationale": str}
+
+Independence (refused otherwise): exactly two readings; their families are {"anthropic", "openai"} (Claude + Codex);
+their record_ids are distinct and non-empty; and, when the call records are supplied, neither reader's prompt inputs
+include the other reader's response (a reader shown the first answer is a confirmer, not a second reader).
+
+Per OUTCOME (field, arm):
+  AGREED       both readers give the same typed value, each with its own verified passage containing it;
+  ADJUDICATED  they differ (or one is missing / unsupported) and an adjudication names a decided value that is IN a
+               verified passage. The adjudicator may not be either reader's record. The passage decides; a third
+               opinion without one is refused -- this is the repo's "decided by arithmetic, not vote" rule;
+  UNRESOLVED   anything else. An UNRESOLVED outcome field blocks a match claim.
+"""
+from __future__ import annotations
+
+from decimal import Decimal
+
+from . import fields as F
+from .passage import passage_problems, value_in_quote
+
+REQUIRED_FAMILIES = frozenset({"anthropic", "openai"})
+
+
+def same_value(a, b) -> bool:
+    if isinstance(a, bool) or isinstance(b, bool):
+        return False
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return Decimal(str(a)) == Decimal(str(b))
+    if isinstance(a, str) and isinstance(b, str):
+        return " ".join(a.casefold().split()) == " ".join(b.casefold().split())
+    return False
+
+
+def item_problems(item, docs_root, cache) -> list[str]:
+    """Everything that stops ONE item from being evidence: type, passage, value-in-passage."""
+    probs = F.type_problems(item)
+    if probs:
+        return probs
+    pp = passage_problems(item.get("passage"), docs_root, cache)
+    if pp:
+        return pp
+    spec = F.FIELDS[item["field"]]
+    if not value_in_quote(item["field"], spec.kind, item["value"], item["passage"]["quote"]):
+        return [f"value {item['value']!r} is not in its quoted passage (a real quote that does not contain the value "
+                f"is a citation, not a source)"]
+    return []
+
+
+def independence_problems(readings, call_records: dict | None = None) -> list[str]:
+    if not isinstance(readings, list) or len(readings) != 2:
+        return [f"dual extraction needs exactly 2 readings, got {len(readings) if isinstance(readings, list) else 0}"]
+    rs = [r.get("reader") or {} for r in readings]
+    fams = {str(r.get("family") or "") for r in rs}
+    out = []
+    if fams != REQUIRED_FAMILIES:
+        out.append(f"reader families {sorted(fams)} != {sorted(REQUIRED_FAMILIES)} (Claude + Codex)")
+    ids = [str(r.get("record_id") or "") for r in rs]
+    if not all(ids) or ids[0] == ids[1]:
+        out.append("each reading must cite its own distinct call record_id")
+    if call_records:
+        recs = [call_records.get(i) for i in ids]
+        if not all(recs):
+            out.append("a reading's call record is missing from the supplied records")
+        else:
+            for me, other in ((recs[0], recs[1]), (recs[1], recs[0])):
+                other_resp = ((other.get("response") or {}).get("sha256"))
+                seen = {d.get("sha256") for d in me.get("input_digests") or []}
+                if other_resp and other_resp in seen:
+                    out.append(f"reader {me.get('record_id', '?')[:12]} was shown the other reader's response "
+                               f"(a confirmer, not an independent second reading)")
+    return out
+
+
+def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -> dict:
+    """-> {"independence": [...problems], "fields": {(field, arm): {"status", "value", "problems"}}}"""
+    cache = cache if cache is not None else {}
+    indep = independence_problems(readings, call_records)
+    by_reader = []
+    for r in readings if isinstance(readings, list) else []:
+        m = {}
+        for it in r.get("items") or []:
+            if F.FIELDS.get(it.get("field")) is not None and F.FIELDS[it["field"]].role == "OUTCOME":
+                m.setdefault(F.key(it), []).append(it)
+        by_reader.append(m)
+    keys = sorted({k for m in by_reader for k in m}, key=lambda k: (k[0], k[1] or ""))
+    reader_ids = {str((r.get("reader") or {}).get("record_id") or "") for r in readings if isinstance(r, dict)} \
+        if isinstance(readings, list) else set()
+    adj = {}
+    for a in adjudications or []:
+        adj.setdefault((a.get("field"), a.get("arm")), []).append(a)
+    out = {}
+    for k in keys:
+        vals, probs = [], []
+        for n, m in enumerate(by_reader):
+            its = m.get(k, [])
+            if len(its) != 1:
+                probs.append(f"reader {n + 1}: {len(its)} values for {k} (need exactly one)")
+                vals.append(None)
+                continue
+            ip = item_problems(its[0], docs_root, cache)
+            if ip:
+                probs.append(f"reader {n + 1}: " + "; ".join(ip))
+                vals.append(None)
+            else:
+                vals.append(its[0]["value"])
+        if not indep and len(vals) == 2 and vals[0] is not None and vals[1] is not None and same_value(*vals):
+            out[k] = {"status": "AGREED", "value": vals[0], "problems": []}
+            continue
+        if not indep and len(vals) == 2 and None not in vals:
+            probs.append(f"readers disagree: {vals[0]!r} vs {vals[1]!r}")
+        decided = None
+        for a in adj.get(k, []):
+            who = a.get("adjudicator") or {}
+            ap = []
+            if who.get("kind") not in ("human", "model") or not str(who.get("name") or "").strip():
+                ap.append("adjudicator must be a named human or model")
+            if who.get("record_id") and str(who["record_id"]) in reader_ids:
+                ap.append("the adjudicator is one of the readers (a reader cannot settle its own disagreement)")
+            if not str(a.get("rationale") or "").strip():
+                ap.append("adjudication without a rationale")
+            ap += item_problems({"field": k[0], "arm": k[1], "value": a.get("decided_value"),
+                                 "passage": a.get("passage")}, docs_root, cache)
+            if ap:
+                probs.append("adjudication refused: " + "; ".join(ap))
+            else:
+                decided = a.get("decided_value")
+        if indep:
+            out[k] = {"status": "UNRESOLVED", "value": None, "problems": ["readings are not independent"] + probs}
+        elif decided is not None:
+            out[k] = {"status": "ADJUDICATED", "value": decided, "problems": probs}
+        else:
+            out[k] = {"status": "UNRESOLVED", "value": None, "problems": probs or ["no agreement and no adjudication"]}
+    return {"independence": indep, "fields": out}
