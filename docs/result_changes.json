@@ -2,6 +2,35 @@
  "_doc": "Result-change notices: one per (slug, outcome) whose served pooled result changed. before/after are the served and the rebuilt result tuples (k, estimate, ci_low, ci_high) read from the review objects; left_pool/entered_pool name every trial that moved; the honest ratchet refuses a landing whose result differs from the served one without an exact notice; the page renders each notice beside the outcome and names a reversal of significance as a withdrawal of the previous conclusion. reviewer_countersignature: OPEN until the reviewer has SEEN the rendered notice; SEEN_AND_SIGNED (per notice; the only signature a withdrawn conclusion accepts) or BATCH_SEEN_AND_SIGNED (direction-preserving changes, batch_id named) carry by, when_utc, the sha256 of the rendered block that was signed, and how_it_reached_the_reviewer (the rendered block itself, or a relay and what the relay conveyed); there is no 'agreed in advance'.",
  "notices": [
   {
+   "slug": "dpp4-mace-t2d",
+   "outcome": "Hospitalization for heart failure",
+   "before": {
+    "k": 2,
+    "estimate": 1.1296,
+    "ci_low": null,
+    "ci_high": null
+   },
+   "after": {
+    "k": 3,
+    "estimate": 0.9744,
+    "ci_low": 0.4082,
+    "ci_high": 2.3262
+   },
+   "left_pool": [],
+   "entered_pool": [
+    "PMID 28893244"
+   ],
+   "reason": "PMID 28893244 entered the pool contributing HR 0.6 (0.35 to 1.05) (source abstract). Entering trials are new evidence, not a correction: the previously served number is not asserted wrong; it was computed without the held document(s) this topic now admits to pool construction.",
+   "by": "Claude Opus 5.5 (captain lane)",
+   "when_utc": "2026-10-17T23:17:06Z",
+   "reviewer_countersignature": {
+    "state": "OPEN",
+    "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+   },
+   "rendering_version": 2,
+   "before_note": "refused at k = 2, K2_SINGLE_DF"
+  },
+  {
    "slug": "omega3-cardiovascular-events",
    "outcome": "Major vascular events / MACE",
    "before": {
@@ -1028,6 +1057,42 @@
     "when_utc": "2026-10-07T21:00:00Z",
     "rendered_sha256": "a141e9dc6acbafddf946b11276e6ec00b163f05916d09554349be15372099178",
     "how_it_reached_the_reviewer": "Dispatch relay of explicit assent to an itemised list (7 Oct 2026, verbatim: 'yes to all'), covering packet V9 item V9-02 with V9-02Q (lane_status/v9_packet.md sha256 05d2db93987a0360b02bf178393650aa5777bf0720592d6d88f463c3ddf45b03; item section sha256 654a41bc5c502b8e7f66357c0717e299e8bc4fbeeaa660503d3358ab889386e8). The item showed: TRANSFORM-1 (NCT02417064) reinstated from its posted CT.gov results (AACT outcome 258346928; per-arm 56 mg -19.0/13.86/111, 84 mg -18.8/14.12/98, placebo -14.8/15.07/108), the two dose arms combined by Cochrane Handbook 6.5.2.10, MD k3 -3.1004 (-7.3323 to 1.1315) -> k4 -3.3436 (-6.0691 to -0.6180), and the CONCLUSION CHANGE (the interval stops including zero). This notice was generated after assent by scripts/g1_served_pool_notices.py and carries exactly those numbers and that statement; its rendered block is what this signature names."
+   }
+  }
+ ],
+ "corrections": [
+  {
+   "kind": "CORRECTION",
+   "corrects": {
+    "slug": "dpp4-mace-t2d",
+    "outcome": "Hospitalization for heart failure",
+    "when_utc": "2026-09-20T23:30:00Z",
+    "rendered_sha256": "eb1fe986638139d90275062fa796eecf5fa3d68aa497ae59a3c6757d178c5fa0"
+   },
+   "scale": "HR",
+   "replaces": "The direction of the estimate is unchanged.",
+   "replacement": "The direction of the estimate is changed.",
+   "by": "Codex",
+   "when_utc": "2026-10-17T21:45:35Z",
+   "reviewer_countersignature": {
+    "state": "OPEN"
+   }
+  },
+  {
+   "kind": "CORRECTION",
+   "corrects": {
+    "slug": "dpp4-mace-t2d",
+    "outcome": "Hospitalization for heart failure",
+    "when_utc": "2026-10-06T22:31:33Z",
+    "rendered_sha256": "b92a3369acd3440265511c947b1c6f12b5ac69463eb78a2c66477b9ae3350282"
+   },
+   "scale": "HR",
+   "replaces": "The direction of the estimate is unchanged.",
+   "replacement": "The direction of the estimate is changed.",
+   "by": "Codex",
+   "when_utc": "2026-10-17T21:45:35Z",
+   "reviewer_countersignature": {
+    "state": "OPEN"
    }
   }
  ]

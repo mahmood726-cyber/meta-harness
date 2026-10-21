@@ -56,6 +56,7 @@ def _scale(root: Path, slug: str, outcome: str):
 
 def annotated(root: Path, n: dict) -> dict:
     item = dict(n)
+    item["scale"] = _scale(root, n["slug"], n["outcome"])
     item["conclusion_changed"] = result_changes.conclusion_changed(
         n.get("before") or {}, n.get("after") or {}, _scale(root, n["slug"], n["outcome"]))
     return item
