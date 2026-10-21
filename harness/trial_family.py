@@ -11,7 +11,7 @@ import math
 import re
 from pathlib import Path
 from typing import TypedDict
-from . import identity, arm_object, target_endpoint
+from . import identity, arm_object, target_endpoint, p5_admission
 from .family_compact import read_registry
 
 class TrialFamily(TypedDict):
@@ -295,6 +295,14 @@ def families(records, *, companion_reports=None, config=None, registry=None, led
                     status['extractable']['scope'] = 'Typed registry outcome values; not automatically a poolable contrast or target effect measure.'
                     break
         f['eligibility'] = screen_family(f, config)
+        # D04 as amended (Dispatch, on Mahmood's delegation; harness/p5_admission.py): a fact the
+        # P5 ledger recovered FILLS an abstention and never overturns a proven exclusion. Applied
+        # here, where the cell is first decided, so the derived counts taken later see it.
+        _admissions = config.get('p5_admission') or {}
+        _cell = p5_admission.fill(f['eligibility'], f['family_id'], _admissions)
+        if (_cell.get('span') or {}).get('eligibility_basis') == p5_admission.FILLED_BASIS:
+            f['p5_admission'] = dict(_admissions[f['family_id']], applied=True)
+        f['eligibility'] = _cell
         out.append(f)
     return sorted(out, key=lambda f:f['family_id'])
 
@@ -520,6 +528,9 @@ def prepare(root, slug, records, config, ledger=None):
     """Read held family ingredients; registry collection is an explicit offline step."""
     root = Path(root)
     config = protocol_requirements(root,slug,config)
+    # The admission map arrives through config because screen_family has no slug. It reads the
+    # committed ledger and re-interprets nothing; see harness/p5_admission.py for the ruling.
+    config['p5_admission'] = p5_admission.load(root, slug)
     path = root/'cache'/slug/'family_registry.json'
     ingredients = read_registry(path) if path.exists() else {}
     by_id = {_rid(r):dict(r) for r in records}
@@ -746,6 +757,12 @@ def derive_count_chain(nodes):
             'pooled':len(primary),'eligibility_unresolved':sum(f['eligibility']['state']=='UNKNOWN' for f in families),
             'unresolved_report_candidates':len(nodes)-len(families),
             'contributing_without_structural_eligibility':sorted(contributing-eligible),
+            # D04: a family counted as eligible because the P5 ledger recovered the abstained fact
+            # is NOT the same claim as one the structural screen established, and the count alone
+            # cannot tell them apart. Carried here so the served sentence can say which is which.
+            'eligible_by_p5_admission':sorted(f"{f['p5_admission']['row_key']}:{f['family_id']}"
+                                              for f in families
+                                              if (f.get('p5_admission') or {}).get('applied')),
             'publications_screened':sum(r.get('id_type')!='nct' for f in nodes for r in f['source_records']),
             'registry_records_screened':sum(r.get('id_type')=='nct' for f in nodes for r in f['source_records'])}
 
@@ -764,4 +781,8 @@ def count_sentence(chain):
             f"Unresolved eligibility {chain['eligibility_unresolved']} of {n}. "
             f"Unresolved report-only candidates {chain['unresolved_report_candidates']} (outside family denominator). "
             f"Contributing without established structural eligibility: {', '.join(chain['contributing_without_structural_eligibility']) or 'none'}. "
+            f"Eligible by D04 ledger admission rather than by the structural screen: "
+            f"{', '.join(chain.get('eligible_by_p5_admission') or []) or 'none'} "
+            "(the P5 evidence ledger recovered the abstained fact from the trial's own document; "
+            "a fact proven INELIGIBLE is never overturned this way). "
             'These are separate evidence states, not a nested eligibility funnel.')
