@@ -26,6 +26,15 @@ MODEL_CALL_SITES = {
     #  reproducible_ai.model_call_live and is no longer a call site of its own.)
     ("tests/test_no_model_call_in_pinned_path.py", "argv head 'codex'"): "a planted argv in a test fixture",
     ("tests/test_g1_forest_reader.py", "argv head 'agy'"): "the fake agy runner's argv in a plant (no process is run)",
+    # P3 extraction contract (2026-10-21): the Claude (anthropic) half of the dual independent reading. Its record is
+    # built by reproducible_ai.model_source.build_record (model_call_record/1), exactly like model_call_live's; the
+    # Codex half is routed through model_call_live.call itself and adds no site. Opt-in: nothing served imports it.
+    ("extraction_contract/readers.py", "shutil.which('claude')"): "P3's Claude reader: resolves the Claude Code CLI "
+                                                                 "(claude -p, no tools, prompt on stdin, recorded)",
+    ("extraction_contract/readers.py", "argv head 'claude'"): "the redacted claude argv stored IN the record "
+                                                             "(prompt -> its digest; not a call)",
+    ("tests/test_extraction_contract.py", "argv head 'claude'"): "the fake claude runner's argv in a plant (no process)",
+    ("tests/test_extraction_contract.py", "argv head 'codex'"): "the fake codex runner's argv in a plant (no process)",
 }
 
 # (file, argv expression) -> what it runs. A subprocess whose program is not a literal cannot be classified by reading
@@ -36,6 +45,9 @@ UNRESOLVED_SUBPROCESS = {
     ("reproducible_ai/model_call_live.py", "argv"): "codex exec / agy --print -- THE recorded model calls (codex_runner, "
                                                      "agy_runner)",
     ("reproducible_ai/model_call_live.py", "[_agy_exe(), '--version']"): "agy --version (client version for the record)",
+    ("extraction_contract/readers.py", "[_claude_exe(), '--version']"): "claude --version (client version for the record)",
+    ("extraction_contract/readers.py", "argv"): "claude -p (P3 claude_runner) -- THE recorded Claude call of the dual "
+                                                "reading; argv = [_claude_exe(), '-p', '--output-format', 'json', ...]",
     ("scripts/build_search_benchmark.py", "cmd"): "python scripts/measure_search_recall.py (the `commands` list)",
     ("scripts/verify_external_audit.py", "argv"): "python audit/external/<auditor script> (sys.executable + a CHECKS entry; "
                                                   "the auditors' own arithmetic, no model)",
