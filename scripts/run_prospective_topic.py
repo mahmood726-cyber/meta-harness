@@ -31,6 +31,7 @@ sys.path.insert(0, str(ROOT))
 from harness import acquisition  # noqa: E402
 from harness import pipeline as pipeline_mod  # noqa: E402
 from harness import prospective  # noqa: E402
+from harness import prospective_discovery  # noqa: E402
 from harness.census import build_review_dir, verify as census_verify  # noqa: E402
 from harness.registration import protocol_sha as registered_protocol_sha  # noqa: E402
 from harness.synth import method_text  # noqa: E402
@@ -141,6 +142,14 @@ def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tup
             raise prospective.ProspectiveRefusal("prospective raw response missing or outside snapshot")
         if hashlib.sha256(body_file.read_bytes()).hexdigest() != row.get("file_sha256"):
             raise prospective.ProspectiveRefusal("prospective raw response SHA256 differs from index")
+
+    # A hashed API call can be a seeded PMID lookup, not a prospective study search.
+    # Refuse title/identifier-only discovery, failed concept searches and capped results.
+    discovery_failures = prospective_discovery.concept_discovery_failures(ledger, rows)
+    if discovery_failures:
+        raise prospective.ProspectiveRefusal(
+            "prospective concept discovery refused: " + "; ".join(discovery_failures)
+        )
 
     return _read_json(snapshot_dir / "records.json"), snapshot_dir, False
 
