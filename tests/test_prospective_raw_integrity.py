@@ -27,7 +27,7 @@ def _pair(body=b'{"result": []}'):
 
 
 def test_valid_binary_body_and_empty_body():
-    for body in (b'{"result": []}', b'', b'\\x00\\xff'):
+    for body in (b'{"result": []}', b'', b'\x00\xff'):
         row, envelope = _pair(body)
         verify_raw_record(row, json.dumps(envelope).encode())
 
