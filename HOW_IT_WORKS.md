@@ -1,9 +1,10 @@
 # How the harness works (as it now stands)
 
 A plain-language account of the machine for someone who has not been in the build. Snapshot of the
-current state; the live counts (topics, verified numbers, coverage) are **self-counted on the published
-index** — read them there, not here, so this document cannot drift. Structural counts below (13 gate
-limbs, 33 error classes) are derived from the code (`harness/gate.py`, `harness/error_library.py`).
+current state; live counts (topics, verified numbers, coverage) should be checked against
+the published index and the committed verification ledger. The repository currently defines
+**15 verification limbs** in `scripts/verify_all.py`; these are distinct from the
+**two-limb publication gate** in `harness/gate.py`. Neither is independent clinical validation.
 
 Two ideas run through everything:
 - **The model locates; deterministic code parses; a round-trip decides; a number never comes from a model.**
@@ -15,25 +16,33 @@ Two ideas run through everything:
 
     python scripts/build_topic.py <slug>
 
-1. **Protocol committed first.** `protocols/<slug>.md` is committed *before* the build; its git commit
-   SHA is the registration timestamp, recorded on the page. You cannot register after seeing results.
-2. **Search (fetch-once → committed cache).** PubMed E-utilities + Europe PMC, **registry-first**
-   enumeration (ClinicalTrials.gov/AACT by condition × intervention → resolve NCTs to PMIDs), and
-   **citation chasing** (Europe PMC references/citations of the comparator and pivotal trials). Forced
-   PMIDs (pivotals, controls, comparator) are protected from the size cap. The result is written to a
-   committed `cache/<slug>/records.json`; the offline pipeline never touches the network again.
-3. **Dual screening with adjudication.** Two independently-implemented rule screeners (one title/registry
-   anchored, one full-abstract) run; disagreements are reported (PRISMA item 8); screener 1 adjudicates.
-   Every include/exclude carries a rule id and a verbatim span.
+1. **Protocol (intended prospective workflow).** `protocols/<slug>.md` declares the planned PICO and
+   analysis before retrieval in a prospective run. **This condition was not met by the 32 legacy
+   examples:** their protocols were first committed during a build, not in protocol-only registration
+   commits. Their protocol SHAs are not evidence of prospective registration.
+2. **Retrieval and replay.** Live collection can consult PubMed, Europe PMC, registries and citation
+   networks, then commit `cache/<slug>/records.json` for offline replay. For the *served legacy corpus*,
+   the search census is **11 known-item, 17 title-seeded, 4 hand-written keyword, 0 registered
+   concept searches**. Thus a cached trial list demonstrates replayability, not prospective search
+   recall or completeness. Raw live retrieval and committed offline replay are separate operations.
+3. **Rule screening and disagreement records.** Two coded screening routes can be compared and
+   disagreements logged. One route resolving the other route's disagreement is **not independent,
+   blinded human adjudication**. Rule IDs and cited spans make decisions inspectable; they do not
+   establish that eligibility judgements are correct.
 4. **Extraction down the source ladder** (section 2) — per trial, per outcome.
-5. **Synthesis.** metafor-validated pooling (REML/PM for small k; HKSJ with a t on k−1; log scale for
-   ratios). Estimand homogeneity is enforced or the pool is labelled `mixed (X/Y)`.
+5. **Synthesis.** A regression-tested statistical core pools available compatible data under the
+   declared method (including PM/REML and HKSJ when applicable). A method-matched external R
+   comparison is still needed for publication. Wrong endpoints, populations and study sets can
+   produce reproducible but scientifically wrong estimates.
 6. **Tabbed page** rendered (`docs/reviews/<slug>/`) plus a neutral blind pair for judging.
-7. **Two-limb gate** (section 3) runs in the pre-commit hook; a failure refuses the commit.
+7. **Gates.** The two-limb publication gate checks each review (section 3). The local hook and CI
+   run `python scripts/verify_all.py`, the same **15-limb** verification suite; a refusal blocks
+   the verified deployment path. The checks protect internal consistency, not independent accuracy.
 8. **Published URL** (GitHub Pages, `/docs` on `main`) after push.
-9. **Fresh-clone reproduction:** `scripts/reproduce_review.py --fresh-clone` clones HEAD, rebuilds, and
-   byte-compares every page. Re-running from the protocol SHA on a clean checkout regenerates the served
-   bytes exactly.
+9. **Fresh-clone replay:** current pages re-derive from the *committed analysis inputs and cache*
+   and are byte-compared against the served artifacts. **Re-running from a legacy protocol SHA alone
+   does not regenerate the served bytes**: that SHA does not pin the later cache and build state.
+   This is computational replay, not registration-time reproduction or independent correctness.
 
 ## 2. The source ladder (priority order; higher wins)
 
@@ -55,7 +64,7 @@ At every rung: the digits must appear in the cited committed span, the arms must
 and the count-derived effect must reconcile with the effect the paper reports (**round-trip**), or the
 trial is declared-absent — never guessed.
 
-## 3. The two-limb gate (14 checks; `python -m harness.gate <dir>`)
+## 3. Publication gate and verification (`harness/gate.py`; `scripts/verify_all.py`)
 
 **Limb 1 — reproducibility & integrity:**
 - `check_reproduction` — offline replay must regenerate the committed numbers and page byte-for-byte.
@@ -77,9 +86,11 @@ trial is declared-absent — never guessed.
 **Limb 2 — honest comparison:**
 - `check_limb2` — a published open-access comparator is named and the trial-set overlap is stated.
 
-Two more global checks run in the hook: the generated **index must byte-match** a fresh `build_index`
-(no hand-editing), and `_validate_prose_numbers` **refuses any un-accounted numeral** in the index's
-prose banners (object-derived or whitelisted-static only — the "95 of 95 drifted stale" guard).
+These examples are not a complete enumerated gate inventory. `scripts/verify_all.py`
+executes **15 fail-closed limbs**, including unit tests, full offline replay, the gate on each served
+review, index currency, provenance, held-out leakage and independent-recompute *code paths*.
+The independent-recompute limb is an internal implementation check; it is not an external
+blinded clinical adjudication. See the current code and verified CI ledger for the live state.
 
 ## 4. The guards, and the defect that created each
 
@@ -107,9 +118,10 @@ Each guard exists because a specific wrong number got through once:
 - **Cluster / crossover** (`unit_of_analysis.detect`) — a cluster-randomised or crossover trial (SMART /
   SALT-ED / SPLIT) needs a design-effect the source rarely gives; disclosed, weight-caveated, not adjusted.
 
-## 5. The meta-analysis error library (33 of 33)
+## 5. Internal coverage of the meta-analysis error library (33 classes)
 
-`harness/error_library.py` catalogues 33 documented meta-analysis mistakes; **0 remain unchecked.** Each
+`harness/error_library.py` catalogues 33 documented meta-analysis mistake classes; internal
+coverage does **not** show that all mistakes have been externally detected or prevented. Each
 is one of: a **gate limb** (9) that refuses a finished page, a **regression test** (12) with a plant that
 fires before the fix, or a **rendered disclosure** (12) when it is a judgement the harness cannot make but
 must show (mixed-scale label, unit-of-analysis caveat, retrospective-registration flag, small-k/GRADE
@@ -160,9 +172,10 @@ declares a pivotal). A test forbids overclaiming: any entry that claims a gate l
 - **GRADE is partial.** A machine-computable certainty is now rendered (risk-of-bias, inconsistency,
   imprecision, and publication bias assessed from the registry ghost census rather than funnel asymmetry);
   indirectness is left to human judgement. A **specification curve is still not built.**
-- **We measured our own error rate.** A blind accuracy census re-extracted every pooled number from
+- **We measured internal extraction agreement.** A within-project census re-extracted pooled numbers from
   committed source by a checker blind to the stored value; of the numbers independently re-checkable, the
-  confirmed residual error after adjudication was zero, and the census itself surfaced (and we fixed) one
-  wrong-endpoint number that had passed every gate. The live index states the current figures.
+  confirmed residual error after internal adjudication was zero *among recheckable records*, and the
+  census surfaced (and we fixed) a wrong-endpoint value that had passed every gate. These are internal
+  measurements, not an independent estimate of the end-to-end real-world error rate.
 - **The gate proves "still reproducible", not "still right".** Re-audit old artifacts whenever the checks
   strengthen — wrong numbers have clustered in pages built before the relevant guards existed.

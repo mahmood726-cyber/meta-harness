@@ -15,8 +15,11 @@ after we announced them (see `evidence/gate-authority-2026-09-14/`, `evidence/ar
 Two runs at the same SHA can execute materially different systems. The frozen identity MUST bind, as one computed value
 that can be printed and checked:
 - the commit SHA and tree SHA;
-- dependency lockfiles or a container image digest (today: `requirements.txt` carries no exact pins and there is no
-  lockfile — a mutable dependency until pinned);
+- dependency lockfiles or a container image digest. **Current distinction:** offline `verify.yml`
+  installs from the hash-checked `docs/offline/requirements.lock`, while `requirements.txt` is
+  still not exact-pinned and `harness/architecture_identity.py` still classifies that root
+  requirements surface as mutable. A hashed offline verifier does not by itself freeze live
+  retrieval, model providers or the full prospective architecture;
 - workflow and action versions (today: `uses: …@v4` tags, which are mutable refs — mutable until pinned to 40-hex SHAs);
 - configuration (`topics/`, `protocols/`, `registry/`);
 - model identifiers, provider, the most specific available snapshot/version, parameters, tool configuration and the
@@ -29,8 +32,9 @@ Status: SPECIFIED (control CTRL-A1 in `registry/fixes.json`). The identity VALUE
 a component, not the control. The control — a batch whose runs carry two identities is refused — has been exercised on
 no batch. It was written here as LANDED on 2026-09-14 and corrected the same day: a control does not move from SPECIFIED
 to LANDED because its code was written down clearly, and a passing unit test is the same-run evidence the five-state rule
-excludes; LANDED needs a batch-level check executed with its refusal recorded. The identity names 31 mutable dependencies
-today (unpinned requirements, tag-based action refs, external APIs, unpinned model snapshots).
+excludes; LANDED needs a batch-level check executed with its refusal recorded. The earlier identity run listed 31 mutable surfaces; **that number is historical**, not a
+current prospective freeze certificate. Rerun `python -m harness.architecture_identity`
+and review both its mutable list and the actual CI installation workflow before any batch.
 
 ### A2. Raw external inputs must be preserved, not only parsed records
 Search APIs and websites change under a frozen architecture. Each run MUST retain: the raw retrieval responses as
