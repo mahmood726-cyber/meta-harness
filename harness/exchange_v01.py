@@ -118,6 +118,16 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
     cases = payload.get("cases")
     if not isinstance(cases, list) or not cases:
         raise ValueError("cases missing")
+    coverage = payload.get("coverage")
+    expected_cov = {"CROSS-CANARY-001", "CROSS-R-001", "CROSS-DISCOVERY-001",
+                    "CROSS-ADJUDICATION-001", "CROSS-USABILITY-001"}
+    if not isinstance(coverage, list) or {c.get("id") for c in coverage if isinstance(c, dict)} != expected_cov or len(coverage) != len(expected_cov):
+        raise ValueError("coverage matrix must account for every unexecuted discipline exactly once")
+    for c in coverage:
+        _required_text(c, "category")
+        _required_text(c, "reason")
+        if c.get("status") not in {"NOT_RUN", "BLOCKED"}:
+            raise ValueError(f"{c.get('id')}: coverage requires actual external evidence and v0.2 schema before PASS")
     ids = set()
     for case in cases:
         if not isinstance(case, dict):
