@@ -133,3 +133,41 @@ def test_fake_external_coverage_pass_refuses():
     obj["coverage"][0]["status"] = "PASS"
     with pytest.raises(ValueError, match="coverage requires actual external evidence"):
         validate_manifest(obj, path.parent)
+
+
+# CROSS-EXCH-006: verify source locator against the archived text, not
+# merely that the quote appears somewhere in the source.
+@pytest.mark.parametrize("locator", ["line 1", "lines 1-1", "line 3", "lines 2-3"])
+def test_forged_text_locator_refuses(locator):
+    item = exchange()
+    item["rows"][0]["source_span"]["locator"] = locator
+    with pytest.raises(ValueError, match="source_span"):
+        validate_exchange(item, ROOT)
+
+
+@pytest.mark.parametrize("locator", [
+    "page 2", "paragraph 1", "line 0", "line 02", "lines 2-1",
+    "line 2\\n", "lines 2-9999999999", "line -2",
+])
+def test_unsupported_or_ambiguous_text_locator_refuses(locator):
+    item = exchange()
+    item["rows"][0]["source_span"]["locator"] = locator
+    with pytest.raises(ValueError, match="source_span locator"):
+        validate_exchange(item, ROOT)
+
+
+def test_correct_line_range_accepts_synthetic_fixture_only():
+    item = exchange()
+    item["rows"][0]["source_span"]["locator"] = "lines 1-2"
+    validate_exchange(item, ROOT)
+
+
+def test_multiline_passage_cannot_claim_only_last_line():
+    item = exchange()
+    span = item["rows"][0]["source_span"]
+    span["verbatim"] = SYNTHETIC.read_text(encoding="utf-8").strip()
+    span["locator"] = "line 2"
+    with pytest.raises(ValueError, match="passage absent at cited source lines"):
+        validate_exchange(item, ROOT)
+    span["locator"] = "lines 1-2"
+    validate_exchange(item, ROOT)
