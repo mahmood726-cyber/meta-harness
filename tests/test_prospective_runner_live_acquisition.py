@@ -23,13 +23,22 @@ def _dump(path: Path, obj: object) -> None:
 def _live_snapshot(out_dir: Path, slug: str = "plant") -> Path:
     snapshot = out_dir / "cache" / slug / "snapshots" / "2026-10-23-plant"
     raw_path = snapshot / "raw" / "pubmed" / "001.json"
-    raw = json.dumps({"source_id": "pubmed_concept_query#1", "status": 200, "body_bytes_b64": "e30=", "body_sha256": hashlib.sha256(b"{}").hexdigest()}).encode("utf-8")
+    metadata = {
+        "source_id": "pubmed_concept_query#1",
+        "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+        "params": {"term": "(plant) AND (intervention)"},
+        "status": 200,
+        "fetched_utc": "2026-10-23T00:00:00Z",
+        "adapter": "harness.fetch.run",
+        "adapter_blob_sha": "1" * 40,
+        "body_sha256": hashlib.sha256(b"{}").hexdigest(),
+    }
+    raw = json.dumps({**metadata, "body_bytes_b64": "e30="}).encode("utf-8")
     raw_path.parent.mkdir(parents=True, exist_ok=True)
     raw_path.write_bytes(raw)
     index = [
         {
-            "source_id": "pubmed_concept_query#1",
-            "status": 200,
+            **metadata,
             "path": "raw/pubmed/001.json",
             "file_sha256": hashlib.sha256(raw).hexdigest(),
         }
@@ -175,4 +184,47 @@ def test_runner_rejects_nonconcept_or_incomplete_discovery(
     _dump(ledger_path, ledger)
     monkeypatch.setattr(runner.acquisition, "refresh", lambda *_args, **_kwargs: str(snapshot))
     with pytest.raises(runner.prospective.ProspectiveRefusal, match="prospective concept discovery refused"):
+        runner._load_or_refresh({"slug": "plant"}, out_dir, "2026-10-23")
+
+
+@pytest.mark.parametrize(
+    "mutation,expected",
+    [
+        ("changed_body", "body SHA256 mismatch"),
+        ("changed_digest", "body SHA256 mismatch"),
+        ("changed_source", "mismatch: source_id"),
+        ("changed_status", "mismatch: status"),
+        ("invalid_base64", "not valid base64"),
+    ],
+)
+def test_prospective_rejects_inconsistent_raw_envelope_even_if_outer_hashes_match(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str, expected: str
+) -> None:
+    out_dir = tmp_path / "run"
+    snapshot = _live_snapshot(out_dir)
+    raw_file = snapshot / "raw" / "pubmed" / "001.json"
+    envelope = json.loads(raw_file.read_text(encoding="utf-8"))
+    raw_index = snapshot / "raw" / "INDEX.json"
+    index = json.loads(raw_index.read_text(encoding="utf-8"))
+    if mutation == "changed_body":
+        envelope["body_bytes_b64"] = "eyJ0YW1wZXJlZCI6dHJ1ZX0="
+    elif mutation == "changed_digest":
+        envelope["body_sha256"] = index[0]["body_sha256"] = "0" * 64
+    elif mutation == "changed_source":
+        envelope["source_id"] = "other_source#1"
+    elif mutation == "changed_status":
+        envelope["status"] = 404
+    elif mutation == "invalid_base64":
+        envelope["body_bytes_b64"] = "???"
+    raw_file.write_text(json.dumps(envelope), encoding="utf-8")
+    index[0]["file_sha256"] = hashlib.sha256(raw_file.read_bytes()).hexdigest()
+    _dump(raw_index, index)
+    ledger_path = snapshot / runner.acquisition.LEDGER_FILENAME
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    ledger["snapshot"]["raw_index_sha256"] = hashlib.sha256(raw_index.read_bytes()).hexdigest()
+    _dump(ledger_path, ledger)
+    monkeypatch.setattr(runner.acquisition, "refresh", lambda *_args, **_kw: str(snapshot))
+    with pytest.raises(
+        runner.prospective.ProspectiveRefusal, match="inconsistent archived body.*" + expected
+    ):
         runner._load_or_refresh({"slug": "plant"}, out_dir, "2026-10-23")
