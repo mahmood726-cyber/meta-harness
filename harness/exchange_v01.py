@@ -129,8 +129,17 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
         status = case.get("status")
         if status not in VALID_BENCHMARK_STATES:
             raise ValueError(f"{cid}: unknown status")
-        if status == "PASS" and not isinstance(case.get("run_evidence"), dict):
-            raise ValueError(f"{cid}: PASS without run evidence")
+        if case.get("input_type") != "SYNTHETIC_FIXTURE_ONLY":
+            raise ValueError(f"{cid}: only synthetic test fixtures permitted in v0.1")
+        if status == "PASS":
+            ev = case.get("run_evidence")
+            if not isinstance(ev, dict) or not all(
+                isinstance(ev.get(k), str) and ev[k].strip()
+                for k in ("action_run_url", "commit_sha", "input_sha256", "job_name")
+            ) or not re.fullmatch(r"[0-9a-f]{40}", ev["commit_sha"]) or ev["input_sha256"] != case.get("input_sha256"):
+                raise ValueError(f"{cid}: PASS without matching, complete run evidence")
+            if not re.fullmatch(r"https://github[.]com/[^/]+/[^/]+/actions/runs/[0-9]+", ev["action_run_url"]):
+                raise ValueError(f"{cid}: PASS without canonical workflow run URL")
         h = case.get("input_sha256")
         if not isinstance(h, str) or not HEX64.fullmatch(h):
             raise ValueError(f"{cid}: missing input_sha256")
