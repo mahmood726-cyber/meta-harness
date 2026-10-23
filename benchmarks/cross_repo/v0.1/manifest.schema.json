@@ -8,7 +8,8 @@
     "benchmark_version",
     "purpose",
     "repositories",
-    "cases"
+    "cases",
+    "coverage"
   ],
   "properties": {
     "benchmark_version": {
@@ -47,6 +48,41 @@
       "minItems": 1,
       "items": {
         "$ref": "#/$defs/case"
+      }
+    },
+    "coverage": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "category",
+          "status",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "NOT_RUN",
+              "BLOCKED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     }
   },
