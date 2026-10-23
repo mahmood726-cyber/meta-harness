@@ -84,6 +84,7 @@ def test_manifest_is_pinned_and_internal_cases_not_claimed_passed():
     obj = json.loads(path.read_text(encoding="utf-8"))
     validate_manifest(obj, path.parent)
     assert all(c["status"] == "NOT_RUN" for c in obj["cases"])
+    assert all(c["status"] == "NOT_RUN" for c in obj["coverage"])
 
 
 def test_no_bare_pass_status_without_evidence():
@@ -123,4 +124,12 @@ def test_unsupported_case_input_type_refuses():
     obj = json.loads(path.read_text(encoding="utf-8"))
     obj["cases"][0]["input_type"] = "REAL_CLINICAL_DATA"
     with pytest.raises(ValueError, match="only synthetic test fixtures"):
+        validate_manifest(obj, path.parent)
+
+
+def test_fake_external_coverage_pass_refuses():
+    path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
+    obj = json.loads(path.read_text(encoding="utf-8"))
+    obj["coverage"][0]["status"] = "PASS"
+    with pytest.raises(ValueError, match="coverage requires actual external evidence"):
         validate_manifest(obj, path.parent)
