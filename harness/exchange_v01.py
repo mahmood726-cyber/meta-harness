@@ -11,6 +11,8 @@ from pathlib import Path
 
 VERSION = "0.1.0"
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
+# Text-only handoff: only concrete 1-based line locators can be checked here.
+LINE_REF = re.compile(r"line ([1-9][0-9]{0,8})\Z|lines ([1-9][0-9]{0,8})-([1-9][0-9]{0,8})\Z")
 ESTIMAND_KEYS = ("measure", "population", "outcome", "timepoint")
 VALID_DECISIONS = {"ALLOW", "ALLOW_WITH_LABEL", "ADJUST", "MANUAL_REVIEW", "REFUSE"}
 VALID_BENCHMARK_STATES = {"NOT_RUN", "PASS", "FAIL", "BLOCKED"}
@@ -35,6 +37,24 @@ def _required_text(obj: dict, key: str) -> str:
         raise ValueError(f"{key} missing or empty")
     return s
 
+
+
+def _verify_text_locator(content: str, locator: str, passage: str) -> None:
+    """Check that the archived verbatim passage occurs at the *claimed* lines.
+
+    This verifier cannot validate PDF page numbers, table cells, or scientific
+    eligibility. Those require a separate source-aware checker.
+    """
+    m = LINE_REF.fullmatch(locator)
+    if m is None:
+        raise ValueError("source_span locator must be 'line N' or 'lines N-M' for UTF-8 text")
+    start = int(m.group(1) or m.group(2))
+    end = int(m.group(1) or m.group(3))
+    lines = content.splitlines(keepends=True)
+    if start > end or end > len(lines):
+        raise ValueError("source_span locator outside source line range")
+    if passage not in "".join(lines[start - 1:end]):
+        raise ValueError("source_span passage absent at cited source lines")
 
 def validate_exchange(payload: object, archive_root: Path) -> None:
     """Raise ValueError unless all proposed rows have source and compatible estimands.
@@ -97,8 +117,7 @@ def validate_exchange(payload: object, archive_root: Path) -> None:
             text = content.decode("utf-8")
         except UnicodeDecodeError as exc:
             raise ValueError(f"row {i}: source is not text; requires external PDF/text span checker") from exc
-        if passage not in text:
-            raise ValueError(f"row {i}: passage absent from pinned source")
+        _verify_text_locator(text, span["locator"], passage)
     # This code does NOT call a meta-analysis engine or independently confirm eligibility.
 
 
