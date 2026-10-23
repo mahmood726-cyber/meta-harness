@@ -90,7 +90,7 @@ def test_no_bare_pass_status_without_evidence():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     obj = json.loads(path.read_text(encoding="utf-8"))
     obj["cases"][0]["status"] = "PASS"
-    with pytest.raises(ValueError, match="PASS without run evidence"):
+    with pytest.raises(ValueError, match="PASS without matching, complete run evidence"):
         validate_manifest(obj, path.parent)
 
 
@@ -99,4 +99,28 @@ def test_manifest_digest_tamper_refuses():
     obj = json.loads(path.read_text(encoding="utf-8"))
     obj["cases"][0]["input_sha256"] = "1" * 64
     with pytest.raises(ValueError, match="benchmark input SHA-256 mismatch"):
+        validate_manifest(obj, path.parent)
+
+
+def test_fake_empty_pass_record_refuses():
+    path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
+    obj = json.loads(path.read_text(encoding="utf-8"))
+    obj["cases"][0]["status"] = "PASS"
+    obj["cases"][0]["run_evidence"] = {}
+    with pytest.raises(ValueError, match="PASS without matching, complete run evidence"):
+        validate_manifest(obj, path.parent)
+
+
+def test_missing_source_span_refuses():
+    item = exchange()
+    del item["rows"][0]["source_span"]
+    with pytest.raises(ValueError, match="source_span missing"):
+        validate_exchange(item, ROOT)
+
+
+def test_unsupported_case_input_type_refuses():
+    path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
+    obj = json.loads(path.read_text(encoding="utf-8"))
+    obj["cases"][0]["input_type"] = "REAL_CLINICAL_DATA"
+    with pytest.raises(ValueError, match="only synthetic test fixtures"):
         validate_manifest(obj, path.parent)
