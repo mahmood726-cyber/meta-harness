@@ -168,7 +168,7 @@ scientific outcomes are unchanged. This checks schema shape only: it does not
 resolve Git blobs, install dependencies, verify remote Actions jobs, execute
 R, or run a cross-repository consumer.
 
-Fourteen synthetic negative/positive test instances were added to guard the
+Fifteen synthetic negative/positive test instances were added to guard the
 contract. **CROSS-EXCH-013 remains NOT_RUN** until independently reviewed,
 exact-pinned benchmark-case execution is recorded; repository pytest is not a
 four-repository benchmark or external scientific validation.
