@@ -41,7 +41,7 @@ if label not in ('refuse', 'manual_review'):
 raw = sys.stdin.buffer.read()
 # Fail closed for both subprocess.run and direct subprocess.Popen routes.
 # These guards are active only within the isolated frozen-source replay child.
-with mock.patch.object(module.subprocess, 'run', side_effect=AssertionError('NO_POOL: subprocess invoked')) as run_tripwire, \\
+with mock.patch.object(module.subprocess, 'run', side_effect=AssertionError('NO_POOL: subprocess invoked')) as run_tripwire, \
      mock.patch.object(module.subprocess, 'Popen', side_effect=AssertionError('NO_POOL: subprocess invoked')) as popen_tripwire:
     result = module.consume(raw, rapid, label)
     run_tripwire.assert_not_called()
