@@ -78,6 +78,7 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
     assert_equal(index["digests"]["source.txt"], index["source_sha256"], "archived source receipt")
 
     decisions = {}
+    numerical_controls = {}
     for label, expected in scenarios.items():
         raw = (root / "inputs" / f"{label}.json").read_bytes()
         result = load_json(root / "results" / f"{label}.json")
@@ -118,6 +119,8 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
                    isinstance(summary.get(k), bool) or not math.isfinite(summary[k])
                    for k in ("mu_log", "tau2")):
                 raise ValueError("non-finite pooled smoke output")
+            numerical_controls[label] = {key: summary[key]
+                                         for key in ("k_used", "measure", "mu_log", "tau2")}
         elif consumer.get("status") != "REFUSED" or "engine_output" in consumer:
             raise ValueError(f"refused case pooled or published engine output: {label}")
         decisions[label] = {
@@ -133,7 +136,8 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
     return {"runner": os_name, "index_sha256": digest((root / "index.json").read_bytes()),
             "source_sha256": index["source_sha256"],
             "rapidmeta_engine_sha256": engine_sha,
-            "digest_receipts_verified": len(expected_files), "decisions": decisions}
+            "digest_receipts_verified": len(expected_files),
+            "decisions": decisions, "numerical_controls": numerical_controls}
 
 
 def compare(registration_path: Path, ubuntu_dir: Path, windows_dir: Path) -> dict:
@@ -147,13 +151,40 @@ def compare(registration_path: Path, ubuntu_dir: Path, windows_dir: Path) -> dic
     b = check_archive(registration, digest(registration_raw), windows_dir, "windows-2025")
     for field in ("source_sha256", "rapidmeta_engine_sha256", "decisions"):
         assert_equal(a[field], b[field], f"cross-OS {field}")
+    # Both independent OS jobs must archive comparable outputs from the actual
+    # pinned RapidMeta engine, not merely matching status/k/measure flags.
+    # This checks reproducibility of a SYNTHETIC smoke calculation only:
+    # it is NOT independent R-oracle or clinical statistical validation.
+    smoke_controls = {}
+    for label, expectation in registration["scenarios"].items():
+        if expectation["consumer"] != "SYNTHETIC_ENGINE_EXECUTED":
+            continue
+        linux = a["numerical_controls"].get(label)
+        windows = b["numerical_controls"].get(label)
+        if not isinstance(linux, dict) or not isinstance(windows, dict):
+            raise ValueError(f"missing cross-OS pinned synthetic engine smoke: {label}")
+        for field in ("k_used", "measure"):
+            assert_equal(linux[field], windows[field],
+                         f"cross-OS pinned synthetic engine smoke {label}/{field}")
+        for field in ("mu_log", "tau2"):
+            if not math.isclose(linux[field], windows[field],
+                                rel_tol=1e-12, abs_tol=1e-12):
+                raise ValueError(
+                    f"cross-OS pinned synthetic engine smoke drift: {label}/{field}: "
+                    f"{linux[field]!r} != {windows[field]!r}"
+                )
+        smoke_controls[label] = {"ubuntu-24.04": linux, "windows-2025": windows}
+    if not smoke_controls:
+        raise ValueError("no registered pinned synthetic engine smoke scenario")
     return {"record_version": "1.0.0", "case_id": CASE_ID,
             "evidence_scope": "FROZEN_SYNTHETIC_TWO_REPO_CROSS_OS_TRANSPORT_REFUSAL_PARITY_ONLY",
             "registration_sha256": digest(registration_raw), "overall": "PASS",
             "case_count": len(a["decisions"]),
             "refused_without_pooling": sum(not item["engine_invoked"] for item in a["decisions"].values()),
             "input_and_decision_parity": True,
-            "numerical_output_cross_os_comparison": "NOT_TESTED",
+            "numerical_output_cross_os_comparison": "PINNED_SYNTHETIC_SMOKE_ONLY_PASS",
+            "numerical_smoke_tolerance": {"rel_tol": 1e-12, "abs_tol": 1e-12},
+            "numerical_smoke_controls": smoke_controls,
             "real_R_oracle": "NOT_TESTED", "four_repository_suite": "NOT_RUN",
             "clinical_accuracy": "NOT_TESTED", "independent_human_adjudication": "NOT_TESTED",
             "archives": {a["runner"]: {k: a[k] for k in ("index_sha256", "digest_receipts_verified")},
