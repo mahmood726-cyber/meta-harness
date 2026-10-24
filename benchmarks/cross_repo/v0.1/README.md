@@ -242,7 +242,7 @@ tripwire proves no engine subprocess is invoked on these replayed refusals.
 The independently observed refusal string must match each archived result.
 If either OS disagrees, CI fails, even if archive receipts were recomputed.
 
-With the frozen source and consumer checked out locally, and the two actual
+**Refusal replay extension:** the independent comparator now re-executes *both*\nregistered `refuse` and `manual_review` wire inputs from each OS (four frozen\nimporter calls), checks the exact case identities and recorded refusal reasons,\nand rejects every unexpected engine invocation. This is still a synthetic\ntwo-repository check, not a four-repository public benchmark PASS.\n\nWith the frozen source and consumer checked out locally, and the two actual
 Actions job artifacts unzipped under `frozen-artifacts/`, reproduce with:
 
 ```sh
