@@ -79,14 +79,21 @@ def validate_exchange(payload: object, archive_root: Path) -> None:
     if any(not isinstance(v, str) or not v.strip() for v in declared.values()):
         raise ValueError("proposed_pool.estimand has empty member")
     seen = set()
+    seen_trials = set()
     for i, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ValueError(f"row {i}: not an object")
         study = _required_text(row, "study_id")
-        _required_text(row, "trial_id")
+        trial = _required_text(row, "trial_id")
         if study in seen:
             raise ValueError(f"duplicate study_id: {study}")
         seen.add(study)
+        # v0.1 permits one pooled row per declared trial. Multiple reports and
+        # multi-arm comparisons require explicit study-level reconciliation; a
+        # different study_id must not bypass the unit-of-analysis guard.
+        if trial in seen_trials:
+            raise ValueError(f"duplicate trial_id: {trial} (requires reconciliation before pooling)")
+        seen_trials.add(trial)
         decision = row.get("decision")
         if decision not in VALID_DECISIONS:
             raise ValueError(f"row {i}: unknown decision")
