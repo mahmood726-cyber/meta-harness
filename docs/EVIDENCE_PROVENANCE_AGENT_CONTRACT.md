@@ -39,3 +39,15 @@ SEARCH receives a frozen protocol and emits a raw-response index plus completene
 
 ## Integration boundary
 Keep this evidence contract separate from statistical engine logic and from e156 publication certification. Export only versioned records with explicit uncertainty; use the existing review-exchange schema when it is integrated. Do not assume the proposed fields are already implemented in code.
+
+## Implementation boundary: unverified status promotion
+
+The current `harness.evidence_provenance.validate_extraction` primitive is a
+*source-byte check*, not a blinded human adjudication service. Its boolean
+success is restricted to `SOURCE_CHECKED` evidence with a matching archived
+digest and verbatim passage. `PROPOSED` and `REFUSED` cannot pass as verified
+evidence. `ADJUDICATED` is refused until an independently authenticated
+human-adjudication receipt verifier exists; adding `blinded: true` or a
+self-declared reviewer ID is not sufficient. No human-review accuracy or
+independence is asserted by these unit tests. These checks are not yet wired
+into all actual synthesis entry points.
