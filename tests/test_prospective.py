@@ -855,3 +855,33 @@ def test_batch_accepts_earlier_declaration_with_explicit_utc_offset(tmp_path: Pa
     _write_batch_record(root, decl["batch_id"], _record(root, decl["batch_id"], "run-first"))
 
     assert prospective.check_batch(root, decl["batch_id"])["ok"] is True
+
+
+@pytest.mark.parametrize(
+    "replacement",
+    [
+        None,
+        "",
+        "1. Rerun at investigator discretion.",
+        ["1. preserve original", "2. rerun as needed"],
+        "1. Every run is retained with all its artefacts.\\n",
+    ],
+)
+def test_frozen_declaration_refuses_rewritten_a4_rerun_policy(
+    tmp_path: Path, replacement: object
+) -> None:
+    """Synthetic negative tests: an edited policy is not a frozen preregistration."""
+    root = _mini_root(tmp_path)
+    declaration = _declare(root)
+    assert prospective.check_declaration_frozen(root, declaration) == declaration
+    declaration["rerun_policy"] = replacement
+    with pytest.raises(prospective.ProspectiveRefusal, match="rerun_policy differs from frozen A4 policy"):
+        prospective.check_declaration_frozen(root, declaration)
+
+
+def test_frozen_declaration_refuses_missing_a4_policy(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    declaration = _declare(root)
+    del declaration["rerun_policy"]
+    with pytest.raises(prospective.ProspectiveRefusal, match="rerun_policy differs from frozen A4 policy"):
+        prospective.check_declaration_frozen(root, declaration)
