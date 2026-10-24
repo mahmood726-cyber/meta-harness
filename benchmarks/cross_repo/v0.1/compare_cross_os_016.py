@@ -86,13 +86,28 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
         assert_equal(result.get("raw_sha256"), input_sha, "result/input digest")
         assert_equal(result.get("cli_status"), expected["importer"], "CLI decision")
         assert_equal(result.get("api_status"), expected["importer"], "API decision")
+        # Status-only parity can mask divergent or missing refusal provenance.
+        # This diagnostic was archived by the frozen producer on each OS.
+        api_refusal = result.get("api_refusal")
+        if expected["importer"] == "REFUSED":
+            if not isinstance(api_refusal, str) or not api_refusal.strip():
+                raise ValueError(f"missing importer refusal reason: {label}")
+        elif api_refusal is not None:
+            raise ValueError(f"accepted importer carried refusal reason: {label}")
         consumer = result.get("consumer")
         if not isinstance(consumer, dict):
             raise ValueError(f"absent consumer result: {label}")
+        assert_equal(consumer.get("case"), label, "consumer case identity")
         assert_equal(consumer.get("input_sha256"), input_sha, "downstream input digest")
         assert_equal(consumer.get("status"), expected["consumer"], "consumer decision")
         allowed = label == "allow_rr_itt"
         assert_equal(consumer.get("engine_invoked"), allowed, "engine invocation")
+        downstream_refusal = consumer.get("refusal")
+        if consumer.get("status") == "REFUSED":
+            if not isinstance(downstream_refusal, str) or not downstream_refusal.strip():
+                raise ValueError(f"missing downstream refusal reason: {label}")
+        elif downstream_refusal is not None:
+            raise ValueError(f"pooled result carried refusal reason: {label}")
         if allowed:
             summary = consumer.get("engine_output")
             if not isinstance(summary, dict):
@@ -109,7 +124,10 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
             "raw_sha256": input_sha,
             "cli": result["cli_status"],
             "api": result["api_status"],
+            "api_refusal": api_refusal,
             "consumer": consumer["status"],
+            "consumer_case": consumer["case"],
+            "downstream_refusal": downstream_refusal,
             "engine_invoked": consumer["engine_invoked"],
         }
     return {"runner": os_name, "index_sha256": digest((root / "index.json").read_bytes()),
