@@ -526,9 +526,29 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     except ProspectiveRefusal as exc:
         reasons.append(str(exc))
 
+    # A4/B1: the eligibility universe and protocol must be declared before
+    # *any* topic is released. A valid architecture SHA does not establish
+    # prospective timing: a declaration written after seeing results is not
+    # preregistration. Compare actual timezone-aware instants, not strings.
+    try:
+        declaration_utc = _parse_utc(decl.get("declared_utc"))
+    except ProspectiveRefusal as exc:
+        reasons.append(f"declaration declared_utc invalid: {exc}")
+        declaration_utc = None
+
     records = load_run_records(repo, batch)
     for record in records:
         reasons.extend(_validate_record_shape(record))
+        try:
+            run_started = _parse_utc(record.get("started_utc"))
+        except ProspectiveRefusal as exc:
+            reasons.append(f"run {record.get('run_id')}: invalid started_utc: {exc}")
+        else:
+            if declaration_utc is not None and run_started <= declaration_utc:
+                reasons.append(
+                    f"run {record.get('run_id')}: declaration declared_utc "
+                    "does not precede run start"
+                )
 
     identities = {
         record.get("architecture_identity")

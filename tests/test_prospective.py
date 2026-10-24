@@ -553,3 +553,59 @@ def test_check_batch_refuses_rerun_of_successful_original(tmp_path: Path) -> Non
         prospective.ProspectiveRefusal, match="original run is not a recorded failure"
     ):
         prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize(
+    "declared_utc",
+    [
+        "2026-09-14T00:10:00Z",  # simultaneous is not predeclared
+        "2026-09-14T00:10:01Z",  # registration after release
+        "not-a-timestamp",
+        None,
+    ],
+)
+def test_batch_refuses_late_or_invalid_protocol_declaration(
+    tmp_path: Path, declared_utc: str | None
+) -> None:
+    """Synthetic timing negative cases; not evidence of external preregistration."""
+    root = _mini_root(tmp_path)
+    decl = _declare(root)
+    decl["declared_utc"] = declared_utc
+    prospective.write_declaration(root, decl)
+    _write_batch_record(root, decl["batch_id"], _record(root, decl["batch_id"], "run-first"))
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration declared_utc"):
+        prospective.check_batch(root, decl["batch_id"])
+
+
+def test_batch_refuses_missing_protocol_declaration_timestamp(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    decl = _declare(root)
+    del decl["declared_utc"]
+    prospective.write_declaration(root, decl)
+    _write_batch_record(root, decl["batch_id"], _record(root, decl["batch_id"], "run-first"))
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration declared_utc invalid"):
+        prospective.check_batch(root, decl["batch_id"])
+
+
+def test_batch_refuses_empty_run_start_even_with_frozen_declaration(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    decl = _declare(root)
+    record = _record(root, decl["batch_id"], "run-first")
+    record["started_utc"] = ""
+    _write_batch_record(root, decl["batch_id"], record)
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="invalid started_utc"):
+        prospective.check_batch(root, decl["batch_id"])
+
+
+def test_batch_accepts_earlier_declaration_with_explicit_utc_offset(tmp_path: Path) -> None:
+    """A +01:00 declaration at 01:00 precedes a 00:10Z run by ten minutes."""
+    root = _mini_root(tmp_path)
+    decl = _declare(root)
+    decl["declared_utc"] = "2026-09-14T01:00:00+01:00"
+    prospective.write_declaration(root, decl)
+    _write_batch_record(root, decl["batch_id"], _record(root, decl["batch_id"], "run-first"))
+
+    assert prospective.check_batch(root, decl["batch_id"])["ok"] is True
