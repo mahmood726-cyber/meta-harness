@@ -72,3 +72,28 @@ until exact pinned-input run evidence is independently verified. The existing
 refusals for `REFUSE`, `MANUAL_REVIEW`, `ADJUST`, and `ALLOW_WITH_LABEL`
 remain unconditional. Unknown real-world semantic fields require an explicit
 future contract version rather than silent acceptance.
+
+
+## New negative case: CROSS-EXCH-010 — reject duplicate raw JSON object members
+
+At the wire boundary, ordinary Python `json.loads` silently retains the last
+value of a duplicate property. A source message containing
+`"decision": "REFUSE", "decision": "ALLOW"` would therefore appear to be
+an unqualified `ALLOW` row to a consumer that parsed it before enforcing
+the transport gate. Duplicated trial identifiers, source hashes, estimand
+measures and requested-pool flags can create similarly ambiguous provenance.
+Other implementations can interpret duplicates differently.
+
+Raw JSON consumers **must** invoke `validate_exchange_json(raw_bytes,
+archive_root)` before any intermediary parser strips duplicate members.
+The new entry point requires UTF-8 without a BOM, rejects any repeated decoded
+object member (including Unicode-escaped aliases), and then delegates to the
+existing v0.1 structural validator. A consumer handed only a previously parsed
+Python dictionary cannot reconstruct whether overwritten keys once existed.
+There is no claim that downstream repositories already use the new entry point;
+such integration requires a separate cross-platform canary.
+
+The added synthetic regression scenarios test last-value-wins ambiguity and
+positive unique-member JSON, not clinical evidence. Existing pinned repository
+commits and source fixture SHA-256 are unchanged; `CROSS-EXCH-010` remains
+`NOT_RUN` pending independently inspected exact-head test evidence.
