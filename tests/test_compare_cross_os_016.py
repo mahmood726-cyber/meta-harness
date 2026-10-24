@@ -38,6 +38,10 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                           "refuse": {"importer": "REFUSED", "consumer": "REFUSED"},
                           "manual_review": {"importer": "REFUSED", "consumer": "REFUSED"}}
         }
+        self.spec["negative_input_sha256"] = {
+            case: comparator.digest(wire({"case": case, "decision": case.upper()}))
+            for case in ("refuse", "manual_review")
+        }
         self.reg.write_bytes(wire(self.spec))
         self.ubuntu = root / "ubuntu"
         self.windows = root / "windows"
@@ -211,6 +215,27 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate archived JSON member"):
             comparator.compare(self.reg, self.ubuntu, self.windows)
 
+
+
+    def test_two_os_rehashed_identical_negative_wire_cannot_override_frozen_sha(self):
+        # Both output archives are internally hash-consistent, with matching
+        # semantic decisions and matching altered wire bytes. The external
+        # registered byte SHA must still refuse the drift.
+        rewrite = lambda raw: raw.rstrip(b"\\n") + b" \\n"
+        self._write_archive(self.ubuntu, "ubuntu-24.04", "Linux",
+                            raw_modifier=rewrite)
+        self._write_archive(self.windows, "windows-2025", "Windows",
+                            raw_modifier=rewrite)
+        with self.assertRaisesRegex(ValueError, "registered negative input SHA256 refuse"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_missing_pre_registered_negative_input_sha_refuses(self):
+        self.spec.pop("negative_input_sha256")
+        self.reg.write_bytes(wire(self.spec))
+        self._write_archive(self.ubuntu, "ubuntu-24.04", "Linux")
+        self._write_archive(self.windows, "windows-2025", "Windows")
+        with self.assertRaisesRegex(ValueError, "pre-registered negative input SHA256"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
 
 if __name__ == "__main__":
     unittest.main()
