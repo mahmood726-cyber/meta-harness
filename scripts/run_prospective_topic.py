@@ -63,6 +63,24 @@ def _require_topic_slug(value: Any) -> str:
     return value
 
 
+def _refuse_duplicate_topic_members(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Refuse ambiguous raw held-out JSON at every object nesting level.
+
+    Python's default JSON decoder silently keeps the last repeated member,
+    which can switch a released slug, protocol or eligibility field without
+    changing the visibly archived raw input. The original bytes are archived
+    before this hook runs, including the refused malformed configuration.
+    """
+    seen: dict[str, Any] = {}
+    for name, value in pairs:
+        if name in seen:
+            raise prospective.ProspectiveRefusal(
+                f"duplicate JSON member in held-out topic configuration: {name!r}"
+            )
+        seen[name] = value
+    return seen
+
+
 def _utc_now() -> str:
     return (
         dt.datetime.now(dt.UTC)
@@ -268,7 +286,9 @@ def run_topic(
         archived_config = out_dir / "topic-config.json"
         archived_config.write_bytes(config_bytes)
         artefacts.append(archived_config)
-        config = json.loads(config_bytes.decode("utf-8"))
+        config = json.loads(
+            config_bytes.decode("utf-8"), object_pairs_hook=_refuse_duplicate_topic_members
+        )
         if not isinstance(config, dict):
             raise ValueError(f"{config_path} must contain a JSON object")
         topic_identifier = str(config.get("topic_identifier") or config.get("slug") or topic_config_path)
