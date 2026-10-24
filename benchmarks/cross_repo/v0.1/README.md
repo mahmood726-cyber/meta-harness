@@ -250,7 +250,9 @@ exact case identities and recorded refusal reasons,
 and rejects every unexpected engine invocation. This is still a synthetic
 two-repository check, not a four-repository public benchmark PASS.
 
-With the frozen source and consumer checked out locally, and the two actual
+With the frozen source and consumer checked out locally at their exact registered commits,
+and with the RapidMeta engine matching its committed Git blob (not merely the two
+producer-reported SHA receipts), and the two actual
 Actions job artifacts unzipped under `frozen-artifacts/`, reproduce with:
 
 ```sh
@@ -258,6 +260,7 @@ python benchmarks/cross_repo/v0.1/compare_cross_os_016.py \
   --registration benchmarks/cross_repo/v0.1/frozen-cli-api-016.json \
   --ubuntu frozen-artifacts/ubuntu-24.04 \
   --windows frozen-artifacts/windows-2025 \
+  --rapidmeta rapidmeta \
   --report parity-report/cross-os-016.json
 python benchmarks/cross_repo/v0.1/replay_archived_refusal_016.py \
   --registration benchmarks/cross_repo/v0.1/frozen-cli-api-016.json \
