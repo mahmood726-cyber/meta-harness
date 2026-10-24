@@ -93,12 +93,15 @@
       "properties": {
         "study_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?!\\\\s)[\\\\s\\\\S]*\\\\S(?![\\\\s\\\\S])",
+          "description": "ID must have no leading or trailing Unicode whitespace. The executable validator refuses noncanonical values before deduplication; distinct registry aliases still require external reconciliation."
         },
         "trial_id": {
           "type": "string",
           "minLength": 1,
-          "description": "Identity of the underlying trial; in v0.1 each trial_id may appear at most once per proposed pool. Multi-report and multi-arm reconciliation must occur upstream; uniqueness is enforced by the executable validator, not by JSON Schema alone."
+          "description": "Identity of the underlying trial; in v0.1 each trial_id may appear at most once per proposed pool. Multi-report and multi-arm reconciliation must occur upstream; uniqueness is enforced by the executable validator, not by JSON Schema alone. ID must have no leading or trailing Unicode whitespace. The executable validator refuses noncanonical values before deduplication; distinct registry aliases still require external reconciliation.",
+          "pattern": "^(?!\\\\s)[\\\\s\\\\S]*\\\\S(?![\\\\s\\\\S])"
         },
         "decision": {
           "enum": [
