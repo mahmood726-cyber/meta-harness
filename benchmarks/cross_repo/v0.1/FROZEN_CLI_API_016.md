@@ -49,3 +49,46 @@ This **must fail** for REFUSE. The `allow_rr_itt.json` input must pass raw impor
 The original historical Meta-Harness pin `a62cbc43416a94561b7bee3ec48bb659ac3286e2` does **not contain** the v0.1 exchange importer or the manifest paths. It is unsuitable for an executed exchange canary without an explicitly versioned re-pin; do not claim those cases can run as written. Original frozen `CROSS-EXCH-001…015` remain **15/15 NOT_RUN** and use a distinct historical Meta-Harness pin predating the exchange code. This runner tests only `CROSS-EXCH-016`; it does not silently update the v0.1 registry or previous frozen source. `CROSS-EXCH-017` and `-018` have separate bounded synthetic execution evidence. Common gate A (4 method-matched pinned R families), B (3 prospective scientific gates), C (2 signed cross-platform full ecosystems), D (2 independent usability/accessibility evaluations) remain **NOT TESTED / BLOCKED** until their own evidence exists.
 
 Full `verify_all`, branch protection, review and merging requirements remain independent. Do not merge merely because this supplemental canary passes. No Sentinel bypass, E156 workbook mutation, human YOUR REWRITE/SUBMITTED alteration, external review, scientific accuracy or statistical effect change is involved.
+
+
+## Independent comparison of actual Ubuntu and Windows matrix artifacts (draft PR #160)
+
+The original two runner jobs independently rehash 25 input/output/source receipts
+and assert expected refusal behavior, but **independent per-OS success does not
+prove the raw wire bytes were identical between operating systems**. The
+`compare-archived-os-results-016` dependent Actions job downloads **both
+actual matrix-job archives from the same workflow execution**, verifies the
+exact frozen registration SHA, original archived SHA receipts, source and engine
+digests, and checks the 12 actual raw-input SHA values and observed
+CLI/API/consumer outcomes for cross-OS agreement. REFUSE and MANUAL_REVIEW
+must have `engine_invoked=false` on each OS.
+
+Reproduce the exact comparison using a successful three-job Actions run.
+With GitHub CLI access, locate the run's artifact names (the suffix is that
+run's `github.sha`, which may be the PR merge-ref SHA, **not** the literal
+checked-out candidate source HEAD). Substitute the two exact artifact names
+from the *same* run:
+
+```sh
+gh run download RUN_ID -n "frozen-cross-exch-016-ubuntu-24.04-GITHUB_EVENT_SHA" -D ubuntu-evidence
+gh run download RUN_ID -n "frozen-cross-exch-016-windows-2025-GITHUB_EVENT_SHA" -D windows-evidence
+python benchmarks/cross_repo/v0.1/compare_cross_os_016.py \
+  --registration benchmarks/cross_repo/v0.1/frozen-cli-api-016.json \
+  --ubuntu ubuntu-evidence --windows windows-evidence \
+  --report cross-os-parity-report.json
+```
+
+The comparator rejects duplicate raw JSON members, missing/modified SHA
+receipts, inconsistent OS declarations, source or engine identity differences,
+unequal archived input bytes and mismatched acceptance/refusal outcomes.
+A separate 7-case synthetic unit suite intentionally simulates otherwise
+internally consistent archives with differing wire inputs and verifies this
+refuses. Those fixtures are **not** real producer/consumer executions; only
+the downloaded-artifact dependent job can show actual executed comparison.
+
+The report distinguishes **transport and no-pool parity** from untested
+numerical cross-OS equality, R-oracle agreement, prospective discovery,
+external adjudication, signed four-repo ecosystem and clinical accuracy.
+Original common CROSS-EXCH-001–015 remain **NOT_RUN**. The 32 historical
+certificate reproduction gate and repository review rules remain mandatory;
+supplemental CI is not approval to merge.
