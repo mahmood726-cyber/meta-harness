@@ -384,7 +384,7 @@ def test_cross_lane_case_id_cannot_replace_registered_exchange_case():
 def test_renamed_case_cannot_create_gap_in_registration():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    manifest["cases"][-1]["id"] = "CROSS-EXCH-013"
+    manifest["cases"][-1]["id"] = "CROSS-EXCH-014"
     with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-012"):
         validate_manifest(manifest, path.parent)
 
@@ -393,19 +393,92 @@ def test_contiguous_future_id_and_reordering_are_structurally_allowed():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
     future = copy.deepcopy(manifest["cases"][-1])
-    future["id"] = "CROSS-EXCH-013"
+    future["id"] = "CROSS-EXCH-014"
     future["status"] = "NOT_RUN"
     manifest["cases"].insert(0, future)
     manifest["cases"].reverse()
     validate_manifest(manifest, path.parent)
 
 
-def test_manifest_schema_declares_transport_namespace_and_12_case_floor():
+def test_manifest_schema_declares_transport_namespace_and_13_case_floor():
     schema = json.loads(
         (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
     )
-    assert schema["properties"]["cases"]["minItems"] == 12
+    assert schema["properties"]["cases"]["minItems"] == 13
     pat = schema["$defs"]["case"]["properties"]["id"]["pattern"]
     assert re.fullmatch(pat, "CROSS-EXCH-012")
     assert re.fullmatch(pat, "CROSS-R-012") is None
     assert re.fullmatch(pat, "CROSS-EXCH-000") is None
+
+
+# CROSS-EXCH-013: the executable manifest validator must honor the same
+# closed shapes and required provenance declarations as manifest.schema.json.
+# All inputs here are local synthetic mutations, not benchmark PASS evidence.
+def _manifest_fixture():
+    path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
+    return json.loads(path.read_text(encoding="utf-8")), path.parent
+
+
+@pytest.mark.parametrize("section", ["root", "repository", "case", "coverage"])
+def test_manifest_rejects_unversioned_fields(section):
+    manifest, root = _manifest_fixture()
+    target = {
+        "root": manifest,
+        "repository": manifest["repositories"]["rapidmeta-kit"],
+        "case": manifest["cases"][0],
+        "coverage": manifest["coverage"][0],
+    }[section]
+    target["silent_gate_override"] = {"status": "PASS"}
+    with pytest.raises(ValueError, match="unsupported field"):
+        validate_manifest(manifest, root)
+
+
+@pytest.mark.parametrize("section,key", [
+    ("root", "purpose"),
+    ("repository", "dependency_identity"),
+    ("case", "description"),
+])
+def test_manifest_rejects_missing_required_metadata(section, key):
+    manifest, root = _manifest_fixture()
+    target = {
+        "root": manifest,
+        "repository": manifest["repositories"]["rapidmeta-kit"],
+        "case": manifest["cases"][0],
+    }[section]
+    del target[key]
+    with pytest.raises(ValueError, match=f"{key} missing or empty"):
+        validate_manifest(manifest, root)
+
+
+@pytest.mark.parametrize("value", [None, 123, "F" * 40, "0" * 39, "0" * 41])
+def test_manifest_rejects_invalid_declared_lock_blob(value):
+    manifest, root = _manifest_fixture()
+    manifest["repositories"]["meta-harness"]["dependency_lock_git_blob"] = value
+    with pytest.raises(ValueError, match="invalid dependency_lock_git_blob"):
+        validate_manifest(manifest, root)
+
+
+def test_manifest_rejects_nonobject_coverage_without_attribute_error():
+    manifest, root = _manifest_fixture()
+    manifest["coverage"][0] = ["not-a-record"]
+    with pytest.raises(ValueError, match="coverage entry must be an object"):
+        validate_manifest(manifest, root)
+
+
+def test_manifest_schema_declares_all_four_closed_shapes_and_13_cases():
+    spec = json.loads(
+        (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
+    )
+    assert spec["additionalProperties"] is False
+    assert spec["$defs"]["repository"]["additionalProperties"] is False
+    assert spec["$defs"]["case"]["additionalProperties"] is False
+    assert spec["properties"]["coverage"]["items"]["additionalProperties"] is False
+    assert spec["properties"]["cases"]["minItems"] == 13
+
+
+def test_manifest_13th_case_remains_not_run_and_fixture_pinned():
+    manifest, root = _manifest_fixture()
+    validate_manifest(manifest, root)
+    case = next(c for c in manifest["cases"] if c["id"] == "CROSS-EXCH-013")
+    assert case["status"] == "NOT_RUN"
+    assert case["input_type"] == "SYNTHETIC_FIXTURE_ONLY"

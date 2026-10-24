@@ -146,3 +146,29 @@ has been executed against the four frozen source pins by these tests.**
 All entries remain `NOT_RUN`; neither CI success on this patch nor these
 fixture tests demonstrate R parity, live discovery, human adjudication, or
 full-system interoperability.
+
+
+## New negative case: CROSS-EXCH-013 — manifest/schema provenance parity
+
+The JSON Schema already forbids extra manifest fields and requires descriptions,
+benchmark purpose and dependency-identity declarations. The executable manifest
+validator previously accepted unversioned extra keys at the manifest root,
+individual repository pins, cases and external-coverage entries, and omitted
+some mandatory provenance fields. A different consumer could interpret a forged
+field (for example an extra gate override) while the Python verifier reported
+successful structural validation. An invalid optional dependency-lock blob was
+also accepted by the Python code despite its schema pattern.
+
+The validator now refuses unknown fields at these four boundaries and requires
+the declared purpose, case descriptions and dependency identities. An optional
+lock blob, if declared, must have canonical 40-character lowercase Git-blob
+syntax. A non-object coverage record yields an explicit refusal instead of an
+uncaught attribute error. Existing four Git commit pins, source SHA-256 and
+scientific outcomes are unchanged. This checks schema shape only: it does not
+resolve Git blobs, install dependencies, verify remote Actions jobs, execute
+R, or run a cross-repository consumer.
+
+Fifteen synthetic negative/positive test instances were added to guard the
+contract. **CROSS-EXCH-013 remains NOT_RUN** until independently reviewed,
+exact-pinned benchmark-case execution is recorded; repository pytest is not a
+four-repository benchmark or external scientific validation.
