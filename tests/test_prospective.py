@@ -92,6 +92,31 @@ def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path
         prospective.check_declaration_frozen(root, decl)
 
 
+@pytest.mark.parametrize(
+    ("field", "forged_value", "error"),
+    [
+        ("architecture_components", {}, "declared architecture components differ"),
+        ("mutable_dependencies", [], "declared mutable dependencies differ"),
+        ("external_dependency_mutability", False, "declared external dependency mutability differs"),
+        ("freeze_claim", prospective.IMMUTABLE_FREEZE_CLAIM, "declared freeze claim contradicts"),
+        ("rerun_policy", "No limits on reruns", "declared rerun policy differs"),
+    ],
+)
+def test_declaration_refuses_metadata_forgery_even_with_unchanged_identity(
+    tmp_path: Path, field: str, forged_value: object, error: str
+) -> None:
+    root = _mini_root(tmp_path)
+    decl = _declare(root)
+    original_identity = decl["architecture_identity"]
+    assert prospective.check_declaration_frozen(root, decl) == decl
+
+    forged = dict(decl)
+    forged[field] = forged_value
+    assert forged["architecture_identity"] == original_identity
+    with pytest.raises(prospective.ProspectiveRefusal, match=error):
+        prospective.check_declaration_frozen(root, forged)
+
+
 def test_append_defect_outside_tree_leaves_architecture_identity_unchanged(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     before = architecture_identity.identity(root)
