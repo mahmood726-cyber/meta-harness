@@ -885,3 +885,58 @@ def test_frozen_declaration_refuses_missing_a4_policy(tmp_path: Path) -> None:
     del declaration["rerun_policy"]
     with pytest.raises(prospective.ProspectiveRefusal, match="rerun_policy differs from frozen A4 policy"):
         prospective.check_declaration_frozen(root, declaration)
+@pytest.mark.parametrize(
+    "failure_class,attribution,accepted",
+    [
+        ("FAILED_CRASH", "runner killed", True),
+        ("FAILED_CRASH", "network outage", True),
+        ("FAILED_CRASH", "external network outage", True),
+        ("FAILED_CRASH", "provider 5xx", True),
+        ("FAILED_TIMEOUT", "runner killed", False),
+        ("FAILED_CRASH", "statistical result disagrees with expectations", False),
+        ("FAILED_CRASH", "not a network outage", False),
+        ("FAILED_CRASH", "network outage after unfavourable result", False),
+        ("FAILED_CRASH", "", False),
+        ("FAILED_CRASH", None, False),
+        ("FAILED_CRASH", ["network outage"], False),
+    ],
+)
+def test_rerun_requires_matching_failure_and_external_infrastructure_attribution(
+    tmp_path: Path,
+    failure_class: str,
+    attribution: object,
+    accepted: bool,
+) -> None:
+    """A4 synthetic negative fixtures do not independently authenticate incidents."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-original", outcome="FAILED_CRASH")
+    )
+    entry = prospective.defect_entry(
+        batch, "topic-plant", "run-original", failure_class, "runner killed",
+        "test-only incident; no evidence of an actual outage",
+        entry_id="defect-a4-infrastructure",
+        declared_utc="2026-09-14T00:19:00Z",
+    )
+    entry["attribution"] = attribution
+    prospective.append_defect(entry, root=root)
+    _write_batch_record(
+        root, batch,
+        _record(
+            root, batch, "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="test citation defect-a4-infrastructure",
+        ),
+    )
+    if accepted:
+        assert prospective.check_batch(root, batch)["ok"] is True
+    else:
+        with pytest.raises(
+            prospective.ProspectiveRefusal,
+            match="permitted A4 external infrastructure attribution",
+        ):
+            prospective.check_batch(root, batch)
