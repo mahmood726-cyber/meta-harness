@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from typing import Any
 
+# This is the exact endpoint used by acquisition.esearch_all, not proof of provider authenticity.
+PUBMED_ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+
 CONCEPT_KINDS = frozenset({
     "PUBMED_CONCEPT_QUERY",
     "EUROPEPMC_CONCEPT_QUERY",
@@ -59,4 +62,23 @@ def concept_discovery_failures(ledger: dict[str, Any], raw_rows: list[dict[str, 
             failures.append(f"{label}: concept query was capped or cap status is unknown")
         if not isinstance(source_id, str) or not source_id or source_id not in successful_raw_sources:
             failures.append(f"{label}: concept query has no archived successful HTTP response")
+        # Binding a source_id to any successful response is insufficient: the HTTP
+        # request might instead be a seeded [uid] query or search a different topic.
+        # Check every archived PubMed concept-search page, not just the first one.
+        # Other providers require separately specified request-field contracts.
+        if source.get("kind") == "PUBMED_CONCEPT_QUERY":
+            for row in raw_rows:
+                if not isinstance(row, dict) or row.get("source_id") != source_id:
+                    continue
+                params = row.get("params")
+                if (
+                    row.get("url") != PUBMED_ESEARCH_URL
+                    or not isinstance(params, dict)
+                    or params.get("db") != "pubmed"
+                    or params.get("term") != source.get("query")
+                ):
+                    failures.append(
+                        f"{label}: archived PubMed search request differs from declared concept query"
+                    )
+                    break
     return failures
