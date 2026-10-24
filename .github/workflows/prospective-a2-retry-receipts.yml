@@ -1,0 +1,37 @@
+name: Prospective A2 retry receipts (additive)
+
+# Fast focused evidence-integrity regression. It supplements, never replaces,
+# verify.yml's full 15-limb publication and certificate reproduction standard.
+on:
+  push:
+    branches:
+      - "audit/prospective-a2-*"
+    paths:
+      - "harness/http.py"
+      - "harness/acquisition.py"
+      - "tests/test_prospective_http_retry_archival.py"
+      - "tests/test_prospective_unscoped_http_archive.py"
+      - ".github/workflows/prospective-a2-retry-receipts.yml"
+  pull_request:
+    paths:
+      - "harness/http.py"
+      - "harness/acquisition.py"
+      - "tests/test_prospective_http_retry_archival.py"
+      - "tests/test_prospective_unscoped_http_archive.py"
+      - ".github/workflows/prospective-a2-retry-receipts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  offline-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install the existing method-pinned, hash-checked environment
+        run: python -m pip install --require-hashes -r docs/offline/requirements.lock
+      - name: Run actual archived-retry and unscoped-response regressions
+        run: python -m pytest -q -ra tests/test_prospective_http_retry_archival.py tests/test_prospective_unscoped_http_archive.py
