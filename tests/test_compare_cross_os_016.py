@@ -103,11 +103,14 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self.assertEqual(result["numerical_output_cross_os_comparison"], "PINNED_SYNTHETIC_SMOKE_ONLY_PASS")
         self.assertEqual(result["numerical_smoke_controls"]["allow_rr_itt"]["ubuntu-24.04"]["mu_log"], 0.3)
 
-    def test_individually_valid_sha_receipts_can_mask_cross_os_input_drift(self):
-        # A matrix test checking each OS against statuses alone misses this.
+    def test_single_os_rehashed_negative_input_cannot_override_frozen_sha(self):
+        # Both archives keep their own SHA receipts internally consistent,
+        # but the Windows REFUSE input now differs from the registered bytes.
+        # The independent frozen-input gate must reject this BEFORE cross-OS
+        # decision parity is assessed (which is a second, later safeguard).
         self._write_archive(self.windows, "windows-2025", "Windows",
                             lambda raw: raw.replace(b'"refuse"', b'"refuse-changed"'))
-        with self.assertRaisesRegex(ValueError, "cross-OS decisions"):
+        with self.assertRaisesRegex(ValueError, "registered negative input SHA256 refuse"):
             comparator.compare(self.reg, self.ubuntu, self.windows)
 
     def test_cross_os_mu_log_drift_refuses_with_recomputed_sha_receipt(self):
