@@ -23,12 +23,13 @@ def _dump(path: Path, obj: object) -> None:
 def _live_snapshot(out_dir: Path, slug: str = "plant") -> Path:
     snapshot = out_dir / "cache" / slug / "snapshots" / "2026-10-23-plant"
     raw_path = snapshot / "raw" / "pubmed" / "001.json"
-    raw = b'{"body_bytes_b64":"e30=","body_sha256":"plant"}'
+    raw = json.dumps({"source_id": "pubmed_concept_query#1", "status": 200, "body_bytes_b64": "e30=", "body_sha256": hashlib.sha256(b"{}").hexdigest()}).encode("utf-8")
     raw_path.parent.mkdir(parents=True, exist_ok=True)
     raw_path.write_bytes(raw)
     index = [
         {
-            "source_id": "pubmed",
+            "source_id": "pubmed_concept_query#1",
+            "status": 200,
             "path": "raw/pubmed/001.json",
             "file_sha256": hashlib.sha256(raw).hexdigest(),
         }
@@ -38,7 +39,10 @@ def _live_snapshot(out_dir: Path, slug: str = "plant") -> Path:
     index_sha = hashlib.sha256(index_path.read_bytes()).hexdigest()
     _dump(
         snapshot / runner.acquisition.LEDGER_FILENAME,
-        {"snapshot": {"mode": "REFRESH", "raw_calls": 1, "raw_index_sha256": index_sha}},
+        {"snapshot": {"mode": "REFRESH", "raw_calls": 1, "raw_index_sha256": index_sha},
+         "sources": [{"source_id": "pubmed_concept_query#1", "kind": "PUBMED_CONCEPT_QUERY",
+                      "discovery_capable": True, "query": "(plant) AND (intervention)",
+                      "state": "RAN_ZERO", "funnel": {"cap": {"kind": "none"}}}]},
     )
     _dump(snapshot / "records.json", {"records": []})
     return snapshot
@@ -148,3 +152,27 @@ def test_runner_records_cached_input_as_failed_invariant(
     assert failure["type"] == "ProspectiveRefusal"
     assert "pre-existing records" in failure["message"]
     refresh.assert_not_called()
+
+
+@pytest.mark.parametrize("scenario", ["pmid_only", "failed_concept", "capped_concept", "unarchived_concept"])
+def test_runner_rejects_nonconcept_or_incomplete_discovery(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scenario: str
+) -> None:
+    out_dir = tmp_path / "run"
+    snapshot = _live_snapshot(out_dir)
+    ledger_path = snapshot / runner.acquisition.LEDGER_FILENAME
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    source = ledger["sources"][0]
+    if scenario == "pmid_only":
+        source["kind"] = "PUBMED_PMID_ENUMERATION"
+        source["discovery_capable"] = False
+    elif scenario == "failed_concept":
+        source["state"] = "RAN_ERROR"
+    elif scenario == "capped_concept":
+        source["funnel"]["cap"] = {"kind": "hard_hits_cap", "n": 20, "remainder": 3}
+    elif scenario == "unarchived_concept":
+        source["source_id"] = "pubmed_concept_query#2"
+    _dump(ledger_path, ledger)
+    monkeypatch.setattr(runner.acquisition, "refresh", lambda *_args, **_kwargs: str(snapshot))
+    with pytest.raises(runner.prospective.ProspectiveRefusal, match="prospective concept discovery refused"):
+        runner._load_or_refresh({"slug": "plant"}, out_dir, "2026-10-23")
