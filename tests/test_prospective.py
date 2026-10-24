@@ -92,7 +92,6 @@ def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path
         prospective.check_declaration_frozen(root, decl)
 
 
-
 @pytest.mark.parametrize(
     "field,replacement,reason",
     [
