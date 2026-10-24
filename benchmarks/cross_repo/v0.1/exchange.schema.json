@@ -94,14 +94,14 @@
         "study_id": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^(?![\\s\\u001c-\\u001f\\u0085])[\\s\\S]*[^\\s\\u001c-\\u001f\\u0085](?![\\s\\S])",
+          "pattern": "^(?![\\s\\u001c-\\u001f\\u0085\\uFEFF])[\\s\\S]*[^\\s\\u001c-\\u001f\\u0085\\uFEFF](?![\\s\\S])",
           "description": "ID must have no leading or trailing Unicode whitespace. The executable validator refuses noncanonical values before deduplication; distinct registry aliases still require external reconciliation. JSON Schema adds Python-only C0/NEL whitespace and Python rejects BOM (U+FEFF) to align its boundary-whitespace policy."
         },
         "trial_id": {
           "type": "string",
           "minLength": 1,
           "description": "Identity of the underlying trial; in v0.1 each trial_id may appear at most once per proposed pool. Multi-report and multi-arm reconciliation must occur upstream; uniqueness is enforced by the executable validator, not by JSON Schema alone. ID must have no leading or trailing Unicode whitespace. The executable validator refuses noncanonical values before deduplication; distinct registry aliases still require external reconciliation. JSON Schema adds Python-only C0/NEL whitespace and Python rejects BOM (U+FEFF) to align its boundary-whitespace policy.",
-          "pattern": "^(?![\\s\\u001c-\\u001f\\u0085])[\\s\\S]*[^\\s\\u001c-\\u001f\\u0085](?![\\s\\S])"
+          "pattern": "^(?![\\s\\u001c-\\u001f\\u0085\\uFEFF])[\\s\\S]*[^\\s\\u001c-\\u001f\\u0085\\uFEFF](?![\\s\\S])"
         },
         "decision": {
           "enum": [
