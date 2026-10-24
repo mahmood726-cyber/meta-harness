@@ -121,3 +121,28 @@ Actions run exists, checked out the claimed SHA, ran the named tests or
 passed. That requires an independently inspected job and artifact chain.
 Do not promote a case based on this offline check alone; all five
 external-coverage categories remain untested.
+
+
+
+## New negative case: CROSS-EXCH-012 — preserve the benchmark case registry
+
+The offline manifest verifier previously accepted a shortened `cases` array
+(or a case renamed to a different lane's ID) as long as the remaining records
+had unique IDs and valid fixture SHA-256 values. This allowed a benchmark to
+silently lose its earlier refusal and source-integrity scenarios while still
+producing a successful structural manifest check.
+
+The v0.1 manifest now registers `CROSS-EXCH-012`. The Python validator requires
+all transport IDs `CROSS-EXCH-001` through `CROSS-EXCH-012`, rejects cross-lane
+names, and requires any future three-digit `CROSS-EXCH-*` additions to be
+gap-free. The JSON Schema declares a 12-case floor and the matching namespace;
+the Python validator remains authoritative for cross-record completeness.
+Case ordering is not significant.
+
+Negative tests remove early, middle and latest IDs; substitute `CROSS-R-012`;
+and rename the last case to create a gap. A synthetic, contiguous future ID
+is accepted as a structure-only control. **No individual benchmark scenario
+has been executed against the four frozen source pins by these tests.**
+All entries remain `NOT_RUN`; neither CI success on this patch nor these
+fixture tests demonstrate R parity, live discovery, human adjudication, or
+full-system interoperability.
