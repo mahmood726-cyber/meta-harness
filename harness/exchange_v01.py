@@ -202,13 +202,31 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
     """Fail closed on missing Git pins, fixture hash drift and unsupported PASS claims."""
     if not isinstance(payload, dict) or payload.get("benchmark_version") != VERSION:
         raise ValueError("unsupported benchmark_version")
+    # Match the published JSON Schema's closed manifest shape. Otherwise a
+    # second consumer can assign meaning to extra gate/provenance fields.
+    _reject_unexpected_keys(
+        payload, {"benchmark_version", "purpose", "repositories", "cases", "coverage"},
+        "benchmark manifest",
+    )
+    _required_text(payload, "purpose")
     pins = payload.get("repositories")
     expected = {"meta-harness", "rapidmeta-kit", "e156-ecosystem-starter", "e156"}
     if not isinstance(pins, dict) or set(pins) != expected:
         raise ValueError("exactly four repository pins required")
     for name, pin in pins.items():
-        if not isinstance(pin, dict) or not re.fullmatch(r"[0-9a-f]{40}", str(pin.get("commit", ""))):
+        if not isinstance(pin, dict):
+            raise ValueError(f"{name}: repository pin must be an object")
+        _reject_unexpected_keys(
+            pin, {"commit", "dependency_identity", "dependency_lock_git_blob"},
+            f"{name} repository pin",
+        )
+        _required_text(pin, "dependency_identity")
+        if not re.fullmatch(r"[0-9a-f]{40}", str(pin.get("commit", ""))):
             raise ValueError(f"{name}: exact Git commit pin required")
+        if "dependency_lock_git_blob" in pin and not re.fullmatch(
+            r"[0-9a-f]{40}", str(pin["dependency_lock_git_blob"])
+        ):
+            raise ValueError(f"{name}: invalid dependency_lock_git_blob")
         # The entire pinned commit includes its dependency files. Do not claim it
         # proves runtime installation or resolves mutable remote services.
     cases = payload.get("cases")
@@ -220,6 +238,11 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
     if not isinstance(coverage, list) or {c.get("id") for c in coverage if isinstance(c, dict)} != expected_cov or len(coverage) != len(expected_cov):
         raise ValueError("coverage matrix must account for every unexecuted discipline exactly once")
     for c in coverage:
+        if not isinstance(c, dict):
+            raise ValueError("coverage entry must be an object")
+        _reject_unexpected_keys(
+            c, {"id", "category", "status", "reason"}, "benchmark coverage",
+        )
         _required_text(c, "category")
         _required_text(c, "reason")
         if c.get("status") not in {"NOT_RUN", "BLOCKED"}:
@@ -228,6 +251,13 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
     for case in cases:
         if not isinstance(case, dict):
             raise ValueError("case must be object")
+        _reject_unexpected_keys(
+            case,
+            {"id", "description", "input", "input_sha256", "input_type",
+             "status", "run_evidence"},
+            "benchmark case",
+        )
+        _required_text(case, "description")
         cid = _required_text(case, "id")
         if not re.fullmatch(r"CROSS-EXCH-(?!000$)[0-9]{3}", cid):
             raise ValueError(f"{cid}: unsupported CROSS-EXCH case namespace")
@@ -268,9 +298,9 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
         if hashlib.sha256(data).hexdigest() != h:
             raise ValueError(f"{cid}: benchmark input SHA-256 mismatch")
     # An editable manifest must not silently omit established negative gates.
-    # v0.1 requires CROSS-EXCH-001 through -012; later IDs are allowed only
+    # v0.1 requires CROSS-EXCH-001 through -013; later IDs are allowed only
     # without gaps. This checks registry completeness, NOT that tests ran.
-    last = max(12, max(int(cid.rsplit("-", 1)[1]) for cid in ids))
+    last = max(13, max(int(cid.rsplit("-", 1)[1]) for cid in ids))
     expected_ids = {f"CROSS-EXCH-{i:03d}" for i in range(1, last + 1)}
     missing = sorted(expected_ids - ids)
     if missing:
