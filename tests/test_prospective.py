@@ -92,6 +92,49 @@ def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path
         prospective.check_declaration_frozen(root, decl)
 
 
+@pytest.mark.parametrize(
+    "field,replacement,reason",
+    [
+        ("schema_version", 999, "unsupported schema_version"),
+        ("schema_version", True, "unsupported schema_version"),
+        ("architecture_components", {}, "architecture component manifest mismatch"),
+        ("mutable_dependencies", [], "mutable dependency ledger mismatch"),
+        ("external_dependency_mutability", False, "external dependency mutability mismatch"),
+        ("external_dependency_mutability", "false", "external dependency mutability mismatch"),
+        ("freeze_claim", prospective.IMMUTABLE_FREEZE_CLAIM, "freeze claim mismatches"),
+    ],
+)
+def test_declaration_freeze_metadata_cannot_be_relabelled_without_refusal(
+    tmp_path: Path, field: str, replacement: object, reason: str
+) -> None:
+    """Synthetic mutation tests, not independent validation or model pinning."""
+    root = _mini_root(tmp_path)
+    decl = _declare(root)
+    assert prospective.check_declaration_frozen(root, decl) == decl
+    decl[field] = replacement
+    with pytest.raises(prospective.ProspectiveRefusal, match=reason):
+        prospective.check_declaration_frozen(root, decl)
+
+
+@pytest.mark.parametrize(
+    "field,reason",
+    [
+        ("architecture_components", "architecture component manifest mismatch"),
+        ("mutable_dependencies", "mutable dependency ledger mismatch"),
+        ("external_dependency_mutability", "external dependency mutability mismatch"),
+        ("freeze_claim", "freeze claim mismatches"),
+    ],
+)
+def test_declaration_freeze_fields_cannot_be_omitted(
+    tmp_path: Path, field: str, reason: str
+) -> None:
+    root = _mini_root(tmp_path)
+    decl = _declare(root)
+    decl.pop(field)
+    with pytest.raises(prospective.ProspectiveRefusal, match=reason):
+        prospective.check_declaration_frozen(root, decl)
+
+
 def test_append_defect_outside_tree_leaves_architecture_identity_unchanged(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     before = architecture_identity.identity(root)
