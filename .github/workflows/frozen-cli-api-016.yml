@@ -139,3 +139,53 @@ jobs:
           path: handoff-016-evidence/
           if-no-files-found: error
           retention-days: 90
+
+  compare-archived-os-results-016:
+    # Both matrix jobs must complete and upload their real frozen artifacts.
+    needs: frozen-cli-api-016
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact candidate orchestration HEAD
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: governance
+          persist-credentials: false
+      - name: Assert literal comparison-code HEAD
+        run: |
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git -C governance rev-parse HEAD)"
+          test "$actual" = "$expected" || { echo "comparison HEAD drift"; exit 1; }
+          echo "CROSS-OS COMPARATOR SOURCE HEAD: $actual"
+      - name: Set Python 3.13.7
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13.7'
+      - name: Run isolated regression tests for cross-OS comparator
+        run: python -m unittest discover -s governance/tests -p 'test_compare_cross_os_016.py' -v
+      - name: Download actual frozen Ubuntu canary archive from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: frozen-cross-exch-016-ubuntu-24.04-${{ github.sha }}
+          path: frozen-artifacts/ubuntu-24.04
+      - name: Download actual frozen Windows canary archive from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: frozen-cross-exch-016-windows-2025-${{ github.sha }}
+          path: frozen-artifacts/windows-2025
+      - name: Compare downloaded raw inputs, executed refusal decisions and SHA receipts
+        run: |
+          python governance/benchmarks/cross_repo/v0.1/compare_cross_os_016.py \
+            --registration governance/benchmarks/cross_repo/v0.1/frozen-cli-api-016.json \
+            --ubuntu frozen-artifacts/ubuntu-24.04 \
+            --windows frozen-artifacts/windows-2025 \
+            --report parity-report/cross-os-016.json
+      - name: Archive independently calculated cross-OS parity report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frozen-cross-exch-016-cross-os-report-${{ github.sha }}
+          path: parity-report/
+          if-no-files-found: error
+          retention-days: 90
