@@ -446,6 +446,10 @@ def load_defects(root: str | os.PathLike[str], batch_id: str) -> list[dict[str, 
                 raise ProspectiveRefusal(
                     f"defect ledger line {line_no} is not valid JSON"
                 ) from exc
+            if not isinstance(entry, dict):
+                raise ProspectiveRefusal(
+                    f"defect ledger line {line_no} is not a JSON object"
+                )
             if entry.get("batch_id") == batch_id:
                 entries.append(entry)
     return entries
@@ -607,7 +611,18 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             reasons.append(f"topic {topic!r} has more than one rerun")
 
     defects = load_defects(repo, batch)
-    defects_by_id = {str(entry.get("id")): entry for entry in defects if entry.get("id")}
+    # Defect IDs must be unique within a batch. A dict comprehension silently
+    # replaces the earlier defect when two ledger entries claim one identity.
+    defects_by_id: dict[str, dict[str, Any]] = {}
+    for entry in defects:
+        defect_id = entry.get("id")
+        if type(defect_id) is not str or not SAFE_NAME_RE.fullmatch(defect_id):
+            reasons.append(f"defect ledger has invalid id: {defect_id!r}")
+            continue
+        if defect_id in defects_by_id:
+            reasons.append(f"duplicate defect ledger id: {defect_id!r}")
+            continue
+        defects_by_id[defect_id] = entry
     for record in records:
         original_id = record.get("rerun_of")
         if original_id is None:
