@@ -2,6 +2,7 @@
 import copy
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -113,6 +114,18 @@ def test_boundary_whitespace_in_identifiers_refuses(field, padding):
     item["rows"][0][field] = original + padding
     with pytest.raises(ValueError, match=f"{field} has noncanonical"):
         validate_exchange(item, ROOT)
+
+
+@pytest.mark.parametrize("field", ["study_id", "trial_id"])
+@pytest.mark.parametrize("padding", [" ", "\t", "\n", "\u00a0", "\u001c", "\u0085", "\ufeff"])
+def test_schema_and_python_identity_whitespace_policy_agree(field, padding):
+    spec = json.loads((ROOT / "benchmarks/cross_repo/v0.1/exchange.schema.json").read_text(encoding="utf-8"))
+    pattern = spec["$defs"]["row"]["properties"][field]["pattern"]
+    # Built-in Python regex checks schema spelling without adding a dependency;
+    # execution under an actual JS/JSON Schema validator is a separate gate.
+    assert re.search(pattern, padding + "TRIAL-X") is None
+    assert re.search(pattern, "TRIAL-X" + padding) is None
+    assert re.search(pattern, "TRIAL X") is not None
 
 
 def test_padded_trial_alias_cannot_evade_duplicate_trial_refusal():
