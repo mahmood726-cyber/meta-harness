@@ -579,6 +579,15 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         reasons.append(f"declaration declared_utc invalid: {exc}")
         declaration_utc = None
 
+    # A4: a completed run must not overrun the predeclared wall-time ceiling.
+    # The runner tests monotonic time before final packaging; independently
+    # checking recorded start/finish closes an otherwise unverified path.
+    try:
+        declared_limit_s = _require_finite_positive_time_limit(decl.get("time_limit_s"))
+    except ProspectiveRefusal as exc:
+        reasons.append(f"declaration time_limit_s invalid: {exc}")
+        declared_limit_s = None
+
     records = load_run_records(repo, batch)
     # A run ID is a batch-wide identity, not merely a convenient filename.
     # Duplicate IDs otherwise overwrite one another in the rerun lookup,
@@ -595,13 +604,23 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             seen_run_ids.add(run_id)
         try:
             run_started = _parse_utc(record.get("started_utc"))
+            run_finished = _parse_utc(record.get("finished_utc"))
         except ProspectiveRefusal as exc:
-            reasons.append(f"run {record.get('run_id')}: invalid started_utc: {exc}")
+            reasons.append(f"run {record.get('run_id')}: invalid start/finish UTC: {exc}")
         else:
             if declaration_utc is not None and run_started <= declaration_utc:
                 reasons.append(
                     f"run {record.get('run_id')}: declaration declared_utc "
                     "does not precede run start"
+                )
+            if (
+                declared_limit_s is not None
+                and record.get("outcome") == "COMPLETED"
+                and (run_finished - run_started).total_seconds() > declared_limit_s
+            ):
+                reasons.append(
+                    f"run {record.get('run_id')}: COMPLETED exceeds preregistered "
+                    f"time_limit_s={declared_limit_s:g} seconds"
                 )
 
     identities = {
