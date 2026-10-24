@@ -81,6 +81,20 @@ def _copy_file(src: Path, dst: Path) -> Path:
     return dst
 
 
+def _claim_fresh_out_dir(out_dir: Path) -> None:
+    """Atomically reserve a fresh package path; never overwrite earlier run evidence.
+
+    Reusing even an empty directory is refused: another runner may already have
+    reserved it. mkdir(exist_ok=False) makes the final-directory claim atomic.
+    """
+    try:
+        out_dir.mkdir(parents=True, exist_ok=False)
+    except FileExistsError as exc:
+        raise prospective.ProspectiveRefusal(
+            f"out_dir already exists; use a new, run-specific package path: {out_dir}"
+        ) from exc
+
+
 def _cache_candidates(out_dir: Path, slug: str) -> list[Path]:
     return [
         out_dir / "cache" / slug / "records.json",
@@ -210,7 +224,7 @@ def run_topic(
 
     out_dir = Path(out_dir_path).resolve()
     _refuse_frozen_out_dir(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    _claim_fresh_out_dir(out_dir)
 
     started_utc = _utc_now()
     t0 = time.perf_counter()
