@@ -29,12 +29,12 @@ def _unique_json_members(pairs: list[tuple[str, object]]) -> dict:
     return result
 
 
-def validate_exchange_json(raw: str | bytes, archive_root: Path) -> None:
-    """Validate wire JSON without Python's last-key-wins ambiguity.
+def import_exchange_json(raw: str | bytes, archive_root: Path) -> dict:
+    """Import raw wire JSON only after strict preparse and provenance checks.
 
-    Raw-input consumers must call this function, not json.loads followed by
-    validate_exchange: a decoded dict cannot reveal duplicate JSON keys.
-    This remains a structural transport check, not clinical validation.
+    A pre-decoded dict is not an acceptable importer: shadowed decisions would
+    be lost. Both the CLI and the Python consumer use the same guarded path.
+    This is structural checking, not independent clinical adjudication.
     """
     if isinstance(raw, bytes):
         try:
@@ -48,6 +48,12 @@ def validate_exchange_json(raw: str | bytes, archive_root: Path) -> None:
     except json.JSONDecodeError as exc:
         raise ValueError("malformed exchange JSON") from exc
     validate_exchange(payload, archive_root)
+    return payload
+
+
+def validate_exchange_json(raw: str | bytes, archive_root: Path) -> None:
+    """Compatibility verifier of raw evidence; no pooling performed."""
+    import_exchange_json(raw, archive_root)
 
 
 
@@ -343,8 +349,20 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
 def main() -> int:
     import argparse
     parser = argparse.ArgumentParser(description="Check versioned benchmark manifest (no science claimed)")
-    parser.add_argument("manifest", type=Path)
+    parser.add_argument("manifest", nargs="?", type=Path)
+    parser.add_argument("--exchange", type=Path,
+                        help="validate/import raw evidence JSON; never pool")
+    parser.add_argument("--archive-root", type=Path,
+                        help="root of archived source text for --exchange")
     args = parser.parse_args()
+    if args.exchange is not None:
+        if args.manifest is not None or args.archive_root is None:
+            parser.error("--exchange requires --archive-root and forbids a manifest argument")
+        import_exchange_json(args.exchange.read_bytes(), args.archive_root)
+        print("EXCHANGE VERIFIED: strict raw JSON and source spans; pooling NOT performed")
+        return 0
+    if args.manifest is None or args.archive_root is not None:
+        parser.error("provide a manifest, or --exchange with --archive-root")
     validate_manifest_json(args.manifest.read_bytes(), args.manifest.parent)
     print("MANIFEST VERIFIED: pins and fixture SHA-256; cases retain their stated statuses")
     return 0

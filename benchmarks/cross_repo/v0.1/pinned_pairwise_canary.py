@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
-from harness.exchange_v01 import validate_exchange_json  # noqa: E402
+from harness.exchange_v01 import import_exchange_json  # noqa: E402
 
 SOURCE = "benchmarks/cross_repo/v0.1/synthetic-binary-arms.txt"
 SOURCE_SHA256 = "666a0354b2668dd0f90780becff303eab28a007fa895650ba09793732d374398"
@@ -117,9 +117,9 @@ def consume(raw: bytes, rapidmeta: Path, label: str) -> dict:
     """Raw JSON is checked *before* starting Node or calling any pool engine."""
     result = {"case": label, "input_sha256": sha(raw), "engine_invoked": False}
     try:
-        validate_exchange_json(raw, ROOT)
-        # Only decode after duplicate-member checks have accepted the raw bytes.
-        payload = json.loads(raw)
+        # Strict raw importer validates duplicate keys, source spans, trial IDs,
+        # estimand and REFUSE/MANUAL_REVIEW before any engine invocation.
+        payload = import_exchange_json(raw, ROOT)
         rows = counts_from_verified(payload)
     except (ValueError, KeyError, TypeError) as exc:
         result.update(status="REFUSED", refusal=str(exc))
