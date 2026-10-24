@@ -441,7 +441,6 @@ def test_a5_spec_names_inventory_derived_mutable_model_stages() -> None:
         assert f"`{name}`" in spec
 
 
-
 @pytest.mark.parametrize("tampered_batch", ["batch-other", None, "OMITTED"])
 def test_check_batch_refuses_silent_exclusion_of_failed_run(
     tmp_path: Path, tampered_batch: str | None
