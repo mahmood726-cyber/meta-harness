@@ -97,6 +97,7 @@ def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path
     "field,replacement,reason",
     [
         ("schema_version", 999, "unsupported schema_version"),
+        ("schema_version", True, "unsupported schema_version"),
         ("architecture_components", {}, "architecture component manifest mismatch"),
         ("mutable_dependencies", [], "mutable dependency ledger mismatch"),
         ("external_dependency_mutability", False, "external dependency mutability mismatch"),
