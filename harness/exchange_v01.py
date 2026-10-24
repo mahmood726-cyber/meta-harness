@@ -235,11 +235,14 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
     coverage = payload.get("coverage")
     expected_cov = {"CROSS-CANARY-001", "CROSS-R-001", "CROSS-DISCOVERY-001",
                     "CROSS-ADJUDICATION-001", "CROSS-USABILITY-001"}
-    if not isinstance(coverage, list) or {c.get("id") for c in coverage if isinstance(c, dict)} != expected_cov or len(coverage) != len(expected_cov):
+    if not isinstance(coverage, list) or len(coverage) != len(expected_cov):
         raise ValueError("coverage matrix must account for every unexecuted discipline exactly once")
     for c in coverage:
         if not isinstance(c, dict):
             raise ValueError("coverage entry must be an object")
+    if {c.get("id") for c in coverage} != expected_cov:
+        raise ValueError("coverage matrix must account for every unexecuted discipline exactly once")
+    for c in coverage:
         _reject_unexpected_keys(
             c, {"id", "category", "status", "reason"}, "benchmark coverage",
         )
