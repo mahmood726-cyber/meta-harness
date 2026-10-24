@@ -81,22 +81,37 @@ def consume(raw, rapid, label):
 
     def test_refuse_label_replays_separately_without_pooling(self):
         self.stub()
+        raw_refuse = self.raw.replace(b"MANUAL_REVIEW", b"REFUSE")
         observed, digest = replay.replay_frozen_bytes(
-            self.meta, self.rapid, self.raw, "refuse")
+            self.meta, self.rapid, raw_refuse, "refuse")
         self.assertEqual(observed["case"], "refuse")
         self.assertEqual(observed["status"], "REFUSED")
         self.assertFalse(observed["engine_invoked"])
         self.assertEqual(len(digest), 64)
         replay.verify_replay_observation(observed, dict(observed),
-                                         self.raw, "refuse")
+                                         raw_refuse, "refuse")
 
     def test_refuse_label_is_not_accepted_as_manual_review(self):
         self.stub()
+        raw_refuse = self.raw.replace(b"MANUAL_REVIEW", b"REFUSE")
         observed, _ = replay.replay_frozen_bytes(
-            self.meta, self.rapid, self.raw, "refuse")
-        with self.assertRaisesRegex(ValueError, "frozen replay case"):
+            self.meta, self.rapid, raw_refuse, "refuse")
+        with self.assertRaisesRegex(ValueError, "label/decision mismatch"):
             replay.verify_replay_observation(
-                observed, dict(observed), self.raw, "manual_review")
+                observed, dict(observed), raw_refuse, "manual_review")
+
+    def test_refuse_label_with_manual_review_wire_is_refused(self):
+        self.stub()
+        with self.assertRaisesRegex(ValueError, "label/decision mismatch"):
+            replay.replay_frozen_bytes(
+                self.meta, self.rapid, self.raw, "refuse")
+
+    def test_duplicate_raw_decision_cannot_shadow_scenario(self):
+        self.stub()
+        raw = b'{"rows":[{"decision":"REFUSE","decision":"MANUAL_REVIEW"}]}'
+        with self.assertRaisesRegex(ValueError, "duplicate replay result member"):
+            replay.replay_frozen_bytes(
+                self.meta, self.rapid, raw, "refuse")
 
     def test_unknown_replay_label_fails_before_child_or_engine(self):
         self.stub()
