@@ -26,7 +26,7 @@ def _live_snapshot(out_dir: Path, slug: str = "plant") -> Path:
     metadata = {
         "source_id": "pubmed_concept_query#1",
         "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-        "params": {"term": "(plant) AND (intervention)"},
+        "params": {"db": "pubmed", "term": "(plant) AND (intervention)"},
         "status": 200,
         "fetched_utc": "2026-10-23T00:00:00Z",
         "adapter": "harness.fetch.run",
@@ -228,3 +228,38 @@ def test_prospective_rejects_inconsistent_raw_envelope_even_if_outer_hashes_matc
         runner.prospective.ProspectiveRefusal, match="inconsistent archived body.*" + expected
     ):
         runner._load_or_refresh({"slug": "plant"}, out_dir, "2026-10-23")
+
+
+@pytest.mark.parametrize("mutation", ["seeded_query", "other_topic", "wrong_endpoint"])
+def test_runner_rejects_mismatched_pubmed_request_despite_consistent_file_hashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
+) -> None:
+    # Deliberately rehash both envelope and index to isolate the query-binding gate.
+    # This is a synthetic negative test, not an actual PubMed retrieval.
+    out_dir = tmp_path / "run"
+    snapshot = _live_snapshot(out_dir)
+    raw_file = snapshot / "raw" / "pubmed" / "001.json"
+    raw_index = snapshot / "raw" / "INDEX.json"
+    envelope = json.loads(raw_file.read_text(encoding="utf-8"))
+    index = json.loads(raw_index.read_text(encoding="utf-8"))
+    if mutation == "seeded_query":
+        envelope["params"]["term"] = "123456[uid]"
+    elif mutation == "other_topic":
+        envelope["params"]["term"] = "(asthma) AND (steroid)"
+    else:
+        envelope["url"] = "https://example.org/search"
+    index[0]["params"] = envelope["params"]
+    index[0]["url"] = envelope["url"]
+    raw_file.write_text(json.dumps(envelope), encoding="utf-8")
+    index[0]["file_sha256"] = hashlib.sha256(raw_file.read_bytes()).hexdigest()
+    _dump(raw_index, index)
+    ledger_path = snapshot / runner.acquisition.LEDGER_FILENAME
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    ledger["snapshot"]["raw_index_sha256"] = hashlib.sha256(raw_index.read_bytes()).hexdigest()
+    _dump(ledger_path, ledger)
+    monkeypatch.setattr(runner.acquisition, "refresh", lambda *_args, **_kwargs: str(snapshot))
+    with pytest.raises(
+        runner.prospective.ProspectiveRefusal,
+        match="archived PubMed search request differs",
+    ):
+        runner._load_or_refresh({"slug": "plant"}, out_dir, "2026-10-24")
