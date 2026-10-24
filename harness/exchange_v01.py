@@ -329,9 +329,9 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
         if hashlib.sha256(data).hexdigest() != h:
             raise ValueError(f"{cid}: benchmark input SHA-256 mismatch")
     # An editable manifest must not silently omit established negative gates.
-    # v0.1 requires CROSS-EXCH-001 through -013; later IDs are allowed only
+    # v0.1 requires CROSS-EXCH-001 through -015; later IDs are allowed only
     # without gaps. This checks registry completeness, NOT that tests ran.
-    last = max(14, max(int(cid.rsplit("-", 1)[1]) for cid in ids))
+    last = max(15, max(int(cid.rsplit("-", 1)[1]) for cid in ids))
     expected_ids = {f"CROSS-EXCH-{i:03d}" for i in range(1, last + 1)}
     missing = sorted(expected_ids - ids)
     if missing:
