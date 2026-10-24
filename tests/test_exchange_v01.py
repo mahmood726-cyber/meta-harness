@@ -10,7 +10,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.exchange_v01 import validate_exchange, validate_exchange_json, validate_manifest  # noqa: E402
+from harness.exchange_v01 import main, validate_exchange, validate_exchange_json, validate_manifest, validate_manifest_json  # noqa: E402
 
 SYNTHETIC = ROOT / "benchmarks/cross_repo/v0.1/synthetic-source.txt"
 ESTIMAND = {"measure": "RR", "population": "ITT", "outcome": "synthetic event", "timepoint": "12 months"}
@@ -363,7 +363,7 @@ def test_synthetic_pass_cannot_reuse_other_repositories_pin():
 # registered. Missing tests must not become an apparently complete benchmark.
 # These are synthetic manifest-structure tests, not executed benchmark PASSes.
 @pytest.mark.parametrize("missing_id", [
-    "CROSS-EXCH-001", "CROSS-EXCH-006", "CROSS-EXCH-011", "CROSS-EXCH-012", "CROSS-EXCH-014",
+    "CROSS-EXCH-001", "CROSS-EXCH-006", "CROSS-EXCH-011", "CROSS-EXCH-012", "CROSS-EXCH-014", "CROSS-EXCH-015",
 ])
 def test_registered_exchange_case_cannot_disappear(missing_id):
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
@@ -384,8 +384,8 @@ def test_cross_lane_case_id_cannot_replace_registered_exchange_case():
 def test_renamed_case_cannot_create_gap_in_registration():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    manifest["cases"][-1]["id"] = "CROSS-EXCH-015"
-    with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-014"):
+    manifest["cases"][-1]["id"] = "CROSS-EXCH-016"
+    with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-015"):
         validate_manifest(manifest, path.parent)
 
 
@@ -393,20 +393,20 @@ def test_contiguous_future_id_and_reordering_are_structurally_allowed():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
     future = copy.deepcopy(manifest["cases"][-1])
-    future["id"] = "CROSS-EXCH-015"
+    future["id"] = "CROSS-EXCH-016"
     future["status"] = "NOT_RUN"
     manifest["cases"].insert(0, future)
     manifest["cases"].reverse()
     validate_manifest(manifest, path.parent)
 
 
-def test_manifest_schema_declares_transport_namespace_and_14_case_floor():
+def test_manifest_schema_declares_transport_namespace_and_15_case_floor():
     schema = json.loads(
         (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
     )
-    assert schema["properties"]["cases"]["minItems"] == 14
+    assert schema["properties"]["cases"]["minItems"] == 15
     pat = schema["$defs"]["case"]["properties"]["id"]["pattern"]
-    assert re.fullmatch(pat, "CROSS-EXCH-014")
+    assert re.fullmatch(pat, "CROSS-EXCH-015")
     assert re.fullmatch(pat, "CROSS-R-012") is None
     assert re.fullmatch(pat, "CROSS-EXCH-000") is None
 
@@ -465,7 +465,7 @@ def test_manifest_rejects_nonobject_coverage_without_attribute_error():
         validate_manifest(manifest, root)
 
 
-def test_manifest_schema_declares_all_four_closed_shapes_and_14_cases():
+def test_manifest_schema_declares_all_four_closed_shapes_and_15_cases():
     spec = json.loads(
         (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
     )
@@ -473,7 +473,7 @@ def test_manifest_schema_declares_all_four_closed_shapes_and_14_cases():
     assert spec["$defs"]["repository"]["additionalProperties"] is False
     assert spec["$defs"]["case"]["additionalProperties"] is False
     assert spec["properties"]["coverage"]["items"]["additionalProperties"] is False
-    assert spec["properties"]["cases"]["minItems"] == 14
+    assert spec["properties"]["cases"]["minItems"] == 15
 
 
 def test_manifest_13th_case_remains_not_run_and_fixture_pinned():
@@ -550,7 +550,7 @@ def test_manifest_schema_declares_execution_evidence_status_gate():
         (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
     )
     case = spec["$defs"]["case"]
-    assert spec["properties"]["cases"]["minItems"] == 14
+    assert spec["properties"]["cases"]["minItems"] == 15
     gate = case["allOf"][0]
     assert gate["if"]["properties"]["status"]["enum"] == ["PASS", "FAIL"]
     assert gate["then"]["required"] == ["run_evidence"]
@@ -562,5 +562,78 @@ def test_fourteenth_case_remains_not_run_and_preserves_source_fixture():
     manifest, root = _manifest_fixture()
     validate_manifest(manifest, root)
     case = next(c for c in manifest["cases"] if c["id"] == "CROSS-EXCH-014")
+    assert case["status"] == "NOT_RUN"
+    assert case["input_sha256"] == manifest["cases"][0]["input_sha256"]
+
+
+# CROSS-EXCH-015: preserve all raw JSON object members before benchmark
+# status/provenance validation. Ordinary json.loads silently keeps the last
+# duplicate and could erase an earlier FAIL, REFUSE, or unpinned commit.
+def test_manifest_wire_positive_utf8_roundtrip_is_only_structural():
+    manifest, root = _manifest_fixture()
+    validate_manifest_json(json.dumps(manifest).encode("utf-8"), root)
+    # This is not an executed cross-repository benchmark or an R oracle.
+
+
+@pytest.mark.parametrize("key,shadow,accepted", [
+    ("benchmark_version", "not-a-real-version", "0.1.0"),
+    ("commit", "f" * 40, "a62cbc43416a94561b7bee3ec48bb659ac3286e2"),
+    ("input_sha256", "f" * 64, "56d4cbd83b355b1c6275237aea526c5d993b9227241a7a0d3859ffac719639a4"),
+    ("status", "FAIL", "NOT_RUN"),
+    ("id", "CROSS-EXCH-999", "CROSS-EXCH-001"),
+])
+def test_manifest_wire_shadowed_member_refuses(key, shadow, accepted):
+    manifest, root = _manifest_fixture()
+    raw = json.dumps(manifest)
+    marker = f'{json.dumps(key)}: {json.dumps(accepted)}'
+    assert marker in raw
+    poisoned = raw.replace(marker, f'{json.dumps(key)}: {json.dumps(shadow)}, ' + marker, 1)
+    assert json.loads(poisoned) == manifest  # demonstrates unsafe last-value-wins parsing
+    with pytest.raises(ValueError, match=f"duplicate JSON object member: {key}"):
+        validate_manifest_json(poisoned, root)
+
+
+def test_manifest_wire_unicode_escaped_duplicate_member_refuses():
+    manifest, root = _manifest_fixture()
+    raw = json.dumps(manifest)
+    marker = '"status": "NOT_RUN"'
+    assert marker in raw
+    poisoned = raw.replace(marker, r'"\u0073tatus": "FAIL", ' + marker, 1)
+    assert json.loads(poisoned) == manifest
+    with pytest.raises(ValueError, match="duplicate JSON object member: status"):
+        validate_manifest_json(poisoned, root)
+
+
+@pytest.mark.parametrize("bad_bytes", [b"\xff", b"\xef\xbb\xbf{}"])
+def test_manifest_wire_invalid_utf8_or_bom_refuses(bad_bytes):
+    manifest, root = _manifest_fixture()
+    with pytest.raises(ValueError, match="UTF-8"):
+        validate_manifest_json(bad_bytes, root)
+
+
+def test_manifest_wire_malformed_json_refuses():
+    manifest, root = _manifest_fixture()
+    with pytest.raises(ValueError, match="malformed benchmark manifest JSON"):
+        validate_manifest_json('{"cases": ', root)
+
+
+def test_manifest_cli_refuses_shadowed_status_before_reporting_verified(tmp_path, monkeypatch, capsys):
+    manifest, _ = _manifest_fixture()
+    raw = json.dumps(manifest)
+    marker = '"status": "NOT_RUN"'
+    assert marker in raw
+    malicious = raw.replace(marker, '"status": "FAIL", ' + marker, 1)
+    target = tmp_path / "manifest.json"
+    target.write_text(malicious, encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["exchange_v01", str(target)])
+    with pytest.raises(ValueError, match="duplicate JSON object member: status"):
+        main()
+    assert "MANIFEST VERIFIED" not in capsys.readouterr().out
+
+
+def test_fifteenth_case_not_run_with_original_immutable_source():
+    manifest, root = _manifest_fixture()
+    validate_manifest(manifest, root)
+    case = next(c for c in manifest["cases"] if c["id"] == "CROSS-EXCH-015")
     assert case["status"] == "NOT_RUN"
     assert case["input_sha256"] == manifest["cases"][0]["input_sha256"]
