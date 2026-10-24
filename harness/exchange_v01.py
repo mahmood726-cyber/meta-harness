@@ -229,6 +229,8 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
         if not isinstance(case, dict):
             raise ValueError("case must be object")
         cid = _required_text(case, "id")
+        if not re.fullmatch(r"CROSS-EXCH-(?!000$)[0-9]{3}", cid):
+            raise ValueError(f"{cid}: unsupported CROSS-EXCH case namespace")
         if cid in ids:
             raise ValueError("duplicate case id")
         ids.add(cid)
@@ -265,6 +267,16 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
             raise ValueError(f"{cid}: inaccessible input: {exc}") from exc
         if hashlib.sha256(data).hexdigest() != h:
             raise ValueError(f"{cid}: benchmark input SHA-256 mismatch")
+    # An editable manifest must not silently omit established negative gates.
+    # v0.1 requires CROSS-EXCH-001 through -012; later IDs are allowed only
+    # without gaps. This checks registry completeness, NOT that tests ran.
+    last = max(12, max(int(cid.rsplit("-", 1)[1]) for cid in ids))
+    expected_ids = {f"CROSS-EXCH-{i:03d}" for i in range(1, last + 1)}
+    missing = sorted(expected_ids - ids)
+    if missing:
+        raise ValueError(
+            f"benchmark case registry missing required IDs: {', '.join(missing[:8])}"
+        )
 
 
 def main() -> int:

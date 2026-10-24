@@ -356,3 +356,56 @@ def test_synthetic_pass_cannot_reuse_other_repositories_pin():
     manifest["cases"][0]["run_evidence"]["commit_sha"] = manifest["repositories"]["e156"]["commit"]
     with pytest.raises(ValueError, match="not the pinned meta-harness commit"):
         validate_manifest(manifest, root)
+
+
+
+# CROSS-EXCH-012: every previously declared transport refusal case must remain
+# registered. Missing tests must not become an apparently complete benchmark.
+# These are synthetic manifest-structure tests, not executed benchmark PASSes.
+@pytest.mark.parametrize("missing_id", [
+    "CROSS-EXCH-001", "CROSS-EXCH-006", "CROSS-EXCH-011", "CROSS-EXCH-012",
+])
+def test_registered_exchange_case_cannot_disappear(missing_id):
+    path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["cases"] = [c for c in manifest["cases"] if c["id"] != missing_id]
+    with pytest.raises(ValueError, match=f"missing required IDs:.*{missing_id}"):
+        validate_manifest(manifest, path.parent)
+
+
+def test_cross_lane_case_id_cannot_replace_registered_exchange_case():
+    path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["cases"][-1]["id"] = "CROSS-R-012"
+    with pytest.raises(ValueError, match="unsupported CROSS-EXCH case namespace"):
+        validate_manifest(manifest, path.parent)
+
+
+def test_renamed_case_cannot_create_gap_in_registration():
+    path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["cases"][-1]["id"] = "CROSS-EXCH-013"
+    with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-012"):
+        validate_manifest(manifest, path.parent)
+
+
+def test_contiguous_future_id_and_reordering_are_structurally_allowed():
+    path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    future = copy.deepcopy(manifest["cases"][-1])
+    future["id"] = "CROSS-EXCH-013"
+    future["status"] = "NOT_RUN"
+    manifest["cases"].insert(0, future)
+    manifest["cases"].reverse()
+    validate_manifest(manifest, path.parent)
+
+
+def test_manifest_schema_declares_transport_namespace_and_12_case_floor():
+    schema = json.loads(
+        (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
+    )
+    assert schema["properties"]["cases"]["minItems"] == 12
+    pat = schema["$defs"]["case"]["properties"]["id"]["pattern"]
+    assert re.fullmatch(pat, "CROSS-EXCH-012")
+    assert re.fullmatch(pat, "CROSS-R-012") is None
+    assert re.fullmatch(pat, "CROSS-EXCH-000") is None
