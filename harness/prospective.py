@@ -209,12 +209,32 @@ def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Pat
     return path
 
 
+def _unique_prospective_json_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Refuse duplicate raw JSON names, including in nested protocol evidence.
+
+    Python's normal json.loads silently retains the last value. That permits a
+    batch declaration, run outcome or defect attribution to have two meanings.
+    This check applies to raw input before any schema or run-level validation.
+    """
+    item: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in item:
+            raise ProspectiveRefusal(f"duplicate prospective JSON member: {key!r}")
+        item[key] = value
+    return item
+
+
 def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     path = declaration_path(root, batch_id)
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=_unique_prospective_json_pairs,
+        )
     except OSError as exc:
         raise ProspectiveRefusal(f"declaration missing for batch {batch_id!r}") from exc
+    except ProspectiveRefusal as exc:
+        raise ProspectiveRefusal(f"declaration {path}: {exc}") from exc
     except ValueError as exc:
         raise ProspectiveRefusal(f"declaration is not valid JSON: {path}") from exc
 
@@ -466,7 +486,9 @@ def load_defects(root: str | os.PathLike[str], batch_id: str) -> list[dict[str, 
             if not text:
                 continue
             try:
-                entry = json.loads(text)
+                entry = json.loads(text, object_pairs_hook=_unique_prospective_json_pairs)
+            except ProspectiveRefusal as exc:
+                raise ProspectiveRefusal(f"defect ledger line {line_no}: {exc}") from exc
             except ValueError as exc:
                 raise ProspectiveRefusal(
                     f"defect ledger line {line_no} is not valid JSON"
@@ -496,7 +518,12 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
     records = []
     for path in _run_record_paths(repo, batch):
         try:
-            record = json.loads(path.read_text(encoding="utf-8"))
+            record = json.loads(
+                path.read_text(encoding="utf-8"),
+                object_pairs_hook=_unique_prospective_json_pairs,
+            )
+        except ProspectiveRefusal as exc:
+            raise ProspectiveRefusal(f"run record {path}: {exc}") from exc
         except ValueError as exc:
             raise ProspectiveRefusal(f"run record is not valid JSON: {path}") from exc
         # Every run artefact located inside a batch must be accounted for.
