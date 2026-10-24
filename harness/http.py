@@ -39,7 +39,7 @@ def get_raw(url: str, params: dict | None = None, tries: int = 4, timeout: int =
                 return int(status) if status is not None else "UNKNOWN", body
         except urllib.error.HTTPError as exc:
             last = exc
-            body = exc.read() or str(exc).encode("utf-8", "replace")
+            # An empty HTTP error body is real evidence; the exception\n            # string is NOT provider-supplied response bytes.\n            body = exc.read()
             # Each HTTPError is a received HTTP response, including attempts
             # later followed by a successful retry. Preserve its raw bytes
             # before deciding whether to retry; never relabel it as RAN_ZERO.
