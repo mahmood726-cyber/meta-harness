@@ -5,7 +5,7 @@ These are synthetic unit tests, distinct from executing RapidMeta on either OS.
 from __future__ import annotations
 import importlib.util
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath, PurePosixPath
 import unittest
 from unittest import mock
 
@@ -60,6 +60,12 @@ class RunnerIdentityTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=True):
             with self.assertRaisesRegex(ValueError, "not in frozen"):
                 runner.runner_image(self.registration)
+
+    def test_archive_receipt_keys_are_posix_even_on_windows(self):
+        windows_path = PureWindowsPath("inputs", "refuse.json")
+        self.assertEqual(runner.receipt_key(windows_path), "inputs/refuse.json")
+        self.assertEqual(runner.receipt_key(PurePosixPath("results", "refuse.json")),
+                         "results/refuse.json")
 
     def test_registration_must_pin_both_runners(self):
         with mock.patch.dict(os.environ, {"BENCHMARK_RUNNER_IMAGE": "ubuntu-24.04"}):
