@@ -545,8 +545,19 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         declaration_utc = None
 
     records = load_run_records(repo, batch)
+    # A run ID is a batch-wide identity, not merely a convenient filename.
+    # Duplicate IDs otherwise overwrite one another in the rerun lookup,
+    # allowing failed/original runs to be attributed to the wrong execution.
+    seen_run_ids: set[str] = set()
     for record in records:
         reasons.extend(_validate_record_shape(record))
+        run_id = record.get("run_id")
+        if type(run_id) is not str or not SAFE_NAME_RE.fullmatch(run_id):
+            reasons.append(f"run record has invalid run_id: {run_id!r}")
+        elif run_id in seen_run_ids:
+            reasons.append(f"duplicate run_id across prospective batch records: {run_id!r}")
+        else:
+            seen_run_ids.add(run_id)
         try:
             run_started = _parse_utc(record.get("started_utc"))
         except ProspectiveRefusal as exc:
@@ -578,7 +589,14 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         if record.get("freeze_claim") != decl.get("freeze_claim"):
             reasons.append(f"run {record.get('run_id')}: freeze_claim differs from declaration")
 
-    by_run = {record.get("run_id"): record for record in records if record.get("run_id")}
+    # Index only validated, hashable identities. Malformed IDs are refused
+    # above rather than causing a Python TypeError or silently aliasing runs.
+    by_run = {
+        record["run_id"]: record
+        for record in records
+        if type(record.get("run_id")) is str
+        and SAFE_NAME_RE.fullmatch(record["run_id"])
+    }
     reruns_by_topic: dict[str, list[dict[str, Any]]] = {}
     for record in records:
         if record.get("rerun_of") is not None:
@@ -593,6 +611,9 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     for record in records:
         original_id = record.get("rerun_of")
         if original_id is None:
+            continue
+        if type(original_id) is not str or not SAFE_NAME_RE.fullmatch(original_id):
+            reasons.append(f"run {record.get('run_id')}: invalid rerun_of identifier")
             continue
         original = by_run.get(original_id)
         if original is None:

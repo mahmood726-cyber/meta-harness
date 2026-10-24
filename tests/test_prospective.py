@@ -181,6 +181,77 @@ def test_append_defect_refuses_ledger_inside_repository_tree(tmp_path: Path) -> 
         )
 
 
+@pytest.mark.parametrize(
+    "first_outcome,second_outcome",
+    [
+        ("COMPLETED", "FAILED_CRASH"),
+        ("FAILED_CRASH", "COMPLETED"),
+        ("COMPLETED", "COMPLETED"),
+    ],
+)
+def test_check_batch_refuses_duplicate_run_id_from_distinct_files(
+    tmp_path: Path, first_outcome: str, second_outcome: str
+) -> None:
+    """A later JSON record must not overwrite the same run's earlier identity."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    first = _record(root, batch, "run-duplicate", outcome=first_outcome)
+    second = _record(root, batch, "run-duplicate", outcome=second_outcome)
+    _write_batch_record(root, batch, first)
+    # Use a second distinct file: the ordinary writer reuses the same path.
+    _write(
+        root,
+        f"prospective/{batch}/runs/second.json",
+        json.dumps(second) + "\n",
+    )
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="duplicate run_id"):
+        prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize("bad_run_id", [None, "", 7, True, [], {}, "../escape"])
+def test_check_batch_refuses_invalid_run_id_without_python_exception(
+    tmp_path: Path, bad_run_id: object
+) -> None:
+    """Bad JSON types must refuse, including unhashable list/dict identities."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-valid")
+    record["run_id"] = bad_run_id
+    _write(root, f"prospective/{batch}/runs/record.json", json.dumps(record) + "\n")
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="invalid run_id"):
+        prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize("bad_original", [[], {}, 5, ""])
+def test_check_batch_refuses_invalid_rerun_reference_without_crash(
+    tmp_path: Path, bad_original: object
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    rerun = _record(root, batch, "run-rerun")
+    rerun["rerun_of"] = bad_original
+    _write_batch_record(root, batch, rerun)
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="invalid rerun_of identifier"):
+        prospective.check_batch(root, batch)
+
+
+def test_check_batch_accepts_distinct_run_ids_for_distinct_topics(tmp_path: Path) -> None:
+    """Valid distinct identities remain accepted by the structural validator."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-a", topic="topic-a"))
+    _write_batch_record(root, batch, _record(root, batch, "run-b", topic="topic-b"))
+
+    assert prospective.check_batch(root, batch)["run_records"] == 2
+
+
 def test_check_batch_refuses_two_identities_in_one_batch(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     batch = "batch-plant"
