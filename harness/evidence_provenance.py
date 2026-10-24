@@ -42,7 +42,7 @@ def append_event(path, event):
     """Append a canonical, hash-chained event; reject a corrupted prior journal."""
     path = Path(path)
     events = read_events(path)
-    if not isinstance(event, dict) or "event_sha256" in event:
+    if not isinstance(event, dict) or "event_sha256" in event or "previous_event_sha256" in event:
         raise ValueError("invalid event")
     required = ("event_id", "timestamp_utc", "actor_type", "actor_id",
                 "action", "study_id", "source_digest", "reason", "supersedes_event_id")
@@ -63,6 +63,10 @@ def read_events(path):
     records = []
     for line in path.read_bytes().splitlines():
         event = json.loads(line)
+        if not isinstance(event, dict):
+            raise ValueError("invalid journal event")
+        if any(old["event_id"] == event.get("event_id") for old in records):
+            raise ValueError("duplicate journal event ID")
         digest = event.pop("event_sha256", None)
         if digest != sha256(canonical(event)):
             raise ValueError("journal event digest mismatch")
@@ -79,6 +83,8 @@ def can_pool(analysis, studies):
     measure = analysis.get("estimand")
     selected = analysis.get("studyIds")
     if not measure or not isinstance(selected, list) or not selected:
+        return False
+    if len(set(selected)) != len(selected):
         return False
     return all(studies.get(sid, {}).get("eligibility") == "INCLUDE"
                and studies[sid].get("extractionReviewed") is True
