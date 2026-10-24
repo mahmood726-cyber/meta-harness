@@ -1,0 +1,103 @@
+name: Frozen synthetic estimand refusal (CROSS-EXCH-018)
+
+# New frozen two-repository executable regression; not a substitute for verify_all.
+on:
+  push:
+    branches:
+      - 'audit/cross-exch-018-*'
+  pull_request:
+    paths:
+      - '.github/workflows/frozen-estimand-018.yml'
+      - 'benchmarks/cross_repo/v0.1/frozen-estimand-018.json'
+      - 'benchmarks/cross_repo/v0.1/frozen_estimator_handoff_018.py'
+      - 'benchmarks/cross_repo/v0.1/FROZEN_ESTIMAND_018.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frozen-estimand-018:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout candidate orchestration (never count as pinned producer)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: governance
+          persist-credentials: false
+      - name: Checkout frozen Meta-Harness producer, raw verifier and bridge
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: mahmood726-cyber/meta-harness
+          ref: 05b8d45e2c534e038d3549d0b062cfa67e740f00
+          path: meta
+          persist-credentials: false
+      - name: Checkout frozen actual RapidMeta pooling consumer
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: mahmood726-cyber/rapidmeta-kit
+          ref: 368137dc437543c721b98be39c14282c338f7797
+          path: rapidmeta
+          persist-credentials: false
+      - name: Set Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13.7'
+      - name: Set Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.14.0'
+      - name: Execute frozen producer validator and actual RapidMeta on matched versus mismatched estimands
+        run: |
+          set -euo pipefail
+          python governance/benchmarks/cross_repo/v0.1/frozen_estimator_handoff_018.py \
+            --meta meta --rapidmeta rapidmeta --output handoff-018-evidence
+      - name: Independently rehash input output source and assert no-pool refusal
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, pathlib
+          root = pathlib.Path('handoff-018-evidence')
+          spec_raw = pathlib.Path('governance/benchmarks/cross_repo/v0.1/frozen-estimand-018.json').read_bytes()
+          spec = json.loads(spec_raw)
+          index = json.loads((root / 'index.json').read_bytes())
+          assert index['case_id'] == spec['case_id'] == 'CROSS-EXCH-018'
+          assert index['evidence_scope'] == 'SYNTHETIC_TWO_REPOSITORY_HANDOFF_ONLY'
+          assert index['registration_sha256'] == hashlib.sha256(spec_raw).hexdigest()
+          assert index['meta_harness_commit'] == spec['repositories']['meta-harness']['commit']
+          assert index['rapidmeta_commit'] == spec['repositories']['rapidmeta-kit']['commit']
+          assert index['source_sha256'] == spec['frozen_source']['sha256']
+          assert index['clinical_validation'] == 'NOT_TESTED'
+          assert index['external_R_oracle'] == 'NOT_TESTED'
+          assert index['four_repository_benchmark'] == 'NOT_RUN'
+          expected = ({f'inputs/{n}.json' for n in spec['scenarios']} |
+                      {f'results/{n}.json' for n in spec['scenarios']} | {'source.txt'})
+          assert set(index['digests']) == expected, index['digests']
+          for path, sha in index['digests'].items():
+              assert hashlib.sha256((root / path).read_bytes()).hexdigest() == sha, path
+          assert hashlib.sha256((root / 'source.txt').read_bytes()).hexdigest() == spec['frozen_source']['sha256']
+          wrong = (root / 'inputs/refuse_or_rr_type_mismatch.json').read_bytes() + b'X'
+          assert hashlib.sha256(wrong).hexdigest() != index['digests']['inputs/refuse_or_rr_type_mismatch.json']
+          control = json.loads((root / 'results/allow_rr_itt.json').read_bytes())
+          refusal = json.loads((root / 'results/refuse_or_rr_type_mismatch.json').read_bytes())
+          assert control['status'] == 'SYNTHETIC_ENGINE_EXECUTED'
+          assert control['engine_invoked'] is True
+          assert control['engine_output']['k_used'] == 2
+          assert control['engine_output']['measure'] == 'RR'
+          assert refusal['status'] == 'REFUSED'
+          assert refusal['engine_invoked'] is False
+          assert 'estimand mismatch' in refusal['refusal']
+          assert refusal['input_sha256'] == index['digests']['inputs/refuse_or_rr_type_mismatch.json']
+          assert control['input_sha256'] == index['digests']['inputs/allow_rr_itt.json']
+          assert spec['registered_status'] == 'NOT_RUN'
+          print('CROSS-EXCH-018: PASS bounded synthetic 2/2 executable cases; all 5 archived digests verified')
+          PY
+      - name: Archive raw evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frozen-cross-exch-018-${{ github.sha }}
+          path: handoff-018-evidence/
+          if-no-files-found: error
+          retention-days: 90
