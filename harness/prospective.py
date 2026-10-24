@@ -720,11 +720,35 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
                 "bound to original run/topic"
             )
             continue
+        # A4 permits repeat attempts only for explicitly attributed external
+        # infrastructure incidents. A matching run/topic/ID is necessary but
+        # not sufficient: a post-hoc scientific-results disagreement or a
+        # mismatch with the original failure class cannot authorize a rerun.
+        permitted_attributions = {
+            "network outage",
+            "external network outage",
+            "provider 5xx",
+            "runner killed",
+        }
+        authorised = [
+            defect
+            for defect in cited
+            if original is not None
+            and defect.get("failure_class") == original.get("outcome")
+            and type(defect.get("attribution")) is str
+            and defect["attribution"].strip().casefold() in permitted_attributions
+        ]
+        if not authorised:
+            reasons.append(
+                f"run {record.get('run_id')}: cited defect lacks matching failure_class "
+                "and permitted A4 external infrastructure attribution"
+            )
+            continue
         try:
             rerun_started = _parse_utc(record["started_utc"])
             prior = [
                 defect
-                for defect in cited
+                for defect in authorised
                 if _parse_utc(str(defect.get("declared_utc"))) < rerun_started
             ]
         except ProspectiveRefusal as exc:
