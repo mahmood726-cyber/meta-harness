@@ -74,5 +74,14 @@ class ProvenanceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 append_event(p, event)
 
+
+    def test_malformed_study_inputs_fail_closed(self):
+        analysis = {"decision": "ALLOW", "estimand": "HR", "studyIds": ["a"]}
+        self.assertFalse(can_pool(analysis, {"a": None}))
+        self.assertFalse(can_pool(analysis, {"a": "included"}))
+        self.assertFalse(can_pool(analysis, None))
+        self.assertFalse(can_pool({**analysis, "studyIds": [None]}, {}))
+        self.assertFalse(can_pool({**analysis, "studyIds": [1]}, {}))
+
 if __name__ == "__main__":
     unittest.main()
