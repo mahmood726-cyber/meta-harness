@@ -1,0 +1,93 @@
+{
+  "record_version": "1.0.0",
+  "case_id": "CROSS-EXCH-016",
+  "registered_status": "NOT_RUN",
+  "input_type": "SYNTHETIC_FIXTURE_ONLY",
+  "purpose": "Frozen synthetic CLI raw JSON versus Python API importer parity with actual pinned RapidMeta no-pool consumer; no clinical inference.",
+  "repositories": {
+    "meta-harness": {
+      "commit": "ea2fac35a212a330dfe27f7b710347e9ef69a12a",
+      "role": "EXECUTED_PINNED_PRODUCER_VALIDATOR_IMPORTER"
+    },
+    "rapidmeta-kit": {
+      "commit": "368137dc437543c721b98be39c14282c338f7797",
+      "role": "EXECUTED_PINNED_CONSUMER"
+    },
+    "e156-ecosystem-starter": {
+      "commit": "bad5a31c6b31256244266204dafaecbbbf77c8c5",
+      "role": "NOT_EXECUTED"
+    },
+    "e156": {
+      "commit": "a377224ede508ee324127729d5cf5ab4d6960a37",
+      "role": "NOT_EXECUTED"
+    }
+  },
+  "runtime": {
+    "os": "ubuntu-24.04",
+    "python": "3.13.7",
+    "node": "22.14.0"
+  },
+  "frozen_source": {
+    "path": "benchmarks/cross_repo/v0.1/synthetic-binary-arms.txt",
+    "sha256": "666a0354b2668dd0f90780becff303eab28a007fa895650ba09793732d374398"
+  },
+  "scenarios": {
+    "allow_rr_itt": {
+      "importer": "ACCEPTED",
+      "consumer": "SYNTHETIC_ENGINE_EXECUTED"
+    },
+    "refuse": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    },
+    "manual_review": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    },
+    "duplicate_shadow": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    },
+    "unicode_duplicate_shadow": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    },
+    "duplicate_trial_id": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    },
+    "source_sha_tamper": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    },
+    "estimand_mismatch": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    },
+    "wrong_locator": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    },
+    "source_trial_mismatch": {
+      "importer": "ACCEPTED",
+      "consumer": "REFUSED"
+    },
+    "malformed_json": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    },
+    "invalid_utf8": {
+      "importer": "REFUSED",
+      "consumer": "REFUSED"
+    }
+  },
+  "limitations": {
+    "trial_to_text_identity": "Generic importer checks trial ID uniqueness and cited text spans, but the canary-specific validated count bridge ties the trial ID to the line grammar. Do not claim generic source-to-trial clinical adjudication.",
+    "original_cross_exch_001_to_015": "NOT_RUN",
+    "external_R": "NOT_TESTED",
+    "prospective_discovery": "NOT_TESTED",
+    "independent_adjudication": "NOT_TESTED",
+    "full_signed_ecosystem": "NOT_TESTED",
+    "usability": "NOT_TESTED"
+  }
+}
