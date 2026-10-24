@@ -41,8 +41,8 @@ def candidate(name: str) -> bytes:
         old = b'"decision":"ALLOW"'
         assert old in raw
         return raw.replace(old, b'"decision":"REFUSE","decisio\\u006e":"ALLOW"', 1)
-    if name == "trial_mismatch":
-        accepted["rows"][0]["trial_id"] = "SYN-TRIAL-99"
+    if name == "duplicate_trial_id":
+        accepted["rows"][1]["trial_id"] = accepted["rows"][0]["trial_id"]
     elif name == "source_sha_tamper":
         accepted["rows"][0]["source"]["sha256"] = "f" * 64
     elif name == "estimand_mismatch":
@@ -54,7 +54,7 @@ def candidate(name: str) -> bytes:
     elif name == "malformed_json":
         return b'{"schema_version":'
     elif name == "bad_utf8":
-        return b'\\xff'
+        return bytes([0xff])
     else:
         raise AssertionError(name)
     return canary.wire(accepted)
@@ -62,7 +62,7 @@ def candidate(name: str) -> bytes:
 
 @pytest.mark.parametrize("name", [
     "allow", "REFUSE", "MANUAL_REVIEW", "duplicate_shadow",
-    "duplicate_unicode_shadow", "trial_mismatch", "source_sha_tamper",
+    "duplicate_unicode_shadow", "duplicate_trial_id", "source_sha_tamper",
     "estimand_mismatch", "line_locator_mismatch", "unknown_override",
     "malformed_json", "bad_utf8",
 ])
