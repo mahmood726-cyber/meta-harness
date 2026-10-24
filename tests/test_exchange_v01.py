@@ -400,11 +400,11 @@ def test_contiguous_future_id_and_reordering_are_structurally_allowed():
     validate_manifest(manifest, path.parent)
 
 
-def test_manifest_schema_declares_transport_namespace_and_13_case_floor():
+def test_manifest_schema_declares_transport_namespace_and_14_case_floor():
     schema = json.loads(
         (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
     )
-    assert schema["properties"]["cases"]["minItems"] == 13
+    assert schema["properties"]["cases"]["minItems"] == 14
     pat = schema["$defs"]["case"]["properties"]["id"]["pattern"]
     assert re.fullmatch(pat, "CROSS-EXCH-012")
     assert re.fullmatch(pat, "CROSS-R-012") is None
@@ -465,7 +465,7 @@ def test_manifest_rejects_nonobject_coverage_without_attribute_error():
         validate_manifest(manifest, root)
 
 
-def test_manifest_schema_declares_all_four_closed_shapes_and_13_cases():
+def test_manifest_schema_declares_all_four_closed_shapes_and_14_cases():
     spec = json.loads(
         (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
     )
@@ -473,7 +473,7 @@ def test_manifest_schema_declares_all_four_closed_shapes_and_13_cases():
     assert spec["$defs"]["repository"]["additionalProperties"] is False
     assert spec["$defs"]["case"]["additionalProperties"] is False
     assert spec["properties"]["coverage"]["items"]["additionalProperties"] is False
-    assert spec["properties"]["cases"]["minItems"] == 13
+    assert spec["properties"]["cases"]["minItems"] == 14
 
 
 def test_manifest_13th_case_remains_not_run_and_fixture_pinned():
@@ -482,3 +482,85 @@ def test_manifest_13th_case_remains_not_run_and_fixture_pinned():
     case = next(c for c in manifest["cases"] if c["id"] == "CROSS-EXCH-013")
     assert case["status"] == "NOT_RUN"
     assert case["input_type"] == "SYNTHETIC_FIXTURE_ONLY"
+
+
+# CROSS-EXCH-014: FAIL requires execution provenance, and NOT_RUN/BLOCKED
+# must not carry contradictory evidence. Synthetic input, not an Actions run.
+def test_fail_status_without_execution_provenance_refuses():
+    manifest, root = _manifest_fixture()
+    manifest["cases"][0]["status"] = "FAIL"
+    with pytest.raises(ValueError, match="FAIL without matching, complete run evidence"):
+        validate_manifest(manifest, root)
+
+
+def test_fail_status_with_empty_evidence_refuses():
+    manifest, root = _manifest_fixture()
+    manifest["cases"][0].update(status="FAIL", run_evidence={})
+    with pytest.raises(ValueError, match="FAIL without matching, complete run evidence"):
+        validate_manifest(manifest, root)
+
+
+@pytest.mark.parametrize("wrong_field,wrong_value", [
+    ("action_run_url", "https://github.com/other-owner/meta-harness/actions/runs/123456789"),
+    ("commit_sha", "f" * 40),
+    ("input_sha256", "f" * 64),
+    ("job_name", ""),
+])
+def test_fail_status_with_unpinned_or_incomplete_provenance_refuses(wrong_field, wrong_value):
+    manifest, root = _synthetic_pass_manifest()
+    case = manifest["cases"][0]
+    case["status"] = "FAIL"
+    case["run_evidence"][wrong_field] = wrong_value
+    with pytest.raises(ValueError):
+        validate_manifest(manifest, root)
+
+
+@pytest.mark.parametrize("status", ["NOT_RUN", "BLOCKED"])
+def test_nonexecuted_status_cannot_carry_run_provenance(status):
+    manifest, root = _synthetic_pass_manifest()
+    manifest["cases"][0]["status"] = status
+    with pytest.raises(ValueError, match="run_evidence requires PASS or FAIL"):
+        validate_manifest(manifest, root)
+
+
+def test_structurally_consistent_synthetic_fail_is_not_real_run_evidence():
+    manifest, root = _synthetic_pass_manifest()
+    manifest["cases"][0]["status"] = "FAIL"
+    validate_manifest(manifest, root)
+    # This is NOT an observed failing GitHub Actions run.
+
+
+def test_unversioned_run_evidence_field_refuses():
+    manifest, root = _synthetic_pass_manifest()
+    manifest["cases"][0]["run_evidence"]["fictitious_attestation"] = "yes"
+    with pytest.raises(ValueError, match="unsupported field"):
+        validate_manifest(manifest, root)
+
+
+@pytest.mark.parametrize("status", [[], {}, 15])
+def test_untyped_case_status_refuses_with_validation_error(status):
+    manifest, root = _manifest_fixture()
+    manifest["cases"][0]["status"] = status
+    with pytest.raises(ValueError, match="unknown status"):
+        validate_manifest(manifest, root)
+
+
+def test_manifest_schema_declares_execution_evidence_status_gate():
+    spec = json.loads(
+        (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
+    )
+    case = spec["$defs"]["case"]
+    assert spec["properties"]["cases"]["minItems"] == 14
+    gate = case["allOf"][0]
+    assert gate["if"]["properties"]["status"]["enum"] == ["PASS", "FAIL"]
+    assert gate["then"]["required"] == ["run_evidence"]
+    assert gate["else"]["not"]["required"] == ["run_evidence"]
+    assert case["properties"]["run_evidence"]["additionalProperties"] is False
+
+
+def test_fourteenth_case_remains_not_run_and_preserves_source_fixture():
+    manifest, root = _manifest_fixture()
+    validate_manifest(manifest, root)
+    case = next(c for c in manifest["cases"] if c["id"] == "CROSS-EXCH-014")
+    assert case["status"] == "NOT_RUN"
+    assert case["input_sha256"] == manifest["cases"][0]["input_sha256"]

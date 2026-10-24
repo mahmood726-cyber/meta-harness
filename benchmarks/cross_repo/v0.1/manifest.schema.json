@@ -45,11 +45,11 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 13,
+      "minItems": 14,
       "items": {
         "$ref": "#/$defs/case"
       },
-      "description": "Minimum registered v0.1 suite of 13 transport cases; Python validate_manifest enforces mandatory and gap-free IDs."
+      "description": "Minimum registered v0.1 suite of 14 transport cases; Python validate_manifest enforces mandatory and gap-free IDs."
     },
     "coverage": {
       "type": "array",
@@ -151,9 +151,63 @@
         },
         "run_evidence": {
           "type": "object",
-          "description": "Offline structural PASS record. Executable validator requires an Actions URL under mahmood726-cyber and one of the four manifest repositories, plus commit_sha matching the selected repository pin and the case's input_sha256. This schema cannot verify the remote job actually ran or attest its conclusion."
+          "additionalProperties": false,
+          "description": "Offline structural PASS or FAIL provenance. Matching hashes/commit/URL do not verify that a remote job existed or had the claimed conclusion.",
+          "required": [
+            "action_run_url",
+            "commit_sha",
+            "input_sha256",
+            "job_name"
+          ],
+          "properties": {
+            "action_run_url": {
+              "type": "string",
+              "pattern": "^https://github[.]com/mahmood726-cyber/[a-z0-9-]+/actions/runs/[1-9][0-9]*$"
+            },
+            "commit_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "input_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "job_name": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "PASS",
+                  "FAIL"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "run_evidence"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "run_evidence"
+              ]
+            }
+          }
+        }
+      ]
     }
   }
 }

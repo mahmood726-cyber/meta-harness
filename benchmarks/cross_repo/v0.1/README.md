@@ -172,3 +172,28 @@ Fifteen synthetic negative/positive test instances were added to guard the
 contract. **CROSS-EXCH-013 remains NOT_RUN** until independently reviewed,
 exact-pinned benchmark-case execution is recorded; repository pytest is not a
 four-repository benchmark or external scientific validation.
+
+
+## New negative case: CROSS-EXCH-014 — status-bound run evidence
+
+The v0.1 manifest accepted a case changed from `NOT_RUN` to `FAIL` without
+any execution record. It also accepted `run_evidence` attached to a
+`NOT_RUN` or `BLOCKED` case, allowing contradictory public state.
+This is an audit-status integrity defect, not a statistical-engine issue.
+
+`validate_manifest` now requires complete, source-pin-matched
+`run_evidence` for **both** `PASS` and `FAIL`, and refuses any
+`run_evidence` on `NOT_RUN` or `BLOCKED`. Unknown run-evidence fields
+and non-string case statuses are rejected. The published v0.1 JSON Schema
+states the same conditional contract. Coverage of external research disciplines
+remains separately `NOT_RUN` or `BLOCKED`.
+
+The recorded run evidence is checked **only for structural consistency** with
+the declared commit and input SHA-256. The offline validator **does not**
+retrieve GitHub's actual run conclusion, checkout, steps or artifacts; an
+invented but well-formed URL could still pass this structural check.
+Consequently a reviewer must independently inspect exact-head GitHub Actions
+before interpreting a `FAIL` or `PASS` as an observed benchmark result.
+The synthetic positive and negative tests are not a real benchmark run.
+**CROSS-EXCH-014 remains `NOT_RUN`**, and all prior case IDs, frozen
+repository commit pins, archived source bytes and coverage claims are unchanged.

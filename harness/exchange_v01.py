@@ -268,17 +268,21 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
             raise ValueError("duplicate case id")
         ids.add(cid)
         status = case.get("status")
-        if status not in VALID_BENCHMARK_STATES:
+        if not isinstance(status, str) or status not in VALID_BENCHMARK_STATES:
             raise ValueError(f"{cid}: unknown status")
         if case.get("input_type") != "SYNTHETIC_FIXTURE_ONLY":
             raise ValueError(f"{cid}: only synthetic test fixtures permitted in v0.1")
-        if status == "PASS":
+        if status in {"PASS", "FAIL"}:
             ev = case.get("run_evidence")
             if not isinstance(ev, dict) or not all(
                 isinstance(ev.get(k), str) and ev[k].strip()
                 for k in ("action_run_url", "commit_sha", "input_sha256", "job_name")
             ) or not re.fullmatch(r"[0-9a-f]{40}", ev["commit_sha"]) or ev["input_sha256"] != case.get("input_sha256"):
-                raise ValueError(f"{cid}: PASS without matching, complete run evidence")
+                raise ValueError(f"{cid}: {status} without matching, complete run evidence")
+            _reject_unexpected_keys(
+                ev, {"action_run_url", "commit_sha", "input_sha256", "job_name"},
+                f"{cid} run_evidence",
+            )
             # A plausible workflow URL and SHA are not enough: provenance must
             # identify one of the four pinned source snapshots. This check is
             # offline/structural only; it never claims the remote job was run.
@@ -287,10 +291,12 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
                 ev["action_run_url"],
             )
             if run_path is None or run_path.group(1) not in pins:
-                raise ValueError(f"{cid}: PASS workflow URL is not from a pinned repository")
+                raise ValueError(f"{cid}: {status} workflow URL is not from a pinned repository")
             run_repo = run_path.group(1)
             if ev["commit_sha"] != pins[run_repo]["commit"]:
-                raise ValueError(f"{cid}: PASS workflow commit is not the pinned {run_repo} commit")
+                raise ValueError(f"{cid}: {status} workflow commit is not the pinned {run_repo} commit")
+        elif "run_evidence" in case:
+            raise ValueError(f"{cid}: run_evidence requires PASS or FAIL status")
         h = case.get("input_sha256")
         if not isinstance(h, str) or not HEX64.fullmatch(h):
             raise ValueError(f"{cid}: missing input_sha256")
@@ -303,7 +309,7 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
     # An editable manifest must not silently omit established negative gates.
     # v0.1 requires CROSS-EXCH-001 through -013; later IDs are allowed only
     # without gaps. This checks registry completeness, NOT that tests ran.
-    last = max(13, max(int(cid.rsplit("-", 1)[1]) for cid in ids))
+    last = max(14, max(int(cid.rsplit("-", 1)[1]) for cid in ids))
     expected_ids = {f"CROSS-EXCH-{i:03d}" for i in range(1, last + 1)}
     missing = sorted(expected_ids - ids)
     if missing:
