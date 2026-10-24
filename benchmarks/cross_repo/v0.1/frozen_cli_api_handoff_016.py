@@ -10,6 +10,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -19,6 +20,11 @@ from unittest import mock
 
 def sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
+
+
+def receipt_key(path: Path) -> str:
+    """Archive index keys are portable POSIX paths, never OS-native separators."""
+    return path.as_posix()
 
 
 def git_head(root: Path) -> str:
@@ -36,6 +42,31 @@ def no_duplicates(pairs):
     return obj
 
 
+def runner_image(spec: dict) -> dict:
+    """Bind the declared GitHub Actions image to an observed runtime OS.
+
+    A self-reported runner label alone cannot attest a Windows image build;
+    Actions job metadata remains independent evidence of image identity.
+    """
+    label = os.environ.get("BENCHMARK_RUNNER_IMAGE")
+    expected = spec.get("runtime", {}).get("os")
+    if not isinstance(expected, list) or expected != ["ubuntu-24.04", "windows-2025"]:
+        raise ValueError("frozen registration must explicitly list exact allowed OS runners")
+    if label not in expected:
+        raise ValueError("running CI image not in frozen benchmark registration")
+    family = platform.system()
+    if (label == "ubuntu-24.04" and family != "Linux") or (
+        label == "windows-2025" and family != "Windows"
+    ):
+        raise ValueError("declared CI runner image inconsistent with local OS family")
+    if label == "ubuntu-24.04":
+        info = platform.freedesktop_os_release()
+        if info.get("ID") != "ubuntu" or info.get("VERSION_ID") != "24.04":
+            raise ValueError("Ubuntu runner distro/version disagrees with frozen registration")
+    return {"runner_image_label": label, "observed_system": family,
+            "observed_release": platform.release(), "observed_version": platform.version()}
+
+
 def frozen_spec(path: Path, meta: Path, rapid: Path) -> tuple[dict, bytes]:
     raw = path.read_bytes()
     spec = json.loads(raw, object_pairs_hook=no_duplicates)
@@ -49,6 +80,7 @@ def frozen_spec(path: Path, meta: Path, rapid: Path) -> tuple[dict, bytes]:
         "e156": "NOT_EXECUTED",
         "e156-ecosystem-starter": "NOT_EXECUTED",
     }
+    runner_image(spec)  # Refuse mismatched OS before executing producers.
     for name, role in roles.items():
         if spec["repositories"][name]["role"] != role:
             raise ValueError(f"unexpected execution role: {name}")
@@ -181,7 +213,7 @@ def main() -> None:
         }
         out_path.write_bytes(canary.wire(result))
         for file in (in_path, out_path):
-            digests[str(file.relative_to(output))] = sha(file.read_bytes())
+            digests[receipt_key(file.relative_to(output))] = sha(file.read_bytes())
         print(f"{name}: cli={cli_status} api={api_status} "
               f"consumer={consumer['status']} pool_invoked={consumer['engine_invoked']}")
 
@@ -190,6 +222,7 @@ def main() -> None:
     digests["source.txt"] = sha(source_bytes)
     index = {
         "case_id": "CROSS-EXCH-016",
+        "observed_runner": runner_image(spec),
         "evidence_scope": "SYNTHETIC_FROZEN_TWO_REPOSITORY_CLI_API_HANDOFF_ONLY",
         "registration_sha256": sha(registration_bytes),
         "meta_harness_commit": git_head(meta),

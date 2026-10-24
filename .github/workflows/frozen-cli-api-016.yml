@@ -20,9 +20,20 @@ permissions:
 
 jobs:
   frozen-cli-api-016:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        runner_image: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.runner_image }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      BENCHMARK_RUNNER_IMAGE: ${{ matrix.runner_image }}
     steps:
+      - name: Preserve exact source-file bytes on Windows and Ubuntu
+        run: git config --global core.autocrlf false
       - name: Checkout literal candidate PR HEAD (not GitHub merge tree)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -58,6 +69,8 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22.14.0'
+      - name: Regression checks for frozen OS identity and spoofed runner labels
+        run: python -m unittest discover -s governance/tests -p 'test_frozen_runner_os_016.py' -v
       - name: Execute actual frozen CLI versus API and actual RapidMeta no-pool gates
         run: |
           set -euo pipefail
@@ -75,6 +88,12 @@ jobs:
           registration = json.loads(registration_raw)
           index = json.loads((evidence / "index.json").read_bytes())
           assert index["case_id"] == registration["case_id"] == "CROSS-EXCH-016"
+          actual_image = index["observed_runner"]["runner_image_label"]
+          assert actual_image == "${{ matrix.runner_image }}"
+          assert actual_image in registration["runtime"]["os"]
+          assert index["observed_runner"]["observed_system"] == (
+              "Windows" if actual_image.startswith("windows-") else "Linux"
+          )
           assert registration["registered_status"] == "NOT_RUN"
           assert index["evidence_scope"] == "SYNTHETIC_FROZEN_TWO_REPOSITORY_CLI_API_HANDOFF_ONLY"
           assert index["registration_sha256"] == hashlib.sha256(registration_raw).hexdigest()
@@ -116,7 +135,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: frozen-cross-exch-016-${{ github.sha }}
+          name: frozen-cross-exch-016-${{ matrix.runner_image }}-${{ github.sha }}
           path: handoff-016-evidence/
           if-no-files-found: error
           retention-days: 90
