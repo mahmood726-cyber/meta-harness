@@ -103,7 +103,7 @@ def test_missing_or_untyped_trial_identity_refuses(trial_id):
 # CROSS-EXCH-008: identifiers must be canonical at the handoff boundary.
 # Without this, "TRIAL-X" and " TRIAL-X " are treated as different trials.
 @pytest.mark.parametrize("field", ["study_id", "trial_id"])
-@pytest.mark.parametrize("padding", [" ", "\\t", "\\n", "\\u00a0"])
+@pytest.mark.parametrize("padding", [" ", "\t", "\n", "\u00a0"])
 def test_boundary_whitespace_in_identifiers_refuses(field, padding):
     item = exchange()
     item["rows"][0][field] = padding + item["rows"][0][field]
