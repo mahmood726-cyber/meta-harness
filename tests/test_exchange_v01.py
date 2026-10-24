@@ -79,6 +79,27 @@ def test_duplicate_study_refuses():
         validate_exchange(item, ROOT)
 
 
+
+# CROSS-EXCH-007: study IDs alone do not protect against duplicate reports of
+# the same trial. This v0.1 handoff has no multi-arm reconciliation model.
+def test_distinct_study_ids_with_same_trial_id_refuse_pooling():
+    item = exchange()
+    second = copy.deepcopy(item["rows"][0])
+    second["study_id"] = "SYNTHETIC-SECOND-REPORT"
+    assert second["trial_id"] == item["rows"][0]["trial_id"]
+    item["rows"].append(second)
+    with pytest.raises(ValueError, match="duplicate trial_id"):
+        validate_exchange(item, ROOT)
+
+
+@pytest.mark.parametrize("trial_id", ["", "   ", None, 123])
+def test_missing_or_untyped_trial_identity_refuses(trial_id):
+    item = exchange()
+    item["rows"][0]["trial_id"] = trial_id
+    with pytest.raises(ValueError, match="trial_id missing or empty"):
+        validate_exchange(item, ROOT)
+
+
 def test_manifest_is_pinned_and_internal_cases_not_claimed_passed():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     obj = json.loads(path.read_text(encoding="utf-8"))
