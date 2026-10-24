@@ -235,11 +235,20 @@ def run_topic(
 
     try:
         config_path = Path(topic_config_path)
-        config = _read_json(config_path)
+        # Capture the externally supplied topic exactly once. Parsing the first
+        # read and then copying the path a second time permits an intervening
+        # edit to make the archived config differ from the config actually run.
+        # Archive even malformed input so failures retain their original bytes.
+        config_bytes = config_path.read_bytes()
+        archived_config = out_dir / "topic-config.json"
+        archived_config.write_bytes(config_bytes)
+        artefacts.append(archived_config)
+        config = json.loads(config_bytes.decode("utf-8"))
+        if not isinstance(config, dict):
+            raise ValueError(f"{config_path} must contain a JSON object")
         topic_identifier = str(config.get("topic_identifier") or config.get("slug") or topic_config_path)
         if "slug" not in config:
             raise prospective.ProspectiveRefusal("topic config must provide slug")
-        artefacts.append(_copy_file(config_path, out_dir / "topic-config.json"))
         records, cache_dir, from_cache = _load_or_refresh(
             config, out_dir, started_utc[:10]
         )
