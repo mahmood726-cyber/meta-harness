@@ -244,8 +244,18 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
                 for k in ("action_run_url", "commit_sha", "input_sha256", "job_name")
             ) or not re.fullmatch(r"[0-9a-f]{40}", ev["commit_sha"]) or ev["input_sha256"] != case.get("input_sha256"):
                 raise ValueError(f"{cid}: PASS without matching, complete run evidence")
-            if not re.fullmatch(r"https://github[.]com/[^/]+/[^/]+/actions/runs/[0-9]+", ev["action_run_url"]):
-                raise ValueError(f"{cid}: PASS without canonical workflow run URL")
+            # A plausible workflow URL and SHA are not enough: provenance must
+            # identify one of the four pinned source snapshots. This check is
+            # offline/structural only; it never claims the remote job was run.
+            run_path = re.fullmatch(
+                r"https://github[.]com/mahmood726-cyber/([a-z0-9-]+)/actions/runs/([1-9][0-9]*)",
+                ev["action_run_url"],
+            )
+            if run_path is None or run_path.group(1) not in pins:
+                raise ValueError(f"{cid}: PASS workflow URL is not from a pinned repository")
+            run_repo = run_path.group(1)
+            if ev["commit_sha"] != pins[run_repo]["commit"]:
+                raise ValueError(f"{cid}: PASS workflow commit is not the pinned {run_repo} commit")
         h = case.get("input_sha256")
         if not isinstance(h, str) or not HEX64.fullmatch(h):
             raise ValueError(f"{cid}: missing input_sha256")

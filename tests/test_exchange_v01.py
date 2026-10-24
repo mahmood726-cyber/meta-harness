@@ -306,3 +306,53 @@ def test_multiline_passage_cannot_claim_only_last_line():
         validate_exchange(item, ROOT)
     span["locator"] = "lines 1-2"
     validate_exchange(item, ROOT)
+
+
+# CROSS-EXCH-011: synthetic PASS records test *offline provenance consistency*,
+# not real Actions execution, successful cross-repo canaries, or clinical accuracy.
+# These records exist only inside the test and must never be written to the
+# public manifest as benchmark evidence.
+def _synthetic_pass_manifest():
+    path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
+    obj = json.loads(path.read_text(encoding="utf-8"))
+    case = obj["cases"][0]
+    case["status"] = "PASS"
+    case["run_evidence"] = {
+        "action_run_url": "https://github.com/mahmood726-cyber/meta-harness/actions/runs/123456789",
+        "commit_sha": obj["repositories"]["meta-harness"]["commit"],
+        "input_sha256": case["input_sha256"],
+        "job_name": "synthetic-provenance-check-not-a-real-job",
+    }
+    return obj, path.parent
+
+
+def test_synthetic_pin_matched_pass_record_checks_structure_only():
+    manifest, root = _synthetic_pass_manifest()
+    validate_manifest(manifest, root)
+
+
+@pytest.mark.parametrize("wrong_url", [
+    "https://github.com/other-owner/meta-harness/actions/runs/123456789",
+    "https://github.com/mahmood726-cyber/unpinned-repo/actions/runs/123456789",
+    "https://github.com/mahmood726-cyber/meta-harness/actions/runs/0",
+    "https://github.com/mahmood726-cyber/meta-harness/actions/runs/123456789?spoof=1",
+])
+def test_synthetic_pass_cannot_cite_unpinned_workflow_url(wrong_url):
+    manifest, root = _synthetic_pass_manifest()
+    manifest["cases"][0]["run_evidence"]["action_run_url"] = wrong_url
+    with pytest.raises(ValueError, match="not from a pinned repository"):
+        validate_manifest(manifest, root)
+
+
+def test_synthetic_pass_cannot_claim_unpinned_checkout():
+    manifest, root = _synthetic_pass_manifest()
+    manifest["cases"][0]["run_evidence"]["commit_sha"] = "f" * 40
+    with pytest.raises(ValueError, match="not the pinned meta-harness commit"):
+        validate_manifest(manifest, root)
+
+
+def test_synthetic_pass_cannot_reuse_other_repositories_pin():
+    manifest, root = _synthetic_pass_manifest()
+    manifest["cases"][0]["run_evidence"]["commit_sha"] = manifest["repositories"]["e156"]["commit"]
+    with pytest.raises(ValueError, match="not the pinned meta-harness commit"):
+        validate_manifest(manifest, root)

@@ -97,3 +97,27 @@ The added synthetic regression scenarios test last-value-wins ambiguity and
 positive unique-member JSON, not clinical evidence. Existing pinned repository
 commits and source fixture SHA-256 are unchanged; `CROSS-EXCH-010` remains
 `NOT_RUN` pending independently inspected exact-head test evidence.
+
+## New negative case: CROSS-EXCH-011 — pin-bound PASS evidence
+
+The v0.1 manifest previously accepted a plausible PASS record from an
+unrelated GitHub repository or an arbitrary 40-hex checkout SHA, despite
+advertising exact four-repository source pins. The offline validator now
+requires the Actions URL to identify one of the four pinned repositories
+under `mahmood726-cyber`, a positive canonical run ID, and a
+`commit_sha` identical to that repository's frozen manifest commit.
+The existing input SHA-256 equality check remains mandatory.
+
+Six synthetic negative instances exercise wrong ownership, unpinned repo,
+invalid run ID, URL query appendage, unrelated commit, and another pinned
+repository's SHA. One structurally consistent synthetic PASS object is
+accepted *inside tests only* to avoid vacuous rejection. It is deliberately
+fictional and never recorded as a real benchmark PASS: the manifest still
+marks CROSS-EXCH-011 `NOT_RUN`, and no external accuracy or real
+four-repository canary is claimed.
+
+**Limit:** the validator does not call the GitHub API to verify that an
+Actions run exists, checked out the claimed SHA, ran the named tests or
+passed. That requires an independently inspected job and artifact chain.
+Do not promote a case based on this offline check alone; all five
+external-coverage categories remain untested.
