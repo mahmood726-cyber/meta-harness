@@ -244,7 +244,9 @@ If either OS disagrees, CI fails, even if archive receipts were recomputed.
 
 **Refusal replay extension:** the independent comparator now re-executes *both*
 registered `refuse` and `manual_review` wire inputs from each OS (four frozen
-importer calls), checks the exact case identities and recorded refusal reasons,
+importer calls), checks that each strict raw JSON row actually declares its
+registered refusal category (no shadowed duplicate decisions), and verifies
+exact case identities and recorded refusal reasons,
 and rejects every unexpected engine invocation. This is still a synthetic
 two-repository check, not a four-repository public benchmark PASS.
 
