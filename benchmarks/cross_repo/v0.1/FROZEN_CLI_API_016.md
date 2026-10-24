@@ -42,7 +42,7 @@ To exercise the producer CLI directly:
 (cd meta && python -m harness.exchange_v01 --exchange ../handoff-016-evidence/inputs/refuse.json --archive-root .)
 ```
 
-This **must fail** for REFUSE. The `allow_rr_itt.json` input must pass raw importer checks; the runner additionally verifies that its real RapidMeta calculation runs. The OS-matrix CI produces **separate Windows and Ubuntu evidence artifacts** and independently verifies the same 12 registered acceptance/refusal expectations on each, including 11 pre-pooling refusals. Those independent behaviour assertions are not a cross-OS byte-for-byte equality claim for floating-point outputs; there is no downstream artifact-to-artifact comparator yet. The published CI artifacts, if successful, permit independent rehashing; GitHub artifacts have retention limits and are not immutable long-term storage by themselves.
+This **must fail** for REFUSE. The `allow_rr_itt.json` input must pass raw importer checks; the runner additionally verifies that its real RapidMeta calculation runs. The OS-matrix CI produces **separate Windows and Ubuntu evidence artifacts** and independently verifies the same 12 registered acceptance/refusal expectations on each, including 11 pre-pooling refusals. Those independent behaviour assertions are not a cross-OS byte-for-byte equality claim for floating-point outputs; the later cross-OS archive comparator described below checks transport, refusal provenance and no-pool status only, not numerical equality. The published CI artifacts, if successful, permit independent rehashing; GitHub artifacts have retention limits and are not immutable long-term storage by themselves.
 
 ## Coverage and gates
 
@@ -81,9 +81,9 @@ python benchmarks/cross_repo/v0.1/compare_cross_os_016.py \
 The comparator rejects duplicate raw JSON members, missing/modified SHA
 receipts, inconsistent OS declarations, source or engine identity differences,
 unequal archived input bytes and mismatched acceptance/refusal outcomes.
-A separate 7-case synthetic unit suite intentionally simulates otherwise
-internally consistent archives with differing wire inputs and verifies this
-refuses. Those fixtures are **not** real producer/consumer executions; only
+A separate isolated synthetic unit suite intentionally simulates otherwise
+internally consistent archives with differing wire inputs, refusal diagnostics
+and consumer case identity and verifies this refuses. Those fixtures are **not** real producer/consumer executions; only
 the downloaded-artifact dependent job can show actual executed comparison.
 
 The report distinguishes **transport and no-pool parity** from untested
@@ -92,3 +92,32 @@ external adjudication, signed four-repo ecosystem and clinical accuracy.
 Original common CROSS-EXCH-001–015 remain **NOT_RUN**. The 32 historical
 certificate reproduction gate and repository review rules remain mandatory;
 supplemental CI is not approval to merge.
+
+
+## Fail-closed refusal-provenance parity (subsequent scoped draft)
+
+Every archived case records `api_refusal` from the frozen import/API boundary
+and, when refused downstream, `consumer.refusal` and `consumer.case` from
+the pinned RapidMeta handoff. Earlier comparison counted only accepted/refused
+**statuses** and engine invocation flags. Two operating systems could therefore
+report identical refusal statuses yet disagree about *why* they refused, or
+silently attach the refusal to a different case ID; both archives could have
+internally valid SHA-256 receipts without the discrepancy being noticed.
+
+The cross-OS comparator now requires nonempty refusal reasons on both refusing
+boundaries, no refusal reason on accepted/pooled boundaries, the recorded
+consumer case ID to match the input scenario, and literal matching refusal
+reasons between Ubuntu and Windows. It checks this **after** independently
+verifying each archive's raw-file receipts, so falsified diagnostics with
+updated digests are also detected. The synthetic regression suite injects
+missing/changed reasons and case-ID drift after recomputing archive receipts;
+these fixtures demonstrate refusal-gate behaviour, **not** a new public
+benchmark execution.
+
+Replay *real* previously archived producer/consumer outputs by downloading
+both distinct OS artifacts from [Actions run 40101688905](https://github.com/mahmood726-cyber/meta-harness/actions/runs/40101688905)
+and using the comparator command above. The comparison script reports transport
+and refusal-provenance agreement; **it does not rerun the producer or assert
+numerical R parity**. GitHub's new exact-head CI on this draft must be checked
+separately. Retain 15/15 historical cases NOT_RUN, the 32-certificate gate,
+and all independent-review/merge requirements unchanged.
