@@ -14,6 +14,7 @@ import datetime as dt
 import io
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -36,6 +37,30 @@ from harness.synth import method_text  # noqa: E402
 
 
 FROZEN_OUT_DIRS = ("docs", "cache", "topics", "protocols", "harness", "registry")
+
+# acquisition.write_snapshot joins root/cache/<slug> before the caller checks
+# whether the resulting path escaped the run package. Held-out topic inputs
+# must never influence that filesystem path with traversal or device aliases.
+SAFE_TOPIC_SLUG_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$")
+WINDOWS_DEVICE_NAMES = {
+    "CON", "PRN", "AUX", "NUL",
+    *(f"COM{i}" for i in range(1, 10)),
+    *(f"LPT{i}" for i in range(1, 10)),
+}
+
+
+def _require_topic_slug(value: Any) -> str:
+    """Validate a prospective identity before ANY acquisition side effect."""
+    if (
+        type(value) is not str
+        or SAFE_TOPIC_SLUG_RE.fullmatch(value) is None
+        or ".." in value
+        or value.split(".", 1)[0].upper() in WINDOWS_DEVICE_NAMES
+    ):
+        raise prospective.ProspectiveRefusal(
+            "prospective topic slug must be a single safe ASCII path component"
+        )
+    return value
 
 
 def _utc_now() -> str:
@@ -103,7 +128,7 @@ def _cache_candidates(out_dir: Path, slug: str) -> list[Path]:
 
 
 def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tuple[dict[str, Any], Path | None, bool]:
-    slug = str(config["slug"])
+    slug = _require_topic_slug(config.get("slug"))
     # A prospective run must not silently replay preseeded/cached records.
     # Such inputs can encode known trials, study selections or past outputs.
     # Refuse even a dangling symlink rather than accepting an ambiguous cache.
@@ -247,8 +272,7 @@ def run_topic(
         if not isinstance(config, dict):
             raise ValueError(f"{config_path} must contain a JSON object")
         topic_identifier = str(config.get("topic_identifier") or config.get("slug") or topic_config_path)
-        if "slug" not in config:
-            raise prospective.ProspectiveRefusal("topic config must provide slug")
+        _require_topic_slug(config.get("slug"))
         records, cache_dir, from_cache = _load_or_refresh(
             config, out_dir, started_utc[:10]
         )
