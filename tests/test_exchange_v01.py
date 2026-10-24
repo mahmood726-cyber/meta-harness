@@ -34,6 +34,35 @@ def test_transport_accepts_structurally_valid_synthetic_fixture_only():
     validate_exchange(exchange(), ROOT)
 
 
+# CROSS-EXCH-009: the Python importer must enforce the same closed object
+# shapes as the versioned JSON Schema (additionalProperties=false). Otherwise
+# a second consumer might silently treat an unknown field as a pooling override.
+@pytest.mark.parametrize("section", ["root", "proposed_pool", "row", "source", "source_span"])
+def test_unversioned_extra_exchange_field_refuses(section):
+    item = exchange()
+    parts = {
+        "root": item,
+        "proposed_pool": item["proposed_pool"],
+        "row": item["rows"][0],
+        "source": item["rows"][0]["source"],
+        "source_span": item["rows"][0]["source_span"],
+    }
+    parts[section]["unversioned_pool_override"] = {"decision": "ALLOW"}
+    with pytest.raises(ValueError, match="unsupported field"):
+        validate_exchange(item, ROOT)
+
+
+def test_schema_and_executable_importer_both_require_closed_exchange_objects():
+    spec = json.loads((ROOT / "benchmarks/cross_repo/v0.1/exchange.schema.json").read_text(encoding="utf-8"))
+    assert spec["additionalProperties"] is False
+    assert spec["properties"]["proposed_pool"]["additionalProperties"] is False
+    assert spec["$defs"]["row"]["additionalProperties"] is False
+    assert spec["$defs"]["estimand"]["additionalProperties"] is False
+    assert spec["$defs"]["row"]["properties"]["source"]["additionalProperties"] is False
+    assert spec["$defs"]["row"]["properties"]["source_span"]["additionalProperties"] is False
+
+
+
 @pytest.mark.parametrize("decision", ["REFUSE", "MANUAL_REVIEW", "ADJUST", "ALLOW_WITH_LABEL", None])
 def test_no_nonallow_decision_silently_pools(decision):
     item = exchange()

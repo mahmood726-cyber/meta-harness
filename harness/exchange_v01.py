@@ -39,6 +39,18 @@ def _required_text(obj: dict, key: str) -> str:
 
 
 
+def _reject_unexpected_keys(obj: dict, allowed: set[str], where: str) -> None:
+    """Keep the Python importer aligned with JSON Schema additionalProperties=false.
+
+    Unknown fields cannot carry unversioned gate, provenance or estimand
+    overrides into a downstream consumer with different interpretation.
+    """
+    unexpected = set(obj) - allowed
+    if unexpected:
+        names = ", ".join(sorted(str(key) for key in unexpected))
+        raise ValueError(f"{where}: unsupported field(s): {names}")
+
+
 def _canonical_identifier(obj: dict, key: str) -> str:
     """Require already-trimmed IDs; reject aliases before deduplication.
 
@@ -79,6 +91,10 @@ def validate_exchange(payload: object, archive_root: Path) -> None:
     """
     if not isinstance(payload, dict) or payload.get("schema_version") != VERSION:
         raise ValueError("unsupported evidence schema_version")
+    _reject_unexpected_keys(
+        payload, {"schema_version", "review_id", "protocol_sha256", "rows", "proposed_pool"},
+        "exchange",
+    )
     _required_text(payload, "review_id")
     if not HEX64.fullmatch(str(payload.get("protocol_sha256", ""))):
         raise ValueError("protocol_sha256 must be a SHA-256 digest")
@@ -88,6 +104,7 @@ def validate_exchange(payload: object, archive_root: Path) -> None:
     target = payload.get("proposed_pool")
     if not isinstance(target, dict) or target.get("requested") is not True:
         raise ValueError("this handoff only accepts explicit proposed pooling")
+    _reject_unexpected_keys(target, {"requested", "estimand"}, "proposed_pool")
     declared = target.get("estimand")
     if not isinstance(declared, dict) or set(declared) != set(ESTIMAND_KEYS):
         raise ValueError("proposed_pool.estimand keys missing or unknown")
@@ -98,6 +115,10 @@ def validate_exchange(payload: object, archive_root: Path) -> None:
     for i, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ValueError(f"row {i}: not an object")
+        _reject_unexpected_keys(
+            row, {"study_id", "trial_id", "decision", "estimand", "source", "source_span"},
+            f"row {i}",
+        )
         study = _canonical_identifier(row, "study_id")
         trial = _canonical_identifier(row, "trial_id")
         if study in seen:
@@ -121,6 +142,7 @@ def validate_exchange(payload: object, archive_root: Path) -> None:
         source = row.get("source")
         if not isinstance(source, dict):
             raise ValueError(f"row {i}: source missing")
+        _reject_unexpected_keys(source, {"path", "sha256"}, f"row {i}.source")
         sha = source.get("sha256")
         if not isinstance(sha, str) or not HEX64.fullmatch(sha):
             raise ValueError(f"row {i}: source.sha256 missing or invalid")
@@ -133,6 +155,7 @@ def validate_exchange(payload: object, archive_root: Path) -> None:
         span = row.get("source_span")
         if not isinstance(span, dict):
             raise ValueError(f"row {i}: source_span missing")
+        _reject_unexpected_keys(span, {"locator", "verbatim"}, f"row {i}.source_span")
         passage = _required_text(span, "verbatim")
         _required_text(span, "locator")
         try:

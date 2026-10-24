@@ -51,3 +51,24 @@ A second synthetic row can bypass exact string-based `trial_id` duplicate checki
 The regression uses fabricated identifiers solely to exercise the exchange boundary. `CROSS-EXCH-008` remains `NOT_RUN` in the benchmark manifest until pinned executable evidence is independently checked; local fixture testing is not independent clinical validation. No consumer integration or statistical effect computation is changed.
 
 Python and JavaScript differ in their built-in whitespace categories (notably C0/NEL and U+FEFF). The executable helper and JSON Schema explicitly cover their union at the identity boundary. This does not detect all visually confusable IDs, such as zero-width characters, nor authenticate the asserted trial identity.
+
+
+## New negative case: CROSS-EXCH-009 — reject unversioned transport fields
+
+The published v0.1 JSON Schema forbids additional properties in the exchange
+root, proposed pool, individual rows, archived source references and source
+spans. The executable Python handoff previously accepted extra properties in
+these locations. Different consumers could consequently disagree about whether
+an extra pooling override, decision, or provenance field was meaningful. This
+change makes the importer reject those fields before authorizing structural
+handoff; it does **not** infer or execute any extra instructions.
+
+Five synthetic negative regression scenarios cover those five object boundaries,
+with a separate schema-closure assertion. The change is restricted to the
+opt-in transport verifier, not production synthesis, statistical calculations
+or clinical eligibility. The immutable source fixture and four original
+repository source pins are unchanged. CROSS-EXCH-009 is reserved as **NOT_RUN**
+until exact pinned-input run evidence is independently verified. The existing
+refusals for `REFUSE`, `MANUAL_REVIEW`, `ADJUST`, and `ALLOW_WITH_LABEL`
+remain unconditional. Unknown real-world semantic fields require an explicit
+future contract version rather than silent acceptance.
