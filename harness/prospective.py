@@ -208,13 +208,32 @@ def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, A
 def check_declaration_frozen(
     root: str | os.PathLike[str], decl: dict[str, Any]
 ) -> dict[str, Any]:
-    observed = architecture_identity.identity(root)
+    # The identity is necessary but not sufficient: previously a declaration
+    # could claim "fully frozen" despite recording mutable external models or
+    # dependencies, because only its architecture_identity was checked.
+    observed_components = architecture_identity.components(root)
+    observed = architecture_identity.identity_from_components(observed_components)
     expected = decl.get("architecture_identity")
     if observed != expected:
         raise ProspectiveRefusal(
             "architecture identity mismatch: "
             f"expected {expected}, observed {observed}"
         )
+    if decl.get("architecture_components") != observed_components:
+        raise ProspectiveRefusal("declared architecture components differ from frozen system")
+    observed_mutable_dependencies = architecture_identity.mutable_dependencies(root)
+    if decl.get("mutable_dependencies") != observed_mutable_dependencies:
+        raise ProspectiveRefusal("declared mutable dependencies differ from frozen system")
+    observed_external_mutability = external_dependency_mutability(root)
+    if type(decl.get("external_dependency_mutability")) is not bool or (
+        decl["external_dependency_mutability"] != observed_external_mutability
+    ):
+        raise ProspectiveRefusal("declared external dependency mutability differs from frozen system")
+    observed_claim = MUTABLE_FREEZE_CLAIM if observed_external_mutability else IMMUTABLE_FREEZE_CLAIM
+    if decl.get("freeze_claim") != observed_claim:
+        raise ProspectiveRefusal("declared freeze claim contradicts external dependency mutability")
+    if decl.get("rerun_policy") != rerun_policy_text(root):
+        raise ProspectiveRefusal("declared rerun policy differs from preregistered protocol")
     return decl
 
 
