@@ -84,8 +84,13 @@ def can_pool(analysis, studies):
     selected = analysis.get("studyIds")
     if not measure or not isinstance(selected, list) or not selected:
         return False
+    if any(not isinstance(sid, str) or not sid for sid in selected):
+        return False
     if len(set(selected)) != len(selected):
         return False
-    return all(studies.get(sid, {}).get("eligibility") == "INCLUDE"
+    if not isinstance(studies, dict):
+        return False
+    return all(isinstance(studies.get(sid), dict)
+               and studies.get(sid, {}).get("eligibility") == "INCLUDE"
                and studies[sid].get("extractionReviewed") is True
                and studies[sid].get("estimand") == measure for sid in selected)
