@@ -15,7 +15,7 @@ The [registration](frozen-cli-api-016.json) fixes:
 - Meta-Harness **source code**: `ea2fac35a212a330dfe27f7b710347e9ef69a12a`.
 - RapidMeta **real JS pooling consumer**: `368137dc437543c721b98be39c14282c338f7797`.
 - Synthetic text source SHA-256: `666a0354b2668dd0f90780becff303eab28a007fa895650ba09793732d374398`.
-- Ubuntu 24.04, Python 3.13.7, Node 22.14.0.
+- GitHub-hosted Ubuntu 24.04 **and** Windows 2025 as separately labelled runners; Python 3.13.7 and Node 22.14.0 on each. The runner refuses an OS label absent from the frozen registration, refuses a Windows label on Linux, and checks actual Ubuntu distro/version. Windows build attestation comes from GitHub job metadata; a caller-controlled environment variable alone is not trusted evidence.
 - E156 and Starter commits recorded but roles explicitly `NOT_EXECUTED`.
 
 The runner archives each exact raw input and outcome, source text, both actual git commits, runtime identities and SHA-256 index. The [Actions workflow](../../../.github/workflows/frozen-cli-api-016.yml) independently recalculates every archived digest, verifies CLI/API equality, checks true `ALLOW` invokes the **real pinned RapidMeta** engine, and checks that `REFUSE`, `MANUAL_REVIEW`, duplicate-member shadows, duplicate trial IDs, mismatched estimands, source SHA drift, malformed inputs and line failures never pool.
@@ -24,9 +24,10 @@ A source/trial identity mismatch is deliberately expected to **pass only the gen
 
 ## Independent reproduction
 
-Clone the repositories, check out the **exact** commits above into sibling directories named `meta/` and `rapidmeta/`. Check out the proposal/orchestration branch into `governance/` (the orchestration HEAD is not itself the pinned producer). Ensure exact runtimes. Then:
+Clone the repositories, check out the **exact** commits above into sibling directories named `meta/` and `rapidmeta/`. Check out the proposal/orchestration branch into `governance/` (the orchestration HEAD is not itself the pinned producer). Ensure exact runtimes. Set the registered runner label to match the actual OS (`ubuntu-24.04` or `windows-2025`). For a local Linux reproduction:
 
 ```bash
+export BENCHMARK_RUNNER_IMAGE=ubuntu-24.04
 python governance/benchmarks/cross_repo/v0.1/frozen_cli_api_handoff_016.py \
   --meta meta --rapidmeta rapidmeta --output handoff-016-evidence
 ```
@@ -37,10 +38,10 @@ To exercise the producer CLI directly:
 (cd meta && python -m harness.exchange_v01 --exchange ../handoff-016-evidence/inputs/refuse.json --archive-root .)
 ```
 
-This **must fail** for REFUSE. The `allow_rr_itt.json` input must pass raw importer checks; the runner additionally verifies that its real RapidMeta calculation runs. The published CI artifact, if successful, permits byte-for-byte independent rehashing; GitHub artifacts have retention limits and are not immutable long-term storage by themselves.
+This **must fail** for REFUSE. The `allow_rr_itt.json` input must pass raw importer checks; the runner additionally verifies that its real RapidMeta calculation runs. The OS-matrix CI produces **separate Windows and Ubuntu evidence artifacts** and independently verifies the same 12 registered acceptance/refusal expectations on each, including 11 pre-pooling refusals. Those independent behaviour assertions are not a cross-OS byte-for-byte equality claim for floating-point outputs; there is no downstream artifact-to-artifact comparator yet. The published CI artifacts, if successful, permit independent rehashing; GitHub artifacts have retention limits and are not immutable long-term storage by themselves.
 
 ## Coverage and gates
 
-Original frozen `CROSS-EXCH-001…015` remain **15/15 NOT_RUN** and use a distinct historical Meta-Harness pin predating the exchange code. This runner tests only `CROSS-EXCH-016`; it does not silently update the v0.1 registry or previous frozen source. `CROSS-EXCH-017` and `-018` have separate bounded synthetic execution evidence. Common gate A (4 method-matched pinned R families), B (3 prospective scientific gates), C (2 signed cross-platform full ecosystems), D (2 independent usability/accessibility evaluations) remain **NOT TESTED / BLOCKED** until their own evidence exists.
+The original historical Meta-Harness pin `a62cbc43416a94561b7bee3ec48bb659ac3286e2` does **not contain** the v0.1 exchange importer or the manifest paths. It is unsuitable for an executed exchange canary without an explicitly versioned re-pin; do not claim those cases can run as written. Original frozen `CROSS-EXCH-001…015` remain **15/15 NOT_RUN** and use a distinct historical Meta-Harness pin predating the exchange code. This runner tests only `CROSS-EXCH-016`; it does not silently update the v0.1 registry or previous frozen source. `CROSS-EXCH-017` and `-018` have separate bounded synthetic execution evidence. Common gate A (4 method-matched pinned R families), B (3 prospective scientific gates), C (2 signed cross-platform full ecosystems), D (2 independent usability/accessibility evaluations) remain **NOT TESTED / BLOCKED** until their own evidence exists.
 
 Full `verify_all`, branch protection, review and merging requirements remain independent. Do not merge merely because this supplemental canary passes. No Sentinel bypass, E156 workbook mutation, human YOUR REWRITE/SUBMITTED alteration, external review, scientific accuracy or statistical effect change is involved.
