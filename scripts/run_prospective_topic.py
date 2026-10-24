@@ -10,6 +10,9 @@ the recorded outcome is not COMPLETED.
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
+import hashlib
 import datetime as dt
 import io
 import json
@@ -144,6 +147,102 @@ def _cache_candidates(out_dir: Path, slug: str) -> list[Path]:
         out_dir / "records.json",
     ]
 
+
+
+def _verify_prospective_raw_archive(
+    snapshot_dir: Path, ledger: dict[str, Any] | None
+) -> list[Path]:
+    """Require byte-verifiable, locally preserved HTTP evidence before synthesis.
+
+    acquisition.validate checks existence of raw/INDEX.json, not its digest or
+    the referenced bodies. This gate is specific to prospective runs: an
+    archive with zero recorded calls cannot substantiate live retrieval.
+    It verifies *recorded* calls, not whether every external request was logged.
+    """
+    if not isinstance(ledger, dict):
+        raise prospective.ProspectiveRefusal("prospective raw archive has no retrieval ledger")
+    snapshot = ledger.get("snapshot")
+    if not isinstance(snapshot, dict) or snapshot.get("mode") != "REFRESH":
+        raise prospective.ProspectiveRefusal("prospective raw archive requires REFRESH mode")
+    raw_calls = snapshot.get("raw_calls")
+    if type(raw_calls) is not int or raw_calls < 1:
+        raise prospective.ProspectiveRefusal("prospective raw archive has no recorded API calls")
+    expected_index = snapshot.get("raw_index_sha256")
+    if type(expected_index) is not str or re.fullmatch(r"[0-9a-f]{64}", expected_index) is None:
+        raise prospective.ProspectiveRefusal("prospective raw archive lacks a valid index SHA256")
+
+    index_path = snapshot_dir / "raw" / "INDEX.json"
+    if index_path.is_symlink() or not index_path.is_file() or not _inside(index_path, snapshot_dir):
+        raise prospective.ProspectiveRefusal("prospective raw archive index is missing or unsafe")
+    index_bytes = index_path.read_bytes()
+    if hashlib.sha256(index_bytes).hexdigest() != expected_index:
+        raise prospective.ProspectiveRefusal("prospective raw archive index SHA256 mismatch")
+
+    def unique_members(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        obj: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in obj:
+                raise prospective.ProspectiveRefusal(
+                    f"prospective raw archive duplicate JSON member: {key!r}"
+                )
+            obj[key] = value
+        return obj
+
+    try:
+        entries = json.loads(index_bytes, object_pairs_hook=unique_members)
+    except (ValueError, UnicodeError) as exc:
+        raise prospective.ProspectiveRefusal("prospective raw archive index invalid JSON") from exc
+    if not isinstance(entries, list) or len(entries) != raw_calls:
+        raise prospective.ProspectiveRefusal("prospective raw archive call count mismatch")
+
+    verified = [index_path]
+    seen: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise prospective.ProspectiveRefusal("prospective raw archive entry is not an object")
+        rel = entry.get("path")
+        if (
+            type(rel) is not str
+            or len(rel.split("/")) != 3
+            or rel.split("/")[0] != "raw"
+            or any(part in {"", ".", ".."} for part in rel.split("/"))
+            or not rel.endswith(".json")
+            or rel in seen
+        ):
+            raise prospective.ProspectiveRefusal("prospective raw archive has unsafe/duplicate body path")
+        seen.add(rel)
+        body_path = snapshot_dir.joinpath(*rel.split("/"))
+        if body_path.is_symlink() or not body_path.is_file() or not _inside(body_path, snapshot_dir):
+            raise prospective.ProspectiveRefusal("prospective raw archive body missing or unsafe")
+        body_file_sha = entry.get("file_sha256")
+        if type(body_file_sha) is not str or re.fullmatch(r"[0-9a-f]{64}", body_file_sha) is None:
+            raise prospective.ProspectiveRefusal("prospective raw archive missing file SHA256")
+        body_file_bytes = body_path.read_bytes()
+        if hashlib.sha256(body_file_bytes).hexdigest() != body_file_sha:
+            raise prospective.ProspectiveRefusal("prospective raw archive file SHA256 mismatch")
+        try:
+            payload = json.loads(body_file_bytes, object_pairs_hook=unique_members)
+            if not isinstance(payload, dict) or type(payload.get("body_bytes_b64")) is not str:
+                raise ValueError("missing raw body")
+            raw_body = base64.b64decode(payload["body_bytes_b64"], validate=True)
+        except (ValueError, UnicodeError, binascii.Error) as exc:
+            raise prospective.ProspectiveRefusal("prospective raw archive body invalid") from exc
+        actual_body_sha = hashlib.sha256(raw_body).hexdigest()
+        if (
+            actual_body_sha != entry.get("body_sha256")
+            or actual_body_sha != payload.get("body_sha256")
+        ):
+            raise prospective.ProspectiveRefusal("prospective raw archive body SHA256 mismatch")
+        for key in (
+            "source_id", "url", "params", "status", "fetched_utc",
+            "adapter", "adapter_blob_sha",
+        ):
+            if key not in entry or key not in payload or entry[key] != payload[key]:
+                raise prospective.ProspectiveRefusal(
+                    f"prospective raw archive provenance mismatch: {key}"
+                )
+        verified.append(body_path)
+    return verified
 
 def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tuple[dict[str, Any], Path | None, bool]:
     slug = _require_topic_slug(config.get("slug"))
@@ -306,6 +405,9 @@ def run_topic(
         else:
             artefacts.append(package_records)
         ledger = _ledger_from(cache_dir)
+        if cache_dir is None:
+            raise prospective.ProspectiveRefusal("prospective retrieval snapshot is missing")
+        artefacts.extend(_verify_prospective_raw_archive(cache_dir, ledger))
         if ledger is not None:
             artefacts.append(_write_json(out_dir / acquisition.LEDGER_FILENAME, ledger))
         artefacts.extend(
