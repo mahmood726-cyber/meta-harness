@@ -13,7 +13,7 @@ python -m pytest tests/test_exchange_v01.py -q
 python -m harness.exchange_v01 benchmarks/cross_repo/v0.1/manifest.json
 ```
 
-The first command tests a small standalone Python transport verifier. The second validates that commit references have the correct 40-hex format and inputs match their SHA-256 digests; it cannot independently prove remote commit existence or lockfile execution. The JSON Schemas are interoperability descriptions; the Python validator is the authoritative executable subset currently tested. Comparing their full acceptance behaviour remains future work. The validator requires plausible structured workflow-run evidence before accepting a recorded PASS, but it does **not** independently fetch Actions or certify the record truthful; spot-checking the job and exact checkout is still required.
+The first command tests a small standalone Python transport verifier. The second validates that commit references have the correct 40-hex format and inputs match their SHA-256 digests; it cannot independently prove remote commit existence or lockfile execution. The JSON Schemas are interoperability descriptions; the Python validator is the authoritative executable subset currently tested. The benchmark CLI now reads raw bytes and rejects duplicate JSON members before parsing; consumers of raw manifests must call `validate_manifest_json` rather than `json.loads` followed by `validate_manifest`. Comparing their full acceptance behaviour remains future work. The validator requires plausible structured workflow-run evidence before accepting a recorded PASS, but it does **not** independently fetch Actions or certify the record truthful; spot-checking the job and exact checkout is still required.
 
 ## Reference workflows (functional benchmarks, not performance claims)
 
@@ -197,3 +197,30 @@ before interpreting a `FAIL` or `PASS` as an observed benchmark result.
 The synthetic positive and negative tests are not a real benchmark run.
 **CROSS-EXCH-014 remains `NOT_RUN`**, and all prior case IDs, frozen
 repository commit pins, archived source bytes and coverage claims are unchanged.
+
+
+## New negative case: CROSS-EXCH-015 — refuse shadowed manifest JSON keys
+
+The previous CLI used ordinary json.loads when reading a benchmark manifest.
+For raw JSON containing duplicate object keys, Python silently retains only
+the last member. For example, a case with a first status FAIL followed by a
+second status NOT_RUN would look unexecuted after parsing, concealing the
+contradictory failure state. Earlier duplicate commit, input SHA-256, case ID
+or benchmark version members could likewise disappear before structural checks.
+
+The CLI now calls validate_manifest_json(raw_bytes, manifest_dir), which
+rejects duplicate decoded object members at **every nesting level**, including
+Unicode-escaped duplicate names. Non-UTF-8, UTF-8 BOM and malformed JSON are
+also rejected. The existing validate_manifest continues to validate already
+decoded objects, but callers using it are responsible for proving their own
+JSON parser has not discarded members. This input-integrity issue is not
+expressible by JSON Schema alone.
+
+Regression tests demonstrate the old last-key-wins ambiguity, exercise
+status, commit, case identity and hash shadows, malformed encodings, the
+positive fixture, and actual CLI refusal. They do not execute the four pinned
+repositories. All 15 transport cases, including CROSS-EXCH-015, remain
+**NOT_RUN** until independently checkable benchmark-case execution is recorded.
+The immutable synthetic fixture hash and four repository commit/dependency
+identities remain unchanged. No independent human review, R oracle, prospective
+discovery, real consumer integration, or usability test is claimed.
