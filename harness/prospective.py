@@ -470,8 +470,16 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
             record = json.loads(path.read_text(encoding="utf-8"))
         except ValueError as exc:
             raise ProspectiveRefusal(f"run record is not valid JSON: {path}") from exc
-        if record.get("batch_id") == batch:
-            records.append(record)
+        # Every run artefact located inside a batch must be accounted for.
+        # Silently discarding an altered/missing batch_id conceals failures
+        # and makes a prospective batch appear more successful than it was.
+        if not isinstance(record, dict):
+            raise ProspectiveRefusal(f"run record is not a JSON object: {path}")
+        if record.get("batch_id") != batch:
+            raise ProspectiveRefusal(
+                f"run record batch_id does not match containing batch {batch!r}: {path}"
+            )
+        records.append(record)
     return records
 
 

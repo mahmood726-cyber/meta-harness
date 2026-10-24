@@ -195,6 +195,49 @@ def test_check_batch_refuses_two_identities_in_one_batch(tmp_path: Path) -> None
         prospective.check_batch(root, batch)
 
 
+@pytest.mark.parametrize(
+    "supplied_batch",
+    ["unrelated-batch", "", None],
+)
+def test_check_batch_refuses_wrong_or_missing_batch_id_in_run_path(
+    tmp_path: Path, supplied_batch: str | None
+) -> None:
+    """A misplaced or relabelled failure cannot silently disappear from a batch."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-valid"))
+    hidden_failure = _record(
+        root, batch, "run-failed", outcome="FAILED_CRASH"
+    )
+    if supplied_batch is None:
+        hidden_failure.pop("batch_id")
+    else:
+        hidden_failure["batch_id"] = supplied_batch
+    _write_batch_record(root, batch, hidden_failure)
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="run record batch_id does not match containing batch",
+    ):
+        prospective.check_batch(root, batch)
+
+
+def test_check_batch_refuses_nonobject_run_record_with_typed_refusal(tmp_path: Path) -> None:
+    """A parsed JSON list is not a run record; never crash or silently omit it."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    path = root / "prospective" / batch / "runs" / "run_record.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('["not a run record"]\n', encoding="utf-8")
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="run record is not a JSON object"
+    ):
+        prospective.check_batch(root, batch)
+
+
 def test_check_batch_refuses_rerun_without_prior_defect_entry(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     batch = "batch-plant"
