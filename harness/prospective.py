@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import math
 import os
 import re
 from pathlib import Path
@@ -132,6 +133,24 @@ def freeze_claim(root: str | os.PathLike[str]) -> str:
     return MUTABLE_FREEZE_CLAIM if external_dependency_mutability(root) else IMMUTABLE_FREEZE_CLAIM
 
 
+def _require_finite_positive_time_limit(value: Any) -> float:
+    """Refuse unbounded or nonnumeric preregistered elapsed-time ceilings.
+
+    JSON permits no NaN/Infinity literals, but Python's default decoder and
+    float() accept them. An NaN ceiling makes elapsed > ceiling always false,
+    while Infinity silently disables the prospective timeout.
+    """
+    if isinstance(value, bool):
+        raise ProspectiveRefusal("time_limit_s must be positive and finite, not boolean")
+    try:
+        limit = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ProspectiveRefusal("time_limit_s must be numeric") from exc
+    if not math.isfinite(limit) or limit <= 0:
+        raise ProspectiveRefusal("time_limit_s must be positive and finite")
+    return limit
+
+
 def batch_declaration(
     root: str | os.PathLike[str],
     batch_id: str,
@@ -146,12 +165,7 @@ def batch_declaration(
 
     repo = _root_path(root)
     batch = _require_safe_name(batch_id, "batch_id")
-    try:
-        limit = float(time_limit_s)
-    except (TypeError, ValueError) as exc:
-        raise ProspectiveRefusal("time_limit_s must be numeric") from exc
-    if limit <= 0:
-        raise ProspectiveRefusal("time_limit_s must be positive")
+    limit = _require_finite_positive_time_limit(time_limit_s)
     if isinstance(time_limit_s, int):
         limit_value: int | float = int(time_limit_s)
     else:
@@ -220,6 +234,11 @@ def check_declaration_frozen(
         or decl["schema_version"] != DECLARATION_VERSION
     ):
         raise ProspectiveRefusal("prospective declaration has an unsupported schema_version")
+
+    # Verify the recorded limit again at execution/audit time, not only when
+    # the declaration was first constructed. A mutated JSON declaration must
+    # never remove the pre-registered prospective time ceiling.
+    _require_finite_positive_time_limit(decl.get("time_limit_s"))
 
     observed_components = architecture_identity.components(root)
     observed = architecture_identity.identity_from_components(observed_components)
