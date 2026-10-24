@@ -384,7 +384,7 @@ def test_cross_lane_case_id_cannot_replace_registered_exchange_case():
 def test_renamed_case_cannot_create_gap_in_registration():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    manifest["cases"][-1]["id"] = "CROSS-EXCH-013"
+    manifest["cases"][-1]["id"] = "CROSS-EXCH-014"
     with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-012"):
         validate_manifest(manifest, path.parent)
 
@@ -393,18 +393,18 @@ def test_contiguous_future_id_and_reordering_are_structurally_allowed():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
     future = copy.deepcopy(manifest["cases"][-1])
-    future["id"] = "CROSS-EXCH-013"
+    future["id"] = "CROSS-EXCH-014"
     future["status"] = "NOT_RUN"
     manifest["cases"].insert(0, future)
     manifest["cases"].reverse()
     validate_manifest(manifest, path.parent)
 
 
-def test_manifest_schema_declares_transport_namespace_and_12_case_floor():
+def test_manifest_schema_declares_transport_namespace_and_13_case_floor():
     schema = json.loads(
         (ROOT / "benchmarks/cross_repo/v0.1/manifest.schema.json").read_text(encoding="utf-8")
     )
-    assert schema["properties"]["cases"]["minItems"] == 12
+    assert schema["properties"]["cases"]["minItems"] == 13
     pat = schema["$defs"]["case"]["properties"]["id"]["pattern"]
     assert re.fullmatch(pat, "CROSS-EXCH-012")
     assert re.fullmatch(pat, "CROSS-R-012") is None
