@@ -22,6 +22,11 @@ def sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def receipt_key(path: Path) -> str:
+    """Archive index keys are portable POSIX paths, never OS-native separators."""
+    return path.as_posix()
+
+
 def git_head(root: Path) -> str:
     return subprocess.check_output(
         ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
@@ -208,7 +213,7 @@ def main() -> None:
         }
         out_path.write_bytes(canary.wire(result))
         for file in (in_path, out_path):
-            digests[str(file.relative_to(output))] = sha(file.read_bytes())
+            digests[receipt_key(file.relative_to(output))] = sha(file.read_bytes())
         print(f"{name}: cli={cli_status} api={api_status} "
               f"consumer={consumer['status']} pool_invoked={consumer['engine_invoked']}")
 
