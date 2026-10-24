@@ -72,14 +72,19 @@ from the *same* run:
 ```sh
 gh run download RUN_ID -n "frozen-cross-exch-016-ubuntu-24.04-GITHUB_EVENT_SHA" -D ubuntu-evidence
 gh run download RUN_ID -n "frozen-cross-exch-016-windows-2025-GITHUB_EVENT_SHA" -D windows-evidence
+git clone https://github.com/mahmood726-cyber/rapidmeta-kit rapidmeta
+git -C rapidmeta checkout --detach 368137dc437543c721b98be39c14282c338f7797
 python benchmarks/cross_repo/v0.1/compare_cross_os_016.py \
   --registration benchmarks/cross_repo/v0.1/frozen-cli-api-016.json \
   --ubuntu ubuntu-evidence --windows windows-evidence \
+  --rapidmeta rapidmeta \
   --report cross-os-parity-report.json
 ```
 
 The comparator rejects duplicate raw JSON members, missing/modified SHA
 receipts, inconsistent OS declarations, source or engine identity differences,
+**and engine receipts that do not equal the separately checked out immutable
+RapidMeta git blob, even when both OS artifacts agree**,
 unequal archived input bytes and mismatched acceptance/refusal outcomes.
 A separate isolated synthetic unit suite intentionally simulates otherwise
 internally consistent archives with differing wire inputs, refusal diagnostics
