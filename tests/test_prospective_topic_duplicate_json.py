@@ -38,7 +38,7 @@ def _synthetic_batch(monkeypatch: pytest.MonkeyPatch) -> None:
         b'{"slug":"safe-topic","protocol_sha":"first","protocol_sha":"second"}',
         b'{"slug":"safe-topic","eligibility":{"include":true,"include":false}}',
         b'{"slug":"safe-topic","searches":[{"query":"trial","query":"seed"}]}',
-        b'{"slug":"safe-topic","\u0073lug":"different-topic"}',
+        b'{"slug":"safe-topic","\\u0073lug":"different-topic"}',
     ],
     ids=[
         "duplicate-slug",
