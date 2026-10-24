@@ -54,12 +54,17 @@ class ArchivedArtifactParityTests(unittest.TestCase):
             if case == "refuse" and raw_modifier:
                 raw = raw_modifier(raw)
             source_hash = comparator.digest(raw)
-            consumer = {"status": status["consumer"], "input_sha256": source_hash,
+            consumer = {"case": case, "status": status["consumer"],
+                        "input_sha256": source_hash,
                         "engine_invoked": case == "allow_rr_itt"}
             if case == "allow_rr_itt":
                 consumer["engine_output"] = {"k_used": 2, "measure": "RR", "mu_log": 0.3, "tau2": 0.0}
+            else:
+                consumer["refusal"] = f"synthetic downstream refusal: {case}"
             output = {"name": case, "raw_sha256": source_hash,
                       "cli_status": status["importer"], "api_status": status["importer"],
+                      "api_refusal": (f"synthetic import refusal: {case}"
+                                      if status["importer"] == "REFUSED" else None),
                       "consumer": consumer}
             for path, contents in ((directory / "inputs" / f"{case}.json", raw),
                                    (directory / "results" / f"{case}.json", wire(output))):
@@ -76,6 +81,17 @@ class ArchivedArtifactParityTests(unittest.TestCase):
             "human_adjudication": "NOT_TESTED", "digests": digests,
         }
         (directory / "index.json").write_bytes(wire(index))
+
+    def _rewrite_result(self, case, mutate):
+        """Alter an archived outcome and update its SHA receipt as a failure injection."""
+        target = self.windows / "results" / f"{case}.json"
+        data = json.loads(target.read_text(encoding="utf-8"))
+        mutate(data)
+        target.write_bytes(wire(data))
+        index_path = self.windows / "index.json"
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+        index["digests"][f"results/{case}.json"] = comparator.digest(target.read_bytes())
+        index_path.write_bytes(wire(index))
 
     def test_matching_archives_pass(self):
         result = comparator.compare(self.reg, self.ubuntu, self.windows)
@@ -118,6 +134,48 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         index["observed_runner"]["runner_image_label"] = "ubuntu-24.04"
         index_path.write_bytes(wire(index))
         with self.assertRaisesRegex(ValueError, "runner"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_changed_downstream_refusal_reason_refuses_despite_matching_status_and_receipt(self):
+        self._rewrite_result("manual_review", lambda data:
+                             data["consumer"].__setitem__("refusal", "different OS refusal"))
+        with self.assertRaisesRegex(ValueError, "cross-OS decisions"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_changed_api_refusal_reason_refuses_despite_matching_status_and_receipt(self):
+        self._rewrite_result("refuse", lambda data:
+                             data.__setitem__("api_refusal", "different OS import refusal"))
+        with self.assertRaisesRegex(ValueError, "cross-OS decisions"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_mislabelled_downstream_case_identity_refuses(self):
+        self._rewrite_result("manual_review", lambda data:
+                             data["consumer"].__setitem__("case", "refuse"))
+        with self.assertRaisesRegex(ValueError, "consumer case identity"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_missing_api_refusal_reason_refuses(self):
+        self._rewrite_result("refuse", lambda data:
+                             data.__setitem__("api_refusal", None))
+        with self.assertRaisesRegex(ValueError, "missing importer refusal reason"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_missing_downstream_refusal_reason_refuses(self):
+        self._rewrite_result("manual_review", lambda data:
+                             data["consumer"].pop("refusal"))
+        with self.assertRaisesRegex(ValueError, "missing downstream refusal reason"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_valid_pool_cannot_carry_import_refusal_diagnostic(self):
+        self._rewrite_result("allow_rr_itt", lambda data:
+                             data.__setitem__("api_refusal", "pretend refused"))
+        with self.assertRaisesRegex(ValueError, "accepted importer carried refusal reason"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_valid_pool_cannot_carry_downstream_refusal_diagnostic(self):
+        self._rewrite_result("allow_rr_itt", lambda data:
+                             data["consumer"].__setitem__("refusal", "pretend refused"))
+        with self.assertRaisesRegex(ValueError, "pooled result carried refusal reason"):
             comparator.compare(self.reg, self.ubuntu, self.windows)
 
     def test_duplicate_archive_result_keys_refuse(self):
