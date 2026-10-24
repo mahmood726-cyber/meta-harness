@@ -240,6 +240,12 @@ def check_declaration_frozen(
     # never remove the pre-registered prospective time ceiling.
     _require_finite_positive_time_limit(decl.get("time_limit_s"))
 
+    # A4 is a fixed policy recorded before topic release. A declaration that
+    # removes or rewrites that policy cannot be accepted as prospectively frozen,
+    # even when its architecture and external model identities still match.
+    if decl.get("rerun_policy") != rerun_policy_text(root):
+        raise ProspectiveRefusal("rerun_policy differs from frozen A4 policy")
+
     observed_components = architecture_identity.components(root)
     observed = architecture_identity.identity_from_components(observed_components)
     expected = decl.get("architecture_identity")
