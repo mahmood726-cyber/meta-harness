@@ -132,3 +132,44 @@ def test_refuses_body_path_escape_even_when_index_sha_updated(tmp_path: Path) ->
     _rewrite_index(snapshot, ledger, entries)
     with pytest.raises(prospective.ProspectiveRefusal, match="unsafe/duplicate body path"):
         runner._verify_prospective_raw_archive(snapshot, ledger)
+
+
+def test_failed_raw_archive_retained_in_actual_topic_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failed integrity gate must keep and name the frozen raw evidence."""
+    monkeypatch.setattr(
+        runner.prospective, "load_declaration",
+        lambda *_args: {"time_limit_s": 60, "invariants": []},
+    )
+    monkeypatch.setattr(
+        runner.prospective, "check_declaration_frozen", lambda *_args: None
+    )
+    config_path = tmp_path / "released-config.json"
+    config_path.write_text(
+        '{"slug":"synthetic-archive","topic_identifier":"synthetic-held-out"}',
+        encoding="utf-8",
+    )
+
+    acquired = {}
+
+    def synthetic_acquire(_config: dict, _day: str, *, root: str) -> str:
+        snapshot, _ledger = _snapshot(Path(root))
+        body_path = snapshot / _index(snapshot)[0]["path"]
+        body_path.write_bytes(body_path.read_bytes() + b"tampered")
+        acquired["snapshot"] = snapshot
+        return str(snapshot)
+
+    monkeypatch.setattr(runner.acquisition, "refresh", synthetic_acquire)
+    result = runner.run_topic(
+        "synthetic-batch", str(config_path), str(tmp_path / "run-package")
+    )
+    assert result["outcome"] == "FAILED_CRASH"
+    snapshot = acquired["snapshot"]
+    assert snapshot.is_dir()
+    assert (snapshot / "raw" / "INDEX.json").is_file()
+    record = json.loads(Path(result["run_record"]).read_text(encoding="utf-8"))
+    assert snapshot.relative_to(tmp_path / "run-package").as_posix() in record["artefact_paths"]
+    assert "failure.json" in record["artefact_paths"]
+    failure = json.loads((tmp_path / "run-package" / "failure.json").read_text(encoding="utf-8"))
+    assert "file SHA256 mismatch" in failure["message"]
