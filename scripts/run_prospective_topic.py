@@ -407,9 +407,12 @@ def run_topic(
         ledger = _ledger_from(cache_dir)
         if cache_dir is None:
             raise prospective.ProspectiveRefusal("prospective retrieval snapshot is missing")
-        artefacts.extend(_verify_prospective_raw_archive(cache_dir, ledger))
+        # Retain and index the acquired directory even if its raw-byte gate
+        # refuses: the original failure's evidence must remain inspectable.
+        artefacts.append(cache_dir)
         if ledger is not None:
             artefacts.append(_write_json(out_dir / acquisition.LEDGER_FILENAME, ledger))
+        artefacts.extend(_verify_prospective_raw_archive(cache_dir, ledger))
         artefacts.extend(
             _package_review(
                 config,
