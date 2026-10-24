@@ -214,7 +214,11 @@ def check_declaration_frozen(
     the external-dependency flag or the human-readable freeze claim. This checks
     internal consistency, not whether an external model provider is immutable.
     """
-    if not isinstance(decl, dict) or type(decl.get("schema_version")) is not int or decl["schema_version"] != DECLARATION_VERSION:
+    if (
+        not isinstance(decl, dict)
+        or type(decl.get("schema_version")) is not int
+        or decl["schema_version"] != DECLARATION_VERSION
+    ):
         raise ProspectiveRefusal("prospective declaration has an unsupported schema_version")
 
     observed_components = architecture_identity.components(root)
