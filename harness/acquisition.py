@@ -201,6 +201,11 @@ class RawRecorder:
 
     def record_current(self, url: str, params: dict | None, status: Any, body_bytes: bytes) -> None:
         if self._source_id is None:
+            # Fetch performs some optional HTTP work outside source() scopes
+            # (e.g. comparator OA and PMC lookups). Never silently discard
+            # those received bytes. Mark them explicitly as UNMAPPED rather
+            # than pretending they support a named discovery source.
+            self.record("http_unscoped", url, params, status, body_bytes, "harness.http.get_raw")
             return
         self.record(self._source_id, url, params, status, body_bytes, self._adapter)
 
