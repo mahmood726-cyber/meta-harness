@@ -208,13 +208,43 @@ def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, A
 def check_declaration_frozen(
     root: str | os.PathLike[str], decl: dict[str, Any]
 ) -> dict[str, Any]:
-    observed = architecture_identity.identity(root)
+    """Verify that the declaration's freeze metadata agrees with the live system.
+
+    An architecture SHA alone cannot authenticate independent JSON fields such as
+    the external-dependency flag or the human-readable freeze claim. This checks
+    internal consistency, not whether an external model provider is immutable.
+    """
+    if not isinstance(decl, dict) or decl.get("schema_version") != DECLARATION_VERSION:
+        raise ProspectiveRefusal("prospective declaration has an unsupported schema_version")
+
+    observed_components = architecture_identity.components(root)
+    observed = architecture_identity.identity_from_components(observed_components)
     expected = decl.get("architecture_identity")
     if observed != expected:
         raise ProspectiveRefusal(
             "architecture identity mismatch: "
             f"expected {expected}, observed {observed}"
         )
+    if decl.get("architecture_components") != observed_components:
+        raise ProspectiveRefusal("architecture component manifest mismatch")
+
+    observed_dependencies = architecture_identity.mutable_dependencies(root)
+    if (
+        type(decl.get("mutable_dependencies")) is not list
+        or decl["mutable_dependencies"] != observed_dependencies
+    ):
+        raise ProspectiveRefusal("mutable dependency ledger mismatch")
+
+    observed_mutable = external_dependency_mutability(root)
+    if (
+        type(decl.get("external_dependency_mutability")) is not bool
+        or decl["external_dependency_mutability"] != observed_mutable
+    ):
+        raise ProspectiveRefusal("external dependency mutability mismatch")
+
+    observed_claim = MUTABLE_FREEZE_CLAIM if observed_mutable else IMMUTABLE_FREEZE_CLAIM
+    if decl.get("freeze_claim") != observed_claim:
+        raise ProspectiveRefusal("freeze claim mismatches observed dependency mutability")
     return decl
 
 
