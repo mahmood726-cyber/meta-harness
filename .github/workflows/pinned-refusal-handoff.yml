@@ -1,0 +1,81 @@
+name: Pinned synthetic RapidMeta refusal handoff
+
+# Deliberately separate from the clinical/prospective and statistical-parity lanes.
+# All inputs here are synthetic. This does not bypass the repository-wide verify gate.
+on:
+  push:
+    branches:
+      - 'audit/cross-exch-*'
+  pull_request:
+    paths:
+      - 'benchmarks/cross_repo/v0.1/**'
+      - '.github/workflows/pinned-refusal-handoff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frozen-pairwise-refusal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Meta-Harness candidate (record actual HEAD, no pretend frozen pin)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: meta
+          persist-credentials: false
+      - name: Checkout RapidMeta at exact public benchmark commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: mahmood726-cyber/rapidmeta-kit
+          ref: 368137dc437543c721b98be39c14282c338f7797
+          path: rapidmeta
+          persist-credentials: false
+      - name: Configure frozen test runtimes
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13.7'
+      - name: Configure frozen Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.14.0'
+      - name: Execute source-hashed producer to real pinned RapidMeta consumer
+        run: |
+          set -euo pipefail
+          python --version
+          node --version
+          git -C meta rev-parse HEAD
+          git -C rapidmeta rev-parse HEAD
+          python meta/benchmarks/cross_repo/v0.1/pinned_pairwise_canary.py \
+            --rapidmeta rapidmeta --output handoff-evidence
+      - name: Verify archived exact-byte input/output SHA256 and no-pool decisions
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path('handoff-evidence')
+          index = json.loads((root / 'index.json').read_bytes())
+          assert len(index['digests']) == 12, index['digests']
+          for rel, expected in index['digests'].items():
+              assert hashlib.sha256((root / rel).read_bytes()).hexdigest() == expected, rel
+          expected = {'allow_synthetic_control': True, 'refuse': False,
+                      'manual_review': False, 'shadowed_refuse': False,
+                      'source_hash_drift': False, 'source_trial_mismatch': False}
+          for name, called in expected.items():
+              result = json.loads((root / 'results' / f'{name}.json').read_bytes())
+              assert result['engine_invoked'] is called, name
+              assert result['status'] == ('SYNTHETIC_ENGINE_EXECUTED' if called else 'REFUSED'), name
+          assert index['clinical_validation'] == 'NOT_TESTED'
+          assert index['external_R_oracle'] == 'NOT_TESTED'
+          assert index['four_repository_benchmark'] == 'NOT_RUN'
+          print('ARCHIVE VERIFIED: 6 exact input and 6 exact output hashes; 5 refusals did not invoke pooling')
+          PY
+      - name: Archive the exact executed raw exchanges, results and digests
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pinned-synthetic-refusal-${{ github.sha }}
+          path: handoff-evidence/
+          if-no-files-found: error
+          retention-days: 90
