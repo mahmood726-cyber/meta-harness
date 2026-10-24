@@ -221,7 +221,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         # Both output archives are internally hash-consistent, with matching
         # semantic decisions and matching altered wire bytes. The external
         # registered byte SHA must still refuse the drift.
-        rewrite = lambda raw: raw.rstrip(b"\\n") + b" \\n"
+        rewrite = lambda raw: raw.rstrip(b"\n") + b" \n"
         self._write_archive(self.ubuntu, "ubuntu-24.04", "Linux",
                             raw_modifier=rewrite)
         self._write_archive(self.windows, "windows-2025", "Windows",
