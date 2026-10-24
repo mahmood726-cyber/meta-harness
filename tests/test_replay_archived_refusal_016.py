@@ -58,6 +58,17 @@ def consume(raw, rapid, label):
         with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
             replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
 
+    def test_direct_popen_invocation_fails_closed(self):
+        # A direct Popen call bypassed the original run-only tripwire.
+        self.stub()
+        source = self.canary.read_text(encoding="utf-8")
+        self.canary.write_text(source.replace(
+            "    return {'case': label,",
+            "    subprocess.Popen(['node', '--version'])\\n    return {'case': label,"
+        ), encoding="utf-8")
+        with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
+            replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
+
     def test_different_archived_refusal_reason_is_rejected(self):
         self.stub()
         observed, _ = replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
