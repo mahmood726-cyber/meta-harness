@@ -50,6 +50,28 @@ def validate_exchange_json(raw: str | bytes, archive_root: Path) -> None:
     validate_exchange(payload, archive_root)
 
 
+
+def validate_manifest_json(raw: str | bytes, manifest_dir: Path) -> None:
+    """Validate the benchmark manifest at the raw JSON boundary.
+
+    Duplicate keys can otherwise shadow NOT_RUN/FAIL statuses, repository pins
+    or input hashes before validate_manifest sees the decoded dictionary.
+    This checks *syntax and structure*, not whether an Actions run occurred.
+    """
+    if isinstance(raw, bytes):
+        try:
+            raw = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ValueError("benchmark manifest JSON must be UTF-8") from exc
+    if not isinstance(raw, str) or raw.startswith("\ufeff"):
+        raise ValueError("benchmark manifest JSON must be UTF-8 without a BOM")
+    try:
+        payload = json.loads(raw, object_pairs_hook=_unique_json_members)
+    except json.JSONDecodeError as exc:
+        raise ValueError("malformed benchmark manifest JSON") from exc
+    validate_manifest(payload, manifest_dir)
+
+
 def _source(root: Path, relative: object) -> bytes:
     if not isinstance(relative, str) or not relative or "\\" in relative:
         raise ValueError("source.path must be a relative POSIX file path")
@@ -323,8 +345,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Check versioned benchmark manifest (no science claimed)")
     parser.add_argument("manifest", type=Path)
     args = parser.parse_args()
-    obj = json.loads(args.manifest.read_text(encoding="utf-8"))
-    validate_manifest(obj, args.manifest.parent)
+    validate_manifest_json(args.manifest.read_bytes(), args.manifest.parent)
     print("MANIFEST VERIFIED: pins and fixture SHA-256; cases retain their stated statuses")
     return 0
 
