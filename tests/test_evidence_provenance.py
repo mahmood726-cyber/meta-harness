@@ -47,5 +47,32 @@ class ProvenanceTests(unittest.TestCase):
         self.assertFalse(can_pool({"decision": "REFUSE", "estimand": "HR", "studyIds": ["a"]}, studies))
         self.assertFalse(can_pool({"decision": "ALLOW", "estimand": "RR", "studyIds": ["a"]}, studies))
 
+
+    def test_duplicate_study_refusal(self):
+        studies = {"a": {"eligibility": "INCLUDE", "extractionReviewed": True, "estimand": "HR"}}
+        self.assertFalse(can_pool({"decision": "ALLOW", "estimand": "HR",
+                                   "studyIds": ["a", "a"]}, studies))
+
+    def test_duplicate_journal_event_refusal(self):
+        with tempfile.TemporaryDirectory() as root:
+            p = Path(root) / "events.jsonl"
+            event = dict(event_id="1", timestamp_utc="2026-10-24T12:00:00Z",
+                         actor_type="MODEL", actor_id="test", action="SCREEN",
+                         study_id="study1", source_digest="a", reason="test",
+                         supersedes_event_id=None)
+            append_event(p, event)
+            with self.assertRaises(ValueError):
+                append_event(p, event)
+
+    def test_previous_hash_spoofing_refusal(self):
+        with tempfile.TemporaryDirectory() as root:
+            p = Path(root) / "events.jsonl"
+            event = dict(event_id="1", timestamp_utc="2026-10-24T12:00:00Z",
+                         actor_type="MODEL", actor_id="test", action="SCREEN",
+                         study_id="study1", source_digest="a", reason="test",
+                         supersedes_event_id=None, previous_event_sha256="spoof")
+            with self.assertRaises(ValueError):
+                append_event(p, event)
+
 if __name__ == "__main__":
     unittest.main()
