@@ -47,7 +47,9 @@ def _canonical_identifier(obj: dict, key: str) -> str:
     registry aliases, case variants, or distinct reports of one trial.
     """
     value = _required_text(obj, key)
-    if value != value.strip():
+    # Python str.strip() and ECMAScript JSON Schema whitespace classes differ
+    # on U+FEFF; reject the BOM explicitly for schema/runtime consistency.
+    if value != value.strip() or value.startswith("\ufeff") or value.endswith("\ufeff"):
         raise ValueError(f"{key} has noncanonical leading or trailing whitespace")
     return value
 
