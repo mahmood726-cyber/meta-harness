@@ -6,6 +6,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import subprocess
 import unittest
 
 PROGRAM = Path(__file__).resolve().parents[1] / "benchmarks/cross_repo/v0.1/compare_cross_os_016.py"
@@ -98,7 +99,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         index_path.write_bytes(wire(index))
 
     def test_matching_archives_pass(self):
-        result = comparator.compare(self.reg, self.ubuntu, self.windows)
+        result = comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
         self.assertEqual((result["case_count"], result["refused_without_pooling"]), (3, 2))
         self.assertEqual(result["numerical_output_cross_os_comparison"], "PINNED_SYNTHETIC_SMOKE_ONLY_PASS")
         self.assertEqual(result["numerical_smoke_controls"]["allow_rr_itt"]["ubuntu-24.04"]["mu_log"], 0.3)
@@ -111,38 +112,77 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self._write_archive(self.windows, "windows-2025", "Windows",
                             lambda raw: raw.replace(b'"refuse"', b'"refuse-changed"'))
         with self.assertRaisesRegex(ValueError, "registered negative input SHA256 refuse"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_cross_os_mu_log_drift_refuses_with_recomputed_sha_receipt(self):
         # These are synthetic archive fixtures, not real GitHub Actions output.
         self._rewrite_result("allow_rr_itt", lambda data:
                              data["consumer"]["engine_output"].__setitem__("mu_log", 0.31))
         with self.assertRaisesRegex(ValueError, "cross-OS pinned synthetic engine smoke drift"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_cross_os_tau2_drift_refuses_with_recomputed_sha_receipt(self):
         self._rewrite_result("allow_rr_itt", lambda data:
                              data["consumer"]["engine_output"].__setitem__("tau2", 0.02))
         with self.assertRaisesRegex(ValueError, "cross-OS pinned synthetic engine smoke drift"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_cross_os_roundoff_within_declared_tolerance_accepted(self):
         self._rewrite_result("allow_rr_itt", lambda data:
                              data["consumer"]["engine_output"].__setitem__("mu_log", 0.3 + 1e-13))
-        report = comparator.compare(self.reg, self.ubuntu, self.windows)
+        report = comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
         self.assertEqual(report["numerical_smoke_tolerance"]["rel_tol"], 1e-12)
         self.assertEqual(report["case_count"], 3)
 
     def test_engine_binary_drift_refuses_even_when_statuses_match(self):
         self._write_archive(self.windows, "windows-2025", "Windows", engine_sha="b" * 64)
-        with self.assertRaisesRegex(ValueError, "cross-OS rapidmeta_engine_sha256"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+        with self.assertRaisesRegex(ValueError, "pinned RapidMeta engine SHA256"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_equal_forged_engine_receipts_on_both_os_refuse(self):
+        # Both archives agree with one another and have no altered result
+        # receipts. Only the independently checked committed engine can
+        # detect the equal-forgery defect.
+        self._write_archive(self.ubuntu, "ubuntu-24.04", "Linux",
+                            engine_sha="c" * 64)
+        self._write_archive(self.windows, "windows-2025", "Windows",
+                            engine_sha="c" * 64)
+        with self.assertRaisesRegex(ValueError, "pinned RapidMeta engine SHA256"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_engine_hash_is_tied_to_commit_and_clean_worktree(self):
+        # Exercise a REAL local git blob identity, not a mock of the digest
+        # validator. This isolated fixture is not a public canary execution.
+        repo = Path(self.temp.name) / "local-rapidmeta"
+        engine = repo / comparator.ENGINE_PATH
+        engine.parent.mkdir(parents=True)
+        frozen = b"// local synthetic engine fixture\\n"
+        engine.write_bytes(frozen)
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        subprocess.run(["git", "-C", str(repo), "add", comparator.ENGINE_PATH],
+                       check=True)
+        subprocess.run(["git", "-C", str(repo), "-c", "user.name=CI Fixture",
+                        "-c", "user.email=fixture@example.invalid", "commit",
+                        "-qm", "immutable fixture"], check=True)
+        head = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"],
+            text=True,
+        ).strip()
+        spec = {"repositories": {"rapidmeta-kit": {"commit": head}}}
+        self.assertEqual(comparator.pinned_engine_digest(spec, repo),
+                         comparator.digest(frozen))
+        engine.write_bytes(frozen + b"// unexpected edit\\n")
+        with self.assertRaisesRegex(ValueError, "dirty RapidMeta engine worktree SHA256"):
+            comparator.pinned_engine_digest(spec, repo)
+        spec["repositories"]["rapidmeta-kit"]["commit"] = "0" * 40
+        with self.assertRaisesRegex(ValueError, "independent RapidMeta checkout pin"):
+            comparator.pinned_engine_digest(spec, repo)
 
     def test_archive_one_byte_tamper_refuses(self):
         target = self.windows / "inputs" / "manual_review.json"
         target.write_bytes(target.read_bytes() + b"X")
         with self.assertRaisesRegex(ValueError, "archived SHA256 integrity failure"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_refused_case_engine_invocation_refuses_even_with_updated_receipt(self):
         result_path = self.windows / "results" / "manual_review.json"
@@ -154,7 +194,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         index["digests"]["results/manual_review.json"] = comparator.digest(result_path.read_bytes())
         index_path.write_bytes(wire(index))
         with self.assertRaisesRegex(ValueError, "engine invocation"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_spoofed_os_refuses(self):
         index_path = self.windows / "index.json"
@@ -162,49 +202,49 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         index["observed_runner"]["runner_image_label"] = "ubuntu-24.04"
         index_path.write_bytes(wire(index))
         with self.assertRaisesRegex(ValueError, "runner"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_changed_downstream_refusal_reason_refuses_despite_matching_status_and_receipt(self):
         self._rewrite_result("manual_review", lambda data:
                              data["consumer"].__setitem__("refusal", "different OS refusal"))
         with self.assertRaisesRegex(ValueError, "cross-OS decisions"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_changed_api_refusal_reason_refuses_despite_matching_status_and_receipt(self):
         self._rewrite_result("refuse", lambda data:
                              data.__setitem__("api_refusal", "different OS import refusal"))
         with self.assertRaisesRegex(ValueError, "cross-OS decisions"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_mislabelled_downstream_case_identity_refuses(self):
         self._rewrite_result("manual_review", lambda data:
                              data["consumer"].__setitem__("case", "refuse"))
         with self.assertRaisesRegex(ValueError, "consumer case identity"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_missing_api_refusal_reason_refuses(self):
         self._rewrite_result("refuse", lambda data:
                              data.__setitem__("api_refusal", None))
         with self.assertRaisesRegex(ValueError, "missing importer refusal reason"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_missing_downstream_refusal_reason_refuses(self):
         self._rewrite_result("manual_review", lambda data:
                              data["consumer"].pop("refusal"))
         with self.assertRaisesRegex(ValueError, "missing downstream refusal reason"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_valid_pool_cannot_carry_import_refusal_diagnostic(self):
         self._rewrite_result("allow_rr_itt", lambda data:
                              data.__setitem__("api_refusal", "pretend refused"))
         with self.assertRaisesRegex(ValueError, "accepted importer carried refusal reason"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_valid_pool_cannot_carry_downstream_refusal_diagnostic(self):
         self._rewrite_result("allow_rr_itt", lambda data:
                              data["consumer"].__setitem__("refusal", "pretend refused"))
         with self.assertRaisesRegex(ValueError, "pooled result carried refusal reason"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_duplicate_archive_result_keys_refuse(self):
         target = self.windows / "results" / "refuse.json"
@@ -216,7 +256,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         index["digests"]["results/refuse.json"] = comparator.digest(target.read_bytes())
         index_path.write_bytes(wire(index))
         with self.assertRaisesRegex(ValueError, "duplicate archived JSON member"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
 
 
@@ -230,7 +270,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self._write_archive(self.windows, "windows-2025", "Windows",
                             raw_modifier=rewrite)
         with self.assertRaisesRegex(ValueError, "registered negative input SHA256 refuse"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_missing_pre_registered_negative_input_sha_refuses(self):
         self.spec.pop("negative_input_sha256")
@@ -238,7 +278,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self._write_archive(self.ubuntu, "ubuntu-24.04", "Linux")
         self._write_archive(self.windows, "windows-2025", "Windows")
         with self.assertRaisesRegex(ValueError, "pre-registered negative input SHA256"):
-            comparator.compare(self.reg, self.ubuntu, self.windows)
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
 if __name__ == "__main__":
     unittest.main()
