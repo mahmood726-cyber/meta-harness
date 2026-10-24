@@ -39,9 +39,13 @@ label = sys.argv[3]
 if label not in ('refuse', 'manual_review'):
     raise RuntimeError('unregistered negative replay label')
 raw = sys.stdin.buffer.read()
-with mock.patch.object(module.subprocess, 'run', side_effect=AssertionError('NO_POOL: subprocess invoked')) as tripwire:
+# Fail closed for both subprocess.run and direct subprocess.Popen routes.
+# These guards are active only within the isolated frozen-source replay child.
+with mock.patch.object(module.subprocess, 'run', side_effect=AssertionError('NO_POOL: subprocess invoked')) as run_tripwire, \
+     mock.patch.object(module.subprocess, 'Popen', side_effect=AssertionError('NO_POOL: subprocess invoked')) as popen_tripwire:
     result = module.consume(raw, rapid, label)
-    tripwire.assert_not_called()
+    run_tripwire.assert_not_called()
+    popen_tripwire.assert_not_called()
 if result.get('status') != 'REFUSED' or result.get('engine_invoked') is not False:
     raise RuntimeError('frozen importer did not refuse negative case without pooling')
 if not isinstance(result.get('refusal'), str) or not result['refusal'].strip():
