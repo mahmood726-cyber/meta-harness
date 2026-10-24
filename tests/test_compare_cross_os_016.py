@@ -96,7 +96,8 @@ class ArchivedArtifactParityTests(unittest.TestCase):
     def test_matching_archives_pass(self):
         result = comparator.compare(self.reg, self.ubuntu, self.windows)
         self.assertEqual((result["case_count"], result["refused_without_pooling"]), (3, 2))
-        self.assertEqual(result["numerical_output_cross_os_comparison"], "NOT_TESTED")
+        self.assertEqual(result["numerical_output_cross_os_comparison"], "PINNED_SYNTHETIC_SMOKE_ONLY_PASS")
+        self.assertEqual(result["numerical_smoke_controls"]["allow_rr_itt"]["ubuntu-24.04"]["mu_log"], 0.3)
 
     def test_individually_valid_sha_receipts_can_mask_cross_os_input_drift(self):
         # A matrix test checking each OS against statuses alone misses this.
@@ -104,6 +105,26 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                             lambda raw: raw.replace(b'"refuse"', b'"refuse-changed"'))
         with self.assertRaisesRegex(ValueError, "cross-OS decisions"):
             comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_cross_os_mu_log_drift_refuses_with_recomputed_sha_receipt(self):
+        # These are synthetic archive fixtures, not real GitHub Actions output.
+        self._rewrite_result("allow_rr_itt", lambda data:
+                             data["consumer"]["engine_output"].__setitem__("mu_log", 0.31))
+        with self.assertRaisesRegex(ValueError, "cross-OS pinned synthetic engine smoke drift"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_cross_os_tau2_drift_refuses_with_recomputed_sha_receipt(self):
+        self._rewrite_result("allow_rr_itt", lambda data:
+                             data["consumer"]["engine_output"].__setitem__("tau2", 0.02))
+        with self.assertRaisesRegex(ValueError, "cross-OS pinned synthetic engine smoke drift"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_cross_os_roundoff_within_declared_tolerance_accepted(self):
+        self._rewrite_result("allow_rr_itt", lambda data:
+                             data["consumer"]["engine_output"].__setitem__("mu_log", 0.3 + 1e-13))
+        report = comparator.compare(self.reg, self.ubuntu, self.windows)
+        self.assertEqual(report["numerical_smoke_tolerance"]["rel_tol"], 1e-12)
+        self.assertEqual(report["case_count"], 3)
 
     def test_engine_binary_drift_refuses_even_when_statuses_match(self):
         self._write_archive(self.windows, "windows-2025", "Windows", engine_sha="b" * 64)

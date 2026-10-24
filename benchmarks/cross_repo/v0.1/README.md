@@ -276,3 +276,22 @@ remain `NOT_RUN` against their different frozen pins. This additional
 independent R parity, prospective discovery, human adjudication, four-repo
 signed canaries or numerical equivalence. No merge is authorised by this
 isolated workflow while the full certificate and review gates are failing.
+
+
+### CROSS-EXCH-016 — pinned synthetic RapidMeta cross-OS numeric smoke
+
+The archived Ubuntu/Windows comparator now checks the actual recorded
+`allow_rr_itt` RapidMeta smoke output `mu_log` and `tau2` against both
+OS artifacts, allowing at most `abs_tol=1e-12` or `rel_tol=1e-12` (Python
+`math.isclose`). Previously it checked only the pooled record's status,
+`k_used`, `measure`, and engine identity, so different numeric values could
+pass unnoticed when receipt hashes were independently recomputed. The report
+retains the two observed numerical summaries and the declared tolerances.
+The new negative regressions modify each field and recompute its archive
+SHA-256 receipt, requiring the comparator to refuse the drift.
+
+This is **synthetic same-engine cross-platform smoke reproducibility**, not
+statistical correctness, clinical accuracy, a separate implementation, or a
+version-matched R/metafor oracle. It does not promote CROSS-EXCH-001...015
+from NOT_RUN, alter original frozen pins, or establish signed full-system,
+prospective, human or usability coverage.
