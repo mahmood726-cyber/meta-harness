@@ -455,8 +455,17 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
             record = json.loads(path.read_text(encoding="utf-8"))
         except ValueError as exc:
             raise ProspectiveRefusal(f"run record is not valid JSON: {path}") from exc
-        if record.get("batch_id") == batch:
-            records.append(record)
+        # A4 requires every discoverable run (including failures) to count.
+        # Silently skipping a record with a missing/altered batch_id can hide a
+        # failed run and falsely promote an incomplete batch to success.
+        if not isinstance(record, dict):
+            raise ProspectiveRefusal(f"run record must be a JSON object: {path}")
+        if record.get("batch_id") != batch:
+            raise ProspectiveRefusal(
+                f"run record batch_id mismatch at {path}: "
+                f"expected {batch!r}, found {record.get('batch_id')!r}"
+            )
+        records.append(record)
     return records
 
 
