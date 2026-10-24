@@ -24,6 +24,17 @@ def validate_extraction(record, archive_bytes):
         raise ValueError("missing required extraction fields")
     if record["status"] not in ("PROPOSED", "SOURCE_CHECKED", "ADJUDICATED", "REFUSED"):
         raise ValueError("unknown extraction status")
+    # The only claim established here is that a reported span is present in
+    # the archived bytes. Neither a proposal nor a refusal may be upgraded to
+    # a source-checked extraction by a boolean return value.
+    if record["status"] in ("PROPOSED", "REFUSED"):
+        raise ValueError("unverified or refused extraction is not source-checked")
+    # No independently authenticated reviewer/adjudication receipt is accepted
+    # by this primitive. A model-supplied label or self-declared reviewer is
+    # not evidence of blinded human adjudication.
+    if record["status"] == "ADJUDICATED":
+        raise ValueError("independent human adjudication verifier is not implemented")
+
     if not isinstance(archive_bytes, bytes):
         raise ValueError("archived source bytes required")
     if record["document_sha256"] != sha256(archive_bytes):
