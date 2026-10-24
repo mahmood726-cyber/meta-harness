@@ -95,11 +95,33 @@ def _reject_nonfinite(value):
     raise ValueError(f"nonfinite replay result: {value}")
 
 
+def assert_registered_refusal_input(raw: bytes, label: str) -> None:
+    """Bind a scenario label to its actual raw wire decisions before replay."""
+    if label not in REPLAY_CASES:
+        raise ValueError(f"unregistered negative replay label: {label}")
+    try:
+        decoded = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError("replay wire input must be UTF-8") from exc
+    if decoded.startswith("\ufeff"):
+        raise ValueError("replay wire input must not carry a BOM")
+    try:
+        payload = json.loads(decoded, object_pairs_hook=_unique,
+                             parse_constant=_reject_nonfinite)
+    except json.JSONDecodeError as exc:
+        raise ValueError("malformed replay wire input") from exc
+    rows = payload.get("rows") if isinstance(payload, dict) else None
+    if not isinstance(rows, list) or not rows or any(
+        not isinstance(row, dict) or row.get("decision") != label.upper()
+        for row in rows
+    ):
+        raise ValueError(f"archived replay label/decision mismatch: {label}")
+
+
 def replay_frozen_bytes(meta: Path, rapid: Path, raw: bytes,
                         label: str = "manual_review") -> tuple[dict, str]:
     """Invoke actual frozen canary on one registered refusal; no Node execution."""
-    if label not in REPLAY_CASES:
-        raise ValueError(f"unregistered negative replay label: {label}")
+    assert_registered_refusal_input(raw, label)
     process = subprocess.run(
         [sys.executable, "-I", "-c", FROZEN_RUNNER, str(meta), str(rapid), label],
         input=raw, capture_output=True, timeout=25, check=False
@@ -120,8 +142,7 @@ def replay_frozen_bytes(meta: Path, rapid: Path, raw: bytes,
 def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
                               label: str = "manual_review"):
     """Recomputed archive hashes must not substitute for observed refusal."""
-    if label not in REPLAY_CASES:
-        raise ValueError(f"unregistered negative replay label: {label}")
+    assert_registered_refusal_input(raw, label)
     for name, value in (
         ("case", label), ("input_sha256", digest(raw)),
         ("status", "REFUSED"), ("engine_invoked", False)
