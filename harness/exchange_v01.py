@@ -39,6 +39,21 @@ def _required_text(obj: dict, key: str) -> str:
 
 
 
+def _canonical_identifier(obj: dict, key: str) -> str:
+    """Require already-trimmed IDs; reject aliases before deduplication.
+
+    Normalizing silently would change incoming provenance identifiers. This
+    transport only rejects outer whitespace; it does not resolve real-world
+    registry aliases, case variants, or distinct reports of one trial.
+    """
+    value = _required_text(obj, key)
+    # Python str.strip() and ECMAScript JSON Schema whitespace classes differ
+    # on U+FEFF; reject the BOM explicitly for schema/runtime consistency.
+    if value != value.strip() or value.startswith("\ufeff") or value.endswith("\ufeff"):
+        raise ValueError(f"{key} has noncanonical leading or trailing whitespace")
+    return value
+
+
 def _verify_text_locator(content: str, locator: str, passage: str) -> None:
     """Check that the archived verbatim passage occurs at the *claimed* lines.
 
@@ -83,8 +98,8 @@ def validate_exchange(payload: object, archive_root: Path) -> None:
     for i, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ValueError(f"row {i}: not an object")
-        study = _required_text(row, "study_id")
-        trial = _required_text(row, "trial_id")
+        study = _canonical_identifier(row, "study_id")
+        trial = _canonical_identifier(row, "trial_id")
         if study in seen:
             raise ValueError(f"duplicate study_id: {study}")
         seen.add(study)

@@ -2,6 +2,7 @@
 import copy
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -98,6 +99,49 @@ def test_missing_or_untyped_trial_identity_refuses(trial_id):
     item["rows"][0]["trial_id"] = trial_id
     with pytest.raises(ValueError, match="trial_id missing or empty"):
         validate_exchange(item, ROOT)
+
+
+# CROSS-EXCH-008: identifiers must be canonical at the handoff boundary.
+# Without this, "TRIAL-X" and " TRIAL-X " are treated as different trials.
+@pytest.mark.parametrize("field", ["study_id", "trial_id"])
+@pytest.mark.parametrize("padding", [" ", "\t", "\n", "\u00a0", "\u001c", "\u0085", "\ufeff"])
+def test_boundary_whitespace_in_identifiers_refuses(field, padding):
+    item = exchange()
+    original = item["rows"][0][field]
+    item["rows"][0][field] = padding + original
+    with pytest.raises(ValueError, match=f"{field} has noncanonical"):
+        validate_exchange(item, ROOT)
+    item["rows"][0][field] = original + padding
+    with pytest.raises(ValueError, match=f"{field} has noncanonical"):
+        validate_exchange(item, ROOT)
+
+
+@pytest.mark.parametrize("field", ["study_id", "trial_id"])
+@pytest.mark.parametrize("padding", [" ", "\t", "\n", "\u00a0", "\u001c", "\u0085", "\ufeff"])
+def test_schema_and_python_identity_whitespace_policy_agree(field, padding):
+    spec = json.loads((ROOT / "benchmarks/cross_repo/v0.1/exchange.schema.json").read_text(encoding="utf-8"))
+    pattern = spec["$defs"]["row"]["properties"][field]["pattern"]
+    # Built-in Python regex checks schema spelling without adding a dependency;
+    # execution under an actual JS/JSON Schema validator is a separate gate.
+    assert re.search(pattern, padding + "TRIAL-X") is None
+    assert re.search(pattern, "TRIAL-X" + padding) is None
+    assert re.search(pattern, "TRIAL X") is not None
+
+
+def test_padded_trial_alias_cannot_evade_duplicate_trial_refusal():
+    item = exchange()
+    second = copy.deepcopy(item["rows"][0])
+    second["study_id"] = "SYNTHETIC-REPORT-TWO"
+    second["trial_id"] = " " + item["rows"][0]["trial_id"] + " "
+    item["rows"].append(second)
+    with pytest.raises(ValueError, match="trial_id has noncanonical"):
+        validate_exchange(item, ROOT)
+
+
+def test_valid_identifier_with_internal_space_is_unchanged():
+    item = exchange()
+    item["rows"][0]["trial_id"] = "SYNTHETIC TRIAL 001"
+    validate_exchange(item, ROOT)
 
 
 def test_manifest_is_pinned_and_internal_cases_not_claimed_passed():

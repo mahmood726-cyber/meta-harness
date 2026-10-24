@@ -43,3 +43,11 @@ https://training.cochrane.org/handbook/current/chapter-06
 https://training.cochrane.org/handbook/current/chapter-23
 
 The synthetic negative test uses two rows referencing the same archive and trial ID while giving the second row a different study ID. This checks only contract refusal; it **cannot** discover duplicate trials with different identifiers, establish true study identity, or prove statistical correctness. Manifest status remains `NOT_RUN` until pin-matched executable evidence is recorded.
+
+## New negative case: CROSS-EXCH-008 — reject whitespace aliases of study/trial IDs
+
+A second synthetic row can bypass exact string-based `trial_id` duplicate checking if its identifier is padded with a leading or trailing space, tab, newline, nonbreaking space, C0/NEL whitespace or a boundary BOM (U+FEFF). The exchange validator now **refuses** any `study_id` or `trial_id` with outer whitespace before checking uniqueness; the JSON Schema constrains the same property. It does not silently trim and pool altered provenance identities. Internal whitespace remains permissible. Different spellings, case variants and registry aliases still require upstream reconciliation, and this check does not establish that reported trials genuinely match.
+
+The regression uses fabricated identifiers solely to exercise the exchange boundary. `CROSS-EXCH-008` remains `NOT_RUN` in the benchmark manifest until pinned executable evidence is independently checked; local fixture testing is not independent clinical validation. No consumer integration or statistical effect computation is changed.
+
+Python and JavaScript differ in their built-in whitespace categories (notably C0/NEL and U+FEFF). The executable helper and JSON Schema explicitly cover their union at the identity boundary. This does not detect all visually confusable IDs, such as zero-width characters, nor authenticate the asserted trial identity.
