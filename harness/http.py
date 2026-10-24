@@ -40,8 +40,11 @@ def get_raw(url: str, params: dict | None = None, tries: int = 4, timeout: int =
         except urllib.error.HTTPError as exc:
             last = exc
             body = exc.read() or str(exc).encode("utf-8", "replace")
+            # Each HTTPError is a received HTTP response, including attempts
+            # later followed by a successful retry. Preserve its raw bytes
+            # before deciding whether to retry; never relabel it as RAN_ZERO.
+            _record(url, params, int(exc.code), body)
             if i + 1 >= tries:
-                _record(url, params, int(exc.code), body)
                 raise RuntimeError(f"GET failed after {tries} tries: {request_url}\n{exc}") from exc
             time.sleep(0.5 * (2 ** i))
         except Exception as exc:  # noqa: BLE001 - bounded retry, then raise
