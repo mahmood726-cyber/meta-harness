@@ -90,9 +90,14 @@ def _cache_candidates(out_dir: Path, slug: str) -> list[Path]:
 
 def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tuple[dict[str, Any], Path | None, bool]:
     slug = str(config["slug"])
+    # A prospective run must not silently replay preseeded/cached records.
+    # Such inputs can encode known trials, study selections or past outputs.
+    # Refuse even a dangling symlink rather than accepting an ambiguous cache.
     for records_path in _cache_candidates(out_dir, slug):
-        if records_path.is_file():
-            return _read_json(records_path), records_path.parent, True
+        if records_path.exists() or records_path.is_symlink():
+            raise prospective.ProspectiveRefusal(
+                f"prospective run refuses pre-existing cached records: {records_path}"
+            )
 
     snapshot_dir = Path(acquisition.refresh(config, now_day, root=str(out_dir))).resolve()
     if not _inside(snapshot_dir, out_dir):
