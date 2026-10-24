@@ -22,7 +22,13 @@ def _source(**changes):
 
 
 def _raw(source_id="pubmed_concept_query#1", status=200):
-    return [{"source_id": source_id, "status": status}]
+    # Synthetic archive-index metadata only; not a real PubMed API response.
+    return [{
+        "source_id": source_id,
+        "status": status,
+        "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+        "params": {"db": "pubmed", "term": "(heart failure) AND (drug intervention)"},
+    }]
 
 
 def test_completed_concept_query_with_preserved_success_response_is_structurally_admissible():
@@ -68,3 +74,42 @@ def test_one_successful_source_cannot_hide_second_failed_planned_concept_source(
 def test_malformed_source_ledger_fails_closed():
     assert concept_discovery_failures({"sources": None}, _raw())
     assert concept_discovery_failures({}, _raw())
+
+
+@pytest.mark.parametrize("mutation", [
+    "pmid_seed_instead_of_concept",
+    "different_concept",
+    "missing_term",
+    "missing_params",
+    "wrong_database",
+    "wrong_endpoint",
+])
+def test_pubmed_request_must_match_declared_concept(mutation):
+    # These cases previously passed because source_id + HTTP 200 was enough.
+    raw = _raw()
+    if mutation == "pmid_seed_instead_of_concept":
+        raw[0]["params"]["term"] = "123456[uid]"
+    elif mutation == "different_concept":
+        raw[0]["params"]["term"] = "(asthma) AND (steroid)"
+    elif mutation == "missing_term":
+        raw[0]["params"].pop("term")
+    elif mutation == "missing_params":
+        raw[0].pop("params")
+    elif mutation == "wrong_database":
+        raw[0]["params"]["db"] = "protein"
+    elif mutation == "wrong_endpoint":
+        raw[0]["url"] = "https://example.org/search"
+    failures = concept_discovery_failures({"sources": [_source()]}, raw)
+    assert any("archived PubMed search request differs" in reason for reason in failures)
+
+
+def test_all_pubmed_pagination_requests_must_use_the_declared_query():
+    first, = _raw()
+    second = deepcopy(first)
+    second["params"]["retstart"] = 1000
+    assert concept_discovery_failures({"sources": [_source()]}, [first, second]) == []
+    second["params"]["term"] = "987654[uid]"
+    assert any(
+        "archived PubMed search request differs" in reason
+        for reason in concept_discovery_failures({"sources": [_source()]}, [first, second])
+    )
