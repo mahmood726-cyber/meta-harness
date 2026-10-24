@@ -224,3 +224,47 @@ repositories. All 15 transport cases, including CROSS-EXCH-015, remain
 The immutable synthetic fixture hash and four repository commit/dependency
 identities remain unchanged. No independent human review, R oracle, prospective
 discovery, real consumer integration, or usability test is claimed.
+
+
+## CROSS-EXCH-016 — independently replay archived MANUAL_REVIEW through frozen source
+
+The integration-owned CI benchmark is **synthetic and two-repository only**.
+The separate producer jobs execute 12 registered wire cases on Ubuntu 24.04
+and Windows 2025 and upload all raw inputs, outputs and SHA-256 receipts.
+The comparison job downloads **those jobs' artifacts**, verifies the complete
+12-case cross-OS refusal/identity matrix, and now re-executes the archived
+`manual_review` raw input from **each** OS through the frozen Meta-Harness
+importer (`ea2fac35a212a330dfe27f7b710347e9ef69a12a`). It also checks
+out the pinned RapidMeta source
+(`368137dc437543c721b98be39c14282c338f7797`) and checks the
+archived engine-file SHA-256 against the actual pinned file. A subprocess
+tripwire proves no engine subprocess is invoked on these replayed refusals.
+The independently observed refusal string must match each archived result.
+If either OS disagrees, CI fails, even if archive receipts were recomputed.
+
+With the frozen source and consumer checked out locally, and the two actual
+Actions job artifacts unzipped under `frozen-artifacts/`, reproduce with:
+
+```sh
+python benchmarks/cross_repo/v0.1/compare_cross_os_016.py \
+  --registration benchmarks/cross_repo/v0.1/frozen-cli-api-016.json \
+  --ubuntu frozen-artifacts/ubuntu-24.04 \
+  --windows frozen-artifacts/windows-2025 \
+  --report parity-report/cross-os-016.json
+python benchmarks/cross_repo/v0.1/replay_archived_refusal_016.py \
+  --registration benchmarks/cross_repo/v0.1/frozen-cli-api-016.json \
+  --ubuntu frozen-artifacts/ubuntu-24.04 \
+  --windows frozen-artifacts/windows-2025 \
+  --meta meta --rapidmeta rapidmeta \
+  --report parity-report/frozen-manual-review-replay-016.json
+```
+
+Use **Python 3.13.7 and Node 22.14.0**, and inspect GitHub job metadata and
+artifact identity; local replays alone cannot attest the original Windows
+runner. The replay report records frozen checkout SHAs, archived/replayed raw
+SHA-256s and refusal outcomes. All original common CROSS-EXCH-001–015
+remain `NOT_RUN` against their different frozen pins. This additional
+`CROSS-EXCH-016` subcheck neither uses clinical trial data nor establishes
+independent R parity, prospective discovery, human adjudication, four-repo
+signed canaries or numerical equivalence. No merge is authorised by this
+isolated workflow while the full certificate and review gates are failing.
