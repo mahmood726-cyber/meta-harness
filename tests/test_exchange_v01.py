@@ -10,7 +10,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.exchange_v01 import validate_exchange, validate_manifest  # noqa: E402
+from harness.exchange_v01 import validate_exchange, validate_exchange_json, validate_manifest  # noqa: E402
 
 SYNTHETIC = ROOT / "benchmarks/cross_repo/v0.1/synthetic-source.txt"
 ESTIMAND = {"measure": "RR", "population": "ITT", "outcome": "synthetic event", "timepoint": "12 months"}
@@ -28,6 +28,47 @@ def exchange():
             "source_span": {"locator": "line 2", "verbatim": "Trial SYNTHETIC-001 measured synthetic endpoint at 12 months."}
         }]
     }
+
+
+# CROSS-EXCH-010: parse *wire JSON* before duplicate keys can disappear.
+# Python's ordinary json.loads uses the last occurrence, potentially turning
+# a raw REFUSE / duplicate trial identity into an apparently valid ALLOW row.
+def test_strict_wire_json_accepts_unique_synthetic_fixture():
+    validate_exchange_json(json.dumps(exchange()), ROOT)
+
+
+@pytest.mark.parametrize("key,shadow,accepted", [
+    ("schema_version", "future-version", "0.1.0"),
+    ("requested", False, True),
+    ("trial_id", "SHADOW-TRIAL", "SYNTHETIC-TRIAL-001"),
+    ("decision", "REFUSE", "ALLOW"),
+    ("measure", "OR", "RR"),
+    ("sha256", "1" * 64, hashlib.sha256(SYNTHETIC.read_bytes()).hexdigest()),
+])
+def test_duplicate_wire_json_member_refuses_even_when_last_value_passes(key, shadow, accepted):
+    original = json.dumps(exchange())
+    member = f'{json.dumps(key)}: {json.dumps(accepted)}'
+    assert member in original
+    poisoned = original.replace(member, f'{json.dumps(key)}: {json.dumps(shadow)}, ' + member, 1)
+    # This reproduces the old last-key-wins hazard, not a validated evidence row.
+    assert json.loads(poisoned) == exchange()
+    with pytest.raises(ValueError, match=f"duplicate JSON object member: {key}"):
+        validate_exchange_json(poisoned, ROOT)
+
+
+def test_unicode_escaped_duplicate_member_refuses():
+    raw = json.dumps(exchange())
+    original = '"decision": "ALLOW"'
+    assert original in raw
+    poisoned = raw.replace(original, '"\\u0064ecision": "REFUSE", ' + original, 1)
+    with pytest.raises(ValueError, match="duplicate JSON object member: decision"):
+        validate_exchange_json(poisoned, ROOT)
+
+
+@pytest.mark.parametrize("invalid", [b"\xff", b"\xef\xbb\xbf{}"])
+def test_non_utf8_or_bom_wire_json_refuses(invalid):
+    with pytest.raises(ValueError, match="UTF-8"):
+        validate_exchange_json(invalid, ROOT)
 
 
 def test_transport_accepts_structurally_valid_synthetic_fixture_only():
