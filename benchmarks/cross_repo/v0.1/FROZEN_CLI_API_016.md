@@ -22,6 +22,10 @@ The runner archives each exact raw input and outcome, source text, both actual g
 
 A source/trial identity mismatch is deliberately expected to **pass only the generic structural importer** and **fail at the specialised count bridge**, without an engine call. This guards against claiming that a text-span match alone proves a trial's clinical identity.
 
+## Observed Windows integration defect and repair
+
+The first actual two-OS candidate run [#40101381478](https://github.com/mahmood726-cyber/meta-harness/actions/runs/40101381478) had Ubuntu **PASS** but Windows **FAIL** after successfully executing the same 12 CLI/API→RapidMeta scenarios. The independent SHA-receipt verifier rejected the Windows index because Python's `str(Path.relative_to(...))` writes OS-native backslashes, while the archival contract expects portable forward-slash keys such as `inputs/refuse.json`. This was a **real Windows interoperability defect**, not a scientific effect difference. The runner now serialises all receipt paths with `.as_posix()`, with an explicit `PureWindowsPath` regression. Any later CI pass must be verified against the new exact PR head and cannot retroactively change that failed Windows run.
+
 ## Independent reproduction
 
 Clone the repositories, check out the **exact** commits above into sibling directories named `meta/` and `rapidmeta/`. Check out the proposal/orchestration branch into `governance/` (the orchestration HEAD is not itself the pinned producer). Ensure exact runtimes. Set the registered runner label to match the actual OS (`ubuntu-24.04` or `windows-2025`). For a local Linux reproduction:
