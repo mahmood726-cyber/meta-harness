@@ -65,7 +65,7 @@ def test_unicode_escaped_duplicate_member_refuses():
         validate_exchange_json(poisoned, ROOT)
 
 
-@pytest.mark.parametrize("invalid", [b"\\xff", b"\\xef\\xbb\\xbf{}"])
+@pytest.mark.parametrize("invalid", [b"\xff", b"\xef\xbb\xbf{}"])
 def test_non_utf8_or_bom_wire_json_refuses(invalid):
     with pytest.raises(ValueError, match="UTF-8"):
         validate_exchange_json(invalid, ROOT)
