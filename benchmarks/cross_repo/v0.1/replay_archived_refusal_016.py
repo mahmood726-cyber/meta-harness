@@ -15,7 +15,7 @@ import sys
 
 from compare_cross_os_016 import compare, digest, load_json, assert_equal
 
-REPLAY_CASE = "manual_review"
+REPLAY_CASES = ("refuse", "manual_review")
 ENGINE_PATH = "template/assets/vendor/pairwise-pool.js"
 
 # Separate Python interpreter imports the exact-pinned producer, rather than
@@ -35,12 +35,15 @@ if spec is None or spec.loader is None:
     raise RuntimeError('frozen canary module not importable')
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+label = sys.argv[3]
+if label not in ('refuse', 'manual_review'):
+    raise RuntimeError('unregistered negative replay label')
 raw = sys.stdin.buffer.read()
 with mock.patch.object(module.subprocess, 'run', side_effect=AssertionError('NO_POOL: subprocess invoked')) as tripwire:
-    result = module.consume(raw, rapid, 'manual_review')
+    result = module.consume(raw, rapid, label)
     tripwire.assert_not_called()
 if result.get('status') != 'REFUSED' or result.get('engine_invoked') is not False:
-    raise RuntimeError('frozen importer did not refuse MANUAL_REVIEW without pooling')
+    raise RuntimeError('frozen importer did not refuse negative case without pooling')
 if not isinstance(result.get('refusal'), str) or not result['refusal'].strip():
     raise RuntimeError('frozen refusal has no diagnostic')
 print(json.dumps(result, sort_keys=True, separators=(',', ':'), allow_nan=False))
@@ -92,10 +95,13 @@ def _reject_nonfinite(value):
     raise ValueError(f"nonfinite replay result: {value}")
 
 
-def replay_frozen_bytes(meta: Path, rapid: Path, raw: bytes) -> tuple[dict, str]:
-    """Invoke actual frozen canary in a new Python process; no Node execution."""
+def replay_frozen_bytes(meta: Path, rapid: Path, raw: bytes,
+                        label: str = "manual_review") -> tuple[dict, str]:
+    """Invoke actual frozen canary on one registered refusal; no Node execution."""
+    if label not in REPLAY_CASES:
+        raise ValueError(f"unregistered negative replay label: {label}")
     process = subprocess.run(
-        [sys.executable, "-I", "-c", FROZEN_RUNNER, str(meta), str(rapid)],
+        [sys.executable, "-I", "-c", FROZEN_RUNNER, str(meta), str(rapid), label],
         input=raw, capture_output=True, timeout=25, check=False
     )
     if process.returncode:
@@ -111,10 +117,13 @@ def replay_frozen_bytes(meta: Path, rapid: Path, raw: bytes) -> tuple[dict, str]
     return decoded, digest(process.stdout)
 
 
-def verify_replay_observation(observed: dict, archived: dict, raw: bytes):
+def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
+                              label: str = "manual_review"):
     """Recomputed archive hashes must not substitute for observed refusal."""
+    if label not in REPLAY_CASES:
+        raise ValueError(f"unregistered negative replay label: {label}")
     for name, value in (
-        ("case", REPLAY_CASE), ("input_sha256", digest(raw)),
+        ("case", label), ("input_sha256", digest(raw)),
         ("status", "REFUSED"), ("engine_invoked", False)
     ):
         assert_equal(observed.get(name), value, f"frozen replay {name}")
@@ -138,27 +147,32 @@ def run(registration: Path, ubuntu: Path, windows: Path,
     for os_label, archive in (
         ("ubuntu-24.04", ubuntu), ("windows-2025", windows)
     ):
-        raw = (archive / "inputs" / f"{REPLAY_CASE}.json").read_bytes()
-        result_path = archive / "results" / f"{REPLAY_CASE}.json"
-        archived = load_json(result_path)["consumer"]
-        observed, stdout_sha = replay_frozen_bytes(meta, rapid, raw)
-        verify_replay_observation(observed, archived, raw)
-        replays[os_label] = {
-            "input_sha256": digest(raw),
-            "archived_result_sha256": digest(result_path.read_bytes()),
-            "replay_stdout_sha256": stdout_sha,
-            "status": observed["status"], "engine_invoked": False,
-            "refusal": observed["refusal"]
-        }
-    assert_equal(replays["ubuntu-24.04"]["input_sha256"],
-                 replays["windows-2025"]["input_sha256"],
-                 "cross-OS replayed raw input")
-    assert_equal(replays["ubuntu-24.04"]["refusal"],
-                 replays["windows-2025"]["refusal"],
-                 "cross-OS replayed refusal provenance")
+        os_replays = {}
+        for label in REPLAY_CASES:
+            raw = (archive / "inputs" / f"{label}.json").read_bytes()
+            result_path = archive / "results" / f"{label}.json"
+            archived = load_json(result_path)["consumer"]
+            observed, stdout_sha = replay_frozen_bytes(meta, rapid, raw, label)
+            verify_replay_observation(observed, archived, raw, label)
+            os_replays[label] = {
+                "input_sha256": digest(raw),
+                "archived_result_sha256": digest(result_path.read_bytes()),
+                "replay_stdout_sha256": stdout_sha,
+                "status": observed["status"], "engine_invoked": False,
+                "refusal": observed["refusal"]
+            }
+        replays[os_label] = os_replays
+    for label in REPLAY_CASES:
+        assert_equal(replays["ubuntu-24.04"][label]["input_sha256"],
+                     replays["windows-2025"][label]["input_sha256"],
+                     f"cross-OS replayed raw input: {label}")
+        assert_equal(replays["ubuntu-24.04"][label]["refusal"],
+                     replays["windows-2025"][label]["refusal"],
+                     f"cross-OS replayed refusal provenance: {label}")
     return {
-        "record_version": "1.0.0", "case_id": "CROSS-EXCH-016",
-        "subcase": "frozen_archived_manual_review_no_pool_replay",
+        "record_version": "1.1.0", "case_id": "CROSS-EXCH-016",
+        "subcase": "frozen_archived_refuse_and_manual_review_no_pool_replay",
+        "refusal_replay_count": len(REPLAY_CASES) * 2,
         "result": "PASS", "evidence_scope": "SYNTHETIC_TWO_REPO_NO_POOL_ONLY",
         "registration_sha256": digest(registration.read_bytes()),
         "pins": pins, "original_archive_parity": prior["overall"],
@@ -181,7 +195,7 @@ def main():
     a.report.parent.mkdir(parents=True, exist_ok=True)
     a.report.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n",
                         encoding="utf-8")
-    print("CROSS-EXCH-016 ARCHIVED MANUAL_REVIEW REPLAY: two actual archived "
+    print("CROSS-EXCH-016 ARCHIVED REFUSE/MANUAL_REVIEW REPLAY: four actual archived "
           "inputs refused through frozen code, zero engine subprocess calls; "
           "synthetic transport scope only")
 
