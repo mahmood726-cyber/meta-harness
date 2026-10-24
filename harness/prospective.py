@@ -526,6 +526,18 @@ def _validate_record_shape(record: dict[str, Any]) -> list[str]:
     return reasons
 
 
+def _cites_defect_id(justification: str, defect_id: str) -> bool:
+    """Require a whole ledger ID; a prefix inside another ID is not a citation.
+
+    IDs can contain letters, digits, dots, underscores, and hyphens, so
+    ordinary word-boundary assertions alone are insufficient.
+    """
+    return re.search(
+        rf"(?<![A-Za-z0-9._-]){re.escape(defect_id)}(?![A-Za-z0-9._-])",
+        justification,
+    ) is not None
+
+
 def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     """Validate a batch declaration and all run records discoverable under it."""
 
@@ -653,7 +665,7 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             for defect_id, defect in defects_by_id.items()
             if (
                 defect_id
-                and defect_id in justification
+                and _cites_defect_id(justification, defect_id)
                 and defect.get("failed_run_id") == original_id
                 and defect.get("topic_identifier") == record.get("topic_identifier")
             )
