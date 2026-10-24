@@ -38,6 +38,10 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                           "refuse": {"importer": "REFUSED", "consumer": "REFUSED"},
                           "manual_review": {"importer": "REFUSED", "consumer": "REFUSED"}}
         }
+        self.spec["negative_input_sha256"] = {
+            case: comparator.digest(wire({"case": case, "decision": case.upper()}))
+            for case in ("refuse", "manual_review")
+        }
         self.reg.write_bytes(wire(self.spec))
         self.ubuntu = root / "ubuntu"
         self.windows = root / "windows"
@@ -99,11 +103,14 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self.assertEqual(result["numerical_output_cross_os_comparison"], "PINNED_SYNTHETIC_SMOKE_ONLY_PASS")
         self.assertEqual(result["numerical_smoke_controls"]["allow_rr_itt"]["ubuntu-24.04"]["mu_log"], 0.3)
 
-    def test_individually_valid_sha_receipts_can_mask_cross_os_input_drift(self):
-        # A matrix test checking each OS against statuses alone misses this.
+    def test_single_os_rehashed_negative_input_cannot_override_frozen_sha(self):
+        # Both archives keep their own SHA receipts internally consistent,
+        # but the Windows REFUSE input now differs from the registered bytes.
+        # The independent frozen-input gate must reject this BEFORE cross-OS
+        # decision parity is assessed (which is a second, later safeguard).
         self._write_archive(self.windows, "windows-2025", "Windows",
                             lambda raw: raw.replace(b'"refuse"', b'"refuse-changed"'))
-        with self.assertRaisesRegex(ValueError, "cross-OS decisions"):
+        with self.assertRaisesRegex(ValueError, "registered negative input SHA256 refuse"):
             comparator.compare(self.reg, self.ubuntu, self.windows)
 
     def test_cross_os_mu_log_drift_refuses_with_recomputed_sha_receipt(self):
@@ -211,6 +218,27 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate archived JSON member"):
             comparator.compare(self.reg, self.ubuntu, self.windows)
 
+
+
+    def test_two_os_rehashed_identical_negative_wire_cannot_override_frozen_sha(self):
+        # Both output archives are internally hash-consistent, with matching
+        # semantic decisions and matching altered wire bytes. The external
+        # registered byte SHA must still refuse the drift.
+        rewrite = lambda raw: raw.rstrip(b"\n") + b" \n"
+        self._write_archive(self.ubuntu, "ubuntu-24.04", "Linux",
+                            raw_modifier=rewrite)
+        self._write_archive(self.windows, "windows-2025", "Windows",
+                            raw_modifier=rewrite)
+        with self.assertRaisesRegex(ValueError, "registered negative input SHA256 refuse"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
+
+    def test_missing_pre_registered_negative_input_sha_refuses(self):
+        self.spec.pop("negative_input_sha256")
+        self.reg.write_bytes(wire(self.spec))
+        self._write_archive(self.ubuntu, "ubuntu-24.04", "Linux")
+        self._write_archive(self.windows, "windows-2025", "Windows")
+        with self.assertRaisesRegex(ValueError, "pre-registered negative input SHA256"):
+            comparator.compare(self.reg, self.ubuntu, self.windows)
 
 if __name__ == "__main__":
     unittest.main()

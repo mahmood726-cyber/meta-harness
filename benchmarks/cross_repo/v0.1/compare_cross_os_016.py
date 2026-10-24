@@ -66,6 +66,13 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
         raise ValueError("engine SHA256 is absent or malformed")
 
     scenarios = registration["scenarios"]
+    frozen_raw = registration.get("negative_input_sha256")
+    if (not isinstance(frozen_raw, dict) or
+            set(frozen_raw) != {"refuse", "manual_review"} or
+            any(not isinstance(value, str) or len(value) != 64 or
+                any(ch not in "0123456789abcdef" for ch in value)
+                for value in frozen_raw.values())):
+        raise ValueError("missing or malformed pre-registered negative input SHA256")
     expected_files = {"source.txt"} | {
         f"{folder}/{label}.json" for folder in ("inputs", "results") for label in scenarios
     }
@@ -83,6 +90,12 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
         raw = (root / "inputs" / f"{label}.json").read_bytes()
         result = load_json(root / "results" / f"{label}.json")
         input_sha = digest(raw)
+        # A hash receipt inside the same producer archive does not freeze the
+        # expected raw input. Bind the two critical no-pool cases to bytes
+        # pre-registered in the independently versioned frozen specification.
+        if label in frozen_raw:
+            assert_equal(input_sha, frozen_raw[label],
+                         f"registered negative input SHA256 {label}")
         assert_equal(result.get("name"), label, "output case label")
         assert_equal(result.get("raw_sha256"), input_sha, "result/input digest")
         assert_equal(result.get("cli_status"), expected["importer"], "CLI decision")
