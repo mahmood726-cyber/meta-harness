@@ -439,3 +439,52 @@ def test_a5_spec_names_inventory_derived_mutable_model_stages() -> None:
     assert "11 of 11 model-driven stages" in spec
     for name in mutable_names:
         assert f"`{name}`" in spec
+
+
+
+@pytest.mark.parametrize("tampered_batch", ["batch-other", None, "OMITTED"])
+def test_check_batch_refuses_silent_exclusion_of_failed_run(
+    tmp_path: Path, tampered_batch: str | None
+) -> None:
+    """A4: an archived failed run must never vanish from batch accounting."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-valid"))
+    failed = _record(root, batch, "run-failed")
+    failed["outcome"] = "FAILED_CRASH"
+    _write_batch_record(root, batch, failed)
+
+    # Positive control: the failed record is retained in the batch census.
+    assert prospective.check_batch(root, batch)["run_records"] == 2
+
+    corrupted = dict(failed)
+    if tampered_batch == "OMITTED":
+        del corrupted["batch_id"]
+    else:
+        corrupted["batch_id"] = tampered_batch
+    _write_batch_record(root, batch, corrupted)
+
+    # Before the fix, the loader silently dropped this failed record,
+    # and check_batch incorrectly returned ok=True with one run.
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="run record batch_id mismatch"
+    ):
+        prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize("invalid_document", [[], None, "not a record"])
+def test_check_batch_refuses_non_object_run_record(
+    tmp_path: Path, invalid_document: object
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    prospective.write_run_record(
+        root / "prospective" / batch / "runs" / "run-corrupted.json",
+        invalid_document,
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="run record must be a JSON object"
+    ):
+        prospective.check_batch(root, batch)
