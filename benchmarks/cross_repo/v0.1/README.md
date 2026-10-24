@@ -32,3 +32,14 @@ Evidence Integration owns this versioned exchange and test-case identifiers (`CR
 ## New negative case: CROSS-EXCH-006
 
 A SHA-256-matched text source can still carry a fabricated locator. The regression check takes the archived synthetic quote on line 2 and falsely claims it is on line 1: handoff must be refused despite the quotation appearing elsewhere in the document. Multi-line quotes must fall entirely inside their claimed inclusive line range. This is a local structural regression test, **not** a completed benchmark PASS in `manifest.json` or a real clinical source check. Unsupported PDF/page locators remain blocked until a source-aware span checker is independently specified and tested.
+
+## New negative case: CROSS-EXCH-007 — one pooled row per trial identity
+
+An importer could previously accept two `ALLOW` rows with distinct `study_id` values but the same `trial_id`, even though the same trial might be represented in multiple reports or an unadjusted multi-arm comparison. The v0.1 validator now rejects the entire proposed pool as `duplicate trial_id`. It does **not** silently omit one row and does not pretend to solve multi-arm covariance or ambiguous registry aliases. Multiple reports should be reconciled to one study-level estimate upstream; where two comparisons are genuinely independent or a multi-arm adjustment is required, that must be represented through a future explicitly versioned and independently tested contract. No clinical studies are deduplicated here.
+
+This follows the *Cochrane Handbook* principle of linking multiple reports to studies (Chapter 4, sections 4.6.1–4.6.2) and avoiding unit-of-analysis errors in multi-arm trials (Chapters 6 and 23):
+https://training.cochrane.org/handbook/current/chapter-04
+https://training.cochrane.org/handbook/current/chapter-06
+https://training.cochrane.org/handbook/current/chapter-23
+
+The synthetic negative test uses two rows referencing the same archive and trial ID while giving the second row a different study ID. This checks only contract refusal; it **cannot** discover duplicate trials with different identifiers, establish true study identity, or prove statistical correctness. Manifest status remains `NOT_RUN` until pin-matched executable evidence is recorded.
