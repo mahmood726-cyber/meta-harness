@@ -517,6 +517,54 @@ def test_check_batch_refuses_rerun_missing_original(tmp_path: Path) -> None:
         prospective.check_batch(root, batch)
 
 
+@pytest.mark.parametrize(
+    "justification,accepted",
+    [
+        ("rerun because defect-plant documents external failure", True),
+        ("linked to (defect-plant) after runner failure", True),
+        ("outage documented by defect-plant-v2", False),
+        ("outage documented by prefixdefect-plant", False),
+        ("outage documented by defect-plant.extra", False),
+        ("outage documented by defect-plant_2", False),
+        ("outage documented by DEFECT-plant", False),
+        ("outage documented by defect-pla", False),
+    ],
+)
+def test_check_batch_requires_whole_defect_id_in_rerun_justification(
+    tmp_path: Path, justification: str, accepted: bool
+) -> None:
+    """Synthetic A4 guard: a different ledger ID cannot approve a rerun."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-original", outcome="FAILED_CRASH")
+    )
+    entry = prospective.defect_entry(
+        batch, "topic-plant", "run-original", "FAILED_CRASH",
+        "runner killed", "recorded external defect", entry_id="defect-plant",
+        declared_utc="2026-09-14T00:19:00Z",
+    )
+    prospective.append_defect(entry, root=root)
+    rerun = _record(
+        root, batch, "run-rerun",
+        started="2026-09-14T00:20:00Z",
+        finished="2026-09-14T00:21:00Z",
+        rerun_of="run-original",
+        justification=justification,
+    )
+    _write_batch_record(root, batch, rerun)
+
+    if accepted:
+        assert prospective.check_batch(root, batch)["ok"] is True
+    else:
+        with pytest.raises(
+            prospective.ProspectiveRefusal,
+            match="rerun lacks a prior defect-ledger entry",
+        ):
+            prospective.check_batch(root, batch)
+
+
 def test_check_batch_accepts_one_rerun_with_prior_defect(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     batch = "batch-plant"
