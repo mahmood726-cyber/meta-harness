@@ -309,6 +309,90 @@ def test_check_batch_refuses_nonobject_run_record_with_typed_refusal(tmp_path: P
         prospective.check_batch(root, batch)
 
 
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"detail": "changed attribution"},
+        {"failed_run_id": "run-unrelated"},
+        {"topic_identifier": "topic-unrelated"},
+    ],
+)
+def test_check_batch_refuses_duplicate_defect_ledger_ids(
+    tmp_path: Path, mutation: dict[str, str]
+) -> None:
+    """One ID must not alias two defect entries, even without a rerun."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-original", outcome="FAILED_CRASH")
+    )
+    original = prospective.defect_entry(
+        batch, "topic-plant", "run-original", "FAILED_CRASH",
+        "runner killed", "original defect", entry_id="defect-shared",
+        declared_utc="2026-09-14T00:12:00Z",
+    )
+    second = dict(original)
+    second.update(mutation)
+    prospective.append_defect(original, root=root)
+    prospective.append_defect(second, root=root)
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="duplicate defect ledger id"):
+        prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize("invalid_id", [None, "", 3, True, [], {}, "../escape"])
+def test_check_batch_refuses_invalid_stored_defect_id(
+    tmp_path: Path, invalid_id: object
+) -> None:
+    """Untrusted JSON must refuse explicitly, not throw a Python TypeError."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    entry = prospective.defect_entry(
+        batch, "topic-plant", "run-original", "FAILED_CRASH",
+        "runner killed", "stored record", entry_id="defect-valid",
+        declared_utc="2026-09-14T00:12:00Z",
+    )
+    entry["id"] = invalid_id
+    _write(
+        root.parent,
+        "meta-harness-defects/batch-plant.jsonl",
+        json.dumps(entry) + "\n",
+    )
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="defect ledger has invalid id"):
+        prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize("content", ["[]\n", "null\n", '"not an object"\n'])
+def test_check_batch_refuses_nonobject_defect_ledger_json(
+    tmp_path: Path, content: str
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write(root.parent, "meta-harness-defects/batch-plant.jsonl", content)
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="defect ledger line 1 is not a JSON object"):
+        prospective.check_batch(root, batch)
+
+
+def test_check_batch_preserves_distinct_defect_ledger_ids(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    for entry_id in ("defect-one", "defect-two"):
+        entry = prospective.defect_entry(
+            batch, "topic-plant", "run-original", "FAILED_CRASH",
+            "runner killed", "recorded defect", entry_id=entry_id,
+            declared_utc="2026-09-14T00:12:00Z",
+        )
+        prospective.append_defect(entry, root=root)
+
+    assert prospective.check_batch(root, batch)["defect_entries"] == 2
+
 def test_check_batch_refuses_rerun_without_prior_defect_entry(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     batch = "batch-plant"
