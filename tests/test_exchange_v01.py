@@ -363,7 +363,7 @@ def test_synthetic_pass_cannot_reuse_other_repositories_pin():
 # registered. Missing tests must not become an apparently complete benchmark.
 # These are synthetic manifest-structure tests, not executed benchmark PASSes.
 @pytest.mark.parametrize("missing_id", [
-    "CROSS-EXCH-001", "CROSS-EXCH-006", "CROSS-EXCH-011", "CROSS-EXCH-012",
+    "CROSS-EXCH-001", "CROSS-EXCH-006", "CROSS-EXCH-011", "CROSS-EXCH-012", "CROSS-EXCH-014",
 ])
 def test_registered_exchange_case_cannot_disappear(missing_id):
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
@@ -384,8 +384,8 @@ def test_cross_lane_case_id_cannot_replace_registered_exchange_case():
 def test_renamed_case_cannot_create_gap_in_registration():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    manifest["cases"][-1]["id"] = "CROSS-EXCH-014"
-    with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-012"):
+    manifest["cases"][-1]["id"] = "CROSS-EXCH-015"
+    with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-014"):
         validate_manifest(manifest, path.parent)
 
 
@@ -393,7 +393,7 @@ def test_contiguous_future_id_and_reordering_are_structurally_allowed():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
     future = copy.deepcopy(manifest["cases"][-1])
-    future["id"] = "CROSS-EXCH-014"
+    future["id"] = "CROSS-EXCH-015"
     future["status"] = "NOT_RUN"
     manifest["cases"].insert(0, future)
     manifest["cases"].reverse()
@@ -406,7 +406,7 @@ def test_manifest_schema_declares_transport_namespace_and_14_case_floor():
     )
     assert schema["properties"]["cases"]["minItems"] == 14
     pat = schema["$defs"]["case"]["properties"]["id"]["pattern"]
-    assert re.fullmatch(pat, "CROSS-EXCH-012")
+    assert re.fullmatch(pat, "CROSS-EXCH-014")
     assert re.fullmatch(pat, "CROSS-R-012") is None
     assert re.fullmatch(pat, "CROSS-EXCH-000") is None
 
