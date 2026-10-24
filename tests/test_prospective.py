@@ -54,6 +54,7 @@ def _record(
     finished: str = "2026-09-14T00:11:00Z",
     rerun_of: str | None = None,
     justification: str | None = None,
+    outcome: str = "COMPLETED",
 ) -> dict:
     return prospective.run_record(
         root,
@@ -61,7 +62,7 @@ def _record(
         topic,
         started,
         finished,
-        "COMPLETED",
+        outcome,
         ["review/index.html", "review/manifest.json"],
         run_id=run_id,
         rerun_of=rerun_of,
@@ -322,7 +323,7 @@ def test_check_batch_accepts_one_rerun_with_prior_defect(tmp_path: Path) -> None
     root = _mini_root(tmp_path)
     batch = "batch-plant"
     _declare(root, batch)
-    _write_batch_record(root, batch, _record(root, batch, "run-original"))
+    _write_batch_record(root, batch, _record(root, batch, "run-original", outcome="FAILED_CRASH"))
     entry = prospective.defect_entry(
         batch,
         "topic-plant",
@@ -457,3 +458,98 @@ def test_a5_spec_names_inventory_derived_mutable_model_stages() -> None:
     assert "11 of 11 model-driven stages" in spec
     for name in mutable_names:
         assert f"`{name}`" in spec
+
+
+@pytest.mark.parametrize(
+    "defect_topic,defect_run_id",
+    [
+        ("topic-different", "run-original"),
+        ("topic-plant", "run-different"),
+        ("topic-different", "run-different"),
+    ],
+)
+def test_check_batch_refuses_rerun_authorized_by_unrelated_defect(
+    tmp_path: Path, defect_topic: str, defect_run_id: str
+) -> None:
+    """An unrelated ledger entry cannot authorize a failed topic's rerun."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-original", outcome="FAILED_CRASH")
+    )
+    entry = prospective.defect_entry(
+        batch,
+        defect_topic,
+        defect_run_id,
+        "FAILED_CRASH",
+        "external network outage",
+        "test-only infrastructure incident",
+        entry_id="defect-unrelated",
+        declared_utc="2026-09-14T00:19:00Z",
+    )
+    prospective.append_defect(
+        entry,
+        root.parent / "meta-harness-defects" / f"{batch}.jsonl",
+        root=root,
+    )
+    _write_batch_record(
+        root,
+        batch,
+        _record(
+            root,
+            batch,
+            "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="infrastructure defect-unrelated",
+        ),
+    )
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="prior defect-ledger entry bound to original run/topic",
+    ):
+        prospective.check_batch(root, batch)
+
+
+def test_check_batch_refuses_rerun_of_successful_original(tmp_path: Path) -> None:
+    """A completed result cannot be re-run by inventing a defect entry."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-original"))
+    entry = prospective.defect_entry(
+        batch,
+        "topic-plant",
+        "run-original",
+        "FAILED_CRASH",
+        "external network outage",
+        "test-only fabricated post-hoc failure",
+        entry_id="defect-claimed",
+        declared_utc="2026-09-14T00:19:00Z",
+    )
+    prospective.append_defect(
+        entry,
+        root.parent / "meta-harness-defects" / f"{batch}.jsonl",
+        root=root,
+    )
+    _write_batch_record(
+        root,
+        batch,
+        _record(
+            root,
+            batch,
+            "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="infrastructure defect-claimed",
+        ),
+    )
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="original run is not a recorded failure"
+    ):
+        prospective.check_batch(root, batch)
