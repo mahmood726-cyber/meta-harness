@@ -18,6 +18,38 @@ VALID_DECISIONS = {"ALLOW", "ALLOW_WITH_LABEL", "ADJUST", "MANUAL_REVIEW", "REFU
 VALID_BENCHMARK_STATES = {"NOT_RUN", "PASS", "FAIL", "BLOCKED"}
 
 
+
+def _unique_json_members(pairs: list[tuple[str, object]]) -> dict:
+    """Reject repeated keys before JSON parsing discards the earlier value."""
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON object member: {key}")
+        result[key] = value
+    return result
+
+
+def validate_exchange_json(raw: str | bytes, archive_root: Path) -> None:
+    """Validate wire JSON without Python's last-key-wins ambiguity.
+
+    Raw-input consumers must call this function, not json.loads followed by
+    validate_exchange: a decoded dict cannot reveal duplicate JSON keys.
+    This remains a structural transport check, not clinical validation.
+    """
+    if isinstance(raw, bytes):
+        try:
+            raw = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ValueError("exchange JSON must be UTF-8") from exc
+    if not isinstance(raw, str) or raw.startswith("\ufeff"):
+        raise ValueError("exchange JSON must be UTF-8 without a BOM")
+    try:
+        payload = json.loads(raw, object_pairs_hook=_unique_json_members)
+    except json.JSONDecodeError as exc:
+        raise ValueError("malformed exchange JSON") from exc
+    validate_exchange(payload, archive_root)
+
+
 def _source(root: Path, relative: object) -> bytes:
     if not isinstance(relative, str) or not relative or "\\" in relative:
         raise ValueError("source.path must be a relative POSIX file path")
