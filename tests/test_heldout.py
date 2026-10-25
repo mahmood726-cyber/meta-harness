@@ -156,6 +156,42 @@ def test_candidate_identifiers_extracts_slug_from_paths():
     assert "zz-plant-alpha" in set(heldout.candidate_identifiers(text))
 
 
+def test_seven_component_sealed_slug_is_detected_inside_longer_path():
+    """Prior six-token windows missed this substring, falsely reporting clean."""
+    identifier = "alpha-bravo-charlie-delta-echo-foxtrot-golf"
+    line = f"topics/prefix-{identifier}-suffix.json"
+    sealed = _token(identifier)
+    registry = _registry_with_canary(sealed)
+
+    assert identifier in set(heldout.candidate_identifiers(line))
+    assert heldout._matching_hmacs(line, KEY, registry) == [sealed]
+    assert heldout._Matcher(KEY, registry)(line) == [sealed]
+    assert heldout.check_message(f"reported prefix-{identifier}-suffix", KEY, registry) == [sealed]
+
+    with _temp_repo() as repo:
+        _write(repo, "notes/evidence.txt", line + "\n")
+        _commit(repo, "synthetic held-out regression fixture")
+        hits = heldout.scan_tree(repo, KEY, registry)
+    assert hits == [{"path": "notes/evidence.txt", "identifier_hmac": sealed, "line_no": 1}]
+
+
+def test_extreme_hyphen_chain_refuses_instead_of_silently_truncating(monkeypatch):
+    """Resource guards must fail closed, never silently skip candidates."""
+    text = "-".join(f"part{i}" for i in range(heldout.MAX_HYPHEN_COMPONENTS + 1))
+    with pytest.raises(ValueError, match="held-out scan refused"):
+        list(heldout.candidate_identifiers(text))
+
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    registry = _registry_with_canary()
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _write(repo, "notes/oversized.txt", text + "\n")
+        _commit(repo, "synthetic overlong-chain fixture")
+        ok, reasons = heldout.check(repo)
+    assert not ok
+    assert any("hyphenated run has" in reason for reason in reasons)
+
+
 def test_real_registry_loads_and_self_test_passes_when_key_available():
     registry = heldout.load(ROOT)
 
