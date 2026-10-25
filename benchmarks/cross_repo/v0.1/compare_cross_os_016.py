@@ -100,6 +100,18 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
                 any(ch not in "0123456789abcdef" for ch in value)
                 for value in frozen_raw.values())):
         raise ValueError("missing or malformed pre-registered negative input SHA256")
+    # Bind accepted RR/ITT source/trial/estimand bytes to a digest registered
+    # independently of both producer archives. Matching rehashed archives
+    # alone cannot demonstrate that the pooled input remained frozen.
+    allowed_raw = registration.get("allowed_input_sha256")
+    allowed_labels = {label for label, expectation in scenarios.items()
+                      if expectation["consumer"] == "SYNTHETIC_ENGINE_EXECUTED"}
+    if (not isinstance(allowed_raw, dict) or
+            set(allowed_raw) != allowed_labels or
+            any(not isinstance(value, str) or len(value) != 64 or
+                any(ch not in "0123456789abcdef" for ch in value)
+                for value in allowed_raw.values())):
+        raise ValueError("missing or malformed pre-registered allowed input SHA256")
     expected_files = {"source.txt"} | {
         f"{folder}/{label}.json" for folder in ("inputs", "results") for label in scenarios
     }
@@ -123,6 +135,9 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
         if label in frozen_raw:
             assert_equal(input_sha, frozen_raw[label],
                          f"registered negative input SHA256 {label}")
+        if label in allowed_raw:
+            assert_equal(input_sha, allowed_raw[label],
+                         f"registered allowed input SHA256 {label}")
         assert_equal(result.get("name"), label, "output case label")
         assert_equal(result.get("raw_sha256"), input_sha, "result/input digest")
         assert_equal(result.get("cli_status"), expected["importer"], "CLI decision")

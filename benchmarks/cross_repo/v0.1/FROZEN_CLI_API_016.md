@@ -15,6 +15,7 @@ The [registration](frozen-cli-api-016.json) fixes:
 - Meta-Harness **source code**: `ea2fac35a212a330dfe27f7b710347e9ef69a12a`.
 - RapidMeta **real JS pooling consumer**: `368137dc437543c721b98be39c14282c338f7797`.
 - Synthetic text source SHA-256: `666a0354b2668dd0f90780becff303eab28a007fa895650ba09793732d374398`.
+- Frozen **accepted RR/ITT input** SHA-256: `514f659d51fd477f702cc25303d45c3a440c5282324de287ba1fab8d30385ce0`, computed with the frozen producer's canonical UTF-8 JSON `wire(produce("ALLOW"))`. The registered REFUSE and MANUAL_REVIEW wire hashes remain separately pinned. A passing two-OS transport comparison now independently checks the pooled ALLOW input bytes against this pre-registered identity, even if both producer archives, consumer-result input hashes and SHA receipts were changed in agreement. This is an input-integrity gate, **not** independent verification of the RR estimate or clinical effects.
 - GitHub-hosted Ubuntu 24.04 **and** Windows 2025 as separately labelled runners; Python 3.13.7 and Node 22.14.0 on each. The runner refuses an OS label absent from the frozen registration, refuses a Windows label on Linux, and checks actual Ubuntu distro/version. Windows build attestation comes from GitHub job metadata; a caller-controlled environment variable alone is not trusted evidence.
 - E156 and Starter commits recorded but roles explicitly `NOT_EXECUTED`.
 
