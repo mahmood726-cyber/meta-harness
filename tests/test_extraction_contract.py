@@ -222,8 +222,68 @@ def test_disagreement_settled_by_a_verified_passage_is_allowed(root):
                            "adjudicator": {"kind": "human", "name": "second reviewer"},
                            "rationale": "61 of 203: 61 is the event count, 203 the denominator"}]
     rep = check_bundle(b, root)
-    assert rep["verdict"] == ALLOW, problems(rep)
-    assert rep["trials"][0]["dual_status"]["events[comparator]"] == "ADJUDICATED"
+    # The legacy test name stays stable for the honest-test ratchet. A source
+    # quote is not an authenticated independent human-review receipt.
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert rep["trials"][0]["dual_status"]["events[comparator]"] == "UNRESOLVED"
+    assert "external blinded adjudication is not authenticated" in problems(rep)
+    evidence = resolve(t["readings"], t["adjudications"], root)["fields"][("events", "comparator")]
+    assert [r["raw_value"] for r in evidence["reader_candidates"]] == [61, 203]
+    assert [r["reader_record_id_claimed"] for r in evidence["reader_candidates"]] == ["mc-a", "mc-b"]
+    assert evidence["adjudication_proposals"][0]["raw_value"] == 61
+    assert evidence["adjudication_proposals"][0]["actor_kind_claimed"] == "human"
+
+
+def test_PLANT_self_declared_blinding_cannot_overrule_agreeing_models(root):
+    b = bundle()
+    t = b["trials"][0]
+    # Two model readers agree, but a claimed external reviewer records a
+    # different source-quoted number. A self-reported blinded flag is not a
+    # receipt, and model agreement must not make the dissent disappear.
+    t["adjudications"] = [{
+        "field": "events", "arm": "comparator", "decided_value": 203,
+        "passage": P(Q_COUNTS),
+        "adjudicator": {"kind": "human", "name": "synthetic external", "record_id": "synthetic-reviewer"},
+        "blinded": True, "independent": True, "rationale": "synthetic dissent",
+    }]
+    rep = check_bundle(b, root)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert rep["trials"][0]["dual_status"]["events[comparator]"] == "UNRESOLVED"
+    evidence = resolve(t["readings"], t["adjudications"], root)["fields"][("events", "comparator")]
+    assert [r["raw_value"] for r in evidence["reader_candidates"]] == [61, 61]
+    assert evidence["adjudication_proposals"][0]["raw_value"] == 203
+    assert evidence["adjudication_proposals"][0]["actor_record_id_claimed"] == "synthetic-reviewer"
+    assert evidence["adjudication_proposals"][0]["source_checked"] is True
+
+
+def test_PLANT_explicit_zero_and_false_remain_visible_when_review_is_unverified(tmp_path):
+    # Fresh synthetic bytes with a genuine zero-event quote; this does not
+    # represent an eligible study, independent reviewer or validation case.
+    quote = "0 events in the intervention; 2 events in the comparator."
+    path = tmp_path / "zero-event.txt"
+    path.write_text(quote, encoding="utf-8")
+    passage = {
+        "document_ref": "zero-event.txt", "document_sha256": hashlib.sha256(quote.encode()).hexdigest(),
+        "start": 0, "end": len(quote), "quote": quote,
+    }
+    a = {"field": "events", "arm": "intervention", "value": 0, "passage": passage}
+    b = {"field": "events", "arm": "intervention", "value": 2, "passage": passage}
+    readings = [reading("anthropic", "zero-reader-a", [a]), reading("openai", "zero-reader-b", [b])]
+    proposal = {
+        "field": "events", "arm": "intervention", "decided_value": False, "passage": passage,
+        "adjudicator": {"kind": "human", "name": "synthetic reviewer", "record_id": "zero-reviewer"},
+        "blinded": True, "rationale": "synthetic Boolean disagreement",
+    }
+    result = resolve(readings, [proposal], str(tmp_path))["fields"][("events", "intervention")]
+    assert result["status"] == "UNRESOLVED" and result["value"] is None
+    candidates = result["reader_candidates"]
+    assert type(candidates[0]["raw_value"]) is int and candidates[0]["raw_value"] == 0
+    assert candidates[0]["source_checked"] is True
+    assert candidates[1]["raw_value"] == 2 and candidates[1]["source_checked"] is True
+    assert result["adjudication_proposals"][0]["raw_value"] is False
+    assert result["adjudication_proposals"][0]["source_checked"] is False
+    assert "not an int" in "; ".join(result["problems"])
+    assert "external blinded adjudication is not authenticated" in "; ".join(result["problems"])
 
 
 @pytest.mark.parametrize("adj_patch,expect", [
