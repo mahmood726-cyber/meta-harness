@@ -198,7 +198,7 @@ def test_a4_repeated_run_id_in_distinct_archived_records_is_refused(
     assert "run-shared" in str(exc_info.value)
 
 
-@pytest.mark.parametrize("corrupt_id", [None, "", 7, True, "../run-escape", []])
+@pytest.mark.parametrize("corrupt_id", [None, "", 7, True, ".", "..", "../run-escape", []])
 def test_a4_run_identity_absent_or_invalid_refuses_batch(
     tmp_path: Path, corrupt_id: object
 ) -> None:
