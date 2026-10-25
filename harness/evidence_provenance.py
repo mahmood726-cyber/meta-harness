@@ -89,7 +89,7 @@ def read_events(path):
 
 def can_pool(analysis, studies):
     """Refuse unresolved decisions and incompatible estimands."""
-    if analysis.get("decision") != "ALLOW":
+    if not isinstance(analysis, dict) or analysis.get("decision") != "ALLOW":
         return False
     measure = analysis.get("estimand")
     selected = analysis.get("studyIds")
