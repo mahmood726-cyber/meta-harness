@@ -18,6 +18,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import shutil
 import sys
 
@@ -33,33 +34,108 @@ def _sha256(path: str) -> str:
     return h.hexdigest()
 
 
-def _load_index(snapshot: str) -> list[dict]:
-    p = os.path.join(snapshot, "raw", "INDEX.json")
-    if not os.path.isfile(p):
-        raise SystemExit(f"COULD-NOT-EXECUTE: no raw/INDEX.json under {snapshot}")
-    return json.load(open(p, encoding="utf-8"))
-
-
 def _rel_snapshot(snapshot: str) -> str:
-    return os.path.relpath(os.path.abspath(snapshot), ROOT).replace("\\", "/")
+    """A raw archive may not address an unrelated tree through '../'."""
+    rel = os.path.relpath(os.path.abspath(snapshot), ROOT).replace("\\", "/")
+    if rel == ".." or rel.startswith("../") or rel == ".":
+        raise SystemExit("REFUSED: snapshot must be a directory inside the repository")
+    return rel
+
+
+def _inside(path: str, directory: str) -> bool:
+    """Resolve symlinks before trusting an indexed source or archive path."""
+    try:
+        return os.path.commonpath((os.path.realpath(path), os.path.realpath(directory))) == os.path.realpath(directory)
+    except ValueError:
+        return False
+
+
+def _load_index(snapshot: str) -> list[dict]:
+    """Verify INDEX against the snapshot ledger before considering any body preserved."""
+    p = os.path.join(snapshot, "raw", "INDEX.json")
+    ledger_path = os.path.join(snapshot, "retrieval_ledger.json")
+    if not os.path.isfile(p) or not os.path.isfile(ledger_path):
+        raise SystemExit("REFUSED: raw/INDEX.json and retrieval_ledger.json are both required")
+    try:
+        with open(p, "rb") as fh:
+            index_bytes = fh.read()
+        with open(ledger_path, encoding="utf-8") as fh:
+            ledger = json.load(fh)
+        index = json.loads(index_bytes)
+    except (ValueError, UnicodeError, OSError) as exc:
+        raise SystemExit(f"REFUSED: corrupt raw index or retrieval ledger: {exc}") from exc
+    snapshot_meta = ledger.get("snapshot") if isinstance(ledger, dict) else None
+    digest = hashlib.sha256(index_bytes).hexdigest()
+    if (not isinstance(snapshot_meta, dict)
+            or snapshot_meta.get("mode") != "REFRESH"
+            or snapshot_meta.get("raw_index_sha256") != digest):
+        raise SystemExit("REFUSED: raw INDEX digest/mode not bound to a REFRESH retrieval ledger")
+    raw_calls = snapshot_meta.get("raw_calls")
+    if (type(raw_calls) is not int or raw_calls < 1
+            or not isinstance(index, list) or len(index) != raw_calls):
+        raise SystemExit("REFUSED: raw INDEX count is inconsistent with retrieval ledger")
+    pointer_path = os.path.join(snapshot, "ARCHIVE.json")
+    if os.path.isfile(pointer_path):
+        try:
+            with open(pointer_path, encoding="utf-8") as fh:
+                pointer = json.load(fh)
+        except (ValueError, OSError) as exc:
+            raise SystemExit(f"REFUSED: invalid archive pointer: {exc}") from exc
+        if (not isinstance(pointer, dict)
+                or pointer.get("index_sha256") != digest
+                or pointer.get("archived_relpath") != _rel_snapshot(snapshot)):
+            raise SystemExit("REFUSED: archive pointer and raw INDEX disagree")
+    seen: set[str] = set()
+    for row in index:
+        if not isinstance(row, dict):
+            raise SystemExit("REFUSED: raw INDEX has a non-object row")
+        path, source_id = row.get("path"), row.get("source_id")
+        if not isinstance(path, str) or not isinstance(source_id, str):
+            raise SystemExit("REFUSED: raw INDEX has invalid source/path")
+        pieces = path.split("/")
+        if (len(pieces) != 3 or pieces[0] != "raw" or pieces[1] != source_id
+                or not re.fullmatch(r"[A-Za-z0-9._#-]+", source_id)
+                or source_id in (".", "..")
+                or not re.fullmatch(r"[0-9]{3,}\\.json", pieces[2])
+                or path in seen):
+            raise SystemExit("REFUSED: unsafe or duplicate raw INDEX path")
+        seen.add(path)
+        if not isinstance(row.get("file_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", row["file_sha256"]):
+            raise SystemExit("REFUSED: invalid raw body wrapper digest in INDEX")
+    return index
+
+
+def _body_paths(snapshot: str, dest_root: str | None, relative: str) -> tuple[str, str | None]:
+    src = os.path.join(snapshot, *relative.split("/"))
+    if not _inside(src, os.path.join(snapshot, "raw")):
+        raise SystemExit("REFUSED: raw INDEX source escapes the snapshot (possibly symlinked)")
+    dst = os.path.join(dest_root, *relative.split("/")) if dest_root else None
+    if dst and not _inside(dst, dest_root):
+        raise SystemExit("REFUSED: raw INDEX archive destination escapes archive root")
+    return src, dst
 
 
 def move(snapshot: str, archive_root: str) -> int:
     index = _load_index(snapshot)
     rel = _rel_snapshot(snapshot)
     dest_root = os.path.join(archive_root, rel)
-    moved = 0
+    # Preflight ALL entries before moving ANY one, so late corruption cannot
+    # leave a half-migrated archive with no reliable pointer.
+    plan = []
     for row in index:
-        src = os.path.join(snapshot, row["path"])
-        dst = os.path.join(dest_root, row["path"])
+        src, dst = _body_paths(snapshot, dest_root, row["path"])
+        if not os.path.isfile(src) and not os.path.isfile(dst):
+            raise SystemExit(f"REFUSED: {row['path']} is neither in snapshot nor archive")
+        for existing in (src, dst):
+            if os.path.isfile(existing) and _sha256(existing) != row["file_sha256"]:
+                raise SystemExit(f"REFUSED: {existing} differs from frozen raw INDEX; nothing moved")
+        plan.append((src, dst))
+    moved = 0
+    for src, dst in plan:
         if os.path.isfile(src):
-            if _sha256(src) != row["file_sha256"]:
-                raise SystemExit(f"REFUSED: {src} does not match INDEX file_sha256; nothing moved")
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.move(src, dst)
             moved += 1
-        elif not os.path.isfile(dst):
-            raise SystemExit(f"REFUSED: {row['path']} is neither in the snapshot nor in the archive")
     # remove now-empty per-source dirs
     raw_root = os.path.join(snapshot, "raw")
     for name in sorted(os.listdir(raw_root)):
@@ -90,8 +166,9 @@ def check(snapshot: str, archive_root: str | None) -> tuple[int, list[str]]:
     problems: list[str] = []
     ok = 0
     for row in index:
-        local = os.path.join(snapshot, row["path"])
-        archived = os.path.join(root, rel, row["path"]) if root else None
+        local, archived = _body_paths(
+            snapshot, os.path.join(root, rel) if root else None, row["path"]
+        )
         path = local if os.path.isfile(local) else (archived if archived and os.path.isfile(archived) else None)
         if path is None:
             problems.append(f"NOT PRESERVED: {row['path']} (not in snapshot; not in archive {root})")
