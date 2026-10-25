@@ -595,6 +595,24 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
                 f"run {record.get('run_id')}: cited defect was not declared before rerun start"
             )
 
+    # A4: failed runs are retained and count against the prospective batch,
+    # including when a permitted infrastructure rerun later completes.
+    # Structural validation alone must never return {"ok": true} for a
+    # batch containing an archived failed result.
+    failed_runs = [
+        record for record in records
+        if record.get("outcome") in RUN_OUTCOMES and record["outcome"] != "COMPLETED"
+    ]
+    if failed_runs:
+        failures = ", ".join(
+            f"{record.get('run_id')!r} ({record['outcome']})"
+            for record in failed_runs
+        )
+        reasons.append(
+            f"batch contains failed prospective runs ({len(failed_runs)} of "
+            f"{len(records)} retained): {failures}; a rerun cannot erase failure"
+        )
+
     if reasons:
         raise ProspectiveRefusal("PROSPECTIVE BATCH REFUSED:\n  - " + "\n  - ".join(reasons))
     return {
