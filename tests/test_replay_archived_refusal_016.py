@@ -41,7 +41,9 @@ def consume(raw, rapid, label):
         subprocess.run(['node', '--version'])
     return {'case': label, 'input_sha256': hashlib.sha256(raw).hexdigest(),
             'status': 'REFUSED', 'engine_invoked': False,
-            'refusal': ('Declared trial_id does not match verbatim source'\n                        if label == 'source_trial_mismatch'\n                        else 'requires manual review')}
+            'refusal': ('Declared trial_id does not match verbatim source'
+                        if label == 'source_trial_mismatch'
+                        else 'requires manual review')}
 """ % ("True" if invokes_engine else "False"), encoding="utf-8"
         )
 
