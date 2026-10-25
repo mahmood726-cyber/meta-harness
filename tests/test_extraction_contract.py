@@ -390,6 +390,7 @@ def test_PLANT_orphan_external_annotation_keeps_zero_false_and_refuses(root, raw
     assert orphan["source_ref_claimed"] == REF
     assert orphan["source_sha256_claimed"] == SHA
     assert orphan["source_checked"] is False
+    assert rep["trials"][0]["unmatched_adjudications"] == [orphan]
 
 
 def test_PLANT_unread_population_adjudication_cannot_disappear(root):
@@ -409,6 +410,7 @@ def test_PLANT_unread_population_adjudication_cannot_disappear(root):
     raw = resolve(trial["readings"], trial["adjudications"], root)
     assert raw["unmatched_adjudications"][0]["raw_value"] == "PP"
     assert raw["unmatched_adjudications"][0]["source_checked"] is False
+    assert rep["trials"][0]["unmatched_adjudications"] == raw["unmatched_adjudications"]
 
 
 # ------------------------------------------------------------------ the number reader
