@@ -37,14 +37,16 @@ class ArchivedArtifactParityTests(unittest.TestCase):
             "frozen_source": {"sha256": comparator.digest(self.source)},
             "scenarios": {"allow_rr_itt": {"importer": "ACCEPTED", "consumer": "SYNTHETIC_ENGINE_EXECUTED"},
                           "refuse": {"importer": "REFUSED", "consumer": "REFUSED"},
-                          "manual_review": {"importer": "REFUSED", "consumer": "REFUSED"}}
+                          "manual_review": {"importer": "REFUSED", "consumer": "REFUSED"},
+                          "source_trial_mismatch": {"importer": "ACCEPTED", "consumer": "REFUSED"}}
         }
         self.spec["allowed_input_sha256"] = {
             "allow_rr_itt": comparator.digest(wire({"case": "allow_rr_itt", "decision": "ALLOW"}))
         }
         self.spec["negative_input_sha256"] = {
-            case: comparator.digest(wire({"case": case, "decision": case.upper()}))
-            for case in ("refuse", "manual_review")
+            case: comparator.digest(wire({"case": case,
+                                          "decision": "ALLOW" if case == "source_trial_mismatch" else case.upper()}))
+            for case in ("refuse", "manual_review", "source_trial_mismatch")
         }
         self.reg.write_bytes(wire(self.spec))
         self.ubuntu = root / "ubuntu"
@@ -58,7 +60,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         (directory / "source.txt").write_bytes(self.source)
         digests = {"source.txt": comparator.digest(self.source)}
         for case, status in self.spec["scenarios"].items():
-            raw = wire({"case": case, "decision": "ALLOW" if case == "allow_rr_itt" else case.upper()})
+            raw = wire({"case": case, "decision": "ALLOW" if case in ("allow_rr_itt", "source_trial_mismatch") else case.upper()})
             if case == "refuse" and raw_modifier:
                 raw = raw_modifier(raw)
             source_hash = comparator.digest(raw)
@@ -102,9 +104,8 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         index["digests"][f"results/{case}.json"] = comparator.digest(target.read_bytes())
         index_path.write_bytes(wire(index))
 
-    def _rewrite_allow_input_and_receipts(self, directory, mutate):
-        """Coordinated forgery: alter the input and rehash BOTH archive layers."""
-        case = "allow_rr_itt"
+    def _rewrite_input_and_receipts(self, directory, mutate, case="allow_rr_itt"):
+        """Coordinated forgery: alter one input and rehash BOTH archive layers."""
         source_path = directory / "inputs" / f"{case}.json"
         raw = json.loads(source_path.read_text(encoding="utf-8"))
         mutate(raw)
@@ -123,7 +124,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
 
     def test_matching_archives_pass(self):
         result = comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
-        self.assertEqual((result["case_count"], result["refused_without_pooling"]), (3, 2))
+        self.assertEqual((result["case_count"], result["refused_without_pooling"]), (4, 3))
         self.assertEqual(result["numerical_output_cross_os_comparison"], "PINNED_SYNTHETIC_SMOKE_ONLY_PASS")
         self.assertEqual(result["numerical_smoke_controls"]["allow_rr_itt"]["ubuntu-24.04"]["mu_log"], 0.3)
 
@@ -194,7 +195,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                              data["consumer"]["engine_output"].__setitem__("mu_log", 0.3 + 1e-13))
         report = comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
         self.assertEqual(report["numerical_smoke_tolerance"]["rel_tol"], 1e-12)
-        self.assertEqual(report["case_count"], 3)
+        self.assertEqual(report["case_count"], 4)
 
     def test_two_os_rehashed_matching_allow_trial_and_estimand_drift_refuses(self):
         # The old comparator could PASS when both producer archives used
@@ -205,8 +206,29 @@ class ArchivedArtifactParityTests(unittest.TestCase):
             raw["trial_id"] = "SYN-TRIAL-99"
             raw["estimand"] = {"measure": "OR", "population": "PP"}
         for directory in (self.ubuntu, self.windows):
-            self._rewrite_allow_input_and_receipts(directory, mutate)
+            self._rewrite_input_and_receipts(directory, mutate)
         with self.assertRaisesRegex(ValueError, "registered allowed input SHA256 allow_rr_itt"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_coordinated_rehashed_trial_bridge_wire_drift_refuses(self):
+        # Both archives have identical new bytes and recomputed index and
+        # result receipts. A separately registered bridge-input digest must
+        # still reject this correlated tampering.
+        for directory in (self.ubuntu, self.windows):
+            self._rewrite_input_and_receipts(
+                directory,
+                lambda raw: raw.__setitem__("trial_id", "SYN-TRIAL-99"),
+                case="source_trial_mismatch")
+        with self.assertRaisesRegex(
+                ValueError, "registered negative input SHA256 source_trial_mismatch"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_missing_trial_bridge_registration_sha_refuses(self):
+        del self.spec["negative_input_sha256"]["source_trial_mismatch"]
+        self.reg.write_bytes(wire(self.spec))
+        self._write_archive(self.ubuntu, "ubuntu-24.04", "Linux")
+        self._write_archive(self.windows, "windows-2025", "Windows")
+        with self.assertRaisesRegex(ValueError, "pre-registered negative input SHA256"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_missing_pre_registered_allowed_input_sha_refuses(self):
