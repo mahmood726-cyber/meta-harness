@@ -71,6 +71,23 @@ def test_pinned_map_is_the_import_closure_of_the_declared_roots():
         assert name in present
 
 
+
+def test_opt_in_benchmark_exchange_does_not_change_signed_certificate_scope():
+    """A new opt-in transport adapter cannot silently invalidate 32 served releases.
+
+    This protects the deterministic list of *unreached* top-level harness modules
+    that is itself covered by each historical release_sha256. We do not weaken
+    or amend the certificate, renderer, verifier or any committed review.
+    """
+    from harness import certificate
+    from harness.exchange_v01 import import_exchange_json
+
+    cert = json.loads((ROOT / "docs/reviews" / SLUG / "CERTIFICATE.json").read_text(encoding="utf-8"))
+    assert callable(import_exchange_json)
+    assert certificate._scope(cert["analysis_code_blobs"]) == cert["certificate_scope"]
+    assert "harness/exchange_v01.py" not in cert["analysis_code_blobs"]
+    assert "harness/exchange_v01.py" not in cert["certificate_scope"]["not_covered"]["in_tree_modules_not_imported_by_any_root"]
+
 def test_pinned_blob_identities_are_what_git_stores():
     """The stdlib blob computation must agree with git for every pinned path, so an auditor
     without git and an auditor with git compute the same identity."""
