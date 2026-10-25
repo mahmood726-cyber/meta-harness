@@ -38,7 +38,8 @@ class ArchivedArtifactParityTests(unittest.TestCase):
             "scenarios": {"allow_rr_itt": {"importer": "ACCEPTED", "consumer": "SYNTHETIC_ENGINE_EXECUTED"},
                           "refuse": {"importer": "REFUSED", "consumer": "REFUSED"},
                           "manual_review": {"importer": "REFUSED", "consumer": "REFUSED"},
-                          "source_trial_mismatch": {"importer": "ACCEPTED", "consumer": "REFUSED"}}
+                          "source_trial_mismatch": {"importer": "ACCEPTED", "consumer": "REFUSED"},
+                          "duplicate_shadow": {"importer": "REFUSED", "consumer": "REFUSED"}}
         }
         self.spec["allowed_input_sha256"] = {
             "allow_rr_itt": comparator.digest(wire({"case": "allow_rr_itt", "decision": "ALLOW"}))
@@ -46,7 +47,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self.spec["negative_input_sha256"] = {
             case: comparator.digest(wire({"case": case,
                                           "decision": "ALLOW" if case == "source_trial_mismatch" else case.upper()}))
-            for case in ("refuse", "manual_review", "source_trial_mismatch")
+            for case in ("refuse", "manual_review", "source_trial_mismatch", "duplicate_shadow")
         }
         self.reg.write_bytes(wire(self.spec))
         self.ubuntu = root / "ubuntu"
@@ -73,7 +74,8 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                 consumer["refusal"] = f"synthetic downstream refusal: {case}"
             output = {"name": case, "raw_sha256": source_hash,
                       "cli_status": status["importer"], "api_status": status["importer"],
-                      "api_refusal": (f"synthetic import refusal: {case}"
+                      "api_refusal": ("duplicate JSON object member: decision" if case == "duplicate_shadow"
+                                      else f"synthetic import refusal: {case}"
                                       if status["importer"] == "REFUSED" else None),
                       "consumer": consumer, "clinical_validation": "NOT_TESTED"}
             for path, contents in ((directory / "inputs" / f"{case}.json", raw),
@@ -124,7 +126,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
 
     def test_matching_archives_pass(self):
         result = comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
-        self.assertEqual((result["case_count"], result["refused_without_pooling"]), (4, 3))
+        self.assertEqual((result["case_count"], result["refused_without_pooling"]), (5, 4))
         self.assertEqual(result["numerical_output_cross_os_comparison"], "PINNED_SYNTHETIC_SMOKE_ONLY_PASS")
         self.assertEqual(result["numerical_smoke_controls"]["allow_rr_itt"]["ubuntu-24.04"]["mu_log"], 0.3)
 
@@ -375,6 +377,23 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self._write_archive(self.windows, "windows-2025", "Windows",
                             raw_modifier=rewrite)
         with self.assertRaisesRegex(ValueError, "registered negative input SHA256 refuse"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_shadowed_decision_must_match_independent_registration_after_both_archives_rehashed(self):
+        # Correlated input/output forgery on both OSes cannot silently change
+        # registered raw duplicate-key test bytes. This is a fixture negative.
+        for directory in (self.ubuntu, self.windows):
+            self._rewrite_input_and_receipts(
+                directory, lambda data: data.__setitem__("forged", True),
+                case="duplicate_shadow"
+            )
+        with self.assertRaisesRegex(ValueError, "registered negative input SHA256 duplicate_shadow"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_shadowed_decision_must_have_raw_duplicate_key_refusal_provenance(self):
+        self._rewrite_result("duplicate_shadow",
+                             lambda data: data.__setitem__("api_refusal", "other refusal"))
+        with self.assertRaisesRegex(ValueError, "shadowed decision was not rejected"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_missing_pre_registered_negative_input_sha_refuses(self):
