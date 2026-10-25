@@ -67,6 +67,9 @@ def main(argv=None) -> int:
                 json.dump(report, fh, indent=2, ensure_ascii=False)
         print(f"P3 GATE ({CONTRACT_VERSION}): {report['verdict']}  "
               f"trials ok {report.get('summary', {}).get('trials_ok', 0)}/{report.get('summary', {}).get('trials', 0)}")
+        if a.records is None:
+            print("  provenance: CALL_RECORDS_NOT_VERIFIED (metadata-only mode; "
+                  "no authenticated independent model/human validation)")
         for p in report["problems"]:
             print(f"  bundle: {p}")
         for t in report["trials"]:
