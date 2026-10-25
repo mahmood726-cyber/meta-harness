@@ -82,7 +82,8 @@ def check_trial(trial, docs_root, call_records=None, cache=None) -> dict:
             probs.append(f"{_label(k)}: UNRESOLVED -- " + "; ".join(d["problems"]))
         elif not same_value(it.get("value"), d["value"]):
             probs.append(f"{_label(k)}: served {it.get('value')!r} but the dual reading resolved {d['value']!r}")
-    return {"trial_id": tid, "ok": not probs, "problems": probs, "dual_status": status}
+    return {"trial_id": tid, "ok": not probs, "problems": probs, "dual_status": status,
+            "unmatched_adjudications": unmatched}
 
 
 def check_bundle(bundle, docs_root, call_records=None) -> dict:
