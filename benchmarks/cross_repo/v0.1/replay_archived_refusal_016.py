@@ -17,13 +17,18 @@ from compare_cross_os_016 import (compare, digest, load_json, assert_equal,
                                   pinned_engine_digest)
 from frozen_cli_api_handoff_016 import pinned_meta_code_sha256
 
-REPLAY_CASES = ("refuse", "manual_review", "source_trial_mismatch", "duplicate_shadow")
+REPLAY_CASES = ("refuse", "manual_review", "source_trial_mismatch",
+                "duplicate_shadow", "estimand_mismatch")
 ROW_DECISIONS = {"refuse": "REFUSE", "manual_review": "MANUAL_REVIEW",
-                 "source_trial_mismatch": "ALLOW"}
+                 "source_trial_mismatch": "ALLOW", "estimand_mismatch": "ALLOW"}
 TRIAL_BRIDGE_REFUSAL = "Declared trial_id does not match verbatim source"
 DUPLICATE_KEY_REFUSAL = "duplicate JSON object member: decision"
 # Registered from the frozen producer bytes, not derived from archive receipts.
 SHADOWED_REFUSAL_SHA256 = "b37876be986b1b648307f670414fbb559523324e2424444ff643181563c1d0e7"
+# Canonical frozen producer: RR rows with an OR proposed-pool measure.
+# Registered on 25 October 2026 after prior runs; NOT a prospective prior freeze.
+ESTIMAND_MISMATCH_SHA256 = "2409fd53c04c5a58649a1f37deaadcd048db7ef46ed7cfc5fda069332891d5f2"
+ESTIMAND_MISMATCH_REFUSAL = "row 0: estimand mismatch (measure/population/outcome/timepoint)"
 
 # Separate Python interpreter imports the exact-pinned producer, rather than
 # candidate-head importer functions; the refusal is checked with a tripwire.
@@ -43,7 +48,8 @@ if spec is None or spec.loader is None:
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 label = sys.argv[3]
-if label not in ('refuse', 'manual_review', 'source_trial_mismatch', 'duplicate_shadow'):
+if label not in ('refuse', 'manual_review', 'source_trial_mismatch',
+                 'duplicate_shadow', 'estimand_mismatch'):
     raise RuntimeError('unregistered negative replay label')
 raw = sys.stdin.buffer.read()
 # Fail closed for both subprocess.run and direct subprocess.Popen routes.
@@ -136,6 +142,8 @@ def assert_registered_refusal_input(raw: bytes, label: str) -> None:
         else:
             raise ValueError("shadowed-decision raw JSON was accepted by strict preparse")
         return
+    if label == "estimand_mismatch" and digest(raw) != ESTIMAND_MISMATCH_SHA256:
+        raise ValueError("registered estimand-mismatch input SHA256 mismatch")
     try:
         decoded = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -153,6 +161,18 @@ def assert_registered_refusal_input(raw: bytes, label: str) -> None:
         for row in rows
     ):
         raise ValueError(f"archived replay label/decision mismatch: {label}")
+    if label == "estimand_mismatch":
+        # The negative control must be a pure estimand inconsistency, never
+        # a concealed REFUSE row or an unrelated importer failure.
+        target = payload.get("proposed_pool")
+        pooled = target.get("estimand") if isinstance(target, dict) else None
+        if (len(rows) != 2 or not isinstance(pooled, dict) or
+                pooled.get("measure") != "OR" or
+                any(not isinstance(row.get("estimand"), dict) or
+                    row["estimand"].get("measure") != "RR" or
+                    {**row["estimand"], "measure": "OR"} != pooled
+                    for row in rows)):
+            raise ValueError("estimand replay lacks registered RR-row versus OR-pool mismatch")
     # Distinguish the harder accepted-importer / refused-consumer bridge from
     # the two cases refused at the generic importer. Replays must contain the
     # intended source/trial discrepancy, not merely any ALLOW input which
@@ -214,6 +234,9 @@ def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
     if label == "duplicate_shadow":
         assert_equal(reason, DUPLICATE_KEY_REFUSAL,
                      "shadowed-decision raw duplicate-key refusal")
+    if label == "estimand_mismatch":
+        assert_equal(reason, ESTIMAND_MISMATCH_REFUSAL,
+                     "frozen RR-row versus OR-pool importer refusal")
     if "engine_output" in archived or "engine_output" in observed:
         raise ValueError("refused replay contains pool output")
 

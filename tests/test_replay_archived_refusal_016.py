@@ -45,6 +45,8 @@ def consume(raw, rapid, label):
             'refusal': ('duplicate JSON object member: decision' if label == 'duplicate_shadow'
                         else 'Declared trial_id does not match verbatim source'
                         if label == 'source_trial_mismatch'
+                        else 'row 0: estimand mismatch (measure/population/outcome/timepoint)'
+                        if label == 'estimand_mismatch'
                         else 'requires manual review')}
 """ % ("True" if invokes_engine else "False"), encoding="utf-8"
         )
@@ -258,6 +260,65 @@ def consume(raw, rapid, label):
         check.assert_called_once()
         comparator.assert_called_once_with(registration, ubuntu, windows, pinned)
         replay_child.assert_not_called()
+
+    def estimand_wire(self, *, measure="OR", row_decision="ALLOW"):
+        return json.dumps({"proposed_pool": {"estimand": {
+            "measure": measure, "population": "ITT", "outcome": "synthetic event",
+            "timepoint": "12 months"}}, "rows": [
+            {"decision": row_decision, "estimand": {
+                "measure": "RR", "population": "ITT", "outcome": "synthetic event",
+                "timepoint": "12 months"}},
+            {"decision": "ALLOW", "estimand": {
+                "measure": "RR", "population": "ITT", "outcome": "synthetic event",
+                "timepoint": "12 months"}}]}).encode("utf-8")
+
+    def test_pinned_estimand_negative_replays_without_pooling(self):
+        # Fabricated isolated fixture only; the workflow uses real frozen bytes.
+        raw = self.estimand_wire()
+        self.stub()
+        with mock.patch.object(replay, "ESTIMAND_MISMATCH_SHA256",
+                               hashlib.sha256(raw).hexdigest()):
+            observed, receipt = replay.replay_frozen_bytes(
+                self.meta, self.rapid, raw, "estimand_mismatch")
+            replay.verify_replay_observation(observed, dict(observed), raw,
+                                             "estimand_mismatch")
+        self.assertEqual(observed["refusal"], replay.ESTIMAND_MISMATCH_REFUSAL)
+        self.assertFalse(observed["engine_invoked"])
+        self.assertEqual(len(receipt), 64)
+
+    def test_estimand_negative_refuses_hash_drift_and_hidden_refuse(self):
+        raw = self.estimand_wire()
+        self.stub()
+        with mock.patch.object(replay, "ESTIMAND_MISMATCH_SHA256",
+                               hashlib.sha256(raw).hexdigest()):
+            with self.assertRaisesRegex(ValueError, "registered estimand-mismatch input SHA256"):
+                replay.replay_frozen_bytes(self.meta, self.rapid, raw + b" ",
+                                           "estimand_mismatch")
+        hidden = self.estimand_wire(row_decision="REFUSE")
+        with mock.patch.object(replay, "ESTIMAND_MISMATCH_SHA256",
+                               hashlib.sha256(hidden).hexdigest()):
+            with self.assertRaisesRegex(ValueError, "label/decision mismatch"):
+                replay.replay_frozen_bytes(self.meta, self.rapid, hidden,
+                                           "estimand_mismatch")
+
+    def test_estimand_negative_pool_attempt_is_refused(self):
+        raw = self.estimand_wire()
+        self.stub(invokes_engine=True)
+        with mock.patch.object(replay, "ESTIMAND_MISMATCH_SHA256",
+                               hashlib.sha256(raw).hexdigest()):
+            with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
+                replay.replay_frozen_bytes(self.meta, self.rapid, raw,
+                                           "estimand_mismatch")
+
+    def test_estimand_negative_requires_actual_measure_mismatch(self):
+        raw = self.estimand_wire(measure="RR")
+        self.stub()
+        with mock.patch.object(replay, "ESTIMAND_MISMATCH_SHA256",
+                               hashlib.sha256(raw).hexdigest()):
+            with self.assertRaisesRegex(ValueError, "lacks registered RR-row versus OR-pool"):
+                replay.replay_frozen_bytes(self.meta, self.rapid, raw,
+                                           "estimand_mismatch")
+
 
 if __name__ == "__main__":
     unittest.main()

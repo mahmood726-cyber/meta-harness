@@ -99,7 +99,8 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
     frozen_raw = registration.get("negative_input_sha256")
     if (not isinstance(frozen_raw, dict) or
             set(frozen_raw) != {"refuse", "manual_review",
-                                "source_trial_mismatch", "duplicate_shadow"} or
+                                "source_trial_mismatch", "duplicate_shadow",
+                                "estimand_mismatch"} or
             any(not isinstance(value, str) or len(value) != 64 or
                 any(ch not in "0123456789abcdef" for ch in value)
                 for value in frozen_raw.values())):
@@ -156,6 +157,10 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
                 raise ValueError(f"missing importer refusal reason: {label}")
             if label == "duplicate_shadow" and api_refusal != "duplicate JSON object member: decision":
                 raise ValueError("shadowed decision was not rejected by raw duplicate-key preparse")
+            if label == "estimand_mismatch" and api_refusal != (
+                "row 0: estimand mismatch (measure/population/outcome/timepoint)"
+            ):
+                raise ValueError("estimand mismatch was not rejected at raw importer")
         elif api_refusal is not None:
             raise ValueError(f"accepted importer carried refusal reason: {label}")
         consumer = result.get("consumer")
