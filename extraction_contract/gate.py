@@ -61,6 +61,12 @@ def check_trial(trial, docs_root, call_records=None, cache=None) -> dict:
     probs += F.coherence_problems(resolved_vals)
     dual = resolve(trial.get("readings"), trial.get("adjudications"), docs_root, call_records, cache)
     probs += [f"independence: {p}" for p in dual["independence"]]
+    # Never silently discard extra or misspelled review records. A human/model
+    # challenge that does not map to a dual-read outcome requires manual review.
+    unmatched = dual.get("unmatched_adjudications", [])
+    if unmatched:
+        probs.append(f"{len(unmatched)} unmatched adjudication record(s) have no dual-read OUTCOME field; "
+                     "UNRESOLVED, manual review required")
     status = {}
     for k, it in served.items():
         spec = F.FIELDS.get(k[0])
