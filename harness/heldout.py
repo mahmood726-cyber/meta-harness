@@ -84,6 +84,21 @@ def _run_git(root: str, args: list[str], isolate: bool = False) -> str:
     return proc.stdout
 
 
+
+def _run_git_bytes(root: str, args: list[str], isolate: bool = False) -> bytes:
+    """Preserve NUL-delimited Git paths and exact staged blob bytes."""
+    proc = subprocess.run(
+        ["git", *args],
+        cwd=root,
+        capture_output=True,
+        env=_isolated_git_env() if isolate else None,
+    )
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout).decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"git {' '.join(args)} failed: {detail}")
+    return proc.stdout
+
+
 def load(root) -> dict:
     """Load the sealed detector registry."""
     with open(os.path.join(_root_path(root), REGISTRY_PATH), encoding="utf-8") as f:
@@ -229,6 +244,35 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
     return hits
 
 
+
+def scan_staged_index(root, key: str, registry: dict, isolate: bool = False) -> list[dict]:
+    """Scan index blobs for added/modified paths, even if the worktree was cleaned after staging.
+
+    scan_tree examines working-tree bytes, which can differ from what a pre-commit hook
+    is about to publish. This is an additional index guard, not a replacement for
+    the working-tree and committed-history checks. NUL paths preserve unusual names.
+    """
+    root = _root_path(root)
+    paths = _run_git_bytes(
+        root, ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMRT"], isolate=isolate
+    ).split(b"\0")
+    match = _Matcher(key, registry)
+    hits = []
+    for raw_path in paths:
+        if not raw_path:
+            continue
+        path = _posix(os.fsdecode(raw_path))
+        if path == _posix(REGISTRY_PATH):
+            continue
+        blob = _run_git_bytes(root, ["cat-file", "blob", ":" + path], isolate=isolate)
+        if _is_binary(blob):
+            continue
+        for line_no, line in enumerate(blob.decode("utf-8", errors="replace").splitlines(), start=1):
+            for digest in match(line):
+                hits.append({"path": path, "identifier_hmac": digest, "line_no": line_no})
+    return hits
+
+
 def check_message(text: str, key: str, registry: dict) -> list[str]:
     """Return sealed identifier HMACs found in a commit message."""
     return _matching_hmacs(text, key, registry)
@@ -336,6 +380,14 @@ def check(root) -> tuple[bool, list[str]]:
             )
     except Exception as exc:
         reasons.append(f"sealed held-out tree scan could not run: {exc}")
+    try:
+        for hit in scan_staged_index(root, key, registry):
+            reasons.append(
+                f"{hit['path']}:{hit['line_no']}: sealed identifier "
+                f"{hit['identifier_hmac'][:12]}... appears in a staged index blob"
+            )
+    except Exception as exc:
+        reasons.append(f"sealed held-out staged index scan could not run: {exc}")
     try:
         for hit in scan_commit_messages(root, key, registry):
             reasons.append(
