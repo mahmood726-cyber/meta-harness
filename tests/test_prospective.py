@@ -70,10 +70,14 @@ def _record(
 
 
 def _write_batch_record(root: Path, batch_id: str, record: dict) -> Path:
-    return prospective.write_run_record(
+    path = prospective.write_run_record(
         root / "prospective" / batch_id / "runs" / record["run_id"],
         record,
     )
+    # Controlled offline fixture files are not authentic study evidence.
+    for rel in ("review/index.html", "review/manifest.json"):
+        _write(path.parent, rel, "synthetic fixture only\n")
+    return path
 
 
 @pytest.mark.parametrize("target_exists", [False, True])
@@ -124,12 +128,70 @@ def test_a4_regular_archived_nested_and_flat_run_records_remain_valid(
     batch = "batch-plant"
     _declare(root, batch)
     _write_batch_record(root, batch, _record(root, batch, "run-nested"))
-    prospective.write_run_record(
+    flat = prospective.write_run_record(
         root / "prospective" / batch / "runs" / "run-flat.json",
         _record(root, batch, "run-flat"),
     )
+    for rel in ("review/index.html", "review/manifest.json"):
+        _write(flat.parent, rel, "synthetic fixture only\n")
     records = prospective.load_run_records(root, batch)
     assert {record["run_id"] for record in records} == {"run-nested", "run-flat"}
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+
+@pytest.mark.parametrize(("artefacts", "message"), [
+    ([], "COMPLETED with no retained artefacts"),
+    (["review/missing.json"], "retained artefact is missing"),
+    (["../../external-file.json"], "unsafe retained artefact path"),
+    (["C:\\\\outside.json"], "unsafe retained artefact path"),
+])
+def test_a4_completed_run_refuses_missing_or_unsafe_retained_artefacts(
+    tmp_path: Path, artefacts: list[str], message: str
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    run = _record(root, batch, "run-plant")
+    run["artefact_paths"] = artefacts
+    _write_batch_record(root, batch, run)
+    with pytest.raises(prospective.ProspectiveRefusal, match=message):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_deleted_declared_review_file_refuses_completed_run(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    path = _write_batch_record(root, batch, _record(root, batch, "run-plant"))
+    (path.parent / "review" / "manifest.json").unlink()
+    with pytest.raises(prospective.ProspectiveRefusal, match="retained artefact is missing"):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_symlinked_review_artifact_refuses_completed_run(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    path = _write_batch_record(root, batch, _record(root, batch, "run-plant"))
+    target = tmp_path / "externally-editable.json"
+    target.write_text("not genuine evidence", encoding="utf-8")
+    rel = path.parent / "review" / "manifest.json"
+    rel.unlink()
+    rel.symlink_to(target)
+    with pytest.raises(prospective.ProspectiveRefusal, match="symlinked retained artefact"):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_valid_retained_snapshot_directory_preserves_structural_pass(
+    tmp_path: Path,
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-plant")
+    record["artefact_paths"].append("cache/snapshot")
+    path = _write_batch_record(root, batch, record)
+    (path.parent / "cache" / "snapshot").mkdir(parents=True)
     assert prospective.check_batch(root, batch)["ok"] is True
 
 
