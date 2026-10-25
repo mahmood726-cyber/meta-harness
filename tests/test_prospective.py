@@ -843,3 +843,89 @@ def test_a4_successful_rerun_does_not_erase_failed_original(tmp_path: Path) -> N
         prospective.check_batch(root, batch)
     assert "run-original" in str(exc_info.value)
     assert "FAILED_CRASH" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    "removed",
+    [
+        "cache/topic/raw/response-1.bin",
+        "cache/topic/raw/empty-body.bin",
+        "cache/topic/raw/INDEX.json",
+        "cache/topic/records.json",
+    ],
+)
+def test_a4_prospective_runner_retains_each_raw_http_response(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, removed: str
+) -> None:
+    """A synthetic producer run must refuse subsequent loss of raw bytes.
+
+    This fixture does not make real API calls or validate clinical decisions.
+    """
+    import hashlib
+
+    from scripts import run_prospective_topic as runner
+
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    monkeypatch.setattr(runner, "ROOT", root)
+    config_path = tmp_path / "topic.json"
+    config_path.write_text(
+        json.dumps({"slug": "topic", "topic_identifier": "synthetic-topic"}),
+        encoding="utf-8",
+    )
+    output = root / "prospective" / batch / "runs" / "run-slot"
+
+    def synthetic_refresh(config: dict, now_day: str, *, root: str) -> str:
+        snapshot = Path(root) / "cache" / config["slug"]
+        raw = snapshot / "raw"
+        raw.mkdir(parents=True)
+        entries = []
+        for name, payload in [
+            ("response-1.bin", b"synthetic API response"),
+            ("empty-body.bin", b""),
+        ]:
+            (raw / name).write_bytes(payload)
+            entries.append({
+                "path": f"raw/{name}",
+                "file_sha256": hashlib.sha256(payload).hexdigest(),
+            })
+        index = runner._write_json(raw / "INDEX.json", entries)
+        runner._write_json(
+            snapshot / runner.acquisition.LEDGER_FILENAME,
+            {"snapshot": {
+                "mode": "REFRESH",
+                "raw_calls": len(entries),
+                "raw_index_sha256": hashlib.sha256(index.read_bytes()).hexdigest(),
+            }},
+        )
+        runner._write_json(snapshot / "records.json", {"synthetic": True})
+        return str(snapshot)
+
+    def synthetic_review(config, records, out_dir, now_utc, from_cache, ledger):
+        return [runner._write_json(
+            out_dir / "review" / "manifest.json", {"synthetic": True}
+        )]
+
+    monkeypatch.setattr(runner.acquisition, "refresh", synthetic_refresh)
+    monkeypatch.setattr(runner, "_package_review", synthetic_review)
+    monkeypatch.setattr(runner, "_invariant_failures", lambda *args: [])
+
+    run = runner.run_topic(batch, str(config_path), str(output))
+    assert run["outcome"] == "COMPLETED"
+    record = json.loads((output / "run_record.json").read_text(encoding="utf-8"))
+    for required in [
+        "cache/topic/raw/response-1.bin",
+        "cache/topic/raw/empty-body.bin",
+        "cache/topic/raw/INDEX.json",
+        "cache/topic/records.json",
+        f"cache/topic/{runner.acquisition.LEDGER_FILENAME}",
+    ]:
+        assert required in record["artefact_paths"]
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+    (output / removed).unlink()
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="retained artefact is missing"
+    ):
+        prospective.check_batch(root, batch)
