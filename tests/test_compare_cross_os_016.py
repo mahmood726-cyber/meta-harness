@@ -504,6 +504,32 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source-hash tamper was not rejected"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
+    def _forge_both_os_numeric_engine_receipt(self, case, numeric_value):
+        """Rehash *both* synthetic CI archives; preserve all other outcomes."""
+        for directory in (self.ubuntu, self.windows):
+            result_file = directory / "results" / f"{case}.json"
+            outcome = json.loads(result_file.read_text(encoding="utf-8"))
+            outcome["consumer"]["engine_invoked"] = numeric_value
+            result_file.write_bytes(wire(outcome))
+            index_file = directory / "index.json"
+            index = json.loads(index_file.read_text(encoding="utf-8"))
+            index["digests"][f"results/{case}.json"] = comparator.digest(result_file.read_bytes())
+            index_file.write_bytes(wire(index))
+
+    def test_numeric_one_cannot_impersonate_true_engine_invocation(self):
+        # Before this gate, Python equality accepts 1 == True. Both archives
+        # can agree on forged numeric receipts and still rehash correctly.
+        self._forge_both_os_numeric_engine_receipt("allow_rr_itt", 1)
+        with self.assertRaisesRegex(ValueError, "engine invocation must be JSON boolean"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_numeric_zero_cannot_impersonate_false_no_pool_receipt(self):
+        # Protect the central REFUSE/MANUAL_REVIEW no-pool execution claim.
+        # This is a synthetic negative regression, not a real benchmark PASS.
+        self._forge_both_os_numeric_engine_receipt("manual_review", 0)
+        with self.assertRaisesRegex(ValueError, "engine invocation must be JSON boolean"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
     def test_missing_pre_registered_negative_input_sha_refuses(self):
         self.spec.pop("negative_input_sha256")
         self.reg.write_bytes(wire(self.spec))
