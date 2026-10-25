@@ -13,10 +13,10 @@ import platform
 import subprocess
 import sys
 
-from compare_cross_os_016 import compare, digest, load_json, assert_equal
+from compare_cross_os_016 import (compare, digest, load_json, assert_equal,
+                                  pinned_engine_digest)
 
 REPLAY_CASES = ("refuse", "manual_review")
-ENGINE_PATH = "template/assets/vendor/pairwise-pool.js"
 
 # Separate Python interpreter imports the exact-pinned producer, rather than
 # candidate-head importer functions; the refusal is checked with a tripwire.
@@ -67,7 +67,9 @@ def exact_checkout_checks(spec: dict, meta: Path, rapid: Path,
                  "frozen producer commit")
     assert_equal(rapid_sha, spec["repositories"]["rapidmeta-kit"]["commit"],
                  "frozen consumer commit")
-    engine_sha = digest((rapid / ENGINE_PATH).read_bytes())
+    # Derive the engine identity from the frozen *Git blob*, refusing dirty
+    # worktree bytes. Archive-to-archive agreement alone is not sufficient.
+    engine_sha = pinned_engine_digest(spec, rapid)
     for archive in (ubuntu, windows):
         index = load_json(archive / "index.json")
         assert_equal(index["rapidmeta_engine_sha256"], engine_sha,
@@ -164,10 +166,12 @@ def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
 
 def run(registration: Path, ubuntu: Path, windows: Path,
         meta: Path, rapid: Path) -> dict:
-    # Existing comparator verifies all 12 cases and 50 SHA receipts first.
-    prior = compare(registration, ubuntu, windows)
+    # Freeze source/consumer identities before replay. Pass the independently
+    # derived committed engine digest into the archive comparator, rather than
+    # accidentally omitting its required fail-closed fourth argument.
     spec = load_json(registration)
     pins = exact_checkout_checks(spec, meta, rapid, ubuntu, windows)
+    prior = compare(registration, ubuntu, windows, pins["engine_sha256"])
     replays = {}
     for os_label, archive in (
         ("ubuntu-24.04", ubuntu), ("windows-2025", windows)
