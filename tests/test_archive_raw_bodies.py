@@ -233,3 +233,35 @@ def test_missing_declared_archive_not_masked_by_restored_local_copy(tmp_path, mo
     assert ok == 0
     assert len(problems) == 1 and "NOT PRESERVED OFF-TREE" in problems[0]
     assert local.read_bytes() == original
+
+def test_check_refuses_alternate_archive_that_masks_missing_declared_custody(tmp_path, monkeypatch):
+    """A matching body elsewhere cannot stand in for the ARCHIVE.json destination."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    archive.move(str(snapshot), str(archive_root))
+    relative = Path(archive._rel_snapshot(str(snapshot))) / rows[0]["path"]
+    declared_copy = archive_root / relative
+    substitute_root = tmp_path / "unregistered-second-archive"
+    substitute_copy = substitute_root / relative
+    substitute_copy.parent.mkdir(parents=True)
+    substitute_copy.write_bytes(declared_copy.read_bytes())
+    declared_copy.unlink()
+
+    # Without the pinned-root guard, this explicit override would return (1, []).
+    with pytest.raises(SystemExit, match="override differs from ARCHIVE.json"):
+        archive.check(str(snapshot), str(substitute_root))
+    ok, problems = archive.check(str(snapshot), None)
+    assert ok == 0
+    assert len(problems) == 1 and "NOT PRESERVED OFF-TREE" in problems[0]
+
+
+def test_check_accepts_matching_root_and_refuses_malformed_pointer_root(tmp_path, monkeypatch):
+    """Both explicit and implicit checks use one valid declared archive location."""
+    snapshot, _, archive_root = _fixture(tmp_path, monkeypatch)
+    archive.move(str(snapshot), str(archive_root))
+    assert archive.check(str(snapshot), str(archive_root)) == (1, [])
+    pointer_path = snapshot / "ARCHIVE.json"
+    pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
+    pointer["archive_root"] = None
+    pointer_path.write_text(json.dumps(pointer), encoding="utf-8")
+    with pytest.raises(SystemExit, match="no valid archive_root"):
+        archive.check(str(snapshot), None)
