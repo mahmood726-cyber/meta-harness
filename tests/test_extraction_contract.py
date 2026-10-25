@@ -399,6 +399,15 @@ def test_cli_exit_codes(root, tmp_path):
     b["trials"][0]["values"][0]["value"] = 41
     bad.write_text(json.dumps(b), encoding="utf-8")
     assert _cli("check", str(good), "--docs-root", root, cwd=root).returncode == 0
+    # No inventory is the inherited metadata-only interface; explicitly
+    # requesting proof with an empty inventory must never fall back to it.
+    empty_records = tmp_path / "empty-records"
+    empty_records.mkdir()
+    unverified = _cli("check", str(good), "--docs-root", root,
+                      "--records", str(empty_records), cwd=root)
+    assert unverified.returncode == 1
+    assert "REFUSE" in unverified.stdout
+    assert "call record is missing from the supplied records" in unverified.stdout
     r = _cli("check", str(bad), "--docs-root", root, cwd=root)
     assert r.returncode == 1 and "REFUSE" in r.stdout
     (tmp_path / "broken.json").write_text("{not json", encoding="utf-8")
