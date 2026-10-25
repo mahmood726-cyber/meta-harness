@@ -492,6 +492,57 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
     return records
 
 
+def _retained_artefact_errors(record_path: Path, record: dict[str, Any]) -> list[str]:
+    """A4: declared package artefacts must remain inside their retained run.
+
+    This is an existence/custody check, NOT a cryptographic evidence seal or
+    verification of the source's scientific correctness.
+    """
+    paths = record.get("artefact_paths")
+    if not isinstance(paths, list):
+        return []  # The existing run-record shape checker reports the type.
+    run_id = record.get("run_id")
+    errors: list[str] = []
+    if record.get("outcome") == "COMPLETED" and not paths:
+        errors.append(f"run {run_id}: COMPLETED with no retained artefacts")
+    package = record_path.parent
+    for rel in paths:
+        # The prospective runner records paths relative to its run package,
+        # using POSIX separators. Do not allow absolute, Windows, or traversal
+        # paths to escape or alias another run's evidence.
+        if (
+            type(rel) is not str
+            or not rel
+            or "\\\\" in rel
+            or ":" in rel
+            or Path(rel).is_absolute()
+            or any(part in {"", ".", ".."} for part in rel.split("/"))
+        ):
+            errors.append(f"run {run_id}: unsafe retained artefact path: {rel!r}")
+            continue
+        candidate = package.joinpath(*rel.split("/"))
+        # Reject symlinks at every component, not only the last leaf.
+        cursor = package
+        if cursor.is_symlink():
+            errors.append(f"run {run_id}: symlinked retained run package")
+            continue
+        aliased = False
+        for part in rel.split("/"):
+            cursor = cursor / part
+            if cursor.is_symlink():
+                aliased = True
+                break
+        if aliased:
+            errors.append(f"run {run_id}: symlinked retained artefact: {rel!r}")
+            continue
+        if not candidate.exists() or not (candidate.is_file() or candidate.is_dir()):
+            errors.append(f"run {run_id}: retained artefact is missing: {rel!r}")
+            continue
+        if not _inside(candidate.resolve(), package.resolve()):
+            errors.append(f"run {run_id}: retained artefact escapes run package: {rel!r}")
+    return errors
+
+
 def _validate_record_shape(record: dict[str, Any]) -> list[str]:
     reasons: list[str] = []
     required = {
@@ -544,6 +595,15 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         reasons.append(str(exc))
 
     records = load_run_records(repo, batch)
+    # A4: an archived run record is not proof its declared outputs remain in
+    # custody. A missing, external, or symlinked package artefact must refuse
+    # structural PASS even if all other fields still look valid.
+    record_paths = _run_record_paths(repo, batch)
+    if len(record_paths) != len(records):
+        reasons.append("retained run census changed during archive validation")
+    else:
+        for record_path, record in zip(record_paths, records):
+            reasons.extend(_retained_artefact_errors(record_path, record))
     # A4: a declaration alone is not evidence that any prospective topic ran.
     # Never label an empty batch as successfully checked.
     if not records:
