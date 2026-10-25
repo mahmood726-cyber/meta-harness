@@ -98,7 +98,7 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
     scenarios = registration["scenarios"]
     frozen_raw = registration.get("negative_input_sha256")
     if (not isinstance(frozen_raw, dict) or
-            set(frozen_raw) != {"refuse", "manual_review"} or
+            set(frozen_raw) != {"refuse", "manual_review", "source_trial_mismatch"} or
             any(not isinstance(value, str) or len(value) != 64 or
                 any(ch not in "0123456789abcdef" for ch in value)
                 for value in frozen_raw.values())):
@@ -135,7 +135,7 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
                      f"case clinical validation scope {label}")
         input_sha = digest(raw)
         # A hash receipt inside the same producer archive does not freeze the
-        # expected raw input. Bind the two critical no-pool cases to bytes
+        # expected raw input. Bind all three replayed no-pool cases to bytes
         # pre-registered in the independently versioned frozen specification.
         if label in frozen_raw:
             assert_equal(input_sha, frozen_raw[label],
