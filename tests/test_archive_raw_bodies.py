@@ -186,10 +186,17 @@ def test_reject_nested_archive_symlink_redirecting_custody_back_in_tree(tmp_path
 
     with pytest.raises(SystemExit, match="outside the repository"):
         archive.move(str(snapshot), str(archive_root))
+    assert not (snapshot / "ARCHIVE.json").exists()
+    # Exercise the nested-path guard in CHECK after a synthetically declared
+    # location; an unreceipted override is correctly refused sooner.
+    (snapshot / "ARCHIVE.json").write_text(json.dumps({
+        "archive_root": str(archive_root),
+        "archived_relpath": archive._rel_snapshot(str(snapshot)),
+        "index_sha256": hashlib.sha256((snapshot / "raw" / "INDEX.json").read_bytes()).hexdigest(),
+    }), encoding="utf-8")
     with pytest.raises(SystemExit, match="outside the repository"):
         archive.check(str(snapshot), str(archive_root))
     assert (snapshot / rows[0]["path"]).is_file()
-    assert not (snapshot / "ARCHIVE.json").exists()
     assert not (redirected / "topic").exists()
 
 
@@ -318,3 +325,49 @@ def test_unarchived_local_verification_unchanged_without_override(tmp_path, monk
         archive.check(str(snapshot), str(archive_root))
     assert not (snapshot / "ARCHIVE.json").exists()
     assert (snapshot / rows[0]["path"]).is_file()
+
+
+
+def test_symlinked_receipt_cannot_claim_archive_custody(tmp_path, monkeypatch):
+    """A self-consistent external pointer supplied through a link is not trusted."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    rel = Path(archive._rel_snapshot(str(snapshot))) / rows[0]["path"]
+    copy = archive_root / rel
+    copy.parent.mkdir(parents=True)
+    copy.write_bytes((snapshot / rows[0]["path"]).read_bytes())
+    outside = tmp_path / "replaceable-receipt.json"
+    outside.write_text(json.dumps({
+        "archive_root": str(archive_root),
+        "archived_relpath": archive._rel_snapshot(str(snapshot)),
+        "index_sha256": hashlib.sha256((snapshot / "raw" / "INDEX.json").read_bytes()).hexdigest(),
+    }), encoding="utf-8")
+    receipt = snapshot / "ARCHIVE.json"
+    try:
+        receipt.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem cannot create symlinks")
+    with pytest.raises(SystemExit, match="regular non-symlink"):
+        archive.check(str(snapshot), None)
+    assert copy.is_file()
+
+
+def test_dangling_receipt_link_not_treated_as_unarchived_local_pass(tmp_path, monkeypatch):
+    """Do not silently downgrade a previously asserted custody receipt to none."""
+    snapshot, rows, _ = _fixture(tmp_path, monkeypatch)
+    receipt = snapshot / "ARCHIVE.json"
+    try:
+        receipt.symlink_to(tmp_path / "nonexistent-custody-receipt.json")
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem cannot create symlinks")
+    assert (snapshot / rows[0]["path"]).is_file()
+    with pytest.raises(SystemExit, match="regular non-symlink"):
+        archive.check(str(snapshot), None)
+
+
+def test_receipt_directory_not_treated_as_missing_receipt(tmp_path, monkeypatch):
+    """Cross-platform regression even when symlink privileges are unavailable."""
+    snapshot, rows, _ = _fixture(tmp_path, monkeypatch)
+    (snapshot / "ARCHIVE.json").mkdir()
+    assert (snapshot / rows[0]["path"]).is_file()
+    with pytest.raises(SystemExit, match="regular non-symlink"):
+        archive.check(str(snapshot), None)
