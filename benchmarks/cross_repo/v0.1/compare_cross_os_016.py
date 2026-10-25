@@ -223,6 +223,11 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
                    isinstance(summary.get(k), bool) or not math.isfinite(summary[k])
                    for k in ("mu_log", "tau2")):
                 raise ValueError("non-finite pooled smoke output")
+            # This validates a reported output's domain, not its scientific
+            # correctness. tau^2 is a variance and cannot be negative, even
+            # if both rehashed CI archives report the same invalid number.
+            if summary["tau2"] < 0:
+                raise ValueError("negative heterogeneity variance in pinned synthetic smoke")
             numerical_controls[label] = {key: summary[key]
                                          for key in ("k_used", "measure", "mu_log", "tau2")}
         elif consumer.get("status") != "REFUSED" or "engine_output" in consumer:
