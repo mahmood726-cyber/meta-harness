@@ -522,8 +522,19 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         reasons.append(str(exc))
 
     records = load_run_records(repo, batch)
+    seen_run_ids: set[str] = set()
     for record in records:
         reasons.extend(_validate_record_shape(record))
+        # A4: retained runs require unique, usable identities for an
+        # auditable census and unambiguous rerun_of references.  Builders
+        # validate these names, but imported JSON may be altered later.
+        run_id = record.get("run_id")
+        if not isinstance(run_id, str) or not SAFE_NAME_RE.fullmatch(run_id):
+            reasons.append(f"run record has missing or invalid run_id: {run_id!r}")
+        elif run_id in seen_run_ids:
+            reasons.append(f"duplicate run_id in retained batch records: {run_id!r}")
+        else:
+            seen_run_ids.add(run_id)
 
     # A4: a run exceeding the *predeclared* ceiling must count as failed.
     # A caller can otherwise label a long-running result COMPLETED and
