@@ -228,8 +228,10 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
         # Filename and directory components are public Git metadata. A sealed
         # topic embedded only in a tracked path is a leak even if its file is
         # empty; never log that plaintext filename when reporting the hit.
-        for digest in match(path):
+        path_hits = match(path)
+        for digest in path_hits:
             hits.append({"kind": "tracked_path", "identifier_hmac": digest})
+        safe_path = "<redacted tracked path>" if path_hits else path
         abs_path = os.path.join(root, *path.split("/"))
         try:
             blob = open(abs_path, "rb").read()
@@ -240,7 +242,7 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
         text = blob.decode("utf-8", errors="replace")
         for line_no, line in enumerate(text.splitlines(), start=1):
             for digest in match(line):
-                hits.append({"path": path, "identifier_hmac": digest, "line_no": line_no})
+                hits.append({"path": safe_path, "identifier_hmac": digest, "line_no": line_no})
     return hits
 
 
