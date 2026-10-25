@@ -9,10 +9,12 @@ import argparse
 import hashlib
 import json
 import math
+import subprocess
 from pathlib import Path
 
 OS_NAMES = {"ubuntu-24.04": "Linux", "windows-2025": "Windows"}
 CASE_ID = "CROSS-EXCH-016"
+ENGINE_PATH = "template/assets/vendor/pairwise-pool.js"
 
 
 def digest(raw: bytes) -> str:
@@ -43,7 +45,31 @@ def assert_equal(left, right, explanation):
         raise ValueError(f"{explanation}: {left!r} != {right!r}")
 
 
-def check_archive(registration: dict, registration_sha: str, root: Path, os_name: str):
+def pinned_engine_digest(registration: dict, rapidmeta: Path) -> str:
+    """Independently bind the archived engine identity to an immutable git blob.
+
+    The CI comparator checks out the frozen RapidMeta commit separately from
+    the producers. Two matching self-reported archive digests are insufficient.
+    """
+    rapidmeta = rapidmeta.resolve(strict=True)
+    head = subprocess.check_output(
+        ["git", "-C", str(rapidmeta), "rev-parse", "HEAD"],
+        text=True, timeout=15,
+    ).strip()
+    assert_equal(head, registration["repositories"]["rapidmeta-kit"]["commit"],
+                 "independent RapidMeta checkout pin")
+    committed = subprocess.check_output(
+        ["git", "-C", str(rapidmeta), "show", f"HEAD:{ENGINE_PATH}"],
+        timeout=15,
+    )
+    worktree = (rapidmeta / ENGINE_PATH).read_bytes()
+    assert_equal(digest(worktree), digest(committed),
+                 "dirty RapidMeta engine worktree SHA256")
+    return digest(committed)
+
+
+def check_archive(registration: dict, registration_sha: str, root: Path,
+                  os_name: str, expected_engine_sha256: str):
     """Rehash and inspect one real CI job archive without invoking a producer."""
     index = load_json(root / "index.json")
     assert_equal(index.get("case_id"), CASE_ID, "case ID")
@@ -64,6 +90,7 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
     engine_sha = index.get("rapidmeta_engine_sha256")
     if not isinstance(engine_sha, str) or len(engine_sha) != 64 or any(ch not in "0123456789abcdef" for ch in engine_sha):
         raise ValueError("engine SHA256 is absent or malformed")
+    assert_equal(engine_sha, expected_engine_sha256, "pinned RapidMeta engine SHA256")
 
     scenarios = registration["scenarios"]
     frozen_raw = registration.get("negative_input_sha256")
@@ -73,6 +100,18 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
                 any(ch not in "0123456789abcdef" for ch in value)
                 for value in frozen_raw.values())):
         raise ValueError("missing or malformed pre-registered negative input SHA256")
+    # Bind accepted RR/ITT source/trial/estimand bytes to a digest registered
+    # independently of both producer archives. Matching rehashed archives
+    # alone cannot demonstrate that the pooled input remained frozen.
+    allowed_raw = registration.get("allowed_input_sha256")
+    allowed_labels = {label for label, expectation in scenarios.items()
+                      if expectation["consumer"] == "SYNTHETIC_ENGINE_EXECUTED"}
+    if (not isinstance(allowed_raw, dict) or
+            set(allowed_raw) != allowed_labels or
+            any(not isinstance(value, str) or len(value) != 64 or
+                any(ch not in "0123456789abcdef" for ch in value)
+                for value in allowed_raw.values())):
+        raise ValueError("missing or malformed pre-registered allowed input SHA256")
     expected_files = {"source.txt"} | {
         f"{folder}/{label}.json" for folder in ("inputs", "results") for label in scenarios
     }
@@ -96,6 +135,9 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
         if label in frozen_raw:
             assert_equal(input_sha, frozen_raw[label],
                          f"registered negative input SHA256 {label}")
+        if label in allowed_raw:
+            assert_equal(input_sha, allowed_raw[label],
+                         f"registered allowed input SHA256 {label}")
         assert_equal(result.get("name"), label, "output case label")
         assert_equal(result.get("raw_sha256"), input_sha, "result/input digest")
         assert_equal(result.get("cli_status"), expected["importer"], "CLI decision")
@@ -153,15 +195,22 @@ def check_archive(registration: dict, registration_sha: str, root: Path, os_name
             "decisions": decisions, "numerical_controls": numerical_controls}
 
 
-def compare(registration_path: Path, ubuntu_dir: Path, windows_dir: Path) -> dict:
+def compare(registration_path: Path, ubuntu_dir: Path, windows_dir: Path,
+            expected_engine_sha256: str) -> dict:
     registration_raw = registration_path.read_bytes()
     registration = load_json(registration_path)
     assert_equal(registration.get("case_id"), CASE_ID, "registration case")
     assert_equal(registration.get("registered_status"), "NOT_RUN", "preregistered status")
     assert_equal(registration.get("input_type"), "SYNTHETIC_FIXTURE_ONLY", "input type")
     assert_equal(registration.get("runtime", {}).get("os"), list(OS_NAMES), "frozen OS matrix")
-    a = check_archive(registration, digest(registration_raw), ubuntu_dir, "ubuntu-24.04")
-    b = check_archive(registration, digest(registration_raw), windows_dir, "windows-2025")
+    if (not isinstance(expected_engine_sha256, str) or
+            len(expected_engine_sha256) != 64 or
+            any(ch not in "0123456789abcdef" for ch in expected_engine_sha256)):
+        raise ValueError("missing immutable RapidMeta engine SHA256")
+    a = check_archive(registration, digest(registration_raw), ubuntu_dir,
+                      "ubuntu-24.04", expected_engine_sha256)
+    b = check_archive(registration, digest(registration_raw), windows_dir,
+                      "windows-2025", expected_engine_sha256)
     for field in ("source_sha256", "rapidmeta_engine_sha256", "decisions"):
         assert_equal(a[field], b[field], f"cross-OS {field}")
     # Both independent OS jobs must archive comparable outputs from the actual
@@ -192,6 +241,7 @@ def compare(registration_path: Path, ubuntu_dir: Path, windows_dir: Path) -> dic
     return {"record_version": "1.0.0", "case_id": CASE_ID,
             "evidence_scope": "FROZEN_SYNTHETIC_TWO_REPO_CROSS_OS_TRANSPORT_REFUSAL_PARITY_ONLY",
             "registration_sha256": digest(registration_raw), "overall": "PASS",
+            "independently_checked_engine_sha256": expected_engine_sha256,
             "case_count": len(a["decisions"]),
             "refused_without_pooling": sum(not item["engine_invoked"] for item in a["decisions"].values()),
             "input_and_decision_parity": True,
@@ -209,9 +259,13 @@ def main():
     ap.add_argument("--registration", required=True, type=Path)
     ap.add_argument("--ubuntu", required=True, type=Path)
     ap.add_argument("--windows", required=True, type=Path)
+    ap.add_argument("--rapidmeta", required=True, type=Path,
+                    help="separately checked-out exact frozen RapidMeta git repository")
     ap.add_argument("--report", required=True, type=Path)
     args = ap.parse_args()
-    report = compare(args.registration, args.ubuntu, args.windows)
+    registration = load_json(args.registration)
+    engine_sha = pinned_engine_digest(registration, args.rapidmeta)
+    report = compare(args.registration, args.ubuntu, args.windows, engine_sha)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     print(f"CROSS-EXCH-016 cross-OS archived parity PASS: {report['case_count']} registered cases, "

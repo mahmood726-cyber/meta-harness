@@ -15,6 +15,7 @@ The [registration](frozen-cli-api-016.json) fixes:
 - Meta-Harness **source code**: `ea2fac35a212a330dfe27f7b710347e9ef69a12a`.
 - RapidMeta **real JS pooling consumer**: `368137dc437543c721b98be39c14282c338f7797`.
 - Synthetic text source SHA-256: `666a0354b2668dd0f90780becff303eab28a007fa895650ba09793732d374398`.
+- Frozen **accepted RR/ITT input** SHA-256: `514f659d51fd477f702cc25303d45c3a440c5282324de287ba1fab8d30385ce0`, computed with the frozen producer's canonical UTF-8 JSON `wire(produce("ALLOW"))`. The registered REFUSE and MANUAL_REVIEW wire hashes remain separately pinned. A passing two-OS transport comparison now independently checks the pooled ALLOW input bytes against this pre-registered identity, even if both producer archives, consumer-result input hashes and SHA receipts were changed in agreement. This is an input-integrity gate, **not** independent verification of the RR estimate or clinical effects.
 - GitHub-hosted Ubuntu 24.04 **and** Windows 2025 as separately labelled runners; Python 3.13.7 and Node 22.14.0 on each. The runner refuses an OS label absent from the frozen registration, refuses a Windows label on Linux, and checks actual Ubuntu distro/version. Windows build attestation comes from GitHub job metadata; a caller-controlled environment variable alone is not trusted evidence.
 - E156 and Starter commits recorded but roles explicitly `NOT_EXECUTED`.
 
@@ -72,14 +73,19 @@ from the *same* run:
 ```sh
 gh run download RUN_ID -n "frozen-cross-exch-016-ubuntu-24.04-GITHUB_EVENT_SHA" -D ubuntu-evidence
 gh run download RUN_ID -n "frozen-cross-exch-016-windows-2025-GITHUB_EVENT_SHA" -D windows-evidence
+git clone https://github.com/mahmood726-cyber/rapidmeta-kit rapidmeta
+git -C rapidmeta checkout --detach 368137dc437543c721b98be39c14282c338f7797
 python benchmarks/cross_repo/v0.1/compare_cross_os_016.py \
   --registration benchmarks/cross_repo/v0.1/frozen-cli-api-016.json \
   --ubuntu ubuntu-evidence --windows windows-evidence \
+  --rapidmeta rapidmeta \
   --report cross-os-parity-report.json
 ```
 
 The comparator rejects duplicate raw JSON members, missing/modified SHA
 receipts, inconsistent OS declarations, source or engine identity differences,
+**and engine receipts that do not equal the separately checked out immutable
+RapidMeta git blob, even when both OS artifacts agree**,
 unequal archived input bytes and mismatched acceptance/refusal outcomes.
 A separate isolated synthetic unit suite intentionally simulates otherwise
 internally consistent archives with differing wire inputs, refusal diagnostics

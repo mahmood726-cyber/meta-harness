@@ -156,6 +156,17 @@ def main() -> None:
     cases = make_cases(canary)
     if set(cases) != set(spec["scenarios"]):
         raise RuntimeError("scenario registry differs from executable cases")
+    # Check the frozen ALLOW source/estimand/trial wire *before* running
+    # any importer or statistical consumer, not solely in the OS comparator.
+    allowed_labels = {name for name, expectation in spec["scenarios"].items()
+                      if expectation["consumer"] == "SYNTHETIC_ENGINE_EXECUTED"}
+    allowed_hashes = spec.get("allowed_input_sha256")
+    if not isinstance(allowed_hashes, dict) or set(allowed_hashes) != allowed_labels:
+        raise RuntimeError("missing pre-registered allowed input SHA256 map")
+    for name in sorted(allowed_labels):
+        if (not isinstance(allowed_hashes[name], str) or
+                sha(cases[name]) != allowed_hashes[name]):
+            raise RuntimeError(f"registered allowed input SHA256 drift: {name}")
 
     output.mkdir(parents=True, exist_ok=False)
     (output / "inputs").mkdir()
