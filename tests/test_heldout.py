@@ -99,6 +99,40 @@ def test_tracked_file_hit_reports_hmac_without_plaintext(monkeypatch):
     assert "plant-alpha" not in report
 
 
+
+def test_sealed_identifier_in_tracked_filename_refuses_without_disclosing_name(monkeypatch):
+    """A topic can leak through a tracked filename even when file content is clean."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    identifier = "seven-long-words-can-hide-inside-filenames"
+    sealed = _token(identifier)
+    registry = _registry_with_canary(sealed, enforced_since=None)
+    name = f"reviews/prefix-{identifier}-suffix/summary.md"
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _write(repo, name, "Nothing about the held-out topic in the body.\\n")
+        _commit(repo, "generic synthetic held-out filename fixture")
+
+        hits = heldout.scan_tree(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+
+    assert hits == [{"kind": "tracked_path", "identifier_hmac": sealed}]
+    assert not ok
+    report = "\\n".join(reasons)
+    assert "tracked path" in report
+    assert sealed[:12] in report
+    assert identifier not in report
+    assert name not in report
+
+
+def test_unsealed_tracked_filename_stays_clean():
+    """The new filename check must not flag ordinary unsealed paths."""
+    registry = _registry(_token("completely-different-topic"))
+    with _temp_repo() as repo:
+        _write(repo, "reviews/harmless-published-title/summary.md", "unrelated body\\n")
+        _commit(repo, "clean filename fixture")
+        assert heldout.scan_tree(repo, KEY, registry) == []
+
+
 def test_short_form_hit_is_detected_in_tracked_file():
     sealed = _token(SHORT_FORM)
     registry = _registry(sealed)
