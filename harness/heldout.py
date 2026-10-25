@@ -46,6 +46,9 @@ KEY_FILE = os.path.join("~", ".meta-harness", "heldout.key")
 MISSING_KEY_REASON = "held-out key not available: the detector cannot run; fail closed"
 COMMIT_MESSAGE_REFUSAL = "held-out sealed identifier may not be named in commit messages"
 IDENTIFIER_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+# A very long run must cause a refusal, never a silently truncated scan.
+# Exhaustive contiguous-window enumeration below is quadratic in this count.
+MAX_HYPHEN_COMPONENTS = 64
 
 
 def _root_path(root) -> str:
@@ -127,23 +130,30 @@ def hmac_token(key: str, identifier: str) -> str:
 
 
 def candidate_identifiers(text: str):
-    """Yield every possible sealed identifier in `text`: each maximal [a-z0-9-] run of length >= 3 and, for
-    hyphenated runs, every contiguous window of 1..6 hyphen-tokens (a slug inside prose or a path segment is
-    still found). STREAMED WITHOUT A CAP: a bounded candidate set would stop scanning a large file part-way
-    (cache/embeddings.json, 14 MB, exceeded the first draft's 50,000 cap), so a sealed name late in such a file
-    would be missed silently -- the detector-gap class. Duplicates are suppressed per call with a seen-set that
-    grows with the file; memory is proportional to distinct identifiers, never truncated."""
+    """Yield complete identifiers and EVERY contiguous hyphen-token window.
+
+    The prior 1..6 window limit missed a sealed seven-component topic embedded
+    in a longer slug or path. We never silently cap candidate coverage: an
+    unusually long hyphenated run raises a refusal rather than reporting clean.
+    Duplicates are suppressed per call, as before.
+    """
     seen: set[str] = set()
     for match in IDENTIFIER_RE.finditer(text.lower()):
         run = match.group(0)
+        parts = run.split("-")
+        if len(parts) > MAX_HYPHEN_COMPONENTS:
+            raise ValueError(
+                "held-out scan refused: hyphenated run has "
+                f"{len(parts)} components (limit {MAX_HYPHEN_COMPONENTS}); "
+                "exhaustive sealed-identifier matching not performed"
+            )
         if len(run) >= 3 and run not in seen:
             seen.add(run)
             yield run
-        if "-" not in run:
+        if len(parts) == 1:
             continue
-        parts = run.split("-")
         for start in range(len(parts)):
-            for end in range(start + 1, min(len(parts), start + 6) + 1):
+            for end in range(start + 1, len(parts) + 1):
                 w = "-".join(parts[start:end])
                 if len(w) >= 3 and w not in seen:
                     seen.add(w)
