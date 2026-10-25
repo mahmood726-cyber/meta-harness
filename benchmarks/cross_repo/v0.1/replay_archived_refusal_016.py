@@ -18,9 +18,10 @@ from compare_cross_os_016 import (compare, digest, load_json, assert_equal,
 from frozen_cli_api_handoff_016 import pinned_meta_code_sha256
 
 REPLAY_CASES = ("refuse", "manual_review", "source_trial_mismatch",
-                "duplicate_shadow", "estimand_mismatch")
+                "duplicate_shadow", "estimand_mismatch", "source_sha_tamper")
 ROW_DECISIONS = {"refuse": "REFUSE", "manual_review": "MANUAL_REVIEW",
-                 "source_trial_mismatch": "ALLOW", "estimand_mismatch": "ALLOW"}
+                 "source_trial_mismatch": "ALLOW", "estimand_mismatch": "ALLOW",
+                 "source_sha_tamper": "ALLOW"}
 TRIAL_BRIDGE_REFUSAL = "Declared trial_id does not match verbatim source"
 DUPLICATE_KEY_REFUSAL = "duplicate JSON object member: decision"
 # Registered from the frozen producer bytes, not derived from archive receipts.
@@ -29,6 +30,11 @@ SHADOWED_REFUSAL_SHA256 = "b37876be986b1b648307f670414fbb559523324e2424444ff6431
 # Registered on 25 October 2026 after prior runs; NOT a prospective prior freeze.
 ESTIMAND_MISMATCH_SHA256 = "2409fd53c04c5a58649a1f37deaadcd048db7ef46ed7cfc5fda069332891d5f2"
 ESTIMAND_MISMATCH_REFUSAL = "row 0: estimand mismatch (measure/population/outcome/timepoint)"
+# Derived on 25 October 2026 from the existing pinned synthetic producer; not an
+# earlier prospectively registered source-custody receipt.
+SOURCE_TAMPER_SHA256 = "d7527284c97d43b3d758c31afaed717788437fa4f0bf6ac13dc9788ff35d8cb2"
+FROZEN_SOURCE_SHA256 = "666a0354b2668dd0f90780becff303eab28a007fa895650ba09793732d374398"
+SOURCE_TAMPER_REFUSAL = "row 0: source SHA-256 mismatch"
 
 # Separate Python interpreter imports the exact-pinned producer, rather than
 # candidate-head importer functions; the refusal is checked with a tripwire.
@@ -49,7 +55,7 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 label = sys.argv[3]
 if label not in ('refuse', 'manual_review', 'source_trial_mismatch',
-                 'duplicate_shadow', 'estimand_mismatch'):
+                 'duplicate_shadow', 'estimand_mismatch', 'source_sha_tamper'):
     raise RuntimeError('unregistered negative replay label')
 raw = sys.stdin.buffer.read()
 # Fail closed for both subprocess.run and direct subprocess.Popen routes.
@@ -144,6 +150,8 @@ def assert_registered_refusal_input(raw: bytes, label: str) -> None:
         return
     if label == "estimand_mismatch" and digest(raw) != ESTIMAND_MISMATCH_SHA256:
         raise ValueError("registered estimand-mismatch input SHA256 mismatch")
+    if label == "source_sha_tamper" and digest(raw) != SOURCE_TAMPER_SHA256:
+        raise ValueError("registered source-tamper input SHA256 mismatch")
     try:
         decoded = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -161,6 +169,17 @@ def assert_registered_refusal_input(raw: bytes, label: str) -> None:
         for row in rows
     ):
         raise ValueError(f"archived replay label/decision mismatch: {label}")
+    if label == "source_sha_tamper":
+        # Establish that this is the declared single-source-digest attack,
+        # rather than an unrelated failure masquerading as source refusal.
+        if (len(rows) != 2 or
+                not all(isinstance(row.get("source"), dict) for row in rows) or
+                rows[0]["source"].get("sha256") != "f" * 64 or
+                rows[1]["source"].get("sha256") != FROZEN_SOURCE_SHA256 or
+                any(row["source"].get("path") !=
+                    "benchmarks/cross_repo/v0.1/synthetic-binary-arms.txt"
+                    for row in rows)):
+            raise ValueError("source-tamper replay lacks one deliberately corrupt archived source digest")
     if label == "estimand_mismatch":
         # The negative control must be a pure estimand inconsistency, never
         # a concealed REFUSE row or an unrelated importer failure.
@@ -237,6 +256,9 @@ def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
     if label == "estimand_mismatch":
         assert_equal(reason, ESTIMAND_MISMATCH_REFUSAL,
                      "frozen RR-row versus OR-pool importer refusal")
+    if label == "source_sha_tamper":
+        assert_equal(reason, SOURCE_TAMPER_REFUSAL,
+                     "frozen source SHA mismatch importer refusal")
     if "engine_output" in archived or "engine_output" in observed:
         raise ValueError("refused replay contains pool output")
 
