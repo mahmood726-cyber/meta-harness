@@ -83,5 +83,20 @@ class ProvenanceTests(unittest.TestCase):
         self.assertFalse(can_pool({**analysis, "studyIds": [None]}, {}))
         self.assertFalse(can_pool({**analysis, "studyIds": [1]}, {}))
 
+
+    def test_adjudication_cannot_be_self_declared(self):
+        record = self.record()
+        record["status"] = "ADJUDICATED"
+        with self.assertRaises(ValueError):
+            validate_extraction(record, b"page 1: HR 0.80")
+
+    def test_missing_clinical_context_cannot_be_source_checked(self):
+        for key in ("population", "outcome", "time_point", "effect_measure", "study_id"):
+            with self.subTest(key=key):
+                record = self.record()
+                record[key] = ""
+                with self.assertRaises(ValueError):
+                    validate_extraction(record, b"page 1: HR 0.80")
+
 if __name__ == "__main__":
     unittest.main()
