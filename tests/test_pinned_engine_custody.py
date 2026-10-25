@@ -80,5 +80,34 @@ class PinnedEngineCustodyTests(unittest.TestCase):
             canary.preflight(self.rapid)
 
 
+    def test_matching_external_engine_symlink_refused(self):
+        """Git HEAD and engine bytes remain identical, but executable is aliased."""
+        engine = self.rapid / canary.ENGINE
+        external = self.rapid.parent / "external-same-byte-engine.js"
+        external.write_bytes(self.original_engine)
+        engine.unlink()
+        try:
+            engine.symlink_to(external)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"symlink unavailable on this runner: {exc}")
+        with self.assertRaisesRegex(RuntimeError, "linked path"):
+            canary.preflight(self.rapid)
+
+    def test_matching_engine_parent_directory_symlink_refused(self):
+        """Also reject aliases in an ancestor of the engine file."""
+        engine = self.rapid / canary.ENGINE
+        parent = engine.parent
+        external = self.rapid.parent / "external-vendor"
+        external.mkdir()
+        (external / engine.name).write_bytes(self.original_engine)
+        engine.unlink()
+        parent.rmdir()
+        try:
+            parent.symlink_to(external, target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"directory symlink unavailable on this runner: {exc}")
+        with self.assertRaisesRegex(RuntimeError, "linked path"):
+            canary.preflight(self.rapid)
+
 if __name__ == "__main__":
     unittest.main()
