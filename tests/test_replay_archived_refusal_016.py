@@ -78,6 +78,25 @@ def consume(raw, rapid, label):
         with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
             replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
 
+    def test_numeric_zero_cannot_impersonate_refused_no_pool_receipt(self):
+        # A real isolated refusal replay yields a Boolean. Rehashing the
+        # archive cannot legitimise an integer/float zero in its place.
+        self.stub()
+        observed, _ = replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
+        self.assertIs(observed["engine_invoked"], False)
+        for provenance in ("replayed", "archived"):
+            for numeric_zero in (0, 0.0):
+                with self.subTest(provenance=provenance, value=numeric_zero):
+                    replayed, archived = dict(observed), dict(observed)
+                    target = replayed if provenance == "replayed" else archived
+                    target["engine_invoked"] = numeric_zero
+                    with self.assertRaisesRegex(
+                        ValueError, provenance + " engine_invoked must be JSON boolean"
+                    ):
+                        replay.verify_replay_observation(
+                            replayed, archived, self.raw, "manual_review"
+                        )
+
     def test_different_archived_refusal_reason_is_rejected(self):
         self.stub()
         observed, _ = replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
