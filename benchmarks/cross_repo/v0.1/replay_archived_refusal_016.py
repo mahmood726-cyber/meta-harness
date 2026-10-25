@@ -284,6 +284,32 @@ def assert_registered_replay_sha256(raw: bytes, label: str, registration: dict) 
 
 
 
+def verified_archived_consumer(archive: Path, label: str,
+                               expected_index_sha256: str) -> tuple[dict, str]:
+    """Bind a replayed decision to the originally compared archive bytes.
+
+    A regular result file (or its index) can change after cross-OS comparison.
+    Read each exactly once, verify against the original checked index digest
+    and its recorded file receipt, and parse/report the same result bytes.
+    """
+    index_raw = _archive_file(archive, "index.json").read_bytes()
+    assert_equal(digest(index_raw), expected_index_sha256,
+                 "post-comparison archived index SHA256 drift")
+    index = json.loads(index_raw.decode("utf-8"), object_pairs_hook=_unique,
+                       parse_constant=_reject_nonfinite)
+    rel = f"results/{label}.json"
+    raw = _archive_file(archive, rel).read_bytes()
+    receipts = index.get("digests") if isinstance(index, dict) else None
+    expected = receipts.get(rel) if isinstance(receipts, dict) else None
+    if not isinstance(expected, str) or digest(raw) != expected:
+        raise ValueError(f"post-comparison archived result SHA256 drift: {label}")
+    result = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique,
+                        parse_constant=_reject_nonfinite)
+    if not isinstance(result, dict) or not isinstance(result.get("consumer"), dict):
+        raise ValueError(f"post-comparison archived consumer missing: {label}")
+    return result["consumer"], digest(raw)
+
+
 def run(registration: Path, ubuntu: Path, windows: Path,
         meta: Path, rapid: Path) -> dict:
     # Freeze source/consumer identities before replay. Pass the independently
@@ -300,13 +326,13 @@ def run(registration: Path, ubuntu: Path, windows: Path,
         for label in REPLAY_CASES:
             raw = _archive_file(archive, f"inputs/{label}.json").read_bytes()
             assert_registered_replay_sha256(raw, label, spec)
-            result_path = _archive_file(archive, f"results/{label}.json")
-            archived = load_json(result_path)["consumer"]
+            archived, result_sha = verified_archived_consumer(
+                archive, label, prior["archives"][os_label]["index_sha256"])
             observed, stdout_sha = replay_frozen_bytes(meta, rapid, raw, label)
             verify_replay_observation(observed, archived, raw, label)
             os_replays[label] = {
                 "input_sha256": digest(raw),
-                "archived_result_sha256": digest(result_path.read_bytes()),
+                "archived_result_sha256": result_sha,
                 "replay_stdout_sha256": stdout_sha,
                 "status": observed["status"], "engine_invoked": False,
                 "refusal": observed["refusal"]
