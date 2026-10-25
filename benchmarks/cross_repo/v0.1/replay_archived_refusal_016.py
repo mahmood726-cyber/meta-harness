@@ -268,6 +268,22 @@ def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
         raise ValueError("refused replay contains pool output")
 
 
+
+def assert_registered_replay_sha256(raw: bytes, label: str, registration: dict) -> None:
+    """Recheck the frozen raw input at point of use, after archive comparison.
+
+    A valid ordinary file can change after the comparator's SHA-256 pass
+    without becoming a symlink. Never replay alternative REFUSE/MANUAL_REVIEW
+    bytes merely because the substituted input still produces a refusal.
+    """
+    expected = registration.get("negative_input_sha256")
+    if not isinstance(expected, dict) or not isinstance(expected.get(label), str):
+        raise ValueError(f"missing registered negative replay input SHA256: {label}")
+    if digest(raw) != expected[label]:
+        raise ValueError(f"post-comparison registered negative input SHA256 drift: {label}")
+
+
+
 def run(registration: Path, ubuntu: Path, windows: Path,
         meta: Path, rapid: Path) -> dict:
     # Freeze source/consumer identities before replay. Pass the independently
@@ -283,6 +299,7 @@ def run(registration: Path, ubuntu: Path, windows: Path,
         os_replays = {}
         for label in REPLAY_CASES:
             raw = _archive_file(archive, f"inputs/{label}.json").read_bytes()
+            assert_registered_replay_sha256(raw, label, spec)
             result_path = _archive_file(archive, f"results/{label}.json")
             archived = load_json(result_path)["consumer"]
             observed, stdout_sha = replay_frozen_bytes(meta, rapid, raw, label)
