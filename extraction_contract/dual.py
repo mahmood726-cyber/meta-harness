@@ -66,7 +66,9 @@ def independence_problems(readings, call_records: dict | None = None) -> list[st
     ids = [str(r.get("record_id") or "") for r in rs]
     if not all(ids) or ids[0] == ids[1]:
         out.append("each reading must cite its own distinct call record_id")
-    if call_records:
+    # Explicitly supplied records request provenance verification. An empty
+    # mapping must not silently downgrade this check to metadata-only review.
+    if call_records is not None:
         recs = [call_records.get(i) for i in ids]
         if not all(recs):
             out.append("a reading's call record is missing from the supplied records")
@@ -74,7 +76,11 @@ def independence_problems(readings, call_records: dict | None = None) -> list[st
             for me, other in ((recs[0], recs[1]), (recs[1], recs[0])):
                 other_resp = ((other.get("response") or {}).get("sha256"))
                 seen = {d.get("sha256") for d in me.get("input_digests") or []}
-                if other_resp and other_resp in seen:
+                if not isinstance(other_resp, str) or len(other_resp) != 64 or any(
+                        c not in "0123456789abcdef" for c in other_resp):
+                    out.append("a supplied reader call record has no valid response sha256; "
+                               "prompt-separation check cannot be completed")
+                elif other_resp in seen:
                     out.append(f"reader {me.get('record_id', '?')[:12]} was shown the other reader's response "
                                f"(a confirmer, not an independent second reading)")
     return out
