@@ -168,6 +168,18 @@ def main() -> None:
                 sha(cases[name]) != allowed_hashes[name]):
             raise RuntimeError(f"registered allowed input SHA256 drift: {name}")
 
+    # Freeze the accepted-importer / refused-trial-bridge raw wire as well as
+    # the two generic-importer refusals, before any consumer is executed.
+    # Receipts produced by this run cannot independently pin their own inputs.
+    negative_labels = {"refuse", "manual_review", "source_trial_mismatch"}
+    negative_hashes = spec.get("negative_input_sha256")
+    if not isinstance(negative_hashes, dict) or set(negative_hashes) != negative_labels:
+        raise RuntimeError("missing registered no-pool negative input SHA256 map")
+    for name in sorted(negative_labels):
+        expected_sha = negative_hashes[name]
+        if not isinstance(expected_sha, str) or sha(cases[name]) != expected_sha:
+            raise RuntimeError(f"registered negative input SHA256 drift: {name}")
+
     output.mkdir(parents=True, exist_ok=False)
     (output / "inputs").mkdir()
     (output / "results").mkdir()
