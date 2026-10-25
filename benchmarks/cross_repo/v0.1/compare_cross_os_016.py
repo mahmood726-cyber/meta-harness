@@ -53,7 +53,7 @@ def _archive_file(root: Path, relative: str) -> Path:
     This check is for downloaded CI artefacts, not historical clinical data.
     """
     parts = relative.split("/")
-    if (not relative or "\\\\" in relative or
+    if (not relative or "\\" in relative or
             any(part in {"", ".", ".."} for part in parts)):
         raise ValueError(f"invalid archived relative path: {relative}")
     if root.is_symlink() or not root.is_dir():
