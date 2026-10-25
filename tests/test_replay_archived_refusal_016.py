@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 PROGRAM = (Path(__file__).resolve().parents[1] /
            "benchmarks/cross_repo/v0.1/replay_archived_refusal_016.py")
@@ -139,6 +140,27 @@ def consume(raw, rapid, label):
             json.loads('{"status":"REFUSED","status":"ACCEPTED"}',
                        object_pairs_hook=replay._unique)
 
+
+
+    def test_full_run_passes_independent_engine_pin_and_fails_closed(self):
+        # Regression for exact-head CI #40141321387: comparator gained a
+        # mandatory immutable-engine argument, but replay.run omitted it.
+        # These are mocked routing checks only; the CI matrix runs the
+        # genuine pinned producer/consumer and archived refusal replay.
+        registration = self.root / "registration.json"
+        registration.write_text('{"record_version":"fixture-only"}', encoding="utf-8")
+        ubuntu, windows = self.root / "ubuntu", self.root / "windows"
+        pinned = "d" * 64
+        with (mock.patch.object(replay, "exact_checkout_checks",
+                                return_value={"engine_sha256": pinned}) as check,
+              mock.patch.object(replay, "compare",
+                                side_effect=ValueError("pinned RapidMeta engine SHA256")) as comparator,
+              mock.patch.object(replay, "replay_frozen_bytes") as replay_child):
+            with self.assertRaisesRegex(ValueError, "pinned RapidMeta engine SHA256"):
+                replay.run(registration, ubuntu, windows, self.meta, self.rapid)
+        check.assert_called_once()
+        comparator.assert_called_once_with(registration, ubuntu, windows, pinned)
+        replay_child.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()
