@@ -57,6 +57,21 @@ def git_head(path: Path) -> str:
     return subprocess.check_output(["git", "-C", str(path), "rev-parse", "HEAD"], text=True).strip()
 
 
+def checkout_engine_path(rapidmeta: Path) -> Path:
+    """Reject linked engine paths even when they contain identical Git-blob bytes.
+
+    A same-byte external symlink passes a hash-only check but executes outside
+    the pinned checkout. Refuse symlinks and Windows junctions at every
+    engine-path component, before starting the statistical subprocess.
+    """
+    current = rapidmeta
+    for part in Path(ENGINE).parts:
+        current = current / part
+        if current.is_symlink() or bool(getattr(current, "is_junction", lambda: False)()):
+            raise RuntimeError("RapidMeta engine checkout contains linked path; refuse handoff")
+    return current
+
+
 def preflight(rapidmeta: Path) -> tuple[str, str]:
     manifest = json.loads((ROOT / "benchmarks/cross_repo/v0.1/manifest.json").read_bytes())
     expected = manifest["repositories"]["rapidmeta-kit"]["commit"]
@@ -66,7 +81,7 @@ def preflight(rapidmeta: Path) -> tuple[str, str]:
     data = (ROOT / SOURCE).read_bytes()
     if sha(data) != SOURCE_SHA256:
         raise RuntimeError("Synthetic count-source digest drift; refuse to run")
-    engine = rapidmeta / ENGINE
+    engine = checkout_engine_path(rapidmeta)
     if not engine.is_file():
         raise RuntimeError("Pinned RapidMeta production pairwise engine unavailable")
     # A pinned Git HEAD alone does not establish the bytes Node will execute:
