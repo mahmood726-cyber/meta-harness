@@ -18,6 +18,25 @@ class ProvenanceTests(unittest.TestCase):
     def test_source_checked(self):
         self.assertTrue(validate_extraction(self.record(), b"page 1: HR 0.80"))
 
+    def test_proposed_and_refused_never_promote_to_source_checked(self):
+        for status in ("PROPOSED", "REFUSED"):
+            with self.subTest(status=status):
+                record = self.record()
+                record["status"] = status
+                with self.assertRaisesRegex(ValueError, "not source-checked"):
+                    validate_extraction(record, b"page 1: HR 0.80")
+
+    def test_unverified_adjudication_never_promotes_to_human_review(self):
+        record = self.record()
+        record["status"] = "ADJUDICATED"
+        # Model assertions or self-declared human-review metadata are not
+        # independently authenticated reviewer/adjudication receipts.
+        record["actor_type"] = "MODEL"
+        record["blinded"] = True
+        record["independent_review"] = True
+        with self.assertRaisesRegex(ValueError, "adjudication verifier is not implemented"):
+            validate_extraction(record, b"page 1: HR 0.80")
+
     def test_tampered_archive(self):
         with self.assertRaises(ValueError):
             validate_extraction(self.record(), b"page 1: HR 0.90")
