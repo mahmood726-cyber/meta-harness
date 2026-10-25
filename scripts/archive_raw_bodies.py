@@ -119,6 +119,11 @@ def _load_index(snapshot: str) -> list[dict]:
 
 
 def _body_paths(snapshot: str, dest_root: str | None, relative: str) -> tuple[str, str | None]:
+    # The top-level archive may be off-tree while a nested symlink redirects
+    # the snapshot destination back into the repository. Verify the resolved
+    # destination root too, on both move and check paths.
+    if dest_root is not None:
+        _require_off_tree_archive(dest_root)
     src = os.path.join(snapshot, *relative.split("/"))
     if not _inside(src, os.path.join(snapshot, "raw")):
         raise SystemExit("REFUSED: raw INDEX source escapes the snapshot (possibly symlinked)")
