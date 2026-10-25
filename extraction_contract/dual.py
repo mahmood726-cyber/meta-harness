@@ -103,6 +103,26 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
     adj = {}
     for a in adjudications or []:
         adj.setdefault((a.get("field"), a.get("arm")), []).append(a)
+    # An adjudication whose (field, arm) is absent from both readers must not
+    # disappear merely because the recognised fields happened to agree.
+    # Retain raw 0/False and claimed provenance distinctly. These are
+    # unverified proposals, never authenticated external adjudications.
+    key_set = set(keys)
+    unmatched_adjudications = []
+    for k, proposals in adj.items():
+        if k not in key_set:
+            for proposal in proposals:
+                who = proposal.get("adjudicator") or {}
+                passage = proposal.get("passage") or {}
+                unmatched_adjudications.append({
+                    "field": k[0], "arm": k[1],
+                    "raw_value": proposal.get("decided_value"),
+                    "actor_kind_claimed": who.get("kind"),
+                    "actor_record_id_claimed": who.get("record_id"),
+                    "source_ref_claimed": passage.get("document_ref"),
+                    "source_sha256_claimed": passage.get("document_sha256"),
+                    "source_checked": False,
+                })
     out = {}
     for k in keys:
         vals, probs, reader_candidates = [], [], []
@@ -169,4 +189,4 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
                   "problems": probs or ["no agreement and no adjudication"],
                   "reader_candidates": reader_candidates,
                   "adjudication_proposals": adjudication_proposals}
-    return {"independence": indep, "fields": out}
+    return {"independence": indep, "fields": out, "unmatched_adjudications": unmatched_adjudications}
