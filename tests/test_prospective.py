@@ -176,6 +176,58 @@ def test_check_batch_refuses_two_identities_in_one_batch(tmp_path: Path) -> None
         prospective.check_batch(root, batch)
 
 
+@pytest.mark.parametrize("other_topic", ["topic-plant", "topic-other"])
+def test_a4_repeated_run_id_in_distinct_archived_records_is_refused(
+    tmp_path: Path, other_topic: str
+) -> None:
+    """Distinct retained packages cannot both claim the same run identity."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    first = _record(root, batch, "run-shared")
+    second = _record(root, batch, "run-shared", topic=other_topic)
+    base = root / "prospective" / batch / "runs"
+    prospective.write_run_record(base / "package-first", first)
+    prospective.write_run_record(base / "package-second", second)
+
+    assert len(prospective.load_run_records(root, batch)) == 2
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="duplicate run_id in retained batch records"
+    ) as exc_info:
+        prospective.check_batch(root, batch)
+    assert "run-shared" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("corrupt_id", [None, "", 7, True, "../run-escape", []])
+def test_a4_run_identity_absent_or_invalid_refuses_batch(
+    tmp_path: Path, corrupt_id: object
+) -> None:
+    """A4 must not accept a run that cannot be uniquely and safely cited."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-valid")
+    record["run_id"] = corrupt_id
+    prospective.write_run_record(
+        root / "prospective" / batch / "runs" / "package-corrupt", record
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="missing or invalid run_id"
+    ):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_distinct_valid_run_ids_keep_successful_census(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-one"))
+    _write_batch_record(root, batch, _record(root, batch, "run-two"))
+    summary = prospective.check_batch(root, batch)
+    assert summary["ok"] is True
+    assert summary["run_records"] == 2
+
+
 def test_check_batch_refuses_rerun_without_prior_defect_entry(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     batch = "batch-plant"
