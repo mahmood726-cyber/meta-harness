@@ -1,4 +1,4 @@
-"""Re-run archived CROSS-EXCH-016 MANUAL_REVIEW through the frozen importer.
+"""Re-run archived CROSS-EXCH-016 refusals through the exact frozen importer.
 
 This is a scoped synthetic two-repository transport gate, not clinical accuracy,
 an independent R oracle, or the complete four-repository/Sentinel canary.
@@ -16,7 +16,10 @@ import sys
 from compare_cross_os_016 import (compare, digest, load_json, assert_equal,
                                   pinned_engine_digest)
 
-REPLAY_CASES = ("refuse", "manual_review")
+REPLAY_CASES = ("refuse", "manual_review", "source_trial_mismatch")
+ROW_DECISIONS = {"refuse": "REFUSE", "manual_review": "MANUAL_REVIEW",
+                 "source_trial_mismatch": "ALLOW"}
+TRIAL_BRIDGE_REFUSAL = "Declared trial_id does not match verbatim source"
 
 # Separate Python interpreter imports the exact-pinned producer, rather than
 # candidate-head importer functions; the refusal is checked with a tripwire.
@@ -36,7 +39,7 @@ if spec is None or spec.loader is None:
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 label = sys.argv[3]
-if label not in ('refuse', 'manual_review'):
+if label not in ('refuse', 'manual_review', 'source_trial_mismatch'):
     raise RuntimeError('unregistered negative replay label')
 raw = sys.stdin.buffer.read()
 # Fail closed for both subprocess.run and direct subprocess.Popen routes.
@@ -50,6 +53,8 @@ if result.get('status') != 'REFUSED' or result.get('engine_invoked') is not Fals
     raise RuntimeError('frozen importer did not refuse negative case without pooling')
 if not isinstance(result.get('refusal'), str) or not result['refusal'].strip():
     raise RuntimeError('frozen refusal has no diagnostic')
+if label == 'source_trial_mismatch' and result['refusal'] != 'Declared trial_id does not match verbatim source':
+    raise RuntimeError('source/trial bridge did not supply expected specific refusal')
 print(json.dumps(result, sort_keys=True, separators=(',', ':'), allow_nan=False))
 '''
 
@@ -118,10 +123,27 @@ def assert_registered_refusal_input(raw: bytes, label: str) -> None:
         raise ValueError("malformed replay wire input") from exc
     rows = payload.get("rows") if isinstance(payload, dict) else None
     if not isinstance(rows, list) or not rows or any(
-        not isinstance(row, dict) or row.get("decision") != label.upper()
+        not isinstance(row, dict) or row.get("decision") != ROW_DECISIONS[label]
         for row in rows
     ):
         raise ValueError(f"archived replay label/decision mismatch: {label}")
+    # Distinguish the harder accepted-importer / refused-consumer bridge from
+    # the two cases refused at the generic importer. Replays must contain the
+    # intended source/trial discrepancy, not merely any ALLOW input which
+    # happens to fail somewhere downstream.
+    if label == "source_trial_mismatch":
+        mismatches = 0
+        for row in rows:
+            span = row.get("source_span")
+            if (not isinstance(row.get("trial_id"), str) or
+                    not isinstance(span, dict) or
+                    not isinstance(span.get("verbatim"), str) or
+                    not span["verbatim"].startswith("SYN-TRIAL-")):
+                raise ValueError("trial-bridge replay missing source/trial identity")
+            if span["verbatim"].split(" ", 1)[0] != row["trial_id"]:
+                mismatches += 1
+        if mismatches != 1:
+            raise ValueError("trial-bridge replay requires exactly one source/trial mismatch")
 
 
 def replay_frozen_bytes(meta: Path, rapid: Path, raw: bytes,
@@ -160,6 +182,9 @@ def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
         raise ValueError("frozen replay missing refusal provenance")
     assert_equal(archived.get("refusal"), reason,
                  "archived/frozen refusal provenance")
+    if label == "source_trial_mismatch":
+        assert_equal(reason, TRIAL_BRIDGE_REFUSAL,
+                     "accepted-importer source/trial bridge refusal")
     if "engine_output" in archived or "engine_output" in observed:
         raise ValueError("refused replay contains pool output")
 
@@ -200,7 +225,7 @@ def run(registration: Path, ubuntu: Path, windows: Path,
                      f"cross-OS replayed refusal provenance: {label}")
     return {
         "record_version": "1.1.0", "case_id": "CROSS-EXCH-016",
-        "subcase": "frozen_archived_refuse_and_manual_review_no_pool_replay",
+        "subcase": "frozen_archived_importer_and_trial_bridge_no_pool_replay",
         "refusal_replay_count": len(REPLAY_CASES) * 2,
         "result": "PASS", "evidence_scope": "SYNTHETIC_TWO_REPO_NO_POOL_ONLY",
         "registration_sha256": digest(registration.read_bytes()),
@@ -224,9 +249,10 @@ def main():
     a.report.parent.mkdir(parents=True, exist_ok=True)
     a.report.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n",
                         encoding="utf-8")
-    print("CROSS-EXCH-016 ARCHIVED REFUSE/MANUAL_REVIEW REPLAY: four actual archived "
-          "inputs refused through frozen code, zero engine subprocess calls; "
-          "synthetic transport scope only")
+    print(f"CROSS-EXCH-016 ARCHIVED NO-POOL REPLAY: {len(REPLAY_CASES) * 2} "
+          "actual archived synthetic inputs refused through frozen code, "
+          "including accepted-importer/source-trial bridge; zero engine "
+          "subprocess calls; synthetic transport scope only")
 
 
 if __name__ == "__main__":

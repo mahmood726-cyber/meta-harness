@@ -23,6 +23,21 @@ The runner archives each exact raw input and outcome, source text, both actual g
 
 A source/trial identity mismatch is deliberately expected to **pass only the generic structural importer** and **fail at the specialised count bridge**, without an engine call. This guards against claiming that a text-span match alone proves a trial's clinical identity.
 
+The separately executed **archived-refusal replay** now also re-executes the
+`source_trial_mismatch` wire input using the exact frozen producer, on each
+previously archived Ubuntu and Windows input. Unlike `REFUSE` or
+`MANUAL_REVIEW`, its rows carry `ALLOW`: the generic importer accepts
+the structural record, but the pinned trial-to-source count bridge must
+refuse with the exact source/trial mismatch diagnostic. Both
+`subprocess.run` and `subprocess.Popen` are guarded during isolated replay.
+The negative suite rejects a missing trial discrepancy, a hidden REFUSE row,
+a different refusal reason and any attempted engine execution. This extends
+the independently replayed synthetic refusal records from four to **six**
+when the exact-head CI actually passes; it does not freeze the third negative
+input under an external preregistered SHA, nor verify clinical trial identity.
+The 15 original common benchmark cases remain NOT_RUN.
+
+
 ## Observed Windows integration defect and repair
 
 The first actual two-OS candidate run [#40101381478](https://github.com/mahmood726-cyber/meta-harness/actions/runs/40101381478) had Ubuntu **PASS** but Windows **FAIL** after successfully executing the same 12 CLI/API→RapidMeta scenarios. The independent SHA-receipt verifier rejected the Windows index because Python's `str(Path.relative_to(...))` writes OS-native backslashes, while the archival contract expects portable forward-slash keys such as `inputs/refuse.json`. This was a **real Windows interoperability defect**, not a scientific effect difference. The runner now serialises all receipt paths with `.as_posix()`, with an explicit `PureWindowsPath` regression. Any later CI pass must be verified against the new exact PR head and cannot retroactively change that failed Windows run.
