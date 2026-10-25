@@ -96,7 +96,7 @@ def _load_index(snapshot: str) -> list[dict]:
         if (len(pieces) != 3 or pieces[0] != "raw" or pieces[1] != source_id
                 or not re.fullmatch(r"[A-Za-z0-9._#-]+", source_id)
                 or source_id in (".", "..")
-                or not re.fullmatch(r"[0-9]{3,}\\.json", pieces[2])
+                or not re.fullmatch(r"[0-9]{3,}\.json", pieces[2])
                 or path in seen):
             raise SystemExit("REFUSED: unsafe or duplicate raw INDEX path")
         seen.add(path)
