@@ -343,6 +343,67 @@ def test_check_batch_accepts_one_rerun_with_prior_defect(tmp_path: Path) -> None
     assert summary["freeze_claim"] == prospective.MUTABLE_FREEZE_CLAIM
 
 
+
+@pytest.mark.parametrize("finished", [
+    "2026-09-14T00:10:59.999Z",
+    "2026-09-14T00:11:00Z",
+])
+def test_a4_completed_run_at_or_below_registered_time_limit_passes(
+    tmp_path: Path, finished: str
+) -> None:
+    """The preregistered ceiling is inclusive; do not refuse a valid run."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-on-time", finished=finished)
+    )
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+
+@pytest.mark.parametrize("finished", [
+    "2026-09-14T00:11:00.001Z",
+    "2026-09-14T00:12:00Z",
+])
+def test_a4_completed_run_exceeding_registered_time_limit_refuses(
+    tmp_path: Path, finished: str
+) -> None:
+    """A4: changing an over-time run's label to COMPLETED must not pass."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-over-time", finished=finished)
+    )
+    with pytest.raises(prospective.ProspectiveRefusal) as exc_info:
+        prospective.check_batch(root, batch)
+    text = str(exc_info.value)
+    assert "run-over-time" in text
+    assert "exceeds preregistered time_limit_s 60s" in text
+    assert "FAILED_TIMEOUT" in text
+
+
+@pytest.mark.parametrize("corrupt_limit", [
+    0, -1, None, "60", True, float("nan"), float("inf"), float("-inf")
+])
+def test_a4_batch_checker_refuses_invalid_declared_time_limit(
+    tmp_path: Path, corrupt_limit: object
+) -> None:
+    """A4 requires an actual finite, positive predeclared number."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    decl = _declare(root, batch)
+    decl["time_limit_s"] = corrupt_limit
+    prospective.write_declaration(root, decl)
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-on-time")
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="finite positive numeric time_limit_s"
+    ):
+        prospective.check_batch(root, batch)
+
+
 def test_freeze_claim_tracks_mutability_both_ways(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = _mini_root(tmp_path)
 
