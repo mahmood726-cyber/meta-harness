@@ -91,7 +91,15 @@ def pinned_engine_digest(registration: dict, rapidmeta: Path) -> str:
         ["git", "-C", str(rapidmeta), "show", f"HEAD:{ENGINE_PATH}"],
         timeout=15,
     )
-    worktree = (rapidmeta / ENGINE_PATH).read_bytes()
+    # Equal bytes at an external symlink/junction are not proof that the
+    # executed module belongs to the pinned checkout. Refuse path aliases
+    # before accepting the independent Git-blob custody comparison.
+    engine_path = rapidmeta
+    for segment in Path(ENGINE_PATH).parts:
+        engine_path = engine_path / segment
+        if _archive_link(engine_path):
+            raise ValueError("linked RapidMeta engine worktree path")
+    worktree = engine_path.read_bytes()
     assert_equal(digest(worktree), digest(committed),
                  "dirty RapidMeta engine worktree SHA256")
     return digest(committed)
