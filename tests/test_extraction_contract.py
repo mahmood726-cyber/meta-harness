@@ -194,6 +194,31 @@ def test_PLANT_single_reader(root):
     _plant(root, lambda t: t.update(readings=t["readings"][:1]), "needs exactly 2 readings")
 
 
+def test_PLANT_explicit_empty_call_record_map_cannot_prove_independence(root):
+    # An explicit empty verification inventory is not the same as opting out
+    # of call-record validation. Previously an empty dict skipped it.
+    b = bundle()
+    rep = check_bundle(b, root, call_records={})
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "call record is missing from the supplied records" in problems(rep)
+    assert check_bundle(b, root)["verdict"] == ALLOW  # existing unverified-metadata control
+
+
+@pytest.mark.parametrize("missing_or_invalid_digest", [None, "z" * 64, "a" * 63])
+def test_PLANT_supplied_call_record_missing_verifiable_response_digest_refuses(root, missing_or_invalid_digest):
+    # A self-declared model reading plus incomplete prompt/response traces
+    # cannot demonstrate that the other model's answer was not shown to it.
+    recs = {
+        "mc-a": {"record_id": "mc-a", "response": {"sha256": missing_or_invalid_digest},
+                 "input_digests": [{"sha256": SHA}]},
+        "mc-b": {"record_id": "mc-b", "response": {"sha256": "b" * 64},
+                 "input_digests": [{"sha256": SHA}]},
+    }
+    rep = check_bundle(bundle(), root, call_records=recs)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "prompt-separation check cannot be completed" in problems(rep)
+
+
 def test_PLANT_second_reader_was_shown_the_first_answer(root):
     resp_a = "a" * 64
     recs = {"mc-a": {"record_id": "mc-a", "response": {"sha256": resp_a}, "input_digests": [{"sha256": SHA}]},
