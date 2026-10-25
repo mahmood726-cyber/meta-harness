@@ -206,7 +206,7 @@ def main() -> None:
     # before any consumer is executed.
     # Receipts produced by this run cannot independently pin their own inputs.
     negative_labels = {"refuse", "manual_review", "source_trial_mismatch",
-                       "duplicate_shadow"}
+                       "duplicate_shadow", "estimand_mismatch"}
     negative_hashes = spec.get("negative_input_sha256")
     if not isinstance(negative_hashes, dict) or set(negative_hashes) != negative_labels:
         raise RuntimeError("missing registered no-pool negative input SHA256 map")

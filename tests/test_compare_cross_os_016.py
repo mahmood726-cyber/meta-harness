@@ -39,15 +39,17 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                           "refuse": {"importer": "REFUSED", "consumer": "REFUSED"},
                           "manual_review": {"importer": "REFUSED", "consumer": "REFUSED"},
                           "source_trial_mismatch": {"importer": "ACCEPTED", "consumer": "REFUSED"},
-                          "duplicate_shadow": {"importer": "REFUSED", "consumer": "REFUSED"}}
+                          "duplicate_shadow": {"importer": "REFUSED", "consumer": "REFUSED"},
+                          "estimand_mismatch": {"importer": "REFUSED", "consumer": "REFUSED"}}
         }
         self.spec["allowed_input_sha256"] = {
             "allow_rr_itt": comparator.digest(wire({"case": "allow_rr_itt", "decision": "ALLOW"}))
         }
         self.spec["negative_input_sha256"] = {
             case: comparator.digest(wire({"case": case,
-                                          "decision": "ALLOW" if case == "source_trial_mismatch" else case.upper()}))
-            for case in ("refuse", "manual_review", "source_trial_mismatch", "duplicate_shadow")
+                                          "decision": "ALLOW" if case in ("source_trial_mismatch", "estimand_mismatch") else case.upper()}))
+            for case in ("refuse", "manual_review", "source_trial_mismatch",
+                         "duplicate_shadow", "estimand_mismatch")
         }
         self.reg.write_bytes(wire(self.spec))
         self.ubuntu = root / "ubuntu"
@@ -61,7 +63,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         (directory / "source.txt").write_bytes(self.source)
         digests = {"source.txt": comparator.digest(self.source)}
         for case, status in self.spec["scenarios"].items():
-            raw = wire({"case": case, "decision": "ALLOW" if case in ("allow_rr_itt", "source_trial_mismatch") else case.upper()})
+            raw = wire({"case": case, "decision": "ALLOW" if case in ("allow_rr_itt", "source_trial_mismatch", "estimand_mismatch") else case.upper()})
             if case == "refuse" and raw_modifier:
                 raw = raw_modifier(raw)
             source_hash = comparator.digest(raw)
@@ -75,6 +77,8 @@ class ArchivedArtifactParityTests(unittest.TestCase):
             output = {"name": case, "raw_sha256": source_hash,
                       "cli_status": status["importer"], "api_status": status["importer"],
                       "api_refusal": ("duplicate JSON object member: decision" if case == "duplicate_shadow"
+                                      else "row 0: estimand mismatch (measure/population/outcome/timepoint)"
+                                      if case == "estimand_mismatch"
                                       else f"synthetic import refusal: {case}"
                                       if status["importer"] == "REFUSED" else None),
                       "consumer": consumer, "clinical_validation": "NOT_TESTED"}
@@ -126,7 +130,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
 
     def test_matching_archives_pass(self):
         result = comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
-        self.assertEqual((result["case_count"], result["refused_without_pooling"]), (5, 4))
+        self.assertEqual((result["case_count"], result["refused_without_pooling"]), (6, 5))
         self.assertEqual(result["numerical_output_cross_os_comparison"], "PINNED_SYNTHETIC_SMOKE_ONLY_PASS")
         self.assertEqual(result["numerical_smoke_controls"]["allow_rr_itt"]["ubuntu-24.04"]["mu_log"], 0.3)
 
@@ -197,7 +201,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                              data["consumer"]["engine_output"].__setitem__("mu_log", 0.3 + 1e-13))
         report = comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
         self.assertEqual(report["numerical_smoke_tolerance"]["rel_tol"], 1e-12)
-        self.assertEqual(report["case_count"], 5)
+        self.assertEqual(report["case_count"], 6)
 
     def test_two_os_rehashed_matching_allow_trial_and_estimand_drift_refuses(self):
         # The old comparator could PASS when both producer archives used
@@ -394,6 +398,31 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self._rewrite_result("duplicate_shadow",
                              lambda data: data.__setitem__("api_refusal", "other refusal"))
         with self.assertRaisesRegex(ValueError, "shadowed decision was not rejected"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_correlated_rehashed_estimand_negative_wire_drift_refuses(self):
+        # Both OS archives agree on modified wires/receipts, but not the
+        # independent frozen producer registration. This is a local fixture.
+        for directory in (self.ubuntu, self.windows):
+            self._rewrite_input_and_receipts(
+                directory, lambda obj: obj.__setitem__("forged_estimand", "OR"),
+                case="estimand_mismatch")
+        with self.assertRaisesRegex(ValueError,
+                                    "registered negative input SHA256 estimand_mismatch"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_estimand_negative_importer_reason_forgery_refuses(self):
+        self._rewrite_result("estimand_mismatch",
+                             lambda data: data.__setitem__("api_refusal", "other reason"))
+        with self.assertRaisesRegex(ValueError, "estimand mismatch was not rejected"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_missing_registered_estimand_hash_refuses(self):
+        del self.spec["negative_input_sha256"]["estimand_mismatch"]
+        self.reg.write_bytes(wire(self.spec))
+        self._write_archive(self.ubuntu, "ubuntu-24.04", "Linux")
+        self._write_archive(self.windows, "windows-2025", "Windows")
+        with self.assertRaisesRegex(ValueError, "pre-registered negative input SHA256"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_missing_pre_registered_negative_input_sha_refuses(self):
