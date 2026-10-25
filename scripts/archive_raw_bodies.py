@@ -180,7 +180,20 @@ def check(snapshot: str, archive_root: str | None) -> tuple[int, list[str]]:
     index = _load_index(snapshot)
     pointer_path = os.path.join(snapshot, "ARCHIVE.json")
     pointer = json.load(open(pointer_path, encoding="utf-8")) if os.path.isfile(pointer_path) else None
-    root = archive_root or (pointer or {}).get("archive_root")
+    # ARCHIVE.json records the claimed custody location. An explicit check
+    # root must not substitute a different archive whose matching bytes conceal
+    # a missing/corrupt body at the location actually declared by the pointer.
+    if pointer is not None:
+        pinned_root = pointer.get("archive_root")
+        if not isinstance(pinned_root, str) or not pinned_root.strip():
+            raise SystemExit("REFUSED: ARCHIVE.json has no valid archive_root")
+        _require_off_tree_archive(pinned_root)
+        if (archive_root is not None
+                and os.path.realpath(archive_root) != os.path.realpath(pinned_root)):
+            raise SystemExit("REFUSED: archive root override differs from ARCHIVE.json")
+        root = pinned_root
+    else:
+        root = archive_root
     if root is not None:
         _require_off_tree_archive(root)
     rel = _rel_snapshot(snapshot)
