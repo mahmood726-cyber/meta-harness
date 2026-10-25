@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/archive_raw_bodies.py'
       - 'tests/test_archive_raw_bodies.py'
+      - 'tests/test_search_v2_run_tar_only.py'
       - '.github/workflows/prospective-raw-archive.yml'
   workflow_dispatch:
 permissions:
@@ -25,4 +26,4 @@ jobs:
       - name: Install repository's hashed test dependencies
         run: python -m pip install --require-hashes -r docs/offline/requirements.lock
       - name: Verify raw archive preservation and fail-closed negatives
-        run: python -m pytest -q tests/test_archive_raw_bodies.py
+        run: python -m pytest -q tests/test_archive_raw_bodies.py tests/test_search_v2_run_tar_only.py
