@@ -554,5 +554,37 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "pre-registered negative input SHA256"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
+    def test_identical_git_blob_through_external_engine_symlink_refused(self):
+        """An independently rehashed engine must be in the pinned checkout."""
+        repo = Path(self.temp.name) / "linked-rapidmeta"
+        engine = repo / comparator.ENGINE_PATH
+        engine.parent.mkdir(parents=True)
+        frozen = b"// local synthetic same-byte engine\\n"
+        engine.write_bytes(frozen)
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        subprocess.run(["git", "-C", str(repo), "add", comparator.ENGINE_PATH],
+                       check=True)
+        subprocess.run(["git", "-C", str(repo), "-c", "user.name=CI Fixture",
+                        "-c", "user.email=fixture@example.invalid", "commit",
+                        "-qm", "frozen fixture"], check=True)
+        head = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+        ).strip()
+        self.assertEqual(comparator.pinned_engine_digest(
+            {"repositories": {"rapidmeta-kit": {"commit": head}}}, repo),
+            comparator.digest(frozen))
+        external = Path(self.temp.name) / "same-byte-external-engine.js"
+        external.write_bytes(frozen)
+        engine.unlink()
+        try:
+            engine.symlink_to(external)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"symlink unavailable on this runner: {exc}")
+        # The Git commit and every byte still match. The outside-code alias
+        # must nevertheless refuse independently before an engine can run.
+        with self.assertRaisesRegex(ValueError, "linked RapidMeta engine"):
+            comparator.pinned_engine_digest(
+                {"repositories": {"rapidmeta-kit": {"commit": head}}}, repo)
+
 if __name__ == "__main__":
     unittest.main()
