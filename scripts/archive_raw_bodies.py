@@ -190,11 +190,21 @@ def check(snapshot: str, archive_root: str | None) -> tuple[int, list[str]]:
         local, archived = _body_paths(
             snapshot, os.path.join(root, rel) if root else None, row["path"]
         )
-        path = local if os.path.isfile(local) else (archived if archived and os.path.isfile(archived) else None)
-        if path is None:
+        has_local = os.path.isfile(local)
+        has_archived = bool(archived and os.path.isfile(archived))
+        if not has_local and not has_archived:
             problems.append(f"NOT PRESERVED: {row['path']} (not in snapshot; not in archive {root})")
             continue
-        if _sha256(path) != row["file_sha256"]:
+        # A surviving local copy must not certify an archive declared by
+        # ARCHIVE.json if the off-tree body has disappeared. This is storage
+        # verification, not a claim of independently held evidence.
+        if pointer and pointer.get("archive_root") and not has_archived:
+            problems.append(f"NOT PRESERVED OFF-TREE: {row['path']} (archive body missing)")
+            continue
+        # Verify *every* existing copy: local-first selection used to hide
+        # damaged off-tree bodies whenever an intact local copy remained.
+        copies = ([local] if has_local else []) + ([archived] if has_archived else [])
+        if any(_sha256(path) != row["file_sha256"] for path in copies):
             problems.append(f"DIGEST MISMATCH: {row['path']}")
             continue
         ok += 1
