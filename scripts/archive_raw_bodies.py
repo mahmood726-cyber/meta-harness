@@ -36,7 +36,9 @@ def _sha256(path: str) -> str:
 
 def _rel_snapshot(snapshot: str) -> str:
     """A raw archive may not address an unrelated tree through '../'."""
-    rel = os.path.relpath(os.path.abspath(snapshot), ROOT).replace("\\", "/")
+    # Resolve the directory itself, not merely its textual path: an in-tree
+    # symlink may point to records outside the repository.
+    rel = os.path.relpath(os.path.realpath(snapshot), os.path.realpath(ROOT)).replace("\\", "/")
     if rel == ".." or rel.startswith("../") or rel == ".":
         raise SystemExit("REFUSED: snapshot must be a directory inside the repository")
     return rel
@@ -48,6 +50,17 @@ def _inside(path: str, directory: str) -> bool:
         return os.path.commonpath((os.path.realpath(path), os.path.realpath(directory))) == os.path.realpath(directory)
     except ValueError:
         return False
+
+
+def _require_off_tree_archive(archive_root: str) -> None:
+    """Never mistake a repository-local directory for off-tree custody.
+
+    realpath also catches an archive-root symlink back into the repository.
+    This checks storage location only; off-tree does NOT mean independently
+    held or externally attested.
+    """
+    if not isinstance(archive_root, str) or not archive_root.strip() or _inside(archive_root, ROOT):
+        raise SystemExit("REFUSED: archive root must resolve outside the repository")
 
 
 def _load_index(snapshot: str) -> list[dict]:
@@ -116,6 +129,7 @@ def _body_paths(snapshot: str, dest_root: str | None, relative: str) -> tuple[st
 
 
 def move(snapshot: str, archive_root: str) -> int:
+    _require_off_tree_archive(archive_root)
     index = _load_index(snapshot)
     rel = _rel_snapshot(snapshot)
     dest_root = os.path.join(archive_root, rel)
@@ -162,6 +176,8 @@ def check(snapshot: str, archive_root: str | None) -> tuple[int, list[str]]:
     pointer_path = os.path.join(snapshot, "ARCHIVE.json")
     pointer = json.load(open(pointer_path, encoding="utf-8")) if os.path.isfile(pointer_path) else None
     root = archive_root or (pointer or {}).get("archive_root")
+    if root is not None:
+        _require_off_tree_archive(root)
     rel = _rel_snapshot(snapshot)
     problems: list[str] = []
     ok = 0
