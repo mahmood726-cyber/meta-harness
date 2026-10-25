@@ -282,6 +282,49 @@ def consume(raw, rapid, label):
         comparator.assert_called_once_with(registration, ubuntu, windows, pinned)
         replay_child.assert_not_called()
 
+    def test_post_comparison_regular_refusal_input_drift_refuses_before_child(self):
+        """A substituted *regular* file must not inherit a prior SHA PASS.
+
+        Synthetic local unit fixture only. The two OS CI archives and the
+        frozen producer/consumer are exercised by separate live workflows.
+        """
+        frozen = b'{"rows":[{"decision":"REFUSE","trial_id":"SYN-TRIAL-01"}]}'
+        substituted = b'{"rows":[{"decision":"REFUSE","trial_id":"SYN-TRIAL-02"}]}'
+        registration = self.root / "registration.json"
+        registration.write_text(json.dumps({"negative_input_sha256": {
+            "refuse": hashlib.sha256(frozen).hexdigest()
+        }}), encoding="utf-8")
+        ubuntu, windows = self.root / "ubuntu", self.root / "windows"
+        target = ubuntu / "inputs" / "refuse.json"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(substituted)
+        # The file is not a link, its JSON is valid, and REFUSE remains REFUSE.
+        self.assertFalse(target.is_symlink())
+        self.assertEqual(json.loads(substituted)["rows"][0]["decision"], "REFUSE")
+        with (mock.patch.object(replay, "exact_checkout_checks",
+                                return_value={"engine_sha256": "d" * 64}),
+              mock.patch.object(replay, "compare",
+                                return_value={"overall": "PASS"}) as comparison,
+              mock.patch.object(replay, "replay_frozen_bytes") as child):
+            with self.assertRaisesRegex(
+                ValueError, "post-comparison registered negative input SHA256 drift: refuse"
+            ):
+                replay.run(registration, ubuntu, windows, self.meta, self.rapid)
+            comparison.assert_called_once()
+            child.assert_not_called()
+
+    def test_post_comparison_refusal_sha_accepts_only_exact_frozen_wire(self):
+        raw = b'{"rows":[{"decision":"MANUAL_REVIEW"}]}'
+        registration = {"negative_input_sha256": {
+            "manual_review": hashlib.sha256(raw).hexdigest()
+        }}
+        replay.assert_registered_replay_sha256(raw, "manual_review", registration)
+        with self.assertRaisesRegex(ValueError, "registered negative input SHA256 drift"):
+            replay.assert_registered_replay_sha256(
+                raw + b" ", "manual_review", registration)
+        with self.assertRaisesRegex(ValueError, "missing registered negative replay"):
+            replay.assert_registered_replay_sha256(raw, "refuse", registration)
+
     def test_post_comparison_archive_input_link_refuses_before_replay(self):
         """A path substituted after archive comparison must not enter the child.
 
