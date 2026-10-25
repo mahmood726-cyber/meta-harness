@@ -33,8 +33,16 @@ refuse with the exact source/trial mismatch diagnostic. Both
 The negative suite rejects a missing trial discrepancy, a hidden REFUSE row,
 a different refusal reason and any attempted engine execution. This extends
 the independently replayed synthetic refusal records from four to **six**
-when the exact-head CI actually passes; it does not freeze the third negative
-input under an external preregistered SHA, nor verify clinical trial identity.
+when the exact-head CI actually passes. A subsequent scoped input-integrity
+patch pins the archived `source_trial_mismatch` raw wire at SHA-256
+`a4817e7478833a42d4db0f4ac111b278929104b059cfad9169e7529bd623a982` in the versioned registration, verified against
+the exact frozen producer's canonical `wire(produce("ALLOW"))` with only
+the first row's trial ID altered to `SYN-TRIAL-99`. The producer checks
+this pin **before execution** and the independent Ubuntu/Windows comparator
+checks it against both downloaded input archives, even if their internal
+receipts are consistently rehashed. This new registration was made after
+earlier execution evidence: it is a freeze for subsequent runs, **not**
+proof of prospective custody for any earlier archived input or clinical identity.
 The 15 original common benchmark cases remain NOT_RUN.
 
 
