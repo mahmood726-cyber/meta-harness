@@ -225,6 +225,11 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
     hits = []
     match = _Matcher(key, registry)
     for path in _scan_tracked_paths(root, isolate=isolate):
+        # Filename and directory components are public Git metadata. A sealed
+        # topic embedded only in a tracked path is a leak even if its file is
+        # empty; never log that plaintext filename when reporting the hit.
+        for digest in match(path):
+            hits.append({"kind": "tracked_path", "identifier_hmac": digest})
         abs_path = os.path.join(root, *path.split("/"))
         try:
             blob = open(abs_path, "rb").read()
@@ -340,10 +345,17 @@ def check(root) -> tuple[bool, list[str]]:
         reasons.append(detail)
     try:
         for hit in scan_tree(root, key, registry):
-            reasons.append(
-                f"{hit['path']}:{hit['line_no']}: sealed identifier "
-                f"{hit['identifier_hmac'][:12]}... appears in a tracked text file"
-            )
+            if hit.get("kind") == "tracked_path":
+                reasons.append(
+                    "sealed identifier "
+                    f"{hit['identifier_hmac'][:12]}... appears in a tracked path "
+                    "(filename redacted)"
+                )
+            else:
+                reasons.append(
+                    f"{hit['path']}:{hit['line_no']}: sealed identifier "
+                    f"{hit['identifier_hmac'][:12]}... appears in a tracked text file"
+                )
     except Exception as exc:
         reasons.append(f"sealed held-out tree scan could not run: {exc}")
     try:
