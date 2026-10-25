@@ -529,7 +529,7 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         # auditable census and unambiguous rerun_of references.  Builders
         # validate these names, but imported JSON may be altered later.
         run_id = record.get("run_id")
-        if not isinstance(run_id, str) or not SAFE_NAME_RE.fullmatch(run_id):
+        if not isinstance(run_id, str) or run_id in {".", ".."} or not SAFE_NAME_RE.fullmatch(run_id):
             reasons.append(f"run record has missing or invalid run_id: {run_id!r}")
         elif run_id in seen_run_ids:
             reasons.append(f"duplicate run_id in retained batch records: {run_id!r}")
