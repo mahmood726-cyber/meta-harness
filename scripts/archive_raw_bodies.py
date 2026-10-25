@@ -88,6 +88,11 @@ def _load_index(snapshot: str) -> list[dict]:
             or not isinstance(index, list) or len(index) != raw_calls):
         raise SystemExit("REFUSED: raw INDEX count is inconsistent with retrieval ledger")
     pointer_path = os.path.join(snapshot, "ARCHIVE.json")
+    # Treat a linked, dangling, or non-file custody receipt as tampering, not
+    # as an absent receipt. In particular a dangling symlink must not turn an
+    # archived snapshot back into an apparently unarchived local-only PASS.
+    if os.path.islink(pointer_path) or (os.path.lexists(pointer_path) and not os.path.isfile(pointer_path)):
+        raise SystemExit("REFUSED: ARCHIVE.json custody receipt must be a regular non-symlink file")
     if os.path.isfile(pointer_path):
         try:
             with open(pointer_path, encoding="utf-8") as fh:
