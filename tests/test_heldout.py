@@ -124,6 +124,33 @@ def test_sealed_identifier_in_tracked_filename_refuses_without_disclosing_name(m
     assert name not in report
 
 
+
+def test_sealed_filename_never_appears_in_content_hit_diagnostics(monkeypatch):
+    """Both path and content matches must keep the protected filename private."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    registry = _registry_with_canary(_token(IDENTIFIER))
+    name = f"results/prefix-{IDENTIFIER}-suffix.txt"
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _write(repo, name, f"line references {IDENTIFIER}\\n")
+        _commit(repo, "generic synthetic disclosure regression")
+        hits = heldout.scan_tree(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+
+    assert not ok
+    assert len(hits) == 2
+    assert hits[0] == {"kind": "tracked_path", "identifier_hmac": _token(IDENTIFIER)}
+    assert hits[1] == {
+        "path": "<redacted tracked path>",
+        "identifier_hmac": _token(IDENTIFIER),
+        "line_no": 1,
+    }
+    assert name not in repr(hits)
+    assert name not in "\\n".join(reasons)
+    assert IDENTIFIER not in "\\n".join(reasons)
+
+
+
 def test_unsealed_tracked_filename_stays_clean():
     """The new filename check must not flag ordinary unsealed paths."""
     registry = _registry(_token("completely-different-topic"))
