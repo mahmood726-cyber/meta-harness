@@ -100,7 +100,7 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
     if (not isinstance(frozen_raw, dict) or
             set(frozen_raw) != {"refuse", "manual_review",
                                 "source_trial_mismatch", "duplicate_shadow",
-                                "estimand_mismatch"} or
+                                "estimand_mismatch", "source_sha_tamper"} or
             any(not isinstance(value, str) or len(value) != 64 or
                 any(ch not in "0123456789abcdef" for ch in value)
                 for value in frozen_raw.values())):
@@ -161,6 +161,8 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
                 "row 0: estimand mismatch (measure/population/outcome/timepoint)"
             ):
                 raise ValueError("estimand mismatch was not rejected at raw importer")
+            if label == "source_sha_tamper" and api_refusal != "row 0: source SHA-256 mismatch":
+                raise ValueError("source-hash tamper was not rejected at raw importer")
         elif api_refusal is not None:
             raise ValueError(f"accepted importer carried refusal reason: {label}")
         consumer = result.get("consumer")

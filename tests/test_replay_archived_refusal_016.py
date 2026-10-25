@@ -47,6 +47,8 @@ def consume(raw, rapid, label):
                         if label == 'source_trial_mismatch'
                         else 'row 0: estimand mismatch (measure/population/outcome/timepoint)'
                         if label == 'estimand_mismatch'
+                        else 'row 0: source SHA-256 mismatch'
+                        if label == 'source_sha_tamper'
                         else 'requires manual review')}
 """ % ("True" if invokes_engine else "False"), encoding="utf-8"
         )
@@ -319,6 +321,68 @@ def consume(raw, rapid, label):
                 replay.replay_frozen_bytes(self.meta, self.rapid, raw,
                                            "estimand_mismatch")
 
+
+
+    def source_digest_wire(self, *, tamper=True, decision="ALLOW"):
+        return json.dumps({"rows": [
+            {"decision": decision, "source": {
+                "path": "benchmarks/cross_repo/v0.1/synthetic-binary-arms.txt",
+                "sha256": "f" * 64 if tamper else replay.FROZEN_SOURCE_SHA256}},
+            {"decision": "ALLOW", "source": {
+                "path": "benchmarks/cross_repo/v0.1/synthetic-binary-arms.txt",
+                "sha256": replay.FROZEN_SOURCE_SHA256}}
+        ]}, sort_keys=True).encode("utf-8")
+
+    def test_source_digest_pinned_negative_replays_without_pooling(self):
+        # Isolated stub; real frozen importer/consumer replay runs in exact-head CI.
+        self.stub()
+        raw = self.source_digest_wire()
+        with mock.patch.object(replay, "SOURCE_TAMPER_SHA256", hashlib.sha256(raw).hexdigest()):
+            observed, stdout_digest = replay.replay_frozen_bytes(
+                self.meta, self.rapid, raw, "source_sha_tamper")
+            replay.verify_replay_observation(observed, dict(observed), raw,
+                                             "source_sha_tamper")
+        self.assertEqual(observed["refusal"], replay.SOURCE_TAMPER_REFUSAL)
+        self.assertFalse(observed["engine_invoked"])
+        self.assertEqual(len(stdout_digest), 64)
+
+    def test_source_digest_negative_rejects_hash_drift_and_nonattack(self):
+        self.stub()
+        raw = self.source_digest_wire()
+        with mock.patch.object(replay, "SOURCE_TAMPER_SHA256", hashlib.sha256(raw).hexdigest()):
+            with self.assertRaisesRegex(ValueError, "registered source-tamper input SHA256 mismatch"):
+                replay.replay_frozen_bytes(self.meta, self.rapid,
+                                           raw + b" ", "source_sha_tamper")
+        good = self.source_digest_wire(tamper=False)
+        with mock.patch.object(replay, "SOURCE_TAMPER_SHA256", hashlib.sha256(good).hexdigest()):
+            with self.assertRaisesRegex(ValueError, "lacks one deliberately corrupt"):
+                replay.replay_frozen_bytes(self.meta, self.rapid, good,
+                                           "source_sha_tamper")
+
+    def test_source_digest_negative_refuses_hidden_refuse_and_pool_attempt(self):
+        self.stub()
+        hidden = self.source_digest_wire(decision="REFUSE")
+        with mock.patch.object(replay, "SOURCE_TAMPER_SHA256", hashlib.sha256(hidden).hexdigest()):
+            with self.assertRaisesRegex(ValueError, "label/decision mismatch"):
+                replay.replay_frozen_bytes(self.meta, self.rapid, hidden,
+                                           "source_sha_tamper")
+        raw = self.source_digest_wire()
+        self.stub(invokes_engine=True)
+        with mock.patch.object(replay, "SOURCE_TAMPER_SHA256", hashlib.sha256(raw).hexdigest()):
+            with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
+                replay.replay_frozen_bytes(self.meta, self.rapid, raw,
+                                           "source_sha_tamper")
+
+    def test_source_digest_negative_requires_specific_provenance(self):
+        self.stub()
+        raw = self.source_digest_wire()
+        with mock.patch.object(replay, "SOURCE_TAMPER_SHA256", hashlib.sha256(raw).hexdigest()):
+            observed, _ = replay.replay_frozen_bytes(
+                self.meta, self.rapid, raw, "source_sha_tamper")
+            forged = dict(observed, refusal="unrelated failure")
+            with self.assertRaisesRegex(ValueError, "frozen source SHA mismatch importer refusal"):
+                replay.verify_replay_observation(forged, forged, raw,
+                                                 "source_sha_tamper")
 
 if __name__ == "__main__":
     unittest.main()
