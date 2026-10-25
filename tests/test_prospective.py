@@ -76,6 +76,79 @@ def _write_batch_record(root: Path, batch_id: str, record: dict) -> Path:
     )
 
 
+@pytest.mark.parametrize(
+    ("declared_utc", "must_refuse"),
+    [
+        ("2026-09-14T00:10:00Z", False),
+        ("2026-09-14T01:10:00+01:00", False),
+        ("2026-09-14T00:10:00.001Z", True),
+        ("2026-09-14T00:20:00Z", True),
+    ],
+)
+def test_a4_prospective_declaration_must_precede_first_retained_run(
+    tmp_path: Path, declared_utc: str, must_refuse: bool
+) -> None:
+    """Chronology is checked in UTC, not the textual timezone representation."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    decl = _declare(root, batch)
+    decl["declared_utc"] = declared_utc
+    prospective.write_declaration(root, decl)
+    _write_batch_record(root, batch, _record(root, batch, "run-one"))
+
+    if must_refuse:
+        with pytest.raises(
+            prospective.ProspectiveRefusal,
+            match="run run-one: started before prospective batch declaration",
+        ):
+            prospective.check_batch(root, batch)
+    else:
+        assert prospective.check_batch(root, batch)["ok"] is True
+
+
+@pytest.mark.parametrize(
+    "declared_utc",
+    [None, "", "not-a-timestamp", "2026-09-14T00:00:00", "OMITTED"],
+)
+def test_a4_missing_or_invalid_declaration_clock_cannot_pass(
+    tmp_path: Path, declared_utc: str | None
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    decl = _declare(root, batch)
+    if declared_utc == "OMITTED":
+        del decl["declared_utc"]
+    else:
+        decl["declared_utc"] = declared_utc
+    prospective.write_declaration(root, decl)
+    _write_batch_record(root, batch, _record(root, batch, "run-one"))
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="batch declaration has missing or invalid declared_utc",
+    ):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_late_declaration_cannot_hide_earlier_failed_topic(
+    tmp_path: Path,
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    decl = _declare(root, batch)
+    decl["declared_utc"] = "2026-09-14T00:20:00Z"
+    prospective.write_declaration(root, decl)
+    failed = _record(root, batch, "run-failed")
+    failed["outcome"] = "FAILED_CRASH"
+    _write_batch_record(root, batch, failed)
+
+    with pytest.raises(prospective.ProspectiveRefusal) as exc_info:
+        prospective.check_batch(root, batch)
+    reasons = str(exc_info.value)
+    assert "run run-failed: started before prospective batch declaration" in reasons
+    assert "FAILED_CRASH" in reasons
+
+
 def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     decl = _declare(root)
