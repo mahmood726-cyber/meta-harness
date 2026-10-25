@@ -217,6 +217,37 @@ def test_a4_run_identity_absent_or_invalid_refuses_batch(
         prospective.check_batch(root, batch)
 
 
+@pytest.mark.parametrize("precreate_runs_dir", [False, True])
+def test_a4_empty_retained_run_census_refuses_success(
+    tmp_path: Path, precreate_runs_dir: bool
+) -> None:
+    """A valid freeze declaration without executed runs cannot pass A4."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    if precreate_runs_dir:
+        (root / "prospective" / batch / "runs").mkdir(parents=True)
+    assert prospective.load_run_records(root, batch) == []
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="no retained prospective run records",
+    ):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_one_retained_completed_run_remains_eligible_for_structural_check(
+    tmp_path: Path,
+) -> None:
+    """The empty-census refusal does not reject nonempty valid run evidence."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-one"))
+    result = prospective.check_batch(root, batch)
+    assert result["run_records"] == 1
+    assert result["ok"] is True
+
+
 def test_a4_distinct_valid_run_ids_keep_successful_census(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     batch = "batch-plant"
