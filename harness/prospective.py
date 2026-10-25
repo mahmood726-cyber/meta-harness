@@ -439,11 +439,33 @@ def load_defects(root: str | os.PathLike[str], batch_id: str) -> list[dict[str, 
 
 def _run_record_paths(root: Path, batch_id: str) -> list[Path]:
     base = root / "prospective" / batch_id
+    # A4: retained run evidence must be inside the batch archive.  A symlink
+    # can otherwise import an externally mutable record or silently omit a
+    # dangling record (Path.is_file follows links and returns False).
+    if base.is_symlink():
+        raise ProspectiveRefusal(f"prospective batch archive is a symlink: {base}")
     if not base.exists():
         return []
+    archive_root = base.resolve()
+    if not _inside(archive_root, root.resolve()):
+        raise ProspectiveRefusal(
+            f"prospective batch archive escapes the repository: {base}"
+        )
     paths: set[Path] = set()
     for pattern in ("runs/*.json", "runs/**/run_record.json", "**/run_record.json"):
-        paths.update(p.resolve() for p in base.glob(pattern) if p.is_file())
+        for candidate in base.glob(pattern):
+            if candidate.is_symlink():
+                raise ProspectiveRefusal(
+                    f"prospective run record is a symlink, not retained evidence: {candidate}"
+                )
+            if not candidate.is_file():
+                continue
+            resolved = candidate.resolve()
+            if not _inside(resolved, archive_root):
+                raise ProspectiveRefusal(
+                    f"prospective run record escapes the batch archive: {candidate}"
+                )
+            paths.add(resolved)
     return sorted(paths)
 
 
