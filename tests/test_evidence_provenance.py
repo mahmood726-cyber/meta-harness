@@ -98,5 +98,11 @@ class ProvenanceTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate_extraction(record, b"page 1: HR 0.80")
 
+
+    def test_invalid_analysis_object_refused(self):
+        self.assertFalse(can_pool(None, {}))
+        self.assertFalse(can_pool([], {}))
+        self.assertFalse(can_pool("ALLOW", {}))
+
 if __name__ == "__main__":
     unittest.main()
