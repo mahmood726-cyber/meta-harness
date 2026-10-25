@@ -12,10 +12,13 @@ include the other reader's response (a reader shown the first answer is a confir
 
 Per OUTCOME (field, arm):
   AGREED       both readers give the same typed value, each with its own verified passage containing it;
-  ADJUDICATED  they differ (or one is missing / unsupported) and an adjudication names a decided value that is IN a
-               verified passage. The adjudicator may not be either reader's record. The passage decides; a third
-               opinion without one is refused -- this is the repo's "decided by arithmetic, not vote" rule;
-  UNRESOLVED   anything else. An UNRESOLVED outcome field blocks a match claim.
+  UNRESOLVED   readers disagree, one is unsupported, or a proposed adjudication exists without
+               an independently authenticated blinded external-review receipt. Source-supported
+               arithmetic may identify a proposed value, but does NOT verify human independence.
+               Preserve both reader observations and claimed adjudicator identities for review.
+               An UNRESOLVED outcome field blocks a match claim.
+No authenticated external-adjudication receipt verifier is implemented in this module.
+A caller-supplied "human", "blinded" or "independent" flag is not such verification.
 """
 from __future__ import annotations
 
@@ -96,9 +99,18 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
         adj.setdefault((a.get("field"), a.get("arm")), []).append(a)
     out = {}
     for k in keys:
-        vals, probs = [], []
+        vals, probs, reader_candidates = [], [], []
         for n, m in enumerate(by_reader):
             its = m.get(k, [])
+            actor = readings[n].get("reader") or {}
+            # Do not drop explicit 0 or False through truthiness coercion. The
+            # source_checked flag distinguishes a typed, sourced reading from
+            # a rejected raw observation; identities here are self-reported.
+            candidate = {"reader_family_claimed": actor.get("family"),
+                         "reader_record_id_claimed": actor.get("record_id"),
+                         "raw_value": its[0].get("value") if len(its) == 1 else None,
+                         "source_checked": False}
+            reader_candidates.append(candidate)
             if len(its) != 1:
                 probs.append(f"reader {n + 1}: {len(its)} values for {k} (need exactly one)")
                 vals.append(None)
@@ -109,12 +121,18 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
                 vals.append(None)
             else:
                 vals.append(its[0]["value"])
-        if not indep and len(vals) == 2 and vals[0] is not None and vals[1] is not None and same_value(*vals):
+                candidate["source_checked"] = True
+        # Even two agreeing models cannot silently override an additional
+        # dissenting human/model annotation. No external blinded adjudication
+        # receipt is independently verifiable here, so manual review is owed.
+        if (not adj.get(k) and not indep and len(vals) == 2 and
+                vals[0] is not None and vals[1] is not None and same_value(*vals)):
             out[k] = {"status": "AGREED", "value": vals[0], "problems": []}
             continue
         if not indep and len(vals) == 2 and None not in vals:
             probs.append(f"readers disagree: {vals[0]!r} vs {vals[1]!r}")
         decided = None
+        adjudication_proposals = []
         for a in adj.get(k, []):
             who = a.get("adjudicator") or {}
             ap = []
@@ -126,14 +144,25 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
                 ap.append("adjudication without a rationale")
             ap += item_problems({"field": k[0], "arm": k[1], "value": a.get("decided_value"),
                                  "passage": a.get("passage")}, docs_root, cache)
+            adjudication_proposals.append({
+                "actor_kind_claimed": who.get("kind"),
+                "actor_name_claimed": who.get("name"),
+                "actor_record_id_claimed": who.get("record_id"),
+                "raw_value": a.get("decided_value"),
+                "source_checked": not ap,
+            })
             if ap:
                 probs.append("adjudication refused: " + "; ".join(ap))
             else:
                 decided = a.get("decided_value")
         if indep:
-            out[k] = {"status": "UNRESOLVED", "value": None, "problems": ["readings are not independent"] + probs}
-        elif decided is not None:
-            out[k] = {"status": "ADJUDICATED", "value": decided, "problems": probs}
-        else:
-            out[k] = {"status": "UNRESOLVED", "value": None, "problems": probs or ["no agreement and no adjudication"]}
+            probs.insert(0, "readings are not independent")
+        if adj.get(k):
+            # A quoted passage verifies neither blinding nor an actual external
+            # reviewer. Do not promote a source-backed self-attestation to PASS.
+            probs.append("external blinded adjudication is not authenticated; manual review required")
+        out[k] = {"status": "UNRESOLVED", "value": None,
+                  "problems": probs or ["no agreement and no adjudication"],
+                  "reader_candidates": reader_candidates,
+                  "adjudication_proposals": adjudication_proposals}
     return {"independence": indep, "fields": out}
