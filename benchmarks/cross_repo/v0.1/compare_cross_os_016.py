@@ -87,6 +87,9 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
     assert_equal(index.get("external_R_oracle"), "NOT_TESTED", "R oracle scope")
     assert_equal(index.get("four_repo_suite"), "NOT_RUN", "ecosystem scope")
     assert_equal(index.get("human_adjudication"), "NOT_TESTED", "human adjudication scope")
+    # An archived self-reported clinical status is not an independent verdict.
+    # Refuse promotion even when both OS archives agree and rehash receipts.
+    assert_equal(index.get("clinical_validation"), "NOT_TESTED", "clinical validation scope")
     engine_sha = index.get("rapidmeta_engine_sha256")
     if not isinstance(engine_sha, str) or len(engine_sha) != 64 or any(ch not in "0123456789abcdef" for ch in engine_sha):
         raise ValueError("engine SHA256 is absent or malformed")
@@ -128,6 +131,8 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
     for label, expected in scenarios.items():
         raw = (root / "inputs" / f"{label}.json").read_bytes()
         result = load_json(root / "results" / f"{label}.json")
+        assert_equal(result.get("clinical_validation"), "NOT_TESTED",
+                     f"case clinical validation scope {label}")
         input_sha = digest(raw)
         # A hash receipt inside the same producer archive does not freeze the
         # expected raw input. Bind the two critical no-pool cases to bytes
