@@ -92,6 +92,73 @@ def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path
         prospective.check_declaration_frozen(root, decl)
 
 
+def test_batch_declaration_is_write_once_even_when_repeated_identically(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    declaration = _declare(root)
+    path = prospective.declaration_path(root, declaration["batch_id"])
+    original = path.read_bytes()
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="already exists"):
+        prospective.write_declaration(root, declaration)
+
+    assert path.read_bytes() == original
+    assert prospective.load_declaration(root, declaration["batch_id"]) == declaration
+
+
+def test_batch_declaration_rejects_posthoc_threshold_and_universe_rewrites(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    declaration = _declare(root)
+    path = prospective.declaration_path(root, declaration["batch_id"])
+    original = path.read_bytes()
+
+    for key, change in (
+        ("time_limit_s", 3600),
+        ("invariants", ["census"]),
+        ("universe_ref", {"definition": "different universe", "version": "v2"}),
+        ("custodian_commitment_sha", "f" * 64),
+    ):
+        mutated = dict(declaration)
+        mutated[key] = change
+        with pytest.raises(prospective.ProspectiveRefusal, match="already exists"):
+            prospective.write_declaration(root, mutated)
+        assert path.read_bytes() == original
+
+
+def test_batch_declaration_refuses_existing_partial_file(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    path = prospective.declaration_path(root, "batch-plant")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("{", encoding="utf-8")
+    declaration = prospective.batch_declaration(
+        root, "batch-plant", 60, ["census"], COMMITMENT,
+        {"definition": "test", "version": "v1", "digest": "b" * 64},
+    )
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="already exists"):
+        prospective.write_declaration(root, declaration)
+    assert path.read_text(encoding="utf-8") == "{"
+
+
+def test_batch_declaration_refuses_symlinked_external_parent(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    external = tmp_path / "external-declarations"
+    external.mkdir()
+    (root / "prospective").mkdir()
+    parent = root / "prospective" / "batch-plant"
+    try:
+        parent.symlink_to(external, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("directory symlinks unavailable on this runner")
+    declaration = prospective.batch_declaration(
+        root, "batch-plant", 60, ["census"], COMMITMENT,
+        {"definition": "test", "version": "v1", "digest": "b" * 64},
+    )
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="escapes repository"):
+        prospective.write_declaration(root, declaration)
+    assert not (external / "declaration.json").exists()
+
+
 def test_append_defect_outside_tree_leaves_architecture_identity_unchanged(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     before = architecture_identity.identity(root)
