@@ -69,7 +69,16 @@ def preflight(rapidmeta: Path) -> tuple[str, str]:
     engine = rapidmeta / ENGINE
     if not engine.is_file():
         raise RuntimeError("Pinned RapidMeta production pairwise engine unavailable")
-    return actual, sha(engine.read_bytes())
+    # A pinned Git HEAD alone does not establish the bytes Node will execute:
+    # the checkout could contain a modified/untracked engine at the same path.
+    # Bind the actual engine worktree bytes to the immutable pinned Git blob.
+    committed_engine = subprocess.check_output(
+        ["git", "-C", str(rapidmeta), "show", f"HEAD:{ENGINE}"],
+        timeout=15,
+    )
+    if sha(engine.read_bytes()) != sha(committed_engine):
+        raise RuntimeError("RapidMeta engine worktree differs from pinned Git blob; refuse handoff")
+    return actual, sha(committed_engine)
 
 
 def produce(decision: str) -> dict:
