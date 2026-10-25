@@ -187,6 +187,22 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "registered negative input SHA256 refuse"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
+    def test_two_os_rehashed_negative_tau2_cannot_pass_synthetic_smoke(self):
+        # Source-backed output-contract gap: the earlier comparator accepted
+        # matching, internally rehashed negative variance values on both OSes.
+        # Frozen input SHA, engine pin and all statuses remain unchanged.
+        for directory in (self.ubuntu, self.windows):
+            path = directory / "results" / "allow_rr_itt.json"
+            result = json.loads(path.read_text(encoding="utf-8"))
+            result["consumer"]["engine_output"]["tau2"] = -0.01
+            path.write_bytes(wire(result))
+            index_path = directory / "index.json"
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            index["digests"]["results/allow_rr_itt.json"] = comparator.digest(path.read_bytes())
+            index_path.write_bytes(wire(index))
+        with self.assertRaisesRegex(ValueError, "negative heterogeneity variance"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
     def test_cross_os_mu_log_drift_refuses_with_recomputed_sha_receipt(self):
         # These are synthetic archive fixtures, not real GitHub Actions output.
         self._rewrite_result("allow_rr_itt", lambda data:
