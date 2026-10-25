@@ -123,3 +123,51 @@ def test_missing_ledger_is_not_accepted_as_preserved(tmp_path, monkeypatch):
     (snapshot / "retrieval_ledger.json").unlink()
     with pytest.raises(SystemExit, match="retrieval_ledger"):
         archive.check(str(snapshot), None)
+
+
+def test_reject_archive_root_inside_repository_before_any_movement(tmp_path, monkeypatch):
+    snapshot, rows, _ = _fixture(tmp_path, monkeypatch)
+    repo_root = Path(archive.ROOT)
+    with pytest.raises(SystemExit, match="outside the repository"):
+        archive.move(str(snapshot), str(repo_root / "internal-archive"))
+    assert (snapshot / rows[0]["path"]).exists()
+    assert not (snapshot / "ARCHIVE.json").exists()
+    assert not (repo_root / "internal-archive").exists()
+
+
+def test_reject_symlinked_archive_root_back_into_repository(tmp_path, monkeypatch):
+    snapshot, rows, _ = _fixture(tmp_path, monkeypatch)
+    alias = tmp_path / "archive-alias"
+    try:
+        alias.symlink_to(Path(archive.ROOT), target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("local filesystem does not permit directory symlinks")
+    with pytest.raises(SystemExit, match="outside the repository"):
+        archive.move(str(snapshot), str(alias))
+    assert (snapshot / rows[0]["path"]).exists()
+
+
+def test_reject_snapshot_symlink_escaping_repository(tmp_path, monkeypatch):
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    escaped = tmp_path / "escaped-snapshot"
+    snapshot.rename(escaped)
+    try:
+        snapshot.symlink_to(escaped, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("local filesystem does not permit directory symlinks")
+    with pytest.raises(SystemExit, match="inside the repository"):
+        archive.check(str(snapshot), None)
+    with pytest.raises(SystemExit, match="inside the repository"):
+        archive.move(str(snapshot), str(archive_root))
+    assert (escaped / rows[0]["path"]).exists()
+
+
+def test_reject_pointer_retargeted_to_local_repository_archive(tmp_path, monkeypatch):
+    snapshot, _, archive_root = _fixture(tmp_path, monkeypatch)
+    archive.move(str(snapshot), str(archive_root))
+    pointer_path = snapshot / "ARCHIVE.json"
+    pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
+    pointer["archive_root"] = str(Path(archive.ROOT) / "internal-archive")
+    pointer_path.write_text(json.dumps(pointer), encoding="utf-8")
+    with pytest.raises(SystemExit, match="outside the repository"):
+        archive.check(str(snapshot), None)
