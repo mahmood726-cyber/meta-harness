@@ -76,6 +76,63 @@ def _write_batch_record(root: Path, batch_id: str, record: dict) -> Path:
     )
 
 
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_a4_symlinked_run_record_cannot_pass_retained_archive_census(
+    tmp_path: Path, target_exists: bool
+) -> None:
+    """External or dangling links are neither safe evidence nor silent skips."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-valid"))
+    external = tmp_path / "externally-mutable-run.json"
+    if target_exists:
+        prospective.write_run_record(
+            external, _record(root, batch, "run-external")
+        )
+    linked = root / "prospective" / batch / "runs" / "linked.json"
+    linked.symlink_to(external)
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="prospective run record is a symlink",
+    ):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_symlinked_prospective_parent_cannot_import_external_archive(
+    tmp_path: Path,
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    external = tmp_path / "external-archive"
+    prospective.write_run_record(
+        external / batch / "runs" / "run-valid",
+        _record(root, batch, "run-valid"),
+    )
+    (root / "prospective").symlink_to(external, target_is_directory=True)
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="prospective batch archive escapes the repository",
+    ):
+        prospective.load_run_records(root, batch)
+
+
+def test_a4_regular_archived_nested_and_flat_run_records_remain_valid(
+    tmp_path: Path,
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-nested"))
+    prospective.write_run_record(
+        root / "prospective" / batch / "runs" / "run-flat.json",
+        _record(root, batch, "run-flat"),
+    )
+    records = prospective.load_run_records(root, batch)
+    assert {record["run_id"] for record in records} == {"run-nested", "run-flat"}
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+
 def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     decl = _declare(root)
