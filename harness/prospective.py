@@ -522,6 +522,27 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         reasons.append(str(exc))
 
     records = load_run_records(repo, batch)
+    # A4/B1: a recorded declaration after topic execution began is not a
+    # prospective freeze.  Validate the archive's chronology even when the
+    # architecture identities match; a self-reported timestamp is not proof
+    # of independent preregistration or external custody.
+    declared_at = None
+    try:
+        declared_at = _parse_utc(decl.get("declared_utc"))
+    except ProspectiveRefusal as exc:
+        reasons.append(f"batch declaration has missing or invalid declared_utc: {exc}")
+    if declared_at is not None:
+        for record in records:
+            try:
+                started_at = _parse_utc(record.get("started_utc"))
+            except ProspectiveRefusal:
+                # The existing A4 time-limit check independently refuses a
+                # missing or invalid start clock.
+                continue
+            if started_at < declared_at:
+                reasons.append(
+                    f"run {record.get('run_id')}: started before prospective batch declaration"
+                )
     # A4: a declaration alone is not evidence that any prospective topic ran.
     # Never label an empty batch as successfully checked.
     if not records:
