@@ -236,6 +236,11 @@ def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
                               label: str = "manual_review"):
     """Recomputed archive hashes must not substitute for observed refusal."""
     assert_registered_refusal_input(raw, label)
+    # bool and int compare equal in Python (0 == False). A numeric archived
+    # no-pool receipt must never masquerade as an actual JSON boolean.
+    for provenance, result in (("replayed", observed), ("archived", archived)):
+        if not isinstance(result, dict) or type(result.get("engine_invoked")) is not bool:
+            raise ValueError(f"{provenance} engine_invoked must be JSON boolean")
     for name, value in (
         ("case", label), ("input_sha256", digest(raw)),
         ("status", "REFUSED"), ("engine_invoked", False)
