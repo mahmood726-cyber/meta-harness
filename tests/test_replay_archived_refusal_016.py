@@ -41,7 +41,7 @@ def consume(raw, rapid, label):
         subprocess.run(['node', '--version'])
     return {'case': label, 'input_sha256': hashlib.sha256(raw).hexdigest(),
             'status': 'REFUSED', 'engine_invoked': False,
-            'refusal': 'requires manual review'}
+            'refusal': ('Declared trial_id does not match verbatim source'\n                        if label == 'source_trial_mismatch'\n                        else 'requires manual review')}
 """ % ("True" if invokes_engine else "False"), encoding="utf-8"
         )
 
@@ -124,6 +124,60 @@ def consume(raw, rapid, label):
         with self.assertRaisesRegex(ValueError, "duplicate replay result member"):
             replay.replay_frozen_bytes(
                 self.meta, self.rapid, raw, "refuse")
+
+
+    def trial_wire(self, *, claim="SYN-TRIAL-99", decision="ALLOW"):
+        # Standalone fixture: not the immutable two-row pinned source. Real CI
+        # independently replays the archived frozen producer on both OSes.
+        return json.dumps({"rows": [{
+            "decision": decision, "trial_id": claim,
+            "source_span": {"verbatim": "SYN-TRIAL-01 tE=4 tN=20 cE=5 cN=20"}
+        }]}).encode("utf-8")
+
+    def test_accepted_importer_trial_bridge_replays_without_pool(self):
+        self.stub()
+        raw = self.trial_wire()
+        observed, receipt = replay.replay_frozen_bytes(
+            self.meta, self.rapid, raw, "source_trial_mismatch")
+        self.assertEqual(observed["refusal"], replay.TRIAL_BRIDGE_REFUSAL)
+        self.assertEqual(observed["status"], "REFUSED")
+        self.assertFalse(observed["engine_invoked"])
+        self.assertEqual(len(receipt), 64)
+        replay.verify_replay_observation(
+            observed, dict(observed), raw, "source_trial_mismatch")
+
+    def test_accepted_importer_trial_bridge_trips_if_pool_attempted(self):
+        self.stub(invokes_engine=True)
+        with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
+            replay.replay_frozen_bytes(
+                self.meta, self.rapid, self.trial_wire(), "source_trial_mismatch")
+
+    def test_trial_bridge_refuses_wire_without_actual_discrepancy(self):
+        self.stub()
+        with self.assertRaisesRegex(ValueError, "exactly one source/trial mismatch"):
+            replay.replay_frozen_bytes(
+                self.meta, self.rapid, self.trial_wire(claim="SYN-TRIAL-01"),
+                "source_trial_mismatch")
+
+    def test_trial_bridge_refuses_wrong_importer_decision(self):
+        self.stub()
+        with self.assertRaisesRegex(ValueError, "label/decision mismatch"):
+            replay.replay_frozen_bytes(
+                self.meta, self.rapid, self.trial_wire(decision="REFUSE"),
+                "source_trial_mismatch")
+
+    def test_trial_bridge_requires_specific_replayed_refusal(self):
+        self.stub()
+        raw = self.trial_wire()
+        observed, _ = replay.replay_frozen_bytes(
+            self.meta, self.rapid, raw, "source_trial_mismatch")
+        forged = dict(observed, refusal="some unrelated error")
+        with self.assertRaisesRegex(ValueError, "archived/frozen refusal provenance"):
+            replay.verify_replay_observation(
+                observed, forged, raw, "source_trial_mismatch")
+        with self.assertRaisesRegex(ValueError, "accepted-importer source/trial bridge refusal"):
+            replay.verify_replay_observation(
+                forged, forged, raw, "source_trial_mismatch")
 
     def test_unknown_replay_label_fails_before_child_or_engine(self):
         self.stub()
