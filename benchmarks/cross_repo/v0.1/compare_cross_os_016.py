@@ -45,6 +45,30 @@ def assert_equal(left, right, explanation):
         raise ValueError(f"{explanation}: {left!r} != {right!r}")
 
 
+def _archive_file(root: Path, relative: str) -> Path:
+    """Only read a real in-archive file, never a link or traversal alias.
+
+    Digest equality alone cannot establish custody when an archived path (or
+    its parent directory) resolves through a symlink to external mutable bytes.
+    This check is for downloaded CI artefacts, not historical clinical data.
+    """
+    parts = relative.split("/")
+    if (not relative or "\\\\" in relative or
+            any(part in {"", ".", ".."} for part in parts)):
+        raise ValueError(f"invalid archived relative path: {relative}")
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("archive root is a symlink or not a directory")
+    parent = root
+    for segment in parts[:-1]:
+        parent = parent / segment
+        if parent.is_symlink() or not parent.is_dir():
+            raise ValueError(f"archive parent is a symlink or not a directory: {relative}")
+    path = parent / parts[-1]
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"archive file is a symlink or not regular: {relative}")
+    return path
+
+
 def pinned_engine_digest(registration: dict, rapidmeta: Path) -> str:
     """Independently bind the archived engine identity to an immutable git blob.
 
@@ -71,7 +95,7 @@ def pinned_engine_digest(registration: dict, rapidmeta: Path) -> str:
 def check_archive(registration: dict, registration_sha: str, root: Path,
                   os_name: str, expected_engine_sha256: str):
     """Rehash and inspect one real CI job archive without invoking a producer."""
-    index = load_json(root / "index.json")
+    index = load_json(_archive_file(root, "index.json"))
     assert_equal(index.get("case_id"), CASE_ID, "case ID")
     assert_equal(index.get("evidence_scope"),
                  "SYNTHETIC_FROZEN_TWO_REPOSITORY_CLI_API_HANDOFF_ONLY", "scope")
@@ -124,15 +148,15 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
         raise ValueError("incomplete or unexpected archive receipts")
     for name in sorted(expected_files):
         checksum = index["digests"][name]
-        if not isinstance(checksum, str) or len(checksum) != 64 or digest((root / name).read_bytes()) != checksum:
+        if not isinstance(checksum, str) or len(checksum) != 64 or digest(_archive_file(root, name).read_bytes()) != checksum:
             raise ValueError(f"archived SHA256 integrity failure: {os_name}/{name}")
     assert_equal(index["digests"]["source.txt"], index["source_sha256"], "archived source receipt")
 
     decisions = {}
     numerical_controls = {}
     for label, expected in scenarios.items():
-        raw = (root / "inputs" / f"{label}.json").read_bytes()
-        result = load_json(root / "results" / f"{label}.json")
+        raw = _archive_file(root, f"inputs/{label}.json").read_bytes()
+        result = load_json(_archive_file(root, f"results/{label}.json"))
         assert_equal(result.get("clinical_validation"), "NOT_TESTED",
                      f"case clinical validation scope {label}")
         input_sha = digest(raw)
@@ -203,7 +227,7 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
             "downstream_refusal": downstream_refusal,
             "engine_invoked": consumer["engine_invoked"],
         }
-    return {"runner": os_name, "index_sha256": digest((root / "index.json").read_bytes()),
+    return {"runner": os_name, "index_sha256": digest(_archive_file(root, "index.json").read_bytes()),
             "source_sha256": index["source_sha256"],
             "rapidmeta_engine_sha256": engine_sha,
             "digest_receipts_verified": len(expected_files),
