@@ -513,7 +513,7 @@ def _retained_artefact_errors(record_path: Path, record: dict[str, Any]) -> list
         if (
             type(rel) is not str
             or not rel
-            or "\\\\" in rel
+            or "\\" in rel
             or ":" in rel
             or Path(rel).is_absolute()
             or any(part in {"", ".", ".."} for part in rel.split("/"))
