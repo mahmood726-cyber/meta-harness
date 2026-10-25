@@ -282,6 +282,76 @@ def consume(raw, rapid, label):
         comparator.assert_called_once_with(registration, ubuntu, windows, pinned)
         replay_child.assert_not_called()
 
+    def test_post_comparison_result_bytes_match_original_index(self):
+        """The compared index receipt authenticates the actual parsed bytes."""
+        archive = self.root / "ubuntu"
+        target = archive / "results" / "refuse.json"
+        target.parent.mkdir(parents=True)
+        output = {"consumer": {"case": "refuse", "status": "REFUSED",
+                               "engine_invoked": False, "refusal": "registered"}}
+        original = json.dumps(output, sort_keys=True).encode("utf-8")
+        target.write_bytes(original)
+        index_raw = json.dumps({"digests": {
+            "results/refuse.json": hashlib.sha256(original).hexdigest()
+        }}).encode("utf-8")
+        (archive / "index.json").write_bytes(index_raw)
+        consumer, receipt = replay.verified_archived_consumer(
+            archive, "refuse", hashlib.sha256(index_raw).hexdigest())
+        self.assertEqual(consumer, output["consumer"])
+        self.assertEqual(receipt, hashlib.sha256(original).hexdigest())
+
+    def test_post_comparison_regular_result_drift_stops_child(self):
+        """A changed ordinary result is rejected even if it still says REFUSED."""
+        raw = b'{"rows":[{"decision":"REFUSE","trial_id":"SYN-TRIAL-01"}]}'
+        registration = self.root / "registration.json"
+        registration.write_text(json.dumps({"negative_input_sha256": {
+            "refuse": hashlib.sha256(raw).hexdigest()
+        }}), encoding="utf-8")
+        ubuntu, windows = self.root / "ubuntu", self.root / "windows"
+        input_path = ubuntu / "inputs" / "refuse.json"
+        result_path = ubuntu / "results" / "refuse.json"
+        input_path.parent.mkdir(parents=True)
+        result_path.parent.mkdir(parents=True)
+        input_path.write_bytes(raw)
+        original = b'{"consumer":{"case":"refuse","status":"REFUSED","refusal":"original"}}'
+        modified = original.replace(b"original", b"forged")
+        result_path.write_bytes(modified)  # plain file, not a symlink
+        index_raw = json.dumps({"digests": {
+            "results/refuse.json": hashlib.sha256(original).hexdigest()
+        }}).encode("utf-8")
+        (ubuntu / "index.json").write_bytes(index_raw)
+        archived_comparison = {"overall": "PASS", "archives": {
+            "ubuntu-24.04": {"index_sha256": hashlib.sha256(index_raw).hexdigest()}
+        }}
+        with (mock.patch.object(replay, "exact_checkout_checks",
+                                return_value={"engine_sha256": "d" * 64}),
+              mock.patch.object(replay, "compare",
+                                return_value=archived_comparison) as comparator,
+              mock.patch.object(replay, "replay_frozen_bytes") as child):
+            with self.assertRaisesRegex(
+                ValueError, "post-comparison archived result SHA256 drift: refuse"
+            ):
+                replay.run(registration, ubuntu, windows, self.meta, self.rapid)
+            comparator.assert_called_once()
+            child.assert_not_called()
+
+    def test_post_comparison_index_drift_refused_before_result_parse(self):
+        """Even a valid result cannot inherit an altered index's prior PASS."""
+        archive = self.root / "ubuntu"
+        target = archive / "results" / "refuse.json"
+        target.parent.mkdir(parents=True)
+        raw = b'{"consumer":{"case":"refuse","status":"REFUSED"}}'
+        target.write_bytes(raw)
+        original = json.dumps({"digests": {
+            "results/refuse.json": hashlib.sha256(raw).hexdigest()
+        }}).encode("utf-8")
+        (archive / "index.json").write_bytes(original + b" ")
+        with self.assertRaisesRegex(
+            ValueError, "post-comparison archived index SHA256 drift"
+        ):
+            replay.verified_archived_consumer(
+                archive, "refuse", hashlib.sha256(original).hexdigest())
+
     def test_post_comparison_regular_refusal_input_drift_refuses_before_child(self):
         """A substituted *regular* file must not inherit a prior SHA PASS.
 
