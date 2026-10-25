@@ -184,14 +184,30 @@ def declaration_path(root: str | os.PathLike[str], batch_id: str) -> Path:
 
 
 def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Path:
+    """Create a batch declaration once, without silently changing a preregistration.
+
+    Exclusive creation prevents ordinary reruns or concurrent writers from
+    replacing thresholds, invariants or the declared eligibility universe.
+    It is *not* a substitute for an independently held prior digest: someone
+    with filesystem write access can still alter the file directly.
+    """
+    repo = _root_path(root)
     batch = _require_safe_name(decl.get("batch_id"), "batch_id")
-    path = declaration_path(root, batch)
+    path = declaration_path(repo, batch)
+    # Resolve symlinked ancestors before writing so a batch directory cannot
+    # redirect the declaration outside its specified repository.
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(decl, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    if not path.parent.resolve().is_relative_to(repo):
+        raise ProspectiveRefusal("batch declaration directory escapes repository")
+    payload = json.dumps(decl, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    try:
+        with path.open("x", encoding="utf-8", newline="\n") as output:
+            output.write(payload)
+    except FileExistsError as exc:
+        raise ProspectiveRefusal(
+            f"batch declaration already exists for {batch!r}; "
+            "do not overwrite a preregistered batch"
+        ) from exc
     return path
 
 
