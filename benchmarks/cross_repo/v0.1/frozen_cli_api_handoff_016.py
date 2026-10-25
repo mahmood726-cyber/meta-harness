@@ -33,6 +33,37 @@ def git_head(root: Path) -> str:
     ).strip()
 
 
+PRODUCER_CODE_PATHS = (
+    "harness/exchange_v01.py",
+    "benchmarks/cross_repo/v0.1/pinned_pairwise_canary.py",
+)
+
+
+def pinned_meta_code_sha256(spec: dict, meta: Path) -> dict[str, str]:
+    """Require the exact committed importer and producer bytes, not just HEAD.
+
+    A checkout can report the frozen commit while locally modified code is
+    executed. Compare both files against immutable Git blobs before any
+    importer or RapidMeta engine is invoked. Symlink aliases fail closed.
+    """
+    expected = spec["repositories"]["meta-harness"]["commit"]
+    actual = git_head(meta)
+    if actual != expected:
+        raise ValueError(f"frozen Meta-Harness checkout pin mismatch: {actual} != {expected}")
+    digests = {}
+    for relative in PRODUCER_CODE_PATHS:
+        path = meta / relative
+        if path.is_symlink():
+            raise ValueError(f"symlinked frozen Meta-Harness code: {relative}")
+        committed = subprocess.check_output(
+            ["git", "-C", str(meta), "show", f"HEAD:{relative}"], timeout=15
+        )
+        if path.read_bytes() != committed:
+            raise ValueError(f"dirty frozen Meta-Harness code: {relative}")
+        digests[relative] = sha(committed)
+    return digests
+
+
 def no_duplicates(pairs):
     obj = {}
     for key, value in pairs:
@@ -143,6 +174,8 @@ def main() -> None:
     output = args.output.resolve()
     registration = Path(__file__).parent / "frozen-cli-api-016.json"
     spec, registration_bytes = frozen_spec(registration, meta, rapid)
+    # git rev-parse HEAD alone does not establish which bytes Python executes.
+    producer_code_sha256 = pinned_meta_code_sha256(spec, meta)
 
     producer_file = meta / "benchmarks/cross_repo/v0.1/pinned_pairwise_canary.py"
     spec_module = importlib.util.spec_from_file_location("frozen_producer_016", producer_file)
@@ -249,6 +282,7 @@ def main() -> None:
         "evidence_scope": "SYNTHETIC_FROZEN_TWO_REPOSITORY_CLI_API_HANDOFF_ONLY",
         "registration_sha256": sha(registration_bytes),
         "meta_harness_commit": git_head(meta),
+        "meta_producer_code_sha256": producer_code_sha256,
         "rapidmeta_commit": git_head(rapid),
         "python_runtime": platform.python_version(),
         "node_runtime": subprocess.check_output(["node", "--version"], text=True).strip(),
