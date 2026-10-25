@@ -383,6 +383,34 @@ def test_a4_completed_run_exceeding_registered_time_limit_refuses(
     assert "FAILED_TIMEOUT" in text
 
 
+@pytest.mark.parametrize(("field", "value"), [
+    ("started_utc", None),
+    ("finished_utc", None),
+    ("started_utc", ""),
+    ("finished_utc", ""),
+    ("started_utc", "OMIT"),
+    ("finished_utc", "OMIT"),
+])
+def test_a4_missing_clock_cannot_bypass_registered_time_limit(
+    tmp_path: Path, field: str, value: str | None
+) -> None:
+    """A null, blank or omitted clock cannot be treated as a timely run."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-clock-corrupted")
+    if value == "OMIT":
+        record.pop(field)
+    else:
+        record[field] = value
+    _write_batch_record(root, batch, record)
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="missing or invalid timestamps prevent time-limit verification"
+    ):
+        prospective.check_batch(root, batch)
+
+
 @pytest.mark.parametrize("corrupt_limit", [
     0, -1, None, "60", True, float("nan"), float("inf"), float("-inf")
 ])
