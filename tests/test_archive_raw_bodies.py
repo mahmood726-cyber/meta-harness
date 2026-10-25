@@ -191,3 +191,12 @@ def test_reject_nested_archive_symlink_redirecting_custody_back_in_tree(tmp_path
     assert (snapshot / rows[0]["path"]).is_file()
     assert not (snapshot / "ARCHIVE.json").exists()
     assert not (redirected / "topic").exists()
+
+
+def test_archive_body_path_refuses_in_tree_destination_even_without_symlinks(tmp_path, monkeypatch):
+    """Run the resolved-root negative on platforms without symlink privileges."""
+    snapshot, rows, _ = _fixture(tmp_path, monkeypatch)
+    in_tree_destination = Path(archive.ROOT) / "other-archive"
+    with pytest.raises(SystemExit, match="outside the repository"):
+        archive._body_paths(str(snapshot), str(in_tree_destination), rows[0]["path"])
+    assert (snapshot / rows[0]["path"]).is_file()
