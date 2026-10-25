@@ -291,3 +291,30 @@ def test_repeat_move_cannot_retarget_original_archive_custody(tmp_path, monkeypa
     assert receipt.read_bytes() == original
     assert not substitute_root.exists()
     assert archive.check(str(snapshot), None) == (1, [])
+
+
+def test_unreceipted_override_cannot_certify_copied_body(tmp_path, monkeypatch):
+    """An arbitrary off-tree copy cannot replace a missing registered receipt."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    local = snapshot / rows[0]["path"]
+    substitute = archive_root / archive._rel_snapshot(str(snapshot)) / rows[0]["path"]
+    substitute.parent.mkdir(parents=True)
+    substitute.write_bytes(local.read_bytes())
+    local.unlink()
+    assert not (snapshot / "ARCHIVE.json").exists()
+
+    # The old checker returned (1, []) for this unregistered matching copy.
+    with pytest.raises(SystemExit, match="ARCHIVE.json custody receipt"):
+        archive.check(str(snapshot), str(archive_root))
+    ok, problems = archive.check(str(snapshot), None)
+    assert ok == 0 and len(problems) == 1 and "NOT PRESERVED" in problems[0]
+
+
+def test_unarchived_local_verification_unchanged_without_override(tmp_path, monkeypatch):
+    """Local integrity remains checkable before a declared archive move."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    assert archive.check(str(snapshot), None) == (1, [])
+    with pytest.raises(SystemExit, match="ARCHIVE.json custody receipt"):
+        archive.check(str(snapshot), str(archive_root))
+    assert not (snapshot / "ARCHIVE.json").exists()
+    assert (snapshot / rows[0]["path"]).is_file()

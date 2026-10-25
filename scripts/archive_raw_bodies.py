@@ -186,6 +186,11 @@ def check(snapshot: str, archive_root: str | None) -> tuple[int, list[str]]:
     index = _load_index(snapshot)
     pointer_path = os.path.join(snapshot, "ARCHIVE.json")
     pointer = json.load(open(pointer_path, encoding="utf-8")) if os.path.isfile(pointer_path) else None
+    # An arbitrary matching off-tree copy is not evidence of recorded custody.
+    # With no ARCHIVE.json, verify local raw bytes only; never let a caller
+    # supply an unregistered archive directory and obtain a preservation PASS.
+    if pointer is None and archive_root is not None:
+        raise SystemExit("REFUSED: off-tree archive check requires an ARCHIVE.json custody receipt")
     # ARCHIVE.json records the claimed custody location. An explicit check
     # root must not substitute a different archive whose matching bytes conceal
     # a missing/corrupt body at the location actually declared by the pointer.
