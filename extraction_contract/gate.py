@@ -15,8 +15,10 @@ Verdict ALLOW_MATCH_CLAIM only if, for every trial:
   1. every value required by its measure is served, exactly once;
   2. every served value is well-typed, carries a verified passage, and is literally in that passage;
   3. the served values are coherent (events <= total, CI brackets the point, ratios > 0, ...);
-  4. every served OUTCOME value was AGREED or ADJUDICATED by the dual reading, and EQUALS the resolved value
-     (a served number that differs from what both readers and the adjudicator settled is refused);
+  4. every served OUTCOME value is AGREED by independently recorded dual readings and equals
+     the resolved value. Differing readings and any proposed human/model adjudication are
+     UNRESOLVED until an authenticated, blinded external-review verifier exists; a quoted
+     source passage or self-reported reviewer identity alone never promotes a claim.
 and the bundle names this contract's major version and has at least one trial. Anything unreadable is REFUSE.
 """
 from __future__ import annotations
