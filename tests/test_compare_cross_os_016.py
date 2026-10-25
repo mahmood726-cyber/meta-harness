@@ -8,6 +8,7 @@ from pathlib import Path
 import tempfile
 import subprocess
 import unittest
+from unittest import mock
 
 PROGRAM = Path(__file__).resolve().parents[1] / "benchmarks/cross_repo/v0.1/compare_cross_os_016.py"
 SPEC = importlib.util.spec_from_file_location("compare_cross_os_016", PROGRAM)
@@ -297,6 +298,39 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         target.write_bytes(target.read_bytes() + b"X")
         with self.assertRaisesRegex(ValueError, "archived SHA256 integrity failure"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_archive_links_refuse_even_if_bytes_and_sha_receipts_match(self):
+        # Mock the filesystem link bit to execute on both Windows and Linux.
+        # The archived fixture bytes/receipts are otherwise unchanged and
+        # matching, so a SHA-only comparator would accept the linked paths.
+        links = (
+            self.ubuntu,
+            self.ubuntu / "index.json",
+            self.ubuntu / "source.txt",
+            self.ubuntu / "inputs",
+            self.ubuntu / "inputs" / "manual_review.json",
+            self.ubuntu / "results" / "manual_review.json",
+        )
+        for linked in links:
+            with self.subTest(linked=str(linked)):
+                with mock.patch.object(
+                    comparator.Path, "is_symlink", autospec=True,
+                    side_effect=lambda path, target=linked: path == target
+                ):
+                    with self.assertRaisesRegex(ValueError, "archive .*symlink"):
+                        comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_archive_relative_path_aliases_refuse(self):
+        for relative in (
+            "inputs/../source.txt",
+            "inputs/./source.txt",
+            "inputs//source.txt",
+            r"inputs\\source.txt",
+            "/absolute.json",
+        ):
+            with self.subTest(relative=relative):
+                with self.assertRaisesRegex(ValueError, "invalid archived relative path"):
+                    comparator._archive_file(self.ubuntu, relative)
 
     def test_refused_case_engine_invocation_refuses_even_with_updated_receipt(self):
         result_path = self.windows / "results" / "manual_review.json"
