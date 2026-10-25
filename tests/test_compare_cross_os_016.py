@@ -320,6 +320,23 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "archive .*symlink"):
                         comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
+    def test_ntfs_junction_directory_is_a_refused_archive_parent(self):
+        # Portable simulation of Path.is_junction() (Python 3.12+ on Windows).
+        # No Windows privileges or live junction creation needed for this unit
+        # test; the real cross-platform workflow still runs independently.
+        fake = mock.Mock()
+        fake.is_symlink.return_value = False
+        fake.is_junction.return_value = True
+        self.assertTrue(comparator._archive_link(fake))
+        fake.is_junction.return_value = False
+        self.assertFalse(comparator._archive_link(fake))
+        with mock.patch.object(
+            comparator, "_archive_link",
+            side_effect=lambda path: path == self.ubuntu / "results"
+        ):
+            with self.assertRaisesRegex(ValueError, "archive parent is a symlink"):
+                comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
     def test_archive_relative_path_aliases_refuse(self):
         for relative in (
             "inputs/../source.txt",
