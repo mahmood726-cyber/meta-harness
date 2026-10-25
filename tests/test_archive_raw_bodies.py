@@ -200,3 +200,36 @@ def test_archive_body_path_refuses_in_tree_destination_even_without_symlinks(tmp
     with pytest.raises(SystemExit, match="outside the repository"):
         archive._body_paths(str(snapshot), str(in_tree_destination), rows[0]["path"])
     assert (snapshot / rows[0]["path"]).is_file()
+
+
+def test_archived_body_corruption_not_masked_by_restored_local_copy(tmp_path, monkeypatch):
+    """Every extant body copy must verify, not just the first local match."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    local = snapshot / rows[0]["path"]
+    original = local.read_bytes()
+    archive.move(str(snapshot), str(archive_root))
+    archived = archive_root / archive._rel_snapshot(str(snapshot)) / rows[0]["path"]
+    local.parent.mkdir(parents=True, exist_ok=True)
+    local.write_bytes(original)
+    assert archive.check(str(snapshot), None) == (1, [])
+    archived.write_bytes(b"damaged off-tree evidence")
+    ok, problems = archive.check(str(snapshot), None)
+    assert ok == 0
+    assert len(problems) == 1 and "DIGEST MISMATCH" in problems[0]
+    assert local.read_bytes() == original
+
+
+def test_missing_declared_archive_not_masked_by_restored_local_copy(tmp_path, monkeypatch):
+    """After move, an intact local backup cannot certify missing off-tree custody."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    local = snapshot / rows[0]["path"]
+    original = local.read_bytes()
+    archive.move(str(snapshot), str(archive_root))
+    archived = archive_root / archive._rel_snapshot(str(snapshot)) / rows[0]["path"]
+    local.parent.mkdir(parents=True, exist_ok=True)
+    local.write_bytes(original)
+    archived.unlink()
+    ok, problems = archive.check(str(snapshot), None)
+    assert ok == 0
+    assert len(problems) == 1 and "NOT PRESERVED OFF-TREE" in problems[0]
+    assert local.read_bytes() == original
