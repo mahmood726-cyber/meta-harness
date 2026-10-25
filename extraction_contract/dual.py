@@ -131,7 +131,6 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
             continue
         if not indep and len(vals) == 2 and None not in vals:
             probs.append(f"readers disagree: {vals[0]!r} vs {vals[1]!r}")
-        decided = None
         adjudication_proposals = []
         for a in adj.get(k, []):
             who = a.get("adjudicator") or {}
@@ -153,8 +152,7 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
             })
             if ap:
                 probs.append("adjudication refused: " + "; ".join(ap))
-            else:
-                decided = a.get("decided_value")
+
         if indep:
             probs.insert(0, "readings are not independent")
         if adj.get(k):
