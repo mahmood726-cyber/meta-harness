@@ -265,3 +265,29 @@ def test_check_accepts_matching_root_and_refuses_malformed_pointer_root(tmp_path
     pointer_path.write_text(json.dumps(pointer), encoding="utf-8")
     with pytest.raises(SystemExit, match="no valid archive_root"):
         archive.check(str(snapshot), None)
+
+
+def test_repeat_move_same_root_cannot_rewrite_custody_receipt(tmp_path, monkeypatch):
+    """A successful move is not an invitation to rewrite its time or claim."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    assert archive.move(str(snapshot), str(archive_root)) == 1
+    receipt = snapshot / "ARCHIVE.json"
+    original = receipt.read_bytes()
+    with pytest.raises(SystemExit, match="ARCHIVE.json already exists"):
+        archive.move(str(snapshot), str(archive_root))
+    assert receipt.read_bytes() == original
+    assert archive.check(str(snapshot), None) == (1, [])
+
+
+def test_repeat_move_cannot_retarget_original_archive_custody(tmp_path, monkeypatch):
+    """No later invocation may silently replace a recorded archive root."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    archive.move(str(snapshot), str(archive_root))
+    receipt = snapshot / "ARCHIVE.json"
+    original = receipt.read_bytes()
+    substitute_root = tmp_path / "unapproved-custody-root"
+    with pytest.raises(SystemExit, match="ARCHIVE.json already exists"):
+        archive.move(str(snapshot), str(substitute_root))
+    assert receipt.read_bytes() == original
+    assert not substitute_root.exists()
+    assert archive.check(str(snapshot), None) == (1, [])
