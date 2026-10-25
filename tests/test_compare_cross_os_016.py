@@ -73,7 +73,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                       "cli_status": status["importer"], "api_status": status["importer"],
                       "api_refusal": (f"synthetic import refusal: {case}"
                                       if status["importer"] == "REFUSED" else None),
-                      "consumer": consumer}
+                      "consumer": consumer, "clinical_validation": "NOT_TESTED"}
             for path, contents in ((directory / "inputs" / f"{case}.json", raw),
                                    (directory / "results" / f"{case}.json", wire(output))):
                 path.write_bytes(contents)
@@ -86,7 +86,8 @@ class ArchivedArtifactParityTests(unittest.TestCase):
             "source_sha256": comparator.digest(self.source), "rapidmeta_engine_sha256": engine_sha or self.engine_sha,
             "python_runtime": "3.13.7", "node_runtime": "v22.14.0",
             "external_R_oracle": "NOT_TESTED", "four_repo_suite": "NOT_RUN",
-            "human_adjudication": "NOT_TESTED", "digests": digests,
+            "human_adjudication": "NOT_TESTED", "clinical_validation": "NOT_TESTED",
+            "digests": digests,
         }
         (directory / "index.json").write_bytes(wire(index))
 
@@ -125,6 +126,45 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self.assertEqual((result["case_count"], result["refused_without_pooling"]), (3, 2))
         self.assertEqual(result["numerical_output_cross_os_comparison"], "PINNED_SYNTHETIC_SMOKE_ONLY_PASS")
         self.assertEqual(result["numerical_smoke_controls"]["allow_rr_itt"]["ubuntu-24.04"]["mu_log"], 0.3)
+
+    def test_both_os_index_clinical_validation_promotion_refuses(self):
+        # Both archived indexes agree on an unsupported promotion. No file
+        # receipts or cross-OS decisions change, so older comparison passed.
+        for directory in (self.ubuntu, self.windows):
+            path = directory / "index.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            data["clinical_validation"] = "PASS"
+            path.write_bytes(wire(data))
+        with self.assertRaisesRegex(ValueError, "clinical validation scope"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_both_os_rehashed_case_clinical_validation_promotion_refuses(self):
+        # These are controlled fixture forgeries, not observed clinical claims.
+        # Rehash complete receipts to isolate evidence-scope trust failure.
+        for directory in (self.ubuntu, self.windows):
+            path = directory / "results" / "allow_rr_itt.json"
+            data = json.loads(path.read_text(encoding="utf-8"))
+            data["clinical_validation"] = "PASS"
+            path.write_bytes(wire(data))
+            index_path = directory / "index.json"
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            index["digests"]["results/allow_rr_itt.json"] = comparator.digest(path.read_bytes())
+            index_path.write_bytes(wire(index))
+        with self.assertRaisesRegex(ValueError, "case clinical validation scope allow_rr_itt"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_missing_index_clinical_validation_scope_refuses(self):
+        path = self.windows / "index.json"
+        index = json.loads(path.read_text(encoding="utf-8"))
+        del index["clinical_validation"]
+        path.write_bytes(wire(index))
+        with self.assertRaisesRegex(ValueError, "clinical validation scope"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_missing_case_clinical_validation_scope_refuses(self):
+        self._rewrite_result("refuse", lambda data: data.pop("clinical_validation"))
+        with self.assertRaisesRegex(ValueError, "case clinical validation scope refuse"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
     def test_single_os_rehashed_negative_input_cannot_override_frozen_sha(self):
         # Both archives keep their own SHA receipts internally consistent,
