@@ -251,7 +251,7 @@ def test_check_refuses_alternate_archive_that_masks_missing_declared_custody(tmp
         archive.check(str(snapshot), str(substitute_root))
     ok, problems = archive.check(str(snapshot), None)
     assert ok == 0
-    assert len(problems) == 1 and "NOT PRESERVED OFF-TREE" in problems[0]
+    assert len(problems) == 1 and "NOT PRESERVED:" in problems[0]
 
 
 def test_check_accepts_matching_root_and_refuses_malformed_pointer_root(tmp_path, monkeypatch):
