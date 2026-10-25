@@ -171,3 +171,23 @@ def test_reject_pointer_retargeted_to_local_repository_archive(tmp_path, monkeyp
     pointer_path.write_text(json.dumps(pointer), encoding="utf-8")
     with pytest.raises(SystemExit, match="outside the repository"):
         archive.check(str(snapshot), None)
+
+
+def test_reject_nested_archive_symlink_redirecting_custody_back_in_tree(tmp_path, monkeypatch):
+    """An off-tree top-level archive is insufficient if its cache/ entry points in-tree."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    redirected = Path(archive.ROOT) / "unexpected-in-tree-archive"
+    redirected.mkdir()
+    archive_root.mkdir()
+    try:
+        (archive_root / "cache").symlink_to(redirected, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("local filesystem does not permit directory symlinks")
+
+    with pytest.raises(SystemExit, match="outside the repository"):
+        archive.move(str(snapshot), str(archive_root))
+    with pytest.raises(SystemExit, match="outside the repository"):
+        archive.check(str(snapshot), str(archive_root))
+    assert (snapshot / rows[0]["path"]).is_file()
+    assert not (snapshot / "ARCHIVE.json").exists()
+    assert not (redirected / "topic").exists()
