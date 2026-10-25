@@ -15,6 +15,7 @@ import sys
 
 from compare_cross_os_016 import (compare, digest, load_json, assert_equal,
                                   pinned_engine_digest)
+from frozen_cli_api_handoff_016 import pinned_meta_code_sha256
 
 REPLAY_CASES = ("refuse", "manual_review", "source_trial_mismatch")
 ROW_DECISIONS = {"refuse": "REFUSE", "manual_review": "MANUAL_REVIEW",
@@ -75,10 +76,16 @@ def exact_checkout_checks(spec: dict, meta: Path, rapid: Path,
     # Derive the engine identity from the frozen *Git blob*, refusing dirty
     # worktree bytes. Archive-to-archive agreement alone is not sufficient.
     engine_sha = pinned_engine_digest(spec, rapid)
+    producer_code_sha256 = pinned_meta_code_sha256(spec, meta)
     for archive in (ubuntu, windows):
         index = load_json(archive / "index.json")
         assert_equal(index["rapidmeta_engine_sha256"], engine_sha,
                      "archived engine SHA against frozen source checkout")
+        # Recompute from an independent exact-pinned Git checkout. Two OS
+        # archives agreeing on an altered interpreter are not sufficient.
+        assert_equal(index.get("meta_producer_code_sha256"),
+                     producer_code_sha256,
+                     "archived producer/importer SHA against frozen Git blobs")
     source = (meta / spec["frozen_source"]["path"]).read_bytes()
     assert_equal(digest(source), spec["frozen_source"]["sha256"],
                  "frozen source SHA256")
@@ -90,6 +97,7 @@ def exact_checkout_checks(spec: dict, meta: Path, rapid: Path,
     assert_equal(node, "v" + spec["runtime"]["node"], "replay Node runtime")
     return {"producer_commit": meta_sha, "consumer_commit": rapid_sha,
             "engine_sha256": engine_sha,
+            "producer_importer_code_sha256": producer_code_sha256,
             "frozen_source_sha256": digest(source)}
 
 
