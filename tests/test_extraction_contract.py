@@ -398,7 +398,9 @@ def test_cli_exit_codes(root, tmp_path):
     b = bundle()
     b["trials"][0]["values"][0]["value"] = 41
     bad.write_text(json.dumps(b), encoding="utf-8")
-    assert _cli("check", str(good), "--docs-root", root, cwd=root).returncode == 0
+    metadata_only = _cli("check", str(good), "--docs-root", root, cwd=root)
+    assert metadata_only.returncode == 0
+    assert "CALL_RECORDS_NOT_VERIFIED" in metadata_only.stdout
     # No inventory is the inherited metadata-only interface; explicitly
     # requesting proof with an empty inventory must never fall back to it.
     empty_records = tmp_path / "empty-records"
