@@ -89,7 +89,7 @@ def _cache_candidates(out_dir: Path, slug: str) -> list[Path]:
     ]
 
 
-def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tuple[dict[str, Any], Path | None, bool]:
+def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tuple[dict[str, Any], Path | None, bool, list[Path]]:
     """Require a new live, raw-archived retrieval for each prospective run.
 
     The ordinary harness can legitimately replay caches. A prospective run cannot:
@@ -133,6 +133,9 @@ def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tup
         raise prospective.ProspectiveRefusal("prospective raw index is not valid JSON") from exc
     if not isinstance(rows, list) or len(rows) != raw_calls:
         raise prospective.ProspectiveRefusal("prospective raw index count differs from ledger")
+    # A4: the later batch census must account for the actual raw bytes, not
+    # merely for a review manifest. Include every verified HTTP response.
+    raw_artefacts = [ledger_path, snapshot_dir / "records.json", raw_index]
     for row in rows:
         if not isinstance(row, dict) or not isinstance(row.get("path"), str):
             raise prospective.ProspectiveRefusal("prospective raw index contains an invalid path")
@@ -141,8 +144,9 @@ def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tup
             raise prospective.ProspectiveRefusal("prospective raw response missing or outside snapshot")
         if hashlib.sha256(body_file.read_bytes()).hexdigest() != row.get("file_sha256"):
             raise prospective.ProspectiveRefusal("prospective raw response SHA256 differs from index")
+        raw_artefacts.append(body_file)
 
-    return _read_json(snapshot_dir / "records.json"), snapshot_dir, False
+    return _read_json(snapshot_dir / "records.json"), snapshot_dir, False, raw_artefacts
 
 
 def _ledger_from(cache_dir: Path | None) -> dict[str, Any] | None:
@@ -266,9 +270,10 @@ def run_topic(
         if "slug" not in config:
             raise prospective.ProspectiveRefusal("topic config must provide slug")
         artefacts.append(_copy_file(config_path, out_dir / "topic-config.json"))
-        records, cache_dir, from_cache = _load_or_refresh(
+        records, cache_dir, from_cache, raw_artefacts = _load_or_refresh(
             config, out_dir, started_utc[:10]
         )
+        artefacts.extend(raw_artefacts)
         if cache_dir is not None:
             records_path = cache_dir / "records.json"
             if records_path.is_file() and not _inside(records_path, out_dir):
