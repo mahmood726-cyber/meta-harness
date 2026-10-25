@@ -99,6 +99,46 @@ def test_tracked_file_hit_reports_hmac_without_plaintext(monkeypatch):
     assert "plant-alpha" not in report
 
 
+
+def test_staged_index_catches_sealed_identifier_hidden_by_clean_worktree(monkeypatch):
+    """A pre-commit hook must examine the staged bytes, not just the current file."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    sealed = _token(IDENTIFIER)
+    registry = _registry_with_canary(sealed)
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _write(repo, "notes/probe.txt", "safe text\n")
+        _commit(repo, "clean initial files")
+        _write(repo, "notes/probe.txt", IDENTIFIER + "\n")
+        _git(repo, "add", "notes/probe.txt")
+        _write(repo, "notes/probe.txt", "safe text\n")
+
+        assert heldout.scan_tree(repo, KEY, registry) == []
+        hits = heldout.scan_staged_index(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+
+    assert hits == [{"path": "notes/probe.txt", "identifier_hmac": sealed, "line_no": 1}]
+    assert ok is False
+    assert any("staged index blob" in reason and sealed[:12] in reason for reason in reasons)
+    assert IDENTIFIER not in "\n".join(reasons)
+
+
+def test_staged_index_reads_added_file_even_if_worktree_file_deleted():
+    sealed = _token(IDENTIFIER)
+    registry = _registry(sealed)
+    with _temp_repo() as repo:
+        _write(repo, "base.txt", "safe\n")
+        _commit(repo, "initial")
+        probe = _write(repo, "notes/staged.txt", IDENTIFIER + "\n")
+        _git(repo, "add", "notes/staged.txt")
+        probe.unlink()
+
+        assert heldout.scan_tree(repo, KEY, registry) == []
+        hits = heldout.scan_staged_index(repo, KEY, registry)
+
+    assert hits == [{"path": "notes/staged.txt", "identifier_hmac": sealed, "line_no": 1}]
+
+
 def test_short_form_hit_is_detected_in_tracked_file():
     sealed = _token(SHORT_FORM)
     registry = _registry(sealed)
