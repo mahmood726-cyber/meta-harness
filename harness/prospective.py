@@ -542,8 +542,13 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             try:
                 started = _parse_utc(record["started_utc"])
                 finished = _parse_utc(record["finished_utc"])
-            except (KeyError, ProspectiveRefusal):
-                # Invalid/missing clocks are handled by the record shape check.
+            except (KeyError, ProspectiveRefusal) as exc:
+                # Existing shape validation can miss null/blank clock fields.
+                # Such a record must not evade the registered time ceiling.
+                reasons.append(
+                    f"run {record.get('run_id')}: missing or invalid timestamps "
+                    f"prevent time-limit verification: {exc}"
+                )
                 continue
             elapsed = (finished - started).total_seconds()
             if elapsed > time_limit and record.get("outcome") == "COMPLETED":
