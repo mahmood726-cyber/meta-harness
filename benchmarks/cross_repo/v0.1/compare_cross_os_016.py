@@ -45,6 +45,11 @@ def assert_equal(left, right, explanation):
         raise ValueError(f"{explanation}: {left!r} != {right!r}")
 
 
+def _archive_link(path: Path) -> bool:
+    """Refuse POSIX symlinks and Windows NTFS junction aliases."""
+    return path.is_symlink() or bool(getattr(path, "is_junction", lambda: False)())
+
+
 def _archive_file(root: Path, relative: str) -> Path:
     """Only read a real in-archive file, never a link or traversal alias.
 
@@ -56,15 +61,15 @@ def _archive_file(root: Path, relative: str) -> Path:
     if (not relative or "\\" in relative or
             any(part in {"", ".", ".."} for part in parts)):
         raise ValueError(f"invalid archived relative path: {relative}")
-    if root.is_symlink() or not root.is_dir():
+    if _archive_link(root) or not root.is_dir():
         raise ValueError("archive root is a symlink or not a directory")
     parent = root
     for segment in parts[:-1]:
         parent = parent / segment
-        if parent.is_symlink() or not parent.is_dir():
+        if _archive_link(parent) or not parent.is_dir():
             raise ValueError(f"archive parent is a symlink or not a directory: {relative}")
     path = parent / parts[-1]
-    if path.is_symlink() or not path.is_file():
+    if _archive_link(path) or not path.is_file():
         raise ValueError(f"archive file is a symlink or not regular: {relative}")
     return path
 
