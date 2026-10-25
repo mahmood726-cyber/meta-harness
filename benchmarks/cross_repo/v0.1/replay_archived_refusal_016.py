@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 from compare_cross_os_016 import (compare, digest, load_json, assert_equal,
-                                  pinned_engine_digest)
+                                  pinned_engine_digest, _archive_file)
 from frozen_cli_api_handoff_016 import pinned_meta_code_sha256
 
 REPLAY_CASES = ("refuse", "manual_review", "source_trial_mismatch",
@@ -93,7 +93,7 @@ def exact_checkout_checks(spec: dict, meta: Path, rapid: Path,
     engine_sha = pinned_engine_digest(spec, rapid)
     producer_code_sha256 = pinned_meta_code_sha256(spec, meta)
     for archive in (ubuntu, windows):
-        index = load_json(archive / "index.json")
+        index = load_json(_archive_file(archive, "index.json"))
         assert_equal(index["rapidmeta_engine_sha256"], engine_sha,
                      "archived engine SHA against frozen source checkout")
         # Recompute from an independent exact-pinned Git checkout. Two OS
@@ -282,8 +282,8 @@ def run(registration: Path, ubuntu: Path, windows: Path,
     ):
         os_replays = {}
         for label in REPLAY_CASES:
-            raw = (archive / "inputs" / f"{label}.json").read_bytes()
-            result_path = archive / "results" / f"{label}.json"
+            raw = _archive_file(archive, f"inputs/{label}.json").read_bytes()
+            result_path = _archive_file(archive, f"results/{label}.json")
             archived = load_json(result_path)["consumer"]
             observed, stdout_sha = replay_frozen_bytes(meta, rapid, raw, label)
             verify_replay_observation(observed, archived, raw, label)
