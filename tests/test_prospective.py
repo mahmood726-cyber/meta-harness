@@ -454,8 +454,11 @@ def test_check_batch_refuses_silent_exclusion_of_failed_run(
     failed["outcome"] = "FAILED_CRASH"
     _write_batch_record(root, batch, failed)
 
-    # Positive control: the failed record is retained in the batch census.
-    assert prospective.check_batch(root, batch)["run_records"] == 2
+    # Positive census control: the failed run remains independently discoverable.
+    assert len(prospective.load_run_records(root, batch)) == 2
+    # A4: structural integrity cannot promote a batch with a failed run to PASS.
+    with pytest.raises(prospective.ProspectiveRefusal, match="failed prospective runs"):
+        prospective.check_batch(root, batch)
 
     corrupted = dict(failed)
     if tampered_batch == "OMITTED":
@@ -487,3 +490,65 @@ def test_check_batch_refuses_non_object_run_record(
         prospective.ProspectiveRefusal, match="run record must be a JSON object"
     ):
         prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize("failure", ["FAILED_CRASH", "FAILED_TIMEOUT", "FAILED_INVARIANT"])
+def test_a4_failed_run_cannot_yield_successful_batch(
+    tmp_path: Path, failure: str
+) -> None:
+    """A4: every failed run counts against batch success, even with a completed peer."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-completed"))
+    # Baseline positive control: a completed-only structurally valid batch passes.
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+    failed = _record(root, batch, "run-failed")
+    failed["outcome"] = failure
+    _write_batch_record(root, batch, failed)
+    archived = prospective.load_run_records(root, batch)
+    assert len(archived) == 2
+    assert any(record["outcome"] == failure for record in archived)
+
+    with pytest.raises(prospective.ProspectiveRefusal) as exc_info:
+        prospective.check_batch(root, batch)
+    message = str(exc_info.value)
+    assert "batch contains failed prospective runs (1 of 2 retained)" in message
+    assert "run-failed" in message
+    assert failure in message
+
+
+def test_a4_successful_rerun_does_not_erase_failed_original(tmp_path: Path) -> None:
+    """A permitted rerun is a second record, not a successful replacement."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    original = _record(root, batch, "run-original")
+    original["outcome"] = "FAILED_CRASH"
+    _write_batch_record(root, batch, original)
+
+    entry = prospective.defect_entry(
+        batch, "topic-plant", "run-original", "FAILED_CRASH",
+        "runner killed", "plant defect", entry_id="defect-plant",
+        declared_utc="2026-09-14T00:19:00Z",
+    )
+    prospective.append_defect(
+        entry, root.parent / "meta-harness-defects" / f"{batch}.jsonl", root=root
+    )
+    rerun = _record(
+        root, batch, "run-rerun",
+        started="2026-09-14T00:20:00Z",
+        finished="2026-09-14T00:21:00Z",
+        rerun_of="run-original",
+        justification="rerun because defect-plant documents external failure",
+    )
+    _write_batch_record(root, batch, rerun)
+    assert len(prospective.load_run_records(root, batch)) == 2
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="batch contains failed prospective runs"
+    ) as exc_info:
+        prospective.check_batch(root, batch)
+    assert "run-original" in str(exc_info.value)
+    assert "FAILED_CRASH" in str(exc_info.value)
