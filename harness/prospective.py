@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import math
 import os
 import re
 from pathlib import Path
@@ -523,6 +524,34 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     records = load_run_records(repo, batch)
     for record in records:
         reasons.extend(_validate_record_shape(record))
+
+    # A4: a run exceeding the *predeclared* ceiling must count as failed.
+    # A caller can otherwise label a long-running result COMPLETED and
+    # check_batch would previously report ok=True without checking the clock.
+    limit_raw = decl.get("time_limit_s")
+    try:
+        if type(limit_raw) not in (int, float):
+            raise TypeError("time_limit_s must be a JSON number")
+        time_limit = float(limit_raw)
+    except (TypeError, ValueError, OverflowError):
+        time_limit = None
+    if time_limit is None or not math.isfinite(time_limit) or time_limit <= 0:
+        reasons.append("batch declaration requires a finite positive numeric time_limit_s")
+    else:
+        for record in records:
+            try:
+                started = _parse_utc(record["started_utc"])
+                finished = _parse_utc(record["finished_utc"])
+            except (KeyError, ProspectiveRefusal):
+                # Invalid/missing clocks are handled by the record shape check.
+                continue
+            elapsed = (finished - started).total_seconds()
+            if elapsed > time_limit and record.get("outcome") == "COMPLETED":
+                reasons.append(
+                    f"run {record.get('run_id')}: COMPLETED after {elapsed:g}s exceeds "
+                    f"preregistered time_limit_s {time_limit:g}s; "
+                    "must count as FAILED_TIMEOUT"
+                )
 
     identities = {
         record.get("architecture_identity")
