@@ -325,7 +325,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
             "inputs/../source.txt",
             "inputs/./source.txt",
             "inputs//source.txt",
-            r"inputs\\source.txt",
+            r"inputs\source.txt",
             "/absolute.json",
         ):
             with self.subTest(relative=relative):
