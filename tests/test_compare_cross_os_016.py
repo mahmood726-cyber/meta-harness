@@ -197,7 +197,7 @@ class ArchivedArtifactParityTests(unittest.TestCase):
                              data["consumer"]["engine_output"].__setitem__("mu_log", 0.3 + 1e-13))
         report = comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
         self.assertEqual(report["numerical_smoke_tolerance"]["rel_tol"], 1e-12)
-        self.assertEqual(report["case_count"], 4)
+        self.assertEqual(report["case_count"], 5)
 
     def test_two_os_rehashed_matching_allow_trial_and_estimand_drift_refuses(self):
         # The old comparator could PASS when both producer archives used
