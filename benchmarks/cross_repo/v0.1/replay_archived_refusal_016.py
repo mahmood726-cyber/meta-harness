@@ -17,10 +17,13 @@ from compare_cross_os_016 import (compare, digest, load_json, assert_equal,
                                   pinned_engine_digest)
 from frozen_cli_api_handoff_016 import pinned_meta_code_sha256
 
-REPLAY_CASES = ("refuse", "manual_review", "source_trial_mismatch")
+REPLAY_CASES = ("refuse", "manual_review", "source_trial_mismatch", "duplicate_shadow")
 ROW_DECISIONS = {"refuse": "REFUSE", "manual_review": "MANUAL_REVIEW",
                  "source_trial_mismatch": "ALLOW"}
 TRIAL_BRIDGE_REFUSAL = "Declared trial_id does not match verbatim source"
+DUPLICATE_KEY_REFUSAL = "duplicate JSON object member: decision"
+# Registered from the frozen producer bytes, not derived from archive receipts.
+SHADOWED_REFUSAL_SHA256 = "b37876be986b1b648307f670414fbb559523324e2424444ff643181563c1d0e7"
 
 # Separate Python interpreter imports the exact-pinned producer, rather than
 # candidate-head importer functions; the refusal is checked with a tripwire.
@@ -40,7 +43,7 @@ if spec is None or spec.loader is None:
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 label = sys.argv[3]
-if label not in ('refuse', 'manual_review', 'source_trial_mismatch'):
+if label not in ('refuse', 'manual_review', 'source_trial_mismatch', 'duplicate_shadow'):
     raise RuntimeError('unregistered negative replay label')
 raw = sys.stdin.buffer.read()
 # Fail closed for both subprocess.run and direct subprocess.Popen routes.
@@ -118,6 +121,21 @@ def assert_registered_refusal_input(raw: bytes, label: str) -> None:
     """Bind a scenario label to its actual raw wire decisions before replay."""
     if label not in REPLAY_CASES:
         raise ValueError(f"unregistered negative replay label: {label}")
+    if label == "duplicate_shadow":
+        # This wire intentionally has repeated raw object members; it must be
+        # rejected by the *strict raw parser*, never pre-decoded or normalized.
+        # A matching producer receipt alone would not freeze this attack input.
+        if digest(raw) != SHADOWED_REFUSAL_SHA256:
+            raise ValueError("registered shadowed-decision input SHA256 mismatch")
+        try:
+            json.loads(raw.decode("utf-8"), object_pairs_hook=_unique,
+                       parse_constant=_reject_nonfinite)
+        except ValueError as exc:
+            if str(exc) != "duplicate replay result member: decision":
+                raise ValueError("shadowed-decision raw JSON lacked decision-key collision") from exc
+        else:
+            raise ValueError("shadowed-decision raw JSON was accepted by strict preparse")
+        return
     try:
         decoded = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -193,6 +211,9 @@ def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
     if label == "source_trial_mismatch":
         assert_equal(reason, TRIAL_BRIDGE_REFUSAL,
                      "accepted-importer source/trial bridge refusal")
+    if label == "duplicate_shadow":
+        assert_equal(reason, DUPLICATE_KEY_REFUSAL,
+                     "shadowed-decision raw duplicate-key refusal")
     if "engine_output" in archived or "engine_output" in observed:
         raise ValueError("refused replay contains pool output")
 
@@ -233,7 +254,7 @@ def run(registration: Path, ubuntu: Path, windows: Path,
                      f"cross-OS replayed refusal provenance: {label}")
     return {
         "record_version": "1.1.0", "case_id": "CROSS-EXCH-016",
-        "subcase": "frozen_archived_importer_and_trial_bridge_no_pool_replay",
+        "subcase": "frozen_archived_importer_trial_bridge_and_duplicate_key_no_pool_replay",
         "refusal_replay_count": len(REPLAY_CASES) * 2,
         "result": "PASS", "evidence_scope": "SYNTHETIC_TWO_REPO_NO_POOL_ONLY",
         "registration_sha256": digest(registration.read_bytes()),

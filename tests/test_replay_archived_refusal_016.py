@@ -4,6 +4,7 @@ These tests use fabricated local canary modules. Their passing is not evidence
 that the two frozen repositories, either OS, or external R was exercised.
 """
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -41,7 +42,8 @@ def consume(raw, rapid, label):
         subprocess.run(['node', '--version'])
     return {'case': label, 'input_sha256': hashlib.sha256(raw).hexdigest(),
             'status': 'REFUSED', 'engine_invoked': False,
-            'refusal': ('Declared trial_id does not match verbatim source'
+            'refusal': ('duplicate JSON object member: decision' if label == 'duplicate_shadow'
+                        else 'Declared trial_id does not match verbatim source'
                         if label == 'source_trial_mismatch'
                         else 'requires manual review')}
 """ % ("True" if invokes_engine else "False"), encoding="utf-8"
@@ -127,6 +129,45 @@ def consume(raw, rapid, label):
             replay.replay_frozen_bytes(
                 self.meta, self.rapid, raw, "refuse")
 
+
+    def test_shadowed_decision_raw_json_replayed_in_isolated_child_without_pooling(self):
+        # Fixture wire with a literal duplicate raw object member. The real
+        # frozen wire and its independent SHA are checked in cross-OS CI.
+        raw = b'{"rows":[{"decision":"REFUSE","decision":"ALLOW"}]}'
+        self.stub()
+        with mock.patch.object(replay, "SHADOWED_REFUSAL_SHA256",
+                               hashlib.sha256(raw).hexdigest()):
+            observed, receipt = replay.replay_frozen_bytes(
+                self.meta, self.rapid, raw, "duplicate_shadow")
+            replay.verify_replay_observation(
+                observed, dict(observed), raw, "duplicate_shadow")
+        self.assertEqual(observed["refusal"], replay.DUPLICATE_KEY_REFUSAL)
+        self.assertFalse(observed["engine_invoked"])
+        self.assertEqual(len(receipt), 64)
+
+    def test_shadowed_decision_rejects_byte_drift_and_parser_bypass(self):
+        raw = b'{"rows":[{"decision":"REFUSE","decision":"ALLOW"}]}'
+        self.stub()
+        frozen = hashlib.sha256(raw).hexdigest()
+        with mock.patch.object(replay, "SHADOWED_REFUSAL_SHA256", frozen):
+            with self.assertRaisesRegex(ValueError, "registered shadowed-decision input SHA256 mismatch"):
+                replay.replay_frozen_bytes(
+                    self.meta, self.rapid, raw + b" ", "duplicate_shadow")
+        no_duplicate = b'{"rows":[{"decision":"ALLOW"}]}'
+        with mock.patch.object(replay, "SHADOWED_REFUSAL_SHA256",
+                               hashlib.sha256(no_duplicate).hexdigest()):
+            with self.assertRaisesRegex(ValueError, "accepted by strict preparse"):
+                replay.replay_frozen_bytes(
+                    self.meta, self.rapid, no_duplicate, "duplicate_shadow")
+
+    def test_shadowed_decision_refusal_cannot_attempt_pool_subprocess(self):
+        raw = b'{"rows":[{"decision":"REFUSE","decision":"ALLOW"}]}'
+        self.stub(invokes_engine=True)
+        with mock.patch.object(replay, "SHADOWED_REFUSAL_SHA256",
+                               hashlib.sha256(raw).hexdigest()):
+            with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
+                replay.replay_frozen_bytes(
+                    self.meta, self.rapid, raw, "duplicate_shadow")
 
     def trial_wire(self, *, claim="SYN-TRIAL-99", decision="ALLOW"):
         # Standalone fixture: not the immutable two-row pinned source. Real CI
