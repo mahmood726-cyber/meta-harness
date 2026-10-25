@@ -201,7 +201,12 @@ def check_archive(registration: dict, registration_sha: str, root: Path,
         assert_equal(consumer.get("input_sha256"), input_sha, "downstream input digest")
         assert_equal(consumer.get("status"), expected["consumer"], "consumer decision")
         allowed = label == "allow_rr_itt"
-        assert_equal(consumer.get("engine_invoked"), allowed, "engine invocation")
+        # Python considers 0 == False and 1 == True. An archived JSON number
+        # must not impersonate the producer's boolean engine-execution receipt,
+        # even when both OS archives and their SHA receipts agree.
+        if type(consumer.get("engine_invoked")) is not bool:
+            raise ValueError(f"engine invocation must be JSON boolean: {label}")
+        assert_equal(consumer["engine_invoked"], allowed, "engine invocation")
         downstream_refusal = consumer.get("refusal")
         if consumer.get("status") == "REFUSED":
             if not isinstance(downstream_refusal, str) or not downstream_refusal.strip():
