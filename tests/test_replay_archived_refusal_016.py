@@ -282,6 +282,32 @@ def consume(raw, rapid, label):
         comparator.assert_called_once_with(registration, ubuntu, windows, pinned)
         replay_child.assert_not_called()
 
+    def test_post_comparison_archive_input_link_refuses_before_replay(self):
+        """A path substituted after archive comparison must not enter the child.
+
+        The independent comparator already rejects linked files. This checks
+        that replay independently repeats the path-custody guard rather than
+        trusting a previously checked path after an archive mutation.
+        A mocked link bit works on both Windows and Linux CI runners.
+        """
+        registration = self.root / "registration.json"
+        registration.write_text('{"fixture":"synthetic only"}', encoding="utf-8")
+        ubuntu, windows = self.root / "ubuntu", self.root / "windows"
+        target = ubuntu / "inputs" / "refuse.json"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(self.raw.replace(b"MANUAL_REVIEW", b"REFUSE"))
+        with (mock.patch.object(replay, "exact_checkout_checks",
+                                return_value={"engine_sha256": "d" * 64}),
+              mock.patch.object(replay, "compare",
+                                return_value={"overall": "PASS"}) as comparison,
+              mock.patch.object(replay, "replay_frozen_bytes") as child,
+              mock.patch.object(Path, "is_symlink", autospec=True,
+                                side_effect=lambda p: p == target)):
+            with self.assertRaisesRegex(ValueError, "archive file is a symlink"):
+                replay.run(registration, ubuntu, windows, self.meta, self.rapid)
+            comparison.assert_called_once()
+            child.assert_not_called()
+
     def estimand_wire(self, *, measure="OR", row_decision="ALLOW"):
         return json.dumps({"proposed_pool": {"estimand": {
             "measure": measure, "population": "ITT", "outcome": "synthetic event",
