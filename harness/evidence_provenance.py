@@ -28,6 +28,17 @@ def validate_extraction(record, archive_bytes):
         raise ValueError("archived source bytes required")
     if record["document_sha256"] != sha256(archive_bytes):
         raise ValueError("source digest mismatch")
+    # A hash or quotation is not an independent human review. Do not allow
+    # callers to promote evidence to ADJUDICATED without a separate verified
+    # human-adjudication record and its own validation gate.
+    if record["status"] == "ADJUDICATED":
+        raise ValueError("human adjudication requires a separate verified gate")
+    if record["status"] == "SOURCE_CHECKED" and any(
+        not isinstance(record.get(key), str) or not record[key].strip()
+        for key in ("study_id", "source_uri", "field_name", "population",
+                    "outcome", "time_point", "effect_measure")
+    ):
+        raise ValueError("source-checked evidence requires clinical context")
     if record["status"] in ("SOURCE_CHECKED", "ADJUDICATED"):
         passage = record["verbatim_passage"]
         if not isinstance(passage, str) or not passage.strip():
