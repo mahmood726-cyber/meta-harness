@@ -135,6 +135,12 @@ def _body_paths(snapshot: str, dest_root: str | None, relative: str) -> tuple[st
 
 def move(snapshot: str, archive_root: str) -> int:
     _require_off_tree_archive(archive_root)
+    # ARCHIVE.json is the custody receipt. An ordinary second move must never
+    # replace its original location or timestamp, even when no bodies remain
+    # locally. Deliberate archive migration requires a separately reviewed
+    # procedure that retains the original custody history.
+    if os.path.lexists(os.path.join(snapshot, "ARCHIVE.json")):
+        raise SystemExit("REFUSED: ARCHIVE.json already exists; audited archive migration required")
     index = _load_index(snapshot)
     rel = _rel_snapshot(snapshot)
     dest_root = os.path.join(archive_root, rel)
