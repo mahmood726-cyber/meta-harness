@@ -215,10 +215,24 @@ def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Pat
 
 def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     path = declaration_path(root, batch_id)
+
+    def unique_members(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        # Standard JSON decoding silently keeps the last duplicate value.
+        # A frozen preregistration must not admit ambiguous nested or top-level
+        # eligibility, policy, dependency, or model-identity declarations.
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ProspectiveRefusal(f"declaration contains duplicate JSON member {key!r}")
+            result[key] = value
+        return result
+
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_members)
     except OSError as exc:
         raise ProspectiveRefusal(f"declaration missing for batch {batch_id!r}") from exc
+    except ProspectiveRefusal:
+        raise
     except ValueError as exc:
         raise ProspectiveRefusal(f"declaration is not valid JSON: {path}") from exc
 
