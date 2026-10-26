@@ -700,7 +700,10 @@ def test_check_batch_accepts_one_rerun_with_prior_defect(tmp_path: Path) -> None
     root = _mini_root(tmp_path)
     batch = "batch-plant"
     _declare(root, batch)
-    _write_batch_record(root, batch, _record(root, batch, "run-original"))
+    _write_batch_record(
+        root, batch,
+        dict(_record(root, batch, "run-original"), outcome="FAILED_CRASH"),
+    )
     entry = prospective.defect_entry(
         batch,
         "topic-plant",
@@ -737,6 +740,81 @@ def test_check_batch_accepts_one_rerun_with_prior_defect(tmp_path: Path) -> None
     assert summary["defect_entries"] == 1
     assert summary["external_dependency_mutability"] is True
     assert summary["freeze_claim"] == prospective.MUTABLE_FREEZE_CLAIM
+
+
+
+@pytest.mark.parametrize(
+    "defect_topic,defect_run",
+    [
+        ("topic-other", "run-original"),
+        ("topic-plant", "run-other"),
+        ("topic-other", "run-other"),
+    ],
+)
+def test_a4_rerun_cannot_cite_unrelated_defect(
+    tmp_path: Path, defect_topic: str, defect_run: str
+) -> None:
+    """Synthetic provenance guard; a different topic/run must not authorise retry."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch,
+        dict(_record(root, batch, "run-original"), outcome="FAILED_CRASH"),
+    )
+    entry = prospective.defect_entry(
+        batch, defect_topic, defect_run, "FAILED_CRASH",
+        "runner killed", "synthetic infrastructure failure",
+        entry_id="defect-unrelated", declared_utc="2026-09-14T00:19:00Z",
+    )
+    prospective.append_defect(entry, root=root)
+    _write_batch_record(
+        root, batch,
+        _record(
+            root, batch, "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="external incident defect-unrelated",
+        ),
+    )
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="bound to original run/topic"
+    ):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_completed_original_cannot_be_relabelled_as_failed_for_rerun(
+    tmp_path: Path,
+) -> None:
+    """An ex-post defect assertion cannot alter the archived original outcome."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-original"))
+    prospective.append_defect(
+        prospective.defect_entry(
+            batch, "topic-plant", "run-original", "FAILED_CRASH",
+            "runner killed", "synthetic alleged incident",
+            entry_id="defect-posthoc", declared_utc="2026-09-14T00:19:00Z",
+        ),
+        root=root,
+    )
+    _write_batch_record(
+        root, batch,
+        _record(
+            root, batch, "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="external incident defect-posthoc",
+        ),
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="original run is not a recorded failure"
+    ):
+        prospective.check_batch(root, batch)
 
 
 def test_freeze_claim_tracks_mutability_both_ways(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
