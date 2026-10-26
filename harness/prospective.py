@@ -586,6 +586,10 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
 
 def _validate_record_shape(record: dict[str, Any]) -> list[str]:
     reasons: list[str] = []
+    # A versionless or incorrectly versioned record is not a valid retained
+    # prospective run. Compare exact types: bool True must not masquerade as v1.
+    if type(record.get("schema_version")) is not int or record["schema_version"] != RUN_RECORD_VERSION:
+        reasons.append(f"run {record.get('run_id')}: unsupported schema_version")
     required = {
         "run_id",
         "batch_id",

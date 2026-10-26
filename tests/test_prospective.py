@@ -954,6 +954,24 @@ def test_freeze_claim_tracks_mutability_both_ways(tmp_path: Path, monkeypatch: p
     assert record["freeze_claim"] == prospective.IMMUTABLE_FREEZE_CLAIM
 
 
+@pytest.mark.parametrize(
+    "schema_value", ["missing", True, 2, "1", 1.0]
+)
+def test_a4_run_schema_tampering_cannot_pass_batch(tmp_path: Path, schema_value: object) -> None:
+    # Negative synthetic record tampering; this is not a prospective clinical run.
+    root = _mini_root(tmp_path)
+    _declare(root)
+    record = _record(root, "batch-plant", "run-schema")
+    if schema_value == "missing":
+        record.pop("schema_version")
+    else:
+        record["schema_version"] = schema_value
+    _write_batch_record(root, "batch-plant", record)
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="unsupported schema_version"):
+        prospective.check_batch(root, "batch-plant")
+
+
 def test_run_record_refuses_unknown_outcome(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
 
