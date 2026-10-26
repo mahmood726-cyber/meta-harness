@@ -148,6 +148,19 @@ def _refuse_symlinked_evidence(path: str, base: str) -> None:
             raise SystemExit("REFUSED: raw evidence path contains a symlink")
 
 
+def _refuse_hardlinked_body(path: str) -> None:
+    """Refuse raw-response aliases that do not use symbolic links.
+
+    Hardlinks can make two indexed HTTP calls (or an indexed call and an
+    unindexed path) share one physical file despite having different names.
+    An archive PASS must not imply separate preserved response files where
+    this cannot be demonstrated. This is an engineering custody safeguard,
+    not proof of independent external evidence retention.
+    """
+    if os.path.isfile(path) and os.stat(path).st_nlink > 1:
+        raise SystemExit("REFUSED: raw evidence body has multiple hardlinks")
+
+
 def _body_paths(snapshot: str, dest_root: str | None, relative: str) -> tuple[str, str | None]:
     # The top-level archive may be off-tree while a nested symlink redirects
     # the snapshot destination back into the repository. Verify the resolved
@@ -163,6 +176,11 @@ def _body_paths(snapshot: str, dest_root: str | None, relative: str) -> tuple[st
         raise SystemExit("REFUSED: raw INDEX archive destination escapes archive root")
     if dst:
         _refuse_symlinked_evidence(dst, dest_root)
+    # File-level hardlinks evade realpath/containment and symlink checks.
+    # Refuse even digest-identical aliases before check or move.
+    _refuse_hardlinked_body(src)
+    if dst:
+        _refuse_hardlinked_body(dst)
     return src, dst
 
 
