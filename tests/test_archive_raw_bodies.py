@@ -62,6 +62,44 @@ def test_preserved_before_and_after_off_tree_move(tmp_path, monkeypatch):
     assert not (snapshot / "raw/pubmed_concept_query#1/001.json").exists()
 
 
+def test_post_move_corruption_refuses_custody_receipt(tmp_path, monkeypatch):
+    """A good preflight cannot certify bytes damaged during the actual move."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    original_move = archive.shutil.move
+
+    def corrupt_after_move(src, dst):
+        result = original_move(src, dst)
+        Path(dst).write_bytes(b"corrupted after preflight")
+        return result
+
+    monkeypatch.setattr(archive.shutil, "move", corrupt_after_move)
+    with pytest.raises(SystemExit, match="post-move archive integrity failed"):
+        archive.move(str(snapshot), str(archive_root))
+
+    archived = archive_root / archive._rel_snapshot(str(snapshot)) / rows[0]["path"]
+    assert archived.read_bytes() == b"corrupted after preflight"
+    assert not (snapshot / "ARCHIVE.json").exists()
+
+
+def test_post_move_missing_destination_refuses_custody_receipt(tmp_path, monkeypatch):
+    """An incomplete transfer must never emit a preserved-evidence receipt."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    original_move = archive.shutil.move
+
+    def delete_after_move(src, dst):
+        result = original_move(src, dst)
+        Path(dst).unlink()
+        return result
+
+    monkeypatch.setattr(archive.shutil, "move", delete_after_move)
+    with pytest.raises(SystemExit, match="post-move archive integrity failed"):
+        archive.move(str(snapshot), str(archive_root))
+
+    archived = archive_root / archive._rel_snapshot(str(snapshot)) / rows[0]["path"]
+    assert not archived.exists()
+    assert not (snapshot / "ARCHIVE.json").exists()
+
+
 def _rewrite_wrapper_and_reseal(snapshot: Path, rows: list[dict], *, number: int = 0, **changes):
     """Simulate a corrupted API wrapper re-indexed to hide its outer file change."""
     raw_path = snapshot / rows[number]["path"]
