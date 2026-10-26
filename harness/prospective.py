@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import math
 import os
 import re
 from pathlib import Path
@@ -150,6 +151,8 @@ def batch_declaration(
         limit = float(time_limit_s)
     except (TypeError, ValueError) as exc:
         raise ProspectiveRefusal("time_limit_s must be numeric") from exc
+    if not math.isfinite(limit):
+        raise ProspectiveRefusal("time_limit_s must be finite")
     if limit <= 0:
         raise ProspectiveRefusal("time_limit_s must be positive")
     if isinstance(time_limit_s, int):
@@ -201,7 +204,12 @@ def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Pat
     # writers, rather than checking exists() before a truncating write.
     # Validate serialization before creating the write-once destination: an
     # unsupported value must not strand an empty/partial frozen declaration.
-    payload = json.dumps(decl, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    try:
+        payload = json.dumps(
+            decl, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False
+        ) + "\n"
+    except ValueError as exc:
+        raise ProspectiveRefusal("declaration contains a non-finite JSON number") from exc
     try:
         with path.open("x", encoding="utf-8", newline="\n") as fh:
             fh.write(payload)
@@ -227,8 +235,22 @@ def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, A
             result[key] = value
         return result
 
+    def reject_nonfinite(token: str) -> Any:
+        raise ProspectiveRefusal(f"declaration contains non-finite JSON number {token!r}")
+
+    def strict_float(token: str) -> float:
+        value = float(token)
+        if not math.isfinite(value):
+            raise ProspectiveRefusal("declaration contains non-finite JSON number")
+        return value
+
     try:
-        return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_members)
+        return json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=unique_members,
+            parse_constant=reject_nonfinite,
+            parse_float=strict_float,
+        )
     except OSError as exc:
         raise ProspectiveRefusal(f"declaration missing for batch {batch_id!r}") from exc
     except ProspectiveRefusal:
