@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -92,6 +93,43 @@ def test_archived_same_tree_body_symlink_cannot_certify_preservation(tmp_path, m
         pytest.skip("filesystem cannot create file symlinks")
     # Before the fix both digests matched and this misleadingly returned (2, []).
     with pytest.raises(SystemExit, match="raw evidence path contains a symlink"):
+        archive.check(str(snapshot), None)
+
+
+def test_local_hardlinked_body_alias_cannot_pass_or_move(tmp_path, monkeypatch):
+    """Same-inode HTTP response wrappers are not separate archived captures."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch, count=2)
+    first, second = _identical_raw_bodies(snapshot, rows)
+    first.unlink()
+    try:
+        os.link(second, first)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem cannot create file hardlinks")
+    assert first.stat().st_ino == second.stat().st_ino
+    with pytest.raises(SystemExit, match="multiple hardlinks"):
+        archive.check(str(snapshot), None)
+    with pytest.raises(SystemExit, match="multiple hardlinks"):
+        archive.move(str(snapshot), str(archive_root))
+    assert second.is_file()
+    assert not (snapshot / "ARCHIVE.json").exists()
+
+
+def test_archived_hardlinked_body_alias_cannot_certify_custody(tmp_path, monkeypatch):
+    """A preserved digest is insufficient if two indexed paths share an inode."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch, count=2)
+    _identical_raw_bodies(snapshot, rows)
+    assert archive.move(str(snapshot), str(archive_root)) == 2
+    body_root = archive_root / archive._rel_snapshot(str(snapshot))
+    first = body_root / rows[0]["path"]
+    second = body_root / rows[1]["path"]
+    assert archive.check(str(snapshot), None) == (2, [])
+    first.unlink()
+    try:
+        os.link(second, first)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem cannot create file hardlinks")
+    assert first.stat().st_ino == second.stat().st_ino
+    with pytest.raises(SystemExit, match="multiple hardlinks"):
         archive.check(str(snapshot), None)
 
 
