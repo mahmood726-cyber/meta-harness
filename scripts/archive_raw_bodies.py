@@ -247,6 +247,20 @@ def move(snapshot: str, archive_root: str) -> int:
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.move(src, dst)
             moved += 1
+    # Preflight checks precede the filesystem writes. A racing modification,
+    # interrupted move, or corrupted destination could otherwise be followed
+    # by an ARCHIVE.json custody receipt without checking the archived bytes.
+    # Refuse receipt issuance until every final off-tree file is present and
+    # still matches both the indexed wrapper and decoded HTTP response.
+    for row in index:
+        src, dst = _body_paths(snapshot, dest_root, row["path"])
+        if (os.path.isfile(src) or not os.path.isfile(dst)
+                or _sha256(dst) != row["file_sha256"]
+                or not _raw_wrapper_matches_index(dst, row)):
+            raise SystemExit(
+                f"REFUSED: post-move archive integrity failed for {row['path']}; "
+                "custody receipt not issued; inspect partial move manually"
+            )
     # remove now-empty per-source dirs
     raw_root = os.path.join(snapshot, "raw")
     for name in sorted(os.listdir(raw_root)):
