@@ -77,6 +77,32 @@ def test_misfiled_run_record_cannot_disappear_from_batch_denominator(tmp_path: P
 
 
 
+@pytest.mark.parametrize("precreate_runs_dir", [False, True])
+def test_a4_empty_retained_run_census_refuses_success(
+    tmp_path: Path, precreate_runs_dir: bool
+) -> None:
+    """An intact freeze declaration is not evidence that a topic was executed."""
+    root = _mini_root(tmp_path)
+    _declare(root)
+    if precreate_runs_dir:
+        (root / "prospective" / "batch-plant" / "runs").mkdir(parents=True)
+    assert prospective.load_run_records(root, "batch-plant") == []
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="no retained prospective run records"
+    ):
+        prospective.check_batch(root, "batch-plant")
+
+
+def test_a4_completed_run_preserves_structural_check_positive_control(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    _declare(root)
+    _write_batch_record(root, "batch-plant", _record(root, "batch-plant", "run-one"))
+    summary = prospective.check_batch(root, "batch-plant")
+    assert summary["ok"] is True
+    assert summary["run_records"] == 1
+
+
 def test_duplicate_run_ids_refuse_batch_instead_of_collapsing_history(tmp_path: Path) -> None:
     # Synthetic failure followed by a success with the SAME identity, stored
     # in two files discoverable by the loader. Previously the by_run mapping
@@ -404,6 +430,8 @@ def test_forged_freeze_metadata_cannot_pass_batch_gate(
     # A matching architecture digest must not make a dishonest parallel field PASS.
     root = _mini_root(tmp_path)
     original = _declare(root)
+    # A nonempty retained-run census is required before structural PASS.
+    _write_batch_record(root, "batch-plant", _record(root, "batch-plant", "run-baseline"))
     assert prospective.check_batch(root, "batch-plant")["ok"] is True
     forged = dict(original, **{field: forged_value})
     assert forged["architecture_identity"] == original["architecture_identity"]
