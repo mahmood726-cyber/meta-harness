@@ -86,6 +86,37 @@ def test_declaration_refuses_preexisting_symlink_without_writing_target(tmp_path
     assert outside.read_bytes() == before
 
 
+@pytest.mark.parametrize("batch_id", [".", ".."])
+def test_declaration_refuses_dot_segment_batch_aliases(tmp_path: Path, batch_id: str) -> None:
+    root = _mini_root(tmp_path)
+    with pytest.raises(prospective.ProspectiveRefusal, match="unsafe prospective declaration directory"):
+        prospective.write_declaration(root, {"batch_id": batch_id})
+    assert not (root / "declaration.json").exists()
+    assert not (root / "prospective" / "declaration.json").exists()
+
+
+@pytest.mark.parametrize("symlink_parent", ["prospective", "batch"])
+def test_declaration_refuses_symlinked_parent_directory(tmp_path: Path, symlink_parent: str) -> None:
+    root = _mini_root(tmp_path)
+    outside = tmp_path / "external"
+    outside.mkdir()
+    prospective_dir = root / "prospective"
+    if symlink_parent == "prospective":
+        link = prospective_dir
+    else:
+        prospective_dir.mkdir()
+        link = prospective_dir / "batch-linked"
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem does not permit directory symlinks")
+
+    # The parent alias must not create an externally located declaration.
+    with pytest.raises(prospective.ProspectiveRefusal, match="unsafe prospective declaration directory"):
+        prospective.write_declaration(root, {"batch_id": "batch-linked"})
+    assert list(outside.iterdir()) == []
+
+
 def _record(
     root: Path,
     batch_id: str,
