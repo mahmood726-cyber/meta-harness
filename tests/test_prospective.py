@@ -124,6 +124,65 @@ def test_duplicate_run_ids_refuse_batch_instead_of_collapsing_history(tmp_path: 
 
 
 
+@pytest.mark.parametrize(
+    "forgery,reason",
+    [
+        ("duplicate_timestamp", "duplicate JSON member"),
+        ("NaN", "non-finite JSON number"),
+        ("1e400", "non-finite JSON number"),
+    ],
+)
+def test_a4_defect_ledger_ambiguous_json_cannot_authorise_rerun(
+    tmp_path: Path, forgery: str, reason: str
+) -> None:
+    """Synthetic ledger poison must REFUSE, never convert a retry into PASS."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root)
+    _write_batch_record(
+        root, batch, dict(_record(root, batch, "run-original"), outcome="FAILED_CRASH")
+    )
+    _write_batch_record(
+        root,
+        batch,
+        _record(
+            root, batch, "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="rerun because defect-plant documents external failure",
+        ),
+    )
+    entry = prospective.defect_entry(
+        batch, "topic-plant", "run-original", "FAILED_CRASH",
+        "runner killed", "synthetic event, not independently verified",
+        entry_id="defect-plant", declared_utc="2026-09-14T00:19:00Z",
+    )
+    raw = json.dumps(entry)
+    if forgery == "duplicate_timestamp":
+        original = '"declared_utc": "2026-09-14T00:19:00Z"'
+        assert raw.count(original) == 1
+        raw = raw.replace(
+            original,
+            '"declared_utc": "2026-09-14T00:22:00Z", ' + original,
+            1,
+        )
+        # Standard JSON silently chooses the second timestamp (a false prior).
+        assert json.loads(raw)["declared_utc"] == "2026-09-14T00:19:00Z"
+    else:
+        raw = raw[:-1] + f', "extra": {{"score": {forgery}}}}}'
+    ledger = root.parent / "meta-harness-defects" / f"{batch}.jsonl"
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    ledger.write_text(raw + "\n", encoding="utf-8")
+    original_bytes = ledger.read_bytes()
+
+    with pytest.raises(prospective.ProspectiveRefusal, match=reason):
+        prospective.load_defects(root, batch)
+    with pytest.raises(prospective.ProspectiveRefusal, match=reason):
+        prospective.check_batch(root, batch)
+    assert ledger.read_bytes() == original_bytes
+
+
 def test_run_record_duplicate_outcome_cannot_hide_failed_attempt(tmp_path: Path) -> None:
     # A later duplicate JSON member must not replace a recorded failure when
     # the batch validator loads prospective evidence.
