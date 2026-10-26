@@ -94,6 +94,36 @@ def test_a4_empty_retained_run_census_refuses_success(
         prospective.check_batch(root, "batch-plant")
 
 
+def test_pre_registration_run_cannot_pass_as_prospective(tmp_path: Path) -> None:
+    # Synthetic study execution before the declared freeze. Even an otherwise
+    # consistent architecture and valid outcome must not be counted as
+    # prospective merely because a declaration file exists now.
+    root = _mini_root(tmp_path)
+    _declare(root)
+    earlier = _record(
+        root, "batch-plant", "run-earlier",
+        started="2026-09-13T23:58:00Z",
+        finished="2026-09-13T23:59:00Z",
+    )
+    _write_batch_record(root, "batch-plant", earlier)
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="started before prospective declaration"
+    ):
+        prospective.check_batch(root, "batch-plant")
+
+
+def test_missing_or_invalid_registration_time_refuses_batch(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    decl = _declare(root)
+    _write_batch_record(root, "batch-plant", _record(root, "batch-plant", "run-normal"))
+    decl["declared_utc"] = "not-a-UTC-timestamp"
+    prospective.declaration_path(root, "batch-plant").write_text(json.dumps(decl), encoding="utf-8")
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="invalid declaration timestamp"):
+        prospective.check_batch(root, "batch-plant")
+
+
 def test_a4_completed_run_preserves_structural_check_positive_control(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     _declare(root)
