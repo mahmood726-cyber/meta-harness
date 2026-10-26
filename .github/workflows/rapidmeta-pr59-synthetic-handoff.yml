@@ -124,3 +124,65 @@ jobs:
           path: handoff-evidence/
           if-no-files-found: error
           retention-days: 90
+
+
+  # A fresh worker downloads BOTH archived producer outputs, checks the exact
+  # candidate head and independent engine Git blob, then rehashes every raw
+  # input/result against separate immutable synthetic input SHA256 constants.
+  # This is not a new registered public CROSS-EXCH case.
+  candidate-independent-archive-parity:
+    needs: candidate-pairwise-refusal
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact comparator candidate (independent worker)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: meta
+          persist-credentials: false
+      - name: Refuse checkout head mismatch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C meta rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Checkout the same reviewed RapidMeta engine independently
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: mahmood726-cyber/rapidmeta-kit
+          ref: 9549a59ad77000781df23577680bcb1adb7334b6
+          path: rapidmeta
+          persist-credentials: false
+      - name: Pin comparator Python runtime
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13.7'
+      - name: Run comparator negative regression suite
+        shell: bash
+        run: python -m unittest discover -s meta/tests -p 'test_compare_pr59_candidate.py' -v
+      - name: Download Ubuntu candidate inputs and outputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pr59-synthetic-refusal-ubuntu-24.04-${{ github.event.pull_request.head.sha || github.sha }}
+          path: received/ubuntu
+      - name: Download Windows candidate inputs and outputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pr59-synthetic-refusal-windows-2025-${{ github.event.pull_request.head.sha || github.sha }}
+          path: received/windows
+      - name: Independently reject mismatched archives or pooling of refused evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python meta/benchmarks/cross_repo/v0.1/compare_pr59_candidate.py \
+            --ubuntu received/ubuntu --windows received/windows \
+            --meta-head ${{ github.event.pull_request.head.sha || github.sha }} --rapidmeta rapidmeta \
+            --report parity-report/report.json
+          sha256sum parity-report/report.json
+      - name: Archive independently checked candidate-only parity result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pr59-independent-parity-${{ github.event.pull_request.head.sha || github.sha }}
+          path: parity-report/report.json
+          if-no-files-found: error
+          retention-days: 90
