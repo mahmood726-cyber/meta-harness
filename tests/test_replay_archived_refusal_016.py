@@ -78,6 +78,19 @@ def consume(raw, rapid, label):
         with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
             replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
 
+    def test_os_system_process_launch_cannot_escape_refusal_tripwire(self):
+        # The original run/Popen mocks do not intercept os.system. A frozen
+        # importer invoking it must be rejected *before* Node can be started.
+        # This is a local synthetic negative-control stub, not a clinical case.
+        self.stub()
+        source = self.canary.read_text(encoding="utf-8")
+        self.canary.write_text(source.replace(
+            "    return {'case': label,",
+            "    __import__('os').system('node --version')\\n    return {'case': label,"
+        ), encoding="utf-8")
+        with self.assertRaisesRegex(RuntimeError, "NO_POOL: external process invoked"):
+            replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
+
     def test_numeric_zero_cannot_impersonate_refused_no_pool_receipt(self):
         # A real isolated refusal replay yields a Boolean. Rehashing the
         # archive cannot legitimise an integer/float zero in its place.
