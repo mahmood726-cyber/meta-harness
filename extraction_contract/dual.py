@@ -75,7 +75,22 @@ def independence_problems(readings, call_records: dict | None = None) -> list[st
         else:
             for me, other in ((recs[0], recs[1]), (recs[1], recs[0])):
                 other_resp = ((other.get("response") or {}).get("sha256"))
-                seen = {d.get("sha256") for d in me.get("input_digests") or []}
+                inputs = me.get("input_digests")
+                # No input inventory is not proof of prompt separation: the
+                # reader could have been shown the other reader's response.
+                # The real extraction callers record at least the document
+                # digest; refuse missing or malformed inventories.
+                if (not isinstance(inputs, list) or not inputs or any(
+                    not isinstance(d, dict) or
+                    not isinstance(d.get("sha256"), str) or
+                    len(d["sha256"]) != 64 or
+                    any(c not in "0123456789abcdef" for c in d["sha256"])
+                    for d in inputs
+                )):
+                    out.append("missing or invalid prompt input digests; "
+                               "model reading independence cannot be verified")
+                    continue
+                seen = {d["sha256"] for d in inputs}
                 if not isinstance(other_resp, str) or len(other_resp) != 64 or any(
                         c not in "0123456789abcdef" for c in other_resp):
                     out.append("a supplied reader call record has no valid response sha256; "
