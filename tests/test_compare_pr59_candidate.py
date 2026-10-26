@@ -7,7 +7,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath, PurePosixPath
 import sys
 import tempfile
 import unittest
@@ -100,6 +100,18 @@ class ArchivedCandidateParityTests(unittest.TestCase):
         index["digests"][f"results/{name}.json"] = hashlib.sha256(
             result_path.read_bytes()).hexdigest()
         index_path.write_bytes(encoded(index))
+
+    def test_receipt_keys_canonical_across_native_path_flavours(self):
+        self.assertEqual(
+            producer.receipt_key(
+                PureWindowsPath(r"archive\inputs\refuse.json"),
+                PureWindowsPath("archive")),
+            "inputs/refuse.json")
+        self.assertEqual(
+            producer.receipt_key(
+                PurePosixPath("archive/inputs/refuse.json"),
+                PurePosixPath("archive")),
+            "inputs/refuse.json")
 
     def test_exact_two_archive_comparison_passes(self):
         result = self.compare()
