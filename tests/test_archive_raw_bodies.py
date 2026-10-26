@@ -5,6 +5,7 @@ study search or independent validation of any clinical result.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -25,11 +26,21 @@ def _fixture(tmp_path: Path, monkeypatch, count: int = 1):
     rows = []
     for number in range(1, count + 1):
         relative = f"raw/pubmed_concept_query#1/{number:03d}.json"
-        blob = f'{{"response": {number}}}'.encode()
+        body = f'{{"response": {number}}}'.encode()
+        url = f"https://example.invalid/concept?page={number}"
+        stamp = "2026-10-25T12:00:00Z"
+        body_digest = hashlib.sha256(body).hexdigest()
+        wrapper = {
+            "source_id": "pubmed_concept_query#1",
+            "url": url, "params": {"page": number}, "status": 200,
+            "fetched_utc": stamp, "adapter": "synthetic.adapter",
+            "adapter_blob_sha": "synthetic-only", "body_sha256": body_digest,
+            "body_bytes_b64": base64.b64encode(body).decode("ascii"),
+        }
+        blob = json.dumps(wrapper, ensure_ascii=False, indent=2).encode("utf-8")
         (snapshot / relative).write_bytes(blob)
-        rows.append({"source_id": "pubmed_concept_query#1", "path": relative,
-                     "file_sha256": hashlib.sha256(blob).hexdigest(),
-                     "body_sha256": hashlib.sha256(b"original bytes").hexdigest()})
+        rows.append({key: value for key, value in wrapper.items() if key != "body_bytes_b64"} |
+                    {"path": relative, "file_sha256": hashlib.sha256(blob).hexdigest()})
     _seal(snapshot, rows)
     return snapshot, rows, tmp_path / "archive"
 
@@ -49,6 +60,66 @@ def test_preserved_before_and_after_off_tree_move(tmp_path, monkeypatch):
     assert archive.move(str(snapshot), str(archive_root)) == 1
     assert archive.check(str(snapshot), None) == (1, [])
     assert not (snapshot / "raw/pubmed_concept_query#1/001.json").exists()
+
+
+def _rewrite_wrapper_and_reseal(snapshot: Path, rows: list[dict], *, number: int = 0, **changes):
+    """Simulate a corrupted API wrapper re-indexed to hide its outer file change."""
+    raw_path = snapshot / rows[number]["path"]
+    wrapper = json.loads(raw_path.read_text(encoding="utf-8"))
+    wrapper.update(changes)
+    new_bytes = json.dumps(wrapper, ensure_ascii=False, indent=2).encode("utf-8")
+    raw_path.write_bytes(new_bytes)
+    rows[number]["file_sha256"] = hashlib.sha256(new_bytes).hexdigest()
+    _seal(snapshot, rows)
+
+
+def test_raw_http_body_mismatch_refused_despite_resealed_wrapper_file(tmp_path, monkeypatch):
+    """Matching wrapper/index/ledger hashes do not substitute for HTTP body bytes."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    _rewrite_wrapper_and_reseal(snapshot, rows, body_bytes_b64=base64.b64encode(b"DIFFERENT").decode("ascii"))
+    ok, problems = archive.check(str(snapshot), None)
+    assert ok == 0 and len(problems) == 1 and "RAW RESPONSE MISMATCH" in problems[0]
+    with pytest.raises(SystemExit, match="raw wrapper or HTTP body"):
+        archive.move(str(snapshot), str(archive_root))
+    assert not (snapshot / "ARCHIVE.json").exists()
+    assert not archive_root.exists()
+
+
+def test_raw_api_call_metadata_mismatch_refused_despite_resealed_file(tmp_path, monkeypatch):
+    """A response wrapper cannot silently claim a different endpoint than INDEX."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    _rewrite_wrapper_and_reseal(snapshot, rows, url="https://example.invalid/seeded-only")
+    ok, problems = archive.check(str(snapshot), None)
+    assert ok == 0 and len(problems) == 1 and "RAW RESPONSE MISMATCH" in problems[0]
+    with pytest.raises(SystemExit, match="raw wrapper or HTTP body"):
+        archive.move(str(snapshot), str(archive_root))
+
+
+def test_archived_raw_body_mismatch_refused_after_resealing_local_receipts(tmp_path, monkeypatch):
+    """Even locally self-consistent hashes cannot hide altered decoded archive bytes."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    assert archive.move(str(snapshot), str(archive_root)) == 1
+    archived = archive_root / archive._rel_snapshot(str(snapshot)) / rows[0]["path"]
+    wrapper = json.loads(archived.read_text(encoding="utf-8"))
+    wrapper["body_bytes_b64"] = base64.b64encode(b"ALTERED").decode("ascii")
+    new_bytes = json.dumps(wrapper, ensure_ascii=False, indent=2).encode("utf-8")
+    archived.write_bytes(new_bytes)
+    rows[0]["file_sha256"] = hashlib.sha256(new_bytes).hexdigest()
+    _seal(snapshot, rows)
+    pointer_path = snapshot / "ARCHIVE.json"
+    pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
+    pointer["index_sha256"] = hashlib.sha256((snapshot / "raw" / "INDEX.json").read_bytes()).hexdigest()
+    pointer_path.write_text(json.dumps(pointer), encoding="utf-8")
+    ok, problems = archive.check(str(snapshot), None)
+    assert ok == 0 and len(problems) == 1 and "RAW RESPONSE MISMATCH" in problems[0]
+
+
+def test_raw_body_missing_or_invalid_base64_refused(tmp_path, monkeypatch):
+    """Missing inner HTTP bytes must not be certified by an intact JSON digest."""
+    snapshot, rows, _ = _fixture(tmp_path, monkeypatch)
+    _rewrite_wrapper_and_reseal(snapshot, rows, body_bytes_b64="!!!")
+    ok, problems = archive.check(str(snapshot), None)
+    assert ok == 0 and len(problems) == 1 and "RAW RESPONSE MISMATCH" in problems[0]
 
 
 def _identical_raw_bodies(snapshot: Path, rows: list[dict]):
