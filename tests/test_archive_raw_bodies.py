@@ -50,6 +50,51 @@ def test_preserved_before_and_after_off_tree_move(tmp_path, monkeypatch):
     assert not (snapshot / "raw/pubmed_concept_query#1/001.json").exists()
 
 
+def _identical_raw_bodies(snapshot: Path, rows: list[dict]):
+    """Create two digest-valid wrappers for a same-tree alias negative."""
+    first = snapshot / rows[0]["path"]
+    second = snapshot / rows[1]["path"]
+    first.write_bytes(second.read_bytes())
+    rows[0]["file_sha256"] = rows[1]["file_sha256"]
+    _seal(snapshot, rows)
+    return first, second
+
+
+def test_local_same_tree_body_symlink_cannot_pass_or_move(tmp_path, monkeypatch):
+    """Even matching indexed bytes must not mask one response aliasing another."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch, count=2)
+    first, second = _identical_raw_bodies(snapshot, rows)
+    first.unlink()
+    try:
+        first.symlink_to(second)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem cannot create file symlinks")
+    with pytest.raises(SystemExit, match="raw evidence path contains a symlink"):
+        archive.check(str(snapshot), None)
+    with pytest.raises(SystemExit, match="raw evidence path contains a symlink"):
+        archive.move(str(snapshot), str(archive_root))
+    assert second.is_file()
+    assert not (snapshot / "ARCHIVE.json").exists()
+
+
+def test_archived_same_tree_body_symlink_cannot_certify_preservation(tmp_path, monkeypatch):
+    """An off-tree pointer cannot certify two bodies backed by one linked file."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch, count=2)
+    _identical_raw_bodies(snapshot, rows)
+    assert archive.move(str(snapshot), str(archive_root)) == 2
+    body_root = archive_root / archive._rel_snapshot(str(snapshot))
+    first = body_root / rows[0]["path"]
+    second = body_root / rows[1]["path"]
+    first.unlink()
+    try:
+        first.symlink_to(second)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem cannot create file symlinks")
+    # Before the fix both digests matched and this misleadingly returned (2, []).
+    with pytest.raises(SystemExit, match="raw evidence path contains a symlink"):
+        archive.check(str(snapshot), None)
+
+
 def test_changed_index_cannot_be_repaired_by_rehashing_local_bodies(tmp_path, monkeypatch):
     snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
     (snapshot / "raw" / "INDEX.json").write_text(json.dumps(rows), encoding="utf-8")
