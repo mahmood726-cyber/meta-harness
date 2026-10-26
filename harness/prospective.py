@@ -514,6 +514,7 @@ def load_defects(root: str | os.PathLike[str], batch_id: str) -> list[dict[str, 
     if not path.exists():
         return []
     entries = []
+    seen_defect_ids: set[str] = set()
     with path.open(encoding="utf-8") as fh:
         for line_no, line in enumerate(fh, start=1):
             text = line.strip()
@@ -526,6 +527,17 @@ def load_defects(root: str | os.PathLike[str], batch_id: str) -> list[dict[str, 
                     f"defect ledger line {line_no} is not valid JSON"
                 ) from exc
             if entry.get("batch_id") == batch_id:
+                # A rerun cites a defect by id. Ambiguous duplicate ids would
+                # silently overwrite earlier evidence in check_batch's lookup;
+                # refuse even identical repeats rather than choosing one.
+                if entry.get("id"):
+                    defect_id = str(entry["id"])
+                    if defect_id in seen_defect_ids:
+                        raise ProspectiveRefusal(
+                            f"duplicate defect id in batch {batch_id!r}: "
+                            f"{defect_id!r} (line {line_no})"
+                        )
+                    seen_defect_ids.add(defect_id)
                 entries.append(entry)
     return entries
 
