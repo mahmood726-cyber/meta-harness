@@ -221,37 +221,44 @@ def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Pat
     return path
 
 
-def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
-    batch = _require_safe_name(batch_id, "batch_id")
-    path = declaration_path(root, batch)
+def _load_strict_prospective_json(path: Path, label: str) -> Any:
+    """Reject ambiguous or non-finite JSON in frozen prospective evidence.
 
+    Both declarations and run records must use the same decoding rules:
+    standard json.loads silently keeps the last duplicate member, potentially
+    replacing a recorded FAILED outcome with a later COMPLETED outcome.
+    """
     def unique_members(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-        # Standard JSON decoding silently keeps the last duplicate value.
-        # A frozen preregistration must not admit ambiguous nested or top-level
-        # eligibility, policy, dependency, or model-identity declarations.
         result: dict[str, Any] = {}
         for key, value in pairs:
             if key in result:
-                raise ProspectiveRefusal(f"declaration contains duplicate JSON member {key!r}")
+                raise ProspectiveRefusal(f"{label} contains duplicate JSON member {key!r}")
             result[key] = value
         return result
 
     def reject_nonfinite(token: str) -> Any:
-        raise ProspectiveRefusal(f"declaration contains non-finite JSON number {token!r}")
+        raise ProspectiveRefusal(f"{label} contains non-finite JSON number {token!r}")
 
     def strict_float(token: str) -> float:
         value = float(token)
         if not math.isfinite(value):
-            raise ProspectiveRefusal("declaration contains non-finite JSON number")
+            raise ProspectiveRefusal(f"{label} contains non-finite JSON number")
         return value
 
+    return json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=unique_members,
+        parse_constant=reject_nonfinite,
+        parse_float=strict_float,
+    )
+
+
+def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
+    batch = _require_safe_name(batch_id, "batch_id")
+    path = declaration_path(root, batch)
+
     try:
-        declaration = json.loads(
-            path.read_text(encoding="utf-8"),
-            object_pairs_hook=unique_members,
-            parse_constant=reject_nonfinite,
-            parse_float=strict_float,
-        )
+        declaration = _load_strict_prospective_json(path, "declaration")
     except OSError as exc:
         raise ProspectiveRefusal(f"declaration missing for batch {batch!r}") from exc
     except ProspectiveRefusal:
@@ -539,8 +546,10 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
     records = []
     for path in _run_record_paths(repo, batch):
         try:
-            record = json.loads(path.read_text(encoding="utf-8"))
-        except ValueError as exc:
+            record = _load_strict_prospective_json(path, "run record")
+        except ProspectiveRefusal:
+            raise
+        except (OSError, UnicodeError, ValueError) as exc:
             raise ProspectiveRefusal(f"run record is not valid JSON: {path}") from exc
         # Never silently hide an off-batch run from the denominator. A record
         # stored under this batch but claiming another batch must fail closed.
