@@ -59,14 +59,20 @@ def validate_exchange(payload: object, archive_root: Path) -> None:
     if any(not isinstance(v, str) or not v.strip() for v in declared.values()):
         raise ValueError("proposed_pool.estimand has empty member")
     seen = set()
+    seen_trials = set()
     for i, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ValueError(f"row {i}: not an object")
         study = _required_text(row, "study_id")
-        _required_text(row, "trial_id")
+        trial = _required_text(row, "trial_id")
         if study in seen:
             raise ValueError(f"duplicate study_id: {study}")
+        if trial in seen_trials:
+            # Distinct reports or subgroups from one trial cannot enter a naive pool
+            # as independent studies. Require upstream deduplication/adjudication.
+            raise ValueError(f"duplicate trial_id: {trial}; requires manual review before pooling")
         seen.add(study)
+        seen_trials.add(trial)
         decision = row.get("decision")
         if decision not in VALID_DECISIONS:
             raise ValueError(f"row {i}: unknown decision")
