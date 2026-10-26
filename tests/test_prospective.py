@@ -76,6 +76,27 @@ def test_misfiled_run_record_cannot_disappear_from_batch_denominator(tmp_path: P
         prospective.check_batch(root, "batch-plant")
 
 
+
+def test_duplicate_run_ids_refuse_batch_instead_of_collapsing_history(tmp_path: Path) -> None:
+    # Synthetic failure followed by a success with the SAME identity, stored
+    # in two files discoverable by the loader. Previously the by_run mapping
+    # silently collapsed them and check_batch returned ok=True.
+    root = _mini_root(tmp_path)
+    _declare(root)
+    failed = _record(root, "batch-plant", "run-collision")
+    failed["outcome"] = "FAILED_CRASH"
+    completed = dict(failed, outcome="COMPLETED")
+    runs = root / "prospective" / "batch-plant" / "runs"
+    prospective.write_run_record(runs / "first.json", failed)
+    prospective.write_run_record(runs / "second.json", completed)
+
+    loaded = prospective.load_run_records(root, "batch-plant")
+    assert [item["outcome"] for item in loaded] == ["FAILED_CRASH", "COMPLETED"]
+    with pytest.raises(prospective.ProspectiveRefusal, match="duplicate run_id in batch"):
+        prospective.check_batch(root, "batch-plant")
+
+
+
 def test_declaration_refuses_posthoc_rewrite_and_preserves_first_bytes(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     original = _declare(root)
