@@ -58,6 +58,16 @@ if label not in ('refuse', 'manual_review', 'source_trial_mismatch',
                  'duplicate_shadow', 'estimand_mismatch', 'source_sha_tamper'):
     raise RuntimeError('unregistered negative replay label')
 raw = sys.stdin.buffer.read()
+# A refused wire must never spawn a process by an alternate Python API.
+# Patching subprocess.run/Popen alone does not intercept os.system or
+# os.posix_spawn. This audit hook guards all common OS process launch routes
+# inside the isolated frozen-source replay, without changing frozen sources.
+def refuse_process_audit(event, _args):
+    if event in ('subprocess.Popen', 'os.system', 'os.posix_spawn',
+                 'os.exec', 'os.spawn', 'os.fork', 'os.forkpty',
+                 'os.startfile', 'os.startfile/2'):
+        raise AssertionError('NO_POOL: external process invoked')
+sys.addaudithook(refuse_process_audit)
 # Fail closed for both subprocess.run and direct subprocess.Popen routes.
 # These guards are active only within the isolated frozen-source replay child.
 with mock.patch.object(module.subprocess, 'run', side_effect=AssertionError('NO_POOL: subprocess invoked')) as run_tripwire, \
