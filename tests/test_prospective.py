@@ -97,6 +97,25 @@ def test_duplicate_preregistration_json_members_refuse_at_load_and_batch_gate(
 
 
 
+
+def test_declaration_refuses_existing_partial_file_without_replacing_bytes(tmp_path: Path) -> None:
+    # Reconciled from the overlapping PR #198: a failed first registration
+    # must remain visible for manual review, not silently be overwritten.
+    root = _mini_root(tmp_path)
+    path = prospective.declaration_path(root, "batch-partial")
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"{")
+    decl = prospective.batch_declaration(
+        root, "batch-partial", 60, ["census"], COMMITMENT,
+        {"definition": "synthetic universe", "digest": "b" * 64},
+        declared_utc="2026-09-14T00:00:00Z",
+    )
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration already exists"):
+        prospective.write_declaration(root, decl)
+    assert path.read_bytes() == b"{"
+
+
+
 def test_declaration_refuses_preexisting_symlink_without_writing_target(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     decl = prospective.batch_declaration(
