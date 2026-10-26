@@ -28,3 +28,26 @@ Reference docs: https://wviechtb.github.io/metafor/ ; https://documentation.coch
 ## Ownership
 
 Evidence Integration owns this versioned exchange and test-case identifiers (`CROSS-EXCH-*`). Statistical Parity owns `CROSS-R-*`, Starter Canary CI owns `CROSS-CANARY-*`, Prospective Validation owns `CROSS-DISCOVERY-*` and `CROSS-ADJUDICATION-*`. `CROSS-USABILITY-*` requires external evaluation. These IDs reserve boundaries, not successful tests. Do not change e156 AGENTS.md or human workbook fields. No Sentinel bypasses and no fabricated signed artefacts.
+
+## Raw-JSON importer parity and duplicate-key custody
+
+The **actual** `python -m harness.exchange_v01 manifest.json` entrypoint reads
+raw UTF-8 bytes through the strict pre-parser; a matching Python API is
+`from harness.exchange_v01.wire import validate_manifest_json, validate_exchange_json`.
+Pass the original **raw bytes**, not a previously decoded `dict`. Standard
+`json.loads` silently keeps the last repeated object member, including an
+earlier `FAIL` status, `REFUSE` decision, source/trial ID or estimand. JSON Schema
+cannot detect duplicates after parsing. The strict importer rejects repeated
+keys at any nesting depth (including Unicode-escaped keys), malformed JSON,
+BOM/invalid UTF-8 and nonstandard numeric constants before normal v0.1
+structural checks. The original optional `harness/exchange_v01/__init__.py`
+Git blob stays unchanged; `wire.py` is only an opt-in package module.
+
+```sh
+python -m pytest tests/test_exchange_v01_wire.py -q
+python -m harness.exchange_v01 benchmarks/cross_repo/v0.1/manifest.json
+```
+
+These are **synthetic parser/refusal regressions only**, not completed
+CROSS-EXCH-001..015 pinned producer→consumer executions, R-oracle parity,
+signed cross-repository canaries or independently adjudicated science.
