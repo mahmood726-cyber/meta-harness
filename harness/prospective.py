@@ -671,6 +671,38 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
                 reasons.append(f"duplicate run_id in batch: {run_id!r}")
             seen_run_ids.add(run_id)
 
+    # A4's predeclared run limit is part of the frozen batch contract. A run
+    # that exceeds it cannot be reported as COMPLETED. These are self-reported
+    # timestamps, not independently witnessed execution or source custody.
+    limit_raw = decl.get("time_limit_s")
+    limit_seconds: float | None = None
+    if type(limit_raw) not in (int, float):
+        reasons.append("declaration time_limit_s must be a positive finite number")
+    else:
+        try:
+            limit_seconds = float(limit_raw)
+        except OverflowError:
+            limit_seconds = None
+        if limit_seconds is None or not math.isfinite(limit_seconds) or limit_seconds <= 0:
+            reasons.append("declaration time_limit_s must be a positive finite number")
+            limit_seconds = None
+
+    if limit_seconds is not None:
+        for record in records:
+            try:
+                elapsed = (
+                    _parse_utc(record.get("finished_utc"))
+                    - _parse_utc(record.get("started_utc"))
+                ).total_seconds()
+            except ProspectiveRefusal:
+                # Invalid timestamps are handled by the run shape checker.
+                continue
+            if elapsed > limit_seconds and record.get("outcome") == "COMPLETED":
+                reasons.append(
+                    f"run {record.get('run_id')}: COMPLETED after predeclared "
+                    f"time_limit_s ({elapsed:g}s > {limit_seconds:g}s)"
+                )
+
     identities = {
         record.get("architecture_identity")
         for record in records

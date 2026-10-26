@@ -969,6 +969,54 @@ def test_run_record_refuses_unknown_outcome(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.parametrize(
+    "finished,outcome,should_refuse",
+    [
+        ("2026-09-14T00:11:01Z", "COMPLETED", True),
+        ("2026-09-14T00:11:00Z", "COMPLETED", False),
+        ("2026-09-14T00:11:01Z", "FAILED_TIMEOUT", False),
+        ("2026-09-14T00:11:01Z", "FAILED_CRASH", False),
+    ],
+)
+def test_a4_predeclared_time_limit_refuses_completed_overrun(
+    tmp_path: Path, finished: str, outcome: str, should_refuse: bool
+) -> None:
+    # Synthetic time records verify structural refusal only; no witnessed
+    # execution or independent clinical outcome is claimed here.
+    root = _mini_root(tmp_path)
+    _declare(root)
+    record = dict(
+        _record(root, "batch-plant", "run-timed", finished=finished),
+        outcome=outcome,
+    )
+    _write_batch_record(root, "batch-plant", record)
+    if should_refuse:
+        with pytest.raises(
+            prospective.ProspectiveRefusal,
+            match="COMPLETED after predeclared time_limit_s",
+        ):
+            prospective.check_batch(root, "batch-plant")
+    else:
+        assert prospective.check_batch(root, "batch-plant")["ok"] is True
+
+
+@pytest.mark.parametrize("bad_limit", [0, -1, True, "60", None])
+def test_a4_tampered_time_limit_cannot_validate_batch(
+    tmp_path: Path, bad_limit: object
+) -> None:
+    root = _mini_root(tmp_path)
+    declaration = _declare(root)
+    _write_batch_record(root, "batch-plant", _record(root, "batch-plant", "run-timed"))
+    declaration["time_limit_s"] = bad_limit
+    prospective.declaration_path(root, "batch-plant").write_text(
+        json.dumps(declaration), encoding="utf-8"
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="time_limit_s must be a positive finite number"
+    ):
+        prospective.check_batch(root, "batch-plant")
+
+
 def test_prospective_module_has_no_release_timing_state_and_run_record_fields_are_closed(tmp_path: Path) -> None:
     source = (ROOT / "harness" / "prospective.py").read_text(encoding="utf-8").lower()
     for forbidden in ("sleep", "poll", "interval"):
