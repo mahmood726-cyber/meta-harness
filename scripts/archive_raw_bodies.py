@@ -67,6 +67,15 @@ def _load_index(snapshot: str) -> list[dict]:
     """Verify INDEX against the snapshot ledger before considering any body preserved."""
     p = os.path.join(snapshot, "raw", "INDEX.json")
     ledger_path = os.path.join(snapshot, "retrieval_ledger.json")
+    raw_root = os.path.join(snapshot, "raw")
+    # Resolve the evidence *container* as well as each numbered body. Without
+    # this guard a symlinked raw/ directory can place INDEX and every body
+    # outside the snapshot while _body_paths compares each source to the same
+    # escaped raw/ directory and accepts it as an in-snapshot file.
+    if (os.path.islink(raw_root) or not os.path.isdir(raw_root)
+            or not _inside(raw_root, snapshot)
+            or os.path.islink(p) or os.path.islink(ledger_path)):
+        raise SystemExit("REFUSED: raw evidence directory/index/ledger must be in-snapshot, non-symlink files")
     if not os.path.isfile(p) or not os.path.isfile(ledger_path):
         raise SystemExit("REFUSED: raw/INDEX.json and retrieval_ledger.json are both required")
     try:
