@@ -625,6 +625,10 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         reasons.append(str(exc))
 
     records = load_run_records(repo, batch)
+    # A declaration alone is not an executed validation batch. Without this
+    # refusal, check_batch returned ok=True for a zero-run denominator.
+    if not records:
+        reasons.append("batch has no retained prospective run records; cannot pass an empty batch")
     seen_run_ids: set[str] = set()
     for record in records:
         reasons.extend(_validate_record_shape(record))
