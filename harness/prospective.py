@@ -222,7 +222,8 @@ def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Pat
 
 
 def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
-    path = declaration_path(root, batch_id)
+    batch = _require_safe_name(batch_id, "batch_id")
+    path = declaration_path(root, batch)
 
     def unique_members(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         # Standard JSON decoding silently keeps the last duplicate value.
@@ -245,18 +246,26 @@ def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, A
         return value
 
     try:
-        return json.loads(
+        declaration = json.loads(
             path.read_text(encoding="utf-8"),
             object_pairs_hook=unique_members,
             parse_constant=reject_nonfinite,
             parse_float=strict_float,
         )
     except OSError as exc:
-        raise ProspectiveRefusal(f"declaration missing for batch {batch_id!r}") from exc
+        raise ProspectiveRefusal(f"declaration missing for batch {batch!r}") from exc
     except ProspectiveRefusal:
         raise
     except ValueError as exc:
         raise ProspectiveRefusal(f"declaration is not valid JSON: {path}") from exc
+
+    # A declaration's identity must agree with the directory from which it is
+    # loaded. A copied or relabelled batch must not pass with zero run records.
+    if not isinstance(declaration, dict) or declaration.get("batch_id") != batch:
+        raise ProspectiveRefusal(
+            f"declaration batch_id does not match requested batch {batch!r}"
+        )
+    return declaration
 
 
 def check_declaration_frozen(
@@ -490,8 +499,13 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
             record = json.loads(path.read_text(encoding="utf-8"))
         except ValueError as exc:
             raise ProspectiveRefusal(f"run record is not valid JSON: {path}") from exc
-        if record.get("batch_id") == batch:
-            records.append(record)
+        # Never silently hide an off-batch run from the denominator. A record
+        # stored under this batch but claiming another batch must fail closed.
+        if not isinstance(record, dict) or record.get("batch_id") != batch:
+            raise ProspectiveRefusal(
+                f"run record batch_id does not match requested batch {batch!r}: {path}"
+            )
+        records.append(record)
     return records
 
 
