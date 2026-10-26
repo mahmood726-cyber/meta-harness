@@ -78,6 +78,19 @@ def consume(raw, rapid, label):
         with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
             replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
 
+    def test_import_time_process_launch_is_blocked_before_frozen_module_executes(self):
+        # Before the early audit-hook fix, import-side effects ran outside the
+        # subprocess tripwire. A frozen consumer can import code before consume.
+        # This local substitute is a negative control, not the frozen dataset.
+        self.stub()
+        source = self.canary.read_text(encoding="utf-8")
+        self.canary.write_text(
+            "import os\nos.system('node --version')\n" + source,
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "NO_POOL: external process invoked"):
+            replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
+
     def test_os_system_process_launch_cannot_escape_refusal_tripwire(self):
         # The original run/Popen mocks do not intercept os.system. A frozen
         # importer invoking it must be rejected *before* Node can be started.
