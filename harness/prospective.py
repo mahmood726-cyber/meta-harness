@@ -186,7 +186,15 @@ def declaration_path(root: str | os.PathLike[str], batch_id: str) -> Path:
 def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Path:
     batch = _require_safe_name(decl.get("batch_id"), "batch_id")
     path = declaration_path(root, batch)
+    prospective_dir = _root_path(root) / "prospective"
+    # Refuse path aliases (including "." and "..") and symlinked ancestors.
+    # Exclusive creation below protects the leaf, not its parent directory.
+    # This is a local preflight safeguard, not independent/race-free custody.
+    if batch in {".", ".."} or prospective_dir.is_symlink() or path.parent.is_symlink():
+        raise ProspectiveRefusal("unsafe prospective declaration directory")
     path.parent.mkdir(parents=True, exist_ok=True)
+    if prospective_dir.is_symlink() or path.parent.is_symlink():
+        raise ProspectiveRefusal("unsafe prospective declaration directory")
     # A second write must never silently revise a prospective declaration
     # after the custodian's commitment or after any study results are visible.
     # Exclusive creation also refuses pre-existing symlinks and concurrent
