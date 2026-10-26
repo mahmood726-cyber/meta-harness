@@ -187,11 +187,18 @@ def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Pat
     batch = _require_safe_name(decl.get("batch_id"), "batch_id")
     path = declaration_path(root, batch)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(decl, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    # A second write must never silently revise a prospective declaration
+    # after the custodian's commitment or after any study results are visible.
+    # Exclusive creation also refuses pre-existing symlinks and concurrent
+    # writers, rather than checking exists() before a truncating write.
+    try:
+        with path.open("x", encoding="utf-8", newline="\n") as fh:
+            fh.write(json.dumps(decl, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    except FileExistsError as exc:
+        raise ProspectiveRefusal(
+            f"declaration already exists for batch {batch!r}; "
+            "no in-place revision is permitted"
+        ) from exc
     return path
 
 
