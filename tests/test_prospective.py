@@ -275,6 +275,38 @@ def _write_batch_record(root: Path, batch_id: str, record: dict) -> Path:
     )
 
 
+
+def test_prospective_run_record_is_write_once_even_if_original_failed(tmp_path: Path) -> None:
+    # A rerun cannot silently rewrite the evidence for an earlier FAILED run.
+    root = _mini_root(tmp_path)
+    _declare(root)
+    failed = _record(root, "batch-plant", "run-original")
+    failed["outcome"] = "FAILED"
+    original_path = _write_batch_record(root, "batch-plant", failed)
+    original_bytes = original_path.read_bytes()
+
+    corrected = dict(failed, outcome="COMPLETED")
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record already exists"):
+        _write_batch_record(root, "batch-plant", corrected)
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record already exists"):
+        _write_batch_record(root, "batch-plant", failed)
+
+    assert original_path.read_bytes() == original_bytes
+    assert prospective.load_run_records(root, "batch-plant") == [failed]
+
+
+def test_partial_prospective_run_record_cannot_be_silently_replaced(tmp_path: Path) -> None:
+    # A crash that leaves a partial first write requires manual investigation.
+    root = _mini_root(tmp_path)
+    record = _record(root, "batch-plant", "run-partial")
+    path = root / "prospective" / "batch-plant" / "runs" / "run-partial" / "run_record.json"
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"{")
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record already exists"):
+        prospective.write_run_record(path, record)
+    assert path.read_bytes() == b"{"
+
+
 def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     decl = _declare(root)
