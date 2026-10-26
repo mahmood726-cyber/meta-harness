@@ -1,0 +1,188 @@
+name: Candidate synthetic RapidMeta PR59 no-pool handoff (not common benchmark)
+
+# Independent *candidate* compatibility probe; original registered CROSS-EXCH-016
+# and all 001-015 statuses remain unchanged. Synthetic inputs, no clinical claim.
+on:
+  push:
+    branches:
+      - 'audit/rapidmeta-pr59-*'
+  pull_request:
+    paths:
+      - 'benchmarks/cross_repo/v0.1/**'
+      - '.github/workflows/rapidmeta-pr59-synthetic-handoff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-pairwise-refusal:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Windows runners can otherwise transform LF source bytes to CRLF at
+      # checkout even though HEAD/blob identities match. Never weaken preflight:
+      # check out the exact Git blob bytes on BOTH operating systems.
+      - name: Require byte-exact Git worktrees before both checkouts
+        shell: bash
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+          test "$(git config --global --get core.autocrlf)" = false
+      - name: Checkout Meta-Harness candidate (record actual HEAD, no pretend frozen pin)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: meta
+          persist-credentials: false
+      - name: Assert literal Meta-Harness candidate HEAD
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git -C meta rev-parse HEAD)"
+          test "$actual" = "$expected" || { echo "REFUSED: candidate HEAD mismatch ($actual != $expected)"; exit 1; }
+          echo "EXACT CANDIDATE HEAD: $actual"
+      - name: Checkout reviewed RapidMeta PR59 snapshot (not registered manifest pin)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: mahmood726-cyber/rapidmeta-kit
+          ref: 9549a59ad77000781df23577680bcb1adb7334b6
+          path: rapidmeta
+          persist-credentials: false
+      - name: Assert exact reviewed PR59 consumer SHA and engine blob
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="9549a59ad77000781df23577680bcb1adb7334b6"
+          actual="$(git -C rapidmeta rev-parse HEAD)"
+          test "$actual" = "$expected" || { echo "REFUSED: PR59 consumer checkout drift"; exit 1; }
+          expected_blob="3dafd0ab344cb305da1d6a77ff3c22faae8f7551"
+          actual_blob="$(git -C rapidmeta rev-parse HEAD:template/assets/vendor/pairwise-pool.js)"
+          test "$actual_blob" = "$expected_blob" || { echo "REFUSED: PR59 engine blob drift"; exit 1; }
+          echo "CANDIDATE RAPIDMETA HEAD: $actual; engine blob: $actual_blob"
+      - name: Configure pinned test Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13.7'
+      - name: Configure pinned test Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.14.0'
+      - name: Verify pinned engine Git-blob custody failure cases
+        run: python -m unittest discover -s meta/tests -p 'test_pinned_engine_custody.py' -v
+      - name: Execute source-hashed producer to actual PR59 engine and refusals
+        run: |
+          set -euo pipefail
+          python --version
+          node --version
+          git -C meta rev-parse HEAD
+          git -C rapidmeta rev-parse HEAD
+          python meta/benchmarks/cross_repo/v0.1/pinned_pairwise_canary.py \
+            --rapidmeta rapidmeta --output handoff-evidence \
+            --consumer-profile rapidmeta-pr59-20261026
+      - name: Verify archived exact-byte input/output SHA256 and no-pool decisions
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path('handoff-evidence')
+          index = json.loads((root / 'index.json').read_bytes())
+          assert len(index['digests']) == 12, index['digests']
+          for rel, expected in index['digests'].items():
+              assert hashlib.sha256((root / rel).read_bytes()).hexdigest() == expected, rel
+          expected = {'allow_synthetic_control': True, 'refuse': False,
+                      'manual_review': False, 'shadowed_refuse': False,
+                      'source_hash_drift': False, 'source_trial_mismatch': False}
+          for name, called in expected.items():
+              result = json.loads((root / 'results' / f'{name}.json').read_bytes())
+              assert result['engine_invoked'] is called, name
+              assert result['status'] == ('SYNTHETIC_ENGINE_EXECUTED' if called else 'REFUSED'), name
+          assert index['rapidmeta_pinned_sha'] == '9549a59ad77000781df23577680bcb1adb7334b6'
+          assert index['consumer_engine_git_blob'] == '3dafd0ab344cb305da1d6a77ff3c22faae8f7551'
+          assert index['registered_manifest_rapidmeta_sha_unchanged'] == '368137dc437543c721b98be39c14282c338f7797'
+          assert index['candidate_scope'] == 'SYNTHETIC_DEVELOPMENT_HEAD_COMPATIBILITY_ONLY'
+          assert index['common_cross_exch_001_015'] == 'NOT_RUN'
+          assert index['clinical_validation'] == 'NOT_TESTED'
+          assert index['external_R_oracle'] == 'NOT_TESTED'
+          assert index['four_repository_benchmark'] == 'NOT_RUN'
+          print('CANDIDATE ARCHIVE VERIFIED: 6 input + 6 output SHA-256; 5 no-pool refusals, registered case statuses unchanged')
+          print('INDEX_SHA256:', hashlib.sha256((root / 'index.json').read_bytes()).hexdigest())
+          PY
+      - name: Archive OS-specific raw inputs/results/digests for independent comparison
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pr59-synthetic-refusal-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: handoff-evidence/
+          if-no-files-found: error
+          retention-days: 90
+
+
+  # A fresh worker downloads BOTH archived producer outputs, checks the exact
+  # candidate head and independent engine Git blob, then rehashes every raw
+  # input/result against separate immutable synthetic input SHA256 constants.
+  # This is not a new registered public CROSS-EXCH case.
+  candidate-independent-archive-parity:
+    needs: candidate-pairwise-refusal
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact comparator candidate (independent worker)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: meta
+          persist-credentials: false
+      - name: Refuse checkout head mismatch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C meta rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Checkout the same reviewed RapidMeta engine independently
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: mahmood726-cyber/rapidmeta-kit
+          ref: 9549a59ad77000781df23577680bcb1adb7334b6
+          path: rapidmeta
+          persist-credentials: false
+      - name: Pin comparator Python runtime
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13.7'
+      - name: Run comparator negative regression suite
+        shell: bash
+        run: python -m unittest discover -s meta/tests -p 'test_compare_pr59_candidate.py' -v
+      - name: Download Ubuntu candidate inputs and outputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pr59-synthetic-refusal-ubuntu-24.04-${{ github.event.pull_request.head.sha || github.sha }}
+          path: received/ubuntu
+      - name: Download Windows candidate inputs and outputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pr59-synthetic-refusal-windows-2025-${{ github.event.pull_request.head.sha || github.sha }}
+          path: received/windows
+      - name: Independently reject mismatched archives or pooling of refused evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python meta/benchmarks/cross_repo/v0.1/compare_pr59_candidate.py \
+            --ubuntu received/ubuntu --windows received/windows \
+            --meta-head ${{ github.event.pull_request.head.sha || github.sha }} --rapidmeta rapidmeta \
+            --report parity-report/report.json
+          sha256sum parity-report/report.json
+      - name: Archive independently checked candidate-only parity result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pr59-independent-parity-${{ github.event.pull_request.head.sha || github.sha }}
+          path: parity-report/report.json
+          if-no-files-found: error
+          retention-days: 90

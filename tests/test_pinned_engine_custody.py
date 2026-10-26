@@ -65,6 +65,14 @@ class PinnedEngineCustodyTests(unittest.TestCase):
         self.assertEqual(observed_digest,
                          hashlib.sha256(self.original_engine).hexdigest())
 
+    def test_candidate_pr59_rejects_wrong_exact_commit_before_engine_execution(self):
+        with self.assertRaisesRegex(RuntimeError, "not at manifest-pinned SHA"):
+            canary.preflight(self.rapid, canary.CANDIDATE_PROFILE)
+
+    def test_unregistered_consumer_profile_refused(self):
+        with self.assertRaisesRegex(ValueError, "Unknown RapidMeta consumer profile"):
+            canary.preflight(self.rapid, "moving-main-or-unregistered-head")
+
     def test_dirty_engine_worktree_refused_before_pooling(self):
         (self.rapid / canary.ENGINE).write_bytes(b"// changed synthetic engine\n")
         # The Git HEAD still matches the manifest. The changed bytes must be

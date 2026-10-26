@@ -16,7 +16,7 @@ import platform
 import re
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePath
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
@@ -25,6 +25,11 @@ from harness.exchange_v01 import import_exchange_json  # noqa: E402
 SOURCE = "benchmarks/cross_repo/v0.1/synthetic-binary-arms.txt"
 SOURCE_SHA256 = "666a0354b2668dd0f90780becff303eab28a007fa895650ba09793732d374398"
 ENGINE = "template/assets/vendor/pairwise-pool.js"
+# Separate compatibility snapshot; never rewrite the registered manifest pin or
+# promote this development-branch smoke to a public CROSS-EXCH case PASS.
+CANDIDATE_PROFILE = "rapidmeta-pr59-20261026"
+CANDIDATE_SHA = "9549a59ad77000781df23577680bcb1adb7334b6"
+CANDIDATE_ENGINE_BLOB = "3dafd0ab344cb305da1d6a77ff3c22faae8f7551"
 COUNTS = re.compile(r"(SYN-TRIAL-[0-9]{2}) tE=([0-9]+) tN=([0-9]+) cE=([0-9]+) cN=([0-9]+)\Z")
 ESTIMAND = {"measure": "RR", "population": "ITT", "outcome": "synthetic event", "timepoint": "12 months"}
 NODE = r"""
@@ -47,6 +52,11 @@ process.stdout.write(JSON.stringify({k_used: result.k_used, measure: result.meas
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def receipt_key(path: PurePath, root: PurePath) -> str:
+    """Canonical POSIX archive member name, including on Windows checkouts."""
+    return path.relative_to(root).as_posix()
 
 
 def wire(payload: dict) -> bytes:
@@ -72,9 +82,16 @@ def checkout_engine_path(rapidmeta: Path) -> Path:
     return current
 
 
-def preflight(rapidmeta: Path) -> tuple[str, str]:
+def preflight(rapidmeta: Path, consumer_profile: str = "registered-manifest") -> tuple[str, str]:
     manifest = json.loads((ROOT / "benchmarks/cross_repo/v0.1/manifest.json").read_bytes())
-    expected = manifest["repositories"]["rapidmeta-kit"]["commit"]
+    if consumer_profile == "registered-manifest":
+        expected = manifest["repositories"]["rapidmeta-kit"]["commit"]
+        expected_engine_blob = None
+    elif consumer_profile == CANDIDATE_PROFILE:
+        expected = CANDIDATE_SHA
+        expected_engine_blob = CANDIDATE_ENGINE_BLOB
+    else:
+        raise ValueError("Unknown RapidMeta consumer profile: refuse handoff")
     actual = git_head(rapidmeta)
     if actual != expected:
         raise RuntimeError(f"RapidMeta checkout not at manifest-pinned SHA: expected {expected}, got {actual}")
@@ -93,7 +110,18 @@ def preflight(rapidmeta: Path) -> tuple[str, str]:
     )
     if sha(engine.read_bytes()) != sha(committed_engine):
         raise RuntimeError("RapidMeta engine worktree differs from pinned Git blob; refuse handoff")
+    if expected_engine_blob is not None:
+        actual_blob = subprocess.check_output(
+            ["git", "-C", str(rapidmeta), "rev-parse", f"HEAD:{ENGINE}"],
+            text=True, timeout=15,
+        ).strip()
+        if actual_blob != expected_engine_blob:
+            raise RuntimeError("Candidate RapidMeta engine Git blob differs from reviewed snapshot")
     return actual, sha(committed_engine)
+
+
+def manifest_consumer_sha() -> str:
+    return json.loads((ROOT / "benchmarks/cross_repo/v0.1/manifest.json").read_bytes())["repositories"]["rapidmeta-kit"]["commit"]
 
 
 def produce(decision: str) -> dict:
@@ -165,9 +193,9 @@ def consume(raw: bytes, rapidmeta: Path, label: str) -> dict:
     return result
 
 
-def run(rapidmeta: Path, output: Path) -> None:
+def run(rapidmeta: Path, output: Path, consumer_profile: str = "registered-manifest") -> None:
     rapidmeta = rapidmeta.resolve(strict=True)
-    rapidmeta_head, engine_sha = preflight(rapidmeta)
+    rapidmeta_head, engine_sha = preflight(rapidmeta, consumer_profile)
     output.mkdir(parents=True, exist_ok=False)
     inp, res = output / "inputs", output / "results"
     inp.mkdir()
@@ -204,8 +232,8 @@ def run(rapidmeta: Path, output: Path) -> None:
             raise RuntimeError(f"Refused input reached the RapidMeta engine: {label}")
         out_path = res / f"{label}.json"
         out_path.write_bytes(wire(result))
-        digests[str(raw_path.relative_to(output))] = sha(raw_path.read_bytes())
-        digests[str(out_path.relative_to(output))] = sha(out_path.read_bytes())
+        digests[receipt_key(raw_path, output)] = sha(raw_path.read_bytes())
+        digests[receipt_key(out_path, output)] = sha(out_path.read_bytes())
         print(f"{label}: {result['status']}, engine_invoked={result['engine_invoked']}")
     record = {
         "type": "synthetic_structural_cross_repo_canary_only",
@@ -223,6 +251,15 @@ def run(rapidmeta: Path, output: Path) -> None:
         "external_R_oracle": "NOT_TESTED",
         "four_repository_benchmark": "NOT_RUN",
     }
+    if consumer_profile == CANDIDATE_PROFILE:
+        record.update({
+            "consumer_profile": consumer_profile,
+            "consumer_engine_git_blob": CANDIDATE_ENGINE_BLOB,
+            "registered_manifest_rapidmeta_sha_unchanged": manifest_consumer_sha(),
+            "candidate_scope": "SYNTHETIC_DEVELOPMENT_HEAD_COMPATIBILITY_ONLY",
+            "common_cross_exch_001_015": "NOT_RUN",
+            "common_four_repository_test": "NOT_RUN",
+        })
     (output / "index.json").write_bytes(wire(record))
     print("CANARY COMPLETED: one synthetic engine smoke and five real no-pool refusals; no external R or clinical claim")
 
@@ -231,5 +268,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rapidmeta", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--consumer-profile", choices=("registered-manifest", CANDIDATE_PROFILE),
+                        default="registered-manifest",
+                        help="Explicit immutable candidate profile; does not update manifest registration")
     args = parser.parse_args()
-    run(args.rapidmeta, args.output)
+    run(args.rapidmeta, args.output, args.consumer_profile)
