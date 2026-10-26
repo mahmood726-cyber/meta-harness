@@ -52,22 +52,21 @@ spec = importlib.util.spec_from_file_location('pinned_refusal_replay', source)
 if spec is None or spec.loader is None:
     raise RuntimeError('frozen canary module not importable')
 module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-label = sys.argv[3]
-if label not in ('refuse', 'manual_review', 'source_trial_mismatch',
-                 'duplicate_shadow', 'estimand_mismatch', 'source_sha_tamper'):
-    raise RuntimeError('unregistered negative replay label')
-raw = sys.stdin.buffer.read()
-# A refused wire must never spawn a process by an alternate Python API.
-# Patching subprocess.run/Popen alone does not intercept os.system or
-# os.posix_spawn. This audit hook guards all common OS process launch routes
-# inside the isolated frozen-source replay, without changing frozen sources.
+# Install before executing even the frozen module's top-level code.
+# A module import can spawn a process before consume() is called; refusal
+# replay must not rely on a guard installed after import side effects.
 def refuse_process_audit(event, _args):
     if event in ('subprocess.Popen', 'os.system', 'os.posix_spawn',
                  'os.exec', 'os.spawn', 'os.fork', 'os.forkpty',
                  'os.startfile', 'os.startfile/2'):
         raise AssertionError('NO_POOL: external process invoked')
 sys.addaudithook(refuse_process_audit)
+spec.loader.exec_module(module)
+label = sys.argv[3]
+if label not in ('refuse', 'manual_review', 'source_trial_mismatch',
+                 'duplicate_shadow', 'estimand_mismatch', 'source_sha_tamper'):
+    raise RuntimeError('unregistered negative replay label')
+raw = sys.stdin.buffer.read()
 # Fail closed for both subprocess.run and direct subprocess.Popen routes.
 # These guards are active only within the isolated frozen-source replay child.
 with mock.patch.object(module.subprocess, 'run', side_effect=AssertionError('NO_POOL: subprocess invoked')) as run_tripwire, \
