@@ -86,7 +86,7 @@ def consume(raw, rapid, label):
         source = self.canary.read_text(encoding="utf-8")
         self.canary.write_text(source.replace(
             "    return {'case': label,",
-            "    __import__('os').system('node --version')\\n    return {'case': label,"
+            "    __import__('os').system('node --version')\n    return {'case': label,"
         ), encoding="utf-8")
         with self.assertRaisesRegex(RuntimeError, "NO_POOL: external process invoked"):
             replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
