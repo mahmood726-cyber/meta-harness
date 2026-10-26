@@ -16,7 +16,7 @@ import platform
 import re
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePath
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
@@ -52,6 +52,11 @@ process.stdout.write(JSON.stringify({k_used: result.k_used, measure: result.meas
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def receipt_key(path: PurePath, root: PurePath) -> str:
+    """Canonical POSIX archive member name, including on Windows checkouts."""
+    return path.relative_to(root).as_posix()
 
 
 def wire(payload: dict) -> bytes:
@@ -227,8 +232,8 @@ def run(rapidmeta: Path, output: Path, consumer_profile: str = "registered-manif
             raise RuntimeError(f"Refused input reached the RapidMeta engine: {label}")
         out_path = res / f"{label}.json"
         out_path.write_bytes(wire(result))
-        digests[str(raw_path.relative_to(output))] = sha(raw_path.read_bytes())
-        digests[str(out_path.relative_to(output))] = sha(out_path.read_bytes())
+        digests[receipt_key(raw_path, output)] = sha(raw_path.read_bytes())
+        digests[receipt_key(out_path, output)] = sha(out_path.read_bytes())
         print(f"{label}: {result['status']}, engine_invoked={result['engine_invoked']}")
     record = {
         "type": "synthetic_structural_cross_repo_canary_only",
