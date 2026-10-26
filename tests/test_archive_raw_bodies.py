@@ -268,7 +268,7 @@ def test_changed_pointer_or_archived_body_not_marked_preserved(tmp_path, monkeyp
     archived = archive_root / archive._rel_snapshot(str(snapshot)) / rows[0]["path"]
     archived.write_bytes(b"tampered")
     ok, problems = archive.check(str(snapshot), None)
-    assert ok == 0 and len(problems) == 1 and "DIGEST MISMATCH" in problems[0]
+    assert ok == 0 and len(problems) == 1 and "RAW RESPONSE MISMATCH" in problems[0]
     pointer_path = snapshot / "ARCHIVE.json"
     pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
     pointer["index_sha256"] = "0" * 64
@@ -381,7 +381,7 @@ def test_archived_body_corruption_not_masked_by_restored_local_copy(tmp_path, mo
     archived.write_bytes(b"damaged off-tree evidence")
     ok, problems = archive.check(str(snapshot), None)
     assert ok == 0
-    assert len(problems) == 1 and "DIGEST MISMATCH" in problems[0]
+    assert len(problems) == 1 and "RAW RESPONSE MISMATCH" in problems[0]
     assert local.read_bytes() == original
 
 
