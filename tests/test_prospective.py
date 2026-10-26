@@ -548,6 +548,55 @@ def test_check_batch_refuses_rerun_when_cited_defect_is_late(tmp_path: Path) -> 
         prospective.check_batch(root, batch)
 
 
+
+def test_duplicate_defect_ids_cannot_rewrite_rerun_history(tmp_path: Path) -> None:
+    # A later ledger line cannot backdate a pre-existing defect id to turn
+    # a previously refused rerun into an apparent preregistered exception.
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    original = dict(_record(root, batch, "run-original"), outcome="FAILED_CRASH")
+    _write_batch_record(root, batch, original)
+    _write_batch_record(
+        root,
+        batch,
+        _record(
+            root,
+            batch,
+            "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="rerun because defect-plant documents the failure",
+        ),
+    )
+    late = prospective.defect_entry(
+        batch,
+        "topic-plant",
+        "run-original",
+        "FAILED_CRASH",
+        "runner killed",
+        "synthetic failure",
+        entry_id="defect-plant",
+        declared_utc="2026-09-14T00:22:00Z",
+    )
+    ledger = root.parent / "meta-harness-defects" / f"{batch}.jsonl"
+    prospective.append_defect(late, ledger, root=root)
+    with pytest.raises(prospective.ProspectiveRefusal, match="not declared before rerun start"):
+        prospective.check_batch(root, batch)
+
+    # The second line reuses the same identity but claims a prior timestamp.
+    prospective.append_defect(
+        dict(late, declared_utc="2026-09-14T00:19:00Z"), ledger, root=root
+    )
+    original_ledger = ledger.read_bytes()
+    assert len(original_ledger.splitlines()) == 2
+    with pytest.raises(prospective.ProspectiveRefusal, match="duplicate defect id"):
+        prospective.check_batch(root, batch)
+    assert ledger.read_bytes() == original_ledger
+
+
+
 def test_check_batch_refuses_more_than_one_rerun_per_topic(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     batch = "batch-plant"
