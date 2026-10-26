@@ -221,7 +221,7 @@ def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Pat
     return path
 
 
-def _load_strict_prospective_json(path: Path, label: str) -> Any:
+def _parse_strict_prospective_json(text: str, label: str) -> Any:
     """Reject ambiguous or non-finite JSON in frozen prospective evidence.
 
     Both declarations and run records must use the same decoding rules:
@@ -246,11 +246,16 @@ def _load_strict_prospective_json(path: Path, label: str) -> Any:
         return value
 
     return json.loads(
-        path.read_text(encoding="utf-8"),
+        text,
         object_pairs_hook=unique_members,
         parse_constant=reject_nonfinite,
         parse_float=strict_float,
     )
+
+
+def _load_strict_prospective_json(path: Path, label: str) -> Any:
+    """Apply strict prospective parsing to a UTF-8 file without losing provenance."""
+    return _parse_strict_prospective_json(path.read_text(encoding="utf-8"), label)
 
 
 def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
@@ -521,7 +526,13 @@ def load_defects(root: str | os.PathLike[str], batch_id: str) -> list[dict[str, 
             if not text:
                 continue
             try:
-                entry = json.loads(text)
+                # Ledger lines authorize reruns and need the same unambiguous
+                # JSON rules as frozen declarations and retained run records.
+                entry = _parse_strict_prospective_json(
+                    text, f"defect ledger line {line_no}"
+                )
+            except ProspectiveRefusal:
+                raise
             except ValueError as exc:
                 raise ProspectiveRefusal(
                     f"defect ledger line {line_no} is not valid JSON"
