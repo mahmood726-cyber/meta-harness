@@ -291,6 +291,59 @@ def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path
         prospective.check_declaration_frozen(root, decl)
 
 
+
+@pytest.mark.parametrize(
+    "field,forged_value,reason",
+    [
+        ("schema_version", 999, "unsupported schema_version"),
+        ("schema_version", True, "unsupported schema_version"),
+        ("architecture_components", {}, "architecture component manifest mismatch"),
+        ("mutable_dependencies", [], "mutable dependency ledger mismatch"),
+        ("external_dependency_mutability", False, "external dependency mutability mismatch"),
+        ("external_dependency_mutability", "false", "external dependency mutability mismatch"),
+        ("freeze_claim", prospective.IMMUTABLE_FREEZE_CLAIM, "freeze claim mismatches"),
+        ("rerun_policy", "reruns without prior defects are permitted", "declared rerun policy differs"),
+    ],
+)
+def test_forged_freeze_metadata_cannot_pass_batch_gate(
+    tmp_path: Path, field: str, forged_value: object, reason: str
+) -> None:
+    # Synthetic direct-file tampering bypasses write_declaration intentionally.
+    # A matching architecture digest must not make a dishonest parallel field PASS.
+    root = _mini_root(tmp_path)
+    original = _declare(root)
+    assert prospective.check_batch(root, "batch-plant")["ok"] is True
+    forged = dict(original, **{field: forged_value})
+    assert forged["architecture_identity"] == original["architecture_identity"]
+
+    with pytest.raises(prospective.ProspectiveRefusal, match=reason):
+        prospective.check_declaration_frozen(root, forged)
+    path = prospective.declaration_path(root, "batch-plant")
+    path.write_text(json.dumps(forged), encoding="utf-8")
+    with pytest.raises(prospective.ProspectiveRefusal, match=reason):
+        prospective.check_batch(root, "batch-plant")
+
+
+@pytest.mark.parametrize(
+    "field,reason",
+    [
+        ("architecture_components", "architecture component manifest mismatch"),
+        ("mutable_dependencies", "mutable dependency ledger mismatch"),
+        ("external_dependency_mutability", "external dependency mutability mismatch"),
+        ("freeze_claim", "freeze claim mismatches"),
+        ("rerun_policy", "declared rerun policy differs"),
+    ],
+)
+def test_missing_freeze_metadata_refuses_batch(tmp_path: Path, field: str, reason: str) -> None:
+    root = _mini_root(tmp_path)
+    forged = _declare(root)
+    forged.pop(field)
+    path = prospective.declaration_path(root, "batch-plant")
+    path.write_text(json.dumps(forged), encoding="utf-8")
+    with pytest.raises(prospective.ProspectiveRefusal, match=reason):
+        prospective.check_batch(root, "batch-plant")
+
+
 def test_append_defect_outside_tree_leaves_architecture_identity_unchanged(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     before = architecture_identity.identity(root)
