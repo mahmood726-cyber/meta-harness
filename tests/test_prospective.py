@@ -63,6 +63,49 @@ def test_declaration_refuses_posthoc_rewrite_and_preserves_first_bytes(tmp_path:
     assert prospective.load_declaration(root, "batch-plant") == original
 
 
+
+@pytest.mark.parametrize("limit", [float("nan"), float("inf"), float("-inf")])
+def test_nonfinite_preregistered_time_limits_are_refused(tmp_path: Path, limit: float) -> None:
+    root = _mini_root(tmp_path)
+    with pytest.raises(prospective.ProspectiveRefusal, match="time_limit_s must be finite"):
+        prospective.batch_declaration(
+            root, "batch-invalid-limit", limit, ["census"], COMMITMENT,
+            {"definition": "synthetic universe", "digest": "b" * 64},
+        )
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_nonfinite_nested_declaration_number_leaves_no_freeze(
+    tmp_path: Path, value: float
+) -> None:
+    root = _mini_root(tmp_path)
+    destination = prospective.declaration_path(root, "batch-nonfinite")
+    with pytest.raises(prospective.ProspectiveRefusal, match="non-finite JSON number"):
+        prospective.write_declaration(root, {
+            "batch_id": "batch-nonfinite",
+            "universe_ref": {"threshold": value},
+        })
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity", "1e400"])
+def test_nonfinite_frozen_json_number_refuses_at_load_and_batch_gate(
+    tmp_path: Path, number: str
+) -> None:
+    root = _mini_root(tmp_path)
+    path = prospective.declaration_path(root, "batch-nonfinite")
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        '{"batch_id":"batch-nonfinite","universe_ref":{"threshold":'
+        + number + '}}', encoding="utf-8"
+    )
+    with pytest.raises(prospective.ProspectiveRefusal, match="non-finite JSON number"):
+        prospective.load_declaration(root, "batch-nonfinite")
+    with pytest.raises(prospective.ProspectiveRefusal, match="non-finite JSON number"):
+        prospective.check_batch(root, "batch-nonfinite")
+
+
+
 def test_declaration_serialization_failure_leaves_no_partial_freeze(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     path = prospective.declaration_path(root, "batch-serialize")
