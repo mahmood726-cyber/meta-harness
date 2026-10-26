@@ -110,3 +110,18 @@ def test_shadowed_exchange_refusal_identity_or_estimand_refuses(key, old, shadow
 def test_invalid_raw_manifest_never_validates(raw):
     with pytest.raises(ValueError):
         validate_manifest_json(raw, MANIFEST.parent)
+
+
+def test_legacy_package_main_cannot_bypass_wire_duplicate_gate(tmp_path, monkeypatch, capsys):
+    """The older importable main() must not retain json.loads last-key-wins."""
+    from harness.exchange_v01 import main as legacy_main
+
+    raw = MANIFEST.read_text(encoding="utf-8")
+    poisoned = raw.replace('"status": "NOT_RUN"',
+                           '"status": "FAIL", "status": "NOT_RUN"', 1)
+    path = tmp_path / "manifest.json"
+    path.write_text(poisoned, encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["exchange_v01", str(path)])
+    with pytest.raises(ValueError, match="duplicate JSON object member: status"):
+        legacy_main()
+    assert "MANIFEST VERIFIED" not in capsys.readouterr().out

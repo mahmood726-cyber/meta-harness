@@ -162,14 +162,9 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
 
 
 def main() -> int:
-    import argparse
-    parser = argparse.ArgumentParser(description="Check versioned benchmark manifest (no science claimed)")
-    parser.add_argument("manifest", type=Path)
-    args = parser.parse_args()
-    obj = json.loads(args.manifest.read_text(encoding="utf-8"))
-    validate_manifest(obj, args.manifest.parent)
-    print("MANIFEST VERIFIED: pins and fixture SHA-256; cases retain their stated statuses")
-    return 0
+    """Compatibility entrypoint: raw JSON must never bypass strict wire checks."""
+    from .wire import main as strict_main
+    return strict_main()
 
 
 if __name__ == "__main__":

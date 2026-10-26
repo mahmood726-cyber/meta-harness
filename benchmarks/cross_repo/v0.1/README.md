@@ -40,8 +40,9 @@ earlier `FAIL` status, `REFUSE` decision, source/trial ID or estimand. JSON Sche
 cannot detect duplicates after parsing. The strict importer rejects repeated
 keys at any nesting depth (including Unicode-escaped keys), malformed JSON,
 BOM/invalid UTF-8 and nonstandard numeric constants before normal v0.1
-structural checks. The original optional `harness/exchange_v01/__init__.py`
-Git blob stays unchanged; `wire.py` is only an opt-in package module.
+structural checks. The optional package remains outside the historical certificate code scope;
+its importable `main()` compatibility entrypoint also delegates to strict `wire.py`.
+No historical certificate, release or served-page bytes are rewritten.
 
 ```sh
 python -m pytest tests/test_exchange_v01_wire.py -q
