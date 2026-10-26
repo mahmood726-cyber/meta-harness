@@ -76,6 +76,27 @@ def test_declaration_serialization_failure_leaves_no_partial_freeze(tmp_path: Pa
     assert not path.exists()
 
 
+@pytest.mark.parametrize("payload,member", [
+    ('{"batch_id":"batch-plant","batch_id":"posthoc"}', "batch_id"),
+    ('{"batch_id":"batch-plant","universe_ref":{"eligibility":"initial",'
+     '"eligibility":"posthoc"}}', "eligibility"),
+])
+def test_duplicate_preregistration_json_members_refuse_at_load_and_batch_gate(
+    tmp_path: Path, payload: str, member: str
+) -> None:
+    # Synthetic hostile declaration: standard json.loads would silently keep
+    # the last value, obscuring a competing preregistered eligibility rule.
+    root = _mini_root(tmp_path)
+    path = prospective.declaration_path(root, "batch-plant")
+    path.parent.mkdir(parents=True)
+    path.write_text(payload, encoding="utf-8")
+    with pytest.raises(prospective.ProspectiveRefusal, match=f"duplicate JSON member '{member}'"):
+        prospective.load_declaration(root, "batch-plant")
+    with pytest.raises(prospective.ProspectiveRefusal, match=f"duplicate JSON member '{member}'"):
+        prospective.check_batch(root, "batch-plant")
+
+
+
 def test_declaration_refuses_preexisting_symlink_without_writing_target(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     decl = prospective.batch_declaration(
