@@ -8,6 +8,7 @@ from pathlib import Path
 import tempfile
 import subprocess
 import unittest
+from unittest import mock
 
 PROGRAM = Path(__file__).resolve().parents[1] / "benchmarks/cross_repo/v0.1/compare_cross_os_016.py"
 SPEC = importlib.util.spec_from_file_location("compare_cross_os_016", PROGRAM)
@@ -186,6 +187,22 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "registered negative input SHA256 refuse"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
+    def test_two_os_rehashed_negative_tau2_cannot_pass_synthetic_smoke(self):
+        # Source-backed output-contract gap: the earlier comparator accepted
+        # matching, internally rehashed negative variance values on both OSes.
+        # Frozen input SHA, engine pin and all statuses remain unchanged.
+        for directory in (self.ubuntu, self.windows):
+            path = directory / "results" / "allow_rr_itt.json"
+            result = json.loads(path.read_text(encoding="utf-8"))
+            result["consumer"]["engine_output"]["tau2"] = -0.01
+            path.write_bytes(wire(result))
+            index_path = directory / "index.json"
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            index["digests"]["results/allow_rr_itt.json"] = comparator.digest(path.read_bytes())
+            index_path.write_bytes(wire(index))
+        with self.assertRaisesRegex(ValueError, "negative heterogeneity variance"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
     def test_cross_os_mu_log_drift_refuses_with_recomputed_sha_receipt(self):
         # These are synthetic archive fixtures, not real GitHub Actions output.
         self._rewrite_result("allow_rr_itt", lambda data:
@@ -297,6 +314,56 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         target.write_bytes(target.read_bytes() + b"X")
         with self.assertRaisesRegex(ValueError, "archived SHA256 integrity failure"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_archive_links_refuse_even_if_bytes_and_sha_receipts_match(self):
+        # Mock the filesystem link bit to execute on both Windows and Linux.
+        # The archived fixture bytes/receipts are otherwise unchanged and
+        # matching, so a SHA-only comparator would accept the linked paths.
+        links = (
+            self.ubuntu,
+            self.ubuntu / "index.json",
+            self.ubuntu / "source.txt",
+            self.ubuntu / "inputs",
+            self.ubuntu / "inputs" / "manual_review.json",
+            self.ubuntu / "results" / "manual_review.json",
+        )
+        for linked in links:
+            with self.subTest(linked=str(linked)):
+                with mock.patch.object(
+                    comparator.Path, "is_symlink", autospec=True,
+                    side_effect=lambda path, target=linked: path == target
+                ):
+                    with self.assertRaisesRegex(ValueError, "archive .*symlink"):
+                        comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_ntfs_junction_directory_is_a_refused_archive_parent(self):
+        # Portable simulation of Path.is_junction() (Python 3.12+ on Windows).
+        # No Windows privileges or live junction creation needed for this unit
+        # test; the real cross-platform workflow still runs independently.
+        fake = mock.Mock()
+        fake.is_symlink.return_value = False
+        fake.is_junction.return_value = True
+        self.assertTrue(comparator._archive_link(fake))
+        fake.is_junction.return_value = False
+        self.assertFalse(comparator._archive_link(fake))
+        with mock.patch.object(
+            comparator, "_archive_link",
+            side_effect=lambda path: path == self.ubuntu / "results"
+        ):
+            with self.assertRaisesRegex(ValueError, "archive parent is a symlink"):
+                comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_archive_relative_path_aliases_refuse(self):
+        for relative in (
+            "inputs/../source.txt",
+            "inputs/./source.txt",
+            "inputs//source.txt",
+            r"inputs\source.txt",
+            "/absolute.json",
+        ):
+            with self.subTest(relative=relative):
+                with self.assertRaisesRegex(ValueError, "invalid archived relative path"):
+                    comparator._archive_file(self.ubuntu, relative)
 
     def test_refused_case_engine_invocation_refuses_even_with_updated_receipt(self):
         result_path = self.windows / "results" / "manual_review.json"
@@ -453,6 +520,32 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source-hash tamper was not rejected"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
 
+    def _forge_both_os_numeric_engine_receipt(self, case, numeric_value):
+        """Rehash *both* synthetic CI archives; preserve all other outcomes."""
+        for directory in (self.ubuntu, self.windows):
+            result_file = directory / "results" / f"{case}.json"
+            outcome = json.loads(result_file.read_text(encoding="utf-8"))
+            outcome["consumer"]["engine_invoked"] = numeric_value
+            result_file.write_bytes(wire(outcome))
+            index_file = directory / "index.json"
+            index = json.loads(index_file.read_text(encoding="utf-8"))
+            index["digests"][f"results/{case}.json"] = comparator.digest(result_file.read_bytes())
+            index_file.write_bytes(wire(index))
+
+    def test_numeric_one_cannot_impersonate_true_engine_invocation(self):
+        # Before this gate, Python equality accepts 1 == True. Both archives
+        # can agree on forged numeric receipts and still rehash correctly.
+        self._forge_both_os_numeric_engine_receipt("allow_rr_itt", 1)
+        with self.assertRaisesRegex(ValueError, "engine invocation must be JSON boolean"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_numeric_zero_cannot_impersonate_false_no_pool_receipt(self):
+        # Protect the central REFUSE/MANUAL_REVIEW no-pool execution claim.
+        # This is a synthetic negative regression, not a real benchmark PASS.
+        self._forge_both_os_numeric_engine_receipt("manual_review", 0)
+        with self.assertRaisesRegex(ValueError, "engine invocation must be JSON boolean"):
+            comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
     def test_missing_pre_registered_negative_input_sha_refuses(self):
         self.spec.pop("negative_input_sha256")
         self.reg.write_bytes(wire(self.spec))
@@ -460,6 +553,38 @@ class ArchivedArtifactParityTests(unittest.TestCase):
         self._write_archive(self.windows, "windows-2025", "Windows")
         with self.assertRaisesRegex(ValueError, "pre-registered negative input SHA256"):
             comparator.compare(self.reg, self.ubuntu, self.windows, self.engine_sha)
+
+    def test_identical_git_blob_through_external_engine_symlink_refused(self):
+        """An independently rehashed engine must be in the pinned checkout."""
+        repo = Path(self.temp.name) / "linked-rapidmeta"
+        engine = repo / comparator.ENGINE_PATH
+        engine.parent.mkdir(parents=True)
+        frozen = b"// local synthetic same-byte engine\\n"
+        engine.write_bytes(frozen)
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        subprocess.run(["git", "-C", str(repo), "add", comparator.ENGINE_PATH],
+                       check=True)
+        subprocess.run(["git", "-C", str(repo), "-c", "user.name=CI Fixture",
+                        "-c", "user.email=fixture@example.invalid", "commit",
+                        "-qm", "frozen fixture"], check=True)
+        head = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+        ).strip()
+        self.assertEqual(comparator.pinned_engine_digest(
+            {"repositories": {"rapidmeta-kit": {"commit": head}}}, repo),
+            comparator.digest(frozen))
+        external = Path(self.temp.name) / "same-byte-external-engine.js"
+        external.write_bytes(frozen)
+        engine.unlink()
+        try:
+            engine.symlink_to(external)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"symlink unavailable on this runner: {exc}")
+        # The Git commit and every byte still match. The outside-code alias
+        # must nevertheless refuse independently before an engine can run.
+        with self.assertRaisesRegex(ValueError, "linked RapidMeta engine"):
+            comparator.pinned_engine_digest(
+                {"repositories": {"rapidmeta-kit": {"commit": head}}}, repo)
 
 if __name__ == "__main__":
     unittest.main()

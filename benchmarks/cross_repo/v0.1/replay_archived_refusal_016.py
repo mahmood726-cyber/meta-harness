@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 from compare_cross_os_016 import (compare, digest, load_json, assert_equal,
-                                  pinned_engine_digest)
+                                  pinned_engine_digest, _archive_file)
 from frozen_cli_api_handoff_016 import pinned_meta_code_sha256
 
 REPLAY_CASES = ("refuse", "manual_review", "source_trial_mismatch",
@@ -52,6 +52,15 @@ spec = importlib.util.spec_from_file_location('pinned_refusal_replay', source)
 if spec is None or spec.loader is None:
     raise RuntimeError('frozen canary module not importable')
 module = importlib.util.module_from_spec(spec)
+# Install before executing even the frozen module's top-level code.
+# A module import can spawn a process before consume() is called; refusal
+# replay must not rely on a guard installed after import side effects.
+def refuse_process_audit(event, _args):
+    if event in ('subprocess.Popen', 'os.system', 'os.posix_spawn',
+                 'os.exec', 'os.spawn', 'os.fork', 'os.forkpty',
+                 'os.startfile', 'os.startfile/2'):
+        raise AssertionError('NO_POOL: external process invoked')
+sys.addaudithook(refuse_process_audit)
 spec.loader.exec_module(module)
 label = sys.argv[3]
 if label not in ('refuse', 'manual_review', 'source_trial_mismatch',
@@ -93,7 +102,7 @@ def exact_checkout_checks(spec: dict, meta: Path, rapid: Path,
     engine_sha = pinned_engine_digest(spec, rapid)
     producer_code_sha256 = pinned_meta_code_sha256(spec, meta)
     for archive in (ubuntu, windows):
-        index = load_json(archive / "index.json")
+        index = load_json(_archive_file(archive, "index.json"))
         assert_equal(index["rapidmeta_engine_sha256"], engine_sha,
                      "archived engine SHA against frozen source checkout")
         # Recompute from an independent exact-pinned Git checkout. Two OS
@@ -236,6 +245,11 @@ def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
                               label: str = "manual_review"):
     """Recomputed archive hashes must not substitute for observed refusal."""
     assert_registered_refusal_input(raw, label)
+    # bool and int compare equal in Python (0 == False). A numeric archived
+    # no-pool receipt must never masquerade as an actual JSON boolean.
+    for provenance, result in (("replayed", observed), ("archived", archived)):
+        if not isinstance(result, dict) or type(result.get("engine_invoked")) is not bool:
+            raise ValueError(f"{provenance} engine_invoked must be JSON boolean")
     for name, value in (
         ("case", label), ("input_sha256", digest(raw)),
         ("status", "REFUSED"), ("engine_invoked", False)
@@ -263,6 +277,48 @@ def verify_replay_observation(observed: dict, archived: dict, raw: bytes,
         raise ValueError("refused replay contains pool output")
 
 
+
+def assert_registered_replay_sha256(raw: bytes, label: str, registration: dict) -> None:
+    """Recheck the frozen raw input at point of use, after archive comparison.
+
+    A valid ordinary file can change after the comparator's SHA-256 pass
+    without becoming a symlink. Never replay alternative REFUSE/MANUAL_REVIEW
+    bytes merely because the substituted input still produces a refusal.
+    """
+    expected = registration.get("negative_input_sha256")
+    if not isinstance(expected, dict) or not isinstance(expected.get(label), str):
+        raise ValueError(f"missing registered negative replay input SHA256: {label}")
+    if digest(raw) != expected[label]:
+        raise ValueError(f"post-comparison registered negative input SHA256 drift: {label}")
+
+
+
+def verified_archived_consumer(archive: Path, label: str,
+                               expected_index_sha256: str) -> tuple[dict, str]:
+    """Bind a replayed decision to the originally compared archive bytes.
+
+    A regular result file (or its index) can change after cross-OS comparison.
+    Read each exactly once, verify against the original checked index digest
+    and its recorded file receipt, and parse/report the same result bytes.
+    """
+    index_raw = _archive_file(archive, "index.json").read_bytes()
+    assert_equal(digest(index_raw), expected_index_sha256,
+                 "post-comparison archived index SHA256 drift")
+    index = json.loads(index_raw.decode("utf-8"), object_pairs_hook=_unique,
+                       parse_constant=_reject_nonfinite)
+    rel = f"results/{label}.json"
+    raw = _archive_file(archive, rel).read_bytes()
+    receipts = index.get("digests") if isinstance(index, dict) else None
+    expected = receipts.get(rel) if isinstance(receipts, dict) else None
+    if not isinstance(expected, str) or digest(raw) != expected:
+        raise ValueError(f"post-comparison archived result SHA256 drift: {label}")
+    result = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique,
+                        parse_constant=_reject_nonfinite)
+    if not isinstance(result, dict) or not isinstance(result.get("consumer"), dict):
+        raise ValueError(f"post-comparison archived consumer missing: {label}")
+    return result["consumer"], digest(raw)
+
+
 def run(registration: Path, ubuntu: Path, windows: Path,
         meta: Path, rapid: Path) -> dict:
     # Freeze source/consumer identities before replay. Pass the independently
@@ -277,14 +333,15 @@ def run(registration: Path, ubuntu: Path, windows: Path,
     ):
         os_replays = {}
         for label in REPLAY_CASES:
-            raw = (archive / "inputs" / f"{label}.json").read_bytes()
-            result_path = archive / "results" / f"{label}.json"
-            archived = load_json(result_path)["consumer"]
+            raw = _archive_file(archive, f"inputs/{label}.json").read_bytes()
+            assert_registered_replay_sha256(raw, label, spec)
+            archived, result_sha = verified_archived_consumer(
+                archive, label, prior["archives"][os_label]["index_sha256"])
             observed, stdout_sha = replay_frozen_bytes(meta, rapid, raw, label)
             verify_replay_observation(observed, archived, raw, label)
             os_replays[label] = {
                 "input_sha256": digest(raw),
-                "archived_result_sha256": digest(result_path.read_bytes()),
+                "archived_result_sha256": result_sha,
                 "replay_stdout_sha256": stdout_sha,
                 "status": observed["status"], "engine_invoked": False,
                 "refusal": observed["refusal"]

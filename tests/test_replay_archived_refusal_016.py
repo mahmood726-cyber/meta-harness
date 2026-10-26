@@ -78,6 +78,51 @@ def consume(raw, rapid, label):
         with self.assertRaisesRegex(RuntimeError, "NO_POOL: subprocess invoked"):
             replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
 
+    def test_import_time_process_launch_is_blocked_before_frozen_module_executes(self):
+        # Before the early audit-hook fix, import-side effects ran outside the
+        # subprocess tripwire. A frozen consumer can import code before consume.
+        # This local substitute is a negative control, not the frozen dataset.
+        self.stub()
+        source = self.canary.read_text(encoding="utf-8")
+        self.canary.write_text(
+            "import os\nos.system('node --version')\n" + source,
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(RuntimeError, "NO_POOL: external process invoked"):
+            replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
+
+    def test_os_system_process_launch_cannot_escape_refusal_tripwire(self):
+        # The original run/Popen mocks do not intercept os.system. A frozen
+        # importer invoking it must be rejected *before* Node can be started.
+        # This is a local synthetic negative-control stub, not a clinical case.
+        self.stub()
+        source = self.canary.read_text(encoding="utf-8")
+        self.canary.write_text(source.replace(
+            "    return {'case': label,",
+            "    __import__('os').system('node --version')\n    return {'case': label,"
+        ), encoding="utf-8")
+        with self.assertRaisesRegex(RuntimeError, "NO_POOL: external process invoked"):
+            replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
+
+    def test_numeric_zero_cannot_impersonate_refused_no_pool_receipt(self):
+        # A real isolated refusal replay yields a Boolean. Rehashing the
+        # archive cannot legitimise an integer/float zero in its place.
+        self.stub()
+        observed, _ = replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
+        self.assertIs(observed["engine_invoked"], False)
+        for provenance in ("replayed", "archived"):
+            for numeric_zero in (0, 0.0):
+                with self.subTest(provenance=provenance, value=numeric_zero):
+                    replayed, archived = dict(observed), dict(observed)
+                    target = replayed if provenance == "replayed" else archived
+                    target["engine_invoked"] = numeric_zero
+                    with self.assertRaisesRegex(
+                        ValueError, provenance + " engine_invoked must be JSON boolean"
+                    ):
+                        replay.verify_replay_observation(
+                            replayed, archived, self.raw, "manual_review"
+                        )
+
     def test_different_archived_refusal_reason_is_rejected(self):
         self.stub()
         observed, _ = replay.replay_frozen_bytes(self.meta, self.rapid, self.raw)
@@ -262,6 +307,145 @@ def consume(raw, rapid, label):
         check.assert_called_once()
         comparator.assert_called_once_with(registration, ubuntu, windows, pinned)
         replay_child.assert_not_called()
+
+    def test_post_comparison_result_bytes_match_original_index(self):
+        """The compared index receipt authenticates the actual parsed bytes."""
+        archive = self.root / "ubuntu"
+        target = archive / "results" / "refuse.json"
+        target.parent.mkdir(parents=True)
+        output = {"consumer": {"case": "refuse", "status": "REFUSED",
+                               "engine_invoked": False, "refusal": "registered"}}
+        original = json.dumps(output, sort_keys=True).encode("utf-8")
+        target.write_bytes(original)
+        index_raw = json.dumps({"digests": {
+            "results/refuse.json": hashlib.sha256(original).hexdigest()
+        }}).encode("utf-8")
+        (archive / "index.json").write_bytes(index_raw)
+        consumer, receipt = replay.verified_archived_consumer(
+            archive, "refuse", hashlib.sha256(index_raw).hexdigest())
+        self.assertEqual(consumer, output["consumer"])
+        self.assertEqual(receipt, hashlib.sha256(original).hexdigest())
+
+    def test_post_comparison_regular_result_drift_stops_child(self):
+        """A changed ordinary result is rejected even if it still says REFUSED."""
+        raw = b'{"rows":[{"decision":"REFUSE","trial_id":"SYN-TRIAL-01"}]}'
+        registration = self.root / "registration.json"
+        registration.write_text(json.dumps({"negative_input_sha256": {
+            "refuse": hashlib.sha256(raw).hexdigest()
+        }}), encoding="utf-8")
+        ubuntu, windows = self.root / "ubuntu", self.root / "windows"
+        input_path = ubuntu / "inputs" / "refuse.json"
+        result_path = ubuntu / "results" / "refuse.json"
+        input_path.parent.mkdir(parents=True)
+        result_path.parent.mkdir(parents=True)
+        input_path.write_bytes(raw)
+        original = b'{"consumer":{"case":"refuse","status":"REFUSED","refusal":"original"}}'
+        modified = original.replace(b"original", b"forged")
+        result_path.write_bytes(modified)  # plain file, not a symlink
+        index_raw = json.dumps({"digests": {
+            "results/refuse.json": hashlib.sha256(original).hexdigest()
+        }}).encode("utf-8")
+        (ubuntu / "index.json").write_bytes(index_raw)
+        archived_comparison = {"overall": "PASS", "archives": {
+            "ubuntu-24.04": {"index_sha256": hashlib.sha256(index_raw).hexdigest()}
+        }}
+        with (mock.patch.object(replay, "exact_checkout_checks",
+                                return_value={"engine_sha256": "d" * 64}),
+              mock.patch.object(replay, "compare",
+                                return_value=archived_comparison) as comparator,
+              mock.patch.object(replay, "replay_frozen_bytes") as child):
+            with self.assertRaisesRegex(
+                ValueError, "post-comparison archived result SHA256 drift: refuse"
+            ):
+                replay.run(registration, ubuntu, windows, self.meta, self.rapid)
+            comparator.assert_called_once()
+            child.assert_not_called()
+
+    def test_post_comparison_index_drift_refused_before_result_parse(self):
+        """Even a valid result cannot inherit an altered index's prior PASS."""
+        archive = self.root / "ubuntu"
+        target = archive / "results" / "refuse.json"
+        target.parent.mkdir(parents=True)
+        raw = b'{"consumer":{"case":"refuse","status":"REFUSED"}}'
+        target.write_bytes(raw)
+        original = json.dumps({"digests": {
+            "results/refuse.json": hashlib.sha256(raw).hexdigest()
+        }}).encode("utf-8")
+        (archive / "index.json").write_bytes(original + b" ")
+        with self.assertRaisesRegex(
+            ValueError, "post-comparison archived index SHA256 drift"
+        ):
+            replay.verified_archived_consumer(
+                archive, "refuse", hashlib.sha256(original).hexdigest())
+
+    def test_post_comparison_regular_refusal_input_drift_refuses_before_child(self):
+        """A substituted *regular* file must not inherit a prior SHA PASS.
+
+        Synthetic local unit fixture only. The two OS CI archives and the
+        frozen producer/consumer are exercised by separate live workflows.
+        """
+        frozen = b'{"rows":[{"decision":"REFUSE","trial_id":"SYN-TRIAL-01"}]}'
+        substituted = b'{"rows":[{"decision":"REFUSE","trial_id":"SYN-TRIAL-02"}]}'
+        registration = self.root / "registration.json"
+        registration.write_text(json.dumps({"negative_input_sha256": {
+            "refuse": hashlib.sha256(frozen).hexdigest()
+        }}), encoding="utf-8")
+        ubuntu, windows = self.root / "ubuntu", self.root / "windows"
+        target = ubuntu / "inputs" / "refuse.json"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(substituted)
+        # The file is not a link, its JSON is valid, and REFUSE remains REFUSE.
+        self.assertFalse(target.is_symlink())
+        self.assertEqual(json.loads(substituted)["rows"][0]["decision"], "REFUSE")
+        with (mock.patch.object(replay, "exact_checkout_checks",
+                                return_value={"engine_sha256": "d" * 64}),
+              mock.patch.object(replay, "compare",
+                                return_value={"overall": "PASS"}) as comparison,
+              mock.patch.object(replay, "replay_frozen_bytes") as child):
+            with self.assertRaisesRegex(
+                ValueError, "post-comparison registered negative input SHA256 drift: refuse"
+            ):
+                replay.run(registration, ubuntu, windows, self.meta, self.rapid)
+            comparison.assert_called_once()
+            child.assert_not_called()
+
+    def test_post_comparison_refusal_sha_accepts_only_exact_frozen_wire(self):
+        raw = b'{"rows":[{"decision":"MANUAL_REVIEW"}]}'
+        registration = {"negative_input_sha256": {
+            "manual_review": hashlib.sha256(raw).hexdigest()
+        }}
+        replay.assert_registered_replay_sha256(raw, "manual_review", registration)
+        with self.assertRaisesRegex(ValueError, "registered negative input SHA256 drift"):
+            replay.assert_registered_replay_sha256(
+                raw + b" ", "manual_review", registration)
+        with self.assertRaisesRegex(ValueError, "missing registered negative replay"):
+            replay.assert_registered_replay_sha256(raw, "refuse", registration)
+
+    def test_post_comparison_archive_input_link_refuses_before_replay(self):
+        """A path substituted after archive comparison must not enter the child.
+
+        The independent comparator already rejects linked files. This checks
+        that replay independently repeats the path-custody guard rather than
+        trusting a previously checked path after an archive mutation.
+        A mocked link bit works on both Windows and Linux CI runners.
+        """
+        registration = self.root / "registration.json"
+        registration.write_text('{"fixture":"synthetic only"}', encoding="utf-8")
+        ubuntu, windows = self.root / "ubuntu", self.root / "windows"
+        target = ubuntu / "inputs" / "refuse.json"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(self.raw.replace(b"MANUAL_REVIEW", b"REFUSE"))
+        with (mock.patch.object(replay, "exact_checkout_checks",
+                                return_value={"engine_sha256": "d" * 64}),
+              mock.patch.object(replay, "compare",
+                                return_value={"overall": "PASS"}) as comparison,
+              mock.patch.object(replay, "replay_frozen_bytes") as child,
+              mock.patch.object(Path, "is_symlink", autospec=True,
+                                side_effect=lambda p: p == target)):
+            with self.assertRaisesRegex(ValueError, "archive file is a symlink"):
+                replay.run(registration, ubuntu, windows, self.meta, self.rapid)
+            comparison.assert_called_once()
+            child.assert_not_called()
 
     def estimand_wire(self, *, measure="OR", row_decision="ALLOW"):
         return json.dumps({"proposed_pool": {"estimand": {
