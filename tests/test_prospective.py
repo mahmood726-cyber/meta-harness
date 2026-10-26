@@ -45,6 +45,37 @@ def _declare(root: Path, batch_id: str = "batch-plant") -> dict:
     return decl
 
 
+
+def test_misfiled_declaration_cannot_validate_as_a_different_batch(tmp_path: Path) -> None:
+    # Synthetic cross-batch substitution: previously check_batch could PASS
+    # using the wrong declaration and reporting zero runs.
+    root = _mini_root(tmp_path)
+    _declare(root, "batch-source")
+    source = prospective.declaration_path(root, "batch-source")
+    misplaced = prospective.declaration_path(root, "batch-target")
+    misplaced.parent.mkdir(parents=True)
+    misplaced.write_bytes(source.read_bytes())
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration batch_id does not match"):
+        prospective.load_declaration(root, "batch-target")
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration batch_id does not match"):
+        prospective.check_batch(root, "batch-target")
+
+
+def test_misfiled_run_record_cannot_disappear_from_batch_denominator(tmp_path: Path) -> None:
+    # A foreign batch_id in this batch directory was previously filtered out,
+    # allowing an apparently clean batch with an understated run count.
+    root = _mini_root(tmp_path)
+    _declare(root, "batch-plant")
+    foreign = _record(root, "batch-foreign", "run-foreign")
+    _write_batch_record(root, "batch-plant", foreign)
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record batch_id does not match"):
+        prospective.load_run_records(root, "batch-plant")
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record batch_id does not match"):
+        prospective.check_batch(root, "batch-plant")
+
+
 def test_declaration_refuses_posthoc_rewrite_and_preserves_first_bytes(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     original = _declare(root)
