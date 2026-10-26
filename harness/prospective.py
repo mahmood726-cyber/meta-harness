@@ -635,7 +635,26 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     except ProspectiveRefusal as exc:
         reasons.append(str(exc))
 
+    # A locally labelled prospective record cannot predate the stored freeze.
+    # This checks internal chronology only: a developer-supplied timestamp is
+    # not an independently witnessed registration or immutable custody proof.
+    try:
+        declared_at = _parse_utc(decl.get("declared_utc"))
+    except ProspectiveRefusal as exc:
+        reasons.append(f"invalid declaration timestamp: {exc}")
+        declared_at = None
+
     records = load_run_records(repo, batch)
+    if declared_at is not None:
+        for record in records:
+            try:
+                if _parse_utc(record.get("started_utc")) < declared_at:
+                    reasons.append(
+                        f"run {record.get('run_id')}: started before prospective declaration"
+                    )
+            except ProspectiveRefusal:
+                # The record-shape check below reports invalid run timestamps.
+                pass
     # A declaration alone is not an executed validation batch. Without this
     # refusal, check_batch returned ok=True for a zero-run denominator.
     if not records:
