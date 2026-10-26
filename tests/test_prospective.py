@@ -97,6 +97,45 @@ def test_duplicate_run_ids_refuse_batch_instead_of_collapsing_history(tmp_path: 
 
 
 
+
+def test_run_record_duplicate_outcome_cannot_hide_failed_attempt(tmp_path: Path) -> None:
+    # A later duplicate JSON member must not replace a recorded failure when
+    # the batch validator loads prospective evidence.
+    root = _mini_root(tmp_path)
+    _declare(root)
+    failed = _record(root, "batch-plant", "run-ambiguous")
+    failed["outcome"] = "FAILED_CRASH"
+    path = _write_batch_record(root, "batch-plant", failed)
+    raw = path.read_text(encoding="utf-8")
+    original = '"outcome": "FAILED_CRASH"'
+    assert raw.count(original) == 1
+    raw = raw.replace(original, '"outcome": "FAILED_CRASH", "outcome": "COMPLETED"', 1)
+    path.write_text(raw, encoding="utf-8")
+    assert json.loads(raw)["outcome"] == "COMPLETED"  # Demonstrates default last-key wins.
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record contains duplicate JSON member"):
+        prospective.load_run_records(root, "batch-plant")
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record contains duplicate JSON member"):
+        prospective.check_batch(root, "batch-plant")
+
+
+@pytest.mark.parametrize("nonfinite", ["NaN", "1e400"])
+def test_nonfinite_run_record_metadata_cannot_pass_batch(
+    tmp_path: Path, nonfinite: str
+) -> None:
+    root = _mini_root(tmp_path)
+    _declare(root)
+    path = _write_batch_record(root, "batch-plant", _record(root, "batch-plant", "run-nonfinite"))
+    raw = path.read_text(encoding="utf-8").rstrip()
+    assert raw.endswith("}")
+    path.write_text(raw[:-1] + f', "extra_metadata": {{"score": {nonfinite}}}}}' + "\n", encoding="utf-8")
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record contains non-finite JSON number"):
+        prospective.load_run_records(root, "batch-plant")
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record contains non-finite JSON number"):
+        prospective.check_batch(root, "batch-plant")
+
+
 def test_declaration_refuses_posthoc_rewrite_and_preserves_first_bytes(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     original = _declare(root)
