@@ -604,8 +604,17 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         reasons.append(str(exc))
 
     records = load_run_records(repo, batch)
+    seen_run_ids: set[str] = set()
     for record in records:
         reasons.extend(_validate_record_shape(record))
+        # Duplicate identifiers would silently collapse in the by_run lookup
+        # below. Keep both observed files visible and refuse ambiguous
+        # prospective run histories rather than allowing a misleading PASS.
+        run_id = record.get("run_id")
+        if isinstance(run_id, str) and run_id:
+            if run_id in seen_run_ids:
+                reasons.append(f"duplicate run_id in batch: {run_id!r}")
+            seen_run_ids.add(run_id)
 
     identities = {
         record.get("architecture_identity")
