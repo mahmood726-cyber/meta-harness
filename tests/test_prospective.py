@@ -63,6 +63,19 @@ def test_declaration_refuses_posthoc_rewrite_and_preserves_first_bytes(tmp_path:
     assert prospective.load_declaration(root, "batch-plant") == original
 
 
+def test_declaration_serialization_failure_leaves_no_partial_freeze(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    path = prospective.declaration_path(root, "batch-serialize")
+
+    # An invalid payload must fail before exclusive creation, rather than
+    # stranding an empty declaration that cannot subsequently be repaired.
+    with pytest.raises(TypeError, match="not JSON serializable"):
+        prospective.write_declaration(root, {
+            "batch_id": "batch-serialize", "unsupported": object(),
+        })
+    assert not path.exists()
+
+
 def test_declaration_refuses_preexisting_symlink_without_writing_target(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     decl = prospective.batch_declaration(
