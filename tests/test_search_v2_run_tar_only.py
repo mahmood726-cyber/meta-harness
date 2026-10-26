@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 import tarfile
@@ -22,10 +23,21 @@ def test_tar_only_archives_raw_bodies_and_keeps_local_tar(tmp_path, monkeypatch)
     snapshot = repo_root / "cache" / "plant" / "snapshots" / "2026-09-15r3-search_v2"
     body = snapshot / "raw" / "s1" / "001.json"
     body.parent.mkdir(parents=True)
-    body.write_text(json.dumps({"raw_body": "tiny raw body"}), encoding="utf-8")
+    raw_http = b"tiny raw body"
+    body_digest = hashlib.sha256(raw_http).hexdigest()
+    call = {
+        "source_id": "s1", "url": "https://example.invalid/concept",
+        "params": {"q": "synthetic"}, "status": 200,
+        "fetched_utc": "2026-09-15T12:00:00Z",
+        "adapter": "synthetic.adapter", "adapter_blob_sha": "synthetic-only",
+        "body_sha256": body_digest,
+    }
+    body.write_text(json.dumps(call | {
+        "body_bytes_b64": base64.b64encode(raw_http).decode("ascii"),
+    }), encoding="utf-8")
     digest = _sha256(body)
     index_bytes = json.dumps(
-        [{"source_id": "s1", "path": "raw/s1/001.json", "file_sha256": digest, "body_sha256": digest}]
+        [call | {"path": "raw/s1/001.json", "file_sha256": digest}]
     ).encode("utf-8")
     (snapshot / "raw" / "INDEX.json").write_bytes(index_bytes)
     (snapshot / "retrieval_ledger.json").write_text(json.dumps({
