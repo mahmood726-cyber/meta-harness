@@ -371,3 +371,42 @@ def test_receipt_directory_not_treated_as_missing_receipt(tmp_path, monkeypatch)
     assert (snapshot / rows[0]["path"]).is_file()
     with pytest.raises(SystemExit, match="regular non-symlink"):
         archive.check(str(snapshot), None)
+
+
+def test_raw_directory_symlink_cannot_outsource_index_and_bodies(tmp_path, monkeypatch):
+    """A linked raw/ tree must not pass as a locally held in-snapshot response."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    local_raw = snapshot / "raw"
+    outside_raw = tmp_path / "external-raw"
+    local_raw.rename(outside_raw)
+    try:
+        local_raw.symlink_to(outside_raw, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem cannot create directory symlinks")
+    assert (outside_raw / "INDEX.json").is_file()
+    assert (outside_raw / "pubmed_concept_query#1/001.json").is_file()
+    with pytest.raises(SystemExit, match="raw evidence directory/index/ledger"):
+        archive.check(str(snapshot), None)
+    with pytest.raises(SystemExit, match="raw evidence directory/index/ledger"):
+        archive.move(str(snapshot), str(archive_root))
+    assert not (snapshot / "ARCHIVE.json").exists()
+    assert (outside_raw / "pubmed_concept_query#1/001.json").is_file()
+
+
+@pytest.mark.parametrize("linked_name", ["raw/INDEX.json", "retrieval_ledger.json"])
+def test_linked_raw_control_file_refused_even_with_matching_bytes(tmp_path, monkeypatch, linked_name):
+    """Matching JSON in an external control file is not a trustworthy local record."""
+    snapshot, rows, archive_root = _fixture(tmp_path, monkeypatch)
+    local = snapshot / linked_name
+    external = tmp_path / ("external-" + local.name)
+    local.rename(external)
+    try:
+        local.symlink_to(external)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem cannot create file symlinks")
+    with pytest.raises(SystemExit, match="raw evidence directory/index/ledger"):
+        archive.check(str(snapshot), None)
+    with pytest.raises(SystemExit, match="raw evidence directory/index/ledger"):
+        archive.move(str(snapshot), str(archive_root))
+    assert not (snapshot / "ARCHIVE.json").exists()
+    assert external.is_file()
