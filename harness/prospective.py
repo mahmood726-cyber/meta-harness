@@ -271,13 +271,50 @@ def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, A
 def check_declaration_frozen(
     root: str | os.PathLike[str], decl: dict[str, Any]
 ) -> dict[str, Any]:
-    observed = architecture_identity.identity(root)
+    """Verify declaration metadata against the actual architecture and A4 policy.
+
+    The architecture digest alone does not authenticate parallel fields such
+    as model mutability, the component inventory, or the rerun policy.
+    This is a local consistency check, not externally witnessed registration.
+    """
+    if (
+        not isinstance(decl, dict)
+        or type(decl.get("schema_version")) is not int
+        or decl["schema_version"] != DECLARATION_VERSION
+    ):
+        raise ProspectiveRefusal("prospective declaration has an unsupported schema_version")
+
+    observed_components = architecture_identity.components(root)
+    observed = architecture_identity.identity_from_components(observed_components)
     expected = decl.get("architecture_identity")
     if observed != expected:
         raise ProspectiveRefusal(
             "architecture identity mismatch: "
             f"expected {expected}, observed {observed}"
         )
+    if decl.get("architecture_components") != observed_components:
+        raise ProspectiveRefusal("architecture component manifest mismatch")
+
+    observed_dependencies = architecture_identity.mutable_dependencies(root)
+    if (
+        type(decl.get("mutable_dependencies")) is not list
+        or decl["mutable_dependencies"] != observed_dependencies
+    ):
+        raise ProspectiveRefusal("mutable dependency ledger mismatch")
+
+    observed_mutable = external_dependency_mutability(root)
+    if (
+        type(decl.get("external_dependency_mutability")) is not bool
+        or decl["external_dependency_mutability"] != observed_mutable
+    ):
+        raise ProspectiveRefusal("external dependency mutability mismatch")
+
+    observed_claim = MUTABLE_FREEZE_CLAIM if observed_mutable else IMMUTABLE_FREEZE_CLAIM
+    if decl.get("freeze_claim") != observed_claim:
+        raise ProspectiveRefusal("freeze claim mismatches observed dependency mutability")
+
+    if decl.get("rerun_policy") != rerun_policy_text(root):
+        raise ProspectiveRefusal("declared rerun policy differs from preregistered protocol")
     return decl
 
 
