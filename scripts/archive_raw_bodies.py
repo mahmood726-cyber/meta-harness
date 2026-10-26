@@ -13,6 +13,8 @@ Usage:
 """
 from __future__ import annotations
 import argparse
+import base64
+import binascii
 import datetime as _dt
 import hashlib
 import io
@@ -129,6 +131,8 @@ def _load_index(snapshot: str) -> list[dict]:
         seen.add(path)
         if not isinstance(row.get("file_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", row["file_sha256"]):
             raise SystemExit("REFUSED: invalid raw body wrapper digest in INDEX")
+        if not isinstance(row.get("body_sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", row["body_sha256"]):
+            raise SystemExit("REFUSED: missing or malformed HTTP body digest in raw INDEX")
     return index
 
 
@@ -159,6 +163,35 @@ def _refuse_hardlinked_body(path: str) -> None:
     """
     if os.path.isfile(path) and os.stat(path).st_nlink > 1:
         raise SystemExit("REFUSED: raw evidence body has multiple hardlinks")
+
+
+def _raw_wrapper_matches_index(path: str, row: dict) -> bool:
+    """Verify the decoded HTTP bytes, not merely the surrounding JSON file hash.
+
+    RawRecorder.write_snapshot stores base64 HTTP response bytes inside each
+    wrapper. INDEX.file_sha256 authenticates the wrapper bytes relative to
+    the ledger, but does not establish that the actual response bytes match
+    INDEX.body_sha256 or that the wrapper belongs to the indexed API call.
+    Refuse missing, malformed or inconsistent inner evidence. The in-tree
+    ledger remains self-attested; this is NOT independent custody.
+    """
+    try:
+        with open(path, "rb") as fh:
+            payload = json.load(fh)
+        if not isinstance(payload, dict) or not isinstance(payload.get("body_bytes_b64"), str):
+            return False
+        body = base64.b64decode(payload["body_bytes_b64"], validate=True)
+        if hashlib.sha256(body).hexdigest() != row["body_sha256"]:
+            return False
+        if payload.get("body_sha256") != row["body_sha256"]:
+            return False
+        for field in ("source_id", "url", "params", "status", "fetched_utc",
+                      "adapter", "adapter_blob_sha"):
+            if payload.get(field) != row.get(field):
+                return False
+    except (OSError, ValueError, TypeError, UnicodeError, binascii.Error):
+        return False
+    return True
 
 
 def _body_paths(snapshot: str, dest_root: str | None, relative: str) -> tuple[str, str | None]:
@@ -203,8 +236,10 @@ def move(snapshot: str, archive_root: str) -> int:
         if not os.path.isfile(src) and not os.path.isfile(dst):
             raise SystemExit(f"REFUSED: {row['path']} is neither in snapshot nor archive")
         for existing in (src, dst):
-            if os.path.isfile(existing) and _sha256(existing) != row["file_sha256"]:
-                raise SystemExit(f"REFUSED: {existing} differs from frozen raw INDEX; nothing moved")
+            if os.path.isfile(existing):
+                if (_sha256(existing) != row["file_sha256"]
+                        or not _raw_wrapper_matches_index(existing, row)):
+                    raise SystemExit(f"REFUSED: {row['path']} raw wrapper or HTTP body differs from frozen INDEX; nothing moved")
         plan.append((src, dst))
     moved = 0
     for src, dst in plan:
@@ -279,8 +314,9 @@ def check(snapshot: str, archive_root: str | None) -> tuple[int, list[str]]:
         # Verify *every* existing copy: local-first selection used to hide
         # damaged off-tree bodies whenever an intact local copy remained.
         copies = ([local] if has_local else []) + ([archived] if has_archived else [])
-        if any(_sha256(path) != row["file_sha256"] for path in copies):
-            problems.append(f"DIGEST MISMATCH: {row['path']}")
+        if any(_sha256(path) != row["file_sha256"]
+               or not _raw_wrapper_matches_index(path, row) for path in copies):
+            problems.append(f"RAW RESPONSE MISMATCH: {row['path']} (wrapper, metadata or decoded HTTP body)")
             continue
         ok += 1
     return ok, problems
