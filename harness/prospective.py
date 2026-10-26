@@ -199,9 +199,12 @@ def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Pat
     # after the custodian's commitment or after any study results are visible.
     # Exclusive creation also refuses pre-existing symlinks and concurrent
     # writers, rather than checking exists() before a truncating write.
+    # Validate serialization before creating the write-once destination: an
+    # unsupported value must not strand an empty/partial frozen declaration.
+    payload = json.dumps(decl, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     try:
         with path.open("x", encoding="utf-8", newline="\n") as fh:
-            fh.write(json.dumps(decl, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+            fh.write(payload)
     except FileExistsError as exc:
         raise ProspectiveRefusal(
             f"declaration already exists for batch {batch!r}; "
