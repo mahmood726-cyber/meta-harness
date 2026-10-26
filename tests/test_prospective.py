@@ -45,6 +45,47 @@ def _declare(root: Path, batch_id: str = "batch-plant") -> dict:
     return decl
 
 
+def test_declaration_refuses_posthoc_rewrite_and_preserves_first_bytes(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    original = _declare(root)
+    path = prospective.declaration_path(root, "batch-plant")
+    frozen_bytes = path.read_bytes()
+
+    # Even a locally plausible replacement with a later eligibility rule or
+    # time limit must not silently replace the first declaration.
+    revised = dict(original, invariants=["posthoc-eligibility"], time_limit_s=3600)
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration already exists"):
+        prospective.write_declaration(root, revised)
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration already exists"):
+        prospective.write_declaration(root, original)
+
+    assert path.read_bytes() == frozen_bytes
+    assert prospective.load_declaration(root, "batch-plant") == original
+
+
+def test_declaration_refuses_preexisting_symlink_without_writing_target(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    decl = prospective.batch_declaration(
+        root, "batch-linked", 60, ["census"], COMMITMENT,
+        {"definition": "synthetic universe", "digest": "b" * 64},
+        declared_utc="2026-09-14T00:00:00Z",
+    )
+    path = prospective.declaration_path(root, "batch-linked")
+    path.parent.mkdir(parents=True)
+    outside = tmp_path / "untrusted-replacement.json"
+    outside.write_text('{"existing": true}', encoding="utf-8")
+    before = outside.read_bytes()
+    try:
+        path.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem does not permit symlinks")
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration already exists"):
+        prospective.write_declaration(root, decl)
+    assert path.is_symlink()
+    assert outside.read_bytes() == before
+
+
 def _record(
     root: Path,
     batch_id: str,
