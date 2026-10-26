@@ -686,15 +686,31 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             reasons.append(
                 f"run {record.get('run_id')}: original topic does not match rerun topic"
             )
+        elif original.get("outcome") not in (
+            "FAILED_CRASH",
+            "FAILED_TIMEOUT",
+            "FAILED_INVARIANT",
+        ):
+            # An entry written to the ledger cannot turn an originally
+            # COMPLETED run into an authorised infrastructure failure.
+            reasons.append(
+                f"run {record.get('run_id')}: original run is not a recorded failure"
+            )
         justification = str(record.get("rerun_justification") or "")
         cited = [
             defect
             for defect_id, defect in defects_by_id.items()
-            if defect_id and defect_id in justification
+            if (
+                defect_id
+                and defect_id in justification
+                and defect.get("failed_run_id") == original_id
+                and defect.get("topic_identifier") == record.get("topic_identifier")
+            )
         ]
         if not cited:
             reasons.append(
-                f"run {record.get('run_id')}: rerun lacks a prior defect-ledger entry"
+                f"run {record.get('run_id')}: rerun lacks a prior defect-ledger entry "
+                "bound to original run/topic"
             )
             continue
         try:
