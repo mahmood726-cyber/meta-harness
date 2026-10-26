@@ -132,6 +132,22 @@ def _load_index(snapshot: str) -> list[dict]:
     return index
 
 
+def _refuse_symlinked_evidence(path: str, base: str) -> None:
+    """Every raw body must be a regular copy, not a link to another body.
+
+    Resolving inside the expected directory is not sufficient: a same-tree
+    symbolic link can make two indexed HTTP responses share one physical file.
+    Archive checks must be able to establish that each numbered body exists
+    independently at its declared path. The caller separately checks digests.
+    """
+    rel = os.path.relpath(path, base)
+    probe = base
+    for part in rel.split(os.sep):
+        probe = os.path.join(probe, part)
+        if os.path.islink(probe):
+            raise SystemExit("REFUSED: raw evidence path contains a symlink")
+
+
 def _body_paths(snapshot: str, dest_root: str | None, relative: str) -> tuple[str, str | None]:
     # The top-level archive may be off-tree while a nested symlink redirects
     # the snapshot destination back into the repository. Verify the resolved
@@ -141,9 +157,12 @@ def _body_paths(snapshot: str, dest_root: str | None, relative: str) -> tuple[st
     src = os.path.join(snapshot, *relative.split("/"))
     if not _inside(src, os.path.join(snapshot, "raw")):
         raise SystemExit("REFUSED: raw INDEX source escapes the snapshot (possibly symlinked)")
+    _refuse_symlinked_evidence(src, snapshot)
     dst = os.path.join(dest_root, *relative.split("/")) if dest_root else None
     if dst and not _inside(dst, dest_root):
         raise SystemExit("REFUSED: raw INDEX archive destination escapes archive root")
+    if dst:
+        _refuse_symlinked_evidence(dst, dest_root)
     return src, dst
 
 
