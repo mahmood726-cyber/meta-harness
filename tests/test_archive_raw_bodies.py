@@ -127,7 +127,12 @@ def _identical_raw_bodies(snapshot: Path, rows: list[dict]):
     first = snapshot / rows[0]["path"]
     second = snapshot / rows[1]["path"]
     first.write_bytes(second.read_bytes())
-    rows[0]["file_sha256"] = rows[1]["file_sha256"]
+    # Both indexed calls now deliberately describe the same synthetic HTTP
+    # wrapper, so link-specific negatives do not fail an earlier body or
+    # request-metadata comparison instead of the intended alias safeguard.
+    for key in ("url", "params", "status", "fetched_utc", "adapter",
+                "adapter_blob_sha", "body_sha256", "file_sha256"):
+        rows[0][key] = rows[1][key]
     _seal(snapshot, rows)
     return first, second
 
