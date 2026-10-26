@@ -79,6 +79,25 @@ def test_duplicate_study_refuses():
         validate_exchange(item, ROOT)
 
 
+def test_two_reports_of_one_trial_must_not_be_pooled_as_independent_studies():
+    item = exchange()
+    second = copy.deepcopy(item["rows"][0])
+    second["study_id"] = "SYNTHETIC-STUDY-002"
+    # Distinct report IDs do not make trial-level estimates independent.
+    item["rows"].append(second)
+    with pytest.raises(ValueError, match="duplicate trial_id.*manual review"):
+        validate_exchange(item, ROOT)
+
+
+def test_distinct_trials_with_distinct_study_ids_are_structurally_accepted():
+    item = exchange()
+    second = copy.deepcopy(item["rows"][0])
+    second["study_id"] = "SYNTHETIC-STUDY-002"
+    second["trial_id"] = "SYNTHETIC-TRIAL-002"
+    item["rows"].append(second)
+    validate_exchange(item, ROOT)  # Structural check, never an R-oracle or clinical pool.
+
+
 def test_manifest_is_pinned_and_internal_cases_not_claimed_passed():
     path = ROOT / "benchmarks/cross_repo/v0.1/manifest.json"
     obj = json.loads(path.read_text(encoding="utf-8"))
