@@ -281,7 +281,7 @@ def test_prospective_run_record_is_write_once_even_if_original_failed(tmp_path: 
     root = _mini_root(tmp_path)
     _declare(root)
     failed = _record(root, "batch-plant", "run-original")
-    failed["outcome"] = "FAILED"
+    failed["outcome"] = "FAILED_CRASH"
     original_path = _write_batch_record(root, "batch-plant", failed)
     original_bytes = original_path.read_bytes()
 
