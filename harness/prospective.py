@@ -390,12 +390,18 @@ def write_run_record(path_or_dir: str | os.PathLike[str], record: dict[str, Any]
     path = Path(path_or_dir)
     if path.suffix.lower() != ".json":
         path = path / "run_record.json"
+    # A failed, timed-out or surprising prospective run must retain its first
+    # record. Rewriting the same path could erase it from the batch history.
+    # Pre-serialize so malformed input cannot strand an empty sealed record.
+    payload = json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    try:
+        with path.open("x", encoding="utf-8", newline="\n") as fh:
+            fh.write(payload)
+    except FileExistsError as exc:
+        raise ProspectiveRefusal(
+            f"run record already exists at {path}; retain the original and use a distinct run_id"
+        ) from exc
     return path
 
 
