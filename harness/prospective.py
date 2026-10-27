@@ -312,6 +312,21 @@ def check_declaration_frozen(
     if type(digest) is not str or not re.fullmatch(r"[0-9a-fA-F]{64}", digest):
         raise ProspectiveRefusal("eligibility universe digest must be a SHA-256 digest")
 
+    # A1: missing, blank, duplicated or non-string preregistered rules cannot
+    # support a structurally valid batch. This proves rule inventory presence
+    # only; it does not prove thresholds were independently witnessed or run.
+    invariants = decl.get("invariants")
+    if (
+        type(invariants) is not list
+        or not invariants
+        or any(type(rule) is not str or not rule.strip() for rule in invariants)
+    ):
+        raise ProspectiveRefusal(
+            "preregistered invariants must be a nonempty list of unique nonblank strings"
+        )
+    if len({rule.strip() for rule in invariants}) != len(invariants):
+        raise ProspectiveRefusal("preregistered invariants contain duplicates")
+
     observed_components = architecture_identity.components(root)
     observed = architecture_identity.identity_from_components(observed_components)
     expected = decl.get("architecture_identity")
