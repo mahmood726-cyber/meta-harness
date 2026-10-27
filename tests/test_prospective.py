@@ -613,6 +613,36 @@ def test_a4_completed_requires_retained_artefact_inventory(
     assert path.read_bytes() == retained
 
 
+@pytest.mark.parametrize(
+    "unsafe_path",
+    [
+        "/tmp/uncontrolled.json",
+        "../external/results.json",
+        "review/../outside.json",
+        "C:\\\\outside\\\\record.json",
+        "..\\\\outside\\\\record.json",
+        "review//index.html",
+    ],
+)
+def test_a4_completed_rejects_escaping_artefact_inventory(
+    tmp_path: Path, unsafe_path: str
+) -> None:
+    """Lexical path escapes cannot satisfy a COMPLETED run's evidence inventory.
+
+    This is synthetic path-integrity testing, not proof of files, hashes,
+    custody or independently observed source acquisition.
+    """
+    root = _mini_root(tmp_path)
+    _declare(root)
+    record = _record(root, "batch-plant", "run-unsafe-artifact")
+    record["artefact_paths"] = [unsafe_path]
+    path = _write_batch_record(root, "batch-plant", record)
+    before = path.read_bytes()
+    with pytest.raises(prospective.ProspectiveRefusal, match="unsafe artefact_paths"):
+        prospective.check_batch(root, "batch-plant")
+    assert path.read_bytes() == before
+
+
 def test_a4_crashed_attempt_with_no_outputs_remains_recorded(tmp_path: Path) -> None:
     """An infrastructure crash without produced artefacts is still in the denominator."""
     root = _mini_root(tmp_path)
