@@ -959,6 +959,58 @@ def test_a4_rerun_requires_infrastructure_eligible_matching_failure(
         assert summary["run_records"] == 2
 
 
+@pytest.mark.parametrize(
+    "original_finished,should_refuse",
+    [
+        ("2026-09-14T00:21:00Z", True),  # Original still running at retry start.
+        ("2026-09-14T00:20:00Z", False),  # Exact handoff boundary is valid.
+        ("2026-09-14T00:19:00Z", False),  # Original completed before retry.
+    ],
+)
+def test_a4_rerun_must_follow_original_completion(
+    tmp_path: Path, original_finished: str, should_refuse: bool
+) -> None:
+    # These timestamps and incident descriptions are synthetic developer
+    # controls, not witnessed prospective clinical validation.
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    original = dict(
+        _record(root, batch, "run-original", finished=original_finished),
+        outcome="FAILED_CRASH",
+    )
+    _write_batch_record(root, batch, original)
+    prospective.append_defect(
+        prospective.defect_entry(
+            batch, "topic-plant", "run-original", "FAILED_CRASH",
+            "runner killed", "synthetic unverified infrastructure incident",
+            entry_id="defect-order", declared_utc="2026-09-14T00:19:00Z",
+        ),
+        root=root,
+    )
+    _write_batch_record(
+        root,
+        batch,
+        _record(
+            root, batch, "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="external incident defect-order",
+        ),
+    )
+    if should_refuse:
+        with pytest.raises(
+            prospective.ProspectiveRefusal,
+            match="rerun started before original finished",
+        ):
+            prospective.check_batch(root, batch)
+    else:
+        summary = prospective.check_batch(root, batch)
+        assert summary["ok"] is True
+        assert summary["run_records"] == 2
+
+
 def test_freeze_claim_tracks_mutability_both_ways(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = _mini_root(tmp_path)
 
