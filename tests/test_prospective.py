@@ -165,6 +165,36 @@ def test_a6_missing_or_unbound_eligibility_universe_refuses_batch(
     assert path.read_bytes() == altered_bytes
 
 
+
+@pytest.mark.parametrize(
+    "forged_invariants",
+    [
+        None,
+        [],
+        [" "],
+        ["census", ""],
+        ["census", "census"],
+        ["census", " census "],
+        ["census", False],
+        "census",
+    ],
+)
+def test_a1_missing_or_ambiguous_preregistered_invariants_refuse_batch(
+    tmp_path: Path, forged_invariants: object
+) -> None:
+    """Synthetic freeze tampering must not produce a batch PASS without rules."""
+    root = _mini_root(tmp_path)
+    declaration = _declare(root)
+    _write_batch_record(root, "batch-plant", _record(root, "batch-plant", "run-one"))
+    declaration["invariants"] = forged_invariants
+    path = prospective.declaration_path(root, "batch-plant")
+    path.write_text(json.dumps(declaration), encoding="utf-8")
+    before = path.read_bytes()
+    with pytest.raises(prospective.ProspectiveRefusal, match="preregistered invariants"):
+        prospective.check_batch(root, "batch-plant")
+    assert path.read_bytes() == before
+
+
 def test_a4_completed_run_preserves_structural_check_positive_control(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     _declare(root)
