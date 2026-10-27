@@ -133,6 +133,31 @@ def test_a4_completed_run_preserves_structural_check_positive_control(tmp_path: 
     assert summary["run_records"] == 1
 
 
+@pytest.mark.parametrize("first_outcome", ["COMPLETED", "FAILED_CRASH"])
+def test_a4_unlabelled_second_attempt_same_topic_must_refuse(
+    tmp_path: Path, first_outcome: str
+) -> None:
+    """A second unlabelled attempt cannot bypass the A4 one-rerun policy."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root)
+    first = dict(_record(root, batch, "run-first"), outcome=first_outcome)
+    second = _record(
+        root, batch, "run-unlabelled-second",
+        started="2026-09-14T00:20:00Z",
+        finished="2026-09-14T00:21:00Z",
+    )
+    _write_batch_record(root, batch, first)
+    _write_batch_record(root, batch, second)
+    # Both records count; a passed first attempt and a failed first attempt
+    # are equally unable to authorise an unmarked fresh run.
+    assert len(prospective.load_run_records(root, batch)) == 2
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="2 unlabelled original attempts"
+    ):
+        prospective.check_batch(root, batch)
+
+
 def test_duplicate_run_ids_refuse_batch_instead_of_collapsing_history(tmp_path: Path) -> None:
     # Synthetic failure followed by a success with the SAME identity, stored
     # in two files discoverable by the loader. Previously the by_run mapping
