@@ -634,7 +634,10 @@ def test_check_batch_refuses_rerun_when_cited_defect_is_late(tmp_path: Path) -> 
     root = _mini_root(tmp_path)
     batch = "batch-plant"
     _declare(root, batch)
-    _write_batch_record(root, batch, _record(root, batch, "run-original"))
+    # Isolate the *late defect* refusal: A4 requires an actual retained
+    # infrastructure failure before any defect chronology can be evaluated.
+    original = dict(_record(root, batch, "run-original"), outcome="FAILED_CRASH")
+    _write_batch_record(root, batch, original)
     rerun = _record(
         root,
         batch,
