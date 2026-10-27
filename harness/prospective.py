@@ -876,6 +876,24 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             reasons.append(
                 f"run {record.get('run_id')}: cited defect was not declared before rerun start"
             )
+            continue
+        # A defect entered before its purported failed attempt began cannot
+        # describe an incident arising during that attempt. Otherwise a
+        # pre-authorised fallback can masquerade as an A4 infrastructure rerun.
+        # Timestamps and attributions remain self-reported, not witnessed.
+        if original is not None:
+            try:
+                original_started = _parse_utc(original.get("started_utc"))
+            except ProspectiveRefusal:
+                # The retained record's shape checker reports this separately.
+                continue
+            if not any(
+                _parse_utc(str(defect.get("declared_utc"))) >= original_started
+                for defect in prior
+            ):
+                reasons.append(
+                    f"run {record.get('run_id')}: cited defect predates original attempt"
+                )
 
     if reasons:
         raise ProspectiveRefusal("PROSPECTIVE BATCH REFUSED:\n  - " + "\n  - ".join(reasons))

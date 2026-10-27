@@ -1341,3 +1341,50 @@ def test_a5_spec_names_inventory_derived_mutable_model_stages() -> None:
     assert "11 of 11 model-driven stages" in spec
     for name in mutable_names:
         assert f"`{name}`" in spec
+
+
+@pytest.mark.parametrize(
+    "incident_declared_utc,should_refuse",
+    [
+        ("2026-09-14T00:09:59Z", True),  # Pre-written defect cannot authorise a future failed run.
+        ("2026-09-14T00:10:00Z", False),  # Earliest possible instant of the original attempt.
+        ("2026-09-14T00:10:30Z", False),  # Infrastructure failure may be observed while running.
+    ],
+)
+def test_a4_defect_cannot_pre_authorise_a_future_attempt(
+    tmp_path: Path, incident_declared_utc: str, should_refuse: bool
+) -> None:
+    """Synthetic chronology control; no real custodian or incident verified."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, dict(_record(root, batch, "run-original"), outcome="FAILED_CRASH")
+    )
+    prospective.append_defect(
+        prospective.defect_entry(
+            batch, "topic-plant", "run-original", "FAILED_CRASH",
+            "runner killed", "synthetic alleged infrastructure event",
+            entry_id="defect-preauthorised",
+            declared_utc=incident_declared_utc,
+        ),
+        root=root,
+    )
+    _write_batch_record(
+        root, batch,
+        _record(
+            root, batch, "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="incident defect-preauthorised",
+        ),
+    )
+    if should_refuse:
+        with pytest.raises(
+            prospective.ProspectiveRefusal,
+            match="cited defect predates original attempt",
+        ):
+            prospective.check_batch(root, batch)
+    else:
+        assert prospective.check_batch(root, batch)["ok"] is True
