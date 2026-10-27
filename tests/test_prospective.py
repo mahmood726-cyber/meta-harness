@@ -1428,6 +1428,57 @@ def test_a5_spec_names_inventory_derived_mutable_model_stages() -> None:
         assert f"`{name}`" in spec
 
 
+
+@pytest.mark.parametrize("invalid_rule", [None, False, 0, {"threshold": 1}])
+def test_a1_preregistration_constructor_refuses_nonstring_invariant(
+    tmp_path: Path, invalid_rule: object
+) -> None:
+    """Typed null/False/zero must not become fabricated string rule names."""
+    root = _mini_root(tmp_path)
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="invariants must contain only strings"
+    ):
+        prospective.batch_declaration(
+            root, "batch-typed-rule", 60, ["census", invalid_rule],
+            COMMITMENT,
+            {"definition": "plant universe", "version": "v1", "digest": "b" * 64},
+            declared_utc="2026-09-14T00:00:00Z",
+        )
+
+
+@pytest.mark.parametrize("invalid_path", [None, False, 0, {"source": "fake"}])
+def test_a4_record_constructor_refuses_nonstring_artefact_reference(
+    tmp_path: Path, invalid_path: object
+) -> None:
+    """Typed values cannot silently become apparently retained artefact paths."""
+    root = _mini_root(tmp_path)
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="artefact_paths must contain only strings"
+    ):
+        prospective.run_record(
+            root, "batch-plant", "topic-plant",
+            "2026-09-14T00:10:00Z", "2026-09-14T00:11:00Z",
+            "COMPLETED", ["review/index.html", invalid_path], run_id="run-typed-path",
+        )
+
+
+def test_a1_a4_literal_string_rule_and_path_are_preserved(tmp_path: Path) -> None:
+    """Valid strings are not misclassified as Boolean/number evidence."""
+    root = _mini_root(tmp_path)
+    decl = prospective.batch_declaration(
+        root, "batch-string-control", 60, ["census", "False"],
+        COMMITMENT, {"definition": "plant universe", "version": "v1", "digest": "b" * 64},
+        declared_utc="2026-09-14T00:00:00Z",
+    )
+    run = prospective.run_record(
+        root, "batch-string-control", "topic-plant",
+        "2026-09-14T00:10:00Z", "2026-09-14T00:11:00Z",
+        "COMPLETED", ["review/index.html", "0"], run_id="run-string-control",
+    )
+    assert decl["invariants"] == ["census", "False"]
+    assert run["artefact_paths"] == ["review/index.html", "0"]
+
+
 @pytest.mark.parametrize(
     "incident_declared_utc,should_refuse",
     [
