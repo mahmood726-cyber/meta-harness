@@ -657,8 +657,23 @@ def _validate_record_shape(record: dict[str, Any]) -> list[str]:
         )
     if record.get("outcome") not in RUN_OUTCOMES:
         reasons.append(f"run {record.get('run_id')}: invalid outcome {record.get('outcome')!r}")
-    if not isinstance(record.get("artefact_paths"), list):
+    artefacts = record.get("artefact_paths")
+    if type(artefacts) is not list:
         reasons.append(f"run {record.get('run_id')}: artefact_paths is not a list")
+    else:
+        # A completed run with no retained artefact inventory cannot support a
+        # source-grounded prospective result. This validates only the index:
+        # it does not authenticate the paths, contents or external custody.
+        if record.get("outcome") == "COMPLETED" and not artefacts:
+            reasons.append(
+                f"run {record.get('run_id')}: COMPLETED without retained artefact inventory"
+            )
+        if any(type(item) is not str or not item.strip() for item in artefacts):
+            reasons.append(
+                f"run {record.get('run_id')}: artefact_paths must contain only nonblank strings"
+            )
+        elif len({item.strip() for item in artefacts}) != len(artefacts):
+            reasons.append(f"run {record.get('run_id')}: duplicate artefact_paths")
     if not isinstance(record.get("external_dependency_mutability"), bool):
         reasons.append(f"run {record.get('run_id')}: external_dependency_mutability is not a boolean")
     expected_claims = {MUTABLE_FREEZE_CLAIM, IMMUTABLE_FREEZE_CLAIM}
