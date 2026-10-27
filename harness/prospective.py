@@ -638,6 +638,23 @@ def _validate_record_shape(record: dict[str, Any]) -> list[str]:
     missing = sorted(required - set(record))
     if missing:
         reasons.append("run record missing fields: " + ", ".join(missing))
+    # A retained run can arrive from JSON without passing run_record().
+    # Refuse missing or synthetic identifiers instead of counting a
+    # subjectless/anonymous attempt as prospective validation. This checks
+    # structural provenance only, not independently witnessed subjects.
+    run_id = record.get("run_id")
+    if (
+        type(run_id) is not str
+        or not run_id
+        or run_id in {".", ".."}
+        or SAFE_NAME_RE.fullmatch(run_id) is None
+    ):
+        reasons.append(f"run {run_id!r}: run_id must be a nonempty safe identifier")
+    topic_identifier = record.get("topic_identifier")
+    if type(topic_identifier) is not str or not topic_identifier.strip():
+        reasons.append(
+            f"run {run_id!r}: topic_identifier must be a nonblank string"
+        )
     if record.get("outcome") not in RUN_OUTCOMES:
         reasons.append(f"run {record.get('run_id')}: invalid outcome {record.get('outcome')!r}")
     if not isinstance(record.get("artefact_paths"), list):
