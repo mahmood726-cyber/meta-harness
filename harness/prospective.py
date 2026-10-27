@@ -78,7 +78,13 @@ def _require_digest(value: str, label: str) -> str:
 def _json_list(values: list[str] | tuple[str, ...], label: str) -> list[str]:
     if not isinstance(values, (list, tuple)):
         raise ProspectiveRefusal(f"{label} must be a list")
-    out = [str(v) for v in values]
+    # Freezing a rule or retained artefact requires the caller's actual
+    # string, not str(False), str(None), or str(0) fabricated from typed data.
+    # Constructor coercion could otherwise turn missing evidence into a
+    # plausible, nonempty string that passes later batch-shape checks.
+    if any(type(value) is not str for value in values):
+        raise ProspectiveRefusal(f"{label} must contain only strings")
+    out = list(values)
     if any(not v for v in out):
         raise ProspectiveRefusal(f"{label} contains an empty value")
     return out
