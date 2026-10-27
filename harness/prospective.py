@@ -730,6 +730,22 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             reasons.append(f"run {record.get('run_id')}: freeze_claim differs from declaration")
 
     by_run = {record.get("run_id"): record for record in records if record.get("run_id")}
+    # A4 permits only one original attempt per topic. Two attempts with
+    # distinct run_ids and neither marked rerun_of must not evade the rerun
+    # policy, including when the first attempt failed. Counts retain both
+    # attempts; refusal is structural, not independent proof of execution.
+    originals_by_topic: dict[str, list[str]] = {}
+    for record in records:
+        if record.get("rerun_of") is None:
+            topic = str(record.get("topic_identifier"))
+            originals_by_topic.setdefault(topic, []).append(str(record.get("run_id")))
+    for topic, original_ids in originals_by_topic.items():
+        if len(original_ids) > 1:
+            reasons.append(
+                f"topic {topic!r} has {len(original_ids)} unlabelled original attempts; "
+                "repeat attempts require an explicitly authorised A4 rerun"
+            )
+
     reruns_by_topic: dict[str, list[dict[str, Any]]] = {}
     for record in records:
         if record.get("rerun_of") is not None:
