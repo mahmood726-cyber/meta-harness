@@ -616,12 +616,14 @@ def _validate_record_shape(record: dict[str, Any]) -> list[str]:
     expected_claims = {MUTABLE_FREEZE_CLAIM, IMMUTABLE_FREEZE_CLAIM}
     if record.get("freeze_claim") not in expected_claims:
         reasons.append(f"run {record.get('run_id')}: invalid freeze_claim")
+    # Run timestamps are required, not optional truthy fields: otherwise a
+    # COMPLETED record with null/empty timestamps bypasses both the A4 limit
+    # and the registration-chronology checks in check_batch().
     try:
-        if record.get("started_utc") and record.get("finished_utc"):
-            started = _parse_utc(record["started_utc"])
-            finished = _parse_utc(record["finished_utc"])
-            if finished < started:
-                reasons.append(f"run {record.get('run_id')}: finished before started")
+        started = _parse_utc(record.get("started_utc"))
+        finished = _parse_utc(record.get("finished_utc"))
+        if finished < started:
+            reasons.append(f"run {record.get('run_id')}: finished before started")
     except ProspectiveRefusal as exc:
         reasons.append(f"run {record.get('run_id')}: {exc}")
     return reasons

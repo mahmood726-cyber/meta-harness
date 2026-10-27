@@ -1011,6 +1011,33 @@ def test_a4_rerun_must_follow_original_completion(
         assert summary["run_records"] == 2
 
 
+@pytest.mark.parametrize(
+    "timestamp_field,invalid_timestamp",
+    [
+        ("started_utc", None),
+        ("finished_utc", None),
+        ("started_utc", ""),
+        ("finished_utc", ""),
+        ("started_utc", 0),
+        ("finished_utc", 0),
+    ],
+)
+def test_a4_completed_run_without_valid_timestamps_cannot_pass(
+    tmp_path: Path, timestamp_field: str, invalid_timestamp: object
+) -> None:
+    # Synthetic engineering regression: a missing recorded time is never
+    # independently witnessed chronology and must not produce batch PASS.
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-invalid-timestamp")
+    record[timestamp_field] = invalid_timestamp
+    _write_batch_record(root, batch, record)
+
+    with pytest.raises(prospective.ProspectiveRefusal, match="UTC timestamp"):
+        prospective.check_batch(root, batch)
+
+
 def test_freeze_claim_tracks_mutability_both_ways(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = _mini_root(tmp_path)
 
