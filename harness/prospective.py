@@ -717,8 +717,8 @@ def _validate_record_shape(record: dict[str, Any]) -> list[str]:
         # run evidence tree. These checks are lexical only: neither file
         # existence nor immutable custody nor a source digest is established.
         elif any(
-            path.startswith(("/", "\\\\"))
-            or "\\\\" in path
+            path.startswith(("/", "\\"))
+            or "\\" in path
             or re.match(r"^[A-Za-z]:", path) is not None
             or any(part in {"", ".", ".."} for part in path.split("/"))
             for path in artefacts
