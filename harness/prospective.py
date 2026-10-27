@@ -266,7 +266,20 @@ def _load_strict_prospective_json(path: Path, label: str) -> Any:
 
 def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     batch = _require_safe_name(batch_id, "batch_id")
-    path = declaration_path(root, batch)
+    repo = _root_path(root)
+    path = declaration_path(repo, batch)
+
+    # The write-once creator refuses aliases, but a separately staged JSON
+    # file or symlinked ancestor can still be presented to the batch loader.
+    # An externally mutable declaration must not count as locally frozen.
+    # This is a path preflight guard, NOT race-free or witnessed custody.
+    if (
+        (repo / "prospective").is_symlink()
+        or path.parent.is_symlink()
+        or path.is_symlink()
+        or not _inside(path.resolve(), repo)
+    ):
+        raise ProspectiveRefusal("declaration path is symlinked or escapes repository")
 
     try:
         declaration = _load_strict_prospective_json(path, "declaration")
