@@ -296,6 +296,22 @@ def check_declaration_frozen(
     ):
         raise ProspectiveRefusal("prospective declaration has an unsupported schema_version")
 
+    # A6: a locally frozen batch must carry an explicit versioned eligibility
+    # universe digest and a separate custodian commitment. These are syntax
+    # checks, not independent custody, source verification, or proof of blinding.
+    commitment = decl.get("custodian_commitment_sha")
+    if type(commitment) is not str or not re.fullmatch(r"[0-9a-fA-F]{64}", commitment):
+        raise ProspectiveRefusal("custodian_commitment_sha must be a SHA-256 digest")
+    universe = decl.get("universe_ref")
+    if type(universe) is not dict:
+        raise ProspectiveRefusal("eligibility universe must be a versioned digest-bound mapping")
+    for field in ("definition", "version"):
+        if type(universe.get(field)) is not str or not universe[field].strip():
+            raise ProspectiveRefusal(f"eligibility universe {field} must be nonempty")
+    digest = universe.get("digest")
+    if type(digest) is not str or not re.fullmatch(r"[0-9a-fA-F]{64}", digest):
+        raise ProspectiveRefusal("eligibility universe digest must be a SHA-256 digest")
+
     observed_components = architecture_identity.components(root)
     observed = architecture_identity.identity_from_components(observed_components)
     expected = decl.get("architecture_identity")

@@ -124,6 +124,47 @@ def test_missing_or_invalid_registration_time_refuses_batch(tmp_path: Path) -> N
         prospective.check_batch(root, "batch-plant")
 
 
+@pytest.mark.parametrize(
+    "field,replacement,reason",
+    [
+        ("universe_ref", None, "eligibility universe must be"),
+        ("universe_ref", "unversioned-pointer", "eligibility universe must be"),
+        (
+            "universe_ref",
+            {"definition": "plant universe", "version": "v1"},
+            "eligibility universe digest",
+        ),
+        (
+            "universe_ref",
+            {"definition": "plant universe", "digest": "b" * 64},
+            "eligibility universe version",
+        ),
+        (
+            "universe_ref",
+            {"definition": " ", "version": "v1", "digest": "b" * 64},
+            "eligibility universe definition",
+        ),
+        ("custodian_commitment_sha", None, "custodian_commitment_sha"),
+        ("custodian_commitment_sha", "a" * 40, "custodian_commitment_sha"),
+    ],
+)
+def test_a6_missing_or_unbound_eligibility_universe_refuses_batch(
+    tmp_path: Path, field: str, replacement: object, reason: str
+) -> None:
+    """A synthetic completed run is not prospective without an A6 universe binding."""
+    root = _mini_root(tmp_path)
+    declaration = _declare(root)
+    _write_batch_record(root, "batch-plant", _record(root, "batch-plant", "run-one"))
+    declaration[field] = replacement
+    path = prospective.declaration_path(root, "batch-plant")
+    path.write_text(json.dumps(declaration), encoding="utf-8")
+    altered_bytes = path.read_bytes()
+
+    with pytest.raises(prospective.ProspectiveRefusal, match=reason):
+        prospective.check_batch(root, "batch-plant")
+    assert path.read_bytes() == altered_bytes
+
+
 def test_a4_completed_run_preserves_structural_check_positive_control(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     _declare(root)
