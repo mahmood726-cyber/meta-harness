@@ -813,6 +813,48 @@ def test_check_batch_refuses_rerun_missing_original(tmp_path: Path) -> None:
         prospective.check_batch(root, batch)
 
 
+@pytest.mark.parametrize(
+    "misleading_reference",
+    [
+        "defect-plant-extra",
+        "prefix-defect-plant",
+        "defect-plant.more",
+    ],
+)
+def test_a4_defect_id_must_be_cited_as_complete_identifier(
+    tmp_path: Path, misleading_reference: str
+) -> None:
+    """A substring of a different identifier is not a cited A4 defect."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, dict(_record(root, batch, "run-original"), outcome="FAILED_CRASH")
+    )
+    prospective.append_defect(
+        prospective.defect_entry(
+            batch, "topic-plant", "run-original", "FAILED_CRASH",
+            "synthetic runner crash", "unverified incident",
+            entry_id="defect-plant", declared_utc="2026-09-14T00:19:00Z",
+        ),
+        root=root,
+    )
+    _write_batch_record(
+        root, batch,
+        _record(
+            root, batch, "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification=f"retry authorised by {misleading_reference}",
+        ),
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="rerun lacks a prior defect-ledger entry"
+    ):
+        prospective.check_batch(root, batch)
+
+
 def test_check_batch_accepts_one_rerun_with_prior_defect(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     batch = "batch-plant"
