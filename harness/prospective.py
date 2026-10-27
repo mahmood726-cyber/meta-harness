@@ -760,6 +760,22 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
                 f"run {record.get('run_id')}: original run is not a recorded failure "
                 "eligible for an infrastructure rerun"
             )
+        # A retry cannot precede completion of the original attempt. Without
+        # this ordering check, an overlapping retry could be counted as a
+        # post-failure A4 rerun even while the original was still running.
+        # These locally reported times are not independently witnessed.
+        if original is not None:
+            try:
+                original_finished = _parse_utc(original.get("finished_utc"))
+                rerun_started = _parse_utc(record.get("started_utc"))
+            except ProspectiveRefusal:
+                # The run-shape checker reports malformed timestamps.
+                pass
+            else:
+                if rerun_started < original_finished:
+                    reasons.append(
+                        f"run {record.get('run_id')}: rerun started before original finished"
+                    )
         justification = str(record.get("rerun_justification") or "")
         cited = [
             defect
