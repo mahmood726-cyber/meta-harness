@@ -1557,3 +1557,44 @@ def test_a4_symlinked_retained_record_refuses_external_success(
         prospective.check_batch(root, "batch-plant")
     assert external.read_bytes() == retained_bytes
 
+
+
+@pytest.mark.parametrize("alias_kind", ["file", "batch_directory", "prospective_directory"])
+def test_a1_symlinked_declaration_cannot_be_claimed_frozen(
+    tmp_path: Path, alias_kind: str
+) -> None:
+    """Synthetic alias negative: external mutable registration is not frozen custody."""
+    root = _mini_root(tmp_path)
+    _declare(root)
+    _write_batch_record(root, "batch-plant", _record(root, "batch-plant", "run-one"))
+    declaration = prospective.declaration_path(root, "batch-plant")
+    original_bytes = declaration.read_bytes()
+    outside = tmp_path / f"external-{alias_kind}"
+    try:
+        if alias_kind == "file":
+            outside.write_bytes(original_bytes)
+            declaration.unlink()
+            declaration.symlink_to(outside)
+        elif alias_kind == "batch_directory":
+            directory = declaration.parent
+            directory.rename(outside)
+            directory.symlink_to(outside, target_is_directory=True)
+        else:
+            directory = declaration.parent.parent
+            directory.rename(outside)
+            directory.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem does not permit the required symlink")
+
+    # Prior to the guard, this externally aliasable but otherwise internally
+    # valid declaration (and its completed synthetic record) could PASS.
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration path"):
+        prospective.load_declaration(root, "batch-plant")
+    with pytest.raises(prospective.ProspectiveRefusal, match="declaration path"):
+        prospective.check_batch(root, "batch-plant")
+    retained = outside if alias_kind == "file" else (
+        outside / "declaration.json"
+        if alias_kind == "batch_directory"
+        else outside / "batch-plant" / "declaration.json"
+    )
+    assert retained.read_bytes() == original_bytes
