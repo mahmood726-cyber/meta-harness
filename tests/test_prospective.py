@@ -693,6 +693,42 @@ def test_partial_prospective_run_record_cannot_be_silently_replaced(tmp_path: Pa
     assert path.read_bytes() == b"{"
 
 
+
+@pytest.mark.parametrize(
+    "invalid_topic",
+    [None, False, 0, [], {}, "   "],
+    ids=["null", "bool-false", "integer-zero", "empty-list", "empty-mapping", "whitespace"],
+)
+def test_a4_run_constructor_refuses_synthetic_topic_identity(
+    tmp_path: Path, invalid_topic: object
+) -> None:
+    """A fabricated or blank topic cannot become a prospective subject via str()."""
+    root = _mini_root(tmp_path)
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="topic_identifier must be a nonblank string"
+    ):
+        prospective.run_record(
+            root, "batch-plant", invalid_topic,
+            "2026-09-14T00:10:00Z", "2026-09-14T00:11:00Z",
+            "COMPLETED", ["review/index.html"],
+        )
+    assert not (root / "prospective").exists()
+
+
+@pytest.mark.parametrize("literal_topic", ["False", "0"])
+def test_a4_run_constructor_retains_explicit_string_topic_identity(
+    tmp_path: Path, literal_topic: str
+) -> None:
+    """Literal source identifiers are not equivalent to coerced false/zero values."""
+    root = _mini_root(tmp_path)
+    record = prospective.run_record(
+        root, "batch-plant", literal_topic,
+        "2026-09-14T00:10:00Z", "2026-09-14T00:11:00Z",
+        "COMPLETED", ["review/index.html"],
+    )
+    assert record["topic_identifier"] == literal_topic
+
+
 def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     decl = _declare(root)
