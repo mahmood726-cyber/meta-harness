@@ -415,9 +415,12 @@ def run_record(
     """Build one prospective topic-run record."""
 
     batch = _require_safe_name(batch_id, "batch_id")
-    topic = str(topic_identifier)
-    if not topic:
-        raise ProspectiveRefusal("topic_identifier is required")
+    # Preserve source topic identity: str(None), str(False), or str(0)
+    # would fabricate plausible subject labels that later pass batch checks.
+    # This remains local format validation, not independent discovery.
+    if type(topic_identifier) is not str or not topic_identifier.strip():
+        raise ProspectiveRefusal("topic_identifier must be a nonblank string")
+    topic = topic_identifier
     if outcome not in RUN_OUTCOMES:
         raise ProspectiveRefusal(f"unknown run outcome: {outcome!r}")
     started = _parse_utc(started_utc)
