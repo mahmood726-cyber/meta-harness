@@ -800,7 +800,13 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             for defect_id, defect in defects_by_id.items()
             if (
                 defect_id
-                and defect_id in justification
+                # A substring of another identifier is not a defect citation.
+                # Defect IDs may contain dots, dashes and underscores, so
+                # their boundaries must use the same SAFE_NAME alphabet.
+                and re.search(
+                    rf"(?<![A-Za-z0-9._-]){re.escape(defect_id)}(?![A-Za-z0-9._-])",
+                    justification,
+                ) is not None
                 and defect.get("failed_run_id") == original_id
                 and defect.get("topic_identifier") == record.get("topic_identifier")
             )
