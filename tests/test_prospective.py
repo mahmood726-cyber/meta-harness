@@ -584,6 +584,47 @@ def test_retained_run_with_invalid_subject_or_id_cannot_pass_batch(
         prospective.check_batch(root, "batch-plant")
 
 
+
+@pytest.mark.parametrize(
+    "artefacts,expected_reason",
+    [
+        ([], "COMPLETED without retained artefact inventory"),
+        ([""], "artefact_paths must contain only nonblank strings"),
+        (["  "], "artefact_paths must contain only nonblank strings"),
+        ([None], "artefact_paths must contain only nonblank strings"),
+        ([False], "artefact_paths must contain only nonblank strings"),
+        ([0], "artefact_paths must contain only nonblank strings"),
+        (["review/index.html", "review/index.html"], "duplicate artefact_paths"),
+        (["review/index.html", " review/index.html "], "duplicate artefact_paths"),
+    ],
+)
+def test_a4_completed_requires_retained_artefact_inventory(
+    tmp_path: Path, artefacts: list[object], expected_reason: str
+) -> None:
+    """Synthetic evidence inventory gate; path contents are not externally verified."""
+    root = _mini_root(tmp_path)
+    _declare(root)
+    record = _record(root, "batch-plant", "run-artefacts")
+    record["artefact_paths"] = artefacts
+    path = _write_batch_record(root, "batch-plant", record)
+    retained = path.read_bytes()
+    with pytest.raises(prospective.ProspectiveRefusal, match=expected_reason):
+        prospective.check_batch(root, "batch-plant")
+    assert path.read_bytes() == retained
+
+
+def test_a4_crashed_attempt_with_no_outputs_remains_recorded(tmp_path: Path) -> None:
+    """An infrastructure crash without produced artefacts is still in the denominator."""
+    root = _mini_root(tmp_path)
+    _declare(root)
+    record = _record(root, "batch-plant", "run-crashed")
+    record.update(outcome="FAILED_CRASH", artefact_paths=[])
+    _write_batch_record(root, "batch-plant", record)
+    result = prospective.check_batch(root, "batch-plant")
+    assert result["ok"] is True
+    assert result["run_records"] == 1
+
+
 def test_valid_retained_subject_and_id_remain_accepted(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     _declare(root)
