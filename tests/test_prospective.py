@@ -906,6 +906,59 @@ def test_a4_completed_original_cannot_be_relabelled_as_failed_for_rerun(
         prospective.check_batch(root, batch)
 
 
+@pytest.mark.parametrize(
+    "original_outcome,defect_failure_class,expected_refusal",
+    [
+        ("FAILED_INVARIANT", "FAILED_INVARIANT", "not a recorded failure eligible"),
+        ("FAILED_CRASH", "FAILED_TIMEOUT", "defect failure_class does not match"),
+        ("FAILED_TIMEOUT", "FAILED_CRASH", "defect failure_class does not match"),
+        ("FAILED_TIMEOUT", "FAILED_TIMEOUT", None),
+    ],
+)
+def test_a4_rerun_requires_infrastructure_eligible_matching_failure(
+    tmp_path: Path,
+    original_outcome: str,
+    defect_failure_class: str,
+    expected_refusal: str | None,
+) -> None:
+    # Synthetic provenance controls only; no independently witnessed incident.
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    original = dict(
+        _record(root, batch, "run-original"), outcome=original_outcome
+    )
+    _write_batch_record(root, batch, original)
+    _write_batch_record(
+        root,
+        batch,
+        _record(
+            root, batch, "run-rerun",
+            started="2026-09-14T00:20:00Z",
+            finished="2026-09-14T00:21:00Z",
+            rerun_of="run-original",
+            justification="external incident defect-classified",
+        ),
+    )
+    prospective.append_defect(
+        prospective.defect_entry(
+            batch, "topic-plant", "run-original",
+            defect_failure_class, "provider error",
+            "synthetic unverified incident",
+            entry_id="defect-classified",
+            declared_utc="2026-09-14T00:19:00Z",
+        ),
+        root=root,
+    )
+    if expected_refusal:
+        with pytest.raises(prospective.ProspectiveRefusal, match=expected_refusal):
+            prospective.check_batch(root, batch)
+    else:
+        summary = prospective.check_batch(root, batch)
+        assert summary["ok"] is True
+        assert summary["run_records"] == 2
+
+
 def test_freeze_claim_tracks_mutability_both_ways(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = _mini_root(tmp_path)
 

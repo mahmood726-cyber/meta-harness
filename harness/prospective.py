@@ -752,15 +752,13 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             reasons.append(
                 f"run {record.get('run_id')}: original topic does not match rerun topic"
             )
-        elif original.get("outcome") not in (
-            "FAILED_CRASH",
-            "FAILED_TIMEOUT",
-            "FAILED_INVARIANT",
-        ):
-            # An entry written to the ledger cannot turn an originally
-            # COMPLETED run into an authorised infrastructure failure.
+        elif original.get("outcome") not in ("FAILED_CRASH", "FAILED_TIMEOUT"):
+            # A4 requires an external infrastructure incident. A recorded
+            # FAILED_INVARIANT is a retained scientific/control failure, not
+            # a result to rescue with a post-hoc defect assertion.
             reasons.append(
-                f"run {record.get('run_id')}: original run is not a recorded failure"
+                f"run {record.get('run_id')}: original run is not a recorded failure "
+                "eligible for an infrastructure rerun"
             )
         justification = str(record.get("rerun_justification") or "")
         cited = [
@@ -779,6 +777,20 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
                 "bound to original run/topic"
             )
             continue
+        # The ledger must agree with the retained original outcome. Otherwise
+        # a timeout allegation could authorise retry of an invariant failure
+        # or a crash by changing only the defect's self-reported class.
+        if original is not None:
+            cited = [
+                defect for defect in cited
+                if defect.get("failure_class") == original.get("outcome")
+            ]
+            if not cited:
+                reasons.append(
+                    f"run {record.get('run_id')}: cited defect failure_class "
+                    "does not match original outcome"
+                )
+                continue
         try:
             rerun_started = _parse_utc(record["started_utc"])
             prior = [
