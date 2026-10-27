@@ -713,6 +713,20 @@ def _validate_record_shape(record: dict[str, Any]) -> list[str]:
             )
         elif len({item.strip() for item in artefacts}) != len(artefacts):
             reasons.append(f"run {record.get('run_id')}: duplicate artefact_paths")
+        # An inventory of path strings must not point outside the retained
+        # run evidence tree. These checks are lexical only: neither file
+        # existence nor immutable custody nor a source digest is established.
+        elif any(
+            path.startswith(("/", "\\\\"))
+            or "\\\\" in path
+            or re.match(r"^[A-Za-z]:", path) is not None
+            or any(part in {"", ".", ".."} for part in path.split("/"))
+            for path in artefacts
+        ):
+            reasons.append(
+                f"run {record.get('run_id')}: unsafe artefact_paths "
+                "(absolute, traversal, or noncanonical relative path)"
+            )
     if not isinstance(record.get("external_dependency_mutability"), bool):
         reasons.append(f"run {record.get('run_id')}: external_dependency_mutability is not a boolean")
     expected_claims = {MUTABLE_FREEZE_CLAIM, IMMUTABLE_FREEZE_CLAIM}
