@@ -1524,3 +1524,36 @@ def test_a4_defect_cannot_pre_authorise_a_future_attempt(
             prospective.check_batch(root, batch)
     else:
         assert prospective.check_batch(root, batch)["ok"] is True
+
+@pytest.mark.parametrize("link_kind", ["file", "runs_directory"])
+def test_a4_symlinked_retained_record_refuses_external_success(
+    tmp_path: Path, link_kind: str
+) -> None:
+    """Synthetic off-tree COMPLETED record must never count as a frozen batch run."""
+    root = _mini_root(tmp_path)
+    _declare(root)
+    outside = tmp_path / "outside-run-records"
+    outside.mkdir()
+    external = outside / "forged.json"
+    external.write_text(
+        json.dumps(_record(root, "batch-plant", "run-external")),
+        encoding="utf-8",
+    )
+    retained_bytes = external.read_bytes()
+    runs = root / "prospective" / "batch-plant" / "runs"
+    try:
+        if link_kind == "file":
+            runs.mkdir()
+            (runs / "external.json").symlink_to(external)
+        else:
+            runs.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem does not permit symlinks")
+    # Previously the loader resolved and accepted the off-tree path,
+    # allowing check_batch to return ok=True from an externally mutable file.
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record path"):
+        prospective.load_run_records(root, "batch-plant")
+    with pytest.raises(prospective.ProspectiveRefusal, match="run record path"):
+        prospective.check_batch(root, "batch-plant")
+    assert external.read_bytes() == retained_bytes
+

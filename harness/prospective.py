@@ -594,9 +594,29 @@ def _run_record_paths(root: Path, batch_id: str) -> list[Path]:
     base = root / "prospective" / batch_id
     if not base.exists():
         return []
+    # Resolve only after checking the declared batch location. Otherwise a
+    # symlinked directory or retained JSON leaf can import an externally
+    # mutable COMPLETED record into the prospective run denominator.
+    canonical_base = base.resolve()
+    if (
+        (root / "prospective").is_symlink()
+        or base.is_symlink()
+        or not _inside(canonical_base, root)
+    ):
+        raise ProspectiveRefusal("run record batch directory is symlinked or escapes repository")
     paths: set[Path] = set()
     for pattern in ("runs/*.json", "runs/**/run_record.json", "**/run_record.json"):
-        paths.update(p.resolve() for p in base.glob(pattern) if p.is_file())
+        for candidate in base.glob(pattern):
+            if not candidate.is_file():
+                continue
+            resolved = candidate.resolve()
+            # Also catch a symlinked intermediate 'runs' directory; checking
+            # only the final leaf's is_symlink() would miss that alias.
+            if candidate.is_symlink() or not _inside(resolved, canonical_base):
+                raise ProspectiveRefusal(
+                    f"run record path is symlinked or escapes prospective batch: {candidate}"
+                )
+            paths.add(resolved)
     return sorted(paths)
 
 
