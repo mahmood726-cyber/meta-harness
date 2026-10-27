@@ -547,6 +547,50 @@ def _write_batch_record(root: Path, batch_id: str, record: dict) -> Path:
 
 
 
+@pytest.mark.parametrize(
+    "field,invalid_value",
+    [
+        ("run_id", None),
+        ("run_id", ""),
+        ("run_id", 0),
+        ("run_id", "."),
+        ("run_id", ".."),
+        ("run_id", "run/forged"),
+        ("topic_identifier", None),
+        ("topic_identifier", ""),
+        ("topic_identifier", "   "),
+        ("topic_identifier", 0),
+    ],
+)
+def test_retained_run_with_invalid_subject_or_id_cannot_pass_batch(
+    tmp_path: Path, field: str, invalid_value: object
+) -> None:
+    # Synthetic negative: malformed retained records can bypass the
+    # run_record() constructor by arriving as stored JSON. A subjectless
+    # attempt must never satisfy the prospective-run denominator.
+    root = _mini_root(tmp_path)
+    _declare(root)
+    record = _record(root, "batch-plant", "run-original")
+    record[field] = invalid_value
+    prospective.write_run_record(
+        root / "prospective" / "batch-plant" / "runs" / "run-original",
+        record,
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="run_id must be a nonempty safe identifier"
+        if field == "run_id" else "topic_identifier must be a nonblank string",
+    ):
+        prospective.check_batch(root, "batch-plant")
+
+
+def test_valid_retained_subject_and_id_remain_accepted(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    _declare(root)
+    _write_batch_record(root, "batch-plant", _record(root, "batch-plant", "run-original"))
+    assert prospective.check_batch(root, "batch-plant")["ok"] is True
+
+
 def test_prospective_run_record_is_write_once_even_if_original_failed(tmp_path: Path) -> None:
     # A rerun cannot silently rewrite the evidence for an earlier FAILED run.
     root = _mini_root(tmp_path)
