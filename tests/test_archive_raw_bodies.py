@@ -315,6 +315,20 @@ def test_changed_pointer_or_archived_body_not_marked_preserved(tmp_path, monkeyp
         archive.check(str(snapshot), None)
 
 
+def test_archive_receipt_wrong_body_count_cannot_certify_preservation(tmp_path, monkeypatch):
+    """A self-contradictory custody receipt must not yield an archive PASS."""
+    snapshot, _, archive_root = _fixture(tmp_path, monkeypatch, count=2)
+    assert archive.move(str(snapshot), str(archive_root)) == 2
+    assert archive.check(str(snapshot), None) == (2, [])
+    pointer_path = snapshot / "ARCHIVE.json"
+    pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
+    for bad_count in (1, 0, -1, "2", True, None):
+        pointer["bodies"] = bad_count
+        pointer_path.write_text(json.dumps(pointer), encoding="utf-8")
+        with pytest.raises(SystemExit, match="archive pointer"):
+            archive.check(str(snapshot), None)
+
+
 def test_missing_ledger_is_not_accepted_as_preserved(tmp_path, monkeypatch):
     snapshot, _, _ = _fixture(tmp_path, monkeypatch)
     (snapshot / "retrieval_ledger.json").unlink()
