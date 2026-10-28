@@ -112,7 +112,9 @@ def _load_index(snapshot: str) -> list[dict]:
             raise SystemExit(f"REFUSED: invalid archive pointer: {exc}") from exc
         if (not isinstance(pointer, dict)
                 or pointer.get("index_sha256") != digest
-                or pointer.get("archived_relpath") != _rel_snapshot(snapshot)):
+                or pointer.get("archived_relpath") != _rel_snapshot(snapshot)
+                or type(pointer.get("bodies")) is not int
+                or pointer["bodies"] != raw_calls):
             raise SystemExit("REFUSED: archive pointer and raw INDEX disagree")
     seen: set[str] = set()
     for row in index:
