@@ -404,6 +404,7 @@ def test_reject_nested_archive_symlink_redirecting_custody_back_in_tree(tmp_path
         "archive_root": str(archive_root),
         "archived_relpath": archive._rel_snapshot(str(snapshot)),
         "index_sha256": hashlib.sha256((snapshot / "raw" / "INDEX.json").read_bytes()).hexdigest(),
+        "bodies": len(rows),
     }), encoding="utf-8")
     with pytest.raises(SystemExit, match="outside the repository"):
         archive.check(str(snapshot), str(archive_root))
