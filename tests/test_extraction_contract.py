@@ -486,6 +486,30 @@ def test_cli_exit_codes(root, tmp_path):
     assert unverified.returncode == 1
     assert "REFUSE" in unverified.stdout
     assert "call record is missing from the supplied records" in unverified.stdout
+
+    # The actual CLI caller must pass only when its two call-record files
+    # replay, bind to this exact document and reconstruct the declared reads.
+    observed = _dual(root)
+    trial = {"trial_id": "PLANT-001", "measure": "binary",
+             "values": binary_values(), "readings": observed["readings"]}
+    verified_bundle = tmp_path / "recorded.json"
+    verified_bundle.write_text(json.dumps(bundle([trial])), encoding="utf-8")
+    records_dir = tmp_path / "real-records"
+    records_dir.mkdir()
+    for record in observed["records"]:
+        (records_dir / f"{record['record_id']}.json").write_text(
+            json.dumps(record), encoding="utf-8")
+    accepted = _cli("check", str(verified_bundle), "--docs-root", root,
+                    "--records", str(records_dir), cwd=root)
+    assert accepted.returncode == 0 and "ALLOW_MATCH_CLAIM" in accepted.stdout, accepted.stderr
+    changed = copy.deepcopy(observed["records"][0])
+    changed["response"]["b64"] = base64.b64encode(b"{}").decode("ascii")
+    (records_dir / f"{changed['record_id']}.json").write_text(
+        json.dumps(changed), encoding="utf-8")
+    refused = _cli("check", str(verified_bundle), "--docs-root", root,
+                   "--records", str(records_dir), cwd=root)
+    assert refused.returncode == 1 and "REFUSE" in refused.stdout, refused.stderr
+
     r = _cli("check", str(bad), "--docs-root", root, cwd=root)
     assert r.returncode == 1 and "REFUSE" in r.stdout
     (tmp_path / "broken.json").write_text("{not json", encoding="utf-8")
