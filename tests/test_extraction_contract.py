@@ -538,6 +538,25 @@ def test_dual_reading_end_to_end_with_recorded_calls(root):
     assert not independence_problems(out["readings"], recs)
 
 
+def test_cli_checked_synthetic_call_records_can_certify(root, tmp_path):
+    # The fake model runners write complete call records; no real model call
+    # or blinded clinical validation is implied by this synthetic control.
+    out = _dual(root)
+    t = {"trial_id": "PLANT-001", "measure": "binary",
+         "values": binary_values(), "readings": out["readings"]}
+    b_path = tmp_path / "with-records.json"
+    b_path.write_text(json.dumps(bundle([t])), encoding="utf-8")
+    rec_dir = tmp_path / "recorded-calls"
+    rec_dir.mkdir()
+    for rec in out["records"]:
+        (rec_dir / f"{rec['record_id']}.json").write_text(json.dumps(rec), encoding="utf-8")
+    verified = _cli("check", str(b_path), "--docs-root", root,
+                    "--records", str(rec_dir), cwd=root)
+    assert verified.returncode == 0, verified.stdout + verified.stderr
+    assert "ALLOW_MATCH_CLAIM" in verified.stdout
+    assert "CALL_RECORDS_NOT_VERIFIED" not in verified.stdout
+
+
 def test_PLANT_reader_invents_a_quote(root):
     bad = copy.deepcopy(ANSWER)
     bad["items"][2]["quote"] = "Death occurred in 61 of 203 patients."        # plausible, not in the document
