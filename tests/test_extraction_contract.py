@@ -219,6 +219,24 @@ def test_PLANT_supplied_call_record_missing_verifiable_response_digest_refuses(r
     assert "prompt-separation check cannot be completed" in problems(rep)
 
 
+
+@pytest.mark.parametrize("invalid_inputs", [None, [], [{"ref": REF, "sha256": "not-a-digest"}], ["not-an-object"]])
+def test_PLANT_missing_or_invalid_prompt_input_digests_cannot_prove_independence(root, invalid_inputs):
+    # Synthetic records only. A missing or malformed input inventory does NOT
+    # prove the second model was shielded from the first model's answer.
+    recs = {
+        "mc-a": {"record_id": "mc-a", "response": {"sha256": "a" * 64}},
+        "mc-b": {"record_id": "mc-b", "response": {"sha256": "b" * 64},
+                 "input_digests": [{"ref": REF, "sha256": SHA}]},
+    }
+    if invalid_inputs is not None:
+        recs["mc-a"]["input_digests"] = invalid_inputs
+    rep = check_bundle(bundle(), root, call_records=recs)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "missing or invalid prompt input digests" in problems(rep)
+
+
+
 def test_PLANT_second_reader_was_shown_the_first_answer(root):
     resp_a = "a" * 64
     recs = {"mc-a": {"record_id": "mc-a", "response": {"sha256": resp_a}, "input_digests": [{"sha256": SHA}]},
@@ -453,7 +471,18 @@ def test_cli_exit_codes(root, tmp_path):
     b = bundle()
     b["trials"][0]["values"][0]["value"] = 41
     bad.write_text(json.dumps(b), encoding="utf-8")
-    assert _cli("check", str(good), "--docs-root", root, cwd=root).returncode == 0
+    metadata_only = _cli("check", str(good), "--docs-root", root, cwd=root)
+    assert metadata_only.returncode == 0
+    assert "CALL_RECORDS_NOT_VERIFIED" in metadata_only.stdout
+    # No inventory is the inherited metadata-only interface; explicitly
+    # requesting proof with an empty inventory must never fall back to it.
+    empty_records = tmp_path / "empty-records"
+    empty_records.mkdir()
+    unverified = _cli("check", str(good), "--docs-root", root,
+                      "--records", str(empty_records), cwd=root)
+    assert unverified.returncode == 1
+    assert "REFUSE" in unverified.stdout
+    assert "call record is missing from the supplied records" in unverified.stdout
     r = _cli("check", str(bad), "--docs-root", root, cwd=root)
     assert r.returncode == 1 and "REFUSE" in r.stdout
     (tmp_path / "broken.json").write_text("{not json", encoding="utf-8")
