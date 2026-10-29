@@ -239,7 +239,7 @@ def test_tracked_filename_is_refused_in_clean_ci_checkout(monkeypatch):
     assert IDENTIFIER not in report and path not in report
 
 
-@pytest.mark.parametrize("payload", [IDENTIFIER + "\\n", "clean contents\\n"])
+@pytest.mark.parametrize("payload", [IDENTIFIER + "\n", "clean contents\n"])
 def test_missing_tracked_worktree_file_refuses_even_without_a_staged_change(monkeypatch, payload):
     """A missing tracked file is still part of HEAD; a tree-scan skip is unsafe."""
     monkeypatch.setenv("HELDOUT_KEY", KEY)
@@ -254,7 +254,7 @@ def test_missing_tracked_worktree_file_refuses_even_without_a_staged_change(monk
         with pytest.raises(RuntimeError, match="tracked file unreadable"):
             heldout.scan_tree(repo, KEY, registry)
         ok, reasons = heldout.check(repo)
-    report = "\\n".join(reasons)
+    report = "\n".join(reasons)
     assert ok is False
     assert "tracked file unreadable" in report
     assert "notes/tracked.txt" not in report and IDENTIFIER not in report
@@ -266,7 +266,7 @@ def test_tracked_file_permission_error_refuses_without_path_disclosure(monkeypat
 
     registry = _registry(_token(IDENTIFIER))
     with _temp_repo() as repo:
-        _write(repo, "notes/tracked.txt", "clean\\n")
+        _write(repo, "notes/tracked.txt", "clean\n")
         _commit(repo, "clean baseline")
         denied = str(repo / "notes" / "tracked.txt")
         original_open = builtins.open
