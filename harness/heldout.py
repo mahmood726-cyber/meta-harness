@@ -88,12 +88,13 @@ def _run_git(root: str, args: list[str], isolate: bool = False) -> str:
 
 
 
-def _run_git_bytes(root: str, args: list[str], isolate: bool = False) -> bytes:
+def _run_git_bytes(root: str, args: list[str], isolate: bool = False, input_data: bytes | None = None) -> bytes:
     """Preserve NUL-delimited Git paths and exact staged blob bytes."""
     proc = subprocess.run(
         ["git", *args],
         cwd=root,
         capture_output=True,
+        input=input_data,
         env=_isolated_git_env() if isolate else None,
     )
     if proc.returncode != 0:
@@ -233,6 +234,50 @@ def _scan_tracked_paths(root: str, isolate: bool = False) -> Iterable[str]:
         yield path
 
 
+
+def _verified_missing_staged_addition(root: str, path: str, isolate: bool = False) -> bytes:
+    """Recover only a staged *addition* with a missing worktree copy.
+
+    A staged addition is publishable even if its worktree copy was subsequently
+    deleted. Compare the exact stage-zero index path/object ID with independently
+    hashed blob bytes; do not silently accept missing committed or staged-modified
+    files, unreadable paths, unmerged stages or a corrupt index/blob. All exceptions
+    redact the pathname and Git diagnostic (which may itself contain a sealed name).
+    """
+    refusal = "tracked file unreadable; scan refused (path redacted)"
+    try:
+        raw_path = os.fsencode(path)
+        additions = _run_git_bytes(
+            root, ["diff", "--cached", "--name-only", "-z", "--diff-filter=A"],
+            isolate=isolate,
+        ).split(b"\0")
+        if raw_path not in additions:
+            raise ValueError("not a staged addition")
+
+        entries = [
+            entry for entry in _run_git_bytes(
+                root, ["ls-files", "--stage", "-z", "--", path], isolate=isolate,
+            ).split(b"\0") if entry
+        ]
+        if len(entries) != 1:
+            raise ValueError("ambiguous index stages")
+        metadata, separator, indexed_path = entries[0].partition(b"\t")
+        fields = metadata.split()
+        if (not separator or indexed_path != raw_path or len(fields) != 3
+                or fields[0] not in (b"100644", b"100755", b"120000")
+                or fields[2] != b"0" or not re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", fields[1])):
+            raise ValueError("invalid index object identity")
+        blob = _run_git_bytes(root, ["cat-file", "blob", ":" + path], isolate=isolate)
+        calculated = _run_git_bytes(
+            root, ["hash-object", "--stdin"], isolate=isolate, input_data=blob,
+        ).strip()
+        if not hmac.compare_digest(calculated, fields[1]):
+            raise ValueError("index object hash mismatch")
+        return blob
+    except Exception:
+        raise RuntimeError(refusal) from None
+
+
 def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dict]:
     """Scan every tracked text file for sealed identifiers without revealing them. isolate: root is a SCRATCH repository
     (self_test), so git must address it by cwd and never through an inherited GIT_DIR / GIT_INDEX_FILE."""
@@ -254,10 +299,12 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
                     hits.append({"path": report_path, "identifier_hmac": digest, "line_no": 1})
                 continue
             blob = open(abs_path, "rb").read()
+        except FileNotFoundError:
+            # A staged addition survives removal of its worktree copy. Scan the
+            # verified index blob, but keep ordinary missing tracked files refused.
+            blob = _verified_missing_staged_addition(root, path, isolate=isolate)
         except OSError:
-            # The index still tracks this path even when the worktree copy is gone.
-            # A silent skip would certify content that has not been inspected.
-            # Omit the exception's filename: it may itself be a sealed identifier.
+            # Permission/IO failures are not evidence of clean content.
             raise RuntimeError("tracked file unreadable; scan refused (path redacted)") from None
         # Git can track binary files with embedded plaintext held-out names.
         # NUL bytes and invalid UTF-8 delimit candidates, not scanning coverage.

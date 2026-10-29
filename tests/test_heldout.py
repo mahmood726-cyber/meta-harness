@@ -190,10 +190,91 @@ def test_staged_index_reads_added_file_even_if_worktree_file_deleted():
         _git(repo, "add", "notes/staged.txt")
         probe.unlink()
 
-        assert heldout.scan_tree(repo, KEY, registry) == []
+        # The missing worktree copy is a staged ADD: its verified index blob
+        # must be scanned, rather than returning an unverified clean tree.
+        tree_hits = heldout.scan_tree(repo, KEY, registry)
         hits = heldout.scan_staged_index(repo, KEY, registry)
 
-    assert hits == [{"path": "notes/staged.txt", "identifier_hmac": sealed, "line_no": 1}]
+    expected = [{"path": "notes/staged.txt", "identifier_hmac": sealed, "line_no": 1}]
+    assert tree_hits == expected
+    assert hits == expected
+
+
+
+
+def test_missing_staged_addition_clean_index_blob_is_accepted(monkeypatch):
+    """Recover an intact, benign added blob from its index hash and path."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    registry = _registry_with_canary(_token(IDENTIFIER))
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _commit(repo, "baseline")
+        added = _write(repo, "notes/new-clean.txt", "safe text\n")
+        _git(repo, "add", "notes/new-clean.txt")
+        added.unlink()
+        assert heldout.scan_tree(repo, KEY, registry) == []
+        assert heldout.scan_staged_index(repo, KEY, registry) == []
+        ok, reasons = heldout.check(repo)
+    assert ok is True and reasons == []
+
+
+def test_missing_staged_modified_worktree_refuses_even_if_blob_exists():
+    """A missing tracked modification is not a staged addition exception."""
+    registry = _registry(_token(IDENTIFIER))
+    with _temp_repo() as repo:
+        tracked = _write(repo, "notes/existing.txt", "baseline\n")
+        _commit(repo, "baseline")
+        tracked.write_text("staged clean edit\n", encoding="utf-8")
+        _git(repo, "add", "notes/existing.txt")
+        tracked.unlink()
+        assert heldout.scan_staged_index(repo, KEY, registry) == []
+        with pytest.raises(RuntimeError, match="tracked file unreadable; scan refused"):
+            heldout.scan_tree(repo, KEY, registry)
+
+
+def test_missing_staged_addition_corrupt_blob_refuses_without_path_leak(monkeypatch):
+    """The index metadata and rehashed bytes must agree, even if Git lies."""
+    registry = _registry(_token(IDENTIFIER))
+    with _temp_repo() as repo:
+        _write(repo, "base.txt", "baseline\n")
+        _commit(repo, "baseline")
+        missing = _write(repo, f"notes/{IDENTIFIER}.txt", "safe indexed content\n")
+        _git(repo, "add", f"notes/{IDENTIFIER}.txt")
+        missing.unlink()
+        original = heldout._run_git_bytes
+
+        def corrupt_cat_file(root, args, isolate=False, input_data=None):
+            if args[:2] == ["cat-file", "blob"]:
+                return b"tampered index blob\n"
+            return original(root, args, isolate=isolate, input_data=input_data)
+
+        monkeypatch.setattr(heldout, "_run_git_bytes", corrupt_cat_file)
+        with pytest.raises(RuntimeError, match="tracked file unreadable") as error:
+            heldout.scan_tree(repo, KEY, registry)
+        assert IDENTIFIER not in str(error.value)
+        assert "notes/" not in str(error.value)
+
+
+def test_missing_staged_addition_index_read_error_is_redacted(monkeypatch):
+    """An unavailable staged Git object cannot be treated as clean."""
+    registry = _registry(_token(IDENTIFIER))
+    with _temp_repo() as repo:
+        _write(repo, "base.txt", "baseline\n")
+        _commit(repo, "baseline")
+        missing = _write(repo, f"notes/{IDENTIFIER}.txt", "safe\n")
+        _git(repo, "add", f"notes/{IDENTIFIER}.txt")
+        missing.unlink()
+        original = heldout._run_git_bytes
+
+        def fail_cat_file(root, args, isolate=False, input_data=None):
+            if args[:2] == ["cat-file", "blob"]:
+                raise RuntimeError("synthetic git stderr exposed " + IDENTIFIER)
+            return original(root, args, isolate=isolate, input_data=input_data)
+
+        monkeypatch.setattr(heldout, "_run_git_bytes", fail_cat_file)
+        with pytest.raises(RuntimeError, match="tracked file unreadable") as error:
+            heldout.scan_tree(repo, KEY, registry)
+        assert IDENTIFIER not in str(error.value)
 
 
 def test_staged_path_only_refuses_without_disclosing_identifier(monkeypatch):
