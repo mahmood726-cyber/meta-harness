@@ -11,7 +11,7 @@ bundle = {
       "adjudications": [adjudication, ...]
   }, ...]
 }
-Verdict ALLOW_MATCH_CLAIM only if, for every trial:
+Verdict ALLOW_MATCH_CLAIM only with supplied, checked call records and, for every trial:
   1. every value required by its measure is served, exactly once;
   2. every served value is well-typed, carries a verified passage, and is literally in that passage;
   3. the served values are coherent (events <= total, CI brackets the point, ratios > 0, ...);
@@ -27,7 +27,7 @@ from . import CONTRACT_MAJOR, CONTRACT_VERSION
 from . import fields as F
 from .dual import item_problems, resolve, same_value
 
-ALLOW, REFUSE = "ALLOW_MATCH_CLAIM", "REFUSE"
+ALLOW, REFUSE, METADATA_ONLY = "ALLOW_MATCH_CLAIM", "REFUSE", "METADATA_ONLY_NOT_CERTIFIED"
 
 
 def _label(k):
@@ -112,5 +112,8 @@ def check_bundle(bundle, docs_root, call_records=None) -> dict:
     n_ok = sum(1 for t in report["trials"] if t["ok"])
     report["summary"] = {"trials": len(trials), "trials_ok": n_ok}
     if not report["problems"] and n_ok == len(trials):
-        report["verdict"] = ALLOW
+        # Two self-described reader IDs and matching passages do not prove
+        # call separation. Metadata-only review can be useful diagnostically,
+        # but must never issue an authoritative ALLOW_MATCH_CLAIM verdict.
+        report["verdict"] = METADATA_ONLY if call_records is None else ALLOW
     return report
