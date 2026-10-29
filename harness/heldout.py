@@ -244,6 +244,27 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
 
 
 
+def scan_tracked_filenames(root, key: str, registry: dict, isolate: bool = False) -> list[dict]:
+    """Check tracked pathnames even on a clean CI checkout with no staged diff.
+
+    A staged-only filename scan cannot see a sealed name after commit. Git's
+    NUL-terminated index listing preserves unusual pathnames without printing them.
+    """
+    root = _root_path(root)
+    names = _run_git_bytes(root, ["ls-files", "-z"], isolate=isolate).split(b"\\0")
+    match = _Matcher(key, registry)
+    hits = []
+    for raw_name in names:
+        if not raw_name:
+            continue
+        path = _posix(os.fsdecode(raw_name))
+        if path == _posix(REGISTRY_PATH):
+            continue
+        for digest in match(path):
+            hits.append({"kind": "tracked_path", "identifier_hmac": digest})
+    return hits
+
+
 def scan_staged_index(root, key: str, registry: dict, isolate: bool = False) -> list[dict]:
     """Scan index blobs for added/modified paths, even if the worktree was cleaned after staging.
 
@@ -384,6 +405,14 @@ def check(root) -> tuple[bool, list[str]]:
             )
     except Exception as exc:
         reasons.append(f"sealed held-out tree scan could not run: {exc}")
+    try:
+        for hit in scan_tracked_filenames(root, key, registry):
+            reasons.append(
+                f"sealed identifier {hit['identifier_hmac'][:12]}... appears in a tracked filename "
+                "(filename redacted)"
+            )
+    except Exception as exc:
+        reasons.append(f"sealed held-out tracked filename scan could not run: {exc}")
     try:
         for hit in scan_staged_index(root, key, registry):
             if hit.get("kind") == "staged_path":

@@ -161,6 +161,27 @@ def test_staged_path_only_refuses_without_disclosing_identifier(monkeypatch):
     assert IDENTIFIER not in report and path not in report
 
 
+def test_tracked_filename_is_refused_in_clean_ci_checkout(monkeypatch):
+    """The staged-only scan is empty after commit, but the tracked name is still sealed."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    sealed = _token(IDENTIFIER)
+    registry = _registry_with_canary(sealed)
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        path = f"notes/prefix-{IDENTIFIER}-suffix.txt"
+        _write(repo, path, "safe contents\\n")
+        _commit(repo, "safe contents only")
+        assert heldout.scan_staged_index(repo, KEY, registry) == []
+        assert heldout.scan_tree(repo, KEY, registry) == []
+        hits = heldout.scan_tracked_filenames(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+    assert hits == [{"kind": "tracked_path", "identifier_hmac": sealed}]
+    assert not ok
+    report = "\\n".join(reasons)
+    assert "tracked filename" in report and sealed[:12] in report
+    assert IDENTIFIER not in report and path not in report
+
+
 def test_short_form_hit_is_detected_in_tracked_file():
     sealed = _token(SHORT_FORM)
     registry = _registry(sealed)
