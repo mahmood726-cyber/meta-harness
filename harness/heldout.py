@@ -245,6 +245,15 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
         report_path = "<redacted tracked path>" if match(path) else path
         abs_path = os.path.join(root, *path.split("/"))
         try:
+            # Git commits a symlink's *target path*, not the contents of the
+            # file it points at. Following the link could read private files
+            # outside this checkout and miss a sealed identifier in the
+            # actually committed link target.
+            if os.path.islink(abs_path):
+                link_target = os.readlink(abs_path)
+                for digest in match(link_target):
+                    hits.append({"path": report_path, "identifier_hmac": digest, "line_no": 1})
+                continue
             blob = open(abs_path, "rb").read()
         except OSError:
             continue
