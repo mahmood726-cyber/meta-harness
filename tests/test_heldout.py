@@ -243,6 +243,27 @@ def test_commit_scan_only_reports_messages_after_enforcement():
     assert before_hits == []
 
 
+
+def test_merge_second_parent_commit_message_is_checked_after_enforcement():
+    """An innocuous merge message must not hide a sealed side-branch commit."""
+    sealed = _token(IDENTIFIER)
+    with _temp_repo() as repo:
+        _write(repo, "base.txt", "baseline\\n")
+        enforced_since = _commit(repo, "clean baseline")
+        original_branch = _git(repo, "branch", "--show-current")
+        _git(repo, "checkout", "-b", "synthetic-side-branch")
+        _write(repo, "side.txt", "safe body\\n")
+        side_sha = _commit(repo, f"side-branch mentions {IDENTIFIER}")
+        _git(repo, "checkout", original_branch)
+        _git(repo, "merge", "--no-ff", "-m", "clean merge message", "synthetic-side-branch")
+        hits = heldout.scan_commit_messages(
+            repo, KEY, _registry(sealed, enforced_since=enforced_since)
+        )
+    assert hits == [{"sha": side_sha, "identifier_hmac": sealed}]
+
+
+
+
 def test_self_test_requires_sealed_canary_and_passes_when_present():
     ok, detail = heldout.self_test(KEY, _registry())
     assert ok is False

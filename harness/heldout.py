@@ -318,14 +318,18 @@ def check_message(text: str, key: str, registry: dict) -> list[str]:
 
 
 def scan_commit_messages(root, key: str, registry: dict) -> list[dict]:
-    """Scan first-parent commit messages after enforced_since for sealed identifiers."""
+    """Scan ALL reachable new commit messages, including merged side-branch parents.
+
+    The original first-parent traversal silently missed sealed identifiers in
+    commits integrated by a non-fast-forward merge when the merge message was clean.
+    """
     root = _root_path(root)
     enforced_since = registry.get("enforced_since")
     if not enforced_since:
         return []
     out = _run_git(
         root,
-        ["log", "--first-parent", "--format=%H%x00%B%x00", f"{enforced_since}..HEAD"],
+        ["log", "--format=%H%x00%B%x00", f"{enforced_since}..HEAD"],
     )
     parts = out.split("\0")
     hits = []
