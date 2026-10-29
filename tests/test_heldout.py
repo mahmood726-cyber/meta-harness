@@ -169,7 +169,7 @@ def test_tracked_filename_is_refused_in_clean_ci_checkout(monkeypatch):
     with _temp_repo() as repo:
         _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
         path = f"notes/prefix-{IDENTIFIER}-suffix.txt"
-        _write(repo, path, "safe contents\\n")
+        _write(repo, path, "safe contents\n")
         _commit(repo, "safe contents only")
         assert heldout.scan_staged_index(repo, KEY, registry) == []
         assert heldout.scan_tree(repo, KEY, registry) == []
@@ -177,7 +177,7 @@ def test_tracked_filename_is_refused_in_clean_ci_checkout(monkeypatch):
         ok, reasons = heldout.check(repo)
     assert hits == [{"kind": "tracked_path", "identifier_hmac": sealed}]
     assert not ok
-    report = "\\n".join(reasons)
+    report = "\n".join(reasons)
     assert "tracked filename" in report and sealed[:12] in report
     assert IDENTIFIER not in report and path not in report
 

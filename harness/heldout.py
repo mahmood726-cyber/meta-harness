@@ -251,7 +251,7 @@ def scan_tracked_filenames(root, key: str, registry: dict, isolate: bool = False
     NUL-terminated index listing preserves unusual pathnames without printing them.
     """
     root = _root_path(root)
-    names = _run_git_bytes(root, ["ls-files", "-z"], isolate=isolate).split(b"\\0")
+    names = _run_git_bytes(root, ["ls-files", "-z"], isolate=isolate).split(b"\0")
     match = _Matcher(key, registry)
     hits = []
     for raw_name in names:
