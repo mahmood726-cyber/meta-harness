@@ -1,4 +1,5 @@
-"""P3 extraction contract: a clean bundle is ALLOWED, and every rule is shown able to REFUSE by a planted defect.
+"""P3 extraction contract: a source-consistent bundle without call records is NONCERTIFYING;
+with checked call records it may be ALLOWED. Every rule can REFUSE a planted defect.
 
 All documents here are SYNTHETIC controls written for this test (no real trial text, no licence question); a control
 lives only in tmp_path and is never part of any denominator. Model calls use fake runners -- no process is started.
@@ -19,7 +20,7 @@ import pytest
 from extraction_contract import CONTRACT_VERSION
 from extraction_contract import fields as F
 from extraction_contract.dual import independence_problems, resolve
-from extraction_contract.gate import ALLOW, REFUSE, check_bundle
+from extraction_contract.gate import ALLOW, REFUSE, METADATA_ONLY, check_bundle
 from extraction_contract.passage import locate, numbers_in, value_in_quote
 from extraction_contract import readers
 
@@ -87,20 +88,20 @@ def problems(rep):
 
 
 # ------------------------------------------------------------------ the gate can say YES
-def test_clean_bundle_is_allowed(root):
+def test_clean_bundle_without_call_records_is_noncertifying(root):
     rep = check_bundle(bundle(), root)
-    assert rep["verdict"] == ALLOW, problems(rep)
+    assert rep["verdict"] == METADATA_ONLY, problems(rep)
     assert set(rep["trials"][0]["dual_status"].values()) == {"AGREED"}
 
 
-def test_clean_ratio_trial_is_allowed(root):
+def test_clean_ratio_trial_without_call_records_is_noncertifying(root):
     v = [I("effect_point", 0.66, Q_HR), I("effect_ci_low", 0.45, Q_HR), I("effect_ci_high", 0.97, Q_HR),
          I("effect_scale", "HR", Q_HR), I("ci_level", 0.95, Q_HR),
          I("outcome_definition", "all-cause death at 12 months", Q_DEF), I("analysis_set", "ITT", Q_DEF)]
     t = {"trial_id": "PLANT-001", "measure": "ratio", "values": v,
          "readings": [reading("anthropic", "mc-a", v), reading("openai", "mc-b", v)]}
     rep = check_bundle(bundle([t]), root)
-    assert rep["verdict"] == ALLOW, problems(rep)
+    assert rep["verdict"] == METADATA_ONLY, problems(rep)
 
 
 # ------------------------------------------------------------------ PLANTS: every rule must be able to say NO
@@ -201,7 +202,7 @@ def test_PLANT_explicit_empty_call_record_map_cannot_prove_independence(root):
     rep = check_bundle(b, root, call_records={})
     assert rep["verdict"] == REFUSE, problems(rep)
     assert "call record is missing from the supplied records" in problems(rep)
-    assert check_bundle(b, root)["verdict"] == ALLOW  # existing unverified-metadata control
+    assert check_bundle(b, root)["verdict"] == METADATA_ONLY  # no call proof is not approval
 
 
 @pytest.mark.parametrize("missing_or_invalid_digest", [None, "z" * 64, "a" * 63])
@@ -472,7 +473,8 @@ def test_cli_exit_codes(root, tmp_path):
     b["trials"][0]["values"][0]["value"] = 41
     bad.write_text(json.dumps(b), encoding="utf-8")
     metadata_only = _cli("check", str(good), "--docs-root", root, cwd=root)
-    assert metadata_only.returncode == 0
+    assert metadata_only.returncode == 1
+    assert "METADATA_ONLY_NOT_CERTIFIED" in metadata_only.stdout
     assert "CALL_RECORDS_NOT_VERIFIED" in metadata_only.stdout
     # No inventory is the inherited metadata-only interface; explicitly
     # requesting proof with an empty inventory must never fall back to it.
