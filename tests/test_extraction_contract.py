@@ -87,20 +87,22 @@ def problems(rep):
 
 
 # ------------------------------------------------------------------ the gate can say YES
-def test_clean_bundle_is_allowed(root):
+def test_clean_bundle_metadata_without_records_cannot_certify(root):
     rep = check_bundle(bundle(), root)
-    assert rep["verdict"] == ALLOW, problems(rep)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "CALL_RECORDS_NOT_VERIFIED" in problems(rep)
+    assert rep["trials"][0]["call_record_status"] == "NOT_VERIFIED"
     assert set(rep["trials"][0]["dual_status"].values()) == {"AGREED"}
 
 
-def test_clean_ratio_trial_is_allowed(root):
+def test_clean_ratio_trial_without_records_cannot_certify(root):
     v = [I("effect_point", 0.66, Q_HR), I("effect_ci_low", 0.45, Q_HR), I("effect_ci_high", 0.97, Q_HR),
          I("effect_scale", "HR", Q_HR), I("ci_level", 0.95, Q_HR),
          I("outcome_definition", "all-cause death at 12 months", Q_DEF), I("analysis_set", "ITT", Q_DEF)]
     t = {"trial_id": "PLANT-001", "measure": "ratio", "values": v,
          "readings": [reading("anthropic", "mc-a", v), reading("openai", "mc-b", v)]}
     rep = check_bundle(bundle([t]), root)
-    assert rep["verdict"] == ALLOW, problems(rep)
+    assert rep["verdict"] == REFUSE and "CALL_RECORDS_NOT_VERIFIED" in problems(rep)
 
 
 # ------------------------------------------------------------------ PLANTS: every rule must be able to say NO
@@ -201,7 +203,7 @@ def test_PLANT_explicit_empty_call_record_map_cannot_prove_independence(root):
     rep = check_bundle(b, root, call_records={})
     assert rep["verdict"] == REFUSE, problems(rep)
     assert "call record is missing from the supplied records" in problems(rep)
-    assert check_bundle(b, root)["verdict"] == ALLOW  # existing unverified-metadata control
+    assert check_bundle(b, root)["verdict"] == REFUSE  # metadata-only is never an authoritative success
 
 
 @pytest.mark.parametrize("missing_or_invalid_digest", [None, "z" * 64, "a" * 63])
@@ -245,7 +247,8 @@ def test_PLANT_second_reader_was_shown_the_first_answer(root):
     rep = check_bundle(bundle(), root, call_records=recs)
     assert rep["verdict"] == REFUSE and "was shown the other reader's response" in problems(rep)
     recs["mc-b"]["input_digests"] = [{"sha256": SHA}]
-    assert check_bundle(bundle(), root, call_records=recs)["verdict"] == ALLOW
+    assert not independence_problems(bundle()["trials"][0]["readings"], recs)
+    assert check_bundle(bundle(), root, call_records=recs)["verdict"] == REFUSE  # fake hashes are not real calls
 
 
 def _disagree(t):
@@ -472,7 +475,7 @@ def test_cli_exit_codes(root, tmp_path):
     b["trials"][0]["values"][0]["value"] = 41
     bad.write_text(json.dumps(b), encoding="utf-8")
     metadata_only = _cli("check", str(good), "--docs-root", root, cwd=root)
-    assert metadata_only.returncode == 0
+    assert metadata_only.returncode == 1
     assert "CALL_RECORDS_NOT_VERIFIED" in metadata_only.stdout
     # No inventory is the inherited metadata-only interface; explicitly
     # requesting proof with an empty inventory must never fall back to it.
@@ -483,6 +486,55 @@ def test_cli_exit_codes(root, tmp_path):
     assert unverified.returncode == 1
     assert "REFUSE" in unverified.stdout
     assert "call record is missing from the supplied records" in unverified.stdout
+
+    # The actual CLI caller must pass only when its two call-record files
+    # replay, bind to this exact document and reconstruct the declared reads.
+    observed = _dual(root)
+    trial = {"trial_id": "PLANT-001", "measure": "binary",
+             "values": binary_values(), "readings": observed["readings"]}
+    verified_bundle = tmp_path / "recorded.json"
+    verified_bundle.write_text(json.dumps(bundle([trial])), encoding="utf-8")
+    records_dir = tmp_path / "real-records"
+    records_dir.mkdir()
+    for record in observed["records"]:
+        (records_dir / f"{record['record_id']}.json").write_text(
+            json.dumps(record), encoding="utf-8")
+    accepted = _cli("check", str(verified_bundle), "--docs-root", root,
+                    "--records", str(records_dir), cwd=root)
+    assert accepted.returncode == 0 and "ALLOW_MATCH_CLAIM" in accepted.stdout, accepted.stderr
+
+    # Ambiguous evidence inventories must not let os.listdir ordering decide
+    # which of two colliding records becomes authoritative.
+    duplicate = records_dir / "duplicate.json"
+    duplicate.write_text(json.dumps(observed["records"][0]), encoding="utf-8")
+    collision = _cli("check", str(verified_bundle), "--docs-root", root,
+                     "--records", str(records_dir), cwd=root)
+    assert collision.returncode == 2
+    assert "duplicate model call record ID" in collision.stderr
+    duplicate.unlink()
+
+    # A malformed sidecar labelled as a call record cannot be silently ignored.
+    malformed = records_dir / "malformed.json"
+    malformed.write_text("{}", encoding="utf-8")
+    incomplete = _cli("check", str(verified_bundle), "--docs-root", root,
+                      "--records", str(records_dir), cwd=root)
+    assert incomplete.returncode == 2
+    assert "malformed model call record inventory entry" in incomplete.stderr
+    malformed.unlink()
+
+    # Removing both synthetic negative controls restores the same clean PASS.
+    restored = _cli("check", str(verified_bundle), "--docs-root", root,
+                    "--records", str(records_dir), cwd=root)
+    assert restored.returncode == 0 and "ALLOW_MATCH_CLAIM" in restored.stdout
+
+    changed = copy.deepcopy(observed["records"][0])
+    changed["response"]["b64"] = base64.b64encode(b"{}").decode("ascii")
+    (records_dir / f"{changed['record_id']}.json").write_text(
+        json.dumps(changed), encoding="utf-8")
+    refused = _cli("check", str(verified_bundle), "--docs-root", root,
+                   "--records", str(records_dir), cwd=root)
+    assert refused.returncode == 1 and "REFUSE" in refused.stdout, refused.stderr
+
     r = _cli("check", str(bad), "--docs-root", root, cwd=root)
     assert r.returncode == 1 and "REFUSE" in r.stdout
     (tmp_path / "broken.json").write_text("{not json", encoding="utf-8")
@@ -561,6 +613,50 @@ def test_prompt_never_contains_the_other_answer(root):
     out = _dual(root)
     p = base64.b64decode(out["records"][1]["prompt"]["b64"]).decode("utf-8")
     assert '"items"' not in p.split("=== DOCUMENT ===")[1]
+
+
+
+
+def test_PLANT_replay_record_required_and_tamper_refused(root):
+    out = _dual(root)
+    recs = {r["record_id"]: r for r in out["records"]}
+    t = {"trial_id": "PLANT-001", "measure": "binary",
+         "values": binary_values(), "readings": out["readings"]}
+    assert check_bundle(bundle([t]), root, call_records=recs)["verdict"] == ALLOW
+    assert check_bundle(bundle([t]), root, call_records=None)["verdict"] == REFUSE
+    assert check_bundle(bundle([t]), root, call_records={})["verdict"] == REFUSE
+    missing = dict(recs)
+    missing.pop(out["records"][0]["record_id"])
+    assert check_bundle(bundle([t]), root, call_records=missing)["verdict"] == REFUSE
+    changed = copy.deepcopy(recs)
+    changed[out["records"][0]["record_id"]]["response"]["b64"] = base64.b64encode(b"{}").decode()
+    rep = check_bundle(bundle([t]), root, call_records=changed)
+    assert rep["verdict"] == REFUSE and "record replay refused" in problems(rep)
+    # Even a valid recorded response cannot certify arbitrary edited reading metadata.
+    altered = copy.deepcopy(t)
+    altered["readings"][0]["items"][0]["value"] = 61
+    rep = check_bundle(bundle([altered]), root, call_records=recs)
+    assert rep["verdict"] == REFUSE and "declared reading items differ" in problems(rep)
+
+
+def test_PLANT_record_prompt_source_and_model_mismatch_refuse(root):
+    out = _dual(root)
+    recs = {r["record_id"]: r for r in out["records"]}
+    t = {"trial_id": "PLANT-001", "measure": "binary",
+         "values": binary_values(), "readings": out["readings"]}
+    wrong_trial = copy.deepcopy(t)
+    wrong_trial["trial_id"] = "ANOTHER-TRIAL"
+    assert "recorded prompt differs" in problems(
+        check_bundle(bundle([wrong_trial]), root, call_records=recs))
+    wrong_model = copy.deepcopy(t)
+    wrong_model["readings"][0]["reader"]["model_reported"] = "invented-model"
+    assert "provider/model pin" in problems(
+        check_bundle(bundle([wrong_model]), root, call_records=recs))
+    tampered = copy.deepcopy(recs)
+    first = out["records"][0]["record_id"]
+    tampered[first]["input_digests"] = [{"ref": REF, "sha256": "0" * 64}]
+    assert "record replay refused" in problems(
+        check_bundle(bundle([t]), root, call_records=tampered))
 
 
 # ------------------------------------------------------------------ opt-in: nothing served depends on this package
