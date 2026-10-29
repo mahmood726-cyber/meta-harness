@@ -100,6 +100,63 @@ def test_tracked_file_hit_reports_hmac_without_plaintext(monkeypatch):
 
 
 
+def test_sealed_registry_metadata_is_scanned_after_commit(monkeypatch):
+    """A sealed slug in registry metadata must not bypass the tree detector."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    sealed = _token(IDENTIFIER)
+    registry = _registry_with_canary(sealed)
+    registry["_doc"] = f"synthetic held-out name: {IDENTIFIER}"
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _commit(repo, "safe registry fixture message")
+        hits = heldout.scan_tree(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+    assert hits == [
+        {"path": "registry/heldout_sealed.json", "identifier_hmac": sealed, "line_no": 1}
+    ]
+    assert ok is False
+    report = "\\n".join(reasons)
+    assert sealed[:12] in report
+    assert IDENTIFIER not in report
+
+
+def test_sealed_staged_registry_metadata_refuses_even_with_clean_worktree(monkeypatch):
+    """A staged private name cannot be hidden by restoring the worktree copy."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    sealed = _token(IDENTIFIER)
+    clean = _registry_with_canary(sealed)
+    leaked = dict(clean, _doc=f"synthetic held-out name: {IDENTIFIER}")
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(clean))
+        _commit(repo, "safe registry baseline")
+        _write(repo, "registry/heldout_sealed.json", json.dumps(leaked))
+        _git(repo, "add", "registry/heldout_sealed.json")
+        _write(repo, "registry/heldout_sealed.json", json.dumps(clean))
+        assert heldout.scan_tree(repo, KEY, clean) == []
+        hits = heldout.scan_staged_index(repo, KEY, clean)
+        ok, reasons = heldout.check(repo)
+    assert hits == [
+        {"path": "registry/heldout_sealed.json", "identifier_hmac": sealed, "line_no": 1}
+    ]
+    assert ok is False
+    report = "\\n".join(reasons)
+    assert "staged index blob" in report
+    assert IDENTIFIER not in report
+
+
+def test_clean_sealed_registry_remains_accepted(monkeypatch):
+    """HMAC-only registry entries are safe; refusal is limited to plaintext leaks."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    registry = _registry_with_canary(_token(IDENTIFIER))
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _commit(repo, "safe HMAC-only registry")
+        assert heldout.scan_tree(repo, KEY, registry) == []
+        assert heldout.scan_staged_index(repo, KEY, registry) == []
+        ok, reasons = heldout.check(repo)
+    assert ok is True and reasons == []
+
+
 def test_staged_index_catches_sealed_identifier_hidden_by_clean_worktree(monkeypatch):
     """A pre-commit hook must examine the staged bytes, not just the current file."""
     monkeypatch.setenv("HELDOUT_KEY", KEY)
