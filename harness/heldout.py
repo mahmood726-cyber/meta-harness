@@ -215,8 +215,11 @@ def _is_binary(blob: bytes) -> bool:
 
 
 def _scan_tracked_paths(root: str, isolate: bool = False) -> Iterable[str]:
-    for raw_path in _run_git(root, ["ls-files"], isolate=isolate).splitlines():
-        path = _posix(raw_path)
+    """Use exact NUL-terminated tracked paths, not Git's C-quoted text output."""
+    for raw_path in _run_git_bytes(root, ["ls-files", "-z"], isolate=isolate).split(b"\0"):
+        if not raw_path:
+            continue
+        path = _posix(os.fsdecode(raw_path))
         if path == _posix(REGISTRY_PATH):
             continue
         yield path
@@ -229,6 +232,8 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
     hits = []
     match = _Matcher(key, registry)
     for path in _scan_tracked_paths(root, isolate=isolate):
+        # A sealed filename must not reappear in a content-hit diagnostic.
+        report_path = "<redacted tracked path>" if match(path) else path
         abs_path = os.path.join(root, *path.split("/"))
         try:
             blob = open(abs_path, "rb").read()
@@ -239,7 +244,7 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
         text = blob.decode("utf-8", errors="replace")
         for line_no, line in enumerate(text.splitlines(), start=1):
             for digest in match(line):
-                hits.append({"path": path, "identifier_hmac": digest, "line_no": line_no})
+                hits.append({"path": report_path, "identifier_hmac": digest, "line_no": line_no})
     return hits
 
 

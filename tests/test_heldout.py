@@ -182,6 +182,38 @@ def test_tracked_filename_is_refused_in_clean_ci_checkout(monkeypatch):
     assert IDENTIFIER not in report and path not in report
 
 
+def test_tracked_unicode_filename_content_is_scanned_after_commit():
+    """Git C-quotes non-ASCII names in text ls-files; NUL paths must be decoded."""
+    sealed = _token(IDENTIFIER)
+    registry = _registry(sealed)
+    with _temp_repo() as repo:
+        path = "notes/café.txt"
+        _write(repo, path, f"record {IDENTIFIER}\n")
+        _commit(repo, "safe fixture")
+        assert heldout.scan_staged_index(repo, KEY, registry) == []
+        hits = heldout.scan_tree(repo, KEY, registry)
+    assert hits == [{"path": path, "identifier_hmac": sealed, "line_no": 1}]
+
+
+def test_sealed_tracked_filename_plus_content_never_leaks_path(monkeypatch):
+    """A content hit must not undo the tracked-path HMAC redaction."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    sealed = _token(IDENTIFIER)
+    registry = _registry_with_canary(sealed)
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        path = f"notes/{IDENTIFIER}.txt"
+        _write(repo, path, f"record {IDENTIFIER}\n")
+        _commit(repo, "safe fixture")
+        hits = heldout.scan_tree(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+    assert hits == [{"path": "<redacted tracked path>", "identifier_hmac": sealed, "line_no": 1}]
+    assert not ok
+    report = "\n".join(reasons)
+    assert sealed[:12] in report
+    assert IDENTIFIER not in report and path not in report
+
+
 def test_short_form_hit_is_detected_in_tracked_file():
     sealed = _token(SHORT_FORM)
     registry = _registry(sealed)
