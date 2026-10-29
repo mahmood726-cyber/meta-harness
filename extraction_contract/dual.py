@@ -12,10 +12,13 @@ include the other reader's response (a reader shown the first answer is a confir
 
 Per OUTCOME (field, arm):
   AGREED       both readers give the same typed value, each with its own verified passage containing it;
-  ADJUDICATED  they differ (or one is missing / unsupported) and an adjudication names a decided value that is IN a
-               verified passage. The adjudicator may not be either reader's record. The passage decides; a third
-               opinion without one is refused -- this is the repo's "decided by arithmetic, not vote" rule;
-  UNRESOLVED   anything else. An UNRESOLVED outcome field blocks a match claim.
+  UNRESOLVED   readers disagree, one is unsupported, or a proposed adjudication exists without
+               an independently authenticated blinded external-review receipt. Source-supported
+               arithmetic may identify a proposed value, but does NOT verify human independence.
+               Preserve both reader observations and claimed adjudicator identities for review.
+               An UNRESOLVED outcome field blocks a match claim.
+No authenticated external-adjudication receipt verifier is implemented in this module.
+A caller-supplied "human", "blinded" or "independent" flag is not such verification.
 """
 from __future__ import annotations
 
@@ -63,15 +66,36 @@ def independence_problems(readings, call_records: dict | None = None) -> list[st
     ids = [str(r.get("record_id") or "") for r in rs]
     if not all(ids) or ids[0] == ids[1]:
         out.append("each reading must cite its own distinct call record_id")
-    if call_records:
+    # Explicitly supplied records request provenance verification. An empty
+    # mapping must not silently downgrade this check to metadata-only review.
+    if call_records is not None:
         recs = [call_records.get(i) for i in ids]
         if not all(recs):
             out.append("a reading's call record is missing from the supplied records")
         else:
             for me, other in ((recs[0], recs[1]), (recs[1], recs[0])):
                 other_resp = ((other.get("response") or {}).get("sha256"))
-                seen = {d.get("sha256") for d in me.get("input_digests") or []}
-                if other_resp and other_resp in seen:
+                inputs = me.get("input_digests")
+                # No input inventory is not proof of prompt separation: the
+                # reader could have been shown the other reader's response.
+                # The real extraction callers record at least the document
+                # digest; refuse missing or malformed inventories.
+                if (not isinstance(inputs, list) or not inputs or any(
+                    not isinstance(d, dict) or
+                    not isinstance(d.get("sha256"), str) or
+                    len(d["sha256"]) != 64 or
+                    any(c not in "0123456789abcdef" for c in d["sha256"])
+                    for d in inputs
+                )):
+                    out.append("missing or invalid prompt input digests; "
+                               "model reading independence cannot be verified")
+                    continue
+                seen = {d["sha256"] for d in inputs}
+                if not isinstance(other_resp, str) or len(other_resp) != 64 or any(
+                        c not in "0123456789abcdef" for c in other_resp):
+                    out.append("a supplied reader call record has no valid response sha256; "
+                               "prompt-separation check cannot be completed")
+                elif other_resp in seen:
                     out.append(f"reader {me.get('record_id', '?')[:12]} was shown the other reader's response "
                                f"(a confirmer, not an independent second reading)")
     return out
@@ -96,9 +120,18 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
         adj.setdefault((a.get("field"), a.get("arm")), []).append(a)
     out = {}
     for k in keys:
-        vals, probs = [], []
+        vals, probs, reader_candidates = [], [], []
         for n, m in enumerate(by_reader):
             its = m.get(k, [])
+            actor = readings[n].get("reader") or {}
+            # Do not drop explicit 0 or False through truthiness coercion. The
+            # source_checked flag distinguishes a typed, sourced reading from
+            # a rejected raw observation; identities here are self-reported.
+            candidate = {"reader_family_claimed": actor.get("family"),
+                         "reader_record_id_claimed": actor.get("record_id"),
+                         "raw_value": its[0].get("value") if len(its) == 1 else None,
+                         "source_checked": False}
+            reader_candidates.append(candidate)
             if len(its) != 1:
                 probs.append(f"reader {n + 1}: {len(its)} values for {k} (need exactly one)")
                 vals.append(None)
@@ -109,12 +142,17 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
                 vals.append(None)
             else:
                 vals.append(its[0]["value"])
-        if not indep and len(vals) == 2 and vals[0] is not None and vals[1] is not None and same_value(*vals):
+                candidate["source_checked"] = True
+        # Even two agreeing models cannot silently override an additional
+        # dissenting human/model annotation. No external blinded adjudication
+        # receipt is independently verifiable here, so manual review is owed.
+        if (not adj.get(k) and not indep and len(vals) == 2 and
+                vals[0] is not None and vals[1] is not None and same_value(*vals)):
             out[k] = {"status": "AGREED", "value": vals[0], "problems": []}
             continue
         if not indep and len(vals) == 2 and None not in vals:
             probs.append(f"readers disagree: {vals[0]!r} vs {vals[1]!r}")
-        decided = None
+        adjudication_proposals = []
         for a in adj.get(k, []):
             who = a.get("adjudicator") or {}
             ap = []
@@ -126,14 +164,24 @@ def resolve(readings, adjudications, docs_root, call_records=None, cache=None) -
                 ap.append("adjudication without a rationale")
             ap += item_problems({"field": k[0], "arm": k[1], "value": a.get("decided_value"),
                                  "passage": a.get("passage")}, docs_root, cache)
+            adjudication_proposals.append({
+                "actor_kind_claimed": who.get("kind"),
+                "actor_name_claimed": who.get("name"),
+                "actor_record_id_claimed": who.get("record_id"),
+                "raw_value": a.get("decided_value"),
+                "source_checked": not ap,
+            })
             if ap:
                 probs.append("adjudication refused: " + "; ".join(ap))
-            else:
-                decided = a.get("decided_value")
+
         if indep:
-            out[k] = {"status": "UNRESOLVED", "value": None, "problems": ["readings are not independent"] + probs}
-        elif decided is not None:
-            out[k] = {"status": "ADJUDICATED", "value": decided, "problems": probs}
-        else:
-            out[k] = {"status": "UNRESOLVED", "value": None, "problems": probs or ["no agreement and no adjudication"]}
+            probs.insert(0, "readings are not independent")
+        if adj.get(k):
+            # A quoted passage verifies neither blinding nor an actual external
+            # reviewer. Do not promote a source-backed self-attestation to PASS.
+            probs.append("external blinded adjudication is not authenticated; manual review required")
+        out[k] = {"status": "UNRESOLVED", "value": None,
+                  "problems": probs or ["no agreement and no adjudication"],
+                  "reader_candidates": reader_candidates,
+                  "adjudication_proposals": adjudication_proposals}
     return {"independence": indep, "fields": out}
