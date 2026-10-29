@@ -239,6 +239,50 @@ def test_tracked_filename_is_refused_in_clean_ci_checkout(monkeypatch):
     assert IDENTIFIER not in report and path not in report
 
 
+@pytest.mark.parametrize("payload", [IDENTIFIER + "\\n", "clean contents\\n"])
+def test_missing_tracked_worktree_file_refuses_even_without_a_staged_change(monkeypatch, payload):
+    """A missing tracked file is still part of HEAD; a tree-scan skip is unsafe."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    registry = _registry_with_canary(_token(IDENTIFIER))
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        tracked = _write(repo, "notes/tracked.txt", payload)
+        _commit(repo, "clean tracked baseline")
+        tracked.unlink()  # unstaged deletion; Git still lists the committed path
+        assert _git(repo, "diff", "--cached", "--name-only") == ""
+        assert heldout.scan_staged_index(repo, KEY, registry) == []
+        with pytest.raises(RuntimeError, match="tracked file unreadable"):
+            heldout.scan_tree(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+    report = "\\n".join(reasons)
+    assert ok is False
+    assert "tracked file unreadable" in report
+    assert "notes/tracked.txt" not in report and IDENTIFIER not in report
+
+
+def test_tracked_file_permission_error_refuses_without_path_disclosure(monkeypatch):
+    """A read denial is a refusal, not a clean tree; diagnostics redact paths."""
+    import builtins
+
+    registry = _registry(_token(IDENTIFIER))
+    with _temp_repo() as repo:
+        _write(repo, "notes/tracked.txt", "clean\\n")
+        _commit(repo, "clean baseline")
+        denied = str(repo / "notes" / "tracked.txt")
+        original_open = builtins.open
+
+        def deny_selected(path, *args, **kwargs):
+            if os.fspath(path) == denied:
+                raise PermissionError("synthetic access denied: " + denied)
+            return original_open(path, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "open", deny_selected)
+        with pytest.raises(RuntimeError, match="tracked file unreadable") as err:
+            heldout.scan_tree(repo, KEY, registry)
+        assert denied not in str(err.value)
+        assert "notes/tracked.txt" not in str(err.value)
+
+
 def test_tracked_unicode_filename_content_is_scanned_after_commit():
     """Git C-quotes non-ASCII names in text ls-files; NUL paths must be decoded."""
     sealed = _token(IDENTIFIER)
