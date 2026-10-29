@@ -229,8 +229,7 @@ def _scan_tracked_paths(root: str, isolate: bool = False) -> Iterable[str]:
         if not raw_path:
             continue
         path = _posix(os.fsdecode(raw_path))
-        if path == _posix(REGISTRY_PATH):
-            continue
+        # The sealed registry is tracked source too: its metadata may not expose sealed plaintext.
         yield path
 
 
@@ -305,8 +304,7 @@ def scan_staged_index(root, key: str, registry: dict, isolate: bool = False) -> 
         if not raw_path:
             continue
         path = _posix(os.fsdecode(raw_path))
-        if path == _posix(REGISTRY_PATH):
-            continue
+        # Include registry blob bytes: the index must not publish a sealed name as metadata.
         # Stage pathnames are source metadata too; redact any matching sealed name.
         path_tokens = match(path)
         safe_path = "<redacted staged path>" if path_tokens else path
