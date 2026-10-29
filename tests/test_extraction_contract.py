@@ -502,6 +502,31 @@ def test_cli_exit_codes(root, tmp_path):
     accepted = _cli("check", str(verified_bundle), "--docs-root", root,
                     "--records", str(records_dir), cwd=root)
     assert accepted.returncode == 0 and "ALLOW_MATCH_CLAIM" in accepted.stdout, accepted.stderr
+
+    # Ambiguous evidence inventories must not let os.listdir ordering decide
+    # which of two colliding records becomes authoritative.
+    duplicate = records_dir / "duplicate.json"
+    duplicate.write_text(json.dumps(observed["records"][0]), encoding="utf-8")
+    collision = _cli("check", str(verified_bundle), "--docs-root", root,
+                     "--records", str(records_dir), cwd=root)
+    assert collision.returncode == 2
+    assert "duplicate model call record ID" in collision.stderr
+    duplicate.unlink()
+
+    # A malformed sidecar labelled as a call record cannot be silently ignored.
+    malformed = records_dir / "malformed.json"
+    malformed.write_text("{}", encoding="utf-8")
+    incomplete = _cli("check", str(verified_bundle), "--docs-root", root,
+                      "--records", str(records_dir), cwd=root)
+    assert incomplete.returncode == 2
+    assert "malformed model call record inventory entry" in incomplete.stderr
+    malformed.unlink()
+
+    # Removing both synthetic negative controls restores the same clean PASS.
+    restored = _cli("check", str(verified_bundle), "--docs-root", root,
+                    "--records", str(records_dir), cwd=root)
+    assert restored.returncode == 0 and "ALLOW_MATCH_CLAIM" in restored.stdout
+
     changed = copy.deepcopy(observed["records"][0])
     changed["response"]["b64"] = base64.b64encode(b"{}").decode("ascii")
     (records_dir / f"{changed['record_id']}.json").write_text(
