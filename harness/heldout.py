@@ -46,6 +46,9 @@ KEY_FILE = os.path.join("~", ".meta-harness", "heldout.key")
 MISSING_KEY_REASON = "held-out key not available: the detector cannot run; fail closed"
 COMMIT_MESSAGE_REFUSAL = "held-out sealed identifier may not be named in commit messages"
 IDENTIFIER_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+# Exhaustive matching is quadratic in a hyphen-run's component count.
+# Refuse oversized runs rather than skipping or silently capping coverage.
+MAX_HYPHEN_COMPONENTS = 64
 
 
 def _root_path(root) -> str:
@@ -141,27 +144,33 @@ def hmac_token(key: str, identifier: str) -> str:
 
 
 def candidate_identifiers(text: str):
-    """Yield every possible sealed identifier in `text`: each maximal [a-z0-9-] run of length >= 3 and, for
-    hyphenated runs, every contiguous window of 1..6 hyphen-tokens (a slug inside prose or a path segment is
-    still found). STREAMED WITHOUT A CAP: a bounded candidate set would stop scanning a large file part-way
-    (cache/embeddings.json, 14 MB, exceeded the first draft's 50,000 cap), so a sealed name late in such a file
-    would be missed silently -- the detector-gap class. Duplicates are suppressed per call with a seen-set that
-    grows with the file; memory is proportional to distinct identifiers, never truncated."""
+    """Stream all contiguous hyphen-component windows, not only six-part slugs.
+
+    The previous 1..6 window truncation missed longer sealed topics embedded
+    in paths/prose. A run with >64 components is a fail-closed refusal, not a
+    clean result. Deduplication remains per call without a candidate cap.
+    """
     seen: set[str] = set()
     for match in IDENTIFIER_RE.finditer(text.lower()):
         run = match.group(0)
+        parts = run.split("-")
+        if len(parts) > MAX_HYPHEN_COMPONENTS:
+            raise ValueError(
+                "held-out scan refused: hyphenated run has "
+                f"{len(parts)} components (limit {MAX_HYPHEN_COMPONENTS}); "
+                "exhaustive sealed-identifier matching not performed"
+            )
         if len(run) >= 3 and run not in seen:
             seen.add(run)
             yield run
-        if "-" not in run:
+        if len(parts) == 1:
             continue
-        parts = run.split("-")
         for start in range(len(parts)):
-            for end in range(start + 1, min(len(parts), start + 6) + 1):
-                w = "-".join(parts[start:end])
-                if len(w) >= 3 and w not in seen:
-                    seen.add(w)
-                    yield w
+            for end in range(start + 1, len(parts) + 1):
+                window = "-".join(parts[start:end])
+                if len(window) >= 3 and window not in seen:
+                    seen.add(window)
+                    yield window
 
 
 def _tokens(registry: dict) -> set[str]:

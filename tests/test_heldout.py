@@ -271,6 +271,61 @@ def test_candidate_identifiers_extracts_slug_from_paths():
     assert "zz-plant-alpha" in set(heldout.candidate_identifiers(text))
 
 
+def test_seven_component_sealed_slug_is_detected_inside_longer_path():
+    """A path-embedded seven-part topic must not evade six-window HMAC matching."""
+    identifier = "alpha-bravo-charlie-delta-echo-foxtrot-golf"
+    evidence = f"topics/prefix-{identifier}-suffix.json"
+    sealed = _token(identifier)
+    registry = _registry_with_canary(sealed)
+
+    assert identifier in set(heldout.candidate_identifiers(evidence))
+    assert heldout._matching_hmacs(evidence, KEY, registry) == [sealed]
+    assert heldout._Matcher(KEY, registry)(evidence) == [sealed]
+    assert heldout.check_message(f"reported prefix-{identifier}-suffix", KEY, registry) == [sealed]
+
+    with _temp_repo() as repo:
+        _write(repo, "notes/evidence.txt", evidence + "\n")
+        _commit(repo, "synthetic held-out path-slug regression")
+        hits = heldout.scan_tree(repo, KEY, registry)
+    assert hits == [{"path": "notes/evidence.txt", "identifier_hmac": sealed, "line_no": 1}]
+
+
+def test_seven_component_sealed_tracked_filename_refuses_without_plaintext(monkeypatch):
+    """Long sealed topic in an otherwise clean committed filename must refuse."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    identifier = "alpha-bravo-charlie-delta-echo-foxtrot-golf"
+    sealed = _token(identifier)
+    registry = _registry_with_canary(sealed)
+    name = f"notes/prefix-{identifier}-suffix.txt"
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _write(repo, name, "safe body\n")
+        _commit(repo, "synthetic clean filename contents")
+        hits = heldout.scan_tracked_filenames(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+    assert hits == [{"kind": "tracked_path", "identifier_hmac": sealed}]
+    assert ok is False
+    report = "\n".join(reasons)
+    assert "tracked filename" in report
+    assert identifier not in report and name not in report
+
+
+def test_extreme_hyphen_chain_refuses_instead_of_truncating(monkeypatch):
+    """Resource limits must cause a real fail-closed check, not a false pass."""
+    oversized = "-".join(f"part{i}" for i in range(heldout.MAX_HYPHEN_COMPONENTS + 1))
+    with pytest.raises(ValueError, match="held-out scan refused"):
+        list(heldout.candidate_identifiers(oversized))
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    registry = _registry_with_canary()
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _write(repo, "notes/oversized.txt", oversized + "\n")
+        _commit(repo, "synthetic overlong-chain refusal")
+        ok, reasons = heldout.check(repo)
+    assert ok is False
+    assert any("hyphenated run has" in reason for reason in reasons)
+
+
 def test_real_registry_loads_and_self_test_passes_when_key_available():
     registry = heldout.load(ROOT)
 
