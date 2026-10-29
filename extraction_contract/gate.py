@@ -15,8 +15,10 @@ Verdict ALLOW_MATCH_CLAIM only if, for every trial:
   1. every value required by its measure is served, exactly once;
   2. every served value is well-typed, carries a verified passage, and is literally in that passage;
   3. the served values are coherent (events <= total, CI brackets the point, ratios > 0, ...);
-  4. every served OUTCOME value was AGREED or ADJUDICATED by the dual reading, and EQUALS the resolved value
-     (a served number that differs from what both readers and the adjudicator settled is refused);
+  4. every served OUTCOME value is AGREED by independently recorded dual readings and equals
+     the resolved value. Differing readings and any proposed human/model adjudication are
+     UNRESOLVED until an authenticated, blinded external-review verifier exists; a quoted
+     source passage or self-reported reviewer identity alone never promotes a claim.
 and the bundle names this contract's major version and has at least one trial. Anything unreadable is REFUSE.
 """
 from __future__ import annotations
@@ -59,6 +61,12 @@ def check_trial(trial, docs_root, call_records=None, cache=None) -> dict:
     probs += F.coherence_problems(resolved_vals)
     dual = resolve(trial.get("readings"), trial.get("adjudications"), docs_root, call_records, cache)
     probs += [f"independence: {p}" for p in dual["independence"]]
+    # Never silently discard extra or misspelled review records. A human/model
+    # challenge that does not map to a dual-read outcome requires manual review.
+    unmatched = dual.get("unmatched_adjudications", [])
+    if unmatched:
+        probs.append(f"{len(unmatched)} unmatched adjudication record(s) have no dual-read OUTCOME field; "
+                     "UNRESOLVED, manual review required")
     status = {}
     for k, it in served.items():
         spec = F.FIELDS.get(k[0])
@@ -74,7 +82,8 @@ def check_trial(trial, docs_root, call_records=None, cache=None) -> dict:
             probs.append(f"{_label(k)}: UNRESOLVED -- " + "; ".join(d["problems"]))
         elif not same_value(it.get("value"), d["value"]):
             probs.append(f"{_label(k)}: served {it.get('value')!r} but the dual reading resolved {d['value']!r}")
-    return {"trial_id": tid, "ok": not probs, "problems": probs, "dual_status": status}
+    return {"trial_id": tid, "ok": not probs, "problems": probs, "dual_status": status,
+            "unmatched_adjudications": unmatched}
 
 
 def check_bundle(bundle, docs_root, call_records=None) -> dict:

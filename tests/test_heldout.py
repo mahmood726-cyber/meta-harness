@@ -139,6 +139,28 @@ def test_staged_index_reads_added_file_even_if_worktree_file_deleted():
     assert hits == [{"path": "notes/staged.txt", "identifier_hmac": sealed, "line_no": 1}]
 
 
+def test_staged_path_only_refuses_without_disclosing_identifier(monkeypatch):
+    """Staged filename disclosures must be refused without printing sealed names."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    sealed = _token(IDENTIFIER)
+    registry = _registry_with_canary(sealed)
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        _write(repo, "base.txt", "safe\n")
+        _commit(repo, "clean baseline")
+        path = f"notes/prefix-{IDENTIFIER}-suffix.txt"
+        _write(repo, path, "safe\n")
+        _git(repo, "add", path)
+        hits = heldout.scan_staged_index(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+
+    assert hits == [{"kind": "staged_path", "identifier_hmac": sealed}]
+    assert not ok
+    report = "\n".join(reasons)
+    assert "staged path" in report and sealed[:12] in report
+    assert IDENTIFIER not in report and path not in report
+
+
 def test_short_form_hit_is_detected_in_tracked_file():
     sealed = _token(SHORT_FORM)
     registry = _registry(sealed)

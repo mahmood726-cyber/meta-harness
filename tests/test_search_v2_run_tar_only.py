@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 import tarfile
@@ -12,18 +13,40 @@ def _sha256(path: Path) -> str:
 
 
 def test_tar_only_archives_raw_bodies_and_keeps_local_tar(tmp_path, monkeypatch):
-    monkeypatch.setattr(runner, "ROOT", str(tmp_path))
-    monkeypatch.setattr(archive_raw_bodies, "ROOT", str(tmp_path))
+    # The archive must physically reside outside the repository, and the
+    # synthetic snapshot must have a REFRESH ledger bound to its raw index.
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    monkeypatch.setattr(runner, "ROOT", str(repo_root))
+    monkeypatch.setattr(archive_raw_bodies, "ROOT", str(repo_root))
 
-    snapshot = tmp_path / "cache" / "plant" / "snapshots" / "2026-09-15r3-search_v2"
-    body = snapshot / "raw" / "s1" / "001.txt"
+    snapshot = repo_root / "cache" / "plant" / "snapshots" / "2026-09-15r3-search_v2"
+    body = snapshot / "raw" / "s1" / "001.json"
     body.parent.mkdir(parents=True)
-    body.write_text("tiny raw body\n", encoding="utf-8")
+    raw_http = b"tiny raw body"
+    body_digest = hashlib.sha256(raw_http).hexdigest()
+    call = {
+        "source_id": "s1", "url": "https://example.invalid/concept",
+        "params": {"q": "synthetic"}, "status": 200,
+        "fetched_utc": "2026-09-15T12:00:00Z",
+        "adapter": "synthetic.adapter", "adapter_blob_sha": "synthetic-only",
+        "body_sha256": body_digest,
+    }
+    body.write_text(json.dumps(call | {
+        "body_bytes_b64": base64.b64encode(raw_http).decode("ascii"),
+    }), encoding="utf-8")
     digest = _sha256(body)
-    (snapshot / "raw" / "INDEX.json").write_text(
-        json.dumps([{"source_id": "s1", "path": "raw/s1/001.txt", "file_sha256": digest, "body_sha256": digest}]),
-        encoding="utf-8",
-    )
+    index_bytes = json.dumps(
+        [call | {"path": "raw/s1/001.json", "file_sha256": digest}]
+    ).encode("utf-8")
+    (snapshot / "raw" / "INDEX.json").write_bytes(index_bytes)
+    (snapshot / "retrieval_ledger.json").write_text(json.dumps({
+        "snapshot": {
+            "mode": "REFRESH",
+            "raw_calls": 1,
+            "raw_index_sha256": hashlib.sha256(index_bytes).hexdigest(),
+        },
+    }), encoding="utf-8")
 
     archive_root = tmp_path / "archive"
     messages = []
@@ -57,7 +80,7 @@ def test_tar_only_archives_raw_bodies_and_keeps_local_tar(tmp_path, monkeypatch)
     assert (snapshot / "raw" / "INDEX.json").is_file()
     with tarfile.open(tar_path, "r:gz") as tf:
         names = set(tf.getnames())
-    assert "cache/plant/snapshots/2026-09-15r3-search_v2/raw/s1/001.txt" in names
+    assert "cache/plant/snapshots/2026-09-15r3-search_v2/raw/s1/001.json" in names
 
 
 def test_registries_arg_parses_and_validates_supported_adapters():

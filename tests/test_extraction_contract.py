@@ -194,6 +194,49 @@ def test_PLANT_single_reader(root):
     _plant(root, lambda t: t.update(readings=t["readings"][:1]), "needs exactly 2 readings")
 
 
+def test_PLANT_explicit_empty_call_record_map_cannot_prove_independence(root):
+    # An explicit empty verification inventory is not the same as opting out
+    # of call-record validation. Previously an empty dict skipped it.
+    b = bundle()
+    rep = check_bundle(b, root, call_records={})
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "call record is missing from the supplied records" in problems(rep)
+    assert check_bundle(b, root)["verdict"] == ALLOW  # existing unverified-metadata control
+
+
+@pytest.mark.parametrize("missing_or_invalid_digest", [None, "z" * 64, "a" * 63])
+def test_PLANT_supplied_call_record_missing_verifiable_response_digest_refuses(root, missing_or_invalid_digest):
+    # A self-declared model reading plus incomplete prompt/response traces
+    # cannot demonstrate that the other model's answer was not shown to it.
+    recs = {
+        "mc-a": {"record_id": "mc-a", "response": {"sha256": missing_or_invalid_digest},
+                 "input_digests": [{"sha256": SHA}]},
+        "mc-b": {"record_id": "mc-b", "response": {"sha256": "b" * 64},
+                 "input_digests": [{"sha256": SHA}]},
+    }
+    rep = check_bundle(bundle(), root, call_records=recs)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "prompt-separation check cannot be completed" in problems(rep)
+
+
+
+@pytest.mark.parametrize("invalid_inputs", [None, [], [{"ref": REF, "sha256": "not-a-digest"}], ["not-an-object"]])
+def test_PLANT_missing_or_invalid_prompt_input_digests_cannot_prove_independence(root, invalid_inputs):
+    # Synthetic records only. A missing or malformed input inventory does NOT
+    # prove the second model was shielded from the first model's answer.
+    recs = {
+        "mc-a": {"record_id": "mc-a", "response": {"sha256": "a" * 64}},
+        "mc-b": {"record_id": "mc-b", "response": {"sha256": "b" * 64},
+                 "input_digests": [{"ref": REF, "sha256": SHA}]},
+    }
+    if invalid_inputs is not None:
+        recs["mc-a"]["input_digests"] = invalid_inputs
+    rep = check_bundle(bundle(), root, call_records=recs)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "missing or invalid prompt input digests" in problems(rep)
+
+
+
 def test_PLANT_second_reader_was_shown_the_first_answer(root):
     resp_a = "a" * 64
     recs = {"mc-a": {"record_id": "mc-a", "response": {"sha256": resp_a}, "input_digests": [{"sha256": SHA}]},
@@ -222,8 +265,68 @@ def test_disagreement_settled_by_a_verified_passage_is_allowed(root):
                            "adjudicator": {"kind": "human", "name": "second reviewer"},
                            "rationale": "61 of 203: 61 is the event count, 203 the denominator"}]
     rep = check_bundle(b, root)
-    assert rep["verdict"] == ALLOW, problems(rep)
-    assert rep["trials"][0]["dual_status"]["events[comparator]"] == "ADJUDICATED"
+    # The legacy test name stays stable for the honest-test ratchet. A source
+    # quote is not an authenticated independent human-review receipt.
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert rep["trials"][0]["dual_status"]["events[comparator]"] == "UNRESOLVED"
+    assert "external blinded adjudication is not authenticated" in problems(rep)
+    evidence = resolve(t["readings"], t["adjudications"], root)["fields"][("events", "comparator")]
+    assert [r["raw_value"] for r in evidence["reader_candidates"]] == [61, 203]
+    assert [r["reader_record_id_claimed"] for r in evidence["reader_candidates"]] == ["mc-a", "mc-b"]
+    assert evidence["adjudication_proposals"][0]["raw_value"] == 61
+    assert evidence["adjudication_proposals"][0]["actor_kind_claimed"] == "human"
+
+
+def test_PLANT_self_declared_blinding_cannot_overrule_agreeing_models(root):
+    b = bundle()
+    t = b["trials"][0]
+    # Two model readers agree, but a claimed external reviewer records a
+    # different source-quoted number. A self-reported blinded flag is not a
+    # receipt, and model agreement must not make the dissent disappear.
+    t["adjudications"] = [{
+        "field": "events", "arm": "comparator", "decided_value": 203,
+        "passage": P(Q_COUNTS),
+        "adjudicator": {"kind": "human", "name": "synthetic external", "record_id": "synthetic-reviewer"},
+        "blinded": True, "independent": True, "rationale": "synthetic dissent",
+    }]
+    rep = check_bundle(b, root)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert rep["trials"][0]["dual_status"]["events[comparator]"] == "UNRESOLVED"
+    evidence = resolve(t["readings"], t["adjudications"], root)["fields"][("events", "comparator")]
+    assert [r["raw_value"] for r in evidence["reader_candidates"]] == [61, 61]
+    assert evidence["adjudication_proposals"][0]["raw_value"] == 203
+    assert evidence["adjudication_proposals"][0]["actor_record_id_claimed"] == "synthetic-reviewer"
+    assert evidence["adjudication_proposals"][0]["source_checked"] is True
+
+
+def test_PLANT_explicit_zero_and_false_remain_visible_when_review_is_unverified(tmp_path):
+    # Fresh synthetic bytes with a genuine zero-event quote; this does not
+    # represent an eligible study, independent reviewer or validation case.
+    quote = "0 events in the intervention; 2 events in the comparator."
+    path = tmp_path / "zero-event.txt"
+    path.write_text(quote, encoding="utf-8")
+    passage = {
+        "document_ref": "zero-event.txt", "document_sha256": hashlib.sha256(quote.encode()).hexdigest(),
+        "start": 0, "end": len(quote), "quote": quote,
+    }
+    a = {"field": "events", "arm": "intervention", "value": 0, "passage": passage}
+    b = {"field": "events", "arm": "intervention", "value": 2, "passage": passage}
+    readings = [reading("anthropic", "zero-reader-a", [a]), reading("openai", "zero-reader-b", [b])]
+    proposal = {
+        "field": "events", "arm": "intervention", "decided_value": False, "passage": passage,
+        "adjudicator": {"kind": "human", "name": "synthetic reviewer", "record_id": "zero-reviewer"},
+        "blinded": True, "rationale": "synthetic Boolean disagreement",
+    }
+    result = resolve(readings, [proposal], str(tmp_path))["fields"][("events", "intervention")]
+    assert result["status"] == "UNRESOLVED" and result["value"] is None
+    candidates = result["reader_candidates"]
+    assert type(candidates[0]["raw_value"]) is int and candidates[0]["raw_value"] == 0
+    assert candidates[0]["source_checked"] is True
+    assert candidates[1]["raw_value"] == 2 and candidates[1]["source_checked"] is True
+    assert result["adjudication_proposals"][0]["raw_value"] is False
+    assert result["adjudication_proposals"][0]["source_checked"] is False
+    assert "not an int" in "; ".join(result["problems"])
+    assert "external blinded adjudication is not authenticated" in "; ".join(result["problems"])
 
 
 @pytest.mark.parametrize("adj_patch,expect", [
@@ -273,6 +376,61 @@ def test_PLANT_document_ref_escaping_the_root(root):
            "relative path inside the docs root")
 
 
+
+@pytest.mark.parametrize("raw_value", [0, False])
+def test_PLANT_orphan_external_annotation_keeps_zero_false_and_refuses(root, raw_value):
+    # Synthetic only: declared human metadata is not proof of blinding or
+    # independent human review. A typoed arm must not make an annotation vanish.
+    b = bundle()
+    trial = b["trials"][0]
+    proposal = {
+        "field": "events", "arm": "not-a-read-arm", "decided_value": raw_value,
+        "passage": P(Q_COUNTS), "rationale": "synthetic unmatched reviewer note",
+        "adjudicator": {"kind": "human", "name": "synthetic actor",
+                        "record_id": "synthetic-unverified-human"},
+        "blinded": True, "independent": True,
+    }
+    trial["adjudications"] = [proposal]
+    rep = check_bundle(b, root)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "1 unmatched adjudication record(s)" in problems(rep)
+    assert "manual review required" in problems(rep)
+    # The two ordinary model readings still agree; that does not cancel an
+    # unbound third-party claim and must never imply external accuracy.
+    assert set(rep["trials"][0]["dual_status"].values()) == {"AGREED"}
+    raw = resolve(trial["readings"], trial["adjudications"], root)
+    assert len(raw["unmatched_adjudications"]) == 1
+    orphan = raw["unmatched_adjudications"][0]
+    assert type(orphan["raw_value"]) is type(raw_value)
+    assert orphan["raw_value"] == raw_value
+    assert orphan["actor_kind_claimed"] == "human"
+    assert orphan["actor_record_id_claimed"] == "synthetic-unverified-human"
+    assert orphan["source_ref_claimed"] == REF
+    assert orphan["source_sha256_claimed"] == SHA
+    assert orphan["source_checked"] is False
+    assert rep["trials"][0]["unmatched_adjudications"] == [orphan]
+
+
+def test_PLANT_unread_population_adjudication_cannot_disappear(root):
+    # analysis_set is a valid OUTCOME field but was not in either reading.
+    # A proposed change of analysis population requires a new dual extraction.
+    b = bundle()
+    trial = b["trials"][0]
+    trial["adjudications"] = [{
+        "field": "analysis_set", "arm": None, "decided_value": "PP",
+        "passage": P(Q_DEF), "rationale": "synthetic contradictory population",
+        "adjudicator": {"kind": "model", "name": "synthetic third model",
+                        "record_id": "synthetic-third"},
+    }]
+    rep = check_bundle(b, root)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "1 unmatched adjudication record(s)" in problems(rep)
+    raw = resolve(trial["readings"], trial["adjudications"], root)
+    assert raw["unmatched_adjudications"][0]["raw_value"] == "PP"
+    assert raw["unmatched_adjudications"][0]["source_checked"] is False
+    assert rep["trials"][0]["unmatched_adjudications"] == raw["unmatched_adjudications"]
+
+
 # ------------------------------------------------------------------ the number reader
 @pytest.mark.parametrize("text,want", [
     ("HR 0·66 (95% CI 0·45–0·97)", ["0.66", "95", "0.45", "0.97"]),
@@ -313,7 +471,18 @@ def test_cli_exit_codes(root, tmp_path):
     b = bundle()
     b["trials"][0]["values"][0]["value"] = 41
     bad.write_text(json.dumps(b), encoding="utf-8")
-    assert _cli("check", str(good), "--docs-root", root, cwd=root).returncode == 0
+    metadata_only = _cli("check", str(good), "--docs-root", root, cwd=root)
+    assert metadata_only.returncode == 0
+    assert "CALL_RECORDS_NOT_VERIFIED" in metadata_only.stdout
+    # No inventory is the inherited metadata-only interface; explicitly
+    # requesting proof with an empty inventory must never fall back to it.
+    empty_records = tmp_path / "empty-records"
+    empty_records.mkdir()
+    unverified = _cli("check", str(good), "--docs-root", root,
+                      "--records", str(empty_records), cwd=root)
+    assert unverified.returncode == 1
+    assert "REFUSE" in unverified.stdout
+    assert "call record is missing from the supplied records" in unverified.stdout
     r = _cli("check", str(bad), "--docs-root", root, cwd=root)
     assert r.returncode == 1 and "REFUSE" in r.stdout
     (tmp_path / "broken.json").write_text("{not json", encoding="utf-8")

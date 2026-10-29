@@ -94,8 +94,7 @@ def _run_git_bytes(root: str, args: list[str], isolate: bool = False) -> bytes:
         env=_isolated_git_env() if isolate else None,
     )
     if proc.returncode != 0:
-        detail = (proc.stderr or proc.stdout).decode("utf-8", errors="replace").strip()
-        raise RuntimeError(f"git {' '.join(args)} failed: {detail}")
+        raise RuntimeError(f"staged-index Git operation failed (exit {proc.returncode}); path and output redacted")
     return proc.stdout
 
 
@@ -264,12 +263,17 @@ def scan_staged_index(root, key: str, registry: dict, isolate: bool = False) -> 
         path = _posix(os.fsdecode(raw_path))
         if path == _posix(REGISTRY_PATH):
             continue
+        # Stage pathnames are source metadata too; redact any matching sealed name.
+        path_tokens = match(path)
+        safe_path = "<redacted staged path>" if path_tokens else path
+        for digest in path_tokens:
+            hits.append({"kind": "staged_path", "identifier_hmac": digest})
         blob = _run_git_bytes(root, ["cat-file", "blob", ":" + path], isolate=isolate)
         if _is_binary(blob):
             continue
         for line_no, line in enumerate(blob.decode("utf-8", errors="replace").splitlines(), start=1):
             for digest in match(line):
-                hits.append({"path": path, "identifier_hmac": digest, "line_no": line_no})
+                hits.append({"path": safe_path, "identifier_hmac": digest, "line_no": line_no})
     return hits
 
 
@@ -382,10 +386,16 @@ def check(root) -> tuple[bool, list[str]]:
         reasons.append(f"sealed held-out tree scan could not run: {exc}")
     try:
         for hit in scan_staged_index(root, key, registry):
-            reasons.append(
-                f"{hit['path']}:{hit['line_no']}: sealed identifier "
-                f"{hit['identifier_hmac'][:12]}... appears in a staged index blob"
-            )
+            if hit.get("kind") == "staged_path":
+                reasons.append(
+                    f"sealed identifier {hit['identifier_hmac'][:12]}... appears in a staged path "
+                    "(filename redacted)"
+                )
+            else:
+                reasons.append(
+                    f"{hit['path']}:{hit['line_no']}: sealed identifier "
+                    f"{hit['identifier_hmac'][:12]}... appears in a staged index blob"
+                )
     except Exception as exc:
         reasons.append(f"sealed held-out staged index scan could not run: {exc}")
     try:
