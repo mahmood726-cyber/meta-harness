@@ -71,6 +71,21 @@ def test_pinned_map_is_the_import_closure_of_the_declared_roots():
         assert name in present
 
 
+
+def test_opt_in_exchange_package_preserves_legacy_signed_certificate_scopes():
+    """Transport must not invalidate historical certificate-code-scope digests."""
+    from harness import certificate
+    from harness.exchange_v01 import validate_exchange
+
+    assert callable(validate_exchange)
+    assert not (ROOT / "harness/exchange_v01.py").exists()
+    paths = sorted((ROOT / "docs/reviews").glob("*/CERTIFICATE.json"))
+    assert len(paths) >= 32
+    for path in paths:
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        assert certificate._scope(saved["analysis_code_blobs"]) == saved["certificate_scope"], path.parent.name
+
+
 def test_pinned_blob_identities_are_what_git_stores():
     """The stdlib blob computation must agree with git for every pinned path, so an auditor
     without git and an auditor with git compute the same identity."""
