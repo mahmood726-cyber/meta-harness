@@ -376,6 +376,61 @@ def test_PLANT_document_ref_escaping_the_root(root):
            "relative path inside the docs root")
 
 
+
+@pytest.mark.parametrize("raw_value", [0, False])
+def test_PLANT_orphan_external_annotation_keeps_zero_false_and_refuses(root, raw_value):
+    # Synthetic only: declared human metadata is not proof of blinding or
+    # independent human review. A typoed arm must not make an annotation vanish.
+    b = bundle()
+    trial = b["trials"][0]
+    proposal = {
+        "field": "events", "arm": "not-a-read-arm", "decided_value": raw_value,
+        "passage": P(Q_COUNTS), "rationale": "synthetic unmatched reviewer note",
+        "adjudicator": {"kind": "human", "name": "synthetic actor",
+                        "record_id": "synthetic-unverified-human"},
+        "blinded": True, "independent": True,
+    }
+    trial["adjudications"] = [proposal]
+    rep = check_bundle(b, root)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "1 unmatched adjudication record(s)" in problems(rep)
+    assert "manual review required" in problems(rep)
+    # The two ordinary model readings still agree; that does not cancel an
+    # unbound third-party claim and must never imply external accuracy.
+    assert set(rep["trials"][0]["dual_status"].values()) == {"AGREED"}
+    raw = resolve(trial["readings"], trial["adjudications"], root)
+    assert len(raw["unmatched_adjudications"]) == 1
+    orphan = raw["unmatched_adjudications"][0]
+    assert type(orphan["raw_value"]) is type(raw_value)
+    assert orphan["raw_value"] == raw_value
+    assert orphan["actor_kind_claimed"] == "human"
+    assert orphan["actor_record_id_claimed"] == "synthetic-unverified-human"
+    assert orphan["source_ref_claimed"] == REF
+    assert orphan["source_sha256_claimed"] == SHA
+    assert orphan["source_checked"] is False
+    assert rep["trials"][0]["unmatched_adjudications"] == [orphan]
+
+
+def test_PLANT_unread_population_adjudication_cannot_disappear(root):
+    # analysis_set is a valid OUTCOME field but was not in either reading.
+    # A proposed change of analysis population requires a new dual extraction.
+    b = bundle()
+    trial = b["trials"][0]
+    trial["adjudications"] = [{
+        "field": "analysis_set", "arm": None, "decided_value": "PP",
+        "passage": P(Q_DEF), "rationale": "synthetic contradictory population",
+        "adjudicator": {"kind": "model", "name": "synthetic third model",
+                        "record_id": "synthetic-third"},
+    }]
+    rep = check_bundle(b, root)
+    assert rep["verdict"] == REFUSE, problems(rep)
+    assert "1 unmatched adjudication record(s)" in problems(rep)
+    raw = resolve(trial["readings"], trial["adjudications"], root)
+    assert raw["unmatched_adjudications"][0]["raw_value"] == "PP"
+    assert raw["unmatched_adjudications"][0]["source_checked"] is False
+    assert rep["trials"][0]["unmatched_adjudications"] == raw["unmatched_adjudications"]
+
+
 # ------------------------------------------------------------------ the number reader
 @pytest.mark.parametrize("text,want", [
     ("HR 0·66 (95% CI 0·45–0·97)", ["0.66", "95", "0.45", "0.97"]),
