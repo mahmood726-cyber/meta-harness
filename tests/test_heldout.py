@@ -214,6 +214,43 @@ def test_sealed_tracked_filename_plus_content_never_leaks_path(monkeypatch):
     assert IDENTIFIER not in report and path not in report
 
 
+def test_committed_symlink_target_is_scanned_without_following_external_file(monkeypatch):
+    """Committed symlink bytes may be sealed even when the external content is clean."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    outside_identifier = "unrelated-external-secret"
+    sealed_target = _token(IDENTIFIER)
+    sealed_outside = _token(outside_identifier)
+    registry = _registry_with_canary(sealed_target, sealed_outside)
+    with tempfile.TemporaryDirectory(prefix="heldout-link-outside-") as scratch:
+        outside = Path(scratch) / f"external-{IDENTIFIER}.txt"
+        outside.write_text(outside_identifier + "\\n", encoding="utf-8")
+        with _temp_repo() as repo:
+            _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+            (repo / "link.txt").symlink_to(outside)
+            _commit(repo, "clean symlink fixture")
+            assert heldout.scan_staged_index(repo, KEY, registry) == []
+            hits = heldout.scan_tree(repo, KEY, registry)
+            ok, reasons = heldout.check(repo)
+
+    assert hits == [{"path": "link.txt", "identifier_hmac": sealed_target, "line_no": 1}]
+    assert ok is False
+    report = "\\n".join(reasons)
+    assert sealed_target[:12] in report
+    assert sealed_outside[:12] not in report
+    assert IDENTIFIER not in report
+    assert outside_identifier not in report
+
+
+def test_clean_committed_symlink_stays_clean():
+    """Ordinary in-repository symlink targets remain an accepted positive control."""
+    registry = _registry(_token(IDENTIFIER))
+    with _temp_repo() as repo:
+        _write(repo, "notes/safe.txt", "safe content\\n")
+        (repo / "link.txt").symlink_to("notes/safe.txt")
+        _commit(repo, "clean symlink fixture")
+        assert heldout.scan_tree(repo, KEY, registry) == []
+
+
 def test_short_form_hit_is_detected_in_tracked_file():
     sealed = _token(SHORT_FORM)
     registry = _registry(sealed)
