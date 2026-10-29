@@ -255,7 +255,10 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
                 continue
             blob = open(abs_path, "rb").read()
         except OSError:
-            continue
+            # The index still tracks this path even when the worktree copy is gone.
+            # A silent skip would certify content that has not been inspected.
+            # Omit the exception's filename: it may itself be a sealed identifier.
+            raise RuntimeError("tracked file unreadable; scan refused (path redacted)") from None
         if _is_binary(blob):
             continue
         text = blob.decode("utf-8", errors="replace")
