@@ -513,3 +513,65 @@ def test_matcher_equals_the_per_line_scan():
         assert m(line) == H._matching_hmacs(line, key, reg), line
     assert any(m(line) for line in lines), "plant did not fire: no planted identifier was found"
     assert H._Matcher(key, {"tokens": []})(lines[0]) == []
+
+
+def test_committed_binary_source_with_embedded_sealed_identifier_refuses(monkeypatch):
+    """NUL-bearing tracked bytes can still disclose a plaintext held-out slug."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    sealed = _token(IDENTIFIER)
+    registry = _registry_with_canary(sealed)
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        path = repo / "notes" / "sample.bin"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"\\x89BINARY\\x00record:" + IDENTIFIER.encode() + b"\\x00tail")
+        _commit(repo, "synthetic binary source")
+        assert heldout.scan_staged_index(repo, KEY, registry) == []
+        hits = heldout.scan_tree(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+    assert hits == [{"path": "notes/sample.bin", "identifier_hmac": sealed, "line_no": 1}]
+    assert ok is False
+    report = "\\n".join(reasons)
+    assert sealed[:12] in report and IDENTIFIER not in report
+
+
+def test_staged_binary_blob_refuses_despite_safe_worktree(monkeypatch):
+    """Publishable index bytes must be inspected even when NUL and clean worktree hide them."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    sealed = _token(IDENTIFIER)
+    registry = _registry_with_canary(sealed)
+    clean = b"\\x00clean-binary\\xff"
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        path = repo / "notes" / "sample.bin"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(clean)
+        _commit(repo, "synthetic safe binary baseline")
+        path.write_bytes(b"\\x00disclosed:" + IDENTIFIER.encode() + b"\\xff")
+        _git(repo, "add", "notes/sample.bin")
+        path.write_bytes(clean)
+        assert heldout.scan_tree(repo, KEY, registry) == []
+        hits = heldout.scan_staged_index(repo, KEY, registry)
+        ok, reasons = heldout.check(repo)
+    assert hits == [{"path": "notes/sample.bin", "identifier_hmac": sealed, "line_no": 1}]
+    assert ok is False
+    report = "\\n".join(reasons)
+    assert "staged index blob" in report and IDENTIFIER not in report
+
+
+def test_clean_binary_tracked_and_staged_control_passes(monkeypatch):
+    """Ordinary binary files do not force refusal in the absence of a sealed match."""
+    monkeypatch.setenv("HELDOUT_KEY", KEY)
+    registry = _registry_with_canary(_token(IDENTIFIER))
+    with _temp_repo() as repo:
+        _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
+        path = repo / "notes" / "sample.bin"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"\\x00harmless-binary\\xff")
+        _commit(repo, "safe binary baseline")
+        assert heldout.scan_tree(repo, KEY, registry) == []
+        path.write_bytes(b"\\x00different-harmless-binary\\xff")
+        _git(repo, "add", "notes/sample.bin")
+        assert heldout.scan_staged_index(repo, KEY, registry) == []
+        ok, reasons = heldout.check(repo)
+    assert ok is True and reasons == []
