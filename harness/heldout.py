@@ -259,8 +259,9 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
             # A silent skip would certify content that has not been inspected.
             # Omit the exception's filename: it may itself be a sealed identifier.
             raise RuntimeError("tracked file unreadable; scan refused (path redacted)") from None
-        if _is_binary(blob):
-            continue
+        # Git can track binary files with embedded plaintext held-out names.
+        # NUL bytes and invalid UTF-8 delimit candidates, not scanning coverage.
+        # Skipping a binary blob would falsely certify an uninspected source.
         text = blob.decode("utf-8", errors="replace")
         for line_no, line in enumerate(text.splitlines(), start=1):
             for digest in match(line):
@@ -314,8 +315,8 @@ def scan_staged_index(root, key: str, registry: dict, isolate: bool = False) -> 
         for digest in path_tokens:
             hits.append({"kind": "staged_path", "identifier_hmac": digest})
         blob = _run_git_bytes(root, ["cat-file", "blob", ":" + path], isolate=isolate)
-        if _is_binary(blob):
-            continue
+        # The staged Git blob is the publishable source of truth, even when
+        # binary. Search readable identifier spans rather than skipping NUL data.
         for line_no, line in enumerate(blob.decode("utf-8", errors="replace").splitlines(), start=1):
             for digest in match(line):
                 hits.append({"path": safe_path, "identifier_hmac": digest, "line_no": line_no})
