@@ -23,10 +23,19 @@ def _load_records(d):
     if d:
         for name in os.listdir(d):
             if name.endswith(".json"):
-                with open(os.path.join(d, name), encoding="utf-8") as fh:
+                path = os.path.join(d, name)
+                if os.path.islink(path):
+                    raise ValueError(f"symlink in model call record inventory: {name}")
+                with open(path, encoding="utf-8") as fh:
                     r = json.load(fh)
-                if isinstance(r, dict) and r.get("record_id"):
-                    recs[r["record_id"]] = r
+                # An ambiguous inventory must never silently overwrite one
+                # purported call with another, even when both use a valid ID.
+                # A malformed record is refusal, not invisible omission.
+                if not isinstance(r, dict) or not isinstance(r.get("record_id"), str) or not r["record_id"]:
+                    raise ValueError(f"malformed model call record inventory entry: {name}")
+                if r["record_id"] in recs:
+                    raise ValueError(f"duplicate model call record ID in inventory: {r['record_id']}")
+                recs[r["record_id"]] = r
     return recs
 
 
@@ -53,10 +62,9 @@ def main(argv=None) -> int:
         try:
             with open(a.bundle, encoding="utf-8") as fh:
                 bundle = json.load(fh)
-            # No --records is the legacy metadata-only mode (not external
-            # validation). An explicitly supplied, even empty, records
-            # directory requests call-record verification and must fail
-            # closed if the referenced calls are absent.
+            # A missing records directory is diagnostic metadata-only mode,
+            # always REFUSE (never success). Even an explicitly empty directory
+            # cannot validate a model call.
             records = _load_records(a.records) if a.records is not None else None
             report = check_bundle(bundle, a.docs_root, records)
         except Exception as exc:  # noqa: BLE001 -- fail closed: a check that cannot run is never a pass
