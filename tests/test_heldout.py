@@ -524,14 +524,14 @@ def test_committed_binary_source_with_embedded_sealed_identifier_refuses(monkeyp
         _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
         path = repo / "notes" / "sample.bin"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(b"\\x89BINARY\\x00record:" + IDENTIFIER.encode() + b"\\x00tail")
+        path.write_bytes(b"\x89BINARY\x00record:" + IDENTIFIER.encode() + b"\x00tail")
         _commit(repo, "synthetic binary source")
         assert heldout.scan_staged_index(repo, KEY, registry) == []
         hits = heldout.scan_tree(repo, KEY, registry)
         ok, reasons = heldout.check(repo)
     assert hits == [{"path": "notes/sample.bin", "identifier_hmac": sealed, "line_no": 1}]
     assert ok is False
-    report = "\\n".join(reasons)
+    report = "\n".join(reasons)
     assert sealed[:12] in report and IDENTIFIER not in report
 
 
@@ -540,14 +540,14 @@ def test_staged_binary_blob_refuses_despite_safe_worktree(monkeypatch):
     monkeypatch.setenv("HELDOUT_KEY", KEY)
     sealed = _token(IDENTIFIER)
     registry = _registry_with_canary(sealed)
-    clean = b"\\x00clean-binary\\xff"
+    clean = b"\x00clean-binary\xff"
     with _temp_repo() as repo:
         _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
         path = repo / "notes" / "sample.bin"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(clean)
         _commit(repo, "synthetic safe binary baseline")
-        path.write_bytes(b"\\x00disclosed:" + IDENTIFIER.encode() + b"\\xff")
+        path.write_bytes(b"\x00disclosed:" + IDENTIFIER.encode() + b"\xff")
         _git(repo, "add", "notes/sample.bin")
         path.write_bytes(clean)
         assert heldout.scan_tree(repo, KEY, registry) == []
@@ -555,7 +555,7 @@ def test_staged_binary_blob_refuses_despite_safe_worktree(monkeypatch):
         ok, reasons = heldout.check(repo)
     assert hits == [{"path": "notes/sample.bin", "identifier_hmac": sealed, "line_no": 1}]
     assert ok is False
-    report = "\\n".join(reasons)
+    report = "\n".join(reasons)
     assert "staged index blob" in report and IDENTIFIER not in report
 
 
@@ -567,10 +567,10 @@ def test_clean_binary_tracked_and_staged_control_passes(monkeypatch):
         _write(repo, "registry/heldout_sealed.json", json.dumps(registry))
         path = repo / "notes" / "sample.bin"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(b"\\x00harmless-binary\\xff")
+        path.write_bytes(b"\x00harmless-binary\xff")
         _commit(repo, "safe binary baseline")
         assert heldout.scan_tree(repo, KEY, registry) == []
-        path.write_bytes(b"\\x00different-harmless-binary\\xff")
+        path.write_bytes(b"\x00different-harmless-binary\xff")
         _git(repo, "add", "notes/sample.bin")
         assert heldout.scan_staged_index(repo, KEY, registry) == []
         ok, reasons = heldout.check(repo)
