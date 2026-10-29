@@ -2,7 +2,8 @@
 
   version                                   print the contract version
   check BUNDLE --docs-root DIR [--records DIR] [--out REPORT.json]
-        exit 0 = ALLOW_MATCH_CLAIM, 1 = REFUSE, 2 = could not execute (fail closed: never a pass)
+        exit 0 = ALLOW_MATCH_CLAIM with checked call records, 1 = noncertifying metadata/REFUSE,
+        2 = could not execute (fail closed: never a pass)
   extract --docs-root DIR --document REF --trial ID --measure M --claude-model ID --codex-model ID
           [--codex-effort E] --out READINGS.json [--records-out DIR]
         the live dual reading (two recorded model calls); writes the readings and the call records
@@ -53,10 +54,9 @@ def main(argv=None) -> int:
         try:
             with open(a.bundle, encoding="utf-8") as fh:
                 bundle = json.load(fh)
-            # No --records is the legacy metadata-only mode (not external
-            # validation). An explicitly supplied, even empty, records
-            # directory requests call-record verification and must fail
-            # closed if the referenced calls are absent.
+            # No --records is diagnostic metadata-only review, NEVER an
+            # authoritative ALLOW_MATCH_CLAIM result. Explicitly supplied,
+            # even empty, records must prove call separation or fail closed.
             records = _load_records(a.records) if a.records is not None else None
             report = check_bundle(bundle, a.docs_root, records)
         except Exception as exc:  # noqa: BLE001 -- fail closed: a check that cannot run is never a pass
@@ -68,8 +68,8 @@ def main(argv=None) -> int:
         print(f"P3 GATE ({CONTRACT_VERSION}): {report['verdict']}  "
               f"trials ok {report.get('summary', {}).get('trials_ok', 0)}/{report.get('summary', {}).get('trials', 0)}")
         if a.records is None:
-            print("  provenance: CALL_RECORDS_NOT_VERIFIED (metadata-only mode; "
-                  "no authenticated independent model/human validation)")
+            print("  provenance: CALL_RECORDS_NOT_VERIFIED (NONCERTIFYING metadata-only mode; "
+                  "no verified model call separation or external human validation)")
         for p in report["problems"]:
             print(f"  bundle: {p}")
         for t in report["trials"]:
