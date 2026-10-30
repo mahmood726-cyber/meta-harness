@@ -194,6 +194,28 @@ def test_reject_case_variant_same_doi_cross_analyses():
         preflight([first, second], set())
 
 
+def test_refuse_cochrane_cd_vs_versioned_doi_alias():
+    first = case("CD013505", "family-A", "COCHRANE")
+    second = case("10.1002/14651858.CD013505.pub2", "family-B", "KNOWN_ERROR")
+    second["analysis_id"] = "2.4"
+    with pytest.raises(SelectionRefusal, match="duplicate review identity"):
+        preflight([first, second], set())
+
+
+def test_refuse_two_versioned_doi_aliases():
+    first = case("10.1002/14651858.CD013505.pub2", "family-A", "COCHRANE")
+    second = case("10.1002/14651858.cd013505.PUB3", "family-B", "OPEN_META")
+    second["analysis_id"] = "3.1"
+    with pytest.raises(SelectionRefusal, match="duplicate review identity"):
+        preflight([first, second], set())
+
+
+def test_distinct_cochrane_review_dois_stay_distinct():
+    first = case("10.1002/14651858.CD013505.pub2", "family-A", "COCHRANE")
+    second = case("10.1002/14651858.CD013506.pub2", "family-B", "OPEN_META")
+    assert preflight([first, second], set())["eligible_candidates"] == 2
+
+
 def test_allow_different_reviews_with_distinct_families():
     first = case("10.1000/ABC.1", "family-A", "OPEN_META")
     second = case("10.1000/ABC.2", "family-B", "UNSELECTED")

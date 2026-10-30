@@ -14,6 +14,7 @@ from typing import Any
 STRATA = {"COCHRANE": 100, "OPEN_META": 100, "KNOWN_ERROR": 50, "UNSELECTED": 50}
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 REVIEW_ID = re.compile(r"(?:CD\d{6}|10\.[0-9]{4,9}/[^\s]+)\Z", re.I)
+COCHRANE_DOI = re.compile(r"10\.1002/14651858\.(CD\d{6})(?:\.pub\d+)?\Z", re.I)
 REQUIRED = {
     "review_id", "analysis_id", "family_key", "stratum", "source_sha256",
     "source_version", "rights_checked", "source_download_verified",
@@ -31,6 +32,16 @@ def _canonical(data: Any) -> bytes:
         data, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
         allow_nan=False
     ).encode("utf-8")
+
+
+def _review_key(review_id: str) -> str:
+    """Map CD IDs and exact-form versioned Cochrane DOIs to one review key.
+
+    This syntactic guard does not independently authenticate bibliography or
+    identify other DOI aliases, corrections or shared-study families.
+    """
+    match = COCHRANE_DOI.fullmatch(review_id)
+    return (match.group(1) if match else review_id).casefold()
 
 
 def _nonblank(value: Any) -> bool:
@@ -87,14 +98,14 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
         ):
             if type(row[field]) is not bool:
                 raise SelectionRefusal(f"row {i}: {field} must be explicit boolean")
-        key = (row["review_id"].casefold(), row["analysis_id"].casefold())
+        key = (_review_key(row["review_id"]), row["analysis_id"].casefold())
         family = row["family_key"].casefold()
         if key in seen_ids:
             raise SelectionRefusal(f"row {i}: duplicate review/analysis identity")
         seen_ids.add(key)
         # REPRO300 counts REVIEWS. Two analyses of one review do not count as
         # independent selections, even if labelled with different strata/families.
-        review_key = row["review_id"].casefold()
+        review_key = _review_key(row["review_id"])
         if review_key in seen_reviews:
             raise SelectionRefusal(
                 f"row {i}: duplicate review identity across analyses/strata"
