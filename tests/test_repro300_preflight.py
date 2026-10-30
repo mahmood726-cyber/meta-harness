@@ -271,6 +271,8 @@ def test_exact_source_only_schema_still_allows_candidate():
 @pytest.mark.parametrize("review_id", [
     "CD013505",
     "10.1002/14651858.CD013505.pub2",
+    "10.1002/14651858.MR000013.pub7",
+    "10.1002/14651858.UNRECOGNISED.pub3",
 ])
 def test_cochrane_id_cannot_fill_other_open_meta_stratum(review_id):
     # Baseline false pass: a Cochrane source could count toward the distinct
@@ -287,6 +289,8 @@ def test_other_journal_doi_cannot_fill_cochrane_stratum():
 @pytest.mark.parametrize(("review_id", "stratum"), [
     ("CD013505", "COCHRANE"),
     ("10.1002/14651858.CD013505.pub3", "COCHRANE"),
+    ("10.1002/14651858.MR000013.pub7", "COCHRANE"),
+    ("MR000013", "COCHRANE"),
     ("10.1000/open-meta-1", "OPEN_META"),
     ("CD013505", "KNOWN_ERROR"),
     ("10.1000/unselected-1", "UNSELECTED"),
@@ -295,3 +299,11 @@ def test_valid_source_stratum_syntax_preserved(review_id, stratum):
     assert preflight([case(review_id, "f-valid", stratum)], set())[
         "eligible_candidates"
     ] == 1
+
+
+def test_mr_methodology_review_alias_not_double_counted():
+    first = case("MR000013", "method-A", "COCHRANE")
+    second = case("10.1002/14651858.MR000013.pub7", "method-B", "KNOWN_ERROR")
+    second["analysis_id"] = "2.4"
+    with pytest.raises(SelectionRefusal, match="duplicate review identity"):
+        preflight([first, second], set())

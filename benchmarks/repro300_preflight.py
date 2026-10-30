@@ -13,9 +13,11 @@ from typing import Any
 
 STRATA = {"COCHRANE": 100, "OPEN_META": 100, "KNOWN_ERROR": 50, "UNSELECTED": 50}
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
-REVIEW_ID = re.compile(r"(?:CD\d{6}|10\.[0-9]{4,9}/[^\s]+)\Z", re.I)
-COCHRANE_DOI = re.compile(r"10\.1002/14651858\.(CD\d{6})(?:\.pub\d+)?\Z", re.I)
-COCHRANE_CD = re.compile(r"CD\d{6}\Z", re.I)
+REVIEW_ID = re.compile(r"(?:(?:CD|MR)\d{6}|10\.[0-9]{4,9}/[^\s]+)\Z", re.I)
+COCHRANE_DOI = re.compile(r"10\.1002/14651858\.((?:CD|MR)\d{6})(?:\.pub\d+)?\Z", re.I)
+COCHRANE_ARTICLE_ID = re.compile(r"(?:CD|MR)\d{6}\Z", re.I)
+# Unknown Cochrane article formats must NOT be counted as non-Cochrane.
+COCHRANE_PUBLISHER_DOI = re.compile(r"10\.1002/14651858\.[^\s]+\Z", re.I)
 REQUIRED = {
     "review_id", "analysis_id", "family_key", "stratum", "source_sha256",
     "source_version", "rights_checked", "source_download_verified",
@@ -48,7 +50,7 @@ def _review_key(review_id: str) -> str:
 def _is_cochrane_id(review_id: str) -> bool:
     """Syntactic stratum guard only; authenticated journal identity is external."""
     return bool(
-        COCHRANE_CD.fullmatch(review_id) or COCHRANE_DOI.fullmatch(review_id)
+        COCHRANE_ARTICLE_ID.fullmatch(review_id) or COCHRANE_DOI.fullmatch(review_id)
     )
 
 
@@ -108,7 +110,10 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
         # This syntactic check does NOT authenticate the source or its licence.
         if row["stratum"] == "COCHRANE" and not _is_cochrane_id(row["review_id"]):
             raise SelectionRefusal(f"row {i}: COCHRANE requires a Cochrane identifier")
-        if row["stratum"] == "OPEN_META" and _is_cochrane_id(row["review_id"]):
+        if row["stratum"] == "OPEN_META" and (
+            COCHRANE_ARTICLE_ID.fullmatch(row["review_id"])
+            or COCHRANE_PUBLISHER_DOI.fullmatch(row["review_id"])
+        ):
             raise SelectionRefusal(f"row {i}: OPEN_META excludes Cochrane identifiers")
         if not (
             type(row["source_sha256"]) is str
