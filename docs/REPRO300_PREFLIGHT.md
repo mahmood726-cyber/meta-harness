@@ -23,3 +23,27 @@ Upstream evidence: Overmind overmind/evidence/data/gold_reviews/COCHRANE_REPRODU
 ## Integration acceptance
 
 Only a successful exact-final-head GitHub verify, applicable platform/negative tests, actual rulesets and ordinary expected-head merge justify production integration; then verify default-branch CI. No human scientific adjudication, prospective benchmark B advancement, CROSS-EXCH denominator change, historical certificate change, protected human data change or deployment request is authorised by these code tests.
+
+## Full verification failure and repair — 30 October 2026
+
+The first PR #205 exact-head full GitHub Actions run (#41004033058) **FAILED**:
+8 unit tests failed and 0/32 historical review-page certificate replays reproduced. Its
+new experimental module was placed directly under `harness/`. Even when a module
+is not in the signed import closure, the historical certificate's release-hashed
+`certificate_scope.not_covered.in_tree_modules_not_imported_by_any_root`
+explicitly enumerates such modules. Therefore adding that file changed the
+certificate scope for all 32 sealed releases. The historical certificates are not
+stale permission to regenerate or weaken them.
+
+The repair **moves the byte-identical, genuinely development-only source preflight**
+from `harness/repro300_preflight.py` to `benchmarks/repro300_preflight.py`, with
+an explicit benchmarks package and adjusted test import. It changes no historical
+production import, certificate builder, scope rule, historical release, output,
+pipeline or build input. A new negative-regression test verifies that the
+experimental module is not under `harness/` and that the saved certificate scope
+still agrees with the current scope computation. This separation is appropriate
+only while REPRO300 remains isolated development tooling. Any eventual
+production-path import or release integration must be independently assessed
+against historical code closure, with ordinary full verification; no certificate
+regeneration or bypass is authorised here. Re-run exact new-head full GitHub CI
+and relevant platform tests: previous-head PASS never transfers after a change.

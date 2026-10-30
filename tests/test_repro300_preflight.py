@@ -2,7 +2,7 @@
 import copy
 import pytest
 
-from harness.repro300_preflight import preflight, pilot_draw, SelectionRefusal
+from benchmarks.repro300_preflight import preflight, pilot_draw, SelectionRefusal
 
 
 def case(review="CD999991", family="f1", stratum="COCHRANE"):
@@ -199,3 +199,18 @@ def test_allow_different_reviews_with_distinct_families():
     second = case("10.1000/ABC.2", "family-B", "UNSELECTED")
     second["analysis_id"] = "3.2"
     assert preflight([first, second], set())["eligible_candidates"] == 2
+
+
+def test_development_module_does_not_rewrite_historical_certificate_scope():
+    # A new module under harness/ changed the historic 'not-covered' disclosure,
+    # which is release-hashed, failing all 32 sealed certificates. Keep genuine
+    # development-only selection tooling separate from the signed replay code.
+    import json
+    from pathlib import Path
+    from harness import certificate
+    root = Path(__file__).resolve().parents[1]
+    assert not (root / "harness/repro300_preflight.py").exists()
+    saved = json.loads(
+        (root / "docs/reviews/glp1-ra-mace-t2d/CERTIFICATE.json").read_text(encoding="utf-8")
+    )
+    assert certificate._scope(saved["analysis_code_blobs"]) == saved["certificate_scope"]
