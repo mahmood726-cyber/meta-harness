@@ -15,6 +15,7 @@ STRATA = {"COCHRANE": 100, "OPEN_META": 100, "KNOWN_ERROR": 50, "UNSELECTED": 50
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 REVIEW_ID = re.compile(r"(?:CD\d{6}|10\.[0-9]{4,9}/[^\s]+)\Z", re.I)
 COCHRANE_DOI = re.compile(r"10\.1002/14651858\.(CD\d{6})(?:\.pub\d+)?\Z", re.I)
+COCHRANE_CD = re.compile(r"CD\d{6}\Z", re.I)
 REQUIRED = {
     "review_id", "analysis_id", "family_key", "stratum", "source_sha256",
     "source_version", "rights_checked", "source_download_verified",
@@ -42,6 +43,13 @@ def _review_key(review_id: str) -> str:
     """
     match = COCHRANE_DOI.fullmatch(review_id)
     return (match.group(1) if match else review_id).casefold()
+
+
+def _is_cochrane_id(review_id: str) -> bool:
+    """Syntactic stratum guard only; authenticated journal identity is external."""
+    return bool(
+        COCHRANE_CD.fullmatch(review_id) or COCHRANE_DOI.fullmatch(review_id)
+    )
 
 
 def _nonblank(value: Any) -> bool:
@@ -94,6 +102,14 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
             raise SelectionRefusal(f"row {i}: invalid planned_use")
         if not REVIEW_ID.fullmatch(row["review_id"]):
             raise SelectionRefusal(f"row {i}: noncanonical review identifier")
+        # Source strata have distinct recruitment targets: Cochrane reviews
+        # must not consume the 100 OTHER open-data meta-analysis slots.
+        # Known-error and unselected strata may contain either source type.
+        # This syntactic check does NOT authenticate the source or its licence.
+        if row["stratum"] == "COCHRANE" and not _is_cochrane_id(row["review_id"]):
+            raise SelectionRefusal(f"row {i}: COCHRANE requires a Cochrane identifier")
+        if row["stratum"] == "OPEN_META" and _is_cochrane_id(row["review_id"]):
+            raise SelectionRefusal(f"row {i}: OPEN_META excludes Cochrane identifiers")
         if not (
             type(row["source_sha256"]) is str
             and HEX64.fullmatch(row["source_sha256"])

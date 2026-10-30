@@ -18,7 +18,13 @@ def case(review="CD999991", family="f1", stratum="COCHRANE"):
 
 def _eight():
     strata = ("COCHRANE", "OPEN_META", "KNOWN_ERROR", "UNSELECTED")
-    return [case(f"CD{900000+i}", f"fam-{i}", strata[i % 4]) for i in range(8)]
+    return [
+        case(
+            f"10.1000/open-meta-{i}" if i % 4 == 1 else f"CD{900000+i}",
+            f"fam-{i}", strata[i % 4]
+        )
+        for i in range(8)
+    ]
 
 
 def test_valid_synthetic_source_only_not_enrolled():
@@ -36,7 +42,7 @@ def test_valid_synthetic_source_only_not_enrolled():
 
 def test_familiarity_and_access_not_promoted():
     a = case()
-    b = case("CD999992", "f2", "OPEN_META")
+    b = case("10.1000/open-meta-2", "f2", "OPEN_META")
     c = case("CD999993", "f3", "UNSELECTED")
     d = case("CD999994", "f4", "KNOWN_ERROR")
     b["rights_checked"] = False
@@ -138,7 +144,10 @@ def test_refuse_source_frame_drift_after_preflight():
 def test_missing_stratum_refuses_pilot_draw_instead_of_short_enrolment():
     strata = ("COCHRANE", "OPEN_META", "KNOWN_ERROR")
     frame = [
-        case(f"CD{900000+i}", f"fam-{i}", strata[i % 3])
+        case(
+            f"10.1000/open-meta-{i}" if i % 3 == 1 else f"CD{900000+i}",
+            f"fam-{i}", strata[i % 3]
+        )
         for i in range(6)
     ]
     p = preflight(frame, set())
@@ -204,7 +213,7 @@ def test_refuse_cochrane_cd_vs_versioned_doi_alias():
 
 def test_refuse_two_versioned_doi_aliases():
     first = case("10.1002/14651858.CD013505.pub2", "family-A", "COCHRANE")
-    second = case("10.1002/14651858.cd013505.PUB3", "family-B", "OPEN_META")
+    second = case("10.1002/14651858.cd013505.PUB3", "family-B", "KNOWN_ERROR")
     second["analysis_id"] = "3.1"
     with pytest.raises(SelectionRefusal, match="duplicate review identity"):
         preflight([first, second], set())
@@ -212,7 +221,7 @@ def test_refuse_two_versioned_doi_aliases():
 
 def test_distinct_cochrane_review_dois_stay_distinct():
     first = case("10.1002/14651858.CD013505.pub2", "family-A", "COCHRANE")
-    second = case("10.1002/14651858.CD013506.pub2", "family-B", "OPEN_META")
+    second = case("10.1002/14651858.CD013506.pub2", "family-B", "KNOWN_ERROR")
     assert preflight([first, second], set())["eligible_candidates"] == 2
 
 
@@ -257,3 +266,32 @@ def test_refuse_outcome_or_unregistered_columns_in_source_only_selection(extra):
 def test_exact_source_only_schema_still_allows_candidate():
     """Guard is not an unconditional refusal: declared synthetic source fields work."""
     assert preflight([case()], set())["eligible_candidates"] == 1
+
+
+@pytest.mark.parametrize("review_id", [
+    "CD013505",
+    "10.1002/14651858.CD013505.pub2",
+])
+def test_cochrane_id_cannot_fill_other_open_meta_stratum(review_id):
+    # Baseline false pass: a Cochrane source could count toward the distinct
+    # 100 non-Cochrane open-data meta-analysis recruitment target.
+    with pytest.raises(SelectionRefusal, match="OPEN_META excludes Cochrane"):
+        preflight([case(review_id, "other-family", "OPEN_META")], set())
+
+
+def test_other_journal_doi_cannot_fill_cochrane_stratum():
+    with pytest.raises(SelectionRefusal, match="COCHRANE requires a Cochrane"):
+        preflight([case("10.1000/noncochrane-1", "cochrane-family", "COCHRANE")], set())
+
+
+@pytest.mark.parametrize(("review_id", "stratum"), [
+    ("CD013505", "COCHRANE"),
+    ("10.1002/14651858.CD013505.pub3", "COCHRANE"),
+    ("10.1000/open-meta-1", "OPEN_META"),
+    ("CD013505", "KNOWN_ERROR"),
+    ("10.1000/unselected-1", "UNSELECTED"),
+])
+def test_valid_source_stratum_syntax_preserved(review_id, stratum):
+    assert preflight([case(review_id, "f-valid", stratum)], set())[
+        "eligible_candidates"
+    ] == 1
