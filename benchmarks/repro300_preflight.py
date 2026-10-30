@@ -67,6 +67,13 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
     for i, row in enumerate(frame):
         if type(row) is not dict or not REQUIRED.issubset(row):
             raise SelectionRefusal(f"row {i}: missing declared source identity fields")
+        # A scored atlas row may contain audit/quality/oracle outcomes in addition
+        # to valid source identifiers. Never let those fields enter a pre-draw
+        # frame: selection must be strictly source-only and schema-versioned.
+        # Bibliographic enrichment belongs in the separate source ledger until
+        # explicitly reviewed as a non-outcome schema change.
+        if set(row) != REQUIRED:
+            raise SelectionRefusal(f"row {i}: undeclared source-only fields")
         if type(row["stratum"]) is not str or row["stratum"] not in STRATA:
             raise SelectionRefusal(f"row {i}: invalid stratum")
         for field in (

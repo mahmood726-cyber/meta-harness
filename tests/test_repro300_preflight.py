@@ -236,3 +236,24 @@ def test_development_module_does_not_rewrite_historical_certificate_scope():
         (root / "docs/reviews/glp1-ra-mace-t2d/CERTIFICATE.json").read_text(encoding="utf-8")
     )
     assert certificate._scope(saved["analysis_code_blobs"]) == saved["certificate_scope"]
+
+@pytest.mark.parametrize("extra", [
+    {"audit_fails": 7},
+    {"audit_severity": 19},
+    {"oracle_risk": 0.99},
+    {"quality_score": 66.8},
+    {"classification": "Fragile"},
+    {"frac_significant": 0.66},
+    {"unknown_source_column": "should be separately preregistered"},
+])
+def test_refuse_outcome_or_unregistered_columns_in_source_only_selection(extra):
+    """A scored EvidenceAtlas row must never silently become a blind draw input."""
+    row = case()
+    row.update(extra)
+    with pytest.raises(SelectionRefusal, match="undeclared source-only fields"):
+        preflight([row], set())
+
+
+def test_exact_source_only_schema_still_allows_candidate():
+    """Guard is not an unconditional refusal: declared synthetic source fields work."""
+    assert preflight([case()], set())["eligible_candidates"] == 1
