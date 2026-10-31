@@ -15,7 +15,7 @@ Why it is a package and not harness/<x>.py: any new harness/*.py changes every p
 (harness/certificate.py _scope), forcing a re-certification of every served page. Nothing in the certificate closure
 imports this package, so adopting P3 is a per-topic, per-lane choice that changes no served byte.
 
-Opt in: run `python -m extraction_contract check <bundle.json> --docs-root <dir>` and cite its report beside the claim.
+Opt in: run `python -m extraction_contract check <bundle.json> --docs-root <dir> --records <records-dir>` and cite its report. Omitting records is a noncertifying REFUSE.
 Version: CONTRACT_VERSION. A bundle naming a different MAJOR version is refused (fail closed), never coerced.
 """
 CONTRACT_VERSION = "p3/1.0.0"

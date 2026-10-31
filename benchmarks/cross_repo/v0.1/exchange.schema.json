@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mahmood726-cyber/meta-harness/blob/main/benchmarks/cross_repo/v0.1/exchange.schema.json",
+  "title": "Evidence transport contract v0.1 (not clinical validation)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "review_id",
+    "protocol_sha256",
+    "rows",
+    "proposed_pool"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "review_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/row"
+      }
+    },
+    "proposed_pool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested",
+        "estimand"
+      ],
+      "properties": {
+        "requested": {
+          "const": true
+        },
+        "estimand": {
+          "$ref": "#/$defs/estimand"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "estimand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measure",
+        "population",
+        "outcome",
+        "timepoint"
+      ],
+      "properties": {
+        "measure": {
+          "type": "string",
+          "minLength": 1
+        },
+        "population": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timepoint": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "study_id",
+        "trial_id",
+        "decision",
+        "estimand",
+        "source",
+        "source_span"
+      ],
+      "properties": {
+        "study_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "enum": [
+            "ALLOW",
+            "ALLOW_WITH_LABEL",
+            "ADJUST",
+            "MANUAL_REVIEW",
+            "REFUSE"
+          ]
+        },
+        "estimand": {
+          "$ref": "#/$defs/estimand"
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "source_span": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "locator",
+            "verbatim"
+          ],
+          "properties": {
+            "locator": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verbatim": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

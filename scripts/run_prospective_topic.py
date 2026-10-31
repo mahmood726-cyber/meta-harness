@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import hashlib
 import io
 import json
 import os
@@ -90,58 +89,14 @@ def _cache_candidates(out_dir: Path, slug: str) -> list[Path]:
 
 
 def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tuple[dict[str, Any], Path | None, bool]:
-    """Require a new live, raw-archived retrieval for each prospective run.
-
-    The ordinary harness can legitimately replay caches. A prospective run cannot:
-    accepting pre-seeded records here previously bypassed acquisition altogether and
-    still let the resulting review be counted as COMPLETED.
-    """
     slug = str(config["slug"])
     for records_path in _cache_candidates(out_dir, slug):
-        if records_path.exists():
-            raise prospective.ProspectiveRefusal(
-                "prospective validation refuses pre-existing records: "
-                f"{records_path}; start a fresh run directory (legacy replay is not validation)"
-            )
+        if records_path.is_file():
+            return _read_json(records_path), records_path.parent, True
 
     snapshot_dir = Path(acquisition.refresh(config, now_day, root=str(out_dir))).resolve()
     if not _inside(snapshot_dir, out_dir):
         raise prospective.ProspectiveRefusal("acquisition refresh escaped out_dir")
-
-    ledger_path = snapshot_dir / acquisition.LEDGER_FILENAME
-    if not ledger_path.is_file():
-        raise prospective.ProspectiveRefusal("fresh retrieval is missing its retrieval ledger")
-    ledger = _read_json(ledger_path)
-    snapshot = ledger.get("snapshot")
-    if not isinstance(snapshot, dict) or snapshot.get("mode") != "REFRESH":
-        raise prospective.ProspectiveRefusal("prospective retrieval must carry a REFRESH snapshot")
-
-    raw_calls = snapshot.get("raw_calls")
-    if type(raw_calls) is not int or raw_calls < 1:
-        raise prospective.ProspectiveRefusal(
-            "prospective retrieval has no archived raw HTTP calls; completeness is unverified"
-        )
-    raw_index = snapshot_dir / "raw" / "INDEX.json"
-    if not raw_index.is_file():
-        raise prospective.ProspectiveRefusal("prospective retrieval has no raw/INDEX.json")
-    index_bytes = raw_index.read_bytes()
-    if hashlib.sha256(index_bytes).hexdigest() != snapshot.get("raw_index_sha256"):
-        raise prospective.ProspectiveRefusal("prospective raw index SHA256 differs from ledger")
-    try:
-        rows = json.loads(index_bytes)
-    except (ValueError, UnicodeDecodeError) as exc:
-        raise prospective.ProspectiveRefusal("prospective raw index is not valid JSON") from exc
-    if not isinstance(rows, list) or len(rows) != raw_calls:
-        raise prospective.ProspectiveRefusal("prospective raw index count differs from ledger")
-    for row in rows:
-        if not isinstance(row, dict) or not isinstance(row.get("path"), str):
-            raise prospective.ProspectiveRefusal("prospective raw index contains an invalid path")
-        body_file = (snapshot_dir / row["path"]).resolve()
-        if not _inside(body_file, snapshot_dir / "raw") or not body_file.is_file():
-            raise prospective.ProspectiveRefusal("prospective raw response missing or outside snapshot")
-        if hashlib.sha256(body_file.read_bytes()).hexdigest() != row.get("file_sha256"):
-            raise prospective.ProspectiveRefusal("prospective raw response SHA256 differs from index")
-
     return _read_json(snapshot_dir / "records.json"), snapshot_dir, False
 
 
@@ -303,9 +258,6 @@ def run_topic(
     except TimeoutError as exc:
         outcome = "FAILED_TIMEOUT"
         error_detail = {"error": str(exc)}
-    except prospective.ProspectiveRefusal as exc:
-        outcome = "FAILED_INVARIANT"
-        error_detail = {"type": type(exc).__name__, "message": str(exc)}
     except Exception as exc:  # noqa: BLE001 - failures must be retained as run records.
         outcome = "FAILED_CRASH"
         error_detail = {

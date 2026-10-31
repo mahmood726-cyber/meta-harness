@@ -78,7 +78,13 @@ def _require_digest(value: str, label: str) -> str:
 def _json_list(values: list[str] | tuple[str, ...], label: str) -> list[str]:
     if not isinstance(values, (list, tuple)):
         raise ProspectiveRefusal(f"{label} must be a list")
-    out = [str(v) for v in values]
+    # Freezing a rule or retained artefact requires the caller's actual
+    # string, not str(False), str(None), or str(0) fabricated from typed data.
+    # Constructor coercion could otherwise turn missing evidence into a
+    # plausible, nonempty string that passes later batch-shape checks.
+    if any(type(value) is not str for value in values):
+        raise ProspectiveRefusal(f"{label} must contain only strings")
+    out = list(values)
     if any(not v for v in out):
         raise ProspectiveRefusal(f"{label} contains an empty value")
     return out
@@ -151,6 +157,8 @@ def batch_declaration(
         limit = float(time_limit_s)
     except (TypeError, ValueError) as exc:
         raise ProspectiveRefusal("time_limit_s must be numeric") from exc
+    if not math.isfinite(limit):
+        raise ProspectiveRefusal("time_limit_s must be finite")
     if limit <= 0:
         raise ProspectiveRefusal("time_limit_s must be positive")
     if isinstance(time_limit_s, int):
@@ -187,31 +195,157 @@ def declaration_path(root: str | os.PathLike[str], batch_id: str) -> Path:
 def write_declaration(root: str | os.PathLike[str], decl: dict[str, Any]) -> Path:
     batch = _require_safe_name(decl.get("batch_id"), "batch_id")
     path = declaration_path(root, batch)
+    prospective_dir = _root_path(root) / "prospective"
+    # Refuse path aliases (including "." and "..") and symlinked ancestors.
+    # Exclusive creation below protects the leaf, not its parent directory.
+    # This is a local preflight safeguard, not independent/race-free custody.
+    if batch in {".", ".."} or prospective_dir.is_symlink() or path.parent.is_symlink():
+        raise ProspectiveRefusal("unsafe prospective declaration directory")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(decl, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    if prospective_dir.is_symlink() or path.parent.is_symlink():
+        raise ProspectiveRefusal("unsafe prospective declaration directory")
+    # A second write must never silently revise a prospective declaration
+    # after the custodian's commitment or after any study results are visible.
+    # Exclusive creation also refuses pre-existing symlinks and concurrent
+    # writers, rather than checking exists() before a truncating write.
+    # Validate serialization before creating the write-once destination: an
+    # unsupported value must not strand an empty/partial frozen declaration.
+    try:
+        payload = json.dumps(
+            decl, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False
+        ) + "\n"
+    except ValueError as exc:
+        raise ProspectiveRefusal("declaration contains a non-finite JSON number") from exc
+    try:
+        with path.open("x", encoding="utf-8", newline="\n") as fh:
+            fh.write(payload)
+    except FileExistsError as exc:
+        raise ProspectiveRefusal(
+            f"declaration already exists for batch {batch!r}; "
+            "no in-place revision is permitted"
+        ) from exc
     return path
 
 
+def _parse_strict_prospective_json(text: str, label: str) -> Any:
+    """Reject ambiguous or non-finite JSON in frozen prospective evidence.
+
+    Both declarations and run records must use the same decoding rules:
+    standard json.loads silently keeps the last duplicate member, potentially
+    replacing a recorded FAILED outcome with a later COMPLETED outcome.
+    """
+    def unique_members(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ProspectiveRefusal(f"{label} contains duplicate JSON member {key!r}")
+            result[key] = value
+        return result
+
+    def reject_nonfinite(token: str) -> Any:
+        raise ProspectiveRefusal(f"{label} contains non-finite JSON number {token!r}")
+
+    def strict_float(token: str) -> float:
+        value = float(token)
+        if not math.isfinite(value):
+            raise ProspectiveRefusal(f"{label} contains non-finite JSON number")
+        return value
+
+    return json.loads(
+        text,
+        object_pairs_hook=unique_members,
+        parse_constant=reject_nonfinite,
+        parse_float=strict_float,
+    )
+
+
+def _load_strict_prospective_json(path: Path, label: str) -> Any:
+    """Apply strict prospective parsing to a UTF-8 file without losing provenance."""
+    return _parse_strict_prospective_json(path.read_text(encoding="utf-8"), label)
+
+
 def load_declaration(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
-    path = declaration_path(root, batch_id)
+    batch = _require_safe_name(batch_id, "batch_id")
+    repo = _root_path(root)
+    path = declaration_path(repo, batch)
+
+    # The write-once creator refuses aliases, but a separately staged JSON
+    # file or symlinked ancestor can still be presented to the batch loader.
+    # An externally mutable declaration must not count as locally frozen.
+    # This is a path preflight guard, NOT race-free or witnessed custody.
+    if (
+        (repo / "prospective").is_symlink()
+        or path.parent.is_symlink()
+        or path.is_symlink()
+        or not _inside(path.resolve(), repo)
+    ):
+        raise ProspectiveRefusal("declaration path is symlinked or escapes repository")
+
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        declaration = _load_strict_prospective_json(path, "declaration")
     except OSError as exc:
-        raise ProspectiveRefusal(f"declaration missing for batch {batch_id!r}") from exc
+        raise ProspectiveRefusal(f"declaration missing for batch {batch!r}") from exc
+    except ProspectiveRefusal:
+        raise
     except ValueError as exc:
         raise ProspectiveRefusal(f"declaration is not valid JSON: {path}") from exc
+
+    # A declaration's identity must agree with the directory from which it is
+    # loaded. A copied or relabelled batch must not pass with zero run records.
+    if not isinstance(declaration, dict) or declaration.get("batch_id") != batch:
+        raise ProspectiveRefusal(
+            f"declaration batch_id does not match requested batch {batch!r}"
+        )
+    return declaration
 
 
 def check_declaration_frozen(
     root: str | os.PathLike[str], decl: dict[str, Any]
 ) -> dict[str, Any]:
-    # The identity is necessary but not sufficient: previously a declaration
-    # could claim "fully frozen" despite recording mutable external models or
-    # dependencies, because only its architecture_identity was checked.
+    """Verify declaration metadata against the actual architecture and A4 policy.
+
+    The architecture digest alone does not authenticate parallel fields such
+    as model mutability, the component inventory, or the rerun policy.
+    This is a local consistency check, not externally witnessed registration.
+    """
+    if (
+        not isinstance(decl, dict)
+        or type(decl.get("schema_version")) is not int
+        or decl["schema_version"] != DECLARATION_VERSION
+    ):
+        raise ProspectiveRefusal("prospective declaration has an unsupported schema_version")
+
+    # A6: a locally frozen batch must carry an explicit versioned eligibility
+    # universe digest and a separate custodian commitment. These are syntax
+    # checks, not independent custody, source verification, or proof of blinding.
+    commitment = decl.get("custodian_commitment_sha")
+    if type(commitment) is not str or not re.fullmatch(r"[0-9a-fA-F]{64}", commitment):
+        raise ProspectiveRefusal("custodian_commitment_sha must be a SHA-256 digest")
+    universe = decl.get("universe_ref")
+    if type(universe) is not dict:
+        raise ProspectiveRefusal("eligibility universe must be a versioned digest-bound mapping")
+    for field in ("definition", "version"):
+        if type(universe.get(field)) is not str or not universe[field].strip():
+            raise ProspectiveRefusal(f"eligibility universe {field} must be nonempty")
+    digest = universe.get("digest")
+    if type(digest) is not str or not re.fullmatch(r"[0-9a-fA-F]{64}", digest):
+        raise ProspectiveRefusal("eligibility universe digest must be a SHA-256 digest")
+
+    # A1: missing, blank, duplicated or non-string preregistered rules cannot
+    # support a structurally valid batch. This proves rule inventory presence
+    # only; it does not prove thresholds were independently witnessed or run.
+    invariants = decl.get("invariants")
+    if (
+        type(invariants) is not list
+        or not invariants
+        or any(type(rule) is not str or not rule.strip() for rule in invariants)
+    ):
+        raise ProspectiveRefusal(
+            "preregistered invariants must be a nonempty list of unique nonblank strings"
+        )
+    if len({rule.strip() for rule in invariants}) != len(invariants):
+        raise ProspectiveRefusal("preregistered invariants contain duplicates")
+
     observed_components = architecture_identity.components(root)
     observed = architecture_identity.identity_from_components(observed_components)
     expected = decl.get("architecture_identity")
@@ -221,18 +355,26 @@ def check_declaration_frozen(
             f"expected {expected}, observed {observed}"
         )
     if decl.get("architecture_components") != observed_components:
-        raise ProspectiveRefusal("declared architecture components differ from frozen system")
-    observed_mutable_dependencies = architecture_identity.mutable_dependencies(root)
-    if decl.get("mutable_dependencies") != observed_mutable_dependencies:
-        raise ProspectiveRefusal("declared mutable dependencies differ from frozen system")
-    observed_external_mutability = external_dependency_mutability(root)
-    if type(decl.get("external_dependency_mutability")) is not bool or (
-        decl["external_dependency_mutability"] != observed_external_mutability
+        raise ProspectiveRefusal("architecture component manifest mismatch")
+
+    observed_dependencies = architecture_identity.mutable_dependencies(root)
+    if (
+        type(decl.get("mutable_dependencies")) is not list
+        or decl["mutable_dependencies"] != observed_dependencies
     ):
-        raise ProspectiveRefusal("declared external dependency mutability differs from frozen system")
-    observed_claim = MUTABLE_FREEZE_CLAIM if observed_external_mutability else IMMUTABLE_FREEZE_CLAIM
+        raise ProspectiveRefusal("mutable dependency ledger mismatch")
+
+    observed_mutable = external_dependency_mutability(root)
+    if (
+        type(decl.get("external_dependency_mutability")) is not bool
+        or decl["external_dependency_mutability"] != observed_mutable
+    ):
+        raise ProspectiveRefusal("external dependency mutability mismatch")
+
+    observed_claim = MUTABLE_FREEZE_CLAIM if observed_mutable else IMMUTABLE_FREEZE_CLAIM
     if decl.get("freeze_claim") != observed_claim:
-        raise ProspectiveRefusal("declared freeze claim contradicts external dependency mutability")
+        raise ProspectiveRefusal("freeze claim mismatches observed dependency mutability")
+
     if decl.get("rerun_policy") != rerun_policy_text(root):
         raise ProspectiveRefusal("declared rerun policy differs from preregistered protocol")
     return decl
@@ -273,9 +415,12 @@ def run_record(
     """Build one prospective topic-run record."""
 
     batch = _require_safe_name(batch_id, "batch_id")
-    topic = str(topic_identifier)
-    if not topic:
-        raise ProspectiveRefusal("topic_identifier is required")
+    # Preserve source topic identity: str(None), str(False), or str(0)
+    # would fabricate plausible subject labels that later pass batch checks.
+    # This remains local format validation, not independent discovery.
+    if type(topic_identifier) is not str or not topic_identifier.strip():
+        raise ProspectiveRefusal("topic_identifier must be a nonblank string")
+    topic = topic_identifier
     if outcome not in RUN_OUTCOMES:
         raise ProspectiveRefusal(f"unknown run outcome: {outcome!r}")
     started = _parse_utc(started_utc)
@@ -310,12 +455,18 @@ def write_run_record(path_or_dir: str | os.PathLike[str], record: dict[str, Any]
     path = Path(path_or_dir)
     if path.suffix.lower() != ".json":
         path = path / "run_record.json"
+    # A failed, timed-out or surprising prospective run must retain its first
+    # record. Rewriting the same path could erase it from the batch history.
+    # Pre-serialize so malformed input cannot strand an empty sealed record.
+    payload = json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    try:
+        with path.open("x", encoding="utf-8", newline="\n") as fh:
+            fh.write(payload)
+    except FileExistsError as exc:
+        raise ProspectiveRefusal(
+            f"run record already exists at {path}; retain the original and use a distinct run_id"
+        ) from exc
     return path
 
 
@@ -421,49 +572,70 @@ def load_defects(root: str | os.PathLike[str], batch_id: str) -> list[dict[str, 
     if not path.exists():
         return []
     entries = []
+    seen_defect_ids: set[str] = set()
     with path.open(encoding="utf-8") as fh:
         for line_no, line in enumerate(fh, start=1):
             text = line.strip()
             if not text:
                 continue
             try:
-                entry = json.loads(text)
+                # Ledger lines authorize reruns and need the same unambiguous
+                # JSON rules as frozen declarations and retained run records.
+                entry = _parse_strict_prospective_json(
+                    text, f"defect ledger line {line_no}"
+                )
+            except ProspectiveRefusal:
+                raise
             except ValueError as exc:
                 raise ProspectiveRefusal(
                     f"defect ledger line {line_no} is not valid JSON"
                 ) from exc
             if entry.get("batch_id") == batch_id:
+                # A rerun cites a defect by id. Ambiguous duplicate ids would
+                # silently overwrite earlier evidence in check_batch's lookup;
+                # refuse even identical repeats rather than choosing one.
+                if entry.get("id"):
+                    defect_id = str(entry["id"])
+                    if defect_id in seen_defect_ids:
+                        raise ProspectiveRefusal(
+                            f"duplicate defect id in batch {batch_id!r}: "
+                            f"{defect_id!r} (line {line_no})"
+                        )
+                    seen_defect_ids.add(defect_id)
                 entries.append(entry)
     return entries
 
 
 def _run_record_paths(root: Path, batch_id: str) -> list[Path]:
     base = root / "prospective" / batch_id
-    # A4: retained run evidence must be inside the batch archive.  A symlink
-    # can otherwise import an externally mutable record or silently omit a
-    # dangling record (Path.is_file follows links and returns False).
-    if base.is_symlink():
-        raise ProspectiveRefusal(f"prospective batch archive is a symlink: {base}")
     if not base.exists():
         return []
-    archive_root = base.resolve()
-    if not _inside(archive_root, root.resolve()):
-        raise ProspectiveRefusal(
-            f"prospective batch archive escapes the repository: {base}"
-        )
+    # Resolve only after checking the declared batch location. Otherwise a
+    # symlinked directory or retained JSON leaf can import an externally
+    # mutable COMPLETED record into the prospective run denominator.
+    canonical_base = base.resolve()
+    if (
+        (root / "prospective").is_symlink()
+        or base.is_symlink()
+        or not _inside(canonical_base, root)
+    ):
+        raise ProspectiveRefusal("run record batch directory is symlinked or escapes repository")
     paths: set[Path] = set()
     for pattern in ("runs/*.json", "runs/**/run_record.json", "**/run_record.json"):
         for candidate in base.glob(pattern):
+            # A dangling symlink is not a file, but silently skipping it would
+            # undercount an otherwise valid retained run census.
             if candidate.is_symlink():
                 raise ProspectiveRefusal(
-                    f"prospective run record is a symlink, not retained evidence: {candidate}"
+                    "run record path is symlinked or invalid"
                 )
             if not candidate.is_file():
                 continue
             resolved = candidate.resolve()
-            if not _inside(resolved, archive_root):
+            # The intermediate 'runs' directory could also be a symlink.
+            if not _inside(resolved, canonical_base):
                 raise ProspectiveRefusal(
-                    f"prospective run record escapes the batch archive: {candidate}"
+                    f"run record path is symlinked or escapes prospective batch: {candidate}"
                 )
             paths.add(resolved)
     return sorted(paths)
@@ -475,18 +647,16 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
     records = []
     for path in _run_record_paths(repo, batch):
         try:
-            record = json.loads(path.read_text(encoding="utf-8"))
-        except ValueError as exc:
+            record = _load_strict_prospective_json(path, "run record")
+        except ProspectiveRefusal:
+            raise
+        except (OSError, UnicodeError, ValueError) as exc:
             raise ProspectiveRefusal(f"run record is not valid JSON: {path}") from exc
-        # A4 requires every discoverable run (including failures) to count.
-        # Silently skipping a record with a missing/altered batch_id can hide a
-        # failed run and falsely promote an incomplete batch to success.
-        if not isinstance(record, dict):
-            raise ProspectiveRefusal(f"run record must be a JSON object: {path}")
-        if record.get("batch_id") != batch:
+        # Never silently hide an off-batch run from the denominator. A record
+        # stored under this batch but claiming another batch must fail closed.
+        if not isinstance(record, dict) or record.get("batch_id") != batch:
             raise ProspectiveRefusal(
-                f"run record batch_id mismatch at {path}: "
-                f"expected {batch!r}, found {record.get('batch_id')!r}"
+                f"run record batch_id does not match requested batch {batch!r}: {path}"
             )
         records.append(record)
     return records
@@ -494,6 +664,10 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
 
 def _validate_record_shape(record: dict[str, Any]) -> list[str]:
     reasons: list[str] = []
+    # A versionless or incorrectly versioned record is not a valid retained
+    # prospective run. Compare exact types: bool True must not masquerade as v1.
+    if type(record.get("schema_version")) is not int or record["schema_version"] != RUN_RECORD_VERSION:
+        reasons.append(f"run {record.get('run_id')}: unsupported schema_version")
     required = {
         "run_id",
         "batch_id",
@@ -511,21 +685,69 @@ def _validate_record_shape(record: dict[str, Any]) -> list[str]:
     missing = sorted(required - set(record))
     if missing:
         reasons.append("run record missing fields: " + ", ".join(missing))
+    # A retained run can arrive from JSON without passing run_record().
+    # Refuse missing or synthetic identifiers instead of counting a
+    # subjectless/anonymous attempt as prospective validation. This checks
+    # structural provenance only, not independently witnessed subjects.
+    run_id = record.get("run_id")
+    if (
+        type(run_id) is not str
+        or not run_id
+        or run_id in {".", ".."}
+        or SAFE_NAME_RE.fullmatch(run_id) is None
+    ):
+        reasons.append(f"run {run_id!r}: run_id must be a nonempty safe identifier")
+    topic_identifier = record.get("topic_identifier")
+    if type(topic_identifier) is not str or not topic_identifier.strip():
+        reasons.append(
+            f"run {run_id!r}: topic_identifier must be a nonblank string"
+        )
     if record.get("outcome") not in RUN_OUTCOMES:
         reasons.append(f"run {record.get('run_id')}: invalid outcome {record.get('outcome')!r}")
-    if not isinstance(record.get("artefact_paths"), list):
+    artefacts = record.get("artefact_paths")
+    if type(artefacts) is not list:
         reasons.append(f"run {record.get('run_id')}: artefact_paths is not a list")
+    else:
+        # A completed run with no retained artefact inventory cannot support a
+        # source-grounded prospective result. This validates only the index:
+        # it does not authenticate the paths, contents or external custody.
+        if record.get("outcome") == "COMPLETED" and not artefacts:
+            reasons.append(
+                f"run {record.get('run_id')}: COMPLETED without retained artefact inventory"
+            )
+        if any(type(item) is not str or not item.strip() for item in artefacts):
+            reasons.append(
+                f"run {record.get('run_id')}: artefact_paths must contain only nonblank strings"
+            )
+        elif len({item.strip() for item in artefacts}) != len(artefacts):
+            reasons.append(f"run {record.get('run_id')}: duplicate artefact_paths")
+        # An inventory of path strings must not point outside the retained
+        # run evidence tree. These checks are lexical only: neither file
+        # existence nor immutable custody nor a source digest is established.
+        elif any(
+            path.startswith(("/", "\\"))
+            or "\\" in path
+            or re.match(r"^[A-Za-z]:", path) is not None
+            or any(part in {"", ".", ".."} for part in path.split("/"))
+            for path in artefacts
+        ):
+            reasons.append(
+                f"run {record.get('run_id')}: unsafe artefact_paths "
+                "(absolute, traversal, or noncanonical relative path)"
+            )
     if not isinstance(record.get("external_dependency_mutability"), bool):
         reasons.append(f"run {record.get('run_id')}: external_dependency_mutability is not a boolean")
     expected_claims = {MUTABLE_FREEZE_CLAIM, IMMUTABLE_FREEZE_CLAIM}
     if record.get("freeze_claim") not in expected_claims:
         reasons.append(f"run {record.get('run_id')}: invalid freeze_claim")
+    # Run timestamps are required, not optional truthy fields: otherwise a
+    # COMPLETED record with null/empty timestamps bypasses both the A4 limit
+    # and the registration-chronology checks in check_batch().
     try:
-        if record.get("started_utc") and record.get("finished_utc"):
-            started = _parse_utc(record["started_utc"])
-            finished = _parse_utc(record["finished_utc"])
-            if finished < started:
-                reasons.append(f"run {record.get('run_id')}: finished before started")
+        started = _parse_utc(record.get("started_utc"))
+        finished = _parse_utc(record.get("finished_utc"))
+        if finished < started:
+            reasons.append(f"run {record.get('run_id')}: finished before started")
     except ProspectiveRefusal as exc:
         reasons.append(f"run {record.get('run_id')}: {exc}")
     return reasons
@@ -543,56 +765,72 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     except ProspectiveRefusal as exc:
         reasons.append(str(exc))
 
+    # A locally labelled prospective record cannot predate the stored freeze.
+    # This checks internal chronology only: a developer-supplied timestamp is
+    # not an independently witnessed registration or immutable custody proof.
+    try:
+        declared_at = _parse_utc(decl.get("declared_utc"))
+    except ProspectiveRefusal as exc:
+        reasons.append(f"invalid declaration timestamp: {exc}")
+        declared_at = None
+
     records = load_run_records(repo, batch)
-    # A4: a declaration alone is not evidence that any prospective topic ran.
-    # Never label an empty batch as successfully checked.
+    if declared_at is not None:
+        for record in records:
+            try:
+                if _parse_utc(record.get("started_utc")) < declared_at:
+                    reasons.append(
+                        f"run {record.get('run_id')}: started before prospective declaration"
+                    )
+            except ProspectiveRefusal:
+                # The record-shape check below reports invalid run timestamps.
+                pass
+    # A declaration alone is not an executed validation batch. Without this
+    # refusal, check_batch returned ok=True for a zero-run denominator.
     if not records:
         reasons.append("batch has no retained prospective run records; cannot pass an empty batch")
     seen_run_ids: set[str] = set()
     for record in records:
         reasons.extend(_validate_record_shape(record))
-        # A4: retained runs require unique, usable identities for an
-        # auditable census and unambiguous rerun_of references.  Builders
-        # validate these names, but imported JSON may be altered later.
+        # Duplicate identifiers would silently collapse in the by_run lookup
+        # below. Keep both observed files visible and refuse ambiguous
+        # prospective run histories rather than allowing a misleading PASS.
         run_id = record.get("run_id")
-        if not isinstance(run_id, str) or run_id in {".", ".."} or not SAFE_NAME_RE.fullmatch(run_id):
-            reasons.append(f"run record has missing or invalid run_id: {run_id!r}")
-        elif run_id in seen_run_ids:
-            reasons.append(f"duplicate run_id in retained batch records: {run_id!r}")
-        else:
+        if isinstance(run_id, str) and run_id:
+            if run_id in seen_run_ids:
+                reasons.append(f"duplicate run_id in batch: {run_id!r}")
             seen_run_ids.add(run_id)
 
-    # A4: a run exceeding the *predeclared* ceiling must count as failed.
-    # A caller can otherwise label a long-running result COMPLETED and
-    # check_batch would previously report ok=True without checking the clock.
+    # A4's predeclared run limit is part of the frozen batch contract. A run
+    # that exceeds it cannot be reported as COMPLETED. These are self-reported
+    # timestamps, not independently witnessed execution or source custody.
     limit_raw = decl.get("time_limit_s")
-    try:
-        if type(limit_raw) not in (int, float):
-            raise TypeError("time_limit_s must be a JSON number")
-        time_limit = float(limit_raw)
-    except (TypeError, ValueError, OverflowError):
-        time_limit = None
-    if time_limit is None or not math.isfinite(time_limit) or time_limit <= 0:
-        reasons.append("batch declaration requires a finite positive numeric time_limit_s")
+    limit_seconds: float | None = None
+    if type(limit_raw) not in (int, float):
+        reasons.append("declaration time_limit_s must be a positive finite number")
     else:
+        try:
+            limit_seconds = float(limit_raw)
+        except OverflowError:
+            limit_seconds = None
+        if limit_seconds is None or not math.isfinite(limit_seconds) or limit_seconds <= 0:
+            reasons.append("declaration time_limit_s must be a positive finite number")
+            limit_seconds = None
+
+    if limit_seconds is not None:
         for record in records:
             try:
-                started = _parse_utc(record["started_utc"])
-                finished = _parse_utc(record["finished_utc"])
-            except (KeyError, ProspectiveRefusal) as exc:
-                # Existing shape validation can miss null/blank clock fields.
-                # Such a record must not evade the registered time ceiling.
-                reasons.append(
-                    f"run {record.get('run_id')}: missing or invalid timestamps "
-                    f"prevent time-limit verification: {exc}"
-                )
+                elapsed = (
+                    _parse_utc(record.get("finished_utc"))
+                    - _parse_utc(record.get("started_utc"))
+                ).total_seconds()
+            except ProspectiveRefusal:
+                # Invalid timestamps are handled by the run shape checker.
                 continue
-            elapsed = (finished - started).total_seconds()
-            if elapsed > time_limit and record.get("outcome") == "COMPLETED":
+            if elapsed > limit_seconds and record.get("outcome") == "COMPLETED":
                 reasons.append(
-                    f"run {record.get('run_id')}: COMPLETED after {elapsed:g}s exceeds "
-                    f"preregistered time_limit_s {time_limit:g}s; "
-                    "must count as FAILED_TIMEOUT"
+                    f"run {record.get('run_id')}: COMPLETED after predeclared "
+                    f"time_limit_s ({elapsed:g}s > {limit_seconds:g}s)"
                 )
 
     identities = {
@@ -616,6 +854,22 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             reasons.append(f"run {record.get('run_id')}: freeze_claim differs from declaration")
 
     by_run = {record.get("run_id"): record for record in records if record.get("run_id")}
+    # A4 permits only one original attempt per topic. Two attempts with
+    # distinct run_ids and neither marked rerun_of must not evade the rerun
+    # policy, including when the first attempt failed. Counts retain both
+    # attempts; refusal is structural, not independent proof of execution.
+    originals_by_topic: dict[str, list[str]] = {}
+    for record in records:
+        if record.get("rerun_of") is None:
+            topic = str(record.get("topic_identifier"))
+            originals_by_topic.setdefault(topic, []).append(str(record.get("run_id")))
+    for topic, original_ids in originals_by_topic.items():
+        if len(original_ids) > 1:
+            reasons.append(
+                f"topic {topic!r} has {len(original_ids)} unlabelled original attempts; "
+                "repeat attempts require an explicitly authorised A4 rerun"
+            )
+
     reruns_by_topic: dict[str, list[dict[str, Any]]] = {}
     for record in records:
         if record.get("rerun_of") is not None:
@@ -640,17 +894,67 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             reasons.append(
                 f"run {record.get('run_id')}: original topic does not match rerun topic"
             )
+        elif original.get("outcome") not in ("FAILED_CRASH", "FAILED_TIMEOUT"):
+            # A4 requires an external infrastructure incident. A recorded
+            # FAILED_INVARIANT is a retained scientific/control failure, not
+            # a result to rescue with a post-hoc defect assertion.
+            reasons.append(
+                f"run {record.get('run_id')}: original run is not a recorded failure "
+                "eligible for an infrastructure rerun"
+            )
+        # A retry cannot precede completion of the original attempt. Without
+        # this ordering check, an overlapping retry could be counted as a
+        # post-failure A4 rerun even while the original was still running.
+        # These locally reported times are not independently witnessed.
+        if original is not None:
+            try:
+                original_finished = _parse_utc(original.get("finished_utc"))
+                rerun_started = _parse_utc(record.get("started_utc"))
+            except ProspectiveRefusal:
+                # The run-shape checker reports malformed timestamps.
+                pass
+            else:
+                if rerun_started < original_finished:
+                    reasons.append(
+                        f"run {record.get('run_id')}: rerun started before original finished"
+                    )
         justification = str(record.get("rerun_justification") or "")
         cited = [
             defect
             for defect_id, defect in defects_by_id.items()
-            if defect_id and defect_id in justification
+            if (
+                defect_id
+                # A substring of another identifier is not a defect citation.
+                # Defect IDs may contain dots, dashes and underscores, so
+                # their boundaries must use the same SAFE_NAME alphabet.
+                and re.search(
+                    rf"(?<![A-Za-z0-9._-]){re.escape(defect_id)}(?![A-Za-z0-9._-])",
+                    justification,
+                ) is not None
+                and defect.get("failed_run_id") == original_id
+                and defect.get("topic_identifier") == record.get("topic_identifier")
+            )
         ]
         if not cited:
             reasons.append(
-                f"run {record.get('run_id')}: rerun lacks a prior defect-ledger entry"
+                f"run {record.get('run_id')}: rerun lacks a prior defect-ledger entry "
+                "bound to original run/topic"
             )
             continue
+        # The ledger must agree with the retained original outcome. Otherwise
+        # a timeout allegation could authorise retry of an invariant failure
+        # or a crash by changing only the defect's self-reported class.
+        if original is not None:
+            cited = [
+                defect for defect in cited
+                if defect.get("failure_class") == original.get("outcome")
+            ]
+            if not cited:
+                reasons.append(
+                    f"run {record.get('run_id')}: cited defect failure_class "
+                    "does not match original outcome"
+                )
+                continue
         try:
             rerun_started = _parse_utc(record["started_utc"])
             prior = [
@@ -665,24 +969,24 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             reasons.append(
                 f"run {record.get('run_id')}: cited defect was not declared before rerun start"
             )
-
-    # A4: failed runs are retained and count against the prospective batch,
-    # including when a permitted infrastructure rerun later completes.
-    # Structural validation alone must never return {"ok": true} for a
-    # batch containing an archived failed result.
-    failed_runs = [
-        record for record in records
-        if record.get("outcome") in RUN_OUTCOMES and record["outcome"] != "COMPLETED"
-    ]
-    if failed_runs:
-        failures = ", ".join(
-            f"{record.get('run_id')!r} ({record['outcome']})"
-            for record in failed_runs
-        )
-        reasons.append(
-            f"batch contains failed prospective runs ({len(failed_runs)} of "
-            f"{len(records)} retained): {failures}; a rerun cannot erase failure"
-        )
+            continue
+        # A defect entered before its purported failed attempt began cannot
+        # describe an incident arising during that attempt. Otherwise a
+        # pre-authorised fallback can masquerade as an A4 infrastructure rerun.
+        # Timestamps and attributions remain self-reported, not witnessed.
+        if original is not None:
+            try:
+                original_started = _parse_utc(original.get("started_utc"))
+            except ProspectiveRefusal:
+                # The retained record's shape checker reports this separately.
+                continue
+            if not any(
+                _parse_utc(str(defect.get("declared_utc"))) >= original_started
+                for defect in prior
+            ):
+                reasons.append(
+                    f"run {record.get('run_id')}: cited defect predates original attempt"
+                )
 
     if reasons:
         raise ProspectiveRefusal("PROSPECTIVE BATCH REFUSED:\n  - " + "\n  - ".join(reasons))

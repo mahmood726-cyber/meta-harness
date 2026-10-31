@@ -46,6 +46,9 @@ KEY_FILE = os.path.join("~", ".meta-harness", "heldout.key")
 MISSING_KEY_REASON = "held-out key not available: the detector cannot run; fail closed"
 COMMIT_MESSAGE_REFUSAL = "held-out sealed identifier may not be named in commit messages"
 IDENTIFIER_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+# Exhaustive matching is quadratic in a hyphen-run's component count.
+# Refuse oversized runs rather than skipping or silently capping coverage.
+MAX_HYPHEN_COMPONENTS = 64
 
 
 def _root_path(root) -> str:
@@ -81,6 +84,21 @@ def _run_git(root: str, args: list[str], isolate: bool = False) -> str:
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout or "").strip()
         raise RuntimeError(f"git {' '.join(args)} failed: {detail}")
+    return proc.stdout
+
+
+
+def _run_git_bytes(root: str, args: list[str], isolate: bool = False, input_data: bytes | None = None) -> bytes:
+    """Preserve NUL-delimited Git paths and exact staged blob bytes."""
+    proc = subprocess.run(
+        ["git", *args],
+        cwd=root,
+        capture_output=True,
+        input=input_data,
+        env=_isolated_git_env() if isolate else None,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"staged-index Git operation failed (exit {proc.returncode}); path and output redacted")
     return proc.stdout
 
 
@@ -127,27 +145,33 @@ def hmac_token(key: str, identifier: str) -> str:
 
 
 def candidate_identifiers(text: str):
-    """Yield every possible sealed identifier in `text`: each maximal [a-z0-9-] run of length >= 3 and, for
-    hyphenated runs, every contiguous window of 1..6 hyphen-tokens (a slug inside prose or a path segment is
-    still found). STREAMED WITHOUT A CAP: a bounded candidate set would stop scanning a large file part-way
-    (cache/embeddings.json, 14 MB, exceeded the first draft's 50,000 cap), so a sealed name late in such a file
-    would be missed silently -- the detector-gap class. Duplicates are suppressed per call with a seen-set that
-    grows with the file; memory is proportional to distinct identifiers, never truncated."""
+    """Stream all contiguous hyphen-component windows, not only six-part slugs.
+
+    The previous 1..6 window truncation missed longer sealed topics embedded
+    in paths/prose. A run with >64 components is a fail-closed refusal, not a
+    clean result. Deduplication remains per call without a candidate cap.
+    """
     seen: set[str] = set()
     for match in IDENTIFIER_RE.finditer(text.lower()):
         run = match.group(0)
+        parts = run.split("-")
+        if len(parts) > MAX_HYPHEN_COMPONENTS:
+            raise ValueError(
+                "held-out scan refused: hyphenated run has "
+                f"{len(parts)} components (limit {MAX_HYPHEN_COMPONENTS}); "
+                "exhaustive sealed-identifier matching not performed"
+            )
         if len(run) >= 3 and run not in seen:
             seen.add(run)
             yield run
-        if "-" not in run:
+        if len(parts) == 1:
             continue
-        parts = run.split("-")
         for start in range(len(parts)):
-            for end in range(start + 1, min(len(parts), start + 6) + 1):
-                w = "-".join(parts[start:end])
-                if len(w) >= 3 and w not in seen:
-                    seen.add(w)
-                    yield w
+            for end in range(start + 1, len(parts) + 1):
+                window = "-".join(parts[start:end])
+                if len(window) >= 3 and window not in seen:
+                    seen.add(window)
+                    yield window
 
 
 def _tokens(registry: dict) -> set[str]:
@@ -201,11 +225,57 @@ def _is_binary(blob: bytes) -> bool:
 
 
 def _scan_tracked_paths(root: str, isolate: bool = False) -> Iterable[str]:
-    for raw_path in _run_git(root, ["ls-files"], isolate=isolate).splitlines():
-        path = _posix(raw_path)
-        if path == _posix(REGISTRY_PATH):
+    """Use exact NUL-terminated tracked paths, not Git's C-quoted text output."""
+    for raw_path in _run_git_bytes(root, ["ls-files", "-z"], isolate=isolate).split(b"\0"):
+        if not raw_path:
             continue
+        path = _posix(os.fsdecode(raw_path))
+        # The sealed registry is tracked source too: its metadata may not expose sealed plaintext.
         yield path
+
+
+
+def _verified_missing_staged_addition(root: str, path: str, isolate: bool = False) -> bytes:
+    """Recover only a staged *addition* with a missing worktree copy.
+
+    A staged addition is publishable even if its worktree copy was subsequently
+    deleted. Compare the exact stage-zero index path/object ID with independently
+    hashed blob bytes; do not silently accept missing committed or staged-modified
+    files, unreadable paths, unmerged stages or a corrupt index/blob. All exceptions
+    redact the pathname and Git diagnostic (which may itself contain a sealed name).
+    """
+    refusal = "tracked file unreadable; scan refused (path redacted)"
+    try:
+        raw_path = os.fsencode(path)
+        additions = _run_git_bytes(
+            root, ["diff", "--cached", "--name-only", "-z", "--diff-filter=A"],
+            isolate=isolate,
+        ).split(b"\0")
+        if raw_path not in additions:
+            raise ValueError("not a staged addition")
+
+        entries = [
+            entry for entry in _run_git_bytes(
+                root, ["ls-files", "--stage", "-z", "--", path], isolate=isolate,
+            ).split(b"\0") if entry
+        ]
+        if len(entries) != 1:
+            raise ValueError("ambiguous index stages")
+        metadata, separator, indexed_path = entries[0].partition(b"\t")
+        fields = metadata.split()
+        if (not separator or indexed_path != raw_path or len(fields) != 3
+                or fields[0] not in (b"100644", b"100755", b"120000")
+                or fields[2] != b"0" or not re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", fields[1])):
+            raise ValueError("invalid index object identity")
+        blob = _run_git_bytes(root, ["cat-file", "blob", ":" + path], isolate=isolate)
+        calculated = _run_git_bytes(
+            root, ["hash-object", "--stdin"], isolate=isolate, input_data=blob,
+        ).strip()
+        if not hmac.compare_digest(calculated, fields[1]):
+            raise ValueError("index object hash mismatch")
+        return blob
+    except Exception:
+        raise RuntimeError(refusal) from None
 
 
 def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dict]:
@@ -215,17 +285,88 @@ def scan_tree(root, key: str, registry: dict, isolate: bool = False) -> list[dic
     hits = []
     match = _Matcher(key, registry)
     for path in _scan_tracked_paths(root, isolate=isolate):
+        # A sealed filename must not reappear in a content-hit diagnostic.
+        report_path = "<redacted tracked path>" if match(path) else path
         abs_path = os.path.join(root, *path.split("/"))
         try:
+            # Git commits a symlink's *target path*, not the contents of the
+            # file it points at. Following the link could read private files
+            # outside this checkout and miss a sealed identifier in the
+            # actually committed link target.
+            if os.path.islink(abs_path):
+                link_target = os.readlink(abs_path)
+                for digest in match(link_target):
+                    hits.append({"path": report_path, "identifier_hmac": digest, "line_no": 1})
+                continue
             blob = open(abs_path, "rb").read()
+        except FileNotFoundError:
+            # A staged addition survives removal of its worktree copy. Scan the
+            # verified index blob, but keep ordinary missing tracked files refused.
+            blob = _verified_missing_staged_addition(root, path, isolate=isolate)
         except OSError:
-            continue
-        if _is_binary(blob):
-            continue
+            # Permission/IO failures are not evidence of clean content.
+            raise RuntimeError("tracked file unreadable; scan refused (path redacted)") from None
+        # Git can track binary files with embedded plaintext held-out names.
+        # NUL bytes and invalid UTF-8 delimit candidates, not scanning coverage.
+        # Skipping a binary blob would falsely certify an uninspected source.
         text = blob.decode("utf-8", errors="replace")
         for line_no, line in enumerate(text.splitlines(), start=1):
             for digest in match(line):
-                hits.append({"path": path, "identifier_hmac": digest, "line_no": line_no})
+                hits.append({"path": report_path, "identifier_hmac": digest, "line_no": line_no})
+    return hits
+
+
+
+def scan_tracked_filenames(root, key: str, registry: dict, isolate: bool = False) -> list[dict]:
+    """Check tracked pathnames even on a clean CI checkout with no staged diff.
+
+    A staged-only filename scan cannot see a sealed name after commit. Git's
+    NUL-terminated index listing preserves unusual pathnames without printing them.
+    """
+    root = _root_path(root)
+    names = _run_git_bytes(root, ["ls-files", "-z"], isolate=isolate).split(b"\0")
+    match = _Matcher(key, registry)
+    hits = []
+    for raw_name in names:
+        if not raw_name:
+            continue
+        path = _posix(os.fsdecode(raw_name))
+        if path == _posix(REGISTRY_PATH):
+            continue
+        for digest in match(path):
+            hits.append({"kind": "tracked_path", "identifier_hmac": digest})
+    return hits
+
+
+def scan_staged_index(root, key: str, registry: dict, isolate: bool = False) -> list[dict]:
+    """Scan index blobs for added/modified paths, even if the worktree was cleaned after staging.
+
+    scan_tree examines working-tree bytes, which can differ from what a pre-commit hook
+    is about to publish. This is an additional index guard, not a replacement for
+    the working-tree and committed-history checks. NUL paths preserve unusual names.
+    """
+    root = _root_path(root)
+    paths = _run_git_bytes(
+        root, ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMRT"], isolate=isolate
+    ).split(b"\0")
+    match = _Matcher(key, registry)
+    hits = []
+    for raw_path in paths:
+        if not raw_path:
+            continue
+        path = _posix(os.fsdecode(raw_path))
+        # Include registry blob bytes: the index must not publish a sealed name as metadata.
+        # Stage pathnames are source metadata too; redact any matching sealed name.
+        path_tokens = match(path)
+        safe_path = "<redacted staged path>" if path_tokens else path
+        for digest in path_tokens:
+            hits.append({"kind": "staged_path", "identifier_hmac": digest})
+        blob = _run_git_bytes(root, ["cat-file", "blob", ":" + path], isolate=isolate)
+        # The staged Git blob is the publishable source of truth, even when
+        # binary. Search readable identifier spans rather than skipping NUL data.
+        for line_no, line in enumerate(blob.decode("utf-8", errors="replace").splitlines(), start=1):
+            for digest in match(line):
+                hits.append({"path": safe_path, "identifier_hmac": digest, "line_no": line_no})
     return hits
 
 
@@ -235,14 +376,18 @@ def check_message(text: str, key: str, registry: dict) -> list[str]:
 
 
 def scan_commit_messages(root, key: str, registry: dict) -> list[dict]:
-    """Scan first-parent commit messages after enforced_since for sealed identifiers."""
+    """Scan ALL reachable new commit messages, including merged side-branch parents.
+
+    The original first-parent traversal silently missed sealed identifiers in
+    commits integrated by a non-fast-forward merge when the merge message was clean.
+    """
     root = _root_path(root)
     enforced_since = registry.get("enforced_since")
     if not enforced_since:
         return []
     out = _run_git(
         root,
-        ["log", "--first-parent", "--format=%H%x00%B%x00", f"{enforced_since}..HEAD"],
+        ["log", "--format=%H%x00%B%x00", f"{enforced_since}..HEAD"],
     )
     parts = out.split("\0")
     hits = []
@@ -336,6 +481,28 @@ def check(root) -> tuple[bool, list[str]]:
             )
     except Exception as exc:
         reasons.append(f"sealed held-out tree scan could not run: {exc}")
+    try:
+        for hit in scan_tracked_filenames(root, key, registry):
+            reasons.append(
+                f"sealed identifier {hit['identifier_hmac'][:12]}... appears in a tracked filename "
+                "(filename redacted)"
+            )
+    except Exception as exc:
+        reasons.append(f"sealed held-out tracked filename scan could not run: {exc}")
+    try:
+        for hit in scan_staged_index(root, key, registry):
+            if hit.get("kind") == "staged_path":
+                reasons.append(
+                    f"sealed identifier {hit['identifier_hmac'][:12]}... appears in a staged path "
+                    "(filename redacted)"
+                )
+            else:
+                reasons.append(
+                    f"{hit['path']}:{hit['line_no']}: sealed identifier "
+                    f"{hit['identifier_hmac'][:12]}... appears in a staged index blob"
+                )
+    except Exception as exc:
+        reasons.append(f"sealed held-out staged index scan could not run: {exc}")
     try:
         for hit in scan_commit_messages(root, key, registry):
             reasons.append(

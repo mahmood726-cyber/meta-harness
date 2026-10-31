@@ -20,6 +20,8 @@ python -m extraction_contract extract --docs-root <dir> --document <ref> --trial
 python -m extraction_contract check bundle.json --docs-root <dir> --records <records dir> --out p3_report.json
 ```
 Cite `p3_report.json` (verdict + contract version) beside the claim.
+
+**Authoritative fail-closed rule (29 October 2026):** Without `--records`, the report remains useful for metadata/source diagnostics, but always returns REFUSE and exit code 1. A supplied inventory must contain two independently replayable `model_call_record/1` records; their stored prompt/response bytes, record IDs, model pins, document input digests, trial/measure-specific prompts and reconstructed reading items must agree. Missing/empty/tampered records cannot authorize ALLOW_MATCH_CLAIM. Stored-call replay does **not** independently attest a remote model provider, reproduce a fresh model run, or substitute for external blinded scientific adjudication.
 - Only open-licensed documents may be sent. Each prompt passes the repo's licence guard (`reproducible_ai.record_licence`) before any call.
 - Committing call records follows the repo's model-output rules (`tests/test_model_inventory.py`).
 
