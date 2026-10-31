@@ -623,12 +623,17 @@ def _run_record_paths(root: Path, batch_id: str) -> list[Path]:
     paths: set[Path] = set()
     for pattern in ("runs/*.json", "runs/**/run_record.json", "**/run_record.json"):
         for candidate in base.glob(pattern):
+            # A dangling symlink is not a file, but silently skipping it would
+            # undercount an otherwise valid retained run census.
+            if candidate.is_symlink():
+                raise ProspectiveRefusal(
+                    "run record path is symlinked or invalid"
+                )
             if not candidate.is_file():
                 continue
             resolved = candidate.resolve()
-            # Also catch a symlinked intermediate 'runs' directory; checking
-            # only the final leaf's is_symlink() would miss that alias.
-            if candidate.is_symlink() or not _inside(resolved, canonical_base):
+            # The intermediate 'runs' directory could also be a symlink.
+            if not _inside(resolved, canonical_base):
                 raise ProspectiveRefusal(
                     f"run record path is symlinked or escapes prospective batch: {candidate}"
                 )

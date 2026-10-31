@@ -1664,3 +1664,32 @@ def test_a1_symlinked_declaration_cannot_be_claimed_frozen(
         else outside / "batch-plant" / "declaration.json"
     )
     assert retained.read_bytes() == original_bytes
+
+
+
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_a4_symlinked_record_never_disappears_from_valid_run_census(
+    tmp_path: Path, target_exists: bool
+) -> None:
+    """Synthetic external/dangling record must refuse, never silently vanish."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-valid"))
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+    outside = tmp_path / "external-run-record.json"
+    if target_exists:
+        outside.write_text('{"untrusted": true}', encoding="utf-8")
+    link = root / "prospective" / batch / "runs" / "synthetic-secret.json"
+    try:
+        link.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem does not permit symlinks")
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="run record path is symlinked or invalid",
+    ) as exc:
+        prospective.check_batch(root, batch)
+    assert "synthetic-secret" not in str(exc.value)
