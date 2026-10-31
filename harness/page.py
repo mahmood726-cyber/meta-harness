@@ -1715,8 +1715,10 @@ def _loo_text(loo):
     if not loo:
         return None
     if loo.get("min") is not None:
+        changed = loo.get("inference_changed_by") or []
+        inf = (f" Inference changes when dropping {_e(', '.join(str(c) for c in changed))}." if changed else "")
         return (f"estimate ranges {_num(loo.get('min'))}–{_num(loo.get('max'))} across single-trial drops; "
-                f"most influential: {_e(loo.get('most_influential'))}. "
+                f"most influential: {_e(loo.get('most_influential'))}.{inf} "
                 + _e(loo.get("note", "")))
     return _e(loo.get("note"))
 
