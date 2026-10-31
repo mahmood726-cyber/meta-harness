@@ -162,6 +162,45 @@ SPECS = {
                        "trigger": r"primary|secondary|composite", "plants": {
                            "accept": ["primary endpoint", "the composite outcome"],
                            "refuse": ["major cardiovascular events", "death from any cause"]}},
+    # ---- A7 (reported v count-derived, coverage lane, 14 Oct) ----
+    "_RT_ADJUSTED": {"kind": "classifier",
+                     "spec": "the reported ratio is a different estimand from crude counts: adjusted / model-based "
+                             "(regression, 'control for') or a RATE ratio -- not compared at rounding precision",
+                     "trigger": r"adjust|regression|control|rate ratio|\baOR\b|\baRR\b|\baHR\b|\bIRR\b", "plants": {
+                         "accept": ["the adjusted relative risk was 0.29",
+                                    "logistic regression to control for other factors gave an odds ratio 0.25",
+                                    "died within 28 days (rate ratio 0.85"],
+                         "refuse": ["unadjusted RR 0.50", "relative risk 0.49; 95% ci 0.24-0.65"]}},
+    "_NUM_TOKEN": {"kind": "classifier",
+                   "spec": "a number as printed, including one with no leading zero ('.50')",
+                   "trigger": r"\d", "plants": {
+                       "accept": ["RR .50", "RR 0.59"],
+                       "refuse": ["relative risk", "no value"]}},
+    "_RATIO_VALUE": {"kind": "extractor", "fields": ["label", "point"],
+                     "spec": "a ratio label and the value printed after it ('RR 0.50', 'relative risk was 0.49')",
+                     "trigger": r"\bRR\b|\bOR\b|\bHR\b|ratio|relative risk", "plants": {
+                         "accept": [("RR 0.50 (95% CI 0.30-0.80)", ("RR", "0.50")),
+                                    ("the relative risk was 0.49;", ("relative risk", "0.49")),
+                                    ("odds ratio .25", ("odds ratio", ".25"))],
+                         "refuse": ["relative risk (0.49", "RR; 0.5"]}},
+    "_NEXT_ESTIMATE": {"kind": "extractor", "fields": ["label"],
+                       "spec": "where the next estimate in a sentence begins: its label and a qualifier before it",
+                       "trigger": r"\bRR\b|\bOR\b|\bHR\b|ratio|relative risk", "plants": {
+                           "accept": [(", adjusted RR 0.60", ("RR",)), ("; crude odds ratio 1.2", ("odds ratio",))],
+                           "refuse": ["(95% CI 0.30-0.80)", ", adjusted for age"]}},
+    "_PCT_PAIR": {"kind": "extractor", "fields": ["percent_first", "percent_second"],
+                  "spec": "a bare percentage pair with no event counts ('30% vs 55.5% of patients')",
+                  "trigger": r"%", "plants": {
+                      "accept": [("experienced in 30% vs 55.5% of patients", ("30", "55.5")),
+                                 ("12.5 % versus 20 % of children", ("12.5", "20"))],
+                      "refuse": ["30% of patients", "3/10 (30%) v 5/9"]}},
+    "_PCT_NOT_A_PROPORTION": {"kind": "classifier",
+                              "spec": "the sentence's percentages are estimates or rates, not observed event proportions",
+                              "trigger": r"kaplan|estimat|cumulative|probabil|per|person|annual|rate", "plants": {
+                                  "accept": ["kaplan-meier estimated mortality was 30% vs 50%",
+                                             "the cumulative incidence was 30% vs 50%"],
+                                  "refuse": ["mortality was 30% vs 50% in the two groups",
+                                             "aad was experienced in 30% vs 55.5% of patients"]}},
 }
 
 
@@ -179,6 +218,19 @@ ROLES.update({"_DEF_CUE": "conjunct:_ANCHOR_RX", "_ANCHOR_RX": "conjunct:_DEF_CU
 # The test reads each pattern FROM THE SOURCE by AST, so a changed literal gets a new key and fails the ratchet until
 # its plants are restated. kind: "search" (accept = must match, with groups when given) or "split" (accept = parts).
 INLINE_SPECS = {
+    "extract.py:finditer:b96cefac82": {
+        "kind": "search", "what": "_outcome_sentences: parenthesized candidate alias, before definition/initial checks",
+        "plants": {"accept": [("hospitalization for heart failure (hHF)", ("hHF",)),
+                              ("(AAD)", ("AAD",)), ("(DPP-4)", ("DPP-4",))],
+                   "refuse": ["hHF", "(H)", "(heart failure)", "(ABCDEFGHI)"]}},
+    "extract.py:findall:a5b3c1db92": {
+        "kind": "search", "what": "_outcome_sentences: lowercase keyword words used to derive content initials",
+        "plants": {"accept": [("hospitalization for heart failure", ()), ("heart-failure", ())],
+                   "refuse": ["123-()", "HHF"]}},
+    "extract.py:findall:9c5ae57564": {
+        "kind": "search", "what": "_outcome_sentences: ASCII alias letters, excluding digits and hyphens",
+        "plants": {"accept": [("hHF", ()), ("DPP-4", ())],
+                   "refuse": ["123-()", " "]}},
     "extract.py:split:328973b9f2": {
         "kind": "split", "what": "_sentences: split after a full stop before a capital or '('",
         "plants": {"accept": [("Mortality fell. The HR was 0.8.", ["Mortality fell.", "The HR was 0.8."]),
@@ -314,3 +366,33 @@ INLINE_SPECS.update(_WHOLE_NUMBERS)
 from regex_layer.specs_g1_analysis_set import SITE_SPECS as _G1_ANALYSIS_SET  # noqa: E402
 
 INLINE_SPECS.update(_G1_ANALYSIS_SET)
+
+# harness/extract.py -- A7 (reported v count-derived), coverage lane, 14 Oct
+INLINE_SPECS.update({
+    "extract.py:sub:7b4eac99d8": {
+        "kind": "search", "what": "_reported_occurrence: collapse whitespace in a ratio label ('relative  risk')",
+        "plants": {"accept": [("relative  risk", None), ("hazard\nratio", None)],
+                   "refuse": ["relativerisk", "RR"]}},
+    "extract.py:search:133ae5728a": {
+        "kind": "search", "what": "_reported_occurrence: where the reported value's own clause ends (';' or sentence "
+                                  "end; a decimal point is not an end)",
+        "plants": {"accept": [("; adjusted RR 0.60", None), (". The next sentence", None), ("end.", None)],
+                   "refuse": ["(95% CI 0.30-0.80), adjusted for age", "0.5 times"]}},
+    "extract.py:sub:60ae28a614": {
+        "kind": "search", "what": "percentage_implied_counts: a p value, removed before testing whether the sentence "
+                                  "carries numbers of its own",
+        "plants": {"accept": [("(p = 0.375)", None), ("p<.05", None)],
+                   "refuse": ["10 in the LGG group", "pre-hospital"]}},
+    "extract.py:search:159a89219d#3": {
+        "kind": "search", "what": "percentage_implied_counts: the sentence still carries a number of its own",
+        "plants": {"accept": [("among the 5 patients", None)], "refuse": ["of patients in the LGG groups vs placebo"]}},
+    "extract.py:search:49d1e3511c": {
+        "kind": "search", "what": "percentage_implied_counts: the sentence names a subset or any population",
+        "plants": {"accept": [("among the safety-evaluable patients", None), ("in the per-protocol set", None),
+                              ("in the analysed population", None)],
+                   "refuse": ["of patients in the lgg groups vs placebo"]}},
+    "extract.py:search:4c502f11b5": {
+        "kind": "search", "what": "percentage_implied_counts: an explicit 'respectively' licenses arms named before the "
+                                  "pair to set its order",
+        "plants": {"accept": [("20% vs 40%, respectively", None)], "refuse": ["compared with placebo, 30% vs 50%"]}},
+})

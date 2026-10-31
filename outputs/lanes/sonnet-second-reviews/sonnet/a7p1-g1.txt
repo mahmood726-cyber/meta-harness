@@ -1,0 +1,338 @@
+NO TOOLS ARE AVAILABLE TO YOU: do not run commands, do not read files, do not search. Every command is denied and a denied call ends your turn with nothing recorded. Reason from the diff text below only; a failing input is one you derive by reading the code. Reply with the JSON object only.
+
+You are an adversarial reviewer of research-harness code that extracts per-arm death counts from clinical-trial
+reports and registries, binds papers to trials, classifies screening exclusions, and screens records for RCT status.
+Correctness standards: a number must come from held text by rule; a percentage or Kaplan-Meier estimate is never a
+count; denominator kinds (randomised / analysed / safety) are never mixed; a paper binds to a trial only on its own
+evidence; a gate that can only pass is a defect; silent fallbacks that turn failure into "absent" are defects.
+
+Review the code below. Report only REAL defects you can demonstrate: for each, give the file, the function, a severity
+(P0 wrong number reaches a result / P1 wrong classification or binding / P2 robustness), the claim, a CONCRETE failing
+input (an exact string, record or call that a reader can run), the expected output, and the actual output the code
+gives. Do not report style. Do not speculate without an input. If you find nothing real, return an empty list.
+
+You are reviewing a DIFF merged from a lane branch (lines starting '+' are new).
+
+=== DIFF harness/absence.py ===
+diff --git a/harness/absence.py b/harness/absence.py
+index 0a890fb2..abdd77a5 100644
+--- a/harness/absence.py
++++ b/harness/absence.py
+@@ -55,6 +55,9 @@ RETRIEVED_INCOMPATIBLE_STRUCTURE = "RETRIEVED_INCOMPATIBLE_STRUCTURE"
+ RETRIEVED_REFUSED_WITH_REASON = "RETRIEVED_REFUSED_WITH_REASON"
+ UNIT_MISMATCH_CYCLE_LEVEL = "UNIT_MISMATCH_CYCLE_LEVEL"
+ ENGINE_CANNOT_CONSUME = "ENGINE_CANNOT_CONSUME"
++# A7 (r30-C PICU): a source-reported effect and its own count-derived effect disagree; both are held, neither pooled.
++# Defined once, in extract (which detects it); absence imports extract, never the reverse.
++SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE = extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE
+ 
+ _CODE_ALIASES = {
+     "NO_OUTCOME_DATA_IN_SOURCE": OUTCOME_NOT_IN_SOURCE,
+@@ -390,6 +393,20 @@ def _classify_reason(keywords, abstract, fulltext=None, outcome_name=None, decla
+         return {"reason_code": code, "state": code,
+                 "state_basis": _basis(code, span, reason),
+                 "source_span": span, "verbatim_span": span}
++    if row.get("state") == SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE:
++        # A7: the extractor found BOTH a reported effect and arm counts that disagree. The state is kept as typed (never
++        # re-derived as 'not in source' from the prose), and the basis quotes both values with their spans.
++        rep, der = row.get("reported") or {}, row.get("count_derived") or {}
++        detail = (f"reported {rep.get('scale')} {rep.get('effect')} ({rep.get('ci_low')}, {rep.get('ci_high')}) from "
++                  f"\"{_clip(rep.get('span') or '')}\"; count-derived {der.get('scale')} "
++                  f"{round(der.get('effect') or 0, 4)} from {der.get('ai')}/{der.get('n1i')} v "
++                  f"{der.get('ci')}/{der.get('n2i')} in \"{_clip(der.get('span') or '')}\"; neither is pooled until "
++                  f"adjudicated")
++        span = rep.get("span") or der.get("span") or ""
++        return {"reason_code": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,
++                "state": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,
++                "state_basis": _basis(SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE, detail=detail),
++                "source_span": _clip(span), "verbatim_span": _clip(span)}
+     if row.get("state") in (OUTCOME_POST_HOC_NOT_POOLED, OUTCOME_NOT_REPORTED):
+         code = row.get("state")
+         span = row.get("source_span") or row.get("verbatim_span") or row.get("source") or reason or ""
+
+
+=== DIFF harness/consumer_consistency.py ===
+diff --git a/harness/consumer_consistency.py b/harness/consumer_consistency.py
+index 191dab38..75bef91e 100644
+--- a/harness/consumer_consistency.py
++++ b/harness/consumer_consistency.py
+@@ -29,6 +29,7 @@ VALUE_REASON_CODES = {
+     "UNIT_MISMATCH_CYCLE_LEVEL",
+     absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
+     absence.COUNTS_PRESENT_NOT_CORROBORATED,
++    absence.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,  # A7: two values held
+     absence.EXTRACTION_NOT_PERFORMED,
+     absence.REFUSED_ON_EVIDENCE,
+ }
+
+
+=== DIFF harness/extract.py ===
+diff --git a/harness/extract.py b/harness/extract.py
+index 516eabe7..4e73042f 100644
+--- a/harness/extract.py
++++ b/harness/extract.py
+@@ -450,6 +450,106 @@ def _roundtrip_ok(ai, n1i, ci, n2i, scale, point):
+     return True
+ 
+ 
++SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE = "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE"
++# an ADJUSTED / model-based reported effect is a different estimand from the crude count-derived one (named limit:
++# not compared, the historical behaviour stands). Its own name: the module-level _ADJUSTED_EFFECT below is a
++# narrower, differently-used pattern (it does not match "adjusted relative risk") and would shadow this one.
++# Also a model-based estimate described without the word 'adjusted' ('Logistic regression to control for other factors
++# gave an odds ratio 0.25', probiotics 17604300) and a RATE ratio, which is not a risk ratio (RECOVERY's 'rate ratio
++# 0.85' is an age-adjusted Cox estimate; 33933206) -- both false positives found by the sweep over the served 32.
++_RT_ADJUSTED = re.compile(r"(?<!un)\badjusted\b|\ba(?:OR|RR|HR)\b|\bmultivariab|\bmultivariate\b|\bcovariate|"
++                          r"\bregression\b|\bcontroll?(?:ing|ed)?\s+for\b|\brate\s+ratio\b|\bIRR\b", re.I)
++# a number as printed, including one with no leading zero ('RR .50', codex a7-r3 #2)
++_NUM_TOKEN = re.compile(r"(?<![\d.])(?:\d+(?:\.\d+)?|\.\d+)(?![\d.])")
++# the reported value AS PRINTED after its ratio label: 'RR 0.50', 'relative risk 0.49;', 'odds ratio 0.25 (95% ...'
++_RATIO_LABEL = r"\b(RR|OR|HR|IRR|relative\s+risk|risk\s+ratio|odds\s+ratio|hazard\s+ratio|rate\s+ratio)\b"
++_RATIO_VALUE = re.compile(_RATIO_LABEL + r"[^\d;().]{0,30}?(?<![\d.])(\d+(?:\.\d+)?|\.\d+)(?![\d.])", re.I)
++# where the NEXT estimate begins: its label and any qualifier word before it ('..., adjusted RR 0.60', a7-r3 #1)
++_NEXT_ESTIMATE = re.compile(r"(?:\b(?:un)?adjusted\s+|\bcrude\s+)?" + _RATIO_LABEL, re.I)
++# a label is the reported value's own only when it names the reported SCALE (codex a7-r2 #2: 'The HR was 0.5 and the
++# RR was 0.50' -- the HR's 0.5 must not set the RR's precision). A rate ratio is read as an RR by extract_effect, so
++# it is that RR's label (and then a different estimand, exempt).
++_LABEL_SCALE = {"rr": "RR", "relative risk": "RR", "risk ratio": "RR", "rate ratio": "RR", "irr": "RR",
++                "or": "OR", "odds ratio": "OR", "hr": "HR", "hazard ratio": "HR"}
++
++
++def _reported_occurrence(point, span, scale=None):
++    """(printed token, its own clause) of the reported point: the occurrence printed after a label OF ITS SCALE, never
++    an equal number elsewhere ('At 0.5 years ... RR 0.50': precision is the RR's two decimals; codex a7-r1 #1;
++    'The HR was 0.5 and the RR was 0.50': the RR's, a7-r2 #2). The clause runs back to the previous ';' (capped at
++    160 chars) and forward to the next ';' or sentence end (capped at 120): an ADJUSTED estimate printed beside an
++    unadjusted one does not exempt the unadjusted one (a7-r1 #2), and a qualifier after the value ('RR 0.50 (95% CI
++    0.30-0.80), adjusted for age') does exempt it (a7-r2 #1). Falls back to the first equal token and the whole span
++    when no labelled occurrence is found (the conservative reading)."""
++    span = span or ""
++    for m in _RATIO_VALUE.finditer(span):
++        lab = re.sub(r"\s+", " ", m.group(1).lower())
++        if scale and _LABEL_SCALE.get(lab) not in (None, scale):
++            continue
++        if abs(float(m.group(2)) - point) < 1e-12:
++            head = span[max(0, m.start() - 160):m.start(2)]
++            tail = span[m.end(2):m.end(2) + 120]
++            # forward: up to the next ';', the sentence end, or where the NEXT estimate begins (a7-r3 #1)
++            ends = [c.start() for c in (re.search(r";|\.(?:\s|$)", tail), _NEXT_ESTIMATE.search(tail)) if c]
++            tail = tail[:min(ends)] if ends else tail
++            # back: ';' separates two estimates; '(' does not -- 'the adjusted relative risk was ... (RR = 0.29' keeps
++            # its label (probiotics 7872284, the sweep after the r1 fix)
++            return m.group(2), head[head.rfind(";") + 1:] + m.group(2) + tail
++    for tok in _NUM_TOKEN.findall(span):
++        if abs(float(tok) - point) < 1e-12:
++            return tok, span
++    return None, span
++
++
++def _printed_decimals(point, span, scale=None):
++    """Decimals of the reported point AS PRINTED ('1.00' -> 2), else of its float repr."""
++    tok, _ = _reported_occurrence(point, span, scale)
++    if tok is not None:
++        return len(tok.split(".")[1]) if "." in tok else 0
++    s = repr(float(point))
++    return len(s.split(".")[1].rstrip("0")) if "." in s else 0
++
++
++def reported_vs_count_derived(arms, rep, rep_span, count_span):
++    """None when the source-reported effect and the effect derived from the source's own arm counts agree; else the
++    typed refusal SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE carrying BOTH values with their spans, so neither is
++    pooled until a person adjudicates (A7, external audit r30-C). Agreement = the derived value rounds to the reported
++    one at the reported precision (half a unit in the last printed decimal). Compared only on the same scale (RR v
++    RR from counts, OR v OR); a reported HR keeps the direction-only check, and an adjusted reported effect is not
++    compared (a different estimand).
++
++    `terminal`: a ROUNDING disagreement (one outcome, two values) is terminal -- no lower rung may supply a third value
++    in their place. A GROSS mismatch (factor > 2 / opposite direction: the historical round-trip refusal, unchanged
++    in when it fires) means the counts likely belong to a different outcome, so a lower rung may still supply this
++    outcome's own value (spironolactone 28824029: a composite's HR 0.85 bound to the death counts; the full text's
++    1.77 agrees with the counts)."""
++    ai, n1i, ci, n2i = arms[:4]
++    scale, point = rep[0], rep[1]
++    if point is None or point <= 0:
++        return None
++    derived = _or_from_counts(ai, n1i, ci, n2i) if scale == "OR" else _rr_from_counts(ai, n1i, ci, n2i)
++    if not derived or derived <= 0:
++        return None
++    gross = not _roundtrip_ok(ai, n1i, ci, n2i, scale, point)
++    if not gross:
++        if scale not in ("RR", "OR") or _RT_ADJUSTED.search(_reported_occurrence(point, rep_span, scale)[1]):
++            return None
++        tol = 0.5 * 10 ** (-_printed_decimals(point, rep_span, scale)) + 1e-9
++        if abs(derived - point) <= tol:
++            return None
++    dscale = scale if scale in ("RR", "OR") else "RR"
++    why = ("counts likely belong to a different outcome (factor > 2 or opposite direction)" if gross else
++           "beyond the reported value's rounding")
++    return {"absent": True, "state": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE, "gross": gross, "terminal": not gross,
++            "reported": {"scale": scale, "effect": point, "ci_low": rep[2], "ci_high": rep[3],
++                         "span": (rep_span or "")[:300]},
++            "count_derived": {"ai": ai, "n1i": n1i, "ci": ci, "n2i": n2i, "scale": dscale,
++                              "effect": derived, "span": (count_span or "")[:300]},
++            "reason": (f"{SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE}: the source reports {scale} {point} but its own "
++                       f"arm counts {ai}/{n1i} v {ci}/{n2i} give {dscale} {round(derived, 4)} -- {why}; neither value "
++                       f"is pooled until adjudicated")}
++
++
+ _FACTORIAL = re.compile(r"\bfactorial\b|\b2\s*[x×]\s*2\b|\btwo[- ]by[- ]two\b|\bpartial factorial\b", re.I)
+ _DOSE_ARM = re.compile(r"(\d+(?:\.\d+)?)\s*-?\s*mg\b(?:[^.]{0,20}?(?:group|arm|dose|daily|twice|once))?", re.I)
+ 
+@@ -892,20 +992,22 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
+         if arms:
+             # ROUND-TRIP (every outcome, not only same-sentence): the count-derived effect must
+             # reconcile with the effect the paper reports for THIS outcome — first the same
+-            # sentence, else the outcome's reported effect anywhere in the abstract. Refuse a
+-            # count table we cannot reconcile with the paper's own number.
++            # sentence, else the outcome's reported effect anywhere in the abstract.
+             rep = extract_effect(s)  # tuple (scale, point, lo, hi) or None
++            rep_span = s.strip()
+             if not rep:
+                 d = effect_in_outcome(abstract, outcome_kws)  # dict or None
+                 if d:
+                     rep = (d["scale"], d["effect"], d.get("ci_low"), d.get("ci_high"))
+-            if rep and not _roundtrip_ok(arms[0], arms[1], arms[2], arms[3], rep[0], rep[1]):
+-                _arm_res.append({"absent": True,
+-                        "reason": (f"round-trip mismatch: extracted counts {arms[0]}/{arms[1]} vs "
+-                                   f"{arms[2]}/{arms[3]} imply "
+-                                   f"{round(_rr_from_counts(*arms) or 0, 3)} but the source reports "
+-                                   f"{rep[0]} {rep[1]} — counts likely belong to a different outcome; refused")})
+-                continue
++                    rep_span = d.get("source") or ""
++            # A7 (r30-C PICU 39935568): a reported effect and the count-derived one that disagree beyond the
++            # reported value's rounding are a TYPED state with both values -- never a silent pick of the counts.
++            # The gross (factor > 2) round-trip mismatch is the same state (generalises the 19138244 refusal).
++            if rep:
++                dis = reported_vs_count_derived(arms, rep, rep_span, s.strip())
++                if dis:
++                    _arm_res.append(dis)
++                    continue
+             _arm_res.append({"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
+                              "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]})
+     if _arm_res:
+
+
+=== DIFF harness/harms.py ===
+diff --git a/harness/harms.py b/harness/harms.py
+index 45f0cf9e..419d9240 100644
+--- a/harness/harms.py
++++ b/harness/harms.py
+@@ -100,6 +100,7 @@ def _ladder(pid, rec_by_id, fulltext_by_pmid, trial=None, fulltext_coverage=None
+ _INCOMPATIBLE_CODES = {
+     absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
+     absence.COUNTS_PRESENT_NOT_CORROBORATED,
++    absence.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,  # A7: retrieved, two values disagree
+     absence.MULTI_ARM_UNRESOLVED,
+     absence.TIMEPOINT_MISMATCH,
+     absence.POPULATION_MISMATCH,
+
+
+=== DIFF harness/honest_ratchet.py ===
+diff --git a/harness/honest_ratchet.py b/harness/honest_ratchet.py
+index 58045a0d..e224af86 100644
+--- a/harness/honest_ratchet.py
++++ b/harness/honest_ratchet.py
+@@ -40,6 +40,7 @@ MARKERS = {
+     # typed absence codes (lane RR, 2026-09-16). A page that renames the state has not lost it.
+     "declared_absent": ["declared absent", "DECLARED_ABSENT", "OUTCOME_NOT_IN_SOURCE",
+                         "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH", "COUNTS_PRESENT_NOT_CORROBORATED",
++                        "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE",
+                         "SOURCE_NOT_RETRIEVED", "MULTI_ARM_UNRESOLVED", "TIMEPOINT_MISMATCH",
+                         "POPULATION_MISMATCH"],
+     "not_assessed": ["not assessed", "NOT_ASSESSED"],
+
+
+=== DIFF harness/page.py ===
+diff --git a/harness/page.py b/harness/page.py
+index fd4ff4f7..d69a4b85 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -111,6 +111,8 @@ _ABSENCE_STATE_LABEL = {
+     "NO_OUTCOME_DATA_IN_SOURCE": "declared absent — no outcome data in the retrieved source",
+     "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": "excluded on evidence -- effect present but wrong estimand class",
+     "COUNTS_PRESENT_NOT_CORROBORATED": "not extracted -- arm counts present but percentage corroboration failed",
++    "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE": "not pooled -- the reported effect and the effect from the source's own "
++                                                  "arm counts disagree; both shown, awaiting adjudication",
+     "MULTI_ARM_UNRESOLVED": "excluded on evidence -- multi-arm contrast unresolved",
+     "TIMEPOINT_MISMATCH": "excluded on evidence -- timepoint mismatch",
+     "POPULATION_MISMATCH": "excluded on evidence -- population or analysis-set mismatch",
+
+
+=== DIFF harness/pipeline.py ===
+diff --git a/harness/pipeline.py b/harness/pipeline.py
+index d585ecf0..9a2cfff7 100644
+--- a/harness/pipeline.py
++++ b/harness/pipeline.py
+@@ -328,6 +328,9 @@ def _primacy(r):
+     return 2  # an ordinary journal article
+ 
+ 
++_A7_FIELDS = ("reason", "state", "gross", "terminal", "reported", "count_derived")
++
++
+ def _fulltext_extract(ft, spec, interv, comp, dc):
+     """Full-text rung: the abstract extractor on the PROSE, else on each non-baseline TABLE ROW as its own unit
+     (fulltext.extraction_segments). One admissible row value -> taken; several different row values ->
+@@ -340,6 +343,8 @@ def _fulltext_extract(ft, spec, interv, comp, dc):
+     kw = dict(declared_composite=dc, estimand=spec.get("estimand"))
+     own = _ft_mod.own_result_prose(seg["prose"])
+     fx = extract.extract_trial(own["prose"], spec["keywords"], interv, comp, **kw)
++    if fx.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and fx.get("terminal"):
++        return fx       # A7: the document disagrees with itself -- reported, not resolved by reading on into its tables
+     if seg.get("unstructured"):
+         # HTML/PDF copy: only an effect+CI REPORTED in a prose sentence is typed evidence here. Arm counts, means and
+         # rates may come from a flattened table (PMID 34138478: '1/16 vs 0/14' read out of an HTML outcome table).
+@@ -1442,6 +1447,14 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
+         effect_candidates = candidate_index.get(d["id"], [])
+         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
+                                    declared_composite=dc, estimand=spec.get("estimand"))
++        if ex.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and ex.get("terminal"):
++            # A7 (r30-C PICU): the source's reported effect and its own arm counts disagree on one outcome (rounding
++            # class). TERMINAL for this trial: neither value is pooled, and no lower rung (registry, full text,
++            # hand-verified counts) silently supplies a third value in their place. Both values and spans are carried
++            # for the adjudicator. The GROSS class (counts of a different outcome) falls through as it always did.
++            absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "abstract",
++                           **{k: ex[k] for k in _A7_FIELDS}})
++            continue
+         if not ex.get("absent"):
+             # ESTIMAND-HOMOGENEITY (composite component count): an N-point MACE outcome must not pool a
+             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
+@@ -1484,6 +1497,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
+         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
+         # own sentences, not the whole document.
+         fx = _fulltext_extract(ft, spec, interv, comp, dc) if ft else None
++        if fx and fx.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and fx.get("terminal"):
++            absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "pmc_fulltext",
++                           **{k: fx[k] for k in _A7_FIELDS}})
++            continue    # A7: terminal on the full-text rung too (same rule as the abstract route above)
+         if fx and not fx.get("absent"):
+             # THE SAME ESTIMAND-HOMOGENEITY GUARDS AS THE ABSTRACT ROUTE.
+             #
+@@ -1575,7 +1592,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
+             row["verified_passage_location"] = bound.get("passage_location")
+             trials.append(row)
+             continue
+-        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
++        # a GROSS A7 mismatch no lower rung resolved keeps its typed state and both values (was an untyped string)
++        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"],
++                       **({k: ex[k] for k in _A7_FIELDS}
++                          if ex.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE else {})})
+     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
+     # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
+     # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are
+
+
+=== DIFF harness/reason_audit.py ===
+diff --git a/harness/reason_audit.py b/harness/reason_audit.py
+index 6950b029..c8e21a8e 100644
+--- a/harness/reason_audit.py
++++ b/harness/reason_audit.py
+@@ -21,6 +21,7 @@ NOT_VERIFIABLE = "NOT_VERIFIABLE"
+ 
+ _VALUE_PRESENT_CODES = {
+     absence.COUNTS_PRESENT_NOT_CORROBORATED,
++    absence.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,  # A7: two values held
+     absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
+     absence.EXTRACTION_NOT_PERFORMED,
+     absence.REFUSED_ON_EVIDENCE,
+
