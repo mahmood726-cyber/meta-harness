@@ -16,6 +16,8 @@ HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 REVIEW_ID = re.compile(r"(?:(?:CD|MR)\d{6}|10\.[0-9]{4,9}/[^\s]+)\Z", re.I)
 COCHRANE_DOI = re.compile(r"10\.1002/14651858\.((?:CD|MR)\d{6})(?:\.pub\d+)?\Z", re.I)
 COCHRANE_ARTICLE_ID = re.compile(r"(?:CD|MR)\d{6}\Z", re.I)
+# A recognisable CD/MR review DOI must be in canonical review/version form.
+COCHRANE_REVIEW_DOI_PREFIX = re.compile(r"10\.1002/14651858\.(?:CD|MR)\d{6}", re.I)
 # Unknown Cochrane article formats must NOT be counted as non-Cochrane.
 COCHRANE_PUBLISHER_DOI = re.compile(r"10\.1002/14651858\.[^\s]+\Z", re.I)
 REQUIRED = {
@@ -104,6 +106,14 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
             raise SelectionRefusal(f"row {i}: invalid planned_use")
         if not REVIEW_ID.fullmatch(row["review_id"]):
             raise SelectionRefusal(f"row {i}: noncanonical review identifier")
+        # URL queries, fragments, attachment paths or unrecognised suffixes of
+        # an otherwise recognisable Cochrane review DOI must not form a second
+        # eligible review under KNOWN_ERROR / UNSELECTED alongside CD/MR IDs.
+        if (
+            COCHRANE_REVIEW_DOI_PREFIX.match(row["review_id"])
+            and not COCHRANE_DOI.fullmatch(row["review_id"])
+        ):
+            raise SelectionRefusal(f"row {i}: noncanonical Cochrane review DOI")
         # Source strata have distinct recruitment targets: Cochrane reviews
         # must not consume the 100 OTHER open-data meta-analysis slots.
         # Known-error and unselected strata may contain either source type.
