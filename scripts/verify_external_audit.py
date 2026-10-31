@@ -265,6 +265,10 @@ def _valid_supersession(entry, served_value, signed):
     if not entry or entry.get("signed_item") not in signed:
         return False
     pinned = entry.get("served")
+    if "served" in entry and pinned is None:
+        # a SIGNED change that REMOVES the served value (V15-C: every primary row refused) pins its absence explicitly;
+        # it excuses only an absent value, so a reappearance fails again (a missing key never excuses anything)
+        return served_value is None
     return served_value is not None and isinstance(pinned, (int, float)) and abs(float(pinned) - float(served_value)) <= 1e-9
 
 
