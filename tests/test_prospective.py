@@ -540,10 +540,14 @@ def _record(
 
 
 def _write_batch_record(root: Path, batch_id: str, record: dict) -> Path:
-    return prospective.write_run_record(
+    path = prospective.write_run_record(
         root / "prospective" / batch_id / "runs" / record["run_id"],
         record,
     )
+    # Synthetic fixture only; never authentic study evidence.
+    for rel in ("review/index.html", "review/manifest.json"):
+        _write(path.parent, rel, "synthetic fixture only\\n")
+    return path
 
 
 
@@ -1693,3 +1697,61 @@ def test_a4_symlinked_record_never_disappears_from_valid_run_census(
     ) as exc:
         prospective.check_batch(root, batch)
     assert "synthetic-secret" not in str(exc.value)
+
+
+def test_retained_a4_valid_local_files_and_directory_keep_structural_pass(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-valid")
+    record["artefact_paths"].append("cache/snapshot")
+    path = _write_batch_record(root, batch, record)
+    (path.parent / "cache" / "snapshot").mkdir(parents=True)
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+
+def test_retained_a4_missing_declared_file_refuses_without_filename_leak(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-valid")
+    secret = "confidential-frozen-subject-token"
+    record["artefact_paths"] = [f"review/{secret}.json"]
+    path = _write_batch_record(root, batch, record)
+    with pytest.raises(prospective.ProspectiveRefusal, match="retained artefact is missing") as exc:
+        prospective.check_batch(root, batch)
+    assert secret not in str(exc.value)
+    assert path.read_text(encoding="utf-8")
+
+
+def test_retained_a4_traversal_refuses_without_filename_leak(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-valid")
+    secret = "private-heldout-id-not-for-diagnostics"
+    record["artefact_paths"] = [f"../{secret}/source.txt"]
+    _write_batch_record(root, batch, record)
+    with pytest.raises(prospective.ProspectiveRefusal, match="unsafe retained artefact path") as exc:
+        prospective.check_batch(root, batch)
+    assert secret not in str(exc.value)
+
+
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_retained_a4_symlink_refuses_dangling_and_live(tmp_path: Path, target_exists: bool) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    path = _write_batch_record(root, batch, _record(root, batch, "run-valid"))
+    linked = path.parent / "review" / "manifest.json"
+    linked.unlink()
+    target = tmp_path / "private-prospective-target.json"
+    if target_exists:
+        target.write_text("synthetic", encoding="utf-8")
+    try:
+        linked.symlink_to(target)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation unavailable")
+    with pytest.raises(prospective.ProspectiveRefusal, match="symlinked retained artefact") as exc:
+        prospective.check_batch(root, batch)
+    assert target.name not in str(exc.value)

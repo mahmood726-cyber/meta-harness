@@ -662,6 +662,53 @@ def load_run_records(root: str | os.PathLike[str], batch_id: str) -> list[dict[s
     return records
 
 
+
+def _retained_artefact_errors(record_path: Path, record: dict[str, Any]) -> list[str]:
+    """A4: refuse missing or escaping declared run artefacts.
+
+    Structural, local custody only: neither an immutable seal nor independent
+    scientific/source verification. Diagnostics deliberately omit names, paths,
+    and prospective identifiers from untrusted retained run records.
+    """
+    paths = record.get("artefact_paths")
+    if not isinstance(paths, list):
+        return []  # Existing shape validation refuses invalid inventory types.
+    errors: list[str] = []
+    if record.get("outcome") == "COMPLETED" and not paths:
+        errors.append("completed run has no retained artefacts")
+    package = record_path.parent
+    for rel in paths:
+        if type(rel) is not str:
+            continue  # Existing shape validation refuses invalid members.
+        if (
+            not rel
+            or "\\" in rel
+            or ":" in rel
+            or Path(rel).is_absolute()
+            or any(part in {"", ".", ".."} for part in rel.split("/"))
+        ):
+            errors.append("unsafe retained artefact path")
+            continue
+        try:
+            cursor = package
+            aliased = cursor.is_symlink()
+            for part in rel.split("/"):
+                cursor = cursor / part
+                if cursor.is_symlink():
+                    aliased = True
+                    break
+            if aliased:
+                errors.append("symlinked retained artefact")
+                continue
+            if not (cursor.is_file() or cursor.is_dir()):
+                errors.append("retained artefact is missing or unreadable")
+                continue
+            if not _inside(cursor.resolve(), package.resolve()):
+                errors.append("retained artefact escapes run package")
+        except (OSError, RuntimeError):
+            errors.append("retained artefact cannot be inspected safely")
+    return errors
+
 def _validate_record_shape(record: dict[str, Any]) -> list[str]:
     reasons: list[str] = []
     # A versionless or incorrectly versioned record is not a valid retained
@@ -775,6 +822,12 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         declared_at = None
 
     records = load_run_records(repo, batch)
+    record_paths = _run_record_paths(repo, batch)
+    if len(record_paths) != len(records):
+        reasons.append("retained run census changed during archive validation")
+    else:
+        for record_path, record in zip(record_paths, records):
+            reasons.extend(_retained_artefact_errors(record_path, record))
     if declared_at is not None:
         for record in records:
             try:
