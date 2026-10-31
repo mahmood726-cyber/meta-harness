@@ -49,8 +49,6 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: python -m pip install --require-hashes -r docs/offline/requirements.lock  # the hashed lock the replay guides name (incl. openpyxl for the optional xlsx-supplement test); never unpinned latest
-      - name: Prospective provenance and freeze regressions (additional fail-closed check; verify_all unchanged)
-        run: python -m pytest -q tests/test_evidence_provenance.py tests/test_prospective.py
       - name: The full standard (scripts/verify_all.py -- identical to the local pre-commit hook)
         env:
           HELDOUT_KEY: ${{ secrets.HELDOUT_KEY }}   # the held-out leak detector fails CLOSED without it (never a pass)

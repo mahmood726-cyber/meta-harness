@@ -1,0 +1,32 @@
+name: REPRO300 source-only preflight negatives
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/**"
+      - "tests/test_repro300_preflight.py"
+      - "docs/REPRO300_PREFLIGHT.md"
+      - ".github/workflows/repro300-preflight.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  repro300-preflight:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install repository hashed dependencies
+        run: python -m pip install --require-hashes -r docs/offline/requirements.lock
+      - name: Check source-only selection refusals and historical certificate scope
+        run: python -m pytest -q tests/test_repro300_preflight.py tests/test_certificate_code_closure.py::test_certificate_scope_names_its_limits
