@@ -307,3 +307,26 @@ def test_mr_methodology_review_alias_not_double_counted():
     second["analysis_id"] = "2.4"
     with pytest.raises(SelectionRefusal, match="duplicate review identity"):
         preflight([first, second], set())
+
+
+@pytest.mark.parametrize("malformed_doi", [
+    "10.1002/14651858.CD013505.pub2?download=1",
+    "10.1002/14651858.CD013505.pub2#fragment",
+    "10.1002/14651858.CD013505.pub2/supplement",
+    "10.1002/14651858.CD013505.pub2.extra",
+    "10.1002/14651858.MR000013.pub7?download=1",
+])
+@pytest.mark.parametrize("stratum", ["KNOWN_ERROR", "UNSELECTED"])
+def test_refuse_noncanonical_cochrane_review_doi_alias(malformed_doi, stratum):
+    # Before this guard, a source URL masquerading as a DOI was a distinct
+    # review key from CD013505 / MR000013; it could inflate review denominators.
+    with pytest.raises(SelectionRefusal, match="noncanonical Cochrane review DOI"):
+        preflight([case(malformed_doi, "synthetic-alias", stratum)], set())
+
+
+def test_unknown_cochrane_article_class_not_silently_banned_from_error_strata():
+    # Unknown article classes still require manual rights/identity checks;
+    # this narrow guard must not silently change the permitted source schema.
+    assert preflight([
+        case("10.1002/14651858.UNRECOGNISED.pub3", "distinct", "KNOWN_ERROR")
+    ], set())["eligible_candidates"] == 1
