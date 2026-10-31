@@ -13,9 +13,11 @@ from typing import Any
 
 STRATA = {"COCHRANE": 100, "OPEN_META": 100, "KNOWN_ERROR": 50, "UNSELECTED": 50}
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
-REVIEW_ID = re.compile(r"(?:(?:CD|MR)\d{6}|10\.[0-9]{4,9}/[^\s]+)\Z", re.I)
-COCHRANE_DOI = re.compile(r"10\.1002/14651858\.((?:CD|MR)\d{6})(?:\.pub\d+)?\Z", re.I)
-COCHRANE_ARTICLE_ID = re.compile(r"(?:CD|MR)\d{6}\Z", re.I)
+REVIEW_ID = re.compile(r"(?:(?:CD|MR)[0-9]{6}|10\.[0-9]{4,9}/[^\s]+)\Z", re.I)
+COCHRANE_DOI = re.compile(r"10\.1002/14651858\.((?:CD|MR)[0-9]{6})(?:\.pub[0-9]+)?\Z", re.I)
+COCHRANE_ARTICLE_ID = re.compile(r"(?:CD|MR)[0-9]{6}\Z", re.I)
+# Cochrane identifiers use ASCII digits; Python \d also matches Unicode digits,
+# which would create distinct review keys for visually equivalent identifiers.
 # A recognisable CD/MR review DOI must be in canonical review/version form.
 COCHRANE_REVIEW_DOI_PREFIX = re.compile(r"10\.1002/14651858\.(?:CD|MR)\d{6}", re.I)
 # Unknown Cochrane article formats must NOT be counted as non-Cochrane.
