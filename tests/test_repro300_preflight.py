@@ -330,3 +330,24 @@ def test_unknown_cochrane_article_class_not_silently_banned_from_error_strata():
     assert preflight([
         case("10.1002/14651858.UNRECOGNISED.pub3", "distinct", "KNOWN_ERROR")
     ], set())["eligible_candidates"] == 1
+
+
+@pytest.mark.parametrize("alias", [
+    "CD０１３５０５", "MR٠٠٠٠١٣",
+    "10.1002/14651858.CD０１３５０５.pub2",
+    "10.1002/14651858.MR٠٠٠٠١٣.pub7",
+])
+@pytest.mark.parametrize("stratum", ["KNOWN_ERROR", "UNSELECTED"])
+def test_refuse_non_ascii_decimal_cochrane_review_alias(alias, stratum):
+    # Python's \d also accepts Unicode digits. Those must not give visually
+    # equivalent Cochrane reviews separate recruitment identities.
+    with pytest.raises(SelectionRefusal, match="noncanonical"):
+        preflight([case(alias, "synthetic-unicode", stratum)], set())
+
+
+def test_unicode_digit_alias_cannot_double_recruit_cochrane_review():
+    with pytest.raises(SelectionRefusal, match="noncanonical"):
+        preflight([
+            case("CD013505", "family-one", "COCHRANE"),
+            case("CD０１３５０５", "family-two", "UNSELECTED"),
+        ], set())
