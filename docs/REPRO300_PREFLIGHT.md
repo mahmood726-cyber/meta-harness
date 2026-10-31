@@ -88,3 +88,19 @@ The locally checked exact candidate source passed 57 focused synthetic checks
 (40 previously authored tests and 17 additional compatibility/refusal/
 preservation checks); these are not full repository or platform CI and do not
 count as prospective review execution or independent adjudication.
+
+
+### Invisible-control review/family identifiers — 31 October 2026
+
+A further synthetic negative found that the generic DOI predicate admitted a
+zero-width format control inside a visually Cochrane-like DOI (for example,
+`10.1002/14651858.C\\u200bD013505.pub2`), evading the NFKC CD/MR-prefix
+refusal and potentially consuming another review slot. Machine review, analysis,
+family and prior-exposure identifiers now refuse Unicode categories Cc/Cf;
+they are never silently repaired or normalised. Unrelated visible Unicode DOI
+text remains permitted. Regression cases cover invisible DOI aliases, family
+and analysis IDs, the prior-exposure inventory, duplicated apparent review
+identity, and positive visible-Unicode preservation. This is a syntactic
+source-only engineering guard: no trial access, source-rights authentication,
+prospective recruitment or scientific validation is asserted. Only exact-head
+full and OS matrix CI plus enforced GitHub rules can authorise a normal merge.

@@ -388,3 +388,39 @@ def test_compatibility_guard_preserves_distinct_valid_doi_syntax(valid):
     assert preflight([case(valid, "synthetic-valid", "KNOWN_ERROR")], set())[
         "eligible_candidates"
     ] == 1
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("review_id", "10.1002/14651858.C\u200bD013505.pub2"),
+    ("review_id", "10.1002/14651858.C\u2060D013505.pub2"),
+    ("review_id", "10.1002/14651858.C\x00D013505.pub2"),
+    ("analysis_id", "1.\u200b1"),
+    ("family_key", "family\u2060-one"),
+])
+@pytest.mark.parametrize("stratum", ["KNOWN_ERROR", "UNSELECTED"])
+def test_refuse_invisible_identity_control_alias(field, value, stratum):
+    # The generic DOI matcher previously accepted these zero-width variants;
+    # different machine keys could inflate a review or family denominator.
+    row = case("10.1000/synthetic-control", "synthetic-family", stratum)
+    row[field] = value
+    with pytest.raises(SelectionRefusal, match="noncanonical .* control character"):
+        preflight([row], set())
+
+
+def test_refuse_invisible_control_in_prior_exposure_inventory():
+    with pytest.raises(SelectionRefusal, match="invalid prior exposure family"):
+        preflight([case()], {"f\u200b1"})
+
+
+def test_preserve_unicode_noncontrol_doi_and_family_identifier():
+    assert preflight([
+        case("10.1000/東京-2026", "équipe-01", "KNOWN_ERROR")
+    ], set())["eligible_candidates"] == 1
+
+
+def test_invisible_control_doi_cannot_double_recruit_canonical_review():
+    with pytest.raises(SelectionRefusal, match="noncanonical review_id control character"):
+        preflight([
+            case("CD013505", "family-original", "COCHRANE"),
+            case("10.1002/14651858.C\u200bD013505.pub2", "family-duplicate", "KNOWN_ERROR"),
+        ], set())

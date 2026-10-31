@@ -63,6 +63,13 @@ def _nonblank(value: Any) -> bool:
     return type(value) is str and bool(value.strip()) and value == value.strip()
 
 
+def _clean_identity(value: Any) -> bool:
+    """Machine identities may use Unicode text, but not invisible controls."""
+    return _nonblank(value) and not any(
+        unicodedata.category(char) in ("Cc", "Cf") for char in value
+    )
+
+
 def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
     """Return candidate-only eligibility, never a frozen or enrolled case list.
 
@@ -71,7 +78,7 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
     """
     if type(frame) is not list or type(previously_exposed_families) is not set:
         raise SelectionRefusal("frame must be list and exposure inventory must be set")
-    if any(not _nonblank(x) for x in previously_exposed_families):
+    if any(not _clean_identity(x) for x in previously_exposed_families):
         raise SelectionRefusal("invalid prior exposure family")
     exposure_families = {x.casefold() for x in previously_exposed_families}
     seen_ids: set[tuple[str, str]] = set()
@@ -97,6 +104,11 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
         ):
             if not _nonblank(row[field]):
                 raise SelectionRefusal(f"row {i}: invalid {field}")
+        # Invisible controls can create different review, analysis or family
+        # keys for visually identical evidence; never normalise to an identity.
+        for field in ("review_id", "analysis_id", "family_key"):
+            if not _clean_identity(row[field]):
+                raise SelectionRefusal(f"row {i}: noncanonical {field} control character")
         if not row["license_uri"].startswith(("https://", "http://")):
             raise SelectionRefusal(f"row {i}: license URI required")
         if row["rights_scope"] not in (
