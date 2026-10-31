@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unicodedata
 from collections import Counter
 from typing import Any
 
@@ -112,7 +113,7 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
         # an otherwise recognisable Cochrane review DOI must not form a second
         # eligible review under KNOWN_ERROR / UNSELECTED alongside CD/MR IDs.
         if (
-            COCHRANE_REVIEW_DOI_PREFIX.match(row["review_id"])
+            COCHRANE_REVIEW_DOI_PREFIX.match(unicodedata.normalize("NFKC", row["review_id"]))
             and not COCHRANE_DOI.fullmatch(row["review_id"])
         ):
             raise SelectionRefusal(f"row {i}: noncanonical Cochrane review DOI")

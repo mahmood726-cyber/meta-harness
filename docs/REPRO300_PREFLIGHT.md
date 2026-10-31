@@ -68,3 +68,23 @@ and relevant platform tests: previous-head PASS never transfers after a change.
 ## Cochrane DOI alias refusal — 30 October 2026
 
 Static inspection of the merged preflight exposed a review-denominator false-pass: `CD013505` and `10.1002/14651858.CD013505.pub2` had different casefolded identifiers, allowing two analyses with different family labels to count as two reviews. The bounded fix normalises only the Cochrane CD/DOI pattern, preserves original declared source IDs and hashes, and refuses duplicate reviews across strata, analysis and DOI versions. Synthetic tests cover CD-vs-DOI, version-vs-version and a distinct-review positive control. This is not licence verification, independently authenticated source identity or prospective enrolment. Exact-head GitHub CI, OS checks and protected merge remain separate gates.
+
+
+### Unicode compatibility Cochrane DOI lookalikes — 31 October 2026
+
+The preceding ASCII-digit guard still accepted e.g.
+`10.1002/14651858.ＣＤ013505.pub2` as a generic DOI distinct from
+`CD013505`, permitting a false extra candidate in KNOWN_ERROR/UNSELECTED.
+The false-pass was reproduced using synthetic source declarations. The guard
+now uses NFKC **for recognition and refusal only**, never to silently
+canonicalise, enrol or authenticate a Cochrane article. Compatible lookalikes
+of a CD/MR DOI are refused; canonical IDs, unknown non-review Cochrane article
+classes and unrelated Unicode DOI forms retain their prior handling. This
+is not real DOI identity/source/licence verification. Unicode is legitimate in
+DOI names generally (DOI Handbook section 3.2):
+https://www.doi.org/doi-handbook/html/ .
+
+The locally checked exact candidate source passed 57 focused synthetic checks
+(40 previously authored tests and 17 additional compatibility/refusal/
+preservation checks); these are not full repository or platform CI and do not
+count as prospective review execution or independent adjudication.

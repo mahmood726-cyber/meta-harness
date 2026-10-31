@@ -351,3 +351,40 @@ def test_unicode_digit_alias_cannot_double_recruit_cochrane_review():
             case("CD013505", "family-one", "COCHRANE"),
             case("CD０１３５０５", "family-two", "UNSELECTED"),
         ], set())
+
+
+@pytest.mark.parametrize("lookalike", [
+    "10.1002/14651858.ＣＤ013505.pub2",
+    "10.1002/１４６５１８５８.CD013505.pub2",
+    "10.1002/14651858.ＣＤ０１３５０５.pub2",
+    "10.1002/14651858.ＭＲ000013.pub7",
+    "10.1002/14651858.CD013505．pub2",
+    "10.1002/14651858.CD013505.pub２",
+])
+@pytest.mark.parametrize("stratum", ["KNOWN_ERROR", "UNSELECTED"])
+def test_refuse_unicode_compatibility_lookalike_cochrane_doi(lookalike, stratum):
+    # NFKC lookalikes may otherwise count as distinct generic DOI reviews.
+    # Normalisation is for refusal, not canonicalisation or enrolment.
+    with pytest.raises(SelectionRefusal, match="noncanonical Cochrane review DOI"):
+        preflight([case(lookalike, "synthetic-compat", stratum)], set())
+
+
+def test_unicode_compatibility_alias_cannot_inflate_review_denominator():
+    with pytest.raises(SelectionRefusal, match="noncanonical Cochrane review DOI"):
+        preflight([
+            case("CD013505", "family-original", "COCHRANE"),
+            case("10.1002/14651858.ＣＤ013505.pub2", "family-alias", "KNOWN_ERROR"),
+        ], set())
+
+
+@pytest.mark.parametrize("valid", [
+    "10.1002/14651858.CD013505.pub2",
+    "10.1002/14651858.MR000013.pub7",
+    "10.1002/14651858.UNRECOGNISED.pub3",
+    "10.1000/東京-2026",
+])
+def test_compatibility_guard_preserves_distinct_valid_doi_syntax(valid):
+    # DOI systems can support Unicode; no blanket ASCII DOI restriction.
+    assert preflight([case(valid, "synthetic-valid", "KNOWN_ERROR")], set())[
+        "eligible_candidates"
+    ] == 1
