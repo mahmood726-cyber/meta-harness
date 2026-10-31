@@ -8,14 +8,19 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unicodedata
 from collections import Counter
 from typing import Any
 
 STRATA = {"COCHRANE": 100, "OPEN_META": 100, "KNOWN_ERROR": 50, "UNSELECTED": 50}
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
-REVIEW_ID = re.compile(r"(?:(?:CD|MR)\d{6}|10\.[0-9]{4,9}/[^\s]+)\Z", re.I)
-COCHRANE_DOI = re.compile(r"10\.1002/14651858\.((?:CD|MR)\d{6})(?:\.pub\d+)?\Z", re.I)
-COCHRANE_ARTICLE_ID = re.compile(r"(?:CD|MR)\d{6}\Z", re.I)
+REVIEW_ID = re.compile(r"(?:(?:CD|MR)[0-9]{6}|10\.[0-9]{4,9}/[^\s]+)\Z", re.I)
+COCHRANE_DOI = re.compile(r"10\.1002/14651858\.((?:CD|MR)[0-9]{6})(?:\.pub[0-9]+)?\Z", re.I)
+COCHRANE_ARTICLE_ID = re.compile(r"(?:CD|MR)[0-9]{6}\Z", re.I)
+# Cochrane identifiers use ASCII digits; Python \d also matches Unicode digits,
+# which would create distinct review keys for visually equivalent identifiers.
+# A recognisable CD/MR review DOI must be in canonical review/version form.
+COCHRANE_REVIEW_DOI_PREFIX = re.compile(r"10\.1002/14651858\.(?:CD|MR)\d{6}", re.I)
 # Unknown Cochrane article formats must NOT be counted as non-Cochrane.
 COCHRANE_PUBLISHER_DOI = re.compile(r"10\.1002/14651858\.[^\s]+\Z", re.I)
 REQUIRED = {
@@ -58,6 +63,13 @@ def _nonblank(value: Any) -> bool:
     return type(value) is str and bool(value.strip()) and value == value.strip()
 
 
+def _clean_identity(value: Any) -> bool:
+    """Machine identities may use Unicode text, but not invisible controls."""
+    return _nonblank(value) and not any(
+        unicodedata.category(char) in ("Cc", "Cf") for char in value
+    )
+
+
 def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
     """Return candidate-only eligibility, never a frozen or enrolled case list.
 
@@ -66,7 +78,7 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
     """
     if type(frame) is not list or type(previously_exposed_families) is not set:
         raise SelectionRefusal("frame must be list and exposure inventory must be set")
-    if any(not _nonblank(x) for x in previously_exposed_families):
+    if any(not _clean_identity(x) for x in previously_exposed_families):
         raise SelectionRefusal("invalid prior exposure family")
     exposure_families = {x.casefold() for x in previously_exposed_families}
     seen_ids: set[tuple[str, str]] = set()
@@ -92,6 +104,11 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
         ):
             if not _nonblank(row[field]):
                 raise SelectionRefusal(f"row {i}: invalid {field}")
+        # Invisible controls can create different review, analysis or family
+        # keys for visually identical evidence; never normalise to an identity.
+        for field in ("review_id", "analysis_id", "family_key"):
+            if not _clean_identity(row[field]):
+                raise SelectionRefusal(f"row {i}: noncanonical {field} control character")
         if not row["license_uri"].startswith(("https://", "http://")):
             raise SelectionRefusal(f"row {i}: license URI required")
         if row["rights_scope"] not in (
@@ -104,6 +121,14 @@ def preflight(frame: list[dict], previously_exposed_families: set[str]) -> dict:
             raise SelectionRefusal(f"row {i}: invalid planned_use")
         if not REVIEW_ID.fullmatch(row["review_id"]):
             raise SelectionRefusal(f"row {i}: noncanonical review identifier")
+        # URL queries, fragments, attachment paths or unrecognised suffixes of
+        # an otherwise recognisable Cochrane review DOI must not form a second
+        # eligible review under KNOWN_ERROR / UNSELECTED alongside CD/MR IDs.
+        if (
+            COCHRANE_REVIEW_DOI_PREFIX.match(unicodedata.normalize("NFKC", row["review_id"]))
+            and not COCHRANE_DOI.fullmatch(row["review_id"])
+        ):
+            raise SelectionRefusal(f"row {i}: noncanonical Cochrane review DOI")
         # Source strata have distinct recruitment targets: Cochrane reviews
         # must not consume the 100 OTHER open-data meta-analysis slots.
         # Known-error and unselected strata may contain either source type.

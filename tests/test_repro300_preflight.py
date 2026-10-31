@@ -307,3 +307,120 @@ def test_mr_methodology_review_alias_not_double_counted():
     second["analysis_id"] = "2.4"
     with pytest.raises(SelectionRefusal, match="duplicate review identity"):
         preflight([first, second], set())
+
+
+@pytest.mark.parametrize("malformed_doi", [
+    "10.1002/14651858.CD013505.pub2?download=1",
+    "10.1002/14651858.CD013505.pub2#fragment",
+    "10.1002/14651858.CD013505.pub2/supplement",
+    "10.1002/14651858.CD013505.pub2.extra",
+    "10.1002/14651858.MR000013.pub7?download=1",
+])
+@pytest.mark.parametrize("stratum", ["KNOWN_ERROR", "UNSELECTED"])
+def test_refuse_noncanonical_cochrane_review_doi_alias(malformed_doi, stratum):
+    # Before this guard, a source URL masquerading as a DOI was a distinct
+    # review key from CD013505 / MR000013; it could inflate review denominators.
+    with pytest.raises(SelectionRefusal, match="noncanonical Cochrane review DOI"):
+        preflight([case(malformed_doi, "synthetic-alias", stratum)], set())
+
+
+def test_unknown_cochrane_article_class_not_silently_banned_from_error_strata():
+    # Unknown article classes still require manual rights/identity checks;
+    # this narrow guard must not silently change the permitted source schema.
+    assert preflight([
+        case("10.1002/14651858.UNRECOGNISED.pub3", "distinct", "KNOWN_ERROR")
+    ], set())["eligible_candidates"] == 1
+
+
+@pytest.mark.parametrize("alias", [
+    "CD０１３５０５", "MR٠٠٠٠١٣",
+    "10.1002/14651858.CD０１３５０５.pub2",
+    "10.1002/14651858.MR٠٠٠٠١٣.pub7",
+])
+@pytest.mark.parametrize("stratum", ["KNOWN_ERROR", "UNSELECTED"])
+def test_refuse_non_ascii_decimal_cochrane_review_alias(alias, stratum):
+    # Python's \d also accepts Unicode digits. Those must not give visually
+    # equivalent Cochrane reviews separate recruitment identities.
+    with pytest.raises(SelectionRefusal, match="noncanonical"):
+        preflight([case(alias, "synthetic-unicode", stratum)], set())
+
+
+def test_unicode_digit_alias_cannot_double_recruit_cochrane_review():
+    with pytest.raises(SelectionRefusal, match="noncanonical"):
+        preflight([
+            case("CD013505", "family-one", "COCHRANE"),
+            case("CD０１３５０５", "family-two", "UNSELECTED"),
+        ], set())
+
+
+@pytest.mark.parametrize("lookalike", [
+    "10.1002/14651858.ＣＤ013505.pub2",
+    "10.1002/１４６５１８５８.CD013505.pub2",
+    "10.1002/14651858.ＣＤ０１３５０５.pub2",
+    "10.1002/14651858.ＭＲ000013.pub7",
+    "10.1002/14651858.CD013505．pub2",
+    "10.1002/14651858.CD013505.pub２",
+])
+@pytest.mark.parametrize("stratum", ["KNOWN_ERROR", "UNSELECTED"])
+def test_refuse_unicode_compatibility_lookalike_cochrane_doi(lookalike, stratum):
+    # NFKC lookalikes may otherwise count as distinct generic DOI reviews.
+    # Normalisation is for refusal, not canonicalisation or enrolment.
+    with pytest.raises(SelectionRefusal, match="noncanonical Cochrane review DOI"):
+        preflight([case(lookalike, "synthetic-compat", stratum)], set())
+
+
+def test_unicode_compatibility_alias_cannot_inflate_review_denominator():
+    with pytest.raises(SelectionRefusal, match="noncanonical Cochrane review DOI"):
+        preflight([
+            case("CD013505", "family-original", "COCHRANE"),
+            case("10.1002/14651858.ＣＤ013505.pub2", "family-alias", "KNOWN_ERROR"),
+        ], set())
+
+
+@pytest.mark.parametrize("valid", [
+    "10.1002/14651858.CD013505.pub2",
+    "10.1002/14651858.MR000013.pub7",
+    "10.1002/14651858.UNRECOGNISED.pub3",
+    "10.1000/東京-2026",
+])
+def test_compatibility_guard_preserves_distinct_valid_doi_syntax(valid):
+    # DOI systems can support Unicode; no blanket ASCII DOI restriction.
+    assert preflight([case(valid, "synthetic-valid", "KNOWN_ERROR")], set())[
+        "eligible_candidates"
+    ] == 1
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("review_id", "10.1002/14651858.C\u200bD013505.pub2"),
+    ("review_id", "10.1002/14651858.C\u2060D013505.pub2"),
+    ("review_id", "10.1002/14651858.C\x00D013505.pub2"),
+    ("analysis_id", "1.\u200b1"),
+    ("family_key", "family\u2060-one"),
+])
+@pytest.mark.parametrize("stratum", ["KNOWN_ERROR", "UNSELECTED"])
+def test_refuse_invisible_identity_control_alias(field, value, stratum):
+    # The generic DOI matcher previously accepted these zero-width variants;
+    # different machine keys could inflate a review or family denominator.
+    row = case("10.1000/synthetic-control", "synthetic-family", stratum)
+    row[field] = value
+    with pytest.raises(SelectionRefusal, match="noncanonical .* control character"):
+        preflight([row], set())
+
+
+def test_refuse_invisible_control_in_prior_exposure_inventory():
+    with pytest.raises(SelectionRefusal, match="invalid prior exposure family"):
+        preflight([case()], {"f\u200b1"})
+
+
+def test_preserve_unicode_noncontrol_doi_and_family_identifier():
+    assert preflight([
+        case("10.1000/東京-2026", "équipe-01", "KNOWN_ERROR")
+    ], set())["eligible_candidates"] == 1
+
+
+def test_invisible_control_doi_cannot_double_recruit_canonical_review():
+    with pytest.raises(SelectionRefusal, match="noncanonical review_id control character"):
+        preflight([
+            case("CD013505", "family-original", "COCHRANE"),
+            case("10.1002/14651858.C\u200bD013505.pub2", "family-duplicate", "KNOWN_ERROR"),
+        ], set())
