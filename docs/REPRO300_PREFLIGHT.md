@@ -20,6 +20,23 @@ No real cases are recruited, source-access-confirmed, numerically executed, or a
 
 Upstream evidence: Overmind overmind/evidence/data/gold_reviews/COCHRANE_REPRODUCTION.md historical development fixtures and user-supplied accessibility estimate; Meta-Harness docs/cochrane_headtohead.json CD013505 text-only coverage limitation; Metanew backend/etl/ingest.py CSV parser risk. Cochrane's data-package specification effective 23 September 2026: https://documentation.cochrane.org/revman-kb/data-package-specification-249561249.html . Cochrane data reuse requires review-specific terms, and AI uploads may be restricted: https://www.cochrane.org/pl/form/cochrane-library-data-request .
 
+## Noncanonical Cochrane review DOI aliases — 31 October 2026
+
+A source-only denominator false-pass was reproduced in the previous development
+guard: an apparent Cochrane DOI such as
+`10.1002/14651858.CD013505.pub2?download=1` matched the general DOI syntax but
+did not match the canonical CD-version alias. It therefore acquired a separate
+review identity from `CD013505` in the KNOWN_ERROR/UNSELECTED strata. A
+download query, URL fragment, slash-suffixed attachment or unknown publication
+suffix is **not** an independent review. The narrow correction refuses
+noncanonical identifiers that begin with a recognisable Cochrane CD/MR review
+DOI prefix; it retains canonical CD/MR identifiers, versioned aliases,
+non-Cochrane DOIs and unknown article classes in the existing error strata.
+Synthetic negative and positive regression tests check both sides. This
+remains a **schema-level** control: actual source, publisher, licensed download,
+version, family overlap and exposure must still be independently verified.
+No review was recruited or frozen by this change.
+
 ## Integration acceptance
 
 Only a successful exact-final-head GitHub verify, applicable platform/negative tests, actual rulesets and ordinary expected-head merge justify production integration; then verify default-branch CI. No human scientific adjudication, prospective benchmark B advancement, CROSS-EXCH denominator change, historical certificate change, protected human data change or deployment request is authorised by these code tests.
