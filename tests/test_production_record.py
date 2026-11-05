@@ -30,7 +30,7 @@ def _mini_docs(tmp, page_bytes=b"<p>page</p>", bind_ok=True):
     return d
 
 
-def _tar_of(docs, mutate=None):
+def _tar_of(docs, mutate=None, include_manifest=True):
     p = os.path.join(os.path.dirname(docs), "artifact.tar")
     with tarfile.open(p, "w") as t:
         for root, _, files in os.walk(docs):
@@ -43,6 +43,13 @@ def _tar_of(docs, mutate=None):
                 ti = tarfile.TarInfo(rel)
                 ti.size = len(b)
                 t.addfile(ti, io.BytesIO(b))
+        if include_manifest:
+            # The actual Pages artifact includes the self-excluded production receipt.
+            manifest_path = os.path.join(os.path.dirname(docs), "m.json")
+            receipt = open(manifest_path, "rb").read()
+            entry = tarfile.TarInfo("./_production/manifest.json")
+            entry.size = len(receipt)
+            t.addfile(entry, io.BytesIO(receipt))
     return p
 
 
@@ -113,10 +120,32 @@ def test_check_artifact_accepts_exact_embedded_production_manifest():
         manifest = os.path.join(tmp, "m.json")
         assert _run("manifest", "--docs", d, "--out", manifest).returncode == 0
         artifact = _tar_of(d)
-        payload = open(manifest, "rb").read()
-        with tarfile.open(artifact, "a") as tar:
-            entry = tarfile.TarInfo("./_production/manifest.json")
-            entry.size = len(payload)
-            tar.addfile(entry, io.BytesIO(payload))
         result = _run("check-artifact", "--manifest", manifest, "--tar", artifact)
         assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_check_artifact_refuses_missing_embedded_manifest():
+    # Previous checker considered only manifest['files'] and allowed the served receipt to vanish.
+    with tempfile.TemporaryDirectory() as tmp:
+        d = _mini_docs(tmp)
+        manifest = os.path.join(tmp, "m.json")
+        assert _run("manifest", "--docs", d, "--out", manifest).returncode == 0
+        artifact = _tar_of(d, include_manifest=False)
+        result = _run("check-artifact", "--manifest", manifest, "--tar", artifact)
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "ARTIFACT REFUSED: missing embedded _production/manifest.json" in result.stdout
+
+
+def test_check_artifact_refuses_unreceipted_file():
+    with tempfile.TemporaryDirectory() as tmp:
+        d = _mini_docs(tmp)
+        manifest = os.path.join(tmp, "m.json")
+        assert _run("manifest", "--docs", d, "--out", manifest).returncode == 0
+        artifact = _tar_of(d)
+        with tarfile.open(artifact, "a") as tar:
+            entry = tarfile.TarInfo("unlisted.html")
+            entry.size = 4
+            tar.addfile(entry, io.BytesIO(b"oops"))
+        result = _run("check-artifact", "--manifest", manifest, "--tar", artifact)
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "unlisted.html" in result.stdout

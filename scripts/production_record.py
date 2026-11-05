@@ -219,6 +219,8 @@ def cmd_check_artifact(a) -> int:
     want = man["files"]
     got = {}
     seen = set()
+    embedded_manifest_seen = False
+    expected_manifest_sha = _sha256_file(a.manifest)
     # The tar is a deployment input, not merely a bag of last-write-wins digests.
     # A second name for an expected file (../x, /x, duplicate x) must never satisfy its receipt.
     try:
@@ -255,13 +257,19 @@ def cmd_check_artifact(a) -> int:
                 if rel.startswith(RECORD_DIRNAME + "/"):
                     # The self-excluded production manifest is allowed, but not an arbitrary
                     # unreceipted file in that directory. Bind its bytes to the verifier's copy.
-                    if rel != f"{RECORD_DIRNAME}/{MANIFEST_NAME}" or content_hash != _sha256_file(a.manifest):
+                    if rel != f"{RECORD_DIRNAME}/{MANIFEST_NAME}" or content_hash != expected_manifest_sha:
                         print(f"ARTIFACT REFUSED: unexpected or changed production manifest: {name!r}")
                         return 1
+                    embedded_manifest_seen = True
                     continue
                 got[rel] = content_hash
     except (OSError, tarfile.TarError) as exc:
         print(f"ARTIFACT REFUSED: unreadable artifact tar: {exc}")
+        return 1
+    # verify.yml always includes the self-excluded manifest in the Pages artifact.
+    # Omitting it would pass the file-set check while breaking the served receipt chain.
+    if not embedded_manifest_seen:
+        print(f"ARTIFACT REFUSED: missing embedded {RECORD_DIRNAME}/{MANIFEST_NAME}")
         return 1
     missing = sorted(set(want) - set(got))
     extra = sorted(set(got) - set(want))
