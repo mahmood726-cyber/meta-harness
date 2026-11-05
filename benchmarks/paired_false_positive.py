@@ -107,6 +107,37 @@ def _score(rows: list[dict]) -> dict:
             counts["cases"] += 1
             counts[decision] += 1
 
+    # Count outcomes at the MATCHED-PAIR level. Marginal TP/TN counts can
+    # misleadingly suggest discrimination even when no individual pair has
+    # both its ISSUE and CLEAN versions correctly classified. Include all
+    # nine joint decision states so abstention cannot silently disappear.
+    decisions_by_pair = {}
+    for row in rows:
+        key = row["pair_id"].casefold()
+        decisions_by_pair.setdefault(key, {})[row["truth"]] = row["prediction"]
+    pair_matrix = {
+        f"{issue}->{clean}": 0
+        for issue in PREDICTIONS for clean in PREDICTIONS
+    }
+    for decisions in decisions_by_pair.values():
+        pair_matrix[f"{decisions['ISSUE']}->{decisions['CLEAN']}"] += 1
+    total_pairs = len(decisions_by_pair)
+    decided_pairs = sum(
+        count for outcome, count in pair_matrix.items()
+        if "ABSTAIN" not in outcome
+    )
+    strict_successes = pair_matrix["ISSUE->CLEAN"]
+    pair_discrimination = {
+        "strict_successes": strict_successes,
+        "decided_pairs": decided_pairs,
+        "abstaining_pairs": total_pairs - decided_pairs,
+        "pair_decision_coverage": _ratio(decided_pairs, total_pairs),
+        "strict_success_rate_all_pairs": _ratio(strict_successes, total_pairs),
+        "strict_success_rate_decided_pairs": _ratio(strict_successes, decided_pairs),
+        "generalization_uncertainty_interval": None,
+        "generalization_uncertainty_status": "NOT_MEASURED_SYNTHETIC_ONLY",
+    }
+
     def report_positive_strata(dimension: str) -> dict:
         return {
             key: {
@@ -150,6 +181,8 @@ def _score(rows: list[dict]) -> dict:
     pos = c["tp"] + c["fn"] + c["abstain_issue"]
     return {
         "cases": n, "paired_controls": n // 2,
+        "paired_outcome_matrix": pair_matrix,
+        "paired_discrimination": pair_discrimination,
         "confusion_with_abstentions": dict(sorted(c.items())),
         "abstention_reasons_by_truth": {
             truth: dict(sorted(reasons[truth].items())) for truth in TRUTHS
