@@ -162,9 +162,10 @@ def measure(rows: list[dict], manifest: dict) -> dict:
         for field in ("case_id", "pair_id", "family_id"):
             if type(row[field]) is not str or not IDENTITY.fullmatch(row[field]):
                 raise BenchmarkRefusal(f"row {i}: invalid {field}")
-        if row["case_id"] in case_ids:
+        case_key = row["case_id"].casefold()
+        if case_key in case_ids:
             raise BenchmarkRefusal("duplicate case identity")
-        case_ids.add(row["case_id"])
+        case_ids.add(case_key)
         if row["split"] not in SPLITS or row["truth"] not in TRUTHS:
             raise BenchmarkRefusal(f"row {i}: invalid split/truth")
         if row["prediction"] not in PREDICTIONS:
