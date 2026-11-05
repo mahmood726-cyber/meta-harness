@@ -230,6 +230,7 @@ def test_attest_refuses_receipt_only_empty_page_manifest(tmp_path):
 def test_fetch_transport_failures_are_not_silent_attestation_aborts(monkeypatch):
     """Transport errors are observable status-0 mismatches; no real network."""
     import importlib.util
+    import http.client
     import urllib.error
 
     spec = importlib.util.spec_from_file_location("production_record_transport", SCRIPT)
@@ -238,12 +239,86 @@ def test_fetch_transport_failures_are_not_silent_attestation_aborts(monkeypatch)
 
     for problem in (urllib.error.URLError("synthetic DNS refusal"),
                     TimeoutError("synthetic timeout"),
-                    ConnectionResetError("synthetic disconnect")):
+                    ConnectionResetError("synthetic disconnect"),
+                    http.client.IncompleteRead(b"synthetic partial reply", expected=5),
+                    http.client.BadStatusLine("synthetic malformed HTTP status")):
         def fail(_request, timeout=60):
             raise problem
 
         monkeypatch.setattr(module.urllib.request, "urlopen", fail)
         assert module._fetch("https://synthetic.invalid/index.html", timeout=1) == (0, b"")
+
+
+
+def test_attest_persists_mismatch_when_http_200_body_is_truncated(monkeypatch, tmp_path):
+    """A truncated 200 response is not an attested digest or an unlogged exception.
+
+    Exercise the real _fetch and cmd_attest with a fully synthetic HTTP
+    response; no network, publication cache, or external fixture is used.
+    """
+    import http.client
+    import importlib.util
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location("production_record_truncated_body", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    page = b"<p>complete synthetic page</p>"
+    manifest = tmp_path / "verified.json"
+    manifest.write_text(json.dumps({
+        "commit_sha": "a" * 40,
+        "files": {"index.html": hashlib.sha256(page).hexdigest()},
+    }), encoding="utf-8")
+
+    class Served:
+        status = 200
+
+        def __init__(self, content, truncated=False):
+            self.content = content
+            self.truncated = truncated
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            if self.truncated:
+                raise http.client.IncompleteRead(b"partial receipt", expected=10)
+            return self.content
+
+    urls = []
+
+    def urlopen(request, timeout=60):
+        urls.append(request.full_url)
+        if "/index.html?" in request.full_url:
+            return Served(page)
+        if "/_production/manifest.json?" in request.full_url:
+            return Served(manifest.read_bytes(), truncated=True)
+        raise AssertionError("unexpected synthetic URL: " + request.full_url)
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(module, "_attest_target", lambda *_args: "TARGET production_record.attest: synthetic")
+    monkeypatch.setattr(module.time, "time", lambda: 100.0)
+    monkeypatch.setattr(module.time, "sleep",
+                        lambda _: (_ for _ in ()).throw(AssertionError("one-shot must not sleep")))
+
+    output = tmp_path / "production-record.json"
+    args = SimpleNamespace(manifest=str(manifest), base_url="https://synthetic.invalid/",
+                           record=str(output), pages_artifact_id="synthetic-id",
+                           environment="synthetic", retry_seconds=0)
+
+    assert module.cmd_attest(args) == 1
+    record = json.loads(output.read_text(encoding="utf-8"))
+    assert record["verdict"] == "MISMATCH"
+    assert record["n_files"] == 2 and record["n_equal"] == 1 and record["n_mismatch"] == 1
+    assert record["files"]["index.html"]["equal"] is True
+    receipt = record["files"]["_production/manifest.json"]
+    assert receipt["http_status"] == 0 and receipt["equal"] is False
+    assert receipt["fetched_sha256"] is None
+    assert record["fetch_rounds"] == 1 and len(urls) == 2
 
 
 def test_attest_persists_failure_record_when_one_served_file_cannot_be_fetched(monkeypatch, tmp_path):
