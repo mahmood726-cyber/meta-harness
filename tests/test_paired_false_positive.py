@@ -45,7 +45,7 @@ class PairedFalsePositiveTests(unittest.TestCase):
         self.assertEqual(h["fpr_decided_negatives"], 1.0)
         self.assertEqual(h["recall_all_issues_abstentions_count_as_missed"], 0.0)
         self.assertEqual(h["coverage"], 0.5)
-        self.assertIsNone(h["precision_decided"])
+        self.assertEqual(h["precision_decided"], 0.0)
         self.assertEqual(out["evaluation"]["independent_human_adjudication"], "NOT_MEASURED")
 
     def test_correct_clean_control_counts_as_true_negative(self):
