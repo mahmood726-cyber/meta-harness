@@ -154,6 +154,8 @@ def _attest_target(manifest: str, base_url: str) -> str:
         return err
     base = base_url.rstrip("/") + "/"
     urls = [base + rel for rel in (man.get("files") or {})]
+    # The detached receipt is served but self-excluded from the page-digest map.
+    urls.append(base + f"{RECORD_DIRNAME}/{MANIFEST_NAME}")
     if not _is_git_worktree(repo_root):
         return _describe_from_manifest(manifest, man, urls, "production_record.attest")
     refs = (man.get("commit_sha"),) if man.get("commit_sha") else ()
@@ -299,7 +301,14 @@ def cmd_attest(a) -> int:
     man = json.load(open(a.manifest, encoding="utf-8"))
     base = a.base_url.rstrip("/") + "/"
     deadline = time.time() + a.retry_seconds
+    # Artifact equality alone cannot establish that Pages actually serves the
+    # exact embedded receipt. Treat it as one more required served byte string.
+    receipt_path = f"{RECORD_DIRNAME}/{MANIFEST_NAME}"
+    if receipt_path in man["files"]:
+        print(f"ATTEST REFUSED: self-listed production manifest: {receipt_path}")
+        return 1
     pending = dict(man["files"])
+    pending[receipt_path] = _sha256_file(a.manifest)
     fetched: dict[str, dict] = {}
     rounds = 0
     while pending and time.time() < deadline:
@@ -327,7 +336,7 @@ def cmd_attest(a) -> int:
         "pages_artifact_id": a.pages_artifact_id, "manifest_sha256": _sha256_file(a.manifest),
         "architecture_identity": man.get("architecture_identity"),
         "architecture_components": man.get("architecture_components"),
-        "n_files": len(man["files"]), "n_equal": sum(1 for v in fetched.values() if v["equal"]),
+        "n_files": len(man["files"]) + 1, "n_equal": sum(1 for v in fetched.values() if v["equal"]),
         "n_mismatch": len(pending), "fetch_rounds": rounds, "attested_utc": _now(),
         "review_page_bindings": man.get("review_page_bindings"), "files": fetched,
     }
