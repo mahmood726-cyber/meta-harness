@@ -142,6 +142,54 @@ class PairedFalsePositiveTests(unittest.TestCase):
         self.assertEqual(h["negative_controls_by_planted_severity"], {})
         self.assertEqual(h["negative_controls_by_planted_root_cause"], {})
 
+    def test_issue_severity_strata_separate_false_negatives_and_abstentions(self):
+        rows = cases()
+        rows += [
+            row("h2", "h2", "family-h2", "HELD_OUT", "ISSUE", "CLEAN"),
+            row("h3", "h2", "family-h2", "HELD_OUT", "CLEAN", "CLEAN"),
+        ]
+        rows[-2]["severity"] = "S2"
+        rows[-2]["root_cause"] = "DENOMINATOR"
+        h = measure(rows, manifest(rows))["by_split"]["HELD_OUT"]
+        severity = h["positive_controls_by_planted_severity"]
+        self.assertEqual(severity["S3"]["cases"], 1)
+        self.assertEqual((severity["S3"]["tp"], severity["S3"]["fn"], severity["S3"]["abstain"]), (0, 0, 1))
+        self.assertEqual(severity["S3"]["issue_decision_coverage"], 0.0)
+        self.assertIsNone(severity["S3"]["recall_decided_issues"])
+        self.assertEqual(severity["S2"]["fn"], 1)
+        self.assertEqual(severity["S2"]["abstain"], 0)
+        self.assertEqual(severity["S2"]["issue_decision_coverage"], 1.0)
+        self.assertEqual(severity["S2"]["recall_all_issues_abstentions_count_as_missed"], 0.0)
+        self.assertEqual(h["misses_by_severity"], {"S2": 1, "S3": 1})
+        self.assertEqual(h["confusion_with_abstentions"]["fp"], 1)
+
+    def test_issue_root_cause_strata_count_detected_and_missed_separately(self):
+        rows = cases()
+        rows += [
+            row("h2", "h2", "family-h2", "HELD_OUT", "ISSUE", "ISSUE"),
+            row("h3", "h2", "family-h2", "HELD_OUT", "CLEAN", "ABSTAIN", "OUT_OF_SCOPE"),
+        ]
+        rows[-2]["root_cause"] = "LABEL_SWITCH"
+        rows[-2]["severity"] = "S2"
+        result = measure(rows, manifest(rows))["by_split"]["HELD_OUT"]
+        by_cause = result["positive_controls_by_planted_root_cause"]
+        self.assertEqual(by_cause["LABEL_SWITCH"]["tp"], 1)
+        self.assertEqual(by_cause["LABEL_SWITCH"]["recall_all_issues_abstentions_count_as_missed"], 1.0)
+        self.assertEqual(by_cause["LABEL_SWITCH"]["recall_decided_issues"], 1.0)
+        self.assertEqual(by_cause["ARITHMETIC"]["abstain"], 1)
+        self.assertIsNone(by_cause["ARITHMETIC"]["recall_decided_issues"])
+        self.assertEqual(result["confusion_with_abstentions"]["abstain_clean"], 1)
+        self.assertEqual(result["confusion_with_abstentions"]["fp"], 1)
+
+    def test_empty_split_positive_strata_are_empty_not_perfect(self):
+        rows = cases()[:2]
+        h = measure(rows, manifest(rows))["by_split"]["HELD_OUT"]
+        self.assertEqual(h["positive_controls_by_planted_severity"], {})
+        self.assertEqual(h["positive_controls_by_planted_root_cause"], {})
+        d = measure(rows, manifest(rows))["by_split"]["DEV"]
+        self.assertEqual(d["positive_controls_by_planted_severity"]["S3"]["tp"], 1)
+        self.assertEqual(d["positive_controls_by_planted_severity"]["S3"]["recall_decided_issues"], 1.0)
+
     def test_family_split_leakage_refused_even_with_valid_digest(self):
         rows = cases()
         rows[-2]["family_id"] = rows[0]["family_id"]

@@ -93,6 +93,40 @@ def _score(rows: list[dict]) -> dict:
             counts["cases"] += 1
             counts[decision] += 1
 
+    # Positive controls must not hide abstentions inside a combined miss count.
+    # These denominators describe planted synthetic ISSUE controls, not evidence
+    # of effectiveness on external articles or human-adjudicated cases.
+    positive_strata = {"root_cause": {}, "severity": {}}
+    for row in rows:
+        if row["truth"] != "ISSUE":
+            continue
+        decision = {"ISSUE": "tp", "CLEAN": "fn", "ABSTAIN": "abstain"}[row["prediction"]]
+        for dimension in positive_strata:
+            key = row[dimension]
+            counts = positive_strata[dimension].setdefault(key, Counter())
+            counts["cases"] += 1
+            counts[decision] += 1
+
+    def report_positive_strata(dimension: str) -> dict:
+        return {
+            key: {
+                "cases": counts["cases"],
+                "tp": counts["tp"],
+                "fn": counts["fn"],
+                "abstain": counts["abstain"],
+                "issue_decision_coverage": _ratio(
+                    counts["tp"] + counts["fn"], counts["cases"]
+                ),
+                "recall_decided_issues": _ratio(
+                    counts["tp"], counts["tp"] + counts["fn"]
+                ),
+                "recall_all_issues_abstentions_count_as_missed": _ratio(
+                    counts["tp"], counts["cases"]
+                ),
+            }
+            for key, counts in sorted(positive_strata[dimension].items())
+        }
+
     def report_strata(dimension: str) -> dict:
         return {
             key: {
@@ -127,6 +161,8 @@ def _score(rows: list[dict]) -> dict:
         "negative_control_decision_coverage": _ratio(c["fp"] + c["tn"], neg),
         "negative_controls_by_planted_root_cause": report_strata("root_cause"),
         "negative_controls_by_planted_severity": report_strata("severity"),
+        "positive_controls_by_planted_root_cause": report_positive_strata("root_cause"),
+        "positive_controls_by_planted_severity": report_positive_strata("severity"),
         "recall_all_issues_abstentions_count_as_missed": _ratio(c["tp"], pos),
         "misses_by_severity": dict(sorted(severity_misses.items())),
         "detected_by_root_cause": dict(sorted(cause_detected.items())),
