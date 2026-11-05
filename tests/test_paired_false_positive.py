@@ -67,6 +67,53 @@ class PairedFalsePositiveTests(unittest.TestCase):
         self.assertEqual(h["fp_yield_all_negatives"], 0.0)
         self.assertEqual(h["coverage"], 0.0)
 
+    def test_false_positive_is_attributed_to_paired_planted_root_cause(self):
+        rows = cases()
+        rows[0]["severity"] = "S2"
+        rows[0]["root_cause"] = "DENOMINATOR"
+        rows[1]["prediction"] = "ISSUE"
+        result = measure(rows, manifest(rows))["by_split"]["DEV"]
+        cause = result["negative_controls_by_planted_root_cause"]
+        sev = result["negative_controls_by_planted_severity"]
+        self.assertEqual(cause["DENOMINATOR"]["fp"], 1)
+        self.assertEqual(cause["DENOMINATOR"]["cases"], 1)
+        self.assertEqual(cause["DENOMINATOR"]["fpr_decided_negatives"], 1.0)
+        self.assertEqual(sev["S2"]["fp"], 1)
+        self.assertEqual(result["negative_control_decision_coverage"], 1.0)
+
+    def test_negative_abstention_is_visible_within_planted_root_cause(self):
+        rows = cases()
+        rows[-1]["prediction"] = "ABSTAIN"
+        rows[-1]["abstention_reason"] = "OUT_OF_SCOPE"
+        result = measure(rows, manifest(rows))["by_split"]["HELD_OUT"]
+        cause = result["negative_controls_by_planted_root_cause"]["ARITHMETIC"]
+        self.assertEqual(cause["abstain"], 1)
+        self.assertEqual(cause["fp"], 0)
+        self.assertEqual(cause["negative_decision_coverage"], 0.0)
+        self.assertIsNone(cause["fpr_decided_negatives"])
+        self.assertEqual(result["negative_control_decision_coverage"], 0.0)
+
+    def test_stratified_negative_control_denominators_include_true_negatives(self):
+        rows = cases()
+        rows += [
+            row("h2", "h2", "family-h2", "HELD_OUT", "ISSUE", "ISSUE"),
+            row("h3", "h2", "family-h2", "HELD_OUT", "CLEAN", "CLEAN"),
+        ]
+        rows[-2]["severity"] = "S2"
+        rows[-2]["root_cause"] = "LABEL_SWITCH"
+        h = measure(rows, manifest(rows))["by_split"]["HELD_OUT"]
+        self.assertEqual(h["negative_controls_by_planted_root_cause"]["ARITHMETIC"]["fp"], 1)
+        self.assertEqual(h["negative_controls_by_planted_root_cause"]["LABEL_SWITCH"]["tn"], 1)
+        self.assertEqual(h["negative_controls_by_planted_severity"]["S2"]["cases"], 1)
+        self.assertEqual(h["negative_control_decision_coverage"], 1.0)
+
+    def test_empty_split_negative_control_metrics_are_unmeasured(self):
+        rows = cases()[:2]
+        h = measure(rows, manifest(rows))["by_split"]["HELD_OUT"]
+        self.assertIsNone(h["negative_control_decision_coverage"])
+        self.assertEqual(h["negative_controls_by_planted_severity"], {})
+        self.assertEqual(h["negative_controls_by_planted_root_cause"], {})
+
     def test_family_split_leakage_refused_even_with_valid_digest(self):
         rows = cases()
         rows[-2]["family_id"] = rows[0]["family_id"]
