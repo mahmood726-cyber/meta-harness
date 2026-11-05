@@ -515,3 +515,95 @@ def test_attest_non_200_response_cannot_equal_null_manifest_digest(monkeypatch, 
         assert record["files"]["index.html"]["equal"] is False
         assert record["files"]["_production/manifest.json"]["equal"] is True
         assert record["fetch_rounds"] == 1 and len(fetched_urls) == 2
+
+
+def test_check_artifact_short_circuits_unlisted_member_before_read(monkeypatch, tmp_path):
+    """An unreceipted large tar member must be refused before its body is opened.
+
+    This tests the real checker against synthetic tar input; before the fix the
+    extractfile spy raised, demonstrating that it attempted to read unlisted data.
+    """
+    import importlib.util
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location("production_record_unlisted_stream", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    page = b"<p>synthetic page only</p>"
+    manifest = tmp_path / "verified.json"
+    manifest.write_text(json.dumps({
+        "commit_sha": "a" * 40,
+        "files": {"index.html": hashlib.sha256(page).hexdigest()},
+    }), encoding="utf-8")
+    archive = tmp_path / "unlisted.tar"
+    with tarfile.open(archive, "w") as tar:
+        for name, body in (("index.html", page),
+                           ("_production/manifest.json", manifest.read_bytes()),
+                           ("unexpected.bin", b"synthetic unlisted bytes")):
+            member = tarfile.TarInfo(name)
+            member.size = len(body)
+            tar.addfile(member, io.BytesIO(body))
+
+    original = module.tarfile.TarFile.extractfile
+
+    def reject_extra_read(self, member):
+        if member.name == "unexpected.bin":
+            raise AssertionError("checker attempted to read unlisted payload")
+        return original(self, member)
+
+    monkeypatch.setattr(module.tarfile.TarFile, "extractfile", reject_extra_read)
+    monkeypatch.setattr(module, "_artifact_target",
+                        lambda *_: "TARGET production_record.check_artifact: synthetic")
+    args = SimpleNamespace(manifest=str(manifest), tar=str(archive))
+    assert module.cmd_check_artifact(args) == 1
+
+
+def test_check_artifact_hashes_verified_members_in_bounded_chunks(monkeypatch, tmp_path):
+    """Exact large synthetic bytes verify; unbounded reads cannot pass."""
+    import importlib.util
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location("production_record_bounded_tar", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    page = b"fixed synthetic payload" * 100_000  # above 1 MiB
+    manifest = tmp_path / "verified.json"
+    manifest.write_text(json.dumps({
+        "commit_sha": "a" * 40,
+        "files": {"index.html": hashlib.sha256(page).hexdigest()},
+    }), encoding="utf-8")
+    archive = tmp_path / "bounded.tar"
+    with tarfile.open(archive, "w") as tar:
+        for name, body in (("index.html", page),
+                           ("_production/manifest.json", manifest.read_bytes())):
+            member = tarfile.TarInfo(name)
+            member.size = len(body)
+            tar.addfile(member, io.BytesIO(body))
+
+    original = module.tarfile.TarFile.extractfile
+
+    class BoundedReader:
+        def __init__(self, wrapped):
+            self.wrapped = wrapped
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            self.wrapped.close()
+
+        def read(self, size=-1):
+            assert 0 < size <= 1 << 20, "unbounded tar member read"
+            return self.wrapped.read(size)
+
+    def observe_reads(self, member):
+        result = original(self, member)
+        return BoundedReader(result) if member.name == "index.html" else result
+
+    monkeypatch.setattr(module.tarfile.TarFile, "extractfile", observe_reads)
+    monkeypatch.setattr(module, "_artifact_target",
+                        lambda *_: "TARGET production_record.check_artifact: synthetic")
+    args = SimpleNamespace(manifest=str(manifest), tar=str(archive))
+    assert module.cmd_check_artifact(args) == 0
