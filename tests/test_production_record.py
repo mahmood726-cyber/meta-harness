@@ -461,3 +461,57 @@ def test_attest_zero_retry_budget_still_fetches_once_and_records_result(monkeypa
         assert record["files"]["index.html"]["equal"] is True
         assert record["files"]["_production/manifest.json"]["equal"] is not receipt_missing
         assert len(fetched_urls) == 2
+
+
+def test_attest_non_200_response_cannot_equal_null_manifest_digest(monkeypatch, tmp_path):
+    """A malformed null expected digest must never convert a 404/transport error to ATTESTED.
+
+    Before the fix, both missing-body digest and expected digest were None,
+    so the page was removed from pending and an exact receipt produced ATTESTED.
+    This exercises cmd_attest with only synthetic bytes and a stubbed fetch.
+    """
+    import importlib.util
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location("production_record_null_digest", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    manifest = tmp_path / "synthetic-manifest.json"
+    manifest.write_text(json.dumps({
+        "commit_sha": "a" * 40, "files": {"index.html": None},
+    }), encoding="utf-8")
+    receipt = manifest.read_bytes()
+
+    monkeypatch.setattr(module, "_attest_target",
+                        lambda *_args: "TARGET production_record.attest: synthetic")
+    monkeypatch.setattr(module.time, "time", lambda: 100.0)
+    monkeypatch.setattr(module.time, "sleep",
+                        lambda _: (_ for _ in ()).throw(AssertionError("one-shot must not sleep")))
+
+    for status in (0, 404, 503):
+        fetched_urls = []
+
+        def fetch(url, timeout=60):
+            fetched_urls.append(url)
+            if "/index.html?" in url:
+                return status, b""
+            if "/_production/manifest.json?" in url:
+                return 200, receipt
+            raise AssertionError("unexpected synthetic URL: " + url)
+
+        monkeypatch.setattr(module, "_fetch", fetch)
+        out = tmp_path / f"record-{status}.json"
+        args = SimpleNamespace(manifest=str(manifest), base_url="https://synthetic.invalid/",
+                               record=str(out), pages_artifact_id="synthetic-id",
+                               environment="synthetic", retry_seconds=0)
+        assert module.cmd_attest(args) == 1
+        record = json.loads(out.read_text(encoding="utf-8"))
+        assert record["verdict"] == "MISMATCH"
+        assert record["n_files"] == 2 and record["n_equal"] == 1 and record["n_mismatch"] == 1
+        assert record["files"]["index.html"]["http_status"] == status
+        assert record["files"]["index.html"]["fetched_sha256"] is None
+        assert record["files"]["index.html"]["verified_sha256"] is None
+        assert record["files"]["index.html"]["equal"] is False
+        assert record["files"]["_production/manifest.json"]["equal"] is True
+        assert record["fetch_rounds"] == 1 and len(fetched_urls) == 2

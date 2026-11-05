@@ -333,9 +333,12 @@ def cmd_attest(a) -> int:
             url = base + rel + f"?attest={os.environ.get('GITHUB_RUN_ID', '0')}-{rounds}"
             status, body = _fetch(url)
             got = _sha256_bytes(body) if status == 200 else None
+            # A missing response has no digest. Never let None == None (a
+            # malformed manifest's null digest) count as served-byte equality.
+            equal = status == 200 and got == want
             fetched[rel] = {"url": base + rel, "http_status": status, "fetched_sha256": got, "verified_sha256": want,
-                            "equal": got == want, "round": rounds, "fetched_utc": _now()}
-            if got == want:
+                            "equal": equal, "round": rounds, "fetched_utc": _now()}
+            if equal:
                 pending.pop(rel)
         # Do not sleep when a one-shot attempt has already exhausted its budget.
         if pending and time.time() < deadline:
