@@ -218,14 +218,51 @@ def cmd_check_artifact(a) -> int:
     man = json.load(open(a.manifest, encoding="utf-8"))
     want = man["files"]
     got = {}
-    with tarfile.open(a.tar) as t:
-        for m in t.getmembers():
-            if not m.isfile():
-                continue
-            rel = m.name.lstrip("./")
-            if rel.startswith(RECORD_DIRNAME + "/"):
-                continue
-            got[rel] = _sha256_bytes(t.extractfile(m).read())
+    seen = set()
+    # The tar is a deployment input, not merely a bag of last-write-wins digests.
+    # A second name for an expected file (../x, /x, duplicate x) must never satisfy its receipt.
+    try:
+        with tarfile.open(a.tar) as t:
+            for m in t.getmembers():
+                name = m.name
+                if name in (".", "./") and m.isdir():
+                    continue  # GNU tar's normal root-directory record
+                rel = name[2:] if name.startswith("./") else name
+                parts = rel.rstrip("/").split("/")
+                if (not rel or rel.startswith("/") or "\\" in rel
+                        or any(p in ("", ".", "..") for p in parts)
+                        or ":" in parts[0] or (m.isfile() and rel.endswith("/"))):
+                    print(f"ARTIFACT REFUSED: unsafe tar member path: {name!r}")
+                    return 1
+                rel = rel.rstrip("/") if m.isdir() else rel
+                if not (m.isfile() or m.isdir()):
+                    print(f"ARTIFACT REFUSED: link or non-regular tar member: {name!r}")
+                    return 1
+                if rel in seen:
+                    print(f"ARTIFACT REFUSED: duplicate tar member path: {name!r}")
+                    return 1
+                seen.add(rel)
+                if m.isdir():
+                    if rel in want:
+                        print(f"ARTIFACT REFUSED: directory shadows manifest file: {name!r}")
+                        return 1
+                    continue
+                payload = t.extractfile(m)
+                if payload is None:
+                    print(f"ARTIFACT REFUSED: unreadable tar member: {name!r}")
+                    return 1
+                content_hash = _sha256_bytes(payload.read())
+                if rel.startswith(RECORD_DIRNAME + "/"):
+                    # The self-excluded production manifest is allowed, but not an arbitrary
+                    # unreceipted file in that directory. Bind its bytes to the verifier's copy.
+                    if rel != f"{RECORD_DIRNAME}/{MANIFEST_NAME}" or content_hash != _sha256_file(a.manifest):
+                        print(f"ARTIFACT REFUSED: unexpected or changed production manifest: {name!r}")
+                        return 1
+                    continue
+                got[rel] = content_hash
+    except (OSError, tarfile.TarError) as exc:
+        print(f"ARTIFACT REFUSED: unreadable artifact tar: {exc}")
+        return 1
     missing = sorted(set(want) - set(got))
     extra = sorted(set(got) - set(want))
     differ = sorted(p for p in set(want) & set(got) if want[p] != got[p])

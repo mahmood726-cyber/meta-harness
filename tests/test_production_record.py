@@ -71,3 +71,52 @@ def test_check_artifact_refuses_a_one_byte_difference_and_passes_the_identical_t
         bad = _tar_of(d, mutate="reviews/zz-plant/index.html")
         r = _run("check-artifact", "--manifest", out, "--tar", bad)
         assert r.returncode == 1 and "ARTIFACT REFUSED" in r.stdout and "reviews/zz-plant/index.html" in r.stdout
+
+def test_check_artifact_refuses_ambiguous_or_unsafe_tar_members():
+    # The original verifier used name.lstrip("./") and overwrote duplicate keys.
+    # All of these artificial archives previously passed the digest-set check.
+    for case in ("parent_alias", "absolute_alias", "duplicate", "symlink",
+                 "hardlink", "production_extra", "production_mutation"):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = _mini_docs(tmp)
+            manifest = os.path.join(tmp, "m.json")
+            assert _run("manifest", "--docs", d, "--out", manifest).returncode == 0
+            artifact = _tar_of(d)
+            page = open(os.path.join(d, "reviews", "zz-plant", "index.html"), "rb").read()
+            with tarfile.open(artifact, "a") as tar:
+                if case in ("parent_alias", "absolute_alias", "duplicate"):
+                    path = {"parent_alias": "../reviews/zz-plant/index.html",
+                            "absolute_alias": "/reviews/zz-plant/index.html",
+                            "duplicate": "reviews/zz-plant/index.html"}[case]
+                    entry = tarfile.TarInfo(path)
+                    entry.size = len(page)
+                    tar.addfile(entry, io.BytesIO(page))
+                elif case in ("symlink", "hardlink"):
+                    entry = tarfile.TarInfo("other")
+                    entry.type = tarfile.SYMTYPE if case == "symlink" else tarfile.LNKTYPE
+                    entry.linkname = "../reviews/zz-plant/index.html"
+                    tar.addfile(entry)
+                else:
+                    name = "_production/extra.txt" if case == "production_extra" else "_production/manifest.json"
+                    data = b"unreceipted bytes" if case == "production_extra" else b"tampered manifest"
+                    entry = tarfile.TarInfo(name)
+                    entry.size = len(data)
+                    tar.addfile(entry, io.BytesIO(data))
+            result = _run("check-artifact", "--manifest", manifest, "--tar", artifact)
+            assert result.returncode == 1, (case, result.stdout, result.stderr)
+            assert "ARTIFACT REFUSED" in result.stdout, (case, result.stdout)
+
+
+def test_check_artifact_accepts_exact_embedded_production_manifest():
+    with tempfile.TemporaryDirectory() as tmp:
+        d = _mini_docs(tmp)
+        manifest = os.path.join(tmp, "m.json")
+        assert _run("manifest", "--docs", d, "--out", manifest).returncode == 0
+        artifact = _tar_of(d)
+        payload = open(manifest, "rb").read()
+        with tarfile.open(artifact, "a") as tar:
+            entry = tarfile.TarInfo("./_production/manifest.json")
+            entry.size = len(payload)
+            tar.addfile(entry, io.BytesIO(payload))
+        result = _run("check-artifact", "--manifest", manifest, "--tar", artifact)
+        assert result.returncode == 0, result.stdout + result.stderr
