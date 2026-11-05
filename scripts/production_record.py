@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import hashlib
+import http.client
 import io
 import json
 import os
@@ -152,8 +153,12 @@ def _attest_target(manifest: str, base_url: str) -> str:
     man, err = _load_manifest_for_target(manifest, "production_record.attest")
     if err:
         return err
+    if not (man.get("files") or {}):
+        return target_refusal("production_record.attest", "manifest has no page files")
     base = base_url.rstrip("/") + "/"
     urls = [base + rel for rel in (man.get("files") or {})]
+    # The detached receipt is served but self-excluded from the page-digest map.
+    urls.append(base + f"{RECORD_DIRNAME}/{MANIFEST_NAME}")
     if not _is_git_worktree(repo_root):
         return _describe_from_manifest(manifest, man, urls, "production_record.attest")
     refs = (man.get("commit_sha"),) if man.get("commit_sha") else ()
@@ -217,15 +222,83 @@ def cmd_check_artifact(a) -> int:
         return 1
     man = json.load(open(a.manifest, encoding="utf-8"))
     want = man["files"]
+    # A receipt with no page bytes cannot establish a deployed, verified site.
+    # Refuse before the deploy job can publish even an empty Pages artifact.
+    if not want:
+        print("ARTIFACT REFUSED: manifest has no page files")
+        return 1
     got = {}
-    with tarfile.open(a.tar) as t:
-        for m in t.getmembers():
-            if not m.isfile():
-                continue
-            rel = m.name.lstrip("./")
-            if rel.startswith(RECORD_DIRNAME + "/"):
-                continue
-            got[rel] = _sha256_bytes(t.extractfile(m).read())
+    seen = set()
+    embedded_manifest_seen = False
+    expected_manifest_sha = _sha256_file(a.manifest)
+    receipt_path = f"{RECORD_DIRNAME}/{MANIFEST_NAME}"
+    expected_files = set(want) | {receipt_path}
+    # The tar is a deployment input, not merely a bag of last-write-wins digests.
+    # A second name for an expected file (../x, /x, duplicate x) must never satisfy its receipt.
+    try:
+        with tarfile.open(a.tar) as t:
+            for m in t.getmembers():
+                name = m.name
+                if name in (".", "./") and m.isdir():
+                    continue  # GNU tar's normal root-directory record
+                rel = name[2:] if name.startswith("./") else name
+                parts = rel.rstrip("/").split("/")
+                if (not rel or rel.startswith("/") or "\\" in rel
+                        or any(p in ("", ".", "..") for p in parts)
+                        or ":" in parts[0] or (m.isfile() and rel.endswith("/"))):
+                    print(f"ARTIFACT REFUSED: unsafe tar member path: {name!r}")
+                    return 1
+                rel = rel.rstrip("/") if m.isdir() else rel
+                if not (m.isfile() or m.isdir()):
+                    print(f"ARTIFACT REFUSED: link or non-regular tar member: {name!r}")
+                    return 1
+                if rel in seen:
+                    print(f"ARTIFACT REFUSED: duplicate tar member path: {name!r}")
+                    return 1
+                seen.add(rel)
+                if m.isdir():
+                    # A directory beneath an expected file cannot exist in the
+                    # extracted tree, even when its own name is not receipted.
+                    # Catch file/directory prefix collisions in either tar order.
+                    parts = rel.split("/")
+                    if any("/".join(parts[:i]) in expected_files
+                           for i in range(1, len(parts) + 1)):
+                        print(f"ARTIFACT REFUSED: directory shadows verified file: {name!r}")
+                        return 1
+                    continue
+                # Fail before opening an unreceipted file. A malicious oversized
+                # extra member must not force a full read or memory exhaustion.
+                if rel != receipt_path and rel not in want:
+                    print(f"ARTIFACT REFUSED: unlisted tar file: {name!r}")
+                    return 1
+                payload = t.extractfile(m)
+                if payload is None:
+                    print(f"ARTIFACT REFUSED: unreadable tar member: {name!r}")
+                    return 1
+                # Stream expected bytes in bounded chunks, not payload.read()
+                # without a limit (Pages artifacts can be large).
+                digest = hashlib.sha256()
+                with payload:
+                    for chunk in iter(lambda: payload.read(1 << 20), b""):
+                        digest.update(chunk)
+                content_hash = digest.hexdigest()
+                if rel.startswith(RECORD_DIRNAME + "/"):
+                    # The self-excluded production manifest is allowed, but not an arbitrary
+                    # unreceipted file in that directory. Bind its bytes to the verifier's copy.
+                    if rel != f"{RECORD_DIRNAME}/{MANIFEST_NAME}" or content_hash != expected_manifest_sha:
+                        print(f"ARTIFACT REFUSED: unexpected or changed production manifest: {name!r}")
+                        return 1
+                    embedded_manifest_seen = True
+                    continue
+                got[rel] = content_hash
+    except (OSError, tarfile.TarError) as exc:
+        print(f"ARTIFACT REFUSED: unreadable artifact tar: {exc}")
+        return 1
+    # verify.yml always includes the self-excluded manifest in the Pages artifact.
+    # Omitting it would pass the file-set check while breaking the served receipt chain.
+    if not embedded_manifest_seen:
+        print(f"ARTIFACT REFUSED: missing embedded {RECORD_DIRNAME}/{MANIFEST_NAME}")
+        return 1
     missing = sorted(set(want) - set(got))
     extra = sorted(set(got) - set(want))
     differ = sorted(p for p in set(want) & set(got) if want[p] != got[p])
@@ -244,6 +317,12 @@ def _fetch(url: str, timeout: int = 60) -> tuple[int, bytes]:
             return r.status, r.read()
     except urllib.error.HTTPError as exc:
         return exc.code, b""
+    except (OSError, http.client.HTTPException):
+        # DNS, timeout, reset and incomplete HTTP-body reads all mean no
+        # verifiable served byte string. Record status 0 and retry/fail closed
+        # instead of aborting before the production mismatch record is written.
+        # HTTP errors are handled above and retain their real status.
+        return 0, b""
 
 
 def cmd_attest(a) -> int:
@@ -254,20 +333,33 @@ def cmd_attest(a) -> int:
     man = json.load(open(a.manifest, encoding="utf-8"))
     base = a.base_url.rstrip("/") + "/"
     deadline = time.time() + a.retry_seconds
+    # Artifact equality alone cannot establish that Pages actually serves the
+    # exact embedded receipt. Treat it as one more required served byte string.
+    receipt_path = f"{RECORD_DIRNAME}/{MANIFEST_NAME}"
+    if receipt_path in man["files"]:
+        print(f"ATTEST REFUSED: self-listed production manifest: {receipt_path}")
+        return 1
     pending = dict(man["files"])
+    pending[receipt_path] = _sha256_file(a.manifest)
     fetched: dict[str, dict] = {}
     rounds = 0
-    while pending and time.time() < deadline:
+    # A zero retry budget still requires one observable fetch round. Otherwise
+    # no file is measured and the mismatch reporter has no fetched status to log.
+    while pending and (rounds == 0 or time.time() < deadline):
         rounds += 1
         for rel, want in list(pending.items()):
             url = base + rel + f"?attest={os.environ.get('GITHUB_RUN_ID', '0')}-{rounds}"
             status, body = _fetch(url)
             got = _sha256_bytes(body) if status == 200 else None
+            # A missing response has no digest. Never let None == None (a
+            # malformed manifest's null digest) count as served-byte equality.
+            equal = status == 200 and got == want
             fetched[rel] = {"url": base + rel, "http_status": status, "fetched_sha256": got, "verified_sha256": want,
-                            "equal": got == want, "round": rounds, "fetched_utc": _now()}
-            if got == want:
+                            "equal": equal, "round": rounds, "fetched_utc": _now()}
+            if equal:
                 pending.pop(rel)
-        if pending:
+        # Do not sleep when a one-shot attempt has already exhausted its budget.
+        if pending and time.time() < deadline:
             time.sleep(min(30, max(5, a.retry_seconds // 20)))
     ok = not pending
     record = {
@@ -282,7 +374,7 @@ def cmd_attest(a) -> int:
         "pages_artifact_id": a.pages_artifact_id, "manifest_sha256": _sha256_file(a.manifest),
         "architecture_identity": man.get("architecture_identity"),
         "architecture_components": man.get("architecture_components"),
-        "n_files": len(man["files"]), "n_equal": sum(1 for v in fetched.values() if v["equal"]),
+        "n_files": len(man["files"]) + 1, "n_equal": sum(1 for v in fetched.values() if v["equal"]),
         "n_mismatch": len(pending), "fetch_rounds": rounds, "attested_utc": _now(),
         "review_page_bindings": man.get("review_page_bindings"), "files": fetched,
     }
