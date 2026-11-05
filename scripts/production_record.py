@@ -231,6 +231,8 @@ def cmd_check_artifact(a) -> int:
     seen = set()
     embedded_manifest_seen = False
     expected_manifest_sha = _sha256_file(a.manifest)
+    receipt_path = f"{RECORD_DIRNAME}/{MANIFEST_NAME}"
+    expected_files = set(want) | {receipt_path}
     # The tar is a deployment input, not merely a bag of last-write-wins digests.
     # A second name for an expected file (../x, /x, duplicate x) must never satisfy its receipt.
     try:
@@ -255,13 +257,17 @@ def cmd_check_artifact(a) -> int:
                     return 1
                 seen.add(rel)
                 if m.isdir():
-                    if rel in want:
-                        print(f"ARTIFACT REFUSED: directory shadows manifest file: {name!r}")
+                    # A directory beneath an expected file cannot exist in the
+                    # extracted tree, even when its own name is not receipted.
+                    # Catch file/directory prefix collisions in either tar order.
+                    parts = rel.split("/")
+                    if any("/".join(parts[:i]) in expected_files
+                           for i in range(1, len(parts) + 1)):
+                        print(f"ARTIFACT REFUSED: directory shadows verified file: {name!r}")
                         return 1
                     continue
                 # Fail before opening an unreceipted file. A malicious oversized
                 # extra member must not force a full read or memory exhaustion.
-                receipt_path = f"{RECORD_DIRNAME}/{MANIFEST_NAME}"
                 if rel != receipt_path and rel not in want:
                     print(f"ARTIFACT REFUSED: unlisted tar file: {name!r}")
                     return 1
