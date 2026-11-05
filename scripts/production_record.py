@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import hashlib
+import http.client
 import io
 import json
 import os
@@ -293,10 +294,11 @@ def _fetch(url: str, timeout: int = 60) -> tuple[int, bytes]:
             return r.status, r.read()
     except urllib.error.HTTPError as exc:
         return exc.code, b""
-    except OSError:
-        # DNS, connection and timeout failures must be measured as mismatches,
-        # not abort before the attestation record is written. HTTP errors are
-        # handled above; status 0 denotes a transport failure (not HTTP 200).
+    except (OSError, http.client.HTTPException):
+        # DNS, timeout, reset and incomplete HTTP-body reads all mean no
+        # verifiable served byte string. Record status 0 and retry/fail closed
+        # instead of aborting before the production mismatch record is written.
+        # HTTP errors are handled above and retain their real status.
         return 0, b""
 
 
