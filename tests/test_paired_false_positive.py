@@ -141,6 +141,19 @@ class PairedFalsePositiveTests(unittest.TestCase):
         with self.assertRaisesRegex(BenchmarkRefusal, "duplicate case"):
             measure(rows, manifest(rows))
 
+    def test_duplicate_case_casing_across_splits_refused(self):
+        # A DEV id must not be scored again as a different HELD_OUT id.
+        rows = cases()
+        rows[-1]["case_id"] = "D1"
+        with self.assertRaisesRegex(BenchmarkRefusal, "duplicate case"):
+            measure(rows, manifest(rows))
+
+    def test_duplicate_case_casing_within_pair_refused(self):
+        rows = cases()
+        rows[1]["case_id"] = "D1"
+        with self.assertRaisesRegex(BenchmarkRefusal, "duplicate case"):
+            measure(rows, manifest(rows))
+
     def test_manifests_pin_exact_synthetic_fixture(self):
         rows = cases()
         m = manifest(rows)
