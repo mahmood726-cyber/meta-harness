@@ -259,11 +259,23 @@ def cmd_check_artifact(a) -> int:
                         print(f"ARTIFACT REFUSED: directory shadows manifest file: {name!r}")
                         return 1
                     continue
+                # Fail before opening an unreceipted file. A malicious oversized
+                # extra member must not force a full read or memory exhaustion.
+                receipt_path = f"{RECORD_DIRNAME}/{MANIFEST_NAME}"
+                if rel != receipt_path and rel not in want:
+                    print(f"ARTIFACT REFUSED: unlisted tar file: {name!r}")
+                    return 1
                 payload = t.extractfile(m)
                 if payload is None:
                     print(f"ARTIFACT REFUSED: unreadable tar member: {name!r}")
                     return 1
-                content_hash = _sha256_bytes(payload.read())
+                # Stream expected bytes in bounded chunks, not payload.read()
+                # without a limit (Pages artifacts can be large).
+                digest = hashlib.sha256()
+                with payload:
+                    for chunk in iter(lambda: payload.read(1 << 20), b""):
+                        digest.update(chunk)
+                content_hash = digest.hexdigest()
                 if rel.startswith(RECORD_DIRNAME + "/"):
                     # The self-excluded production manifest is allowed, but not an arbitrary
                     # unreceipted file in that directory. Bind its bytes to the verifier's copy.
