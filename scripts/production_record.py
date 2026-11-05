@@ -222,6 +222,11 @@ def cmd_check_artifact(a) -> int:
         return 1
     man = json.load(open(a.manifest, encoding="utf-8"))
     want = man["files"]
+    # A receipt with no page bytes cannot establish a deployed, verified site.
+    # Refuse before the deploy job can publish even an empty Pages artifact.
+    if not want:
+        print("ARTIFACT REFUSED: manifest has no page files")
+        return 1
     got = {}
     seen = set()
     embedded_manifest_seen = False
