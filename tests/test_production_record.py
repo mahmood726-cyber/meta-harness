@@ -136,6 +136,34 @@ def test_check_artifact_refuses_missing_embedded_manifest():
         assert "ARTIFACT REFUSED: missing embedded _production/manifest.json" in result.stdout
 
 
+def test_check_artifact_refuses_receipted_but_empty_pages_artifact():
+    """An exact receipt alone must not let an empty Pages artifact deploy.
+
+    The previous check-artifact accepted an empty file map plus only its own
+    self-excluded _production receipt: no pages were actually verified.
+    Fully synthetic inputs; no publication files or network calls.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        docs = _mini_docs(tmp)
+        manifest = os.path.join(tmp, "m.json")
+        assert _run("manifest", "--docs", docs, "--out", manifest).returncode == 0
+        receipt = json.load(open(manifest, encoding="utf-8"))
+        receipt["files"] = {}
+        receipt["n_files"] = 0
+        with io.open(manifest, "w", encoding="utf-8") as f:
+            json.dump(receipt, f)
+        # The detached receipt is byte-identical; no page files are present.
+        archive = os.path.join(tmp, "empty-pages.tar")
+        with tarfile.open(archive, "w") as tar:
+            body = open(manifest, "rb").read()
+            entry = tarfile.TarInfo("./_production/manifest.json")
+            entry.size = len(body)
+            tar.addfile(entry, io.BytesIO(body))
+        result = _run("check-artifact", "--manifest", manifest, "--tar", archive)
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "ARTIFACT REFUSED: manifest has no page files" in result.stdout
+
+
 def test_check_artifact_refuses_unreceipted_file():
     with tempfile.TemporaryDirectory() as tmp:
         d = _mini_docs(tmp)
