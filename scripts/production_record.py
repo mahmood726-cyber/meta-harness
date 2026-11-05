@@ -152,6 +152,8 @@ def _attest_target(manifest: str, base_url: str) -> str:
     man, err = _load_manifest_for_target(manifest, "production_record.attest")
     if err:
         return err
+    if not (man.get("files") or {}):
+        return target_refusal("production_record.attest", "manifest has no page files")
     base = base_url.rstrip("/") + "/"
     urls = [base + rel for rel in (man.get("files") or {})]
     # The detached receipt is served but self-excluded from the page-digest map.
