@@ -149,3 +149,65 @@ def test_check_artifact_refuses_unreceipted_file():
         result = _run("check-artifact", "--manifest", manifest, "--tar", artifact)
         assert result.returncode == 1, result.stdout + result.stderr
         assert "unlisted.html" in result.stdout
+
+
+def test_attest_requires_exact_served_receipt_even_when_pages_match(monkeypatch, tmp_path):
+    """The published production receipt is separately served; artifact equality is not enough.
+
+    No network, article data, legacy cache or live deployment is touched.  The
+    real cmd_attest executes with a stubbed HTTP fetch and deterministic clock.
+    """
+    import importlib.util
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location("production_record_receipt_test", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    body = b"<p>synthetic served page</p>"
+    manifest = tmp_path / "verified-manifest.json"
+    manifest.write_text(json.dumps({
+        "commit_sha": "a" * 40,
+        "files": {"index.html": hashlib.sha256(body).hexdigest()},
+    }), encoding="utf-8")
+    exact_receipt = manifest.read_bytes()
+
+    monkeypatch.setattr(module, "_attest_target", lambda _m, _base: "TARGET production_record.attest: synthetic")
+    monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
+
+    for case, served_receipt, expected_exit in (
+        ("missing", None, 1),
+        ("mutated", b"changed but superficially valid", 1),
+        ("exact", exact_receipt, 0),
+    ):
+        ticks = [0]
+
+        def clock():
+            ticks[0] += 1
+            return 0.0 if ticks[0] == 1 else (0.1 if ticks[0] == 2 else 2.0)
+
+        monkeypatch.setattr(module.time, "time", clock)
+        calls = []
+
+        def fetch(url, timeout=60):
+            calls.append(url)
+            if "/index.html?" in url:
+                return 200, body
+            if "/_production/manifest.json?" in url:
+                return (404, b"") if served_receipt is None else (200, served_receipt)
+            raise AssertionError("unexpected URL: " + url)
+
+        monkeypatch.setattr(module, "_fetch", fetch)
+        record_path = tmp_path / f"{case}-record.json"
+        args = SimpleNamespace(
+            manifest=str(manifest), base_url="https://synthetic.invalid/",
+            record=str(record_path), pages_artifact_id="synthetic-id",
+            environment="synthetic", retry_seconds=1,
+        )
+        assert module.cmd_attest(args) == expected_exit
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        assert record["n_files"] == 2
+        assert record["n_mismatch"] == expected_exit
+        assert record["verdict"] == ("ATTESTED" if expected_exit == 0 else "MISMATCH")
+        assert record["files"]["index.html"]["equal"] is True
+        assert record["files"]["_production/manifest.json"]["equal"] is (expected_exit == 0)
+        assert len(calls) == 2, calls
