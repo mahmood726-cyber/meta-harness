@@ -75,5 +75,26 @@ class PairedSyntheticRunnerTests(unittest.TestCase):
             self.assertEqual(run_synthetic_tests(self.root, expected_tests=2), 0)
 
 
+    def test_skipped_case_fails_closed_even_when_count_matches(self):
+        (self.root / 'tests' / 'test_paired_discrimination.py').write_text(
+            'import unittest\n'
+            'class Skipped(unittest.TestCase):\n'
+            '    @unittest.skip("not authorized")\n'
+            '    def test_skipped(self): self.fail("not executed")\n'
+        )
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(run_synthetic_tests(self.root, expected_tests=2), 1)
+
+    def test_expected_failure_fails_closed_even_when_count_matches(self):
+        (self.root / 'tests' / 'test_paired_discrimination.py').write_text(
+            'import unittest\n'
+            'class ExpectedFailure(unittest.TestCase):\n'
+            '    @unittest.expectedFailure\n'
+            '    def test_expected_failure(self): self.fail("not passing")\n'
+        )
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(run_synthetic_tests(self.root, expected_tests=2), 1)
+
+
 if __name__ == '__main__':
     unittest.main()
