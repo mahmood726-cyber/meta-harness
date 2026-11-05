@@ -71,6 +71,41 @@ def _score(rows: list[dict]) -> dict:
                 severity_misses[row["severity"]] += 1
     for key in ("tp", "fp", "fn", "tn", "abstain_issue", "abstain_clean"):
         c.setdefault(key, 0)
+    # Attribute false alarms on CLEAN controls to the planted issue in their
+    # validated pair.  A clean row correctly has no intrinsic root cause;
+    # treating it as root cause NONE would hide failure-mode-specific FPs.
+    planted_by_pair = {
+        row["pair_id"].casefold(): row for row in rows if row["truth"] == "ISSUE"
+    }
+    negative_strata = {"root_cause": {}, "severity": {}}
+    for row in rows:
+        if row["truth"] != "CLEAN":
+            continue
+        planted = planted_by_pair[row["pair_id"].casefold()]
+        decision = {"ISSUE": "fp", "CLEAN": "tn", "ABSTAIN": "abstain"}[row["prediction"]]
+        for dimension in negative_strata:
+            key = planted[dimension]
+            counts = negative_strata[dimension].setdefault(key, Counter())
+            counts["cases"] += 1
+            counts[decision] += 1
+
+    def report_strata(dimension: str) -> dict:
+        return {
+            key: {
+                "cases": counts["cases"],
+                "fp": counts["fp"],
+                "tn": counts["tn"],
+                "abstain": counts["abstain"],
+                "negative_decision_coverage": _ratio(
+                    counts["fp"] + counts["tn"], counts["cases"]
+                ),
+                "fpr_decided_negatives": _ratio(
+                    counts["fp"], counts["fp"] + counts["tn"]
+                ),
+            }
+            for key, counts in sorted(negative_strata[dimension].items())
+        }
+
     n = len(rows)
     decided = c["tp"] + c["fp"] + c["fn"] + c["tn"]
     neg = c["fp"] + c["tn"] + c["abstain_clean"]
@@ -82,6 +117,9 @@ def _score(rows: list[dict]) -> dict:
         "precision_decided": _ratio(c["tp"], c["tp"] + c["fp"]),
         "fpr_decided_negatives": _ratio(c["fp"], c["fp"] + c["tn"]),
         "fp_yield_all_negatives": _ratio(c["fp"], neg),
+        "negative_control_decision_coverage": _ratio(c["fp"] + c["tn"], neg),
+        "negative_controls_by_planted_root_cause": report_strata("root_cause"),
+        "negative_controls_by_planted_severity": report_strata("severity"),
         "recall_all_issues_abstentions_count_as_missed": _ratio(c["tp"], pos),
         "misses_by_severity": dict(sorted(severity_misses.items())),
         "detected_by_root_cause": dict(sorted(cause_detected.items())),
