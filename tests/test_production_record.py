@@ -225,3 +225,84 @@ def test_attest_refuses_receipt_only_empty_page_manifest(tmp_path):
     target = module._attest_target(str(manifest), "https://synthetic.invalid/")
     assert target.startswith("TARGET production_record.attest: COULD-NOT-EXECUTE")
     assert "manifest has no page files" in target
+
+
+def test_fetch_transport_failures_are_not_silent_attestation_aborts(monkeypatch):
+    """Transport errors are observable status-0 mismatches; no real network."""
+    import importlib.util
+    import urllib.error
+
+    spec = importlib.util.spec_from_file_location("production_record_transport", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    for problem in (urllib.error.URLError("synthetic DNS refusal"),
+                    TimeoutError("synthetic timeout"),
+                    ConnectionResetError("synthetic disconnect")):
+        def fail(_request, timeout=60):
+            raise problem
+
+        monkeypatch.setattr(module.urllib.request, "urlopen", fail)
+        assert module._fetch("https://synthetic.invalid/index.html", timeout=1) == (0, b"")
+
+
+def test_attest_persists_failure_record_when_one_served_file_cannot_be_fetched(monkeypatch, tmp_path):
+    """One verified page and one unreachable receipt must produce a durable MISMATCH."""
+    import importlib.util
+    import urllib.error
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location("production_record_partial_fetch", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    page = b"<p>synthetic published page</p>"
+    manifest = tmp_path / "verified-manifest.json"
+    manifest.write_text(json.dumps({"commit_sha": "a" * 40,
+                                    "files": {"index.html": hashlib.sha256(page).hexdigest()}}),
+                        encoding="utf-8")
+
+    class ServedPage:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _kind, _error, _traceback):
+            return False
+
+        def read(self):
+            return page
+
+    attempted = []
+
+    def urlopen(request, timeout=60):
+        attempted.append(request.full_url)
+        if "/index.html?" in request.full_url:
+            return ServedPage()
+        if "/_production/manifest.json?" in request.full_url:
+            raise urllib.error.URLError("synthetic transport outage")
+        raise AssertionError("unexpected URL")
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(module, "_attest_target", lambda *_args: "TARGET production_record.attest: synthetic")
+    monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
+    ticks = [0]
+
+    def clock():
+        ticks[0] += 1
+        return 0.0 if ticks[0] == 1 else (0.1 if ticks[0] == 2 else 2.0)
+
+    monkeypatch.setattr(module.time, "time", clock)
+    record_path = tmp_path / "partial-fetch-record.json"
+    args = SimpleNamespace(manifest=str(manifest), base_url="https://synthetic.invalid/",
+                           record=str(record_path), pages_artifact_id="synthetic-id",
+                           environment="synthetic", retry_seconds=1)
+    assert module.cmd_attest(args) == 1
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    assert record["verdict"] == "MISMATCH"
+    assert record["n_files"] == 2 and record["n_equal"] == 1 and record["n_mismatch"] == 1
+    assert record["files"]["index.html"]["equal"] is True
+    assert record["files"]["_production/manifest.json"]["http_status"] == 0
+    assert record["files"]["_production/manifest.json"]["equal"] is False
+    assert len(attempted) == 2
