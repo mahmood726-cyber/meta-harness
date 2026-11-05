@@ -59,7 +59,9 @@ _TEST_CODE = (
     'suite = unittest.defaultTestLoader.discover('
     'start_dir="tests", pattern="test_paired*.py", top_level_dir=".")\n'
     'result = unittest.TextTestRunner(verbosity=2).run(suite)\n'
-    'sys.exit(0 if result.wasSuccessful() and result.testsRun == int(sys.argv[1]) else 1)\n'
+    'sys.exit(0 if result.wasSuccessful() and result.testsRun == int(sys.argv[1]) '
+    'and not result.skipped and not result.expectedFailures '
+    'and not result.unexpectedSuccesses else 1)\n'
 )
 
 
