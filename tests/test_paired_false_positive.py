@@ -93,6 +93,34 @@ class PairedFalsePositiveTests(unittest.TestCase):
         self.assertIsNone(cause["fpr_decided_negatives"])
         self.assertEqual(result["negative_control_decision_coverage"], 0.0)
 
+    def test_abstention_reasons_split_by_truth_without_hiding_negatives(self):
+        rows = cases()
+        rows[-1]["prediction"] = "ABSTAIN"
+        rows[-1]["abstention_reason"] = "INSUFFICIENT_EVIDENCE"
+        h = measure(rows, manifest(rows))["by_split"]["HELD_OUT"]
+        self.assertEqual(h["abstention_reasons_by_truth"], {
+            "ISSUE": {"LOW_CONFIDENCE": 1},
+            "CLEAN": {"INSUFFICIENT_EVIDENCE": 1},
+        })
+        self.assertEqual(h["confusion_with_abstentions"]["abstain_issue"], 1)
+        self.assertEqual(h["confusion_with_abstentions"]["abstain_clean"], 1)
+
+    def test_abstention_reason_counts_exclude_decisions_and_are_split_scoped(self):
+        rows = cases()
+        rows += [
+            row("h2", "h2", "family-h2", "HELD_OUT", "ISSUE", "ABSTAIN", "OUT_OF_SCOPE"),
+            row("h3", "h2", "family-h2", "HELD_OUT", "CLEAN", "CLEAN"),
+        ]
+        measured = measure(rows, manifest(rows))["by_split"]
+        self.assertEqual(measured["DEV"]["abstention_reasons_by_truth"], {
+            "ISSUE": {}, "CLEAN": {},
+        })
+        self.assertEqual(measured["HELD_OUT"]["abstention_reasons_by_truth"], {
+            "ISSUE": {"LOW_CONFIDENCE": 1, "OUT_OF_SCOPE": 1},
+            "CLEAN": {},
+        })
+        self.assertEqual(measured["HELD_OUT"]["confusion_with_abstentions"]["fp"], 1)
+
     def test_stratified_negative_control_denominators_include_true_negatives(self):
         rows = cases()
         rows += [
