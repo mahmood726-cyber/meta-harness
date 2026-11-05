@@ -293,6 +293,11 @@ def _fetch(url: str, timeout: int = 60) -> tuple[int, bytes]:
             return r.status, r.read()
     except urllib.error.HTTPError as exc:
         return exc.code, b""
+    except OSError:
+        # DNS, connection and timeout failures must be measured as mismatches,
+        # not abort before the attestation record is written. HTTP errors are
+        # handled above; status 0 denotes a transport failure (not HTTP 200).
+        return 0, b""
 
 
 def cmd_attest(a) -> int:
