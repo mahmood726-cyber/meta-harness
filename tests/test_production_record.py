@@ -211,3 +211,17 @@ def test_attest_requires_exact_served_receipt_even_when_pages_match(monkeypatch,
         assert record["files"]["index.html"]["equal"] is True
         assert record["files"]["_production/manifest.json"]["equal"] is (expected_exit == 0)
         assert len(calls) == 2, calls
+
+
+def test_attest_refuses_receipt_only_empty_page_manifest(tmp_path):
+    """Adding a required receipt must not turn an empty page set into success."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("production_record_empty_attest", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    manifest = tmp_path / "empty-manifest.json"
+    manifest.write_text(json.dumps({"commit_sha": "a" * 40, "files": {}}), encoding="utf-8")
+    target = module._attest_target(str(manifest), "https://synthetic.invalid/")
+    assert target.startswith("TARGET production_record.attest: COULD-NOT-EXECUTE")
+    assert "manifest has no page files" in target
