@@ -318,7 +318,9 @@ def cmd_attest(a) -> int:
     pending[receipt_path] = _sha256_file(a.manifest)
     fetched: dict[str, dict] = {}
     rounds = 0
-    while pending and time.time() < deadline:
+    # A zero retry budget still requires one observable fetch round. Otherwise
+    # no file is measured and the mismatch reporter has no fetched status to log.
+    while pending and (rounds == 0 or time.time() < deadline):
         rounds += 1
         for rel, want in list(pending.items()):
             url = base + rel + f"?attest={os.environ.get('GITHUB_RUN_ID', '0')}-{rounds}"
@@ -328,7 +330,8 @@ def cmd_attest(a) -> int:
                             "equal": got == want, "round": rounds, "fetched_utc": _now()}
             if got == want:
                 pending.pop(rel)
-        if pending:
+        # Do not sleep when a one-shot attempt has already exhausted its budget.
+        if pending and time.time() < deadline:
             time.sleep(min(30, max(5, a.retry_seconds // 20)))
     ok = not pending
     record = {

@@ -306,3 +306,55 @@ def test_attest_persists_failure_record_when_one_served_file_cannot_be_fetched(m
     assert record["files"]["_production/manifest.json"]["http_status"] == 0
     assert record["files"]["_production/manifest.json"]["equal"] is False
     assert len(attempted) == 2
+
+def test_attest_zero_retry_budget_still_fetches_once_and_records_result(monkeypatch, tmp_path):
+    """A one-shot attestation must measure every page and receipt, even at the deadline.
+
+    Prior to the fix, --retry-seconds 0 skipped the only fetch loop and then
+    dereferenced a missing fetched[rel] while reporting MISMATCH. Pure synthetic
+    content; cmd_attest itself runs with a stubbed network and clock.
+    """
+    import importlib.util
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location("production_record_zero_budget", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    page = b"<p>synthetic one-shot page</p>"
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"commit_sha": "a" * 40,
+                                    "files": {"index.html": hashlib.sha256(page).hexdigest()}}),
+                        encoding="utf-8")
+    receipt = manifest.read_bytes()
+    monkeypatch.setattr(module, "_attest_target", lambda *_: "TARGET production_record.attest: synthetic")
+    monkeypatch.setattr(module.time, "time", lambda: 100.0)
+    monkeypatch.setattr(module.time, "sleep",
+                        lambda _: (_ for _ in ()).throw(AssertionError("one-shot must not sleep")))
+
+    for receipt_missing in (True, False):
+        fetched_urls = []
+
+        def fetch(url, timeout=60):
+            fetched_urls.append(url)
+            if "/index.html?" in url:
+                return 200, page
+            if "/_production/manifest.json?" in url:
+                return (404, b"") if receipt_missing else (200, receipt)
+            raise AssertionError("unexpected synthetic URL: " + url)
+
+        monkeypatch.setattr(module, "_fetch", fetch)
+        record_path = tmp_path / ("missing.json" if receipt_missing else "exact.json")
+        args = SimpleNamespace(manifest=str(manifest), base_url="https://synthetic.invalid/",
+                               record=str(record_path), pages_artifact_id="synthetic-id",
+                               environment="synthetic", retry_seconds=0)
+        assert module.cmd_attest(args) == int(receipt_missing)
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        assert record["fetch_rounds"] == 1
+        assert record["n_files"] == 2
+        assert record["n_equal"] == (1 if receipt_missing else 2)
+        assert record["n_mismatch"] == int(receipt_missing)
+        assert record["verdict"] == ("MISMATCH" if receipt_missing else "ATTESTED")
+        assert record["files"]["index.html"]["equal"] is True
+        assert record["files"]["_production/manifest.json"]["equal"] is not receipt_missing
+        assert len(fetched_urls) == 2
