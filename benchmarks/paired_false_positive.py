@@ -55,10 +55,14 @@ def _score(rows: list[dict]) -> dict:
     severity_misses = Counter()
     cause_detected = Counter()
     cause_missed = Counter()
+    # Keep abstention reasons separate from ordinary false positives / misses.
+    # These are descriptive counts for validated synthetic truth labels only.
+    reasons = {truth: Counter() for truth in TRUTHS}
     for row in rows:
         truth, decision = row["truth"], row["prediction"]
         if decision == "ABSTAIN":
             c["abstain_" + truth.lower()] += 1
+            reasons[truth][row["abstention_reason"]] += 1
         elif truth == "ISSUE":
             c["tp" if decision == "ISSUE" else "fn"] += 1
         else:
@@ -113,6 +117,9 @@ def _score(rows: list[dict]) -> dict:
     return {
         "cases": n, "paired_controls": n // 2,
         "confusion_with_abstentions": dict(sorted(c.items())),
+        "abstention_reasons_by_truth": {
+            truth: dict(sorted(reasons[truth].items())) for truth in TRUTHS
+        },
         "coverage": _ratio(decided, n),
         "precision_decided": _ratio(c["tp"], c["tp"] + c["fp"]),
         "fpr_decided_negatives": _ratio(c["fp"], c["fp"] + c["tn"]),
