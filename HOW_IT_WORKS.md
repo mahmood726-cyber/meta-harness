@@ -2,7 +2,8 @@
 
 A plain-language account of the machine for someone who has not been in the build. Snapshot of the
 current state; live counts (topics, verified numbers, coverage) should be checked against
-the published index and the committed verification ledger. The repository currently defines
+the published index; each deployed commit's chain to the served bytes is recorded as `<commit-sha>.json`
+on the `production-records` branch. The repository currently defines
 **15 verification limbs** in `scripts/verify_all.py`; these are distinct from the
 **two-limb publication gate** in `harness/gate.py`. Neither is independent clinical validation.
 
@@ -90,7 +91,7 @@ These examples are not a complete enumerated gate inventory. `scripts/verify_all
 executes **15 fail-closed limbs**, including unit tests, full offline replay, the gate on each served
 review, index currency, provenance, held-out leakage and independent-recompute *code paths*.
 The independent-recompute limb is an internal implementation check; it is not an external
-blinded clinical adjudication. See the current code and verified CI ledger for the live state.
+blinded clinical adjudication. See the current code and the `production-records` branch for the live state.
 
 ## 4. The guards, and the defect that created each
 
