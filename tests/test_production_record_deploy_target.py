@@ -34,6 +34,8 @@ def _sim(tmp_path, tamper: bool):
     with tarfile.open(tar_path, "w") as tf:
         for rel in files:
             tf.add(site / rel, arcname="./" + rel)
+        # Pages uploads the manifest itself, even though it cannot hash its own bytes.
+        tf.add(pr / "docs" / "_production" / "manifest.json", arcname="./_production/manifest.json")
     proc = subprocess.run([sys.executable, str(pr / "scripts" / "production_record.py"), "check-artifact",
                            "--manifest", str(pr / "docs" / "_production" / "manifest.json"), "--tar", str(tar_path)],
                           cwd=tmp_path, capture_output=True, text=True, encoding="utf-8")
