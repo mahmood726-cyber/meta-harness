@@ -200,17 +200,25 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
         if e is None and t.get("mean1") is not None:
             e = t["mean1"] - t["mean2"]
             lo = hi = None
+        derived = False
+        if e is not None and (lo is None or hi is None):
+            # C5 (audit R8-2): no stored CI -> the per-study 95% CI from the SAME (yi, vi) the pool uses
+            # (synth.Study.yi_vi; +/-1.96 SE; display only, never stored, marked on the plot). None if incomputable.
+            dlo, dhi = _row_ci_from_pool_variance(t, scale, is_ratio)
+            if dlo is not None:
+                lo, hi, derived = dlo, dhi, True
         if e is not None:
             rs = str(t.get("scale") or "").upper()
-            rows.append((str(t.get("label")) + (f" ({rs})" if rs and rs != scale and (t.get("effect") is not None or rs == "RR FROM COUNTS") else ""), e, lo, hi))
+            rows.append((str(t.get("label")) + (f" ({rs})" if rs and rs != scale and (t.get("effect") is not None or rs == "RR FROM COUNTS") else ""), e, lo, hi, derived))
         else:
             not_drawn.append(str(t.get("label")))
     if not rows:
         return ""
     pooled = (res.get("estimate"), res.get("ci_low"), res.get("ci_high"))
-    xs = [v for _, e, lo, hi in rows for v in (e, lo, hi) if v is not None]
+    xs = [v for _, e, lo, hi, _d in rows for v in (e, lo, hi) if v is not None]
     if pooled[0] is not None:
         xs += [v for v in pooled if v is not None]
+    xs.append(1.0 if is_ratio else 0.0)       # C5: the null is always on the axis, so the null line is always drawn
     if is_ratio:
         xs = [x for x in xs if x and x > 0]
         if not xs:
@@ -236,14 +244,16 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
     if nx is not None and lo_x <= (math.log(null) if is_ratio else null) <= hi_x:
         parts.append(f"<line x1='{nx:.1f}' y1='{padT-6}' x2='{nx:.1f}' y2='{H-24}' stroke='#78909c' stroke-dasharray='3 3'/>")
     y = padT
-    for lab, e, lo, hi in rows:
+    any_derived = any(d for *_, d in rows)
+    for lab, e, lo, hi, derived in rows:
         cx = xpix(e)
         if lo is not None and hi is not None:
             xl, xh = xpix(lo), xpix(hi)
             parts.append(f"<line x1='{xl:.1f}' y1='{y:.1f}' x2='{xh:.1f}' y2='{y:.1f}' stroke='#37474f'/>")
         parts.append(f"<rect x='{cx-3:.1f}' y='{y-3:.1f}' width='6' height='6' fill='#1d3b4d'/>")
         parts.append(f"<text x='6' y='{y+4:.1f}' fill='#12232e'>{_e(lab)}</text>")
-        val = f"{_fmt(e)}" + (f" [{_fmt(lo)}, {_fmt(hi)}]" if lo is not None else "")
+        val = (f"{_fmt(e)}" + (f" [{_fmt(lo)}, {_fmt(hi)}]" if lo is not None else " (no CI)")
+               + ("\u2020" if derived else ""))
         parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#37474f'>{_e(val)}</text>")
         y += rowh
     # pooled diamond
@@ -255,11 +265,41 @@ def forest_for(prim, label="Forest plot of the primary outcome"):
         parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(_lab)}</text>")
         pv = f"{_fmt(pooled[0])} [{_fmt(pooled[1])}, {_fmt(pooled[2])}]"
         parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(pv)}</text>")
+    elif pooled[0] is not None:
+        y += rowh // 2
+        xc = xpix(pooled[0])
+        parts.append(f"<circle cx='{xc:.1f}' cy='{y:.1f}' r='5' fill='none' stroke='#b31412' stroke-width='2'/>")
+        _lab = "Single trial (k = 1)" if res.get("k") == 1 else f"Pooled ({_forest_k_phrase(prim)})"
+        parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(_lab)}</text>")
+        parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(_fmt(pooled[0]))} (CI not served)</text>")
     _axis = res.get("effect_label") or scale or "effect"
     parts.append(f"<text x='{padL}' y='{H-6}' fill='#546e7a'>{_e(_axis)} ({'log scale, null=1' if is_ratio else 'null=0'})</text></svg>")
+    if any_derived:
+        parts.append("<p class='note'>\u2020 No 95% CI is stored for this row; the whisker is the per-study 95% CI computed "
+                     "for display from the row's counts or means, with the same variance the pool uses (not a served number).</p>")
+    if pooled[0] is not None and pooled[1] is None:
+        parts.append("<p class='note'>The pooled point estimate is shown without an interval because its CI is not served "
+                     "(see this outcome's Results).</p>")
     if not_drawn:
         parts.append(f"<p class='note'>Not drawn (no displayable effect on this scale): {_e(', '.join(not_drawn))}.</p>")
     return "".join(parts)
+
+
+def _row_ci_from_pool_variance(t, scale, is_ratio):
+    """(lo, hi) of one row's per-study 95% CI from synth.Study.yi_vi -- the variance the pool itself uses -- or (None, None)
+    when the row cannot yield one (refused design, missing counts, a scale mismatch). Display only."""
+    import math
+    from .known_missing import _study_from_trial
+    try:
+        y, v = _study_from_trial(t, scale).yi_vi()
+    except (TypeError, ValueError, ZeroDivisionError, KeyError):
+        return None, None
+    if v is None or not (v > 0) or not math.isfinite(y):
+        return None, None
+    half = 1.959963984540054 * math.sqrt(v)
+    if is_ratio:
+        return math.exp(y - half), math.exp(y + half)
+    return y - half, y + half
 
 
 
