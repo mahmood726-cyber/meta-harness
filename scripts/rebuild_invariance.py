@@ -162,7 +162,7 @@ def main(argv=None):
     docs = Path(a.docs)
     pages = sorted(p for p in (docs / "reviews").iterdir() if (p / "index.html").exists())
     order = sorted(pages, key=lambda p: (p.name not in NAMED_FIRST, NAMED_FIRST.index(p.name) if p.name in NAMED_FIRST else 0, p.name))
-    report = {"base": base, "base_source": source, "docs": str(docs), "ack_problems": ack_problems, "expect_added": a.expect_added,
+    report = {"base": base, "base_source": source, "docs": docs.as_posix(), "ack_problems": ack_problems, "expect_added": a.expect_added,
               "added_text": a.added_text, "added_marker": a.added_marker, "exceptions": exceptions, "pages": []}
     for p in order:
         slug = p.name

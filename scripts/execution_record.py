@@ -64,7 +64,7 @@ def environment() -> dict:
         dists = sorted(f"{d.metadata['Name']}=={d.version}" for d in metadata.distributions() if d.metadata and d.metadata.get("Name"))
     except Exception:
         dists = ["UNAVAILABLE"]
-    return {"python": sys.version, "executable": sys.executable, "implementation": platform.python_implementation(),
+    return {"python": sys.version, "executable": Path(sys.executable).as_posix(), "implementation": platform.python_implementation(),
             "platform": platform.platform(), "machine": platform.machine(), "host": platform.node(),
             "installed_distributions": dists,
             "harness_dependency_claim": "the certified analysis code is stdlib-only (certificate_scope.method); installed_distributions is the full "
@@ -118,7 +118,7 @@ def write_execution_record(review_dir: str | os.PathLike, slug: str, argv: list[
         "record_version": RECORD_VERSION,
         "slug": slug,
         "utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "command": {"argv": list(argv), "now_argument": now_arg, "cwd": os.getcwd()},
+        "command": {"argv": list(argv), "now_argument": now_arg, "cwd": Path.cwd().as_posix()},
         "tree": tree,
         "environment": environment(),
         "inputs": inputs,

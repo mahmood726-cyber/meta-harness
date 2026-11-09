@@ -30,7 +30,8 @@ import hashlib
 import json
 import os
 
-LEDGER_REL = os.path.join("evidence", "p5_populations", "ledger.json")
+# Recorded on served pages, so it must not depend on the OS path separator.
+LEDGER_REL = "evidence/p5_populations/ledger.json"
 
 DECISION = {
     "id": "D04-OPT1-AMENDED",

@@ -20,6 +20,7 @@ import re
 from pathlib import Path as _Path
 from typing import Any
 
+from .estmeasure import display_measure, display_effect_label
 from . import manuscript as _manuscript_mod
 from . import review_tabs as _review_tabs
 from . import grade as _grade_mod
@@ -30,6 +31,7 @@ from . import propositions as _proposition_mod
 from . import rob2 as _rob2_mod
 from . import funding as _funding_mod
 from . import scope_identity as _scope_identity_mod
+from . import scope as _scope_mod
 
 TABS = [   # the RapidMeta tab contract (rapidmeta-v1, harness/review_tabs.py; tests/test_review_tabs.py)
     ("overview", "Overview"),
@@ -327,14 +329,14 @@ def _search_provenance_html(rc: dict) -> str:
 
 
 def _ci(res) -> str:
-    return f"{_num(res.get('estimate'))} ({res.get('scale')}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
+    return f"{_num(res.get('estimate'))} ({_e(display_measure(res))}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
 
 
 def _effect_label(res) -> str:
     # A single-trial result is not a pooled effect; label it honestly so the k=1 CI is not
     # read as a random-effects pooled interval.
-    if res.get("effect_label"):
-        return res.get("effect_label")
+    if display_effect_label(res):
+        return display_effect_label(res)
     return "Single-trial effect" if res.get("k") == 1 else "Pooled effect"
 
 
@@ -388,7 +390,7 @@ def _effect_rows(res: dict) -> list[tuple[str, str]]:
     if res.get("pooled_ci_refused"):
         return [
             ("Pooled point estimate (registered CI refused)",
-             f"{_num(res.get('estimate'))} ({_e(res.get('scale'))}); no pooled significance/null-crossing claim"),
+             f"{_num(res.get('estimate'))} ({_e(display_measure(res))}); no pooled significance/null-crossing claim"),
             ("Registered PM/HKSJ CI", _registered_ci_refusal_text(res)),
         ]
     return [(_effect_label(res), _ci(res))]
@@ -397,7 +399,7 @@ def _effect_rows(res: dict) -> list[tuple[str, str]]:
 def _common_effect_row(res: dict) -> tuple[str, str] | None:
     if res.get("ci_low_fixed") is None:
         return None
-    txt = (f"{_num(res.get('estimate_fixed'))} ({res.get('scale')}), 95% CI "
+    txt = (f"{_num(res.get('estimate_fixed'))} ({_e(display_measure(res))}), 95% CI "
            f"{_num(res.get('ci_low_fixed'))}-{_num(res.get('ci_high_fixed'))}")
     if res.get("fixed_heterogeneity_caveat"):
         txt += f" [{_e(res.get('fixed_heterogeneity_caveat'))}]"
@@ -814,14 +816,15 @@ def _overview(r, neutral):
             dc = prim.get("design_consumption") or res.get("design_consumption") or {}
             rows = [
                 ("Outcome", prim.get("name")),
-                ("Estimand", res.get("scale") or prim.get("estimand")),
+                ("Estimand", display_measure(res, prim.get("estimand"))),
                 ("Estimand decision", _estimand_decision_text(prim)),
             ]
             if dc.get("design_refused"):
                 rows.append(("Design-consumption state", dc.get("headline")))
-            rows.append(("Trials pooled (k)", kdisp))
+            _k1 = res.get("k") == 1          # C3: a single trial is not pooled
+            rows.append(("Trial (k = 1, not pooled)" if _k1 else "Trials pooled (k)", kdisp))
             if recon:
-                rows.append(("Screened-in → pooled", recon))
+                rows.append(("Screened-in → contributing" if _k1 else "Screened-in → pooled", recon))
             rows.extend(_effect_rows(res))
             if res.get("ci_low_fixed") is not None:
                 rows.append(_common_effect_row(res))
@@ -1715,8 +1718,10 @@ def _loo_text(loo):
     if not loo:
         return None
     if loo.get("min") is not None:
+        changed = loo.get("inference_changed_by") or []
+        inf = (f" Inference changes when dropping {_e(', '.join(str(c) for c in changed))}." if changed else "")
         return (f"estimate ranges {_num(loo.get('min'))}–{_num(loo.get('max'))} across single-trial drops; "
-                f"most influential: {_e(loo.get('most_influential'))}. "
+                f"most influential: {_e(loo.get('most_influential'))}.{inf} "
                 + _e(loo.get("note", "")))
     return _e(loo.get("note"))
 
@@ -1793,10 +1798,8 @@ def _outcome_block(o, show_inputs=True, review=None):
                      f"{_e(res.get('reason'))} "
                      f"<span class='muted'>Unresolved: {_e(unresolved)}</span></div>")
         rows = [
-            # Show the scale of the number ACTUALLY pooled (res["scale"]: RR / HR / IRR / MD /
-            # "mixed (…)"), not the topic's target estimand — the target is stated in the Analysis
-            # Method prose, and a row reading "Estimand RR" beside a pooled HR is the defect this fixes.
-            ("Estimand", res.get("scale") or o.get("estimand")),
+            # Display the contributing measures, including any mixed-measure pool.
+            ("Estimand", display_measure(res, o.get("estimand"))),
             ("Estimand decision", _estimand_decision_text(o)),
             ("Estimand amendment", _estimand_amendment_text(o)),
             # The authoritative compatibility contract is the Compatibility key block below (compat.py,
@@ -1891,7 +1894,8 @@ def _outcome_block(o, show_inputs=True, review=None):
                 ("Heterogeneous key dimensions",
                  (", ".join(_het) + f" [{_e(ck.get('limitation_code'))}]") if _het else None),
                 ("Parser-confirmed contrast",
-                 (f"{rc.get('verified')} of {rc.get('total')} pooled trials"
+                 (f"{rc.get('verified')} of {rc.get('total')} "
+                  + ("trial (single trial, not pooled)" if rc.get("total") == 1 else "pooled trials")
                   if rc.get("total") else None)),
             ])
             _lims = [x for x in (ck.get("limitations") or [])
@@ -2140,22 +2144,23 @@ def _comparator(r, neutral):
     for rep in ([] if r.get("comparator_panel") else c.get("reported", []) or []):
         body += f"<p>{_e(rep.get('outcome'))}: {_num(rep.get('estimate'))} ({rep.get('scale')}), 95% CI {_num(rep.get('ci_low'))}–{_num(rep.get('ci_high'))}</p>"
     sc = c.get("scope") or {}
-    if sc:
+    derived = _scope_mod.compare_pico(r.get("pico"), c.get("pico"))
+    if c:
         note_l = str(sc.get("note") or "").lower()
-        if sc.get("scope_valid"):
-            v = "✓ same question"
-        elif "comparator invalid" in note_l:
+        if "comparator invalid" in note_l:
             v = "COMPARATOR INVALID"
+        elif derived["scope_valid"] and sc.get("scope_valid") is not False:
+            v = "✓ same question"
         else:
             v = "⚠ SCOPE MISMATCH"
-        topic_level = sc.get("topic_intervention_level") or ("class-level" if sc.get("topic_is_class") else "a single agent")
-        comp_level = sc.get("comparator_intervention_level") or ("class-level" if sc.get("comparator_is_class") else "a single agent")
+        axes = "; ".join(f"{axis.replace('_', ' ')}: {status}"
+                         for axis, status in derived["axis_matches"].items())
         body += ("<h4>Scope match (is this the same question?)</h4>"
-                 f"<p><strong>{v}.</strong> Intervention level: topic is {_e(topic_level)}, "
-                 f"comparator is {_e(comp_level)} "
-                 f"(match: {_e(sc.get('intervention_level_match'))}); population match: {_e(sc.get('population_match'))}. "
-                 f"{_e(sc.get('note'))} <span class='muted'>Decided by one uniform rule applied to every topic "
-                 "before the k was seen.</span></p>")
+                 f"<p><strong>{v}.</strong> {_e(axes)}. {_e(derived['note'])} "
+                 "<span class='muted'>Compared axis by axis using the topic and comparator PICO; "
+                 "missing axes are unknown.</span></p>")
+        if sc.get("scope_valid") is False:
+            body += f"<p>{_e(sc.get('note'))}</p>"
         if sc.get("population_match_basis"):
             pm = sc.get("population_match_basis") or {}
             paed = ", ".join(x.get("trial_id", "") for x in pm.get("pool_has_paediatric_trials", []) or [])

@@ -49,6 +49,9 @@ def test_record_names_tree_command_environment_inputs_outputs_and_release(tmp_pa
     assert rec["release"] == {"release_sha256": "r" * 64, "review_sha256": "v" * 64, "html_sha256": "h" * 64, "protocol_sha": "p" * 40, "meaning": rec["release"]["meaning"]}
     assert rec["command"]["argv"][-2:] == ["--now", "2026-09-11"] and rec["command"]["now_argument"] == "2026-09-11"
     assert rec["environment"]["python"] == sys.version and rec["environment"]["host"] and rec["utc"].endswith("Z")
+    assert rec["command"]["cwd"] == Path.cwd().as_posix()
+    assert rec["environment"]["executable"] == Path(sys.executable).as_posix()
+    assert "\\" not in rec["command"]["cwd"] + rec["environment"]["executable"]
     assert next(v for k, v in rec["outputs"].items() if k.endswith("review.json"))["sha256"] == hashlib.sha256(b'{"slug": "x"}').hexdigest()
 
 
