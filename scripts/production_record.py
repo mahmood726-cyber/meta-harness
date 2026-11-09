@@ -233,6 +233,13 @@ def cmd_check_artifact(a) -> int:
     expected_manifest_sha = _sha256_file(a.manifest)
     receipt_path = f"{RECORD_DIRNAME}/{MANIFEST_NAME}"
     expected_files = set(want) | {receipt_path}
+    # All listed paths are regular files, including the detached receipt.
+    # None can also be a parent directory, regardless of tar member order.
+    for rel in sorted(expected_files):
+        parts = rel.split("/")
+        if any("/".join(parts[:i]) in expected_files for i in range(1, len(parts))):
+            print(f"ARTIFACT REFUSED: file shadows verified file: {rel!r}")
+            return 1
     # The tar is a deployment input, not merely a bag of last-write-wins digests.
     # A second name for an expected file (../x, /x, duplicate x) must never satisfy its receipt.
     try:
@@ -291,6 +298,15 @@ def cmd_check_artifact(a) -> int:
                     embedded_manifest_seen = True
                     continue
                 got[rel] = content_hash
+            # tarfile stops at the first zero header. A backend that reads past
+            # it could serve unverified members hidden after the end marker.
+            # offset is the next header boundary; extractfile has moved tell().
+            # Check the entire remaining stream, allowing only zero padding.
+            t.fileobj.seek(t.offset)
+            for chunk in iter(lambda: t.fileobj.read(1 << 20), b""):
+                if chunk.strip(b"\0"):
+                    print("ARTIFACT REFUSED: non-zero data after tar end marker")
+                    return 1
     except (OSError, tarfile.TarError) as exc:
         print(f"ARTIFACT REFUSED: unreadable artifact tar: {exc}")
         return 1
