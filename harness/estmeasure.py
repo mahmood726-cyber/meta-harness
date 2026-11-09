@@ -88,3 +88,27 @@ def pool_compatibility(effects: list) -> dict:
     else:
         status = "incompatible"
     return {"status": status, "classes": classes, "canonicals": canonicals, "labels": labels}
+
+
+def display_measure(result: dict, fallback: str = "effect") -> str:
+    """Display the input measure mix without changing the computational scale."""
+    em = result.get("estmeasure") or {}
+    labels = sorted({str(x).strip().upper() for x in
+                     [*(em.get("labels") or []), *(result.get("scale_mixed") or [])] if x})
+    if len(labels) > 1 or em.get("status") in ("compatible_labels", "incompatible"):
+        classes = sorted(set(em.get("classes") or []))
+        return ("mixed " + ("/".join(labels) or "measures")
+                + ("; " + "/".join(classes) if classes else ""))
+    return result.get("scale") or fallback
+
+
+def display_effect_label(result: dict) -> str:
+    """Keep descriptive labels (and their input counts) when they name the class."""
+    measure = display_measure(result)
+    label = result.get("effect_label") or ""
+    if measure.startswith("mixed "):
+        normalized = label.lower().replace("-", " ").replace("_", " ")
+        classes = (result.get("estmeasure") or {}).get("classes") or []
+        if not any(c.lower().replace("_", " ") in normalized for c in classes):
+            return "Pooled effect (" + measure + ")"
+    return label
