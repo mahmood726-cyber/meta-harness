@@ -104,6 +104,6 @@ def test_schema_requires_transport_namespace(manifest_schema, cid):
 def test_schema_allows_contiguous_future_case(manifest_schema):
     item = manifest_fixture()
     future = copy.deepcopy(item["cases"][-1])
-    future["id"] = "CROSS-EXCH-015"
+    future["id"] = "CROSS-EXCH-016"
     item["cases"].insert(0, future)
     manifest_schema.validate(item)

@@ -12,7 +12,7 @@ VERSION = "0.1.0"
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 HEX40 = re.compile(r"[0-9a-f]{40}\Z")
 LINE_REF = re.compile(r"line ([1-9][0-9]{0,8})|lines ([1-9][0-9]{0,8})-([1-9][0-9]{0,8})")
-MIN_REGISTERED_CASES = 14
+MIN_REGISTERED_CASES = 15
 ESTIMAND_KEYS = ("measure", "population", "outcome", "timepoint")
 VALID_DECISIONS = {"ALLOW", "ALLOW_WITH_LABEL", "ADJUST", "MANUAL_REVIEW", "REFUSE"}
 VALID_BENCHMARK_STATES = {"NOT_RUN", "PASS", "FAIL", "BLOCKED"}
@@ -267,6 +267,12 @@ def validate_manifest(payload: object, manifest_dir: Path) -> None:
     missing = sorted(expected_ids - ids)
     if missing:
         raise ValueError(f"benchmark case registry missing required IDs: {', '.join(missing[:8])}")
+
+
+def import_exchange_json(raw: str | bytes, archive_root: Path) -> dict:
+    """Public importer compatibility; the sole exchange parser lives in wire."""
+    from .wire import import_exchange_json as strict_import
+    return strict_import(raw, archive_root)
 
 
 def main() -> int:

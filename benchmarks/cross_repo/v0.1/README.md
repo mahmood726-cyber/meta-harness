@@ -2,7 +2,7 @@
 
 ## Scope and custody
 
-This is an **opt-in evidence transport boundary**, not yet wired to Meta-Harness production synthesis or RapidMeta. It checks preserved text source hashes, verbatim passages, unique study IDs, declared trial IDs, typed estimands and explicit blocking decisions. It cannot independently establish whether a publication is eligible, an estimate is correct, a PDF was parsed accurately, or a clinical answer is safe. Never convert its passing test into a scientific accuracy claim.
+This is an **opt-in evidence transport boundary**. A separate synthetic canary can hand validated fixture counts to pinned RapidMeta; Meta-Harness production synthesis does not use this adapter. It checks preserved text source hashes, verbatim passages, unique study IDs, declared trial IDs, typed estimands and explicit blocking decisions. It cannot independently establish whether a publication is eligible, an estimate is correct, a PDF was parsed accurately, or a clinical answer is safe. Never convert its passing test into a scientific accuracy claim.
 
 `manifest.json` pins four source repository commits as inspected on 23 October 2026. The Meta-Harness offline requirements lock is tracked at the pinned commit, with exact Git blob identity. All actual cross-platform installation results, runtime dependency versions, model IDs and external API identities are still **NOT VERIFIED**. Commits are source snapshots, not execution attestations. The synthetic fixture is clearly marked and used only for transport-level regression checks. External scientific and real-system evaluations are recorded separately in `coverage` with no synthetic input substituted for their required source data. `manifest.json` case statuses remain `NOT_RUN` until an identified test is executed against those exact pinned inputs, with exact SHA, job/run link and full success/failure evidence. Never mark a scenario PASS based on a different synthetic test or the existence of this document.
 
@@ -71,7 +71,7 @@ raw-JSON entrypoints:
 - `CROSS-EXCH-011`: execution URLs must name one of the four pinned repositories
   under `mahmood726-cyber`, have a canonical positive run ID, and match that
   repository's frozen commit. The case input SHA-256 must also match.
-- `CROSS-EXCH-012`: all case IDs `001` through `014` are required in the
+- `CROSS-EXCH-012`: all case IDs `001` through `015` are required in the
   `CROSS-EXCH` namespace. Future three-digit additions must be contiguous;
   ordering does not matter. Schema declares the namespace and minimum count;
   Python enforces the complete set.
@@ -81,6 +81,10 @@ raw-JSON entrypoints:
 - `CROSS-EXCH-014`: both PASS and FAIL require complete, closed execution
   evidence. NOT_RUN and BLOCKED must omit `run_evidence`, including empty or null
   values. Malformed status and coverage values raise validation errors.
+- `CROSS-EXCH-015`: the raw manifest boundary rejects duplicate decoded members
+  before status, pin, case identity or source-digest validation. The parser was
+  already present on main; this port registers the case and raises the required
+  contiguous case count to 15. Every case remains `NOT_RUN`.
 
 The added manifest rows preserve the original source fixture, four repository
 pins and external coverage entries. Every case remains `NOT_RUN`. The fictional
@@ -90,3 +94,56 @@ The regressions are `tests/test_exchange_v01_validators.py` and
 `tests/test_exchange_v01_schema.py`. The schema suite
 uses the test-only `jsonschema` package (Draft 2020-12); without it that suite is
 explicitly skipped. Runtime validation adds no dependency.
+
+## Synthetic handoff runners and archived refusal replay
+
+The current raw importer is
+`from harness.exchange_v01.wire import import_exchange_json`. It returns the
+validated object after the same strict decoding and validation used by
+`validate_exchange_json`; the compatibility verifier still returns `None`.
+`harness.exchange_v01.import_exchange_json` delegates to that implementation.
+No second exchange parser is introduced. The CLI accepts either the existing
+manifest argument or this evidence mode:
+
+```sh
+python -m harness.exchange_v01 --exchange raw-exchange.json --archive-root archive
+```
+
+The CLI validates raw evidence and never pools. The
+[candidate handoff canary](PINNED_HANDOFF_CANARY.md) alone converts the two
+committed synthetic source lines into binary arms. It checks source/trial
+identity before invoking the pinned engine and checks the engine's worktree
+bytes against its committed Git blob. Linked engine paths refuse handoff.
+
+Three separate frozen registrations retain their original repository commits,
+source hashes, runtime versions and `NOT_RUN` registration statuses:
+
+- [016: CLI/API handoff](FROZEN_CLI_API_016.md) defines 12 wire scenarios on
+  Ubuntu 24.04 and Windows 2025, with one synthetic engine control and 11
+  refusals. `frozen_cli_api_handoff_016.py` archives portable POSIX receipt keys.
+- [017: frozen producer/consumer handoff](FROZEN_HANDOFF_017.md) executes the
+  historical producer with one synthetic control and five refusals.
+- [018: frozen estimand handoff](FROZEN_ESTIMAND_018.md) exercises an RR control
+  and an OR-versus-RR refusal through `frozen_estimator_handoff_018.py`.
+
+`compare_cross_os_016.py` verifies archived input/result receipts, case labels,
+refusal diagnostics, JSON Boolean engine flags and independent engine custody.
+It binds registered positive and negative wires to their frozen hashes, refuses
+symlink/junction/traversal aliases and unsupported clinical-status promotion,
+and compares finite synthetic `mu_log` and nonnegative `tau2` with the unchanged
+`rel_tol=1e-12`, `abs_tol=1e-12` tolerances.
+
+`replay_archived_refusal_016.py` independently replays six archived cases from
+each OS: `refuse`, `manual_review`, `source_trial_mismatch`, `duplicate_shadow`,
+`estimand_mismatch`, and `source_sha_tamper`. It rechecks input, result and index
+custody after comparison, verifies producer/importer Git blobs, and installs
+process-launch tripwires before importing the frozen consumer. The source/trial
+case intentionally passes the generic importer and refuses at the synthetic
+count bridge. Exact refusal provenance must match the archived record.
+
+The workflows and reproduction instructions require real pinned checkouts,
+Python 3.13.7, Node 22.14.0, and actual downloaded OS artifacts. They are retained
+for CI, **not executed or attested by this port**. Synthetic fixture tests do not
+establish cross-OS execution, independent R parity, clinical accuracy, human
+adjudication or a signed four-repository benchmark. See [port and test
+boundaries](PORTING_NOTES.md) for local verification limits.

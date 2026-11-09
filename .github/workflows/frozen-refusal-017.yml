@@ -1,0 +1,176 @@
+name: Frozen two-repo refusal canary (CROSS-EXCH-017)
+
+# Independent of the inherited full Meta-Harness verification gate; does not
+# replace, soften or bypass verify_all. Synthetic-only and two repositories.
+on:
+  push:
+    branches:
+      - 'audit/cross-exch-017-frozen-runner-*'
+  pull_request:
+    paths:
+      - 'benchmarks/cross_repo/v0.1/frozen-handoff-017.json'
+      - '.github/workflows/frozen-refusal-017.yml'
+      - 'benchmarks/cross_repo/v0.1/FROZEN_HANDOFF_017.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frozen-refusal-017:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR orchestration and proposed pin specification (not the producer)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: governance
+          persist-credentials: false
+      - name: Checkout exact frozen Meta-Harness producer and validator
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: mahmood726-cyber/meta-harness
+          ref: 05b8d45e2c534e038d3549d0b062cfa67e740f00
+          path: meta
+          persist-credentials: false
+      - name: Checkout exact frozen RapidMeta production consumer
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: mahmood726-cyber/rapidmeta-kit
+          ref: 368137dc437543c721b98be39c14282c338f7797
+          path: rapidmeta
+          persist-credentials: false
+      - name: Set Python runtime
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13.7'
+      - name: Set Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.14.0'
+      - name: Verify exact frozen producer and consumer refs before running
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, pathlib, subprocess, sys
+          spec_path = pathlib.Path('governance/benchmarks/cross_repo/v0.1/frozen-handoff-017.json')
+          spec_bytes = spec_path.read_bytes()
+          spec = json.loads(spec_bytes)
+          assert spec['record_version'] == '1.0.0'
+          assert spec['case_id'] == 'CROSS-EXCH-017'
+          assert spec['registered_status'] == 'NOT_RUN'
+          assert spec['input_type'] == 'SYNTHETIC_FIXTURE_ONLY'
+          assert set(spec['scenarios']) == {
+              'allow_synthetic_control', 'refuse', 'manual_review', 'shadowed_refuse',
+              'source_hash_drift', 'source_trial_mismatch'
+          }
+          expected_roles = {'meta-harness': 'EXECUTED_PINNED_RUNNER',
+                            'rapidmeta-kit': 'EXECUTED_PINNED_CONSUMER',
+                            'e156-ecosystem-starter': 'NOT_EXECUTED',
+                            'e156': 'NOT_EXECUTED'}
+          for name, role in expected_roles.items():
+              assert spec['repositories'][name]['role'] == role, name
+          def checked_pin(actual, expected):
+              if actual != expected:
+                  raise ValueError('unfrozen checkout, refusing before handoff')
+          for name, directory in [('meta-harness', 'meta'), ('rapidmeta-kit', 'rapidmeta')]:
+              actual = subprocess.check_output(
+                  ['git', '-C', directory, 'rev-parse', 'HEAD'], text=True
+              ).strip()
+              checked_pin(actual, spec['repositories'][name]['commit'])
+              print(f'PIN VERIFIED {name}: {actual}')
+          # Explicit pin failure injection: a different producer commit must not be accepted.
+          try:
+              checked_pin(spec['repositories']['meta-harness']['commit'], '0' * 40)
+          except ValueError:
+              print('NEGATIVE PIN INJECTION: refused')
+          else:
+              raise AssertionError('changed producer pin was accepted')
+          assert '.'.join(map(str, sys.version_info[:3])) == spec['runtime']['python']
+          node = subprocess.check_output(['node', '--version'], text=True).strip().removeprefix('v')
+          assert node == spec['runtime']['node'], node
+          src = spec['synthetic_source']
+          actual_digest = hashlib.sha256((pathlib.Path('meta') / src['path']).read_bytes()).hexdigest()
+          assert actual_digest == src['sha256'], (actual_digest, src['sha256'])
+          print('FROZEN INPUT VERIFIED SHA256:', actual_digest)
+          print('PIN SPECIFICATION SHA256:', hashlib.sha256(spec_bytes).hexdigest())
+          PY
+      - name: Execute frozen producer, raw transport gate and actual RapidMeta pooling canary
+        run: |
+          set -euo pipefail
+          python meta/benchmarks/cross_repo/v0.1/pinned_pairwise_canary.py \
+            --rapidmeta rapidmeta --output handoff-evidence
+      - name: Independently check every archived raw input/output and refusal
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          root = pathlib.Path('handoff-evidence')
+          spec_path = pathlib.Path('governance/benchmarks/cross_repo/v0.1/frozen-handoff-017.json')
+          spec_data = spec_path.read_bytes()
+          spec = json.loads(spec_data)
+          index_data = (root / 'index.json').read_bytes()
+          index = json.loads(index_data)
+          assert index['runner_checkout_sha'] == spec['repositories']['meta-harness']['commit']
+          assert index['rapidmeta_pinned_sha'] == spec['repositories']['rapidmeta-kit']['commit']
+          assert index['source_sha256'] == spec['synthetic_source']['sha256']
+          assert index['clinical_validation'] == 'NOT_TESTED'
+          assert index['external_R_oracle'] == 'NOT_TESTED'
+          assert index['four_repository_benchmark'] == 'NOT_RUN'
+          files = set(index['digests'])
+          required_files = ({f'inputs/{case}.json' for case in spec['scenarios']} |
+                            {f'results/{case}.json' for case in spec['scenarios']})
+          assert files == required_files, (files, required_files)
+          def checked_digest(raw, expected):
+              if hashlib.sha256(raw).hexdigest() != expected:
+                  raise ValueError('archived evidence digest mismatch')
+          for rel, expected in index['digests'].items():
+              checked_digest((root / rel).read_bytes(), expected)
+          # Controlled SHA-256 failure injection: even an extra byte must be refused.
+          rel = 'inputs/refuse.json'
+          try:
+              checked_digest((root / rel).read_bytes() + b'x', index['digests'][rel])
+          except ValueError:
+              print('NEGATIVE DIGEST INJECTION: refused')
+          else:
+              raise AssertionError('tampered archived bytes were accepted')
+          for name, expected_status in spec['scenarios'].items():
+              result = json.loads((root / 'results' / f'{name}.json').read_bytes())
+              expected_call = name == 'allow_synthetic_control'
+              assert result['status'] == expected_status, name
+              assert result['engine_invoked'] is expected_call, name
+              assert result['input_sha256'] == index['digests'][f'inputs/{name}.json']
+              if expected_call:
+                  assert result['engine_output']['k_used'] == 2
+                  assert result['engine_output']['measure'] == 'RR'
+              else:
+                  assert isinstance(result['refusal'], str) and result['refusal']
+          record = {
+              'case_id': spec['case_id'],
+              'evidence_type': 'synthetic_two_repositories_only',
+              'local_canary_status': 'PASS',
+              'external_scientific_validation': 'NOT_TESTED',
+              'four_repo_common_benchmark': 'NOT_RUN',
+              'frozen_meta_harness_sha': index['runner_checkout_sha'],
+              'frozen_rapidmeta_sha': index['rapidmeta_pinned_sha'],
+              'pin_spec_sha256': hashlib.sha256(spec_data).hexdigest(),
+              'archived_index_sha256': hashlib.sha256(index_data).hexdigest(),
+              'input_output_digest_count': len(index['digests']),
+              'observed_run_url': '/'.join((os.environ['GITHUB_SERVER_URL'],
+                                            os.environ['GITHUB_REPOSITORY'], 'actions', 'runs',
+                                            os.environ['GITHUB_RUN_ID'])),
+              'orchestration_checkout_sha': subprocess.check_output(
+                  ['git','-C','governance','rev-parse','HEAD'], text=True
+              ).strip()
+          }
+          (root / 'frozen-execution.json').write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
+          print('FROZEN PINNED HANDOFF: PASS 6/6 synthetic cases; 5 refuse before pooling, 12/12 digests')
+          PY
+      - name: Archive pinned run evidence (even if an earlier step fails)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frozen-cross-exch-017-${{ github.sha }}
+          path: handoff-evidence/
+          if-no-files-found: error
+          retention-days: 90

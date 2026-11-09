@@ -38,7 +38,7 @@ def manifest_fixture():
     """
     item = json.loads(MANIFEST.read_text(encoding="utf-8"))
     existing = {case["id"] for case in item["cases"]}
-    for number in range(1, 15):
+    for number in range(1, 16):
         cid = f"CROSS-EXCH-{number:03d}"
         if cid not in existing:
             case = copy.deepcopy(item["cases"][0])
@@ -172,7 +172,7 @@ class TestManifestPins:
 
 
 class TestManifestRegistry:
-    @pytest.mark.parametrize("number", [1, 6, 11, 12, 13, 14])
+    @pytest.mark.parametrize("number", [1, 6, 11, 12, 13, 14, 15])
     def test_required_case_cannot_disappear(self, manifest_check, number):
         item = manifest_fixture()
         cid = f"CROSS-EXCH-{number:03d}"
@@ -189,22 +189,22 @@ class TestManifestRegistry:
 
     def test_renamed_case_cannot_leave_gap(self, manifest_check):
         item = manifest_fixture()
-        item["cases"][-1]["id"] = "CROSS-EXCH-015"
-        with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-014"):
+        item["cases"][-1]["id"] = "CROSS-EXCH-016"
+        with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-015"):
             manifest_check(item)
 
     def test_future_gap_refuses_even_when_floor_is_complete(self, manifest_check):
         item = manifest_fixture()
         future = copy.deepcopy(item["cases"][-1])
-        future["id"] = "CROSS-EXCH-016"
+        future["id"] = "CROSS-EXCH-017"
         item["cases"].append(future)
-        with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-015"):
+        with pytest.raises(ValueError, match="missing required IDs:.*CROSS-EXCH-016"):
             manifest_check(item)
 
     def test_contiguous_future_case_and_reordering_accept(self, manifest_check):
         item = manifest_fixture()
         future = copy.deepcopy(item["cases"][-1])
-        future["id"] = "CROSS-EXCH-015"
+        future["id"] = "CROSS-EXCH-016"
         item["cases"].insert(0, future)
         item["cases"].reverse()
         manifest_check(item)

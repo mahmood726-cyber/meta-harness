@@ -146,3 +146,21 @@ def test_certificate_scope_names_its_limits():
     assert scope["not_covered"]["in_tree_modules_not_imported_by_any_root"], "an empty list here would be a claim of total coverage"
     # The scope is part of what release_sha256 covers: editing it is a release change.
     assert "certificate_scope" in cert["hash_inputs"]
+
+
+def test_opt_in_benchmark_exchange_does_not_change_signed_certificate_scope():
+    """A new opt-in transport adapter cannot silently invalidate 32 served releases.
+
+    This protects the deterministic list of *unreached* top-level harness modules
+    that is itself covered by each historical release_sha256. We do not weaken
+    or amend the certificate, renderer, verifier or any committed review.
+    """
+    from harness import certificate
+    from harness.exchange_v01.wire import import_exchange_json
+
+    cert = json.loads((ROOT / "docs/reviews" / SLUG / "CERTIFICATE.json").read_text(encoding="utf-8"))
+    assert callable(import_exchange_json)
+    assert certificate._scope(cert["analysis_code_blobs"]) == cert["certificate_scope"]
+    assert "harness/exchange_v01.py" not in cert["analysis_code_blobs"]
+    assert "harness/exchange_v01.py" not in cert["certificate_scope"]["not_covered"]["in_tree_modules_not_imported_by_any_root"]
+

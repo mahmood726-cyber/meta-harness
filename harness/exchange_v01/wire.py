@@ -55,20 +55,40 @@ def validate_manifest_json(raw: str | bytes, manifest_dir: Path) -> None:
     validate_manifest(_decode(raw, "benchmark manifest"), manifest_dir)
 
 
-def validate_exchange_json(raw: str | bytes, archive_root: Path) -> None:
-    """Reject shadowed REFUSE, trial/source identity or estimand before handoff.
+def import_exchange_json(raw: str | bytes, archive_root: Path) -> dict:
+    """Return evidence only after strict raw JSON and provenance validation.
 
     Structural acceptance is NOT independent eligibility or permission to pool.
+    A pre-decoded dict cannot preserve shadowed raw JSON members.
     """
-    validate_exchange(_decode(raw, "exchange"), archive_root)
+    payload = _decode(raw, "exchange")
+    validate_exchange(payload, archive_root)
+    return payload
+
+
+def validate_exchange_json(raw: str | bytes, archive_root: Path) -> None:
+    """Compatibility verifier of raw evidence; no pooling performed."""
+    import_exchange_json(raw, archive_root)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Validate pinned synthetic manifest raw JSON (not scientific validation)"
+        description="Validate synthetic manifest or exchange raw JSON (not scientific validation)"
     )
-    parser.add_argument("manifest", type=Path)
+    parser.add_argument("manifest", nargs="?", type=Path)
+    parser.add_argument("--exchange", type=Path,
+                        help="validate/import raw evidence JSON; never pool")
+    parser.add_argument("--archive-root", type=Path,
+                        help="root of archived source text for --exchange")
     args = parser.parse_args(argv)
+    if args.exchange is not None:
+        if args.manifest is not None or args.archive_root is None:
+            parser.error("--exchange requires --archive-root and forbids a manifest argument")
+        import_exchange_json(args.exchange.read_bytes(), args.archive_root)
+        print("EXCHANGE VERIFIED: strict raw JSON and source spans; pooling NOT performed")
+        return 0
+    if args.manifest is None or args.archive_root is not None:
+        parser.error("provide a manifest, or --exchange with --archive-root")
     validate_manifest_json(args.manifest.read_bytes(), args.manifest.parent)
     print("MANIFEST VERIFIED: pins and fixture SHA-256; cases retain their stated statuses")
     return 0
