@@ -147,7 +147,9 @@ def _require_finite_positive_time_limit(value: Any) -> float:
         limit = float(value)
     except OverflowError as exc:
         raise ProspectiveRefusal("time_limit_s must be a positive finite number") from exc
-    if not math.isfinite(limit) or limit <= 0:
+    if not math.isfinite(limit):
+        raise ProspectiveRefusal("time_limit_s must be finite")
+    if limit <= 0:
         raise ProspectiveRefusal("time_limit_s must be a positive finite number")
     return limit
 
