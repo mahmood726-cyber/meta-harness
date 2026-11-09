@@ -318,9 +318,20 @@ def limb_provenance():
     return (PASS if rc == 0 else REFUSED), "\n".join(lines[:3] + [ln for ln in lines if ln.startswith("REFUSED")][:30])
 
 
+def limb_retraction():
+    """No served pool row and no countable G1 tracker row may be RETRACTED or under an EXPRESSION OF CONCERN
+    (captain dispatch 27-A). Offline: the committed sweep (registry/retraction_sweep.json; PubMed efetch + Crossref,
+    every response hashed) against the LIVE served occurrences. A served PMID the sweep never checked cannot pass."""
+    rc, out = _run([sys.executable, os.path.join("scripts", "retraction_sweep.py"), "--check"])
+    lines = out.strip().splitlines()
+    detail = "\n".join(lines[:1] + [ln for ln in lines if ln.startswith(("REFUSED", "UNVERIFIED"))][:30] + lines[-1:])
+    return (PASS if rc == 0 else REFUSED if rc == 1 else NOEXEC), detail
+
+
 LIMBS = [
     ("replay currency (generated guides and offline dependencies)", limb_replay_currency),
     ("provenance gate (every served value / tracker row: extractor or recorded call; none UNTRACED)", limb_provenance),
+    ("retraction gate (no served pool / countable tracker PMID retracted or under expression of concern)", limb_retraction),
     ("unit tests (pytest tests/)", limb_unit_tests),
     ("offline reproduction (every live page replays from committed cache)", limb_reproduction),
     ("publication gate on every live review page", limb_gate_every_page),
