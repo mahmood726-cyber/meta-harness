@@ -55,6 +55,9 @@ RETRIEVED_INCOMPATIBLE_STRUCTURE = "RETRIEVED_INCOMPATIBLE_STRUCTURE"
 RETRIEVED_REFUSED_WITH_REASON = "RETRIEVED_REFUSED_WITH_REASON"
 UNIT_MISMATCH_CYCLE_LEVEL = "UNIT_MISMATCH_CYCLE_LEVEL"
 ENGINE_CANNOT_CONSUME = "ENGINE_CANNOT_CONSUME"
+# A7 (r30-C PICU): a source-reported effect and its own count-derived effect disagree; both are held, neither pooled.
+# Defined once, in extract (which detects it); absence imports extract, never the reverse.
+SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE = extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE
 
 _CODE_ALIASES = {
     "NO_OUTCOME_DATA_IN_SOURCE": OUTCOME_NOT_IN_SOURCE,
@@ -158,14 +161,63 @@ def _terms(keywords, outcome_name=None):
     return sorted({t for t in folded if len(t) >= 3}, key=len, reverse=True)
 
 
+ABBR_MARK = "\x00abbr:"
+# '<phrase> (<ABBR>)' as a source defines it: 'hospitalization for heart failure (hHF)'
+_ABBR_DEF = re.compile(r"([A-Za-z][A-Za-z \-]{3,80}?)\s*\(\s*([A-Za-z][A-Za-z0-9]{1,9})\s*\)")
+
+
+def _abbr_fits(abbr, phrase_words):
+    """The abbreviation's letters are the initials of the phrase's last words, in order (case-insensitive), allowing a
+    leading lowercase letter for a skipped word ('hHF' = hospitalization (for) heart failure)."""
+    letters = [c.lower() for c in abbr if c.isalpha()]
+    initials = [w[0].lower() for w in phrase_words if w]
+    i = len(initials)
+    for c in reversed(letters):
+        while i > 0 and initials[i - 1] != c:
+            i -= 1
+        if i == 0:
+            return False
+        i -= 1
+    return len(letters) >= 2
+
+
+def _terms_with_abbreviations(keywords, outcome_name, texts):
+    """The outcome terms plus every abbreviation a held text DEFINES for one of them (OMNeON: 'hospitalization for heart
+    failure (hHF)' then 'The hHF outcome occurred in 20/2092 ...'). An abbreviation is matched as a whole word,
+    case-sensitively, never as a substring ('AF' is not in 'after')."""
+    terms = _terms(keywords, outcome_name)
+    extra = set()
+    for text in texts or []:
+        for m in _ABBR_DEF.finditer(extract._norm(text or "")):
+            phrase = lexicon.fold(m.group(1)).replace("-", " ").strip()
+            for t in terms:
+                # a PREFIX keyword ends mid-word: 'antibiotic-associated diarr' names 'antibiotic-associated diarrhea
+                # (AAD)' (A7 part 2, PICU 39935568)
+                if phrase.endswith(t) or phrase == t or re.search(re.escape(t) + r"[a-z]+$", phrase):
+                    # fit against the DEFINING phrase, not the shorter term: 'hospitalization for heart failure (hHF)'
+                    # defines hHF for the term 'heart failure' (agy e1p2-r1 #1); the abbreviation must
+                    # end on the term's last word, so it abbreviates the outcome and not just its neighbours
+                    letters = [c.lower() for c in m.group(2) if c.isalpha()]
+                    if letters and letters[-1] == t.split()[-1][0] and _abbr_fits(m.group(2), phrase.split()):
+                        extra.add(ABBR_MARK + m.group(2))
+                    break
+    return terms + sorted(extra)
+
+
 def _matches_term(sentence, terms):
     sf = lexicon.fold(sentence).replace("-", " ")
-    return any(t in sf for t in terms)
+    for t in terms:
+        if t.startswith(ABBR_MARK):
+            if re.search(r"(?<![A-Za-z0-9])" + re.escape(t[len(ABBR_MARK):]) + r"(?![A-Za-z0-9])", sentence):
+                return True
+        elif t in sf:
+            return True
+    return False
 
 
-def _candidate_sentences(text, keywords, outcome_name=None):
+def _candidate_sentences(text, keywords, outcome_name=None, terms=None):
     text = _strip_markup(extract._norm(text or ""))
-    terms = _terms(keywords, outcome_name)
+    terms = terms if terms is not None else _terms(keywords, outcome_name)
     if not text or not terms:
         return []
     out = []
@@ -257,13 +309,72 @@ def _basis(code, span=None, detail=None):
     return f"{code}: {detail or 'no source span available'}"
 
 
+def _coverage_gate(result, coverage, fulltext_searched):
+    """E1 (11 Oct): an OUTCOME_NOT_IN_SOURCE stands only when the objects actually searched license an absence for the
+    scope searched (harness/source_coverage.absence_licensed -- the bundle's asymmetric rule). Otherwise the row says
+    what was held instead: SOURCE_NOT_RETRIEVED with the coverage named (an abridged abstract, a stub full text, an
+    abstract with no retained acquisition). Positive findings are never touched: they may rest on an excerpt."""
+    if coverage is None or result.get("reason_code") != OUTCOME_NOT_IN_SOURCE:
+        return result
+    from . import source_coverage as sc
+    ab, ft = coverage.get("abstract"), coverage.get("fulltext")
+    scope = "fulltext" if fulltext_searched else "abstract"
+    searched = ["FULLTEXT"] if fulltext_searched else [ab]
+    seen = {"abstract": ((f"{ab} ({coverage['abstract_reason']})"
+                          if str(coverage.get("abstract_reason") or "").startswith("RETAINED_ACQUISITION") else ab)
+                         or "UNKNOWN (no retained acquisition)"),
+            "fulltext": ("SEARCHED:FULLTEXT" if fulltext_searched else
+                         (f"NOT_SEARCHED:{ft}" if ft else "NOT_HELD"))}
+    held = (f"coverage searched: abstract {seen['abstract']}; full text {seen['fulltext']}"
+            + (f" ({coverage.get('fulltext_reason')})" if ft and not fulltext_searched else ""))
+    if sc.absence_licensed(searched, scope):
+        return dict(result, absence_scope=scope, coverage_searched=seen,
+                    state_basis=f"{result.get('state_basis')}; absence scope: {scope}; {held}")
+    return {"reason_code": SOURCE_NOT_RETRIEVED, "state": SOURCE_NOT_RETRIEVED,
+            "state_basis": _basis(SOURCE_NOT_RETRIEVED, detail=f"no complete source for an absence claim; {held}"),
+            "source_span": result.get("source_span") or "", "verbatim_span": result.get("verbatim_span") or "",
+            "absence_scope": None, "coverage_searched": seen}
+
+
 def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declared_estimand=None,
-                    reason=None, absent_kind=None, row=None):
+                    reason=None, absent_kind=None, row=None, coverage=None, arm_terms=None):
     """Classify a declared-absent/refused row from the committed source.
 
     This is an audit layer only: it reports what was visible in the cached source and why a row is not
     poolable. It never changes extraction order and never makes a non-pooled value poolable.
+
+    coverage (E1): source_coverage.coverage_for(slug, pid) -- a held 'full text' that is not a FULLTEXT (a PMC
+    no-download stub, a portal page) is not searched, and an absence is licensed only for the scope searched.
+    None keeps the legacy behaviour (callers that only test for a POSITIVE value).
+
+    arm_terms (A7 part 2): (intervention_terms, comparator_terms) of the topic. With them, a reported effect is checked
+    against the counts its own percentages and arm sizes imply; a disagreement is the typed
+    SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE (annotation only -- nothing becomes poolable).
     """
+    if coverage is not None:
+        fulltext_searched = bool(fulltext) and coverage.get("fulltext") == "FULLTEXT"
+        if not fulltext_searched:
+            fulltext = None
+        if coverage.get("complete_abstract_text"):
+            # an abridged cached abstract with its VERBATIM acquisition held: search the complete one (best coverage
+            # held), and say so -- OMNeON 28893244's cached copy lost 'HR 0.60 (0.35-1.05)' for HHF
+            abstract = coverage["complete_abstract_text"]
+            coverage = dict(coverage, abstract="FULL_ABSTRACT",
+                            abstract_reason=f"RETAINED_ACQUISITION {coverage['complete_abstract_ref']['path']} "
+                                            f"(the cached copy is {coverage.get('abstract')})")
+        out = _coverage_gate(_classify_reason(keywords, abstract, fulltext, outcome_name, declared_estimand,
+                                              reason, absent_kind, row, arm_terms), coverage, fulltext_searched)
+        if coverage.get("complete_abstract_text") and out.get("reason_code") != OUTCOME_NOT_IN_SOURCE:
+            # a span found in the retained acquisition is NOT in the cached abstract: name where it was read
+            out = dict(out, state_basis=f"{out.get('state_basis')}; read from {coverage['abstract_reason']}",
+                       source_document=coverage["complete_abstract_ref"])
+        return out
+    return _classify_reason(keywords, abstract, fulltext, outcome_name, declared_estimand, reason, absent_kind, row,
+                            arm_terms)
+
+
+def _classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declared_estimand=None,
+                     reason=None, absent_kind=None, row=None, arm_terms=None):
     row = row or {}
     # A row `admit_rows` refused or set aside on its endpoint binding keeps the code it was given
     # (RESULT_INCOMPATIBLE / ENDPOINT_UNBOUND): on the served release this layer overwrote a
@@ -289,6 +400,20 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
         return {"reason_code": code, "state": code,
                 "state_basis": _basis(code, span, reason),
                 "source_span": span, "verbatim_span": span}
+    if row.get("state") == SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE:
+        # A7: the extractor found BOTH a reported effect and arm counts that disagree. The state is kept as typed (never
+        # re-derived as 'not in source' from the prose), and the basis quotes both values with their spans.
+        rep, der = row.get("reported") or {}, row.get("count_derived") or {}
+        detail = (f"reported {rep.get('scale')} {rep.get('effect')} ({rep.get('ci_low')}, {rep.get('ci_high')}) from "
+                  f"\"{_clip(rep.get('span') or '')}\"; count-derived {der.get('scale')} "
+                  f"{round(der.get('effect') or 0, 4)} from {der.get('ai')}/{der.get('n1i')} v "
+                  f"{der.get('ci')}/{der.get('n2i')} in \"{_clip(der.get('span') or '')}\"; neither is pooled until "
+                  f"adjudicated")
+        span = rep.get("span") or der.get("span") or ""
+        return {"reason_code": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,
+                "state": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,
+                "state_basis": _basis(SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE, detail=detail),
+                "source_span": _clip(span), "verbatim_span": _clip(span)}
     if row.get("state") in (OUTCOME_POST_HOC_NOT_POOLED, OUTCOME_NOT_REPORTED):
         code = row.get("state")
         span = row.get("source_span") or row.get("verbatim_span") or row.get("source") or reason or ""
@@ -334,16 +459,37 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     if fulltext:
         texts.append(("fulltext", fulltext))
     sentences = []
+    # E1/D3: the outcome's terms plus the abbreviations the held texts themselves define for them
+    terms = _terms_with_abbreviations(keywords, outcome_name, [t for _, t in texts])
     for src, txt in texts:
-        for sent in _candidate_sentences(txt, keywords, outcome_name):
+        for sent in _candidate_sentences(txt, keywords, outcome_name, terms=terms):
             sentences.append((src, sent))
     sent_texts = [s for _, s in sentences]
 
-    terms = _terms(keywords, outcome_name)
     effects = _effect_candidates(sent_texts, terms)
     declared = _declared_class(declared_estimand)
     if effects:
         eff = effects[0]
+        # A7 part 2 (PICU 39935568): the source prints an effect AND percentages + arm sizes that imply counts; if the
+        # two disagree beyond the reported value's rounding, say so as the typed state (the same detector the
+        # extractor uses). Annotation only: nothing becomes poolable.
+        if arm_terms and eff.get("scale") in ("RR", "OR"):
+            imp = extract.percentage_implied_counts(abstract, sent_texts, arm_terms[0], arm_terms[1])
+            dis = imp and extract.reported_vs_count_derived(
+                imp[:4], (eff["scale"], eff["effect"], eff["ci_low"], eff["ci_high"]), eff["span"], imp[4])
+            if dis:
+                rep, der = dis["reported"], dis["count_derived"]
+                return {"reason_code": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,
+                        "state": SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,
+                        "state_basis": _basis(SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE, eff["span"],
+                                              f"reported {rep['scale']} {rep['effect']} ({rep['ci_low']}, "
+                                              f"{rep['ci_high']}); count-derived {der['scale']} "
+                                              f"{round(der['effect'], 4)} from {der['ai']}/{der['n1i']} v "
+                                              f"{der['ci']}/{der['n2i']}, implied by the source's own percentages "
+                                              f"and arm sizes in \"{_clip(imp[4])}\"; neither is pooled until "
+                                              f"adjudicated"),
+                        "source_span": eff["span"], "verbatim_span": eff["span"],
+                        "reported": rep, "count_derived": dict(der, from_percentages=True)}
         code = (EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH
                 if eff["class"] != declared or hint == EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH
                 else EXTRACTION_NOT_PERFORMED)

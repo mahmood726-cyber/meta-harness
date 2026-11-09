@@ -111,6 +111,8 @@ _ABSENCE_STATE_LABEL = {
     "NO_OUTCOME_DATA_IN_SOURCE": "declared absent — no outcome data in the retrieved source",
     "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": "excluded on evidence -- effect present but wrong estimand class",
     "COUNTS_PRESENT_NOT_CORROBORATED": "not extracted -- arm counts present but percentage corroboration failed",
+    "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE": "not pooled -- the reported effect and the effect from the source's own "
+                                                  "arm counts disagree; both shown, awaiting adjudication",
     "MULTI_ARM_UNRESOLVED": "excluded on evidence -- multi-arm contrast unresolved",
     "TIMEPOINT_MISMATCH": "excluded on evidence -- timepoint mismatch",
     "POPULATION_MISMATCH": "excluded on evidence -- population or analysis-set mismatch",
@@ -1465,6 +1467,17 @@ def _trial_inputs(o):
             src = "<span class='vno' title='" + _e(t.get("verify_basis", "")) + "'>⚠ NOT YET verified against source</span><br>" + _e(t.get("source"))
         else:
             src = _e(t.get("source"))
+        discrepancy = t.get("reported_vs_count_derived")
+        if discrepancy:
+            reported, counts = discrepancy["reported"], discrepancy["count_derived"]
+            notice = (
+                f"A7: the source reports {reported['scale']} {reported['effect']} "
+                f"({reported['ci_low']}–{reported['ci_high']}); its own counts "
+                f"{counts['ai']}/{counts['n1i']} v {counts['ci']}/{counts['n2i']} "
+                f"give {counts['scale']} {counts['effect']:.3f} — counts pooled by adjudication "
+                f"(decided by {discrepancy['decided_by']}, {discrepancy['date']})"
+            )
+            src += "<div class='a7-adjudication'>" + _e(notice) + "</div>"
         cs = t.get("cross_source")
         if cs:
             bits = []
