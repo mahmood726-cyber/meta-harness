@@ -69,8 +69,14 @@ def test_elixa_conflict_spans_primary_unchanged():
     # claim_id, depends_on) are re-derived by later landings (ws/TF widened the input set) and are not the result
     # reported_by / reported_not_extracted disclose the UNPOOLED reporters beside a pooled result (d4bfe1a8): not the result
     _stamps = {'input_set_version', 'claim_id', 'depends_on', 'claim_kind', 'reported_by', 'reported_not_extracted'}
-    scientific = lambda res: {k: v for k, v in res.items() if k not in _stamps}
+    scientific = lambda res: {k: v for k, v in res.items() if k not in _stamps and k != 'leave_one_out'}
     assert scientific(outcome['result']) == scientific(primary(base)['result'])
+    # leave-one-out: every previously served key and every row's (dropped, estimate) is unchanged; C4 (audit R8-1)
+    # only ADDS each re-pool's CI and the inference-stability fields (a signed V15 change), it never alters an old value
+    new_loo, old_loo = outcome['result'].get('leave_one_out') or {}, primary(base)['result'].get('leave_one_out') or {}
+    for key in ('min', 'max', 'most_influential'):
+        assert new_loo.get(key) == old_loo.get(key), key
+    assert [(x['dropped'], x['estimate']) for x in new_loo.get('per_trial') or []] ==         [(x['dropped'], x['estimate']) for x in old_loo.get('per_trial') or []]
     from harness.page import _stale_topic_overview
     assert '1.02' not in _stale_topic_overview(review)
 

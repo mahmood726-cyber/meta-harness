@@ -99,9 +99,9 @@ def test_run_records_raw_http_body_and_clears_recorder(monkeypatch):
     assert out["retrieval_ledger"]["snapshot"]["raw_calls"] == 1
 
 
-def test_write_snapshot_writes_raw_index_and_raw_files():
+def test_write_snapshot_writes_raw_index_and_raw_files(tmp_path):
     slug = "__plant_acq__"
-    tmp_root = tempfile.mkdtemp(prefix="__plant_acq_raw__", dir=os.getcwd())
+    tmp_root = str(tmp_path)
     try:
         records = [_record("101")]
         ledger = acq.new_ledger(slug)
@@ -286,9 +286,9 @@ def test_uid_query_is_pmid_enumeration_and_not_discovery_capable(monkeypatch):
     assert src["discovery_capable"] is False
 
 
-def test_refresh_writes_snapshot_pin_load_and_hash_without_touching_pinned(monkeypatch):
+def test_refresh_writes_snapshot_pin_load_and_hash_without_touching_pinned(monkeypatch, tmp_path):
     slug = "__plant_acq__"
-    tmp_root = tempfile.mkdtemp(prefix="__plant_acq__", dir=os.getcwd())
+    tmp_root = str(tmp_path)
     try:
         cache_dir = os.path.join(tmp_root, "cache", slug)
         os.makedirs(cache_dir, exist_ok=True)

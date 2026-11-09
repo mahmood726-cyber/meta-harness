@@ -183,6 +183,23 @@ def _nct_link(n: str | None) -> str:
     return _e(n)
 
 
+SYSTEMATIC_SEARCH_CLASSES = ("SYSTEMATIC_SEARCH",)
+
+
+def search_is_systematic(r: dict) -> bool:
+    """C1: completeness may be claimed only when the review object records the search as systematic."""
+    return (((r.get("search") or {}).get("retrieval_class") or {}).get("class")) in SYSTEMATIC_SEARCH_CLASSES
+
+
+def _search_scope_caveat(r: dict) -> str:
+    if search_is_systematic(r):
+        return ""
+    rc = (r.get("search") or {}).get("retrieval_class") or {}
+    label = rc.get("label") or rc.get("class") or "not recorded"
+    return (f" The search is {_e(label)}: an eligible trial it did not find is not in the ledger, so the ledger is not a "
+            "claim that the evidence is complete.")
+
+
 def included_tab(r: dict) -> str:
     by: dict[str, dict] = {}
     for o in r.get("outcomes") or []:
@@ -210,8 +227,9 @@ def included_tab(r: dict) -> str:
         arows = "".join(f"<tr><td>{_e(k)}</td><td>{_e('; '.join(f'{n}: {s}' for n, s in v))}</td></tr>"
                         for k, v in sorted(absent.items()))
         out += ("<h4>Eligible but not pooled (declared absent), by outcome</h4><table class='recs'><tr><th>Trial</th>"
-                f"<th>Outcome: state</th></tr>{arows}</table><p class='note'>The family-level ledger, with every eligible "
-                "trial family and what is missing, is in the Screening tab.</p>")
+                f"<th>Outcome: state</th></tr>{arows}</table><p class='note'>The family-level ledger, with every trial "
+                "family the recorded search found eligible and what is missing, is in the Screening tab."
+                + _search_scope_caveat(r) + "</p>")
     return out
 
 
@@ -416,9 +434,15 @@ def analysis_tab(r: dict) -> str:
             out.append("<table class='kv'>" + "".join(f"<tr><th>{_e(k)}</th><td>{v}</td></tr>" for k, v in rows) + "</table>")
         loo = res.get("leave_one_out") or {}
         if loo.get("per_trial"):
+            def _loo_ci(x):
+                if x.get("ci_low") is not None:
+                    return f"{_fmt(x.get('ci_low'))} to {_fmt(x.get('ci_high'))}"
+                return _e(x.get("ci_note") or "not recorded")
             out.append("<p>Leave-one-out: " + _e(loo.get("note")) + "</p><table class='recs'><tr><th>Trial dropped</th>"
-                       "<th>Re-pooled estimate</th></tr>"
-                       + "".join(f"<tr><td>{_e(x.get('dropped'))}</td><td>{_fmt(x.get('estimate'))}</td></tr>" for x in loo["per_trial"])
+                       "<th>Re-pooled estimate</th><th>Re-pooled 95% CI</th><th>Position relative to the null</th></tr>"
+                       + "".join(f"<tr><td>{_e(x.get('dropped'))}</td><td>{_fmt(x.get('estimate'))}</td>"
+                                 f"<td>{_loo_ci(x)}</td><td>{_e(x.get('inference') or 'not recorded')}</td></tr>"
+                                 for x in loo["per_trial"])
                        + f"</table><p class='muted'>Range {_fmt(loo.get('min'))} to {_fmt(loo.get('max'))}; most influential: "
                        f"{_e(loo.get('most_influential'))}.</p>")
         else:
