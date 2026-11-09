@@ -84,6 +84,10 @@ def test_opt_in_exchange_package_preserves_legacy_signed_certificate_scopes():
     for path in paths:
         saved = json.loads(path.read_text(encoding="utf-8"))
         assert certificate._scope(saved["analysis_code_blobs"]) == saved["certificate_scope"], path.parent.name
+        assert not any(ref.startswith("harness/exchange_v01/")
+                       for ref in saved["analysis_code_blobs"]), path.parent.name
+        assert not any(ref.startswith("harness/exchange_v01/")
+                       for ref in saved["certificate_scope"]["not_covered"]["in_tree_modules_not_imported_by_any_root"]), path.parent.name
 
 
 def test_pinned_blob_identities_are_what_git_stores():
@@ -161,6 +165,7 @@ def test_opt_in_benchmark_exchange_does_not_change_signed_certificate_scope():
     cert = json.loads((ROOT / "docs/reviews" / SLUG / "CERTIFICATE.json").read_text(encoding="utf-8"))
     assert callable(import_exchange_json)
     assert certificate._scope(cert["analysis_code_blobs"]) == cert["certificate_scope"]
-    assert "harness/exchange_v01.py" not in cert["analysis_code_blobs"]
-    assert "harness/exchange_v01.py" not in cert["certificate_scope"]["not_covered"]["in_tree_modules_not_imported_by_any_root"]
-
+    assert not any(ref.startswith("harness/exchange_v01/")
+                   for ref in cert["analysis_code_blobs"])
+    assert not any(ref.startswith("harness/exchange_v01/")
+                   for ref in cert["certificate_scope"]["not_covered"]["in_tree_modules_not_imported_by_any_root"])

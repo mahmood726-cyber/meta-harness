@@ -66,7 +66,12 @@ def _verify_text_locator(content: str, locator: str, passage: str) -> None:
         raise ValueError("source_span locator must be 'line N' or 'lines N-M' for UTF-8 text")
     start = int(match.group(1) or match.group(2))
     end = int(match.group(1) or match.group(3))
-    lines = content.splitlines(keepends=True)
+    # Only LF advances the source line number. Keep CRLF and every other
+    # character verbatim so Unicode separators cannot shift a citation.
+    parts = content.split("\n")
+    lines = [part + "\n" for part in parts[:-1]]
+    if parts[-1]:
+        lines.append(parts[-1])
     if start > end or end > len(lines):
         raise ValueError("source_span locator outside source line range")
     if passage not in "".join(lines[start - 1:end]):

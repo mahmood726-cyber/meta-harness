@@ -39,6 +39,12 @@ def validate_extraction(record, archive_bytes):
         raise ValueError("archived source bytes required")
     if record["document_sha256"] != sha256(archive_bytes):
         raise ValueError("source digest mismatch")
+    if record["status"] == "SOURCE_CHECKED" and any(
+        not isinstance(record[key], str) or not record[key].strip()
+        for key in ("study_id", "source_uri", "field_name", "population",
+                    "outcome", "time_point", "effect_measure")
+    ):
+        raise ValueError("source-checked evidence requires clinical context")
     if record["status"] in ("SOURCE_CHECKED", "ADJUDICATED"):
         passage = record["verbatim_passage"]
         if not isinstance(passage, str) or not passage.strip():
@@ -89,7 +95,7 @@ def read_events(path):
 
 def can_pool(analysis, studies):
     """Refuse unresolved decisions and incompatible estimands."""
-    if analysis.get("decision") != "ALLOW":
+    if not isinstance(analysis, dict) or analysis.get("decision") != "ALLOW":
         return False
     measure = analysis.get("estimand")
     selected = analysis.get("studyIds")
