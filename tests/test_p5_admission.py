@@ -167,3 +167,12 @@ def test_the_served_sentence_says_which_families_are_eligible_by_ADMISSION():
     without = count_sentence(dict(base, eligible_by_p5_admission=[]))
     assert "Eligible by D04 ledger admission rather than by the structural screen: none" in without
     assert "NCT02721654" not in without
+
+
+def test_recorded_ledger_path_is_os_independent():
+    """The ledger path is written into served review.json; a Windows separator there makes
+    the page irreproducible on Linux (offline reproduction refused 13 topics on CI)."""
+    from harness import p5_admission
+
+    assert p5_admission.LEDGER_REL == "evidence/p5_populations/ledger.json"
+    assert "\\" not in p5_admission.DECISION["ledger"]
