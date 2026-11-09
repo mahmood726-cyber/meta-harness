@@ -1,0 +1,41 @@
+{
+ "kind": "Claude Sonnet second-reader review (in-session Claude Code Agent subagent) -- NOT a model_call_live record",
+ "why": "agy (Gemini) quota/settings unavailable 14-15 Oct; Mahmood 15 Oct: 'use Codex plus a Claude Sonnet reader for the second reviews owed ... Gemini pass owed when agy returns on the 17th'",
+ "model": {
+  "id_requested": "sonnet (Agent tool model alias)",
+  "id_reported": "NOT REPORTED by the client (the Agent tool does not attest the serving model revision)",
+  "provider": "anthropic"
+ },
+ "review_range": "31daf9b3..9b03f8fd (A7 part 1)",
+ "prompt": {
+  "file": "sonnet/a7p1-g1.txt",
+  "sha256": "7a916cb3009c176476e776b670f5086b94a58de0fca1355b4a4d3261b652df87",
+  "bytes": 22105,
+  "built_by": "scripts/pr_codex_review.py (captain/review-pr39) groups() + prompt(reader='agy'): the same diff text and instructions codex/agy get, with agy's no-tools preface",
+  "licence_guard": "reproducible_ai.record_licence.record_problems -> [] before sending (D8)",
+  "wrapper": "You are a code reviewer (the Claude Sonnet second reader for a recorded review). Use EXACTLY ONE tool call: Read the file <the prompt file named in prompt.file>. That file is your complete review prompt (instructions + a code diff). After reading it, use NO other tool of any kind ... Reply with ONE JSON object and nothing else, of exactly this shape: {\"findings\": [{file, function, severity, claim, failing_input, expected, actual}]} ... If you find nothing real, reply {\"findings\": []}."
+ },
+ "client_evidence": {
+  "tool_uses": 2,
+  "note": "1 Read of the prompt file + the hand-back; the reader was told to use no other tool (a subagent technically has tools: the instruction, not a sandbox, is the guarantee)",
+  "subagent_tokens": 111350
+ },
+ "response": {
+  "findings": [
+   {
+    "file": "harness/extract.py",
+    "function": "_reported_occurrence (used by reported_vs_count_derived)",
+    "severity": "P2",
+    "claim": "_NEXT_ESTIMATE embeds _RATIO_LABEL compiled with re.I, whose OR alternative matches the English word 'or'; the forward clause is truncated at the first 'or', so a trailing 'adjusted for ...' qualifier is never seen by _RT_ADJUSTED; an adjusted (different-estimand) reported effect is then compared with crude counts.",
+    "failing_input": "reported_vs_count_derived((20,100,30,100), ('RR',0.50,0.30,0.80), 'Mortality: RR 0.50 (95% CI 0.30-0.80) for death or transplant, adjusted for age.', same)",
+    "expected": "None (adjusted reported effect is not compared)",
+    "actual": "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE, terminal=True"
+   }
+  ]
+ },
+ "state": "RAN_OK",
+ "date_utc": "2026-10-15",
+ "adjudication_by": "Claude (coverage lane), by execution",
+ "adjudication": "CONFIRMED by execution (clause cut at 'or': 'Mortality: RR 0.50 (95% CI 0.30-0.80) for death '); severity raised to P1 by the coverage lane (a false TERMINAL refusal skips every lower rung). Fixed by codex lane L7 with a plant that failed first.",
+ "gemini_pass": "OWED when agy returns (expected 17 Oct)"
+}

@@ -75,6 +75,12 @@ def _topic_specs(slug: str) -> dict[str, dict[str, Any]]:
     return {sp.get("name"): sp for sp, _ in _outcome_specs(cfg)}
 
 
+def _arm_terms(slug: str):
+    path = ROOT / "topics" / f"{slug}.json"
+    cfg = _load_json(path) if path.exists() else {}
+    return (cfg.get("intervention_terms", ["colchicine"]), cfg.get("comparator_terms", ["placebo", "control"]))
+
+
 def classify_row(slug: str, outcome: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     specs = _topic_specs(slug)
     spec = specs.get(outcome.get("name")) or {}
@@ -92,6 +98,7 @@ def classify_row(slug: str, outcome: dict[str, Any], row: dict[str, Any]) -> dic
         absent_kind=row.get("absent_kind"),
         row=row,
         coverage=source_coverage.coverage_for(slug, cid, _fulltext(slug, cid)),   # E1: the same coverage the page used
+        arm_terms=_arm_terms(slug),   # A7: the same arm terms the page used
     )
     verdict = absence.verdict_for_row(row, actual)
     return {

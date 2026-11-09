@@ -100,6 +100,7 @@ def _ladder(pid, rec_by_id, fulltext_by_pmid, trial=None, fulltext_coverage=None
 _INCOMPATIBLE_CODES = {
     absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
     absence.COUNTS_PRESENT_NOT_CORROBORATED,
+    absence.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE,  # A7: retrieved, two values disagree
     absence.MULTI_ARM_UNRESOLVED,
     absence.TIMEPOINT_MISMATCH,
     absence.POPULATION_MISMATCH,
