@@ -139,6 +139,19 @@ def freeze_claim(root: str | os.PathLike[str]) -> str:
     return MUTABLE_FREEZE_CLAIM if external_dependency_mutability(root) else IMMUTABLE_FREEZE_CLAIM
 
 
+def _require_finite_positive_time_limit(value: Any) -> float:
+    """Apply the batch audit's numeric ceiling at construction and execution."""
+    if type(value) not in (int, float):
+        raise ProspectiveRefusal("time_limit_s must be a positive finite number")
+    try:
+        limit = float(value)
+    except OverflowError as exc:
+        raise ProspectiveRefusal("time_limit_s must be a positive finite number") from exc
+    if not math.isfinite(limit) or limit <= 0:
+        raise ProspectiveRefusal("time_limit_s must be a positive finite number")
+    return limit
+
+
 def batch_declaration(
     root: str | os.PathLike[str],
     batch_id: str,
@@ -153,14 +166,7 @@ def batch_declaration(
 
     repo = _root_path(root)
     batch = _require_safe_name(batch_id, "batch_id")
-    try:
-        limit = float(time_limit_s)
-    except (TypeError, ValueError) as exc:
-        raise ProspectiveRefusal("time_limit_s must be numeric") from exc
-    if not math.isfinite(limit):
-        raise ProspectiveRefusal("time_limit_s must be finite")
-    if limit <= 0:
-        raise ProspectiveRefusal("time_limit_s must be positive")
+    limit = _require_finite_positive_time_limit(time_limit_s)
     if isinstance(time_limit_s, int):
         limit_value: int | float = int(time_limit_s)
     else:
@@ -314,6 +320,8 @@ def check_declaration_frozen(
         or decl["schema_version"] != DECLARATION_VERSION
     ):
         raise ProspectiveRefusal("prospective declaration has an unsupported schema_version")
+
+    _require_finite_positive_time_limit(decl.get("time_limit_s"))
 
     # A6: a locally frozen batch must carry an explicit versioned eligibility
     # universe digest and a separate custodian commitment. These are syntax
@@ -590,18 +598,27 @@ def load_defects(root: str | os.PathLike[str], batch_id: str) -> list[dict[str, 
                 raise ProspectiveRefusal(
                     f"defect ledger line {line_no} is not valid JSON"
                 ) from exc
+            if not isinstance(entry, dict):
+                raise ProspectiveRefusal(
+                    f"defect ledger line {line_no} is not a JSON object"
+                )
             if entry.get("batch_id") == batch_id:
                 # A rerun cites a defect by id. Ambiguous duplicate ids would
                 # silently overwrite earlier evidence in check_batch's lookup;
                 # refuse even identical repeats rather than choosing one.
-                if entry.get("id"):
-                    defect_id = str(entry["id"])
-                    if defect_id in seen_defect_ids:
-                        raise ProspectiveRefusal(
-                            f"duplicate defect id in batch {batch_id!r}: "
-                            f"{defect_id!r} (line {line_no})"
-                        )
-                    seen_defect_ids.add(defect_id)
+                defect_id = entry.get("id")
+                if (
+                    type(defect_id) is not str
+                    or not SAFE_NAME_RE.fullmatch(defect_id)
+                    or defect_id in {".", ".."}
+                ):
+                    raise ProspectiveRefusal(f"defect ledger line {line_no} has invalid id")
+                if defect_id in seen_defect_ids:
+                    raise ProspectiveRefusal(
+                        f"duplicate defect id in batch {batch_id!r}: "
+                        f"{defect_id!r} (line {line_no})"
+                    )
+                seen_defect_ids.add(defect_id)
                 entries.append(entry)
     return entries
 
@@ -831,9 +848,10 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     if declared_at is not None:
         for record in records:
             try:
-                if _parse_utc(record.get("started_utc")) < declared_at:
+                if _parse_utc(record.get("started_utc")) <= declared_at:
                     reasons.append(
-                        f"run {record.get('run_id')}: started before prospective declaration"
+                        f"run {record.get('run_id')}: started before prospective declaration "
+                        "or at its timestamp"
                     )
             except ProspectiveRefusal:
                 # The record-shape check below reports invalid run timestamps.
@@ -857,18 +875,11 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     # A4's predeclared run limit is part of the frozen batch contract. A run
     # that exceeds it cannot be reported as COMPLETED. These are self-reported
     # timestamps, not independently witnessed execution or source custody.
-    limit_raw = decl.get("time_limit_s")
     limit_seconds: float | None = None
-    if type(limit_raw) not in (int, float):
-        reasons.append("declaration time_limit_s must be a positive finite number")
-    else:
-        try:
-            limit_seconds = float(limit_raw)
-        except OverflowError:
-            limit_seconds = None
-        if limit_seconds is None or not math.isfinite(limit_seconds) or limit_seconds <= 0:
-            reasons.append("declaration time_limit_s must be a positive finite number")
-            limit_seconds = None
+    try:
+        limit_seconds = _require_finite_positive_time_limit(decl.get("time_limit_s"))
+    except ProspectiveRefusal as exc:
+        reasons.append(f"declaration {exc}")
 
     if limit_seconds is not None:
         for record in records:
@@ -906,7 +917,13 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         if record.get("freeze_claim") != decl.get("freeze_claim"):
             reasons.append(f"run {record.get('run_id')}: freeze_claim differs from declaration")
 
-    by_run = {record.get("run_id"): record for record in records if record.get("run_id")}
+    by_run = {
+        record["run_id"]: record
+        for record in records
+        if type(record.get("run_id")) is str
+        and SAFE_NAME_RE.fullmatch(record["run_id"])
+        and record["run_id"] not in {".", ".."}
+    }
     # A4 permits only one original attempt per topic. Two attempts with
     # distinct run_ids and neither marked rerun_of must not evade the rerun
     # policy, including when the first attempt failed. Counts retain both
@@ -937,6 +954,13 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
     for record in records:
         original_id = record.get("rerun_of")
         if original_id is None:
+            continue
+        if (
+            type(original_id) is not str
+            or not SAFE_NAME_RE.fullmatch(original_id)
+            or original_id in {".", ".."}
+        ):
+            reasons.append(f"run {record.get('run_id')}: invalid rerun_of identifier")
             continue
         original = by_run.get(original_id)
         if original is None:
@@ -1008,6 +1032,21 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
                     "does not match original outcome"
                 )
                 continue
+        # A4 permits only explicit external infrastructure attributions. Keep
+        # main's stricter failure-class eligibility and chronology checks.
+        permitted_attributions = {
+            "network outage", "external network outage", "provider 5xx", "runner killed",
+        }
+        cited = [
+            defect for defect in cited
+            if type(defect.get("attribution")) is str
+            and defect["attribution"].strip().casefold() in permitted_attributions
+        ]
+        if not cited:
+            reasons.append(
+                f"run {record.get('run_id')}: cited defect lacks permitted A4 external infrastructure attribution"
+            )
+            continue
         try:
             rerun_started = _parse_utc(record["started_utc"])
             prior = [
