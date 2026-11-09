@@ -1608,6 +1608,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         trials = _spa.merge_signed(trials, _signed_rows, withdrawn=bool(spec.get("withdrawn")))
     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
     absent.extend(_inadmissible)
+    # V15-C ENFORCEMENT (Mahmood 13 Oct, ruling 1): an UNBOUND_LEGACY row (admit_rows' migration state) stays pooled
+    # only under a signed ADMIT whose snapshot equals its numbers; every other unbound row leaves the pool, displayed
+    from . import enforcement as _enf
+    trials, _unbound_refused = _enf.apply(slug, spec, trials)
+    absent.extend(_unbound_refused)
     if spec.get("withdrawn"):
         # RESULT WITHDRAWN (Mahmood, 2026-09-19): the outcome's declared `withdrawn` notice states that the
         # served result was wrong and why; until the corrected selection lands, NO pooled estimate is
@@ -1774,7 +1779,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             _refresh_cross_source_identity(t["cross_source"], spec, t.get("components"))
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
-           "timepoint": spec.get("timepoint"), "method": METHOD,
+           "timepoint": spec.get("timepoint"), "method": method_text(selector_estimand),
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
     if spec.get("estimand_history"):
@@ -1784,6 +1789,23 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     if design_refusals:
         out["design_refusals"] = [design_variance.design_refusal_row(t) for t in design_refusals]
     out["membership"] = membership_mod.build_outcome_membership(out, included)
+    licence_hold = _enf.licence_await(trials, absent)
+    if licence_hold:
+        out["result"] = licence_hold
+        out["method"] = "No admissible pooled result; remaining trials are shown individually."
+        out["single_trial_results"] = []
+        for t in trials:
+            scale = t.get("scale") or spec.get("estimand", "RR")
+            study = Study(label=t["label"], **{k: t[k] for k in
+                          ("ai", "n1i", "ci", "n2i", "effect", "ci_low", "ci_high",
+                           "mean1", "sd1", "nc1", "mean2", "sd2", "nc2", "e1i", "t1i", "e2i", "t2i")
+                          if t.get(k) is not None}, measure=scale)
+            record = rec_by_id.get(str(t["id"]).removeprefix("PMID "), {})
+            acronyms = re.findall(r"\(([A-Z][A-Z0-9-]{2,})\)", record.get("title", ""))
+            label = record.get("acronym") or (acronyms[0] if len(acronyms) == 1 else t["label"])
+            out["single_trial_results"].append(dict(id=t["id"], label=label,
+                                                    result=_pool_result([study], scale=scale)))
+        return out
     if design_refusals and len(trials) < 2:
         out["result"] = {
             "present": False,
@@ -2012,6 +2034,20 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"] = {"present": False,
                              "reason": "no included trial reported this outcome with a percentage-corroborated "
                                        "count or an effect+CI in its abstract"}
+    if not trials and _unbound_refused and out["result"].get("present") is False:
+        # Enforcement removed these rows, so acquisition debt is not the reason this pool is empty.
+        # Reuse the signed metadata carried by apply(); preserve all other result fields.
+        removed = [{"id": row["id"],
+                    "decision": ("ABSTAIN-not-the-signed-numbers"
+                                 if row["enforcement"]["decision"] == "ADMIT" else "REFUSE"),
+                    "basis": row["enforcement"]["basis"]} for row in _unbound_refused]
+        out["result"].update(
+            no_admissible_pool=True,
+            removed_by_enforcement=removed,
+            reason=(f"No admissible pooled result: the signed V15-C decision refused or set aside "
+                    f"{len(removed)} {'row' if len(removed) == 1 else 'rows'}: "
+                    + "; ".join(f"{row['id']} — {row['decision']}: {row['basis']}" for row in removed)
+                    + ". No inadmissible number is served."))
     if isinstance(out.get("result"), dict) and out["result"].get("present", True) is not False             and out["result"].get("k"):
         # The same false-absence guard when SOME trials pool: an included trial that names the outcome in
         # its committed abstract but is not in the pool keeps its disclosure. Pooling one trial must not

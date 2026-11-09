@@ -41,3 +41,18 @@ def test_the_committed_tree_has_no_untraced_row_and_no_unlisted_hand_entry():
     # the burn-down list may only shrink: every listed row must still exist as a HAND_ENTERED row
     live = {f"{part}|{pc._key(x)}" for part in ("served", "tracker") for x in c[part]["rows"] if x["class"] == "HAND_ENTERED"}
     assert set(hl["rows"]) <= live, sorted(set(hl["rows"]) - live)[:5]     # converted rows are removed from the list
+
+
+def test_plant_a_tracker_row_for_a_signed_refusal_is_a_disclosed_lag_not_untraced():
+    """V15-C: the served page refuses TECOS under a signed decision, but the G1 tracker (lane-built; regenerating it by
+    script wiped tocilizumab's lane curation, 13 Oct) still pools it. That row is traced to the SIGNED refusal -- a
+    disclosed lag -- never UNTRACED, and never silently counted as served."""
+    review = {"outcomes": [{"name": "MACE", "primary": True, "trials": [], "declared_absent_trials": [
+        {"id": "PMID 26052984", "state": "REFUSED_ON_EVIDENCE", "enforcement": {"decision": "REFUSE", "basis": "b"}},
+        {"id": "PMID 1", "state": "EXTRACTION_DEBT"}]}]}
+    sr = pc.signed_refusals("dpp4", review)
+    assert set(sr) == {("dpp4", "26052984")}
+    cls, why = pc.classify_tracker({"in_our_pool": True, "family": "PMID 26052984"}, "dpp4", sr)
+    assert cls == "SIGNED_REFUSAL" and "signed" in why
+    assert pc.problems({"served": {"rows": []}, "tracker": {"rows": [{"slug": "dpp4", "label": "TECOS", "route": "R",
+                                                                     "class": cls, "why": why}]}}, None) == []

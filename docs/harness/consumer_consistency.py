@@ -572,6 +572,9 @@ def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
             cand = outcome_source_candidate(slug, records_blob, spec, tid)
             if not cand.get("source_has_value"):
                 continue
+            if (row.get("enforcement") or {}).get("decision") == "REFUSE":
+                row["consumer_consistency_finding"] = dict(cand)
+                continue
             current_code = _row_code(row)
             replacement_code = cand.get("reason_code") or KNOWN_REPORTED_NOT_YET_EXTRACTED
             if current_code not in FALSE_ABSENCE_CODES and current_code == replacement_code:

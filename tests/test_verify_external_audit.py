@@ -194,3 +194,15 @@ def test_PLANT_a_missing_committed_reference_is_a_fail_not_a_crash(monkeypatch, 
                             if not ln.endswith("*review12/results.json")), encoding="utf-8")
     rows, bad = vea.run()
     assert bad >= 1 and any(r["verdict"] == "FAIL" and "MISSING_REFERENCE" in r["detail"] for r in rows)
+
+
+def test_plant_a_signed_change_that_removes_a_served_value_can_be_pinned_as_absent():
+    """V15-C refuses every row of esketamine's primary (signed): the served value is GONE, and _valid_supersession could
+    only pin a number, so a signed removal could never be recorded. An explicit "served": null pins ABSENCE -- it
+    excuses only an absent value (a later reappearance fails again); a missing key or a number never excuses absence."""
+    signed = {"V15-C-02"}
+    assert vea._valid_supersession({"signed_item": "V15-C-02", "served": None}, None, signed)
+    assert not vea._valid_supersession({"signed_item": "V15-C-02", "served": None}, -3.34, signed)   # it came back
+    assert not vea._valid_supersession({"signed_item": "V15-C-02"}, None, signed)                    # no explicit pin
+    assert not vea._valid_supersession({"signed_item": "V15-C-02", "served": -3.34}, None, signed)
+    assert not vea._valid_supersession({"signed_item": "UNSIGNED", "served": None}, None, signed)

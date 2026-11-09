@@ -1433,6 +1433,26 @@ def _compat_direction_block(o):
     )
 
 
+def _declared_conversion_block(t):
+    c = t.get("declared_conversion")
+    if not c:
+        return ""
+    if c.get('kind') == 'percentage_to_count':
+        inputs = '; '.join(f"{a['label']}: {a['percentage']}% x {a['n']} -> {a['count']} events; unique integer candidates {a['unique_candidates']}" for a in c['inputs'])
+        cor = c['corroboration']
+        return ("<div class='declared-conversion'><strong>Declared percentage-to-count conversion</strong>: "
+                + _e(inputs) + '<br>' + _e(c['population']) + '<br>' + _e(c['formula'])
+                + '<br>Source: ' + _e(c['source_ref']) + '; sha256 ' + _e(c['source_sha256'])
+                + '<br>Corroboration only (not bound source): ' + _e(cor['document'])
+                + ' p.' + _e(cor['page']) + '; sha256 ' + _e(cor['sha256']) + '</div>')
+    inputs = "; ".join(f"{a['label']}: mean {a['mean']}, SD {a['sd']}, n={a['n']}" for a in c["inputs"])
+    output = "; ".join(f"{k}={v}" for k, v in c["output"].items())
+    return ("<div class='declared-conversion'><strong>Declared arm-combination conversion</strong>: "
+            + _e(inputs) + "<br><a href='" + _e(c["reference_url"]) + "'>" + _e(c["reference"])
+            + "</a><br>" + _e(c["formula"]) + "<br>Output: " + _e(output)
+            + "<br>Source: " + _e(c["source_ref"]) + "</div>")
+
+
 def _trial_inputs(o):
     rows = []
     for t in o.get("trials", []) or []:
@@ -1450,6 +1470,7 @@ def _trial_inputs(o):
             inp = f"{_num(t.get('effect'))} ({_e(t.get('scale') or o.get('estimand'))}), 95% CI {_num(t.get('ci_low'))}–{_num(t.get('ci_high'))}"
         else:
             inp = "—"
+        inp += _declared_conversion_block(t)
         ec = t.get("endpoint_counts") or {}
         if ec and t.get("effect") is not None:
             inp += (f"; endpoint counts {_e(ec.get('ai'))}/{_e(ec.get('n1i'))} vs "
@@ -1763,6 +1784,14 @@ def _outcome_block(o, show_inputs=True, review=None):
                  f"<span class='muted'>Known unresolved primary-pool trial(s): {_e(names)}</span></div>")
     elif rr:
         body += _absent_block(rr)
+        if o.get("single_trial_results"):
+            body += "<table class='single-trial-results'><caption>Individual trial results (not a pooled answer)</caption>"
+            for single in o["single_trial_results"]:
+                value = single["result"]
+                body += (f"<tr><td>{_e(single['label'])}</td><td>{_e(single['id'])}</td>"
+                         f"<td>{_num(value.get('estimate'))} ({_num(value.get('ci_low'))} to "
+                         f"{_num(value.get('ci_high'))}) {_e(value.get('scale'))}</td></tr>")
+            body += "</table>"
     elif res.get("unrenderable"):
         body += _unrenderable_block(res)
     elif res.get("pool_refused"):
