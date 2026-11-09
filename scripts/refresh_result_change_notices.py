@@ -312,6 +312,7 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
             if not same or not prev.get("reason") or (not notice.get("reason_locked") and prev.get("reason") != derived):
                 if not notice.get("reason_locked"):
                     notice["reason"] = derived
+                notice["rendering_version"] = 2
                 notice["by"] = by
                 notice["when_utc"] = when
                 notice["reviewer_countersignature"] = {"state": "OPEN", "note": "the reviewer has not yet seen the rendered notice; "
@@ -375,9 +376,39 @@ def refresh(commit, by, when, allow_signed_drop: bool = False, prune: bool = Fal
     return kept, rebuilt, added, dropped, carried
 
 
+def refresh_rendering(slug, outcome):
+    """Opt one OPEN notice into corrected wording without re-deriving historical facts."""
+    raw = PATH.read_text(encoding="utf-8")
+    data = json.loads(raw)
+    indent = len(raw.splitlines()[1]) - len(raw.splitlines()[1].lstrip())
+    hits = [n for n in data["notices"] if n["slug"] == slug and n["outcome"] == outcome
+            and (n.get("reviewer_countersignature") or {}).get("state") == "OPEN"]
+    if len(hits) != 1:
+        raise ValueError(f"expected one OPEN notice, found {len(hits)}")
+    # Preserve the recovery account, and derive the existing entry-kind claim.
+    missing = [tid for tid in hits[0].get("entered_pool", [])
+               if f"{tid} entered the pool contributing" not in hits[0].get("reason", "")]
+    if missing:
+        review = _after(slug)
+        current = next(o for o in review["outcomes"] if o["name"] == outcome)
+        rows = current.get("trials") or []
+        if not set(missing) <= {str(t["id"]) for t in rows}:
+            raise ValueError("entering trial is absent from the current review")
+        hits[0]["reason"] = hits[0].get("reason", "").rstrip() + " " + " ".join(_entered(missing, rows))
+    if hits[0].get("entered_pool") and ADDED_EVIDENCE not in hits[0].get("reason", ""):
+        hits[0]["reason"] = hits[0].get("reason", "").rstrip() + " " + ADDED_EVIDENCE
+    hits[0]["rendering_version"] = 2
+    with PATH.open("w", encoding="utf-8", newline="\n") as fh:
+        json.dump(data, fh, indent=indent, ensure_ascii=False)
+        fh.write("\n")
+    return hits[0]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("base_commit")
+    ap.add_argument("base_commit", nargs="?")
+    ap.add_argument("--render-only", nargs=2, metavar=("SLUG", "OUTCOME"),
+                    help="refresh wording of exactly one OPEN notice; preserve its evidence and all other records")
     ap.add_argument("--by", default="Claude Opus 5 (lane m2/bind-hand-rows); reviewer countersignature owed: Mahmood")
     ap.add_argument("--when", default=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
     ap.add_argument("--prune", action="store_true",
@@ -387,6 +418,12 @@ def main(argv=None):
                     help="allow this run to delete notices a reviewer has countersigned "
                          "(refused by default; see the note in refresh())")
     args = ap.parse_args(argv)
+    if args.render_only:
+        n = refresh_rendering(*args.render_only)
+        print(f"refreshed rendering: {n['slug']} | {n['outcome']}")
+        return 0
+    if not args.base_commit:
+        ap.error("base_commit is required unless --render-only is used")
     kept, rebuilt, added, dropped, carried = refresh(
         args.base_commit, args.by, args.when, args.drop_signed, args.prune)
     print(f"notices kept {len(kept)}, rebuilt {len(rebuilt)}, added {len(added)}, "

@@ -111,6 +111,8 @@ _ABSENCE_STATE_LABEL = {
     "NO_OUTCOME_DATA_IN_SOURCE": "declared absent — no outcome data in the retrieved source",
     "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": "excluded on evidence -- effect present but wrong estimand class",
     "COUNTS_PRESENT_NOT_CORROBORATED": "not extracted -- arm counts present but percentage corroboration failed",
+    "SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE": "not pooled -- the reported effect and the effect from the source's own "
+                                                  "arm counts disagree; both shown, awaiting adjudication",
     "MULTI_ARM_UNRESOLVED": "excluded on evidence -- multi-arm contrast unresolved",
     "TIMEPOINT_MISMATCH": "excluded on evidence -- timepoint mismatch",
     "POPULATION_MISMATCH": "excluded on evidence -- population or analysis-set mismatch",
@@ -1465,6 +1467,17 @@ def _trial_inputs(o):
             src = "<span class='vno' title='" + _e(t.get("verify_basis", "")) + "'>⚠ NOT YET verified against source</span><br>" + _e(t.get("source"))
         else:
             src = _e(t.get("source"))
+        discrepancy = t.get("reported_vs_count_derived")
+        if discrepancy:
+            reported, counts = discrepancy["reported"], discrepancy["count_derived"]
+            notice = (
+                f"A7: the source reports {reported['scale']} {reported['effect']} "
+                f"({reported['ci_low']}–{reported['ci_high']}); its own counts "
+                f"{counts['ai']}/{counts['n1i']} v {counts['ci']}/{counts['n2i']} "
+                f"give {counts['scale']} {counts['effect']:.3f} — counts pooled by adjudication "
+                f"(decided by {discrepancy['decided_by']}, {discrepancy['date']})"
+            )
+            src += "<div class='a7-adjudication'>" + _e(notice) + "</div>"
         cs = t.get("cross_source")
         if cs:
             bits = []
@@ -2280,6 +2293,24 @@ def result_changes_status(n: dict) -> dict | None:
     return None
 
 
+def correction_block(c: dict, original: dict) -> str:
+    """Independently hashed draft outside the signed original."""
+    from . import result_changes as rc
+    rc.validate_correction(c, original)
+    ref = c["corrects"]
+    block = ("<div class='notice-correction' data-notice-correction='true'><h4>CORRECTION</h4>"
+             f"<p>Correction to {_e(ref['slug'])} / {_e(ref['outcome'])} / {_e(ref['when_utc'])}; "
+             f"original rendered_sha256: <code>{_e(ref['rendered_sha256'])}</code>.</p>"
+             f"<p>The original sentence &ldquo;{_e(c['replaces'])}&rdquo; is incorrect. "
+             f"Corrected sentence: {_e(c['replacement'])} "
+             f"The recorded point estimate changed from {_e(original['before']['estimate'])} to "
+             f"{_e(original['after']['estimate'])} on the {_e(c['scale'])} scale (null {_e(rc.null_value(c['scale']))}). "
+             "This corrects the direction wording only; the original signed notice is retained unchanged.</p>"
+             f"<p>By {_e(c['by'])} on {_e(c['when_utc'])}.</p></div>")
+    if (c.get("reviewer_countersignature") or {}).get("state") != "OPEN":
+        raise ValueError("correction drafts must remain OPEN")
+    return block + "<p class='muted'>Reviewer countersignature: OPEN &mdash; this correction has not yet been seen and signed.</p>"
+
 def result_change_block(n: dict) -> str:
     """The rendered notice for one changed result. Rendered by the page AND standalone for the reviewer; the
     reviewer's countersignature names sha256 of this block (result_changes.rendered_sha256), so a signature is an
@@ -2287,6 +2318,15 @@ def result_change_block(n: dict) -> str:
     _fmt = _manuscript_mod._fmt
     b, a = n.get("before") or {}, n.get("after") or {}
     cc = n.get("conclusion_changed")
+    from . import result_changes as rc
+    # Historical signatures bind the legacy wording. Only explicitly refreshed notices
+    # use v2, and retain that version when subsequently signed.
+    v2 = n.get("rendering_version") == 2
+    conclusion = (f"<strong>{'Conclusion withdrawn' if ('withdrawn' in str(cc) or 'no longer' in str(cc)) else 'Conclusion changed'}: {_e(cc)}.</strong> " if cc
+                  else (_e(rc.null_conclusion_sentence(b, a, n.get("scale"))) + " " if v2
+                        else "The direction of the estimate is unchanged. "))
+    if v2:
+        conclusion = _e(rc.direction_sentence(b, a, n.get("scale"))) + " " + conclusion
     def _num(x):
         try:
             return f"{float(x):.2f}"
@@ -2304,8 +2344,7 @@ def result_change_block(n: dict) -> str:
     block = ("<h4>Result changed</h4><div class='result-change' data-result-change='true' style='border:2px solid #b00;padding:1em;background:#fff6f6'><strong>"
              f"{_e(n.get('outcome'))}: the pooled result changed on {_e(str(n.get('when_utc'))[:10])}.</strong> "
              f"Previously served: {_e(_res(b, n.get('before_note')))}. Now: {_e(_res(a, n.get('after_note')))}. "
-             + (f"<strong>{'Conclusion withdrawn' if ('withdrawn' in str(cc) or 'no longer' in str(cc)) else 'Conclusion changed'}: {_e(cc)}.</strong> " if cc
-                else "The direction of the estimate is unchanged. ")
+             + conclusion
              + (f"Left the pool: {_e(', '.join(map(str, n.get('left_pool') or [])))}. " if n.get("left_pool") else "")
              + (f"Entered the pool: {_e(', '.join(map(str, n.get('entered_pool') or [])))}. " if n.get("entered_pool") else "")
              + f"Why: {_e(n.get('reason'))} &mdash; {_e(n.get('by'))}.</div>")

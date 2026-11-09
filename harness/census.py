@@ -121,6 +121,7 @@ def _result_change_notices(root: str, slug: str, review_core_obj: Optional[dict]
         if n.get("slug") != slug:
             continue
         item = dict(n)
+        item["scale"] = scales.get(n.get("outcome"))
         # a SIGNED notice a hold keeps from applying (registry/served_pool_holds.json) is shown as such on the page
         h = next((h for h in holds if h.get("slug") == slug and str(h.get("id")) in map(str, n.get("entered_pool") or [])), None)
         if h and not n.get("withdrawal"):

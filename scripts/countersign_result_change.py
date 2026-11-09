@@ -51,6 +51,7 @@ def _annotated(n):
         scale = next(((o.get("result") or {}).get("scale") or o.get("estimand") for o in rev.get("outcomes") or []
                       if o.get("name") == n["outcome"]), None)
     item = dict(n)
+    item["scale"] = scale
     item["conclusion_changed"] = result_changes.conclusion_changed(n.get("before") or {}, n.get("after") or {}, scale)
     return item
 

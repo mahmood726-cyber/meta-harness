@@ -514,6 +514,11 @@ def changes_tab(r: dict) -> str:
                            + _e(st["text"]) + "</strong> The notice below is kept as signed, for the record; the served "
                            "result does not include it.</p>")
             out.append(P.result_change_block(n))
+            from . import result_changes as RC
+            for correction in RC.load_corrections(str(ROOT)):
+                ref = correction["corrects"]
+                if all(ref[k] == n.get(k) for k in ("slug", "outcome", "when_utc")):
+                    out.append(P.correction_block(correction, n))
     else:
         out.append(_reason("every committed notice", "no result-change notice for this topic in docs/result_changes.json "
                                                      "at this build. The absence of a notice is not evidence that the result "

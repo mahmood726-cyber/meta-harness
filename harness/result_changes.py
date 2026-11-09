@@ -20,6 +20,43 @@ REQUIRED = ("slug", "outcome", "before", "after", "left_pool", "entered_pool", "
 RESULT_KEYS = ("k", "estimate", "ci_low", "ci_high")
 
 
+def load_corrections(root=None):
+    """Corrections are separate records and never admit a result change."""
+    with open(os.path.join(root or ROOT, PATH), encoding="utf-8") as fh:
+        return json.load(fh).get("corrections", [])
+
+
+def correction_reference(n):
+    return {**{k: n[k] for k in ("slug", "outcome", "when_utc")},
+            "rendered_sha256": n["reviewer_countersignature"]["rendered_sha256"]}
+
+
+def validate_correction(c, original):
+    from . import page
+    if c["corrects"] != correction_reference(original):
+        raise ValueError("correction reference does not identify this signed original")
+    block = page.result_change_block(original).split("<p class='muted'>Reviewer countersignature")[0]
+    if rendered_sha256(block) != c["corrects"]["rendered_sha256"]:
+        raise ValueError("correction original rendered bytes/hash changed")
+    if original["reviewer_countersignature"]["state"] not in SIGNED_STATES:
+        raise ValueError("correction requires a signed original")
+    expected = direction_sentence(original["before"], original["after"], c["scale"])
+    if c["replacement"] != expected or expected != "The direction of the estimate is changed.":
+        raise ValueError("correction direction is not supported by the original estimates")
+    if c["replaces"] not in block:
+        raise ValueError("correction does not identify wording in the original")
+
+
+def direction_correction(original, by, when):
+    c = {"kind": "CORRECTION", "corrects": correction_reference(original),
+         "scale": original["scale"],
+         "replaces": "The direction of the estimate is unchanged.",
+         "replacement": direction_sentence(original["before"], original["after"], original["scale"]),
+         "by": by, "when_utc": when, "reviewer_countersignature": {"state": "OPEN"}}
+    validate_correction(c, original)
+    return c
+
+
 def load(root: str | None = None) -> list[dict[str, Any]]:
     p = os.path.join(root or ROOT, PATH)
     if not os.path.exists(p):
@@ -66,8 +103,35 @@ def significance(result: dict[str, Any] | None, scale: str | None) -> str | None
     return "includes_null"
 
 
+def direction_sentence(before, after, scale):
+    """Compare point estimates, independently of their confidence intervals."""
+    import math
+    if str(scale or "").upper() not in ("HR", "RR", "OR", "IRR", "RATE_RATIO", "MD", "SMD"):
+        return "The direction of the estimate cannot be compared: the scale is unavailable."
+    values = (before.get("estimate"), after.get("estimate"))
+    if any(not isinstance(x, (int, float)) or not math.isfinite(x) for x in values):
+        return "The direction of the estimate cannot be compared: an estimate is unavailable."
+    null = null_value(scale)
+    sides = [(x > null) - (x < null) for x in values]
+    return f"The direction of the estimate is {'unchanged' if sides[0] == sides[1] else 'changed'}."
+
+
+def null_conclusion_sentence(before, after, scale):
+    if str(scale or "").upper() not in ("HR", "RR", "OR", "IRR", "RATE_RATIO", "MD", "SMD"):
+        return "The conclusion about no difference cannot be compared: the scale is unavailable."
+    b, a = significance(before, scale), significance(after, scale)
+    if b == a == "includes_null":
+        return "The conclusion about no difference is unchanged: both intervals include the null."
+    if b == a == "excludes_null":
+        return "The conclusion about no difference is unchanged: both intervals exclude the null."
+    if b is None or a is None:
+        return ("The conclusion about no difference cannot be compared: an interval was not served."
+                + (" The current interval includes the null." if a == "includes_null" else ""))
+    return conclusion_changed(before, after, scale) or ""
+
+
 def conclusion_changed(before: dict[str, Any], after: dict[str, Any], scale: str | None) -> str | None:
-    """The derived sentence, or None when the direction is preserved. Losing a served estimate -- k -> 0, or a
+    """The derived sentence, or None when no null-conclusion change is established. Losing a served estimate -- k -> 0, or a
     pool refused where one was served -- is a withdrawal; a pooled estimate appearing where none was served is a
     new claim; both take a per-notice signature."""
     b, a = significance(before, scale), significance(after, scale)

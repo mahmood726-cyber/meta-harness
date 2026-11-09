@@ -16,6 +16,7 @@ import re
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import fulltext as _ft_mod
 from . import aact_cache
+from . import a7_adjudication
 from . import screen_entry
 from . import comparator_second_pass
 from . import source_hierarchy as source_hierarchy_mod
@@ -42,6 +43,8 @@ from . import consumer_consistency as consumer_consistency_mod
 from . import reason_audit as reason_audit_mod
 from . import unextracted as unextracted_mod
 from . import harms as harms_mod
+from . import source_coverage as source_coverage_mod
+from . import candidate_rows as candidate_rows_mod
 from . import protocol_compiler as protocol_compiler_mod
 from . import target_endpoint as target_endpoint_mod
 from . import second_source as second_source_mod
@@ -326,6 +329,9 @@ def _primacy(r):
     return 2  # an ordinary journal article
 
 
+_A7_FIELDS = ("reason", "state", "gross", "terminal", "reported", "count_derived")
+
+
 def _fulltext_extract(ft, spec, interv, comp, dc):
     """Full-text rung: the abstract extractor on the PROSE, else on each non-baseline TABLE ROW as its own unit
     (fulltext.extraction_segments). One admissible row value -> taken; several different row values ->
@@ -338,6 +344,8 @@ def _fulltext_extract(ft, spec, interv, comp, dc):
     kw = dict(declared_composite=dc, estimand=spec.get("estimand"))
     own = _ft_mod.own_result_prose(seg["prose"])
     fx = extract.extract_trial(own["prose"], spec["keywords"], interv, comp, **kw)
+    if fx.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and fx.get("terminal"):
+        return fx       # A7: the document disagrees with itself -- reported, not resolved by reading on into its tables
     if seg.get("unstructured"):
         # HTML/PDF copy: only an effect+CI REPORTED in a prose sentence is typed evidence here. Arm counts, means and
         # rates may come from a flattened table (PMID 34138478: '1/16 vs 0/14' read out of an HTML outcome table).
@@ -1250,6 +1258,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
                    registry_designs=None, k2_anchor_config=None, eligibility_contract=None, slug=None):
+    from .dpp4_source import route_records
+    rec_by_id = route_records(slug, spec.get("name"), rec_by_id)
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
@@ -1403,6 +1413,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         )
         if target_pick.get("selected"):
             t = {"label": label, "id": idstr, **target_pick["selected"]}
+            if rec.get("retained_abstract_ref") and t.get("provenance") == "abstract":
+                ref = rec["retained_abstract_ref"]
+                t.update(document_ref=ref["path"], document_sha256=ref["sha256"],
+                         source_span=t.get("endpoint_result_span") or t.get("source"))
             if nct and nct in ctgov_results:
                 cs = _cross_source(t, nct, ctgov_results, spec, interv, comp)
                 if cs and (t.get("provenance") != "ctgov_results"
@@ -1440,6 +1454,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         effect_candidates = candidate_index.get(d["id"], [])
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
                                    declared_composite=dc, estimand=spec.get("estimand"))
+        if ex.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and ex.get("terminal"):
+            adjudication = a7_adjudication.resolve(slug, spec["name"], idstr, {**ex, "provenance": "abstract"})
+            if adjudication and adjudication["state"] == "ADJUDICATED_POOL_COUNTS":
+                ex = adjudication["row"]  # Continue through the ordinary source and admissibility guards.
+            else:
+                absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "abstract",
+                               **{k: ex[k] for k in _A7_FIELDS},
+                               **({"a7_adjudication": "STALE"} if adjudication else {})})
+                continue
         if not ex.get("absent"):
             # ESTIMAND-HOMOGENEITY (composite component count): an N-point MACE outcome must not pool a
             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
@@ -1455,9 +1478,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 continue
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
-            t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
-            )
+            # An explicit count decision supersedes automatic estimator preference, not admissibility.
+            if not t.get("reported_vs_count_derived"):
+                t = design_key.select_estimator_by_source_hierarchy(
+                    t, _span_effect_candidates(spec, t, effect_candidates, rec.get("abstract", "")), selector_estimand
+                )
             if nct and nct in ctgov_results:
                 cs = _cross_source(t, nct, ctgov_results, spec, interv, comp)
                 if cs:
@@ -1482,6 +1507,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
         # own sentences, not the whole document.
         fx = _fulltext_extract(ft, spec, interv, comp, dc) if ft else None
+        if fx and fx.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE and fx.get("terminal"):
+            adjudication = a7_adjudication.resolve(slug, spec["name"], idstr, {**fx, "provenance": "pmc_fulltext"})
+            if adjudication and adjudication["state"] == "ADJUDICATED_POOL_COUNTS":
+                fx = adjudication["row"]
+            else:
+                absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "provenance": "pmc_fulltext",
+                               **{k: fx[k] for k in _A7_FIELDS},
+                               **({"a7_adjudication": "STALE"} if adjudication else {})})
+                continue
         if fx and not fx.get("absent"):
             # THE SAME ESTIMAND-HOMOGENEITY GUARDS AS THE ABSTRACT ROUTE.
             #
@@ -1509,9 +1543,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             t = {"label": label, "id": idstr, **fx}
             # Resolve label-only candidates against the document the number CAME FROM, not the
             # abstract: a full-text row's definition span lives in the full text.
-            t = design_key.select_estimator_by_source_hierarchy(
-                t, _span_effect_candidates(spec, t, effect_candidates, ft), selector_estimand
-            )
+            if not t.get("reported_vs_count_derived"):
+                t = design_key.select_estimator_by_source_hierarchy(
+                    t, _span_effect_candidates(spec, t, effect_candidates, ft), selector_estimand
+                )
             trials.append(t)
             continue
         # BOTTOM OF THE SOURCE HIERARCHY: a committed, HAND-VERIFIED structured arm-level entry
@@ -1573,7 +1608,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             row["verified_passage_location"] = bound.get("passage_location")
             trials.append(row)
             continue
-        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+        # a GROSS A7 mismatch no lower rung resolved keeps its typed state and both values (was an untyped string)
+        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"],
+                       **({k: ex[k] for k in _A7_FIELDS}
+                          if ex.get("state") == extract.SOURCE_REPORTED_AND_COUNT_DERIVED_DISAGREE else {})})
     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
     # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
     # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are
@@ -1747,7 +1785,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         elif t.get("effect") is not None:
             t["derivation"] = t.get("derivation") or "reported"
         design_key.stamp_trial(t, rec_by_id, registry_designs or {}, selector_estimand)
-        if design_key.maybe_use_published_adjusted(t, selector_estimand):
+        if not t.get("reported_vs_count_derived") and design_key.maybe_use_published_adjusted(t, selector_estimand):
             t.setdefault("selection_rule", "PUBLISHED_ADJUSTED_TARGET_CLASS")
             t.setdefault("alternatives", [])
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
@@ -2605,10 +2643,24 @@ def build_review_core(slug, config, records, protocol_sha):
                 reason=_t.get("reason"),
                 absent_kind=_t.get("absent_kind"),
                 row=_t,
+                # E1: the absence is conditional on the coverage of what was searched (held bytes + census)
+                coverage=source_coverage_mod.coverage_for(slug, _pid, _ft),
+                # A7: a reported effect is checked against the counts its own percentages + arm sizes imply
+                arm_terms=(config.get("intervention_terms", ["colchicine"]),
+                           config.get("comparator_terms", ["placebo", "control"])),
             )
             for _ak, _av in _ann.items():
                 if _av not in (None, "", []):
                     _t[_ak] = _av
+            # D3 (r26-01 ESCAPe): a refusal on WINDOW grounds is complete only when every candidate row of this
+            # outcome in the held FULLTEXT has been assessed with the same window rule. Annotates; admits nothing.
+            if (_t.get("reason_code") == absence_mod.TIMEPOINT_MISMATCH
+                    or "measurement window" in str(_t.get("reason") or "")):
+                _aud = candidate_rows_mod.audit_refusal(slug, _pid, _t, _kws, _o.get("name"), _sp.get("timepoint"))
+                _t["candidate_rows_audit"] = {
+                    "state": _aud["state"], "n_candidates": len(_aud["candidates"]),
+                    "unassessed": [{k: c[k] for k in ("table", "label", "cells", "window", "assessment")}
+                                   for c in _aud.get("unassessed") or []]}
     # COMPATIBILITY-UNDERLYING CHECK (lane CK): derive the compatibility dimensions from every pooled trial row
     # and its committed source text; an asserted uniform key the rows do not support is relabelled mixed/trial-defined.
     compat_check_mod.enrich(review, records)
@@ -2629,7 +2681,9 @@ def build_review_core(slug, config, records, protocol_sha):
             eligibility_chain_mod.apply_admissions(review, config, records, _md)
         except OSError:
             pass
-    harms_mod.annotate_review(review, _spec_by_name, included, rec_by_id, ftbp)
+    harms_mod.annotate_review(review, _spec_by_name, included, rec_by_id, ftbp,
+                              {str(_p): source_coverage_mod.coverage_for(slug, _p, _t)["fulltext"]
+                               for _p, _t in (ftbp or {}).items()})
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered
     # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check
