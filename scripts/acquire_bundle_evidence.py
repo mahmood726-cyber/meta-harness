@@ -64,12 +64,24 @@ def _write_once(path: Path, data: bytes) -> bool:
     return True
 
 
-def acquire_pubmed(slug: str) -> Path:
+def acquire_pubmed(slug: str, pmids=None, scope=None, base=None) -> Path:
+    """Every record of the topic, or (E1, 11 Oct) a NAMED subset of them -- the records an absence claim rests on, the
+    abridged-abstract census list. A PMID that is not one of the topic's records is never acquired under it; the subset
+    and its reason are written into the manifest."""
     records = json.loads((ROOT / "cache" / slug / "records.json").read_text(encoding="utf-8"))
-    pmids = sorted({str(r["id"]) for r in records["records"] if r.get("id_type", "pmid") == "pmid"})
-    if records.get("comparator_pmid") and str(records["comparator_pmid"]) not in pmids:
-        pmids.append(str(records["comparator_pmid"]))
-    out_dir = ROOT / "docs" / "acquisitions" / slug / f"pubmed_efetch_{TODAY}"
+    known = sorted({str(r["id"]) for r in records["records"] if r.get("id_type", "pmid") == "pmid"})
+    if records.get("comparator_pmid") and str(records["comparator_pmid"]) not in known:
+        known.append(str(records["comparator_pmid"]))
+    scope_entry = None
+    if pmids is not None:
+        asked = sorted({str(p) for p in pmids})
+        scope_entry = {"subset": [p for p in asked if p in known], "not_in_topic_records": [p for p in asked if p not in known],
+                       "why": scope or "named subset"}
+        known = scope_entry["subset"]
+    pmids = known
+    # base: the served store (docs/acquisitions, read by build_bundle) by default; E1 re-acquisitions go to an UNSERVED
+    # store first (registry/source_acquisitions) -- moving them into the served bundle is the captain's decision
+    out_dir = (Path(base) if base else ROOT / "docs" / "acquisitions") / slug / f"pubmed_efetch_{TODAY}"
     manifest_path = out_dir / "ACQUISITION.json"
     if manifest_path.exists():
         print(f"acquisition already exists: {manifest_path.relative_to(ROOT).as_posix()} (immutable; not repeated)")
@@ -139,6 +151,7 @@ def acquire_pubmed(slug: str) -> Path:
                                  "observation of origin; a saved response and its hash establish what was saved, not "
                                  "that it came from the claimed publisher",
         "immutability": "append-only; never overwritten; a correction is a new dated directory",
+        **({"scope": scope_entry} if scope_entry else {}),
         "entries": entries,
     }
     _write_once(manifest_path, (json.dumps(manifest, indent=1, ensure_ascii=False) + "\n").encode("utf-8"))
@@ -305,10 +318,14 @@ def main(argv=None) -> int:
     ap.add_argument("--pubmed", action="store_true")
     ap.add_argument("--aact", action="store_true")
     ap.add_argument("--review-refs", action="store_true", help="resolve review.json AACT source_reference rows (slow: ~7 GB streamed)")
+    ap.add_argument("--pmids-file", help="JSON list of PMIDs: acquire only these of the topic's records (E1)")
+    ap.add_argument("--scope", help="why this subset (written into the manifest)")
+    ap.add_argument("--base", help="store root (default docs/acquisitions, the served bundle store)")
     a = ap.parse_args(argv)
     both = not (a.pubmed or a.aact or a.review_refs)
     if a.pubmed or both:
-        acquire_pubmed(a.slug)
+        acquire_pubmed(a.slug, json.loads(Path(a.pmids_file).read_text(encoding="utf-8")) if a.pmids_file else None,
+                       a.scope, (ROOT / a.base) if a.base else None)
     if a.aact or both:
         acquire_aact_rows(a.slug)
     if a.review_refs or both:

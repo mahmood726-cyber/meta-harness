@@ -1,0 +1,183 @@
+"""Plants (E1, 11 Oct): coverage is computed from the held bytes, never from a file's presence. Each named case was
+held as 'full text' and read as such by the absence classifier and the harms rung ('held full text: CHECKED')."""
+import os
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from harness import source_coverage as sc  # noqa: E402
+
+
+def _lab(rel):
+    return sc.label_document(open(os.path.join(ROOT, rel), "rb").read())
+
+
+def test_PLANT_pmc_no_download_responses_are_stubs():
+    for rel in ("cache/dpp4-mace-t2d/ft_30418475.txt",                 # r6: listed as held by the certificate
+                "cache/metformin-pcos-ovulation/ft_16769748.txt",      # r27-03 Moll: 'full text checked'
+                "cache/omega3-cardiovascular-events/ft_33190147.txt"):  # r28 STRENGTH
+        d = _lab(rel)
+        assert (d["label"], d["reason"], d["bundle_coverage"]) == ("STUB", "PMC_NO_DOWNLOAD", None), rel
+
+
+def test_PLANT_a_portal_page_is_metadata_not_a_comparator_full_text():
+    d = _lab("cache/sglt2-ckd-progression/comparator_fulltext.txt")    # r17-03: a Pure repository page + RIS block
+    assert d["label"] == "METADATA" and d["reason"] == "PORTAL_PAGE"
+
+
+def test_a_self_declared_excerpt_keeps_its_own_label():
+    d = _lab("cache/spironolactone-hfref-mortality/ft_28824029.txt")
+    assert d["label"] == "EXCERPT" and d["reason"] == "SELF_DECLARED:EXCERPT_ONLY"
+
+
+def test_real_full_texts_stay_full_texts():
+    # flattened JATS prose (no line breaks) and a PMC XML with a body
+    for rel in ("cache/balanced-crystalloids-vs-saline-mortality/comparator_fulltext.txt",
+                "cache/noac-vs-warfarin-af-stroke/comparator_fulltext.txt",
+                "cache/corticosteroids-cap-mortality/ft_35723686.txt"):
+        assert _lab(rel)["label"] == "FULLTEXT", rel
+
+
+def test_synthetic_edges():
+    assert sc.label_document(b"<?xml version='1.0'?><article><front><abstract>x</abstract></front></article>")["reason"] == "XML_NO_BODY"
+    assert sc.label_document(b"")["label"] == "STUB"
+    assert sc.label_document(b"<article><front/><body>  </body></article>")["reason"] == "XML_EMPTY_BODY"
+    # a short body is still the whole body (a letter to the editor): length is never coverage
+    assert sc.label_document(b"<article><front/><body>Dear editor, I read with interest.</body></article>")["label"] == "FULLTEXT"
+    short = "Background ... Methods: x. Results: y. Discussion: z."
+    assert sc.label_document(short)["label"] == "EXCERPT"            # an abstract's labels are not an article body
+
+
+def test_absence_needs_a_complete_object():
+    assert not sc.absence_licensed(["STUB", "METADATA", "EXCERPT"])
+    assert sc.absence_licensed(["STUB", "FULL_ABSTRACT"]) and sc.absence_licensed(["FULLTEXT"], scope="fulltext")
+
+
+def test_abstract_label_uses_the_bundle_preservation_record():
+    units = [{"index": 0, "label": "BACKGROUND", "text": "A is studied."},
+             {"index": 1, "label": "RESULTS", "text": "HHF 20/2092 v 33/2100, HR 0.60 (0.35-1.05)."}]
+    assert sc.abstract_label("BACKGROUND: A is studied. RESULTS: HHF 20/2092 v 33/2100, HR 0.60 (0.35-1.05).", units)["label"] == "FULL_ABSTRACT"
+    ab = sc.abstract_label("BACKGROUND: A is studied.", units)
+    assert ab["label"] == "EXCERPT" and ab["reason"].startswith("UNITS_MISSING:1/2")
+    assert sc.abstract_label("x", None)["bundle_coverage"] == "UNKNOWN_COMPLETENESS"
+
+
+def _acq_case(slug, pmid):
+    import glob
+    import json
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    import build_bundle
+    rec = next(r for r in json.load(open(os.path.join(ROOT, "cache", slug, "records.json"), encoding="utf-8"))["records"]
+               if str(r["id"]) == pmid)
+    xml = glob.glob(os.path.join(ROOT, "registry", "source_acquisitions", slug, "pubmed_efetch_*", f"{pmid}.xml"))
+    return rec["abstract"], build_bundle.abstract_units(open(sorted(xml)[-1], "rb").read())
+
+
+def test_PLANT_the_census_abridgements_are_excerpts():
+    for slug, pmid in (("dpp4-mace-t2d", "28893244"), ("glp1-ra-mace-t2d", "40162642")):   # OMNeON, SOUL
+        held, units = _acq_case(slug, pmid)
+        lab = sc.abstract_label(held, units)
+        assert lab["label"] == "EXCERPT" and lab["reason"].startswith("UNITS_MISSING:4/4"), (slug, lab["reason"])
+
+
+def test_unicode_spaces_in_a_pubmed_label_are_whitespace_not_missing_text():
+    held, units = _acq_case("spironolactone-hfref-mortality", "28824029")      # 'METHODS\u2004AND\u2004RESULTS'
+    assert sc.abstract_label(held, units)["label"] == "FULL_ABSTRACT"
+
+
+def test_a_revised_pubmed_record_is_a_complete_earlier_version_not_an_abridgement():
+    for slug, pmid in (("spironolactone-hfref-mortality", "41955577"), ("semaglutide-obesity-weight", "42610271")):
+        held, units = _acq_case(slug, pmid)
+        lab = sc.abstract_label(held, units)
+        assert lab["label"] == "FULL_ABSTRACT" and lab["version_differs"] is True, (slug, lab)
+
+
+def test_PLANT_codex_r1_1_a_truncated_xml_is_never_complete():
+    d = sc.label_document("<article><body><sec><title>Introduction</title><p>Enrollment began.")
+    assert d["label"] == "EXCERPT" and d["reason"] == "XML_TRUNCATED" and not sc.absence_licensed([d["label"]])
+
+
+def test_PLANT_codex_r1_2_a_header_can_lower_coverage_never_raise_it():
+    d = sc.label_document("(coverage: COMPLETE_SOURCE)\nThe publisher does not allow downloading of the full text.")
+    assert d["label"] == "STUB" and d["reason"] == "PMC_NO_DOWNLOAD"
+    assert sc.label_document("(coverage: COMPLETE_SOURCE)\nshort text")["label"] == "EXCERPT"
+
+
+def test_PLANT_codex_r1_3_a_wholly_missing_unit_is_never_a_revision():
+    held = ("Participants were followed for one year. " * 30).strip()
+    units = [{"index": 0, "label": "", "text": held}, {"index": 1, "label": "", "text": "Two deaths."}]
+    lab = sc.abstract_label(held, units)
+    assert lab["label"] == "EXCERPT", lab
+
+
+def test_PLANT_codex_r2_1_an_html_portal_page_is_metadata_not_jats():
+    d = sc.label_document("<!DOCTYPE html><html><body>Research output: Contribution to journal</body></html>")
+    assert d["label"] == "METADATA" and d["reason"] == "PORTAL_PAGE"
+    assert sc.label_document("<!DOCTYPE html><html><body>Some landing page.</body></html>")["label"] != "FULLTEXT"
+
+
+def test_PLANT_codex_r2_2_scattered_characters_never_cover_a_unit():
+    held = "No deaths were excluded from the analysis. " + "a" * 2000
+    units = [{"index": 0, "label": "", "text": held}, {"index": 1, "label": "RESULTS", "text": "No deaths."}]
+    assert sc.abstract_label(held, units)["label"] == "EXCERPT"
+
+
+def test_PLANT_codex_r2_3_a_bom_does_not_hide_jats():
+    assert sc.label_document(b"\xef\xbb\xbf<article><body><p>Trial results.</p></body></article>")["label"] == "FULLTEXT"
+
+
+def test_PLANT_agy_r1_1_a_namespace_prefixed_jats_body_is_a_body():
+    x = ('<?xml version="1.0"?><jats:article xmlns:jats="http://jats.nlm.nih.gov"><jats:body><jats:p>Results: 20 deaths '
+         'occurred.</jats:p></jats:body></jats:article>')
+    assert sc.label_document(x)["label"] == "FULLTEXT"
+
+
+def test_PLANT_agy_r1_2_a_declared_metadata_or_stub_header_keeps_its_label():
+    assert sc.label_document("SOURCE METADATA -- (coverage: METADATA)\nTitle: Trial of Drug X")["label"] == "METADATA"
+    assert sc.label_document("(coverage: STUB)\nnothing")["label"] == "STUB"
+
+
+def test_PLANT_agy_r1_3_a_self_closing_body_is_empty():
+    d = sc.label_document("<article><body/></article>")
+    assert (d["label"], d["reason"]) == ("STUB", "XML_EMPTY_BODY")
+
+
+def test_PLANT_agy_r1_4_absence_is_licensed_only_for_the_scope_searched():
+    assert sc.absence_licensed(["FULL_ABSTRACT"], scope="abstract")
+    assert not sc.absence_licensed(["FULL_ABSTRACT"], scope="fulltext")          # not in the abstract != not reported
+    assert sc.absence_licensed(["STUB", "FULLTEXT"], scope="fulltext")
+
+
+def test_PLANT_a_saved_http_error_page_is_a_stub():
+    # two comparator 'europepmc_fulltext.xml' files are nginx '504 Gateway Time-out' pages
+    for rel in ("cache/comparators/24963045/2026-09-15_europepmc_fulltext.xml",
+                "cache/comparators/38128217/2026-09-15_europepmc_fulltext.xml"):
+        d = _lab(rel)
+        assert (d["label"], d["reason"]) == ("STUB", "HTTP_ERROR_PAGE"), rel
+
+
+def test_PLANT_codex_r3_1_an_xhtml_page_behind_an_xml_declaration_is_not_jats():
+    x = ('<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Publisher portal</title></head>'
+         '<body><p>Sign in to view this article.</p></body></html>')
+    assert sc.label_document(x)["label"] == "METADATA"
+
+
+def test_PLANT_codex_r3_2_an_abstract_scope_absence_needs_a_complete_abstract():
+    assert not sc.absence_licensed(["FULLTEXT"], scope="abstract")
+    assert sc.absence_licensed(["FULLTEXT", "FULL_ABSTRACT"], scope="abstract")
+
+
+def test_PLANT_codex_r3_3_an_unknown_scope_fails_closed():
+    import pytest
+    with pytest.raises(ValueError):
+        sc.absence_licensed(["FULL_ABSTRACT"], scope="full_text")
+
+
+def test_PLANT_agy_r3_1_the_declared_label_wins_over_the_generic_excerpt_phrase():
+    assert sc.label_document("NOT A COMPLETE DOCUMENT (coverage: METADATA)\nTitle: x")["label"] == "METADATA"
+
+
+def test_PLANT_agy_r3_3_a_hyphenated_tag_is_not_a_body():
+    x = "<?xml version='1.0'?><article><front><title>x</title></front><body-matter><p>y</p></body-matter></article>"
+    d = sc.label_document(x)
+    assert (d["label"], d["reason"]) == ("STUB", "XML_NO_BODY")
