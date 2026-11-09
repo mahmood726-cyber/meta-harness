@@ -608,17 +608,17 @@ def load_defects(root: str | os.PathLike[str], batch_id: str) -> list[dict[str, 
 
 def _run_record_paths(root: Path, batch_id: str) -> list[Path]:
     base = root / "prospective" / batch_id
+    # Check aliases before exists(): a dangling archive must not disappear
+    # as though there had never been retained run evidence.
+    if (root / "prospective").is_symlink() or base.is_symlink():
+        raise ProspectiveRefusal("run record batch directory is symlinked or escapes repository")
     if not base.exists():
         return []
     # Resolve only after checking the declared batch location. Otherwise a
     # symlinked directory or retained JSON leaf can import an externally
     # mutable COMPLETED record into the prospective run denominator.
     canonical_base = base.resolve()
-    if (
-        (root / "prospective").is_symlink()
-        or base.is_symlink()
-        or not _inside(canonical_base, root)
-    ):
+    if not _inside(canonical_base, root):
         raise ProspectiveRefusal("run record batch directory is symlinked or escapes repository")
     paths: set[Path] = set()
     for pattern in ("runs/*.json", "runs/**/run_record.json", "**/run_record.json"):
@@ -1040,6 +1040,22 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
                 reasons.append(
                     f"run {record.get('run_id')}: cited defect predates original attempt"
                 )
+
+    # A4: every retained failure counts against the batch, including after
+    # an otherwise permitted infrastructure rerun completes successfully.
+    failed_runs = [
+        record for record in records
+        if record.get("outcome") in RUN_OUTCOMES and record["outcome"] != "COMPLETED"
+    ]
+    if failed_runs:
+        failures = ", ".join(
+            f"{record.get('run_id')!r} ({record['outcome']})"
+            for record in failed_runs
+        )
+        reasons.append(
+            f"batch contains failed prospective runs ({len(failed_runs)} of "
+            f"{len(records)} retained): {failures}; a rerun cannot erase failure"
+        )
 
     if reasons:
         raise ProspectiveRefusal("PROSPECTIVE BATCH REFUSED:\n  - " + "\n  - ".join(reasons))

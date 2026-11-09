@@ -550,6 +550,15 @@ def _write_batch_record(root: Path, batch_id: str, record: dict) -> Path:
     return path
 
 
+def _assert_only_retained_failure(root: Path, batch: str) -> None:
+    """A permitted retry passes other A4 checks but never erases its failure."""
+    with pytest.raises(prospective.ProspectiveRefusal, match="failed prospective runs") as exc:
+        prospective.check_batch(root, batch)
+    reasons = str(exc.value).split("\n  - ")[1:]
+    assert len(reasons) == 1
+    assert reasons[0].startswith("batch contains failed prospective runs")
+
+
 
 @pytest.mark.parametrize(
     "field,invalid_value",
@@ -654,9 +663,9 @@ def test_a4_crashed_attempt_with_no_outputs_remains_recorded(tmp_path: Path) -> 
     record = _record(root, "batch-plant", "run-crashed")
     record.update(outcome="FAILED_CRASH", artefact_paths=[])
     _write_batch_record(root, "batch-plant", record)
-    result = prospective.check_batch(root, "batch-plant")
-    assert result["ok"] is True
-    assert result["run_records"] == 1
+    with pytest.raises(prospective.ProspectiveRefusal, match="failed prospective runs"):
+        prospective.check_batch(root, "batch-plant")
+    assert len(prospective.load_run_records(root, "batch-plant")) == 1
 
 
 def test_valid_retained_subject_and_id_remain_accepted(tmp_path: Path) -> None:
@@ -1081,7 +1090,7 @@ def test_a4_defect_id_must_be_cited_as_complete_identifier(
         prospective.check_batch(root, batch)
 
 
-def test_check_batch_accepts_one_rerun_with_prior_defect(tmp_path: Path) -> None:
+def test_check_batch_retains_one_permitted_rerun_but_refuses_failed_batch(tmp_path: Path) -> None:
     root = _mini_root(tmp_path)
     batch = "batch-plant"
     _declare(root, batch)
@@ -1118,13 +1127,12 @@ def test_check_batch_accepts_one_rerun_with_prior_defect(tmp_path: Path) -> None
         ),
     )
 
-    summary = prospective.check_batch(root, batch)
-
-    assert summary["ok"] is True
-    assert summary["run_records"] == 2
-    assert summary["defect_entries"] == 1
-    assert summary["external_dependency_mutability"] is True
-    assert summary["freeze_claim"] == prospective.MUTABLE_FREEZE_CLAIM
+    _assert_only_retained_failure(root, batch)
+    declaration = prospective.load_declaration(root, batch)
+    assert len(prospective.load_run_records(root, batch)) == 2
+    assert len(prospective.load_defects(root, batch)) == 1
+    assert declaration["external_dependency_mutability"] is True
+    assert declaration["freeze_claim"] == prospective.MUTABLE_FREEZE_CLAIM
 
 
 
@@ -1250,9 +1258,8 @@ def test_a4_rerun_requires_infrastructure_eligible_matching_failure(
         with pytest.raises(prospective.ProspectiveRefusal, match=expected_refusal):
             prospective.check_batch(root, batch)
     else:
-        summary = prospective.check_batch(root, batch)
-        assert summary["ok"] is True
-        assert summary["run_records"] == 2
+        _assert_only_retained_failure(root, batch)
+        assert len(prospective.load_run_records(root, batch)) == 2
 
 
 @pytest.mark.parametrize(
@@ -1302,9 +1309,8 @@ def test_a4_rerun_must_follow_original_completion(
         ):
             prospective.check_batch(root, batch)
     else:
-        summary = prospective.check_batch(root, batch)
-        assert summary["ok"] is True
-        assert summary["run_records"] == 2
+        _assert_only_retained_failure(root, batch)
+        assert len(prospective.load_run_records(root, batch)) == 2
 
 
 @pytest.mark.parametrize(
@@ -1442,6 +1448,8 @@ def test_a4_predeclared_time_limit_refuses_completed_overrun(
             match="COMPLETED after predeclared time_limit_s",
         ):
             prospective.check_batch(root, "batch-plant")
+    elif outcome != "COMPLETED":
+        _assert_only_retained_failure(root, "batch-plant")
     else:
         assert prospective.check_batch(root, "batch-plant")["ok"] is True
 
@@ -1593,7 +1601,7 @@ def test_a4_defect_cannot_pre_authorise_a_future_attempt(
         ):
             prospective.check_batch(root, batch)
     else:
-        assert prospective.check_batch(root, batch)["ok"] is True
+        _assert_only_retained_failure(root, batch)
 
 @pytest.mark.parametrize("link_kind", ["file", "runs_directory"])
 def test_a4_symlinked_retained_record_refuses_external_success(
@@ -1755,3 +1763,382 @@ def test_retained_a4_symlink_refuses_dangling_and_live(tmp_path: Path, target_ex
     with pytest.raises(prospective.ProspectiveRefusal, match="symlinked retained artefact") as exc:
         prospective.check_batch(root, batch)
     assert target.name not in str(exc.value)
+
+
+# Restored dropped regressions; all records are synthetic developer fixtures.
+
+@pytest.mark.parametrize(
+    ("field", "forged_value", "error"),
+    [
+        ("architecture_components", {}, "architecture component manifest mismatch"),
+        ("mutable_dependencies", [], "mutable dependency ledger mismatch"),
+        ("external_dependency_mutability", False, "external dependency mutability mismatch"),
+        ("freeze_claim", prospective.IMMUTABLE_FREEZE_CLAIM, "freeze claim mismatches"),
+        ("rerun_policy", "No limits on reruns", "declared rerun policy differs"),
+    ],
+)
+def test_declaration_refuses_metadata_forgery_even_with_unchanged_identity(
+    tmp_path: Path, field: str, forged_value: object, error: str
+) -> None:
+    root = _mini_root(tmp_path)
+    decl = _declare(root)
+    original_identity = decl["architecture_identity"]
+    assert prospective.check_declaration_frozen(root, decl) == decl
+
+    forged = dict(decl)
+    forged[field] = forged_value
+    assert forged["architecture_identity"] == original_identity
+    with pytest.raises(prospective.ProspectiveRefusal, match=error):
+        prospective.check_declaration_frozen(root, forged)
+
+
+@pytest.mark.parametrize("tampered_batch", ["batch-other", None, "OMITTED"])
+def test_check_batch_refuses_silent_exclusion_of_failed_run(
+    tmp_path: Path, tampered_batch: str | None
+) -> None:
+    """A4: an archived failed run must never vanish from batch accounting."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-valid"))
+    failed = _record(root, batch, "run-failed", topic="topic-failed")
+    failed["outcome"] = "FAILED_CRASH"
+    _write_batch_record(root, batch, failed)
+
+    # Positive control: the failed record is retained in the batch census.
+    assert len(prospective.load_run_records(root, batch)) == 2
+    with pytest.raises(prospective.ProspectiveRefusal, match="failed prospective runs"):
+        prospective.check_batch(root, batch)
+
+    corrupted = dict(failed)
+    if tampered_batch == "OMITTED":
+        del corrupted["batch_id"]
+    else:
+        corrupted["batch_id"] = tampered_batch
+    path = root / "prospective" / batch / "runs" / failed["run_id"] / "run_record.json"
+    path.write_text(json.dumps(corrupted), encoding="utf-8")
+
+    # Before the fix, the loader silently dropped this failed record,
+    # and check_batch incorrectly returned ok=True with one run.
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="run record batch_id does not match"
+    ):
+        prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize("invalid_document", [[], None, "not a record"])
+def test_check_batch_refuses_non_object_run_record(
+    tmp_path: Path, invalid_document: object
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    prospective.write_run_record(
+        root / "prospective" / batch / "runs" / "run-corrupted.json",
+        invalid_document,
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="run record batch_id does not match"
+    ):
+        prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize("failure", ["FAILED_CRASH", "FAILED_TIMEOUT", "FAILED_INVARIANT"])
+def test_a4_failed_run_cannot_yield_successful_batch(
+    tmp_path: Path, failure: str
+) -> None:
+    """A4: every failed run counts against batch success, even with a completed peer."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-completed"))
+    # Baseline positive control: a completed-only structurally valid batch passes.
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+    failed = _record(root, batch, "run-failed", topic="topic-failed")
+    failed["outcome"] = failure
+    _write_batch_record(root, batch, failed)
+    archived = prospective.load_run_records(root, batch)
+    assert len(archived) == 2
+    assert any(record["outcome"] == failure for record in archived)
+
+    with pytest.raises(prospective.ProspectiveRefusal) as exc_info:
+        prospective.check_batch(root, batch)
+    message = str(exc_info.value)
+    assert "batch contains failed prospective runs (1 of 2 retained)" in message
+    assert "run-failed" in message
+    assert failure in message
+
+
+def test_a4_successful_rerun_does_not_erase_failed_original(tmp_path: Path) -> None:
+    """A permitted rerun is a second record, not a successful replacement."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    original = _record(root, batch, "run-original")
+    original["outcome"] = "FAILED_CRASH"
+    _write_batch_record(root, batch, original)
+
+    entry = prospective.defect_entry(
+        batch, "topic-plant", "run-original", "FAILED_CRASH",
+        "runner killed", "plant defect", entry_id="defect-plant",
+        declared_utc="2026-09-14T00:19:00Z",
+    )
+    prospective.append_defect(
+        entry, root.parent / "meta-harness-defects" / f"{batch}.jsonl", root=root
+    )
+    rerun = _record(
+        root, batch, "run-rerun",
+        started="2026-09-14T00:20:00Z",
+        finished="2026-09-14T00:21:00Z",
+        rerun_of="run-original",
+        justification="rerun because defect-plant documents external failure",
+    )
+    _write_batch_record(root, batch, rerun)
+    assert len(prospective.load_run_records(root, batch)) == 2
+
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="batch contains failed prospective runs"
+    ) as exc_info:
+        prospective.check_batch(root, batch)
+    assert "run-original" in str(exc_info.value)
+    assert "FAILED_CRASH" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("finished", [
+    "2026-09-14T00:10:59.999Z",
+    "2026-09-14T00:11:00Z",
+])
+def test_a4_completed_run_at_or_below_registered_time_limit_passes(
+    tmp_path: Path, finished: str
+) -> None:
+    """The preregistered ceiling is inclusive; do not refuse a valid run."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-on-time", finished=finished)
+    )
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+
+@pytest.mark.parametrize("finished", [
+    "2026-09-14T00:11:00.001Z",
+    "2026-09-14T00:12:00Z",
+])
+def test_a4_completed_run_exceeding_registered_time_limit_refuses(
+    tmp_path: Path, finished: str
+) -> None:
+    """A4: changing an over-time run's label to COMPLETED must not pass."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-over-time", finished=finished)
+    )
+    with pytest.raises(prospective.ProspectiveRefusal) as exc_info:
+        prospective.check_batch(root, batch)
+    text = str(exc_info.value)
+    assert "run-over-time" in text
+    assert "COMPLETED after predeclared time_limit_s" in text
+    assert "> 60s" in text
+
+
+@pytest.mark.parametrize("corrupt_limit", [
+    0, -1, None, "60", True, float("nan"), float("inf"), float("-inf")
+])
+def test_a4_batch_checker_refuses_invalid_declared_time_limit(
+    tmp_path: Path, corrupt_limit: object
+) -> None:
+    """A4 requires an actual finite, positive predeclared number."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    decl = _declare(root, batch)
+    decl["time_limit_s"] = corrupt_limit
+    prospective.declaration_path(root, batch).write_text(json.dumps(decl), encoding="utf-8")
+    _write_batch_record(
+        root, batch, _record(root, batch, "run-on-time")
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="non-finite JSON number" if isinstance(corrupt_limit, float) else "time_limit_s must be a positive finite number"
+    ):
+        prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("started_utc", None),
+    ("finished_utc", None),
+    ("started_utc", ""),
+    ("finished_utc", ""),
+    ("started_utc", "OMIT"),
+    ("finished_utc", "OMIT"),
+])
+def test_a4_missing_clock_cannot_bypass_registered_time_limit(
+    tmp_path: Path, field: str, value: str | None
+) -> None:
+    """A null, blank or omitted clock cannot be treated as a timely run."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-clock-corrupted")
+    if value == "OMIT":
+        record.pop(field)
+    else:
+        record[field] = value
+    _write_batch_record(root, batch, record)
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="UTC timestamp"
+    ):
+        prospective.check_batch(root, batch)
+
+
+@pytest.mark.parametrize("other_topic", ["topic-plant", "topic-other"])
+def test_a4_repeated_run_id_in_distinct_archived_records_is_refused(
+    tmp_path: Path, other_topic: str
+) -> None:
+    """Distinct retained packages cannot both claim the same run identity."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    first = _record(root, batch, "run-shared")
+    second = _record(root, batch, "run-shared", topic=other_topic)
+    base = root / "prospective" / batch / "runs"
+    prospective.write_run_record(base / "package-first", first)
+    prospective.write_run_record(base / "package-second", second)
+
+    assert len(prospective.load_run_records(root, batch)) == 2
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="duplicate run_id in batch"
+    ) as exc_info:
+        prospective.check_batch(root, batch)
+    assert "run-shared" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("corrupt_id", [None, "", 7, True, ".", "..", "../run-escape", []])
+def test_a4_run_identity_absent_or_invalid_refuses_batch(
+    tmp_path: Path, corrupt_id: object
+) -> None:
+    """A4 must not accept a run that cannot be uniquely and safely cited."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    record = _record(root, batch, "run-valid")
+    record["run_id"] = corrupt_id
+    prospective.write_run_record(
+        root / "prospective" / batch / "runs" / "package-corrupt", record
+    )
+    with pytest.raises(
+        prospective.ProspectiveRefusal, match="run_id must be a nonempty safe identifier"
+    ):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_distinct_valid_run_ids_keep_successful_census(tmp_path: Path) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-one"))
+    _write_batch_record(root, batch, _record(root, batch, "run-two", topic="topic-two"))
+    summary = prospective.check_batch(root, batch)
+    assert summary["ok"] is True
+    assert summary["run_records"] == 2
+
+
+def test_a4_one_retained_completed_run_remains_eligible_for_structural_check(
+    tmp_path: Path,
+) -> None:
+    """The empty-census refusal does not reject nonempty valid run evidence."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-one"))
+    result = prospective.check_batch(root, batch)
+    assert result["run_records"] == 1
+    assert result["ok"] is True
+
+
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_a4_symlinked_run_record_cannot_pass_retained_archive_census(
+    tmp_path: Path, target_exists: bool
+) -> None:
+    """External or dangling links are neither safe evidence nor silent skips."""
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-valid"))
+    external = tmp_path / "externally-mutable-run.json"
+    if target_exists:
+        prospective.write_run_record(
+            external, _record(root, batch, "run-external")
+        )
+    linked = root / "prospective" / batch / "runs" / "linked.json"
+    try:
+        linked.symlink_to(external)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem does not permit symlinks")
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="run record path is symlinked",
+    ):
+        prospective.check_batch(root, batch)
+
+
+def test_a4_symlinked_prospective_parent_cannot_import_external_archive(
+    tmp_path: Path,
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    external = tmp_path / "external-archive"
+    prospective.write_run_record(
+        external / batch / "runs" / "run-valid",
+        _record(root, batch, "run-valid"),
+    )
+    try:
+        (root / "prospective").symlink_to(external, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem does not permit symlinks")
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="run record batch directory is symlinked or escapes repository",
+    ):
+        prospective.load_run_records(root, batch)
+
+
+def test_a4_regular_archived_nested_and_flat_run_records_remain_valid(
+    tmp_path: Path,
+) -> None:
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    _write_batch_record(root, batch, _record(root, batch, "run-nested"))
+    flat_path = prospective.write_run_record(
+        root / "prospective" / batch / "runs" / "run-flat.json",
+        _record(root, batch, "run-flat", topic="topic-flat"),
+    )
+    for rel in ("review/index.html", "review/manifest.json"):
+        _write(flat_path.parent, rel, "synthetic fixture only\n")
+    records = prospective.load_run_records(root, batch)
+    assert {record["run_id"] for record in records} == {"run-nested", "run-flat"}
+    assert prospective.check_batch(root, batch)["ok"] is True
+
+
+@pytest.mark.parametrize("linked_component", ["prospective", "batch-plant"])
+def test_a4_dangling_archive_is_refused_before_empty_census(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, linked_component: str
+) -> None:
+    """Exercise dangling-link ordering even on hosts without symlink privileges."""
+    root = _mini_root(tmp_path)
+    base = root / "prospective" / "batch-plant"
+    linked = base if linked_component == "batch-plant" else base.parent
+    is_symlink = Path.is_symlink
+    monkeypatch.setattr(
+        Path, "is_symlink", lambda path: path == linked or is_symlink(path)
+    )
+    assert linked.is_symlink()
+    assert not base.exists()
+    with pytest.raises(
+        prospective.ProspectiveRefusal,
+        match="run record batch directory is symlinked or escapes repository",
+    ):
+        prospective.load_run_records(root, "batch-plant")
