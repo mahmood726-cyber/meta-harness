@@ -45,10 +45,11 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 14,
       "items": {
         "$ref": "#/$defs/case"
-      }
+      },
+      "description": "At least 14 registered v0.1 transport cases. Python validate_manifest enforces mandatory CROSS-EXCH-001 through -014 and gap-free future IDs."
     },
     "coverage": {
       "type": "array",
@@ -123,7 +124,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^CROSS-[A-Z]+-[0-9]{3}$"
+          "pattern": "^CROSS-EXCH-(?!000(?![\\s\\S]))[0-9]{3}(?![\\s\\S])"
         },
         "description": {
           "type": "string",
@@ -149,9 +150,64 @@
           ]
         },
         "run_evidence": {
-          "type": "object"
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Offline structural PASS or FAIL provenance. The importer also binds commit and input digests to the selected repository and fixture. These checks do not prove a remote job existed or had the claimed conclusion.",
+          "required": [
+            "action_run_url",
+            "commit_sha",
+            "input_sha256",
+            "job_name"
+          ],
+          "properties": {
+            "action_run_url": {
+              "type": "string",
+              "pattern": "^https://github[.]com/mahmood726-cyber/(?:meta-harness|rapidmeta-kit|e156-ecosystem-starter|e156)/actions/runs/[1-9][0-9]*(?![\\s\\S])"
+            },
+            "commit_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}(?![\\s\\S])"
+            },
+            "input_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+            },
+            "job_name": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "PASS",
+                  "FAIL"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "run_evidence"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "run_evidence"
+              ]
+            }
+          }
+        }
+      ]
     }
   }
 }

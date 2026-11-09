@@ -93,11 +93,15 @@
       "properties": {
         "study_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?![\\s\\u001c-\\u001f\\u0085\\uFEFF])[\\s\\S]*[^\\s\\u001c-\\u001f\\u0085\\uFEFF](?![\\s\\S])",
+          "description": "No leading or trailing Unicode whitespace, including C0/NEL whitespace and BOM. The importer refuses aliases without trimming; internal whitespace is allowed."
         },
         "trial_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?![\\s\\u001c-\\u001f\\u0085\\uFEFF])[\\s\\S]*[^\\s\\u001c-\\u001f\\u0085\\uFEFF](?![\\s\\S])",
+          "description": "No leading or trailing Unicode whitespace, including C0/NEL whitespace and BOM. The importer refuses aliases without trimming; internal whitespace is allowed. Each trial_id may occur once per proposed pool; executable validation enforces uniqueness. Multi-report and multi-arm reconciliation must occur upstream."
         },
         "decision": {
           "enum": [
@@ -138,7 +142,9 @@
           "properties": {
             "locator": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "pattern": "^(?:line [1-9][0-9]{0,8}|lines [1-9][0-9]{0,8}-[1-9][0-9]{0,8})(?![\\s\\S])",
+              "description": "1-based UTF-8 text line or inclusive range. The importer checks bounds and quotation containment. PDF page/table coordinates require an independent source-aware checker."
             },
             "verbatim": {
               "type": "string",

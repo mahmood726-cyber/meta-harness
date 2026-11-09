@@ -13,7 +13,7 @@ python -m pytest tests/test_exchange_v01.py -q
 python -m harness.exchange_v01 benchmarks/cross_repo/v0.1/manifest.json
 ```
 
-The first command tests a small standalone Python transport verifier. The second validates that commit references have the correct 40-hex format and inputs match their SHA-256 digests; it cannot independently prove remote commit existence or lockfile execution. The JSON Schemas are interoperability descriptions; the Python validator is the authoritative executable subset currently tested. Comparing their full acceptance behaviour remains future work. The validator requires plausible structured workflow-run evidence before accepting a recorded PASS, but it does **not** independently fetch Actions or certify the record truthful; spot-checking the job and exact checkout is still required.
+The first command tests a small standalone Python transport verifier. The second validates repository pins, fixture digests, the complete case list and status-bound execution records; it cannot independently prove remote commit existence or lockfile execution. The JSON Schemas describe interoperability constraints; Python additionally checks source bytes, line locations, uniqueness, complete case IDs and cross-record pin equality. Full acceptance equivalence is not claimed. Both PASS and FAIL require structured workflow-run evidence tied to the named repository's manifest commit and case input digest. The validator does **not** fetch Actions or certify the record truthful; spot-checking the job and exact checkout is still required.
 
 ## Reference workflows (functional benchmarks, not performance claims)
 
@@ -52,3 +52,41 @@ python -m harness.exchange_v01 benchmarks/cross_repo/v0.1/manifest.json
 These are **synthetic parser/refusal regressions only**, not completed
 CROSS-EXCH-001..015 pinned producer→consumer executions, R-oracle parity,
 signed cross-repository canaries or independently adjudicated science.
+
+## Stacked validator contracts
+
+The current package retains its existing duplicate-trial check and strict raw
+JSON parser. The remaining contracts are enforced at both parsed-object and
+raw-JSON entrypoints:
+
+- `CROSS-EXCH-006`: a quotation must fit the claimed `line N` or inclusive
+  `lines N-M` range in the pinned UTF-8 text. Forged, malformed, reversed,
+  unsupported PDF-style and out-of-range locators refuse handoff.
+- `CROSS-EXCH-007` / `008`: one row per trial identity, with no outer whitespace
+  in either study or trial IDs. Python and schema patterns include C0/NEL
+  whitespace and BOM. IDs are never silently trimmed; internal spaces remain
+  allowed. Different registry aliases still require upstream reconciliation.
+- `CROSS-EXCH-009` / `010`: unknown exchange fields and duplicate raw JSON
+  members refuse handoff. Estimand objects retain their existing exact-key gate.
+- `CROSS-EXCH-011`: execution URLs must name one of the four pinned repositories
+  under `mahmood726-cyber`, have a canonical positive run ID, and match that
+  repository's frozen commit. The case input SHA-256 must also match.
+- `CROSS-EXCH-012`: all case IDs `001` through `014` are required in the
+  `CROSS-EXCH` namespace. Future three-digit additions must be contiguous;
+  ordering does not matter. Schema declares the namespace and minimum count;
+  Python enforces the complete set.
+- `CROSS-EXCH-013`: root, repository, case and coverage objects reject unknown
+  fields. Purpose, dependency identity and case description are required;
+  optional dependency-lock blob identities must be lowercase 40-hex strings.
+- `CROSS-EXCH-014`: both PASS and FAIL require complete, closed execution
+  evidence. NOT_RUN and BLOCKED must omit `run_evidence`, including empty or null
+  values. Malformed status and coverage values raise validation errors.
+
+The added manifest rows preserve the original source fixture, four repository
+pins and external coverage entries. Every case remains `NOT_RUN`. The fictional
+PASS/FAIL records in tests are local structural controls, never benchmark results.
+
+The regressions are `tests/test_exchange_v01_validators.py` and
+`tests/test_exchange_v01_schema.py`. The schema suite
+uses the test-only `jsonschema` package (Draft 2020-12); without it that suite is
+explicitly skipped. Runtime validation adds no dependency.
