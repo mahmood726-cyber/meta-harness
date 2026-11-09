@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 import sys
 sys.path.insert(0, str(ROOT))
 
-from harness import absence  # noqa: E402
+from harness import absence, source_coverage  # noqa: E402
 from harness.pipeline import _outcome_specs  # noqa: E402
 
 
@@ -91,6 +91,7 @@ def classify_row(slug: str, outcome: dict[str, Any], row: dict[str, Any]) -> dic
         reason=row.get("reason"),
         absent_kind=row.get("absent_kind"),
         row=row,
+        coverage=source_coverage.coverage_for(slug, cid, _fulltext(slug, cid)),   # E1: the same coverage the page used
     )
     verdict = absence.verdict_for_row(row, actual)
     return {
