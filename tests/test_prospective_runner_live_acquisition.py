@@ -5,6 +5,7 @@ independent, held-out review or a successful external retrieval.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -23,12 +24,19 @@ def _dump(path: Path, obj: object) -> None:
 def _live_snapshot(out_dir: Path, slug: str = "plant") -> Path:
     snapshot = out_dir / "cache" / slug / "snapshots" / "2026-10-23-plant"
     raw_path = snapshot / "raw" / "pubmed" / "001.json"
-    raw = b'{"body_bytes_b64":"e30=","body_sha256":"plant"}'
+    body = b'{"synthetic": true}'
+    fields = {
+        "source_id": "pubmed_concept_query#1", "url": "https://example.invalid/query",
+        "params": {"q": "synthetic concept"}, "status": 200,
+        "fetched_utc": "2026-10-23T00:00:00Z", "adapter": "synthetic",
+        "adapter_blob_sha": "1" * 40, "body_sha256": hashlib.sha256(body).hexdigest(),
+    }
+    raw = json.dumps({**fields, "body_bytes_b64": base64.b64encode(body).decode("ascii")}).encode()
     raw_path.parent.mkdir(parents=True, exist_ok=True)
     raw_path.write_bytes(raw)
     index = [
         {
-            "source_id": "pubmed",
+            **fields,
             "path": "raw/pubmed/001.json",
             "file_sha256": hashlib.sha256(raw).hexdigest(),
         }
@@ -38,7 +46,10 @@ def _live_snapshot(out_dir: Path, slug: str = "plant") -> Path:
     index_sha = hashlib.sha256(index_path.read_bytes()).hexdigest()
     _dump(
         snapshot / runner.acquisition.LEDGER_FILENAME,
-        {"snapshot": {"mode": "REFRESH", "raw_calls": 1, "raw_index_sha256": index_sha}},
+        {"snapshot": {"mode": "REFRESH", "raw_calls": 1, "raw_index_sha256": index_sha},
+         "sources": [{"source_id": fields["source_id"], "kind": "PUBMED_CONCEPT_QUERY",
+                      "discovery_capable": True, "query": "synthetic concept", "state": "RAN_OK",
+                      "funnel": {"cap": {"kind": "none"}}}]},
     )
     _dump(snapshot / "records.json", {"records": []})
     return snapshot
@@ -142,7 +153,15 @@ def test_runner_records_cached_input_as_failed_invariant(
     config_path = tmp_path / "topic.json"
     _dump(config_path, {"slug": "plant"})
     out_dir = tmp_path / "run"
-    _dump(out_dir / "records.json", {"records": []})
+    # Inject a cache after the runner has reserved a fresh package. A directory
+    # that already existed at entry is now refused without modifying evidence;
+    # this still checks the independent loader gate and failed-run custody.
+    def seed_after_claim():
+        if not (out_dir / "records.json").exists():
+            _dump(out_dir / "records.json", {"records": []})
+        return "2026-10-23T00:00:00Z"
+
+    monkeypatch.setattr(runner, "_utc_now", seed_after_claim)
     monkeypatch.setattr(
         runner.prospective, "load_declaration",
         lambda *_: {"invariants": [], "time_limit_s": 60},

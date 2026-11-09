@@ -45,6 +45,71 @@ def _declare(root: Path, batch_id: str = "batch-plant") -> dict:
     return decl
 
 
+@pytest.mark.parametrize("removed", [
+    "raw/concept/response.json", "raw/concept/empty.json", "raw/INDEX.json",
+    "records.json", "retrieval_ledger.json",
+])
+def test_a4_prospective_runner_retains_each_raw_http_response(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, removed: str,
+) -> None:
+    """Synthetic producer and full batch census; architecture checks need git."""
+    import base64
+    import hashlib
+
+    from scripts import run_prospective_topic as runner
+
+    root = _mini_root(tmp_path)
+    batch = "batch-plant"
+    _declare(root, batch)
+    monkeypatch.setattr(runner, "ROOT", root)
+    config = _write(tmp_path, "topic.json", '{"slug":"topic","topic_identifier":"synthetic-topic"}')
+    output = root / "prospective" / batch / "runs" / "run-slot"
+
+    def synthetic_refresh(config: dict, now_day: str, *, root: str) -> str:
+        snapshot = Path(root) / "cache" / config["slug"]
+        entries = []
+        for name, payload in [("response", b"synthetic API response"), ("empty", b"")]:
+            fields = {
+                "source_id": "concept", "url": "https://example.invalid/query", "params": {},
+                "status": 200, "fetched_utc": now_day + "T00:00:00Z", "adapter": "synthetic",
+                "adapter_blob_sha": "1" * 40, "body_sha256": hashlib.sha256(payload).hexdigest(),
+            }
+            path = runner._write_json(snapshot / "raw" / "concept" / f"{name}.json", {
+                **fields, "body_bytes_b64": base64.b64encode(payload).decode("ascii"),
+            })
+            entries.append({**fields, "path": path.relative_to(snapshot).as_posix(),
+                            "file_sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+        index = runner._write_json(snapshot / "raw" / "INDEX.json", entries)
+        runner._write_json(snapshot / runner.acquisition.LEDGER_FILENAME, {
+            "snapshot": {"mode": "REFRESH", "raw_calls": len(entries),
+                         "raw_index_sha256": hashlib.sha256(index.read_bytes()).hexdigest()},
+            "sources": [{"source_id": "concept", "kind": "PUBMED_CONCEPT_QUERY",
+                         "discovery_capable": True, "query": "synthetic concept", "state": "RAN_OK",
+                         "funnel": {"cap": {"kind": "none"}}}],
+        })
+        runner._write_json(snapshot / "records.json", {"synthetic": True})
+        return str(snapshot)
+
+    monkeypatch.setattr(runner.acquisition, "refresh", synthetic_refresh)
+    monkeypatch.setattr(runner, "_package_review", lambda _c, _r, out, *_a, **_k: [
+        runner._write_json(out / "synthetic-result.json", {"synthetic": True}),
+    ])
+    monkeypatch.setattr(runner, "_invariant_failures", lambda *_a: [])
+    run = runner.run_topic(batch, str(config), str(output))
+    assert run["outcome"] == "COMPLETED"
+    record = json.loads((output / "run_record.json").read_text(encoding="utf-8"))
+    for required in [
+        "cache/topic/raw/concept/response.json", "cache/topic/raw/concept/empty.json",
+        "cache/topic/raw/INDEX.json", "cache/topic/records.json",
+        f"cache/topic/{runner.acquisition.LEDGER_FILENAME}",
+    ]:
+        assert required in record["artefact_paths"]
+    assert prospective.check_batch(root, batch)["ok"] is True
+    (output / "cache" / "topic" / removed).unlink()
+    with pytest.raises(prospective.ProspectiveRefusal, match="retained artefact is missing"):
+        prospective.check_batch(root, batch)
+
+
 
 def test_misfiled_declaration_cannot_validate_as_a_different_batch(tmp_path: Path) -> None:
     # Synthetic cross-batch substitution: previously check_batch could PASS
@@ -1247,7 +1312,7 @@ def test_a4_rerun_requires_infrastructure_eligible_matching_failure(
     prospective.append_defect(
         prospective.defect_entry(
             batch, "topic-plant", "run-original",
-            defect_failure_class, "provider error",
+            defect_failure_class, "provider 5xx",
             "synthetic unverified incident",
             entry_id="defect-classified",
             declared_utc="2026-09-14T00:19:00Z",

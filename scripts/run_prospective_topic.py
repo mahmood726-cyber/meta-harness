@@ -15,7 +15,7 @@ import hashlib
 import io
 import json
 import os
-import shutil
+import re
 import sys
 import time
 import traceback
@@ -31,12 +31,34 @@ sys.path.insert(0, str(ROOT))
 from harness import acquisition  # noqa: E402
 from harness import pipeline as pipeline_mod  # noqa: E402
 from harness import prospective  # noqa: E402
+from harness.prospective_checks.discovery import concept_discovery_failures  # noqa: E402
+from harness.prospective_checks.raw_integrity import verify_raw_record  # noqa: E402
 from harness.census import build_review_dir, verify as census_verify  # noqa: E402
 from harness.registration import protocol_sha as registered_protocol_sha  # noqa: E402
 from harness.synth import method_text  # noqa: E402
 
 
 FROZEN_OUT_DIRS = ("docs", "cache", "topics", "protocols", "harness", "registry")
+SAFE_TOPIC_SLUG_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$")
+WINDOWS_DEVICE_NAMES = {
+    "CON", "PRN", "AUX", "NUL",
+    *(f"COM{i}" for i in range(1, 10)),
+    *(f"LPT{i}" for i in range(1, 10)),
+}
+
+
+def _require_topic_slug(value: Any) -> str:
+    """Reject unsafe identities before acquisition can join root/cache/slug."""
+    if (
+        type(value) is not str
+        or SAFE_TOPIC_SLUG_RE.fullmatch(value) is None
+        or ".." in value
+        or value.split(".", 1)[0].upper() in WINDOWS_DEVICE_NAMES
+    ):
+        raise prospective.ProspectiveRefusal(
+            "prospective topic slug must be a single safe ASCII path component"
+        )
+    return value
 
 
 def _utc_now() -> str:
@@ -69,17 +91,22 @@ def _rel_to_out(out_dir: Path, path: Path) -> str:
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as fh:
-        data = json.load(fh)
+    data = prospective._parse_strict_prospective_json(
+        path.read_text(encoding="utf-8"), str(path)
+    )
     if not isinstance(data, dict):
         raise ValueError(f"{path} must contain a JSON object")
     return data
 
 
-def _copy_file(src: Path, dst: Path) -> Path:
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(src, dst)
-    return dst
+def _claim_fresh_out_dir(out_dir: Path) -> None:
+    """Atomically reserve a new package, including refusal of empty directories."""
+    try:
+        out_dir.mkdir(parents=True, exist_ok=False)
+    except FileExistsError as exc:
+        raise prospective.ProspectiveRefusal(
+            f"out_dir already exists; use a new, run-specific package path: {out_dir}"
+        ) from exc
 
 
 def _cache_candidates(out_dir: Path, slug: str) -> list[Path]:
@@ -89,24 +116,33 @@ def _cache_candidates(out_dir: Path, slug: str) -> list[Path]:
     ]
 
 
-def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tuple[dict[str, Any], Path | None, bool]:
-    """Require fresh retrieval with archived raw responses for each prospective run."""
-    slug = str(config["slug"])
-    for records_path in _cache_candidates(out_dir, slug):
-        if records_path.exists():
-            raise prospective.ProspectiveRefusal(
-                "prospective validation refuses pre-existing records: "
-                f"{records_path}; start a fresh run directory (legacy replay is not validation)"
-            )
+def _safe_archive_file(path: Path, snapshot_dir: Path) -> bool:
+    """Require a local regular file, refusing symlinked archive ancestors too."""
+    try:
+        relative = path.relative_to(snapshot_dir)
+        cursor = snapshot_dir
+        if cursor.is_symlink():
+            return False
+        for part in relative.parts:
+            cursor = cursor / part
+            if cursor.is_symlink():
+                return False
+        return path.is_file() and _inside(path, snapshot_dir)
+    except (OSError, ValueError, RuntimeError):
+        return False
 
-    snapshot_dir = Path(acquisition.refresh(config, now_day, root=str(out_dir))).resolve()
-    if not _inside(snapshot_dir, out_dir):
-        raise prospective.ProspectiveRefusal("acquisition refresh escaped out_dir")
 
-    ledger_path = snapshot_dir / acquisition.LEDGER_FILENAME
-    if not ledger_path.is_file():
-        raise prospective.ProspectiveRefusal("fresh retrieval is missing its retrieval ledger")
-    ledger = _read_json(ledger_path)
+def _verify_prospective_raw_archive(
+    snapshot_dir: Path, ledger: dict[str, Any] | None,
+    *, raw_rows: list[dict[str, Any]] | None = None,
+) -> list[Path]:
+    """Verify recorded HTTP custody and optionally return the same decoded rows.
+
+    This binds index, envelope, body and metadata before discovery/synthesis.
+    It cannot establish that all external requests were recorded.
+    """
+    if not isinstance(ledger, dict):
+        raise prospective.ProspectiveRefusal("prospective raw archive has no retrieval ledger")
     snapshot = ledger.get("snapshot")
     if not isinstance(snapshot, dict) or snapshot.get("mode") != "REFRESH":
         raise prospective.ProspectiveRefusal("prospective retrieval must carry a REFRESH snapshot")
@@ -117,27 +153,101 @@ def _load_or_refresh(config: dict[str, Any], out_dir: Path, now_day: str) -> tup
             "prospective retrieval has no archived raw HTTP calls; completeness is unverified"
         )
     raw_index = snapshot_dir / "raw" / "INDEX.json"
-    if not raw_index.is_file():
+    if not _safe_archive_file(raw_index, snapshot_dir):
         raise prospective.ProspectiveRefusal("prospective retrieval has no raw/INDEX.json")
+    expected_index = snapshot.get("raw_index_sha256")
+    if type(expected_index) is not str or re.fullmatch(r"[0-9a-f]{64}", expected_index) is None:
+        raise prospective.ProspectiveRefusal("prospective raw archive lacks a valid index SHA256")
     index_bytes = raw_index.read_bytes()
-    if hashlib.sha256(index_bytes).hexdigest() != snapshot.get("raw_index_sha256"):
+    if hashlib.sha256(index_bytes).hexdigest() != expected_index:
         raise prospective.ProspectiveRefusal("prospective raw index SHA256 differs from ledger")
     try:
-        rows = json.loads(index_bytes)
+        rows = prospective._parse_strict_prospective_json(
+            index_bytes.decode("utf-8"), "prospective raw index"
+        )
     except (ValueError, UnicodeDecodeError) as exc:
-        raise prospective.ProspectiveRefusal("prospective raw index is not valid JSON") from exc
+        raise prospective.ProspectiveRefusal(f"prospective raw index is not valid JSON: {exc}") from exc
     if not isinstance(rows, list) or len(rows) != raw_calls:
         raise prospective.ProspectiveRefusal("prospective raw index count differs from ledger")
+    verified = [raw_index]
+    seen: set[str] = set()
     for row in rows:
         if not isinstance(row, dict) or not isinstance(row.get("path"), str):
             raise prospective.ProspectiveRefusal("prospective raw index contains an invalid path")
-        body_file = (snapshot_dir / row["path"]).resolve()
-        if not _inside(body_file, snapshot_dir / "raw") or not body_file.is_file():
+        rel = row["path"]
+        parts = rel.split("/")
+        if (
+            len(parts) != 3 or parts[0] != "raw" or not rel.endswith(".json")
+            or any(part in {"", ".", ".."} for part in parts)
+            or "\\" in rel or ":" in rel or rel in seen
+        ):
+            raise prospective.ProspectiveRefusal(
+                "prospective raw response missing or outside snapshot: unsafe/duplicate body path"
+            )
+        seen.add(rel)
+        body_file = snapshot_dir.joinpath(*parts)
+        if not _safe_archive_file(body_file, snapshot_dir):
             raise prospective.ProspectiveRefusal("prospective raw response missing or outside snapshot")
-        if hashlib.sha256(body_file.read_bytes()).hexdigest() != row.get("file_sha256"):
+        file_sha = row.get("file_sha256")
+        if type(file_sha) is not str or re.fullmatch(r"[0-9a-f]{64}", file_sha) is None:
+            raise prospective.ProspectiveRefusal("prospective raw archive missing file SHA256")
+        body_bytes = body_file.read_bytes()
+        if hashlib.sha256(body_bytes).hexdigest() != file_sha:
             raise prospective.ProspectiveRefusal("prospective raw response SHA256 differs from index")
+        try:
+            verify_raw_record(row, body_bytes)
+        except ValueError as exc:
+            raise prospective.ProspectiveRefusal(f"prospective raw response integrity: {exc}") from exc
+        verified.append(body_file)
+    if raw_rows is not None:
+        raw_rows.extend(rows)
+    return verified
 
-    return _read_json(snapshot_dir / "records.json"), snapshot_dir, False
+
+def _load_or_refresh(
+    config: dict[str, Any], out_dir: Path, now_day: str,
+    *, artefacts: list[Path] | None = None,
+) -> tuple[dict[str, Any], Path | None, bool]:
+    """Require live discovery and retain its archive even when verification fails.
+
+    The optional inventory is populated as evidence arrives, so a refusal cannot
+    discard the snapshot reference before run_topic records the failed attempt.
+    """
+    slug = _require_topic_slug(config.get("slug"))
+    for records_path in _cache_candidates(out_dir, slug):
+        if records_path.exists() or records_path.is_symlink():
+            raise prospective.ProspectiveRefusal(
+                "prospective validation refuses pre-existing records: "
+                f"{records_path}; start a fresh run directory (legacy replay is not validation)"
+            )
+
+    snapshot_dir = Path(acquisition.refresh(config, now_day, root=str(out_dir))).resolve()
+    if not _inside(snapshot_dir, out_dir):
+        raise prospective.ProspectiveRefusal("acquisition refresh escaped out_dir")
+    if artefacts is not None:
+        artefacts.append(snapshot_dir)
+    ledger_path = snapshot_dir / acquisition.LEDGER_FILENAME
+    if not _safe_archive_file(ledger_path, snapshot_dir):
+        raise prospective.ProspectiveRefusal("fresh retrieval is missing its retrieval ledger")
+    if artefacts is not None:
+        artefacts.append(ledger_path)
+    ledger = _read_json(ledger_path)
+    rows: list[dict[str, Any]] = []
+    raw_artefacts = _verify_prospective_raw_archive(snapshot_dir, ledger, raw_rows=rows)
+    if artefacts is not None:
+        artefacts.extend(raw_artefacts)
+    failures = concept_discovery_failures(ledger, rows)
+    if failures:
+        raise prospective.ProspectiveRefusal(
+            "prospective concept discovery failed: " + "; ".join(failures)
+        )
+    records_path = snapshot_dir / "records.json"
+    if not _safe_archive_file(records_path, snapshot_dir):
+        raise prospective.ProspectiveRefusal("prospective records missing or outside snapshot")
+    if artefacts is not None:
+        artefacts.append(records_path)
+
+    return _read_json(records_path), snapshot_dir, False
 
 
 def _ledger_from(cache_dir: Path | None) -> dict[str, Any] | None:
@@ -243,9 +353,10 @@ def run_topic(
     decl = prospective.load_declaration(ROOT, batch_id)
     prospective.check_declaration_frozen(ROOT, decl)
 
-    out_dir = Path(out_dir_path).resolve()
+    out_dir = Path(out_dir_path).absolute()
     _refuse_frozen_out_dir(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    _claim_fresh_out_dir(out_dir)
+    out_dir = out_dir.resolve()
 
     started_utc = _utc_now()
     t0 = time.perf_counter()
@@ -256,13 +367,19 @@ def run_topic(
 
     try:
         config_path = Path(topic_config_path)
-        config = _read_json(config_path)
+        config_bytes = config_path.read_bytes()
+        archived_config = out_dir / "topic-config.json"
+        archived_config.write_bytes(config_bytes)
+        artefacts.append(archived_config)
+        config = prospective._parse_strict_prospective_json(
+            config_bytes.decode("utf-8"), "held-out topic configuration"
+        )
+        if not isinstance(config, dict):
+            raise ValueError(f"{config_path} must contain a JSON object")
         topic_identifier = str(config.get("topic_identifier") or config.get("slug") or topic_config_path)
-        if "slug" not in config:
-            raise prospective.ProspectiveRefusal("topic config must provide slug")
-        artefacts.append(_copy_file(config_path, out_dir / "topic-config.json"))
+        _require_topic_slug(config.get("slug"))
         records, cache_dir, from_cache = _load_or_refresh(
-            config, out_dir, started_utc[:10]
+            config, out_dir, started_utc[:10], artefacts=artefacts
         )
         if cache_dir is not None:
             records_path = cache_dir / "records.json"
